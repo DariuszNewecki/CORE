@@ -1,0 +1,24 @@
+score_policy:
+  strategy: weighted_criteria
+
+  criteria:
+    - id: intent_alignment
+      description: "Does this change serve a declared intent?"
+      weight: 0.4
+
+    - id: structural_compliance
+      description: "Does it follow folder conventions and manifest structure?"
+      weight: 0.2
+
+    - id: safety
+      description: "Was the change gated by a test or checkpoint?"
+      weight: 0.2
+
+    - id: code_quality
+      description: "Does it pass formatting, linting, and basic semantic checks?"
+      weight: 0.2
+
+  thresholds:
+    pass: 0.7
+    warn: 0.5
+    fail: 0.4

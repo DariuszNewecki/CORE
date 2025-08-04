@@ -1,0 +1,151 @@
+# .intent/knowledge/source_structure.yaml
+structure:
+  - domain: core
+    path: src/core
+    description: Core logic for orchestration, routing, and CLI
+    editable: true
+    default_handler: python
+    restricted_types: [python, yaml]
+    allowed_imports: 
+      - core
+      - shared
+      - system
+      - agents
+      # External & Standard Libs
+      - fastapi
+      - uvicorn
+      - yaml
+      - requests
+      - dotenv
+      - black
+      - json
+      - os
+      - re
+      - typing
+      - pathlib
+      - datetime
+      - subprocess
+      - contextlib
+      - threading
+      - uuid
+      - platform
+      - ast
+      - tempfile
+
+  - domain: agents
+    path: src/agents
+    description: Specialized AI actors (planners, reviewers, suggesters)
+    editable: true
+    default_handler: python
+    allowed_imports: 
+      - agents
+      - shared
+      - system
+      - core
+      # External & Standard Libs
+      - json
+      - re
+      - textwrap
+      - typing
+      - pathlib
+
+  - domain: system
+    path: src/system
+    description: Governance tooling, lifecycle setup, CLI utilities
+    editable: true
+    default_handler: python
+    allowed_imports: 
+      - system
+      - shared
+      - core
+      # External & Standard Libs
+      - json
+      - ast
+      - pathlib
+      - typing
+      - collections
+      - rich
+      - sys
+      - yaml
+      - re
+      - logging
+      - dataclasses
+
+  - domain: shared
+    path: src/shared
+    description: Shared models, helpers, and config interfaces
+    editable: true
+    default_handler: python
+    allowed_imports: 
+      - shared
+      # External & Standard Libs
+      - json
+      - yaml
+      - pathlib
+      - typing
+      - jsonschema
+      - os
+      - ast
+      
+  - domain: features
+    path: src/features
+    description: Modular capabilities and extensions
+    editable: true
+    default_handler: python
+    allowed_imports: [features, shared, data, services, integrations]
+
+  - domain: tooling
+    path: src/system/tools
+    description: Internal introspection utilities
+    editable: true
+    default_handler: python
+    allowed_imports: [tooling, system, shared, ast, json, logging, pathlib, typing, dataclasses]
+
+  - domain: data
+    path: src/data
+    description: File access, storage backends, memory models
+    editable: true
+    default_handler: python
+    allowed_imports: [data, shared]
+
+  - domain: api
+    path: src/api
+    description: HTTP-facing endpoints
+    editable: true
+    default_handler: python
+    allowed_imports: [api, shared, services]
+
+  - domain: services
+    path: src/services
+    description: Business logic and orchestration
+    editable: true
+    default_handler: python
+    allowed_imports: [services, shared, integrations, data]
+
+  - domain: automation
+    path: src/automation
+    description: Task runners, schedulers, retry logic
+    editable: true
+    default_handler: python
+    allowed_imports: [automation, shared, services]
+
+  - domain: integrations
+    path: src/integrations
+    description: External service bridges (e.g., GitHub, remote LLMs)
+    editable: true
+    default_handler: python
+    allowed_imports: [integrations, shared]
+
+  - domain: mission
+    path: mission
+    description: CORE's declared beliefs, principles, and northstar
+    editable: false
+    restricted_types: [markdown, yaml]
+    allowed_imports: []
+
+  - domain: policies
+    path: policies
+    description: Governance rules and constraints
+    editable: true
+    default_handler: yaml
+    allowed_imports: []

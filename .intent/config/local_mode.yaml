@@ -1,0 +1,7 @@
+mode: local_fallback
+apis:
+  llm:
+    enabled: false
+    fallback: local_validator
+  git:
+    ignore_validation: true

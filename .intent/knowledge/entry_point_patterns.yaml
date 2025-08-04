@@ -1,0 +1,36 @@
+# .intent/knowledge/entry_point_patterns.yaml
+#
+# A declarative set of rules for the KnowledgeGraphBuilder to identify valid
+# system entry points that are not discoverable through simple call-graph analysis.
+# This prevents the auditor from incorrectly flagging valid code as "dead."
+
+patterns:
+  - name: "python_magic_method"
+    description: "Standard Python __dunder__ methods are entry points called by the interpreter."
+    match:
+      type: "function"
+      name_regex: "^__.+__$"
+    entry_point_type: "magic_method"
+
+  - name: "ast_visitor_method"
+    description: "Methods in ast.NodeVisitor subclasses starting with 'visit_' are entry points for the visitor pattern."
+    match:
+      type: "function"
+      name_regex: "^visit_"
+      # This requires the builder to know the base classes of a symbol.
+      base_class_includes: "NodeVisitor"
+    entry_point_type: "visitor_method"
+
+  - name: "capability_implementation"
+    description: "Any symbol tagged with a # CAPABILITY is a primary entry point for the CORE system's reasoning loop."
+    match:
+      # This will be matched based on the 'capability' field in the symbol data.
+      has_capability_tag: true
+    entry_point_type: "capability"
+
+  - name: "framework_base_class"
+    description: "Classes that other components inherit from are valid entry points."
+    match:
+      type: "class"
+      is_base_class: true # This will be true if any other class inherits from it.
+    entry_point_type: "base_class"
