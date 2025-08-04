@@ -1,0 +1,73 @@
+rules:
+  - id: no_undocumented_change
+    description: >
+      CORE must not modify or create any file that is not declared in the function_manifest.
+    enforcement: hard
+
+  - id: must_match_intent
+    description: >
+      All changes must be traceable to a declared high-level intent in the mission or policies.
+    enforcement: soft
+
+  - id: deny_core_loop_edit
+    description: >
+      CORE cannot modify its own orchestration engine unless reviewed by a human.
+    applies_to:
+      paths: ["src/core/cli.py", "src/core/orchestrator.py"]
+    enforcement: manual_review
+
+  - id: require_file_path_comment
+    description: >
+      Every Python file must begin with a comment indicating its relative file path,
+      using the format: '# src/<subfolder>/filename.py'. This enables accurate introspection,
+      duplication detection, and auto-fix tracking.
+    applies_to:
+      patterns: ["src/**/*.py"]
+    enforcement: hard
+
+  - id: limit_rewrite_cycles
+    description: >
+      CORE may not rewrite the same file more than once per execution cycle
+      without explicit validation or feedback input.
+    enforcement: hard
+
+  - id: require_tests_for_capabilities
+    description: >
+      All capabilities declared in the function_manifest must have at least one corresponding test in /tests.
+    enforcement: soft
+
+  - id: enforce_intent_bundle_usage
+    description: >
+      Any capability marked with `requires_intent_bundle: true` must be executed through an IntentBundle flow.
+    enforcement: hard
+
+  - id: manifest_file_existence
+    description: >
+      All file paths listed in function_manifest must exist on disk and be importable.
+    enforcement: hard
+
+  - id: require_manual_review_for_intent_updates
+    description: >
+      Any changes to files under .intent/ — including mission, policies, manifests, or evaluation criteria —
+      must be manually reviewed and approved by a human before being written to disk.
+    applies_to:
+      paths:
+        - ".intent/"
+    enforcement: manual_review
+  - id: immutable_constitution
+    description: >
+      The files principles.yaml, manifesto.md, and northstar.yaml are immutable.
+      CORE may propose changes via IntentBundle, but may not apply them directly.
+      Human review is required for constitutional updates.
+    enforcement: manual_review
+    applies_to:
+      paths:
+        - ".intent/mission/principles.yaml"
+        - ".intent/mission/manifesto.md"
+        - ".intent/mission/northstar.yaml"
+    triggers:
+      - on_write
+      - on_generate
+    action: require_human_approval
+    feedback: |
+      🔒 Constitutional file modification detected. Human review required.

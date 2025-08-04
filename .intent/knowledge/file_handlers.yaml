@@ -1,0 +1,30 @@
+handlers:
+  - type: python
+    extensions: [".py"]
+    parse_as: ast
+    editable: true
+    description: Python source code with manifest-enforced governance
+
+  - type: markdown
+    extensions: [".md"]
+    parse_as: text
+    editable: true
+    description: Human-readable docs. Require manual review in sensitive areas.
+
+  - type: yaml
+    extensions: [".yaml", ".yml"]
+    parse_as: structured
+    editable: true
+    description: Configuration, policies, intent declarations
+
+  - type: json
+    extensions: [".json"]
+    parse_as: structured
+    editable: true
+    description: Machine-readable manifests and graphs
+
+  - type: binary
+    extensions: [".png", ".jpg", ".pdf"]
+    parse_as: none
+    editable: false
+    description: Visual artifacts — viewable only

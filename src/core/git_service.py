@@ -1,0 +1,101 @@
+# src/core/git_service.py
+"""
+GitService — CORE's Git Integration Layer
+
+Provides safe, auditable Git operations:
+- add, commit, rollback
+- status checks
+- branch management
+
+Ensures all changes are tracked and reversible.
+Used by main.py and self-correction engine.
+"""
+
+import subprocess
+from pathlib import Path
+from typing import Optional
+
+
+class GitService:
+    """
+    Encapsulates Git operations for the CORE system.
+    Ensures all file changes are committed with traceable messages.
+    """
+
+    def __init__(self, repo_path: str):
+        """
+        Initialize GitService with repository root.
+
+        Args:
+            repo_path (str): Path to the Git repository.
+        """
+        self.repo_path = Path(repo_path).resolve()
+        if not self.is_git_repo():
+            raise ValueError(f"Invalid Git repository: {repo_path}")
+        print(f"✅ GitService initialized for repo at {self.repo_path}")
+
+    def _run_command(self, command: list) -> str:
+        """
+        Run a Git command and return stdout.
+
+        Args:
+            command (list): Git command as a list (e.g., ['git', 'status']).
+
+        Returns:
+            str: Command output, or raises RuntimeError on failure.
+        """
+        try:
+            result = subprocess.run(
+                command,
+                cwd=self.repo_path,
+                capture_output=True,
+                text=True,
+                check=True
+            )
+            return result.stdout.strip()
+        except subprocess.CalledProcessError as e:
+            raise RuntimeError(f"Git command failed: {e.stderr}") from e
+
+    def add(self, file_path: str = "."):
+        """
+        Stage a file or directory for commit.
+
+        Args:
+            file_path (str): Path to stage. Defaults to '.' (all changes).
+        """
+        abs_path = (self.repo_path / file_path).resolve()
+        if self.repo_path not in abs_path.parents and abs_path != self.repo_path:
+            raise ValueError(f"Cannot stage file outside repo: {file_path}")
+        self._run_command(["git", "add", file_path])
+
+    def commit(self, message: str):
+        """
+        Commit staged changes with a message.
+
+        Args:
+            message (str): Commit message explaining the change.
+        """
+        try:
+            self._run_command(["git", "commit", "-m", message])
+            print(f"✅ Committed changes: {message}")
+        except RuntimeError:
+            print("ℹ️ No changes to commit.")
+
+    def is_git_repo(self) -> bool:
+        """
+        Check if the configured path is a valid Git repository.
+
+        Returns:
+            bool: True if it's a Git repo, False otherwise.
+        """
+        git_dir = self.repo_path / ".git"
+        return git_dir.is_dir()
+
+    def rollback_last_commit(self):
+        """
+        Undo the last Git commit (soft reset).
+
+        Use with caution — only for failed self-modifications.
+        """
+        self._run_command(["git", "reset", "--soft", "HEAD~1"])
+        print("⚠️ Rolled back last commit.")

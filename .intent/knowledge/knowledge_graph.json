@@ -1,0 +1,3368 @@
+{
+  "schema_version": "2.0.0",
+  "metadata": {
+    "files_scanned": 24,
+    "total_symbols": 116,
+    "timestamp_utc": "2025-08-04T12:57:12.594404+00:00"
+  },
+  "symbols": {
+    "src/core/clients.py::BaseLLMClient": {
+      "key": "src/core/clients.py::BaseLLMClient",
+      "name": "BaseLLMClient",
+      "type": "ClassDef",
+      "file": "src/core/clients.py",
+      "domain": "core",
+      "agent": "core_agent",
+      "capability": "unassigned",
+      "intent": "Base class for LLM clients, handling common request logic for Chat APIs.",
+      "docstring": "Base class for LLM clients, handling common request logic for Chat APIs.\nProvides shared initialization and error handling for all LLM clients.",
+      "calls": [
+        "ValueError",
+        "endswith",
+        "json",
+        "post",
+        "print",
+        "raise_for_status",
+        "rstrip"
+      ],
+      "line_number": 12,
+      "is_async": false,
+      "parameters": [],
+      "entry_point_type": "base_class",
+      "last_updated": "2025-08-04T12:57:12.484216+00:00",
+      "is_class": true,
+      "base_classes": [],
+      "entry_point_justification": "framework_base_class"
+    },
+    "src/core/clients.py::__init__": {
+      "key": "src/core/clients.py::__init__",
+      "name": "__init__",
+      "type": "FunctionDef",
+      "file": "src/core/clients.py",
+      "domain": "core",
+      "agent": "core_agent",
+      "capability": "unassigned",
+      "intent": "Initialize the GeneratorClient using environment variables.",
+      "docstring": "Initialize the GeneratorClient using environment variables.\nNo arguments needed \u2014 config is injected via .env or system vars.",
+      "calls": [
+        "__init__",
+        "getenv",
+        "super"
+      ],
+      "line_number": 112,
+      "is_async": false,
+      "parameters": [
+        "self"
+      ],
+      "entry_point_type": "magic_method",
+      "last_updated": "2025-08-04T12:57:12.487294+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "entry_point_justification": "python_magic_method",
+      "parent_class_key": "src/core/clients.py::GeneratorClient"
+    },
+    "src/core/clients.py::make_request": {
+      "key": "src/core/clients.py::make_request",
+      "name": "make_request",
+      "type": "FunctionDef",
+      "file": "src/core/clients.py",
+      "domain": "core",
+      "agent": "core_agent",
+      "capability": "unassigned",
+      "intent": "Sends a prompt to the configured Chat Completions API.",
+      "docstring": "Sends a prompt to the configured Chat Completions API.\n\nArgs:\n    prompt (str): The prompt to send to the LLM. It will be wrapped as a 'user' message.\n    user_id (str): Optional identifier for the requester (used by some APIs for moderation).\n\nReturns:\n    str: The text content from the LLM's response, or an error message.\n\nRaises:\n    requests.HTTPError: If the API returns a non-200 status code.",
+      "calls": [
+        "json",
+        "post",
+        "print",
+        "raise_for_status"
+      ],
+      "line_number": 42,
+      "is_async": false,
+      "parameters": [
+        "self",
+        "prompt",
+        "user_id"
+      ],
+      "last_updated": "2025-08-04T12:57:12.485526+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "parent_class_key": "src/core/clients.py::BaseLLMClient"
+    },
+    "src/core/clients.py::OrchestratorClient": {
+      "key": "src/core/clients.py::OrchestratorClient",
+      "name": "OrchestratorClient",
+      "type": "ClassDef",
+      "file": "src/core/clients.py",
+      "domain": "core",
+      "agent": "core_agent",
+      "capability": "unassigned",
+      "intent": "Client for the Orchestrator LLM (e.g., GPT-4, Claude 3).",
+      "docstring": "Client for the Orchestrator LLM (e.g., GPT-4, Claude 3).\nResponsible for high-level planning and intent interpretation.",
+      "calls": [
+        "__init__",
+        "getenv",
+        "super"
+      ],
+      "line_number": 88,
+      "is_async": false,
+      "parameters": [],
+      "last_updated": "2025-08-04T12:57:12.486116+00:00",
+      "is_class": true,
+      "base_classes": [
+        "BaseLLMClient"
+      ]
+    },
+    "src/core/clients.py::GeneratorClient": {
+      "key": "src/core/clients.py::GeneratorClient",
+      "name": "GeneratorClient",
+      "type": "ClassDef",
+      "file": "src/core/clients.py",
+      "domain": "core",
+      "agent": "core_agent",
+      "capability": "unassigned",
+      "intent": "Client for the Generator LLM (e.g., a specialized coding model).",
+      "docstring": "Client for the Generator LLM (e.g., a specialized coding model).\nResponsible for code generation and detailed implementation.",
+      "calls": [
+        "__init__",
+        "getenv",
+        "super"
+      ],
+      "line_number": 106,
+      "is_async": false,
+      "parameters": [],
+      "last_updated": "2025-08-04T12:57:12.486926+00:00",
+      "is_class": true,
+      "base_classes": [
+        "BaseLLMClient"
+      ]
+    },
+    "src/core/validation_pipeline.py::_get_full_attribute_name": {
+      "key": "src/core/validation_pipeline.py::_get_full_attribute_name",
+      "name": "_get_full_attribute_name",
+      "type": "FunctionDef",
+      "file": "src/core/validation_pipeline.py",
+      "domain": "core",
+      "agent": "core_agent",
+      "capability": "unassigned",
+      "intent": "Recursively builds the full name of an attribute call (e.g., 'os.path.join').",
+      "docstring": "Recursively builds the full name of an attribute call (e.g., 'os.path.join').",
+      "calls": [
+        "insert",
+        "isinstance",
+        "join"
+      ],
+      "line_number": 22,
+      "is_async": false,
+      "parameters": [
+        "node"
+      ],
+      "last_updated": "2025-08-04T12:57:12.489923+00:00",
+      "is_class": false,
+      "base_classes": []
+    },
+    "src/core/validation_pipeline.py::_find_dangerous_patterns": {
+      "key": "src/core/validation_pipeline.py::_find_dangerous_patterns",
+      "name": "_find_dangerous_patterns",
+      "type": "FunctionDef",
+      "file": "src/core/validation_pipeline.py",
+      "domain": "core",
+      "agent": "core_agent",
+      "capability": "unassigned",
+      "intent": "Scans the AST for calls to forbidden functions and imports.",
+      "docstring": "Scans the AST for calls to forbidden functions and imports.",
+      "calls": [
+        "_get_full_attribute_name",
+        "append",
+        "isinstance",
+        "split",
+        "walk"
+      ],
+      "line_number": 33,
+      "is_async": false,
+      "parameters": [
+        "tree"
+      ],
+      "last_updated": "2025-08-04T12:57:12.490587+00:00",
+      "is_class": false,
+      "base_classes": []
+    },
+    "src/core/validation_pipeline.py::_check_semantics": {
+      "key": "src/core/validation_pipeline.py::_check_semantics",
+      "name": "_check_semantics",
+      "type": "FunctionDef",
+      "file": "src/core/validation_pipeline.py",
+      "domain": "core",
+      "agent": "core_agent",
+      "capability": "semantic_validation",
+      "intent": "Runs all semantic checks on a string of Python code.",
+      "docstring": "Runs all semantic checks on a string of Python code.",
+      "calls": [
+        "_find_dangerous_patterns",
+        "parse"
+      ],
+      "line_number": 53,
+      "is_async": false,
+      "parameters": [
+        "code"
+      ],
+      "entry_point_type": "capability",
+      "last_updated": "2025-08-04T12:57:12.491324+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "entry_point_justification": "capability_implementation"
+    },
+    "src/core/validation_pipeline.py::_validate_python_code": {
+      "key": "src/core/validation_pipeline.py::_validate_python_code",
+      "name": "_validate_python_code",
+      "type": "FunctionDef",
+      "file": "src/core/validation_pipeline.py",
+      "domain": "core",
+      "agent": "core_agent",
+      "capability": "unassigned",
+      "intent": "Runs the full validation suite for Python code: format, lint, syntax, and semantics.",
+      "docstring": "Runs the full validation suite for Python code: format, lint, syntax, and semantics.",
+      "calls": [
+        "_check_semantics",
+        "append",
+        "check_syntax",
+        "extend",
+        "fix_and_lint_code_with_ruff",
+        "format_code_with_black"
+      ],
+      "line_number": 61,
+      "is_async": false,
+      "parameters": [
+        "path_hint",
+        "code"
+      ],
+      "last_updated": "2025-08-04T12:57:12.491915+00:00",
+      "is_class": false,
+      "base_classes": []
+    },
+    "src/core/validation_pipeline.py::_validate_yaml": {
+      "key": "src/core/validation_pipeline.py::_validate_yaml",
+      "name": "_validate_yaml",
+      "type": "FunctionDef",
+      "file": "src/core/validation_pipeline.py",
+      "domain": "core",
+      "agent": "core_agent",
+      "capability": "unassigned",
+      "intent": "Runs validation steps specific to YAML files.",
+      "docstring": "Runs validation steps specific to YAML files.",
+      "calls": [
+        "append",
+        "safe_load"
+      ],
+      "line_number": 81,
+      "is_async": false,
+      "parameters": [
+        "code"
+      ],
+      "last_updated": "2025-08-04T12:57:12.492548+00:00",
+      "is_class": false,
+      "base_classes": []
+    },
+    "src/core/validation_pipeline.py::_get_file_classification": {
+      "key": "src/core/validation_pipeline.py::_get_file_classification",
+      "name": "_get_file_classification",
+      "type": "FunctionDef",
+      "file": "src/core/validation_pipeline.py",
+      "domain": "core",
+      "agent": "core_agent",
+      "capability": "unassigned",
+      "intent": "Determines the file type based on its extension.",
+      "docstring": "Determines the file type based on its extension.",
+      "calls": [
+        "Path",
+        "lower"
+      ],
+      "line_number": 91,
+      "is_async": false,
+      "parameters": [
+        "file_path"
+      ],
+      "last_updated": "2025-08-04T12:57:12.493023+00:00",
+      "is_class": false,
+      "base_classes": []
+    },
+    "src/core/validation_pipeline.py::validate_code": {
+      "key": "src/core/validation_pipeline.py::validate_code",
+      "name": "validate_code",
+      "type": "FunctionDef",
+      "file": "src/core/validation_pipeline.py",
+      "domain": "core",
+      "agent": "core_agent",
+      "capability": "code_quality_analysis",
+      "intent": "The main entry point for validation. It determines the file type",
+      "docstring": "The main entry point for validation. It determines the file type\nand routes it to the appropriate, specific validation function.",
+      "calls": [
+        "_get_file_classification",
+        "_validate_python_code",
+        "_validate_yaml",
+        "print"
+      ],
+      "line_number": 100,
+      "is_async": false,
+      "parameters": [
+        "file_path",
+        "code"
+      ],
+      "entry_point_type": "capability",
+      "last_updated": "2025-08-04T12:57:12.493503+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "entry_point_justification": "capability_implementation"
+    },
+    "src/core/git_service.py::GitService": {
+      "key": "src/core/git_service.py::GitService",
+      "name": "GitService",
+      "type": "ClassDef",
+      "file": "src/core/git_service.py",
+      "domain": "core",
+      "agent": "core_agent",
+      "capability": "unassigned",
+      "intent": "Encapsulates Git operations for the CORE system.",
+      "docstring": "Encapsulates Git operations for the CORE system.\nEnsures all file changes are committed with traceable messages.",
+      "calls": [
+        "Path",
+        "RuntimeError",
+        "ValueError",
+        "_run_command",
+        "is_dir",
+        "is_git_repo",
+        "print",
+        "resolve",
+        "run",
+        "strip"
+      ],
+      "line_number": 19,
+      "is_async": false,
+      "parameters": [],
+      "last_updated": "2025-08-04T12:57:12.495109+00:00",
+      "is_class": true,
+      "base_classes": []
+    },
+    "src/core/git_service.py::__init__": {
+      "key": "src/core/git_service.py::__init__",
+      "name": "__init__",
+      "type": "FunctionDef",
+      "file": "src/core/git_service.py",
+      "domain": "core",
+      "agent": "core_agent",
+      "capability": "unassigned",
+      "intent": "Initialize GitService with repository root.",
+      "docstring": "Initialize GitService with repository root.\n\nArgs:\n    repo_path (str): Path to the Git repository.",
+      "calls": [
+        "Path",
+        "ValueError",
+        "is_git_repo",
+        "print",
+        "resolve"
+      ],
+      "line_number": 25,
+      "is_async": false,
+      "parameters": [
+        "self",
+        "repo_path"
+      ],
+      "entry_point_type": "magic_method",
+      "last_updated": "2025-08-04T12:57:12.495484+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "entry_point_justification": "python_magic_method",
+      "parent_class_key": "src/core/git_service.py::GitService"
+    },
+    "src/core/git_service.py::_run_command": {
+      "key": "src/core/git_service.py::_run_command",
+      "name": "_run_command",
+      "type": "FunctionDef",
+      "file": "src/core/git_service.py",
+      "domain": "core",
+      "agent": "core_agent",
+      "capability": "unassigned",
+      "intent": "Run a Git command and return stdout.",
+      "docstring": "Run a Git command and return stdout.\n\nArgs:\n    command (list): Git command as a list (e.g., ['git', 'status']).\n\nReturns:\n    str: Command output, or raises RuntimeError on failure.",
+      "calls": [
+        "RuntimeError",
+        "run",
+        "strip"
+      ],
+      "line_number": 37,
+      "is_async": false,
+      "parameters": [
+        "self",
+        "command"
+      ],
+      "last_updated": "2025-08-04T12:57:12.495914+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "parent_class_key": "src/core/git_service.py::GitService"
+    },
+    "src/core/git_service.py::add": {
+      "key": "src/core/git_service.py::add",
+      "name": "add",
+      "type": "FunctionDef",
+      "file": "src/core/git_service.py",
+      "domain": "core",
+      "agent": "core_agent",
+      "capability": "unassigned",
+      "intent": "Stage a file or directory for commit.",
+      "docstring": "Stage a file or directory for commit.\n\nArgs:\n    file_path (str): Path to stage. Defaults to '.' (all changes).",
+      "calls": [
+        "ValueError",
+        "_run_command",
+        "resolve"
+      ],
+      "line_number": 59,
+      "is_async": false,
+      "parameters": [
+        "self",
+        "file_path"
+      ],
+      "last_updated": "2025-08-04T12:57:12.496348+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "parent_class_key": "src/core/git_service.py::GitService"
+    },
+    "src/core/git_service.py::commit": {
+      "key": "src/core/git_service.py::commit",
+      "name": "commit",
+      "type": "FunctionDef",
+      "file": "src/core/git_service.py",
+      "domain": "core",
+      "agent": "core_agent",
+      "capability": "unassigned",
+      "intent": "Commit staged changes with a message.",
+      "docstring": "Commit staged changes with a message.\n\nArgs:\n    message (str): Commit message explaining the change.",
+      "calls": [
+        "_run_command",
+        "print"
+      ],
+      "line_number": 71,
+      "is_async": false,
+      "parameters": [
+        "self",
+        "message"
+      ],
+      "last_updated": "2025-08-04T12:57:12.496783+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "parent_class_key": "src/core/git_service.py::GitService"
+    },
+    "src/core/git_service.py::is_git_repo": {
+      "key": "src/core/git_service.py::is_git_repo",
+      "name": "is_git_repo",
+      "type": "FunctionDef",
+      "file": "src/core/git_service.py",
+      "domain": "core",
+      "agent": "core_agent",
+      "capability": "unassigned",
+      "intent": "Check if the configured path is a valid Git repository.",
+      "docstring": "Check if the configured path is a valid Git repository.\n\nReturns:\n    bool: True if it's a Git repo, False otherwise.",
+      "calls": [
+        "is_dir"
+      ],
+      "line_number": 84,
+      "is_async": false,
+      "parameters": [
+        "self"
+      ],
+      "last_updated": "2025-08-04T12:57:12.497161+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "parent_class_key": "src/core/git_service.py::GitService"
+    },
+    "src/core/git_service.py::rollback_last_commit": {
+      "key": "src/core/git_service.py::rollback_last_commit",
+      "name": "rollback_last_commit",
+      "type": "FunctionDef",
+      "file": "src/core/git_service.py",
+      "domain": "core",
+      "agent": "core_agent",
+      "capability": "unassigned",
+      "intent": "Undo the last Git commit (soft reset).",
+      "docstring": "Undo the last Git commit (soft reset).\n\nUse with caution \u2014 only for failed self-modifications.",
+      "calls": [
+        "_run_command",
+        "print"
+      ],
+      "line_number": 94,
+      "is_async": false,
+      "parameters": [
+        "self"
+      ],
+      "last_updated": "2025-08-04T12:57:12.497523+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "parent_class_key": "src/core/git_service.py::GitService"
+    },
+    "src/core/syntax_checker.py::check_syntax": {
+      "key": "src/core/syntax_checker.py::check_syntax",
+      "name": "check_syntax",
+      "type": "FunctionDef",
+      "file": "src/core/syntax_checker.py",
+      "domain": "core",
+      "agent": "core_agent",
+      "capability": "syntax_validation",
+      "intent": "Checks whether the given code has valid syntax.",
+      "docstring": "Checks whether the given code has valid syntax.\n\nArgs:\n    file_path (str): File name (used to detect .py files)\n    code (str): Source code string\n\nReturns:\n    (is_valid: bool, message: str)",
+      "calls": [
+        "endswith",
+        "parse",
+        "strip"
+      ],
+      "line_number": 14,
+      "is_async": false,
+      "parameters": [
+        "file_path",
+        "code"
+      ],
+      "entry_point_type": "capability",
+      "last_updated": "2025-08-04T12:57:12.498395+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "entry_point_justification": "capability_implementation"
+    },
+    "src/core/black_formatter.py::format_code_with_black": {
+      "key": "src/core/black_formatter.py::format_code_with_black",
+      "name": "format_code_with_black",
+      "type": "FunctionDef",
+      "file": "src/core/black_formatter.py",
+      "domain": "core",
+      "agent": "core_agent",
+      "capability": "unassigned",
+      "intent": "Attempts to format the given Python code using Black.",
+      "docstring": "Attempts to format the given Python code using Black.\n\nReturns:\n    Tuple:\n        - formatted_code (str) if successful, else None\n        - error_message (str) if failed, else None",
+      "calls": [
+        "FileMode",
+        "format_str",
+        "str"
+      ],
+      "line_number": 10,
+      "is_async": false,
+      "parameters": [
+        "code"
+      ],
+      "last_updated": "2025-08-04T12:57:12.499248+00:00",
+      "is_class": false,
+      "base_classes": []
+    },
+    "src/core/test_runner.py::run_tests": {
+      "key": "src/core/test_runner.py::run_tests",
+      "name": "run_tests",
+      "type": "FunctionDef",
+      "file": "src/core/test_runner.py",
+      "domain": "core",
+      "agent": "core_agent",
+      "capability": "test_execution",
+      "intent": "Executes pytest on the tests/ directory and returns a structured result.",
+      "docstring": "Executes pytest on the tests/ directory and returns a structured result.\nThis function captures stdout, stderr, and the exit code, providing a\ncomprehensive summary of the test run for agents to act upon.",
+      "calls": [
+        "Path",
+        "_log_test_result",
+        "_store_failure_if_any",
+        "_summarize",
+        "getenv",
+        "int",
+        "isoformat",
+        "print",
+        "resolve",
+        "run",
+        "str",
+        "strip",
+        "utcnow"
+      ],
+      "line_number": 20,
+      "is_async": false,
+      "parameters": [
+        "silent"
+      ],
+      "entry_point_type": "capability",
+      "last_updated": "2025-08-04T12:57:12.501382+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "entry_point_justification": "capability_implementation"
+    },
+    "src/core/test_runner.py::_summarize": {
+      "key": "src/core/test_runner.py::_summarize",
+      "name": "_summarize",
+      "type": "FunctionDef",
+      "file": "src/core/test_runner.py",
+      "domain": "core",
+      "agent": "core_agent",
+      "capability": "unassigned",
+      "intent": "Parses pytest output to find the final summary line.",
+      "docstring": "Parses pytest output to find the final summary line.",
+      "calls": [
+        "reversed",
+        "splitlines",
+        "strip"
+      ],
+      "line_number": 76,
+      "is_async": false,
+      "parameters": [
+        "output"
+      ],
+      "last_updated": "2025-08-04T12:57:12.502154+00:00",
+      "is_class": false,
+      "base_classes": []
+    },
+    "src/core/test_runner.py::_log_test_result": {
+      "key": "src/core/test_runner.py::_log_test_result",
+      "name": "_log_test_result",
+      "type": "FunctionDef",
+      "file": "src/core/test_runner.py",
+      "domain": "core",
+      "agent": "core_agent",
+      "capability": "unassigned",
+      "intent": "Appends a JSON record of a test run to the persistent log file.",
+      "docstring": "Appends a JSON record of a test run to the persistent log file.",
+      "calls": [
+        "dumps",
+        "open",
+        "print",
+        "write"
+      ],
+      "line_number": 84,
+      "is_async": false,
+      "parameters": [
+        "data"
+      ],
+      "last_updated": "2025-08-04T12:57:12.502605+00:00",
+      "is_class": false,
+      "base_classes": []
+    },
+    "src/core/test_runner.py::_store_failure_if_any": {
+      "key": "src/core/test_runner.py::_store_failure_if_any",
+      "name": "_store_failure_if_any",
+      "type": "FunctionDef",
+      "file": "src/core/test_runner.py",
+      "domain": "core",
+      "agent": "core_agent",
+      "capability": "unassigned",
+      "intent": "Saves the details of a failed test run to a dedicated file for easy access.",
+      "docstring": "Saves the details of a failed test run to a dedicated file for easy access.",
+      "calls": [
+        "dump",
+        "exists",
+        "get",
+        "open",
+        "print",
+        "remove"
+      ],
+      "line_number": 92,
+      "is_async": false,
+      "parameters": [
+        "data"
+      ],
+      "last_updated": "2025-08-04T12:57:12.503122+00:00",
+      "is_class": false,
+      "base_classes": []
+    },
+    "src/core/main.py::lifespan": {
+      "key": "src/core/main.py::lifespan",
+      "name": "lifespan",
+      "type": "AsyncFunctionDef",
+      "file": "src/core/main.py",
+      "domain": "core",
+      "agent": "core_agent",
+      "capability": "unassigned",
+      "intent": "FastAPI lifespan handler \u2014 runs startup and shutdown logic.",
+      "docstring": "FastAPI lifespan handler \u2014 runs startup and shutdown logic.",
+      "calls": [
+        "FileHandler",
+        "GeneratorClient",
+        "GitService",
+        "IntentGuard",
+        "OrchestratorClient",
+        "PlannerAgent",
+        "introspection",
+        "print"
+      ],
+      "line_number": 31,
+      "is_async": true,
+      "parameters": [
+        "app"
+      ],
+      "entry_point_type": "context_manager",
+      "last_updated": "2025-08-04T12:57:12.504763+00:00",
+      "is_class": false,
+      "base_classes": []
+    },
+    "src/core/main.py::execute_goal": {
+      "key": "src/core/main.py::execute_goal",
+      "name": "execute_goal",
+      "type": "AsyncFunctionDef",
+      "file": "src/core/main.py",
+      "domain": "core",
+      "agent": "core_agent",
+      "capability": "unassigned",
+      "intent": "Execute a high-level goal by planning and generating code.",
+      "docstring": "Execute a high-level goal by planning and generating code.",
+      "calls": [
+        "HTTPException",
+        "JSONResponse",
+        "create_execution_plan",
+        "execute_plan",
+        "get",
+        "post",
+        "str"
+      ],
+      "line_number": 61,
+      "is_async": true,
+      "parameters": [
+        "request_data",
+        "request"
+      ],
+      "entry_point_type": "fastapi_route_post",
+      "last_updated": "2025-08-04T12:57:12.505436+00:00",
+      "is_class": false,
+      "base_classes": []
+    },
+    "src/core/main.py::root": {
+      "key": "src/core/main.py::root",
+      "name": "root",
+      "type": "AsyncFunctionDef",
+      "file": "src/core/main.py",
+      "domain": "core",
+      "agent": "core_agent",
+      "capability": "unassigned",
+      "intent": "Root endpoint \u2014 returns system status.",
+      "docstring": "Root endpoint \u2014 returns system status.",
+      "calls": [
+        "get"
+      ],
+      "line_number": 85,
+      "is_async": true,
+      "parameters": [],
+      "entry_point_type": "fastapi_route_get",
+      "last_updated": "2025-08-04T12:57:12.505932+00:00",
+      "is_class": false,
+      "base_classes": []
+    },
+    "src/core/prompt_pipeline.py::PromptPipeline": {
+      "key": "src/core/prompt_pipeline.py::PromptPipeline",
+      "name": "PromptPipeline",
+      "type": "ClassDef",
+      "file": "src/core/prompt_pipeline.py",
+      "domain": "core",
+      "agent": "core_agent",
+      "capability": "unassigned",
+      "intent": "Processes and enriches user prompts by resolving directives like [[include:...]] and [[analysis:...]].",
+      "docstring": "Processes and enriches user prompts by resolving directives like [[include:...]] and [[analysis:...]].\nEnsures the LLM receives full context before generating code.",
+      "calls": [
+        "Path",
+        "_inject_analysis",
+        "_inject_context",
+        "_inject_includes",
+        "_inject_manifest",
+        "compile",
+        "dump",
+        "exists",
+        "get",
+        "group",
+        "is_file",
+        "isinstance",
+        "read_text",
+        "resolve",
+        "safe_load",
+        "split",
+        "str",
+        "strip",
+        "sub"
+      ],
+      "line_number": 20,
+      "is_async": false,
+      "parameters": [],
+      "last_updated": "2025-08-04T12:57:12.508740+00:00",
+      "is_class": true,
+      "base_classes": []
+    },
+    "src/core/prompt_pipeline.py::__init__": {
+      "key": "src/core/prompt_pipeline.py::__init__",
+      "name": "__init__",
+      "type": "FunctionDef",
+      "file": "src/core/prompt_pipeline.py",
+      "domain": "core",
+      "agent": "core_agent",
+      "capability": "unassigned",
+      "intent": "Initialize PromptPipeline with repository root.",
+      "docstring": "Initialize PromptPipeline with repository root.\n\nArgs:\n    repo_path (Path): Root path of the repository.",
+      "calls": [
+        "Path",
+        "compile",
+        "resolve"
+      ],
+      "line_number": 26,
+      "is_async": false,
+      "parameters": [
+        "self",
+        "repo_path"
+      ],
+      "entry_point_type": "magic_method",
+      "last_updated": "2025-08-04T12:57:12.509184+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "entry_point_justification": "python_magic_method",
+      "parent_class_key": "src/core/prompt_pipeline.py::PromptPipeline"
+    },
+    "src/core/prompt_pipeline.py::_replace_context_match": {
+      "key": "src/core/prompt_pipeline.py::_replace_context_match",
+      "name": "_replace_context_match",
+      "type": "FunctionDef",
+      "file": "src/core/prompt_pipeline.py",
+      "domain": "core",
+      "agent": "core_agent",
+      "capability": "unassigned",
+      "intent": "Dynamically replaces a [[context:...]] regex match with file content or an error message.",
+      "docstring": "Dynamically replaces a [[context:...]] regex match with file content or an error message.",
+      "calls": [
+        "exists",
+        "group",
+        "is_file",
+        "read_text",
+        "str",
+        "strip"
+      ],
+      "line_number": 41,
+      "is_async": false,
+      "parameters": [
+        "self",
+        "match"
+      ],
+      "last_updated": "2025-08-04T12:57:12.509677+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "parent_class_key": "src/core/prompt_pipeline.py::PromptPipeline"
+    },
+    "src/core/prompt_pipeline.py::_inject_context": {
+      "key": "src/core/prompt_pipeline.py::_inject_context",
+      "name": "_inject_context",
+      "type": "FunctionDef",
+      "file": "src/core/prompt_pipeline.py",
+      "domain": "core",
+      "agent": "core_agent",
+      "capability": "unassigned",
+      "intent": "Replaces [[context:file.py]] directives with actual file content.",
+      "docstring": "Replaces [[context:file.py]] directives with actual file content.",
+      "calls": [
+        "sub"
+      ],
+      "line_number": 52,
+      "is_async": false,
+      "parameters": [
+        "self",
+        "prompt"
+      ],
+      "last_updated": "2025-08-04T12:57:12.510138+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "parent_class_key": "src/core/prompt_pipeline.py::PromptPipeline"
+    },
+    "src/core/prompt_pipeline.py::_replace_include_match": {
+      "key": "src/core/prompt_pipeline.py::_replace_include_match",
+      "name": "_replace_include_match",
+      "type": "FunctionDef",
+      "file": "src/core/prompt_pipeline.py",
+      "domain": "core",
+      "agent": "core_agent",
+      "capability": "unassigned",
+      "intent": "Dynamically replaces an [[include:...]] regex match with file content or an error message.",
+      "docstring": "Dynamically replaces an [[include:...]] regex match with file content or an error message.",
+      "calls": [
+        "exists",
+        "group",
+        "is_file",
+        "read_text",
+        "str",
+        "strip"
+      ],
+      "line_number": 56,
+      "is_async": false,
+      "parameters": [
+        "self",
+        "match"
+      ],
+      "last_updated": "2025-08-04T12:57:12.510595+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "parent_class_key": "src/core/prompt_pipeline.py::PromptPipeline"
+    },
+    "src/core/prompt_pipeline.py::_inject_includes": {
+      "key": "src/core/prompt_pipeline.py::_inject_includes",
+      "name": "_inject_includes",
+      "type": "FunctionDef",
+      "file": "src/core/prompt_pipeline.py",
+      "domain": "core",
+      "agent": "core_agent",
+      "capability": "unassigned",
+      "intent": "Replaces [[include:file.py]] directives with file content.",
+      "docstring": "Replaces [[include:file.py]] directives with file content.",
+      "calls": [
+        "sub"
+      ],
+      "line_number": 67,
+      "is_async": false,
+      "parameters": [
+        "self",
+        "prompt"
+      ],
+      "last_updated": "2025-08-04T12:57:12.511049+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "parent_class_key": "src/core/prompt_pipeline.py::PromptPipeline"
+    },
+    "src/core/prompt_pipeline.py::_replace_analysis_match": {
+      "key": "src/core/prompt_pipeline.py::_replace_analysis_match",
+      "name": "_replace_analysis_match",
+      "type": "FunctionDef",
+      "file": "src/core/prompt_pipeline.py",
+      "domain": "core",
+      "agent": "core_agent",
+      "capability": "unassigned",
+      "intent": "Dynamically replaces an [[analysis:...]] regex match with a placeholder analysis message.",
+      "docstring": "Dynamically replaces an [[analysis:...]] regex match with a placeholder analysis message.",
+      "calls": [
+        "group",
+        "strip"
+      ],
+      "line_number": 71,
+      "is_async": false,
+      "parameters": [
+        "self",
+        "match"
+      ],
+      "last_updated": "2025-08-04T12:57:12.511429+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "parent_class_key": "src/core/prompt_pipeline.py::PromptPipeline"
+    },
+    "src/core/prompt_pipeline.py::_inject_analysis": {
+      "key": "src/core/prompt_pipeline.py::_inject_analysis",
+      "name": "_inject_analysis",
+      "type": "FunctionDef",
+      "file": "src/core/prompt_pipeline.py",
+      "domain": "core",
+      "agent": "core_agent",
+      "capability": "unassigned",
+      "intent": "Replaces [[analysis:file.py]] directives with code analysis.",
+      "docstring": "Replaces [[analysis:file.py]] directives with code analysis.",
+      "calls": [
+        "sub"
+      ],
+      "line_number": 77,
+      "is_async": false,
+      "parameters": [
+        "self",
+        "prompt"
+      ],
+      "last_updated": "2025-08-04T12:57:12.511776+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "parent_class_key": "src/core/prompt_pipeline.py::PromptPipeline"
+    },
+    "src/core/prompt_pipeline.py::_replace_manifest_match": {
+      "key": "src/core/prompt_pipeline.py::_replace_manifest_match",
+      "name": "_replace_manifest_match",
+      "type": "FunctionDef",
+      "file": "src/core/prompt_pipeline.py",
+      "domain": "core",
+      "agent": "core_agent",
+      "capability": "unassigned",
+      "intent": "Dynamically replaces a [[manifest:...]] regex match with manifest data or an error.",
+      "docstring": "Dynamically replaces a [[manifest:...]] regex match with manifest data or an error.",
+      "calls": [
+        "dump",
+        "exists",
+        "get",
+        "group",
+        "isinstance",
+        "read_text",
+        "safe_load",
+        "split",
+        "str",
+        "strip"
+      ],
+      "line_number": 81,
+      "is_async": false,
+      "parameters": [
+        "self",
+        "match"
+      ],
+      "last_updated": "2025-08-04T12:57:12.512351+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "parent_class_key": "src/core/prompt_pipeline.py::PromptPipeline"
+    },
+    "src/core/prompt_pipeline.py::_inject_manifest": {
+      "key": "src/core/prompt_pipeline.py::_inject_manifest",
+      "name": "_inject_manifest",
+      "type": "FunctionDef",
+      "file": "src/core/prompt_pipeline.py",
+      "domain": "core",
+      "agent": "core_agent",
+      "capability": "unassigned",
+      "intent": "Replaces [[manifest:field]] directives with data from project_manifest.yaml.",
+      "docstring": "Replaces [[manifest:field]] directives with data from project_manifest.yaml.",
+      "calls": [
+        "sub"
+      ],
+      "line_number": 107,
+      "is_async": false,
+      "parameters": [
+        "self",
+        "prompt"
+      ],
+      "last_updated": "2025-08-04T12:57:12.512952+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "parent_class_key": "src/core/prompt_pipeline.py::PromptPipeline"
+    },
+    "src/core/prompt_pipeline.py::process": {
+      "key": "src/core/prompt_pipeline.py::process",
+      "name": "process",
+      "type": "FunctionDef",
+      "file": "src/core/prompt_pipeline.py",
+      "domain": "core",
+      "agent": "core_agent",
+      "capability": "unassigned",
+      "intent": "Processes the full prompt by sequentially resolving all directives.",
+      "docstring": "Processes the full prompt by sequentially resolving all directives.\nThis is the main entry point for prompt enrichment.",
+      "calls": [
+        "_inject_analysis",
+        "_inject_context",
+        "_inject_includes",
+        "_inject_manifest"
+      ],
+      "line_number": 111,
+      "is_async": false,
+      "parameters": [
+        "self",
+        "prompt"
+      ],
+      "last_updated": "2025-08-04T12:57:12.513339+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "parent_class_key": "src/core/prompt_pipeline.py::PromptPipeline"
+    },
+    "src/core/capabilities.py::introspection": {
+      "key": "src/core/capabilities.py::introspection",
+      "name": "introspection",
+      "type": "FunctionDef",
+      "file": "src/core/capabilities.py",
+      "domain": "core",
+      "agent": "core_agent",
+      "capability": "introspection",
+      "intent": "Runs a full self-analysis cycle to inspect system structure and health.",
+      "docstring": "Runs a full self-analysis cycle to inspect system structure and health.\nThis orchestrates the execution of the system's own introspection tools\nas separate, governed processes.",
+      "calls": [
+        "Path",
+        "error",
+        "info",
+        "print",
+        "resolve",
+        "run"
+      ],
+      "line_number": 16,
+      "is_async": false,
+      "parameters": [],
+      "entry_point_type": "capability",
+      "last_updated": "2025-08-04T12:57:12.514725+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "entry_point_justification": "capability_implementation"
+    },
+    "src/core/ruff_linter.py::fix_and_lint_code_with_ruff": {
+      "key": "src/core/ruff_linter.py::fix_and_lint_code_with_ruff",
+      "name": "fix_and_lint_code_with_ruff",
+      "type": "FunctionDef",
+      "file": "src/core/ruff_linter.py",
+      "domain": "core",
+      "agent": "core_agent",
+      "capability": "unassigned",
+      "intent": "Fix and lint the provided Python code using Ruff.",
+      "docstring": "Fix and lint the provided Python code using Ruff.\n\nArgs:\n    code (str): Source code to fix and lint.\n    display_filename (str): Optional display name (e.g., intended file path).\n\nReturns:\n    (is_clean: bool, message: str, fixed_code: str)",
+      "calls": [
+        "NamedTemporaryFile",
+        "exists",
+        "open",
+        "read",
+        "remove",
+        "replace",
+        "run",
+        "strip",
+        "write"
+      ],
+      "line_number": 15,
+      "is_async": false,
+      "parameters": [
+        "code",
+        "display_filename"
+      ],
+      "last_updated": "2025-08-04T12:57:12.516250+00:00",
+      "is_class": false,
+      "base_classes": []
+    },
+    "src/core/file_handler.py::_log_change": {
+      "key": "src/core/file_handler.py::_log_change",
+      "name": "_log_change",
+      "type": "FunctionDef",
+      "file": "src/core/file_handler.py",
+      "domain": "core",
+      "agent": "core_agent",
+      "capability": "unassigned",
+      "intent": "Appends a change entry to the intent change log.",
+      "docstring": "Appends a change entry to the intent change log.",
+      "calls": [
+        "append",
+        "dumps",
+        "exists",
+        "isoformat",
+        "loads",
+        "mkdir",
+        "now",
+        "print",
+        "read_text",
+        "write_text"
+      ],
+      "line_number": 57,
+      "is_async": false,
+      "parameters": [
+        "file_path",
+        "reason"
+      ],
+      "last_updated": "2025-08-04T12:57:12.519051+00:00",
+      "is_class": false,
+      "base_classes": []
+    },
+    "src/core/file_handler.py::_validate_content": {
+      "key": "src/core/file_handler.py::_validate_content",
+      "name": "_validate_content",
+      "type": "FunctionDef",
+      "file": "src/core/file_handler.py",
+      "domain": "core",
+      "agent": "core_agent",
+      "capability": "unassigned",
+      "intent": "Validates content against safety policies (e.g., no eval, subprocess, etc.).",
+      "docstring": "Validates content against safety policies (e.g., no eval, subprocess, etc.).",
+      "calls": [
+        "extend",
+        "get",
+        "load_config",
+        "print"
+      ],
+      "line_number": 83,
+      "is_async": false,
+      "parameters": [
+        "content",
+        "file_path"
+      ],
+      "last_updated": "2025-08-04T12:57:12.519655+00:00",
+      "is_class": false,
+      "base_classes": []
+    },
+    "src/core/file_handler.py::FileHandler": {
+      "key": "src/core/file_handler.py::FileHandler",
+      "name": "FileHandler",
+      "type": "ClassDef",
+      "file": "src/core/file_handler.py",
+      "domain": "core",
+      "agent": "core_agent",
+      "capability": "unassigned",
+      "intent": "Central class for safe, auditable file operations in CORE.",
+      "docstring": "Central class for safe, auditable file operations in CORE.\nAll writes are staged first and require confirmation.",
+      "calls": [
+        "Path",
+        "ValueError",
+        "_log_change",
+        "_validate_content",
+        "as_posix",
+        "dumps",
+        "exists",
+        "is_dir",
+        "is_relative_to",
+        "isoformat",
+        "mkdir",
+        "now",
+        "pop",
+        "resolve",
+        "str",
+        "unlink",
+        "uuid4",
+        "write_text"
+      ],
+      "line_number": 105,
+      "is_async": false,
+      "parameters": [],
+      "last_updated": "2025-08-04T12:57:12.520559+00:00",
+      "is_class": true,
+      "base_classes": []
+    },
+    "src/core/file_handler.py::__init__": {
+      "key": "src/core/file_handler.py::__init__",
+      "name": "__init__",
+      "type": "FunctionDef",
+      "file": "src/core/file_handler.py",
+      "domain": "core",
+      "agent": "core_agent",
+      "capability": "unassigned",
+      "intent": "Initialize FileHandler with repository root.",
+      "docstring": "Initialize FileHandler with repository root.",
+      "calls": [
+        "Path",
+        "ValueError",
+        "is_dir",
+        "resolve"
+      ],
+      "line_number": 111,
+      "is_async": false,
+      "parameters": [
+        "self",
+        "repo_path"
+      ],
+      "entry_point_type": "magic_method",
+      "last_updated": "2025-08-04T12:57:12.520920+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "entry_point_justification": "python_magic_method",
+      "parent_class_key": "src/core/file_handler.py::FileHandler"
+    },
+    "src/core/file_handler.py::add_pending_write": {
+      "key": "src/core/file_handler.py::add_pending_write",
+      "name": "add_pending_write",
+      "type": "FunctionDef",
+      "file": "src/core/file_handler.py",
+      "domain": "core",
+      "agent": "core_agent",
+      "capability": "unassigned",
+      "intent": "Stages a pending write operation for later confirmation.",
+      "docstring": "Stages a pending write operation for later confirmation.",
+      "calls": [
+        "Path",
+        "as_posix",
+        "dumps",
+        "isoformat",
+        "now",
+        "str",
+        "uuid4",
+        "write_text"
+      ],
+      "line_number": 119,
+      "is_async": false,
+      "parameters": [
+        "self",
+        "prompt",
+        "suggested_path",
+        "code"
+      ],
+      "last_updated": "2025-08-04T12:57:12.521381+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "parent_class_key": "src/core/file_handler.py::FileHandler"
+    },
+    "src/core/file_handler.py::confirm_write": {
+      "key": "src/core/file_handler.py::confirm_write",
+      "name": "confirm_write",
+      "type": "FunctionDef",
+      "file": "src/core/file_handler.py",
+      "domain": "core",
+      "agent": "core_agent",
+      "capability": "unassigned",
+      "intent": "Confirms and applies a pending write to disk.",
+      "docstring": "Confirms and applies a pending write to disk.",
+      "calls": [
+        "ValueError",
+        "_log_change",
+        "_validate_content",
+        "exists",
+        "is_relative_to",
+        "mkdir",
+        "pop",
+        "resolve",
+        "str",
+        "unlink",
+        "write_text"
+      ],
+      "line_number": 140,
+      "is_async": false,
+      "parameters": [
+        "self",
+        "pending_id"
+      ],
+      "last_updated": "2025-08-04T12:57:12.522132+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "parent_class_key": "src/core/file_handler.py::FileHandler"
+    },
+    "src/core/intent_model.py::IntentModel": {
+      "key": "src/core/intent_model.py::IntentModel",
+      "name": "IntentModel",
+      "type": "ClassDef",
+      "file": "src/core/intent_model.py",
+      "domain": "core",
+      "agent": "core_agent",
+      "capability": "unassigned",
+      "intent": "Loads and provides an queryable interface to the source code structure",
+      "docstring": "Loads and provides an queryable interface to the source code structure\ndefined in .intent/knowledge/source_structure.yaml.",
+      "calls": [
+        "FileNotFoundError",
+        "Path",
+        "ValueError",
+        "_load_structure",
+        "exists",
+        "get",
+        "isinstance",
+        "items",
+        "len",
+        "read_text",
+        "resolve",
+        "safe_load",
+        "sorted"
+      ],
+      "line_number": 19,
+      "is_async": false,
+      "parameters": [],
+      "last_updated": "2025-08-04T12:57:12.524038+00:00",
+      "is_class": true,
+      "base_classes": []
+    },
+    "src/core/intent_model.py::__init__": {
+      "key": "src/core/intent_model.py::__init__",
+      "name": "__init__",
+      "type": "FunctionDef",
+      "file": "src/core/intent_model.py",
+      "domain": "core",
+      "agent": "core_agent",
+      "capability": "unassigned",
+      "intent": "Initializes the model by loading the source structure definition.",
+      "docstring": "Initializes the model by loading the source structure definition.\n\nArgs:\n    repo_root (Optional[Path]): The root of the repository. Inferred if not provided.",
+      "calls": [
+        "Path",
+        "_load_structure",
+        "resolve"
+      ],
+      "line_number": 24,
+      "is_async": false,
+      "parameters": [
+        "self",
+        "repo_root"
+      ],
+      "entry_point_type": "magic_method",
+      "last_updated": "2025-08-04T12:57:12.524436+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "entry_point_justification": "python_magic_method",
+      "parent_class_key": "src/core/intent_model.py::IntentModel"
+    },
+    "src/core/intent_model.py::_load_structure": {
+      "key": "src/core/intent_model.py::_load_structure",
+      "name": "_load_structure",
+      "type": "FunctionDef",
+      "file": "src/core/intent_model.py",
+      "domain": "core",
+      "agent": "core_agent",
+      "capability": "unassigned",
+      "intent": "Load the domain structure from .intent/knowledge/source_structure.yaml.",
+      "docstring": "Load the domain structure from .intent/knowledge/source_structure.yaml.\n\nReturns:\n    Dict[str, dict]: Mapping of domain names to metadata (path, permissions, etc.).",
+      "calls": [
+        "FileNotFoundError",
+        "ValueError",
+        "exists",
+        "isinstance",
+        "read_text",
+        "safe_load"
+      ],
+      "line_number": 35,
+      "is_async": false,
+      "parameters": [
+        "self"
+      ],
+      "last_updated": "2025-08-04T12:57:12.524925+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "parent_class_key": "src/core/intent_model.py::IntentModel"
+    },
+    "src/core/intent_model.py::resolve_domain_for_path": {
+      "key": "src/core/intent_model.py::resolve_domain_for_path",
+      "name": "resolve_domain_for_path",
+      "type": "FunctionDef",
+      "file": "src/core/intent_model.py",
+      "domain": "core",
+      "agent": "core_agent",
+      "capability": "unassigned",
+      "intent": "Given an absolute or relative path, determine which domain it belongs to.",
+      "docstring": "Given an absolute or relative path, determine which domain it belongs to.\nPrefers deeper (more specific) paths over shorter ones.",
+      "calls": [
+        "items",
+        "len",
+        "resolve",
+        "sorted"
+      ],
+      "line_number": 80,
+      "is_async": false,
+      "parameters": [
+        "self",
+        "file_path"
+      ],
+      "last_updated": "2025-08-04T12:57:12.525440+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "parent_class_key": "src/core/intent_model.py::IntentModel"
+    },
+    "src/core/intent_model.py::get_domain_permissions": {
+      "key": "src/core/intent_model.py::get_domain_permissions",
+      "name": "get_domain_permissions",
+      "type": "FunctionDef",
+      "file": "src/core/intent_model.py",
+      "domain": "core",
+      "agent": "core_agent",
+      "capability": "unassigned",
+      "intent": "Return a list of allowed domains that the given domain can import from.",
+      "docstring": "Return a list of allowed domains that the given domain can import from.\n\nArgs:\n    domain (str): The domain to query.\n\nReturns:\n    List[str]: List of allowed domain names, or empty list if not defined.",
+      "calls": [
+        "get",
+        "isinstance"
+      ],
+      "line_number": 97,
+      "is_async": false,
+      "parameters": [
+        "self",
+        "domain"
+      ],
+      "last_updated": "2025-08-04T12:57:12.525904+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "parent_class_key": "src/core/intent_model.py::IntentModel"
+    },
+    "src/core/intent_guard.py::IntentGuard": {
+      "key": "src/core/intent_guard.py::IntentGuard",
+      "name": "IntentGuard",
+      "type": "ClassDef",
+      "file": "src/core/intent_guard.py",
+      "domain": "core",
+      "agent": "validator_agent",
+      "capability": "intent_guarding",
+      "intent": "Central enforcement engine for CORE's safety and governance policies.",
+      "docstring": "Central enforcement engine for CORE's safety and governance policies.\nEnsures all proposed file changes comply with declared rules and classifications.\nUses a mix of hard-coded primordial truths and dynamic policy loading.",
+      "calls": [
+        "Path",
+        "_load_policies",
+        "_load_source_manifest",
+        "exists",
+        "extend",
+        "get",
+        "glob",
+        "is_dir",
+        "isinstance",
+        "len",
+        "load_config",
+        "loads",
+        "print",
+        "read_text"
+      ],
+      "line_number": 28,
+      "is_async": false,
+      "parameters": [],
+      "entry_point_type": "capability",
+      "last_updated": "2025-08-04T12:57:12.527712+00:00",
+      "is_class": true,
+      "base_classes": [],
+      "entry_point_justification": "capability_implementation"
+    },
+    "src/core/intent_guard.py::__init__": {
+      "key": "src/core/intent_guard.py::__init__",
+      "name": "__init__",
+      "type": "FunctionDef",
+      "file": "src/core/intent_guard.py",
+      "domain": "core",
+      "agent": "validator_agent",
+      "capability": "unassigned",
+      "intent": "Initialize IntentGuard with repository path and load all policies.",
+      "docstring": "Initialize IntentGuard with repository path and load all policies.",
+      "calls": [
+        "Path",
+        "_load_policies",
+        "_load_source_manifest",
+        "len",
+        "print"
+      ],
+      "line_number": 35,
+      "is_async": false,
+      "parameters": [
+        "self",
+        "repo_path"
+      ],
+      "entry_point_type": "magic_method",
+      "last_updated": "2025-08-04T12:57:12.528194+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "entry_point_justification": "python_magic_method",
+      "parent_class_key": "src/core/intent_guard.py::IntentGuard"
+    },
+    "src/core/intent_guard.py::_load_policies": {
+      "key": "src/core/intent_guard.py::_load_policies",
+      "name": "_load_policies",
+      "type": "FunctionDef",
+      "file": "src/core/intent_guard.py",
+      "domain": "core",
+      "agent": "validator_agent",
+      "capability": "unassigned",
+      "intent": "Load rules from all YAML files in .intent/policies/.",
+      "docstring": "Load rules from all YAML files in .intent/policies/.",
+      "calls": [
+        "extend",
+        "glob",
+        "is_dir",
+        "isinstance",
+        "load_config"
+      ],
+      "line_number": 58,
+      "is_async": false,
+      "parameters": [
+        "self"
+      ],
+      "last_updated": "2025-08-04T12:57:12.528762+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "parent_class_key": "src/core/intent_guard.py::IntentGuard"
+    },
+    "src/core/intent_guard.py::_get_classification": {
+      "key": "src/core/intent_guard.py::_get_classification",
+      "name": "_get_classification",
+      "type": "FunctionDef",
+      "file": "src/core/intent_guard.py",
+      "domain": "core",
+      "agent": "validator_agent",
+      "capability": "unassigned",
+      "intent": "Determine the classification of a file based on its extension.",
+      "docstring": "Determine the classification of a file based on its extension.",
+      "calls": [
+        "Path",
+        "get"
+      ],
+      "line_number": 69,
+      "is_async": false,
+      "parameters": [
+        "self",
+        "file_path"
+      ],
+      "last_updated": "2025-08-04T12:57:12.529202+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "parent_class_key": "src/core/intent_guard.py::IntentGuard"
+    },
+    "src/core/intent_guard.py::_load_source_manifest": {
+      "key": "src/core/intent_guard.py::_load_source_manifest",
+      "name": "_load_source_manifest",
+      "type": "FunctionDef",
+      "file": "src/core/intent_guard.py",
+      "domain": "core",
+      "agent": "validator_agent",
+      "capability": "unassigned",
+      "intent": "Load the list of declared source files from function_manifest.json.",
+      "docstring": "Load the list of declared source files from function_manifest.json.",
+      "calls": [
+        "exists",
+        "get",
+        "loads",
+        "read_text"
+      ],
+      "line_number": 79,
+      "is_async": false,
+      "parameters": [
+        "self"
+      ],
+      "last_updated": "2025-08-04T12:57:12.529668+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "parent_class_key": "src/core/intent_guard.py::IntentGuard"
+    },
+    "src/core/self_correction_engine.py::attempt_correction": {
+      "key": "src/core/self_correction_engine.py::attempt_correction",
+      "name": "attempt_correction",
+      "type": "FunctionDef",
+      "file": "src/core/self_correction_engine.py",
+      "domain": "core",
+      "agent": "core_agent",
+      "capability": "self_correction",
+      "intent": "Attempts to fix a failed validation or test result using an enriched LLM prompt.",
+      "docstring": "Attempts to fix a failed validation or test result using an enriched LLM prompt.",
+      "calls": [
+        "GeneratorClient",
+        "add_pending_write",
+        "dumps",
+        "get",
+        "items",
+        "list",
+        "make_request",
+        "parse_write_blocks",
+        "process",
+        "strip",
+        "validate_code"
+      ],
+      "line_number": 20,
+      "is_async": false,
+      "parameters": [
+        "failure_context"
+      ],
+      "entry_point_type": "capability",
+      "last_updated": "2025-08-04T12:57:12.531266+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "entry_point_justification": "capability_implementation"
+    },
+    "src/agents/planner_agent.py::PlannerAgent": {
+      "key": "src/agents/planner_agent.py::PlannerAgent",
+      "name": "PlannerAgent",
+      "type": "ClassDef",
+      "file": "src/agents/planner_agent.py",
+      "domain": "agents",
+      "agent": "planner_agent",
+      "capability": "llm_orchestration",
+      "intent": "The primary agent responsible for decomposing high-level goals into executable plans.",
+      "docstring": "The primary agent responsible for decomposing high-level goals into executable plans.\nIt orchestrates the generation, validation, and commitment of code changes.",
+      "calls": [
+        "PromptPipeline",
+        "RuntimeError",
+        "ValueError",
+        "_execute_task",
+        "_extract_json_from_response",
+        "_extract_target_path_from_prompt",
+        "_govern_and_amend_code",
+        "add",
+        "add_pending_write",
+        "append",
+        "attempt_correction",
+        "commit",
+        "confirm_write",
+        "dedent",
+        "enumerate",
+        "get",
+        "get_docstring",
+        "group",
+        "insert",
+        "is_git_repo",
+        "isinstance",
+        "items",
+        "join",
+        "len",
+        "loads",
+        "make_request",
+        "parse",
+        "parse_write_blocks",
+        "print",
+        "process",
+        "rollback_last_commit",
+        "search",
+        "sorted",
+        "splitlines",
+        "startswith",
+        "str",
+        "strip",
+        "validate_code",
+        "walk"
+      ],
+      "line_number": 20,
+      "is_async": false,
+      "parameters": [],
+      "entry_point_type": "capability",
+      "last_updated": "2025-08-04T12:57:12.536608+00:00",
+      "is_class": true,
+      "base_classes": [],
+      "entry_point_justification": "capability_implementation"
+    },
+    "src/agents/planner_agent.py::__init__": {
+      "key": "src/agents/planner_agent.py::__init__",
+      "name": "__init__",
+      "type": "FunctionDef",
+      "file": "src/agents/planner_agent.py",
+      "domain": "agents",
+      "agent": "planner_agent",
+      "capability": "unassigned",
+      "intent": "Initializes the PlannerAgent with all necessary service dependencies.",
+      "docstring": "Initializes the PlannerAgent with all necessary service dependencies.",
+      "calls": [
+        "PromptPipeline"
+      ],
+      "line_number": 25,
+      "is_async": false,
+      "parameters": [
+        "self",
+        "orchestrator_client",
+        "generator_client",
+        "file_handler",
+        "git_service",
+        "intent_guard"
+      ],
+      "entry_point_type": "magic_method",
+      "last_updated": "2025-08-04T12:57:12.537011+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "entry_point_justification": "python_magic_method",
+      "parent_class_key": "src/agents/planner_agent.py::PlannerAgent"
+    },
+    "src/agents/planner_agent.py::_extract_target_path_from_prompt": {
+      "key": "src/agents/planner_agent.py::_extract_target_path_from_prompt",
+      "name": "_extract_target_path_from_prompt",
+      "type": "FunctionDef",
+      "file": "src/agents/planner_agent.py",
+      "domain": "agents",
+      "agent": "planner_agent",
+      "capability": "unassigned",
+      "intent": "Parses a prompt to find the first [[write:path/to/file]] directive.",
+      "docstring": "Parses a prompt to find the first [[write:path/to/file]] directive.",
+      "calls": [
+        "group",
+        "search",
+        "strip"
+      ],
+      "line_number": 40,
+      "is_async": false,
+      "parameters": [
+        "self",
+        "prompt"
+      ],
+      "last_updated": "2025-08-04T12:57:12.537480+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "parent_class_key": "src/agents/planner_agent.py::PlannerAgent"
+    },
+    "src/agents/planner_agent.py::_extract_json_from_response": {
+      "key": "src/agents/planner_agent.py::_extract_json_from_response",
+      "name": "_extract_json_from_response",
+      "type": "FunctionDef",
+      "file": "src/agents/planner_agent.py",
+      "domain": "agents",
+      "agent": "planner_agent",
+      "capability": "unassigned",
+      "intent": "Extracts a JSON object or array from a raw text response.",
+      "docstring": "Extracts a JSON object or array from a raw text response.",
+      "calls": [
+        "group",
+        "search",
+        "strip"
+      ],
+      "line_number": 45,
+      "is_async": false,
+      "parameters": [
+        "self",
+        "text"
+      ],
+      "last_updated": "2025-08-04T12:57:12.537901+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "parent_class_key": "src/agents/planner_agent.py::PlannerAgent"
+    },
+    "src/agents/planner_agent.py::create_execution_plan": {
+      "key": "src/agents/planner_agent.py::create_execution_plan",
+      "name": "create_execution_plan",
+      "type": "FunctionDef",
+      "file": "src/agents/planner_agent.py",
+      "domain": "agents",
+      "agent": "planner_agent",
+      "capability": "prompt_interpretation",
+      "intent": "Creates a detailed, step-by-step execution plan from a high-level goal.",
+      "docstring": "Creates a detailed, step-by-step execution plan from a high-level goal.",
+      "calls": [
+        "ValueError",
+        "_extract_json_from_response",
+        "dedent",
+        "len",
+        "loads",
+        "make_request",
+        "print",
+        "strip"
+      ],
+      "line_number": 56,
+      "is_async": false,
+      "parameters": [
+        "self",
+        "high_level_goal"
+      ],
+      "entry_point_type": "capability",
+      "last_updated": "2025-08-04T12:57:12.538439+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "entry_point_justification": "capability_implementation",
+      "parent_class_key": "src/agents/planner_agent.py::PlannerAgent"
+    },
+    "src/agents/planner_agent.py::execute_plan": {
+      "key": "src/agents/planner_agent.py::execute_plan",
+      "name": "execute_plan",
+      "type": "AsyncFunctionDef",
+      "file": "src/agents/planner_agent.py",
+      "domain": "agents",
+      "agent": "planner_agent",
+      "capability": "unassigned",
+      "intent": "Executes a plan, running each task in sequence.",
+      "docstring": "Executes a plan, running each task in sequence.",
+      "calls": [
+        "_execute_task",
+        "enumerate",
+        "get",
+        "is_git_repo",
+        "len",
+        "print",
+        "rollback_last_commit",
+        "str"
+      ],
+      "line_number": 83,
+      "is_async": true,
+      "parameters": [
+        "self",
+        "plan"
+      ],
+      "last_updated": "2025-08-04T12:57:12.539098+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "parent_class_key": "src/agents/planner_agent.py::PlannerAgent"
+    },
+    "src/agents/planner_agent.py::_govern_and_amend_code": {
+      "key": "src/agents/planner_agent.py::_govern_and_amend_code",
+      "name": "_govern_and_amend_code",
+      "type": "FunctionDef",
+      "file": "src/agents/planner_agent.py",
+      "domain": "agents",
+      "agent": "planner_agent",
+      "capability": "change_safety_enforcement",
+      "intent": "Validates and amends newly generated code to comply with constitutional",
+      "docstring": "Validates and amends newly generated code to comply with constitutional\nstandards before being written to disk. This is the core of the\n\"immune system\".\n\nArgs:\n    code (str): The raw Python code generated by the LLM.\n\nReturns:\n    str: The amended code, compliant with governance.\n\nRaises:\n    RuntimeError: If a critical governance check fails (e.g., missing docstring).",
+      "calls": [
+        "RuntimeError",
+        "append",
+        "get_docstring",
+        "insert",
+        "isinstance",
+        "join",
+        "parse",
+        "print",
+        "sorted",
+        "splitlines",
+        "startswith",
+        "strip",
+        "walk"
+      ],
+      "line_number": 103,
+      "is_async": false,
+      "parameters": [
+        "self",
+        "code"
+      ],
+      "entry_point_type": "capability",
+      "last_updated": "2025-08-04T12:57:12.539859+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "entry_point_justification": "capability_implementation",
+      "parent_class_key": "src/agents/planner_agent.py::PlannerAgent"
+    },
+    "src/agents/planner_agent.py::_execute_task": {
+      "key": "src/agents/planner_agent.py::_execute_task",
+      "name": "_execute_task",
+      "type": "AsyncFunctionDef",
+      "file": "src/agents/planner_agent.py",
+      "domain": "agents",
+      "agent": "planner_agent",
+      "capability": "code_generation",
+      "intent": "Executes a single task from a plan, including code generation and file writing.",
+      "docstring": "Executes a single task from a plan, including code generation and file writing.",
+      "calls": [
+        "RuntimeError",
+        "_extract_target_path_from_prompt",
+        "_govern_and_amend_code",
+        "add",
+        "add_pending_write",
+        "append",
+        "attempt_correction",
+        "commit",
+        "confirm_write",
+        "get",
+        "is_git_repo",
+        "items",
+        "make_request",
+        "parse_write_blocks",
+        "print",
+        "process",
+        "validate_code"
+      ],
+      "line_number": 150,
+      "is_async": true,
+      "parameters": [
+        "self",
+        "task"
+      ],
+      "entry_point_type": "capability",
+      "last_updated": "2025-08-04T12:57:12.541025+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "entry_point_justification": "capability_implementation",
+      "parent_class_key": "src/agents/planner_agent.py::PlannerAgent"
+    },
+    "src/shared/path_utils.py::get_repo_root": {
+      "key": "src/shared/path_utils.py::get_repo_root",
+      "name": "get_repo_root",
+      "type": "FunctionDef",
+      "file": "src/shared/path_utils.py",
+      "domain": "shared",
+      "agent": "generic_agent",
+      "capability": "unassigned",
+      "intent": "Find and return the repository root by locating the .git directory.",
+      "docstring": "Find and return the repository root by locating the .git directory.\nStarts from current directory or provided path.\n\nReturns:\n    Path: Absolute path to repo root.\n\nRaises:\n    RuntimeError: If no .git directory is found.",
+      "calls": [
+        "Path",
+        "RuntimeError",
+        "cwd",
+        "exists",
+        "resolve"
+      ],
+      "line_number": 6,
+      "is_async": false,
+      "parameters": [
+        "start_path"
+      ],
+      "last_updated": "2025-08-04T12:57:12.542491+00:00",
+      "is_class": false,
+      "base_classes": []
+    },
+    "src/shared/config_loader.py::load_config": {
+      "key": "src/shared/config_loader.py::load_config",
+      "name": "load_config",
+      "type": "FunctionDef",
+      "file": "src/shared/config_loader.py",
+      "domain": "shared",
+      "agent": "generic_agent",
+      "capability": "unassigned",
+      "intent": "Loads a JSON or YAML file into a dictionary with consistent error handling.",
+      "docstring": "Loads a JSON or YAML file into a dictionary with consistent error handling.\n\nArgs:\n    file_path (Path): Path to the file to load.\n    file_type (str): 'json', 'yaml', or 'auto' to infer from extension.\n\nReturns:\n    Dict[str, Any]: Parsed file content or empty dict if file is missing/invalid.",
+      "calls": [
+        "Path",
+        "exists",
+        "isinstance",
+        "load",
+        "lower",
+        "open",
+        "print",
+        "safe_load"
+      ],
+      "line_number": 8,
+      "is_async": false,
+      "parameters": [
+        "file_path",
+        "file_type"
+      ],
+      "last_updated": "2025-08-04T12:57:12.543707+00:00",
+      "is_class": false,
+      "base_classes": []
+    },
+    "src/system/governance/constitutional_auditor.py::ConstitutionalAuditor": {
+      "key": "src/system/governance/constitutional_auditor.py::ConstitutionalAuditor",
+      "name": "ConstitutionalAuditor",
+      "type": "ClassDef",
+      "file": "src/system/governance/constitutional_auditor.py",
+      "domain": "system",
+      "agent": "validator_agent",
+      "capability": "alignment_checking",
+      "intent": "Validates the complete structure and consistency of the .intent/ directory",
+      "docstring": "Validates the complete structure and consistency of the .intent/ directory\nand its relationship with the source code.",
+      "calls": [
+        "Console",
+        "IntentModel",
+        "Panel",
+        "Table",
+        "_add_error",
+        "_add_success",
+        "_add_warning",
+        "_report_final_status",
+        "add_row",
+        "any",
+        "append",
+        "check_fn",
+        "exists",
+        "get",
+        "get_domain_permissions",
+        "get_repo_root",
+        "is_file",
+        "items",
+        "joinpath",
+        "len",
+        "list",
+        "load_config",
+        "print",
+        "read_text",
+        "relative_to",
+        "replace",
+        "resolve_domain_for_path",
+        "rglob",
+        "rule",
+        "scan_imports_for_file",
+        "set",
+        "sorted",
+        "split",
+        "startswith",
+        "str",
+        "update",
+        "validate_code",
+        "validate_manifest_entry",
+        "values",
+        "with_suffix"
+      ],
+      "line_number": 24,
+      "is_async": false,
+      "parameters": [],
+      "entry_point_type": "capability",
+      "last_updated": "2025-08-04T12:57:12.551203+00:00",
+      "is_class": true,
+      "base_classes": [],
+      "entry_point_justification": "capability_implementation"
+    },
+    "src/system/governance/constitutional_auditor.py::__init__": {
+      "key": "src/system/governance/constitutional_auditor.py::__init__",
+      "name": "__init__",
+      "type": "FunctionDef",
+      "file": "src/system/governance/constitutional_auditor.py",
+      "domain": "system",
+      "agent": "validator_agent",
+      "capability": "unassigned",
+      "intent": "Initializes the auditor, loading all necessary configuration and knowledge files.",
+      "docstring": "Initializes the auditor, loading all necessary configuration and knowledge files.",
+      "calls": [
+        "Console",
+        "IntentModel",
+        "get",
+        "get_repo_root",
+        "list",
+        "load_config",
+        "values"
+      ],
+      "line_number": 29,
+      "is_async": false,
+      "parameters": [
+        "self"
+      ],
+      "entry_point_type": "magic_method",
+      "last_updated": "2025-08-04T12:57:12.551724+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "entry_point_justification": "python_magic_method",
+      "parent_class_key": "src/system/governance/constitutional_auditor.py::ConstitutionalAuditor"
+    },
+    "src/system/governance/constitutional_auditor.py::run_full_audit": {
+      "key": "src/system/governance/constitutional_auditor.py::run_full_audit",
+      "name": "run_full_audit",
+      "type": "FunctionDef",
+      "file": "src/system/governance/constitutional_auditor.py",
+      "domain": "system",
+      "agent": "validator_agent",
+      "capability": "validate_intent_structure",
+      "intent": "Run all validation phases and return overall status.",
+      "docstring": "Run all validation phases and return overall status.",
+      "calls": [
+        "Panel",
+        "_report_final_status",
+        "check_fn",
+        "print",
+        "rule"
+      ],
+      "line_number": 44,
+      "is_async": false,
+      "parameters": [
+        "self"
+      ],
+      "entry_point_type": "capability",
+      "last_updated": "2025-08-04T12:57:12.552352+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "entry_point_justification": "capability_implementation",
+      "parent_class_key": "src/system/governance/constitutional_auditor.py::ConstitutionalAuditor"
+    },
+    "src/system/governance/constitutional_auditor.py::_add_error": {
+      "key": "src/system/governance/constitutional_auditor.py::_add_error",
+      "name": "_add_error",
+      "type": "FunctionDef",
+      "file": "src/system/governance/constitutional_auditor.py",
+      "domain": "system",
+      "agent": "validator_agent",
+      "capability": "unassigned",
+      "intent": "Adds an error to the list and prints it.",
+      "docstring": "Adds an error to the list and prints it.",
+      "calls": [
+        "append",
+        "print"
+      ],
+      "line_number": 66,
+      "is_async": false,
+      "parameters": [
+        "self",
+        "message"
+      ],
+      "last_updated": "2025-08-04T12:57:12.552889+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "parent_class_key": "src/system/governance/constitutional_auditor.py::ConstitutionalAuditor"
+    },
+    "src/system/governance/constitutional_auditor.py::_add_warning": {
+      "key": "src/system/governance/constitutional_auditor.py::_add_warning",
+      "name": "_add_warning",
+      "type": "FunctionDef",
+      "file": "src/system/governance/constitutional_auditor.py",
+      "domain": "system",
+      "agent": "validator_agent",
+      "capability": "unassigned",
+      "intent": "Adds a warning to the list and prints it.",
+      "docstring": "Adds a warning to the list and prints it.",
+      "calls": [
+        "append",
+        "print"
+      ],
+      "line_number": 71,
+      "is_async": false,
+      "parameters": [
+        "self",
+        "message"
+      ],
+      "last_updated": "2025-08-04T12:57:12.553270+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "parent_class_key": "src/system/governance/constitutional_auditor.py::ConstitutionalAuditor"
+    },
+    "src/system/governance/constitutional_auditor.py::_add_success": {
+      "key": "src/system/governance/constitutional_auditor.py::_add_success",
+      "name": "_add_success",
+      "type": "FunctionDef",
+      "file": "src/system/governance/constitutional_auditor.py",
+      "domain": "system",
+      "agent": "validator_agent",
+      "capability": "unassigned",
+      "intent": "Prints a success message.",
+      "docstring": "Prints a success message.",
+      "calls": [
+        "print"
+      ],
+      "line_number": 76,
+      "is_async": false,
+      "parameters": [
+        "self",
+        "message"
+      ],
+      "last_updated": "2025-08-04T12:57:12.553655+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "parent_class_key": "src/system/governance/constitutional_auditor.py::ConstitutionalAuditor"
+    },
+    "src/system/governance/constitutional_auditor.py::_check_required_files": {
+      "key": "src/system/governance/constitutional_auditor.py::_check_required_files",
+      "name": "_check_required_files",
+      "type": "FunctionDef",
+      "file": "src/system/governance/constitutional_auditor.py",
+      "domain": "system",
+      "agent": "validator_agent",
+      "capability": "unassigned",
+      "intent": "Ensure all critical intent files exist.",
+      "docstring": "Ensure all critical intent files exist.",
+      "calls": [
+        "_add_error",
+        "_add_success",
+        "exists"
+      ],
+      "line_number": 80,
+      "is_async": false,
+      "parameters": [
+        "self"
+      ],
+      "last_updated": "2025-08-04T12:57:12.554094+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "parent_class_key": "src/system/governance/constitutional_auditor.py::ConstitutionalAuditor"
+    },
+    "src/system/governance/constitutional_auditor.py::_validate_syntax": {
+      "key": "src/system/governance/constitutional_auditor.py::_validate_syntax",
+      "name": "_validate_syntax",
+      "type": "FunctionDef",
+      "file": "src/system/governance/constitutional_auditor.py",
+      "domain": "system",
+      "agent": "validator_agent",
+      "capability": "unassigned",
+      "intent": "Validate YAML/JSON syntax across all intent files.",
+      "docstring": "Validate YAML/JSON syntax across all intent files.",
+      "calls": [
+        "_add_error",
+        "_add_success",
+        "is_file",
+        "len",
+        "list",
+        "read_text",
+        "relative_to",
+        "rglob",
+        "str",
+        "validate_code"
+      ],
+      "line_number": 94,
+      "is_async": false,
+      "parameters": [
+        "self"
+      ],
+      "last_updated": "2025-08-04T12:57:12.554686+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "parent_class_key": "src/system/governance/constitutional_auditor.py::ConstitutionalAuditor"
+    },
+    "src/system/governance/constitutional_auditor.py::_validate_project_manifest": {
+      "key": "src/system/governance/constitutional_auditor.py::_validate_project_manifest",
+      "name": "_validate_project_manifest",
+      "type": "FunctionDef",
+      "file": "src/system/governance/constitutional_auditor.py",
+      "domain": "system",
+      "agent": "validator_agent",
+      "capability": "unassigned",
+      "intent": "Ensure project_manifest.yaml is structurally sound.",
+      "docstring": "Ensure project_manifest.yaml is structurally sound.",
+      "calls": [
+        "_add_error",
+        "_add_success",
+        "len"
+      ],
+      "line_number": 109,
+      "is_async": false,
+      "parameters": [
+        "self"
+      ],
+      "last_updated": "2025-08-04T12:57:12.555257+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "parent_class_key": "src/system/governance/constitutional_auditor.py::ConstitutionalAuditor"
+    },
+    "src/system/governance/constitutional_auditor.py::_check_capability_coverage": {
+      "key": "src/system/governance/constitutional_auditor.py::_check_capability_coverage",
+      "name": "_check_capability_coverage",
+      "type": "FunctionDef",
+      "file": "src/system/governance/constitutional_auditor.py",
+      "domain": "system",
+      "agent": "validator_agent",
+      "capability": "unassigned",
+      "intent": "Check for missing or duplicate capability implementations.",
+      "docstring": "Check for missing or duplicate capability implementations.",
+      "calls": [
+        "_add_error",
+        "_add_success",
+        "_add_warning",
+        "get",
+        "len",
+        "list",
+        "set",
+        "sorted"
+      ],
+      "line_number": 121,
+      "is_async": false,
+      "parameters": [
+        "self"
+      ],
+      "last_updated": "2025-08-04T12:57:12.555849+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "parent_class_key": "src/system/governance/constitutional_auditor.py::ConstitutionalAuditor"
+    },
+    "src/system/governance/constitutional_auditor.py::_validate_knowledge_graph_schema": {
+      "key": "src/system/governance/constitutional_auditor.py::_validate_knowledge_graph_schema",
+      "name": "_validate_knowledge_graph_schema",
+      "type": "FunctionDef",
+      "file": "src/system/governance/constitutional_auditor.py",
+      "domain": "system",
+      "agent": "validator_agent",
+      "capability": "unassigned",
+      "intent": "Validate each entry in the knowledge graph against its JSON schema.",
+      "docstring": "Validate each entry in the knowledge graph against its JSON schema.",
+      "calls": [
+        "_add_error",
+        "_add_success",
+        "items",
+        "len",
+        "validate_manifest_entry"
+      ],
+      "line_number": 139,
+      "is_async": false,
+      "parameters": [
+        "self"
+      ],
+      "last_updated": "2025-08-04T12:57:12.556465+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "parent_class_key": "src/system/governance/constitutional_auditor.py::ConstitutionalAuditor"
+    },
+    "src/system/governance/constitutional_auditor.py::_check_domain_integrity": {
+      "key": "src/system/governance/constitutional_auditor.py::_check_domain_integrity",
+      "name": "_check_domain_integrity",
+      "type": "FunctionDef",
+      "file": "src/system/governance/constitutional_auditor.py",
+      "domain": "system",
+      "agent": "validator_agent",
+      "capability": "unassigned",
+      "intent": "Validate domain declarations and cross-domain imports.",
+      "docstring": "Validate domain declarations and cross-domain imports.",
+      "calls": [
+        "_add_error",
+        "_add_success",
+        "_add_warning",
+        "exists",
+        "get",
+        "get_domain_permissions",
+        "joinpath",
+        "len",
+        "relative_to",
+        "resolve_domain_for_path",
+        "scan_imports_for_file",
+        "set",
+        "split",
+        "startswith",
+        "with_suffix"
+      ],
+      "line_number": 152,
+      "is_async": false,
+      "parameters": [
+        "self"
+      ],
+      "last_updated": "2025-08-04T12:57:12.557250+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "parent_class_key": "src/system/governance/constitutional_auditor.py::ConstitutionalAuditor"
+    },
+    "src/system/governance/constitutional_auditor.py::_check_docstrings_and_intents": {
+      "key": "src/system/governance/constitutional_auditor.py::_check_docstrings_and_intents",
+      "name": "_check_docstrings_and_intents",
+      "type": "FunctionDef",
+      "file": "src/system/governance/constitutional_auditor.py",
+      "domain": "system",
+      "agent": "validator_agent",
+      "capability": "unassigned",
+      "intent": "Check for missing docstrings or weak, generic intents.",
+      "docstring": "Check for missing docstrings or weak, generic intents.",
+      "calls": [
+        "_add_success",
+        "_add_warning",
+        "get",
+        "len"
+      ],
+      "line_number": 181,
+      "is_async": false,
+      "parameters": [
+        "self"
+      ],
+      "last_updated": "2025-08-04T12:57:12.558092+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "parent_class_key": "src/system/governance/constitutional_auditor.py::ConstitutionalAuditor"
+    },
+    "src/system/governance/constitutional_auditor.py::_check_for_dead_code": {
+      "key": "src/system/governance/constitutional_auditor.py::_check_for_dead_code",
+      "name": "_check_for_dead_code",
+      "type": "FunctionDef",
+      "file": "src/system/governance/constitutional_auditor.py",
+      "domain": "system",
+      "agent": "validator_agent",
+      "capability": "self_review",
+      "intent": "Finds symbols that are not entry points and are never called.",
+      "docstring": "Finds symbols that are not entry points and are never called.",
+      "calls": [
+        "_add_success",
+        "_add_warning",
+        "get",
+        "len",
+        "set",
+        "startswith",
+        "update"
+      ],
+      "line_number": 194,
+      "is_async": false,
+      "parameters": [
+        "self"
+      ],
+      "entry_point_type": "capability",
+      "last_updated": "2025-08-04T12:57:12.558729+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "entry_point_justification": "capability_implementation",
+      "parent_class_key": "src/system/governance/constitutional_auditor.py::ConstitutionalAuditor"
+    },
+    "src/system/governance/constitutional_auditor.py::_check_for_orphaned_intent_files": {
+      "key": "src/system/governance/constitutional_auditor.py::_check_for_orphaned_intent_files",
+      "name": "_check_for_orphaned_intent_files",
+      "type": "FunctionDef",
+      "file": "src/system/governance/constitutional_auditor.py",
+      "domain": "system",
+      "agent": "validator_agent",
+      "capability": "unassigned",
+      "intent": "Finds .intent files that are not part of the core system configuration.",
+      "docstring": "Finds .intent files that are not part of the core system configuration.",
+      "calls": [
+        "_add_success",
+        "_add_warning",
+        "any",
+        "is_file",
+        "len",
+        "list",
+        "relative_to",
+        "replace",
+        "rglob",
+        "sorted",
+        "str"
+      ],
+      "line_number": 222,
+      "is_async": false,
+      "parameters": [
+        "self"
+      ],
+      "last_updated": "2025-08-04T12:57:12.559425+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "parent_class_key": "src/system/governance/constitutional_auditor.py::ConstitutionalAuditor"
+    },
+    "src/system/governance/constitutional_auditor.py::_report_final_status": {
+      "key": "src/system/governance/constitutional_auditor.py::_report_final_status",
+      "name": "_report_final_status",
+      "type": "FunctionDef",
+      "file": "src/system/governance/constitutional_auditor.py",
+      "domain": "system",
+      "agent": "validator_agent",
+      "capability": "unassigned",
+      "intent": "Print final summary report.",
+      "docstring": "Print final summary report.",
+      "calls": [
+        "Panel",
+        "Table",
+        "add_row",
+        "len",
+        "print"
+      ],
+      "line_number": 246,
+      "is_async": false,
+      "parameters": [
+        "self",
+        "passed"
+      ],
+      "last_updated": "2025-08-04T12:57:12.560144+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "parent_class_key": "src/system/governance/constitutional_auditor.py::ConstitutionalAuditor"
+    },
+    "src/system/governance/constitutional_auditor.py::main": {
+      "key": "src/system/governance/constitutional_auditor.py::main",
+      "name": "main",
+      "type": "FunctionDef",
+      "file": "src/system/governance/constitutional_auditor.py",
+      "domain": "system",
+      "agent": "validator_agent",
+      "capability": "unassigned",
+      "intent": "CLI entry point for the Constitutional Auditor.",
+      "docstring": "CLI entry point for the Constitutional Auditor.",
+      "calls": [
+        "ConstitutionalAuditor",
+        "exit",
+        "print",
+        "run_full_audit"
+      ],
+      "line_number": 262,
+      "is_async": false,
+      "parameters": [],
+      "entry_point_type": "cli_entry_point",
+      "last_updated": "2025-08-04T12:57:12.560734+00:00",
+      "is_class": false,
+      "base_classes": []
+    },
+    "src/system/tools/change_log_updater.py::load_existing_log": {
+      "key": "src/system/tools/change_log_updater.py::load_existing_log",
+      "name": "load_existing_log",
+      "type": "FunctionDef",
+      "file": "src/system/tools/change_log_updater.py",
+      "domain": "tooling",
+      "agent": "tooling_agent",
+      "capability": "unassigned",
+      "intent": "Loads the existing change log from disk or returns a new structure.",
+      "docstring": "Loads the existing change log from disk or returns a new structure.",
+      "calls": [
+        "load_config"
+      ],
+      "line_number": 14,
+      "is_async": false,
+      "parameters": [],
+      "last_updated": "2025-08-04T12:57:12.562051+00:00",
+      "is_class": false,
+      "base_classes": []
+    },
+    "src/system/tools/change_log_updater.py::append_change_entry": {
+      "key": "src/system/tools/change_log_updater.py::append_change_entry",
+      "name": "append_change_entry",
+      "type": "FunctionDef",
+      "file": "src/system/tools/change_log_updater.py",
+      "domain": "tooling",
+      "agent": "tooling_agent",
+      "capability": "unassigned",
+      "intent": "Appends a new, structured entry to the metacode change log.",
+      "docstring": "Appends a new, structured entry to the metacode change log.",
+      "calls": [
+        "append",
+        "dumps",
+        "isoformat",
+        "load_existing_log",
+        "mkdir",
+        "print",
+        "utcnow",
+        "write_text"
+      ],
+      "line_number": 22,
+      "is_async": false,
+      "parameters": [
+        "task",
+        "step",
+        "modified_files",
+        "score",
+        "violations"
+      ],
+      "entry_point_type": "cli_entry_point",
+      "last_updated": "2025-08-04T12:57:12.562576+00:00",
+      "is_class": false,
+      "base_classes": []
+    },
+    "src/system/tools/codegraph_builder.py::FunctionInfo": {
+      "key": "src/system/tools/codegraph_builder.py::FunctionInfo",
+      "name": "FunctionInfo",
+      "type": "ClassDef",
+      "file": "src/system/tools/codegraph_builder.py",
+      "domain": "tooling",
+      "agent": "tooling_agent",
+      "capability": "unassigned",
+      "intent": "A data structure holding all analyzed information about a single symbol (function or class).",
+      "docstring": "A data structure holding all analyzed information about a single symbol (function or class).",
+      "calls": [
+        "field"
+      ],
+      "line_number": 17,
+      "is_async": false,
+      "parameters": [],
+      "last_updated": "2025-08-04T12:57:12.569272+00:00",
+      "is_class": true,
+      "base_classes": []
+    },
+    "src/system/tools/codegraph_builder.py::ProjectStructureError": {
+      "key": "src/system/tools/codegraph_builder.py::ProjectStructureError",
+      "name": "ProjectStructureError",
+      "type": "ClassDef",
+      "file": "src/system/tools/codegraph_builder.py",
+      "domain": "tooling",
+      "agent": "tooling_agent",
+      "capability": "unassigned",
+      "intent": "Custom exception for when the project's root cannot be determined.",
+      "docstring": "Custom exception for when the project's root cannot be determined.",
+      "calls": [],
+      "line_number": 39,
+      "is_async": false,
+      "parameters": [],
+      "last_updated": "2025-08-04T12:57:12.569813+00:00",
+      "is_class": true,
+      "base_classes": [
+        "Exception"
+      ]
+    },
+    "src/system/tools/codegraph_builder.py::find_project_root": {
+      "key": "src/system/tools/codegraph_builder.py::find_project_root",
+      "name": "find_project_root",
+      "type": "FunctionDef",
+      "file": "src/system/tools/codegraph_builder.py",
+      "domain": "tooling",
+      "agent": "tooling_agent",
+      "capability": "unassigned",
+      "intent": "Traverses upward from a starting path to find the project root, marked by 'pyproject.toml'.",
+      "docstring": "Traverses upward from a starting path to find the project root, marked by 'pyproject.toml'.",
+      "calls": [
+        "ProjectStructureError",
+        "exists",
+        "resolve"
+      ],
+      "line_number": 43,
+      "is_async": false,
+      "parameters": [
+        "start_path"
+      ],
+      "last_updated": "2025-08-04T12:57:12.570249+00:00",
+      "is_class": false,
+      "base_classes": []
+    },
+    "src/system/tools/codegraph_builder.py::FunctionCallVisitor": {
+      "key": "src/system/tools/codegraph_builder.py::FunctionCallVisitor",
+      "name": "FunctionCallVisitor",
+      "type": "ClassDef",
+      "file": "src/system/tools/codegraph_builder.py",
+      "domain": "tooling",
+      "agent": "tooling_agent",
+      "capability": "unassigned",
+      "intent": "An AST visitor that collects the names of all functions being called within a node.",
+      "docstring": "An AST visitor that collects the names of all functions being called within a node.",
+      "calls": [
+        "add",
+        "generic_visit",
+        "isinstance",
+        "set"
+      ],
+      "line_number": 54,
+      "is_async": false,
+      "parameters": [],
+      "last_updated": "2025-08-04T12:57:12.570777+00:00",
+      "is_class": true,
+      "base_classes": [
+        "NodeVisitor"
+      ]
+    },
+    "src/system/tools/codegraph_builder.py::__init__": {
+      "key": "src/system/tools/codegraph_builder.py::__init__",
+      "name": "__init__",
+      "type": "FunctionDef",
+      "file": "src/system/tools/codegraph_builder.py",
+      "domain": "tooling",
+      "agent": "tooling_agent",
+      "capability": "unassigned",
+      "intent": "Initializes the builder, loading patterns and project configuration.",
+      "docstring": "Initializes the builder, loading patterns and project configuration.",
+      "calls": [
+        "_get_cli_entry_points",
+        "_get_domain_map",
+        "_load_patterns",
+        "resolve"
+      ],
+      "line_number": 97,
+      "is_async": false,
+      "parameters": [
+        "self",
+        "root_path",
+        "exclude_patterns"
+      ],
+      "entry_point_type": "magic_method",
+      "last_updated": "2025-08-04T12:57:12.577386+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "entry_point_justification": "python_magic_method",
+      "parent_class_key": "src/system/tools/codegraph_builder.py::KnowledgeGraphBuilder"
+    },
+    "src/system/tools/codegraph_builder.py::visit_Call": {
+      "key": "src/system/tools/codegraph_builder.py::visit_Call",
+      "name": "visit_Call",
+      "type": "FunctionDef",
+      "file": "src/system/tools/codegraph_builder.py",
+      "domain": "tooling",
+      "agent": "tooling_agent",
+      "capability": "unassigned",
+      "intent": "Extracts the function name from a Call node.",
+      "docstring": "Extracts the function name from a Call node.",
+      "calls": [
+        "add",
+        "generic_visit",
+        "isinstance"
+      ],
+      "line_number": 60,
+      "is_async": false,
+      "parameters": [
+        "self",
+        "node"
+      ],
+      "entry_point_type": "visitor_method",
+      "last_updated": "2025-08-04T12:57:12.571584+00:00",
+      "is_class": false,
+      "base_classes": [
+        "NodeVisitor"
+      ],
+      "entry_point_justification": "ast_visitor_method",
+      "parent_class_key": "src/system/tools/codegraph_builder.py::FunctionCallVisitor"
+    },
+    "src/system/tools/codegraph_builder.py::KnowledgeGraphBuilder": {
+      "key": "src/system/tools/codegraph_builder.py::KnowledgeGraphBuilder",
+      "name": "KnowledgeGraphBuilder",
+      "type": "ClassDef",
+      "file": "src/system/tools/codegraph_builder.py",
+      "domain": "tooling",
+      "agent": "tooling_agent",
+      "capability": "manifest_updating",
+      "intent": "Builds a comprehensive JSON representation of the project's code structure and relationships.",
+      "docstring": "Builds a comprehensive JSON representation of the project's code structure and relationships.",
+      "calls": [
+        "ContextAwareVisitor",
+        "FunctionCallVisitor",
+        "FunctionInfo",
+        "Path",
+        "_apply_entry_point_patterns",
+        "_determine_domain",
+        "_get_cli_entry_points",
+        "_get_domain_map",
+        "_get_entry_point_type",
+        "_infer_agent_from_path",
+        "_load_patterns",
+        "_parse_metadata_comment",
+        "_process_symbol_node",
+        "_should_exclude_path",
+        "any",
+        "append",
+        "as_posix",
+        "asdict",
+        "error",
+        "exists",
+        "extend",
+        "findall",
+        "generic_visit",
+        "get",
+        "get_docstring",
+        "group",
+        "hasattr",
+        "info",
+        "isinstance",
+        "isoformat",
+        "items",
+        "len",
+        "list",
+        "load_config",
+        "lower",
+        "match",
+        "max",
+        "now",
+        "parse",
+        "read_text",
+        "relative_to",
+        "resolve",
+        "rglob",
+        "scan_file",
+        "search",
+        "set",
+        "sorted",
+        "split",
+        "splitlines",
+        "startswith",
+        "str",
+        "strip",
+        "update",
+        "values",
+        "visit",
+        "walk",
+        "warning"
+      ],
+      "line_number": 67,
+      "is_async": false,
+      "parameters": [],
+      "entry_point_type": "capability",
+      "last_updated": "2025-08-04T12:57:12.574570+00:00",
+      "is_class": true,
+      "base_classes": [],
+      "entry_point_justification": "capability_implementation"
+    },
+    "src/system/tools/codegraph_builder.py::ContextAwareVisitor": {
+      "key": "src/system/tools/codegraph_builder.py::ContextAwareVisitor",
+      "name": "ContextAwareVisitor",
+      "type": "ClassDef",
+      "file": "src/system/tools/codegraph_builder.py",
+      "domain": "tooling",
+      "agent": "tooling_agent",
+      "capability": "unassigned",
+      "intent": "A stateful AST visitor that understands class context for methods.",
+      "docstring": "A stateful AST visitor that understands class context for methods.",
+      "calls": [
+        "_process_symbol_node",
+        "generic_visit"
+      ],
+      "line_number": 70,
+      "is_async": false,
+      "parameters": [],
+      "last_updated": "2025-08-04T12:57:12.575172+00:00",
+      "is_class": true,
+      "base_classes": [
+        "NodeVisitor"
+      ]
+    },
+    "src/system/tools/codegraph_builder.py::visit_ClassDef": {
+      "key": "src/system/tools/codegraph_builder.py::visit_ClassDef",
+      "name": "visit_ClassDef",
+      "type": "FunctionDef",
+      "file": "src/system/tools/codegraph_builder.py",
+      "domain": "tooling",
+      "agent": "tooling_agent",
+      "capability": "unassigned",
+      "intent": "Processes a class definition, setting the context for its methods.",
+      "docstring": "Processes a class definition, setting the context for its methods.",
+      "calls": [
+        "_process_symbol_node",
+        "generic_visit"
+      ],
+      "line_number": 79,
+      "is_async": false,
+      "parameters": [
+        "self",
+        "node"
+      ],
+      "entry_point_type": "visitor_method",
+      "last_updated": "2025-08-04T12:57:12.576015+00:00",
+      "is_class": false,
+      "base_classes": [
+        "NodeVisitor"
+      ],
+      "entry_point_justification": "ast_visitor_method",
+      "parent_class_key": "src/system/tools/codegraph_builder.py::ContextAwareVisitor"
+    },
+    "src/system/tools/codegraph_builder.py::visit_FunctionDef": {
+      "key": "src/system/tools/codegraph_builder.py::visit_FunctionDef",
+      "name": "visit_FunctionDef",
+      "type": "FunctionDef",
+      "file": "src/system/tools/codegraph_builder.py",
+      "domain": "tooling",
+      "agent": "tooling_agent",
+      "capability": "unassigned",
+      "intent": "Processes a standard function or method within its class context.",
+      "docstring": "Processes a standard function or method within its class context.",
+      "calls": [
+        "_process_symbol_node",
+        "generic_visit"
+      ],
+      "line_number": 87,
+      "is_async": false,
+      "parameters": [
+        "self",
+        "node"
+      ],
+      "entry_point_type": "visitor_method",
+      "last_updated": "2025-08-04T12:57:12.576459+00:00",
+      "is_class": false,
+      "base_classes": [
+        "NodeVisitor"
+      ],
+      "entry_point_justification": "ast_visitor_method",
+      "parent_class_key": "src/system/tools/codegraph_builder.py::ContextAwareVisitor"
+    },
+    "src/system/tools/codegraph_builder.py::visit_AsyncFunctionDef": {
+      "key": "src/system/tools/codegraph_builder.py::visit_AsyncFunctionDef",
+      "name": "visit_AsyncFunctionDef",
+      "type": "FunctionDef",
+      "file": "src/system/tools/codegraph_builder.py",
+      "domain": "tooling",
+      "agent": "tooling_agent",
+      "capability": "unassigned",
+      "intent": "Processes an async function or method within its class context.",
+      "docstring": "Processes an async function or method within its class context.",
+      "calls": [
+        "_process_symbol_node",
+        "generic_visit"
+      ],
+      "line_number": 92,
+      "is_async": false,
+      "parameters": [
+        "self",
+        "node"
+      ],
+      "entry_point_type": "visitor_method",
+      "last_updated": "2025-08-04T12:57:12.576869+00:00",
+      "is_class": false,
+      "base_classes": [
+        "NodeVisitor"
+      ],
+      "entry_point_justification": "ast_visitor_method",
+      "parent_class_key": "src/system/tools/codegraph_builder.py::ContextAwareVisitor"
+    },
+    "src/system/tools/codegraph_builder.py::_load_patterns": {
+      "key": "src/system/tools/codegraph_builder.py::_load_patterns",
+      "name": "_load_patterns",
+      "type": "FunctionDef",
+      "file": "src/system/tools/codegraph_builder.py",
+      "domain": "tooling",
+      "agent": "tooling_agent",
+      "capability": "unassigned",
+      "intent": "Loads entry point detection patterns from the intent file.",
+      "docstring": "Loads entry point detection patterns from the intent file.",
+      "calls": [
+        "exists",
+        "get",
+        "load_config",
+        "warning"
+      ],
+      "line_number": 110,
+      "is_async": false,
+      "parameters": [
+        "self"
+      ],
+      "last_updated": "2025-08-04T12:57:12.577948+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "parent_class_key": "src/system/tools/codegraph_builder.py::KnowledgeGraphBuilder"
+    },
+    "src/system/tools/codegraph_builder.py::_get_cli_entry_points": {
+      "key": "src/system/tools/codegraph_builder.py::_get_cli_entry_points",
+      "name": "_get_cli_entry_points",
+      "type": "FunctionDef",
+      "file": "src/system/tools/codegraph_builder.py",
+      "domain": "tooling",
+      "agent": "tooling_agent",
+      "capability": "unassigned",
+      "intent": "Parses pyproject.toml to find declared command-line entry points.",
+      "docstring": "Parses pyproject.toml to find declared command-line entry points.",
+      "calls": [
+        "exists",
+        "findall",
+        "group",
+        "read_text",
+        "search",
+        "set"
+      ],
+      "line_number": 118,
+      "is_async": false,
+      "parameters": [
+        "self"
+      ],
+      "last_updated": "2025-08-04T12:57:12.578455+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "parent_class_key": "src/system/tools/codegraph_builder.py::KnowledgeGraphBuilder"
+    },
+    "src/system/tools/codegraph_builder.py::_should_exclude_path": {
+      "key": "src/system/tools/codegraph_builder.py::_should_exclude_path",
+      "name": "_should_exclude_path",
+      "type": "FunctionDef",
+      "file": "src/system/tools/codegraph_builder.py",
+      "domain": "tooling",
+      "agent": "tooling_agent",
+      "capability": "unassigned",
+      "intent": "Determines if a given path should be excluded from scanning.",
+      "docstring": "Determines if a given path should be excluded from scanning.",
+      "calls": [
+        "any"
+      ],
+      "line_number": 126,
+      "is_async": false,
+      "parameters": [
+        "self",
+        "path"
+      ],
+      "last_updated": "2025-08-04T12:57:12.578914+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "parent_class_key": "src/system/tools/codegraph_builder.py::KnowledgeGraphBuilder"
+    },
+    "src/system/tools/codegraph_builder.py::_get_domain_map": {
+      "key": "src/system/tools/codegraph_builder.py::_get_domain_map",
+      "name": "_get_domain_map",
+      "type": "FunctionDef",
+      "file": "src/system/tools/codegraph_builder.py",
+      "domain": "tooling",
+      "agent": "tooling_agent",
+      "capability": "unassigned",
+      "intent": "Loads the domain-to-path mapping from the source structure intent file.",
+      "docstring": "Loads the domain-to-path mapping from the source structure intent file.",
+      "calls": [
+        "Path",
+        "as_posix",
+        "get",
+        "load_config"
+      ],
+      "line_number": 130,
+      "is_async": false,
+      "parameters": [
+        "self"
+      ],
+      "last_updated": "2025-08-04T12:57:12.579367+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "parent_class_key": "src/system/tools/codegraph_builder.py::KnowledgeGraphBuilder"
+    },
+    "src/system/tools/codegraph_builder.py::_determine_domain": {
+      "key": "src/system/tools/codegraph_builder.py::_determine_domain",
+      "name": "_determine_domain",
+      "type": "FunctionDef",
+      "file": "src/system/tools/codegraph_builder.py",
+      "domain": "tooling",
+      "agent": "tooling_agent",
+      "capability": "unassigned",
+      "intent": "Determines the logical domain for a file path based on the longest matching prefix.",
+      "docstring": "Determines the logical domain for a file path based on the longest matching prefix.",
+      "calls": [
+        "as_posix",
+        "get",
+        "max",
+        "startswith"
+      ],
+      "line_number": 136,
+      "is_async": false,
+      "parameters": [
+        "self",
+        "file_path"
+      ],
+      "last_updated": "2025-08-04T12:57:12.579839+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "parent_class_key": "src/system/tools/codegraph_builder.py::KnowledgeGraphBuilder"
+    },
+    "src/system/tools/codegraph_builder.py::_infer_agent_from_path": {
+      "key": "src/system/tools/codegraph_builder.py::_infer_agent_from_path",
+      "name": "_infer_agent_from_path",
+      "type": "FunctionDef",
+      "file": "src/system/tools/codegraph_builder.py",
+      "domain": "tooling",
+      "agent": "tooling_agent",
+      "capability": "unassigned",
+      "intent": "Infers the most likely responsible agent based on keywords in the file path.",
+      "docstring": "Infers the most likely responsible agent based on keywords in the file path.",
+      "calls": [
+        "any",
+        "lower",
+        "str"
+      ],
+      "line_number": 142,
+      "is_async": false,
+      "parameters": [
+        "self",
+        "relative_path"
+      ],
+      "last_updated": "2025-08-04T12:57:12.580330+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "parent_class_key": "src/system/tools/codegraph_builder.py::KnowledgeGraphBuilder"
+    },
+    "src/system/tools/codegraph_builder.py::_parse_metadata_comment": {
+      "key": "src/system/tools/codegraph_builder.py::_parse_metadata_comment",
+      "name": "_parse_metadata_comment",
+      "type": "FunctionDef",
+      "file": "src/system/tools/codegraph_builder.py",
+      "domain": "tooling",
+      "agent": "tooling_agent",
+      "capability": "unassigned",
+      "intent": "Parses the line immediately preceding a symbol definition for a '# CAPABILITY:' tag.",
+      "docstring": "Parses the line immediately preceding a symbol definition for a '# CAPABILITY:' tag.",
+      "calls": [
+        "group",
+        "search",
+        "startswith",
+        "strip"
+      ],
+      "line_number": 152,
+      "is_async": false,
+      "parameters": [
+        "self",
+        "node",
+        "source_lines"
+      ],
+      "last_updated": "2025-08-04T12:57:12.580874+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "parent_class_key": "src/system/tools/codegraph_builder.py::KnowledgeGraphBuilder"
+    },
+    "src/system/tools/codegraph_builder.py::_get_entry_point_type": {
+      "key": "src/system/tools/codegraph_builder.py::_get_entry_point_type",
+      "name": "_get_entry_point_type",
+      "type": "FunctionDef",
+      "file": "src/system/tools/codegraph_builder.py",
+      "domain": "tooling",
+      "agent": "tooling_agent",
+      "capability": "unassigned",
+      "intent": "Identifies decorator or CLI-based entry points for a function.",
+      "docstring": "Identifies decorator or CLI-based entry points for a function.",
+      "calls": [
+        "isinstance"
+      ],
+      "line_number": 161,
+      "is_async": false,
+      "parameters": [
+        "self",
+        "node"
+      ],
+      "last_updated": "2025-08-04T12:57:12.581457+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "parent_class_key": "src/system/tools/codegraph_builder.py::KnowledgeGraphBuilder"
+    },
+    "src/system/tools/codegraph_builder.py::scan_file": {
+      "key": "src/system/tools/codegraph_builder.py::scan_file",
+      "name": "scan_file",
+      "type": "FunctionDef",
+      "file": "src/system/tools/codegraph_builder.py",
+      "domain": "tooling",
+      "agent": "tooling_agent",
+      "capability": "unassigned",
+      "intent": "Scans a single Python file, parsing its AST to extract all symbols.",
+      "docstring": "Scans a single Python file, parsing its AST to extract all symbols.",
+      "calls": [
+        "ContextAwareVisitor",
+        "FunctionCallVisitor",
+        "error",
+        "isinstance",
+        "parse",
+        "read_text",
+        "set",
+        "splitlines",
+        "str",
+        "update",
+        "visit",
+        "walk"
+      ],
+      "line_number": 172,
+      "is_async": false,
+      "parameters": [
+        "self",
+        "filepath"
+      ],
+      "last_updated": "2025-08-04T12:57:12.582237+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "parent_class_key": "src/system/tools/codegraph_builder.py::KnowledgeGraphBuilder"
+    },
+    "src/system/tools/codegraph_builder.py::_process_symbol_node": {
+      "key": "src/system/tools/codegraph_builder.py::_process_symbol_node",
+      "name": "_process_symbol_node",
+      "type": "FunctionDef",
+      "file": "src/system/tools/codegraph_builder.py",
+      "domain": "tooling",
+      "agent": "tooling_agent",
+      "capability": "unassigned",
+      "intent": "Extracts and stores metadata from a single function or class AST node.",
+      "docstring": "Extracts and stores metadata from a single function or class AST node.",
+      "calls": [
+        "FunctionCallVisitor",
+        "FunctionInfo",
+        "_determine_domain",
+        "_get_entry_point_type",
+        "_infer_agent_from_path",
+        "_parse_metadata_comment",
+        "append",
+        "as_posix",
+        "get",
+        "get_docstring",
+        "hasattr",
+        "isinstance",
+        "isoformat",
+        "now",
+        "relative_to",
+        "split",
+        "strip",
+        "visit"
+      ],
+      "line_number": 194,
+      "is_async": false,
+      "parameters": [
+        "self",
+        "node",
+        "filepath",
+        "source_lines",
+        "parent_key"
+      ],
+      "last_updated": "2025-08-04T12:57:12.583250+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "parent_class_key": "src/system/tools/codegraph_builder.py::KnowledgeGraphBuilder"
+    },
+    "src/system/tools/codegraph_builder.py::_apply_entry_point_patterns": {
+      "key": "src/system/tools/codegraph_builder.py::_apply_entry_point_patterns",
+      "name": "_apply_entry_point_patterns",
+      "type": "FunctionDef",
+      "file": "src/system/tools/codegraph_builder.py",
+      "domain": "tooling",
+      "agent": "tooling_agent",
+      "capability": "unassigned",
+      "intent": "Applies declarative patterns to identify non-obvious entry points.",
+      "docstring": "Applies declarative patterns to identify non-obvious entry points.",
+      "calls": [
+        "any",
+        "extend",
+        "get",
+        "match",
+        "values"
+      ],
+      "line_number": 224,
+      "is_async": false,
+      "parameters": [
+        "self"
+      ],
+      "last_updated": "2025-08-04T12:57:12.584208+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "parent_class_key": "src/system/tools/codegraph_builder.py::KnowledgeGraphBuilder"
+    },
+    "src/system/tools/codegraph_builder.py::build": {
+      "key": "src/system/tools/codegraph_builder.py::build",
+      "name": "build",
+      "type": "FunctionDef",
+      "file": "src/system/tools/codegraph_builder.py",
+      "domain": "tooling",
+      "agent": "tooling_agent",
+      "capability": "unassigned",
+      "intent": "Orchestrates the full knowledge graph generation process.",
+      "docstring": "Orchestrates the full knowledge graph generation process.",
+      "calls": [
+        "_apply_entry_point_patterns",
+        "_should_exclude_path",
+        "asdict",
+        "info",
+        "isoformat",
+        "items",
+        "len",
+        "list",
+        "now",
+        "rglob",
+        "scan_file",
+        "sorted",
+        "values"
+      ],
+      "line_number": 246,
+      "is_async": false,
+      "parameters": [
+        "self"
+      ],
+      "last_updated": "2025-08-04T12:57:12.585162+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "parent_class_key": "src/system/tools/codegraph_builder.py::KnowledgeGraphBuilder"
+    },
+    "src/system/tools/codegraph_builder.py::main": {
+      "key": "src/system/tools/codegraph_builder.py::main",
+      "name": "main",
+      "type": "FunctionDef",
+      "file": "src/system/tools/codegraph_builder.py",
+      "domain": "tooling",
+      "agent": "tooling_agent",
+      "capability": "unassigned",
+      "intent": "CLI entry point to run the knowledge graph builder and save the output.",
+      "docstring": "CLI entry point to run the knowledge graph builder and save the output.",
+      "calls": [
+        "KnowledgeGraphBuilder",
+        "build",
+        "cwd",
+        "dumps",
+        "error",
+        "find_project_root",
+        "len",
+        "mkdir",
+        "print",
+        "write_text"
+      ],
+      "line_number": 268,
+      "is_async": false,
+      "parameters": [],
+      "entry_point_type": "cli_entry_point",
+      "last_updated": "2025-08-04T12:57:12.585929+00:00",
+      "is_class": false,
+      "base_classes": []
+    },
+    "src/system/tools/docstring_adder.py::main": {
+      "key": "src/system/tools/docstring_adder.py::main",
+      "name": "main",
+      "type": "FunctionDef",
+      "file": "src/system/tools/docstring_adder.py",
+      "domain": "tooling",
+      "agent": "tooling_agent",
+      "capability": "add_missing_docstrings",
+      "intent": "Entry point for the docstring adder tool.",
+      "docstring": "Entry point for the docstring adder tool.",
+      "calls": [
+        "exit",
+        "print"
+      ],
+      "line_number": 10,
+      "is_async": false,
+      "parameters": [],
+      "entry_point_type": "cli_entry_point",
+      "last_updated": "2025-08-04T12:57:12.586938+00:00",
+      "is_class": false,
+      "base_classes": []
+    },
+    "src/shared/schemas/manifest_validator.py::load_schema": {
+      "key": "src/shared/schemas/manifest_validator.py::load_schema",
+      "name": "load_schema",
+      "type": "FunctionDef",
+      "file": "src/shared/schemas/manifest_validator.py",
+      "domain": "shared",
+      "agent": "validator_agent",
+      "capability": "unassigned",
+      "intent": "Load a JSON schema from the .intent/schemas/ directory.",
+      "docstring": "Load a JSON schema from the .intent/schemas/ directory.\n\nArgs:\n    schema_name (str): The filename of the schema (e.g., 'knowledge_graph_entry.schema.json').\n    \nReturns:\n    Dict[str, Any]: The loaded JSON schema.\n    \nRaises:\n    FileNotFoundError: If the schema file is not found.\n    json.JSONDecodeError: If the schema file is not valid JSON.",
+      "calls": [
+        "FileNotFoundError",
+        "JSONDecodeError",
+        "exists",
+        "load",
+        "open"
+      ],
+      "line_number": 13,
+      "is_async": false,
+      "parameters": [
+        "schema_name"
+      ],
+      "last_updated": "2025-08-04T12:57:12.588193+00:00",
+      "is_class": false,
+      "base_classes": []
+    },
+    "src/shared/schemas/manifest_validator.py::validate_manifest_entry": {
+      "key": "src/shared/schemas/manifest_validator.py::validate_manifest_entry",
+      "name": "validate_manifest_entry",
+      "type": "FunctionDef",
+      "file": "src/shared/schemas/manifest_validator.py",
+      "domain": "shared",
+      "agent": "validator_agent",
+      "capability": "unassigned",
+      "intent": "Validate a single manifest entry against a schema.",
+      "docstring": "Validate a single manifest entry against a schema.\n\nArgs:\n    entry: The dictionary representing a single function/class entry.\n    schema_name: The filename of the schema to validate against.\n    \nReturns:\n    A tuple of (is_valid: bool, list_of_error_messages: List[str]).",
+      "calls": [
+        "Draft7Validator",
+        "append",
+        "iter_errors",
+        "join",
+        "load_schema",
+        "str"
+      ],
+      "line_number": 38,
+      "is_async": false,
+      "parameters": [
+        "entry",
+        "schema_name"
+      ],
+      "last_updated": "2025-08-04T12:57:12.588784+00:00",
+      "is_class": false,
+      "base_classes": []
+    },
+    "src/shared/utils/import_scanner.py::scan_imports_for_file": {
+      "key": "src/shared/utils/import_scanner.py::scan_imports_for_file",
+      "name": "scan_imports_for_file",
+      "type": "FunctionDef",
+      "file": "src/shared/utils/import_scanner.py",
+      "domain": "shared",
+      "agent": "generic_agent",
+      "capability": "unassigned",
+      "intent": "Parse a Python file and extract all imported module paths.",
+      "docstring": "Parse a Python file and extract all imported module paths.\n\nArgs:\n    file_path (Path): Path to the file.\n\nReturns:\n    List[str]: List of imported module paths.",
+      "calls": [
+        "append",
+        "isinstance",
+        "parse",
+        "print",
+        "read_text",
+        "walk"
+      ],
+      "line_number": 15,
+      "is_async": false,
+      "parameters": [
+        "file_path"
+      ],
+      "last_updated": "2025-08-04T12:57:12.589899+00:00",
+      "is_class": false,
+      "base_classes": []
+    },
+    "src/shared/utils/parsing.py::parse_write_blocks": {
+      "key": "src/shared/utils/parsing.py::parse_write_blocks",
+      "name": "parse_write_blocks",
+      "type": "FunctionDef",
+      "file": "src/shared/utils/parsing.py",
+      "domain": "shared",
+      "agent": "generic_agent",
+      "capability": "unassigned",
+      "intent": "Extracts all [[write:...]] blocks from LLM output.",
+      "docstring": "Extracts all [[write:...]] blocks from LLM output.\n\nThis function is robust and handles both [[end]] and [[/write]] as valid terminators\nto accommodate different LLM habits.\n\nArgs:\n    llm_output (str): The raw text output from a language model.\n\nReturns:\n    A dictionary mapping file paths to their corresponding code content.",
+      "calls": [
+        "findall",
+        "strip"
+      ],
+      "line_number": 8,
+      "is_async": false,
+      "parameters": [
+        "llm_output"
+      ],
+      "last_updated": "2025-08-04T12:57:12.590720+00:00",
+      "is_class": false,
+      "base_classes": []
+    }
+  }
+}
