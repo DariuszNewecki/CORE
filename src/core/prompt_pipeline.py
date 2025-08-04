@@ -108,6 +108,7 @@ class PromptPipeline:
         """Replaces [[manifest:field]] directives with data from project_manifest.yaml."""
         return self.manifest_pattern.sub(self._replace_manifest_match, prompt)
 
+    # CAPABILITY: prompt_interpretation
     def process(self, prompt: str) -> str:
         """
         Processes the full prompt by sequentially resolving all directives.

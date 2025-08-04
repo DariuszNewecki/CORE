@@ -28,6 +28,7 @@ required_capabilities:
   - code_quality_analysis
   - validate_intent_structure
   - add_missing_docstrings
+  - system_logging # <-- ADDED THIS LINE
 
 # Defines the primary agents responsible for executing CORE's logic.
 active_agents:

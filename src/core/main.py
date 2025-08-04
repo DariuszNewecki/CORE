@@ -16,33 +16,39 @@ from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 
-# Local imports (now that 'src' is on the pythonpath for tests)
+# Local imports
 from core.clients import OrchestratorClient, GeneratorClient
 from core.file_handler import FileHandler
 from core.git_service import GitService
 from core.intent_guard import IntentGuard
 from agents.planner_agent import PlannerAgent
-from core.capabilities import introspection # Import introspection
+from core.capabilities import introspection
+from shared.logger import getLogger
 
-# Load environment variables from .env file
+# --- Global Setup ---
+log = getLogger(__name__)
 load_dotenv()
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """FastAPI lifespan handler — runs startup and shutdown logic."""
-    print("🚀 Starting CORE system...")
+    log.info("🚀 Starting CORE system...")
     
-    # Run introspection on startup to ensure knowledge graph is up-to-date
-    introspection() 
-    print("🔍 Introspection complete.")
+    log.info("🧠 Performing startup introspection...")
+    if not introspection():
+        log.warning("⚠️ Introspection cycle completed with errors. System may be unstable.")
+    else:
+        log.info("✅ Introspection complete. System state is constitutionally valid.")
     
     # Initialize services and store them in the app state
+    log.info("🛠️  Initializing services...")
     app.state.orchestrator_client = OrchestratorClient()
     app.state.generator_client = GeneratorClient()
     app.state.file_handler = FileHandler(".")
     app.state.git_service = GitService(".")
     app.state.intent_guard = IntentGuard(".")
-    
+    log.info("🤖 Initializing PlannerAgent...")
     app.state.planner = PlannerAgent(
         orchestrator_client=app.state.orchestrator_client,
         generator_client=app.state.generator_client,
@@ -50,9 +56,9 @@ async def lifespan(app: FastAPI):
         git_service=app.state.git_service,
         intent_guard=app.state.intent_guard
     )
-    print("✅ CORE system initialized.")
+    log.info("✅ CORE system is online and ready.")
     yield
-    print("🛑 CORE system shutting down.")
+    log.info("🛑 CORE system shutting down.")
 
 # Initialize FastAPI app with the lifespan event handler
 app = FastAPI(lifespan=lifespan)
@@ -64,6 +70,7 @@ async def execute_goal(request_data: Dict[str, str], request: Request):
     if not goal:
         raise HTTPException(status_code=400, detail="Missing 'goal' in request.")
 
+    log.info(f"🎯 Received new goal: '{goal}'")
     try:
         planner: PlannerAgent = request.app.state.planner
         plan = planner.create_execution_plan(goal)
@@ -71,14 +78,17 @@ async def execute_goal(request_data: Dict[str, str], request: Request):
         success, message = await planner.execute_plan(plan)
         
         if success:
+            log.info(f"✅ Goal executed successfully. Message: {message}")
             return JSONResponse(
                 content={"status": "success", "message": message},
                 status_code=http_status.HTTP_200_OK
             )
         else:
+            log.error(f"❌ Goal execution failed. Reason: {message}")
             raise HTTPException(status_code=500, detail=f"Goal execution failed: {message}")
 
     except Exception as e:
+        log.error(f"💥 An unexpected error occurred during goal execution: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"An unexpected error occurred: {str(e)}")
 
 @app.get("/")

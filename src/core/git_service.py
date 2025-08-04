@@ -13,7 +13,11 @@ Used by main.py and self-correction engine.
 
 import subprocess
 from pathlib import Path
+from typing import Optional
 
+from shared.logger import getLogger
+
+log = getLogger(__name__)
 
 class GitService:
     """
@@ -31,7 +35,7 @@ class GitService:
         self.repo_path = Path(repo_path).resolve()
         if not self.is_git_repo():
             raise ValueError(f"Invalid Git repository: {repo_path}")
-        print(f"✅ GitService initialized for repo at {self.repo_path}")
+        log.info(f"GitService initialized for repo at {self.repo_path}")
 
     # CAPABILITY: change_safety_enforcement
     def _run_command(self, command: list) -> str:
@@ -45,11 +49,13 @@ class GitService:
             str: Command output, or raises RuntimeError on failure.
         """
         try:
+            log.debug(f"Running git command: {' '.join(command)}")
             result = subprocess.run(
                 command, cwd=self.repo_path, capture_output=True, text=True, check=True
             )
             return result.stdout.strip()
         except subprocess.CalledProcessError as e:
+            log.error(f"Git command failed: {e.stderr}")
             raise RuntimeError(f"Git command failed: {e.stderr}") from e
 
     def add(self, file_path: str = "."):
@@ -73,9 +79,9 @@ class GitService:
         """
         try:
             self._run_command(["git", "commit", "-m", message])
-            print(f"✅ Committed changes: {message}")
+            log.info(f"Committed changes with message: {message}")
         except RuntimeError:
-            print("ℹ️ No changes to commit.")
+            log.info("No changes to commit.")
 
     def is_git_repo(self) -> bool:
         """
@@ -94,4 +100,4 @@ class GitService:
         Use with caution — only for failed self-modifications.
         """
         self._run_command(["git", "reset", "--soft", "HEAD~1"])
-        print("⚠️ Rolled back last commit.")
+        log.warning("Rolled back last commit.")

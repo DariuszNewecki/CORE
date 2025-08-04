@@ -5,12 +5,13 @@ This file is the high-level entry point for the system's self-awareness loop.
 It defines the `introspection` capability, which orchestrates the system's tools
 to perform a full self-analysis.
 """
-import logging
 import subprocess
 import sys
 from pathlib import Path
 
-logger = logging.getLogger(__name__)
+from shared.logger import getLogger
+
+log = getLogger(__name__)
 
 # CAPABILITY: introspection
 def introspection():
@@ -19,7 +20,7 @@ def introspection():
     This orchestrates the execution of the system's own introspection tools
     as separate, governed processes.
     """
-    logger.info("🔍 Starting introspection cycle...")
+    log.info("🔍 Starting introspection cycle...")
     
     project_root = Path(__file__).resolve().parents[2]
     python_executable = sys.executable
@@ -31,7 +32,7 @@ def introspection():
 
     all_passed = True
     for name, module in tools_to_run:
-        print(f"\n--- Running {name} ---")
+        log.info(f"Running {name}...")
         try:
             result = subprocess.run(
                 [python_executable, "-m", module],
@@ -40,20 +41,23 @@ def introspection():
                 text=True,
                 check=True 
             )
-            print(result.stdout)
+            # Log stdout and stderr at a lower level to keep the main log clean
+            if result.stdout:
+                log.debug(f"{name} stdout:\n{result.stdout}")
             if result.stderr:
-                print("--- Stderr ---")
-                print(result.stderr)
-            logger.info(f"✅ {name} completed successfully.")
+                log.warning(f"{name} stderr:\n{result.stderr}")
+            log.info(f"✅ {name} completed successfully.")
         except subprocess.CalledProcessError as e:
-            print(e.stdout)
-            print("--- Stderr ---")
-            print(e.stderr)
-            logger.error(f"❌ {name} failed with exit code {e.returncode}.")
+            # Log the captured output for better error diagnosis
+            log.error(f"❌ {name} failed with exit code {e.returncode}.")
+            if e.stdout:
+                log.error(f"{name} stdout:\n{e.stdout}")
+            if e.stderr:
+                log.error(f"{name} stderr:\n{e.stderr}")
             all_passed = False
         except Exception as e:
-            logger.error(f"❌ An unexpected error occurred while running {name}: {e}")
+            log.error(f"💥 An unexpected error occurred while running {name}: {e}", exc_info=True)
             all_passed = False
             
-    logger.info("🧠 Introspection cycle completed.")
+    log.info("🧠 Introspection cycle completed.")
     return all_passed

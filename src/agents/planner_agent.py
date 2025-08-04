@@ -13,10 +13,10 @@ from core.git_service import GitService
 from core.intent_guard import IntentGuard
 from core.prompt_pipeline import PromptPipeline
 from core.self_correction_engine import attempt_correction
-from core.validation_pipeline import validate_code  # <-- ADD THIS IMPORT
+from core.validation_pipeline import validate_code
 from shared.utils.parsing import parse_write_blocks
 
-# CAPABILITY: llm_orchestration
+# CAPABILITY: code_generation
 class PlannerAgent:
     """
     The primary agent responsible for decomposing high-level goals into executable plans.
@@ -37,11 +37,6 @@ class PlannerAgent:
         self.repo_path = self.file_handler.repo_path
         self.prompt_pipeline = PromptPipeline(self.repo_path)
 
-    def _extract_target_path_from_prompt(self, prompt: str) -> Optional[str]:
-        """Parses a prompt to find the first [[write:path/to/file]] directive."""
-        match = re.search(r'\[\[write:(.+?)\]\]', prompt)
-        return match.group(1).strip() if match else None
-
     def _extract_json_from_response(self, text: str) -> str:
         """Extracts a JSON object or array from a raw text response."""
         match = re.search(r"```json\n([\s\S]*?)\n```", text, re.DOTALL)
@@ -52,24 +47,53 @@ class PlannerAgent:
             return match.group(0).strip()
         return ""
 
-    # CAPABILITY: prompt_interpretation
+    # CAPABILITY: llm_orchestration
     def create_execution_plan(self, high_level_goal: str) -> List[Dict]:
         """Creates a detailed, step-by-step execution plan from a high-level goal."""
         print(f"🧠 Planner: Creating execution plan for goal: '{high_level_goal}'")
         
-        prompt = textwrap.dedent(f"""
+        prompt_template = textwrap.dedent("""
             You are a hyper-competent, meticulous system architect AI for the CORE project. Your task is to decompose a high-level goal into a precise, machine-readable JSON execution plan.
+
             Your entire output MUST be a single, valid JSON array of objects.
-            Each object in the plan MUST have these keys:
-            - "step": A human-readable description of the task.
-            - "prompt": A detailed, self-contained prompt for a Generator LLM, including all necessary context and a [[write:path/to/file]] block.
-            - "expects_writes": A boolean indicating if the step should result in a file write.
-            **High-Level Goal:** "{high_level_goal}"
-            Generate the complete, self-contained, and syntactically correct JSON plan now.
+
+            **System Context:**
+            - All available capabilities are defined in: [[include:.intent/project_manifest.yaml]]
+            - The full codebase structure is in: [[include:.intent/knowledge/knowledge_graph.json]]
+
+            **High-Level Goal:**
+            "{goal}"
+
+            **Instructions & Rules:**
+            1.  For goals requiring code modification, you MUST generate tasks with `action: "add_capability_tag"`.
+            2.  Each task object MUST contain the keys: `step`, `action`, and `params`.
+            3.  The `params` object for `add_capability_tag` MUST contain: `file_path`, `symbol_name`, `tag`.
+            4.  Do NOT generate free-form prompts. Generate structured action objects.
+
+            **Example of a PERFECT plan for adding a tag:**
+            ```json
+            [
+              {{
+                "step": "Tag the '_run_command' function in git_service.py",
+                "action": "add_capability_tag",
+                "params": {{
+                  "file_path": "src/core/git_service.py",
+                  "symbol_name": "_run_command",
+                  "tag": "change_safety_enforcement"
+                }}
+              }}
+            ]
+            ```
+            Generate the complete, syntactically correct JSON plan now.
         """).strip()
 
+        final_prompt = prompt_template.format(goal=high_level_goal)
+        enriched_prompt = self.prompt_pipeline.process(final_prompt)
+        
         try:
-            response_text = self.orchestrator.make_request(prompt, user_id="planner_agent")
+            print("  -> Calling Orchestrator LLM to generate the plan... this may take a moment.")
+            response_text = self.orchestrator.make_request(enriched_prompt, user_id="planner_agent")
+            print("  -> Orchestrator responded. Parsing JSON plan...")
             json_string = self._extract_json_from_response(response_text)
             if not json_string:
                 raise ValueError(f"Planner LLM did not return a valid JSON plan. Response: {response_text}")
@@ -99,135 +123,95 @@ class PlannerAgent:
                 return False, f"Plan failed at step {i + 1} ('{step_name}'): {error_detail}"
         return True, "✅ Plan executed successfully."
 
-    # CAPABILITY: change_safety_enforcement
-    def _govern_and_amend_code(self, code: str) -> str:
-        """
-        Validates and amends newly generated code to comply with constitutional
-        standards before being written to disk. This is the core of the
-        "immune system".
-
-        Args:
-            code (str): The raw Python code generated by the LLM.
-
-        Returns:
-            str: The amended code, compliant with governance.
-        
-        Raises:
-            RuntimeError: If a critical governance check fails (e.g., missing docstring).
-        """
-        print("    3a. Governing and amending raw code...")
+    def _find_symbol_line(self, file_path: str, symbol_name: str) -> Optional[int]:
+        """Finds the starting line number of a function or class in a file."""
+        full_path = self.repo_path / file_path
+        if not full_path.exists():
+            return None
+        code = full_path.read_text(encoding='utf-8')
         try:
             tree = ast.parse(code)
-            lines = code.splitlines()
-            insertions = []
-
             for node in ast.walk(tree):
                 if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
-                    # --- NEW DOCSTRING ENFORCEMENT ---
-                    if not ast.get_docstring(node):
-                        raise RuntimeError(f"Governance check failed: Symbol '{node.name}' is missing a required docstring.")
-                    # ------------------------------------
+                    if node.name == symbol_name:
+                        # Return the 1-based line number
+                        return node.lineno
+        except SyntaxError:
+            return None
+        return None
 
-                    # Check if a capability comment already exists on the line above
-                    line_above_index = node.lineno - 2
-                    if line_above_index < 0 or not lines[line_above_index].strip().startswith("# CAPABILITY:"):
-                        # Prepare to insert the placeholder capability tag
-                        indentation = ' ' * node.col_offset
-                        insertions.append((node.lineno - 1, f"{indentation}# CAPABILITY: unassigned"))
-            
-            # Apply insertions in reverse order to not mess up line numbers
-            for line_num, text in sorted(insertions, reverse=True):
-                lines.insert(line_num, text)
+    # CAPABILITY: change_safety_enforcement
+    async def _execute_add_tag(self, params: Dict, step_name: str):
+        """Executes the surgical 'add_capability_tag' action."""
+        file_path = params.get("file_path")
+        symbol_name = params.get("symbol_name")
+        tag = params.get("tag")
 
-            amended_code = "\n".join(lines)
-            print("    3b. ✅ Code passed governance checks and was amended.")
-            return amended_code
-        except SyntaxError as e:
-            print(f"    ⚠️  Could not parse generated code to govern it. Returning raw code. Error: {e}")
-            return code # Return raw code if it can't be parsed
+        if not all([file_path, symbol_name, tag]):
+            raise ValueError("Missing required parameters for 'add_capability_tag' action.")
 
-    # CAPABILITY: code_generation
-    async def _execute_task(self, task: Dict) -> None:
-        """Executes a single task from a plan, including code generation and file writing."""
-        prompt = task.get("prompt")
-        if not prompt:
-            print("  -> Skipping task: No prompt provided.")
+        print(f"  1. Finding insertion point for symbol '{symbol_name}' in '{file_path}'...")
+        line_number = self._find_symbol_line(file_path, symbol_name)
+        if not line_number:
+            raise RuntimeError(f"Could not find symbol '{symbol_name}' in '{file_path}'.")
+        
+        # Adjust to 0-based index for list insertion
+        insertion_index = line_number - 1
+
+        print(f"  2. Reading file and preparing modification at line {line_number}...")
+        full_path = self.repo_path / file_path
+        lines = full_path.read_text(encoding='utf-8').splitlines()
+
+        # Check if tag already exists
+        if insertion_index > 0 and f"# CAPABILITY: {tag}" in lines[insertion_index - 1]:
+            print(f"  ✅ Capability tag '{tag}' already exists for '{symbol_name}'. Skipping.")
             return
 
-        print("  1. Enriching prompt with directives...")
-        enriched_prompt = self.prompt_pipeline.process(prompt)
-
-        print("  2. Calling generation service...")
-        generated_text = self.generator.make_request(enriched_prompt, user_id="planner_agent")
-        write_blocks = parse_write_blocks(generated_text)
+        # Determine indentation
+        original_line = lines[insertion_index]
+        indentation = len(original_line) - len(original_line.lstrip(' '))
+        tag_line = f"{' ' * indentation}# CAPABILITY: {tag}"
         
-        if not write_blocks and task.get("expects_writes", True):
-            print("  ⚠️  Generator failed to produce a valid write block. Initiating self-correction.")
-            target_path = self._extract_target_path_from_prompt(enriched_prompt)
-            if not target_path:
-                raise RuntimeError("Cannot attempt self-correction: Could not determine target file path from prompt.")
-            failure_context = {
-                "file_path": target_path, "code": generated_text, "error_type": "missing_write_block",
-                "details": "The Generator LLM produced code but failed to wrap it in [[write:...]] block.",
-                "original_prompt": enriched_prompt,
-            }
-            correction_result = attempt_correction(failure_context)
-            if correction_result.get("status") == "retry_staged":
-                print("  ✅ Self-correction successful. Staged corrected code.")
-                write_blocks = {correction_result["file_path"]: "Code from self-correction"} # This is a placeholder
-            else:
-                raise RuntimeError(f"Self-correction failed: {correction_result.get('message')}")
+        lines.insert(insertion_index, tag_line)
+        modified_code = "\n".join(lines)
+
+        print("  3. Validating surgically modified code...")
+        validation_result = validate_code(file_path, modified_code)
         
-        written_files = []
-        for file_path, code in write_blocks.items():
-            print(f"  3. Governing code for '{file_path}'")
-            governed_code = self._govern_and_amend_code(code)
+        if validation_result["status"] != "clean":
+            # This should be rare now, but the safety net is still crucial.
+            raise RuntimeError(f"Surgical modification for {file_path} failed validation: {validation_result['errors']}")
 
-            # --- NEW VALIDATION & SELF-CORRECTION STEP ---
-            print(f"  4. Validating governed code for '{file_path}'...")
-            validation_result = validate_code(file_path, governed_code)
-            
-            pending_id = None
-            if validation_result["status"] == "clean":
-                print("  ✅ Validation clean. Staging write.")
-                final_code = validation_result["code"]
-                pending_id = self.file_handler.add_pending_write(
-                    prompt=enriched_prompt,
-                    suggested_path=file_path,
-                    code=final_code
-                )
-            else: # Validation is dirty, attempt self-correction
-                print("  ⚠️  Validation failed. Initiating self-correction.")
-                failure_context = {
-                    "file_path": file_path,
-                    "code": governed_code,
-                    "error_type": "validation_failed",
-                    "details": validation_result.get("errors", []),
-                    "original_prompt": enriched_prompt,
-                }
-                correction_result = attempt_correction(failure_context)
+        print("  4. Staging and confirming write...")
+        final_code = validation_result["code"]
+        pending_id = self.file_handler.add_pending_write(
+            prompt=f"Goal: {step_name}",
+            suggested_path=file_path,
+            code=final_code
+        )
+        confirmation_result = self.file_handler.confirm_write(pending_id)
+        if confirmation_result.get('status') != 'success':
+            raise RuntimeError(f"Failed to confirm write for {file_path}: {confirmation_result.get('message')}")
 
-                if correction_result.get("status") == "retry_staged":
-                    print("  ✅ Self-correction successful. Using corrected & staged code.")
-                    pending_id = correction_result["pending_id"]
-                else:
-                    raise RuntimeError(f"Self-correction failed after validation error: {correction_result.get('message')}")
-
-            if not pending_id:
-                raise RuntimeError(f"Logic error: No pending write ID was created for {file_path}")
-
-            print(f"  5. Confirming write for '{file_path}' (ID: {pending_id})")
-            confirmation_result = self.file_handler.confirm_write(pending_id)
-            
-            if confirmation_result.get('status') != 'success':
-                raise RuntimeError(f"Failed to confirm write for {file_path}: {confirmation_result.get('message')}")
-            
-            print(f"  ✅ Write confirmed for '{file_path}'")
-            written_files.append(file_path)
-
-        if self.git_service.is_git_repo() and written_files:
-            print("  6. Committing changes to repository...")
-            for file_path in written_files:
-                self.git_service.add(file_path)
-            commit_message = f"feat(agent): {task.get('step', 'Automated code generation')}"
+        print(f"  ✅ Write confirmed for '{file_path}'")
+        
+        if self.git_service.is_git_repo():
+            print("  5. Committing change to repository...")
+            self.git_service.add(file_path)
+            commit_message = f"refactor(capability): Add '{tag}' tag to {symbol_name}"
             self.git_service.commit(commit_message)
+
+    async def _execute_task(self, task: Dict) -> None:
+        """Dispatcher that executes a single task from a plan based on its action type."""
+        action = task.get("action")
+        params = task.get("params", {})
+        step_name = task.get("step", "Unnamed Step")
+
+        if action == "add_capability_tag":
+            await self._execute_add_tag(params, step_name)
+        # Placeholder for future generic tasks. We will remove this path once fully confident.
+        # elif task.get("prompt"):
+        #     await self._execute_generic_prompt_task(task)
+        else:
+            print(f"  -> Skipping task: Unknown or unsupported action '{action}'.")
+            return
