@@ -1,0 +1,26 @@
+# .intent/knowledge/capability_tags.yaml
+
+tags:
+  - name: introspection
+    description: "Used for self-analysis, manifest inspection, and structure verification."
+
+  - name: generation
+    description: "Involves code creation or file synthesis via LLMs."
+
+  - name: validation
+    description: "Covers all quality, semantic, and structural checks."
+
+  - name: testing
+    description: "Relates to executing or evaluating test logic."
+
+  - name: governance
+    description: "Enforces policy, safety, alignment, or constraints."
+
+  - name: planning
+    description: "Applies reasoning, decomposition, or roadmap design."
+
+  - name: orchestration
+    description: "Ties together steps across agents, capabilities, and flows."
+
+  - name: llm
+    description: "Specifically deals with external or local LLM interaction and routing."

@@ -1,0 +1,23 @@
+version: "0.1.0"
+
+mission:
+  northstar: "mission/northstar.yaml"
+  manifesto: "mission/manifesto.md"
+  principles: "mission/principles.yaml"
+
+policies:
+  intent_guard: "policies/intent_guard.yaml"
+  safety_policies: "policies/safety_policies.yaml"
+
+project:
+  manifest_json: "project_manifest.json"
+  manifest_yaml: "project_manifest.yaml"
+
+knowledge:
+  function_manifest: "knowledge/function_manifest.json"
+  source_structure: "knowledge/source_structure.yaml"
+  codegraph: "knowledge/codegraph.json"
+
+evaluation:
+  score_policy: "evaluation/score_policy.yaml"
+  audit_checklist: "evaluation/audit_checklist.yaml"

@@ -1,0 +1,36 @@
+# .intent/knowledge/agent_roles.yaml
+
+roles:
+  planner:
+    description: "Responsible for breaking down intents, sequencing tasks, and preparing bundles."
+    allowed_tags:
+      - planning
+      - introspection
+      - orchestration
+
+  builder:
+    description: "Executes generation and modification tasks according to a validated plan."
+    allowed_tags:
+      - generation
+      - validation
+      - testing
+
+  reviewer:
+    description: "Evaluates changes for safety, structure, and declared alignment."
+    allowed_tags:
+      - validation
+      - governance
+      - testing
+
+  orchestrator:
+    description: "Coordinates flows, executes bundles, and manages lifecycle rules."
+    allowed_tags:
+      - orchestration
+      - governance
+      - llm
+
+  guardian:
+    description: "Handles enforcement of rules and monitors intent integrity."
+    allowed_tags:
+      - governance
+      - validation
