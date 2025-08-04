@@ -22,6 +22,11 @@
       "timestamp": "2025-08-03T15:25:46.499396+00:00",
       "file": "core/processing.py",
       "reason": "Modify the target files to include the generated docstrings. Preserve all original functionality, imports, and formatting. Only add docstrings where missing.\n\n[[write:src/utils.py]]\ndef sanitize_input(text: str, max_len: int = 100) -> str:\n    \"\"\"Sanitizes input text to ensure safe processing.\n    \n    Args:\n        text: Raw input string to be sanitized\n        max_len: Maximum allowed length (default: 100)\n    \n    Returns:\n        str: Sanitized string with controlled length\n    \"\"\"\n    return text.strip()[:max_len][[/write]]\n\n[[write:core/processing.py]]\ndef _normalize_array(data: np.ndarray) -> np.ndarray:\n    \"\"\"Normalizes numpy array to unit scale.\n    \n    Args:\n        data: Input array of any shape\n    \n    Returns:\n        np.ndarray: Normalized array with values in [0,1]\n    \n    Raises:\n        ValueError: If input contains NaN/inf values\n    \"\"\"\n    return (data - np.min(data)) / (np.max(data) - np.min(data))[[/write]]"
+    },
+    {
+      "timestamp": "2025-08-04T18:52:57.220470+00:00",
+      "file": "src/core/git_service.py",
+      "reason": "Goal: Tag the '_run_command' function in git_service.py"
     }
   ]
 }

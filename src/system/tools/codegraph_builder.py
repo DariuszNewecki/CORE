@@ -1,7 +1,6 @@
 # src/system/tools/codegraph_builder.py
 import ast
 import json
-import logging
 import re
 from pathlib import Path
 from typing import Dict, Set, Optional, List, Any
@@ -9,9 +8,9 @@ from dataclasses import dataclass, asdict, field
 from datetime import datetime, timezone
 
 from shared.config_loader import load_config
+from shared.logger import getLogger
 
-logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
-logger = logging.getLogger(__name__)
+log = getLogger(__name__)
 
 @dataclass
 class FunctionInfo:
@@ -111,7 +110,7 @@ class KnowledgeGraphBuilder:
         """Loads entry point detection patterns from the intent file."""
         patterns_path = self.root_path / ".intent/knowledge/entry_point_patterns.yaml"
         if not patterns_path.exists():
-            logger.warning("entry_point_patterns.yaml not found.")
+            log.warning("entry_point_patterns.yaml not found.")
             return []
         return load_config(patterns_path, "yaml").get("patterns", [])
 
@@ -188,7 +187,7 @@ class KnowledgeGraphBuilder:
             visitor.visit(tree)
             return True
         except Exception as e:
-            logger.error(f"Error scanning {filepath}: {e}", exc_info=False)
+            log.error(f"Error scanning {filepath}: {e}", exc_info=False)
             return False
 
     def _process_symbol_node(self, node: ast.AST, filepath: Path, source_lines: List[str], parent_key: Optional[str]) -> Optional[str]:
@@ -245,15 +244,15 @@ class KnowledgeGraphBuilder:
 
     def build(self) -> Dict[str, Any]:
         """Orchestrates the full knowledge graph generation process."""
-        logger.info(f"Building knowledge graph for directory: {self.src_root}")
+        log.info(f"Building knowledge graph for directory: {self.src_root}")
         py_files = [f for f in self.src_root.rglob("*.py") if f.name != "__init__.py" and not self._should_exclude_path(f)]
-        logger.info(f"Found {len(py_files)} Python files to scan in src/")
+        log.info(f"Found {len(py_files)} Python files to scan in src/")
         
         for pyfile in py_files:
             if self.scan_file(pyfile): self.files_scanned += 1
             else: self.files_failed += 1
         
-        logger.info(f"Scanned {self.files_scanned} files ({self.files_failed} failed). Applying declarative patterns...")
+        log.info(f"Scanned {self.files_scanned} files ({self.files_failed} failed). Applying declarative patterns...")
         self._apply_entry_point_patterns()
 
         serializable_functions = {key: asdict(info, dict_factory=lambda x: {k: v for (k, v) in x if v is not None}) for key, info in self.functions.items()}
@@ -274,10 +273,10 @@ def main():
         out_path = root / ".intent/knowledge/knowledge_graph.json"
         out_path.parent.mkdir(parents=True, exist_ok=True)
         out_path.write_text(json.dumps(graph, indent=2))
-        print(f"✅ Knowledge graph generated! Scanned {builder.files_scanned} files, found {len(graph['symbols'])} symbols.")
-        print(f"   -> Saved to {out_path}")
+        log.info(f"✅ Knowledge graph generated! Scanned {builder.files_scanned} files, found {len(graph['symbols'])} symbols.")
+        log.info(f"   -> Saved to {out_path}")
     except Exception as e:
-        logger.error(f"An error occurred: {e}", exc_info=True)
+        log.error(f"An error occurred: {e}", exc_info=True)
 
 if __name__ == "__main__":
     main()

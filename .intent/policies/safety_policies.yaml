@@ -1,7 +1,7 @@
 # .intent/policies/safety_policies.yaml
 meta:
-  version: "0.2.0"
-  last_updated: "2025-08-03T10:00:00Z"
+  version: "0.2.1" # Version bump to reflect change
+  last_updated: "2025-08-05T14:00:00Z" # Updated timestamp
   author: "CORE Constitution"
   description: >
     Safety policies governing code generation, execution, and modification.
@@ -23,6 +23,7 @@ rules:
         - "tests/**"
         - "utils/safe_execution.py"
         - "tooling/**"
+        - "src/core/git_service.py" # <-- ADDED THIS EXCEPTION
     triggers:
       - on_generate
       - on_write

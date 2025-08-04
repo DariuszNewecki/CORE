@@ -1,9 +1,9 @@
 {
   "schema_version": "2.0.0",
   "metadata": {
-    "files_scanned": 24,
-    "total_symbols": 116,
-    "timestamp_utc": "2025-08-04T12:57:12.594404+00:00"
+    "files_scanned": 25,
+    "total_symbols": 119,
+    "timestamp_utc": "2025-08-04T19:31:04.099971+00:00"
   },
   "symbols": {
     "src/core/clients.py::BaseLLMClient": {
@@ -18,18 +18,19 @@
       "docstring": "Base class for LLM clients, handling common request logic for Chat APIs.\nProvides shared initialization and error handling for all LLM clients.",
       "calls": [
         "ValueError",
+        "debug",
         "endswith",
+        "error",
         "json",
         "post",
-        "print",
         "raise_for_status",
         "rstrip"
       ],
-      "line_number": 12,
+      "line_number": 15,
       "is_async": false,
       "parameters": [],
       "entry_point_type": "base_class",
-      "last_updated": "2025-08-04T12:57:12.484216+00:00",
+      "last_updated": "2025-08-04T19:31:03.985328+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "framework_base_class"
@@ -43,19 +44,20 @@
       "agent": "core_agent",
       "capability": "unassigned",
       "intent": "Initialize the GeneratorClient using environment variables.",
-      "docstring": "Initialize the GeneratorClient using environment variables.\nNo arguments needed \u2014 config is injected via .env or system vars.",
+      "docstring": "Initialize the GeneratorClient using environment variables.",
       "calls": [
         "__init__",
         "getenv",
+        "info",
         "super"
       ],
-      "line_number": 112,
+      "line_number": 109,
       "is_async": false,
       "parameters": [
         "self"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-04T12:57:12.487294+00:00",
+      "last_updated": "2025-08-04T19:31:03.988507+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -72,19 +74,20 @@
       "intent": "Sends a prompt to the configured Chat Completions API.",
       "docstring": "Sends a prompt to the configured Chat Completions API.\n\nArgs:\n    prompt (str): The prompt to send to the LLM. It will be wrapped as a 'user' message.\n    user_id (str): Optional identifier for the requester (used by some APIs for moderation).\n\nReturns:\n    str: The text content from the LLM's response, or an error message.\n\nRaises:\n    requests.HTTPError: If the API returns a non-200 status code.",
       "calls": [
+        "debug",
+        "error",
         "json",
         "post",
-        "print",
         "raise_for_status"
       ],
-      "line_number": 42,
+      "line_number": 46,
       "is_async": false,
       "parameters": [
         "self",
         "prompt",
         "user_id"
       ],
-      "last_updated": "2025-08-04T12:57:12.485526+00:00",
+      "last_updated": "2025-08-04T19:31:03.986546+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/core/clients.py::BaseLLMClient"
@@ -102,12 +105,13 @@
       "calls": [
         "__init__",
         "getenv",
+        "info",
         "super"
       ],
-      "line_number": 88,
+      "line_number": 85,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-04T12:57:12.486116+00:00",
+      "last_updated": "2025-08-04T19:31:03.987224+00:00",
       "is_class": true,
       "base_classes": [
         "BaseLLMClient"
@@ -126,16 +130,39 @@
       "calls": [
         "__init__",
         "getenv",
+        "info",
         "super"
       ],
-      "line_number": 106,
+      "line_number": 103,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-04T12:57:12.486926+00:00",
+      "last_updated": "2025-08-04T19:31:03.988121+00:00",
       "is_class": true,
       "base_classes": [
         "BaseLLMClient"
       ]
+    },
+    "src/core/validation_pipeline.py::_load_safety_policies": {
+      "key": "src/core/validation_pipeline.py::_load_safety_policies",
+      "name": "_load_safety_policies",
+      "type": "FunctionDef",
+      "file": "src/core/validation_pipeline.py",
+      "domain": "core",
+      "agent": "core_agent",
+      "capability": "unassigned",
+      "intent": "Loads and caches the safety policies from the .intent directory.",
+      "docstring": "Loads and caches the safety policies from the .intent directory.",
+      "calls": [
+        "get",
+        "get_repo_root",
+        "load_config"
+      ],
+      "line_number": 22,
+      "is_async": false,
+      "parameters": [],
+      "last_updated": "2025-08-04T19:31:03.991740+00:00",
+      "is_class": false,
+      "base_classes": []
     },
     "src/core/validation_pipeline.py::_get_full_attribute_name": {
       "key": "src/core/validation_pipeline.py::_get_full_attribute_name",
@@ -152,12 +179,12 @@
         "isinstance",
         "join"
       ],
-      "line_number": 22,
+      "line_number": 32,
       "is_async": false,
       "parameters": [
         "node"
       ],
-      "last_updated": "2025-08-04T12:57:12.489923+00:00",
+      "last_updated": "2025-08-04T19:31:03.992200+00:00",
       "is_class": false,
       "base_classes": []
     },
@@ -169,21 +196,30 @@
       "domain": "core",
       "agent": "core_agent",
       "capability": "unassigned",
-      "intent": "Scans the AST for calls to forbidden functions and imports.",
-      "docstring": "Scans the AST for calls to forbidden functions and imports.",
+      "intent": "Scans the AST for calls to functions and imports forbidden by safety policies.",
+      "docstring": "Scans the AST for calls to functions and imports forbidden by safety policies.",
       "calls": [
+        "Path",
         "_get_full_attribute_name",
+        "_load_safety_policies",
+        "any",
         "append",
+        "get",
         "isinstance",
+        "match",
+        "replace",
+        "set",
         "split",
+        "update",
         "walk"
       ],
-      "line_number": 33,
+      "line_number": 43,
       "is_async": false,
       "parameters": [
-        "tree"
+        "tree",
+        "file_path"
       ],
-      "last_updated": "2025-08-04T12:57:12.490587+00:00",
+      "last_updated": "2025-08-04T19:31:03.993042+00:00",
       "is_class": false,
       "base_classes": []
     },
@@ -195,19 +231,20 @@
       "domain": "core",
       "agent": "core_agent",
       "capability": "semantic_validation",
-      "intent": "Runs all semantic checks on a string of Python code.",
-      "docstring": "Runs all semantic checks on a string of Python code.",
+      "intent": "Runs all policy-aware semantic checks on a string of Python code.",
+      "docstring": "Runs all policy-aware semantic checks on a string of Python code.",
       "calls": [
         "_find_dangerous_patterns",
         "parse"
       ],
-      "line_number": 53,
+      "line_number": 83,
       "is_async": false,
       "parameters": [
-        "code"
+        "code",
+        "file_path"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-04T12:57:12.491324+00:00",
+      "last_updated": "2025-08-04T19:31:03.993934+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation"
@@ -230,13 +267,13 @@
         "fix_and_lint_code_with_ruff",
         "format_code_with_black"
       ],
-      "line_number": 61,
+      "line_number": 91,
       "is_async": false,
       "parameters": [
         "path_hint",
         "code"
       ],
-      "last_updated": "2025-08-04T12:57:12.491915+00:00",
+      "last_updated": "2025-08-04T19:31:03.994546+00:00",
       "is_class": false,
       "base_classes": []
     },
@@ -254,12 +291,12 @@
         "append",
         "safe_load"
       ],
-      "line_number": 81,
+      "line_number": 116,
       "is_async": false,
       "parameters": [
         "code"
       ],
-      "last_updated": "2025-08-04T12:57:12.492548+00:00",
+      "last_updated": "2025-08-04T19:31:03.995147+00:00",
       "is_class": false,
       "base_classes": []
     },
@@ -277,12 +314,12 @@
         "Path",
         "lower"
       ],
-      "line_number": 91,
+      "line_number": 126,
       "is_async": false,
       "parameters": [
         "file_path"
       ],
-      "last_updated": "2025-08-04T12:57:12.493023+00:00",
+      "last_updated": "2025-08-04T19:31:03.995606+00:00",
       "is_class": false,
       "base_classes": []
     },
@@ -302,14 +339,14 @@
         "_validate_yaml",
         "print"
       ],
-      "line_number": 100,
+      "line_number": 135,
       "is_async": false,
       "parameters": [
         "file_path",
         "code"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-04T12:57:12.493503+00:00",
+      "last_updated": "2025-08-04T19:31:03.996093+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation"
@@ -329,17 +366,21 @@
         "RuntimeError",
         "ValueError",
         "_run_command",
+        "debug",
+        "error",
+        "info",
         "is_dir",
         "is_git_repo",
-        "print",
+        "join",
         "resolve",
         "run",
-        "strip"
+        "strip",
+        "warning"
       ],
-      "line_number": 19,
+      "line_number": 22,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-04T12:57:12.495109+00:00",
+      "last_updated": "2025-08-04T19:31:03.997871+00:00",
       "is_class": true,
       "base_classes": []
     },
@@ -356,18 +397,18 @@
       "calls": [
         "Path",
         "ValueError",
+        "info",
         "is_git_repo",
-        "print",
         "resolve"
       ],
-      "line_number": 25,
+      "line_number": 28,
       "is_async": false,
       "parameters": [
         "self",
         "repo_path"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-04T12:57:12.495484+00:00",
+      "last_updated": "2025-08-04T19:31:03.998232+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -380,23 +421,28 @@
       "file": "src/core/git_service.py",
       "domain": "core",
       "agent": "core_agent",
-      "capability": "unassigned",
+      "capability": "change_safety_enforcement",
       "intent": "Run a Git command and return stdout.",
       "docstring": "Run a Git command and return stdout.\n\nArgs:\n    command (list): Git command as a list (e.g., ['git', 'status']).\n\nReturns:\n    str: Command output, or raises RuntimeError on failure.",
       "calls": [
         "RuntimeError",
+        "debug",
+        "error",
+        "join",
         "run",
         "strip"
       ],
-      "line_number": 37,
+      "line_number": 41,
       "is_async": false,
       "parameters": [
         "self",
         "command"
       ],
-      "last_updated": "2025-08-04T12:57:12.495914+00:00",
+      "entry_point_type": "capability",
+      "last_updated": "2025-08-04T19:31:03.998765+00:00",
       "is_class": false,
       "base_classes": [],
+      "entry_point_justification": "capability_implementation",
       "parent_class_key": "src/core/git_service.py::GitService"
     },
     "src/core/git_service.py::add": {
@@ -414,13 +460,13 @@
         "_run_command",
         "resolve"
       ],
-      "line_number": 59,
+      "line_number": 61,
       "is_async": false,
       "parameters": [
         "self",
         "file_path"
       ],
-      "last_updated": "2025-08-04T12:57:12.496348+00:00",
+      "last_updated": "2025-08-04T19:31:03.999235+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/core/git_service.py::GitService"
@@ -437,15 +483,15 @@
       "docstring": "Commit staged changes with a message.\n\nArgs:\n    message (str): Commit message explaining the change.",
       "calls": [
         "_run_command",
-        "print"
+        "info"
       ],
-      "line_number": 71,
+      "line_number": 73,
       "is_async": false,
       "parameters": [
         "self",
         "message"
       ],
-      "last_updated": "2025-08-04T12:57:12.496783+00:00",
+      "last_updated": "2025-08-04T19:31:03.999669+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/core/git_service.py::GitService"
@@ -463,12 +509,12 @@
       "calls": [
         "is_dir"
       ],
-      "line_number": 84,
+      "line_number": 86,
       "is_async": false,
       "parameters": [
         "self"
       ],
-      "last_updated": "2025-08-04T12:57:12.497161+00:00",
+      "last_updated": "2025-08-04T19:31:04.000048+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/core/git_service.py::GitService"
@@ -485,14 +531,14 @@
       "docstring": "Undo the last Git commit (soft reset).\n\nUse with caution \u2014 only for failed self-modifications.",
       "calls": [
         "_run_command",
-        "print"
+        "warning"
       ],
-      "line_number": 94,
+      "line_number": 96,
       "is_async": false,
       "parameters": [
         "self"
       ],
-      "last_updated": "2025-08-04T12:57:12.497523+00:00",
+      "last_updated": "2025-08-04T19:31:04.000409+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/core/git_service.py::GitService"
@@ -519,7 +565,7 @@
         "code"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-04T12:57:12.498395+00:00",
+      "last_updated": "2025-08-04T19:31:04.001292+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation"
@@ -544,7 +590,7 @@
       "parameters": [
         "code"
       ],
-      "last_updated": "2025-08-04T12:57:12.499248+00:00",
+      "last_updated": "2025-08-04T19:31:04.002149+00:00",
       "is_class": false,
       "base_classes": []
     },
@@ -579,7 +625,7 @@
         "silent"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-04T12:57:12.501382+00:00",
+      "last_updated": "2025-08-04T19:31:04.004318+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation"
@@ -604,7 +650,7 @@
       "parameters": [
         "output"
       ],
-      "last_updated": "2025-08-04T12:57:12.502154+00:00",
+      "last_updated": "2025-08-04T19:31:04.005027+00:00",
       "is_class": false,
       "base_classes": []
     },
@@ -629,7 +675,7 @@
       "parameters": [
         "data"
       ],
-      "last_updated": "2025-08-04T12:57:12.502605+00:00",
+      "last_updated": "2025-08-04T19:31:04.005462+00:00",
       "is_class": false,
       "base_classes": []
     },
@@ -656,7 +702,7 @@
       "parameters": [
         "data"
       ],
-      "last_updated": "2025-08-04T12:57:12.503122+00:00",
+      "last_updated": "2025-08-04T19:31:04.005978+00:00",
       "is_class": false,
       "base_classes": []
     },
@@ -677,16 +723,17 @@
         "IntentGuard",
         "OrchestratorClient",
         "PlannerAgent",
+        "info",
         "introspection",
-        "print"
+        "warning"
       ],
-      "line_number": 31,
+      "line_number": 34,
       "is_async": true,
       "parameters": [
         "app"
       ],
       "entry_point_type": "context_manager",
-      "last_updated": "2025-08-04T12:57:12.504763+00:00",
+      "last_updated": "2025-08-04T19:31:04.007799+00:00",
       "is_class": false,
       "base_classes": []
     },
@@ -704,19 +751,21 @@
         "HTTPException",
         "JSONResponse",
         "create_execution_plan",
+        "error",
         "execute_plan",
         "get",
+        "info",
         "post",
         "str"
       ],
-      "line_number": 61,
+      "line_number": 67,
       "is_async": true,
       "parameters": [
         "request_data",
         "request"
       ],
       "entry_point_type": "fastapi_route_post",
-      "last_updated": "2025-08-04T12:57:12.505436+00:00",
+      "last_updated": "2025-08-04T19:31:04.008508+00:00",
       "is_class": false,
       "base_classes": []
     },
@@ -733,11 +782,11 @@
       "calls": [
         "get"
       ],
-      "line_number": 85,
+      "line_number": 95,
       "is_async": true,
       "parameters": [],
       "entry_point_type": "fastapi_route_get",
-      "last_updated": "2025-08-04T12:57:12.505932+00:00",
+      "last_updated": "2025-08-04T19:31:04.009035+00:00",
       "is_class": false,
       "base_classes": []
     },
@@ -775,7 +824,7 @@
       "line_number": 20,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-04T12:57:12.508740+00:00",
+      "last_updated": "2025-08-04T19:31:04.012521+00:00",
       "is_class": true,
       "base_classes": []
     },
@@ -801,7 +850,7 @@
         "repo_path"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-04T12:57:12.509184+00:00",
+      "last_updated": "2025-08-04T19:31:04.012931+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -831,7 +880,7 @@
         "self",
         "match"
       ],
-      "last_updated": "2025-08-04T12:57:12.509677+00:00",
+      "last_updated": "2025-08-04T19:31:04.013428+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/core/prompt_pipeline.py::PromptPipeline"
@@ -855,7 +904,7 @@
         "self",
         "prompt"
       ],
-      "last_updated": "2025-08-04T12:57:12.510138+00:00",
+      "last_updated": "2025-08-04T19:31:04.013885+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/core/prompt_pipeline.py::PromptPipeline"
@@ -884,7 +933,7 @@
         "self",
         "match"
       ],
-      "last_updated": "2025-08-04T12:57:12.510595+00:00",
+      "last_updated": "2025-08-04T19:31:04.014322+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/core/prompt_pipeline.py::PromptPipeline"
@@ -908,7 +957,7 @@
         "self",
         "prompt"
       ],
-      "last_updated": "2025-08-04T12:57:12.511049+00:00",
+      "last_updated": "2025-08-04T19:31:04.014786+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/core/prompt_pipeline.py::PromptPipeline"
@@ -933,7 +982,7 @@
         "self",
         "match"
       ],
-      "last_updated": "2025-08-04T12:57:12.511429+00:00",
+      "last_updated": "2025-08-04T19:31:04.015155+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/core/prompt_pipeline.py::PromptPipeline"
@@ -957,7 +1006,7 @@
         "self",
         "prompt"
       ],
-      "last_updated": "2025-08-04T12:57:12.511776+00:00",
+      "last_updated": "2025-08-04T19:31:04.015516+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/core/prompt_pipeline.py::PromptPipeline"
@@ -990,7 +1039,7 @@
         "self",
         "match"
       ],
-      "last_updated": "2025-08-04T12:57:12.512351+00:00",
+      "last_updated": "2025-08-04T19:31:04.016091+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/core/prompt_pipeline.py::PromptPipeline"
@@ -1014,7 +1063,7 @@
         "self",
         "prompt"
       ],
-      "last_updated": "2025-08-04T12:57:12.512952+00:00",
+      "last_updated": "2025-08-04T19:31:04.016611+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/core/prompt_pipeline.py::PromptPipeline"
@@ -1026,7 +1075,7 @@
       "file": "src/core/prompt_pipeline.py",
       "domain": "core",
       "agent": "core_agent",
-      "capability": "unassigned",
+      "capability": "prompt_interpretation",
       "intent": "Processes the full prompt by sequentially resolving all directives.",
       "docstring": "Processes the full prompt by sequentially resolving all directives.\nThis is the main entry point for prompt enrichment.",
       "calls": [
@@ -1035,15 +1084,17 @@
         "_inject_includes",
         "_inject_manifest"
       ],
-      "line_number": 111,
+      "line_number": 112,
       "is_async": false,
       "parameters": [
         "self",
         "prompt"
       ],
-      "last_updated": "2025-08-04T12:57:12.513339+00:00",
+      "entry_point_type": "capability",
+      "last_updated": "2025-08-04T19:31:04.017036+00:00",
       "is_class": false,
       "base_classes": [],
+      "entry_point_justification": "capability_implementation",
       "parent_class_key": "src/core/prompt_pipeline.py::PromptPipeline"
     },
     "src/core/capabilities.py::introspection": {
@@ -1058,17 +1109,18 @@
       "docstring": "Runs a full self-analysis cycle to inspect system structure and health.\nThis orchestrates the execution of the system's own introspection tools\nas separate, governed processes.",
       "calls": [
         "Path",
+        "debug",
         "error",
         "info",
-        "print",
         "resolve",
-        "run"
+        "run",
+        "warning"
       ],
-      "line_number": 16,
+      "line_number": 17,
       "is_async": false,
       "parameters": [],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-04T12:57:12.514725+00:00",
+      "last_updated": "2025-08-04T19:31:04.018648+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation"
@@ -1100,7 +1152,7 @@
         "code",
         "display_filename"
       ],
-      "last_updated": "2025-08-04T12:57:12.516250+00:00",
+      "last_updated": "2025-08-04T19:31:04.020203+00:00",
       "is_class": false,
       "base_classes": []
     },
@@ -1126,39 +1178,13 @@
         "read_text",
         "write_text"
       ],
-      "line_number": 57,
+      "line_number": 34,
       "is_async": false,
       "parameters": [
         "file_path",
         "reason"
       ],
-      "last_updated": "2025-08-04T12:57:12.519051+00:00",
-      "is_class": false,
-      "base_classes": []
-    },
-    "src/core/file_handler.py::_validate_content": {
-      "key": "src/core/file_handler.py::_validate_content",
-      "name": "_validate_content",
-      "type": "FunctionDef",
-      "file": "src/core/file_handler.py",
-      "domain": "core",
-      "agent": "core_agent",
-      "capability": "unassigned",
-      "intent": "Validates content against safety policies (e.g., no eval, subprocess, etc.).",
-      "docstring": "Validates content against safety policies (e.g., no eval, subprocess, etc.).",
-      "calls": [
-        "extend",
-        "get",
-        "load_config",
-        "print"
-      ],
-      "line_number": 83,
-      "is_async": false,
-      "parameters": [
-        "content",
-        "file_path"
-      ],
-      "last_updated": "2025-08-04T12:57:12.519655+00:00",
+      "last_updated": "2025-08-04T19:31:04.022596+00:00",
       "is_class": false,
       "base_classes": []
     },
@@ -1171,12 +1197,11 @@
       "agent": "core_agent",
       "capability": "unassigned",
       "intent": "Central class for safe, auditable file operations in CORE.",
-      "docstring": "Central class for safe, auditable file operations in CORE.\nAll writes are staged first and require confirmation.",
+      "docstring": "Central class for safe, auditable file operations in CORE.\nAll writes are staged first and require confirmation. Validation is handled\nby the calling agent via the validation_pipeline.",
       "calls": [
         "Path",
         "ValueError",
         "_log_change",
-        "_validate_content",
         "as_posix",
         "dumps",
         "exists",
@@ -1192,10 +1217,10 @@
         "uuid4",
         "write_text"
       ],
-      "line_number": 105,
+      "line_number": 60,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-04T12:57:12.520559+00:00",
+      "last_updated": "2025-08-04T19:31:04.023528+00:00",
       "is_class": true,
       "base_classes": []
     },
@@ -1215,14 +1240,14 @@
         "is_dir",
         "resolve"
       ],
-      "line_number": 111,
+      "line_number": 67,
       "is_async": false,
       "parameters": [
         "self",
         "repo_path"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-04T12:57:12.520920+00:00",
+      "last_updated": "2025-08-04T19:31:04.023885+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -1248,7 +1273,7 @@
         "uuid4",
         "write_text"
       ],
-      "line_number": 119,
+      "line_number": 75,
       "is_async": false,
       "parameters": [
         "self",
@@ -1256,7 +1281,7 @@
         "suggested_path",
         "code"
       ],
-      "last_updated": "2025-08-04T12:57:12.521381+00:00",
+      "last_updated": "2025-08-04T19:31:04.024341+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/core/file_handler.py::FileHandler"
@@ -1269,12 +1294,12 @@
       "domain": "core",
       "agent": "core_agent",
       "capability": "unassigned",
-      "intent": "Confirms and applies a pending write to disk.",
-      "docstring": "Confirms and applies a pending write to disk.",
+      "intent": "Confirms and applies a pending write to disk. Assumes content has been validated.",
+      "docstring": "Confirms and applies a pending write to disk. Assumes content has been validated.",
       "calls": [
         "ValueError",
         "_log_change",
-        "_validate_content",
+        "dumps",
         "exists",
         "is_relative_to",
         "mkdir",
@@ -1284,13 +1309,13 @@
         "unlink",
         "write_text"
       ],
-      "line_number": 140,
+      "line_number": 96,
       "is_async": false,
       "parameters": [
         "self",
         "pending_id"
       ],
-      "last_updated": "2025-08-04T12:57:12.522132+00:00",
+      "last_updated": "2025-08-04T19:31:04.025052+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/core/file_handler.py::FileHandler"
@@ -1323,7 +1348,7 @@
       "line_number": 19,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-04T12:57:12.524038+00:00",
+      "last_updated": "2025-08-04T19:31:04.026908+00:00",
       "is_class": true,
       "base_classes": []
     },
@@ -1349,7 +1374,7 @@
         "repo_root"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-04T12:57:12.524436+00:00",
+      "last_updated": "2025-08-04T19:31:04.027287+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -1378,7 +1403,7 @@
       "parameters": [
         "self"
       ],
-      "last_updated": "2025-08-04T12:57:12.524925+00:00",
+      "last_updated": "2025-08-04T19:31:04.027794+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/core/intent_model.py::IntentModel"
@@ -1405,7 +1430,7 @@
         "self",
         "file_path"
       ],
-      "last_updated": "2025-08-04T12:57:12.525440+00:00",
+      "last_updated": "2025-08-04T19:31:04.028294+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/core/intent_model.py::IntentModel"
@@ -1430,7 +1455,7 @@
         "self",
         "domain"
       ],
-      "last_updated": "2025-08-04T12:57:12.525904+00:00",
+      "last_updated": "2025-08-04T19:31:04.028774+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/core/intent_model.py::IntentModel"
@@ -1444,28 +1469,33 @@
       "agent": "validator_agent",
       "capability": "intent_guarding",
       "intent": "Central enforcement engine for CORE's safety and governance policies.",
-      "docstring": "Central enforcement engine for CORE's safety and governance policies.\nEnsures all proposed file changes comply with declared rules and classifications.\nUses a mix of hard-coded primordial truths and dynamic policy loading.",
+      "docstring": "Central enforcement engine for CORE's safety and governance policies.\nEnsures all proposed file changes comply with declared rules and classifications.",
       "calls": [
         "Path",
         "_load_policies",
         "_load_source_manifest",
+        "append",
         "exists",
         "extend",
         "get",
         "glob",
+        "info",
         "is_dir",
         "isinstance",
         "len",
+        "list",
         "load_config",
         "loads",
-        "print",
-        "read_text"
+        "read_text",
+        "resolve",
+        "sorted",
+        "values"
       ],
-      "line_number": 28,
+      "line_number": 19,
       "is_async": false,
       "parameters": [],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-04T12:57:12.527712+00:00",
+      "last_updated": "2025-08-04T19:31:04.030751+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "capability_implementation"
@@ -1484,17 +1514,18 @@
         "Path",
         "_load_policies",
         "_load_source_manifest",
+        "info",
         "len",
-        "print"
+        "resolve"
       ],
-      "line_number": 35,
+      "line_number": 25,
       "is_async": false,
       "parameters": [
         "self",
         "repo_path"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-04T12:57:12.528194+00:00",
+      "last_updated": "2025-08-04T19:31:04.031174+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -1517,37 +1548,12 @@
         "isinstance",
         "load_config"
       ],
-      "line_number": 58,
+      "line_number": 40,
       "is_async": false,
       "parameters": [
         "self"
       ],
-      "last_updated": "2025-08-04T12:57:12.528762+00:00",
-      "is_class": false,
-      "base_classes": [],
-      "parent_class_key": "src/core/intent_guard.py::IntentGuard"
-    },
-    "src/core/intent_guard.py::_get_classification": {
-      "key": "src/core/intent_guard.py::_get_classification",
-      "name": "_get_classification",
-      "type": "FunctionDef",
-      "file": "src/core/intent_guard.py",
-      "domain": "core",
-      "agent": "validator_agent",
-      "capability": "unassigned",
-      "intent": "Determine the classification of a file based on its extension.",
-      "docstring": "Determine the classification of a file based on its extension.",
-      "calls": [
-        "Path",
-        "get"
-      ],
-      "line_number": 69,
-      "is_async": false,
-      "parameters": [
-        "self",
-        "file_path"
-      ],
-      "last_updated": "2025-08-04T12:57:12.529202+00:00",
+      "last_updated": "2025-08-04T19:31:04.031693+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/core/intent_guard.py::IntentGuard"
@@ -1560,22 +1566,53 @@
       "domain": "core",
       "agent": "validator_agent",
       "capability": "unassigned",
-      "intent": "Load the list of declared source files from function_manifest.json.",
-      "docstring": "Load the list of declared source files from function_manifest.json.",
+      "intent": "Load the list of all known source files from the knowledge graph.",
+      "docstring": "Load the list of all known source files from the knowledge graph.",
       "calls": [
         "exists",
         "get",
+        "list",
         "loads",
-        "read_text"
+        "read_text",
+        "sorted",
+        "values"
       ],
-      "line_number": 79,
+      "line_number": 51,
       "is_async": false,
       "parameters": [
         "self"
       ],
-      "last_updated": "2025-08-04T12:57:12.529668+00:00",
+      "last_updated": "2025-08-04T19:31:04.032191+00:00",
       "is_class": false,
       "base_classes": [],
+      "parent_class_key": "src/core/intent_guard.py::IntentGuard"
+    },
+    "src/core/intent_guard.py::check_transaction": {
+      "key": "src/core/intent_guard.py::check_transaction",
+      "name": "check_transaction",
+      "type": "FunctionDef",
+      "file": "src/core/intent_guard.py",
+      "domain": "core",
+      "agent": "validator_agent",
+      "capability": "change_safety_enforcement",
+      "intent": "Check if a proposed set of file changes complies with all active rules.",
+      "docstring": "Check if a proposed set of file changes complies with all active rules.\nThis is the primary enforcement point for constitutional integrity.",
+      "calls": [
+        "Path",
+        "append",
+        "resolve"
+      ],
+      "line_number": 68,
+      "is_async": false,
+      "parameters": [
+        "self",
+        "proposed_paths"
+      ],
+      "entry_point_type": "capability",
+      "last_updated": "2025-08-04T19:31:04.032728+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "entry_point_justification": "capability_implementation",
       "parent_class_key": "src/core/intent_guard.py::IntentGuard"
     },
     "src/core/self_correction_engine.py::attempt_correction": {
@@ -1607,7 +1644,7 @@
         "failure_context"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-04T12:57:12.531266+00:00",
+      "last_updated": "2025-08-04T19:31:04.034328+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation"
@@ -1619,45 +1656,43 @@
       "file": "src/agents/planner_agent.py",
       "domain": "agents",
       "agent": "planner_agent",
-      "capability": "llm_orchestration",
+      "capability": "code_generation",
       "intent": "The primary agent responsible for decomposing high-level goals into executable plans.",
       "docstring": "The primary agent responsible for decomposing high-level goals into executable plans.\nIt orchestrates the generation, validation, and commitment of code changes.",
       "calls": [
         "PromptPipeline",
         "RuntimeError",
         "ValueError",
+        "_execute_add_tag",
         "_execute_task",
         "_extract_json_from_response",
-        "_extract_target_path_from_prompt",
-        "_govern_and_amend_code",
+        "_find_symbol_line",
         "add",
         "add_pending_write",
-        "append",
-        "attempt_correction",
+        "all",
         "commit",
         "confirm_write",
         "dedent",
         "enumerate",
+        "exists",
+        "format",
         "get",
-        "get_docstring",
         "group",
         "insert",
         "is_git_repo",
         "isinstance",
-        "items",
         "join",
         "len",
         "loads",
+        "lstrip",
         "make_request",
         "parse",
-        "parse_write_blocks",
         "print",
         "process",
+        "read_text",
         "rollback_last_commit",
         "search",
-        "sorted",
         "splitlines",
-        "startswith",
         "str",
         "strip",
         "validate_code",
@@ -1667,7 +1702,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-04T12:57:12.536608+00:00",
+      "last_updated": "2025-08-04T19:31:04.039147+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "capability_implementation"
@@ -1696,36 +1731,10 @@
         "intent_guard"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-04T12:57:12.537011+00:00",
+      "last_updated": "2025-08-04T19:31:04.039535+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
-      "parent_class_key": "src/agents/planner_agent.py::PlannerAgent"
-    },
-    "src/agents/planner_agent.py::_extract_target_path_from_prompt": {
-      "key": "src/agents/planner_agent.py::_extract_target_path_from_prompt",
-      "name": "_extract_target_path_from_prompt",
-      "type": "FunctionDef",
-      "file": "src/agents/planner_agent.py",
-      "domain": "agents",
-      "agent": "planner_agent",
-      "capability": "unassigned",
-      "intent": "Parses a prompt to find the first [[write:path/to/file]] directive.",
-      "docstring": "Parses a prompt to find the first [[write:path/to/file]] directive.",
-      "calls": [
-        "group",
-        "search",
-        "strip"
-      ],
-      "line_number": 40,
-      "is_async": false,
-      "parameters": [
-        "self",
-        "prompt"
-      ],
-      "last_updated": "2025-08-04T12:57:12.537480+00:00",
-      "is_class": false,
-      "base_classes": [],
       "parent_class_key": "src/agents/planner_agent.py::PlannerAgent"
     },
     "src/agents/planner_agent.py::_extract_json_from_response": {
@@ -1743,13 +1752,13 @@
         "search",
         "strip"
       ],
-      "line_number": 45,
+      "line_number": 40,
       "is_async": false,
       "parameters": [
         "self",
         "text"
       ],
-      "last_updated": "2025-08-04T12:57:12.537901+00:00",
+      "last_updated": "2025-08-04T19:31:04.039988+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/agents/planner_agent.py::PlannerAgent"
@@ -1761,27 +1770,29 @@
       "file": "src/agents/planner_agent.py",
       "domain": "agents",
       "agent": "planner_agent",
-      "capability": "prompt_interpretation",
+      "capability": "llm_orchestration",
       "intent": "Creates a detailed, step-by-step execution plan from a high-level goal.",
       "docstring": "Creates a detailed, step-by-step execution plan from a high-level goal.",
       "calls": [
         "ValueError",
         "_extract_json_from_response",
         "dedent",
+        "format",
         "len",
         "loads",
         "make_request",
         "print",
+        "process",
         "strip"
       ],
-      "line_number": 56,
+      "line_number": 51,
       "is_async": false,
       "parameters": [
         "self",
         "high_level_goal"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-04T12:57:12.538439+00:00",
+      "last_updated": "2025-08-04T19:31:04.040565+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -1807,50 +1818,85 @@
         "rollback_last_commit",
         "str"
       ],
-      "line_number": 83,
+      "line_number": 107,
       "is_async": true,
       "parameters": [
         "self",
         "plan"
       ],
-      "last_updated": "2025-08-04T12:57:12.539098+00:00",
+      "last_updated": "2025-08-04T19:31:04.041266+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/agents/planner_agent.py::PlannerAgent"
     },
-    "src/agents/planner_agent.py::_govern_and_amend_code": {
-      "key": "src/agents/planner_agent.py::_govern_and_amend_code",
-      "name": "_govern_and_amend_code",
+    "src/agents/planner_agent.py::_find_symbol_line": {
+      "key": "src/agents/planner_agent.py::_find_symbol_line",
+      "name": "_find_symbol_line",
       "type": "FunctionDef",
       "file": "src/agents/planner_agent.py",
       "domain": "agents",
       "agent": "planner_agent",
-      "capability": "change_safety_enforcement",
-      "intent": "Validates and amends newly generated code to comply with constitutional",
-      "docstring": "Validates and amends newly generated code to comply with constitutional\nstandards before being written to disk. This is the core of the\n\"immune system\".\n\nArgs:\n    code (str): The raw Python code generated by the LLM.\n\nReturns:\n    str: The amended code, compliant with governance.\n\nRaises:\n    RuntimeError: If a critical governance check fails (e.g., missing docstring).",
+      "capability": "unassigned",
+      "intent": "Finds the starting line number of a function or class in a file.",
+      "docstring": "Finds the starting line number of a function or class in a file.",
       "calls": [
-        "RuntimeError",
-        "append",
-        "get_docstring",
-        "insert",
+        "exists",
         "isinstance",
-        "join",
         "parse",
-        "print",
-        "sorted",
-        "splitlines",
-        "startswith",
-        "strip",
+        "read_text",
         "walk"
       ],
-      "line_number": 103,
+      "line_number": 126,
       "is_async": false,
       "parameters": [
         "self",
-        "code"
+        "file_path",
+        "symbol_name"
+      ],
+      "last_updated": "2025-08-04T19:31:04.041886+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "parent_class_key": "src/agents/planner_agent.py::PlannerAgent"
+    },
+    "src/agents/planner_agent.py::_execute_add_tag": {
+      "key": "src/agents/planner_agent.py::_execute_add_tag",
+      "name": "_execute_add_tag",
+      "type": "AsyncFunctionDef",
+      "file": "src/agents/planner_agent.py",
+      "domain": "agents",
+      "agent": "planner_agent",
+      "capability": "change_safety_enforcement",
+      "intent": "Executes the surgical 'add_capability_tag' action.",
+      "docstring": "Executes the surgical 'add_capability_tag' action.",
+      "calls": [
+        "RuntimeError",
+        "ValueError",
+        "_find_symbol_line",
+        "add",
+        "add_pending_write",
+        "all",
+        "commit",
+        "confirm_write",
+        "get",
+        "insert",
+        "is_git_repo",
+        "join",
+        "len",
+        "lstrip",
+        "print",
+        "read_text",
+        "splitlines",
+        "validate_code"
+      ],
+      "line_number": 144,
+      "is_async": true,
+      "parameters": [
+        "self",
+        "params",
+        "step_name"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-04T12:57:12.539859+00:00",
+      "last_updated": "2025-08-04T19:31:04.042800+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -1863,39 +1909,23 @@
       "file": "src/agents/planner_agent.py",
       "domain": "agents",
       "agent": "planner_agent",
-      "capability": "code_generation",
-      "intent": "Executes a single task from a plan, including code generation and file writing.",
-      "docstring": "Executes a single task from a plan, including code generation and file writing.",
+      "capability": "unassigned",
+      "intent": "Dispatcher that executes a single task from a plan based on its action type.",
+      "docstring": "Dispatcher that executes a single task from a plan based on its action type.",
       "calls": [
-        "RuntimeError",
-        "_extract_target_path_from_prompt",
-        "_govern_and_amend_code",
-        "add",
-        "add_pending_write",
-        "append",
-        "attempt_correction",
-        "commit",
-        "confirm_write",
+        "_execute_add_tag",
         "get",
-        "is_git_repo",
-        "items",
-        "make_request",
-        "parse_write_blocks",
-        "print",
-        "process",
-        "validate_code"
+        "print"
       ],
-      "line_number": 150,
+      "line_number": 204,
       "is_async": true,
       "parameters": [
         "self",
         "task"
       ],
-      "entry_point_type": "capability",
-      "last_updated": "2025-08-04T12:57:12.541025+00:00",
+      "last_updated": "2025-08-04T19:31:04.043651+00:00",
       "is_class": false,
       "base_classes": [],
-      "entry_point_justification": "capability_implementation",
       "parent_class_key": "src/agents/planner_agent.py::PlannerAgent"
     },
     "src/shared/path_utils.py::get_repo_root": {
@@ -1920,7 +1950,7 @@
       "parameters": [
         "start_path"
       ],
-      "last_updated": "2025-08-04T12:57:12.542491+00:00",
+      "last_updated": "2025-08-04T19:31:04.044512+00:00",
       "is_class": false,
       "base_classes": []
     },
@@ -1950,9 +1980,33 @@
         "file_path",
         "file_type"
       ],
-      "last_updated": "2025-08-04T12:57:12.543707+00:00",
+      "last_updated": "2025-08-04T19:31:04.045813+00:00",
       "is_class": false,
       "base_classes": []
+    },
+    "src/shared/logger.py::getLogger": {
+      "key": "src/shared/logger.py::getLogger",
+      "name": "getLogger",
+      "type": "FunctionDef",
+      "file": "src/shared/logger.py",
+      "domain": "shared",
+      "agent": "generic_agent",
+      "capability": "system_logging",
+      "intent": "Returns a pre-configured logger instance.",
+      "docstring": "Returns a pre-configured logger instance.\n\nArgs:\n    name (str): The name of the logger, typically __name__ of the calling module.\n\nReturns:\n    logging.Logger: The configured logger.",
+      "calls": [
+        "getLogger"
+      ],
+      "line_number": 44,
+      "is_async": false,
+      "parameters": [
+        "name"
+      ],
+      "entry_point_type": "capability",
+      "last_updated": "2025-08-04T19:31:04.046884+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "entry_point_justification": "capability_implementation"
     },
     "src/system/governance/constitutional_auditor.py::ConstitutionalAuditor": {
       "key": "src/system/governance/constitutional_auditor.py::ConstitutionalAuditor",
@@ -1969,6 +2023,7 @@
         "IntentModel",
         "Panel",
         "Table",
+        "_LoggingBridge",
         "_add_error",
         "_add_success",
         "_add_warning",
@@ -1977,10 +2032,12 @@
         "any",
         "append",
         "check_fn",
+        "error",
         "exists",
         "get",
         "get_domain_permissions",
         "get_repo_root",
+        "info",
         "is_file",
         "items",
         "joinpath",
@@ -1993,27 +2050,78 @@
         "replace",
         "resolve_domain_for_path",
         "rglob",
-        "rule",
         "scan_imports_for_file",
         "set",
         "sorted",
         "split",
         "startswith",
         "str",
+        "strip",
         "update",
         "validate_code",
         "validate_manifest_entry",
         "values",
+        "warning",
         "with_suffix"
       ],
-      "line_number": 24,
+      "line_number": 27,
       "is_async": false,
       "parameters": [],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-04T12:57:12.551203+00:00",
+      "last_updated": "2025-08-04T19:31:04.054866+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "capability_implementation"
+    },
+    "src/system/governance/constitutional_auditor.py::_LoggingBridge": {
+      "key": "src/system/governance/constitutional_auditor.py::_LoggingBridge",
+      "name": "_LoggingBridge",
+      "type": "ClassDef",
+      "file": "src/system/governance/constitutional_auditor.py",
+      "domain": "system",
+      "agent": "validator_agent",
+      "capability": "unassigned",
+      "intent": "A file-like object that redirects writes to the logger.",
+      "docstring": "A file-like object that redirects writes to the logger.",
+      "calls": [
+        "info",
+        "strip"
+      ],
+      "line_number": 33,
+      "is_async": false,
+      "parameters": [],
+      "last_updated": "2025-08-04T19:31:04.055280+00:00",
+      "is_class": true,
+      "base_classes": [
+        "StringIO"
+      ]
+    },
+    "src/system/governance/constitutional_auditor.py::write": {
+      "key": "src/system/governance/constitutional_auditor.py::write",
+      "name": "write",
+      "type": "FunctionDef",
+      "file": "src/system/governance/constitutional_auditor.py",
+      "domain": "system",
+      "agent": "validator_agent",
+      "capability": "unassigned",
+      "intent": "Provides functionality for the system domain.",
+      "docstring": "",
+      "calls": [
+        "info",
+        "strip"
+      ],
+      "line_number": 35,
+      "is_async": false,
+      "parameters": [
+        "self",
+        "s"
+      ],
+      "last_updated": "2025-08-04T19:31:04.055674+00:00",
+      "is_class": false,
+      "base_classes": [
+        "StringIO"
+      ],
+      "parent_class_key": "src/system/governance/constitutional_auditor.py::_LoggingBridge"
     },
     "src/system/governance/constitutional_auditor.py::__init__": {
       "key": "src/system/governance/constitutional_auditor.py::__init__",
@@ -2028,19 +2136,20 @@
       "calls": [
         "Console",
         "IntentModel",
+        "_LoggingBridge",
         "get",
         "get_repo_root",
         "list",
         "load_config",
         "values"
       ],
-      "line_number": 29,
+      "line_number": 41,
       "is_async": false,
       "parameters": [
         "self"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-04T12:57:12.551724+00:00",
+      "last_updated": "2025-08-04T19:31:04.056207+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -2060,16 +2169,16 @@
         "Panel",
         "_report_final_status",
         "check_fn",
-        "print",
-        "rule"
+        "info",
+        "print"
       ],
-      "line_number": 44,
+      "line_number": 59,
       "is_async": false,
       "parameters": [
         "self"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-04T12:57:12.552352+00:00",
+      "last_updated": "2025-08-04T19:31:04.056885+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -2083,19 +2192,19 @@
       "domain": "system",
       "agent": "validator_agent",
       "capability": "unassigned",
-      "intent": "Adds an error to the list and prints it.",
-      "docstring": "Adds an error to the list and prints it.",
+      "intent": "Adds an error to the list and logs it.",
+      "docstring": "Adds an error to the list and logs it.",
       "calls": [
         "append",
-        "print"
+        "error"
       ],
-      "line_number": 66,
+      "line_number": 81,
       "is_async": false,
       "parameters": [
         "self",
         "message"
       ],
-      "last_updated": "2025-08-04T12:57:12.552889+00:00",
+      "last_updated": "2025-08-04T19:31:04.057416+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/system/governance/constitutional_auditor.py::ConstitutionalAuditor"
@@ -2108,19 +2217,19 @@
       "domain": "system",
       "agent": "validator_agent",
       "capability": "unassigned",
-      "intent": "Adds a warning to the list and prints it.",
-      "docstring": "Adds a warning to the list and prints it.",
+      "intent": "Adds a warning to the list and logs it.",
+      "docstring": "Adds a warning to the list and logs it.",
       "calls": [
         "append",
-        "print"
+        "warning"
       ],
-      "line_number": 71,
+      "line_number": 86,
       "is_async": false,
       "parameters": [
         "self",
         "message"
       ],
-      "last_updated": "2025-08-04T12:57:12.553270+00:00",
+      "last_updated": "2025-08-04T19:31:04.057827+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/system/governance/constitutional_auditor.py::ConstitutionalAuditor"
@@ -2133,18 +2242,18 @@
       "domain": "system",
       "agent": "validator_agent",
       "capability": "unassigned",
-      "intent": "Prints a success message.",
-      "docstring": "Prints a success message.",
+      "intent": "Logs a success message.",
+      "docstring": "Logs a success message.",
       "calls": [
-        "print"
+        "info"
       ],
-      "line_number": 76,
+      "line_number": 91,
       "is_async": false,
       "parameters": [
         "self",
         "message"
       ],
-      "last_updated": "2025-08-04T12:57:12.553655+00:00",
+      "last_updated": "2025-08-04T19:31:04.058210+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/system/governance/constitutional_auditor.py::ConstitutionalAuditor"
@@ -2164,12 +2273,12 @@
         "_add_success",
         "exists"
       ],
-      "line_number": 80,
+      "line_number": 95,
       "is_async": false,
       "parameters": [
         "self"
       ],
-      "last_updated": "2025-08-04T12:57:12.554094+00:00",
+      "last_updated": "2025-08-04T19:31:04.058648+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/system/governance/constitutional_auditor.py::ConstitutionalAuditor"
@@ -2196,12 +2305,12 @@
         "str",
         "validate_code"
       ],
-      "line_number": 94,
+      "line_number": 109,
       "is_async": false,
       "parameters": [
         "self"
       ],
-      "last_updated": "2025-08-04T12:57:12.554686+00:00",
+      "last_updated": "2025-08-04T19:31:04.059260+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/system/governance/constitutional_auditor.py::ConstitutionalAuditor"
@@ -2221,12 +2330,12 @@
         "_add_success",
         "len"
       ],
-      "line_number": 109,
+      "line_number": 125,
       "is_async": false,
       "parameters": [
         "self"
       ],
-      "last_updated": "2025-08-04T12:57:12.555257+00:00",
+      "last_updated": "2025-08-04T19:31:04.059872+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/system/governance/constitutional_auditor.py::ConstitutionalAuditor"
@@ -2251,12 +2360,12 @@
         "set",
         "sorted"
       ],
-      "line_number": 121,
+      "line_number": 137,
       "is_async": false,
       "parameters": [
         "self"
       ],
-      "last_updated": "2025-08-04T12:57:12.555849+00:00",
+      "last_updated": "2025-08-04T19:31:04.060476+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/system/governance/constitutional_auditor.py::ConstitutionalAuditor"
@@ -2278,12 +2387,12 @@
         "len",
         "validate_manifest_entry"
       ],
-      "line_number": 139,
+      "line_number": 155,
       "is_async": false,
       "parameters": [
         "self"
       ],
-      "last_updated": "2025-08-04T12:57:12.556465+00:00",
+      "last_updated": "2025-08-04T19:31:04.061114+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/system/governance/constitutional_auditor.py::ConstitutionalAuditor"
@@ -2315,12 +2424,12 @@
         "startswith",
         "with_suffix"
       ],
-      "line_number": 152,
+      "line_number": 168,
       "is_async": false,
       "parameters": [
         "self"
       ],
-      "last_updated": "2025-08-04T12:57:12.557250+00:00",
+      "last_updated": "2025-08-04T19:31:04.061916+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/system/governance/constitutional_auditor.py::ConstitutionalAuditor"
@@ -2341,12 +2450,12 @@
         "get",
         "len"
       ],
-      "line_number": 181,
+      "line_number": 197,
       "is_async": false,
       "parameters": [
         "self"
       ],
-      "last_updated": "2025-08-04T12:57:12.558092+00:00",
+      "last_updated": "2025-08-04T19:31:04.062756+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/system/governance/constitutional_auditor.py::ConstitutionalAuditor"
@@ -2370,13 +2479,13 @@
         "startswith",
         "update"
       ],
-      "line_number": 194,
+      "line_number": 210,
       "is_async": false,
       "parameters": [
         "self"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-04T12:57:12.558729+00:00",
+      "last_updated": "2025-08-04T19:31:04.063396+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -2405,12 +2514,12 @@
         "sorted",
         "str"
       ],
-      "line_number": 222,
+      "line_number": 228,
       "is_async": false,
       "parameters": [
         "self"
       ],
-      "last_updated": "2025-08-04T12:57:12.559425+00:00",
+      "last_updated": "2025-08-04T19:31:04.064155+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/system/governance/constitutional_auditor.py::ConstitutionalAuditor"
@@ -2423,8 +2532,8 @@
       "domain": "system",
       "agent": "validator_agent",
       "capability": "unassigned",
-      "intent": "Print final summary report.",
-      "docstring": "Print final summary report.",
+      "intent": "Logs the final summary report.",
+      "docstring": "Logs the final summary report.",
       "calls": [
         "Panel",
         "Table",
@@ -2432,13 +2541,13 @@
         "len",
         "print"
       ],
-      "line_number": 246,
+      "line_number": 252,
       "is_async": false,
       "parameters": [
         "self",
         "passed"
       ],
-      "last_updated": "2025-08-04T12:57:12.560144+00:00",
+      "last_updated": "2025-08-04T19:31:04.064938+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/system/governance/constitutional_auditor.py::ConstitutionalAuditor"
@@ -2455,15 +2564,15 @@
       "docstring": "CLI entry point for the Constitutional Auditor.",
       "calls": [
         "ConstitutionalAuditor",
+        "error",
         "exit",
-        "print",
         "run_full_audit"
       ],
-      "line_number": 262,
+      "line_number": 269,
       "is_async": false,
       "parameters": [],
       "entry_point_type": "cli_entry_point",
-      "last_updated": "2025-08-04T12:57:12.560734+00:00",
+      "last_updated": "2025-08-04T19:31:04.065613+00:00",
       "is_class": false,
       "base_classes": []
     },
@@ -2483,7 +2592,7 @@
       "line_number": 14,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-04T12:57:12.562051+00:00",
+      "last_updated": "2025-08-04T19:31:04.066940+00:00",
       "is_class": false,
       "base_classes": []
     },
@@ -2517,7 +2626,7 @@
         "violations"
       ],
       "entry_point_type": "cli_entry_point",
-      "last_updated": "2025-08-04T12:57:12.562576+00:00",
+      "last_updated": "2025-08-04T19:31:04.067467+00:00",
       "is_class": false,
       "base_classes": []
     },
@@ -2534,10 +2643,10 @@
       "calls": [
         "field"
       ],
-      "line_number": 17,
+      "line_number": 16,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-04T12:57:12.569272+00:00",
+      "last_updated": "2025-08-04T19:31:04.074356+00:00",
       "is_class": true,
       "base_classes": []
     },
@@ -2552,10 +2661,10 @@
       "intent": "Custom exception for when the project's root cannot be determined.",
       "docstring": "Custom exception for when the project's root cannot be determined.",
       "calls": [],
-      "line_number": 39,
+      "line_number": 38,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-04T12:57:12.569813+00:00",
+      "last_updated": "2025-08-04T19:31:04.074872+00:00",
       "is_class": true,
       "base_classes": [
         "Exception"
@@ -2576,12 +2685,12 @@
         "exists",
         "resolve"
       ],
-      "line_number": 43,
+      "line_number": 42,
       "is_async": false,
       "parameters": [
         "start_path"
       ],
-      "last_updated": "2025-08-04T12:57:12.570249+00:00",
+      "last_updated": "2025-08-04T19:31:04.075271+00:00",
       "is_class": false,
       "base_classes": []
     },
@@ -2601,10 +2710,10 @@
         "isinstance",
         "set"
       ],
-      "line_number": 54,
+      "line_number": 53,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-04T12:57:12.570777+00:00",
+      "last_updated": "2025-08-04T19:31:04.075800+00:00",
       "is_class": true,
       "base_classes": [
         "NodeVisitor"
@@ -2626,7 +2735,7 @@
         "_load_patterns",
         "resolve"
       ],
-      "line_number": 97,
+      "line_number": 96,
       "is_async": false,
       "parameters": [
         "self",
@@ -2634,7 +2743,7 @@
         "exclude_patterns"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-04T12:57:12.577386+00:00",
+      "last_updated": "2025-08-04T19:31:04.082125+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -2655,14 +2764,14 @@
         "generic_visit",
         "isinstance"
       ],
-      "line_number": 60,
+      "line_number": 59,
       "is_async": false,
       "parameters": [
         "self",
         "node"
       ],
       "entry_point_type": "visitor_method",
-      "last_updated": "2025-08-04T12:57:12.571584+00:00",
+      "last_updated": "2025-08-04T19:31:04.076569+00:00",
       "is_class": false,
       "base_classes": [
         "NodeVisitor"
@@ -2739,11 +2848,11 @@
         "walk",
         "warning"
       ],
-      "line_number": 67,
+      "line_number": 66,
       "is_async": false,
       "parameters": [],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-04T12:57:12.574570+00:00",
+      "last_updated": "2025-08-04T19:31:04.079352+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "capability_implementation"
@@ -2762,10 +2871,10 @@
         "_process_symbol_node",
         "generic_visit"
       ],
-      "line_number": 70,
+      "line_number": 69,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-04T12:57:12.575172+00:00",
+      "last_updated": "2025-08-04T19:31:04.079920+00:00",
       "is_class": true,
       "base_classes": [
         "NodeVisitor"
@@ -2785,14 +2894,14 @@
         "_process_symbol_node",
         "generic_visit"
       ],
-      "line_number": 79,
+      "line_number": 78,
       "is_async": false,
       "parameters": [
         "self",
         "node"
       ],
       "entry_point_type": "visitor_method",
-      "last_updated": "2025-08-04T12:57:12.576015+00:00",
+      "last_updated": "2025-08-04T19:31:04.080762+00:00",
       "is_class": false,
       "base_classes": [
         "NodeVisitor"
@@ -2814,14 +2923,14 @@
         "_process_symbol_node",
         "generic_visit"
       ],
-      "line_number": 87,
+      "line_number": 86,
       "is_async": false,
       "parameters": [
         "self",
         "node"
       ],
       "entry_point_type": "visitor_method",
-      "last_updated": "2025-08-04T12:57:12.576459+00:00",
+      "last_updated": "2025-08-04T19:31:04.081190+00:00",
       "is_class": false,
       "base_classes": [
         "NodeVisitor"
@@ -2843,14 +2952,14 @@
         "_process_symbol_node",
         "generic_visit"
       ],
-      "line_number": 92,
+      "line_number": 91,
       "is_async": false,
       "parameters": [
         "self",
         "node"
       ],
       "entry_point_type": "visitor_method",
-      "last_updated": "2025-08-04T12:57:12.576869+00:00",
+      "last_updated": "2025-08-04T19:31:04.081589+00:00",
       "is_class": false,
       "base_classes": [
         "NodeVisitor"
@@ -2874,12 +2983,12 @@
         "load_config",
         "warning"
       ],
-      "line_number": 110,
+      "line_number": 109,
       "is_async": false,
       "parameters": [
         "self"
       ],
-      "last_updated": "2025-08-04T12:57:12.577948+00:00",
+      "last_updated": "2025-08-04T19:31:04.082646+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/system/tools/codegraph_builder.py::KnowledgeGraphBuilder"
@@ -2902,12 +3011,12 @@
         "search",
         "set"
       ],
-      "line_number": 118,
+      "line_number": 117,
       "is_async": false,
       "parameters": [
         "self"
       ],
-      "last_updated": "2025-08-04T12:57:12.578455+00:00",
+      "last_updated": "2025-08-04T19:31:04.083155+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/system/tools/codegraph_builder.py::KnowledgeGraphBuilder"
@@ -2925,13 +3034,13 @@
       "calls": [
         "any"
       ],
-      "line_number": 126,
+      "line_number": 125,
       "is_async": false,
       "parameters": [
         "self",
         "path"
       ],
-      "last_updated": "2025-08-04T12:57:12.578914+00:00",
+      "last_updated": "2025-08-04T19:31:04.083639+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/system/tools/codegraph_builder.py::KnowledgeGraphBuilder"
@@ -2952,12 +3061,12 @@
         "get",
         "load_config"
       ],
-      "line_number": 130,
+      "line_number": 129,
       "is_async": false,
       "parameters": [
         "self"
       ],
-      "last_updated": "2025-08-04T12:57:12.579367+00:00",
+      "last_updated": "2025-08-04T19:31:04.084100+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/system/tools/codegraph_builder.py::KnowledgeGraphBuilder"
@@ -2978,13 +3087,13 @@
         "max",
         "startswith"
       ],
-      "line_number": 136,
+      "line_number": 135,
       "is_async": false,
       "parameters": [
         "self",
         "file_path"
       ],
-      "last_updated": "2025-08-04T12:57:12.579839+00:00",
+      "last_updated": "2025-08-04T19:31:04.084573+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/system/tools/codegraph_builder.py::KnowledgeGraphBuilder"
@@ -3004,13 +3113,13 @@
         "lower",
         "str"
       ],
-      "line_number": 142,
+      "line_number": 141,
       "is_async": false,
       "parameters": [
         "self",
         "relative_path"
       ],
-      "last_updated": "2025-08-04T12:57:12.580330+00:00",
+      "last_updated": "2025-08-04T19:31:04.085050+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/system/tools/codegraph_builder.py::KnowledgeGraphBuilder"
@@ -3031,14 +3140,14 @@
         "startswith",
         "strip"
       ],
-      "line_number": 152,
+      "line_number": 151,
       "is_async": false,
       "parameters": [
         "self",
         "node",
         "source_lines"
       ],
-      "last_updated": "2025-08-04T12:57:12.580874+00:00",
+      "last_updated": "2025-08-04T19:31:04.085583+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/system/tools/codegraph_builder.py::KnowledgeGraphBuilder"
@@ -3056,13 +3165,13 @@
       "calls": [
         "isinstance"
       ],
-      "line_number": 161,
+      "line_number": 160,
       "is_async": false,
       "parameters": [
         "self",
         "node"
       ],
-      "last_updated": "2025-08-04T12:57:12.581457+00:00",
+      "last_updated": "2025-08-04T19:31:04.086144+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/system/tools/codegraph_builder.py::KnowledgeGraphBuilder"
@@ -3091,13 +3200,13 @@
         "visit",
         "walk"
       ],
-      "line_number": 172,
+      "line_number": 171,
       "is_async": false,
       "parameters": [
         "self",
         "filepath"
       ],
-      "last_updated": "2025-08-04T12:57:12.582237+00:00",
+      "last_updated": "2025-08-04T19:31:04.086940+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/system/tools/codegraph_builder.py::KnowledgeGraphBuilder"
@@ -3132,7 +3241,7 @@
         "strip",
         "visit"
       ],
-      "line_number": 194,
+      "line_number": 193,
       "is_async": false,
       "parameters": [
         "self",
@@ -3141,7 +3250,7 @@
         "source_lines",
         "parent_key"
       ],
-      "last_updated": "2025-08-04T12:57:12.583250+00:00",
+      "last_updated": "2025-08-04T19:31:04.087977+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/system/tools/codegraph_builder.py::KnowledgeGraphBuilder"
@@ -3163,12 +3272,12 @@
         "match",
         "values"
       ],
-      "line_number": 224,
+      "line_number": 223,
       "is_async": false,
       "parameters": [
         "self"
       ],
-      "last_updated": "2025-08-04T12:57:12.584208+00:00",
+      "last_updated": "2025-08-04T19:31:04.089102+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/system/tools/codegraph_builder.py::KnowledgeGraphBuilder"
@@ -3198,12 +3307,12 @@
         "sorted",
         "values"
       ],
-      "line_number": 246,
+      "line_number": 245,
       "is_async": false,
       "parameters": [
         "self"
       ],
-      "last_updated": "2025-08-04T12:57:12.585162+00:00",
+      "last_updated": "2025-08-04T19:31:04.089981+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/system/tools/codegraph_builder.py::KnowledgeGraphBuilder"
@@ -3225,16 +3334,16 @@
         "dumps",
         "error",
         "find_project_root",
+        "info",
         "len",
         "mkdir",
-        "print",
         "write_text"
       ],
-      "line_number": 268,
+      "line_number": 267,
       "is_async": false,
       "parameters": [],
       "entry_point_type": "cli_entry_point",
-      "last_updated": "2025-08-04T12:57:12.585929+00:00",
+      "last_updated": "2025-08-04T19:31:04.090745+00:00",
       "is_class": false,
       "base_classes": []
     },
@@ -3256,7 +3365,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "cli_entry_point",
-      "last_updated": "2025-08-04T12:57:12.586938+00:00",
+      "last_updated": "2025-08-04T19:31:04.091712+00:00",
       "is_class": false,
       "base_classes": []
     },
@@ -3282,7 +3391,7 @@
       "parameters": [
         "schema_name"
       ],
-      "last_updated": "2025-08-04T12:57:12.588193+00:00",
+      "last_updated": "2025-08-04T19:31:04.092943+00:00",
       "is_class": false,
       "base_classes": []
     },
@@ -3310,7 +3419,7 @@
         "entry",
         "schema_name"
       ],
-      "last_updated": "2025-08-04T12:57:12.588784+00:00",
+      "last_updated": "2025-08-04T19:31:04.093545+00:00",
       "is_class": false,
       "base_classes": []
     },
@@ -3337,7 +3446,7 @@
       "parameters": [
         "file_path"
       ],
-      "last_updated": "2025-08-04T12:57:12.589899+00:00",
+      "last_updated": "2025-08-04T19:31:04.094628+00:00",
       "is_class": false,
       "base_classes": []
     },
@@ -3360,7 +3469,7 @@
       "parameters": [
         "llm_output"
       ],
-      "last_updated": "2025-08-04T12:57:12.590720+00:00",
+      "last_updated": "2025-08-04T19:31:04.095466+00:00",
       "is_class": false,
       "base_classes": []
     }

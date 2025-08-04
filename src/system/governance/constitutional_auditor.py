@@ -5,9 +5,9 @@ CORE Constitutional Auditor
 The single source of truth for validating the entire CORE system's integrity.
 """
 import sys
-import re
+import io
 from pathlib import Path
-from collections import defaultdict
+
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
@@ -18,6 +18,9 @@ from shared.schemas.manifest_validator import validate_manifest_entry
 from core.validation_pipeline import validate_code
 from core.intent_model import IntentModel
 from shared.utils.import_scanner import scan_imports_for_file
+from shared.logger import getLogger
+
+log = getLogger(__name__)
 
 # CAPABILITY: introspection
 # CAPABILITY: alignment_checking
@@ -26,13 +29,25 @@ class ConstitutionalAuditor:
     Validates the complete structure and consistency of the .intent/ directory
     and its relationship with the source code.
     """
+    
+    class _LoggingBridge(io.StringIO):
+        """A file-like object that redirects writes to the logger."""
+        def write(self, s: str):
+            # Clean up the string and log it if it's not empty
+            cleaned_s = s.strip()
+            if cleaned_s:
+                log.info(cleaned_s)
+
     def __init__(self):
         """Initializes the auditor, loading all necessary configuration and knowledge files."""
         self.repo_root = get_repo_root()
         self.intent_dir = self.repo_root / ".intent"
         self.src_dir = self.repo_root / "src"
         self.intent_model = IntentModel(self.repo_root)
-        self.console = Console()
+        
+        # Redirect Rich's output to our logger
+        self.console = Console(file=self._LoggingBridge(), force_terminal=True, color_system="auto")
+        
         self.errors = []
         self.warnings = []
         self.project_manifest = load_config(self.intent_dir / "project_manifest.yaml", "yaml")
@@ -43,7 +58,7 @@ class ConstitutionalAuditor:
     # CAPABILITY: validate_intent_structure
     def run_full_audit(self) -> bool:
         """Run all validation phases and return overall status."""
-        self.console.print(Panel("🧠 CORE Constitutional Integrity Audit", style="bold blue"))
+        self.console.print(Panel("🧠 CORE Constitutional Integrity Audit", style="bold blue", expand=False))
         checks = [
             ("Required Intent File Existence", self._check_required_files),
             ("YAML/JSON Syntax Validity", self._validate_syntax),
@@ -57,25 +72,25 @@ class ConstitutionalAuditor:
         ]
         all_passed = True
         for name, check_fn in checks:
-            self.console.rule(f"[bold]🔍 {name}[/bold]")
+            log.info(f"🔍 [bold]Running Check:[/bold] {name}")
             if not check_fn():
                 all_passed = False
         self._report_final_status(all_passed)
         return all_passed
 
     def _add_error(self, message: str):
-        """Adds an error to the list and prints it."""
+        """Adds an error to the list and logs it."""
         self.errors.append(message)
-        self.console.print(f"  [bold red]❌ ERROR:[/] {message}")
+        log.error(f"❌ {message}")
 
     def _add_warning(self, message: str):
-        """Adds a warning to the list and prints it."""
+        """Adds a warning to the list and logs it."""
         self.warnings.append(message)
-        self.console.print(f"  [bold yellow]⚠️ WARNING:[/] {message}")
+        log.warning(f"⚠️ {message}")
     
     def _add_success(self, message: str):
-        """Prints a success message."""
-        self.console.print(f"  [bold green]✅ PASS:[/] {message}")
+        """Logs a success message."""
+        log.info(f"✅ {message}")
 
     def _check_required_files(self) -> bool:
         """Ensure all critical intent files exist."""
@@ -97,6 +112,7 @@ class ConstitutionalAuditor:
         files_to_check = list(self.intent_dir.rglob("*.yaml")) + list(self.intent_dir.rglob("*.json"))
         for file_path in files_to_check:
             if file_path.is_file():
+                # We can silence the validation pipeline's own logging for cleaner audit output
                 result = validate_code(str(file_path), file_path.read_text(encoding='utf-8'))
                 if result["status"] == "dirty":
                     for err in result["errors"]:
@@ -128,7 +144,7 @@ class ConstitutionalAuditor:
             self._add_error(f"Missing capability implementations for: {missing}")
         unrecognized = sorted(list(implemented_caps - required_caps))
         if unrecognized:
-            self._add_warning(f"Unrecognized capabilities in code not in project_manifest.yaml: {unrecognized}")
+            self._add_warning(f"Unrecognized capabilities in code not in manifest: {unrecognized}")
         passed = len(self.errors) == initial_error_count
         if passed and not unrecognized:
             self._add_success("All required capabilities are implemented and recognized.")
@@ -200,20 +216,10 @@ class ConstitutionalAuditor:
         initial_warning_count = len(self.warnings)
         for symbol in self.symbols_list:
             name = symbol["name"]
-            
-            # A symbol is NOT dead if ANY of these are true:
-            # 1. It is marked as private or a test.
-            if name.startswith(('_', 'test_')):
-                continue
-            # 2. It is called by another symbol in our codebase.
-            if name in all_called_symbols:
-                continue
-            # 3. The Knowledge Graph has identified it as any kind of entry point.
-            if symbol.get("entry_point_type"):
-                continue
-
-            # If none of the above are true, it is unreferenced.
-            self._add_warning(f"Potentially dead code: Symbol '{name}' in '{symbol['file']}' appears to be unreferenced.")
+            if name.startswith(('_', 'test_')): continue
+            if name in all_called_symbols: continue
+            if symbol.get("entry_point_type"): continue
+            self._add_warning(f"Potentially dead code: Symbol '{name}' in '{symbol['file']}' is unreferenced.")
             
         if len(self.warnings) == initial_warning_count:
             self._add_success("No unreferenced public symbols found.")
@@ -231,9 +237,9 @@ class ConstitutionalAuditor:
             ".intent/knowledge/entry_point_patterns.yaml",
             ".intent/evaluation/audit_checklist.yaml", ".intent/evaluation/score_policy.yaml",
             ".intent/config/local_mode.yaml", ".intent/meta.yaml",
-            ".intent/schemas/knowledge_graph_entry.schema.json", # <-- ADDED THIS LINE
+            ".intent/schemas/knowledge_graph_entry.schema.json",
         }
-        ignore_patterns = [".log", ".tmp", ".bak", "change_log.json"] # Ignoring change_log
+        ignore_patterns = [".log", ".tmp", ".bak", "change_log.json"]
         physical_files = {str(p.relative_to(self.repo_root)).replace("\\", "/") for p in self.intent_dir.rglob("*") if p.is_file() and not any(pat in p.name for pat in ignore_patterns)}
         orphaned_files = sorted(list(physical_files - known_files))
         initial_warning_count = len(self.warnings)
@@ -244,18 +250,19 @@ class ConstitutionalAuditor:
         return True
 
     def _report_final_status(self, passed: bool):
-        """Print final summary report."""
-        self.console.print()
+        """Logs the final summary report."""
         if passed:
-            self.console.print(Panel(f"✅ ALL CHECKS PASSED ({len(self.warnings)} warnings)", style="bold green", expand=False))
+            msg = f"✅ ALL CHECKS PASSED ({len(self.warnings)} warnings)"
+            self.console.print(Panel(msg, style="bold green", expand=False))
         else:
-            self.console.print(Panel(f"❌ AUDIT FAILED: {len(self.errors)} error(s) and {len(self.warnings)} warning(s) found.", style="bold red"))
-            if self.errors:
-                error_table = Table("🚨 Critical Errors", style="red")
-                for err in self.errors: error_table.add_row(err)
-                self.console.print(error_table)
+            msg = f"❌ AUDIT FAILED: {len(self.errors)} error(s) and {len(self.warnings)} warning(s) found."
+            self.console.print(Panel(msg, style="bold red", expand=False))
+        if self.errors:
+            error_table = Table("🚨 Critical Errors", style="red", show_header=True, header_style="bold red")
+            for err in self.errors: error_table.add_row(err)
+            self.console.print(error_table)
         if self.warnings:
-            warning_table = Table("⚠️ Warnings", style="yellow")
+            warning_table = Table("⚠️ Warnings", style="yellow", show_header=True, header_style="bold yellow")
             for warn in self.warnings: warning_table.add_row(warn)
             self.console.print(warning_table)
 
@@ -266,10 +273,10 @@ def main():
         success = auditor.run_full_audit()
         sys.exit(0 if success else 1)
     except FileNotFoundError as e:
-        print(f"\n[bold red]FATAL ERROR: A required file was not found.[/bold red]\nDetails: {e}")
+        log.error(f"A required file was not found: {e}", exc_info=True)
         sys.exit(1)
     except Exception as e:
-        print(f"\n[bold red]An unexpected error occurred during the audit: {e}[/bold red]")
+        log.error(f"An unexpected error occurred during the audit: {e}", exc_info=True)
         sys.exit(1)
 
 if __name__ == "__main__":

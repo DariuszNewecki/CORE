@@ -8,6 +8,9 @@ import os
 import requests
 from typing import Dict, Any
 
+from shared.logger import getLogger
+
+log = getLogger(__name__)
 
 class BaseLLMClient:
     """
@@ -37,7 +40,8 @@ class BaseLLMClient:
             "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json",
         }
-        print(f"  - Initialized {self.__class__.__name__} for model '{self.model_name}' at endpoint '{self.api_url}'")
+        # The noisy print statement has been removed from here.
+        # Logging is now handled in main.py upon initialization.
 
     def make_request(self, prompt: str, user_id: str = "core_system") -> str:
         """
@@ -53,36 +57,29 @@ class BaseLLMClient:
         Raises:
             requests.HTTPError: If the API returns a non-200 status code.
         """
-        # --- THIS IS THE CRITICAL CHANGE ---
-        # We now build a 'messages' array instead of using a simple 'prompt' key.
         payload = {
             "model": self.model_name,
             "messages": [
-                # For simplicity, we wrap the entire incoming prompt as a single user message.
-                # More advanced implementations could parse the prompt for a system message.
                 {"role": "user", "content": prompt}
             ],
-            "user": user_id,  # Some APIs like OpenAI use this for moderation tracking
+            "user": user_id,
         }
 
         try:
+            log.debug(f"Sending request to {self.api_url} for model {self.model_name}...")
             response = requests.post(self.api_url, headers=self.headers, json=payload, timeout=180)
             response.raise_for_status()
 
             response_data = response.json()
-
-            # --- THIS IS THE SECOND CRITICAL CHANGE ---
-            # The response format is also different for chat APIs.
-            # It's inside choices[0].message.content, not choices[0].text.
             content = response_data["choices"][0]["message"]["content"]
+            log.debug("Successfully received and parsed LLM response.")
             return content if content is not None else ""
         except requests.exceptions.RequestException as e:
-            print(f"❌ Network error during LLM request: {e}")
-            return f"Error: Could not connect to LLM endpoint at {self.api_url}. Details: {e}"
+            log.error(f"Network error during LLM request to {self.api_url}: {e}", exc_info=True)
+            return f"Error: Could not connect to LLM endpoint. Details: {e}"
         except (KeyError, IndexError) as e:
-            # Handle cases where the response might be malformed or empty
-            print(f"❌ Error parsing LLM response: {e}. Full response: {response.text}")
-            return f"Error: Could not parse response from API. Full response: {response.text}"
+            log.error(f"Error parsing LLM response: {e}. Full response: {response.text}", exc_info=True)
+            return f"Error: Could not parse response from API."
 
 
 class OrchestratorClient(BaseLLMClient):
@@ -94,13 +91,13 @@ class OrchestratorClient(BaseLLMClient):
     def __init__(self):
         """
         Initialize the OrchestratorClient using environment variables.
-        No arguments needed — config is injected via .env or system vars.
         """
         super().__init__(
             api_url=os.getenv("ORCHESTRATOR_API_URL"),
             api_key=os.getenv("ORCHESTRATOR_API_KEY"),
             model_name=os.getenv("ORCHESTRATOR_MODEL_NAME", "deepseek-chat")
         )
+        log.info(f"OrchestratorClient initialized for model '{self.model_name}'.")
 
 
 class GeneratorClient(BaseLLMClient):
@@ -112,10 +109,10 @@ class GeneratorClient(BaseLLMClient):
     def __init__(self):
         """
         Initialize the GeneratorClient using environment variables.
-        No arguments needed — config is injected via .env or system vars.
         """
         super().__init__(
             api_url=os.getenv("GENERATOR_API_URL"),
             api_key=os.getenv("GENERATOR_API_KEY"),
             model_name=os.getenv("GENERATOR_MODEL_NAME", "deepseek-coder")
         )
+        log.info(f"GeneratorClient initialized for model '{self.model_name}'.")
