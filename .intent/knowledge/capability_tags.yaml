@@ -1,26 +1,68 @@
 # .intent/knowledge/capability_tags.yaml
+#
+# This is the canonical dictionary of all valid capability tags in the CORE system.
+# The ConstitutionalAuditor verifies that any # CAPABILITY tag used in the source code
+# is defined in this file.
 
 tags:
+  # --- System & Governance ---
   - name: introspection
-    description: "Used for self-analysis, manifest inspection, and structure verification."
+    description: "Enables self-analysis of the system's own structure, code, or intent."
+  - name: alignment_checking
+    description: "Verifies that system components or actions align with constitutional principles."
+  - name: manifest_updating
+    description: "Modifies or generates knowledge artifacts like the knowledge_graph.json."
+  - name: self_review
+    description: "Enables the system to analyze its own code for quality, correctness, or improvements."
+  - name: intent_guarding
+    description: "Enforces constitutional rules at runtime, preventing forbidden actions."
+  - name: change_safety_enforcement
+    description: "Implements safety checks or operations related to modifying files or state (e.g., Git)."
+  - name: system_logging
+    description: "Provides system-wide logging capabilities."
 
-  - name: generation
-    description: "Involves code creation or file synthesis via LLMs."
+  # --- Code Validation & Quality ---
+  - name: semantic_validation
+    description: "Performs semantic analysis on code, beyond simple syntax checks."
+  - name: syntax_validation
+    description: "Performs syntax validation on code or configuration files."
+  - name: code_quality_analysis
+    description: "Runs a pipeline of quality checks (e.g., formatting, linting)."
+  - name: test_execution
+    description: "Executes automated tests (e.g., pytest) and reports results."
 
-  - name: validation
-    description: "Covers all quality, semantic, and structural checks."
+  # --- LLM & Agent Orchestration ---
+  - name: llm_orchestration
+    description: "Manages the flow of requests and plans to one or more LLMs."
+  - name: prompt_interpretation
+    description: "Processes and enriches prompts with context before sending them to an LLM."
+  - name: code_generation
+    description: "Specifically handles the generation of new source code."
+  - name: self_correction
+    description: "Attempts to automatically fix errors based on validation or test feedback."
 
-  - name: testing
-    description: "Relates to executing or evaluating test logic."
+  # --- Constitutional Auditor Checks (discoverable micro-capabilities) ---
+  - name: audit.check.required_files
+    description: "Auditor check: Verifies the existence of critical .intent files."
+  - name: audit.check.syntax
+    description: "Auditor check: Validates the syntax of all .intent YAML/JSON files."
+  - name: audit.check.project_manifest
+    description: "Auditor check: Validates the integrity of project_manifest.yaml."
+  - name: audit.check.capability_coverage
+    description: "Auditor check: Ensures all required capabilities are implemented."
+  - name: audit.check.capability_definitions
+    description: "Auditor check: Ensures all implemented capabilities are defined in this file."
+  - name: audit.check.knowledge_graph_schema
+    description: "Auditor check: Validates all knowledge graph symbols against the schema."
+  - name: audit.check.domain_integrity
+    description: "Auditor check: Checks for domain mismatches and illegal imports."
+  - name: audit.check.docstrings
+    description: "Auditor check: Finds symbols missing docstrings or having generic intents."
+  - name: audit.check.dead_code
+    description: "Auditor check: Detects unreferenced public symbols."
+  - name: audit.check.orphaned_intent_files
+    description: "Auditor check: Finds .intent files that are not referenced in meta.yaml."
 
-  - name: governance
-    description: "Enforces policy, safety, alignment, or constraints."
-
-  - name: planning
-    description: "Applies reasoning, decomposition, or roadmap design."
-
-  - name: orchestration
-    description: "Ties together steps across agents, capabilities, and flows."
-
-  - name: llm
-    description: "Specifically deals with external or local LLM interaction and routing."
+  # --- Planned or Placeholder Capabilities ---
+  - name: add_missing_docstrings
+    description: "A planned capability to automatically add docstrings to undocumented code."

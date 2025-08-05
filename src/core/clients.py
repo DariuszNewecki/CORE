@@ -12,6 +12,7 @@ from shared.logger import getLogger
 
 log = getLogger(__name__)
 
+
 class BaseLLMClient:
     """
     Base class for LLM clients, handling common request logic for Chat APIs.
@@ -28,10 +29,14 @@ class BaseLLMClient:
             model_name (str): Name of the model to use (e.g., 'gpt-4', 'deepseek-coder').
         """
         if not api_url or not api_key:
-            raise ValueError(f"{self.__class__.__name__} requires both API_URL and API_KEY.")
+            raise ValueError(
+                f"{self.__class__.__name__} requires both API_URL and API_KEY."
+            )
         # Ensure the URL ends with the correct endpoint for compatibility
-        if not api_url.endswith('/v1/chat/completions') and not api_url.endswith('/chat/completions'):
-            self.api_url = api_url.rstrip('/') + '/v1/chat/completions'
+        if not api_url.endswith("/v1/chat/completions") and not api_url.endswith(
+            "/chat/completions"
+        ):
+            self.api_url = api_url.rstrip("/") + "/v1/chat/completions"
         else:
             self.api_url = api_url
 
@@ -40,16 +45,16 @@ class BaseLLMClient:
             "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json",
         }
-        # The noisy print statement has been removed from here.
-        # Logging is now handled in main.py upon initialization.
 
     def make_request(self, prompt: str, user_id: str = "core_system") -> str:
         """
         Sends a prompt to the configured Chat Completions API.
 
         Args:
-            prompt (str): The prompt to send to the LLM. It will be wrapped as a 'user' message.
-            user_id (str): Optional identifier for the requester (used by some APIs for moderation).
+            prompt (str): The prompt to send to the LLM. It will be wrapped as a
+                'user' message.
+            user_id (str): Optional identifier for the requester (used by some APIs
+                for moderation).
 
         Returns:
             str: The text content from the LLM's response, or an error message.
@@ -59,15 +64,15 @@ class BaseLLMClient:
         """
         payload = {
             "model": self.model_name,
-            "messages": [
-                {"role": "user", "content": prompt}
-            ],
+            "messages": [{"role": "user", "content": prompt}],
             "user": user_id,
         }
 
         try:
             log.debug(f"Sending request to {self.api_url} for model {self.model_name}...")
-            response = requests.post(self.api_url, headers=self.headers, json=payload, timeout=180)
+            response = requests.post(
+                self.api_url, headers=self.headers, json=payload, timeout=180
+            )
             response.raise_for_status()
 
             response_data = response.json()
@@ -75,11 +80,16 @@ class BaseLLMClient:
             log.debug("Successfully received and parsed LLM response.")
             return content if content is not None else ""
         except requests.exceptions.RequestException as e:
-            log.error(f"Network error during LLM request to {self.api_url}: {e}", exc_info=True)
+            log.error(
+                f"Network error during LLM request to {self.api_url}: {e}", exc_info=True
+            )
             return f"Error: Could not connect to LLM endpoint. Details: {e}"
-        except (KeyError, IndexError) as e:
-            log.error(f"Error parsing LLM response: {e}. Full response: {response.text}", exc_info=True)
-            return f"Error: Could not parse response from API."
+        except (KeyError, IndexError):
+            log.error(
+                f"Error parsing LLM response. Full response: {response.text}",
+                exc_info=True,
+            )
+            return "Error: Could not parse response from API."
 
 
 class OrchestratorClient(BaseLLMClient):
@@ -95,7 +105,7 @@ class OrchestratorClient(BaseLLMClient):
         super().__init__(
             api_url=os.getenv("ORCHESTRATOR_API_URL"),
             api_key=os.getenv("ORCHESTRATOR_API_KEY"),
-            model_name=os.getenv("ORCHESTRATOR_MODEL_NAME", "deepseek-chat")
+            model_name=os.getenv("ORCHESTRATOR_MODEL_NAME", "deepseek-chat"),
         )
         log.info(f"OrchestratorClient initialized for model '{self.model_name}'.")
 
@@ -113,6 +123,6 @@ class GeneratorClient(BaseLLMClient):
         super().__init__(
             api_url=os.getenv("GENERATOR_API_URL"),
             api_key=os.getenv("GENERATOR_API_KEY"),
-            model_name=os.getenv("GENERATOR_MODEL_NAME", "deepseek-coder")
+            model_name=os.getenv("GENERATOR_MODEL_NAME", "deepseek-coder"),
         )
         log.info(f"GeneratorClient initialized for model '{self.model_name}'.")

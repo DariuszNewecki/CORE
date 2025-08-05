@@ -15,7 +15,13 @@ description = "CORE: A self-governing, intent-driven software development system
 authors = ["Your Name or Organization <your_email@example.com>"] # <-- UPDATE THIS LINE
 license = "MIT"
 readme = "README.md"
-packages = [{include = "core", from = "src"}] # Tells Poetry about the src layout
+# --- MODIFICATION: Include all packages from the 'src' directory ---
+packages = [
+    { include = "core", from = "src" },
+    { include = "agents", from = "src" },
+    { include = "system", from = "src" },
+    { include = "shared", from = "src" },
+]
 
 # --- Main Dependencies ---
 # This replaces the old [project].dependencies array.
@@ -26,6 +32,8 @@ uvicorn = ">=0.21.0"
 pyyaml = ">=6.0"
 requests = ">=2.28.0"
 python-dotenv = ">=1.0.0"
+pydantic = ">=2.0.0"
+cryptography = ">=42.0.0"
 
 # --- Development Dependencies ---
 # This replaces the old [project.optional-dependencies].
@@ -38,6 +46,8 @@ ruff = ">=0.0.254"
 # --- Command-Line Scripts ---
 # This replaces the old [project.scripts] section.
 [tool.poetry.scripts]
+# --- MODIFICATION: Correct the script path to be relative to the package root ---
+core-admin = "system.admin_cli:main"
 # core-cli = "core.main:main" # Uncomment if you create a CLI entry point
 
 # --- Configuration for development tools (These do not change) ---

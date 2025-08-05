@@ -61,3 +61,9 @@ def introspection():
             
     log.info("🧠 Introspection cycle completed.")
     return all_passed
+
+if __name__ == "__main__":
+    # Allows running the full introspection cycle directly from the CLI.
+    if not introspection():
+        sys.exit(1)
+    sys.exit(0)

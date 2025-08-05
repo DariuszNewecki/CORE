@@ -108,7 +108,6 @@ def _validate_python_code(path_hint: str, code: str) -> Dict[str, Any]:
         errors.append(f"Syntax Error: {syntax_msg}")
         return {"status": "dirty", "errors": errors, "code": fixed_code}
     
-    # Pass the path_hint to the new policy-aware semantic checker
     semantic_errors = _check_semantics(fixed_code, path_hint)
     if semantic_errors:
         errors.extend(semantic_errors)
@@ -135,13 +134,15 @@ def _get_file_classification(file_path: str) -> str:
     return "unknown"
 
 # CAPABILITY: code_quality_analysis
-def validate_code(file_path: str, code: str) -> Dict[str, Any]:
+def validate_code(file_path: str, code: str, quiet: bool = False) -> Dict[str, Any]:
     """
     The main entry point for validation. It determines the file type
     and routes it to the appropriate, specific validation function.
     """
     classification = _get_file_classification(file_path)
-    log.debug(f"Validation: Classifying '{file_path}' as '{classification}'. Routing to validator.")
+    if not quiet:
+        log.debug(f"Validation: Classifying '{file_path}' as '{classification}'.")
+    
     if classification == "python":
         return _validate_python_code(file_path, code)
     if classification == "yaml":

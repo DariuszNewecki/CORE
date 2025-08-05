@@ -1,12 +1,15 @@
 # src/system/governance/constitutional_auditor.py
 """
-CORE Constitutional Auditor
-===========================
-The single source of truth for validating the entire CORE system's integrity.
+CORE Constitutional Auditor Orchestrator
+=======================================
+Discovers and runs modular checks to validate the system's integrity.
 """
 import sys
 import io
+import inspect
+import importlib
 from pathlib import Path
+from typing import List, Optional, Callable, Tuple
 
 from rich.console import Console
 from rich.panel import Panel
@@ -14,256 +17,128 @@ from rich.table import Table
 
 from shared.path_utils import get_repo_root
 from shared.config_loader import load_config
-from shared.schemas.manifest_validator import validate_manifest_entry
-from core.validation_pipeline import validate_code
 from core.intent_model import IntentModel
-from shared.utils.import_scanner import scan_imports_for_file
 from shared.logger import getLogger
+from system.governance.models import AuditFinding, AuditSeverity
 
 log = getLogger(__name__)
 
 # CAPABILITY: introspection
 # CAPABILITY: alignment_checking
 class ConstitutionalAuditor:
-    """
-    Validates the complete structure and consistency of the .intent/ directory
-    and its relationship with the source code.
-    """
+    """Orchestrates the discovery and execution of all constitutional checks."""
     
     class _LoggingBridge(io.StringIO):
         """A file-like object that redirects writes to the logger."""
         def write(self, s: str):
-            # Clean up the string and log it if it's not empty
+            """Redirects the write to the logger info stream."""
             cleaned_s = s.strip()
             if cleaned_s:
                 log.info(cleaned_s)
 
-    def __init__(self):
-        """Initializes the auditor, loading all necessary configuration and knowledge files."""
-        self.repo_root = get_repo_root()
-        self.intent_dir = self.repo_root / ".intent"
-        self.src_dir = self.repo_root / "src"
-        self.intent_model = IntentModel(self.repo_root)
+    def __init__(self, repo_root_override: Optional[Path] = None):
+        """
+        Initializes the auditor, loading all necessary configuration and knowledge files.
         
-        # Redirect Rich's output to our logger
-        self.console = Console(file=self._LoggingBridge(), force_terminal=True, color_system="auto")
+        Args:
+            repo_root_override (Optional[Path]): 
+                If provided, the auditor will run against this directory as its root.
+                This is crucial for the 'canary' validation process.
+        """
+        self.repo_root = repo_root_override or get_repo_root()
         
-        self.errors = []
-        self.warnings = []
-        self.project_manifest = load_config(self.intent_dir / "project_manifest.yaml", "yaml")
-        self.knowledge_graph = load_config(self.intent_dir / "knowledge/knowledge_graph.json", "json")
-        self.symbols_map = self.knowledge_graph.get("symbols", {})
-        self.symbols_list = list(self.symbols_map.values())
+        # Create a shared context for all checks
+        self.context = self.AuditorContext(self.repo_root)
 
-    # CAPABILITY: validate_intent_structure
+        self.console = Console(file=self._LoggingBridge(), force_terminal=True, color_system="auto")
+        self.findings: List[AuditFinding] = []
+        self.checks: List[Tuple[str, Callable]] = self._discover_checks()
+
+    class AuditorContext:
+        """A simple container for shared state that all checks can access."""
+        def __init__(self, repo_root):
+            """Initializes the shared context for all audit checks."""
+            self.repo_root = repo_root
+            self.intent_dir = self.repo_root / ".intent"
+            self.src_dir = self.repo_root / "src"
+            self.intent_model = IntentModel(self.repo_root)
+            self.project_manifest = load_config(self.intent_dir / "project_manifest.yaml", "yaml")
+            self.knowledge_graph = load_config(self.intent_dir / "knowledge/knowledge_graph.json", "json")
+            self.symbols_map = self.knowledge_graph.get("symbols", {})
+            self.symbols_list = list(self.symbols_map.values())
+            self.load_config = load_config
+
+    def _discover_checks(self) -> List[Tuple[str, Callable]]:
+        """Dynamically discovers check methods from modules in the 'checks' directory."""
+        discovered_checks = []
+        checks_dir = Path(__file__).parent / "checks"
+        
+        for check_file in checks_dir.glob("*.py"):
+            if check_file.name.startswith("__"): continue
+            
+            module_name = f"system.governance.checks.{check_file.stem}"
+            try:
+                module = importlib.import_module(module_name)
+                for class_name, Class in inspect.getmembers(module, inspect.isclass):
+                    if not class_name.endswith("Checks"):
+                        continue
+
+                    check_instance = Class(self.context)
+                    for method_name, method in inspect.getmembers(check_instance, inspect.ismethod):
+                        if method_name.startswith("_"): continue
+                        
+                        symbol_key = f"src/system/governance/checks/{check_file.name}::{method_name}"
+                        symbol_data = self.context.symbols_map.get(symbol_key, {})
+                        if symbol_data.get("capability", "").startswith("audit.check."):
+                            check_name = symbol_data.get("intent", method_name)
+                            discovered_checks.append((check_name, method))
+            except ImportError as e:
+                log.error(f"Failed to import check module {module_name}: {e}")
+
+        log.debug(f"Discovered {len(discovered_checks)} audit checks.")
+        discovered_checks.sort(key=lambda item: item[0] != "Ensures all implemented capabilities are valid.")
+        return discovered_checks
+
     def run_full_audit(self) -> bool:
-        """Run all validation phases and return overall status."""
+        """Run all discovered validation phases and return overall status."""
         self.console.print(Panel("🧠 CORE Constitutional Integrity Audit", style="bold blue", expand=False))
-        checks = [
-            ("Required Intent File Existence", self._check_required_files),
-            ("YAML/JSON Syntax Validity", self._validate_syntax),
-            ("Project Manifest Integrity", self._validate_project_manifest),
-            ("Capability Coverage & Uniqueness", self._check_capability_coverage),
-            ("Knowledge Graph Schema Compliance", self._validate_knowledge_graph_schema),
-            ("Domain Integrity (Location & Imports)", self._check_domain_integrity),
-            ("Docstring & Intent Presence", self._check_docstrings_and_intents),
-            ("Dead Code (Unreferenced Symbols)", self._check_for_dead_code),
-            ("Orphaned Intent Files", self._check_for_orphaned_intent_files),
-        ]
-        all_passed = True
-        for name, check_fn in checks:
+        
+        for name, check_fn in self.checks:
             log.info(f"🔍 [bold]Running Check:[/bold] {name}")
-            if not check_fn():
-                all_passed = False
+            try:
+                findings = check_fn()
+                if findings:
+                    self.findings.extend(findings)
+                    for finding in findings:
+                        if finding.severity == AuditSeverity.ERROR: log.error(f"❌ {finding.message}")
+                        elif finding.severity == AuditSeverity.WARNING: log.warning(f"⚠️ {finding.message}")
+                        elif finding.severity == AuditSeverity.SUCCESS: log.info(f"✅ {finding.message}")
+            except Exception as e:
+                log.error(f"💥 Check '{name}' failed with an unexpected error: {e}", exc_info=True)
+                self.findings.append(AuditFinding(AuditSeverity.ERROR, f"Check failed: {e}", name))
+        
+        all_passed = not any(f.severity == AuditSeverity.ERROR for f in self.findings)
         self._report_final_status(all_passed)
         return all_passed
 
-    def _add_error(self, message: str):
-        """Adds an error to the list and logs it."""
-        self.errors.append(message)
-        log.error(f"❌ {message}")
-
-    def _add_warning(self, message: str):
-        """Adds a warning to the list and logs it."""
-        self.warnings.append(message)
-        log.warning(f"⚠️ {message}")
-    
-    def _add_success(self, message: str):
-        """Logs a success message."""
-        log.info(f"✅ {message}")
-
-    def _check_required_files(self) -> bool:
-        """Ensure all critical intent files exist."""
-        required = [
-            "project_manifest.yaml", "mission/principles.yaml", "mission/northstar.yaml",
-            "policies/intent_guard.yaml", "policies/safety_policies.yaml",
-            "knowledge/knowledge_graph.json", "knowledge/source_structure.yaml",
-        ]
-        missing = [p for p in required if not (self.intent_dir / p).exists()]
-        for path in missing:
-            self._add_error(f"Missing critical file: .intent/{path}")
-        if not missing:
-            self._add_success("All critical intent files are present.")
-        return not missing
-
-    def _validate_syntax(self) -> bool:
-        """Validate YAML/JSON syntax across all intent files."""
-        initial_error_count = len(self.errors)
-        files_to_check = list(self.intent_dir.rglob("*.yaml")) + list(self.intent_dir.rglob("*.json"))
-        for file_path in files_to_check:
-            if file_path.is_file():
-                # We can silence the validation pipeline's own logging for cleaner audit output
-                result = validate_code(str(file_path), file_path.read_text(encoding='utf-8'))
-                if result["status"] == "dirty":
-                    for err in result["errors"]:
-                        self._add_error(f"Syntax Error in {file_path.relative_to(self.repo_root)}: {err}")
-        passed = len(self.errors) == initial_error_count
-        if passed:
-            self._add_success(f"Validated syntax for {len(files_to_check)} YAML/JSON files.")
-        return passed
-
-    def _validate_project_manifest(self) -> bool:
-        """Ensure project_manifest.yaml is structurally sound."""
-        initial_error_count = len(self.errors)
-        required_keys = ["name", "intent", "required_capabilities", "active_agents"]
-        for key in required_keys:
-            if key not in self.project_manifest:
-                self._add_error(f"project_manifest.yaml missing required key: '{key}'")
-        passed = len(self.errors) == initial_error_count
-        if passed:
-            self._add_success("project_manifest.yaml contains all required keys.")
-        return passed
-
-    def _check_capability_coverage(self) -> bool:
-        """Check for missing or duplicate capability implementations."""
-        initial_error_count = len(self.errors)
-        required_caps = set(self.project_manifest.get("required_capabilities", []))
-        implemented_caps = {f.get("capability") for f in self.symbols_list if f.get("capability") != "unassigned"}
-        missing = sorted(list(required_caps - implemented_caps))
-        if missing:
-            self._add_error(f"Missing capability implementations for: {missing}")
-        unrecognized = sorted(list(implemented_caps - required_caps))
-        if unrecognized:
-            self._add_warning(f"Unrecognized capabilities in code not in manifest: {unrecognized}")
-        passed = len(self.errors) == initial_error_count
-        if passed and not unrecognized:
-            self._add_success("All required capabilities are implemented and recognized.")
-        elif passed:
-            self._add_success("All required capabilities are implemented.")
-        return passed
-
-    def _validate_knowledge_graph_schema(self) -> bool:
-        """Validate each entry in the knowledge graph against its JSON schema."""
-        initial_error_count = len(self.errors)
-        for key, entry in self.symbols_map.items():
-            is_valid, validation_errors = validate_manifest_entry(entry, "knowledge_graph_entry.schema.json")
-            if not is_valid:
-                for err in validation_errors:
-                    self._add_error(f"Knowledge Graph entry '{key}' schema error: {err}")
-        passed = len(self.errors) == initial_error_count
-        if passed:
-            self._add_success(f"All {len(self.symbols_map)} symbols in knowledge graph pass schema validation.")
-        return passed
-        
-    def _check_domain_integrity(self) -> bool:
-        """Validate domain declarations and cross-domain imports."""
-        initial_error_count = len(self.errors)
-        for entry in self.symbols_list:
-            file_path = self.repo_root / entry.get("file", "")
-            if not file_path.exists():
-                self._add_warning(f"File '{entry.get('file')}' from knowledge graph not found on disk.")
-                continue
-            declared_domain = entry.get("domain")
-            actual_domain = self.intent_model.resolve_domain_for_path(file_path.relative_to(self.repo_root))
-            if declared_domain != actual_domain:
-                self._add_error(f"Domain Mismatch for '{entry.get('key')}': Declared='{declared_domain}', Actual='{actual_domain}'")
-            allowed = set(self.intent_model.get_domain_permissions(actual_domain)) | {actual_domain}
-            imports = scan_imports_for_file(file_path)
-            for imp in imports:
-                if imp.startswith("src."): imp = imp[4:]
-                if imp.startswith(("core.", "shared.", "system.", "agents.")):
-                    imp_path_parts = imp.split('.')
-                    potential_path = self.src_dir.joinpath(*imp_path_parts)
-                    check_path = potential_path.with_suffix(".py")
-                    if not check_path.exists(): check_path = potential_path 
-                    imp_domain = self.intent_model.resolve_domain_for_path(check_path)
-                    if imp_domain and imp_domain not in allowed:
-                         self._add_error(f"Forbidden Import in '{entry.get('file')}': Domain '{actual_domain}' cannot import '{imp}' from forbidden domain '{imp_domain}'")
-        passed = len(self.errors) == initial_error_count
-        if passed:
-             self._add_success("Domain locations and import boundaries are valid.")
-        return passed
-
-    def _check_docstrings_and_intents(self) -> bool:
-        """Check for missing docstrings or weak, generic intents."""
-        initial_warning_count = len(self.warnings)
-        for entry in self.symbols_list:
-            if entry.get("type") != "ClassDef" and not entry.get("docstring"):
-                self._add_warning(f"Missing Docstring in '{entry.get('file')}': Symbol '{entry.get('name')}'")
-            if "Provides functionality for the" in entry.get("intent", ""):
-                 self._add_warning(f"Generic Intent in '{entry.get('file')}': Symbol '{entry.get('name')}' has a weak intent statement.")
-        if len(self.warnings) == initial_warning_count:
-            self._add_success("All symbols have docstrings and specific intents.")
-        return True
-
-    # CAPABILITY: self_review
-    def _check_for_dead_code(self) -> bool:
-        """Finds symbols that are not entry points and are never called."""
-        all_called_symbols = set()
-        for symbol in self.symbols_list:
-            all_called_symbols.update(symbol.get("calls", []))
-
-        initial_warning_count = len(self.warnings)
-        for symbol in self.symbols_list:
-            name = symbol["name"]
-            if name.startswith(('_', 'test_')): continue
-            if name in all_called_symbols: continue
-            if symbol.get("entry_point_type"): continue
-            self._add_warning(f"Potentially dead code: Symbol '{name}' in '{symbol['file']}' is unreferenced.")
-            
-        if len(self.warnings) == initial_warning_count:
-            self._add_success("No unreferenced public symbols found.")
-        return True
-
-    def _check_for_orphaned_intent_files(self) -> bool:
-        """Finds .intent files that are not part of the core system configuration."""
-        known_files = {
-            ".intent/project_manifest.yaml", ".intent/mission/principles.yaml",
-            ".intent/mission/northstar.yaml", ".intent/mission/manifesto.md",
-            ".intent/policies/intent_guard.yaml", ".intent/policies/safety_policies.yaml",
-            ".intent/policies/security_intents.yaml", ".intent/knowledge/source_structure.yaml",
-            ".intent/knowledge/knowledge_graph.json", ".intent/knowledge/agent_roles.yaml",
-            ".intent/knowledge/capability_tags.yaml", ".intent/knowledge/file_handlers.yaml",
-            ".intent/knowledge/entry_point_patterns.yaml",
-            ".intent/evaluation/audit_checklist.yaml", ".intent/evaluation/score_policy.yaml",
-            ".intent/config/local_mode.yaml", ".intent/meta.yaml",
-            ".intent/schemas/knowledge_graph_entry.schema.json",
-        }
-        ignore_patterns = [".log", ".tmp", ".bak", "change_log.json"]
-        physical_files = {str(p.relative_to(self.repo_root)).replace("\\", "/") for p in self.intent_dir.rglob("*") if p.is_file() and not any(pat in p.name for pat in ignore_patterns)}
-        orphaned_files = sorted(list(physical_files - known_files))
-        initial_warning_count = len(self.warnings)
-        for orphan in orphaned_files:
-            self._add_warning(f"Orphaned intent file: '{orphan}' is not a recognized system file.")
-        if len(self.warnings) == initial_warning_count:
-            self._add_success("No orphaned or unrecognized intent files found.")
-        return True
-
     def _report_final_status(self, passed: bool):
-        """Logs the final summary report."""
+        """Prints the final audit summary to the console."""
+        errors = [f for f in self.findings if f.severity == AuditSeverity.ERROR]
+        warnings = [f for f in self.findings if f.severity == AuditSeverity.WARNING]
+
         if passed:
-            msg = f"✅ ALL CHECKS PASSED ({len(self.warnings)} warnings)"
+            msg = f"✅ ALL CHECKS PASSED ({len(warnings)} warnings)"
             self.console.print(Panel(msg, style="bold green", expand=False))
         else:
-            msg = f"❌ AUDIT FAILED: {len(self.errors)} error(s) and {len(self.warnings)} warning(s) found."
+            msg = f"❌ AUDIT FAILED: {len(errors)} error(s) and {len(warnings)} warning(s) found."
             self.console.print(Panel(msg, style="bold red", expand=False))
-        if self.errors:
+        if errors:
             error_table = Table("🚨 Critical Errors", style="red", show_header=True, header_style="bold red")
-            for err in self.errors: error_table.add_row(err)
+            for err in errors: error_table.add_row(err.message)
             self.console.print(error_table)
-        if self.warnings:
+        if warnings:
             warning_table = Table("⚠️ Warnings", style="yellow", show_header=True, header_style="bold yellow")
-            for warn in self.warnings: warning_table.add_row(warn)
+            for warn in warnings: warning_table.add_row(warn.message)
             self.console.print(warning_table)
 
 def main():
@@ -273,7 +148,7 @@ def main():
         success = auditor.run_full_audit()
         sys.exit(0 if success else 1)
     except FileNotFoundError as e:
-        log.error(f"A required file was not found: {e}", exc_info=True)
+        log.error(f"A required file was not found: {e}. Try running the introspection cycle.", exc_info=True)
         sys.exit(1)
     except Exception as e:
         log.error(f"An unexpected error occurred during the audit: {e}", exc_info=True)
