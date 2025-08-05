@@ -10,6 +10,9 @@ import json
 import datetime
 from typing import Dict
 from pathlib import Path
+from shared.logger import getLogger
+
+log = getLogger(__name__)
 
 LOG_DIR = Path("logs")
 LOG_FILE = LOG_DIR / "test_results.log"
@@ -23,6 +26,7 @@ def run_tests(silent: bool = True) -> Dict[str, str]:
     This function captures stdout, stderr, and the exit code, providing a
     comprehensive summary of the test run for agents to act upon.
     """
+    log.info("🧪 Running tests with pytest...")
     result = {
         "exit_code": "-1",
         "stdout": "",
@@ -55,22 +59,27 @@ def run_tests(silent: bool = True) -> Dict[str, str]:
         result["summary"] = _summarize(proc.stdout)
 
         if not silent:
-            print(proc.stdout)
+            log.info(f"Pytest stdout:\n{proc.stdout}")
             if proc.stderr:
-                print("⚠️ stderr:", proc.stderr)
+                log.warning(f"Pytest stderr:\n{proc.stderr}")
 
     except subprocess.TimeoutExpired:
         result["stderr"] = "Test run timed out."
         result["summary"] = "⏰ Timeout"
+        log.error("Pytest run timed out.")
     except FileNotFoundError:
         result["stderr"] = "pytest is not installed or not found in PATH."
         result["summary"] = "❌ Pytest not available"
+        log.error("Pytest command not found. Is it installed in the environment?")
     except Exception as e:
         result["stderr"] = str(e)
         result["summary"] = "❌ Test run error"
+        log.error(f"An unexpected error occurred during test run: {e}", exc_info=True)
 
     _log_test_result(result)
     _store_failure_if_any(result)
+    
+    log.info(f"🏁 Test run complete. Summary: {result['summary']}")
     return result
 
 def _summarize(output: str) -> str:
@@ -87,7 +96,7 @@ def _log_test_result(data: Dict[str, str]):
         with open(LOG_FILE, "a", encoding="utf-8") as f:
             f.write(json.dumps(data) + "\n")
     except Exception as e:
-        print(f"Warning: Failed to write test log: {e}")
+        log.warning(f"Failed to write to persistent test log file: {e}", exc_info=True)
 
 def _store_failure_if_any(data: Dict[str, str]):
     """Saves the details of a failed test run to a dedicated file for easy access."""
@@ -102,4 +111,4 @@ def _store_failure_if_any(data: Dict[str, str]):
         elif os.path.exists(FAILURE_FILE):
             os.remove(FAILURE_FILE)
     except Exception as e:
-        print(f"Warning: Could not save test failure data: {e}")
+        log.warning(f"Could not save test failure data: {e}", exc_info=True)

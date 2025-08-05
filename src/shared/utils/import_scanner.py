@@ -10,7 +10,9 @@ Scans a Python file for top-level import statements.
 import ast
 from pathlib import Path
 from typing import List
+from shared.logger import getLogger
 
+log = getLogger(__name__)
 
 def scan_imports_for_file(file_path: Path) -> List[str]:
     """
@@ -36,6 +38,6 @@ def scan_imports_for_file(file_path: Path) -> List[str]:
                     imports.append(node.module)
 
     except Exception as e:
-        print(f"[ImportScanner] Warning: Failed to scan {file_path}: {e}")
+        log.warning(f"Failed to scan imports for {file_path}: {e}", exc_info=True)
 
     return imports

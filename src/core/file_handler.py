@@ -2,9 +2,8 @@
 """
 Backend File Handling Module (Refactored)
 
-Handles staging, writing, and undoing file changes.
-Integrates with safety policies and supports traceable, auditable operations.
-All writes go through a pending stage to enable review and rollback.
+Handles staging and writing file changes. It supports traceable, auditable
+operations. All writes go through a pending stage to enable review and rollback.
 """
 
 import json
@@ -13,15 +12,14 @@ from datetime import datetime, timezone
 from uuid import uuid4
 from pathlib import Path
 from typing import Dict, Optional, Any
+from shared.logger import getLogger
 
-# --- Constants ---
+# --- Global Setup ---
+log = getLogger(__name__)
 LOG_DIR = Path("logs")
 PENDING_DIR = Path("pending_writes")
 CHANGE_LOG_PATH = Path(".intent/change_log.json")
 UNDO_LOG = LOG_DIR / "undo_log.jsonl"
-
-
-# --- Global State & Setup ---
 pending_writes_storage: Dict[str, Dict[str, Any]] = {}
 _storage_lock = threading.Lock()
 
@@ -30,7 +28,6 @@ LOG_DIR.mkdir(exist_ok=True)
 PENDING_DIR.mkdir(exist_ok=True)
 
 
-# --- Change Log ---
 def _log_change(file_path: str, reason: str):
     """
     Appends a change entry to the intent change log.
@@ -51,9 +48,9 @@ def _log_change(file_path: str, reason: str):
         
         CHANGE_LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
         CHANGE_LOG_PATH.write_text(json.dumps(change_log, indent=2), encoding="utf-8")
-        print(f"✅ Logged change for {file_path}")
+        log.info(f"Logged change for {file_path}")
     except Exception as e:
-        print(f"❌ Error logging change for {file_path}: {e}")
+        log.error(f"Error logging change for {file_path}: {e}", exc_info=True)
 
 
 # --- FileHandler Class ---
