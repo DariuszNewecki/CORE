@@ -5,7 +5,9 @@ from pathlib import Path
 from datetime import datetime
 from typing import List, Dict
 from shared.config_loader import load_config
+from shared.logger import getLogger
 
+log = getLogger(__name__)
 
 CHANGE_LOG_PATH = Path(".intent/knowledge/meta_code_change_log.json")
 SCHEMA_VERSION = "1.0.0"
@@ -21,10 +23,10 @@ def load_existing_log() -> Dict:
 
 def append_change_entry(task: str, step: str, modified_files: List[str], score: float, violations: List[Dict]):
     """Appends a new, structured entry to the metacode change log."""
-    log = load_existing_log()
+    log_data = load_existing_log()
     timestamp = datetime.utcnow().isoformat() + "Z"
 
-    log["changes"].append({
+    log_data["changes"].append({
         "timestamp": timestamp,
         "task": task,
         "step": step,
@@ -35,8 +37,8 @@ def append_change_entry(task: str, step: str, modified_files: List[str], score: 
     })
 
     CHANGE_LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
-    CHANGE_LOG_PATH.write_text(json.dumps(log, indent=2), encoding="utf-8")
-    print(f"📝 Appended change log entry at {timestamp}.")
+    CHANGE_LOG_PATH.write_text(json.dumps(log_data, indent=2), encoding="utf-8")
+    log.info(f"Appended change log entry at {timestamp}.")
 
 
 if __name__ == "__main__":

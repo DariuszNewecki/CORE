@@ -15,6 +15,9 @@ from core.prompt_pipeline import PromptPipeline
 from core.self_correction_engine import attempt_correction
 from core.validation_pipeline import validate_code
 from shared.utils.parsing import parse_write_blocks
+from shared.logger import getLogger
+
+log = getLogger(__name__)
 
 # CAPABILITY: code_generation
 class PlannerAgent:
@@ -50,7 +53,7 @@ class PlannerAgent:
     # CAPABILITY: llm_orchestration
     def create_execution_plan(self, high_level_goal: str) -> List[Dict]:
         """Creates a detailed, step-by-step execution plan from a high-level goal."""
-        print(f"🧠 Planner: Creating execution plan for goal: '{high_level_goal}'")
+        log.info(f"🧠 Decomposing goal into an execution plan...")
         
         prompt_template = textwrap.dedent("""
             You are a hyper-competent, meticulous system architect AI for the CORE project. Your task is to decompose a high-level goal into a precise, machine-readable JSON execution plan.
@@ -91,34 +94,34 @@ class PlannerAgent:
         enriched_prompt = self.prompt_pipeline.process(final_prompt)
         
         try:
-            print("  -> Calling Orchestrator LLM to generate the plan... this may take a moment.")
+            log.info("Calling Orchestrator LLM to generate plan... this may take a moment.")
             response_text = self.orchestrator.make_request(enriched_prompt, user_id="planner_agent")
-            print("  -> Orchestrator responded. Parsing JSON plan...")
+            log.info("Orchestrator responded. Parsing JSON plan...")
             json_string = self._extract_json_from_response(response_text)
             if not json_string:
                 raise ValueError(f"Planner LLM did not return a valid JSON plan. Response: {response_text}")
             plan = json.loads(json_string)
-            print(f"✅ Planner: LLM-based plan created successfully with {len(plan)} step(s).")
+            log.info(f"✅ Plan created successfully with {len(plan)} step(s).")
             return plan
         except (ValueError, json.JSONDecodeError) as e:
-            print(f"❌ Planner: FATAL - Failed during LLM plan creation. Error: {e}")
+            log.error(f"FATAL: Failed during LLM plan creation.", exc_info=True)
             return []
 
     async def execute_plan(self, plan: List[Dict]) -> Tuple[bool, str]:
         """Executes a plan, running each task in sequence."""
-        print("\n--- 🚀 Executing Plan ---")
+        log.info("🚀 Executing plan...")
         if not plan:
             return False, "Plan is empty or invalid."
         for i, task in enumerate(plan):
             step_name = task.get('step', 'Unnamed Step')
-            print(f"\n--- Step {i + 1}/{len(plan)}: {step_name} ---")
+            log.info(f"--- Step {i + 1}/{len(plan)}: {step_name} ---")
             try:
                 await self._execute_task(task)
             except Exception as e:
                 error_detail = str(e)
-                print(f"❌ Planner: Step failed with error: {error_detail}")
+                log.error(f"Step failed with error: {error_detail}", exc_info=True)
                 if self.git_service.is_git_repo():
-                    print("  -> Attempting to roll back last commit due to failure...")
+                    log.warning("Attempting to roll back last commit due to failure...")
                     self.git_service.rollback_last_commit()
                 return False, f"Plan failed at step {i + 1} ('{step_name}'): {error_detail}"
         return True, "✅ Plan executed successfully."
@@ -134,7 +137,6 @@ class PlannerAgent:
             for node in ast.walk(tree):
                 if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
                     if node.name == symbol_name:
-                        # Return the 1-based line number
                         return node.lineno
         except SyntaxError:
             return None
@@ -150,24 +152,20 @@ class PlannerAgent:
         if not all([file_path, symbol_name, tag]):
             raise ValueError("Missing required parameters for 'add_capability_tag' action.")
 
-        print(f"  1. Finding insertion point for symbol '{symbol_name}' in '{file_path}'...")
+        log.info(f"Finding insertion point for symbol '{symbol_name}' in '{file_path}'...")
         line_number = self._find_symbol_line(file_path, symbol_name)
         if not line_number:
             raise RuntimeError(f"Could not find symbol '{symbol_name}' in '{file_path}'.")
         
-        # Adjust to 0-based index for list insertion
         insertion_index = line_number - 1
-
-        print(f"  2. Reading file and preparing modification at line {line_number}...")
+        log.info(f"Reading file and preparing modification at line {line_number}...")
         full_path = self.repo_path / file_path
         lines = full_path.read_text(encoding='utf-8').splitlines()
 
-        # Check if tag already exists
         if insertion_index > 0 and f"# CAPABILITY: {tag}" in lines[insertion_index - 1]:
-            print(f"  ✅ Capability tag '{tag}' already exists for '{symbol_name}'. Skipping.")
+            log.info(f"Capability tag '{tag}' already exists for '{symbol_name}'. Skipping.")
             return
 
-        # Determine indentation
         original_line = lines[insertion_index]
         indentation = len(original_line) - len(original_line.lstrip(' '))
         tag_line = f"{' ' * indentation}# CAPABILITY: {tag}"
@@ -175,14 +173,13 @@ class PlannerAgent:
         lines.insert(insertion_index, tag_line)
         modified_code = "\n".join(lines)
 
-        print("  3. Validating surgically modified code...")
+        log.info("Validating surgically modified code...")
         validation_result = validate_code(file_path, modified_code)
         
         if validation_result["status"] != "clean":
-            # This should be rare now, but the safety net is still crucial.
             raise RuntimeError(f"Surgical modification for {file_path} failed validation: {validation_result['errors']}")
 
-        print("  4. Staging and confirming write...")
+        log.info("Staging and confirming write...")
         final_code = validation_result["code"]
         pending_id = self.file_handler.add_pending_write(
             prompt=f"Goal: {step_name}",
@@ -193,10 +190,10 @@ class PlannerAgent:
         if confirmation_result.get('status') != 'success':
             raise RuntimeError(f"Failed to confirm write for {file_path}: {confirmation_result.get('message')}")
 
-        print(f"  ✅ Write confirmed for '{file_path}'")
+        log.info(f"Write confirmed for '{file_path}'")
         
         if self.git_service.is_git_repo():
-            print("  5. Committing change to repository...")
+            log.info("Committing change to repository...")
             self.git_service.add(file_path)
             commit_message = f"refactor(capability): Add '{tag}' tag to {symbol_name}"
             self.git_service.commit(commit_message)
@@ -209,9 +206,6 @@ class PlannerAgent:
 
         if action == "add_capability_tag":
             await self._execute_add_tag(params, step_name)
-        # Placeholder for future generic tasks. We will remove this path once fully confident.
-        # elif task.get("prompt"):
-        #     await self._execute_generic_prompt_task(task)
         else:
-            print(f"  -> Skipping task: Unknown or unsupported action '{action}'.")
+            log.warning(f"Skipping task: Unknown or unsupported action '{action}'.")
             return

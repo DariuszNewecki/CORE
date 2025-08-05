@@ -1,0 +1,8 @@
+# .intent/schemas/config_schema.yaml
+git:
+  ignore_validation:
+    type: boolean
+    default: false
+    description: >
+      If true, skips Git pre-write checks. MUST be false in production or fallback modes
+      to maintain rollback safety. Only for emergency recovery.

@@ -14,6 +14,9 @@ from core.ruff_linter import fix_and_lint_code_with_ruff
 from core.syntax_checker import check_syntax
 from shared.config_loader import load_config
 from shared.path_utils import get_repo_root
+from shared.logger import getLogger
+
+log = getLogger(__name__)
 
 # --- Policy-Aware Validation ---
 
@@ -138,7 +141,7 @@ def validate_code(file_path: str, code: str) -> Dict[str, Any]:
     and routes it to the appropriate, specific validation function.
     """
     classification = _get_file_classification(file_path)
-    print(f"  -> Validation: Classifying '{file_path}' as '{classification}'. Routing to validator.")
+    log.debug(f"Validation: Classifying '{file_path}' as '{classification}'. Routing to validator.")
     if classification == "python":
         return _validate_python_code(file_path, code)
     if classification == "yaml":
