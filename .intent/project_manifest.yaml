@@ -39,6 +39,7 @@ required_capabilities:
   - audit.check.docstrings
   - audit.check.dead_code
   - audit.check.orphaned_intent_files
+  - audit.check.environment
 
 # Defines the primary agents responsible for executing CORE's logic.
 active_agents:

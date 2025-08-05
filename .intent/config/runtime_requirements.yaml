@@ -1,0 +1,46 @@
+# .intent/config/runtime_requirements.yaml
+#
+# PURPOSE: This file makes the system aware of its dependencies on the external environment.
+# It allows the ConstitutionalAuditor to verify that the system is correctly configured
+# at startup, without ever reading secret values.
+
+required_environment_variables:
+  - name: "MIND"
+    description: "The relative path to the system's declarative 'mind' (.intent directory)."
+    type: "config"
+    required: true
+
+  - name: "BODY"
+    description: "The relative path to the system's executable 'body' (src directory)."
+    type: "config"
+    required: true
+
+  - name: "REPO_PATH"
+    description: "The absolute path to the root of the repository."
+    type: "config"
+    required: true
+
+  - name: "ORCHESTRATOR_API_URL"
+    description: "The API endpoint for the high-level planning LLM."
+    type: "config"
+    required: true
+
+  - name: "ORCHESTRATOR_API_KEY"
+    description: "The API key for the high-level planning LLM."
+    type: "secret"
+    required: true
+
+  - name: "ORCHESTRATOR_MODEL_NAME"
+    description: "The name of the model to use for orchestration."
+    type: "config"
+    required: true
+
+  - name: "GENERATOR_API_URL"
+    description: "The API endpoint for the code generation LLM."
+    type: "config"
+    required: true
+
+  - name: "GENERATOR_API_KEY"
+    description: "The API key for the code generation LLM."
+    type: "secret"
+    required: true

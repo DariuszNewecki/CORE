@@ -8,6 +8,7 @@ to perform a full self-analysis.
 import subprocess
 import sys
 from pathlib import Path
+from dotenv import load_dotenv
 
 from shared.logger import getLogger
 
@@ -63,6 +64,7 @@ def introspection():
     return all_passed
 
 if __name__ == "__main__":
+    load_dotenv()
     # Allows running the full introspection cycle directly from the CLI.
     if not introspection():
         sys.exit(1)

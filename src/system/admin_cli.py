@@ -10,6 +10,7 @@ import tempfile
 import json
 import base64
 import os
+from dotenv import load_dotenv
 from pathlib import Path
 from datetime import datetime
 
@@ -267,6 +268,7 @@ def approve_proposal(proposal_name: str):
 
 def main():
     """Main entry point for the admin CLI."""
+    load_dotenv()
     if len(sys.argv) < 2:
         print("Usage: core-admin <command> [args]")
         print("Commands:")

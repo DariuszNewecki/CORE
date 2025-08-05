@@ -34,6 +34,7 @@ evaluation:
 
 config:
   local_mode: "config/local_mode.yaml"
+  runtime_requirements: "config/runtime_requirements.yaml" 
 
 schemas:
   # Schemas are currently discovered by the auditor via directory scan, not listed here.
