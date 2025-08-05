@@ -51,38 +51,15 @@ class IntentModel:
 
         return {entry["domain"]: entry for entry in data["structure"]}
 
-#    def get_domains(self) -> List[str]:
-#        """Return all domain names defined in the source structure."""
-#        return list(self.structure.keys())
-
-#    def get_path_for_domain(self, domain: str) -> Optional[Path]:
-#        """Return the expected path prefix for a given domain."""
-#        entry = self.structure.get(domain)
-#        if entry:
-#            return self.repo_root / entry["path"]
-#        return None
-
-#    def get_allowed_types(self, domain: str) -> List[str]:
-#        """Return allowed file types for a domain."""
-#        entry = self.structure.get(domain)
-#        return entry.get("restricted_types") or ["python", "yaml", "json", "md"]
-
-#    def get_default_handler(self, domain: str) -> Optional[str]:
-#        """Return the default handler (e.g., LLM agent) for a given domain."""
-#        entry = self.structure.get(domain)
-#        return entry.get("default_handler")
-
-#    def is_editable(self, domain: str) -> bool:
-#        """Return whether a domain is editable (used for governance constraints)."""
-#        entry = self.structure.get(domain)
-#        return entry.get("editable", False)
-
     def resolve_domain_for_path(self, file_path: Path) -> Optional[str]:
         """
         Given an absolute or relative path, determine which domain it belongs to.
         Prefers deeper (more specific) paths over shorter ones.
         """
-        full_path = file_path.resolve()
+        # --- THIS IS THE FIX ---
+        # Ensure the path is resolved relative to THIS model's root, not the CWD.
+        full_path = (self.repo_root / file_path).resolve()
+        
         sorted_domains = sorted(
             self.structure.items(),
             key=lambda item: len((self.repo_root / item[1]["path"]).parts),
@@ -90,7 +67,8 @@ class IntentModel:
         )
         for domain, entry in sorted_domains:
             domain_root = (self.repo_root / entry["path"]).resolve()
-            if domain_root in full_path.parents:
+            # Check if the domain_root is the same as the path or one of its parents.
+            if domain_root == full_path or domain_root in full_path.parents:
                 return domain
         return None
 

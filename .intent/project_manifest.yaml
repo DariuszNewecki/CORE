@@ -19,16 +19,26 @@ required_capabilities:
   - introspection
   - alignment_checking
   - manifest_updating
-  - self_review
+  # - self_review # <-- REMOVED THIS OBSOLETE TAG
   - self_correction
   - change_safety_enforcement
   - llm_orchestration
   - intent_guarding
   - semantic_validation
   - code_quality_analysis
-  - validate_intent_structure
+  - system_logging
   - add_missing_docstrings
-  - system_logging # <-- ADDED THIS LINE
+  # The auditor's checks are also first-class capabilities
+  - audit.check.required_files
+  - audit.check.syntax
+  - audit.check.project_manifest
+  - audit.check.capability_coverage
+  - audit.check.capability_definitions
+  - audit.check.knowledge_graph_schema
+  - audit.check.domain_integrity
+  - audit.check.docstrings
+  - audit.check.dead_code
+  - audit.check.orphaned_intent_files
 
 # Defines the primary agents responsible for executing CORE's logic.
 active_agents:

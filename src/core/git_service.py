@@ -93,11 +93,17 @@ class GitService:
         git_dir = self.repo_path / ".git"
         return git_dir.is_dir()
 
-    def rollback_last_commit(self):
+    def get_current_commit(self) -> str:
         """
-        Undo the last Git commit (soft reset).
+        Gets the full SHA hash of the current commit (HEAD).
+        """
+        return self._run_command(["git", "rev-parse", "HEAD"])
 
-        Use with caution — only for failed self-modifications.
+    def reset_to_commit(self, commit_hash: str):
         """
-        self._run_command(["git", "reset", "--soft", "HEAD~1"])
-        log.warning("Rolled back last commit.")
+        Performs a hard reset to a specific commit hash.
+        This will discard all current changes.
+        """
+        log.warning(f"Performing hard reset to commit {commit_hash}...")
+        self._run_command(["git", "reset", "--hard", commit_hash])
+        log.info(f"Repository reset to {commit_hash}.")

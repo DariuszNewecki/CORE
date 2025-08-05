@@ -34,3 +34,27 @@ patterns:
       type: "class"
       is_base_class: true # This will be true if any other class inherits from it.
     entry_point_type: "base_class"
+
+  - name: "pydantic_model"
+    description: "Pydantic models are data structures, not callable code, and are valid entry points."
+    match:
+      type: "class"
+      base_class_includes: "BaseModel"
+    entry_point_type: "data_model"
+
+  - name: "enum_definition"
+    description: "Enum classes are data structures, not callable code, and are valid entry points."
+    match:
+      type: "class"
+      base_class_includes: "Enum"
+    entry_point_type: "enum"
+
+  - name: "dataclass_definition"
+    description: "Dataclasses are data structures, not callable code, and are valid entry points."
+    match:
+      type: "class"
+      # The builder checks for the @dataclass decorator. This is a conceptual rule.
+      # A simple way to implement is to check for __post_init__ or other dataclass markers if available.
+      # For now, we will rely on Pydantic and Enum, which covers our current warnings.
+      # We can add a more specific `is_dataclass` check to the builder if needed.
+    entry_point_type: "data_model"

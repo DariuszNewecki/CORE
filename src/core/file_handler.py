@@ -18,7 +18,6 @@ from shared.logger import getLogger
 log = getLogger(__name__)
 LOG_DIR = Path("logs")
 PENDING_DIR = Path("pending_writes")
-CHANGE_LOG_PATH = Path(".intent/change_log.json")
 UNDO_LOG = LOG_DIR / "undo_log.jsonl"
 pending_writes_storage: Dict[str, Dict[str, Any]] = {}
 _storage_lock = threading.Lock()
@@ -26,31 +25,6 @@ _storage_lock = threading.Lock()
 # Ensure directories exist
 LOG_DIR.mkdir(exist_ok=True)
 PENDING_DIR.mkdir(exist_ok=True)
-
-
-def _log_change(file_path: str, reason: str):
-    """
-    Appends a change entry to the intent change log.
-    """
-    change_entry = {
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-        "file": file_path,
-        "reason": reason,
-    }
-    
-    try:
-        if CHANGE_LOG_PATH.exists():
-            change_log = json.loads(CHANGE_LOG_PATH.read_text(encoding="utf-8"))
-        else:
-            change_log = {"schema_version": "1.0", "changes": []}
-        
-        change_log["changes"].append(change_entry)
-        
-        CHANGE_LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
-        CHANGE_LOG_PATH.write_text(json.dumps(change_log, indent=2), encoding="utf-8")
-        log.info(f"Logged change for {file_path}")
-    except Exception as e:
-        log.error(f"Error logging change for {file_path}: {e}", exc_info=True)
 
 
 # --- FileHandler Class ---
@@ -115,7 +89,7 @@ class FileHandler:
             abs_file_path.parent.mkdir(parents=True, exist_ok=True)
             abs_file_path.write_text(pending_op["code"], encoding="utf-8")
             
-            _log_change(file_rel_path, pending_op["prompt"])
+            log.info(f"Wrote to {file_rel_path}")
             return {
                 "status": "success",
                 "message": f"Wrote to {file_rel_path}",

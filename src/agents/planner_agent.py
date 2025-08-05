@@ -1,23 +1,36 @@
 # src/agents/planner_agent.py
+"""
+The primary agent responsible for decomposing high-level goals into executable plans.
+"""
 
 import json
 import re
 import textwrap
-import ast
-from typing import List, Dict, Tuple, Optional
-from pathlib import Path
+import asyncio
+from typing import List, Dict, Tuple, Optional, Callable
+from datetime import datetime, timezone
+from concurrent.futures import ThreadPoolExecutor
+import contextvars
+
+from pydantic import ValidationError
 
 from core.clients import OrchestratorClient, GeneratorClient
 from core.file_handler import FileHandler
 from core.git_service import GitService
 from core.intent_guard import IntentGuard
 from core.prompt_pipeline import PromptPipeline
-from core.self_correction_engine import attempt_correction
 from core.validation_pipeline import validate_code
 from shared.utils.parsing import parse_write_blocks
 from shared.logger import getLogger
 
+# Local imports for agent-specific models and utils
+from agents.models import ExecutionTask, ExecutionProgress, PlannerConfig, TaskParams, TaskStatus
+from agents.utils import PlanExecutionContext, SymbolLocator
+
 log = getLogger(__name__)
+
+# Context for structured logging
+execution_context = contextvars.ContextVar('execution_context')
 
 # CAPABILITY: code_generation
 class PlannerAgent:
@@ -30,29 +43,60 @@ class PlannerAgent:
                  generator_client: GeneratorClient,
                  file_handler: FileHandler,
                  git_service: GitService,
-                 intent_guard: IntentGuard):
+                 intent_guard: IntentGuard,
+                 config: Optional[PlannerConfig] = None):
         """Initializes the PlannerAgent with all necessary service dependencies."""
         self.orchestrator = orchestrator_client
         self.generator = generator_client
         self.file_handler = file_handler
         self.git_service = git_service
         self.intent_guard = intent_guard
+        self.config = config or PlannerConfig()
         self.repo_path = self.file_handler.repo_path
         self.prompt_pipeline = PromptPipeline(self.repo_path)
+        self.symbol_locator = SymbolLocator()
 
-    def _extract_json_from_response(self, text: str) -> str:
-        """Extracts a JSON object or array from a raw text response."""
-        match = re.search(r"```json\n([\s\S]*?)\n```", text, re.DOTALL)
-        if match:
-            return match.group(1).strip()
-        match = re.search(r'\[\s*\{[\s\S]*?\}\s*\]', text)
-        if match:
-            return match.group(0).strip()
-        return ""
+    def _setup_logging_context(self, goal: str, plan_id: str):
+        """Setup structured logging context for better observability."""
+        execution_context.set({
+            'goal': goal,
+            'plan_id': plan_id,
+            'timestamp': datetime.now(timezone.utc).isoformat()
+        })
+
+    def _extract_json_from_response(self, text: str) -> Optional[Dict]:
+        """Extract JSON with multiple strategies and better error handling."""
+        strategies = [
+            lambda t: re.search(r'```json\s*(\[.*?\])\s*```', t, re.DOTALL),
+            lambda t: re.search(r'(\[.*?\])', t, re.DOTALL),
+            lambda t: re.search(r'(\{.*?\})', t, re.DOTALL)
+        ]
+        
+        for i, strategy in enumerate(strategies):
+            try:
+                match = strategy(text)
+                if match:
+                    json_str = match.group(1)
+                    parsed = json.loads(json_str)
+                    log.debug(f"JSON extracted using strategy {i+1}")
+                    return parsed
+            except (json.JSONDecodeError, AttributeError) as e:
+                log.debug(f"Strategy {i+1} failed: {e}")
+        log.error(f"Failed to extract JSON from response: {text[:200]}...")
+        return None
+
+    def _log_plan_summary(self, plan: List[ExecutionTask]) -> None:
+        """Log a readable summary of the execution plan."""
+        log.info(f"📋 Execution Plan Summary ({len(plan)} tasks):")
+        for i, task in enumerate(plan, 1):
+            log.info(f"  {i}. [{task.action}] {task.step}")
 
     # CAPABILITY: llm_orchestration
-    def create_execution_plan(self, high_level_goal: str) -> List[Dict]:
+    def create_execution_plan(self, high_level_goal: str) -> List[ExecutionTask]:
         """Creates a detailed, step-by-step execution plan from a high-level goal."""
+        plan_id = f"plan_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}"
+        self._setup_logging_context(high_level_goal, plan_id)
+        
         log.info(f"🧠 Decomposing goal into an execution plan...")
         
         prompt_template = textwrap.dedent("""
@@ -93,119 +137,95 @@ class PlannerAgent:
         final_prompt = prompt_template.format(goal=high_level_goal)
         enriched_prompt = self.prompt_pipeline.process(final_prompt)
         
-        try:
-            log.info("Calling Orchestrator LLM to generate plan... this may take a moment.")
-            response_text = self.orchestrator.make_request(enriched_prompt, user_id="planner_agent")
-            log.info("Orchestrator responded. Parsing JSON plan...")
-            json_string = self._extract_json_from_response(response_text)
-            if not json_string:
-                raise ValueError(f"Planner LLM did not return a valid JSON plan. Response: {response_text}")
-            plan = json.loads(json_string)
-            log.info(f"✅ Plan created successfully with {len(plan)} step(s).")
-            return plan
-        except (ValueError, json.JSONDecodeError) as e:
-            log.error(f"FATAL: Failed during LLM plan creation.", exc_info=True)
-            return []
-
-    async def execute_plan(self, plan: List[Dict]) -> Tuple[bool, str]:
-        """Executes a plan, running each task in sequence."""
-        log.info("🚀 Executing plan...")
-        if not plan:
-            return False, "Plan is empty or invalid."
-        for i, task in enumerate(plan):
-            step_name = task.get('step', 'Unnamed Step')
-            log.info(f"--- Step {i + 1}/{len(plan)}: {step_name} ---")
+        for attempt in range(self.config.max_retries):
             try:
-                await self._execute_task(task)
-            except Exception as e:
-                error_detail = str(e)
-                log.error(f"Step failed with error: {error_detail}", exc_info=True)
-                if self.git_service.is_git_repo():
-                    log.warning("Attempting to roll back last commit due to failure...")
-                    self.git_service.rollback_last_commit()
-                return False, f"Plan failed at step {i + 1} ('{step_name}'): {error_detail}"
+                response_text = self.orchestrator.make_request(enriched_prompt, user_id="planner_agent")
+                parsed_json = self._extract_json_from_response(response_text)
+                if not parsed_json: raise ValueError("No valid JSON found in response")
+                if isinstance(parsed_json, dict): parsed_json = [parsed_json]
+                
+                validated_plan = [ExecutionTask(**task) for task in parsed_json]
+                self._log_plan_summary(validated_plan)
+                return validated_plan
+                
+            except (ValueError, json.JSONDecodeError, ValidationError) as e:
+                log.warning(f"Plan creation attempt {attempt + 1} failed: {e}")
+                if attempt == self.config.max_retries - 1:
+                    log.error("FATAL: Failed to create valid plan after max retries.")
+        return []
+
+    async def _find_symbol_line_async(self, file_path: str, symbol_name: str) -> Optional[int]:
+        """Async version using thread pool for file I/O."""
+        loop = asyncio.get_event_loop()
+        with ThreadPoolExecutor() as executor:
+            full_path = self.repo_path / file_path
+            return await loop.run_in_executor(
+                executor, self.symbol_locator.find_symbol_line, full_path, symbol_name
+            )
+
+    async def _execute_task_with_timeout(self, task: ExecutionTask, timeout: int = None) -> None:
+        """Execute task with timeout protection."""
+        timeout = timeout or self.config.task_timeout
+        try:
+            await asyncio.wait_for(self._execute_task(task), timeout=timeout)
+        except asyncio.TimeoutError:
+            raise RuntimeError(f"Task '{task.step}' timed out after {timeout}s")
+
+    async def execute_plan(self, plan: List[ExecutionTask], 
+                          progress_callback: Optional[Callable[[ExecutionProgress], None]] = None) -> Tuple[bool, str]:
+        """Executes a plan, running each task in sequence with progress tracking."""
+        if not plan: return False, "Plan is empty or invalid."
+        
+        progress = ExecutionProgress(total_tasks=len(plan), completed_tasks=0)
+        
+        with PlanExecutionContext(self):
+            for i, task in enumerate(plan):
+                log.info(f"--- Step {i + 1}/{len(plan)}: {task.step} ---")
+                try:
+                    await self._execute_task_with_timeout(task, self.config.task_timeout)
+                    progress.completed_tasks += 1
+                except Exception as e:
+                    error_detail = str(e)
+                    log.error(f"Step failed with error: {error_detail}", exc_info=True)
+                    return False, f"Plan failed at step {i + 1} ('{task.step}'): {error_detail}"
+        
         return True, "✅ Plan executed successfully."
 
-    def _find_symbol_line(self, file_path: str, symbol_name: str) -> Optional[int]:
-        """Finds the starting line number of a function or class in a file."""
-        full_path = self.repo_path / file_path
-        if not full_path.exists():
-            return None
-        code = full_path.read_text(encoding='utf-8')
-        try:
-            tree = ast.parse(code)
-            for node in ast.walk(tree):
-                if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
-                    if node.name == symbol_name:
-                        return node.lineno
-        except SyntaxError:
-            return None
-        return None
-
     # CAPABILITY: change_safety_enforcement
-    async def _execute_add_tag(self, params: Dict, step_name: str):
+    async def _execute_add_tag(self, params: TaskParams, step_name: str):
         """Executes the surgical 'add_capability_tag' action."""
-        file_path = params.get("file_path")
-        symbol_name = params.get("symbol_name")
-        tag = params.get("tag")
-
-        if not all([file_path, symbol_name, tag]):
-            raise ValueError("Missing required parameters for 'add_capability_tag' action.")
-
-        log.info(f"Finding insertion point for symbol '{symbol_name}' in '{file_path}'...")
-        line_number = self._find_symbol_line(file_path, symbol_name)
-        if not line_number:
-            raise RuntimeError(f"Could not find symbol '{symbol_name}' in '{file_path}'.")
+        file_path, symbol_name, tag = params.file_path, params.symbol_name, params.tag
+        line_number = await self._find_symbol_line_async(file_path, symbol_name)
+        if not line_number: raise RuntimeError(f"Could not find symbol '{symbol_name}' in '{file_path}'.")
         
-        insertion_index = line_number - 1
-        log.info(f"Reading file and preparing modification at line {line_number}...")
         full_path = self.repo_path / file_path
         lines = full_path.read_text(encoding='utf-8').splitlines()
-
+        
+        insertion_index = line_number - 1
         if insertion_index > 0 and f"# CAPABILITY: {tag}" in lines[insertion_index - 1]:
-            log.info(f"Capability tag '{tag}' already exists for '{symbol_name}'. Skipping.")
+            log.info(f"Tag '{tag}' already exists for '{symbol_name}'. Skipping.")
             return
 
-        original_line = lines[insertion_index]
-        indentation = len(original_line) - len(original_line.lstrip(' '))
-        tag_line = f"{' ' * indentation}# CAPABILITY: {tag}"
-        
-        lines.insert(insertion_index, tag_line)
+        indentation = len(lines[insertion_index]) - len(lines[insertion_index].lstrip(' '))
+        lines.insert(insertion_index, f"{' ' * indentation}# CAPABILITY: {tag}")
         modified_code = "\n".join(lines)
 
-        log.info("Validating surgically modified code...")
         validation_result = validate_code(file_path, modified_code)
-        
         if validation_result["status"] != "clean":
-            raise RuntimeError(f"Surgical modification for {file_path} failed validation: {validation_result['errors']}")
-
-        log.info("Staging and confirming write...")
-        final_code = validation_result["code"]
+            raise RuntimeError(f"Surgical modification failed validation: {validation_result['errors']}")
+            
         pending_id = self.file_handler.add_pending_write(
-            prompt=f"Goal: {step_name}",
-            suggested_path=file_path,
-            code=final_code
+            prompt=f"Goal: {step_name}", suggested_path=file_path, code=validation_result["code"]
         )
-        confirmation_result = self.file_handler.confirm_write(pending_id)
-        if confirmation_result.get('status') != 'success':
-            raise RuntimeError(f"Failed to confirm write for {file_path}: {confirmation_result.get('message')}")
+        self.file_handler.confirm_write(pending_id)
 
-        log.info(f"Write confirmed for '{file_path}'")
-        
-        if self.git_service.is_git_repo():
-            log.info("Committing change to repository...")
+        if self.config.auto_commit and self.git_service.is_git_repo():
             self.git_service.add(file_path)
-            commit_message = f"refactor(capability): Add '{tag}' tag to {symbol_name}"
-            self.git_service.commit(commit_message)
+            self.git_service.commit(f"refactor(capability): Add '{tag}' tag to {symbol_name}")
 
-    async def _execute_task(self, task: Dict) -> None:
+    async def _execute_task(self, task: ExecutionTask) -> None:
         """Dispatcher that executes a single task from a plan based on its action type."""
-        action = task.get("action")
-        params = task.get("params", {})
-        step_name = task.get("step", "Unnamed Step")
-
-        if action == "add_capability_tag":
-            await self._execute_add_tag(params, step_name)
+        if task.action == "add_capability_tag":
+            await self._execute_add_tag(task.params, task.step)
         else:
-            log.warning(f"Skipping task: Unknown or unsupported action '{action}'.")
-            return
+            log.warning(f"Skipping task: Unknown action '{task.action}'.")
