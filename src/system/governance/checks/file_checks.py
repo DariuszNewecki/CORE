@@ -14,19 +14,27 @@ class FileChecks:
 
     # CAPABILITY: audit.check.required_files
     def check_required_files(self) -> list[AuditFinding]:
-        """Verifies the existence of critical .intent files."""
+        """Verifies that all files declared in meta.yaml exist on disk."""
         findings = []
         check_name = "Required Intent File Existence"
-        required = [
-            "project_manifest.yaml", "mission/principles.yaml", "mission/northstar.yaml",
-            "policies/intent_guard.yaml", "policies/safety_policies.yaml",
-            "knowledge/knowledge_graph.json", "knowledge/source_structure.yaml",
-        ]
-        missing = [p for p in required if not (self.context.intent_dir / p).exists()]
-        for path in missing:
-            findings.append(AuditFinding(AuditSeverity.ERROR, f"Missing critical file: .intent/{path}", check_name))
-        if not missing:
-            findings.append(AuditFinding(AuditSeverity.SUCCESS, "All critical intent files are present.", check_name))
+        
+        # The list of required files is now dynamically derived from the constitution itself.
+        required_files = self._get_known_files_from_meta()
+        
+        if not required_files:
+            findings.append(AuditFinding(AuditSeverity.WARNING, "meta.yaml is empty or missing; cannot check for required files.", check_name))
+            return findings
+
+        missing_count = 0
+        for file_rel_path in sorted(list(required_files)):
+            full_path = self.context.repo_root / file_rel_path
+            if not full_path.exists():
+                missing_count += 1
+                findings.append(AuditFinding(AuditSeverity.ERROR, f"Missing constitutionally-required file: '{file_rel_path}'", check_name))
+
+        if missing_count == 0:
+            findings.append(AuditFinding(AuditSeverity.SUCCESS, f"All {len(required_files)} constitutionally-required files are present.", check_name))
+            
         return findings
 
     # CAPABILITY: audit.check.syntax

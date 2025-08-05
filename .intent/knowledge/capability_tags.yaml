@@ -62,7 +62,8 @@ tags:
     description: "Auditor check: Detects unreferenced public symbols."
   - name: audit.check.orphaned_intent_files
     description: "Auditor check: Finds .intent files that are not referenced in meta.yaml."
-
+  - name: audit.check.environment
+    description: "Auditor check: Verifies that required environment variables are set."
   # --- Planned or Placeholder Capabilities ---
   - name: add_missing_docstrings
     description: "A planned capability to automatically add docstrings to undocumented code."

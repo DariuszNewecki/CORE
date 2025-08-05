@@ -8,6 +8,7 @@ import sys
 import io
 import inspect
 import importlib
+from dotenv import load_dotenv
 from pathlib import Path
 from typing import List, Optional, Callable, Tuple
 
@@ -143,6 +144,7 @@ class ConstitutionalAuditor:
 
 def main():
     """CLI entry point for the Constitutional Auditor."""
+    load_dotenv()
     auditor = ConstitutionalAuditor()
     try:
         success = auditor.run_full_audit()

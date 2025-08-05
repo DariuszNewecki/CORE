@@ -2,6 +2,7 @@
 import ast
 import json
 import re
+from dotenv import load_dotenv
 from pathlib import Path
 from typing import Dict, Set, Optional, List, Any
 from dataclasses import dataclass, asdict, field
@@ -266,6 +267,7 @@ class KnowledgeGraphBuilder:
 
 def main():
     """CLI entry point to run the knowledge graph builder and save the output."""
+    load_dotenv()
     try:
         root = find_project_root(Path.cwd())
         builder = KnowledgeGraphBuilder(root)
