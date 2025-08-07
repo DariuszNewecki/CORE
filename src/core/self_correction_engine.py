@@ -10,6 +10,7 @@ from pathlib import Path
 from core.prompt_pipeline import PromptPipeline
 from core.clients import GeneratorClient
 from core.validation_pipeline import validate_code
+from shared.utils.parsing import parse_write_blocks
 from core.file_handler import FileHandler
 
 REPO_PATH = Path(".").resolve()
@@ -42,7 +43,6 @@ def attempt_correction(failure_context: dict) -> dict:
     final_prompt = pipeline.process(correction_prompt)
     llm_output = generator.make_request(final_prompt, user_id="auto_repair")
     
-    from shared.utils.parsing import parse_write_blocks
     write_blocks = parse_write_blocks(llm_output)
 
     if not write_blocks:

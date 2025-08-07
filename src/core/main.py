@@ -15,6 +15,8 @@ from fastapi import FastAPI, HTTPException, Request, status as http_status
 from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
 from dotenv import load_dotenv
+# --- FIX: Import Pydantic's BaseModel for request modeling ---
+from pydantic import BaseModel
 
 # Local imports
 from core.clients import OrchestratorClient, GeneratorClient
@@ -63,12 +65,18 @@ async def lifespan(app: FastAPI):
 # Initialize FastAPI app with the lifespan event handler
 app = FastAPI(lifespan=lifespan)
 
+# --- FIX: Define a Pydantic model for the request body ---
+# This enables automatic validation and API documentation for the endpoint.
+class GoalRequest(BaseModel):
+    goal: str
+
 @app.post("/execute_goal")
-async def execute_goal(request_data: Dict[str, str], request: Request):
+async def execute_goal(request_data: GoalRequest, request: Request):
     """Execute a high-level goal by planning and generating code."""
-    goal = request_data.get("goal")
-    if not goal:
-        raise HTTPException(status_code=400, detail="Missing 'goal' in request.")
+    # --- FIX: Use the validated Pydantic model directly ---
+    # FastAPI handles the validation. If 'goal' is missing or not a string,
+    # it will automatically return a 422 Unprocessable Entity error.
+    goal = request_data.goal
 
     log.info(f"🎯 Received new goal: '{goal}'")
     try:
