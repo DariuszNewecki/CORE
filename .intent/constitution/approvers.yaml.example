@@ -1,0 +1,43 @@
+# .intent/constitution/approvers.yaml
+#
+# PURPOSE: This file enables cryptographic verification of constitutional approvals,
+# preventing unauthorized changes. It contains the public keys of all authorized
+# constitutional approvers for this instance of CORE.
+#
+# To add a new approver:
+# 1. Run the command: `core-admin keygen "your.email@example.com"`
+# 2. The command will output a JSON/YAML block.
+# 3. Paste that block into the 'approvers' list below.
+
+approvers:
+  - identity: "your.name@example.com"
+    public_key: |
+      -----BEGIN PUBLIC KEY-----
+      MCowBQYDK2VuAyEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+      -----END PUBLIC KEY-----
+    created_at: "YYYY-MM-DDTHH:MM:SSZ"
+    role: "maintainer"
+    description: "Primary maintainer of this CORE instance"
+
+  - identity: "another.approver@example.com"
+    public_key: |
+      -----BEGIN PUBLIC KEY-----
+      MCowBQYDK2VuAyEBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=
+      -----END PUBLIC KEY-----
+    created_at: "YYYY-MM-DDTHH:MM:SSZ"
+    role: "contributor"
+    description: "Authorized contributor"
+
+# Minimum number of valid signatures required to approve a constitutional amendment.
+quorum:
+  # Regular amendments (e.g., changing a policy) require 1 signature.
+  standard: 1
+  # Critical changes (e.g., altering this file) require 2 signatures.
+  critical: 2
+
+# A list of file paths that are considered "critical". Any proposal targeting
+# these files will require the 'critical' quorum to be met.
+critical_paths:
+  - ".intent/policies/intent_guard.yaml"
+  - ".intent/constitution/approvers.yaml"
+  - ".intent/meta.yaml"
