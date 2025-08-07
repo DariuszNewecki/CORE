@@ -4,7 +4,7 @@ version: "0.1.0"
 # index of all constitutional and governance files.
 constitution:
   # Public keys of constitutional approvers
-  approvers: "constitution/approvers.pub"
+  approvers: "constitution/approvers.yaml"
   # NOTE: A full versioning system will be implemented in the future.
 
 mission:

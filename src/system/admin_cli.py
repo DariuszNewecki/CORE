@@ -91,7 +91,7 @@ def keygen(identity: str):
     )
     
     log.info("\n✅ Private key saved securely to: " + str(private_key_path))
-    log.info("\n📋 Add the following JSON object to the 'approvers' list in '.intent/constitution/approvers.pub':")
+    log.info("\n📋 Add the following JSON object to the 'approvers' list in '.intent/constitution/approvers.yaml':")
     print(json.dumps({
         "identity": identity,
         "public_key": pem_public.decode('utf-8').strip(),
@@ -150,8 +150,7 @@ def list_proposals():
         return
 
     log.info(f"Found {len(proposals)} pending proposal(s):")
-    # --- FIX: Load approvers.pub as YAML ---
-    approvers_config = load_config(CONSTITUTION_DIR / "approvers.pub", "yaml")
+    approvers_config = load_config(CONSTITUTION_DIR / "approvers.yaml", "yaml")
     
     for prop_path in proposals:
         config = load_config(prop_path, "yaml")
@@ -200,8 +199,7 @@ def approve_proposal(proposal_name: str):
 
     # --- SIGNATURE VERIFICATION ---
     log.info("🔐 Verifying cryptographic signatures...")
-    # --- FIX: Load approvers.pub as YAML ---
-    approvers_config = load_config(CONSTITUTION_DIR / "approvers.pub", "yaml")
+    approvers_config = load_config(CONSTITUTION_DIR / "approvers.yaml", "yaml")
     approver_keys = {app['identity']: app['public_key'] for app in approvers_config.get("approvers", [])}
     
     valid_signatures = 0
