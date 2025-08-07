@@ -12,7 +12,7 @@ build-backend = "poetry.core.masonry.api"
 name = "core"
 version = "0.1.0"
 description = "CORE: A self-governing, intent-driven software development system."
-authors = ["Your Name or Organization <your_email@example.com>"] # <-- UPDATE THIS LINE
+authors = ["Dariusz Newecki <d.newecki@gmail.com>"]
 license = "MIT"
 readme = "README.md"
 # --- MODIFICATION: Include all packages from the 'src' directory ---
@@ -59,3 +59,4 @@ select = ["E", "W", "F", "I"]
 testpaths = ["tests"]
 asyncio_mode = "auto"
 pythonpath = ["src"]
+addopts = ["-c", "pyproject.toml"]

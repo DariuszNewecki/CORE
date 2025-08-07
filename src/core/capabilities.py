@@ -26,9 +26,11 @@ def introspection():
     project_root = Path(__file__).resolve().parents[2]
     python_executable = sys.executable
 
+    # --- FIX: Use standard module paths without the 'src.' prefix ---
+    # This ensures the commands are runnable from any context, especially in CI/CD.
     tools_to_run = [
-        ("Knowledge Graph Builder", "src.system.tools.codegraph_builder"),
-        ("Constitutional Auditor", "src.system.governance.constitutional_auditor"),
+        ("Knowledge Graph Builder", "system.tools.codegraph_builder"),
+        ("Constitutional Auditor", "system.governance.constitutional_auditor"),
     ]
 
     all_passed = True

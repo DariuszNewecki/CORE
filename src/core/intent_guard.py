@@ -74,7 +74,10 @@ class IntentGuard:
         
         # Rule: Prevent direct writes to the .intent directory, except for proposals.
         for path_str in proposed_paths:
-            path = Path(path_str).resolve()
+            # --- THIS IS THE FIX ---
+            # Resolve the path relative to the repository root, not the current working directory.
+            # This makes the check robust regardless of where the script is executed from.
+            path = (self.repo_path / path_str).resolve()
             
             # Check if the path is within the .intent directory
             if self.intent_path in path.parents:

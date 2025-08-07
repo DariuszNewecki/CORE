@@ -17,6 +17,9 @@ import yaml
 from pathlib import Path
 from typing import Dict
 
+# --- FIX: Define a constant for a reasonable file size limit (1MB) ---
+MAX_FILE_SIZE_BYTES = 1 * 1024 * 1024
+
 class PromptPipeline:
     """
     Processes and enriches user prompts by resolving directives like [[include:...]] and [[analysis:...]].
@@ -43,6 +46,9 @@ class PromptPipeline:
         file_path = match.group(1).strip()
         abs_path = self.repo_path / file_path
         if abs_path.exists() and abs_path.is_file():
+            # --- FIX: Add file size check to prevent memory bloat ---
+            if abs_path.stat().st_size > MAX_FILE_SIZE_BYTES:
+                return f"\n❌ Could not include {file_path}: File size exceeds 1MB limit.\n"
             try:
                 return f"\n--- CONTEXT: {file_path} ---\n{abs_path.read_text(encoding='utf-8')}\n--- END CONTEXT ---\n"
             except Exception as e:
@@ -58,6 +64,9 @@ class PromptPipeline:
         file_path = match.group(1).strip()
         abs_path = self.repo_path / file_path
         if abs_path.exists() and abs_path.is_file():
+            # --- FIX: Add file size check to prevent memory bloat ---
+            if abs_path.stat().st_size > MAX_FILE_SIZE_BYTES:
+                return f"\n❌ Could not include {file_path}: File size exceeds 1MB limit.\n"
             try:
                 return f"\n--- INCLUDED: {file_path} ---\n{abs_path.read_text(encoding='utf-8')}\n--- END INCLUDE ---\n"
             except Exception as e:
