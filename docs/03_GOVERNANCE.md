@@ -38,3 +38,25 @@ core-admin keygen "your.name@example.com"
 
 # Sign a pending proposal
 core-admin proposals-sign cr-new-capability.yaml
+```
+This action adds a verifiable signature to the proposal file.
+
+### Step 3: Quorum Verification
+
+The system checks .intent/constitution/approvers.pub to determine how many signatures are required (the "quorum").
+Standard changes (like adding a capability) might require only one signature.
+Critical changes (like modifying the approver list itself) require a higher quorum, such as two or more signatures.
+
+### Step 4: Approval & The Canary Check (core-admin proposals-approve)
+
+Once a proposal has a sufficient number of valid signatures, any authorized operator can initiate the final approval.
+```bash
+core-admin proposals-approve cr-new-capability.yaml
+```
+
+This command triggers the automated canary check. The operator watches the log as the system simulates the change and runs its self-audit.
+
+### Step 5: Ratification
+
+If the canary check passes, the change is automatically applied to the live .intent/ directory. The original proposal file is deleted, and the system now operates under its new, evolved constitution. The entire transaction is recorded in an auditable history log.
+This rigorous process ensures that every change to CORE's "mind" is deliberate, secure, and verifiably safe.

@@ -58,7 +58,7 @@ With a stable foundation, we can now build the mechanisms that allow CORE to ful
 ### Step B3: The Constitutional Amendment Process
 
 *   **Goal:** Transform `.intent/` from a "notepad" into a true constitution with a formal, safe amendment process. This allows CORE to evolve its own brain.
-*   **Status:** ⏳ **IN PROGRESS**
+*   **Status:** ✅ **COMPLETE**
 *   **The Mechanism:**
     1.  **The Waiting Room (`.intent/proposals/`):** A dedicated directory for drafting changes to the constitution. Files here are not active.
     2.  **The Proposal Bundle:** A standardized YAML format for change requests (e.g., `cr-....yaml`) containing the `target_path`, `action`, `justification`, and proposed `content`.
