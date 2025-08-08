@@ -70,18 +70,33 @@ class GitService:
             raise ValueError(f"Cannot stage file outside repo: {file_path}")
         self._run_command(["git", "add", file_path])
 
+    # --- THIS IS THE FIX ---
+    # The commit method now gracefully handles the "no changes to commit" case.
     def commit(self, message: str):
         """
         Commit staged changes with a message.
+        If there are no changes to commit, this operation is a no-op and will not raise an error.
 
         Args:
             message (str): Commit message explaining the change.
         """
         try:
+            # First, check if there are any staged changes.
+            status_output = self._run_command(["git", "status", "--porcelain"])
+            if not status_output:
+                log.info("No changes to commit.")
+                return
+
             self._run_command(["git", "commit", "-m", message])
             log.info(f"Committed changes with message: {message}")
-        except RuntimeError:
-            log.info("No changes to commit.")
+        except RuntimeError as e:
+            # It's possible for a race condition, or for the status check to be insufficient.
+            # We specifically check for the "nothing to commit" message from Git.
+            if "nothing to commit" in str(e).lower():
+                log.info("No changes to commit.")
+            else:
+                # Re-raise any other unexpected error.
+                raise e
 
     def is_git_repo(self) -> bool:
         """
