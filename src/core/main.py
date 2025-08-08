@@ -23,7 +23,7 @@ from core.clients import OrchestratorClient, GeneratorClient
 from core.file_handler import FileHandler
 from core.git_service import GitService
 from core.intent_guard import IntentGuard
-from agents.planner_agent import PlannerAgent
+from agents.planner_agent import PlannerAgent, PlanExecutionError
 from core.capabilities import introspection
 from shared.logger import getLogger
 
@@ -68,22 +68,21 @@ app = FastAPI(lifespan=lifespan)
 # --- FIX: Define a Pydantic model for the request body ---
 # This enables automatic validation and API documentation for the endpoint.
 class GoalRequest(BaseModel):
+    """Defines the request body for the /execute_goal endpoint."""
     goal: str
 
 @app.post("/execute_goal")
 async def execute_goal(request_data: GoalRequest, request: Request):
     """Execute a high-level goal by planning and generating code."""
-    # --- FIX: Use the validated Pydantic model directly ---
-    # FastAPI handles the validation. If 'goal' is missing or not a string,
-    # it will automatically return a 422 Unprocessable Entity error.
     goal = request_data.goal
 
     log.info(f"🎯 Received new goal: '{goal}'")
     try:
         planner: PlannerAgent = request.app.state.planner
-        plan = planner.create_execution_plan(goal)
-        
-        success, message = await planner.execute_plan(plan)
+        # --- THIS IS THE CHANGE ---
+        # We now call execute_plan directly with the goal.
+        # The agent handles creating the plan internally.
+        success, message = await planner.execute_plan(goal)
         
         if success:
             log.info(f"✅ Goal executed successfully. Message: {message}")
@@ -98,7 +97,6 @@ async def execute_goal(request_data: GoalRequest, request: Request):
     except Exception as e:
         log.error(f"💥 An unexpected error occurred during goal execution: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"An unexpected error occurred: {str(e)}")
-
 @app.get("/")
 async def root():
     """Root endpoint — returns system status."""
