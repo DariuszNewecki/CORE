@@ -52,16 +52,16 @@ def attempt_correction(failure_context: dict) -> dict:
     # Assuming one write block for self-correction
     path, fixed_code = list(write_blocks.items())[0]
 
-    validation = validate_code(path, fixed_code)
+    validation_result = validate_code(path, fixed_code)
     # --- MODIFICATION: Check for 'error' severity in the new violations list ---
-    if any(v.get("severity") == "error" for v in validation.get("violations", [])):
+    if validation_result["status"] == "dirty":
         return {
             "status": "correction_failed_validation",
             "message": "The corrected code still fails validation.",
-            "violations": validation.get("violations", []),
+            "violations": validation_result["violations"],
         }
 
-    pending_id = file_handler.add_pending_write(prompt=final_prompt, suggested_path=path, code=validation["code"])
+    pending_id = file_handler.add_pending_write(prompt=final_prompt, suggested_path=path, code=validation_result["code"])
     return {
         "status": "retry_staged",
         "pending_id": pending_id,

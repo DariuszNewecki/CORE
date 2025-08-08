@@ -340,12 +340,12 @@ class PlannerAgent:
         # Try to splice the validated function back into the file
         # (kept for correctness, even if tests mock the write path).
         try:
-            _ = self.code_editor.replace_symbol_in_code(original_code, symbol_name, validation_result["code"])
+            final_code = self.code_editor.replace_symbol_in_code(original_code, symbol_name, validation_result["code"])
         except ValueError as e:
             raise PlanExecutionError(f"Failed to edit code in '{file_path}': {e}")
 
         pending_id = self.file_handler.add_pending_write(
-            prompt=f"Goal: edit function {symbol_name} in {file_path}", suggested_path=file_path, code=validation_result["code"]
+            prompt=f"Goal: edit function {symbol_name} in {file_path}", suggested_path=file_path, code=final_code
         )
         self.file_handler.confirm_write(pending_id)
 
