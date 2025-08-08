@@ -64,7 +64,7 @@ class FileChecks:
         known_files = self._get_known_files_from_meta()
         if not known_files: return []
 
-        ignore_patterns = [".bak", "proposals"]
+        ignore_patterns = [".bak", "proposals", ".example"]
         physical_files = {str(p.relative_to(self.context.repo_root)).replace("\\", "/") for p in self.context.intent_dir.rglob("*") if p.is_file() and not any(pat in str(p) for pat in ignore_patterns)}
         
         orphaned_files = sorted(list(physical_files - known_files))

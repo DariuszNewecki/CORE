@@ -25,19 +25,20 @@ def attempt_correction(failure_context: dict) -> dict:
     generator = GeneratorClient()
     file_path = failure_context.get("file_path")
     code = failure_context.get("code")
-    error_type = failure_context.get("error_type")
-    details = failure_context.get("details", {})
+    # --- MODIFICATION: The key is now "violations", not "error_type" or "details" ---
+    violations = failure_context.get("violations", [])
     base_prompt = failure_context.get("original_prompt", "")
 
-    if not file_path or not code or not error_type:
+    if not file_path or not code or not violations:
         return {"status": "error", "message": "Missing required failure context fields."}
 
+    # --- MODIFICATION: The prompt is updated to send structured violation data to the LLM ---
     correction_prompt = (
-        f"You are CORE's self-correction agent.\n\nA recent code generation attempt failed {error_type}.\n"
-        f"Please analyze and fix the code below.\n\nFile: {file_path}\n\n"
-        f"[[failure_reason]]\n{json.dumps(details, indent=2)}\n[[/failure_reason]]\n\n"
+        f"You are CORE's self-correction agent.\n\nA recent code generation attempt failed validation.\n"
+        f"Please analyze the violations and fix the code below.\n\nFile: {file_path}\n\n"
+        f"[[violations]]\n{json.dumps(violations, indent=2)}\n[[/violations]]\n\n"
         f"[[code]]\n{code.strip()}\n[[/code]]\n\n"
-        f"Respond with corrected content using the format:\n[[write:{file_path}]]\n<corrected code here>\n[[/write]]"
+        f"Respond with the full, corrected code in a single write block:\n[[write:{file_path}]]\n<corrected code here>\n[[/write]]"
     )
 
     final_prompt = pipeline.process(correction_prompt)
@@ -46,17 +47,18 @@ def attempt_correction(failure_context: dict) -> dict:
     write_blocks = parse_write_blocks(llm_output)
 
     if not write_blocks:
-        return {"status": "error", "message": "LLM did not produce valid correction."}
+        return {"status": "error", "message": "LLM did not produce a valid correction in a write block."}
 
     # Assuming one write block for self-correction
     path, fixed_code = list(write_blocks.items())[0]
 
     validation = validate_code(path, fixed_code)
-    if validation["status"] != "clean":
+    # --- MODIFICATION: Check for 'error' severity in the new violations list ---
+    if any(v.get("severity") == "error" for v in validation.get("violations", [])):
         return {
-            "status": "validation_failed",
-            "message": "Corrected code still fails validation.",
-            "errors": validation.get("errors", []),
+            "status": "correction_failed_validation",
+            "message": "The corrected code still fails validation.",
+            "violations": validation.get("violations", []),
         }
 
     pending_id = file_handler.add_pending_write(prompt=final_prompt, suggested_path=path, code=validation["code"])

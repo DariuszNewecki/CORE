@@ -37,14 +37,16 @@ class PlannerConfig:
     rollback_on_failure: bool = True
     task_timeout: int = 300  # seconds
 
+# --- THIS IS THE CORRECT, FLEXIBLE VERSION ---
 class TaskParams(BaseModel):
     """Data model for the parameters of a single task in an execution plan."""
     file_path: str
-    symbol_name: str
-    tag: str
+    symbol_name: Optional[str] = None
+    tag: Optional[str] = None
+    code: Optional[str] = None
 
 class ExecutionTask(BaseModel):
     """Data model for a single, executable step in a plan."""
     step: str
-    action: Literal["add_capability_tag"]  # Add more actions as needed
+    action: Literal["add_capability_tag", "create_file", "edit_function"]
     params: TaskParams

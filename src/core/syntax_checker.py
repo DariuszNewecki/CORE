@@ -1,38 +1,37 @@
 # src/core/syntax_checker.py
-
 """
 A simple syntax checker utility.
-
 Validates the syntax of Python code before it's staged for write/commit.
 """
-
 import ast
-from typing import Tuple
+from typing import List, Dict, Any
 
+Violation = Dict[str, Any]
 
+# --- MODIFICATION: The function now returns a list of structured violation dictionaries. ---
 # CAPABILITY: syntax_validation
-def check_syntax(file_path: str, code: str) -> Tuple[bool, str]:
+def check_syntax(file_path: str, code: str) -> List[Violation]:
     """
-    Checks whether the given code has valid syntax.
+    Checks whether the given code has valid Python syntax.
 
     Args:
-        file_path (str): File name (used to detect .py files)
-        code (str): Source code string
+        file_path (str): File name (used to detect .py files).
+        code (str): Source code string.
 
     Returns:
-        (is_valid: bool, message: str)
+        A list of violation dictionaries. An empty list means the syntax is valid.
     """
     if not file_path.endswith(".py"):
-        return True, "Syntax check skipped for non-Python file."
+        return []
 
     try:
         ast.parse(code)
-        return True, "Python syntax is valid."
+        return []
     except SyntaxError as e:
-        # In rare cases, e.text may be None
         error_line = e.text.strip() if e.text else "<source unavailable>"
-        return False, (
-            f"Invalid Python syntax:\n"
-            f"{error_line}\n"
-            f"Line {e.lineno}, column {e.offset}: {e.msg}"
-        )
+        return [{
+            "rule": "E999", # Ruff's code for syntax errors
+            "message": f"Invalid Python syntax: {e.msg} near '{error_line}'",
+            "line": e.lineno,
+            "severity": "error"
+        }]

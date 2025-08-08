@@ -2,23 +2,31 @@
 """
 Formats Python code using Black before it's written to disk.
 """
-
 import black
-from typing import Tuple, Optional
 
-
-def format_code_with_black(code: str) -> Tuple[Optional[str], Optional[str]]:
+# --- MODIFICATION: The function now returns only the formatted code on success ---
+# --- and raises a specific exception on failure, simplifying its contract. ---
+def format_code_with_black(code: str) -> str:
     """
     Attempts to format the given Python code using Black.
 
+    Args:
+        code: The Python source code to format.
+
     Returns:
-        Tuple:
-            - formatted_code (str) if successful, else None
-            - error_message (str) if failed, else None
+        The formatted code as a string.
+
+    Raises:
+        black.InvalidInput: If the code contains a syntax error that Black cannot handle.
+        Exception: For other unexpected Black formatting errors.
     """
     try:
         mode = black.FileMode()
         formatted_code = black.format_str(code, mode=mode)
-        return formatted_code, None
+        return formatted_code
+    except black.InvalidInput as e:
+        # Re-raise with a clear message for the pipeline to catch.
+        raise black.InvalidInput(f"Black could not format the code due to a syntax error: {e}")
     except Exception as e:
-        return None, f"Black formatting failed: {str(e)}"
+        # Catch any other unexpected errors from Black.
+        raise Exception(f"An unexpected error occurred during Black formatting: {e}")

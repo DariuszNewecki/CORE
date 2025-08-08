@@ -1,9 +1,9 @@
 {
   "schema_version": "2.0.0",
   "metadata": {
-    "files_scanned": 33,
-    "total_symbols": 155,
-    "timestamp_utc": "2025-08-07T18:40:15.612210+00:00"
+    "files_scanned": 34,
+    "total_symbols": 167,
+    "timestamp_utc": "2025-08-08T11:30:21.854322+00:00"
   },
   "symbols": {
     "src/system/admin_cli.py::_generate_approval_token": {
@@ -30,7 +30,7 @@
         "proposal_content"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-07T18:40:15.467279+00:00",
+      "last_updated": "2025-08-08T11:30:21.694029+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -57,7 +57,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-07T18:40:15.467763+00:00",
+      "last_updated": "2025-08-08T11:30:21.694516+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -99,7 +99,7 @@
         "identity"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-07T18:40:15.468451+00:00",
+      "last_updated": "2025-08-08T11:30:21.695157+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -142,7 +142,7 @@
         "proposal_name"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-07T18:40:15.469380+00:00",
+      "last_updated": "2025-08-08T11:30:21.696113+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -173,7 +173,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-07T18:40:15.470389+00:00",
+      "last_updated": "2025-08-08T11:30:21.697081+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -204,7 +204,7 @@
         "proposal"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-07T18:40:15.471155+00:00",
+      "last_updated": "2025-08-08T11:30:21.697815+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -249,7 +249,7 @@
         "proposal_name"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-07T18:40:15.472360+00:00",
+      "last_updated": "2025-08-08T11:30:21.698964+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -279,7 +279,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "cli_entry_point",
-      "last_updated": "2025-08-07T18:40:15.473678+00:00",
+      "last_updated": "2025-08-08T11:30:21.700260+00:00",
       "is_class": false,
       "base_classes": []
     },
@@ -307,7 +307,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "base_class",
-      "last_updated": "2025-08-07T18:40:15.475915+00:00",
+      "last_updated": "2025-08-08T11:30:21.702510+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "framework_base_class"
@@ -334,7 +334,7 @@
         "self"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-07T18:40:15.478976+00:00",
+      "last_updated": "2025-08-08T11:30:21.705379+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -365,7 +365,7 @@
         "user_id"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-07T18:40:15.477062+00:00",
+      "last_updated": "2025-08-08T11:30:21.703608+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -391,7 +391,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-07T18:40:15.477726+00:00",
+      "last_updated": "2025-08-08T11:30:21.704212+00:00",
       "is_class": true,
       "base_classes": [
         "BaseLLMClient"
@@ -418,7 +418,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-07T18:40:15.478597+00:00",
+      "last_updated": "2025-08-08T11:30:21.705011+00:00",
       "is_class": true,
       "base_classes": [
         "BaseLLMClient"
@@ -440,11 +440,11 @@
         "get_repo_root",
         "load_config"
       ],
-      "line_number": 25,
+      "line_number": 28,
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-07T18:40:15.481894+00:00",
+      "last_updated": "2025-08-08T11:30:21.708873+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -464,13 +464,13 @@
         "isinstance",
         "join"
       ],
-      "line_number": 35,
+      "line_number": 38,
       "is_async": false,
       "parameters": [
         "node"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-07T18:40:15.482401+00:00",
+      "last_updated": "2025-08-08T11:30:21.709366+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -483,8 +483,8 @@
       "domain": "core",
       "agent": "core_agent",
       "capability": "unassigned",
-      "intent": "Scans the AST for calls to functions and imports forbidden by safety policies.",
-      "docstring": "Scans the AST for calls to functions and imports forbidden by safety policies.",
+      "intent": "Scans the AST for calls and imports forbidden by safety policies.",
+      "docstring": "Scans the AST for calls and imports forbidden by safety policies.",
       "calls": [
         "Path",
         "_get_full_attribute_name",
@@ -500,14 +500,42 @@
         "update",
         "walk"
       ],
-      "line_number": 46,
+      "line_number": 49,
       "is_async": false,
       "parameters": [
         "tree",
         "file_path"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-07T18:40:15.483234+00:00",
+      "last_updated": "2025-08-08T11:30:21.710260+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "entry_point_justification": "dataclass_definition"
+    },
+    "src/core/validation_pipeline.py::_check_for_todo_comments": {
+      "key": "src/core/validation_pipeline.py::_check_for_todo_comments",
+      "name": "_check_for_todo_comments",
+      "type": "FunctionDef",
+      "file": "src/core/validation_pipeline.py",
+      "domain": "core",
+      "agent": "core_agent",
+      "capability": "unassigned",
+      "intent": "Scans source code for TODO/FIXME comments and returns them as violations.",
+      "docstring": "Scans source code for TODO/FIXME comments and returns them as violations.",
+      "calls": [
+        "append",
+        "enumerate",
+        "split",
+        "splitlines",
+        "strip"
+      ],
+      "line_number": 103,
+      "is_async": false,
+      "parameters": [
+        "code"
+      ],
+      "entry_point_type": "data_model",
+      "last_updated": "2025-08-08T11:30:21.711165+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -526,14 +554,14 @@
         "_find_dangerous_patterns",
         "parse"
       ],
-      "line_number": 86,
+      "line_number": 119,
       "is_async": false,
       "parameters": [
         "code",
         "file_path"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-07T18:40:15.484091+00:00",
+      "last_updated": "2025-08-08T11:30:21.711780+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation"
@@ -546,24 +574,27 @@
       "domain": "core",
       "agent": "core_agent",
       "capability": "unassigned",
-      "intent": "Runs the full validation suite for Python code: format, lint, syntax, and semantics.",
-      "docstring": "Runs the full validation suite for Python code: format, lint, syntax, and semantics.",
+      "intent": "Internal pipeline for Python code validation.",
+      "docstring": "Internal pipeline for Python code validation.\nReturns the final code and a list of all found violations.",
       "calls": [
+        "_check_for_todo_comments",
         "_check_semantics",
+        "any",
         "append",
         "check_syntax",
         "extend",
         "fix_and_lint_code_with_ruff",
-        "format_code_with_black"
+        "format_code_with_black",
+        "str"
       ],
-      "line_number": 94,
+      "line_number": 128,
       "is_async": false,
       "parameters": [
         "path_hint",
         "code"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-07T18:40:15.484772+00:00",
+      "last_updated": "2025-08-08T11:30:21.712310+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -576,19 +607,19 @@
       "domain": "core",
       "agent": "core_agent",
       "capability": "unassigned",
-      "intent": "Runs validation steps specific to YAML files.",
-      "docstring": "Runs validation steps specific to YAML files.",
+      "intent": "Internal pipeline for YAML validation.",
+      "docstring": "Internal pipeline for YAML validation.",
       "calls": [
         "append",
         "safe_load"
       ],
-      "line_number": 118,
+      "line_number": 161,
       "is_async": false,
       "parameters": [
         "code"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-07T18:40:15.485374+00:00",
+      "last_updated": "2025-08-08T11:30:21.712896+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -607,13 +638,13 @@
         "Path",
         "lower"
       ],
-      "line_number": 128,
+      "line_number": 175,
       "is_async": false,
       "parameters": [
         "file_path"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-07T18:40:15.485849+00:00",
+      "last_updated": "2025-08-08T11:30:21.713361+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -627,14 +658,16 @@
       "agent": "core_agent",
       "capability": "code_quality_analysis",
       "intent": "The main entry point for validation. It determines the file type",
-      "docstring": "The main entry point for validation. It determines the file type\nand routes it to the appropriate, specific validation function.",
+      "docstring": "The main entry point for validation. It determines the file type\nand routes it to the appropriate validation pipeline, returning a\nstandardized dictionary.",
       "calls": [
         "_get_file_classification",
         "_validate_python_code",
         "_validate_yaml",
-        "debug"
+        "any",
+        "debug",
+        "get"
       ],
-      "line_number": 137,
+      "line_number": 184,
       "is_async": false,
       "parameters": [
         "file_path",
@@ -642,7 +675,7 @@
         "quiet"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-07T18:40:15.486361+00:00",
+      "last_updated": "2025-08-08T11:30:21.713944+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation"
@@ -668,8 +701,10 @@
         "is_dir",
         "is_git_repo",
         "join",
+        "lower",
         "resolve",
         "run",
+        "str",
         "strip",
         "warning"
       ],
@@ -677,7 +712,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-07T18:40:15.488305+00:00",
+      "last_updated": "2025-08-08T11:30:21.716159+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -706,7 +741,7 @@
         "repo_path"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-07T18:40:15.488694+00:00",
+      "last_updated": "2025-08-08T11:30:21.716536+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -737,7 +772,7 @@
         "command"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-07T18:40:15.489159+00:00",
+      "last_updated": "2025-08-08T11:30:21.716999+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -765,7 +800,7 @@
         "file_path"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-07T18:40:15.489663+00:00",
+      "last_updated": "2025-08-08T11:30:21.717541+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -780,19 +815,21 @@
       "agent": "core_agent",
       "capability": "unassigned",
       "intent": "Commit staged changes with a message.",
-      "docstring": "Commit staged changes with a message.\n\nArgs:\n    message (str): Commit message explaining the change.",
+      "docstring": "Commit staged changes with a message.\nIf there are no changes to commit, this operation is a no-op and will not raise an error.\n\nArgs:\n    message (str): Commit message explaining the change.",
       "calls": [
         "_run_command",
-        "info"
+        "info",
+        "lower",
+        "str"
       ],
-      "line_number": 73,
+      "line_number": 75,
       "is_async": false,
       "parameters": [
         "self",
         "message"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-07T18:40:15.490086+00:00",
+      "last_updated": "2025-08-08T11:30:21.718016+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -811,13 +848,13 @@
       "calls": [
         "is_dir"
       ],
-      "line_number": 86,
+      "line_number": 101,
       "is_async": false,
       "parameters": [
         "self"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-07T18:40:15.490490+00:00",
+      "last_updated": "2025-08-08T11:30:21.718470+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -836,13 +873,13 @@
       "calls": [
         "_run_command"
       ],
-      "line_number": 96,
+      "line_number": 111,
       "is_async": false,
       "parameters": [
         "self"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-07T18:40:15.490832+00:00",
+      "last_updated": "2025-08-08T11:30:21.718811+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -863,14 +900,14 @@
         "info",
         "warning"
       ],
-      "line_number": 102,
+      "line_number": 117,
       "is_async": false,
       "parameters": [
         "self",
         "commit_hash"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-07T18:40:15.491217+00:00",
+      "last_updated": "2025-08-08T11:30:21.719196+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -884,21 +921,21 @@
       "domain": "core",
       "agent": "core_agent",
       "capability": "syntax_validation",
-      "intent": "Checks whether the given code has valid syntax.",
-      "docstring": "Checks whether the given code has valid syntax.\n\nArgs:\n    file_path (str): File name (used to detect .py files)\n    code (str): Source code string\n\nReturns:\n    (is_valid: bool, message: str)",
+      "intent": "Checks whether the given code has valid Python syntax.",
+      "docstring": "Checks whether the given code has valid Python syntax.\n\nArgs:\n    file_path (str): File name (used to detect .py files).\n    code (str): Source code string.\n\nReturns:\n    A list of violation dictionaries. An empty list means the syntax is valid.",
       "calls": [
         "endswith",
         "parse",
         "strip"
       ],
-      "line_number": 14,
+      "line_number": 13,
       "is_async": false,
       "parameters": [
         "file_path",
         "code"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-07T18:40:15.492077+00:00",
+      "last_updated": "2025-08-08T11:30:21.720152+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation"
@@ -912,19 +949,20 @@
       "agent": "core_agent",
       "capability": "unassigned",
       "intent": "Attempts to format the given Python code using Black.",
-      "docstring": "Attempts to format the given Python code using Black.\n\nReturns:\n    Tuple:\n        - formatted_code (str) if successful, else None\n        - error_message (str) if failed, else None",
+      "docstring": "Attempts to format the given Python code using Black.\n\nArgs:\n    code: The Python source code to format.\n\nReturns:\n    The formatted code as a string.\n\nRaises:\n    black.InvalidInput: If the code contains a syntax error that Black cannot handle.\n    Exception: For other unexpected Black formatting errors.",
       "calls": [
+        "Exception",
         "FileMode",
-        "format_str",
-        "str"
+        "InvalidInput",
+        "format_str"
       ],
-      "line_number": 10,
+      "line_number": 9,
       "is_async": false,
       "parameters": [
         "code"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-07T18:40:15.492876+00:00",
+      "last_updated": "2025-08-08T11:30:21.720986+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -962,7 +1000,7 @@
         "silent"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-07T18:40:15.495904+00:00",
+      "last_updated": "2025-08-08T11:30:21.724128+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation"
@@ -988,7 +1026,7 @@
         "output"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-07T18:40:15.496697+00:00",
+      "last_updated": "2025-08-08T11:30:21.724906+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -1015,7 +1053,7 @@
         "data"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-07T18:40:15.497120+00:00",
+      "last_updated": "2025-08-08T11:30:21.725341+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -1044,7 +1082,7 @@
         "data"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-07T18:40:15.497640+00:00",
+      "last_updated": "2025-08-08T11:30:21.725851+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -1070,15 +1108,37 @@
         "introspection",
         "warning"
       ],
-      "line_number": 34,
+      "line_number": 36,
       "is_async": true,
       "parameters": [
         "app"
       ],
       "entry_point_type": "context_manager",
-      "last_updated": "2025-08-07T18:40:15.499414+00:00",
+      "last_updated": "2025-08-08T11:30:21.727654+00:00",
       "is_class": false,
       "base_classes": []
+    },
+    "src/core/main.py::GoalRequest": {
+      "key": "src/core/main.py::GoalRequest",
+      "name": "GoalRequest",
+      "type": "ClassDef",
+      "file": "src/core/main.py",
+      "domain": "core",
+      "agent": "core_agent",
+      "capability": "unassigned",
+      "intent": "Defines the request body for the /execute_goal endpoint.",
+      "docstring": "Defines the request body for the /execute_goal endpoint.",
+      "calls": [],
+      "line_number": 70,
+      "is_async": false,
+      "parameters": [],
+      "entry_point_type": "data_model",
+      "last_updated": "2025-08-08T11:30:21.728159+00:00",
+      "is_class": true,
+      "base_classes": [
+        "BaseModel"
+      ],
+      "entry_point_justification": "pydantic_model"
     },
     "src/core/main.py::execute_goal": {
       "key": "src/core/main.py::execute_goal",
@@ -1093,22 +1153,20 @@
       "calls": [
         "HTTPException",
         "JSONResponse",
-        "create_execution_plan",
         "error",
         "execute_plan",
-        "get",
         "info",
         "post",
         "str"
       ],
-      "line_number": 67,
+      "line_number": 75,
       "is_async": true,
       "parameters": [
         "request_data",
         "request"
       ],
       "entry_point_type": "fastapi_route_post",
-      "last_updated": "2025-08-07T18:40:15.500115+00:00",
+      "last_updated": "2025-08-08T11:30:21.728664+00:00",
       "is_class": false,
       "base_classes": []
     },
@@ -1125,11 +1183,11 @@
       "calls": [
         "get"
       ],
-      "line_number": 95,
+      "line_number": 101,
       "is_async": true,
       "parameters": [],
       "entry_point_type": "fastapi_route_get",
-      "last_updated": "2025-08-07T18:40:15.500663+00:00",
+      "last_updated": "2025-08-08T11:30:21.729166+00:00",
       "is_class": false,
       "base_classes": []
     },
@@ -1160,15 +1218,16 @@
         "resolve",
         "safe_load",
         "split",
+        "stat",
         "str",
         "strip",
         "sub"
       ],
-      "line_number": 20,
+      "line_number": 23,
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-07T18:40:15.503268+00:00",
+      "last_updated": "2025-08-08T11:30:21.732056+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -1188,14 +1247,14 @@
         "compile",
         "resolve"
       ],
-      "line_number": 26,
+      "line_number": 29,
       "is_async": false,
       "parameters": [
         "self",
         "repo_path"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-07T18:40:15.503661+00:00",
+      "last_updated": "2025-08-08T11:30:21.732468+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -1216,17 +1275,18 @@
         "group",
         "is_file",
         "read_text",
+        "stat",
         "str",
         "strip"
       ],
-      "line_number": 41,
+      "line_number": 44,
       "is_async": false,
       "parameters": [
         "self",
         "match"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-07T18:40:15.504245+00:00",
+      "last_updated": "2025-08-08T11:30:21.732976+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -1245,14 +1305,14 @@
       "calls": [
         "sub"
       ],
-      "line_number": 52,
+      "line_number": 58,
       "is_async": false,
       "parameters": [
         "self",
         "prompt"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-07T18:40:15.504714+00:00",
+      "last_updated": "2025-08-08T11:30:21.733452+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -1273,17 +1333,18 @@
         "group",
         "is_file",
         "read_text",
+        "stat",
         "str",
         "strip"
       ],
-      "line_number": 56,
+      "line_number": 62,
       "is_async": false,
       "parameters": [
         "self",
         "match"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-07T18:40:15.505144+00:00",
+      "last_updated": "2025-08-08T11:30:21.733903+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -1302,14 +1363,14 @@
       "calls": [
         "sub"
       ],
-      "line_number": 67,
+      "line_number": 76,
       "is_async": false,
       "parameters": [
         "self",
         "prompt"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-07T18:40:15.505598+00:00",
+      "last_updated": "2025-08-08T11:30:21.734354+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -1329,14 +1390,14 @@
         "group",
         "strip"
       ],
-      "line_number": 71,
+      "line_number": 80,
       "is_async": false,
       "parameters": [
         "self",
         "match"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-07T18:40:15.505947+00:00",
+      "last_updated": "2025-08-08T11:30:21.734720+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -1355,14 +1416,14 @@
       "calls": [
         "sub"
       ],
-      "line_number": 77,
+      "line_number": 86,
       "is_async": false,
       "parameters": [
         "self",
         "prompt"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-07T18:40:15.506309+00:00",
+      "last_updated": "2025-08-08T11:30:21.735074+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -1390,14 +1451,14 @@
         "str",
         "strip"
       ],
-      "line_number": 81,
+      "line_number": 90,
       "is_async": false,
       "parameters": [
         "self",
         "match"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-07T18:40:15.506847+00:00",
+      "last_updated": "2025-08-08T11:30:21.735605+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -1416,14 +1477,14 @@
       "calls": [
         "sub"
       ],
-      "line_number": 107,
+      "line_number": 116,
       "is_async": false,
       "parameters": [
         "self",
         "prompt"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-07T18:40:15.507374+00:00",
+      "last_updated": "2025-08-08T11:30:21.736130+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -1445,14 +1506,14 @@
         "_inject_includes",
         "_inject_manifest"
       ],
-      "line_number": 112,
+      "line_number": 121,
       "is_async": false,
       "parameters": [
         "self",
         "prompt"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-07T18:40:15.507764+00:00",
+      "last_updated": "2025-08-08T11:30:21.736517+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -1481,7 +1542,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "cli_entry_point",
-      "last_updated": "2025-08-07T18:40:15.509338+00:00",
+      "last_updated": "2025-08-08T11:30:21.738151+00:00",
       "is_class": false,
       "base_classes": []
     },
@@ -1493,27 +1554,29 @@
       "domain": "core",
       "agent": "core_agent",
       "capability": "unassigned",
-      "intent": "Fix and lint the provided Python code using Ruff.",
-      "docstring": "Fix and lint the provided Python code using Ruff.\n\nArgs:\n    code (str): Source code to fix and lint.\n    display_filename (str): Optional display name (e.g., intended file path).\n\nReturns:\n    (is_clean: bool, message: str, fixed_code: str)",
+      "intent": "Fix and lint the provided Python code using Ruff's JSON output format.",
+      "docstring": "Fix and lint the provided Python code using Ruff's JSON output format.\n\nArgs:\n    code (str): Source code to fix and lint.\n    display_filename (str): Optional display name for readable error messages.\n\nReturns:\n    A tuple containing:\n    - The potentially fixed code as a string.\n    - A list of structured violation dictionaries for any remaining issues.",
       "calls": [
         "NamedTemporaryFile",
+        "append",
+        "error",
         "exists",
+        "get",
+        "loads",
         "open",
         "read",
         "remove",
-        "replace",
         "run",
-        "strip",
         "write"
       ],
-      "line_number": 15,
+      "line_number": 19,
       "is_async": false,
       "parameters": [
         "code",
         "display_filename"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-07T18:40:15.510830+00:00",
+      "last_updated": "2025-08-08T11:30:21.740153+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -1551,7 +1614,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-07T18:40:15.513186+00:00",
+      "last_updated": "2025-08-08T11:30:21.742694+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -1579,7 +1642,7 @@
         "repo_path"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-07T18:40:15.513564+00:00",
+      "last_updated": "2025-08-08T11:30:21.743039+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -1614,7 +1677,7 @@
         "code"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-07T18:40:15.514030+00:00",
+      "last_updated": "2025-08-08T11:30:21.743538+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -1650,7 +1713,7 @@
         "pending_id"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-07T18:40:15.514748+00:00",
+      "last_updated": "2025-08-08T11:30:21.744240+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -1685,7 +1748,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-07T18:40:15.516593+00:00",
+      "last_updated": "2025-08-08T11:30:21.746150+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -1712,7 +1775,7 @@
         "repo_root"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-07T18:40:15.516975+00:00",
+      "last_updated": "2025-08-08T11:30:21.746575+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -1742,7 +1805,7 @@
         "self"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-07T18:40:15.517530+00:00",
+      "last_updated": "2025-08-08T11:30:21.747075+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -1771,7 +1834,7 @@
         "file_path"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-07T18:40:15.518051+00:00",
+      "last_updated": "2025-08-08T11:30:21.747620+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -1798,7 +1861,7 @@
         "domain"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-07T18:40:15.518553+00:00",
+      "last_updated": "2025-08-08T11:30:21.748108+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -1839,7 +1902,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-07T18:40:15.520362+00:00",
+      "last_updated": "2025-08-08T11:30:21.749972+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "capability_implementation"
@@ -1869,7 +1932,7 @@
         "repo_path"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-07T18:40:15.520803+00:00",
+      "last_updated": "2025-08-08T11:30:21.750467+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -1898,7 +1961,7 @@
         "self"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-07T18:40:15.521310+00:00",
+      "last_updated": "2025-08-08T11:30:21.750963+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -1929,7 +1992,7 @@
         "self"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-07T18:40:15.521817+00:00",
+      "last_updated": "2025-08-08T11:30:21.751483+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -1946,7 +2009,6 @@
       "intent": "Check if a proposed set of file changes complies with all active rules.",
       "docstring": "Check if a proposed set of file changes complies with all active rules.\nThis is the primary enforcement point for constitutional integrity.",
       "calls": [
-        "Path",
         "append",
         "resolve"
       ],
@@ -1957,7 +2019,7 @@
         "proposed_paths"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-07T18:40:15.522352+00:00",
+      "last_updated": "2025-08-08T11:30:21.751988+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -1976,6 +2038,7 @@
       "calls": [
         "GeneratorClient",
         "add_pending_write",
+        "any",
         "dumps",
         "get",
         "items",
@@ -1986,16 +2049,114 @@
         "strip",
         "validate_code"
       ],
-      "line_number": 20,
+      "line_number": 21,
       "is_async": false,
       "parameters": [
         "failure_context"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-07T18:40:15.523998+00:00",
+      "last_updated": "2025-08-08T11:30:21.753629+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation"
+    },
+    "src/agents/utils.py::CodeEditor": {
+      "key": "src/agents/utils.py::CodeEditor",
+      "name": "CodeEditor",
+      "type": "ClassDef",
+      "file": "src/agents/utils.py",
+      "domain": "agents",
+      "agent": "generic_agent",
+      "capability": "unassigned",
+      "intent": "Provides capabilities to surgically edit code files.",
+      "docstring": "Provides capabilities to surgically edit code files.",
+      "calls": [
+        "ValueError",
+        "_get_symbol_start_end_lines",
+        "dedent",
+        "hasattr",
+        "isinstance",
+        "join",
+        "len",
+        "lstrip",
+        "parse",
+        "splitlines",
+        "strip",
+        "walk"
+      ],
+      "line_number": 17,
+      "is_async": false,
+      "parameters": [],
+      "entry_point_type": "data_model",
+      "last_updated": "2025-08-08T11:30:21.756112+00:00",
+      "is_class": true,
+      "base_classes": [],
+      "entry_point_justification": "dataclass_definition"
+    },
+    "src/agents/utils.py::_get_symbol_start_end_lines": {
+      "key": "src/agents/utils.py::_get_symbol_start_end_lines",
+      "name": "_get_symbol_start_end_lines",
+      "type": "FunctionDef",
+      "file": "src/agents/utils.py",
+      "domain": "agents",
+      "agent": "generic_agent",
+      "capability": "unassigned",
+      "intent": "Finds the 1-based start and end line numbers of a symbol.",
+      "docstring": "Finds the 1-based start and end line numbers of a symbol.",
+      "calls": [
+        "hasattr",
+        "isinstance",
+        "walk"
+      ],
+      "line_number": 20,
+      "is_async": false,
+      "parameters": [
+        "self",
+        "tree",
+        "symbol_name"
+      ],
+      "entry_point_type": "data_model",
+      "last_updated": "2025-08-08T11:30:21.756544+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "entry_point_justification": "dataclass_definition",
+      "parent_class_key": "src/agents/utils.py::CodeEditor"
+    },
+    "src/agents/utils.py::replace_symbol_in_code": {
+      "key": "src/agents/utils.py::replace_symbol_in_code",
+      "name": "replace_symbol_in_code",
+      "type": "FunctionDef",
+      "file": "src/agents/utils.py",
+      "domain": "agents",
+      "agent": "generic_agent",
+      "capability": "unassigned",
+      "intent": "Replaces a function/method in code with a new version using a line-based strategy.",
+      "docstring": "Replaces a function/method in code with a new version using a line-based strategy.",
+      "calls": [
+        "ValueError",
+        "_get_symbol_start_end_lines",
+        "dedent",
+        "join",
+        "len",
+        "lstrip",
+        "parse",
+        "splitlines",
+        "strip"
+      ],
+      "line_number": 30,
+      "is_async": false,
+      "parameters": [
+        "self",
+        "original_code",
+        "symbol_name",
+        "new_code_str"
+      ],
+      "entry_point_type": "data_model",
+      "last_updated": "2025-08-08T11:30:21.757180+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "entry_point_justification": "dataclass_definition",
+      "parent_class_key": "src/agents/utils.py::CodeEditor"
     },
     "src/agents/utils.py::SymbolLocator": {
       "key": "src/agents/utils.py::SymbolLocator",
@@ -2016,11 +2177,11 @@
         "read_text",
         "walk"
       ],
-      "line_number": 13,
+      "line_number": 68,
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-07T18:40:15.525594+00:00",
+      "last_updated": "2025-08-08T11:30:21.757856+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -2044,14 +2205,14 @@
         "read_text",
         "walk"
       ],
-      "line_number": 17,
+      "line_number": 72,
       "is_async": false,
       "parameters": [
         "file_path",
         "symbol_name"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-07T18:40:15.526028+00:00",
+      "last_updated": "2025-08-08T11:30:21.758317+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -2074,11 +2235,11 @@
         "reset_to_commit",
         "warning"
       ],
-      "line_number": 33,
+      "line_number": 88,
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-07T18:40:15.526628+00:00",
+      "last_updated": "2025-08-08T11:30:21.758915+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -2094,14 +2255,14 @@
       "intent": "Initializes the context with a reference to the calling agent.",
       "docstring": "Initializes the context with a reference to the calling agent.",
       "calls": [],
-      "line_number": 36,
+      "line_number": 91,
       "is_async": false,
       "parameters": [
         "self",
         "planner_agent"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-07T18:40:15.526975+00:00",
+      "last_updated": "2025-08-08T11:30:21.759259+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -2122,13 +2283,13 @@
         "is_git_repo",
         "warning"
       ],
-      "line_number": 41,
+      "line_number": 96,
       "is_async": false,
       "parameters": [
         "self"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-07T18:40:15.527372+00:00",
+      "last_updated": "2025-08-08T11:30:21.759655+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -2149,7 +2310,7 @@
         "reset_to_commit",
         "warning"
       ],
-      "line_number": 50,
+      "line_number": 105,
       "is_async": false,
       "parameters": [
         "self",
@@ -2158,11 +2319,72 @@
         "exc_tb"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-07T18:40:15.527790+00:00",
+      "last_updated": "2025-08-08T11:30:21.760057+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
       "parent_class_key": "src/agents/utils.py::PlanExecutionContext"
+    },
+    "src/agents/planner_agent.py::PlanExecutionError": {
+      "key": "src/agents/planner_agent.py::PlanExecutionError",
+      "name": "PlanExecutionError",
+      "type": "ClassDef",
+      "file": "src/agents/planner_agent.py",
+      "domain": "agents",
+      "agent": "planner_agent",
+      "capability": "unassigned",
+      "intent": "Custom exception for failures during plan creation or execution.",
+      "docstring": "Custom exception for failures during plan creation or execution.",
+      "calls": [
+        "__init__",
+        "super"
+      ],
+      "line_number": 36,
+      "is_async": false,
+      "parameters": [],
+      "entry_point_type": "data_model",
+      "last_updated": "2025-08-08T11:30:21.766416+00:00",
+      "is_class": true,
+      "base_classes": [
+        "Exception"
+      ],
+      "entry_point_justification": "dataclass_definition"
+    },
+    "src/agents/planner_agent.py::__init__": {
+      "key": "src/agents/planner_agent.py::__init__",
+      "name": "__init__",
+      "type": "FunctionDef",
+      "file": "src/agents/planner_agent.py",
+      "domain": "agents",
+      "agent": "planner_agent",
+      "capability": "unassigned",
+      "intent": "Initializes the PlannerAgent with all necessary service dependencies.",
+      "docstring": "Initializes the PlannerAgent with all necessary service dependencies.",
+      "calls": [
+        "CodeEditor",
+        "PlannerConfig",
+        "PromptPipeline",
+        "SymbolLocator",
+        "ThreadPoolExecutor",
+        "register"
+      ],
+      "line_number": 49,
+      "is_async": false,
+      "parameters": [
+        "self",
+        "orchestrator_client",
+        "generator_client",
+        "file_handler",
+        "git_service",
+        "intent_guard",
+        "config"
+      ],
+      "entry_point_type": "magic_method",
+      "last_updated": "2025-08-08T11:30:21.770130+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "entry_point_justification": "python_magic_method",
+      "parent_class_key": "src/agents/planner_agent.py::PlannerAgent"
     },
     "src/agents/planner_agent.py::PlannerAgent": {
       "key": "src/agents/planner_agent.py::PlannerAgent",
@@ -2175,33 +2397,46 @@
       "intent": "The primary agent responsible for decomposing high-level goals into executable plans.",
       "docstring": "The primary agent responsible for decomposing high-level goals into executable plans.\nIt orchestrates the generation, validation, and commitment of code changes.",
       "calls": [
+        "CodeEditor",
         "ExecutionProgress",
         "ExecutionTask",
+        "FileExistsError",
+        "FileNotFoundError",
         "PlanExecutionContext",
+        "PlanExecutionError",
         "PlannerConfig",
         "PromptPipeline",
-        "RuntimeError",
         "SymbolLocator",
         "ThreadPoolExecutor",
         "ValueError",
+        "_cleanup_resources",
         "_execute_add_tag",
+        "_execute_create_file",
+        "_execute_edit_function",
         "_execute_task",
         "_execute_task_with_timeout",
         "_extract_json_from_response",
         "_find_symbol_line_async",
+        "_generate_code_for_task",
         "_log_plan_summary",
         "_setup_logging_context",
+        "_validate_task_params",
         "add",
         "add_pending_write",
+        "all",
         "commit",
         "confirm_write",
+        "create_execution_plan",
         "debug",
         "dedent",
         "enumerate",
         "error",
+        "exists",
         "format",
+        "get",
         "get_event_loop",
         "group",
+        "hasattr",
         "info",
         "insert",
         "is_git_repo",
@@ -2216,9 +2451,12 @@
         "process",
         "range",
         "read_text",
+        "register",
+        "replace_symbol_in_code",
         "run_in_executor",
         "search",
         "set",
+        "shutdown",
         "splitlines",
         "str",
         "strategy",
@@ -2228,43 +2466,61 @@
         "wait_for",
         "warning"
       ],
-      "line_number": 36,
+      "line_number": 43,
       "is_async": false,
       "parameters": [],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-07T18:40:15.532835+00:00",
+      "last_updated": "2025-08-08T11:30:21.769682+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "capability_implementation"
     },
-    "src/agents/planner_agent.py::__init__": {
-      "key": "src/agents/planner_agent.py::__init__",
-      "name": "__init__",
+    "src/agents/planner_agent.py::_cleanup_resources": {
+      "key": "src/agents/planner_agent.py::_cleanup_resources",
+      "name": "_cleanup_resources",
       "type": "FunctionDef",
       "file": "src/agents/planner_agent.py",
       "domain": "agents",
       "agent": "planner_agent",
       "capability": "unassigned",
-      "intent": "Initializes the PlannerAgent with all necessary service dependencies.",
-      "docstring": "Initializes the PlannerAgent with all necessary service dependencies.",
+      "intent": "Clean up resources on shutdown.",
+      "docstring": "Clean up resources on shutdown.",
       "calls": [
-        "PlannerConfig",
-        "PromptPipeline",
-        "SymbolLocator"
+        "hasattr",
+        "shutdown"
       ],
-      "line_number": 41,
+      "line_number": 72,
       "is_async": false,
       "parameters": [
-        "self",
-        "orchestrator_client",
-        "generator_client",
-        "file_handler",
-        "git_service",
-        "intent_guard",
-        "config"
+        "self"
+      ],
+      "entry_point_type": "data_model",
+      "last_updated": "2025-08-08T11:30:21.770596+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "entry_point_justification": "dataclass_definition",
+      "parent_class_key": "src/agents/planner_agent.py::PlannerAgent"
+    },
+    "src/agents/planner_agent.py::__del__": {
+      "key": "src/agents/planner_agent.py::__del__",
+      "name": "__del__",
+      "type": "FunctionDef",
+      "file": "src/agents/planner_agent.py",
+      "domain": "agents",
+      "agent": "planner_agent",
+      "capability": "unassigned",
+      "intent": "Ensure resources are cleaned up when the agent is garbage collected.",
+      "docstring": "Ensure resources are cleaned up when the agent is garbage collected.",
+      "calls": [
+        "_cleanup_resources"
+      ],
+      "line_number": 77,
+      "is_async": false,
+      "parameters": [
+        "self"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-07T18:40:15.533244+00:00",
+      "last_updated": "2025-08-08T11:30:21.770929+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -2285,7 +2541,7 @@
         "now",
         "set"
       ],
-      "line_number": 59,
+      "line_number": 81,
       "is_async": false,
       "parameters": [
         "self",
@@ -2293,7 +2549,7 @@
         "plan_id"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-07T18:40:15.533703+00:00",
+      "last_updated": "2025-08-08T11:30:21.771278+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -2318,14 +2574,14 @@
         "search",
         "strategy"
       ],
-      "line_number": 67,
+      "line_number": 89,
       "is_async": false,
       "parameters": [
         "self",
         "text"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-07T18:40:15.534244+00:00",
+      "last_updated": "2025-08-08T11:30:21.771818+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -2346,14 +2602,41 @@
         "info",
         "len"
       ],
-      "line_number": 88,
+      "line_number": 109,
       "is_async": false,
       "parameters": [
         "self",
         "plan"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-07T18:40:15.534820+00:00",
+      "last_updated": "2025-08-08T11:30:21.772381+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "entry_point_justification": "dataclass_definition",
+      "parent_class_key": "src/agents/planner_agent.py::PlannerAgent"
+    },
+    "src/agents/planner_agent.py::_validate_task_params": {
+      "key": "src/agents/planner_agent.py::_validate_task_params",
+      "name": "_validate_task_params",
+      "type": "FunctionDef",
+      "file": "src/agents/planner_agent.py",
+      "domain": "agents",
+      "agent": "planner_agent",
+      "capability": "unassigned",
+      "intent": "Validates that a task has all the logically required parameters for its action.",
+      "docstring": "Validates that a task has all the logically required parameters for its action.",
+      "calls": [
+        "PlanExecutionError",
+        "all"
+      ],
+      "line_number": 115,
+      "is_async": false,
+      "parameters": [
+        "self",
+        "task"
+      ],
+      "entry_point_type": "data_model",
+      "last_updated": "2025-08-08T11:30:21.772891+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -2367,10 +2650,11 @@
       "domain": "agents",
       "agent": "planner_agent",
       "capability": "llm_orchestration",
-      "intent": "Creates a detailed, step-by-step execution plan from a high-level goal.",
-      "docstring": "Creates a detailed, step-by-step execution plan from a high-level goal.",
+      "intent": "Creates a high-level, code-agnostic execution plan.",
+      "docstring": "Creates a high-level, code-agnostic execution plan.",
       "calls": [
         "ExecutionTask",
+        "PlanExecutionError",
         "ValueError",
         "_extract_json_from_response",
         "_log_plan_summary",
@@ -2388,17 +2672,49 @@
         "strip",
         "warning"
       ],
-      "line_number": 95,
+      "line_number": 129,
       "is_async": false,
       "parameters": [
         "self",
         "high_level_goal"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-07T18:40:15.535464+00:00",
+      "last_updated": "2025-08-08T11:30:21.773629+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
+      "parent_class_key": "src/agents/planner_agent.py::PlannerAgent"
+    },
+    "src/agents/planner_agent.py::_generate_code_for_task": {
+      "key": "src/agents/planner_agent.py::_generate_code_for_task",
+      "name": "_generate_code_for_task",
+      "type": "AsyncFunctionDef",
+      "file": "src/agents/planner_agent.py",
+      "domain": "agents",
+      "agent": "planner_agent",
+      "capability": "unassigned",
+      "intent": "Generates the code content for a single task.",
+      "docstring": "Generates the code content for a single task.",
+      "calls": [
+        "dedent",
+        "format",
+        "info",
+        "make_request",
+        "process",
+        "strip"
+      ],
+      "line_number": 184,
+      "is_async": true,
+      "parameters": [
+        "self",
+        "task",
+        "goal"
+      ],
+      "entry_point_type": "data_model",
+      "last_updated": "2025-08-08T11:30:21.774310+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "entry_point_justification": "dataclass_definition",
       "parent_class_key": "src/agents/planner_agent.py::PlannerAgent"
     },
     "src/agents/planner_agent.py::_find_symbol_line_async": {
@@ -2409,14 +2725,13 @@
       "domain": "agents",
       "agent": "planner_agent",
       "capability": "unassigned",
-      "intent": "Async version using thread pool for file I/O.",
-      "docstring": "Async version using thread pool for file I/O.",
+      "intent": "Async version using shared thread pool for file I/O.",
+      "docstring": "Async version using shared thread pool for file I/O.",
       "calls": [
-        "ThreadPoolExecutor",
         "get_event_loop",
         "run_in_executor"
       ],
-      "line_number": 157,
+      "line_number": 217,
       "is_async": true,
       "parameters": [
         "self",
@@ -2424,7 +2739,7 @@
         "symbol_name"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-07T18:40:15.536055+00:00",
+      "last_updated": "2025-08-08T11:30:21.774779+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -2441,11 +2756,11 @@
       "intent": "Execute task with timeout protection.",
       "docstring": "Execute task with timeout protection.",
       "calls": [
-        "RuntimeError",
+        "PlanExecutionError",
         "_execute_task",
         "wait_for"
       ],
-      "line_number": 166,
+      "line_number": 225,
       "is_async": true,
       "parameters": [
         "self",
@@ -2453,7 +2768,7 @@
         "timeout"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-07T18:40:15.536506+00:00",
+      "last_updated": "2025-08-08T11:30:21.775205+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -2467,27 +2782,31 @@
       "domain": "agents",
       "agent": "planner_agent",
       "capability": "unassigned",
-      "intent": "Executes a plan, running each task in sequence with progress tracking.",
-      "docstring": "Executes a plan, running each task in sequence with progress tracking.",
+      "intent": "Creates and executes a plan in a two-step (Plan -> Generate -> Execute) process.",
+      "docstring": "Creates and executes a plan in a two-step (Plan -> Generate -> Execute) process.",
       "calls": [
         "ExecutionProgress",
         "PlanExecutionContext",
+        "PlanExecutionError",
         "_execute_task_with_timeout",
+        "_generate_code_for_task",
+        "create_execution_plan",
         "enumerate",
         "error",
+        "get",
+        "hasattr",
         "info",
         "len",
         "str"
       ],
-      "line_number": 174,
+      "line_number": 233,
       "is_async": true,
       "parameters": [
         "self",
-        "plan",
-        "progress_callback"
+        "high_level_goal"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-07T18:40:15.537084+00:00",
+      "last_updated": "2025-08-08T11:30:21.775920+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -2500,16 +2819,17 @@
       "file": "src/agents/planner_agent.py",
       "domain": "agents",
       "agent": "planner_agent",
-      "capability": "change_safety_enforcement",
+      "capability": "unassigned",
       "intent": "Executes the surgical 'add_capability_tag' action.",
       "docstring": "Executes the surgical 'add_capability_tag' action.",
       "calls": [
-        "RuntimeError",
+        "PlanExecutionError",
         "_find_symbol_line_async",
         "add",
         "add_pending_write",
         "commit",
         "confirm_write",
+        "exists",
         "info",
         "insert",
         "is_git_repo",
@@ -2520,18 +2840,90 @@
         "splitlines",
         "validate_code"
       ],
-      "line_number": 195,
+      "line_number": 267,
       "is_async": true,
       "parameters": [
         "self",
-        "params",
-        "step_name"
+        "params"
       ],
-      "entry_point_type": "capability",
-      "last_updated": "2025-08-07T18:40:15.537956+00:00",
+      "entry_point_type": "data_model",
+      "last_updated": "2025-08-08T11:30:21.776927+00:00",
       "is_class": false,
       "base_classes": [],
-      "entry_point_justification": "capability_implementation",
+      "entry_point_justification": "dataclass_definition",
+      "parent_class_key": "src/agents/planner_agent.py::PlannerAgent"
+    },
+    "src/agents/planner_agent.py::_execute_create_file": {
+      "key": "src/agents/planner_agent.py::_execute_create_file",
+      "name": "_execute_create_file",
+      "type": "AsyncFunctionDef",
+      "file": "src/agents/planner_agent.py",
+      "domain": "agents",
+      "agent": "planner_agent",
+      "capability": "unassigned",
+      "intent": "Executes the 'create_file' action.",
+      "docstring": "Executes the 'create_file' action.",
+      "calls": [
+        "FileExistsError",
+        "PlanExecutionError",
+        "add",
+        "add_pending_write",
+        "commit",
+        "confirm_write",
+        "exists",
+        "is_git_repo",
+        "validate_code"
+      ],
+      "line_number": 301,
+      "is_async": true,
+      "parameters": [
+        "self",
+        "params"
+      ],
+      "entry_point_type": "data_model",
+      "last_updated": "2025-08-08T11:30:21.777774+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "entry_point_justification": "dataclass_definition",
+      "parent_class_key": "src/agents/planner_agent.py::PlannerAgent"
+    },
+    "src/agents/planner_agent.py::_execute_edit_function": {
+      "key": "src/agents/planner_agent.py::_execute_edit_function",
+      "name": "_execute_edit_function",
+      "type": "AsyncFunctionDef",
+      "file": "src/agents/planner_agent.py",
+      "domain": "agents",
+      "agent": "planner_agent",
+      "capability": "unassigned",
+      "intent": "Executes the 'edit_function' action using the CodeEditor.",
+      "docstring": "Executes the 'edit_function' action using the CodeEditor.",
+      "calls": [
+        "FileNotFoundError",
+        "PlanExecutionError",
+        "add",
+        "add_pending_write",
+        "commit",
+        "confirm_write",
+        "dedent",
+        "exists",
+        "get_event_loop",
+        "is_git_repo",
+        "replace_symbol_in_code",
+        "run_in_executor",
+        "strip",
+        "validate_code"
+      ],
+      "line_number": 322,
+      "is_async": true,
+      "parameters": [
+        "self",
+        "params"
+      ],
+      "entry_point_type": "data_model",
+      "last_updated": "2025-08-08T11:30:21.778548+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "entry_point_justification": "dataclass_definition",
       "parent_class_key": "src/agents/planner_agent.py::PlannerAgent"
     },
     "src/agents/planner_agent.py::_execute_task": {
@@ -2546,16 +2938,19 @@
       "docstring": "Dispatcher that executes a single task from a plan based on its action type.",
       "calls": [
         "_execute_add_tag",
+        "_execute_create_file",
+        "_execute_edit_function",
+        "_validate_task_params",
         "warning"
       ],
-      "line_number": 226,
+      "line_number": 356,
       "is_async": true,
       "parameters": [
         "self",
         "task"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-07T18:40:15.538655+00:00",
+      "last_updated": "2025-08-08T11:30:21.779221+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -2576,7 +2971,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "enum",
-      "last_updated": "2025-08-07T18:40:15.539705+00:00",
+      "last_updated": "2025-08-08T11:30:21.780432+00:00",
       "is_class": true,
       "base_classes": [
         "Enum"
@@ -2598,7 +2993,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-07T18:40:15.540117+00:00",
+      "last_updated": "2025-08-08T11:30:21.780826+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -2620,7 +3015,7 @@
         "self"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-07T18:40:15.540508+00:00",
+      "last_updated": "2025-08-08T11:30:21.781195+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -2641,7 +3036,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-07T18:40:15.540881+00:00",
+      "last_updated": "2025-08-08T11:30:21.781582+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -2657,11 +3052,11 @@
       "intent": "Data model for the parameters of a single task in an execution plan.",
       "docstring": "Data model for the parameters of a single task in an execution plan.",
       "calls": [],
-      "line_number": 40,
+      "line_number": 41,
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-07T18:40:15.541238+00:00",
+      "last_updated": "2025-08-08T11:30:21.781953+00:00",
       "is_class": true,
       "base_classes": [
         "BaseModel"
@@ -2679,11 +3074,11 @@
       "intent": "Data model for a single, executable step in a plan.",
       "docstring": "Data model for a single, executable step in a plan.",
       "calls": [],
-      "line_number": 46,
+      "line_number": 48,
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-07T18:40:15.541581+00:00",
+      "last_updated": "2025-08-08T11:30:21.782325+00:00",
       "is_class": true,
       "base_classes": [
         "BaseModel"
@@ -2713,7 +3108,7 @@
         "start_path"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-07T18:40:15.542250+00:00",
+      "last_updated": "2025-08-08T11:30:21.783057+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -2746,7 +3141,7 @@
         "file_type"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-07T18:40:15.543532+00:00",
+      "last_updated": "2025-08-08T11:30:21.784376+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -2770,7 +3165,7 @@
         "name"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-07T18:40:15.544656+00:00",
+      "last_updated": "2025-08-08T11:30:21.785611+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation"
@@ -2825,7 +3220,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-07T18:40:15.548943+00:00",
+      "last_updated": "2025-08-08T11:30:21.789784+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "capability_implementation"
@@ -2848,7 +3243,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-07T18:40:15.549341+00:00",
+      "last_updated": "2025-08-08T11:30:21.790162+00:00",
       "is_class": true,
       "base_classes": [
         "StringIO"
@@ -2876,7 +3271,7 @@
         "s"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-07T18:40:15.549737+00:00",
+      "last_updated": "2025-08-08T11:30:21.790530+00:00",
       "is_class": false,
       "base_classes": [
         "StringIO",
@@ -2910,7 +3305,7 @@
         "repo_root"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-07T18:40:15.551278+00:00",
+      "last_updated": "2025-08-08T11:30:21.792042+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -2937,7 +3332,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-07T18:40:15.550806+00:00",
+      "last_updated": "2025-08-08T11:30:21.791585+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -2973,7 +3368,7 @@
         "self"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-07T18:40:15.552051+00:00",
+      "last_updated": "2025-08-08T11:30:21.792826+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -3008,7 +3403,7 @@
         "self"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-07T18:40:15.552953+00:00",
+      "last_updated": "2025-08-08T11:30:21.793710+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -3038,7 +3433,7 @@
         "passed"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-07T18:40:15.553799+00:00",
+      "last_updated": "2025-08-08T11:30:21.794541+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -3065,7 +3460,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "cli_entry_point",
-      "last_updated": "2025-08-07T18:40:15.554476+00:00",
+      "last_updated": "2025-08-08T11:30:21.795219+00:00",
       "is_class": false,
       "base_classes": []
     },
@@ -3084,7 +3479,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "enum",
-      "last_updated": "2025-08-07T18:40:15.555253+00:00",
+      "last_updated": "2025-08-08T11:30:21.796061+00:00",
       "is_class": true,
       "base_classes": [
         "Enum"
@@ -3106,7 +3501,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-07T18:40:15.555640+00:00",
+      "last_updated": "2025-08-08T11:30:21.796461+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -3128,7 +3523,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-07T18:40:15.556714+00:00",
+      "last_updated": "2025-08-08T11:30:21.797589+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -3163,7 +3558,7 @@
         "violations"
       ],
       "entry_point_type": "cli_entry_point",
-      "last_updated": "2025-08-07T18:40:15.557232+00:00",
+      "last_updated": "2025-08-08T11:30:21.798110+00:00",
       "is_class": false,
       "base_classes": []
     },
@@ -3184,7 +3579,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-07T18:40:15.563852+00:00",
+      "last_updated": "2025-08-08T11:30:21.804779+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -3204,7 +3599,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-07T18:40:15.564458+00:00",
+      "last_updated": "2025-08-08T11:30:21.805263+00:00",
       "is_class": true,
       "base_classes": [
         "Exception"
@@ -3232,7 +3627,7 @@
         "start_path"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-07T18:40:15.564859+00:00",
+      "last_updated": "2025-08-08T11:30:21.805663+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -3257,7 +3652,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-07T18:40:15.565382+00:00",
+      "last_updated": "2025-08-08T11:30:21.806145+00:00",
       "is_class": true,
       "base_classes": [
         "NodeVisitor"
@@ -3288,7 +3683,7 @@
         "exclude_patterns"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-07T18:40:15.571738+00:00",
+      "last_updated": "2025-08-08T11:30:21.812383+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -3316,7 +3711,7 @@
         "node"
       ],
       "entry_point_type": "visitor_method",
-      "last_updated": "2025-08-07T18:40:15.566169+00:00",
+      "last_updated": "2025-08-08T11:30:21.806944+00:00",
       "is_class": false,
       "base_classes": [
         "NodeVisitor"
@@ -3397,7 +3792,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-07T18:40:15.569039+00:00",
+      "last_updated": "2025-08-08T11:30:21.809662+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "capability_implementation"
@@ -3420,7 +3815,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-07T18:40:15.569591+00:00",
+      "last_updated": "2025-08-08T11:30:21.810197+00:00",
       "is_class": true,
       "base_classes": [
         "NodeVisitor"
@@ -3448,7 +3843,7 @@
         "node"
       ],
       "entry_point_type": "visitor_method",
-      "last_updated": "2025-08-07T18:40:15.570411+00:00",
+      "last_updated": "2025-08-08T11:30:21.811004+00:00",
       "is_class": false,
       "base_classes": [
         "NodeVisitor"
@@ -3477,7 +3872,7 @@
         "node"
       ],
       "entry_point_type": "visitor_method",
-      "last_updated": "2025-08-07T18:40:15.570833+00:00",
+      "last_updated": "2025-08-08T11:30:21.811455+00:00",
       "is_class": false,
       "base_classes": [
         "NodeVisitor"
@@ -3506,7 +3901,7 @@
         "node"
       ],
       "entry_point_type": "visitor_method",
-      "last_updated": "2025-08-07T18:40:15.571231+00:00",
+      "last_updated": "2025-08-08T11:30:21.811866+00:00",
       "is_class": false,
       "base_classes": [
         "NodeVisitor"
@@ -3536,7 +3931,7 @@
         "self"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-07T18:40:15.572265+00:00",
+      "last_updated": "2025-08-08T11:30:21.812917+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -3566,7 +3961,7 @@
         "self"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-07T18:40:15.572753+00:00",
+      "last_updated": "2025-08-08T11:30:21.813408+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -3592,7 +3987,7 @@
         "path"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-07T18:40:15.573184+00:00",
+      "last_updated": "2025-08-08T11:30:21.813843+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -3620,7 +4015,7 @@
         "self"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-07T18:40:15.573643+00:00",
+      "last_updated": "2025-08-08T11:30:21.814338+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -3649,7 +4044,7 @@
         "file_path"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-07T18:40:15.574102+00:00",
+      "last_updated": "2025-08-08T11:30:21.814817+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -3677,7 +4072,7 @@
         "relative_path"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-07T18:40:15.574603+00:00",
+      "last_updated": "2025-08-08T11:30:21.815323+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -3707,7 +4102,7 @@
         "source_lines"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-07T18:40:15.575114+00:00",
+      "last_updated": "2025-08-08T11:30:21.815866+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -3733,7 +4128,7 @@
         "node"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-07T18:40:15.575696+00:00",
+      "last_updated": "2025-08-08T11:30:21.816450+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -3770,7 +4165,7 @@
         "filepath"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-07T18:40:15.576531+00:00",
+      "last_updated": "2025-08-08T11:30:21.817228+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -3816,7 +4211,7 @@
         "parent_key"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-07T18:40:15.577583+00:00",
+      "last_updated": "2025-08-08T11:30:21.818257+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -3845,7 +4240,7 @@
         "self"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-07T18:40:15.578547+00:00",
+      "last_updated": "2025-08-08T11:30:21.819229+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -3882,7 +4277,7 @@
         "self"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-07T18:40:15.579435+00:00",
+      "last_updated": "2025-08-08T11:30:21.820101+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -3915,7 +4310,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "cli_entry_point",
-      "last_updated": "2025-08-07T18:40:15.580172+00:00",
+      "last_updated": "2025-08-08T11:30:21.820842+00:00",
       "is_class": false,
       "base_classes": []
     },
@@ -3937,7 +4332,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "cli_entry_point",
-      "last_updated": "2025-08-07T18:40:15.581144+00:00",
+      "last_updated": "2025-08-08T11:30:21.821950+00:00",
       "is_class": false,
       "base_classes": []
     },
@@ -3963,7 +4358,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-07T18:40:15.582816+00:00",
+      "last_updated": "2025-08-08T11:30:21.823721+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -3986,7 +4381,7 @@
         "context"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-07T18:40:15.583172+00:00",
+      "last_updated": "2025-08-08T11:30:21.824112+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -4013,7 +4408,7 @@
         "self"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-07T18:40:15.583761+00:00",
+      "last_updated": "2025-08-08T11:30:21.824722+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -4043,7 +4438,7 @@
         "self"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-07T18:40:15.584509+00:00",
+      "last_updated": "2025-08-08T11:30:21.825524+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -4089,7 +4484,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-07T18:40:15.587876+00:00",
+      "last_updated": "2025-08-08T11:30:21.828889+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -4112,7 +4507,7 @@
         "context"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-07T18:40:15.588263+00:00",
+      "last_updated": "2025-08-08T11:30:21.829288+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -4143,7 +4538,7 @@
         "self"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-07T18:40:15.588825+00:00",
+      "last_updated": "2025-08-08T11:30:21.829853+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -4178,7 +4573,7 @@
         "self"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-07T18:40:15.589623+00:00",
+      "last_updated": "2025-08-08T11:30:21.830649+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -4213,7 +4608,7 @@
         "self"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-07T18:40:15.590417+00:00",
+      "last_updated": "2025-08-08T11:30:21.831481+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -4249,7 +4644,7 @@
         "self"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-07T18:40:15.591256+00:00",
+      "last_updated": "2025-08-08T11:30:21.832420+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -4280,7 +4675,7 @@
         "data"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-07T18:40:15.591798+00:00",
+      "last_updated": "2025-08-08T11:30:21.832975+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -4321,7 +4716,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-07T18:40:15.595624+00:00",
+      "last_updated": "2025-08-08T11:30:21.836871+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -4344,7 +4739,7 @@
         "context"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-07T18:40:15.595984+00:00",
+      "last_updated": "2025-08-08T11:30:21.837275+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -4370,7 +4765,7 @@
         "self"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-07T18:40:15.596534+00:00",
+      "last_updated": "2025-08-08T11:30:21.837788+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -4400,7 +4795,7 @@
         "self"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-07T18:40:15.597136+00:00",
+      "last_updated": "2025-08-08T11:30:21.838474+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -4430,7 +4825,7 @@
         "self"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-07T18:40:15.597865+00:00",
+      "last_updated": "2025-08-08T11:30:21.839183+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -4459,7 +4854,7 @@
         "self"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-07T18:40:15.598604+00:00",
+      "last_updated": "2025-08-08T11:30:21.839899+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -4496,7 +4891,7 @@
         "self"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-07T18:40:15.599574+00:00",
+      "last_updated": "2025-08-08T11:30:21.840874+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -4524,7 +4919,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-07T18:40:15.601246+00:00",
+      "last_updated": "2025-08-08T11:30:21.842721+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -4547,7 +4942,7 @@
         "context"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-07T18:40:15.601622+00:00",
+      "last_updated": "2025-08-08T11:30:21.843113+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -4577,7 +4972,7 @@
         "self"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-07T18:40:15.602208+00:00",
+      "last_updated": "2025-08-08T11:30:21.843728+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -4606,7 +5001,7 @@
         "schema_name"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-07T18:40:15.603611+00:00",
+      "last_updated": "2025-08-08T11:30:21.845192+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -4636,7 +5031,7 @@
         "schema_name"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-07T18:40:15.604230+00:00",
+      "last_updated": "2025-08-08T11:30:21.845810+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -4665,7 +5060,7 @@
         "file_path"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-07T18:40:15.605325+00:00",
+      "last_updated": "2025-08-08T11:30:21.846964+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -4690,7 +5085,7 @@
         "llm_output"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-07T18:40:15.606178+00:00",
+      "last_updated": "2025-08-08T11:30:21.847841+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
