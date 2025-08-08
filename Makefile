@@ -1,58 +1,108 @@
-# Makefile for CORE – Cognitive Orchestration Runtime Engine (Robust Version)
+# Makefile for CORE – Cognitive Orchestration Runtime Engine
 
-.PHONY: help install lock run stop lint format test manifest-update clean
+SHELL := /bin/bash
+.SHELLFLAGS := -eu -o pipefail -c
+.DEFAULT_GOAL := help
 
-# Default command: show help
+# ---- Configurable knobs -----------------------------------------------------
+POETRY  ?= python3 -m poetry
+PYTHON  ?= python3
+APP     ?= src.core.main:app
+HOST    ?= 0.0.0.0
+PORT    ?= 8000
+RELOAD  ?= --reload
+ENV_FILE ?= .env
+PATHS   ?= .
+
+.PHONY: help install lock run stop lint format test coverage check clean clean-logs distclean nuke
+
 help:
 	@echo "CORE Development Makefile"
 	@echo "-------------------------"
-	@echo "Available commands:"
-	@echo "  make install         - Install dependencies using Poetry"
-	@echo "  make lock            - Update the poetry.lock file"
-	@echo "  make run             - Stop any running server and start a new one with auto-reload"
-	@echo "  make stop            - Stop the development server if it is running"
-	@echo "  make lint            - Run Ruff to check for linting errors"
-	@echo "  make format          - Auto-format code with Black and Ruff"
-	@echo "  make test            - Run all tests with pytest"
-	@echo "  make clean           - Remove temporary Python files"
+	@echo "make install       - Install deps with Poetry"
+	@echo "make lock          - Update poetry.lock"
+	@echo "make run           - Start uvicorn ($(APP)) on $(HOST):$(PORT)"
+	@echo "make stop          - Stop dev server (kill script or pkill fallback)"
+	@echo "make lint          - Ruff checks"
+	@echo "make format        - Black + Ruff --fix"
+	@echo "make test [ARGS=]  - Pytest (pass ARGS='-k expr -vv')"
+	@echo "make coverage      - Pytest with coverage"
+	@echo "make check         - Lint + Tests"
+	@echo "make clean         - Remove caches, pending_writes, sandbox"
+	@echo "make clean-logs    - Remove logs/*"
+	@echo "make distclean     - Clean + venv/node/build"
+	@echo "make nuke          - git clean -fdx (danger)"
 
 install:
 	@echo "📦 Installing dependencies..."
-	python3 -m poetry install
+	$(POETRY) install
 
 lock:
 	@echo "🔒 Resolving and locking dependencies..."
-	python3 -m poetry lock
+	$(POETRY) lock
 
-# --- MODIFICATION: The 'run' command now depends on 'stop' ---
-# This ensures that `make stop` is always executed before `make run` starts.
+# Ensure we stop before run
 run: stop
-	@echo "🚀 Starting FastAPI server at http://127.0.0.1:8000"
-	python3 -m poetry run uvicorn src.core.main:app --reload --host 0.0.0.0 --port 8000
+	@echo "🚀 Starting FastAPI server at http://$(HOST):$(PORT)"
+	$(POETRY) run uvicorn $(APP) --host $(HOST) --port $(PORT) $(RELOAD) --env-file $(ENV_FILE)
 
-# --- MODIFICATION: New target to stop the server ---
-# It checks for the kill script and runs it.
 stop:
 	@if [ -f ./kill-core.sh ]; then \
-		./kill-core.sh; \
+		echo "🛑 Using kill-core.sh"; ./kill-core.sh; \
 	else \
-		echo "⚠️  kill-core.sh not found. Skipping stop."; \
+		echo "🛑 kill-core.sh not found. Attempting pkill uvicorn..."; \
+		pkill -f "uvicorn .*$(APP)" || true; \
 	fi
 
 lint:
 	@echo "🎨 Checking code style with Ruff..."
-	python3 -m poetry run ruff check .
+	$(POETRY) run ruff check $(PATHS)
 
 format:
 	@echo "✨ Formatting code with Black and Ruff..."
-	python3 -m poetry run ruff check . --fix
-	python3 -m poetry run black .
+	$(POETRY) run black $(PATHS)
+	$(POETRY) run ruff check $(PATHS) --fix
 
 test:
 	@echo "🧪 Running tests with pytest..."
-	python3 -m poetry run pytest
+	$(POETRY) run pytest $(ARGS)
+
+coverage:
+	@echo "🧮 Running tests with coverage..."
+	$(POETRY) run pytest --cov=src --cov-report=term-missing:skip-covered $(ARGS)
+
+check: lint test
+
+# ---- Clean targets ---------------------------------------------------------
 
 clean:
-	@echo "🧹 Cleaning up temporary files..."
+	@echo "🧹 Cleaning up temporary files and caches..."
+	# Bytecode & __pycache__
 	find . -type f -name '*.pyc' -delete
-	find . -type d -name '__pycache__' -exec rm -r {} +
+	find . -type d -name '__pycache__' -prune -exec rm -rf {} +
+	# Tool caches
+	rm -rf .pytest_cache .ruff_cache .mypy_cache .cache
+	# Coverage & reports
+	rm -f .coverage
+	rm -rf htmlcov
+	# Build/packaging junk
+	rm -rf build dist *.egg-info
+	# Local dirs you don't want to keep
+	rm -rf pending_writes sandbox
+	@echo "✅ Clean complete."
+
+clean-logs:
+	@echo "🧻 Removing logs/* ..."
+	rm -rf logs/* || true
+	@echo "✅ Logs cleaned."
+
+distclean: clean clean-logs
+	@echo "🧨 Distclean: removing virtual environments and build leftovers..."
+	rm -rf .venv node_modules
+	@echo "✅ Distclean complete."
+
+nuke:
+	@echo "☢️  Running 'git clean -fdx' in 3s (CTRL+C to cancel)..."
+	@sleep 3
+	git clean -fdx
+	@echo "✅ Repo nuked (untracked files/dirs removed)."
