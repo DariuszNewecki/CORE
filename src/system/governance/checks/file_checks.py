@@ -48,8 +48,8 @@ class FileChecks:
             if file_path.is_file() and "proposals" not in file_path.parts:
                 result = validate_code(str(file_path), file_path.read_text(encoding='utf-8'), quiet=True)
                 if result["status"] == "dirty":
-                    for err in result["errors"]:
-                        error_findings.append(AuditFinding(AuditSeverity.ERROR, f"Syntax Error: {err}", check_name, str(file_path.relative_to(self.context.repo_root))))
+                    for violation in result["violations"]:
+                        error_findings.append(AuditFinding(AuditSeverity.ERROR, f"Syntax Error: {violation['message']}", check_name, str(file_path.relative_to(self.context.repo_root))))
         
         if not error_findings:
             findings.append(AuditFinding(AuditSeverity.SUCCESS, f"Validated syntax for {len(files_to_check)} YAML/JSON files.", check_name))
