@@ -6,6 +6,7 @@ for all code and configuration validation.
 """
 import ast
 import yaml
+import re # Import 're' for the new function
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 
@@ -82,6 +83,20 @@ def _find_dangerous_patterns(tree: ast.AST, file_path: str) -> List[str]:
                 violations.append(f"Import from forbidden module on line {node.lineno}: '{node.module}'")
     return violations
 
+# --- NEW FUNCTION INSPIRED BY GPT-4O ---
+def _check_for_todo_comments(code: str) -> List[str]:
+    """
+    Scans source code for TODO/FIXME comments and returns them as error strings.
+    This serves the `clarity_first` principle by ensuring no unfinished code is committed.
+    """
+    errors = []
+    for i, line in enumerate(code.splitlines(), 1):
+        if '#' in line:
+            comment = line.split('#', 1)[1]
+            if 'TODO' in comment or 'FIXME' in comment:
+                errors.append(f"Clarity Violation: Unresolved '{comment.strip()}' on line {i}")
+    return errors
+
 # CAPABILITY: semantic_validation
 def _check_semantics(code: str, file_path: str) -> List[str]:
     """Runs all policy-aware semantic checks on a string of Python code."""
@@ -111,6 +126,11 @@ def _validate_python_code(path_hint: str, code: str) -> Dict[str, Any]:
     semantic_errors = _check_semantics(fixed_code, path_hint)
     if semantic_errors:
         errors.extend(semantic_errors)
+        
+    # --- MODIFICATION: Surgically insert the new check here ---
+    todo_errors = _check_for_todo_comments(fixed_code)
+    if todo_errors:
+        errors.extend(todo_errors)
     
     status = "clean" if not errors else "dirty"
     return {"status": status, "errors": errors, "code": fixed_code}
