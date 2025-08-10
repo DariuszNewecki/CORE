@@ -1,0 +1,18 @@
+capabilities:
+- alignment_checking
+- audit.check.required_files
+- audit.check.syntax
+- audit.check.project_manifest
+- audit.check.capability_coverage
+- audit.check.capability_definitions
+- audit.check.knowledge_graph_schema
+- audit.check.domain_integrity
+- audit.check.docstrings
+- audit.check.dead_code
+- audit.check.orphaned_intent_files
+- audit.check.environment
+- audit.check.proposals_schema
+- audit.check.proposals_drift
+- audit.check.proposals_list
+description: Governance tooling, lifecycle setup, CLI utilities
+domain: system

@@ -1,0 +1,12 @@
+capabilities:
+- prompt_interpretation
+- syntax_validation
+- test_execution
+- introspection
+- self_correction
+- change_safety_enforcement
+- intent_guarding
+- semantic_validation
+- code_quality_analysis
+description: Core logic for orchestration, routing, and CLI
+domain: core
