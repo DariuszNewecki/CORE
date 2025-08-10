@@ -1,0 +1,4 @@
+capabilities:
+- system_logging
+description: Shared models, helpers, and config interfaces
+domain: shared
