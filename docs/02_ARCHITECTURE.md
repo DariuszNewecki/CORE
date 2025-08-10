@@ -18,7 +18,7 @@ The `.intent/` directory is structured to provide a complete and transparent vie
 | **`/mission`** | **The Constitution's Soul:** High-level, philosophical principles. | `principles.yaml`, `northstar.yaml` |
 | **`/policies`** | **The Constitution's Laws:** Specific, machine-readable rules that govern agent behavior. | `safety_policies.yaml`, `intent_guard.yaml` |
 | **`/knowledge`** | **The System's Self-Image:** Declarative knowledge about the system's own structure. | `knowledge_graph.json`, `source_structure.yaml` |
-| **`/constitution`** | **The Machinery of Governance:** Defines the human operators and processes for changing the constitution. | `approvers.pub` |
+| **`/constitution`** | **The Machinery of Governance:** Defines the human operators and processes for changing the constitution. | `approvers.yaml` |
 | **`/proposals`** | **The Legislative Floor:** A safe, temporary "sandbox" for drafting and signing proposed constitutional changes. | `cr-*.yaml` |
 | **`/config`** | **Environmental Awareness:** Declares the system's dependencies on its runtime environment. | `runtime_requirements.yaml` |
 | **`/schemas`** | **The Blueprint:** JSON schemas that define the structure of the knowledge files. | `knowledge_graph_entry.schema.json` |
@@ -36,11 +36,4 @@ The `src/` directory is organized into strict architectural **domains**. These d
 
 ## The Flow of Knowledge: From Code to Graph
 
-The system's self-awareness is not magic; it is the result of a deliberate introspection process.
-
-1.  **Code Annotation:** Developers (human or AI) annotate functions and classes with `# CAPABILITY:` tags to declare their purpose.
-2.  **Introspection (`KnowledgeGraphBuilder`):** A dedicated tool (`codegraph_builder.py`) runs, scanning the entire `src/` directory. It uses Abstract Syntax Tree (AST) analysis to parse every file.
-3.  **Knowledge Graph Creation:** It builds a comprehensive JSON file, `knowledge_graph.json`, which is a detailed map of every function, class, capability, and relationship in the codebase.
-4.  **Constitutional Audit:** The `ConstitutionalAuditor` then uses this freshly generated Knowledge Graph as its primary source of truth to verify that the system's reality (the code) matches its declared intent (the constitution).
-
-This loop—**Code → Introspect → Govern**—is fundamental to CORE's ability to evolve safely.
+The syst

@@ -2,14 +2,14 @@
 
 ## Preamble: From Foundation to Future
 
-The initial development of CORE focused on building a stable, self-aware, and constitutionally governed foundation. The major phases of this foundational work are now complete:
+The initial development of CORE focused on building a stable, self-aware, and constitutionally governed foundation. The major phases of this foundational work are now complete, as documented in our **[Strategic Plan](StrategicPlan.md)**. That document tells the story of how we achieved our current stable state.
+
+**This document outlines our future direction.** With a stable and secure foundation in place, the project is now moving into its next major phase: **enabling true autonomous application development.**
 
 -   ✅ **A Unified "Mind":** The system's self-knowledge has been consolidated into a single, verifiable Knowledge Graph.
 -   ✅ **A Unified Governance Engine:** The `ConstitutionalAuditor` is now the single, dynamic engine for enforcing all constitutional principles.
 -   ✅ **Constitutional Compliance:** The system now passes its own strict self-audit with zero errors, proving its internal consistency.
 -   ✅ **A Secure Amendment Process:** A robust, human-in-the-loop, cryptographically signed process for evolving the system's own constitution has been implemented and verified.
-
-With this stable and secure foundation in place, the project is now moving into its next major phase: **enabling true autonomous application development.**
 
 The following sections outline the key architectural challenges and features on our roadmap. We welcome discussion and contributions on these topics.
 

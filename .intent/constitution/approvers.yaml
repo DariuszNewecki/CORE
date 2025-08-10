@@ -1,4 +1,4 @@
-# .intent/constitution/approvers.pub
+# .intent/constitution/approvers.yaml
 #
 # PURPOSE: This fulfills security_intents principle by enabling cryptographic verification
 # of constitutional approvals, preventing compromised CLI tools from approving malicious changes.
@@ -6,19 +6,10 @@
 # This file contains the public keys of all authorized constitutional approvers.
 # Each key must be in PEM format and accompanied by the approver's identity.
 #
-# To add a new approver:
-# 1. Generate a key pair: `openssl genpkey -algorithm ED25519 -out approver_private.pem`
-# 2. Extract public key: `openssl pkey -in approver_private.pem -pubout -out approver_public.pem`
-# 3. Add the public key below with approver details
-#
-# Format:
-# - identity: "name@domain.com"
-#   public_key: |
-#     -----BEGIN PUBLIC KEY-----
-#     <base64-encoded key>
-#     -----END PUBLIC KEY-----
-#   created_at: "YYYY-MM-DDTHH:MM:SSZ"
-#   role: "maintainer|admin|security"
+# TO ADD A NEW APPROVER:
+# 1. Run the command: `core-admin keygen "your.email@example.com"`
+# 2. The command will output a YAML block.
+# 3. Paste that block into the 'approvers' list below.
 
 approvers:
   - identity: "core-team@core-system.ai"
@@ -42,7 +33,7 @@ approvers:
   - identity: "d.newecki@gmail.com"
     public_key: |
       -----BEGIN PUBLIC KEY-----
-      MCowBQYDK2VuAyEASvcaAU9u25LYnvp4OcHPRTxIXywioj2eZIT83n/urhw=
+      MCowBQYDK2VwAyEA+V4iUN4DElKdqXmU4ivNthnG8VgPb7QqZgzdJuh4igs=
       -----END PUBLIC KEY-----
     role: "maintainer"
     description: "Mentor"
@@ -58,5 +49,5 @@ quorum:
 # Critical policy paths that require higher quorum
 critical_paths:
   - ".intent/policies/intent_guard.yaml"
-  - ".intent/constitution/approvers.pub"
+  - ".intent/constitution/approvers.yaml"
   - ".intent/meta.yaml"

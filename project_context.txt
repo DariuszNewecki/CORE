@@ -618,8 +618,71 @@ jobs:
 
       - name: Tests
         run: poetry run pytest -q
+        
+  governance:
+    name: Governance & Drift Check
+    runs-on: ubuntu-latest
+    needs: ci
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python & Poetry
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pipx install poetry
+
+      - name: Install deps
+        run: poetry install --no-interaction --no-root
+
+      - name: Generate Knowledge Graph Artifact
+        run: poetry run core-admin guard kg-export
+
+      - name: Detect Capability Drift (strict)
+        run: |
+          set -e
+          poetry run core-admin guard drift --strict-intent --fail-on any --format json
 
 --- END OF FILE ./.github/workflows/core-ci.yml ---
+
+--- START OF FILE ./.github/workflows/governance.yml ---
+name: Governance & Drift Check
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  governance:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python & Poetry
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pipx install poetry
+
+      - name: Install deps
+        run: poetry install --no-interaction
+
+      - name: Lint & tests (optional but nice)
+        run: |
+          poetry run ruff check
+          poetry run pytest -q
+
+      - name: Generate Knowledge Graph Artifact
+        run: poetry run core-admin guard kg-export
+
+      - name: Detect Capability Drift (strict, fail on any)
+        run: |
+          set -e
+          poetry run core-admin guard drift --strict-intent --fail-on any --format json
+
+--- END OF FILE ./.github/workflows/governance.yml ---
 
 --- START OF FILE ./.github/workflows/nightly-audit.yml ---
 name: Nightly Constitutional Audit
@@ -728,6 +791,9 @@ pending_writes/
 sandbox/
 *.jsonl
 *.lock
+reports/knowledge_graph.json
+reports/drift_report.json
+
 
 # Cache or checkpoints
 *.bak
@@ -1177,8 +1243,8 @@ handlers:
   "schema_version": "2.0.0",
   "metadata": {
     "files_scanned": 42,
-    "total_symbols": 216,
-    "timestamp_utc": "2025-08-10T08:21:01.031066+00:00"
+    "total_symbols": 221,
+    "timestamp_utc": "2025-08-10T11:49:02.625040+00:00"
   },
   "symbols": {
     "src/core/clients.py::BaseLLMClient": {
@@ -1205,7 +1271,7 @@ handlers:
       "is_async": false,
       "parameters": [],
       "entry_point_type": "base_class",
-      "last_updated": "2025-08-10T08:21:00.821371+00:00",
+      "last_updated": "2025-08-10T11:49:02.411547+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "framework_base_class"
@@ -1231,7 +1297,7 @@ handlers:
         "self"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-10T08:21:00.824382+00:00",
+      "last_updated": "2025-08-10T11:49:02.414563+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -1262,7 +1328,7 @@ handlers:
         "user_id"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.822597+00:00",
+      "last_updated": "2025-08-10T11:49:02.412733+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -1287,7 +1353,7 @@ handlers:
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.823218+00:00",
+      "last_updated": "2025-08-10T11:49:02.413379+00:00",
       "is_class": true,
       "base_classes": [
         "BaseLLMClient"
@@ -1313,7 +1379,7 @@ handlers:
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.824006+00:00",
+      "last_updated": "2025-08-10T11:49:02.414184+00:00",
       "is_class": true,
       "base_classes": [
         "BaseLLMClient"
@@ -1339,7 +1405,7 @@ handlers:
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.828210+00:00",
+      "last_updated": "2025-08-10T11:49:02.418325+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -1365,7 +1431,7 @@ handlers:
         "node"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.828701+00:00",
+      "last_updated": "2025-08-10T11:49:02.418787+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -1402,7 +1468,7 @@ handlers:
         "file_path"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.829639+00:00",
+      "last_updated": "2025-08-10T11:49:02.419665+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -1430,7 +1496,7 @@ handlers:
         "code"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.830619+00:00",
+      "last_updated": "2025-08-10T11:49:02.420563+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -1456,7 +1522,7 @@ handlers:
         "file_path"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-10T08:21:00.831223+00:00",
+      "last_updated": "2025-08-10T11:49:02.421126+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation"
@@ -1489,7 +1555,7 @@ handlers:
         "code"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.831809+00:00",
+      "last_updated": "2025-08-10T11:49:02.421701+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -1514,7 +1580,7 @@ handlers:
         "code"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.832426+00:00",
+      "last_updated": "2025-08-10T11:49:02.422288+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -1539,7 +1605,7 @@ handlers:
         "file_path"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.832906+00:00",
+      "last_updated": "2025-08-10T11:49:02.422762+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -1570,7 +1636,7 @@ handlers:
         "quiet"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-10T08:21:00.833508+00:00",
+      "last_updated": "2025-08-10T11:49:02.423311+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation"
@@ -1607,7 +1673,7 @@ handlers:
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.835808+00:00",
+      "last_updated": "2025-08-10T11:49:02.425530+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -1636,7 +1702,7 @@ handlers:
         "repo_path"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-10T08:21:00.836198+00:00",
+      "last_updated": "2025-08-10T11:49:02.425890+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -1667,7 +1733,7 @@ handlers:
         "command"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-10T08:21:00.836705+00:00",
+      "last_updated": "2025-08-10T11:49:02.426372+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -1695,7 +1761,7 @@ handlers:
         "file_path"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.837215+00:00",
+      "last_updated": "2025-08-10T11:49:02.426864+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -1724,7 +1790,7 @@ handlers:
         "message"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.837758+00:00",
+      "last_updated": "2025-08-10T11:49:02.427383+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -1749,7 +1815,7 @@ handlers:
         "self"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.838207+00:00",
+      "last_updated": "2025-08-10T11:49:02.427858+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -1774,7 +1840,7 @@ handlers:
         "self"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.838587+00:00",
+      "last_updated": "2025-08-10T11:49:02.428212+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -1802,7 +1868,7 @@ handlers:
         "commit_hash"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.838987+00:00",
+      "last_updated": "2025-08-10T11:49:02.428602+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -1830,7 +1896,7 @@ handlers:
         "code"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-10T08:21:00.839948+00:00",
+      "last_updated": "2025-08-10T11:49:02.429569+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation"
@@ -1857,7 +1923,7 @@ handlers:
         "code"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.840807+00:00",
+      "last_updated": "2025-08-10T11:49:02.430416+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -1895,7 +1961,7 @@ handlers:
         "silent"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-10T08:21:00.844035+00:00",
+      "last_updated": "2025-08-10T11:49:02.432898+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation"
@@ -1921,7 +1987,7 @@ handlers:
         "output"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.844821+00:00",
+      "last_updated": "2025-08-10T11:49:02.433685+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -1948,7 +2014,7 @@ handlers:
         "data"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.845258+00:00",
+      "last_updated": "2025-08-10T11:49:02.434127+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -1977,7 +2043,7 @@ handlers:
         "data"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.845766+00:00",
+      "last_updated": "2025-08-10T11:49:02.434638+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -2009,7 +2075,7 @@ handlers:
         "app"
       ],
       "entry_point_type": "context_manager",
-      "last_updated": "2025-08-10T08:21:00.847566+00:00",
+      "last_updated": "2025-08-10T11:49:02.436463+00:00",
       "is_class": false,
       "base_classes": []
     },
@@ -2028,7 +2094,7 @@ handlers:
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.848053+00:00",
+      "last_updated": "2025-08-10T11:49:02.436959+00:00",
       "is_class": true,
       "base_classes": [
         "BaseModel"
@@ -2061,7 +2127,7 @@ handlers:
         "request"
       ],
       "entry_point_type": "fastapi_route_post",
-      "last_updated": "2025-08-10T08:21:00.848558+00:00",
+      "last_updated": "2025-08-10T11:49:02.437473+00:00",
       "is_class": false,
       "base_classes": []
     },
@@ -2082,7 +2148,7 @@ handlers:
       "is_async": true,
       "parameters": [],
       "entry_point_type": "fastapi_route_get",
-      "last_updated": "2025-08-10T08:21:00.849032+00:00",
+      "last_updated": "2025-08-10T11:49:02.437955+00:00",
       "is_class": false,
       "base_classes": []
     },
@@ -2122,7 +2188,7 @@ handlers:
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.851879+00:00",
+      "last_updated": "2025-08-10T11:49:02.441550+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -2149,7 +2215,7 @@ handlers:
         "repo_path"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-10T08:21:00.852266+00:00",
+      "last_updated": "2025-08-10T11:49:02.441925+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -2181,7 +2247,7 @@ handlers:
         "match"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.852776+00:00",
+      "last_updated": "2025-08-10T11:49:02.442499+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -2207,7 +2273,7 @@ handlers:
         "prompt"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.853227+00:00",
+      "last_updated": "2025-08-10T11:49:02.442944+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -2239,7 +2305,7 @@ handlers:
         "match"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.853686+00:00",
+      "last_updated": "2025-08-10T11:49:02.443491+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -2265,7 +2331,7 @@ handlers:
         "prompt"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.854132+00:00",
+      "last_updated": "2025-08-10T11:49:02.443935+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -2292,7 +2358,7 @@ handlers:
         "match"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.854497+00:00",
+      "last_updated": "2025-08-10T11:49:02.444323+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -2318,7 +2384,7 @@ handlers:
         "prompt"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.854843+00:00",
+      "last_updated": "2025-08-10T11:49:02.444708+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -2353,7 +2419,7 @@ handlers:
         "match"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.855367+00:00",
+      "last_updated": "2025-08-10T11:49:02.445256+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -2379,7 +2445,7 @@ handlers:
         "prompt"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.855894+00:00",
+      "last_updated": "2025-08-10T11:49:02.445806+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -2408,7 +2474,7 @@ handlers:
         "prompt"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-10T08:21:00.856276+00:00",
+      "last_updated": "2025-08-10T11:49:02.446208+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -2437,7 +2503,7 @@ handlers:
       "is_async": false,
       "parameters": [],
       "entry_point_type": "cli_entry_point",
-      "last_updated": "2025-08-10T08:21:00.857968+00:00",
+      "last_updated": "2025-08-10T11:49:02.447915+00:00",
       "is_class": false,
       "base_classes": []
     },
@@ -2471,7 +2537,7 @@ handlers:
         "display_filename"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.860001+00:00",
+      "last_updated": "2025-08-10T11:49:02.449887+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -2509,7 +2575,7 @@ handlers:
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.862635+00:00",
+      "last_updated": "2025-08-10T11:49:02.452412+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -2537,7 +2603,7 @@ handlers:
         "repo_path"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-10T08:21:00.862999+00:00",
+      "last_updated": "2025-08-10T11:49:02.452756+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -2572,7 +2638,7 @@ handlers:
         "code"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.863531+00:00",
+      "last_updated": "2025-08-10T11:49:02.453232+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -2608,7 +2674,7 @@ handlers:
         "pending_id"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.864264+00:00",
+      "last_updated": "2025-08-10T11:49:02.453934+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -2643,7 +2709,7 @@ handlers:
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.866238+00:00",
+      "last_updated": "2025-08-10T11:49:02.455827+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -2670,7 +2736,7 @@ handlers:
         "repo_root"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-10T08:21:00.866663+00:00",
+      "last_updated": "2025-08-10T11:49:02.456220+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -2700,7 +2766,7 @@ handlers:
         "self"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.867189+00:00",
+      "last_updated": "2025-08-10T11:49:02.456719+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -2729,7 +2795,7 @@ handlers:
         "file_path"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.867763+00:00",
+      "last_updated": "2025-08-10T11:49:02.457248+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -2756,7 +2822,7 @@ handlers:
         "domain"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.868264+00:00",
+      "last_updated": "2025-08-10T11:49:02.457798+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -2797,7 +2863,7 @@ handlers:
       "is_async": false,
       "parameters": [],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-10T08:21:00.870174+00:00",
+      "last_updated": "2025-08-10T11:49:02.459757+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "capability_implementation"
@@ -2827,7 +2893,7 @@ handlers:
         "repo_path"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-10T08:21:00.870613+00:00",
+      "last_updated": "2025-08-10T11:49:02.460211+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -2856,7 +2922,7 @@ handlers:
         "self"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.871102+00:00",
+      "last_updated": "2025-08-10T11:49:02.460745+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -2887,7 +2953,7 @@ handlers:
         "self"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.871642+00:00",
+      "last_updated": "2025-08-10T11:49:02.461248+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -2914,7 +2980,7 @@ handlers:
         "proposed_paths"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-10T08:21:00.872171+00:00",
+      "last_updated": "2025-08-10T11:49:02.461768+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -2949,7 +3015,7 @@ handlers:
         "failure_context"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-10T08:21:00.873791+00:00",
+      "last_updated": "2025-08-10T11:49:02.463385+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation"
@@ -2982,7 +3048,7 @@ handlers:
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.876207+00:00",
+      "last_updated": "2025-08-10T11:49:02.465859+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -3010,7 +3076,7 @@ handlers:
         "symbol_name"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.876615+00:00",
+      "last_updated": "2025-08-10T11:49:02.466286+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -3046,7 +3112,7 @@ handlers:
         "new_code_str"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.877224+00:00",
+      "last_updated": "2025-08-10T11:49:02.466926+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -3075,7 +3141,7 @@ handlers:
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.877872+00:00",
+      "last_updated": "2025-08-10T11:49:02.467632+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -3106,7 +3172,7 @@ handlers:
         "symbol_name"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.878303+00:00",
+      "last_updated": "2025-08-10T11:49:02.468070+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -3133,7 +3199,7 @@ handlers:
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.878884+00:00",
+      "last_updated": "2025-08-10T11:49:02.468705+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -3156,7 +3222,7 @@ handlers:
         "planner_agent"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-10T08:21:00.879208+00:00",
+      "last_updated": "2025-08-10T11:49:02.469013+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -3183,7 +3249,7 @@ handlers:
         "self"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-10T08:21:00.879582+00:00",
+      "last_updated": "2025-08-10T11:49:02.469440+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -3213,7 +3279,7 @@ handlers:
         "exc_tb"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-10T08:21:00.879980+00:00",
+      "last_updated": "2025-08-10T11:49:02.469867+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -3237,7 +3303,7 @@ handlers:
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.886108+00:00",
+      "last_updated": "2025-08-10T11:49:02.476356+00:00",
       "is_class": true,
       "base_classes": [
         "Exception"
@@ -3274,7 +3340,7 @@ handlers:
         "config"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-10T08:21:00.889802+00:00",
+      "last_updated": "2025-08-10T11:49:02.480064+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -3364,7 +3430,7 @@ handlers:
       "is_async": false,
       "parameters": [],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-10T08:21:00.889328+00:00",
+      "last_updated": "2025-08-10T11:49:02.479637+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "capability_implementation"
@@ -3389,7 +3455,7 @@ handlers:
         "self"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.890288+00:00",
+      "last_updated": "2025-08-10T11:49:02.480584+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -3414,7 +3480,7 @@ handlers:
         "self"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-10T08:21:00.890651+00:00",
+      "last_updated": "2025-08-10T11:49:02.480909+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -3443,7 +3509,7 @@ handlers:
         "plan_id"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.891019+00:00",
+      "last_updated": "2025-08-10T11:49:02.481285+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -3475,7 +3541,7 @@ handlers:
         "text"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.891614+00:00",
+      "last_updated": "2025-08-10T11:49:02.481840+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -3503,7 +3569,7 @@ handlers:
         "plan"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.892218+00:00",
+      "last_updated": "2025-08-10T11:49:02.482454+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -3530,7 +3596,7 @@ handlers:
         "task"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.892774+00:00",
+      "last_updated": "2025-08-10T11:49:02.482963+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -3573,7 +3639,7 @@ handlers:
         "high_level_goal"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-10T08:21:00.893519+00:00",
+      "last_updated": "2025-08-10T11:49:02.483669+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -3605,7 +3671,7 @@ handlers:
         "goal"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.894216+00:00",
+      "last_updated": "2025-08-10T11:49:02.484329+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -3633,7 +3699,7 @@ handlers:
         "symbol_name"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.894716+00:00",
+      "last_updated": "2025-08-10T11:49:02.484792+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -3662,7 +3728,7 @@ handlers:
         "timeout"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.895157+00:00",
+      "last_updated": "2025-08-10T11:49:02.485219+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -3700,7 +3766,7 @@ handlers:
         "high_level_goal"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.895902+00:00",
+      "last_updated": "2025-08-10T11:49:02.485936+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -3741,7 +3807,7 @@ handlers:
         "params"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.896941+00:00",
+      "last_updated": "2025-08-10T11:49:02.486937+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -3775,7 +3841,7 @@ handlers:
         "params"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.897771+00:00",
+      "last_updated": "2025-08-10T11:49:02.487773+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -3814,7 +3880,7 @@ handlers:
         "params"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.898525+00:00",
+      "last_updated": "2025-08-10T11:49:02.488532+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -3844,7 +3910,7 @@ handlers:
         "task"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.899181+00:00",
+      "last_updated": "2025-08-10T11:49:02.489200+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -3865,7 +3931,7 @@ handlers:
       "is_async": false,
       "parameters": [],
       "entry_point_type": "enum",
-      "last_updated": "2025-08-10T08:21:00.900373+00:00",
+      "last_updated": "2025-08-10T11:49:02.490385+00:00",
       "is_class": true,
       "base_classes": [
         "Enum"
@@ -3887,7 +3953,7 @@ handlers:
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.900782+00:00",
+      "last_updated": "2025-08-10T11:49:02.490794+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -3909,7 +3975,7 @@ handlers:
         "self"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.901149+00:00",
+      "last_updated": "2025-08-10T11:49:02.491158+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -3930,7 +3996,7 @@ handlers:
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.901535+00:00",
+      "last_updated": "2025-08-10T11:49:02.491542+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -3950,7 +4016,7 @@ handlers:
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.901907+00:00",
+      "last_updated": "2025-08-10T11:49:02.491913+00:00",
       "is_class": true,
       "base_classes": [
         "BaseModel"
@@ -3972,7 +4038,7 @@ handlers:
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.902277+00:00",
+      "last_updated": "2025-08-10T11:49:02.492285+00:00",
       "is_class": true,
       "base_classes": [
         "BaseModel"
@@ -4002,7 +4068,7 @@ handlers:
         "start_path"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.903010+00:00",
+      "last_updated": "2025-08-10T11:49:02.493021+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -4035,7 +4101,7 @@ handlers:
         "file_type"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.904320+00:00",
+      "last_updated": "2025-08-10T11:49:02.494348+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -4058,7 +4124,7 @@ handlers:
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.905377+00:00",
+      "last_updated": "2025-08-10T11:49:02.495424+00:00",
       "is_class": true,
       "base_classes": [
         "BaseSettings"
@@ -4080,7 +4146,7 @@ handlers:
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.905785+00:00",
+      "last_updated": "2025-08-10T11:49:02.495817+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -4104,7 +4170,7 @@ handlers:
         "name"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-10T08:21:00.906746+00:00",
+      "last_updated": "2025-08-10T11:49:02.496775+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation"
@@ -4126,7 +4192,7 @@ handlers:
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.912968+00:00",
+      "last_updated": "2025-08-10T11:49:02.502933+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -4152,7 +4218,7 @@ handlers:
         "trailing"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.913423+00:00",
+      "last_updated": "2025-08-10T11:49:02.503433+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -4175,7 +4241,7 @@ handlers:
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.913847+00:00",
+      "last_updated": "2025-08-10T11:49:02.503875+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -4200,7 +4266,7 @@ handlers:
         "start"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.914272+00:00",
+      "last_updated": "2025-08-10T11:49:02.504327+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -4227,7 +4293,7 @@ handlers:
         "items"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.914926+00:00",
+      "last_updated": "2025-08-10T11:49:02.504991+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -4259,7 +4325,7 @@ handlers:
         "raw"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.915755+00:00",
+      "last_updated": "2025-08-10T11:49:02.505834+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -4286,7 +4352,7 @@ handlers:
         "node"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.916254+00:00",
+      "last_updated": "2025-08-10T11:49:02.506337+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -4315,7 +4381,7 @@ handlers:
         "explicit_path"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.916909+00:00",
+      "last_updated": "2025-08-10T11:49:02.507000+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -4344,7 +4410,7 @@ handlers:
         "node"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.917643+00:00",
+      "last_updated": "2025-08-10T11:49:02.507737+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -4369,7 +4435,7 @@ handlers:
         "path"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.918312+00:00",
+      "last_updated": "2025-08-10T11:49:02.508340+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -4397,7 +4463,7 @@ handlers:
         "path"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.918821+00:00",
+      "last_updated": "2025-08-10T11:49:02.508775+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -4427,7 +4493,7 @@ handlers:
         "root"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.919551+00:00",
+      "last_updated": "2025-08-10T11:49:02.509462+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -4458,7 +4524,7 @@ handlers:
         "exclude_globs"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.920327+00:00",
+      "last_updated": "2025-08-10T11:49:02.510191+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -4483,7 +4549,7 @@ handlers:
         "p"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.920815+00:00",
+      "last_updated": "2025-08-10T11:49:02.510627+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -4517,7 +4583,7 @@ handlers:
         "exclude_globs"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.921478+00:00",
+      "last_updated": "2025-08-10T11:49:02.511226+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -4550,7 +4616,7 @@ handlers:
         "root"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.922302+00:00",
+      "last_updated": "2025-08-10T11:49:02.512011+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -4580,7 +4646,7 @@ handlers:
         "require_kgb"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.923058+00:00",
+      "last_updated": "2025-08-10T11:49:02.512754+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -4602,7 +4668,7 @@ handlers:
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.923653+00:00",
+      "last_updated": "2025-08-10T11:49:02.513292+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -4626,7 +4692,7 @@ handlers:
         "self"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.924054+00:00",
+      "last_updated": "2025-08-10T11:49:02.513693+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -4656,7 +4722,7 @@ handlers:
         "code_caps"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.924678+00:00",
+      "last_updated": "2025-08-10T11:49:02.514309+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -4684,7 +4750,7 @@ handlers:
         "report"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.925283+00:00",
+      "last_updated": "2025-08-10T11:49:02.514926+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -4739,7 +4805,7 @@ handlers:
       "is_async": false,
       "parameters": [],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-10T08:21:00.929645+00:00",
+      "last_updated": "2025-08-10T11:49:02.519323+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "capability_implementation"
@@ -4762,7 +4828,7 @@ handlers:
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.930001+00:00",
+      "last_updated": "2025-08-10T11:49:02.519707+00:00",
       "is_class": true,
       "base_classes": [
         "StringIO"
@@ -4790,7 +4856,7 @@ handlers:
         "s"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.930360+00:00",
+      "last_updated": "2025-08-10T11:49:02.520061+00:00",
       "is_class": false,
       "base_classes": [
         "StringIO",
@@ -4824,7 +4890,7 @@ handlers:
         "repo_root"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-10T08:21:00.931946+00:00",
+      "last_updated": "2025-08-10T11:49:02.521560+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -4851,7 +4917,7 @@ handlers:
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.931481+00:00",
+      "last_updated": "2025-08-10T11:49:02.521099+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -4887,7 +4953,7 @@ handlers:
         "self"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.932726+00:00",
+      "last_updated": "2025-08-10T11:49:02.522311+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -4922,7 +4988,7 @@ handlers:
         "self"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.933587+00:00",
+      "last_updated": "2025-08-10T11:49:02.523205+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -4952,7 +5018,7 @@ handlers:
         "passed"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.934440+00:00",
+      "last_updated": "2025-08-10T11:49:02.524008+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -4979,7 +5045,7 @@ handlers:
       "is_async": false,
       "parameters": [],
       "entry_point_type": "cli_entry_point",
-      "last_updated": "2025-08-10T08:21:00.935081+00:00",
+      "last_updated": "2025-08-10T11:49:02.524692+00:00",
       "is_class": false,
       "base_classes": []
     },
@@ -4998,7 +5064,7 @@ handlers:
       "is_async": false,
       "parameters": [],
       "entry_point_type": "enum",
-      "last_updated": "2025-08-10T08:21:00.935924+00:00",
+      "last_updated": "2025-08-10T11:49:02.525553+00:00",
       "is_class": true,
       "base_classes": [
         "Enum"
@@ -5020,7 +5086,7 @@ handlers:
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.936301+00:00",
+      "last_updated": "2025-08-10T11:49:02.525919+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -5045,7 +5111,7 @@ handlers:
         "path"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.937663+00:00",
+      "last_updated": "2025-08-10T11:49:02.527279+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -5071,7 +5137,7 @@ handlers:
         "data"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.938051+00:00",
+      "last_updated": "2025-08-10T11:49:02.527695+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -5100,7 +5166,7 @@ handlers:
         "proposal_content"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.938493+00:00",
+      "last_updated": "2025-08-10T11:49:02.528120+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -5126,7 +5192,7 @@ handlers:
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.938917+00:00",
+      "last_updated": "2025-08-10T11:49:02.528567+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -5157,7 +5223,7 @@ handlers:
         "proposal"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.939470+00:00",
+      "last_updated": "2025-08-10T11:49:02.529106+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -5225,7 +5291,7 @@ handlers:
         "app"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.944306+00:00",
+      "last_updated": "2025-08-10T11:49:02.533972+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -5257,7 +5323,7 @@ handlers:
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.944965+00:00",
+      "last_updated": "2025-08-10T11:49:02.534651+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -5300,7 +5366,7 @@ handlers:
         "proposal_name"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.945873+00:00",
+      "last_updated": "2025-08-10T11:49:02.535583+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -5349,7 +5415,7 @@ handlers:
         "proposal_name"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.947164+00:00",
+      "last_updated": "2025-08-10T11:49:02.536926+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -5372,7 +5438,7 @@ handlers:
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.948244+00:00",
+      "last_updated": "2025-08-10T11:49:02.537982+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -5397,7 +5463,7 @@ handlers:
         "proposal_name"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.948616+00:00",
+      "last_updated": "2025-08-10T11:49:02.538386+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -5422,7 +5488,111 @@ handlers:
         "proposal_name"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.948972+00:00",
+      "last_updated": "2025-08-10T11:49:02.538788+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "entry_point_justification": "dataclass_definition"
+    },
+    "src/system/admin/guard.py::_find_manifest_path": {
+      "key": "src/system/admin/guard.py::_find_manifest_path",
+      "name": "_find_manifest_path",
+      "type": "FunctionDef",
+      "file": "src/system/admin/guard.py",
+      "domain": "system",
+      "agent": "validator_agent",
+      "capability": "unassigned",
+      "intent": "Provides functionality for the system domain.",
+      "docstring": "",
+      "calls": [
+        "FileNotFoundError",
+        "exists"
+      ],
+      "line_number": 37,
+      "is_async": false,
+      "parameters": [
+        "root",
+        "explicit"
+      ],
+      "entry_point_type": "data_model",
+      "last_updated": "2025-08-10T11:49:02.542909+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "entry_point_justification": "dataclass_definition"
+    },
+    "src/system/admin/guard.py::_load_raw_manifest": {
+      "key": "src/system/admin/guard.py::_load_raw_manifest",
+      "name": "_load_raw_manifest",
+      "type": "FunctionDef",
+      "file": "src/system/admin/guard.py",
+      "domain": "system",
+      "agent": "validator_agent",
+      "capability": "unassigned",
+      "intent": "Provides functionality for the system domain.",
+      "docstring": "",
+      "calls": [
+        "_find_manifest_path",
+        "read_text",
+        "safe_load"
+      ],
+      "line_number": 45,
+      "is_async": false,
+      "parameters": [
+        "root",
+        "explicit"
+      ],
+      "entry_point_type": "data_model",
+      "last_updated": "2025-08-10T11:49:02.543353+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "entry_point_justification": "dataclass_definition"
+    },
+    "src/system/admin/guard.py::_ux_defaults": {
+      "key": "src/system/admin/guard.py::_ux_defaults",
+      "name": "_ux_defaults",
+      "type": "FunctionDef",
+      "file": "src/system/admin/guard.py",
+      "domain": "system",
+      "agent": "validator_agent",
+      "capability": "unassigned",
+      "intent": "Provides functionality for the system domain.",
+      "docstring": "",
+      "calls": [
+        "_load_raw_manifest",
+        "bool",
+        "get"
+      ],
+      "line_number": 50,
+      "is_async": false,
+      "parameters": [
+        "root",
+        "explicit"
+      ],
+      "entry_point_type": "data_model",
+      "last_updated": "2025-08-10T11:49:02.543947+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "entry_point_justification": "dataclass_definition"
+    },
+    "src/system/admin/guard.py::_is_clean": {
+      "key": "src/system/admin/guard.py::_is_clean",
+      "name": "_is_clean",
+      "type": "FunctionDef",
+      "file": "src/system/admin/guard.py",
+      "domain": "system",
+      "agent": "validator_agent",
+      "capability": "unassigned",
+      "intent": "Provides functionality for the system domain.",
+      "docstring": "",
+      "calls": [
+        "get"
+      ],
+      "line_number": 73,
+      "is_async": false,
+      "parameters": [
+        "report"
+      ],
+      "entry_point_type": "data_model",
+      "last_updated": "2025-08-10T11:49:02.544527+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -5435,45 +5605,84 @@ handlers:
       "domain": "system",
       "agent": "validator_agent",
       "capability": "unassigned",
-      "intent": "Intent: Human-friendly rendering of a drift report for operators.",
-      "docstring": "Intent: Human-friendly rendering of a drift report for operators.",
+      "intent": "Provides functionality for the system domain.",
+      "docstring": "",
       "calls": [
-        "echo",
+        "Table",
+        "_is_clean",
+        "add_column",
+        "add_row",
+        "append",
+        "fit",
         "get",
-        "section"
+        "join",
+        "row",
+        "rprint"
       ],
-      "line_number": 28,
+      "line_number": 76,
       "is_async": false,
       "parameters": [
-        "report_dict"
+        "report_dict",
+        "labels"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.951778+00:00",
+      "last_updated": "2025-08-10T11:49:02.545290+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
     },
-    "src/system/admin/guard.py::section": {
-      "key": "src/system/admin/guard.py::section",
-      "name": "section",
+    "src/system/admin/guard.py::row": {
+      "key": "src/system/admin/guard.py::row",
+      "name": "row",
       "type": "FunctionDef",
       "file": "src/system/admin/guard.py",
       "domain": "system",
       "agent": "validator_agent",
       "capability": "unassigned",
-      "intent": "Intent: Render a named list section with a consistent layout.",
-      "docstring": "Intent: Render a named list section with a consistent layout.",
+      "intent": "Provides functionality for the system domain.",
+      "docstring": "",
       "calls": [
-        "echo"
+        "add_row",
+        "join"
       ],
-      "line_number": 30,
+      "line_number": 81,
       "is_async": false,
       "parameters": [
         "title",
         "items"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.952203+00:00",
+      "last_updated": "2025-08-10T11:49:02.545795+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "entry_point_justification": "dataclass_definition"
+    },
+    "src/system/admin/guard.py::_print_pretty": {
+      "key": "src/system/admin/guard.py::_print_pretty",
+      "name": "_print_pretty",
+      "type": "FunctionDef",
+      "file": "src/system/admin/guard.py",
+      "domain": "system",
+      "agent": "validator_agent",
+      "capability": "unassigned",
+      "intent": "Provides functionality for the system domain.",
+      "docstring": "",
+      "calls": [
+        "Panel",
+        "_is_clean",
+        "_print_table",
+        "get",
+        "len",
+        "rprint"
+      ],
+      "line_number": 108,
+      "is_async": false,
+      "parameters": [
+        "report_dict",
+        "labels"
+      ],
+      "entry_point_type": "data_model",
+      "last_updated": "2025-08-10T11:49:02.546659+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -5486,19 +5695,19 @@ handlers:
       "domain": "system",
       "agent": "validator_agent",
       "capability": "unassigned",
-      "intent": "Intent: Decide CI/exit status based on operator-selected failure condition.",
-      "docstring": "Intent: Decide CI/exit status based on operator-selected failure condition.",
+      "intent": "Provides functionality for the system domain.",
+      "docstring": "",
       "calls": [
         "bool"
       ],
-      "line_number": 55,
+      "line_number": 131,
       "is_async": false,
       "parameters": [
         "report",
         "fail_on"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.952876+00:00",
+      "last_updated": "2025-08-10T11:49:02.547232+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -5511,16 +5720,19 @@ handlers:
       "domain": "system",
       "agent": "validator_agent",
       "capability": "unassigned",
-      "intent": "Intent: Register governance/validation guard commands under the admin CLI.",
-      "docstring": "Intent: Register governance/validation guard commands under the admin CLI.",
+      "intent": "Provides functionality for the system domain.",
+      "docstring": "",
       "calls": [
         "Exit",
         "Option",
         "Path",
         "Typer",
+        "_print_pretty",
         "_print_table",
         "_should_fail",
+        "_ux_defaults",
         "add_typer",
+        "bool",
         "collect_code_capabilities",
         "command",
         "detect_capability_drift",
@@ -5531,18 +5743,19 @@ handlers:
         "load_manifest",
         "lower",
         "mkdir",
+        "rprint",
         "sorted",
         "to_dict",
         "write_report",
         "write_text"
       ],
-      "line_number": 64,
+      "line_number": 138,
       "is_async": false,
       "parameters": [
         "app"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.953944+00:00",
+      "last_updated": "2025-08-10T11:49:02.548362+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -5561,8 +5774,11 @@ handlers:
         "Exit",
         "Option",
         "Path",
+        "_print_pretty",
         "_print_table",
         "_should_fail",
+        "_ux_defaults",
+        "bool",
         "collect_code_capabilities",
         "command",
         "detect_capability_drift",
@@ -5573,7 +5789,7 @@ handlers:
         "to_dict",
         "write_report"
       ],
-      "line_number": 70,
+      "line_number": 143,
       "is_async": false,
       "parameters": [
         "root",
@@ -5586,7 +5802,7 @@ handlers:
         "strict_intent"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.954661+00:00",
+      "last_updated": "2025-08-10T11:49:02.549150+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -5599,23 +5815,23 @@ handlers:
       "domain": "system",
       "agent": "validator_agent",
       "capability": "unassigned",
-      "intent": "Intent: Emit a minimal knowledge-graph artifact with capability nodes so `--strict-intent`",
-      "docstring": "Intent: Emit a minimal knowledge-graph artifact with capability nodes so `--strict-intent`\nhas a stable source of truth. Format:\n    { \"nodes\": [ {\"capability\": \"...\", \"domain\": \"x\", \"owner\": \"y\"}, ... ] }",
+      "intent": "Intent: Emit a minimal knowledge-graph artifact with capability nodes.",
+      "docstring": "Intent: Emit a minimal knowledge-graph artifact with capability nodes.\nFormat: { \"nodes\": [ {\"capability\": \"...\", \"domain\": \"x\", \"owner\": \"y\"}, ... ] }",
       "calls": [
         "Option",
         "Path",
         "collect_code_capabilities",
         "command",
         "dumps",
-        "echo",
         "items",
         "len",
         "lower",
         "mkdir",
+        "rprint",
         "sorted",
         "write_text"
       ],
-      "line_number": 107,
+      "line_number": 192,
       "is_async": false,
       "parameters": [
         "root",
@@ -5625,7 +5841,7 @@ handlers:
         "prefer"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.955610+00:00",
+      "last_updated": "2025-08-10T11:49:02.550175+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -5664,7 +5880,7 @@ handlers:
         "app"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.957372+00:00",
+      "last_updated": "2025-08-10T11:49:02.551901+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -5703,7 +5919,7 @@ handlers:
         "identity"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.958010+00:00",
+      "last_updated": "2025-08-10T11:49:02.552503+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -5725,7 +5941,7 @@ handlers:
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.959364+00:00",
+      "last_updated": "2025-08-10T11:49:02.553858+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -5760,7 +5976,7 @@ handlers:
         "violations"
       ],
       "entry_point_type": "cli_entry_point",
-      "last_updated": "2025-08-10T08:21:00.959881+00:00",
+      "last_updated": "2025-08-10T11:49:02.554380+00:00",
       "is_class": false,
       "base_classes": []
     },
@@ -5781,7 +5997,7 @@ handlers:
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.966528+00:00",
+      "last_updated": "2025-08-10T11:49:02.560984+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -5801,7 +6017,7 @@ handlers:
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.966996+00:00",
+      "last_updated": "2025-08-10T11:49:02.561490+00:00",
       "is_class": true,
       "base_classes": [
         "Exception"
@@ -5829,7 +6045,7 @@ handlers:
         "start_path"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.967413+00:00",
+      "last_updated": "2025-08-10T11:49:02.561875+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -5854,7 +6070,7 @@ handlers:
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.967911+00:00",
+      "last_updated": "2025-08-10T11:49:02.562434+00:00",
       "is_class": true,
       "base_classes": [
         "NodeVisitor"
@@ -5885,7 +6101,7 @@ handlers:
         "exclude_patterns"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-10T08:21:00.974280+00:00",
+      "last_updated": "2025-08-10T11:49:02.568649+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -5913,7 +6129,7 @@ handlers:
         "node"
       ],
       "entry_point_type": "visitor_method",
-      "last_updated": "2025-08-10T08:21:00.968677+00:00",
+      "last_updated": "2025-08-10T11:49:02.563220+00:00",
       "is_class": false,
       "base_classes": [
         "NodeVisitor"
@@ -5994,7 +6210,7 @@ handlers:
       "is_async": false,
       "parameters": [],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-10T08:21:00.971569+00:00",
+      "last_updated": "2025-08-10T11:49:02.565969+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "capability_implementation"
@@ -6017,7 +6233,7 @@ handlers:
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.972164+00:00",
+      "last_updated": "2025-08-10T11:49:02.566521+00:00",
       "is_class": true,
       "base_classes": [
         "NodeVisitor"
@@ -6045,7 +6261,7 @@ handlers:
         "node"
       ],
       "entry_point_type": "visitor_method",
-      "last_updated": "2025-08-10T08:21:00.972967+00:00",
+      "last_updated": "2025-08-10T11:49:02.567320+00:00",
       "is_class": false,
       "base_classes": [
         "NodeVisitor"
@@ -6074,7 +6290,7 @@ handlers:
         "node"
       ],
       "entry_point_type": "visitor_method",
-      "last_updated": "2025-08-10T08:21:00.973384+00:00",
+      "last_updated": "2025-08-10T11:49:02.567744+00:00",
       "is_class": false,
       "base_classes": [
         "NodeVisitor"
@@ -6103,7 +6319,7 @@ handlers:
         "node"
       ],
       "entry_point_type": "visitor_method",
-      "last_updated": "2025-08-10T08:21:00.973783+00:00",
+      "last_updated": "2025-08-10T11:49:02.568140+00:00",
       "is_class": false,
       "base_classes": [
         "NodeVisitor"
@@ -6133,7 +6349,7 @@ handlers:
         "self"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.974805+00:00",
+      "last_updated": "2025-08-10T11:49:02.569186+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -6163,7 +6379,7 @@ handlers:
         "self"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.975274+00:00",
+      "last_updated": "2025-08-10T11:49:02.569687+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -6189,7 +6405,7 @@ handlers:
         "path"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.975718+00:00",
+      "last_updated": "2025-08-10T11:49:02.570133+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -6217,7 +6433,7 @@ handlers:
         "self"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.976159+00:00",
+      "last_updated": "2025-08-10T11:49:02.570597+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -6246,7 +6462,7 @@ handlers:
         "file_path"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.976633+00:00",
+      "last_updated": "2025-08-10T11:49:02.571060+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -6274,7 +6490,7 @@ handlers:
         "relative_path"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.977102+00:00",
+      "last_updated": "2025-08-10T11:49:02.571570+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -6304,7 +6520,7 @@ handlers:
         "source_lines"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.977681+00:00",
+      "last_updated": "2025-08-10T11:49:02.572108+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -6330,7 +6546,7 @@ handlers:
         "node"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.978284+00:00",
+      "last_updated": "2025-08-10T11:49:02.572756+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -6367,7 +6583,7 @@ handlers:
         "filepath"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.979129+00:00",
+      "last_updated": "2025-08-10T11:49:02.573574+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -6413,7 +6629,7 @@ handlers:
         "parent_key"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.980216+00:00",
+      "last_updated": "2025-08-10T11:49:02.574633+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -6442,7 +6658,7 @@ handlers:
         "self"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.981234+00:00",
+      "last_updated": "2025-08-10T11:49:02.575629+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -6479,7 +6695,7 @@ handlers:
         "self"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.982156+00:00",
+      "last_updated": "2025-08-10T11:49:02.576535+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -6512,7 +6728,7 @@ handlers:
       "is_async": false,
       "parameters": [],
       "entry_point_type": "cli_entry_point",
-      "last_updated": "2025-08-10T08:21:00.982945+00:00",
+      "last_updated": "2025-08-10T11:49:02.577288+00:00",
       "is_class": false,
       "base_classes": []
     },
@@ -6534,7 +6750,7 @@ handlers:
       "is_async": false,
       "parameters": [],
       "entry_point_type": "cli_entry_point",
-      "last_updated": "2025-08-10T08:21:00.983982+00:00",
+      "last_updated": "2025-08-10T11:49:02.578369+00:00",
       "is_class": false,
       "base_classes": []
     },
@@ -6560,7 +6776,7 @@ handlers:
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.985734+00:00",
+      "last_updated": "2025-08-10T11:49:02.580082+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -6583,7 +6799,7 @@ handlers:
         "context"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-10T08:21:00.986090+00:00",
+      "last_updated": "2025-08-10T11:49:02.580472+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -6610,7 +6826,7 @@ handlers:
         "self"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-10T08:21:00.986725+00:00",
+      "last_updated": "2025-08-10T11:49:02.581038+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -6640,7 +6856,7 @@ handlers:
         "self"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-10T08:21:00.987513+00:00",
+      "last_updated": "2025-08-10T11:49:02.581790+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -6686,7 +6902,7 @@ handlers:
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.990828+00:00",
+      "last_updated": "2025-08-10T11:49:02.585126+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -6709,7 +6925,7 @@ handlers:
         "context"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-10T08:21:00.991220+00:00",
+      "last_updated": "2025-08-10T11:49:02.585530+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -6740,7 +6956,7 @@ handlers:
         "self"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-10T08:21:00.991784+00:00",
+      "last_updated": "2025-08-10T11:49:02.586055+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -6775,7 +6991,7 @@ handlers:
         "self"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-10T08:21:00.992559+00:00",
+      "last_updated": "2025-08-10T11:49:02.586839+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -6810,7 +7026,7 @@ handlers:
         "self"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-10T08:21:00.993317+00:00",
+      "last_updated": "2025-08-10T11:49:02.587648+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -6846,7 +7062,7 @@ handlers:
         "self"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.994145+00:00",
+      "last_updated": "2025-08-10T11:49:02.588502+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -6877,7 +7093,7 @@ handlers:
         "data"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.994682+00:00",
+      "last_updated": "2025-08-10T11:49:02.589003+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -6924,7 +7140,7 @@ handlers:
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.998562+00:00",
+      "last_updated": "2025-08-10T11:49:02.592876+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -6947,7 +7163,7 @@ handlers:
         "context"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-10T08:21:00.998951+00:00",
+      "last_updated": "2025-08-10T11:49:02.593281+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -6975,7 +7191,7 @@ handlers:
         "self"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.999477+00:00",
+      "last_updated": "2025-08-10T11:49:02.593756+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -7005,7 +7221,7 @@ handlers:
         "path"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:00.999962+00:00",
+      "last_updated": "2025-08-10T11:49:02.594282+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -7032,7 +7248,7 @@ handlers:
         "content"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:01.000477+00:00",
+      "last_updated": "2025-08-10T11:49:02.594771+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -7068,7 +7284,7 @@ handlers:
         "self"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-10T08:21:01.001195+00:00",
+      "last_updated": "2025-08-10T11:49:02.595504+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -7102,7 +7318,7 @@ handlers:
         "self"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-10T08:21:01.002177+00:00",
+      "last_updated": "2025-08-10T11:49:02.596492+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -7132,7 +7348,7 @@ handlers:
         "self"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-10T08:21:01.002958+00:00",
+      "last_updated": "2025-08-10T11:49:02.597274+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -7173,7 +7389,7 @@ handlers:
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:01.006978+00:00",
+      "last_updated": "2025-08-10T11:49:02.601058+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -7196,7 +7412,7 @@ handlers:
         "context"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-10T08:21:01.007377+00:00",
+      "last_updated": "2025-08-10T11:49:02.601495+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -7222,7 +7438,7 @@ handlers:
         "self"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-10T08:21:01.007917+00:00",
+      "last_updated": "2025-08-10T11:49:02.601972+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -7252,7 +7468,7 @@ handlers:
         "self"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-10T08:21:01.008590+00:00",
+      "last_updated": "2025-08-10T11:49:02.602655+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -7282,7 +7498,7 @@ handlers:
         "self"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-10T08:21:01.009305+00:00",
+      "last_updated": "2025-08-10T11:49:02.603336+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -7311,7 +7527,7 @@ handlers:
         "self"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-10T08:21:01.010014+00:00",
+      "last_updated": "2025-08-10T11:49:02.604024+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -7348,7 +7564,7 @@ handlers:
         "self"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-10T08:21:01.010984+00:00",
+      "last_updated": "2025-08-10T11:49:02.604955+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -7376,7 +7592,7 @@ handlers:
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:01.012758+00:00",
+      "last_updated": "2025-08-10T11:49:02.606669+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -7399,7 +7615,7 @@ handlers:
         "context"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-10T08:21:01.013145+00:00",
+      "last_updated": "2025-08-10T11:49:02.607032+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -7429,7 +7645,7 @@ handlers:
         "self"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-10T08:21:01.013777+00:00",
+      "last_updated": "2025-08-10T11:49:02.607636+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -7457,7 +7673,7 @@ handlers:
         "report_dict"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:01.016358+00:00",
+      "last_updated": "2025-08-10T11:49:02.610221+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -7483,7 +7699,7 @@ handlers:
         "items"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:01.016748+00:00",
+      "last_updated": "2025-08-10T11:49:02.610619+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -7508,7 +7724,7 @@ handlers:
         "fail_on"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:01.017360+00:00",
+      "last_updated": "2025-08-10T11:49:02.611243+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -7542,7 +7758,7 @@ handlers:
         "args"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:01.017932+00:00",
+      "last_updated": "2025-08-10T11:49:02.611825+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -7569,7 +7785,7 @@ handlers:
         "subparsers"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:01.018652+00:00",
+      "last_updated": "2025-08-10T11:49:02.612573+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -7598,7 +7814,7 @@ handlers:
       "is_async": false,
       "parameters": [],
       "entry_point_type": "cli_entry_point",
-      "last_updated": "2025-08-10T08:21:01.019251+00:00",
+      "last_updated": "2025-08-10T11:49:02.613197+00:00",
       "is_class": false,
       "base_classes": []
     },
@@ -7625,7 +7841,7 @@ handlers:
         "schema_name"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:01.020584+00:00",
+      "last_updated": "2025-08-10T11:49:02.614548+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -7655,7 +7871,7 @@ handlers:
         "schema_name"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:01.021179+00:00",
+      "last_updated": "2025-08-10T11:49:02.615145+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -7684,7 +7900,7 @@ handlers:
         "file_path"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:01.022320+00:00",
+      "last_updated": "2025-08-10T11:49:02.616292+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -7709,7 +7925,7 @@ handlers:
         "llm_output"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-10T08:21:01.023183+00:00",
+      "last_updated": "2025-08-10T11:49:02.617159+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -8367,7 +8583,6 @@ required_capabilities:
   - introspection
   - alignment_checking
   - manifest_updating
-  # - self_review # <-- REMOVED THIS OBSOLETE TAG
   - self_correction
   - change_safety_enforcement
   - llm_orchestration
@@ -8376,7 +8591,6 @@ required_capabilities:
   - code_quality_analysis
   - system_logging
   - add_missing_docstrings
-  # The auditor's checks are also first-class capabilities
   - audit.check.required_files
   - audit.check.syntax
   - audit.check.project_manifest
@@ -8388,6 +8602,9 @@ required_capabilities:
   - audit.check.dead_code
   - audit.check.orphaned_intent_files
   - audit.check.environment
+  - audit.check.proposals_schema
+  - audit.check.proposals_drift
+  - audit.check.proposals_list
 
 # Defines the primary agents responsible for executing CORE's logic.
 active_agents:
@@ -8413,6 +8630,21 @@ meta:
   created_by: "CORE v0.1 bootstrap"
   created_at: "2025-07-23T00:00:00Z"
   last_updated: "2025-08-05T12:00:00Z" # Using a placeholder for today
+
+# --- Operator UX policy -------------------------------------------------------
+operator_experience:
+  guard:
+    drift:
+      # Default presentation when the operator runs the command with no flags:
+      default_format: pretty        # options: pretty | table | json
+      default_fail_on: any          # options: any | missing | undeclared
+      strict_default: true          # require KG/artifact by default
+      evidence_json: true           # always write JSON evidence to disk
+      evidence_path: reports/drift_report.json
+      labels:
+        none: "NONE"                # how to label empty sections
+        success: "✅ No capability drift"
+        failure: "🚨 Drift detected"  
 --- END OF FILE ./.intent/project_manifest.yaml ---
 
 --- START OF FILE ./.intent/proposals/cr-example.yaml ---
@@ -8930,41 +9162,109 @@ We’re making the project public now to invite collaboration on this foundation
 
 ## 🚀 Getting Started
 
-1. **Clone the repository**
+1. **Install dependencies**
 
-   ```bash
-   git clone https://github.com/YOUR_USERNAME/core.git
-   cd core
-   ```
+```bash
+poetry install
+```
 
-2. **Install dependencies**
+2. **Set up environment**
 
-   ```bash
-   poetry install
-   ```
+```bash
+cp .env.example .env
+# Edit .env with your keys/URLs. See .intent/config/runtime_requirements.yaml for required variables.
+```
 
-3. **Set up your environment**
+3. **Quick validation (governance)**
 
-   ```bash
-   cp .env.example .env
-   # Edit .env with your API keys/URLs. See .intent/config/runtime_requirements.yaml for required variables.
-   ```
+```bash
+# Generate a knowledge-graph artifact (used by strict checks)
+core-admin guard kg-export
 
-4. **Run the self-audit**
-   Verify your local setup is constitutionally valid:
+# Detect capability drift between .intent manifest and code (strict mode)
+core-admin guard drift --strict-intent --format pretty
+# or JSON for machines/CI:
+core-admin guard drift --strict-intent --format json
+```
 
-   ```bash
-   poetry run python -m src.core.capabilities
-   ```
+4. **Run the server (optional)**
 
-   You should see: `✅ ALL CHECKS PASSED (0 warnings)`.
+```bash
+make run
+# FastAPI docs at: http://localhost:8000/docs
+```
 
-5. **Launch the server (optional)**
+---
 
-   ```bash
-   make run
-   # FastAPI docs at: http://localhost:8000/docs
-   ```
+## 🧑‍⚖️ Human-in-the-Loop (CLI)
+
+Constitutional changes are proposed as files under `.intent/proposals/` and managed via the `core-admin` CLI.
+
+```bash
+# List pending proposals
+core-admin proposals-list
+
+# Sign a proposal with your generated key
+core-admin proposals-sign cr-example.yaml
+
+# Approve a proposal (runs canary self-audit in isolation)
+core-admin proposals-approve cr-example.yaml
+
+# Generate a new key pair for a new contributor
+core-admin keygen "name@example.com"
+```
+
+> If `core-admin` isn’t found, try: `poetry run core-admin ...`
+
+---
+
+## ✅ Validation Tools (Operator & CI)
+
+### Capability Drift (source of truth = `.intent/`)
+
+* Compares declared capabilities in `.intent/*manifest*.yaml` with capabilities discovered in code (via Knowledge Graph or tagged comments).
+* **Strict mode** requires a KG artifact or live builder; it won’t “guess”.
+
+**Typical flow**
+
+```bash
+core-admin guard kg-export
+core-admin guard drift --strict-intent --format pretty
+```
+
+**Evidence**
+
+* A machine-readable JSON report is written to `reports/drift_report.json`.
+
+**Output UX defaults (human-friendly)**
+
+* By default, you’ll see a colored summary with **NONE** for empty sections and a clear ✅ or 🚨 status.
+* JSON remains available for CI.
+
+These defaults are governed by `.intent` (see below).
+
+---
+
+## 📝 UX Defaults Governed by `.intent/`
+
+Place this block in `.intent/project_manifest.yaml` to make operator behavior explicit and predictable for anyone (human or agent):
+
+```yaml
+operator_experience:
+  guard:
+    drift:
+      default_format: pretty        # pretty | table | json
+      default_fail_on: any          # any | missing | undeclared
+      strict_default: true          # require KG/artifact by default
+      evidence_json: true           # always write JSON evidence
+      evidence_path: reports/drift_report.json
+      labels:
+        none: "NONE"
+        success: "✅ No capability drift"
+        failure: "🚨 Drift detected"
+```
+
+> Change `default_format` to `json` if you prefer raw JSON by default.
 
 ---
 
@@ -8979,31 +9279,24 @@ We’re making the project public now to invite collaboration on this foundation
 
 ---
 
-### 🌌 North Star
+## 🌌 North Star
 
 CORE’s long-term aim is **A5 autonomy**: turn goals into governed code and running systems, safely and without human intervention in low-risk areas.
-See **[NORTH\_STAR](docs/NORTH_STAR.md)** and **[BYOR](docs/05_BYOR.md)** for the roadmap and how CORE applies the same rules to any repo — including itself.
-
-> **Note:** If those docs aren’t in the repo yet, they’re coming soon with the “Ingestion Isomorphism” design.
+See **[NORTH\_STAR](docs/NORTH_STAR.md)** and **[BYOR](docs/05_BYOR.md)** for how CORE applies the same rules to any repo — including itself.
 
 ---
 
-## 🧑‍⚖️ Human-in-the-Loop (CLI)
+## 🧰 Troubleshooting
 
-Constitutional changes are proposed as files under `.intent/proposals/` and managed via the `core-admin` CLI. Run `poetry run core-admin --help` for a full list of commands.
+* **Strict mode error about missing capabilities**
 
-```bash
-# List pending proposals
-poetry run core-admin proposals-list
+  * Run `core-admin guard kg-export` first (or disable strict mode).
+* **CLI not found**
 
-# Sign a proposal with your generated key
-poetry run core-admin proposals-sign cr-example.yaml
+  * Use `poetry run core-admin ...`
+* **Drift report not in expected folder**
 
-# Approve a proposal (runs canary self-audit in isolation)
-poetry run core-admin proposals-approve cr-example.yaml
-
-# Generate a new key pair for a new contributor
-poetry run core-admin keygen "new.contributor@email.com"
+  * Reports are written under the repo root: `reports/`. You can change the path in `.intent` (`evidence_path`).
 
 ---
 
@@ -9047,11 +9340,7 @@ CORE was born from a simple but powerful idea:
 --- START OF FILE ./reports/drift_report.json ---
 {
   "missing_in_code": [],
-  "undeclared_in_manifest": [
-    "audit.check.proposals_drift",
-    "audit.check.proposals_list",
-    "audit.check.proposals_schema"
-  ],
+  "undeclared_in_manifest": [],
   "mismatched_mappings": []
 }
 --- END OF FILE ./reports/drift_report.json ---
@@ -11771,121 +12060,203 @@ __all__ = ["app"]
 """
 Intent: Governance/validation guard commands exposed to the operator.
 - `drift`: compare .intent manifest vs discovered code capabilities.
-- `kg-export`: emit a knowledge-graph artifact (nodes with capability/domain/owner)
-               so `--strict-intent` has a stable source of truth.
+- `kg-export`: emit a knowledge-graph artifact so `--strict-intent` has a stable source.
+
+This command honors UX defaults declared in .intent/project_manifest.yaml under:
+  operator_experience.guard.drift
+If absent, it falls back to sensible defaults (JSON output, non-strict).
 """
 
 from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 
 import typer
+import yaml
+from rich import print as rprint
+from rich.panel import Panel
+from rich.table import Table
 from shared.logger import getLogger
 from system.guard.drift_detector import (
-    CapabilityMeta,  # re-exported for typing in this module only
     collect_code_capabilities,
     detect_capability_drift,
-    load_manifest,
+    load_manifest,  # capability-only view
     write_report,
 )
 
 log = getLogger("core_admin")
 
 
-def _print_table(report_dict: dict) -> None:
-    """Intent: Human-friendly rendering of a drift report for operators."""
-    def section(title: str, items: List[str]) -> None:
-        """Intent: Render a named list section with a consistent layout."""
-        typer.echo(f"\n== {title} ==")
-        if not items:
-            typer.echo("  (none)")
-        else:
-            for it in items:
-                typer.echo(f"  - {it}")
+# -------------------------
+# Manifest UX defaults
+# -------------------------
+def _find_manifest_path(root: Path, explicit: Optional[Path]) -> Path:
+    if explicit:
+        return explicit
+    for p in (root / ".intent" / "project_manifest.yaml", root / ".intent" / "manifest.yaml"):
+        if p.exists():
+            return p
+    raise FileNotFoundError("No manifest found (.intent/project_manifest.yaml or .intent/manifest.yaml)")
 
-    section("Missing in code", report_dict.get("missing_in_code", []))
-    section("Undeclared in manifest", report_dict.get("undeclared_in_manifest", []))
+def _load_raw_manifest(root: Path, explicit: Optional[Path]) -> Dict[str, Any]:
+    path = _find_manifest_path(root, explicit)
+    data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    return data
+
+def _ux_defaults(root: Path, explicit: Optional[Path]) -> Dict[str, Any]:
+    raw = _load_raw_manifest(root, explicit)
+    ux = (((raw.get("operator_experience") or {})
+           .get("guard") or {})
+           .get("drift") or {})
+    # Fallbacks if not defined in manifest
+    return {
+        "default_format": ux.get("default_format", "json"),
+        "default_fail_on": ux.get("default_fail_on", "any"),
+        "strict_default": bool(ux.get("strict_default", False)),
+        "evidence_json": bool(ux.get("evidence_json", True)),
+        "evidence_path": ux.get("evidence_path", "reports/drift_report.json"),
+        "labels": {
+            "none": (ux.get("labels") or {}).get("none", "NONE"),
+            "success": (ux.get("labels") or {}).get("success", "✅ No capability drift"),
+            "failure": (ux.get("labels") or {}).get("failure", "🚨 Drift detected"),
+        },
+    }
+
+
+# -------------------------
+# Pretty printers
+# -------------------------
+def _is_clean(report: dict) -> bool:
+    return not (report.get("missing_in_code") or report.get("undeclared_in_manifest") or report.get("mismatched_mappings"))
+
+def _print_table(report_dict: dict, labels: Dict[str, str]) -> None:
+    table = Table(show_header=True, header_style="bold", title="Capability Drift")
+    table.add_column("Section", style="bold")
+    table.add_column("Values")
+
+    def row(title: str, items: List[str]):
+        if not items:
+            table.add_row(title, f"[bold green]{labels['none']}[/bold green]")
+        else:
+            joined = "\n".join(f"- {it}" for it in items)
+            table.add_row(title, f"[yellow]{joined}[/yellow]")
+
+    row("Missing in code", report_dict.get("missing_in_code", []))
+    row("Undeclared in manifest", report_dict.get("undeclared_in_manifest", []))
+
     mism = report_dict.get("mismatched_mappings", [])
-    typer.echo("\n== Mismatched mappings ==")
     if not mism:
-        typer.echo("  (none)")
+        table.add_row("Mismatched mappings", f"[bold green]{labels['none']}[/bold green]")
     else:
+        lines = []
         for m in mism:
             man, cod = m.get("manifest", {}), m.get("code", {})
-            typer.echo(
-                f"  - {m.get('capability')}: "
+            lines.append(
+                f"- {m.get('capability')}: "
                 f"manifest(domain={man.get('domain')}, owner={man.get('owner')}) "
                 f"!= code(domain={cod.get('domain')}, owner={cod.get('owner')})"
             )
+        table.add_row("Mismatched mappings", "[yellow]" + "\n".join(lines) + "[/yellow]")
+
+    status = "[bold green]" + labels["success"] + "[/bold green]" if _is_clean(report_dict) else "[bold red]" + labels["failure"] + "[/bold red]"
+    rprint(Panel.fit(table, title=status))
+
+def _print_pretty(report_dict: dict, labels: Dict[str, str]) -> None:
+    clean = _is_clean(report_dict)
+    if clean:
+        summary = (
+            f"[bold green]{labels['success']}[/bold green]\n"
+            f"[green]missing_in_code: {labels['none']}[/green]\n"
+            f"[green]undeclared_in_manifest: {labels['none']}[/green]\n"
+            f"[green]mismatched_mappings: {labels['none']}[/green]"
+        )
+    else:
+        summary = (
+            f"[bold red]{labels['failure']}[/bold red]\n"
+            f"[yellow]missing_in_code: {len(report_dict.get('missing_in_code', []))}[/yellow]\n"
+            f"[yellow]undeclared_in_manifest: {len(report_dict.get('undeclared_in_manifest', []))}[/yellow]\n"
+            f"[yellow]mismatched_mappings: {len(report_dict.get('mismatched_mappings', []))}[/yellow]"
+        )
+    rprint(Panel(summary, title="Capability Drift", border_style="green" if clean else "red"))
+    _print_table(report_dict, labels)
 
 
+# -------------------------
+# CLI wiring
+# -------------------------
 def _should_fail(report: dict, fail_on: str) -> bool:
-    """Intent: Decide CI/exit status based on operator-selected failure condition."""
     if fail_on == "missing":
         return bool(report["missing_in_code"])
     if fail_on == "undeclared":
         return bool(report["undeclared_in_manifest"])
     return bool(report["missing_in_code"] or report["undeclared_in_manifest"] or report["mismatched_mappings"])
 
-
 def register(app: typer.Typer) -> None:
-    """Intent: Register governance/validation guard commands under the admin CLI."""
     guard = typer.Typer(help="Governance/validation guards")
     app.add_typer(guard, name="guard")
 
     @guard.command("drift")
     def drift(
         root: Path = typer.Option(Path("."), help="Repository root (default: .)"),
-        manifest_path: Optional[Path] = typer.Option(
-            None, help="Explicit manifest path (defaults to .intent/project_manifest.yaml or .intent/manifest.yaml)"
-        ),
-        output: Optional[Path] = typer.Option(None, help="Path for JSON report (default: reports/drift_report.json)"),
-        format: str = typer.Option("json", case_sensitive=False, help="Output format: json|table"),
-        fail_on: str = typer.Option("any", case_sensitive=False, help="Fail condition: any|missing|undeclared"),
-        include: Optional[List[str]] = typer.Option(None, help="Include globs for source files"),
-        exclude: Optional[List[str]] = typer.Option(None, help="Exclude globs for source files"),
-        strict_intent: bool = typer.Option(
-            False, help="Require KnowledgeGraphBuilder/artifact; disallow regex fallback"
-        ),
+        manifest_path: Optional[Path] = typer.Option(None, help="Explicit manifest path"),
+        output: Optional[Path] = typer.Option(None, help="Path for JSON evidence report"),
+        format: Optional[str] = typer.Option(None, help="json|table|pretty (defaults come from manifest)"),
+        fail_on: Optional[str] = typer.Option(None, help="any|missing|undeclared (default from manifest)"),
+        include: Optional[List[str]] = typer.Option(None, help="Include globs"),
+        exclude: Optional[List[str]] = typer.Option(None, help="Exclude globs"),
+        strict_intent: Optional[bool] = typer.Option(None, help="Default from manifest (strict_default)"),
     ) -> None:
         """Intent: Compare manifest vs code to detect capability drift; write JSON evidence for CI."""
-        manifest = load_manifest(root, explicit_path=manifest_path)
+        # Read UX defaults from raw manifest
+        ux = _ux_defaults(root, manifest_path)
+
+        fmt = (format or ux["default_format"]).lower()
+        fail_policy = (fail_on or ux["default_fail_on"]).lower()
+        strict = bool(ux["strict_default"] if strict_intent is None else strict_intent)
+
+        # Load capability mapping from .intent
+        manifest_caps = load_manifest(root, explicit_path=manifest_path)
         code_caps = collect_code_capabilities(
             root,
             include_globs=include or [],
             exclude_globs=exclude or [],
-            require_kgb=strict_intent,
+            require_kgb=strict,
         )
-        report = detect_capability_drift(manifest, code_caps)
+        report = detect_capability_drift(manifest_caps, code_caps)
         report_dict = report.to_dict()
 
-        out = output or Path("reports/drift_report.json")
-        write_report(out, report)
+        # Evidence JSON (path relative to repo root by default)
+        if ux["evidence_json"]:
+            evidence_path = output or (root / ux["evidence_path"])
+            write_report(evidence_path, report)
 
-        if format.lower() == "json":
+        # Presentation
+        labels = ux["labels"]
+        if fmt == "json":
             typer.echo(json.dumps(report_dict, indent=2))
+        elif fmt == "table":
+            _print_table(report_dict, labels)
+        elif fmt == "pretty":
+            _print_pretty(report_dict, labels)
         else:
-            _print_table(report_dict)
+            typer.echo(json.dumps(report_dict, indent=2))  # fallback
 
-        if _should_fail(report_dict, fail_on.lower()):
+        if _should_fail(report_dict, fail_policy):
             raise typer.Exit(code=2)
 
     @guard.command("kg-export")
     def kg_export(
         root: Path = typer.Option(Path("."), help="Repository root (default: .)"),
-        output: Path = typer.Option(Path("reports/knowledge_graph.json"), help="Where to write the artifact"),
-        include: Optional[List[str]] = typer.Option(None, help="Include globs for capability discovery"),
-        exclude: Optional[List[str]] = typer.Option(None, help="Exclude globs for capability discovery"),
-        prefer: str = typer.Option(
-            "auto", case_sensitive=False, help="Source preference: auto|kgb|grep (auto tries KGB then falls back)"
-        ),
+        output: Optional[Path] = typer.Option(None, help="Artifact file (default: <root>/reports/knowledge_graph.json)"),
+        include: Optional[List[str]] = typer.Option(None, help="Include globs"),
+        exclude: Optional[List[str]] = typer.Option(None, help="Exclude globs"),
+        prefer: str = typer.Option("auto", case_sensitive=False, help="auto|kgb|grep"),
     ) -> None:
         """
-        Intent: Emit a minimal knowledge-graph artifact with capability nodes so `--strict-intent`
-        has a stable source of truth. Format:
-            { "nodes": [ {"capability": "...", "domain": "x", "owner": "y"}, ... ] }
+        Intent: Emit a minimal knowledge-graph artifact with capability nodes.
+        Format: { "nodes": [ {"capability": "...", "domain": "x", "owner": "y"}, ... ] }
         """
         require_kgb = prefer.lower() == "kgb"
         caps = collect_code_capabilities(
@@ -11894,14 +12265,12 @@ def register(app: typer.Typer) -> None:
             exclude_globs=exclude or [],
             require_kgb=require_kgb,
         )
-        # If prefer=auto and KGB yielded nothing, we already fell back to grep inside collect_code_capabilities.
-        nodes = [
-            {"capability": k, "domain": v.domain, "owner": v.owner}
-            for k, v in sorted(caps.items(), key=lambda kv: kv[0])
-        ]
-        output.parent.mkdir(parents=True, exist_ok=True)
-        output.write_text(json.dumps({"nodes": nodes}, indent=2), encoding="utf-8")
-        typer.echo(f"✅ Wrote knowledge-graph artifact with {len(nodes)} capability nodes -> {output}")
+        nodes = [{"capability": k, "domain": v.domain, "owner": v.owner} for k, v in sorted(caps.items())]
+
+        out_path = output or (root / "reports" / "knowledge_graph.json")
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        out_path.write_text(json.dumps({"nodes": nodes}, indent=2), encoding="utf-8")
+        rprint(f"[bold green]✅[/bold green] Wrote knowledge-graph artifact with [bold]{len(nodes)}[/bold] capability nodes -> {out_path}")
 
 --- END OF FILE ./src/system/admin/guard.py ---
 
@@ -13853,6 +14222,109 @@ if __name__ == "__main__":
 # src/system/tools/__init__.py
 # Package marker for src/system/tools — contains CORE's introspection and audit tools.
 --- END OF FILE ./src/system/tools/__init__.py ---
+
+--- START OF FILE ./tests/admin/test_guard_drift_cli.py ---
+# tests/admin/test_guard_drift_cli.py
+from __future__ import annotations
+
+import json
+from pathlib import Path
+
+from typer.testing import CliRunner
+from system.admin import app  # uses core-admin entrypoint
+
+runner = CliRunner()
+
+
+def write(p: Path, text: str) -> None:
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(text, encoding="utf-8")
+
+
+def manifest_yaml(capabilities):
+    import yaml  # already a project dep
+    # Prefer a top-level 'capabilities' key; adjust if your manifest uses a different key.
+    data = {"capabilities": []}
+    for c in capabilities:
+        data["capabilities"].append(c)
+    return yaml.safe_dump(data, sort_keys=False)
+
+
+def test_guard_drift_clean_repo(tmp_path: Path):
+    # Arrange: manifest and code agree (no meta mismatch)
+    write(tmp_path / ".intent" / "project_manifest.yaml", manifest_yaml(["alpha.cap", "beta.cap"]))
+    write(tmp_path / "src" / "mod.py", "# CAPABILITY: alpha.cap\n# CAPABILITY: beta.cap\n")
+    out = tmp_path / "reports" / "drift_report.json"
+
+    # Act
+    result = runner.invoke(
+        app, ["guard", "drift", "--root", str(tmp_path), "--format", "json", "--output", str(out)]
+    )
+
+    # Assert
+    assert result.exit_code == 0, result.output
+    assert out.exists()
+    report = json.loads(out.read_text(encoding="utf-8"))
+    assert report["missing_in_code"] == []
+    assert report["undeclared_in_manifest"] == []
+    assert report["mismatched_mappings"] == []
+
+
+def test_guard_drift_detects_undeclared(tmp_path: Path):
+    # Arrange: code has extra capability not in manifest
+    write(tmp_path / ".intent" / "project_manifest.yaml", manifest_yaml(["alpha.cap"]))
+    write(tmp_path / "src" / "mod.py", "# CAPABILITY: alpha.cap\n# CAPABILITY: ghost.cap\n")
+    out = tmp_path / "reports" / "drift_report.json"
+
+    # Act
+    result = runner.invoke(
+        app,
+        ["guard", "drift", "--root", str(tmp_path), "--format", "json", "--fail-on", "any", "--output", str(out)],
+    )
+
+    # Assert
+    assert result.exit_code == 2  # drift should fail the command
+    assert out.exists()
+    report = json.loads(out.read_text(encoding="utf-8"))
+    assert "ghost.cap" in report["undeclared_in_manifest"]
+
+
+def test_guard_drift_strict_requires_kg(tmp_path: Path):
+    # Arrange: no KG present; strict should fail fast instead of grepping
+    write(tmp_path / ".intent" / "project_manifest.yaml", manifest_yaml([]))
+
+    # Act
+    result = runner.invoke(
+        app, ["guard", "drift", "--root", str(tmp_path), "--strict-intent", "--format", "json"]
+    )
+
+    # Assert
+    assert result.exit_code != 0
+    # Typer doesn't print the exception to stdout; check the exception message instead.
+    assert result.exception is not None
+    assert "Strict intent mode" in str(result.exception)
+
+
+def test_guard_drift_mismatched_mappings(tmp_path: Path):
+    # Arrange: same capability both sides, but code has meta that manifest does not -> mismatch
+    write(tmp_path / ".intent" / "project_manifest.yaml", manifest_yaml(["beta.cap"]))
+    write(tmp_path / "src" / "mod.py", "# CAPABILITY: beta.cap [domain=governance owner=ops]\n")
+    out = tmp_path / "reports" / "drift_report.json"
+
+    # Act
+    result = runner.invoke(
+        app, ["guard", "drift", "--root", str(tmp_path), "--format", "json", "--output", str(out)]
+    )
+
+    # Assert: default --fail-on any -> should fail due to mismatched_mappings
+    assert result.exit_code == 2
+    assert out.exists()
+    report = json.loads(out.read_text(encoding="utf-8"))
+    assert report["missing_in_code"] == []
+    assert report["undeclared_in_manifest"] == []
+    assert any(m.get("capability") == "beta.cap" for m in report["mismatched_mappings"])
+
+--- END OF FILE ./tests/admin/test_guard_drift_cli.py ---
 
 --- START OF FILE ./tests/core/test_intent_model.py ---
 # tests/core/test_intent_model.py

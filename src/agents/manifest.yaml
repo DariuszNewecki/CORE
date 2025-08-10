@@ -1,0 +1,14 @@
+# src/agents/manifest.yaml
+#
+# This is the domain-specific manifest for the 'agents' module.
+# As per the newly ratified constitutional amendment, this file declares
+# the capabilities and intent specific to the AI agents in this directory.
+
+domain: "agents"
+
+capabilities:
+  # This list can be populated later as we refactor. For now, it serves as a
+  # placeholder to make the system's structure consistent with its new constitution.
+  - code_generation
+  - llm_orchestration
+
