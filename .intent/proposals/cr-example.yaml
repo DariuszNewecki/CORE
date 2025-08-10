@@ -1,0 +1,36 @@
+# Example proposal (copy, rename to cr-something.yaml, then edit)
+
+target_path: ".intent/policies/safety_policies.yaml"
+action: "replace_file"
+justification: >
+  Strengthen dangerous call coverage and align policies with current runtime.
+  This improves safety and reduces false negatives in validation.
+
+content: |
+  # (paste the full new file content here)
+  rules:
+    - id: no_dangerous_execution
+      description: Disallow dynamic eval/exec and OS command execution
+      detection:
+        patterns:
+          - "eval("
+          - "exec("
+          - "os.system("
+          - "subprocess.Popen("
+      scope:
+        exclude: []
+    - id: no_unsafe_imports
+      description: Forbid importing known-unsafe modules
+      detection:
+        forbidden:
+          - "pickle"
+          - "imp"
+      scope:
+        exclude: []
+
+rollback_plan:
+  description: "If this causes issues, restore the prior policy file from git history."
+  previous_version_hint: "git show HEAD:.intent/policies/safety_policies.yaml"
+
+# signatures are added by `core-admin proposals-sign`
+signatures: []

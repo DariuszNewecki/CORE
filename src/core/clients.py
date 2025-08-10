@@ -4,11 +4,11 @@ Clients for communicating with the different LLMs in the CORE ecosystem.
 This version is updated to use the modern "Chat Completions" API format,
 which is compatible with providers like DeepSeek and OpenAI's newer models.
 """
-import os
 import requests
 from typing import Dict, Any
 
 from shared.logger import getLogger
+from shared.config import settings
 
 log = getLogger(__name__)
 
@@ -32,10 +32,9 @@ class BaseLLMClient:
             raise ValueError(
                 f"{self.__class__.__name__} requires both API_URL and API_KEY."
             )
+        
         # Ensure the URL ends with the correct endpoint for compatibility
-        if not api_url.endswith("/v1/chat/completions") and not api_url.endswith(
-            "/chat/completions"
-        ):
+        if not api_url.endswith("/v1/chat/completions"):
             self.api_url = api_url.rstrip("/") + "/v1/chat/completions"
         else:
             self.api_url = api_url
@@ -99,13 +98,11 @@ class OrchestratorClient(BaseLLMClient):
     """
 
     def __init__(self):
-        """
-        Initialize the OrchestratorClient using environment variables.
-        """
+        """Initializes the OrchestratorClient using the central settings object."""
         super().__init__(
-            api_url=os.getenv("ORCHESTRATOR_API_URL"),
-            api_key=os.getenv("ORCHESTRATOR_API_KEY"),
-            model_name=os.getenv("ORCHESTRATOR_MODEL_NAME", "deepseek-chat"),
+            api_url=settings.ORCHESTRATOR_API_URL,
+            api_key=settings.ORCHESTRATOR_API_KEY,
+            model_name=settings.ORCHESTRATOR_MODEL_NAME,
         )
         log.info(f"OrchestratorClient initialized for model '{self.model_name}'.")
 
@@ -117,12 +114,10 @@ class GeneratorClient(BaseLLMClient):
     """
 
     def __init__(self):
-        """
-        Initialize the GeneratorClient using environment variables.
-        """
+        """Initializes the GeneratorClient using the central settings object."""
         super().__init__(
-            api_url=os.getenv("GENERATOR_API_URL"),
-            api_key=os.getenv("GENERATOR_API_KEY"),
-            model_name=os.getenv("GENERATOR_MODEL_NAME", "deepseek-coder"),
+            api_url=settings.GENERATOR_API_URL,
+            api_key=settings.GENERATOR_API_KEY,
+            model_name=settings.GENERATOR_MODEL_NAME,
         )
         log.info(f"GeneratorClient initialized for model '{self.model_name}'.")

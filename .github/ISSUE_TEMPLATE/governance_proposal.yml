@@ -1,0 +1,30 @@
+name: Constitutional Proposal
+description: Propose a change to the Mind (.intent) via a signed proposal file.
+labels: ["audit","roadmap"]
+body:
+  - type: textarea
+    id: justification
+    attributes:
+      label: Justification
+      description: Why is this change needed?
+    validations:
+      required: true
+  - type: input
+    id: target
+    attributes:
+      label: Target path
+      placeholder: .intent/policies/safety_policies.yaml
+    validations:
+      required: true
+  - type: textarea
+    id: content
+    attributes:
+      label: Proposed content
+      description: Paste or attach content that will replace the file.
+  - type: markdown
+    attributes:
+      value: |
+        **How to submit:**
+        1. Create `.intent/proposals/cr-*.yaml` using the schema.
+        2. (Optional) Sign with `core-admin proposals-sign`.
+        3. Ask a maintainer to run `proposals-approve`.

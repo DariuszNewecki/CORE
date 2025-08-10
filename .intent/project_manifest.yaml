@@ -19,7 +19,6 @@ required_capabilities:
   - introspection
   - alignment_checking
   - manifest_updating
-  # - self_review # <-- REMOVED THIS OBSOLETE TAG
   - self_correction
   - change_safety_enforcement
   - llm_orchestration
@@ -28,7 +27,6 @@ required_capabilities:
   - code_quality_analysis
   - system_logging
   - add_missing_docstrings
-  # The auditor's checks are also first-class capabilities
   - audit.check.required_files
   - audit.check.syntax
   - audit.check.project_manifest
@@ -40,6 +38,9 @@ required_capabilities:
   - audit.check.dead_code
   - audit.check.orphaned_intent_files
   - audit.check.environment
+  - audit.check.proposals_schema
+  - audit.check.proposals_drift
+  - audit.check.proposals_list
 
 # Defines the primary agents responsible for executing CORE's logic.
 active_agents:
@@ -65,3 +66,18 @@ meta:
   created_by: "CORE v0.1 bootstrap"
   created_at: "2025-07-23T00:00:00Z"
   last_updated: "2025-08-05T12:00:00Z" # Using a placeholder for today
+
+# --- Operator UX policy -------------------------------------------------------
+operator_experience:
+  guard:
+    drift:
+      # Default presentation when the operator runs the command with no flags:
+      default_format: pretty        # options: pretty | table | json
+      default_fail_on: any          # options: any | missing | undeclared
+      strict_default: true          # require KG/artifact by default
+      evidence_json: true           # always write JSON evidence to disk
+      evidence_path: reports/drift_report.json
+      labels:
+        none: "NONE"                # how to label empty sections
+        success: "✅ No capability drift"
+        failure: "🚨 Drift detected"  

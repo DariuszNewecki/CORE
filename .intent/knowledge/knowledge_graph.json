@@ -1,288 +1,11 @@
 {
   "schema_version": "2.0.0",
   "metadata": {
-    "files_scanned": 34,
-    "total_symbols": 167,
-    "timestamp_utc": "2025-08-08T11:37:09.497643+00:00"
+    "files_scanned": 42,
+    "total_symbols": 221,
+    "timestamp_utc": "2025-08-10T11:20:59.165733+00:00"
   },
   "symbols": {
-    "src/system/admin_cli.py::_generate_approval_token": {
-      "key": "src/system/admin_cli.py::_generate_approval_token",
-      "name": "_generate_approval_token",
-      "type": "FunctionDef",
-      "file": "src/system/admin_cli.py",
-      "domain": "system",
-      "agent": "generic_agent",
-      "capability": "unassigned",
-      "intent": "Creates a unique, deterministic token for proposal content using a secure hash.",
-      "docstring": "Creates a unique, deterministic token for proposal content using a secure hash.",
-      "calls": [
-        "Hash",
-        "SHA256",
-        "encode",
-        "finalize",
-        "hex",
-        "update"
-      ],
-      "line_number": 40,
-      "is_async": false,
-      "parameters": [
-        "proposal_content"
-      ],
-      "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.337348+00:00",
-      "is_class": false,
-      "base_classes": [],
-      "entry_point_justification": "dataclass_definition"
-    },
-    "src/system/admin_cli.py::_load_private_key": {
-      "key": "src/system/admin_cli.py::_load_private_key",
-      "name": "_load_private_key",
-      "type": "FunctionDef",
-      "file": "src/system/admin_cli.py",
-      "domain": "system",
-      "agent": "generic_agent",
-      "capability": "unassigned",
-      "intent": "Loads the user's private key from the secure storage location.",
-      "docstring": "Loads the user's private key from the secure storage location.",
-      "calls": [
-        "error",
-        "exists",
-        "exit",
-        "load_pem_private_key",
-        "open",
-        "read"
-      ],
-      "line_number": 47,
-      "is_async": false,
-      "parameters": [],
-      "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.337845+00:00",
-      "is_class": false,
-      "base_classes": [],
-      "entry_point_justification": "dataclass_definition"
-    },
-    "src/system/admin_cli.py::keygen": {
-      "key": "src/system/admin_cli.py::keygen",
-      "name": "keygen",
-      "type": "FunctionDef",
-      "file": "src/system/admin_cli.py",
-      "domain": "system",
-      "agent": "generic_agent",
-      "capability": "unassigned",
-      "intent": "Generates a new cryptographic key pair for a user.",
-      "docstring": "Generates a new cryptographic key pair for a user.",
-      "calls": [
-        "NoEncryption",
-        "chmod",
-        "decode",
-        "dumps",
-        "exists",
-        "generate",
-        "info",
-        "input",
-        "lower",
-        "mkdir",
-        "open",
-        "print",
-        "private_bytes",
-        "public_bytes",
-        "public_key",
-        "str",
-        "strip",
-        "warning",
-        "write"
-      ],
-      "line_number": 62,
-      "is_async": false,
-      "parameters": [
-        "identity"
-      ],
-      "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.338535+00:00",
-      "is_class": false,
-      "base_classes": [],
-      "entry_point_justification": "dataclass_definition"
-    },
-    "src/system/admin_cli.py::sign_proposal": {
-      "key": "src/system/admin_cli.py::sign_proposal",
-      "name": "sign_proposal",
-      "type": "FunctionDef",
-      "file": "src/system/admin_cli.py",
-      "domain": "system",
-      "agent": "generic_agent",
-      "capability": "unassigned",
-      "intent": "Signs a proposal and adds the signature to the proposal file.",
-      "docstring": "Signs a proposal and adds the signature to the proposal file.",
-      "calls": [
-        "_generate_approval_token",
-        "_load_private_key",
-        "any",
-        "append",
-        "b64encode",
-        "decode",
-        "dump",
-        "encode",
-        "error",
-        "exists",
-        "get",
-        "info",
-        "input",
-        "isoformat",
-        "load_config",
-        "open",
-        "sign",
-        "strip",
-        "utcnow",
-        "warning"
-      ],
-      "line_number": 102,
-      "is_async": false,
-      "parameters": [
-        "proposal_name"
-      ],
-      "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.339477+00:00",
-      "is_class": false,
-      "base_classes": [],
-      "entry_point_justification": "dataclass_definition"
-    },
-    "src/system/admin_cli.py::list_proposals": {
-      "key": "src/system/admin_cli.py::list_proposals",
-      "name": "list_proposals",
-      "type": "FunctionDef",
-      "file": "src/system/admin_cli.py",
-      "domain": "system",
-      "agent": "generic_agent",
-      "capability": "unassigned",
-      "intent": "Lists all pending constitutional amendment proposals.",
-      "docstring": "Lists all pending constitutional amendment proposals.",
-      "calls": [
-        "any",
-        "endswith",
-        "get",
-        "glob",
-        "info",
-        "len",
-        "list",
-        "load_config",
-        "mkdir",
-        "sorted"
-      ],
-      "line_number": 142,
-      "is_async": false,
-      "parameters": [],
-      "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.340496+00:00",
-      "is_class": false,
-      "base_classes": [],
-      "entry_point_justification": "dataclass_definition"
-    },
-    "src/system/admin_cli.py::_archive_rollback_plan": {
-      "key": "src/system/admin_cli.py::_archive_rollback_plan",
-      "name": "_archive_rollback_plan",
-      "type": "FunctionDef",
-      "file": "src/system/admin_cli.py",
-      "domain": "system",
-      "agent": "generic_agent",
-      "capability": "unassigned",
-      "intent": "Saves the rollback plan to a dedicated archive.",
-      "docstring": "Saves the rollback plan to a dedicated archive.",
-      "calls": [
-        "dump",
-        "get",
-        "info",
-        "mkdir",
-        "open",
-        "strftime",
-        "utcnow"
-      ],
-      "line_number": 169,
-      "is_async": false,
-      "parameters": [
-        "proposal_name",
-        "proposal"
-      ],
-      "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.341240+00:00",
-      "is_class": false,
-      "base_classes": [],
-      "entry_point_justification": "dataclass_definition"
-    },
-    "src/system/admin_cli.py::approve_proposal": {
-      "key": "src/system/admin_cli.py::approve_proposal",
-      "name": "approve_proposal",
-      "type": "FunctionDef",
-      "file": "src/system/admin_cli.py",
-      "domain": "system",
-      "agent": "generic_agent",
-      "capability": "unassigned",
-      "intent": "Approves and applies a proposal after successful canary check and signature verification.",
-      "docstring": "Approves and applies a proposal after successful canary check and signature verification.",
-      "calls": [
-        "ConstitutionalAuditor",
-        "Path",
-        "TemporaryDirectory",
-        "_archive_rollback_plan",
-        "_generate_approval_token",
-        "any",
-        "b64decode",
-        "copytree",
-        "encode",
-        "endswith",
-        "error",
-        "exists",
-        "get",
-        "info",
-        "load_config",
-        "load_pem_public_key",
-        "mkdir",
-        "run_full_audit",
-        "unlink",
-        "verify",
-        "warning",
-        "write_text"
-      ],
-      "line_number": 186,
-      "is_async": false,
-      "parameters": [
-        "proposal_name"
-      ],
-      "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.342436+00:00",
-      "is_class": false,
-      "base_classes": [],
-      "entry_point_justification": "dataclass_definition"
-    },
-    "src/system/admin_cli.py::main": {
-      "key": "src/system/admin_cli.py::main",
-      "name": "main",
-      "type": "FunctionDef",
-      "file": "src/system/admin_cli.py",
-      "domain": "system",
-      "agent": "generic_agent",
-      "capability": "unassigned",
-      "intent": "Main entry point for the admin CLI.",
-      "docstring": "Main entry point for the admin CLI.",
-      "calls": [
-        "approve_proposal",
-        "error",
-        "exit",
-        "keygen",
-        "len",
-        "list_proposals",
-        "load_dotenv",
-        "print",
-        "sign_proposal"
-      ],
-      "line_number": 267,
-      "is_async": false,
-      "parameters": [],
-      "entry_point_type": "cli_entry_point",
-      "last_updated": "2025-08-08T11:37:09.343736+00:00",
-      "is_class": false,
-      "base_classes": []
-    },
     "src/core/clients.py::BaseLLMClient": {
       "key": "src/core/clients.py::BaseLLMClient",
       "name": "BaseLLMClient",
@@ -307,7 +30,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "base_class",
-      "last_updated": "2025-08-08T11:37:09.345979+00:00",
+      "last_updated": "2025-08-10T11:20:58.953641+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "framework_base_class"
@@ -320,21 +43,20 @@
       "domain": "core",
       "agent": "core_agent",
       "capability": "unassigned",
-      "intent": "Initialize the GeneratorClient using environment variables.",
-      "docstring": "Initialize the GeneratorClient using environment variables.",
+      "intent": "Initializes the GeneratorClient using the central settings object.",
+      "docstring": "Initializes the GeneratorClient using the central settings object.",
       "calls": [
         "__init__",
-        "getenv",
         "info",
         "super"
       ],
-      "line_number": 119,
+      "line_number": 116,
       "is_async": false,
       "parameters": [
         "self"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-08T11:37:09.349012+00:00",
+      "last_updated": "2025-08-10T11:20:58.956686+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -357,7 +79,7 @@
         "post",
         "raise_for_status"
       ],
-      "line_number": 49,
+      "line_number": 48,
       "is_async": false,
       "parameters": [
         "self",
@@ -365,7 +87,7 @@
         "user_id"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.347121+00:00",
+      "last_updated": "2025-08-10T11:20:58.954796+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -383,15 +105,14 @@
       "docstring": "Client for the Orchestrator LLM (e.g., GPT-4, Claude 3).\nResponsible for high-level planning and intent interpretation.",
       "calls": [
         "__init__",
-        "getenv",
         "info",
         "super"
       ],
-      "line_number": 95,
+      "line_number": 94,
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.347793+00:00",
+      "last_updated": "2025-08-10T11:20:58.955471+00:00",
       "is_class": true,
       "base_classes": [
         "BaseLLMClient"
@@ -410,15 +131,14 @@
       "docstring": "Client for the Generator LLM (e.g., a specialized coding model).\nResponsible for code generation and detailed implementation.",
       "calls": [
         "__init__",
-        "getenv",
         "info",
         "super"
       ],
-      "line_number": 113,
+      "line_number": 110,
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.348654+00:00",
+      "last_updated": "2025-08-10T11:20:58.956278+00:00",
       "is_class": true,
       "base_classes": [
         "BaseLLMClient"
@@ -444,7 +164,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.352644+00:00",
+      "last_updated": "2025-08-10T11:20:58.960521+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -470,7 +190,7 @@
         "node"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.353092+00:00",
+      "last_updated": "2025-08-10T11:20:58.960969+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -507,7 +227,7 @@
         "file_path"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.354001+00:00",
+      "last_updated": "2025-08-10T11:20:58.961875+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -535,7 +255,7 @@
         "code"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.354896+00:00",
+      "last_updated": "2025-08-10T11:20:58.962823+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -561,7 +281,7 @@
         "file_path"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-08T11:37:09.355490+00:00",
+      "last_updated": "2025-08-10T11:20:58.963448+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation"
@@ -594,7 +314,7 @@
         "code"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.356032+00:00",
+      "last_updated": "2025-08-10T11:20:58.963971+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -619,7 +339,7 @@
         "code"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.356632+00:00",
+      "last_updated": "2025-08-10T11:20:58.964596+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -644,7 +364,7 @@
         "file_path"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.357082+00:00",
+      "last_updated": "2025-08-10T11:20:58.965047+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -675,7 +395,7 @@
         "quiet"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-08T11:37:09.357651+00:00",
+      "last_updated": "2025-08-10T11:20:58.965646+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation"
@@ -712,7 +432,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.359877+00:00",
+      "last_updated": "2025-08-10T11:20:58.967944+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -741,7 +461,7 @@
         "repo_path"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-08T11:37:09.360266+00:00",
+      "last_updated": "2025-08-10T11:20:58.968321+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -772,7 +492,7 @@
         "command"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-08T11:37:09.360774+00:00",
+      "last_updated": "2025-08-10T11:20:58.968801+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -800,7 +520,7 @@
         "file_path"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.361275+00:00",
+      "last_updated": "2025-08-10T11:20:58.969280+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -829,7 +549,7 @@
         "message"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.361809+00:00",
+      "last_updated": "2025-08-10T11:20:58.969779+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -854,7 +574,7 @@
         "self"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.362275+00:00",
+      "last_updated": "2025-08-10T11:20:58.970213+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -879,7 +599,7 @@
         "self"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.362659+00:00",
+      "last_updated": "2025-08-10T11:20:58.970569+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -907,7 +627,7 @@
         "commit_hash"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.363033+00:00",
+      "last_updated": "2025-08-10T11:20:58.970947+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -935,7 +655,7 @@
         "code"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-08T11:37:09.363978+00:00",
+      "last_updated": "2025-08-10T11:20:58.971907+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation"
@@ -962,7 +682,7 @@
         "code"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.364813+00:00",
+      "last_updated": "2025-08-10T11:20:58.972758+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -1000,7 +720,7 @@
         "silent"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-08T11:37:09.368007+00:00",
+      "last_updated": "2025-08-10T11:20:58.975912+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation"
@@ -1026,7 +746,7 @@
         "output"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.368841+00:00",
+      "last_updated": "2025-08-10T11:20:58.976727+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -1053,7 +773,7 @@
         "data"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.369295+00:00",
+      "last_updated": "2025-08-10T11:20:58.977178+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -1082,7 +802,7 @@
         "data"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.369823+00:00",
+      "last_updated": "2025-08-10T11:20:58.977713+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -1114,7 +834,7 @@
         "app"
       ],
       "entry_point_type": "context_manager",
-      "last_updated": "2025-08-08T11:37:09.371676+00:00",
+      "last_updated": "2025-08-10T11:20:58.979563+00:00",
       "is_class": false,
       "base_classes": []
     },
@@ -1133,7 +853,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.372179+00:00",
+      "last_updated": "2025-08-10T11:20:58.980053+00:00",
       "is_class": true,
       "base_classes": [
         "BaseModel"
@@ -1166,7 +886,7 @@
         "request"
       ],
       "entry_point_type": "fastapi_route_post",
-      "last_updated": "2025-08-08T11:37:09.372715+00:00",
+      "last_updated": "2025-08-10T11:20:58.980601+00:00",
       "is_class": false,
       "base_classes": []
     },
@@ -1187,7 +907,7 @@
       "is_async": true,
       "parameters": [],
       "entry_point_type": "fastapi_route_get",
-      "last_updated": "2025-08-08T11:37:09.373247+00:00",
+      "last_updated": "2025-08-10T11:20:58.981104+00:00",
       "is_class": false,
       "base_classes": []
     },
@@ -1227,7 +947,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.376255+00:00",
+      "last_updated": "2025-08-10T11:20:58.983965+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -1254,7 +974,7 @@
         "repo_path"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-08T11:37:09.376678+00:00",
+      "last_updated": "2025-08-10T11:20:58.984351+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -1286,7 +1006,7 @@
         "match"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.377195+00:00",
+      "last_updated": "2025-08-10T11:20:58.984862+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -1312,7 +1032,7 @@
         "prompt"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.377698+00:00",
+      "last_updated": "2025-08-10T11:20:58.985314+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -1344,7 +1064,7 @@
         "match"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.378173+00:00",
+      "last_updated": "2025-08-10T11:20:58.985775+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -1370,7 +1090,7 @@
         "prompt"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.378695+00:00",
+      "last_updated": "2025-08-10T11:20:58.986226+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -1397,7 +1117,7 @@
         "match"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.379068+00:00",
+      "last_updated": "2025-08-10T11:20:58.986617+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -1423,7 +1143,7 @@
         "prompt"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.379475+00:00",
+      "last_updated": "2025-08-10T11:20:58.986980+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -1458,7 +1178,7 @@
         "match"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.380018+00:00",
+      "last_updated": "2025-08-10T11:20:58.987526+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -1484,7 +1204,7 @@
         "prompt"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.380598+00:00",
+      "last_updated": "2025-08-10T11:20:58.988038+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -1513,7 +1233,7 @@
         "prompt"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-08T11:37:09.380968+00:00",
+      "last_updated": "2025-08-10T11:20:58.988435+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -1542,7 +1262,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "cli_entry_point",
-      "last_updated": "2025-08-08T11:37:09.382657+00:00",
+      "last_updated": "2025-08-10T11:20:58.990044+00:00",
       "is_class": false,
       "base_classes": []
     },
@@ -1576,7 +1296,7 @@
         "display_filename"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.384705+00:00",
+      "last_updated": "2025-08-10T11:20:58.992014+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -1614,7 +1334,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.387277+00:00",
+      "last_updated": "2025-08-10T11:20:58.994557+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -1642,7 +1362,7 @@
         "repo_path"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-08T11:37:09.387663+00:00",
+      "last_updated": "2025-08-10T11:20:58.994908+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -1677,7 +1397,7 @@
         "code"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.388127+00:00",
+      "last_updated": "2025-08-10T11:20:58.995384+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -1713,7 +1433,7 @@
         "pending_id"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.388884+00:00",
+      "last_updated": "2025-08-10T11:20:58.996096+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -1748,7 +1468,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.390784+00:00",
+      "last_updated": "2025-08-10T11:20:58.997963+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -1775,7 +1495,7 @@
         "repo_root"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-08T11:37:09.391166+00:00",
+      "last_updated": "2025-08-10T11:20:58.998356+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -1805,7 +1525,7 @@
         "self"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.391681+00:00",
+      "last_updated": "2025-08-10T11:20:58.998850+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -1834,7 +1554,7 @@
         "file_path"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.392212+00:00",
+      "last_updated": "2025-08-10T11:20:58.999376+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -1861,7 +1581,7 @@
         "domain"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.392696+00:00",
+      "last_updated": "2025-08-10T11:20:58.999858+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -1902,7 +1622,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-08T11:37:09.394570+00:00",
+      "last_updated": "2025-08-10T11:20:59.001727+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "capability_implementation"
@@ -1932,7 +1652,7 @@
         "repo_path"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-08T11:37:09.394992+00:00",
+      "last_updated": "2025-08-10T11:20:59.002164+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -1961,7 +1681,7 @@
         "self"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.395516+00:00",
+      "last_updated": "2025-08-10T11:20:59.002673+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -1992,7 +1712,7 @@
         "self"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.396006+00:00",
+      "last_updated": "2025-08-10T11:20:59.003175+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -2019,7 +1739,7 @@
         "proposed_paths"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-08T11:37:09.396540+00:00",
+      "last_updated": "2025-08-10T11:20:59.003696+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -2054,7 +1774,7 @@
         "failure_context"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-08T11:37:09.398111+00:00",
+      "last_updated": "2025-08-10T11:20:59.005301+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation"
@@ -2087,7 +1807,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.400549+00:00",
+      "last_updated": "2025-08-10T11:20:59.007734+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -2115,7 +1835,7 @@
         "symbol_name"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.400940+00:00",
+      "last_updated": "2025-08-10T11:20:59.008133+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -2151,7 +1871,7 @@
         "new_code_str"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.401638+00:00",
+      "last_updated": "2025-08-10T11:20:59.008759+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -2180,7 +1900,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.402307+00:00",
+      "last_updated": "2025-08-10T11:20:59.009423+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -2211,7 +1931,7 @@
         "symbol_name"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.402769+00:00",
+      "last_updated": "2025-08-10T11:20:59.009844+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -2238,7 +1958,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.403367+00:00",
+      "last_updated": "2025-08-10T11:20:59.010436+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -2261,7 +1981,7 @@
         "planner_agent"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-08T11:37:09.403711+00:00",
+      "last_updated": "2025-08-10T11:20:59.010745+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -2288,7 +2008,7 @@
         "self"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-08T11:37:09.404068+00:00",
+      "last_updated": "2025-08-10T11:20:59.011114+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -2318,7 +2038,7 @@
         "exc_tb"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-08T11:37:09.404538+00:00",
+      "last_updated": "2025-08-10T11:20:59.011527+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -2342,7 +2062,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.410853+00:00",
+      "last_updated": "2025-08-10T11:20:59.017794+00:00",
       "is_class": true,
       "base_classes": [
         "Exception"
@@ -2379,7 +2099,7 @@
         "config"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-08T11:37:09.414616+00:00",
+      "last_updated": "2025-08-10T11:20:59.021335+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -2469,7 +2189,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-08T11:37:09.414119+00:00",
+      "last_updated": "2025-08-10T11:20:59.020893+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "capability_implementation"
@@ -2494,7 +2214,7 @@
         "self"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.415060+00:00",
+      "last_updated": "2025-08-10T11:20:59.021841+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -2519,7 +2239,7 @@
         "self"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-08T11:37:09.415435+00:00",
+      "last_updated": "2025-08-10T11:20:59.022178+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -2548,7 +2268,7 @@
         "plan_id"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.415798+00:00",
+      "last_updated": "2025-08-10T11:20:59.022538+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -2580,7 +2300,7 @@
         "text"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.416358+00:00",
+      "last_updated": "2025-08-10T11:20:59.023069+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -2608,7 +2328,7 @@
         "plan"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.416941+00:00",
+      "last_updated": "2025-08-10T11:20:59.023645+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -2635,7 +2355,7 @@
         "task"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.417500+00:00",
+      "last_updated": "2025-08-10T11:20:59.024147+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -2678,7 +2398,7 @@
         "high_level_goal"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-08T11:37:09.418200+00:00",
+      "last_updated": "2025-08-10T11:20:59.024828+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -2710,7 +2430,7 @@
         "goal"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.418889+00:00",
+      "last_updated": "2025-08-10T11:20:59.025497+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -2738,7 +2458,7 @@
         "symbol_name"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.419350+00:00",
+      "last_updated": "2025-08-10T11:20:59.025944+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -2767,7 +2487,7 @@
         "timeout"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.419826+00:00",
+      "last_updated": "2025-08-10T11:20:59.026374+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -2805,7 +2525,7 @@
         "high_level_goal"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.420556+00:00",
+      "last_updated": "2025-08-10T11:20:59.027081+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -2846,7 +2566,7 @@
         "params"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.421561+00:00",
+      "last_updated": "2025-08-10T11:20:59.028075+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -2880,7 +2600,7 @@
         "params"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.422403+00:00",
+      "last_updated": "2025-08-10T11:20:59.028905+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -2919,7 +2639,7 @@
         "params"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.423152+00:00",
+      "last_updated": "2025-08-10T11:20:59.029672+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -2949,7 +2669,7 @@
         "task"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.423865+00:00",
+      "last_updated": "2025-08-10T11:20:59.030365+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -2970,7 +2690,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "enum",
-      "last_updated": "2025-08-08T11:37:09.425042+00:00",
+      "last_updated": "2025-08-10T11:20:59.031639+00:00",
       "is_class": true,
       "base_classes": [
         "Enum"
@@ -2992,7 +2712,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.425509+00:00",
+      "last_updated": "2025-08-10T11:20:59.032034+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -3014,7 +2734,7 @@
         "self"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.425895+00:00",
+      "last_updated": "2025-08-10T11:20:59.032462+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -3035,7 +2755,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.426309+00:00",
+      "last_updated": "2025-08-10T11:20:59.032830+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -3055,7 +2775,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.426720+00:00",
+      "last_updated": "2025-08-10T11:20:59.033236+00:00",
       "is_class": true,
       "base_classes": [
         "BaseModel"
@@ -3077,7 +2797,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.427076+00:00",
+      "last_updated": "2025-08-10T11:20:59.033635+00:00",
       "is_class": true,
       "base_classes": [
         "BaseModel"
@@ -3107,7 +2827,7 @@
         "start_path"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.427816+00:00",
+      "last_updated": "2025-08-10T11:20:59.034373+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -3140,8 +2860,53 @@
         "file_type"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.429120+00:00",
+      "last_updated": "2025-08-10T11:20:59.035778+00:00",
       "is_class": false,
+      "base_classes": [],
+      "entry_point_justification": "dataclass_definition"
+    },
+    "src/shared/config.py::Settings": {
+      "key": "src/shared/config.py::Settings",
+      "name": "Settings",
+      "type": "ClassDef",
+      "file": "src/shared/config.py",
+      "domain": "shared",
+      "agent": "generic_agent",
+      "capability": "unassigned",
+      "intent": "A Pydantic settings model that loads configuration from the environment.",
+      "docstring": "A Pydantic settings model that loads configuration from the environment.\nIt provides typed, validated access to all system settings.",
+      "calls": [
+        "Path",
+        "home"
+      ],
+      "line_number": 12,
+      "is_async": false,
+      "parameters": [],
+      "entry_point_type": "data_model",
+      "last_updated": "2025-08-10T11:20:59.036846+00:00",
+      "is_class": true,
+      "base_classes": [
+        "BaseSettings"
+      ],
+      "entry_point_justification": "dataclass_definition"
+    },
+    "src/shared/config.py::Config": {
+      "key": "src/shared/config.py::Config",
+      "name": "Config",
+      "type": "ClassDef",
+      "file": "src/shared/config.py",
+      "domain": "shared",
+      "agent": "generic_agent",
+      "capability": "unassigned",
+      "intent": "Defines Pydantic's behavior for the Settings model.",
+      "docstring": "Defines Pydantic's behavior for the Settings model.",
+      "calls": [],
+      "line_number": 36,
+      "is_async": false,
+      "parameters": [],
+      "entry_point_type": "data_model",
+      "last_updated": "2025-08-10T11:20:59.037253+00:00",
+      "is_class": true,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
     },
@@ -3164,10 +2929,590 @@
         "name"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-08T11:37:09.430335+00:00",
+      "last_updated": "2025-08-10T11:20:59.038194+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation"
+    },
+    "src/system/guard/drift_detector.py::CapabilityMeta": {
+      "key": "src/system/guard/drift_detector.py::CapabilityMeta",
+      "name": "CapabilityMeta",
+      "type": "ClassDef",
+      "file": "src/system/guard/drift_detector.py",
+      "domain": "system",
+      "agent": "validator_agent",
+      "capability": "unassigned",
+      "intent": "Intent: Minimal data container for capability metadata used in drift comparison.",
+      "docstring": "Intent: Minimal data container for capability metadata used in drift comparison.",
+      "calls": [
+        "dataclass"
+      ],
+      "line_number": 33,
+      "is_async": false,
+      "parameters": [],
+      "entry_point_type": "data_model",
+      "last_updated": "2025-08-10T11:20:59.044407+00:00",
+      "is_class": true,
+      "base_classes": [],
+      "entry_point_justification": "dataclass_definition"
+    },
+    "src/system/guard/drift_detector.py::_parse_inline_meta": {
+      "key": "src/system/guard/drift_detector.py::_parse_inline_meta",
+      "name": "_parse_inline_meta",
+      "type": "FunctionDef",
+      "file": "src/system/guard/drift_detector.py",
+      "domain": "system",
+      "agent": "validator_agent",
+      "capability": "unassigned",
+      "intent": "Intent: Parse inline [key=value] metadata next to CAPABILITY tags.",
+      "docstring": "Intent: Parse inline [key=value] metadata next to CAPABILITY tags.",
+      "calls": [
+        "findall",
+        "group",
+        "search"
+      ],
+      "line_number": 40,
+      "is_async": false,
+      "parameters": [
+        "trailing"
+      ],
+      "entry_point_type": "data_model",
+      "last_updated": "2025-08-10T11:20:59.044835+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "entry_point_justification": "dataclass_definition"
+    },
+    "src/system/guard/drift_detector.py::_try_import_kgb": {
+      "key": "src/system/guard/drift_detector.py::_try_import_kgb",
+      "name": "_try_import_kgb",
+      "type": "FunctionDef",
+      "file": "src/system/guard/drift_detector.py",
+      "domain": "system",
+      "agent": "validator_agent",
+      "capability": "unassigned",
+      "intent": "Intent: Attempt to access KnowledgeGraphBuilder without static cross-domain imports.",
+      "docstring": "Intent: Attempt to access KnowledgeGraphBuilder without static cross-domain imports.",
+      "calls": [
+        "getattr",
+        "import_module"
+      ],
+      "line_number": 49,
+      "is_async": false,
+      "parameters": [],
+      "entry_point_type": "data_model",
+      "last_updated": "2025-08-10T11:20:59.045271+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "entry_point_justification": "dataclass_definition"
+    },
+    "src/system/guard/drift_detector.py::_find_manifest": {
+      "key": "src/system/guard/drift_detector.py::_find_manifest",
+      "name": "_find_manifest",
+      "type": "FunctionDef",
+      "file": "src/system/guard/drift_detector.py",
+      "domain": "system",
+      "agent": "validator_agent",
+      "capability": "unassigned",
+      "intent": "Intent: Locate the authoritative .intent manifest file.",
+      "docstring": "Intent: Locate the authoritative .intent manifest file.",
+      "calls": [
+        "FileNotFoundError",
+        "exists"
+      ],
+      "line_number": 61,
+      "is_async": false,
+      "parameters": [
+        "start"
+      ],
+      "entry_point_type": "data_model",
+      "last_updated": "2025-08-10T11:20:59.045703+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "entry_point_justification": "dataclass_definition"
+    },
+    "src/system/guard/drift_detector.py::_normalize_cap_list": {
+      "key": "src/system/guard/drift_detector.py::_normalize_cap_list",
+      "name": "_normalize_cap_list",
+      "type": "FunctionDef",
+      "file": "src/system/guard/drift_detector.py",
+      "domain": "system",
+      "agent": "validator_agent",
+      "capability": "unassigned",
+      "intent": "Intent: Normalize many shapes (list[str], list[dict], dict[str,dict]) into {cap: CapabilityMeta}.",
+      "docstring": "Intent: Normalize many shapes (list[str], list[dict], dict[str,dict]) into {cap: CapabilityMeta}.",
+      "calls": [
+        "CapabilityMeta",
+        "get",
+        "isinstance",
+        "items"
+      ],
+      "line_number": 75,
+      "is_async": false,
+      "parameters": [
+        "items"
+      ],
+      "entry_point_type": "data_model",
+      "last_updated": "2025-08-10T11:20:59.046308+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "entry_point_justification": "dataclass_definition"
+    },
+    "src/system/guard/drift_detector.py::_normalize_manifest_caps": {
+      "key": "src/system/guard/drift_detector.py::_normalize_manifest_caps",
+      "name": "_normalize_manifest_caps",
+      "type": "FunctionDef",
+      "file": "src/system/guard/drift_detector.py",
+      "domain": "system",
+      "agent": "validator_agent",
+      "capability": "unassigned",
+      "intent": "Intent: Normalize different manifest shapes into a {capability: CapabilityMeta} map.",
+      "docstring": "Intent: Normalize different manifest shapes into a {capability: CapabilityMeta} map.\nLooks for keys commonly used in CORE manifests:\n  - capabilities\n  - required_capabilities\n  - expected_capabilities\n  - capability_map / capability_registry\n  - components[*].capabilities",
+      "calls": [
+        "_normalize_cap_list",
+        "deque",
+        "extend",
+        "extract_from_node",
+        "get",
+        "isinstance",
+        "popleft",
+        "update",
+        "values"
+      ],
+      "line_number": 108,
+      "is_async": false,
+      "parameters": [
+        "raw"
+      ],
+      "entry_point_type": "data_model",
+      "last_updated": "2025-08-10T11:20:59.047139+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "entry_point_justification": "dataclass_definition"
+    },
+    "src/system/guard/drift_detector.py::extract_from_node": {
+      "key": "src/system/guard/drift_detector.py::extract_from_node",
+      "name": "extract_from_node",
+      "type": "FunctionDef",
+      "file": "src/system/guard/drift_detector.py",
+      "domain": "system",
+      "agent": "validator_agent",
+      "capability": "unassigned",
+      "intent": "Provides functionality for the system domain.",
+      "docstring": "",
+      "calls": [
+        "_normalize_cap_list",
+        "get",
+        "isinstance",
+        "update"
+      ],
+      "line_number": 120,
+      "is_async": false,
+      "parameters": [
+        "node"
+      ],
+      "entry_point_type": "data_model",
+      "last_updated": "2025-08-10T11:20:59.047677+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "entry_point_justification": "dataclass_definition"
+    },
+    "src/system/guard/drift_detector.py::load_manifest": {
+      "key": "src/system/guard/drift_detector.py::load_manifest",
+      "name": "load_manifest",
+      "type": "FunctionDef",
+      "file": "src/system/guard/drift_detector.py",
+      "domain": "system",
+      "agent": "validator_agent",
+      "capability": "unassigned",
+      "intent": "Intent: Load and parse the .intent manifest with PyYAML.",
+      "docstring": "Intent: Load and parse the .intent manifest with PyYAML.",
+      "calls": [
+        "RuntimeError",
+        "_find_manifest",
+        "_normalize_manifest_caps",
+        "open",
+        "safe_load"
+      ],
+      "line_number": 157,
+      "is_async": false,
+      "parameters": [
+        "root",
+        "explicit_path"
+      ],
+      "entry_point_type": "data_model",
+      "last_updated": "2025-08-10T11:20:59.048340+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "entry_point_justification": "dataclass_definition"
+    },
+    "src/system/guard/drift_detector.py::_extract_cap_meta_from_node": {
+      "key": "src/system/guard/drift_detector.py::_extract_cap_meta_from_node",
+      "name": "_extract_cap_meta_from_node",
+      "type": "FunctionDef",
+      "file": "src/system/guard/drift_detector.py",
+      "domain": "system",
+      "agent": "validator_agent",
+      "capability": "unassigned",
+      "intent": "Intent: Extract capability/domain/owner from a variety of KG node shapes.",
+      "docstring": "Intent: Extract capability/domain/owner from a variety of KG node shapes.",
+      "calls": [
+        "CapabilityMeta",
+        "get",
+        "group",
+        "isinstance",
+        "match",
+        "str"
+      ],
+      "line_number": 170,
+      "is_async": false,
+      "parameters": [
+        "node"
+      ],
+      "entry_point_type": "data_model",
+      "last_updated": "2025-08-10T11:20:59.049019+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "entry_point_justification": "dataclass_definition"
+    },
+    "src/system/guard/drift_detector.py::_load_json_file": {
+      "key": "src/system/guard/drift_detector.py::_load_json_file",
+      "name": "_load_json_file",
+      "type": "FunctionDef",
+      "file": "src/system/guard/drift_detector.py",
+      "domain": "system",
+      "agent": "validator_agent",
+      "capability": "unassigned",
+      "intent": "Provides functionality for the system domain.",
+      "docstring": "",
+      "calls": [
+        "loads",
+        "read_text"
+      ],
+      "line_number": 201,
+      "is_async": false,
+      "parameters": [
+        "path"
+      ],
+      "entry_point_type": "data_model",
+      "last_updated": "2025-08-10T11:20:59.049629+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "entry_point_justification": "dataclass_definition"
+    },
+    "src/system/guard/drift_detector.py::_load_ndjson_file": {
+      "key": "src/system/guard/drift_detector.py::_load_ndjson_file",
+      "name": "_load_ndjson_file",
+      "type": "FunctionDef",
+      "file": "src/system/guard/drift_detector.py",
+      "domain": "system",
+      "agent": "validator_agent",
+      "capability": "unassigned",
+      "intent": "Provides functionality for the system domain.",
+      "docstring": "",
+      "calls": [
+        "append",
+        "loads",
+        "read_text",
+        "splitlines",
+        "strip"
+      ],
+      "line_number": 208,
+      "is_async": false,
+      "parameters": [
+        "path"
+      ],
+      "entry_point_type": "data_model",
+      "last_updated": "2025-08-10T11:20:59.050046+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "entry_point_justification": "dataclass_definition"
+    },
+    "src/system/guard/drift_detector.py::_collect_from_kgb_artifact": {
+      "key": "src/system/guard/drift_detector.py::_collect_from_kgb_artifact",
+      "name": "_collect_from_kgb_artifact",
+      "type": "FunctionDef",
+      "file": "src/system/guard/drift_detector.py",
+      "domain": "system",
+      "agent": "validator_agent",
+      "capability": "unassigned",
+      "intent": "Intent: Read a previously emitted knowledge graph artifact from disk.",
+      "docstring": "Intent: Read a previously emitted knowledge graph artifact from disk.\nAccepts common file names and shapes, returning a capability map.",
+      "calls": [
+        "_extract_cap_meta_from_node",
+        "_load_json_file",
+        "_load_ndjson_file",
+        "exists",
+        "get",
+        "isinstance",
+        "values"
+      ],
+      "line_number": 224,
+      "is_async": false,
+      "parameters": [
+        "root"
+      ],
+      "entry_point_type": "data_model",
+      "last_updated": "2025-08-10T11:20:59.050724+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "entry_point_justification": "dataclass_definition"
+    },
+    "src/system/guard/drift_detector.py::_iter_source_files": {
+      "key": "src/system/guard/drift_detector.py::_iter_source_files",
+      "name": "_iter_source_files",
+      "type": "FunctionDef",
+      "file": "src/system/guard/drift_detector.py",
+      "domain": "system",
+      "agent": "validator_agent",
+      "capability": "unassigned",
+      "intent": "Intent: Yield repository files considered for direct CAPABILITY tag scanning.",
+      "docstring": "Intent: Yield repository files considered for direct CAPABILITY tag scanning.",
+      "calls": [
+        "any",
+        "is_file",
+        "list",
+        "match",
+        "rglob",
+        "wanted"
+      ],
+      "line_number": 282,
+      "is_async": false,
+      "parameters": [
+        "root",
+        "include_globs",
+        "exclude_globs"
+      ],
+      "entry_point_type": "data_model",
+      "last_updated": "2025-08-10T11:20:59.051494+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "entry_point_justification": "dataclass_definition"
+    },
+    "src/system/guard/drift_detector.py::wanted": {
+      "key": "src/system/guard/drift_detector.py::wanted",
+      "name": "wanted",
+      "type": "FunctionDef",
+      "file": "src/system/guard/drift_detector.py",
+      "domain": "system",
+      "agent": "validator_agent",
+      "capability": "unassigned",
+      "intent": "Intent: Filter for include/exclude globs and typical source suffixes.",
+      "docstring": "Intent: Filter for include/exclude globs and typical source suffixes.",
+      "calls": [
+        "any",
+        "match"
+      ],
+      "line_number": 286,
+      "is_async": false,
+      "parameters": [
+        "p"
+      ],
+      "entry_point_type": "data_model",
+      "last_updated": "2025-08-10T11:20:59.051935+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "entry_point_justification": "dataclass_definition"
+    },
+    "src/system/guard/drift_detector.py::_collect_from_grep": {
+      "key": "src/system/guard/drift_detector.py::_collect_from_grep",
+      "name": "_collect_from_grep",
+      "type": "FunctionDef",
+      "file": "src/system/guard/drift_detector.py",
+      "domain": "system",
+      "agent": "validator_agent",
+      "capability": "unassigned",
+      "intent": "Intent: Fallback discovery by scanning for '# CAPABILITY:' tags with optional inline metadata.",
+      "docstring": "Intent: Fallback discovery by scanning for '# CAPABILITY:' tags with optional inline metadata.",
+      "calls": [
+        "CapabilityMeta",
+        "_iter_source_files",
+        "_parse_inline_meta",
+        "get",
+        "group",
+        "match",
+        "read_text",
+        "splitlines",
+        "strip"
+      ],
+      "line_number": 299,
+      "is_async": false,
+      "parameters": [
+        "root",
+        "include_globs",
+        "exclude_globs"
+      ],
+      "entry_point_type": "data_model",
+      "last_updated": "2025-08-10T11:20:59.052543+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "entry_point_justification": "dataclass_definition"
+    },
+    "src/system/guard/drift_detector.py::_collect_from_kgb": {
+      "key": "src/system/guard/drift_detector.py::_collect_from_kgb",
+      "name": "_collect_from_kgb",
+      "type": "FunctionDef",
+      "file": "src/system/guard/drift_detector.py",
+      "domain": "system",
+      "agent": "validator_agent",
+      "capability": "unassigned",
+      "intent": "Intent: Use KnowledgeGraphBuilder (if present) to discover capabilities from the repo.",
+      "docstring": "Intent: Use KnowledgeGraphBuilder (if present) to discover capabilities from the repo.",
+      "calls": [
+        "KGB",
+        "_extract_cap_meta_from_node",
+        "_try_import_kgb",
+        "build",
+        "get",
+        "getattr",
+        "hasattr",
+        "isinstance",
+        "str",
+        "values"
+      ],
+      "line_number": 319,
+      "is_async": false,
+      "parameters": [
+        "root"
+      ],
+      "entry_point_type": "data_model",
+      "last_updated": "2025-08-10T11:20:59.053320+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "entry_point_justification": "dataclass_definition"
+    },
+    "src/system/guard/drift_detector.py::collect_code_capabilities": {
+      "key": "src/system/guard/drift_detector.py::collect_code_capabilities",
+      "name": "collect_code_capabilities",
+      "type": "FunctionDef",
+      "file": "src/system/guard/drift_detector.py",
+      "domain": "system",
+      "agent": "validator_agent",
+      "capability": "unassigned",
+      "intent": "Intent: Unified discovery entrypoint respecting strict-intent when required.",
+      "docstring": "Intent: Unified discovery entrypoint respecting strict-intent when required.",
+      "calls": [
+        "RuntimeError",
+        "_collect_from_grep",
+        "_collect_from_kgb",
+        "_collect_from_kgb_artifact"
+      ],
+      "line_number": 370,
+      "is_async": false,
+      "parameters": [
+        "root",
+        "include_globs",
+        "exclude_globs",
+        "require_kgb"
+      ],
+      "entry_point_type": "data_model",
+      "last_updated": "2025-08-10T11:20:59.054040+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "entry_point_justification": "dataclass_definition"
+    },
+    "src/system/guard/drift_detector.py::DriftReport": {
+      "key": "src/system/guard/drift_detector.py::DriftReport",
+      "name": "DriftReport",
+      "type": "ClassDef",
+      "file": "src/system/guard/drift_detector.py",
+      "domain": "system",
+      "agent": "validator_agent",
+      "capability": "unassigned",
+      "intent": "Intent: Structured result for capability drift suitable for JSON emission and CI gating.",
+      "docstring": "Intent: Structured result for capability drift suitable for JSON emission and CI gating.",
+      "calls": [
+        "sorted"
+      ],
+      "line_number": 414,
+      "is_async": false,
+      "parameters": [],
+      "entry_point_type": "data_model",
+      "last_updated": "2025-08-10T11:20:59.054588+00:00",
+      "is_class": true,
+      "base_classes": [],
+      "entry_point_justification": "dataclass_definition"
+    },
+    "src/system/guard/drift_detector.py::to_dict": {
+      "key": "src/system/guard/drift_detector.py::to_dict",
+      "name": "to_dict",
+      "type": "FunctionDef",
+      "file": "src/system/guard/drift_detector.py",
+      "domain": "system",
+      "agent": "validator_agent",
+      "capability": "unassigned",
+      "intent": "Intent: Convert the drift report into a stable JSON-serializable dict.",
+      "docstring": "Intent: Convert the drift report into a stable JSON-serializable dict.",
+      "calls": [
+        "sorted"
+      ],
+      "line_number": 420,
+      "is_async": false,
+      "parameters": [
+        "self"
+      ],
+      "entry_point_type": "data_model",
+      "last_updated": "2025-08-10T11:20:59.054974+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "entry_point_justification": "dataclass_definition",
+      "parent_class_key": "src/system/guard/drift_detector.py::DriftReport"
+    },
+    "src/system/guard/drift_detector.py::detect_capability_drift": {
+      "key": "src/system/guard/drift_detector.py::detect_capability_drift",
+      "name": "detect_capability_drift",
+      "type": "FunctionDef",
+      "file": "src/system/guard/drift_detector.py",
+      "domain": "system",
+      "agent": "validator_agent",
+      "capability": "unassigned",
+      "intent": "Intent: Compute missing/undeclared/mismatched capability sets between manifest and code.",
+      "docstring": "Intent: Compute missing/undeclared/mismatched capability sets between manifest and code.",
+      "calls": [
+        "DriftReport",
+        "append",
+        "keys",
+        "set",
+        "sorted"
+      ],
+      "line_number": 429,
+      "is_async": false,
+      "parameters": [
+        "manifest_caps",
+        "code_caps"
+      ],
+      "entry_point_type": "data_model",
+      "last_updated": "2025-08-10T11:20:59.055594+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "entry_point_justification": "dataclass_definition"
+    },
+    "src/system/guard/drift_detector.py::write_report": {
+      "key": "src/system/guard/drift_detector.py::write_report",
+      "name": "write_report",
+      "type": "FunctionDef",
+      "file": "src/system/guard/drift_detector.py",
+      "domain": "system",
+      "agent": "validator_agent",
+      "capability": "unassigned",
+      "intent": "Intent: Persist the drift report to disk under reports/ for evidence and CI.",
+      "docstring": "Intent: Persist the drift report to disk under reports/ for evidence and CI.",
+      "calls": [
+        "dumps",
+        "mkdir",
+        "to_dict",
+        "write_text"
+      ],
+      "line_number": 456,
+      "is_async": false,
+      "parameters": [
+        "report_path",
+        "report"
+      ],
+      "entry_point_type": "data_model",
+      "last_updated": "2025-08-10T11:20:59.056220+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "entry_point_justification": "dataclass_definition"
     },
     "src/system/governance/constitutional_auditor.py::ConstitutionalAuditor": {
       "key": "src/system/governance/constitutional_auditor.py::ConstitutionalAuditor",
@@ -3219,7 +3564,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-08T11:37:09.434668+00:00",
+      "last_updated": "2025-08-10T11:20:59.060721+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "capability_implementation"
@@ -3242,7 +3587,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.435024+00:00",
+      "last_updated": "2025-08-10T11:20:59.061081+00:00",
       "is_class": true,
       "base_classes": [
         "StringIO"
@@ -3270,7 +3615,7 @@
         "s"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.435424+00:00",
+      "last_updated": "2025-08-10T11:20:59.061478+00:00",
       "is_class": false,
       "base_classes": [
         "StringIO",
@@ -3304,7 +3649,7 @@
         "repo_root"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-08T11:37:09.436929+00:00",
+      "last_updated": "2025-08-10T11:20:59.062975+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -3331,7 +3676,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.436494+00:00",
+      "last_updated": "2025-08-10T11:20:59.062534+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -3367,7 +3712,7 @@
         "self"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.437727+00:00",
+      "last_updated": "2025-08-10T11:20:59.063735+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -3402,7 +3747,7 @@
         "self"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.438633+00:00",
+      "last_updated": "2025-08-10T11:20:59.064593+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -3432,7 +3777,7 @@
         "passed"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.439484+00:00",
+      "last_updated": "2025-08-10T11:20:59.065418+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -3459,7 +3804,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "cli_entry_point",
-      "last_updated": "2025-08-08T11:37:09.440129+00:00",
+      "last_updated": "2025-08-10T11:20:59.066104+00:00",
       "is_class": false,
       "base_classes": []
     },
@@ -3478,7 +3823,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "enum",
-      "last_updated": "2025-08-08T11:37:09.440957+00:00",
+      "last_updated": "2025-08-10T11:20:59.066941+00:00",
       "is_class": true,
       "base_classes": [
         "Enum"
@@ -3500,8 +3845,841 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.441332+00:00",
+      "last_updated": "2025-08-10T11:20:59.067325+00:00",
       "is_class": true,
+      "base_classes": [],
+      "entry_point_justification": "dataclass_definition"
+    },
+    "src/system/admin/utils.py::load_yaml_file": {
+      "key": "src/system/admin/utils.py::load_yaml_file",
+      "name": "load_yaml_file",
+      "type": "FunctionDef",
+      "file": "src/system/admin/utils.py",
+      "domain": "system",
+      "agent": "generic_agent",
+      "capability": "unassigned",
+      "intent": "Intent: Load YAML for governance operations. Returns {} for empty documents.",
+      "docstring": "Intent: Load YAML for governance operations. Returns {} for empty documents.",
+      "calls": [
+        "read_text",
+        "safe_load"
+      ],
+      "line_number": 24,
+      "is_async": false,
+      "parameters": [
+        "path"
+      ],
+      "entry_point_type": "data_model",
+      "last_updated": "2025-08-10T11:20:59.068706+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "entry_point_justification": "dataclass_definition"
+    },
+    "src/system/admin/utils.py::save_yaml_file": {
+      "key": "src/system/admin/utils.py::save_yaml_file",
+      "name": "save_yaml_file",
+      "type": "FunctionDef",
+      "file": "src/system/admin/utils.py",
+      "domain": "system",
+      "agent": "generic_agent",
+      "capability": "unassigned",
+      "intent": "Intent: Persist YAML with stable ordering disabled to preserve human readability.",
+      "docstring": "Intent: Persist YAML with stable ordering disabled to preserve human readability.",
+      "calls": [
+        "safe_dump",
+        "write_text"
+      ],
+      "line_number": 29,
+      "is_async": false,
+      "parameters": [
+        "path",
+        "data"
+      ],
+      "entry_point_type": "data_model",
+      "last_updated": "2025-08-10T11:20:59.069125+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "entry_point_justification": "dataclass_definition"
+    },
+    "src/system/admin/utils.py::generate_approval_token": {
+      "key": "src/system/admin/utils.py::generate_approval_token",
+      "name": "generate_approval_token",
+      "type": "FunctionDef",
+      "file": "src/system/admin/utils.py",
+      "domain": "system",
+      "agent": "generic_agent",
+      "capability": "unassigned",
+      "intent": "Intent: Produce a deterministic content-bound token for cryptographic proposal approvals.",
+      "docstring": "Intent: Produce a deterministic content-bound token for cryptographic proposal approvals.",
+      "calls": [
+        "Hash",
+        "SHA256",
+        "encode",
+        "finalize",
+        "hex",
+        "update"
+      ],
+      "line_number": 34,
+      "is_async": false,
+      "parameters": [
+        "proposal_content"
+      ],
+      "entry_point_type": "data_model",
+      "last_updated": "2025-08-10T11:20:59.069554+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "entry_point_justification": "dataclass_definition"
+    },
+    "src/system/admin/utils.py::load_private_key": {
+      "key": "src/system/admin/utils.py::load_private_key",
+      "name": "load_private_key",
+      "type": "FunctionDef",
+      "file": "src/system/admin/utils.py",
+      "domain": "system",
+      "agent": "generic_agent",
+      "capability": "unassigned",
+      "intent": "Intent: Load the operator's Ed25519 private key from the protected key store.",
+      "docstring": "Intent: Load the operator's Ed25519 private key from the protected key store.",
+      "calls": [
+        "SystemExit",
+        "error",
+        "exists",
+        "load_pem_private_key",
+        "read_bytes"
+      ],
+      "line_number": 41,
+      "is_async": false,
+      "parameters": [],
+      "entry_point_type": "data_model",
+      "last_updated": "2025-08-10T11:20:59.069979+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "entry_point_justification": "dataclass_definition"
+    },
+    "src/system/admin/utils.py::archive_rollback_plan": {
+      "key": "src/system/admin/utils.py::archive_rollback_plan",
+      "name": "archive_rollback_plan",
+      "type": "FunctionDef",
+      "file": "src/system/admin/utils.py",
+      "domain": "system",
+      "agent": "generic_agent",
+      "capability": "unassigned",
+      "intent": "Intent: Persist a rollback plan snapshot for approved proposals under .intent/constitution/rollbacks/.",
+      "docstring": "Intent: Persist a rollback plan snapshot for approved proposals under .intent/constitution/rollbacks/.",
+      "calls": [
+        "dumps",
+        "get",
+        "info",
+        "mkdir",
+        "strftime",
+        "utcnow",
+        "write_text"
+      ],
+      "line_number": 50,
+      "is_async": false,
+      "parameters": [
+        "proposal_name",
+        "proposal"
+      ],
+      "entry_point_type": "data_model",
+      "last_updated": "2025-08-10T11:20:59.070537+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "entry_point_justification": "dataclass_definition"
+    },
+    "src/system/admin/proposals.py::register": {
+      "key": "src/system/admin/proposals.py::register",
+      "name": "register",
+      "type": "FunctionDef",
+      "file": "src/system/admin/proposals.py",
+      "domain": "system",
+      "agent": "generic_agent",
+      "capability": "unassigned",
+      "intent": "Intent: Register proposal lifecycle commands under the admin CLI.",
+      "docstring": "Intent: Register proposal lifecycle commands under the admin CLI.",
+      "calls": [
+        "Argument",
+        "ConstitutionalAuditor",
+        "Exit",
+        "Path",
+        "TemporaryDirectory",
+        "Typer",
+        "add_typer",
+        "any",
+        "append",
+        "archive_rollback_plan",
+        "b64decode",
+        "b64encode",
+        "command",
+        "copytree",
+        "decode",
+        "encode",
+        "endswith",
+        "error",
+        "exists",
+        "generate_approval_token",
+        "get",
+        "glob",
+        "info",
+        "isoformat",
+        "len",
+        "load_pem_public_key",
+        "load_private_key",
+        "load_yaml_file",
+        "mkdir",
+        "prompt",
+        "proposals_approve",
+        "proposals_list",
+        "proposals_sign",
+        "run_full_audit",
+        "save_yaml_file",
+        "setdefault",
+        "sign",
+        "sorted",
+        "str",
+        "strip",
+        "unlink",
+        "utcnow",
+        "verify",
+        "warning",
+        "write_text"
+      ],
+      "line_number": 33,
+      "is_async": false,
+      "parameters": [
+        "app"
+      ],
+      "entry_point_type": "data_model",
+      "last_updated": "2025-08-10T11:20:59.075318+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "entry_point_justification": "dataclass_definition"
+    },
+    "src/system/admin/proposals.py::proposals_list": {
+      "key": "src/system/admin/proposals.py::proposals_list",
+      "name": "proposals_list",
+      "type": "FunctionDef",
+      "file": "src/system/admin/proposals.py",
+      "domain": "system",
+      "agent": "generic_agent",
+      "capability": "unassigned",
+      "intent": "Intent: List pending constitutional proposals and show signature/quorum status.",
+      "docstring": "Intent: List pending constitutional proposals and show signature/quorum status.",
+      "calls": [
+        "any",
+        "command",
+        "endswith",
+        "get",
+        "glob",
+        "info",
+        "len",
+        "load_yaml_file",
+        "mkdir",
+        "sorted",
+        "strip"
+      ],
+      "line_number": 36,
+      "is_async": false,
+      "parameters": [],
+      "entry_point_type": "data_model",
+      "last_updated": "2025-08-10T11:20:59.075977+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "entry_point_justification": "dataclass_definition"
+    },
+    "src/system/admin/proposals.py::proposals_sign": {
+      "key": "src/system/admin/proposals.py::proposals_sign",
+      "name": "proposals_sign",
+      "type": "FunctionDef",
+      "file": "src/system/admin/proposals.py",
+      "domain": "system",
+      "agent": "generic_agent",
+      "capability": "unassigned",
+      "intent": "Intent: Sign a proposal with the operator's private key (content-bound token).",
+      "docstring": "Intent: Sign a proposal with the operator's private key (content-bound token).",
+      "calls": [
+        "Argument",
+        "Exit",
+        "append",
+        "b64encode",
+        "command",
+        "decode",
+        "encode",
+        "error",
+        "exists",
+        "generate_approval_token",
+        "get",
+        "info",
+        "isoformat",
+        "load_private_key",
+        "load_yaml_file",
+        "prompt",
+        "save_yaml_file",
+        "setdefault",
+        "sign",
+        "utcnow"
+      ],
+      "line_number": 65,
+      "is_async": false,
+      "parameters": [
+        "proposal_name"
+      ],
+      "entry_point_type": "data_model",
+      "last_updated": "2025-08-10T11:20:59.076891+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "entry_point_justification": "dataclass_definition"
+    },
+    "src/system/admin/proposals.py::proposals_approve": {
+      "key": "src/system/admin/proposals.py::proposals_approve",
+      "name": "proposals_approve",
+      "type": "FunctionDef",
+      "file": "src/system/admin/proposals.py",
+      "domain": "system",
+      "agent": "generic_agent",
+      "capability": "unassigned",
+      "intent": "Intent: Verify signatures/quorum, run a canary constitutional audit, then apply change if valid.",
+      "docstring": "Intent: Verify signatures/quorum, run a canary constitutional audit, then apply change if valid.",
+      "calls": [
+        "Argument",
+        "ConstitutionalAuditor",
+        "Exit",
+        "Path",
+        "TemporaryDirectory",
+        "any",
+        "archive_rollback_plan",
+        "b64decode",
+        "command",
+        "copytree",
+        "encode",
+        "endswith",
+        "error",
+        "exists",
+        "generate_approval_token",
+        "get",
+        "info",
+        "load_pem_public_key",
+        "load_yaml_file",
+        "mkdir",
+        "run_full_audit",
+        "str",
+        "unlink",
+        "verify",
+        "warning",
+        "write_text"
+      ],
+      "line_number": 98,
+      "is_async": false,
+      "parameters": [
+        "proposal_name"
+      ],
+      "entry_point_type": "data_model",
+      "last_updated": "2025-08-10T11:20:59.078192+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "entry_point_justification": "dataclass_definition"
+    },
+    "src/system/admin/proposals.py::_group_list": {
+      "key": "src/system/admin/proposals.py::_group_list",
+      "name": "_group_list",
+      "type": "FunctionDef",
+      "file": "src/system/admin/proposals.py",
+      "domain": "system",
+      "agent": "generic_agent",
+      "capability": "unassigned",
+      "intent": "Intent: Group alias for proposals-list (namespaced UX).",
+      "docstring": "Intent: Group alias for proposals-list (namespaced UX).",
+      "calls": [
+        "command",
+        "proposals_list"
+      ],
+      "line_number": 174,
+      "is_async": false,
+      "parameters": [],
+      "entry_point_type": "data_model",
+      "last_updated": "2025-08-10T11:20:59.079228+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "entry_point_justification": "dataclass_definition"
+    },
+    "src/system/admin/proposals.py::_group_sign": {
+      "key": "src/system/admin/proposals.py::_group_sign",
+      "name": "_group_sign",
+      "type": "FunctionDef",
+      "file": "src/system/admin/proposals.py",
+      "domain": "system",
+      "agent": "generic_agent",
+      "capability": "unassigned",
+      "intent": "Intent: Group alias for proposals-sign (namespaced UX).",
+      "docstring": "Intent: Group alias for proposals-sign (namespaced UX).",
+      "calls": [
+        "command",
+        "proposals_sign"
+      ],
+      "line_number": 179,
+      "is_async": false,
+      "parameters": [
+        "proposal_name"
+      ],
+      "entry_point_type": "data_model",
+      "last_updated": "2025-08-10T11:20:59.079628+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "entry_point_justification": "dataclass_definition"
+    },
+    "src/system/admin/proposals.py::_group_approve": {
+      "key": "src/system/admin/proposals.py::_group_approve",
+      "name": "_group_approve",
+      "type": "FunctionDef",
+      "file": "src/system/admin/proposals.py",
+      "domain": "system",
+      "agent": "generic_agent",
+      "capability": "unassigned",
+      "intent": "Intent: Group alias for proposals-approve (namespaced UX).",
+      "docstring": "Intent: Group alias for proposals-approve (namespaced UX).",
+      "calls": [
+        "command",
+        "proposals_approve"
+      ],
+      "line_number": 184,
+      "is_async": false,
+      "parameters": [
+        "proposal_name"
+      ],
+      "entry_point_type": "data_model",
+      "last_updated": "2025-08-10T11:20:59.080015+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "entry_point_justification": "dataclass_definition"
+    },
+    "src/system/admin/guard.py::_find_manifest_path": {
+      "key": "src/system/admin/guard.py::_find_manifest_path",
+      "name": "_find_manifest_path",
+      "type": "FunctionDef",
+      "file": "src/system/admin/guard.py",
+      "domain": "system",
+      "agent": "validator_agent",
+      "capability": "unassigned",
+      "intent": "Provides functionality for the system domain.",
+      "docstring": "",
+      "calls": [
+        "FileNotFoundError",
+        "exists"
+      ],
+      "line_number": 37,
+      "is_async": false,
+      "parameters": [
+        "root",
+        "explicit"
+      ],
+      "entry_point_type": "data_model",
+      "last_updated": "2025-08-10T11:20:59.084131+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "entry_point_justification": "dataclass_definition"
+    },
+    "src/system/admin/guard.py::_load_raw_manifest": {
+      "key": "src/system/admin/guard.py::_load_raw_manifest",
+      "name": "_load_raw_manifest",
+      "type": "FunctionDef",
+      "file": "src/system/admin/guard.py",
+      "domain": "system",
+      "agent": "validator_agent",
+      "capability": "unassigned",
+      "intent": "Provides functionality for the system domain.",
+      "docstring": "",
+      "calls": [
+        "_find_manifest_path",
+        "read_text",
+        "safe_load"
+      ],
+      "line_number": 45,
+      "is_async": false,
+      "parameters": [
+        "root",
+        "explicit"
+      ],
+      "entry_point_type": "data_model",
+      "last_updated": "2025-08-10T11:20:59.084621+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "entry_point_justification": "dataclass_definition"
+    },
+    "src/system/admin/guard.py::_ux_defaults": {
+      "key": "src/system/admin/guard.py::_ux_defaults",
+      "name": "_ux_defaults",
+      "type": "FunctionDef",
+      "file": "src/system/admin/guard.py",
+      "domain": "system",
+      "agent": "validator_agent",
+      "capability": "unassigned",
+      "intent": "Provides functionality for the system domain.",
+      "docstring": "",
+      "calls": [
+        "_load_raw_manifest",
+        "bool",
+        "get"
+      ],
+      "line_number": 50,
+      "is_async": false,
+      "parameters": [
+        "root",
+        "explicit"
+      ],
+      "entry_point_type": "data_model",
+      "last_updated": "2025-08-10T11:20:59.085208+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "entry_point_justification": "dataclass_definition"
+    },
+    "src/system/admin/guard.py::_is_clean": {
+      "key": "src/system/admin/guard.py::_is_clean",
+      "name": "_is_clean",
+      "type": "FunctionDef",
+      "file": "src/system/admin/guard.py",
+      "domain": "system",
+      "agent": "validator_agent",
+      "capability": "unassigned",
+      "intent": "Provides functionality for the system domain.",
+      "docstring": "",
+      "calls": [
+        "get"
+      ],
+      "line_number": 73,
+      "is_async": false,
+      "parameters": [
+        "report"
+      ],
+      "entry_point_type": "data_model",
+      "last_updated": "2025-08-10T11:20:59.085818+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "entry_point_justification": "dataclass_definition"
+    },
+    "src/system/admin/guard.py::_print_table": {
+      "key": "src/system/admin/guard.py::_print_table",
+      "name": "_print_table",
+      "type": "FunctionDef",
+      "file": "src/system/admin/guard.py",
+      "domain": "system",
+      "agent": "validator_agent",
+      "capability": "unassigned",
+      "intent": "Provides functionality for the system domain.",
+      "docstring": "",
+      "calls": [
+        "Table",
+        "_is_clean",
+        "add_column",
+        "add_row",
+        "append",
+        "fit",
+        "get",
+        "join",
+        "row",
+        "rprint"
+      ],
+      "line_number": 76,
+      "is_async": false,
+      "parameters": [
+        "report_dict",
+        "labels"
+      ],
+      "entry_point_type": "data_model",
+      "last_updated": "2025-08-10T11:20:59.086597+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "entry_point_justification": "dataclass_definition"
+    },
+    "src/system/admin/guard.py::row": {
+      "key": "src/system/admin/guard.py::row",
+      "name": "row",
+      "type": "FunctionDef",
+      "file": "src/system/admin/guard.py",
+      "domain": "system",
+      "agent": "validator_agent",
+      "capability": "unassigned",
+      "intent": "Provides functionality for the system domain.",
+      "docstring": "",
+      "calls": [
+        "add_row",
+        "join"
+      ],
+      "line_number": 81,
+      "is_async": false,
+      "parameters": [
+        "title",
+        "items"
+      ],
+      "entry_point_type": "data_model",
+      "last_updated": "2025-08-10T11:20:59.087040+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "entry_point_justification": "dataclass_definition"
+    },
+    "src/system/admin/guard.py::_print_pretty": {
+      "key": "src/system/admin/guard.py::_print_pretty",
+      "name": "_print_pretty",
+      "type": "FunctionDef",
+      "file": "src/system/admin/guard.py",
+      "domain": "system",
+      "agent": "validator_agent",
+      "capability": "unassigned",
+      "intent": "Provides functionality for the system domain.",
+      "docstring": "",
+      "calls": [
+        "Panel",
+        "_is_clean",
+        "_print_table",
+        "get",
+        "len",
+        "rprint"
+      ],
+      "line_number": 108,
+      "is_async": false,
+      "parameters": [
+        "report_dict",
+        "labels"
+      ],
+      "entry_point_type": "data_model",
+      "last_updated": "2025-08-10T11:20:59.087884+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "entry_point_justification": "dataclass_definition"
+    },
+    "src/system/admin/guard.py::_should_fail": {
+      "key": "src/system/admin/guard.py::_should_fail",
+      "name": "_should_fail",
+      "type": "FunctionDef",
+      "file": "src/system/admin/guard.py",
+      "domain": "system",
+      "agent": "validator_agent",
+      "capability": "unassigned",
+      "intent": "Provides functionality for the system domain.",
+      "docstring": "",
+      "calls": [
+        "bool"
+      ],
+      "line_number": 131,
+      "is_async": false,
+      "parameters": [
+        "report",
+        "fail_on"
+      ],
+      "entry_point_type": "data_model",
+      "last_updated": "2025-08-10T11:20:59.088465+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "entry_point_justification": "dataclass_definition"
+    },
+    "src/system/admin/guard.py::register": {
+      "key": "src/system/admin/guard.py::register",
+      "name": "register",
+      "type": "FunctionDef",
+      "file": "src/system/admin/guard.py",
+      "domain": "system",
+      "agent": "validator_agent",
+      "capability": "unassigned",
+      "intent": "Provides functionality for the system domain.",
+      "docstring": "",
+      "calls": [
+        "Exit",
+        "Option",
+        "Path",
+        "Typer",
+        "_print_pretty",
+        "_print_table",
+        "_should_fail",
+        "_ux_defaults",
+        "add_typer",
+        "bool",
+        "collect_code_capabilities",
+        "command",
+        "detect_capability_drift",
+        "dumps",
+        "echo",
+        "items",
+        "len",
+        "load_manifest",
+        "lower",
+        "mkdir",
+        "rprint",
+        "sorted",
+        "to_dict",
+        "write_report",
+        "write_text"
+      ],
+      "line_number": 138,
+      "is_async": false,
+      "parameters": [
+        "app"
+      ],
+      "entry_point_type": "data_model",
+      "last_updated": "2025-08-10T11:20:59.089616+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "entry_point_justification": "dataclass_definition"
+    },
+    "src/system/admin/guard.py::drift": {
+      "key": "src/system/admin/guard.py::drift",
+      "name": "drift",
+      "type": "FunctionDef",
+      "file": "src/system/admin/guard.py",
+      "domain": "system",
+      "agent": "validator_agent",
+      "capability": "unassigned",
+      "intent": "Intent: Compare manifest vs code to detect capability drift; write JSON evidence for CI.",
+      "docstring": "Intent: Compare manifest vs code to detect capability drift; write JSON evidence for CI.",
+      "calls": [
+        "Exit",
+        "Option",
+        "Path",
+        "_print_pretty",
+        "_print_table",
+        "_should_fail",
+        "_ux_defaults",
+        "bool",
+        "collect_code_capabilities",
+        "command",
+        "detect_capability_drift",
+        "dumps",
+        "echo",
+        "load_manifest",
+        "lower",
+        "to_dict",
+        "write_report"
+      ],
+      "line_number": 143,
+      "is_async": false,
+      "parameters": [
+        "root",
+        "manifest_path",
+        "output",
+        "format",
+        "fail_on",
+        "include",
+        "exclude",
+        "strict_intent"
+      ],
+      "entry_point_type": "data_model",
+      "last_updated": "2025-08-10T11:20:59.090425+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "entry_point_justification": "dataclass_definition"
+    },
+    "src/system/admin/guard.py::kg_export": {
+      "key": "src/system/admin/guard.py::kg_export",
+      "name": "kg_export",
+      "type": "FunctionDef",
+      "file": "src/system/admin/guard.py",
+      "domain": "system",
+      "agent": "validator_agent",
+      "capability": "unassigned",
+      "intent": "Intent: Emit a minimal knowledge-graph artifact with capability nodes.",
+      "docstring": "Intent: Emit a minimal knowledge-graph artifact with capability nodes.\nFormat: { \"nodes\": [ {\"capability\": \"...\", \"domain\": \"x\", \"owner\": \"y\"}, ... ] }",
+      "calls": [
+        "Option",
+        "Path",
+        "collect_code_capabilities",
+        "command",
+        "dumps",
+        "items",
+        "len",
+        "lower",
+        "mkdir",
+        "rprint",
+        "sorted",
+        "write_text"
+      ],
+      "line_number": 192,
+      "is_async": false,
+      "parameters": [
+        "root",
+        "output",
+        "include",
+        "exclude",
+        "prefer"
+      ],
+      "entry_point_type": "data_model",
+      "last_updated": "2025-08-10T11:20:59.091431+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "entry_point_justification": "dataclass_definition"
+    },
+    "src/system/admin/keys.py::register": {
+      "key": "src/system/admin/keys.py::register",
+      "name": "register",
+      "type": "FunctionDef",
+      "file": "src/system/admin/keys.py",
+      "domain": "system",
+      "agent": "generic_agent",
+      "capability": "unassigned",
+      "intent": "Intent: Register key management commands under the admin CLI.",
+      "docstring": "Intent: Register key management commands under the admin CLI.",
+      "calls": [
+        "Argument",
+        "NoEncryption",
+        "chmod",
+        "command",
+        "confirm",
+        "decode",
+        "dump",
+        "exists",
+        "generate",
+        "info",
+        "mkdir",
+        "print",
+        "private_bytes",
+        "public_bytes",
+        "public_key",
+        "write_bytes"
+      ],
+      "line_number": 20,
+      "is_async": false,
+      "parameters": [
+        "app"
+      ],
+      "entry_point_type": "data_model",
+      "last_updated": "2025-08-10T11:20:59.093230+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "entry_point_justification": "dataclass_definition"
+    },
+    "src/system/admin/keys.py::keygen": {
+      "key": "src/system/admin/keys.py::keygen",
+      "name": "keygen",
+      "type": "FunctionDef",
+      "file": "src/system/admin/keys.py",
+      "domain": "system",
+      "agent": "generic_agent",
+      "capability": "unassigned",
+      "intent": "Intent: Generate a new Ed25519 key pair and print an approver YAML block.",
+      "docstring": "Intent: Generate a new Ed25519 key pair and print an approver YAML block.",
+      "calls": [
+        "Argument",
+        "NoEncryption",
+        "chmod",
+        "command",
+        "confirm",
+        "decode",
+        "dump",
+        "exists",
+        "generate",
+        "info",
+        "mkdir",
+        "print",
+        "private_bytes",
+        "public_bytes",
+        "public_key",
+        "write_bytes"
+      ],
+      "line_number": 23,
+      "is_async": false,
+      "parameters": [
+        "identity"
+      ],
+      "entry_point_type": "data_model",
+      "last_updated": "2025-08-10T11:20:59.093812+00:00",
+      "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
     },
@@ -3522,7 +4700,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.442467+00:00",
+      "last_updated": "2025-08-10T11:20:59.095143+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -3557,7 +4735,7 @@
         "violations"
       ],
       "entry_point_type": "cli_entry_point",
-      "last_updated": "2025-08-08T11:37:09.442975+00:00",
+      "last_updated": "2025-08-10T11:20:59.095705+00:00",
       "is_class": false,
       "base_classes": []
     },
@@ -3578,7 +4756,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.449489+00:00",
+      "last_updated": "2025-08-10T11:20:59.102275+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -3598,7 +4776,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.449963+00:00",
+      "last_updated": "2025-08-10T11:20:59.102770+00:00",
       "is_class": true,
       "base_classes": [
         "Exception"
@@ -3626,7 +4804,7 @@
         "start_path"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.450356+00:00",
+      "last_updated": "2025-08-10T11:20:59.103166+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -3651,7 +4829,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.450883+00:00",
+      "last_updated": "2025-08-10T11:20:59.103669+00:00",
       "is_class": true,
       "base_classes": [
         "NodeVisitor"
@@ -3682,7 +4860,7 @@
         "exclude_patterns"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-08T11:37:09.457021+00:00",
+      "last_updated": "2025-08-10T11:20:59.109922+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -3710,7 +4888,7 @@
         "node"
       ],
       "entry_point_type": "visitor_method",
-      "last_updated": "2025-08-08T11:37:09.451648+00:00",
+      "last_updated": "2025-08-10T11:20:59.104438+00:00",
       "is_class": false,
       "base_classes": [
         "NodeVisitor"
@@ -3791,7 +4969,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-08T11:37:09.454354+00:00",
+      "last_updated": "2025-08-10T11:20:59.107208+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "capability_implementation"
@@ -3814,7 +4992,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.454888+00:00",
+      "last_updated": "2025-08-10T11:20:59.107786+00:00",
       "is_class": true,
       "base_classes": [
         "NodeVisitor"
@@ -3842,7 +5020,7 @@
         "node"
       ],
       "entry_point_type": "visitor_method",
-      "last_updated": "2025-08-08T11:37:09.455703+00:00",
+      "last_updated": "2025-08-10T11:20:59.108610+00:00",
       "is_class": false,
       "base_classes": [
         "NodeVisitor"
@@ -3871,7 +5049,7 @@
         "node"
       ],
       "entry_point_type": "visitor_method",
-      "last_updated": "2025-08-08T11:37:09.456111+00:00",
+      "last_updated": "2025-08-10T11:20:59.109020+00:00",
       "is_class": false,
       "base_classes": [
         "NodeVisitor"
@@ -3900,7 +5078,7 @@
         "node"
       ],
       "entry_point_type": "visitor_method",
-      "last_updated": "2025-08-08T11:37:09.456522+00:00",
+      "last_updated": "2025-08-10T11:20:59.109432+00:00",
       "is_class": false,
       "base_classes": [
         "NodeVisitor"
@@ -3930,7 +5108,7 @@
         "self"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.457563+00:00",
+      "last_updated": "2025-08-10T11:20:59.110455+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -3960,7 +5138,7 @@
         "self"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.458041+00:00",
+      "last_updated": "2025-08-10T11:20:59.110915+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -3986,7 +5164,7 @@
         "path"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.458504+00:00",
+      "last_updated": "2025-08-10T11:20:59.111358+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -4014,7 +5192,7 @@
         "self"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.458936+00:00",
+      "last_updated": "2025-08-10T11:20:59.111807+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -4043,7 +5221,7 @@
         "file_path"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.459427+00:00",
+      "last_updated": "2025-08-10T11:20:59.112279+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -4071,7 +5249,7 @@
         "relative_path"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.459898+00:00",
+      "last_updated": "2025-08-10T11:20:59.112766+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -4101,7 +5279,7 @@
         "source_lines"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.460437+00:00",
+      "last_updated": "2025-08-10T11:20:59.113286+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -4127,7 +5305,7 @@
         "node"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.460992+00:00",
+      "last_updated": "2025-08-10T11:20:59.113857+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -4164,7 +5342,7 @@
         "filepath"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.461794+00:00",
+      "last_updated": "2025-08-10T11:20:59.114668+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -4210,7 +5388,7 @@
         "parent_key"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.462836+00:00",
+      "last_updated": "2025-08-10T11:20:59.115691+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -4239,7 +5417,7 @@
         "self"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.463818+00:00",
+      "last_updated": "2025-08-10T11:20:59.116662+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -4276,7 +5454,7 @@
         "self"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.464693+00:00",
+      "last_updated": "2025-08-10T11:20:59.117586+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -4309,7 +5487,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "cli_entry_point",
-      "last_updated": "2025-08-08T11:37:09.465450+00:00",
+      "last_updated": "2025-08-10T11:20:59.118332+00:00",
       "is_class": false,
       "base_classes": []
     },
@@ -4331,7 +5509,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "cli_entry_point",
-      "last_updated": "2025-08-08T11:37:09.466515+00:00",
+      "last_updated": "2025-08-10T11:20:59.119344+00:00",
       "is_class": false,
       "base_classes": []
     },
@@ -4357,7 +5535,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.468239+00:00",
+      "last_updated": "2025-08-10T11:20:59.121009+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -4380,7 +5558,7 @@
         "context"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-08T11:37:09.468612+00:00",
+      "last_updated": "2025-08-10T11:20:59.121383+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -4407,7 +5585,7 @@
         "self"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-08T11:37:09.469173+00:00",
+      "last_updated": "2025-08-10T11:20:59.121964+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -4437,7 +5615,7 @@
         "self"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-08T11:37:09.469920+00:00",
+      "last_updated": "2025-08-10T11:20:59.122751+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -4483,7 +5661,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.473288+00:00",
+      "last_updated": "2025-08-10T11:20:59.126035+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -4506,7 +5684,7 @@
         "context"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-08T11:37:09.473686+00:00",
+      "last_updated": "2025-08-10T11:20:59.126426+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -4537,7 +5715,7 @@
         "self"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-08T11:37:09.474230+00:00",
+      "last_updated": "2025-08-10T11:20:59.126949+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -4551,8 +5729,8 @@
       "domain": "system",
       "agent": "generic_agent",
       "capability": "audit.check.syntax",
-      "intent": "Validates the syntax of all .intent YAML/JSON files.",
-      "docstring": "Validates the syntax of all .intent YAML/JSON files.",
+      "intent": "Validates the syntax of all .intent YAML/JSON files (including proposals).",
+      "docstring": "Validates the syntax of all .intent YAML/JSON files (including proposals).",
       "calls": [
         "AuditFinding",
         "append",
@@ -4572,7 +5750,7 @@
         "self"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-08T11:37:09.474984+00:00",
+      "last_updated": "2025-08-10T11:20:59.127684+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -4601,13 +5779,13 @@
         "sorted",
         "str"
       ],
-      "line_number": 60,
+      "line_number": 66,
       "is_async": false,
       "parameters": [
         "self"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-08T11:37:09.475810+00:00",
+      "last_updated": "2025-08-10T11:20:59.128472+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -4637,13 +5815,13 @@
         "str",
         "values"
       ],
-      "line_number": 79,
+      "line_number": 85,
       "is_async": false,
       "parameters": [
         "self"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.476680+00:00",
+      "last_updated": "2025-08-10T11:20:59.129274+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -4668,17 +5846,272 @@
         "str",
         "values"
       ],
-      "line_number": 87,
+      "line_number": 93,
       "is_async": false,
       "parameters": [
         "data"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.477181+00:00",
+      "last_updated": "2025-08-10T11:20:59.129792+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
       "parent_class_key": "src/system/governance/checks/file_checks.py::FileChecks"
+    },
+    "src/system/governance/checks/proposal_checks.py::ProposalChecks": {
+      "key": "src/system/governance/checks/proposal_checks.py::ProposalChecks",
+      "name": "ProposalChecks",
+      "type": "ClassDef",
+      "file": "src/system/governance/checks/proposal_checks.py",
+      "domain": "system",
+      "agent": "generic_agent",
+      "capability": "unassigned",
+      "intent": "Container for proposal-related constitutional checks.",
+      "docstring": "Container for proposal-related constitutional checks.",
+      "calls": [
+        "AuditFinding",
+        "Draft7Validator",
+        "ValueError",
+        "_expected_token_for_content",
+        "_load_proposal",
+        "_proposal_paths",
+        "append",
+        "encode",
+        "exists",
+        "get",
+        "glob",
+        "hexdigest",
+        "iter_errors",
+        "join",
+        "len",
+        "list",
+        "load_schema",
+        "loads",
+        "lower",
+        "read_text",
+        "relative_to",
+        "safe_load",
+        "sha256",
+        "sorted",
+        "str"
+      ],
+      "line_number": 16,
+      "is_async": false,
+      "parameters": [],
+      "entry_point_type": "data_model",
+      "last_updated": "2025-08-10T11:20:59.133701+00:00",
+      "is_class": true,
+      "base_classes": [],
+      "entry_point_justification": "dataclass_definition"
+    },
+    "src/system/governance/checks/proposal_checks.py::__init__": {
+      "key": "src/system/governance/checks/proposal_checks.py::__init__",
+      "name": "__init__",
+      "type": "FunctionDef",
+      "file": "src/system/governance/checks/proposal_checks.py",
+      "domain": "system",
+      "agent": "generic_agent",
+      "capability": "unassigned",
+      "intent": "Initializes the check with a shared auditor context.",
+      "docstring": "Initializes the check with a shared auditor context.",
+      "calls": [],
+      "line_number": 19,
+      "is_async": false,
+      "parameters": [
+        "self",
+        "context"
+      ],
+      "entry_point_type": "magic_method",
+      "last_updated": "2025-08-10T11:20:59.134118+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "entry_point_justification": "python_magic_method",
+      "parent_class_key": "src/system/governance/checks/proposal_checks.py::ProposalChecks"
+    },
+    "src/system/governance/checks/proposal_checks.py::_proposal_paths": {
+      "key": "src/system/governance/checks/proposal_checks.py::_proposal_paths",
+      "name": "_proposal_paths",
+      "type": "FunctionDef",
+      "file": "src/system/governance/checks/proposal_checks.py",
+      "domain": "system",
+      "agent": "generic_agent",
+      "capability": "unassigned",
+      "intent": "Return all cr-* proposals (both YAML and JSON).",
+      "docstring": "Return all cr-* proposals (both YAML and JSON).",
+      "calls": [
+        "exists",
+        "glob",
+        "list",
+        "sorted"
+      ],
+      "line_number": 27,
+      "is_async": false,
+      "parameters": [
+        "self"
+      ],
+      "entry_point_type": "data_model",
+      "last_updated": "2025-08-10T11:20:59.134622+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "entry_point_justification": "dataclass_definition",
+      "parent_class_key": "src/system/governance/checks/proposal_checks.py::ProposalChecks"
+    },
+    "src/system/governance/checks/proposal_checks.py::_load_proposal": {
+      "key": "src/system/governance/checks/proposal_checks.py::_load_proposal",
+      "name": "_load_proposal",
+      "type": "FunctionDef",
+      "file": "src/system/governance/checks/proposal_checks.py",
+      "domain": "system",
+      "agent": "generic_agent",
+      "capability": "unassigned",
+      "intent": "Load proposal preserving its format.",
+      "docstring": "Load proposal preserving its format.",
+      "calls": [
+        "ValueError",
+        "loads",
+        "lower",
+        "read_text",
+        "safe_load"
+      ],
+      "line_number": 37,
+      "is_async": false,
+      "parameters": [
+        "self",
+        "path"
+      ],
+      "entry_point_type": "data_model",
+      "last_updated": "2025-08-10T11:20:59.135141+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "entry_point_justification": "dataclass_definition",
+      "parent_class_key": "src/system/governance/checks/proposal_checks.py::ProposalChecks"
+    },
+    "src/system/governance/checks/proposal_checks.py::_expected_token_for_content": {
+      "key": "src/system/governance/checks/proposal_checks.py::_expected_token_for_content",
+      "name": "_expected_token_for_content",
+      "type": "FunctionDef",
+      "file": "src/system/governance/checks/proposal_checks.py",
+      "domain": "system",
+      "agent": "generic_agent",
+      "capability": "unassigned",
+      "intent": "Mirror admin token format: 'core-proposal-v1:<sha256hex>'.",
+      "docstring": "Mirror admin token format: 'core-proposal-v1:<sha256hex>'.",
+      "calls": [
+        "encode",
+        "hexdigest",
+        "sha256"
+      ],
+      "line_number": 48,
+      "is_async": false,
+      "parameters": [
+        "content"
+      ],
+      "entry_point_type": "data_model",
+      "last_updated": "2025-08-10T11:20:59.135685+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "entry_point_justification": "dataclass_definition",
+      "parent_class_key": "src/system/governance/checks/proposal_checks.py::ProposalChecks"
+    },
+    "src/system/governance/checks/proposal_checks.py::check_proposal_files_match_schema": {
+      "key": "src/system/governance/checks/proposal_checks.py::check_proposal_files_match_schema",
+      "name": "check_proposal_files_match_schema",
+      "type": "FunctionDef",
+      "file": "src/system/governance/checks/proposal_checks.py",
+      "domain": "system",
+      "agent": "generic_agent",
+      "capability": "audit.check.proposals_schema",
+      "intent": "Validate each cr-*.yaml/json proposal against proposal.schema.json.",
+      "docstring": "Validate each cr-*.yaml/json proposal against proposal.schema.json.",
+      "calls": [
+        "AuditFinding",
+        "Draft7Validator",
+        "_load_proposal",
+        "_proposal_paths",
+        "append",
+        "exists",
+        "iter_errors",
+        "join",
+        "list",
+        "load_schema",
+        "relative_to",
+        "str"
+      ],
+      "line_number": 56,
+      "is_async": false,
+      "parameters": [
+        "self"
+      ],
+      "entry_point_type": "capability",
+      "last_updated": "2025-08-10T11:20:59.136408+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "entry_point_justification": "capability_implementation",
+      "parent_class_key": "src/system/governance/checks/proposal_checks.py::ProposalChecks"
+    },
+    "src/system/governance/checks/proposal_checks.py::check_signatures_match_content": {
+      "key": "src/system/governance/checks/proposal_checks.py::check_signatures_match_content",
+      "name": "check_signatures_match_content",
+      "type": "FunctionDef",
+      "file": "src/system/governance/checks/proposal_checks.py",
+      "domain": "system",
+      "agent": "generic_agent",
+      "capability": "audit.check.proposals_drift",
+      "intent": "Detect content/signature drift:",
+      "docstring": "Detect content/signature drift:\n- warn if a proposal has no signatures\n- warn if any signature token does not match the current content",
+      "calls": [
+        "AuditFinding",
+        "_expected_token_for_content",
+        "_load_proposal",
+        "_proposal_paths",
+        "append",
+        "get",
+        "join",
+        "len",
+        "relative_to",
+        "str"
+      ],
+      "line_number": 124,
+      "is_async": false,
+      "parameters": [
+        "self"
+      ],
+      "entry_point_type": "capability",
+      "last_updated": "2025-08-10T11:20:59.137336+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "entry_point_justification": "capability_implementation",
+      "parent_class_key": "src/system/governance/checks/proposal_checks.py::ProposalChecks"
+    },
+    "src/system/governance/checks/proposal_checks.py::list_pending_proposals": {
+      "key": "src/system/governance/checks/proposal_checks.py::list_pending_proposals",
+      "name": "list_pending_proposals",
+      "type": "FunctionDef",
+      "file": "src/system/governance/checks/proposal_checks.py",
+      "domain": "system",
+      "agent": "generic_agent",
+      "capability": "audit.check.proposals_list",
+      "intent": "Emit a friendly summary of pending proposals.",
+      "docstring": "Emit a friendly summary of pending proposals.",
+      "calls": [
+        "AuditFinding",
+        "_proposal_paths",
+        "append",
+        "exists",
+        "relative_to",
+        "str"
+      ],
+      "line_number": 194,
+      "is_async": false,
+      "parameters": [
+        "self"
+      ],
+      "entry_point_type": "capability",
+      "last_updated": "2025-08-10T11:20:59.138097+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "entry_point_justification": "capability_implementation",
+      "parent_class_key": "src/system/governance/checks/proposal_checks.py::ProposalChecks"
     },
     "src/system/governance/checks/structure_checks.py::StructureChecks": {
       "key": "src/system/governance/checks/structure_checks.py::StructureChecks",
@@ -4715,7 +6148,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.480997+00:00",
+      "last_updated": "2025-08-10T11:20:59.141755+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -4738,7 +6171,7 @@
         "context"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-08T11:37:09.481368+00:00",
+      "last_updated": "2025-08-10T11:20:59.142131+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -4764,7 +6197,7 @@
         "self"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-08T11:37:09.481863+00:00",
+      "last_updated": "2025-08-10T11:20:59.142630+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -4794,7 +6227,7 @@
         "self"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-08T11:37:09.482498+00:00",
+      "last_updated": "2025-08-10T11:20:59.143249+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -4824,7 +6257,7 @@
         "self"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-08T11:37:09.483158+00:00",
+      "last_updated": "2025-08-10T11:20:59.143931+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -4853,7 +6286,7 @@
         "self"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-08T11:37:09.483853+00:00",
+      "last_updated": "2025-08-10T11:20:59.144627+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -4890,7 +6323,7 @@
         "self"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-08T11:37:09.484771+00:00",
+      "last_updated": "2025-08-10T11:20:59.145557+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -4918,7 +6351,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.486477+00:00",
+      "last_updated": "2025-08-10T11:20:59.147294+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -4941,7 +6374,7 @@
         "context"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-08T11:37:09.486832+00:00",
+      "last_updated": "2025-08-10T11:20:59.147716+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -4971,11 +6404,178 @@
         "self"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-08T11:37:09.487455+00:00",
+      "last_updated": "2025-08-10T11:20:59.148333+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
       "parent_class_key": "src/system/governance/checks/environment_checks.py::EnvironmentChecks"
+    },
+    "src/core/cli/guard.py::_print_table": {
+      "key": "src/core/cli/guard.py::_print_table",
+      "name": "_print_table",
+      "type": "FunctionDef",
+      "file": "src/core/cli/guard.py",
+      "domain": "core",
+      "agent": "validator_agent",
+      "capability": "unassigned",
+      "intent": "Provides functionality for the core domain.",
+      "docstring": "",
+      "calls": [
+        "get",
+        "join",
+        "print",
+        "section"
+      ],
+      "line_number": 19,
+      "is_async": false,
+      "parameters": [
+        "report_dict"
+      ],
+      "entry_point_type": "data_model",
+      "last_updated": "2025-08-10T11:20:59.150902+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "entry_point_justification": "dataclass_definition"
+    },
+    "src/core/cli/guard.py::section": {
+      "key": "src/core/cli/guard.py::section",
+      "name": "section",
+      "type": "FunctionDef",
+      "file": "src/core/cli/guard.py",
+      "domain": "core",
+      "agent": "validator_agent",
+      "capability": "unassigned",
+      "intent": "Provides functionality for the core domain.",
+      "docstring": "",
+      "calls": [
+        "join",
+        "print"
+      ],
+      "line_number": 20,
+      "is_async": false,
+      "parameters": [
+        "title",
+        "items"
+      ],
+      "entry_point_type": "data_model",
+      "last_updated": "2025-08-10T11:20:59.151320+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "entry_point_justification": "dataclass_definition"
+    },
+    "src/core/cli/guard.py::_should_fail": {
+      "key": "src/core/cli/guard.py::_should_fail",
+      "name": "_should_fail",
+      "type": "FunctionDef",
+      "file": "src/core/cli/guard.py",
+      "domain": "core",
+      "agent": "validator_agent",
+      "capability": "unassigned",
+      "intent": "Provides functionality for the core domain.",
+      "docstring": "",
+      "calls": [
+        "bool"
+      ],
+      "line_number": 36,
+      "is_async": false,
+      "parameters": [
+        "report",
+        "fail_on"
+      ],
+      "entry_point_type": "data_model",
+      "last_updated": "2025-08-10T11:20:59.151959+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "entry_point_justification": "dataclass_definition"
+    },
+    "src/core/cli/guard.py::_handle_drift": {
+      "key": "src/core/cli/guard.py::_handle_drift",
+      "name": "_handle_drift",
+      "type": "FunctionDef",
+      "file": "src/core/cli/guard.py",
+      "domain": "core",
+      "agent": "validator_agent",
+      "capability": "unassigned",
+      "intent": "Provides functionality for the core domain.",
+      "docstring": "",
+      "calls": [
+        "Path",
+        "_print_table",
+        "_should_fail",
+        "collect_code_capabilities",
+        "detect_capability_drift",
+        "dumps",
+        "load_manifest",
+        "print",
+        "resolve",
+        "to_dict",
+        "write_report"
+      ],
+      "line_number": 43,
+      "is_async": false,
+      "parameters": [
+        "args"
+      ],
+      "entry_point_type": "data_model",
+      "last_updated": "2025-08-10T11:20:59.152590+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "entry_point_justification": "dataclass_definition"
+    },
+    "src/core/cli/guard.py::register_guard_command": {
+      "key": "src/core/cli/guard.py::register_guard_command",
+      "name": "register_guard_command",
+      "type": "FunctionDef",
+      "file": "src/core/cli/guard.py",
+      "domain": "core",
+      "agent": "validator_agent",
+      "capability": "unassigned",
+      "intent": "Provides functionality for the core domain.",
+      "docstring": "",
+      "calls": [
+        "add_argument",
+        "add_parser",
+        "add_subparsers",
+        "set_defaults"
+      ],
+      "line_number": 66,
+      "is_async": false,
+      "parameters": [
+        "subparsers"
+      ],
+      "entry_point_type": "data_model",
+      "last_updated": "2025-08-10T11:20:59.153322+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "entry_point_justification": "dataclass_definition"
+    },
+    "src/core/cli/guard.py::ensure_cli_entrypoint": {
+      "key": "src/core/cli/guard.py::ensure_cli_entrypoint",
+      "name": "ensure_cli_entrypoint",
+      "type": "FunctionDef",
+      "file": "src/core/cli/guard.py",
+      "domain": "core",
+      "agent": "validator_agent",
+      "capability": "unassigned",
+      "intent": "Provides functionality for the core domain.",
+      "docstring": "",
+      "calls": [
+        "ArgumentParser",
+        "add_subparsers",
+        "exit",
+        "func",
+        "hasattr",
+        "parse_args",
+        "print_help",
+        "register_guard_command"
+      ],
+      "line_number": 82,
+      "is_async": false,
+      "parameters": [],
+      "entry_point_type": "cli_entry_point",
+      "last_updated": "2025-08-10T11:20:59.153932+00:00",
+      "is_class": false,
+      "base_classes": []
     },
     "src/shared/schemas/manifest_validator.py::load_schema": {
       "key": "src/shared/schemas/manifest_validator.py::load_schema",
@@ -5000,7 +6600,7 @@
         "schema_name"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.488868+00:00",
+      "last_updated": "2025-08-10T11:20:59.155316+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -5030,7 +6630,7 @@
         "schema_name"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.489476+00:00",
+      "last_updated": "2025-08-10T11:20:59.155969+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -5059,7 +6659,7 @@
         "file_path"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.490678+00:00",
+      "last_updated": "2025-08-10T11:20:59.157177+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"
@@ -5084,7 +6684,7 @@
         "llm_output"
       ],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-08T11:37:09.491544+00:00",
+      "last_updated": "2025-08-10T11:20:59.158015+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition"

@@ -1,0 +1,34 @@
+name: Governance & Drift Check
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  governance:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python & Poetry
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pipx install poetry
+
+      - name: Install deps
+        run: poetry install --no-interaction
+
+      - name: Lint & tests (optional but nice)
+        run: |
+          poetry run ruff check
+          poetry run pytest -q
+
+      - name: Generate Knowledge Graph Artifact
+        run: poetry run core-admin guard kg-export
+
+      - name: Detect Capability Drift (strict, fail on any)
+        run: |
+          set -e
+          poetry run core-admin guard drift --strict-intent --fail-on any --format json

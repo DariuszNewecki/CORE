@@ -1,0 +1,64 @@
+name: Nightly Constitutional Audit
+
+on:
+  schedule:
+    - cron: "15 2 * * *"   # 02:15 UTC nightly
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install Poetry
+        run: pipx install poetry
+      - name: Install deps
+        run: poetry install --no-interaction --no-root
+      - name: Run self-audit
+        id: audit
+        run: |
+          set +e
+          poetry run python -m src.core.capabilities
+          echo "exit_code=$?" >> $GITHUB_OUTPUT
+      - name: Open/Update issue on failure
+        if: steps.audit.outputs.exit_code != '0'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = "❌ Nightly Constitutional Audit failed";
+            const body = "The nightly audit failed. Please check CI logs for details.\n\n- Workflow: nightly-audit\n- Run: " + process.env.GITHUB_RUN_ID;
+            const { data: issues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner, repo: context.repo.repo, state: "open", labels: "ci,audit"
+            });
+            const existing = issues.find(i => i.title === title);
+            if (existing) {
+              await github.rest.issues.createComment({ owner: context.repo.owner, repo: context.repo.repo, issue_number: existing.number, body });
+            } else {
+              await github.rest.issues.create({
+                owner: context.repo.owner, repo: context.repo.repo,
+                title, body, labels: ["ci","audit"]
+              });
+            }
+      - name: Close issue on success
+        if: steps.audit.outputs.exit_code == '0'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = "❌ Nightly Constitutional Audit failed";
+            const { data: issues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner, repo: context.repo.repo, state: "open", labels: "ci,audit"
+            });
+            const existing = issues.find(i => i.title === title);
+            if (existing) {
+              await github.rest.issues.update({
+                owner: context.repo.owner, repo: context.repo.repo,
+                issue_number: existing.number, state: "closed"
+              });
+            }
