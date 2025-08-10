@@ -16,6 +16,7 @@ from typing import Optional
 import typer
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import ed25519
 from shared.config import settings
 from shared.logger import getLogger
 from system.governance.constitutional_auditor import ConstitutionalAuditor
@@ -123,6 +124,10 @@ def register(app: typer.Typer) -> None:
                 continue
             try:
                 pub_key = serialization.load_pem_public_key(pem.encode("utf-8"))
+                if not isinstance(pub_key, ed25519.Ed25519PublicKey):
+                    log.warning(f"   ⚠️ Key for '{identity}' is not a valid Ed25519 signing key. Skipping.")
+                    continue
+
                 pub_key.verify(base64.b64decode(sig["signature_b64"]), sig["token"].encode("utf-8"))
                 if sig["token"] == generate_approval_token(proposal.get("content", "")):
                     log.info(f"   ✅ Valid signature from '{identity}'.")
@@ -145,6 +150,15 @@ def register(app: typer.Typer) -> None:
             # Mirror constitution and code
             shutil.copytree(settings.MIND, tmp_path / ".intent")
             shutil.copytree(settings.BODY, tmp_path / "src")
+
+            # --- THIS IS THE FIX ---
+            # Copy the .env file to the canary environment so it can pass its own health check.
+            env_file = settings.REPO_PATH / ".env"
+            if env_file.exists():
+                shutil.copy(env_file, tmp_path / ".env")
+                log.info("   -> Copied .env file to canary environment.")
+            # --- END OF FIX ---
+
             # Apply proposed change
             canary_target_path = tmp_path / target_rel_path
             canary_target_path.parent.mkdir(parents=True, exist_ok=True)

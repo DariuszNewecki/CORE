@@ -1,5 +1,13 @@
 # Project CORE: A Strategic Plan for Refactoring and Evolution
 
+## 0. Context: The Story of Our Foundation
+
+**This document is a historical record.** It outlines the foundational work that was completed to evolve CORE from an early prototype into the stable, self-governing system it is today. It tells the story of "how we got here."
+
+For our future plans and the challenges we are tackling next, please see the living **[Project Roadmap (`04_ROADMAP.md`)](04_ROADMAP.md)**.
+
+---
+
 ## 1. Preamble: From Diagnosis to Vision
 
 This document outlines the strategic plan to evolve the CORE system from its current state to a truly self-governing, resilient, and evolvable architecture.

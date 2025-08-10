@@ -4,7 +4,7 @@
 # preventing unauthorized changes. It contains the public keys of all authorized
 # constitutional approvers for this instance of CORE.
 #
-# To add a new approver:
+# TO ADD A NEW APPROVER:
 # 1. Run the command: `core-admin keygen "your.email@example.com"`
 # 2. The command will output a JSON/YAML block.
 # 3. Paste that block into the 'approvers' list below.

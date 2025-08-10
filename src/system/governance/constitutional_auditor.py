@@ -47,6 +47,16 @@ class ConstitutionalAuditor:
                 This is crucial for the 'canary' validation process.
         """
         self.repo_root = repo_root_override or get_repo_root()
+
+        # --- THIS IS THE FIX ---
+        # If we are in a temporary "canary" environment, we must explicitly load
+        # the .env file from that environment so the canary can pass its own health checks.
+        if repo_root_override:
+            dotenv_path = self.repo_root / ".env"
+            if dotenv_path.exists():
+                load_dotenv(dotenv_path=dotenv_path, override=True)
+                log.info(f"   -> Canary auditor loaded environment from {dotenv_path}")
+        # --- END OF FIX ---
         
         # Create a shared context for all checks
         self.context = self.AuditorContext(self.repo_root)
