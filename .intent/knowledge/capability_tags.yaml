@@ -64,6 +64,14 @@ tags:
     description: "Auditor check: Finds .intent files that are not referenced in meta.yaml."
   - name: audit.check.environment
     description: "Auditor check: Verifies that required environment variables are set."
+  # --- ADDITIONS: New capabilities for proposal checks, as per our plan ---
+  - name: audit.check.proposals_schema
+    description: "Auditor check: Validates each proposal against its JSON schema."
+  - name: audit.check.proposals_drift
+    description: "Auditor check: Detects if a proposal's content has changed after being signed."
+  - name: audit.check.proposals_list
+    description: "Auditor check: Lists all pending proposals for visibility during an audit."
+
   # --- Planned or Placeholder Capabilities ---
   - name: add_missing_docstrings
     description: "A planned capability to automatically add docstrings to undocumented code."

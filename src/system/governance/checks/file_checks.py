@@ -39,18 +39,24 @@ class FileChecks:
 
     # CAPABILITY: audit.check.syntax
     def check_syntax(self) -> list[AuditFinding]:
-        """Validates the syntax of all .intent YAML/JSON files."""
+        """Validates the syntax of all .intent YAML/JSON files (including proposals)."""
         findings = []
         check_name = "YAML/JSON Syntax Validity"
         error_findings = []
+
         files_to_check = list(self.context.intent_dir.rglob("*.yaml")) + list(self.context.intent_dir.rglob("*.json"))
         for file_path in files_to_check:
-            if file_path.is_file() and "proposals" not in file_path.parts:
+            if file_path.is_file():
                 result = validate_code(str(file_path), file_path.read_text(encoding='utf-8'), quiet=True)
                 if result["status"] == "dirty":
                     for violation in result["violations"]:
-                        error_findings.append(AuditFinding(AuditSeverity.ERROR, f"Syntax Error: {violation['message']}", check_name, str(file_path.relative_to(self.context.repo_root))))
-        
+                        error_findings.append(AuditFinding(
+                            AuditSeverity.ERROR,
+                            f"Syntax Error: {violation['message']}",
+                            check_name,
+                            str(file_path.relative_to(self.context.repo_root))
+                        ))
+
         if not error_findings:
             findings.append(AuditFinding(AuditSeverity.SUCCESS, f"Validated syntax for {len(files_to_check)} YAML/JSON files.", check_name))
         findings.extend(error_findings)

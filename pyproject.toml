@@ -33,7 +33,14 @@ pyyaml = ">=6.0"
 requests = ">=2.28.0"
 python-dotenv = ">=1.0.0"
 pydantic = ">=2.0.0"
+# --- ADDITION: Centralized settings management ---
+pydantic-settings = "^2.0.0" 
 cryptography = ">=42.0.0"
+rich = "^13"
+black = "^24"
+jsonschema = "^4"
+# --- ADDITION: A powerful CLI library ---
+typer = {extras = ["rich"], version = "^0.9.0"}
 
 # --- Development Dependencies ---
 # This replaces the old [project.optional-dependencies].
@@ -45,10 +52,9 @@ ruff = ">=0.0.254"
 
 # --- Command-Line Scripts ---
 # This replaces the old [project.scripts] section.
+# We will update this in a later step.
 [tool.poetry.scripts]
-# --- MODIFICATION: Correct the script path to be relative to the package root ---
-core-admin = "system.admin_cli:main"
-# core-cli = "core.main:main" # Uncomment if you create a CLI entry point
+core-admin = "system.admin_cli:app"
 
 # --- Configuration for development tools (These do not change) ---
 [tool.ruff]

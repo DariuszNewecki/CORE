@@ -1,0 +1,73 @@
+name: CORE CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Poetry
+        run: pipx install poetry
+
+      - name: Cache Poetry
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pypoetry
+          key: poetry-${{ runner.os }}-${{ hashFiles('**/poetry.lock') }}
+          restore-keys: |
+            poetry-${{ runner.os }}-
+
+      - name: Install deps
+        run: poetry install --no-interaction --no-root
+
+      - name: Lint (Ruff)
+        run: poetry run ruff check .
+
+      - name: Format check (Black)
+        run: poetry run black --check .
+
+      - name: Self-audit (KnowledgeGraph + Auditor)
+        run: poetry run python -m src.core.capabilities
+
+      - name: Tests
+        run: poetry run pytest -q
+        
+  governance:
+    name: Governance & Drift Check
+    runs-on: ubuntu-latest
+    needs: ci
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python & Poetry
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pipx install poetry
+
+      - name: Install deps
+        run: poetry install --no-interaction --no-root
+
+      - name: Generate Knowledge Graph Artifact
+        run: poetry run core-admin guard kg-export
+
+      - name: Detect Capability Drift (strict)
+        run: |
+          set -e
+          poetry run core-admin guard drift --strict-intent --fail-on any --format json

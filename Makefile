@@ -14,7 +14,7 @@ RELOAD  ?= --reload
 ENV_FILE ?= .env
 PATHS   ?= .
 
-.PHONY: help install lock run stop lint format test coverage check clean clean-logs distclean nuke
+.PHONY: help install lock run stop audit lint format test coverage check clean clean-logs distclean nuke
 
 help:
 	@echo "CORE Development Makefile"
@@ -22,15 +22,15 @@ help:
 	@echo "make install       - Install deps with Poetry"
 	@echo "make lock          - Update poetry.lock"
 	@echo "make run           - Start uvicorn ($(APP)) on $(HOST):$(PORT)"
-	@echo "make stop          - Stop dev server (kill script or pkill fallback)"
+	@echo "make stop          - Stop dev server reliably by killing process on port $(PORT)"
+	@echo "make audit         - Run the full self-audit (KnowledgeGraph + Auditor)"
 	@echo "make lint          - Ruff checks"
 	@echo "make format        - Black + Ruff --fix"
 	@echo "make test [ARGS=]  - Pytest (pass ARGS='-k expr -vv')"
 	@echo "make coverage      - Pytest with coverage"
-	@echo "make check         - Lint + Tests"
+	@echo "make check         - Lint + Tests + Audit"
 	@echo "make clean         - Remove caches, pending_writes, sandbox"
-	@echo "make clean-logs    - Remove logs/*"
-	@echo "make distclean     - Clean + venv/node/build"
+	@echo "make distclean     - Clean + venv/build leftovers"
 	@echo "make nuke          - git clean -fdx (danger)"
 
 install:
@@ -46,13 +46,25 @@ run: stop
 	@echo "🚀 Starting FastAPI server at http://$(HOST):$(PORT)"
 	$(POETRY) run uvicorn $(APP) --host $(HOST) --port $(PORT) $(RELOAD) --env-file $(ENV_FILE)
 
+# --- THIS IS THE IMPROVED VERSION ---
 stop:
-	@if [ -f ./kill-core.sh ]; then \
-		echo "🛑 Using kill-core.sh"; ./kill-core.sh; \
+	@echo "🛑 Stopping any process on port $(PORT)..."
+	@if command -v lsof >/dev/null 2>&1; then \
+		PID=$$(lsof -t -i:$(PORT) || true); \
+		if [ -n "$$PID" ]; then \
+			echo "  -> Found process with PID: $$PID. Terminating..."; \
+			kill $$PID || true; \
+		else \
+			echo "  -> No process found on port $(PORT)."; \
+		fi; \
 	else \
-		echo "🛑 kill-core.sh not found. Attempting pkill uvicorn..."; \
-		pkill -f "uvicorn .*$(APP)" || true; \
+		echo "  -> 'lsof' not found. Trying 'pkill'. You might want to install 'lsof' for better reliability."; \
+		pkill -f "uvicorn.*$(APP)" || true; \
 	fi
+
+audit:
+	@echo "🧠 Running constitutional self-audit..."
+	$(POETRY) run python -m src.core.capabilities
 
 lint:
 	@echo "🎨 Checking code style with Ruff..."
@@ -71,34 +83,24 @@ coverage:
 	@echo "🧮 Running tests with coverage..."
 	$(POETRY) run pytest --cov=src --cov-report=term-missing:skip-covered $(ARGS)
 
-check: lint test
+check: lint test audit
 
 # ---- Clean targets ---------------------------------------------------------
 
 clean:
 	@echo "🧹 Cleaning up temporary files and caches..."
-	# Bytecode & __pycache__
 	find . -type f -name '*.pyc' -delete
 	find . -type d -name '__pycache__' -prune -exec rm -rf {} +
-	# Tool caches
 	rm -rf .pytest_cache .ruff_cache .mypy_cache .cache
-	# Coverage & reports
 	rm -f .coverage
 	rm -rf htmlcov
-	# Build/packaging junk
 	rm -rf build dist *.egg-info
-	# Local dirs you don't want to keep
 	rm -rf pending_writes sandbox
 	@echo "✅ Clean complete."
 
-clean-logs:
-	@echo "🧻 Removing logs/* ..."
-	rm -rf logs/* || true
-	@echo "✅ Logs cleaned."
-
-distclean: clean clean-logs
+distclean: clean
 	@echo "🧨 Distclean: removing virtual environments and build leftovers..."
-	rm -rf .venv node_modules
+	rm -rf .venv
 	@echo "✅ Distclean complete."
 
 nuke:

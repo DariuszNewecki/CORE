@@ -36,6 +36,9 @@ pending_writes/
 sandbox/
 *.jsonl
 *.lock
+reports/knowledge_graph.json
+reports/drift_report.json
+
 
 # Cache or checkpoints
 *.bak

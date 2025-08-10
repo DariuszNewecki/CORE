@@ -1,0 +1,10 @@
+## Summary
+<!-- What does this change do? -->
+
+## Checks
+- [ ] I ran `poetry install && poetry run python -m src.core.capabilities` and it passed.
+- [ ] I ran `poetry run ruff check .` and `poetry run black --check .`.
+- [ ] I ran `poetry run pytest -q`.
+
+## Governance
+- [ ] If I changed `.intent/*`, I used a proposal (`.intent/proposals/cr-*.yaml`) that validates against `proposal.schema.json`.
