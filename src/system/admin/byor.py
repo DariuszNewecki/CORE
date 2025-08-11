@@ -14,10 +14,14 @@ from shared.logger import getLogger
 from system.tools.codegraph_builder import KnowledgeGraphBuilder
 
 log = getLogger("core_admin.byor")
+# --- THIS IS THE CHANGE (Part 1 of 3) ---
+# We now know where our templates are located.
+CORE_ROOT = Path(__file__).resolve().parents[2]
+TEMPLATES_DIR = CORE_ROOT / "system" / "templates"
 
 def initialize_repository(
     path: Path = typer.Argument(
-        ...,  # ... means the argument is required
+        ...,
         help="The path to the external repository to analyze.",
         exists=True,
         file_okay=False,
@@ -35,10 +39,9 @@ def initialize_repository(
     """
     log.info(f"🚀 Starting analysis of repository at: {path}")
 
-    # Step 1: Build the Knowledge Graph. This is the core analysis.
+    # Step 1: Build the Knowledge Graph.
     log.info("   -> Step 1: Building Knowledge Graph of the target repository...")
     try:
-        # We tell the builder to use the *external* repo as its root.
         builder = KnowledgeGraphBuilder(root_path=path)
         graph = builder.build()
         total_symbols = len(graph.get("symbols", {}))
@@ -47,54 +50,66 @@ def initialize_repository(
         log.error(f"   -> ❌ Failed to build Knowledge Graph: {e}", exc_info=True)
         raise typer.Exit(code=1)
 
-    # Step 2: Generate the content for the new constitutional files from the graph.
+    # Step 2: Generate the content for the new constitutional files.
     log.info("   -> Step 2: Generating starter constitution from analysis...")
     
-    # Infer domains from the graph's `domain_map`. This uses our new heuristic.
+    # --- THIS IS THE CHANGE (Part 2 of 3) ---
+    # We now create a dictionary of all the files we intend to generate.
+    
+    # File 1: source_structure.yaml
     domains = builder.domain_map
     source_structure_content = {
         "structure": [
-            {
-                "domain": name,
-                "path": path_str,
-                "description": f"Domain for '{name}' inferred by CORE.",
-                "allowed_imports": [name, "shared"], # A sensible default
-            }
+            { "domain": name, "path": path_str, "description": f"Domain for '{name}' inferred by CORE.", "allowed_imports": [name, "shared"], }
             for path_str, name in domains.items()
         ]
     }
     
-    # Discover all capabilities found in the code.
+    # File 2: project_manifest.yaml
     discovered_capabilities = sorted(list(set(
         s["capability"] for s in graph.get("symbols", {}).values() if s.get("capability") != "unassigned"
     )))
     project_manifest_content = {
-        "name": path.name,
-        "version": "0.1.0-core-scaffold",
-        "intent": "A high-level description of what this project is intended to do.",
+        "name": path.name, "version": "0.1.0-core-scaffold", "intent": "A high-level description of what this project is intended to do.",
         "required_capabilities": discovered_capabilities,
+    }
+
+    # File 3: capability_tags.yaml (dynamically populated)
+    capability_tags_content = {
+        "tags": [
+            {"name": cap, "description": "A clear explanation of what this capability does."}
+            for cap in discovered_capabilities
+        ]
+    }
+
+    # The files we will create and their content.
+    files_to_generate = {
+        ".intent/knowledge/source_structure.yaml": source_structure_content,
+        ".intent/project_manifest.yaml": project_manifest_content,
+        ".intent/knowledge/capability_tags.yaml": capability_tags_content,
+        ".intent/mission/principles.yaml": (TEMPLATES_DIR / "principles.yaml.template").read_text(),
+        ".intent/policies/safety_policies.yaml": (TEMPLATES_DIR / "safety_policies.yaml.template").read_text(),
     }
 
     # Step 3: Write the files or display the dry run.
     if dry_run:
         log.info("\n💧 Dry Run Mode: No files will be written.")
-        typer.secho("\n📄 Proposed `.intent/knowledge/source_structure.yaml`:", fg=typer.colors.YELLOW)
-        typer.echo(yaml.dump(source_structure_content, indent=2))
-        typer.secho("\n📄 Proposed `.intent/project_manifest.yaml`:", fg=typer.colors.YELLOW)
-        typer.echo(yaml.dump(project_manifest_content, indent=2))
+        for rel_path, content in files_to_generate.items():
+            typer.secho(f"\n📄 Proposed `{rel_path}`:", fg=typer.colors.YELLOW)
+            if isinstance(content, dict):
+                typer.echo(yaml.dump(content, indent=2))
+            else:
+                typer.echo(content)
     else:
         log.info("\n💾 **Write Mode:** Applying changes to disk.")
-        intent_dir = path / ".intent"
-        knowledge_dir = intent_dir / "knowledge"
-        knowledge_dir.mkdir(parents=True, exist_ok=True)
-        
-        ss_path = knowledge_dir / "source_structure.yaml"
-        ss_path.write_text(yaml.dump(source_structure_content, indent=2))
-        typer.secho(f"   -> ✅ Wrote starter constitution to {ss_path}", fg=typer.colors.GREEN)
-        
-        pm_path = intent_dir / "project_manifest.yaml"
-        pm_path.write_text(yaml.dump(project_manifest_content, indent=2))
-        typer.secho(f"   -> ✅ Wrote starter manifest to {pm_path}", fg=typer.colors.GREEN)
+        for rel_path, content in files_to_generate.items():
+            target_path = path / rel_path
+            target_path.parent.mkdir(parents=True, exist_ok=True)
+            if isinstance(content, dict):
+                target_path.write_text(yaml.dump(content, indent=2))
+            else:
+                target_path.write_text(content)
+            typer.secho(f"   -> ✅ Wrote starter file to {target_path}", fg=typer.colors.GREEN)
 
     log.info("\n🎉 BYOR initialization complete.")
 
