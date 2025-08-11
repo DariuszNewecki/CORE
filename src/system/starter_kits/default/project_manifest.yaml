@@ -1,0 +1,5 @@
+# .intent/project_manifest.yaml
+name: "new-core-project"
+version: "0.1.0"
+intent: "A new project, ready to be guided by a clear intent."
+required_capabilities: []

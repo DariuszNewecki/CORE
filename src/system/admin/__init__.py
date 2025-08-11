@@ -24,6 +24,7 @@ from system.admin import guard as _guard  # noqa: E402
 from system.admin import migrator as _migrator # noqa: E402
 from system.admin import fixer as _fixer # noqa: E402
 from system.admin import byor as _byor # noqa: E402
+from system.admin import scaffolder as _scaffolder # noqa: E402
 
 _keys.register(app)
 _proposals.register(app)
@@ -31,6 +32,7 @@ _guard.register(app)
 _migrator.register(app)
 _fixer.register(app)
 _byor.register(app)
+_scaffolder.register(app)
 
 
 __all__ = ["app"]

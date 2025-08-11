@@ -1,0 +1,11 @@
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.env
+
+# CORE-specific
+.intent/knowledge/knowledge_graph.json
+reports/
+logs/
