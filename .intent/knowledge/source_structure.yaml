@@ -60,8 +60,6 @@ structure:
       - system
       - shared
       - core
-      # --- THIS IS THE FIX ---
-      # We are adding 'tooling' to the list of allowed imports for the 'system' domain.
       - tooling
       # External & Standard Libs
       - json
@@ -104,7 +102,9 @@ structure:
     description: Internal introspection utilities
     editable: true
     default_handler: python
-    allowed_imports: [tooling, system, shared, ast, json, logging, pathlib, typing, dataclasses]
+    # --- THIS IS THE FIX ---
+    # We are adding 'core' to the list of allowed imports for the 'tooling' domain.
+    allowed_imports: [tooling, system, shared, core, ast, json, logging, pathlib, typing, dataclasses]
 
   - domain: data
     path: src/data
