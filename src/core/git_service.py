@@ -26,12 +26,7 @@ class GitService:
     """
 
     def __init__(self, repo_path: str):
-        """
-        Initialize GitService with repository root.
-
-        Args:
-            repo_path (str): Path to the Git repository.
-        """
+        """Initialize GitService with the resolved absolute path to the Git repository; raises ValueError if path is not a valid Git repo."""
         self.repo_path = Path(repo_path).resolve()
         if not self.is_git_repo():
             raise ValueError(f"Invalid Git repository: {repo_path}")
@@ -70,8 +65,6 @@ class GitService:
             raise ValueError(f"Cannot stage file outside repo: {file_path}")
         self._run_command(["git", "add", file_path])
 
-    # --- THIS IS THE FIX ---
-    # The commit method now gracefully handles the "no changes to commit" case.
     def commit(self, message: str):
         """
         Commit staged changes with a message.
@@ -81,6 +74,7 @@ class GitService:
             message (str): Commit message explaining the change.
         """
         try:
+            # --- THIS IS THE FIX ---
             # First, check if there are any staged changes.
             status_output = self._run_command(["git", "status", "--porcelain"])
             if not status_output:
@@ -97,6 +91,7 @@ class GitService:
             else:
                 # Re-raise any other unexpected error.
                 raise e
+            # --- END OF FIX ---
 
     def is_git_repo(self) -> bool:
         """

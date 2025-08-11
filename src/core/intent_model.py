@@ -22,6 +22,7 @@ class IntentModel:
     defined in .intent/knowledge/source_structure.yaml.
     """
     def __init__(self, repo_root: Optional[Path] = None):
+        """Initializes the model by loading the source structure definition from the repository, inferring the root if not provided."""
         """
         Initializes the model by loading the source structure definition.
 
@@ -32,6 +33,7 @@ class IntentModel:
         self.structure_path = self.repo_root / ".intent" / "knowledge" / "source_structure.yaml"
         self.structure: Dict[str, dict] = self._load_structure()
 
+    """Load the domain structure from .intent/knowledge/source_structure.yaml and return a mapping of domain names to metadata (path, permissions, etc.)."""
     def _load_structure(self) -> Dict[str, dict]:
         """
         Load the domain structure from .intent/knowledge/source_structure.yaml.

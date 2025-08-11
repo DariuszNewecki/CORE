@@ -42,6 +42,7 @@ class PromptPipeline:
         self.manifest_pattern = re.compile(r"\[\[manifest:(.+?)\]\]")
 
     def _replace_context_match(self, match: re.Match) -> str:
+        """Dynamically replaces a [[context:...]] regex match with file content or an error message if the file is missing, unreadable, or exceeds size limits."""
         """Dynamically replaces a [[context:...]] regex match with file content or an error message."""
         file_path = match.group(1).strip()
         abs_path = self.repo_path / file_path
@@ -59,6 +60,7 @@ class PromptPipeline:
         """Replaces [[context:file.py]] directives with actual file content."""
         return self.context_pattern.sub(self._replace_context_match, prompt)
 
+    """Dynamically replaces an [[include:...]] regex match with the corresponding file's content or an error message if the file is missing, unreadable, or exceeds size limits."""
     def _replace_include_match(self, match: re.Match) -> str:
         """Dynamically replaces an [[include:...]] regex match with file content or an error message."""
         file_path = match.group(1).strip()
@@ -78,6 +80,7 @@ class PromptPipeline:
         return self.include_pattern.sub(self._replace_include_match, prompt)
 
     def _replace_analysis_match(self, match: re.Match) -> str:
+        """Dynamically replaces an [[analysis:...]] regex match with a placeholder analysis message for the given file path."""
         """Dynamically replaces an [[analysis:...]] regex match with a placeholder analysis message."""
         file_path = match.group(1).strip()
         # This functionality is a placeholder.

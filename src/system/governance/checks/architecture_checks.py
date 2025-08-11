@@ -15,6 +15,7 @@ class ArchitectureChecks:
 
     # CAPABILITY: audit.check.duplication
     def check_for_structural_duplication(self) -> list[AuditFinding]:
+        """Finds symbols with identical structural hashes, violating `dry_by_design`, using content-addressed knowledge graph for accurate duplication detection."""
         """
         Finds symbols with identical structural hashes, violating `dry_by_design`.
         This check uses the content-addressed nature of the knowledge graph to

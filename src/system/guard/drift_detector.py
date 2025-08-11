@@ -31,6 +31,7 @@ class CapabilityMeta:
     owner: Optional[str] = None
 
 def _parse_inline_meta(trailing: str) -> Dict[str, str]:
+    """Parse inline [key=value] metadata from trailing text and return as a dictionary."""
     """Intent: Parse inline [key=value] metadata next to CAPABILITY tags."""
     m = _INLINE_KV_RE.search(trailing or '')
     if not m:
@@ -54,6 +55,7 @@ def _find_manifest(start: Path) -> Path:
             return p
     raise FileNotFoundError('No manifest found in .intent/ (looked for project_manifest.yaml, manifest.yaml)')
 
+    """Normalize various input shapes (list[str], list[dict], dict[str,dict]) into a dictionary of {capability_name: CapabilityMeta} objects."""
 def _normalize_cap_list(items: Any) -> Dict[str, CapabilityMeta]:
     """Intent: Normalize many shapes (list[str], list[dict], dict[str,dict]) into {cap: CapabilityMeta}."""
     out: Dict[str, CapabilityMeta] = {}
@@ -117,6 +119,7 @@ def _normalize_manifest_caps(raw: dict) -> Dict[str, CapabilityMeta]:
         elif isinstance(node, list):
             q.extend(node)
     return {}
+    """Loads and parses a YAML manifest file, normalizes its capabilities, and returns a dictionary mapping capability names to their metadata."""
 
 def load_manifest(root: Path, explicit_path: Optional[Path]=None) -> Dict[str, CapabilityMeta]:
     """Intent: Load and parse the .intent manifest with PyYAML."""

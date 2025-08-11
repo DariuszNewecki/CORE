@@ -115,5 +115,6 @@ def initialize_repository(
 
 
 def register(app: typer.Typer) -> None:
+    """Register BYOR commands (e.g., `byor-init`) under the admin CLI."""
     """Intent: Register BYOR commands under the admin CLI."""
     app.command("byor-init")(initialize_repository)

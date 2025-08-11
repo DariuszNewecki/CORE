@@ -42,6 +42,7 @@ def _find_manifest_path(root: Path, explicit: Optional[Path]) -> Path:
     raise FileNotFoundError("No manifest found (.intent/project_manifest.yaml or .intent/manifest.yaml)")
 
 def _load_raw_manifest(root: Path, explicit: Optional[Path]) -> Dict[str, Any]:
+    """Loads and parses a YAML manifest file from the given root or explicit path, returning its contents as a dictionary."""
     path = _find_manifest_path(root, explicit)
     data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
     return data
@@ -64,6 +65,7 @@ def _ux_defaults(root: Path, explicit: Optional[Path]) -> Dict[str, Any]:
         },
     }
 
+    """Determines whether a report is clean by checking for missing, undeclared, or mismatched entries."""
 def _is_clean(report: dict) -> bool:
     return not (report.get("missing_in_code") or report.get("undeclared_in_manifest") or report.get("mismatched_mappings"))
 
@@ -73,6 +75,7 @@ def _print_table(report_dict: dict, labels: Dict[str, str]) -> None:
     table.add_column("Values")
 
     def row(title: str, items: List[str]):
+        """Formats and adds a row to a table with a title and a list of items, highlighting empty lists in green and non-empty lists in yellow."""
         if not items:
             table.add_row(title, f"[bold green]{labels['none']}[/bold green]")
         else:

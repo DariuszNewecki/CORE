@@ -9,9 +9,7 @@ from __future__ import annotations
 import base64
 import shutil
 import tempfile
-# --- THIS IS THE FIX (Part 1 of 3) ---
-# We need the 'subprocess' module to run the KnowledgeGraphBuilder.
-import subprocess
+import subprocess # <<< MODIFICATION: We need this to run git commands.
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -39,7 +37,7 @@ def register(app: typer.Typer) -> None:
     """Intent: Register proposal lifecycle commands under the admin CLI."""
     @app.command("proposals-list")
     def proposals_list() -> None:
-        """Intent: List pending constitutional proposals and show signature/quorum status."""
+        """List pending constitutional proposals and display their justification, target path, and signature/quorum status."""
         log.info("🔍 Finding pending constitutional proposals...")
         proposals_dir = settings.MIND / "proposals"
         proposals_dir.mkdir(exist_ok=True)
@@ -103,7 +101,7 @@ def register(app: typer.Typer) -> None:
     def proposals_approve(
         proposal_name: str = typer.Argument(help="Filename of the proposal to approve.")
     ) -> None:
-        """Intent: Verify signatures/quorum, run a canary constitutional audit, then apply change if valid."""
+        """Verify signatures/quorum, run a canary constitutional audit, then apply the proposal if valid."""
         log.info(f"🚀 Attempting to approve proposal: {proposal_name}")
         proposal_path = settings.MIND / "proposals" / proposal_name
         if not proposal_path.exists():
@@ -148,16 +146,11 @@ def register(app: typer.Typer) -> None:
             log.error(f"❌ Approval failed: Quorum not met. Have {valid_signatures}/{required} valid signatures.")
             raise typer.Exit(code=1)
 
-        # --- THIS IS THE FIX (Part 2 of 3) ---
-        # Explicitly regenerate the knowledge graph before starting the canary.
-        # This ensures the canary receives the absolute latest state of the code.
         log.info("\n🧠 Generating fresh Knowledge Graph before canary validation...")
         try:
             subprocess.run(
                 [sys.executable, "-m", "src.system.tools.codegraph_builder"],
-                cwd=settings.REPO_PATH,
-                check=True,
-                capture_output=True,
+                cwd=settings.REPO_PATH, check=True, capture_output=True,
             )
             log.info("   -> Knowledge Graph regenerated successfully.")
         except subprocess.CalledProcessError as e:
@@ -167,12 +160,22 @@ def register(app: typer.Typer) -> None:
         log.info("\n🐦 Spinning up canary environment for validation...")
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
-            # --- THIS IS THE FIX (Part 3 of 3) ---
-            # We now copy the *entire repository content* to the canary.
-            # This is safer and guarantees it has the latest committed code and the fresh graph.
-            shutil.copytree(settings.REPO_PATH, tmp_path, dirs_exist_ok=True)
             
-            # Apply proposed change
+            # --- THIS IS THE FIX ---
+            # Instead of copying the current (potentially dirty) directory,
+            # we create a fresh, clean clone of the repository's current state.
+            log.info(f"   -> Creating a clean clone of the repository at {tmp_path}...")
+            try:
+                subprocess.run(
+                    ["git", "clone", str(settings.REPO_PATH), "."],
+                    cwd=tmp_path, check=True, capture_output=True
+                )
+            except subprocess.CalledProcessError as e:
+                log.error(f"❌ Failed to create clean git clone for canary. Aborting. Stderr: {e.stderr.decode()}")
+                raise typer.Exit(code=1)
+            # --- END OF FIX ---
+            
+            # Apply proposed change in the clean canary environment
             canary_target_path = tmp_path / target_rel_path
             canary_target_path.parent.mkdir(parents=True, exist_ok=True)
             canary_target_path.write_text(proposal.get("content", ""), encoding="utf-8")
@@ -211,3 +214,4 @@ def register(app: typer.Typer) -> None:
     def _group_approve(proposal_name: str) -> None:
         """Intent: Group alias for proposals-approve (namespaced UX)."""
         proposals_approve(proposal_name)
+

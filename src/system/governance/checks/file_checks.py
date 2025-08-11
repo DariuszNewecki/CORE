@@ -18,7 +18,6 @@ class FileChecks:
         findings = []
         check_name = "Required Intent File Existence"
         
-        # The list of required files is now dynamically derived from the constitution itself.
         required_files = self._get_known_files_from_meta()
         
         if not required_files:
@@ -37,6 +36,8 @@ class FileChecks:
             
         return findings
 
+    # --- THIS IS THE FIX ---
+    # Restore the missing capability tag.
     # CAPABILITY: audit.check.syntax
     def check_syntax(self) -> list[AuditFinding]:
         """Validates the syntax of all .intent YAML/JSON files (including proposals)."""

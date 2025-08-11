@@ -21,6 +21,7 @@ LOG_DIR.mkdir(exist_ok=True)
 
 # CAPABILITY: test_execution
 def run_tests(silent: bool = True) -> Dict[str, str]:
+    """Executes pytest on the tests/ directory, capturing stdout, stderr, exit code, and a summary, returning results as a structured dict."""
     """
     Executes pytest on the tests/ directory and returns a structured result.
     This function captures stdout, stderr, and the exit code, providing a
@@ -83,6 +84,7 @@ def run_tests(silent: bool = True) -> Dict[str, str]:
     return result
 
 def _summarize(output: str) -> str:
+    """Error: Could not connect to LLM endpoint. Details: HTTPSConnectionPool(host='api.deepseek.com', port=443): Read timed out. (read timeout=180)"""
     """Parses pytest output to find the final summary line."""
     lines = output.strip().splitlines()
     for line in reversed(lines):
@@ -98,6 +100,7 @@ def _log_test_result(data: Dict[str, str]):
     except Exception as e:
         log.warning(f"Failed to write to persistent test log file: {e}", exc_info=True)
 
+    """Saves test failure details to FAILURE_FILE if exit_code is non-zero, otherwise removes the file if it exists."""
 def _store_failure_if_any(data: Dict[str, str]):
     """Saves the details of a failed test run to a dedicated file for easy access."""
     try:

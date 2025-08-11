@@ -25,6 +25,7 @@ class ExecutionProgress:
     
     @property
     def completion_percentage(self) -> float:
+        """Calculates the completion percentage of the plan as a float, returning 0 if there are no tasks."""
         """Calculates the completion percentage of the plan."""
         return (self.completed_tasks / self.total_tasks) * 100 if self.total_tasks > 0 else 0
 

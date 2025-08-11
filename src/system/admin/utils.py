@@ -22,6 +22,7 @@ log = getLogger("core_admin")
 
 # --- THIS IS THE NEW, SHARED FUNCTION ---
 def should_fail(report: dict, fail_on: str) -> bool:
+    """Determines if the CLI should exit with an error code based on the drift report and the specified fail condition (missing, undeclared, or any drift)."""
     """Determines if the CLI should exit with an error code based on the drift report."""
     if fail_on == "missing":
         return bool(report.get("missing_in_code"))
@@ -36,6 +37,7 @@ def load_yaml_file(path: Path) -> Dict[str, Any]:
     return yaml.safe_load(path.read_text(encoding="utf-8")) or {}
 
 
+    """Save the given data as a YAML file at the specified path without sorting keys for readability."""
 def save_yaml_file(path: Path, data: Dict[str, Any]) -> None:
     """Intent: Persist YAML with stable ordering disabled to preserve human readability."""
     path.write_text(yaml.safe_dump(data, sort_keys=False), encoding="utf-8")
@@ -56,6 +58,7 @@ def load_private_key() -> ed25519.Ed25519PrivateKey:
         raise SystemExit(1)
     return serialization.load_pem_private_key(key_path.read_bytes(), password=None)
 
+    """Persist a rollback plan snapshot for approved proposals under .intent/constitution/rollbacks/ as a timestamped JSON file."""
 
 def archive_rollback_plan(proposal_name: str, proposal: Dict[str, Any]) -> None:
     """Intent: Persist a rollback plan snapshot for approved proposals under .intent/constitution/rollbacks/."""

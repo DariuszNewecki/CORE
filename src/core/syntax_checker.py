@@ -11,6 +11,7 @@ Violation = Dict[str, Any]
 # --- MODIFICATION: The function now returns a list of structured violation dictionaries. ---
 # CAPABILITY: syntax_validation
 def check_syntax(file_path: str, code: str) -> List[Violation]:
+    """Checks the given Python code for syntax errors and returns a list of violations, if any."""
     """
     Checks whether the given code has valid Python syntax.
 
