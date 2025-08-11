@@ -9,6 +9,7 @@ from shared.logger import getLogger
 log = getLogger(__name__)
 
 def load_config(file_path: Path, file_type: str = "auto") -> Dict[str, Any]:
+    """Loads a JSON or YAML file into a dictionary, handling missing files, invalid formats, and parsing errors by returning an empty dict."""
     """
     Loads a JSON or YAML file into a dictionary with consistent error handling.
 

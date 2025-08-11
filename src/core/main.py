@@ -15,10 +15,9 @@ from fastapi import FastAPI, HTTPException, Request, status as http_status
 from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
 from dotenv import load_dotenv
-# --- FIX: Import Pydantic's BaseModel for request modeling ---
+from pathlib import Path
 from pydantic import BaseModel
 
-# Local imports
 from core.clients import OrchestratorClient, GeneratorClient
 from core.file_handler import FileHandler
 from core.git_service import GitService
@@ -27,10 +26,8 @@ from agents.planner_agent import PlannerAgent, PlanExecutionError
 from core.capabilities import introspection
 from shared.logger import getLogger
 
-# --- Global Setup ---
 log = getLogger(__name__)
 load_dotenv()
-
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -43,30 +40,18 @@ async def lifespan(app: FastAPI):
     else:
         log.info("✅ Introspection complete. System state is constitutionally valid.")
     
-    # Initialize services and store them in the app state
-    log.info("🛠️  Initializing services...")
+    # Initialize services that are safe to be singletons and store them in the app state
+    log.info("🛠️  Initializing shared services...")
     app.state.orchestrator_client = OrchestratorClient()
     app.state.generator_client = GeneratorClient()
-    app.state.file_handler = FileHandler(".")
     app.state.git_service = GitService(".")
-    app.state.intent_guard = IntentGuard(".")
-    log.info("🤖 Initializing PlannerAgent...")
-    app.state.planner = PlannerAgent(
-        orchestrator_client=app.state.orchestrator_client,
-        generator_client=app.state.generator_client,
-        file_handler=app.state.file_handler,
-        git_service=app.state.git_service,
-        intent_guard=app.state.intent_guard
-    )
+    app.state.intent_guard = IntentGuard(Path(".")) # Corrected initialization
     log.info("✅ CORE system is online and ready.")
     yield
     log.info("🛑 CORE system shutting down.")
 
-# Initialize FastAPI app with the lifespan event handler
 app = FastAPI(lifespan=lifespan)
 
-# --- FIX: Define a Pydantic model for the request body ---
-# This enables automatic validation and API documentation for the endpoint.
 class GoalRequest(BaseModel):
     """Defines the request body for the /execute_goal endpoint."""
     goal: str
@@ -75,13 +60,21 @@ class GoalRequest(BaseModel):
 async def execute_goal(request_data: GoalRequest, request: Request):
     """Execute a high-level goal by planning and generating code."""
     goal = request_data.goal
-
     log.info(f"🎯 Received new goal: '{goal}'")
+    
+    # --- THIS IS THE FIX (Part 3 of 3) ---
+    # We now create a new, request-specific instance of the FileHandler and PlannerAgent.
+    # This prevents state from leaking between different API calls.
     try:
-        planner: PlannerAgent = request.app.state.planner
-        # --- THIS IS THE CHANGE ---
-        # We now call execute_plan directly with the goal.
-        # The agent handles creating the plan internally.
+        file_handler = FileHandler(".")
+        planner = PlannerAgent(
+            orchestrator_client=request.app.state.orchestrator_client,
+            generator_client=request.app.state.generator_client,
+            file_handler=file_handler,
+            git_service=request.app.state.git_service,
+            intent_guard=request.app.state.intent_guard
+        )
+        
         success, message = await planner.execute_plan(goal)
         
         if success:
@@ -97,6 +90,7 @@ async def execute_goal(request_data: GoalRequest, request: Request):
     except Exception as e:
         log.error(f"💥 An unexpected error occurred during goal execution: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"An unexpected error occurred: {str(e)}")
+
 @app.get("/")
 async def root():
     """Root endpoint — returns system status."""

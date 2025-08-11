@@ -78,6 +78,8 @@ class StructureChecks:
             findings.append(AuditFinding(AuditSeverity.SUCCESS, f"All {len(self.context.symbols_map)} symbols in knowledge graph pass schema validation.", check_name))
         return findings
         
+    # --- THIS IS THE FIX ---
+    # Restore the missing capability tag.
     # CAPABILITY: audit.check.domain_integrity
     def check_domain_integrity(self) -> list[AuditFinding]:
         """Checks for domain mismatches and illegal imports."""

@@ -19,6 +19,7 @@ file_handler = FileHandler(repo_path=REPO_PATH)
 
 # CAPABILITY: self_correction
 def attempt_correction(failure_context: dict) -> dict:
+    """Attempts to fix a failed validation or test result by generating corrected code via an LLM prompt based on the provided failure context."""
     """
     Attempts to fix a failed validation or test result using an enriched LLM prompt.
     """

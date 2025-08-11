@@ -182,6 +182,7 @@ def _get_file_classification(file_path: str) -> str:
 
 # CAPABILITY: code_quality_analysis
 def validate_code(file_path: str, code: str, quiet: bool = False) -> Dict[str, Any]:
+    """Validate a file's code by routing it to the appropriate validation pipeline based on its file type, returning a standardized dictionary with status, violations, and processed code."""
     """
     The main entry point for validation. It determines the file type
     and routes it to the appropriate validation pipeline, returning a

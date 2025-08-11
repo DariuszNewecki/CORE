@@ -7,6 +7,7 @@ import black
 # --- MODIFICATION: The function now returns only the formatted code on success ---
 # --- and raises a specific exception on failure, simplifying its contract. ---
 def format_code_with_black(code: str) -> str:
+    """Formats the given Python code using Black, raising `black.InvalidInput` for syntax errors or `Exception` for other formatting issues."""
     """
     Attempts to format the given Python code using Black.
 

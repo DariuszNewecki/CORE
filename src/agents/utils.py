@@ -28,6 +28,7 @@ class CodeEditor:
         return None
 
     def replace_symbol_in_code(self, original_code: str, symbol_name: str, new_code_str: str) -> str:
+        """Error: Could not connect to LLM endpoint. Details: HTTPSConnectionPool(host='api.deepseek.com', port=443): Read timed out. (read timeout=180)"""
         """
         Replaces a function/method in code with a new version using a line-based strategy.
         """
@@ -70,6 +71,7 @@ class SymbolLocator:
     
     @staticmethod
     def find_symbol_line(file_path: Path, symbol_name: str) -> Optional[int]:
+        """Finds the line number of a function, async function, or class definition matching `symbol_name` in the file at `file_path`, or None if not found."""
         """Finds the line number of a function or class definition in a file."""
         if not file_path.exists():
             raise FileNotFoundError(f"File not found: {file_path}")

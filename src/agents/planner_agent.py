@@ -24,7 +24,6 @@ from core.validation_pipeline import validate_code
 from shared.utils.parsing import parse_write_blocks
 from shared.logger import getLogger
 
-# --- MODIFICATION: Import the new CodeEditor ---
 from agents.models import ExecutionTask, ExecutionProgress, PlannerConfig, TaskParams, TaskStatus
 from agents.utils import PlanExecutionContext, SymbolLocator, CodeEditor
 
@@ -63,7 +62,6 @@ class PlannerAgent:
         self.repo_path = self.file_handler.repo_path
         self.prompt_pipeline = PromptPipeline(self.repo_path)
         self.symbol_locator = SymbolLocator()
-        # --- MODIFICATION: Instantiate the CodeEditor ---
         self.code_editor = CodeEditor()
         
         self._executor = ThreadPoolExecutor(max_workers=4, thread_name_prefix="planner_agent")
@@ -85,26 +83,31 @@ class PlannerAgent:
             'plan_id': plan_id,
             'timestamp': datetime.now(timezone.utc).isoformat()
         })
-
+    
+    # --- THIS IS THE NEW, MORE ROBUST FUNCTION ---
     def _extract_json_from_response(self, text: str) -> Optional[Dict]:
-        """Extract JSON with multiple strategies and better error handling."""
-        strategies = [
-            lambda t: re.search(r'```json\s*(\[.*?\])\s*```', t, re.DOTALL),
-            lambda t: re.search(r'(\[.*?\])', t, re.DOTALL),
-            lambda t: re.search(r'(\{.*?\})', t, re.DOTALL)
-        ]
-        for i, strategy in enumerate(strategies):
+        """
+        Extract JSON with multiple strategies and better error handling.
+        """
+        # Strategy 1: Look for a markdown code block with 'json'
+        match = re.search(r'```json\s*(\{.*\}|\[.*\])\s*```', text, re.DOTALL)
+        if match:
             try:
-                match = strategy(text)
-                if match:
-                    json_str = match.group(1)
-                    parsed = json.loads(json_str)
-                    log.debug(f"JSON extracted using strategy {i+1}")
-                    return parsed
-            except (json.JSONDecodeError, AttributeError) as e:
-                log.debug(f"Strategy {i+1} failed: {e}")
-        log.error(f"Failed to extract JSON from response: {text[:200]}...")
+                return json.loads(match.group(1))
+            except json.JSONDecodeError:
+                log.warning("Found a JSON markdown block, but it contained invalid JSON.")
+
+        # Strategy 2: Look for any JSON-like string (starts with { or [)
+        match = re.search(r'(\{.*\}|\[.*\])', text, re.DOTALL)
+        if match:
+            try:
+                return json.loads(match.group(1))
+            except json.JSONDecodeError:
+                log.warning("Found a JSON-like string, but it was invalid.")
+
+        log.error(f"Failed to extract any valid JSON from the LLM response.")
         return None
+    # --- END OF NEW FUNCTION ---
 
     def _log_plan_summary(self, plan: List[ExecutionTask]) -> None:
         """Log a readable summary of the execution plan."""
@@ -318,7 +321,6 @@ class PlannerAgent:
             self.git_service.add(file_path)
             self.git_service.commit(f"feat: Create new file {file_path}")
             
-    # --- NEW METHOD: Implements the 'edit_function' action logic ---
     async def _execute_edit_function(self, params: TaskParams):
         """Executes the 'edit_function' action using the CodeEditor."""
         file_path, symbol_name, new_code = params.file_path, params.symbol_name, params.code
@@ -330,15 +332,11 @@ class PlannerAgent:
         loop = asyncio.get_event_loop()
         original_code = await loop.run_in_executor(self._executor, full_path.read_text, "utf-8")
 
-        # Validate exactly the function content (preserves inline comments).
-        # This makes the call match the unit test expectation.
         function_only = textwrap.dedent(new_code).strip()
         validation_result = validate_code(file_path, function_only)
         if validation_result["status"] == "dirty":
             raise PlanExecutionError(f"Modified code for '{file_path}' failed validation.", violations=validation_result["violations"])
 
-        # Try to splice the validated function back into the file
-        # (kept for correctness, even if tests mock the write path).
         try:
             final_code = self.code_editor.replace_symbol_in_code(original_code, symbol_name, validation_result["code"])
         except ValueError as e:
@@ -361,7 +359,6 @@ class PlannerAgent:
             await self._execute_add_tag(task.params)
         elif task.action == "create_file":
             await self._execute_create_file(task.params)
-        # --- MODIFICATION: Activate the new action ---
         elif task.action == "edit_function":
             await self._execute_edit_function(task.params)
         else:

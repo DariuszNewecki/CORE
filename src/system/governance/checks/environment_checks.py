@@ -12,6 +12,7 @@ class EnvironmentChecks:
 
     # CAPABILITY: audit.check.environment
     def check_runtime_environment(self) -> list[AuditFinding]:
+        """Verifies that required environment variables specified in runtime_requirements.yaml are set, returning a list of audit findings for missing variables or configuration issues."""
         """Verifies that required environment variables are set."""
         findings = []
         check_name = "Runtime Environment Validation"

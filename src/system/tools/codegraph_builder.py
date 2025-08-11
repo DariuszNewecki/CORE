@@ -1,10 +1,7 @@
-# src/system/tools/codegraph_builder.py
 import ast
 import json
 import re
-# --- THIS IS THE FIX (Part 1 of 3) ---
-# We need the 'hashlib' library to create the fingerprints.
-import hashlib
+import hashlib # <<< MODIFICATION: Import hashlib for hashing
 from dotenv import load_dotenv
 from pathlib import Path
 from typing import Dict, Set, Optional, List, Any
@@ -16,8 +13,19 @@ from shared.logger import getLogger
 
 log = getLogger(__name__)
 
-# --- THIS IS THE FIX (Part 2 of 3) ---
-# We add the new 'structural_hash' field to our data model.
+# --- THIS IS THE FIX (Part 1 of 2): A helper to remove docstrings for accurate hashing ---
+def _strip_docstrings(node):
+    """Recursively remove docstring nodes from an AST tree."""
+    if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef, ast.Module)):
+        if node.body and isinstance(node.body[0], ast.Expr) and isinstance(node.body[0].value, ast.Constant):
+            # In Python 3.8+, docstrings are ast.Constant. In older versions, ast.Str.
+            # This handles both.
+            if isinstance(node.body[0].value.value, str):
+                node.body = node.body[1:]
+    for child_node in ast.iter_child_nodes(node):
+        _strip_docstrings(child_node)
+    return node
+
 @dataclass
 class FunctionInfo:
     """A data structure holding all analyzed information about a single symbol (function or class)."""
@@ -30,7 +38,6 @@ class FunctionInfo:
     capability: str
     intent: str
     docstring: Optional[str]
-    structural_hash: str # The new field for the content fingerprint
     calls: Set[str] = field(default_factory=set)
     line_number: int = 0
     is_async: bool = False
@@ -41,6 +48,8 @@ class FunctionInfo:
     base_classes: List[str] = field(default_factory=list)
     entry_point_justification: Optional[str] = None
     parent_class_key: Optional[str] = None
+    # --- THIS IS THE FIX (Part 2 of 2): Restore the missing structural_hash field ---
+    structural_hash: str = ""
 
 class ProjectStructureError(Exception):
     """Custom exception for when the project's root cannot be determined."""
@@ -63,6 +72,7 @@ class FunctionCallVisitor(ast.NodeVisitor):
         self.calls: Set[str] = set()
 
     def visit_Call(self, node: ast.Call):
+        """Records function or method calls in `self.calls` and recursively visits child nodes."""
         if isinstance(node.func, ast.Name): self.calls.add(node.func.id)
         elif isinstance(node.func, ast.Attribute): self.calls.add(node.func.attr)
         self.generic_visit(node)
@@ -93,20 +103,6 @@ class KnowledgeGraphBuilder:
         def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef):
             self.builder._process_symbol_node(node, self.filepath, self.source_lines, self.current_class_key)
             self.generic_visit(node)
-            
-    # --- THIS IS THE FIX (Part 3 of 3) ---
-    # A new helper class to calculate the structural hash.
-    class StructuralHasher(ast.NodeTransformer):
-        """
-        Removes docstrings and comments from an AST to prepare it for structural hashing.
-        """
-        def visit_Expr(self, node: ast.Expr) -> Optional[ast.Expr]:
-            if isinstance(node.value, ast.Constant) and isinstance(node.value.value, str):
-                return None  # Remove docstrings
-            return node
-
-        def visit_Comment(self, node):
-            return None # Not all Python versions support this, but good practice
 
     def __init__(self, root_path: Path, exclude_patterns: Optional[List[str]] = None):
         """Initializes the builder, loading patterns and project configuration."""
@@ -120,7 +116,6 @@ class KnowledgeGraphBuilder:
         self.patterns = self._load_patterns()
         self.domain_map = self._get_domain_map()
         self.fastapi_app_name: Optional[str] = None
-        self.hasher = self.StructuralHasher()
 
     def _load_patterns(self) -> List[Dict]:
         """Loads entry point detection patterns from the intent file."""
@@ -237,10 +232,11 @@ class KnowledgeGraphBuilder:
         """Extracts and stores metadata from a single function or class AST node."""
         if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)): return None
         
-        # Calculate the structural hash
-        clean_node = self.hasher.visit(node)
-        clean_source = ast.unparse(clean_node)
-        structural_hash = hashlib.sha256(clean_source.encode('utf-8')).hexdigest()
+        # --- HASHING LOGIC ---
+        node_for_hashing = _strip_docstrings(ast.parse(ast.unparse(node)))
+        structural_string = ast.unparse(node_for_hashing)
+        structural_hash = hashlib.sha256(structural_string.encode('utf-8')).hexdigest()
+        # --- END HASHING LOGIC ---
 
         visitor = FunctionCallVisitor(); visitor.visit(node)
         key = f"{filepath.relative_to(self.root_path).as_posix()}::{node.name}"

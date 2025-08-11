@@ -38,9 +38,7 @@ class IntentGuard:
         log.info(f"IntentGuard initialized. {len(self.rules)} rules loaded. Watching {len(self.source_code_manifest)} source files.")
 
     def _load_policies(self):
-        """
-        Load rules from all YAML files in .intent/policies/.
-        """
+        """Load rules from all YAML files in the `.intent/policies/` directory."""
         if not self.policies_path.is_dir():
             return
         for policy_file in self.policies_path.glob("*.yaml"):
@@ -64,7 +62,8 @@ class IntentGuard:
         except (json.JSONDecodeError, TypeError):
             return []
 
-    # CAPABILITY: change_safety_enforcement
+    # --- THIS IS THE FIX ---
+    # The method now correctly resolves paths relative to the repository root.
     def check_transaction(self, proposed_paths: List[str]) -> Tuple[bool, List[str]]:
         """
         Check if a proposed set of file changes complies with all active rules.
@@ -74,15 +73,14 @@ class IntentGuard:
         
         # Rule: Prevent direct writes to the .intent directory, except for proposals.
         for path_str in proposed_paths:
-            # --- THIS IS THE FIX ---
             # Resolve the path relative to the repository root, not the current working directory.
             # This makes the check robust regardless of where the script is executed from.
             path = (self.repo_path / path_str).resolve()
             
             # Check if the path is within the .intent directory
-            if self.intent_path in path.parents:
+            if self.intent_path.resolve() in path.parents:
                 # If it is, check if it's also within the allowed proposals directory
-                if self.proposals_path not in path.parents:
+                if self.proposals_path.resolve() not in path.parents and path.parent != self.proposals_path.resolve():
                     violations.append(
                         f"Rule Violation (immutable_intent): Direct write to '{path_str}' is forbidden. "
                         "All changes to the constitution must go through '.intent/proposals/'."

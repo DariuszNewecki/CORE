@@ -17,6 +17,7 @@ class ProposalChecks:
     """Container for proposal-related constitutional checks."""
 
     def __init__(self, context):
+        """Initializes the check with a shared auditor context, setting `repo_root` and `proposals_dir` paths."""
         """Initializes the check with a shared auditor context."""
         self.context = context
         self.repo_root: Path = context.repo_root
@@ -34,6 +35,7 @@ class ProposalChecks:
             + list(self.proposals_dir.glob("cr-*.json"))
         )
 
+    """Loads a proposal from a JSON or YAML file at the given path, returning an empty dict on parse failure or empty content."""
     def _load_proposal(self, path: Path) -> dict:
         """Load proposal preserving its format."""
         try:
@@ -52,6 +54,7 @@ class ProposalChecks:
 
     # --- checks --------------------------------------------------------------
 
+    """Validate each cr-*.yaml/json proposal against proposal.schema.json, returning a list of AuditFindings for compliance or errors."""
     # CAPABILITY: audit.check.proposals_schema
     def check_proposal_files_match_schema(self) -> list[AuditFinding]:
         """Validate each cr-*.yaml/json proposal against proposal.schema.json."""
@@ -189,6 +192,7 @@ class ProposalChecks:
             return []
 
         return findings
+        """Return a list of AuditFinding objects summarizing pending proposals, including their paths and severity."""
 
     # CAPABILITY: audit.check.proposals_list
     def list_pending_proposals(self) -> list[AuditFinding]:

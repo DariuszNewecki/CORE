@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Optional
 
 def get_repo_root(start_path: Optional[Path] = None) -> Path:
+    """Find and return the repository root by locating the .git directory, starting from the current directory or provided path."""
     """
     Find and return the repository root by locating the .git directory.
     Starts from current directory or provided path.

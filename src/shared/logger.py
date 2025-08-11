@@ -42,6 +42,7 @@ logging.basicConfig(
 
 # CAPABILITY: system_logging
 def getLogger(name: str) -> logging.Logger:
+    """Returns a pre-configured logger instance with the given name."""
     """
     Returns a pre-configured logger instance.
 

@@ -7,6 +7,8 @@ self-healing and self-improvement loop.
 import ast
 import json
 from pathlib import Path
+import asyncio
+from typing import Dict, Optional, Any
 
 import typer
 from rich.progress import track
@@ -18,31 +20,150 @@ from shared.logger import getLogger
 log = getLogger("docstring_adder")
 REPO_ROOT = Path(__file__).resolve().parents[3]
 KNOWLEDGE_GRAPH_PATH = REPO_ROOT / ".intent" / "knowledge" / "knowledge_graph.json"
-
+CONCURRENCY_LIMIT = 10
 
 def add_docstring_to_function_line_based(
     source_code: str, line_number: int, docstring: str
 ) -> str:
     """
     Surgically inserts a docstring into source code using a line-based method.
-    This is safer than AST unparsing as it preserves comments and formatting.
+    Preserves comments and formatting.
     """
     lines = source_code.splitlines()
-    target_line_index = line_number - 1
-    
-    # Determine the indentation from the function definition line
-    target_line = lines[target_line_index]
-    indentation = len(target_line) - len(target_line.lstrip(' '))
-    docstring_indent = ' ' * (indentation + 4) # Standard PEP8 docstring indent
+    if not lines or line_number < 1 or line_number > len(lines):
+        log.error(f"Invalid line number {line_number} for source code")
+        return source_code
 
-    # Format the docstring
+    target_line_index = line_number - 1
+    target_line = lines[target_line_index]
+    indentation = len(target_line) - len(target_line.lstrip())
+    docstring_indent = " " * (indentation + 4)
+
+    docstring = docstring.strip()
+    if not docstring:
+        log.warning("Empty docstring received")
+        return source_code
+        
     formatted_docstring = f'{docstring_indent}"""{docstring}"""'
 
-    # Insert the docstring immediately after the function definition line
+    if target_line_index + 1 < len(lines) and '"""' in lines[target_line_index + 1]:
+        log.warning(f"Docstring already exists at line {line_number}")
+        return source_code
+
     lines.insert(target_line_index + 1, formatted_docstring)
-    
     return "\n".join(lines)
 
+async def generate_and_apply_docstring(
+    target: Dict[str, Any], 
+    generator: GeneratorClient, 
+    dry_run: bool
+) -> None:
+    """Generates and applies a docstring for a single function."""
+    func_name = target.get("name")
+    
+    # --- THIS IS THE FIX (Part 1 of 2): Add defensive checks ---
+    # This prevents the TypeError by ensuring the 'file' key is a valid string.
+    file_rel_path = target.get("file")
+    if not isinstance(file_rel_path, str):
+        log.error(f"Invalid KG entry for '{func_name}': 'file' key is not a string. Entry: {target}")
+        return
+
+    file_path = REPO_ROOT / file_rel_path
+    line_num = target.get("line_number")
+
+    try:
+        if not file_path.exists():
+            log.error(f"File not found: {file_path}")
+            return
+
+        source_code = file_path.read_text(encoding="utf-8")
+        tree = ast.parse(source_code)
+        
+        # This walk is now more robust for finding methods inside classes.
+        node_to_update = None
+        for node in ast.walk(tree):
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)) and node.name == func_name and node.lineno == line_num:
+                node_to_update = node
+                break
+        
+        if not node_to_update:
+            log.warning(f"Function `{func_name}` at line {line_num} not found in {file_path}. It might be nested.")
+            return
+
+        # Check if docstring already exists
+        if ast.get_docstring(node_to_update):
+            log.info(f"Function `{func_name}` already has a docstring. Skipping.")
+            return
+
+        function_source = ast.unparse(node_to_update)
+        prompt = (
+            f"You are an expert Python programmer specializing in documentation.\n"
+            f"Write a clear, concise, single-line docstring for the following function. "
+            f"Your response must be ONLY the docstring text itself, without quotes.\n\n"
+            f"Function:\n```python\n{function_source}\n```"
+        )
+        
+        generated_docstring = await generator.make_request_async(prompt)
+        generated_docstring = generated_docstring.strip().replace('"', "")
+
+        if "Error:" in generated_docstring:
+            log.warning(f"LLM failed for `{func_name}` in {file_path}: {generated_docstring}")
+            return
+
+        if dry_run:
+            typer.secho(f"\n📄 In {file_path.name}, would add to function `{func_name}`:", fg=typer.colors.YELLOW)
+            typer.secho(f'   """{generated_docstring}"""', fg=typer.colors.CYAN)
+        else:
+            new_source_code = add_docstring_to_function_line_based(
+                source_code, line_num, generated_docstring
+            )
+            if new_source_code != source_code:
+                file_path.write_text(new_source_code)
+                log.info(f"Added docstring to `{func_name}` in {file_path.name}")
+
+    except Exception as e:
+        log.error(f"Failed to process `{func_name}` in {file_path}: {e}", exc_info=True)
+
+# --- THIS IS THE FIX (Part 2 of 2): Un-nest the main logic ---
+# This makes the functions top-level and easier for tools to find and reason about.
+async def _async_main(dry_run: bool):
+    """The core asynchronous logic for finding and fixing docstrings."""
+    log.info("🩺 Starting self-documentation cycle...")
+    
+    if not KNOWLEDGE_GRAPH_PATH.exists():
+        log.error(f"Knowledge graph not found at {KNOWLEDGE_GRAPH_PATH}")
+        return
+
+    try:
+        kg_data = json.loads(KNOWLEDGE_GRAPH_PATH.read_text())
+    except json.JSONDecodeError as e:
+        log.error(f"Invalid knowledge graph JSON: {str(e)}")
+        return
+
+    generator = GeneratorClient()
+    symbols = kg_data.get("symbols", {}).values()
+    # Find all functions and methods that are missing a docstring.
+    targets = [s for s in symbols if not s.get("docstring") and s.get("type") in ["FunctionDef", "AsyncFunctionDef"]]
+
+    if not targets:
+        log.info("✅ No functions with missing docstrings found. Codebase is fully documented.")
+        return
+
+    log.info(f"Found {len(targets)} functions requiring docstrings. Generating concurrently...")
+
+    semaphore = asyncio.Semaphore(CONCURRENCY_LIMIT)
+
+    async def worker(target):
+        """Processes the target asynchronously with a semaphore, generating and applying a docstring using the provided generator (dry run if specified)."""
+        async with semaphore:
+            await generate_and_apply_docstring(target, generator, dry_run)
+
+    tasks = [worker(target) for target in targets]
+    
+    for f in track(asyncio.as_completed(tasks), description="Generating docstrings...", total=len(tasks)):
+        await f
+
+    log.info("🎉 Self-documentation cycle complete.")
 
 # CAPABILITY: add_missing_docstrings
 def fix_missing_docstrings(
@@ -52,67 +173,8 @@ def fix_missing_docstrings(
         help="Show what docstrings would be added without writing any files. Use --write to apply.",
     )
 ):
-    """
-    Finds all functions with missing docstrings and uses an LLM to generate them.
-    """
-    log.info("🩺 Starting self-documentation cycle...")
-    generator = GeneratorClient()
-    
-    kg_data = json.loads(KNOWLEDGE_GRAPH_PATH.read_text())
-    symbols = kg_data.get("symbols", {}).values()
-
-    targets = [
-        s for s in symbols if not s.get("docstring") and not s.get("is_class")
-    ]
-
-    if not targets:
-        log.info("✅ No functions with missing docstrings found. The codebase is fully documented.")
-        return
-
-    log.info(f"Found {len(targets)} functions requiring docstrings. Generating...")
-
-    for target in track(targets, description="Generating docstrings..."):
-        file_path = REPO_ROOT / target["file"]
-        func_name = target["name"]
-        line_num = target["line_number"]
-        log.debug(f"Processing {func_name} in {file_path}...")
-
-        try:
-            source_code = file_path.read_text()
-
-            tree = ast.parse(source_code)
-            node = next(
-                (n for n in ast.walk(tree) if isinstance(n, ast.FunctionDef) and n.name == func_name),
-                None,
-            )
-            if not node:
-                continue
-
-            function_source = ast.unparse(node)
-
-            prompt = (
-                f"You are an expert Python programmer specializing in documentation.\n"
-                f"Write a clear, concise, single-line docstring for the following function. "
-                f"Your response must be ONLY the docstring text itself, without quotes.\n\n"
-                f"Function:\n```python\n{function_source}\n```"
-            )
-            generated_docstring = generator.make_request(prompt).strip().replace('"', "")
-
-            if dry_run:
-                typer.secho(f"\n📄 In {file_path.name}, would add to function `{func_name}`:", fg=typer.colors.YELLOW)
-                typer.secho(f'   """{generated_docstring}"""', fg=typer.colors.CYAN)
-            else:
-                new_source_code = add_docstring_to_function_line_based(
-                    source_code, line_num, generated_docstring
-                )
-                file_path.write_text(new_source_code)
-                typer.secho(f"   -> ✅ Added docstring to `{func_name}` in {file_path.name}", fg=typer.colors.GREEN)
-
-        except Exception as e:
-            log.error(f"   -> ❌ Failed to process `{func_name}` in {file_path.name}: {e}")
-
-    log.info("\n🎉 Self-documentation cycle complete.")
-
+    """Finds all functions with missing docstrings and uses an LLM to generate them."""
+    asyncio.run(_async_main(dry_run))
 
 if __name__ == "__main__":
     typer.run(fix_missing_docstrings)

@@ -14,20 +14,8 @@ from pathlib import Path
 from typing import Dict, Optional, Any
 from shared.logger import getLogger
 
-# --- Global Setup ---
 log = getLogger(__name__)
-LOG_DIR = Path("logs")
-PENDING_DIR = Path("pending_writes")
-UNDO_LOG = LOG_DIR / "undo_log.jsonl"
-pending_writes_storage: Dict[str, Dict[str, Any]] = {}
-_storage_lock = threading.Lock()
 
-# Ensure directories exist
-LOG_DIR.mkdir(exist_ok=True)
-PENDING_DIR.mkdir(exist_ok=True)
-
-
-# --- FileHandler Class ---
 class FileHandler:
     """
     Central class for safe, auditable file operations in CORE.
@@ -42,6 +30,21 @@ class FileHandler:
         self.repo_path = Path(repo_path).resolve()
         if not self.repo_path.is_dir():
             raise ValueError(f"Invalid repository path provided: {repo_path}")
+        
+        # --- THIS IS THE FIX ---
+        # All operational directories are now relative to the repo_path
+        # that the handler was initialized with. This makes the handler
+        # safe to use in different contexts (like our integration test).
+        self.log_dir = self.repo_path / "logs"
+        self.pending_dir = self.repo_path / "pending_writes"
+        self.undo_log = self.log_dir / "undo_log.jsonl"
+
+        self.log_dir.mkdir(exist_ok=True)
+        self.pending_dir.mkdir(exist_ok=True)
+        # --- END OF FIX ---
+        
+        self.pending_writes: Dict[str, Dict[str, Any]] = {}
+        self._lock = threading.Lock()
 
     def add_pending_write(self, prompt: str, suggested_path: str, code: str) -> str:
         """
@@ -57,10 +60,10 @@ class FileHandler:
             "timestamp": datetime.now(timezone.utc).isoformat(),
         }
 
-        with _storage_lock:
-            pending_writes_storage[pending_id] = entry
+        with self._lock:
+            self.pending_writes[pending_id] = entry
 
-        pending_file = PENDING_DIR / f"{pending_id}.json"
+        pending_file = self.pending_dir / f"{pending_id}.json"
         pending_file.write_text(json.dumps(entry, indent=2), encoding="utf-8")
         return pending_id
 
@@ -68,10 +71,10 @@ class FileHandler:
         """
         Confirms and applies a pending write to disk. Assumes content has been validated.
         """
-        with _storage_lock:
-            pending_op = pending_writes_storage.pop(pending_id, None)
+        with self._lock:
+            pending_op = self.pending_writes.pop(pending_id, None)
 
-        pending_file = PENDING_DIR / f"{pending_id}.json"
+        pending_file = self.pending_dir / f"{pending_id}.json"
         if pending_file.exists():
             pending_file.unlink(missing_ok=True)
 
@@ -96,9 +99,8 @@ class FileHandler:
                 "file_path": file_rel_path
             }
         except Exception as e:
-            # If write fails, restore the pending operation for potential retry
             if pending_op:
-                with _storage_lock:
-                    pending_writes_storage[pending_id] = pending_op
+                with self._lock:
+                    self.pending_writes[pending_id] = pending_op
                 pending_file.write_text(json.dumps(pending_op, indent=2), encoding="utf-8")
             return {"status": "error", "message": f"Failed to write file: {str(e)}"}
