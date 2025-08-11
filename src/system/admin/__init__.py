@@ -19,14 +19,16 @@ app = typer.Typer(
 
 # Register command groups
 from system.admin import keys as _keys  # noqa: E402
-from system.admin import proposals as _proposals  # noqa: E402
+from system.admin import proposals as _proposals  # noqa: E42
 from system.admin import guard as _guard  # noqa: E402
 from system.admin import migrator as _migrator # noqa: E402
+from system.admin import fixer as _fixer # noqa: E402
 
 _keys.register(app)
 _proposals.register(app)
 _guard.register(app)
 _migrator.register(app)
+_fixer.register(app)
 
 
 __all__ = ["app"]
