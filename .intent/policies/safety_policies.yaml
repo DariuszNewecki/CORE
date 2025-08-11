@@ -23,7 +23,12 @@ rules:
         - "tests/**"
         - "utils/safe_execution.py"
         - "tooling/**"
-        - "src/core/git_service.py" # <-- ADDED THIS EXCEPTION
+        - path: "src/core/git_service.py"
+          rationale: >
+            This file is the designated service for interacting with the Git CLI.
+            It is exempt because it safely uses subprocess.run() with command arguments
+            passed as a list, which prevents shell injection vulnerabilities. All calls
+            are audited to ensure they do not introduce risks.
     triggers:
       - on_generate
       - on_write
