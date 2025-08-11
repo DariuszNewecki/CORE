@@ -2,6 +2,9 @@
 import ast
 import json
 import re
+# --- THIS IS THE FIX (Part 1 of 3) ---
+# We need the 'hashlib' library to create the fingerprints.
+import hashlib
 from dotenv import load_dotenv
 from pathlib import Path
 from typing import Dict, Set, Optional, List, Any
@@ -13,6 +16,8 @@ from shared.logger import getLogger
 
 log = getLogger(__name__)
 
+# --- THIS IS THE FIX (Part 2 of 3) ---
+# We add the new 'structural_hash' field to our data model.
 @dataclass
 class FunctionInfo:
     """A data structure holding all analyzed information about a single symbol (function or class)."""
@@ -25,6 +30,7 @@ class FunctionInfo:
     capability: str
     intent: str
     docstring: Optional[str]
+    structural_hash: str # The new field for the content fingerprint
     calls: Set[str] = field(default_factory=set)
     line_number: int = 0
     is_async: bool = False
@@ -87,6 +93,20 @@ class KnowledgeGraphBuilder:
         def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef):
             self.builder._process_symbol_node(node, self.filepath, self.source_lines, self.current_class_key)
             self.generic_visit(node)
+            
+    # --- THIS IS THE FIX (Part 3 of 3) ---
+    # A new helper class to calculate the structural hash.
+    class StructuralHasher(ast.NodeTransformer):
+        """
+        Removes docstrings and comments from an AST to prepare it for structural hashing.
+        """
+        def visit_Expr(self, node: ast.Expr) -> Optional[ast.Expr]:
+            if isinstance(node.value, ast.Constant) and isinstance(node.value.value, str):
+                return None  # Remove docstrings
+            return node
+
+        def visit_Comment(self, node):
+            return None # Not all Python versions support this, but good practice
 
     def __init__(self, root_path: Path, exclude_patterns: Optional[List[str]] = None):
         """Initializes the builder, loading patterns and project configuration."""
@@ -100,6 +120,7 @@ class KnowledgeGraphBuilder:
         self.patterns = self._load_patterns()
         self.domain_map = self._get_domain_map()
         self.fastapi_app_name: Optional[str] = None
+        self.hasher = self.StructuralHasher()
 
     def _load_patterns(self) -> List[Dict]:
         """Loads entry point detection patterns from the intent file."""
@@ -124,7 +145,6 @@ class KnowledgeGraphBuilder:
     def _infer_domains_from_directory_structure(self) -> Dict[str, str]:
         """
         A heuristic to guess domains if source_structure.yaml is missing.
-        It assumes that each top-level directory in `src/` is a domain.
         """
         log.warning("source_structure.yaml not found. Falling back to directory-based domain inference.")
         if not self.src_root.is_dir():
@@ -217,6 +237,11 @@ class KnowledgeGraphBuilder:
         """Extracts and stores metadata from a single function or class AST node."""
         if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)): return None
         
+        # Calculate the structural hash
+        clean_node = self.hasher.visit(node)
+        clean_source = ast.unparse(clean_node)
+        structural_hash = hashlib.sha256(clean_source.encode('utf-8')).hexdigest()
+
         visitor = FunctionCallVisitor(); visitor.visit(node)
         key = f"{filepath.relative_to(self.root_path).as_posix()}::{node.name}"
         doc = ast.get_docstring(node) or ""
@@ -238,7 +263,8 @@ class KnowledgeGraphBuilder:
             capability=self._parse_metadata_comment(node, source_lines).get("capability", "unassigned"),
             intent=doc.split('\n')[0].strip() or f"Provides functionality for the {domain} domain.",
             last_updated=datetime.now(timezone.utc).isoformat(), is_class=is_class,
-            base_classes=base_classes, parent_class_key=parent_key
+            base_classes=base_classes, parent_class_key=parent_key,
+            structural_hash=structural_hash
         )
         self.functions[key] = func_info
         return key

@@ -18,7 +18,8 @@
     "line_number",
     "is_async",
     "parameters",
-    "is_class"
+    "is_class",
+    "structural_hash"
   ],
   "properties": {
     "key": { "type": "string", "description": "The unique identifier for the symbol (e.g., 'path/to/file.py::MyClass')." },
@@ -49,6 +50,10 @@
     "parent_class_key": {
       "type": ["string", "null"],
       "description": "The key of the parent class, if this symbol is a method."
+    },
+    "structural_hash": {
+      "type": "string",
+      "description": "A SHA256 hash of the symbol's structure, ignoring comments and docstrings."
     }
   },
   "additionalProperties": false

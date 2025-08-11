@@ -1,6 +1,5 @@
-
 [tool.poetry]
-name = "my-final-app"
+name = "{project_name}"
 version = "0.1.0"
 description = "A new project governed by CORE."
 authors = ["Your Name <you@example.com>"]

@@ -16,38 +16,7 @@ from shared.logger import getLogger
 log = getLogger("core_admin.scaffolder")
 CORE_ROOT = Path(__file__).resolve().parents[2]
 STARTER_KITS_DIR = CORE_ROOT / "system" / "starter_kits"
-
-
-# --- Minimal templates for a new project ---
-
-GITIGNORE_TEMPLATE = """
-# Python
-__pycache__/
-*.py[cod]
-.venv/
-.env
-
-# CORE-specific
-.intent/knowledge/knowledge_graph.json
-reports/
-logs/
-"""
-
-PYPROJECT_TEMPLATE = """
-[tool.poetry]
-name = "{project_name}"
-version = "0.1.0"
-description = "A new project governed by CORE."
-authors = ["Your Name <you@example.com>"]
-readme = "README.md"
-
-[tool.poetry.dependencies]
-python = ">=3.9"
-
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
-"""
+WORKSPACE_DIR = CORE_ROOT / "work"
 
 def new_project(
     name: str = typer.Argument(
@@ -69,49 +38,57 @@ def new_project(
     Scaffolds a new, constitutionally-governed "Mind/Body" application.
     """
     log.info(f"🚀 Scaffolding new CORE application: '{name}' using '{profile}' profile.")
-    project_root = Path.cwd() / name
+    
+    project_root = WORKSPACE_DIR / name
     starter_kit_path = STARTER_KITS_DIR / profile
 
     if not starter_kit_path.is_dir():
         log.error(f"❌ Starter kit profile '{profile}' not found at {starter_kit_path}.")
         raise typer.Exit(code=1)
 
-    # Define the core directory structure and basic files
-    scaffold_plan = {
-        "src/main": None,
-        "src/shared": None,
-        ".gitignore": GITIGNORE_TEMPLATE,
-        "pyproject.toml": PYPROJECT_TEMPLATE.format(project_name=name),
-        "README.md": f"# {name}\n\nA new project governed by CORE.",
-    }
-
+    # --- THIS IS THE NEW, CLEAN LOGIC ---
+    # The scaffolder no longer contains hardcoded templates. It only reads files.
     if dry_run:
         log.info("\n💧 Dry Run Mode: No files will be written.")
-        typer.secho(f"Would create the following structure inside ./{name}/:", fg=typer.colors.YELLOW)
-        for rel_path, content in scaffold_plan.items():
-            typer.secho(f"  - {'[Dir]' if content is None else '[File]'} {rel_path}", fg=typer.colors.CYAN)
-        typer.secho("  - [Dir] .intent/ (populated from starter kit)", fg=typer.colors.CYAN)
-
+        typer.secho(f"Would create project '{name}' in '{WORKSPACE_DIR}/' with the '{profile}' starter kit.", fg=typer.colors.YELLOW)
     else:
-        log.info("\n💾 **Write Mode:** Creating project structure...")
+        log.info(f"\n💾 **Write Mode:** Creating project structure at {project_root}...")
         if project_root.exists():
-            log.error(f"❌ Directory '{name}' already exists. Aborting.")
+            log.error(f"❌ Directory '{project_root}' already exists. Aborting.")
             raise typer.Exit(code=1)
-        project_root.mkdir()
+        
+        # Create the basic structure
+        project_root.mkdir(parents=True, exist_ok=True)
+        (project_root / "src").mkdir()
+        (project_root / "reports").mkdir()
 
-        # Create basic files and directories
-        for rel_path, content in scaffold_plan.items():
-            target_path = project_root / rel_path
-            if content is None:
-                target_path.mkdir(parents=True, exist_ok=True)
-                typer.secho(f"   -> ✅ Created directory: {target_path}", fg=typer.colors.GREEN)
+        # Copy and process all template files from the starter kit
+        for template_path in starter_kit_path.glob("*.template"):
+            content = template_path.read_text().format(project_name=name)
+            
+            # Remove '.template' and handle special case for '.gitignore'
+            if template_path.name == "gitignore.template":
+                target_name = ".gitignore"
             else:
-                target_path.write_text(content)
-                typer.secho(f"   -> ✅ Created file:      {target_path}", fg=typer.colors.GREEN)
-
-        # Copy and customize the starter kit
+                target_name = template_path.name.replace(".template", "")
+                
+            target_path = project_root / target_name
+            target_path.write_text(content)
+            typer.secho(f"   -> ✅ Created file:      {target_path}", fg=typer.colors.GREEN)
+            
+        # Copy constitutional files into the .intent directory
         intent_dir = project_root / ".intent"
-        shutil.copytree(starter_kit_path, intent_dir)
+        intent_dir.mkdir()
+        
+        constitutional_files = [
+            "principles.yaml", "project_manifest.yaml", "safety_policies.yaml", "source_structure.yaml"
+        ]
+        # Also copy the intent README
+        shutil.copy(starter_kit_path / "intent_README.md.template", intent_dir / "README.md")
+
+        for f in constitutional_files:
+             shutil.copy(starter_kit_path / f, intent_dir / f)
+
         typer.secho(f"   -> ✅ Populated .intent/ from '{profile}' starter kit", fg=typer.colors.GREEN)
 
         # Dynamically update the project name in the new manifest
@@ -124,9 +101,9 @@ def new_project(
 
     log.info(f"\n🎉 Scaffolding for '{name}' complete.")
     typer.secho("\nNext Steps:", bold=True)
-    typer.echo(f"1. Navigate into your new project: `cd {name}`")
+    typer.echo(f"1. Navigate into your new project: `cd work/{name}`")
     typer.echo("2. Run `poetry install` to set up the environment.")
-    typer.echo("3. Run `core-admin byor-init .` to perform the first audit.")
+    typer.echo(f"3. From the CORE directory, run `core-admin byor-init work/{name}` to perform the first audit.")
 
 def register(app: typer.Typer) -> None:
     """Intent: Register scaffolding commands under the admin CLI."""

@@ -26,8 +26,6 @@ def introspection():
     project_root = Path(__file__).resolve().parents[2]
     python_executable = sys.executable
 
-    # --- FIX: Use standard module paths without the 'src.' prefix ---
-    # This ensures the commands are runnable from any context, especially in CI/CD.
     tools_to_run = [
         ("Knowledge Graph Builder", "system.tools.codegraph_builder"),
         ("Constitutional Auditor", "system.governance.constitutional_auditor"),
@@ -44,19 +42,24 @@ def introspection():
                 text=True,
                 check=True 
             )
-            # Log stdout and stderr at a lower level to keep the main log clean
+            # --- THIS IS THE FIX ---
+            # If the process was successful, print its standard output.
+            # This gives us the detailed report from the auditor.
             if result.stdout:
-                log.debug(f"{name} stdout:\n{result.stdout}")
+                # We use print() directly here so the rich formatting from the
+                # auditor's console is preserved perfectly.
+                print(result.stdout)
+            
             if result.stderr:
                 log.warning(f"{name} stderr:\n{result.stderr}")
             log.info(f"✅ {name} completed successfully.")
         except subprocess.CalledProcessError as e:
-            # Log the captured output for better error diagnosis
             log.error(f"❌ {name} failed with exit code {e.returncode}.")
+            # Print the output on failure so we can see the full error report.
             if e.stdout:
-                log.error(f"{name} stdout:\n{e.stdout}")
+                print(e.stdout)
             if e.stderr:
-                log.error(f"{name} stderr:\n{e.stderr}")
+                print(e.stderr)
             all_passed = False
         except Exception as e:
             log.error(f"💥 An unexpected error occurred while running {name}: {e}", exc_info=True)
