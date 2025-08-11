@@ -54,11 +54,9 @@ def find_project_root(start_path: Path) -> Path:
 class FunctionCallVisitor(ast.NodeVisitor):
     """An AST visitor that collects the names of all functions being called within a node."""
     def __init__(self):
-        """Initializes the visitor with an empty set to store call names."""
         self.calls: Set[str] = set()
 
     def visit_Call(self, node: ast.Call):
-        """Extracts the function name from a Call node."""
         if isinstance(node.func, ast.Name): self.calls.add(node.func.id)
         elif isinstance(node.func, ast.Attribute): self.calls.add(node.func.attr)
         self.generic_visit(node)
@@ -70,14 +68,12 @@ class KnowledgeGraphBuilder:
     class ContextAwareVisitor(ast.NodeVisitor):
         """A stateful AST visitor that understands class context for methods."""
         def __init__(self, builder, filepath: Path, source_lines: List[str]):
-            """Initializes the context-aware visitor."""
             self.builder = builder
             self.filepath = filepath
             self.source_lines = source_lines
             self.current_class_key: Optional[str] = None
 
         def visit_ClassDef(self, node: ast.ClassDef):
-            """Processes a class definition, setting the context for its methods."""
             class_key = self.builder._process_symbol_node(node, self.filepath, self.source_lines, None)
             outer_class_key = self.current_class_key
             self.current_class_key = class_key
@@ -85,12 +81,10 @@ class KnowledgeGraphBuilder:
             self.current_class_key = outer_class_key
 
         def visit_FunctionDef(self, node: ast.FunctionDef):
-            """Processes a standard function or method within its class context."""
             self.builder._process_symbol_node(node, self.filepath, self.source_lines, self.current_class_key)
             self.generic_visit(node)
 
         def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef):
-            """Processes an async function or method within its class context."""
             self.builder._process_symbol_node(node, self.filepath, self.source_lines, self.current_class_key)
             self.generic_visit(node)
 
@@ -127,11 +121,39 @@ class KnowledgeGraphBuilder:
         """Determines if a given path should be excluded from scanning."""
         return any(p in path.parts for p in self.exclude_patterns)
 
+    def _infer_domains_from_directory_structure(self) -> Dict[str, str]:
+        """
+        A heuristic to guess domains if source_structure.yaml is missing.
+        It assumes that each top-level directory in `src/` is a domain.
+        """
+        log.warning("source_structure.yaml not found. Falling back to directory-based domain inference.")
+        if not self.src_root.is_dir():
+            log.warning("`src` directory not found. Cannot infer domains.")
+            return {}
+        
+        domain_map = {}
+        for item in self.src_root.iterdir():
+            if item.is_dir() and not item.name.startswith(("_", ".")):
+                domain_name = item.name
+                domain_path = Path("src") / domain_name
+                domain_map[domain_path.as_posix()] = domain_name
+        
+        log.info(f"   -> Inferred {len(domain_map)} domains from `src/` directory structure.")
+        return domain_map
+
     def _get_domain_map(self) -> Dict[str, str]:
-        """Loads the domain-to-path mapping from the source structure intent file."""
+        """
+        Loads the domain-to-path mapping from the constitution, with a fallback
+        to inferring domains from the directory structure.
+        """
         path = self.root_path / ".intent/knowledge/source_structure.yaml"
         data = load_config(path, "yaml")
-        return {Path(e["path"]).as_posix(): e["domain"] for e in data.get("structure", []) if "path" in e and "domain" in e}
+        structure = data.get("structure")
+
+        if not structure:
+            return self._infer_domains_from_directory_structure()
+
+        return {Path(e["path"]).as_posix(): e["domain"] for e in structure if "path" in e and "domain" in e}
 
     def _determine_domain(self, file_path: Path) -> str:
         """Determines the logical domain for a file path based on the longest matching prefix."""
