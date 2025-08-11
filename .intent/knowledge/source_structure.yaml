@@ -37,9 +37,6 @@ structure:
     description: Specialized AI actors (planners, reviewers, suggesters)
     editable: true
     default_handler: python
-    # ADDITION: This is the new rule.
-    # We are telling the system that a file named 'manifest.yaml' is now
-    # a recognized and valid part of the 'agents' domain.
     known_files:
       - manifest.yaml
     allowed_imports: 
@@ -63,6 +60,9 @@ structure:
       - system
       - shared
       - core
+      # --- THIS IS THE FIX ---
+      # We are adding 'tooling' to the list of allowed imports for the 'system' domain.
+      - tooling
       # External & Standard Libs
       - json
       - ast

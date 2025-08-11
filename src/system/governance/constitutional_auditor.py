@@ -21,6 +21,10 @@ from shared.config_loader import load_config
 from core.intent_model import IntentModel
 from shared.logger import getLogger
 from system.governance.models import AuditFinding, AuditSeverity
+# --- THIS IS THE CHANGE (Part 1 of 2) ---
+# We now import our new aggregator tool.
+from shared.utils.manifest_aggregator import aggregate_manifests
+
 
 log = getLogger(__name__)
 
@@ -48,15 +52,11 @@ class ConstitutionalAuditor:
         """
         self.repo_root = repo_root_override or get_repo_root()
 
-        # --- THIS IS THE FIX ---
-        # If we are in a temporary "canary" environment, we must explicitly load
-        # the .env file from that environment so the canary can pass its own health checks.
         if repo_root_override:
             dotenv_path = self.repo_root / ".env"
             if dotenv_path.exists():
                 load_dotenv(dotenv_path=dotenv_path, override=True)
                 log.info(f"   -> Canary auditor loaded environment from {dotenv_path}")
-        # --- END OF FIX ---
         
         # Create a shared context for all checks
         self.context = self.AuditorContext(self.repo_root)
@@ -73,7 +73,12 @@ class ConstitutionalAuditor:
             self.intent_dir = self.repo_root / ".intent"
             self.src_dir = self.repo_root / "src"
             self.intent_model = IntentModel(self.repo_root)
-            self.project_manifest = load_config(self.intent_dir / "project_manifest.yaml", "yaml")
+            
+            # --- THIS IS THE CHANGE (Part 2 of 2) ---
+            # Instead of loading the monolithic manifest, we now call our aggregator.
+            # This makes the Auditor aware of the new modular system.
+            self.project_manifest = aggregate_manifests(self.repo_root)
+            
             self.knowledge_graph = load_config(self.intent_dir / "knowledge/knowledge_graph.json", "json")
             self.symbols_map = self.knowledge_graph.get("symbols", {})
             self.symbols_list = list(self.symbols_map.values())
