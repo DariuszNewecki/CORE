@@ -1,0 +1,27 @@
+# .intent/mission/principles.yaml
+#
+# This is a starter set of principles for your new CORE-governed project.
+# These principles guide the behavior of any AI agents operating on this codebase.
+# You should review, edit, and expand these to match your project's specific goals.
+
+principles:
+
+  - id: clarity_first
+    description: >
+      Every function must have a docstring explaining its purpose.
+      If a human cannot understand a piece of code in 30 seconds, it must be simplified.
+
+  - id: safe_by_default
+    description: >
+      Every change must assume rollback or rejection unless explicitly validated.
+      No file write or code execution may proceed without confirmation or a safety check.
+
+  - id: no_orphaned_logic
+    description: >
+      All code must be discoverable and auditable. No function or file should exist
+      without being traceable to a manifest or a clear purpose.
+
+  - id: single_source_of_truth
+    description: >
+      The `.intent/` directory is the single source of truth for the project's
+      capabilities, structure, and intent. All governance is derived from these files.
