@@ -1,0 +1,84 @@
+🧪 Running tests with pytest...
+python3 -m poetry run pytest 
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-7.4.4, pluggy-1.6.0
+rootdir: /opt/dev/CORE
+configfile: pyproject.toml
+testpaths: tests
+plugins: cov-4.1.0, mock-3.14.1, anyio-4.9.0, asyncio-0.21.0
+asyncio: mode=Mode.AUTO
+collected 29 items
+
+tests/admin/test_guard_drift_cli.py ....                                 [ 13%]
+tests/core/test_intent_model.py ......                                   [ 34%]
+tests/governance/test_local_mode_governance.py .                         [ 37%]
+tests/integration/test_full_run.py .                                     [ 41%]
+tests/unit/test_agent_utils.py ....                                      [ 55%]
+tests/unit/test_clients.py .                                             [ 58%]
+tests/unit/test_git_service.py ....                                      [ 72%]
+tests/unit/test_planner_agent.py .......F                                [100%]
+
+=================================== FAILURES ===================================
+______________________ test_execute_edit_function_success ______________________
+
+mock_validate_code = <MagicMock name='validate_code' id='139655519164592'>
+mock_dependencies = {'config': PlannerConfig(max_retries=3, validation_enabled=True, auto_commit=True, rollback_on_failure=True, task_time...19153056'>, 'generator_client': <MagicMock id='139655519149312'>, 'git_service': <MagicMock id='139655519156848'>, ...}
+tmp_path = PosixPath('/tmp/pytest-of-lira/pytest-57/test_execute_edit_function_suc0')
+
+    @pytest.mark.asyncio
+    @patch('agents.planner_agent.validate_code')
+    async def test_execute_edit_function_success(mock_validate_code, mock_dependencies, tmp_path):
+        """Happy Path: Verifies that a valid 'edit_function' task succeeds."""
+        agent = PlannerAgent(**mock_dependencies)
+        agent.repo_path = tmp_path
+    
+        original_code = textwrap.dedent("""
+            def my_func():
+                return 1
+        """)
+        target_file = tmp_path / "src/feature.py"
+        target_file.parent.mkdir(exist_ok=True)
+        target_file.write_text(original_code)
+    
+        new_function_code = textwrap.dedent("""
+            def my_func():
+                # A new comment
+                return 2
+        """)
+    
+        # --- THIS IS THE FIX ---
+        # The code formatter will add a newline. We need to expect that.
+        validated_and_formatted_snippet = 'def my_func():\n    # A new comment\n    return 2\n'
+    
+        params = TaskParams(
+            file_path="src/feature.py",
+            symbol_name="my_func",
+            code=new_function_code
+        )
+    
+        mock_validate_code.return_value = {"status": "clean", "code": validated_and_formatted_snippet, "violations": []}
+    
+        await agent._execute_edit_function(params)
+    
+        # Instead of an exact match, which is brittle, we just check that it was called.
+        # The important logic is that the *result* of validation is what gets used.
+        mock_validate_code.assert_called_once()
+    
+        # Assert that the *correctly validated and formatted code* was passed to the editor.
+>       agent.code_editor.replace_symbol_in_code.assert_called_once_with(
+            original_code,
+            "my_func",
+            validated_and_formatted_snippet
+        )
+E       AttributeError: 'function' object has no attribute 'assert_called_once_with'
+
+tests/unit/test_planner_agent.py:175: AttributeError
+=============================== warnings summary ===============================
+.venv/lib/python3.12/site-packages/pydantic/_internal/_config.py:323
+  /opt/dev/CORE/.venv/lib/python3.12/site-packages/pydantic/_internal/_config.py:323: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/
+    warnings.warn(DEPRECATION_MESSAGE, DeprecationWarning)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/unit/test_planner_agent.py::test_execute_edit_function_success
+=================== 1 failed, 28 passed, 1 warning in 3.67s ====================

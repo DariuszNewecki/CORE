@@ -84,30 +84,40 @@ class PlannerAgent:
             'timestamp': datetime.now(timezone.utc).isoformat()
         })
     
-    # --- THIS IS THE NEW, MORE ROBUST FUNCTION ---
     def _extract_json_from_response(self, text: str) -> Optional[Dict]:
         """
         Extract JSON with multiple strategies and better error handling.
+        This version uses safer, non-backtracking regex patterns to prevent ReDoS.
         """
-        # Strategy 1: Look for a markdown code block with 'json'
-        match = re.search(r'```json\s*(\{.*\}|\[.*\])\s*```', text, re.DOTALL)
+        # Strategy 1: Look for a markdown code block with 'json' using a safe pattern.
+        match = re.search(r'```json\s*(\{[\s\S]*?\}|\[[\s\S]*?\])\s*```', text, re.DOTALL)
         if match:
             try:
                 return json.loads(match.group(1))
             except json.JSONDecodeError:
                 log.warning("Found a JSON markdown block, but it contained invalid JSON.")
 
-        # Strategy 2: Look for any JSON-like string (starts with { or [)
-        match = re.search(r'(\{.*\}|\[.*\])', text, re.DOTALL)
-        if match:
-            try:
-                return json.loads(match.group(1))
-            except json.JSONDecodeError:
-                log.warning("Found a JSON-like string, but it was invalid.")
+        # Strategy 2: Look for the first complete JSON object or array in the text.
+        try:
+            first_brace = text.find('{')
+            first_bracket = text.find('[')
+            
+            if first_brace == -1 and first_bracket == -1: return None
+            
+            start_index = -1
+            if first_brace != -1 and (first_bracket == -1 or first_brace < first_bracket):
+                start_index = first_brace
+            else:
+                start_index = first_bracket
+            
+            decoder = json.JSONDecoder()
+            obj, _ = decoder.raw_decode(text[start_index:])
+            return obj
+        except (json.JSONDecodeError, ValueError):
+            log.warning("Could not find a valid JSON object using boundary detection.")
 
         log.error(f"Failed to extract any valid JSON from the LLM response.")
         return None
-    # --- END OF NEW FUNCTION ---
 
     def _log_plan_summary(self, plan: List[ExecutionTask]) -> None:
         """Log a readable summary of the execution plan."""
@@ -191,12 +201,15 @@ class PlannerAgent:
         if task.action not in ["create_file", "edit_function"]:
             return ""
 
+        symbol_name = task.params.symbol_name if task.action == "edit_function" else ""
+
         prompt_template = textwrap.dedent("""
             You are an expert Python programmer. Your task is to generate a single block of Python code to fulfill a specific step in a larger plan.
 
             **Overall Goal:** {goal}
             **Current Task:** {step}
             **Target File:** {file_path}
+            **Target Symbol (if editing):** {symbol_name}
 
             **Instructions:**
             - Your output MUST be ONLY the raw Python code.
@@ -212,6 +225,7 @@ class PlannerAgent:
             goal=goal,
             step=task.step,
             file_path=task.params.file_path,
+            symbol_name=symbol_name,
         )
         enriched_prompt = self.prompt_pipeline.process(final_prompt)
         
@@ -332,13 +346,15 @@ class PlannerAgent:
         loop = asyncio.get_event_loop()
         original_code = await loop.run_in_executor(self._executor, full_path.read_text, "utf-8")
 
-        function_only = textwrap.dedent(new_code).strip()
-        validation_result = validate_code(file_path, function_only)
+        # Validate the generated snippet in isolation first.
+        validation_result = validate_code(file_path, new_code)
         if validation_result["status"] == "dirty":
-            raise PlanExecutionError(f"Modified code for '{file_path}' failed validation.", violations=validation_result["violations"])
+            raise PlanExecutionError(f"Generated code for '{symbol_name}' failed validation.", violations=validation_result["violations"])
 
+        # Splice the now-validated and formatted code into the original file.
+        validated_code_snippet = validation_result["code"]
         try:
-            final_code = self.code_editor.replace_symbol_in_code(original_code, symbol_name, validation_result["code"])
+            final_code = self.code_editor.replace_symbol_in_code(original_code, symbol_name, validated_code_snippet)
         except ValueError as e:
             raise PlanExecutionError(f"Failed to edit code in '{file_path}': {e}")
 

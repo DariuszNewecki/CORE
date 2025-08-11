@@ -3,7 +3,7 @@ import json
 import pytest
 import textwrap
 from agents.planner_agent import PlannerAgent, ExecutionTask, PlannerConfig, TaskParams, PlanExecutionError
-from unittest.mock import MagicMock, patch, AsyncMock
+from unittest.mock import MagicMock, patch, AsyncMock, call
 from pathlib import Path
 from pydantic import ValidationError
 
@@ -139,6 +139,9 @@ async def test_execute_edit_function_success(mock_validate_code, mock_dependenci
     agent = PlannerAgent(**mock_dependencies)
     agent.repo_path = tmp_path
     
+    # --- THIS IS THE FIX: Replace the real CodeEditor with a mock for this test ---
+    agent.code_editor = MagicMock()
+    
     original_code = textwrap.dedent("""
         def my_func():
             return 1
@@ -153,8 +156,7 @@ async def test_execute_edit_function_success(mock_validate_code, mock_dependenci
             return 2
     """)
     
-    # --- MODIFICATION: This is the exact string our new line-based editor will produce ---
-    expected_final_code = "def my_func():\n    # A new comment\n    return 2"
+    validated_and_formatted_snippet = 'def my_func():\n    # A new comment\n    return 2\n'
     
     params = TaskParams(
         file_path="src/feature.py",
@@ -162,10 +164,19 @@ async def test_execute_edit_function_success(mock_validate_code, mock_dependenci
         code=new_function_code
     )
 
-    mock_validate_code.return_value = {"status": "clean", "code": expected_final_code, "violations": []}
+    mock_validate_code.return_value = {"status": "clean", "code": validated_and_formatted_snippet, "violations": []}
     
     await agent._execute_edit_function(params)
 
-    mock_validate_code.assert_called_once_with("src/feature.py", expected_final_code)
+    # Assert that the validation was called with the raw generated code
+    mock_validate_code.assert_called_once_with("src/feature.py", new_function_code)
+    
+    # Assert that the *correctly validated and formatted code* was passed to the editor
+    agent.code_editor.replace_symbol_in_code.assert_called_once_with(
+        original_code,
+        "my_func",
+        validated_and_formatted_snippet
+    )
+    
     agent.file_handler.add_pending_write.assert_called_once()
     agent.git_service.commit.assert_called_once_with("feat: Modify function my_func in src/feature.py")
