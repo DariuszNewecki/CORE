@@ -43,3 +43,6 @@ reports/drift_report.json
 # Cache or checkpoints
 *.bak
 *.tmp
+
+work/*
+!work/.gitkeep

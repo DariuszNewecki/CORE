@@ -20,6 +20,16 @@ from shared.logger import getLogger
 
 log = getLogger("core_admin")
 
+# --- THIS IS THE NEW, SHARED FUNCTION ---
+def should_fail(report: dict, fail_on: str) -> bool:
+    """Determines if the CLI should exit with an error code based on the drift report."""
+    if fail_on == "missing":
+        return bool(report.get("missing_in_code"))
+    if fail_on == "undeclared":
+        return bool(report.get("undeclared_in_manifest"))
+    # Default to 'any'
+    return bool(report.get("missing_in_code") or report.get("undeclared_in_manifest") or report.get("mismatched_mappings"))
+# --- END OF NEW FUNCTION ---
 
 def load_yaml_file(path: Path) -> Dict[str, Any]:
     """Intent: Load YAML for governance operations. Returns {} for empty documents."""
