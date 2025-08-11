@@ -52,6 +52,7 @@ def _print_table(report_dict: dict, labels: Dict[str, str]) -> None:
     table.add_column('Values')
 
     def row(title: str, items: List[str]):
+        """Formats and adds a row to a table with a title and a list of items, marking empty lists as '[bold green]none[/bold green]' and listing items with bullet points in yellow."""
         if not items:
             table.add_row(title, f'[bold green]{labels['none']}[/bold green]')
         else:

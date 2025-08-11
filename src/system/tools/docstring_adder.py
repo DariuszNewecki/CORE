@@ -20,39 +20,30 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 KNOWLEDGE_GRAPH_PATH = REPO_ROOT / ".intent" / "knowledge" / "knowledge_graph.json"
 
 
-class DocstringInserter(ast.NodeTransformer):
-    """An AST transformer that surgically inserts a docstring into a specific function."""
-
-    def __init__(self, target_func_name: str, docstring_text: str):
-        self.target_func_name = target_func_name
-        self.docstring_text = docstring_text
-        self.inserted = False
-
-    def visit_FunctionDef(self, node: ast.FunctionDef) -> ast.FunctionDef:
-        if node.name == self.target_func_name and not ast.get_docstring(node):
-            docstring_node = ast.Expr(value=ast.Constant(self.docstring_text))
-            node.body.insert(0, docstring_node)
-            ast.fix_missing_locations(node)
-            self.inserted = True
-        return node
-
-
-def add_docstring_to_function(
-    source_code: str, func_name: str, docstring: str
+def add_docstring_to_function_line_based(
+    source_code: str, line_number: int, docstring: str
 ) -> str:
-    """Uses an AST transformer to safely add a docstring to a function."""
-    tree = ast.parse(source_code)
-    transformer = DocstringInserter(func_name, docstring)
-    new_tree = transformer.visit(tree)
+    """
+    Surgically inserts a docstring into source code using a line-based method.
+    This is safer than AST unparsing as it preserves comments and formatting.
+    """
+    lines = source_code.splitlines()
+    target_line_index = line_number - 1
+    
+    # Determine the indentation from the function definition line
+    target_line = lines[target_line_index]
+    indentation = len(target_line) - len(target_line.lstrip(' '))
+    docstring_indent = ' ' * (indentation + 4) # Standard PEP8 docstring indent
 
-    if transformer.inserted:
-        return ast.unparse(new_tree)
-    else:
-        return source_code
+    # Format the docstring
+    formatted_docstring = f'{docstring_indent}"""{docstring}"""'
 
-# --- THIS IS THE FIX ---
-# We are adding the official capability tag. This makes the tool's existence
-# known to the ConstitutionalAuditor and fulfills the promise we made in the manifest.
+    # Insert the docstring immediately after the function definition line
+    lines.insert(target_line_index + 1, formatted_docstring)
+    
+    return "\n".join(lines)
+
+
 # CAPABILITY: add_missing_docstrings
 def fix_missing_docstrings(
     dry_run: bool = typer.Option(
@@ -68,7 +59,6 @@ def fix_missing_docstrings(
     generator = GeneratorClient()
     
     kg_data = json.loads(KNOWLEDGE_GRAPH_PATH.read_text())
-    
     symbols = kg_data.get("symbols", {}).values()
 
     targets = [
@@ -84,6 +74,7 @@ def fix_missing_docstrings(
     for target in track(targets, description="Generating docstrings..."):
         file_path = REPO_ROOT / target["file"]
         func_name = target["name"]
+        line_num = target["line_number"]
         log.debug(f"Processing {func_name} in {file_path}...")
 
         try:
@@ -111,8 +102,8 @@ def fix_missing_docstrings(
                 typer.secho(f"\n📄 In {file_path.name}, would add to function `{func_name}`:", fg=typer.colors.YELLOW)
                 typer.secho(f'   """{generated_docstring}"""', fg=typer.colors.CYAN)
             else:
-                new_source_code = add_docstring_to_function(
-                    source_code, func_name, generated_docstring
+                new_source_code = add_docstring_to_function_line_based(
+                    source_code, line_num, generated_docstring
                 )
                 file_path.write_text(new_source_code)
                 typer.secho(f"   -> ✅ Added docstring to `{func_name}` in {file_path.name}", fg=typer.colors.GREEN)
