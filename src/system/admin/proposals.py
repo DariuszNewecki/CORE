@@ -9,6 +9,10 @@ from __future__ import annotations
 import base64
 import shutil
 import tempfile
+# --- THIS IS THE FIX (Part 1 of 3) ---
+# We need the 'subprocess' module to run the KnowledgeGraphBuilder.
+import subprocess
+import sys
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
@@ -144,21 +148,30 @@ def register(app: typer.Typer) -> None:
             log.error(f"❌ Approval failed: Quorum not met. Have {valid_signatures}/{required} valid signatures.")
             raise typer.Exit(code=1)
 
+        # --- THIS IS THE FIX (Part 2 of 3) ---
+        # Explicitly regenerate the knowledge graph before starting the canary.
+        # This ensures the canary receives the absolute latest state of the code.
+        log.info("\n🧠 Generating fresh Knowledge Graph before canary validation...")
+        try:
+            subprocess.run(
+                [sys.executable, "-m", "src.system.tools.codegraph_builder"],
+                cwd=settings.REPO_PATH,
+                check=True,
+                capture_output=True,
+            )
+            log.info("   -> Knowledge Graph regenerated successfully.")
+        except subprocess.CalledProcessError as e:
+            log.error(f"❌ Failed to regenerate Knowledge Graph. Aborting. Stderr: {e.stderr.decode()}")
+            raise typer.Exit(code=1)
+
         log.info("\n🐦 Spinning up canary environment for validation...")
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
-            # Mirror constitution and code
-            shutil.copytree(settings.MIND, tmp_path / ".intent")
-            shutil.copytree(settings.BODY, tmp_path / "src")
-
-            # --- THIS IS THE FIX ---
-            # Copy the .env file to the canary environment so it can pass its own health check.
-            env_file = settings.REPO_PATH / ".env"
-            if env_file.exists():
-                shutil.copy(env_file, tmp_path / ".env")
-                log.info("   -> Copied .env file to canary environment.")
-            # --- END OF FIX ---
-
+            # --- THIS IS THE FIX (Part 3 of 3) ---
+            # We now copy the *entire repository content* to the canary.
+            # This is safer and guarantees it has the latest committed code and the fresh graph.
+            shutil.copytree(settings.REPO_PATH, tmp_path, dirs_exist_ok=True)
+            
             # Apply proposed change
             canary_target_path = tmp_path / target_rel_path
             canary_target_path.parent.mkdir(parents=True, exist_ok=True)
