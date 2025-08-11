@@ -1,0 +1,60 @@
+target_path: .intent/knowledge/source_structure.yaml
+action: replace_file
+justification: 'The docstring-fixer tool in the ''tooling'' domain needs access to
+  the GeneratorClient (in the ''core'' domain) to function. This amendment grants
+  the ''tooling'' domain permission to import from ''core'', resolving the Forbidden
+  Import audit failure and enabling autonomous self-documentation.
+
+  '
+content: "# .intent/knowledge/source_structure.yaml\nstructure:\n  - domain: core\n\
+  \    path: src/core\n    description: Core logic for orchestration, routing, and\
+  \ CLI\n    editable: true\n    default_handler: python\n    restricted_types: [python,\
+  \ yaml]\n    allowed_imports: \n      - core\n      - shared\n      - system\n \
+  \     - agents\n      # External & Standard Libs\n      - fastapi\n      - uvicorn\n\
+  \      - yaml\n      - requests\n      - dotenv\n      - black\n      - json\n \
+  \     - os\n      - re\n      - typing\n      - pathlib\n      - datetime\n    \
+  \  - subprocess\n      - contextlib\n      - threading\n      - uuid\n      - platform\n\
+  \      - ast\n      - tempfile\n\n  - domain: agents\n    path: src/agents\n   \
+  \ description: Specialized AI actors (planners, reviewers, suggesters)\n    editable:\
+  \ true\n    default_handler: python\n    known_files:\n      - manifest.yaml\n \
+  \   allowed_imports: \n      - agents\n      - shared\n      - system\n      - core\n\
+  \      # External & Standard Libs\n      - json\n      - re\n      - textwrap\n\
+  \      - typing\n      - pathlib\n\n  - domain: system\n    path: src/system\n \
+  \   description: Governance tooling, lifecycle setup, CLI utilities\n    editable:\
+  \ true\n    default_handler: python\n    allowed_imports: \n      - system\n   \
+  \   - shared\n      - core\n      - tooling\n      # External & Standard Libs\n\
+  \      - json\n      - ast\n      - pathlib\n      - typing\n      - collections\n\
+  \      - rich\n      - sys\n      - yaml\n      - re\n      - logging\n      - dataclasses\n\
+  \n  - domain: shared\n    path: src/shared\n    description: Shared models, helpers,\
+  \ and config interfaces\n    editable: true\n    default_handler: python\n    allowed_imports:\
+  \ \n      - shared\n      # External & Standard Libs\n      - json\n      - yaml\n\
+  \      - pathlib\n      - typing\n      - jsonschema\n      - os\n      - ast\n\
+  \      \n  - domain: features\n    path: src/features\n    description: Modular\
+  \ capabilities and extensions\n    editable: true\n    default_handler: python\n\
+  \    allowed_imports: [features, shared, data, services, integrations]\n\n  - domain:\
+  \ tooling\n    path: src/system/tools\n    description: Internal introspection utilities\n\
+  \    editable: true\n    default_handler: python\n    # --- THIS IS THE FIX ---\n\
+  \    # We are adding 'core' to the list of allowed imports for the 'tooling' domain.\n\
+  \    allowed_imports: [tooling, system, shared, core, ast, json, logging, pathlib,\
+  \ typing, dataclasses]\n\n  - domain: data\n    path: src/data\n    description:\
+  \ File access, storage backends, memory models\n    editable: true\n    default_handler:\
+  \ python\n    allowed_imports: [data, shared]\n\n  - domain: api\n    path: src/api\n\
+  \    description: HTTP-facing endpoints\n    editable: true\n    default_handler:\
+  \ python\n    allowed_imports: [api, shared, services]\n\n  - domain: services\n\
+  \    path: src/services\n    description: Business logic and orchestration\n   \
+  \ editable: true\n    default_handler: python\n    allowed_imports: [services, shared,\
+  \ integrations, data]\n\n  - domain: automation\n    path: src/automation\n    description:\
+  \ Task runners, schedulers, retry logic\n    editable: true\n    default_handler:\
+  \ python\n    allowed_imports: [automation, shared, services]\n\n  - domain: integrations\n\
+  \    path: src/integrations\n    description: External service bridges (e.g., GitHub,\
+  \ remote LLMs)\n    editable: true\n    default_handler: python\n    allowed_imports:\
+  \ [integrations, shared]\n\n  - domain: mission\n    path: mission\n    description:\
+  \ CORE's declared beliefs, principles, and northstar\n    editable: false\n    restricted_types:\
+  \ [markdown, yaml]\n    allowed_imports: []\n\n  - domain: policies\n    path: policies\n\
+  \    description: Governance rules and constraints\n    editable: true\n    default_handler:\
+  \ yaml\n    allowed_imports: []\n"
+signatures:
+- identity: d.newecki@gmail.com
+  signature_b64: RR54DkpkMehbp2ocr9+WkjFQAGJ7of8p0nJ5BgQHnyBiEeePeeEFXH/r63tFRmonBoivoEDiuIZrgrwE/1ynAg==
+  token: core-proposal-v1:95a7b7eb42ca7cd7ec05c58ccfed10bdc9e8e102f866b86176c86ac2fe56e85d
+  timestamp: '2025-08-11T09:11:45.884867Z'
