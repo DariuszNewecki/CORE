@@ -89,6 +89,7 @@ def _normalize_manifest_caps(raw: dict) -> Dict[str, CapabilityMeta]:
     from collections import deque
 
     def extract_from_node(node: Any) -> Optional[Dict[str, CapabilityMeta]]:
+        """Extract capabilities from a node by checking common capability-related keys or nested components/modules/services."""
         if not isinstance(node, dict):
             return None
         for key in ('capabilities', 'required_capabilities', 'expected_capabilities', 'capability_map', 'capability_registry'):

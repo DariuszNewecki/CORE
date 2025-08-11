@@ -11,6 +11,7 @@ def _print_table(report_dict: dict) -> None:
     """Prints a formatted report of capability discrepancies (missing in code, undeclared in manifest, and mismatched mappings) from a dictionary."""
 
     def section(title: str, items: List[str]) -> None:
+        """Prints a formatted section with a title and a list of items, or '(none)' if the list is empty."""
         print(f'\n== {title} ==')
         print('  (none)' if not items else '\n'.join((f'  - {it}' for it in items)))
     section('Missing in code', report_dict.get('missing_in_code', []))
