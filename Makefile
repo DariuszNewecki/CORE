@@ -14,7 +14,7 @@ RELOAD  ?= --reload
 ENV_FILE ?= .env
 PATHS   ?= .
 
-.PHONY: help install lock run stop audit lint format test coverage check clean clean-logs distclean nuke
+.PHONY: help install lock run stop audit lint format test coverage check clean clean-logs distclean nuke context
 
 help:
 	@echo "CORE Development Makefile"
@@ -29,6 +29,7 @@ help:
 	@echo "make test [ARGS=]  - Pytest (pass ARGS='-k expr -vv')"
 	@echo "make coverage      - Pytest with coverage"
 	@echo "make check         - Lint + Tests + Audit"
+	@echo "make context       - Build the project context file for AI collaboration"
 	@echo "make clean         - Remove caches, pending_writes, sandbox"
 	@echo "make distclean     - Clean + venv/build leftovers"
 	@echo "make nuke          - git clean -fdx (danger)"
@@ -46,7 +47,6 @@ run: stop
 	@echo "🚀 Starting FastAPI server at http://$(HOST):$(PORT)"
 	$(POETRY) run uvicorn $(APP) --host $(HOST) --port $(PORT) $(RELOAD) --env-file $(ENV_FILE)
 
-# --- THIS IS THE IMPROVED VERSION ---
 stop:
 	@echo "🛑 Stopping any process on port $(PORT)..."
 	@if command -v lsof >/dev/null 2>&1; then \
@@ -108,3 +108,8 @@ nuke:
 	@sleep 3
 	git clean -fdx
 	@echo "✅ Repo nuked (untracked files/dirs removed)."
+
+# ---- Developer Tooling ------------------------------------------------------
+context:
+	@echo "📦 Building project context for AI collaboration..."
+	@scripts/concat_project.sh
