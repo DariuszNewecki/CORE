@@ -2,14 +2,6 @@
 #
 # PURPOSE: This fulfills security_intents principle by enabling cryptographic verification
 # of constitutional approvals, preventing compromised CLI tools from approving malicious changes.
-#
-# This file contains the public keys of all authorized constitutional approvers.
-# Each key must be in PEM format and accompanied by the approver's identity.
-#
-# TO ADD A NEW APPROVER:
-# 1. Run the command: `core-admin keygen "your.email@example.com"`
-# 2. The command will output a YAML block.
-# 3. Paste that block into the 'approvers' list below.
 
 approvers:
   - identity: "core-team@core-system.ai"
@@ -43,8 +35,8 @@ approvers:
 quorum:
   # Regular amendments require 1 signature
   standard: 1
-  # Critical changes (e.g., altering approval process) require 2 signatures
-  critical: 2
+  # Critical changes require 1 signature while under solo development.
+  critical: 1
 
 # Critical policy paths that require higher quorum
 critical_paths:
