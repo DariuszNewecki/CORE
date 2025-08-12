@@ -22,14 +22,13 @@ approvers:
     role: "security"
     description: "Security audit team for constitutional changes"
 
-  - identity: "d.newecki@gmail.com"
+  - description: Primary maintainer
+    identity: d.newecki@gmail.com
     public_key: |
       -----BEGIN PUBLIC KEY-----
-      MCowBQYDK2VwAyEA+V4iUN4DElKdqXmU4ivNthnG8VgPb7QqZgzdJuh4igs=
+      MCowBQYDK2VwAyEAENQmUohSSGrPE7ubdMxCmXBG68DwEkO1D9n0DE3PmoM=
       -----END PUBLIC KEY-----
-    role: "maintainer"
-    description: "Mentor"
-
+    role: maintainer
 
 # Minimum number of signatures required for constitutional amendments
 quorum:
