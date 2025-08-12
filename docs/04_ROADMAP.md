@@ -84,4 +84,12 @@ This phase focuses on enabling CORE to reason about and improve its own "Mind". 
     4.  The agent will then parse the feedback and autonomously create a formal proposal (`cr-*.yaml`) with suggested improvements to its own constitution.
 -   **Status:** ⏳ **Not Started**
 
+### 4.2: Implement Content Drift Detection
+
+-   **Challenge:** The system cannot currently detect content duplication in non-code files (e.g., YAML templates), which violates the `single_source_of_truth` principle.
+-   **Goal:** Build the `audit.check.content_drift` capability. This will involve:
+    1.  Creating a new manifest file (`.intent/knowledge/content_invariants.yaml`) where content equivalences can be declared.
+    2.  Implementing a new check in the `ConstitutionalAuditor` that verifies the content of these designated files are identical.
+-   **Status:** ⏳ **Not Started**
+
 We believe that by solving the challenges in Phase 1 and 2, we will have built a foundation of trust and scalability that makes Phase 3 and 4 possible.
