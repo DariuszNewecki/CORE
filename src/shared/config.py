@@ -12,7 +12,7 @@ from pydantic_settings import BaseSettings
 class Settings(BaseSettings):
     """
     A Pydantic settings model that loads configuration from the environment.
-    It provides typed, validated access to all system settings.
+    It provides a typed, validated access to all system settings.
     """
     # --- Path Configuration ---
     # These have sensible defaults but can be overridden by the .env file.
@@ -32,6 +32,7 @@ class Settings(BaseSettings):
     
     # --- CLI & Governance Configuration ---
     KEY_STORAGE_DIR: Path = Path.home() / ".config" / "core"
+    CORE_ACTION_LOG_PATH: Path
 
     class Config:
         """Defines Pydantic's behavior for the Settings model."""

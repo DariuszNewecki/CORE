@@ -34,6 +34,7 @@ def _get_bundle_content() -> str:
     bundle_parts = []
     
     def find_paths_in_meta(data):
+        """Recursively extracts all strings containing '/' from nested dictionaries, lists, or strings in `data`."""
         paths = []
         if isinstance(data, dict):
             for value in data.values():

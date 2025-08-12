@@ -17,22 +17,31 @@ patterns:
     match:
       type: "function"
       name_regex: "^visit_"
-      # This requires the builder to know the base classes of a symbol.
       base_class_includes: "NodeVisitor"
     entry_point_type: "visitor_method"
 
   - name: "capability_implementation"
     description: "Any symbol tagged with a # CAPABILITY is a primary entry point for the CORE system's reasoning loop."
     match:
-      # This will be matched based on the 'capability' field in the symbol data.
       has_capability_tag: true
     entry_point_type: "capability"
+    
+  # --- THIS IS THE NEW RULE ---
+  - name: "typer_cli_command"
+    description: "Functions registered as Typer CLI commands are valid entry points called by the user."
+    match:
+      # This is a heuristic. A more robust check might look for specific decorators,
+      # but for our project, checking the module path is very effective.
+      module_path_contains: "src/system/admin"
+      is_public_function: true # i.e., does not start with an underscore
+    entry_point_type: "cli_command"
+  # --- END OF NEW RULE ---
 
   - name: "framework_base_class"
     description: "Classes that other components inherit from are valid entry points."
     match:
       type: "class"
-      is_base_class: true # This will be true if any other class inherits from it.
+      is_base_class: true
     entry_point_type: "base_class"
 
   - name: "pydantic_model"
@@ -53,8 +62,5 @@ patterns:
     description: "Dataclasses are data structures, not callable code, and are valid entry points."
     match:
       type: "class"
-      # The builder checks for the @dataclass decorator. This is a conceptual rule.
-      # A simple way to implement is to check for __post_init__ or other dataclass markers if available.
-      # For now, we will rely on Pydantic and Enum, which covers our current warnings.
-      # We can add a more specific `is_dataclass` check to the builder if needed.
+      has_decorator: "dataclass"
     entry_point_type: "data_model"

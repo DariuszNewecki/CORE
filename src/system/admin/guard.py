@@ -27,13 +27,12 @@ from system.guard.drift_detector import (
     load_manifest,
     write_report,
 )
-# --- THIS IS THE FIX ---
-# We now import our single source of truth.
 from system.admin.utils import should_fail
 
 log = getLogger("core_admin")
 
 def _find_manifest_path(root: Path, explicit: Optional[Path]) -> Path:
+    """Locate and return the path to the project manifest file, checking explicit path first, then default locations."""
     if explicit:
         return explicit
     for p in (root / ".intent" / "project_manifest.yaml", root / ".intent" / "manifest.yaml"):
@@ -48,6 +47,7 @@ def _load_raw_manifest(root: Path, explicit: Optional[Path]) -> Dict[str, Any]:
     return data
 
 def _ux_defaults(root: Path, explicit: Optional[Path]) -> Dict[str, Any]:
+    """Extracts and returns UX-related default values from a raw manifest, including formatting, failure conditions, strict mode, evidence settings, and labels."""
     raw = _load_raw_manifest(root, explicit)
     ux = (((raw.get("operator_experience") or {})
            .get("guard") or {})
@@ -65,11 +65,12 @@ def _ux_defaults(root: Path, explicit: Optional[Path]) -> Dict[str, Any]:
         },
     }
 
-    """Determines whether a report is clean by checking for missing, undeclared, or mismatched entries."""
 def _is_clean(report: dict) -> bool:
+    """Determines if a report is clean by checking for missing, undeclared, or mismatched entries."""
     return not (report.get("missing_in_code") or report.get("undeclared_in_manifest") or report.get("mismatched_mappings"))
 
 def _print_table(report_dict: dict, labels: Dict[str, str]) -> None:
+    """Prints a formatted table displaying capability drift analysis results, with color-coded status highlighting."""
     table = Table(show_header=True, header_style="bold", title="Capability Drift")
     table.add_column("Section", style="bold")
     table.add_column("Values")
@@ -103,6 +104,7 @@ def _print_table(report_dict: dict, labels: Dict[str, str]) -> None:
     rprint(Panel.fit(table, title=status))
 
 def _print_pretty(report_dict: dict, labels: Dict[str, str]) -> None:
+    """Prints a formatted capability drift report panel and table based on the given report dictionary and labels."""
     clean = _is_clean(report_dict)
     if clean:
         summary = (
@@ -122,6 +124,7 @@ def _print_pretty(report_dict: dict, labels: Dict[str, str]) -> None:
     _print_table(report_dict, labels)
 
 def register(app: typer.Typer) -> None:
+    """Registers a Typer CLI app with `guard` subcommands for capability governance (`drift` detection and `kg-export`)."""
     guard = typer.Typer(help="Governance/validation guards")
     app.add_typer(guard, name="guard")
 

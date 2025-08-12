@@ -28,8 +28,8 @@ rules:
 
   - id: no_undocumented_change
     description: >
-      CORE must not modify or create any file that is not traceable to a known
-      capability or a file declared in a manifest.
+      CORE must not modify or create any file that is not declared in `project_manifest.yaml`
+      or traceable to a declared capability therein.
     enforcement: hard
 
   - id: must_match_intent
@@ -45,7 +45,7 @@ rules:
 
   - id: require_tests_for_capabilities
     description: >
-      All capabilities declared in the function_manifest must have at least one corresponding test in /tests.
+      All capabilities declared in `project_manifest.yaml` must have at least one corresponding test in /tests.
     enforcement: soft
 
   - id: enforce_intent_bundle_usage

@@ -1,7 +1,8 @@
+# src/system/tools/codegraph_builder.py
 import ast
 import json
 import re
-import hashlib # <<< MODIFICATION: Import hashlib for hashing
+import hashlib
 from dotenv import load_dotenv
 from pathlib import Path
 from typing import Dict, Set, Optional, List, Any
@@ -13,13 +14,10 @@ from shared.logger import getLogger
 
 log = getLogger(__name__)
 
-# --- THIS IS THE FIX (Part 1 of 2): A helper to remove docstrings for accurate hashing ---
 def _strip_docstrings(node):
     """Recursively remove docstring nodes from an AST tree."""
     if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef, ast.Module)):
         if node.body and isinstance(node.body[0], ast.Expr) and isinstance(node.body[0].value, ast.Constant):
-            # In Python 3.8+, docstrings are ast.Constant. In older versions, ast.Str.
-            # This handles both.
             if isinstance(node.body[0].value.value, str):
                 node.body = node.body[1:]
     for child_node in ast.iter_child_nodes(node):
@@ -48,7 +46,6 @@ class FunctionInfo:
     base_classes: List[str] = field(default_factory=list)
     entry_point_justification: Optional[str] = None
     parent_class_key: Optional[str] = None
-    # --- THIS IS THE FIX (Part 2 of 2): Restore the missing structural_hash field ---
     structural_hash: str = ""
 
 class ProjectStructureError(Exception):
@@ -56,9 +53,7 @@ class ProjectStructureError(Exception):
     pass
 
 def find_project_root(start_path: Path) -> Path:
-    """
-    Traverses upward from a starting path to find the project root, marked by 'pyproject.toml'.
-    """
+    """Traverses upward from a starting path to find the project root, marked by 'pyproject.toml'."""
     current_path = start_path.resolve()
     while current_path != current_path.parent:
         if (current_path / "pyproject.toml").exists():
@@ -82,27 +77,44 @@ class KnowledgeGraphBuilder:
     """Builds a comprehensive JSON representation of the project's code structure and relationships."""
 
     class ContextAwareVisitor(ast.NodeVisitor):
-        """A stateful AST visitor that understands class context for methods."""
+        """A stateful AST visitor that understands nested class and function contexts."""
         def __init__(self, builder, filepath: Path, source_lines: List[str]):
             self.builder = builder
             self.filepath = filepath
             self.source_lines = source_lines
-            self.current_class_key: Optional[str] = None
+            self.context_stack: List[str] = []
+
+        def _process_and_visit(self, node, node_type: str):
+            """Helper to process a symbol and manage the context stack."""
+            parent_key = self.context_stack[-1] if self.context_stack else None
+            
+            is_method = False
+            if parent_key and parent_key in self.builder.functions:
+                if self.builder.functions[parent_key].is_class:
+                    is_method = True
+
+            symbol_key = self.builder._process_symbol_node(
+                node, self.filepath, self.source_lines, parent_key if is_method else None
+            )
+
+            if symbol_key:
+                self.context_stack.append(symbol_key)
+                self.generic_visit(node)
+                self.context_stack.pop()
+            else:
+                self.generic_visit(node)
 
         def visit_ClassDef(self, node: ast.ClassDef):
-            class_key = self.builder._process_symbol_node(node, self.filepath, self.source_lines, None)
-            outer_class_key = self.current_class_key
-            self.current_class_key = class_key
-            self.generic_visit(node)
-            self.current_class_key = outer_class_key
+            """Processes a class definition node, and visits its children."""
+            self._process_and_visit(node, "ClassDef")
 
         def visit_FunctionDef(self, node: ast.FunctionDef):
-            self.builder._process_symbol_node(node, self.filepath, self.source_lines, self.current_class_key)
-            self.generic_visit(node)
+            """Processes a function definition node, and visits its children."""
+            self._process_and_visit(node, "FunctionDef")
 
         def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef):
-            self.builder._process_symbol_node(node, self.filepath, self.source_lines, self.current_class_key)
-            self.generic_visit(node)
+            """Processes an async function definition node, and visits its children."""
+            self._process_and_visit(node, "AsyncFunctionDef")
 
     def __init__(self, root_path: Path, exclude_patterns: Optional[List[str]] = None):
         """Initializes the builder, loading patterns and project configuration."""
@@ -138,9 +150,7 @@ class KnowledgeGraphBuilder:
         return any(p in path.parts for p in self.exclude_patterns)
 
     def _infer_domains_from_directory_structure(self) -> Dict[str, str]:
-        """
-        A heuristic to guess domains if source_structure.yaml is missing.
-        """
+        """A heuristic to guess domains if source_structure.yaml is missing."""
         log.warning("source_structure.yaml not found. Falling back to directory-based domain inference.")
         if not self.src_root.is_dir():
             log.warning("`src` directory not found. Cannot infer domains.")
@@ -157,10 +167,7 @@ class KnowledgeGraphBuilder:
         return domain_map
 
     def _get_domain_map(self) -> Dict[str, str]:
-        """
-        Loads the domain-to-path mapping from the constitution, with a fallback
-        to inferring domains from the directory structure.
-        """
+        """Loads the domain-to-path mapping from the constitution."""
         path = self.root_path / ".intent/knowledge/source_structure.yaml"
         data = load_config(path, "yaml")
         structure = data.get("structure")
@@ -232,11 +239,9 @@ class KnowledgeGraphBuilder:
         """Extracts and stores metadata from a single function or class AST node."""
         if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)): return None
         
-        # --- HASHING LOGIC ---
         node_for_hashing = _strip_docstrings(ast.parse(ast.unparse(node)))
         structural_string = ast.unparse(node_for_hashing)
         structural_hash = hashlib.sha256(structural_string.encode('utf-8')).hexdigest()
-        # --- END HASHING LOGIC ---
 
         visitor = FunctionCallVisitor(); visitor.visit(node)
         key = f"{filepath.relative_to(self.root_path).as_posix()}::{node.name}"
@@ -282,6 +287,21 @@ class KnowledgeGraphBuilder:
                     if info.parent_class_key and info.parent_class_key in self.functions:
                         parent_bases.extend(self.functions[info.parent_class_key].base_classes)
                     if not any(b == rules["base_class_includes"] for b in parent_bases): is_match = False
+                
+                if "has_decorator" in rules:
+                     file_path = self.root_path / info.file
+                     source_lines = file_path.read_text().splitlines()
+                     decorator_line = source_lines[info.line_number - 2].strip()
+                     if f"@{rules['has_decorator']}" not in decorator_line:
+                         is_match = False
+                
+                # --- THIS IS THE NEW LOGIC ---
+                if "module_path_contains" in rules:
+                    if rules["module_path_contains"] not in info.file:
+                        is_match = False
+                if rules.get("is_public_function") and info.name.startswith("_"):
+                    is_match = False
+                # --- END NEW LOGIC ---
 
                 if is_match:
                     info.entry_point_type, info.entry_point_justification = pattern["entry_point_type"], pattern["name"]

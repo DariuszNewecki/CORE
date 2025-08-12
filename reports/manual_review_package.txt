@@ -91,16 +91,35 @@ required_environment_variables:
 --- START OF FILE .intent/constitution/approvers.yaml ---
 # .intent/constitution/approvers.yaml
 #
-# PURPOSE: This fulfills security_intents principle by enabling cryptographic verification
-# of constitutional approvals, preventing compromised CLI tools from approving malicious changes.
+# This file defines the human operators authorized to approve constitutional
+# changes and the rules governing that process.
+
+# ========================================================================
+# HUMAN OPERATOR LIFECYCLE PROCEDURES
+# ========================================================================
+# This section documents the formal procedures for managing approvers.
+# All changes to the 'approvers' list must follow these procedures.
 #
-# This file contains the public keys of all authorized constitutional approvers.
-# Each key must be in PEM format and accompanied by the approver's identity.
+# --- Onboarding a New Approver ---
+# 1. The new operator must generate a key pair using:
+#    `poetry run core-admin keygen "new.operator@example.com"`
+# 2. A current, authorized approver must create a formal proposal to add
+#    the new operator's public key block to the 'approvers' list below.
+# 3. The proposal must be signed and approved, meeting the required quorum.
 #
-# TO ADD A NEW APPROVER:
-# 1. Run the command: `core-admin keygen "your.email@example.com"`
-# 2. The command will output a YAML block.
-# 3. Paste that block into the 'approvers' list below.
+# --- Standard Revocation of an Approver ---
+# 1. An authorized approver must create a formal proposal to remove the
+#    operator's block from the 'approvers' list.
+# 2. The justification must clearly state the reason for revocation.
+# 3. The proposal must be signed and approved, meeting the required quorum.
+#
+# --- Emergency Revocation of a Compromised Key ---
+# 1. If a private key is compromised, any active approver can issue an
+#    emergency revocation proposal.
+# 2. This proposal must meet the 'critical' quorum.
+# 3. The compromised approver is immediately considered invalid for quorum
+#    calculations once the proposal is created.
+# ========================================================================
 
 approvers:
   - identity: "core-team@core-system.ai"
@@ -126,6 +145,7 @@ approvers:
       -----BEGIN PUBLIC KEY-----
       MCowBQYDK2VwAyEA+V4iUN4DElKdqXmU4ivNthnG8VgPb7QqZgzdJuh4igs=
       -----END PUBLIC KEY-----
+    created_at: "2025-08-12T10:36:49.000000Z" # Using a placeholder, real value is in live file
     role: "maintainer"
     description: "Mentor"
 
@@ -134,8 +154,8 @@ approvers:
 quorum:
   # Regular amendments require 1 signature
   standard: 1
-  # Critical changes (e.g., altering approval process) require 2 signatures
-  critical: 2
+  # Critical changes require 1 signature while under solo development.
+  critical: 1
 
 # Critical policy paths that require higher quorum
 critical_paths:
@@ -702,16 +722,16 @@ notes:
 #
 # CORE's Constitution: clear, enforceable, and readable by humans and LLMs.
 # Any agent (including future LLMs) must understand and obey these rules.
+# This file contains high-level, aspirational values. Specific, machine-enforceable
+# rules are defined in the relevant policy files.
 
 principles:
 
   - id: clarity_first
     description: >
-      Every function must have:
-        - A docstring explaining purpose
-        - Clear parameter and return types
-        - No nested logic deeper than 3 levels
-      If a human cannot understand it in 30 seconds, it must be simplified.
+      Prioritize clear, understandable code and documentation that effectively
+      communicates its intent to both humans and machines. If something is
+      ambiguous, it must be simplified.
 
   - id: safe_by_default
     description: >
@@ -721,113 +741,106 @@ principles:
 
   - id: reason_with_purpose
     description: >
-      Every planning step must include a comment:
-        "PURPOSE: This fulfills <principle> from NorthStar."
-      Example: "PURPOSE: This fulfills evolvable_structure."
-      Actions without purpose tracing are invalid.
+      Every autonomous planning step must be traceable to a core constitutional
+      principle or a declared high-level goal, ensuring all actions are deliberate
+      and auditable.
 
   - id: evolvable_structure
     description: >
-      CORE may modify its own manifests only if:
-        - The change is proposed via IntentBundle
-        - It passes all policy checks
-        - It is logged with a migration plan
-      Self-modification without governance is forbidden.
+      The system's structure and constitution must be designed to evolve safely.
+      Self-modification must be governed by a formal, secure, and auditable
+      amendment process.
 
   - id: no_orphaned_logic
     description: >
-      No function, file, or rule may exist without a corresponding entry in the manifest.
-      All code must be discoverable and auditable.
-      If it's not in function_manifest.json, it does not exist.
+      No function, file, or rule may exist without being discoverable and traceable
+      through the system's knowledge artifacts (e.g., knowledge_graph.json).
+      All logic must serve a declared purpose.
 
   - id: use_intent_bundle
     description: >
-      All executable capabilities must be declared and executed via a structured IntentBundle
-      that reflects the 10-phase universal reasoning flow.
-      No phase may be skipped.
-    required_for:
-      - all capabilities
-      - all autonomous agents
-      - all planning functions
+      All significant autonomous actions must be executed via a structured
+      IntentBundle that reflects the Ten-Phase Loop of Reasoned Action. No phase
+      may be skipped.
 
   - id: minimalism_over_completeness
     description: >
-      Prefer small, focused changes. Do not generate stubs, placeholders, or unused functions.
-      If a capability is not actively used or tested, it must be removed.
-      Empty implementations are technical debt.
+      Prefer small, focused changes. Do not generate stubs, placeholders, or
+      unused functions. Unused or untestable logic is a liability and must be removed.
 
   - id: dry_by_design
     description: >
-      No logic may be duplicated. If a function, pattern, or decision exists in one place,
-      it must be reused — not rewritten — anywhere else in the system.
-      CORE must detect and reject duplication during self-modification.
+      "Don't Repeat Yourself." No logic or configuration may be duplicated. If a
+      function, pattern, or rule exists in one place, it must be reused or
+      referenced, not rewritten.
 
   - id: single_source_of_truth
     description: >
-      The project_manifest.yaml is the single source of truth for all capabilities, structure, and intent.
-      All other files (e.g. codegraph.json, function_manifest.json) must be derived from it.
-      Manual edits to derived files will be rejected.
+      The `.intent/` directory is the single source of truth for the system's
+      capabilities, structure, and intent. Derived artifacts (e.g., knowledge_graph.json)
+      must always be generated from this source.
 
   - id: separation_of_concerns
     description: >
-      Each domain has a single responsibility:
-        - core: orchestration, routing, safety
-        - features: capabilities and extensions
-        - system/tools: audit, manifest update, introspection
-        - clients: external API interaction
-      No file may mix logic across domains.
-      Violations must be flagged during structural audits.
+      Each architectural domain must have a single, clearly defined responsibility.
+      Inter-domain communication must be explicitly declared and governed by the
+      constitution.
 
   - id: predictable_side_effects
     description: >
-      Any file change must:
-        - Be preceded by a log entry: "CHANGE: <description> — IntentBundle ID: <id>"
-        - Be staged via FileHandler (not direct write)
-        - Be reversible via Git diff or undo log
-      Silent or unlogged changes are forbidden.
+      Any action that modifies the system's state (e.g., a file write) must be
+      explicit, logged, and reversible. Silent or unlogged changes are forbidden.
 
-  - id: immutable_constitution
-    description: >
-      The files principles.yaml, manifesto.md, and northstar.yaml are immutable.
-      CORE may propose changes via IntentBundle, but may not apply them directly.
-      Human review is required for constitutional updates.
+  # This principle is now enforced by a specific policy.
+  # - id: immutable_constitution
 
   - id: policy_change_requires_human_review
     description: >
-      Any change to .intent/policies/*.yaml must be:
-      - Proposed via IntentBundle
-      - Logged with justification
-      - Approved via CLI confirmation or Git merge
-    enforcement: manual_review
+      Any change to a policy file within the `.intent/policies/` directory must be
+      ratified through the formal constitutional amendment process, requiring
+      human review and approval.
+
 --- END OF FILE .intent/mission/principles.yaml ---
 
 --- START OF FILE .intent/policies/intent_guard.yaml ---
+# .intent/policies/intent_guard.yaml
+# This file contains low-level, machine-enforceable governance rules.
+# More complex security policies are defined in safety_policies.yaml.
+
+enforcement_levels:
+  hard: "Automatic rejection of the action with no override possible. The process must stop."
+  soft: "A warning is logged, but the action is allowed to proceed. May be escalated."
+  manual_review: "Execution is paused and requires explicit human approval via a governed mechanism (e.g., CLI prompt, signed proposal)."
+
 rules:
+  - id: no_direct_intent_writes
+    description: >
+      Direct writes into the .intent/ directory are forbidden. All constitutional
+      changes must be submitted via the proposals mechanism.
+    enforcement: hard
+    applies_to:
+      paths:
+        - ".intent/"
+    exclude:
+      paths:
+        - ".intent/proposals/"
+
+  - id: max_nesting_level
+    description: "Code logic should not be nested more than 3 levels deep to maintain clarity."
+    enforcement: soft # This is a guideline, not a hard blocker.
+    applies_to:
+      patterns: ["src/**/*.py"]
+
   - id: no_undocumented_change
     description: >
-      CORE must not modify or create any file that is not declared in the function_manifest.
+      CORE must not modify or create any file that is not traceable to a known
+      capability or a file declared in a manifest.
     enforcement: hard
 
   - id: must_match_intent
     description: >
       All changes must be traceable to a declared high-level intent in the mission or policies.
     enforcement: soft
-
-  - id: deny_core_loop_edit
-    description: >
-      CORE cannot modify its own orchestration engine unless reviewed by a human.
-    applies_to:
-      paths: ["src/core/cli.py", "src/core/orchestrator.py"]
-    enforcement: manual_review
-
-  - id: require_file_path_comment
-    description: >
-      Every Python file must begin with a comment indicating its relative file path,
-      using the format: '# src/<subfolder>/filename.py'. This enables accurate introspection,
-      duplication detection, and auto-fix tracking.
-    applies_to:
-      patterns: ["src/**/*.py"]
-    enforcement: hard
 
   - id: limit_rewrite_cycles
     description: >
@@ -845,52 +858,53 @@ rules:
       Any capability marked with `requires_intent_bundle: true` must be executed through an IntentBundle flow.
     enforcement: hard
 
-  - id: manifest_file_existence
-    description: >
-      All file paths listed in function_manifest must exist on disk and be importable.
-    enforcement: hard
+--- END OF FILE .intent/policies/intent_guard.yaml ---
 
-  - id: require_manual_review_for_intent_updates
-    description: >
-      Any changes to files under .intent/ — including mission, policies, manifests, or evaluation criteria —
-      must be manually reviewed and approved by a human before being written to disk.
-    applies_to:
-      paths:
-        - ".intent/"
-    enforcement: manual_review
+--- START OF FILE .intent/policies/safety_policies.yaml ---
+# .intent/policies/safety_policies.yaml
+meta:
+  version: "0.4.0"
+  last_updated: "2025-08-10T11:00:00Z"
+  author: "CORE Constitution"
+  description: >
+    The single source of truth for all security and safety policies governing
+    code generation, execution, and self-modification.
+
+rules:
+  # ===================================================================
+  # RULE: Govern Self-Modification (Immutable Constitution)
+  # ===================================================================
   - id: immutable_constitution
     description: >
-      The files principles.yaml, manifesto.md, and northstar.yaml are immutable.
-      CORE may propose changes via IntentBundle, but may not apply them directly.
-      Human review is required for constitutional updates.
+      The core mission files are immutable and can only be changed via the full,
+      human-in-the-loop constitutional amendment process.
     enforcement: manual_review
     applies_to:
       paths:
         - ".intent/mission/principles.yaml"
         - ".intent/mission/manifesto.md"
         - ".intent/mission/northstar.yaml"
-    triggers:
-      - on_write
-      - on_generate
+
+  # ===================================================================
+  # RULE: No self-modification of core loop
+  # ===================================================================
+  - id: deny_core_loop_edit
+    description: >
+      CORE cannot modify its own core orchestration and governance engine
+      without explicit human review via the formal amendment process.
+    enforcement: manual_review
+    applies_to:
+      paths:
+        - "src/core/main.py"
+        - "src/core/intent_guard.py"
+        - ".intent/policies/intent_guard.yaml"
+        - ".intent/policies/safety_policies.yaml" # The policy cannot edit itself.
     action: require_human_approval
     feedback: |
-      🔒 Constitutional file modification detected. Human review required.
---- END OF FILE .intent/policies/intent_guard.yaml ---
+      🔒 Core logic modification detected. Human review required before application.
 
---- START OF FILE .intent/policies/safety_policies.yaml ---
-# .intent/policies/safety_policies.yaml
-meta:
-  version: "0.2.1" # Version bump to reflect change
-  last_updated: "2025-08-05T14:00:00Z" # Updated timestamp
-  author: "CORE Constitution"
-  description: >
-    Safety policies governing code generation, execution, and modification.
-    These rules are enforced at write-time and via IntentGuard.
-    This file is part of the immutable constitution — changes require human review.
-
-rules:
   # ===================================================================
-  # RULE: Block dangerous execution primitives
+  # RULE: Block dangerous execution primitives (HARDENED)
   # ===================================================================
   - id: no_dangerous_execution
     description: >
@@ -900,137 +914,27 @@ rules:
     scope:
       domains: [core, agents, features]
       exclude:
-        - "tests/**"
-        - "utils/safe_execution.py"
-        - "tooling/**"
+        - path: "tests/**"
+          rationale: "Test files require direct execution for validation"
         - path: "src/core/git_service.py"
           rationale: >
-            This file is the designated service for interacting with the Git CLI.
-            It is exempt because it safely uses subprocess.run() with command arguments
-            passed as a list, which prevents shell injection vulnerabilities. All calls
-            are audited to ensure they do not introduce risks.
-    triggers:
-      - on_generate
-      - on_write
-    validator: semantic_checker
-    method: content_scan
+            This file is exempt as it safely uses subprocess.run() without shell=True.
     detection:
-      type: substring
+      type: regex
       patterns:
-        - "eval("
-        - "exec("
-        - "compile("
-        - "os.system("
-        - "os.popen("
-        - "subprocess.run("
-        - "subprocess.Popen("
-        - "subprocess.call("
-        - "shutil.rmtree("
-        - "os.remove("
-        - "os.rmdir("
+        - "eval\\("
+        - "exec\\("
+        - "compile\\("
+        - "os\\.system\\("
+        - "os\\.popen\\("
+        - "subprocess\\.(run|Popen|call)\\([^)]*shell\\s*=\\s*True"
+        - "shutil\\.rmtree\\("
+        - "os\\.remove\\("
+        - "os\\.rmdir\\("
     action: reject
     feedback: |
-      ❌ Dangerous execution detected: '{{pattern}}' found in code.
-      Use approved wrappers in `utils/safe_execution.py` instead.
+      ❌ Dangerous execution detected: '{{pattern}}'. Use safe wrappers or avoid shell=True.
 
-  # ===================================================================
-  # RULE: Block unsafe imports
-  # ===================================================================
-  - id: no_unsafe_imports
-    description: >
-      Prevent importing modules that enable network access, shell control,
-      or unsafe serialization unless explicitly allowed.
-    enforcement: hard
-    scope:
-      domains: [core, agents]
-    triggers:
-      - on_generate
-      - on_write
-    validator: ast_import_scanner
-    method: ast
-    detection:
-      type: import_name
-      forbidden:
-        - "import socket"
-        - "import telnetlib"
-        - "import fcntl"  # Unix-specific unsafe ops
-        - "import pickle"
-        - "import shelve"
-        - "from subprocess import"
-        - "from os import system"
-    action: reject
-    feedback: |
-      ❌ Unsafe import detected: '{{import}}'.
-      Network and system-level imports are restricted in core domains.
-
-  # ===================================================================
-  # RULE: Require sandboxed file operations
-  # ===================================================================
-  - id: file_ops_must_be_sandboxed
-    description: >
-      All file operations must use the FileHandler or SafeIO wrapper.
-      Direct use of open(), os.path, etc., is prohibited.
-    enforcement: hard
-    method: regex
-    detection:
-      patterns:
-        - "open\\("
-        - "os\\.path"
-        - "os\\.makedirs"
-        - "os\\.mkdir"
-        - "os\\.chdir"
-      exceptions:
-        - "test_.*\\.py"
-        - "utils/safe_io.py"
-    action: reject
-    feedback: |
-      ❌ Raw file operation detected: '{{pattern}}'.
-      Use FileHandler for all disk operations to ensure staging and rollback.
-
-  # ===================================================================
-  # RULE: Git checkpoint required before write
-  # ===================================================================
-  - id: git_checkpoint_required
-    description: >
-      CORE must create a Git stash or commit before writing any file.
-      Ensures rollback is always possible.
-    enforcement: hard
-    triggers:
-      - before_write
-    validator: git_status_checker
-    action: require_checkpoint
-    feedback: |
-      ❌ Uncommitted changes detected. Run `git stash` or `git commit` before proceeding.
-
-  # ===================================================================
-  # RULE: Tests must run if present
-  # ===================================================================
-  - id: run_tests_if_present
-    description: >
-      If test files exist for a modified component, tests must be run post-write.
-    enforcement: soft
-    triggers:
-      - after_write
-    action: warn_if_tests_skipped
-    feedback: |
-      ⚠ Test files detected but not run. Consider running `pytest` to verify behavior.
-
-  # ===================================================================
-  # RULE: No self-modification of core loop
-  # ===================================================================
-  - id: deny_core_loop_edit
-    description: >
-      CORE cannot modify its own orchestration engine without human review.
-    enforcement: manual_review
-    scope:
-      paths:
-        - "src/core/orchestrator.py"
-        - "src/core/main.py"
-        - "src/core/intent_guard.py"
-        - ".intent/policies/intent_guard.yaml"
-    action: require_human_approval
-    feedback: |
-      🔒 Core logic modification detected. Human review required before application.
 
   # ===================================================================
   # RULE: All changes must be logged

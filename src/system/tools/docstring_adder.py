@@ -15,6 +15,7 @@ from rich.progress import track
 
 from core.clients import GeneratorClient
 from shared.logger import getLogger
+from system.tools.codegraph_builder import KnowledgeGraphBuilder, find_project_root
 
 # --- Constants & Setup ---
 log = getLogger("docstring_adder")
@@ -25,10 +26,7 @@ CONCURRENCY_LIMIT = 10
 def add_docstring_to_function_line_based(
     source_code: str, line_number: int, docstring: str
 ) -> str:
-    """
-    Surgically inserts a docstring into source code using a line-based method.
-    Preserves comments and formatting.
-    """
+    """Surgically inserts a docstring into source code using a line-based method."""
     lines = source_code.splitlines()
     if not lines or line_number < 1 or line_number > len(lines):
         log.error(f"Invalid line number {line_number} for source code")
@@ -58,11 +56,9 @@ async def generate_and_apply_docstring(
     generator: GeneratorClient, 
     dry_run: bool
 ) -> None:
-    """Generates and applies a docstring for a single function."""
+    """Generates and applies a docstring for a single function, precisely locating it using AST."""
     func_name = target.get("name")
     
-    # --- THIS IS THE FIX (Part 1 of 2): Add defensive checks ---
-    # This prevents the TypeError by ensuring the 'file' key is a valid string.
     file_rel_path = target.get("file")
     if not isinstance(file_rel_path, str):
         log.error(f"Invalid KG entry for '{func_name}': 'file' key is not a string. Entry: {target}")
@@ -79,18 +75,21 @@ async def generate_and_apply_docstring(
         source_code = file_path.read_text(encoding="utf-8")
         tree = ast.parse(source_code)
         
-        # This walk is now more robust for finding methods inside classes.
+        # --- THIS IS THE FIX ---
+        # We now perform a precise search for the node that matches BOTH name and line number.
+        # This allows us to find nested functions correctly.
         node_to_update = None
         for node in ast.walk(tree):
-            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)) and node.name == func_name and node.lineno == line_num:
+            if (isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)) 
+                and node.name == func_name 
+                and node.lineno == line_num):
                 node_to_update = node
                 break
         
         if not node_to_update:
-            log.warning(f"Function `{func_name}` at line {line_num} not found in {file_path}. It might be nested.")
+            log.warning(f"Could not precisely locate symbol `{func_name}` at line {line_num} in {file_path}. Skipping.")
             return
 
-        # Check if docstring already exists
         if ast.get_docstring(node_to_update):
             log.info(f"Function `{func_name}` already has a docstring. Skipping.")
             return
@@ -124,8 +123,6 @@ async def generate_and_apply_docstring(
     except Exception as e:
         log.error(f"Failed to process `{func_name}` in {file_path}: {e}", exc_info=True)
 
-# --- THIS IS THE FIX (Part 2 of 2): Un-nest the main logic ---
-# This makes the functions top-level and easier for tools to find and reason about.
 async def _async_main(dry_run: bool):
     """The core asynchronous logic for finding and fixing docstrings."""
     log.info("🩺 Starting self-documentation cycle...")
@@ -142,7 +139,6 @@ async def _async_main(dry_run: bool):
 
     generator = GeneratorClient()
     symbols = kg_data.get("symbols", {}).values()
-    # Find all functions and methods that are missing a docstring.
     targets = [s for s in symbols if not s.get("docstring") and s.get("type") in ["FunctionDef", "AsyncFunctionDef"]]
 
     if not targets:
@@ -154,7 +150,7 @@ async def _async_main(dry_run: bool):
     semaphore = asyncio.Semaphore(CONCURRENCY_LIMIT)
 
     async def worker(target):
-        """Processes the target asynchronously with a semaphore, generating and applying a docstring using the provided generator (dry run if specified)."""
+        """Processes the target asynchronously within a semaphore, generating and applying a docstring using the provided generator (dry run if specified)."""
         async with semaphore:
             await generate_and_apply_docstring(target, generator, dry_run)
 
@@ -175,6 +171,18 @@ def fix_missing_docstrings(
 ):
     """Finds all functions with missing docstrings and uses an LLM to generate them."""
     asyncio.run(_async_main(dry_run))
+
+    if not dry_run:
+        log.info("🧠 Rebuilding knowledge graph to reflect changes...")
+        try:
+            root = find_project_root(Path.cwd())
+            builder = KnowledgeGraphBuilder(root)
+            graph = builder.build()
+            out_path = root / ".intent/knowledge/knowledge_graph.json"
+            out_path.write_text(json.dumps(graph, indent=2))
+            log.info(f"✅ Knowledge graph successfully updated.")
+        except Exception as e:
+            log.error(f"Failed to rebuild knowledge graph: {e}", exc_info=True)
 
 if __name__ == "__main__":
     typer.run(fix_missing_docstrings)

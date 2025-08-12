@@ -23,24 +23,34 @@ required_environment_variables:
   - name: "ORCHESTRATOR_API_URL"
     description: "The API endpoint for the high-level planning LLM."
     type: "config"
-    required: true
+    required: false
+    required_when: "apis.llm.enabled == true"
 
   - name: "ORCHESTRATOR_API_KEY"
     description: "The API key for the high-level planning LLM."
     type: "secret"
-    required: true
+    required: false
+    required_when: "apis.llm.enabled == true"
 
   - name: "ORCHESTRATOR_MODEL_NAME"
     description: "The name of the model to use for orchestration."
     type: "config"
-    required: true
+    required: false
+    required_when: "apis.llm.enabled == true"
 
   - name: "GENERATOR_API_URL"
     description: "The API endpoint for the code generation LLM."
     type: "config"
-    required: true
+    required: false
+    required_when: "apis.llm.enabled == true"
 
   - name: "GENERATOR_API_KEY"
     description: "The API key for the code generation LLM."
     type: "secret"
+    required: false
+    required_when: "apis.llm.enabled == true"
+
+  - name: "CORE_ACTION_LOG_PATH"
+    description: "Path to .intent/change_log.json used by safety policies."
+    type: "config"
     required: true
