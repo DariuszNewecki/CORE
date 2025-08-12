@@ -2,47 +2,33 @@
 """
 The primary agent responsible for decomposing high-level goals into executable plans.
 """
-
 import json
 import re
 import textwrap
 import asyncio
-from typing import List, Dict, Tuple, Optional, Callable
+from typing import List, Dict, Tuple, Optional
 from datetime import datetime, timezone
-from concurrent.futures import ThreadPoolExecutor
 import contextvars
-import atexit
-
 from pydantic import ValidationError
 
 from core.clients import OrchestratorClient, GeneratorClient
 from core.file_handler import FileHandler
 from core.git_service import GitService
-from core.intent_guard import IntentGuard
 from core.prompt_pipeline import PromptPipeline
-from core.validation_pipeline import validate_code
-from shared.utils.parsing import parse_write_blocks
 from shared.logger import getLogger
 
-from agents.models import ExecutionTask, ExecutionProgress, PlannerConfig, TaskParams, TaskStatus
-from agents.utils import PlanExecutionContext, SymbolLocator, CodeEditor
+from agents.models import ExecutionTask, PlannerConfig
+from agents.utils import PlanExecutionContext
+from agents.plan_executor import PlanExecutor, PlanExecutionError
 
 log = getLogger(__name__)
-
-# Context for structured logging
 execution_context = contextvars.ContextVar('execution_context')
-
-class PlanExecutionError(Exception):
-    """Custom exception for failures during plan creation or execution."""
-    def __init__(self, message, violations=None):
-        super().__init__(message)
-        self.violations = violations or []
 
 # CAPABILITY: code_generation
 class PlannerAgent:
     """
-    The primary agent responsible for decomposing high-level goals into executable plans.
-    It orchestrates the generation, validation, and commitment of code changes.
+    Decomposes goals into plans, generates code for each step, and then
+    delegates execution to the PlanExecutor.
     """
     
     def __init__(self,
@@ -50,65 +36,36 @@ class PlannerAgent:
                  generator_client: GeneratorClient,
                  file_handler: FileHandler,
                  git_service: GitService,
-                 intent_guard: IntentGuard,
                  config: Optional[PlannerConfig] = None):
-        """Initializes the PlannerAgent with all necessary service dependencies."""
+        """Initializes the PlannerAgent with service dependencies."""
         self.orchestrator = orchestrator_client
         self.generator = generator_client
         self.file_handler = file_handler
         self.git_service = git_service
-        self.intent_guard = intent_guard
         self.config = config or PlannerConfig()
-        self.repo_path = self.file_handler.repo_path
-        self.prompt_pipeline = PromptPipeline(self.repo_path)
-        self.symbol_locator = SymbolLocator()
-        self.code_editor = CodeEditor()
-        
-        self._executor = ThreadPoolExecutor(max_workers=4, thread_name_prefix="planner_agent")
-        atexit.register(self._cleanup_resources)
-
-    def _cleanup_resources(self):
-        """Clean up resources on shutdown."""
-        if hasattr(self, '_executor'):
-            self._executor.shutdown(wait=True)
-
-    def __del__(self):
-        """Ensure resources are cleaned up when the agent is garbage collected."""
-        self._cleanup_resources()
+        self.prompt_pipeline = PromptPipeline(self.file_handler.repo_path)
+        # The executor is now a component of the planner
+        self.executor = PlanExecutor(self.file_handler, self.git_service, self.config)
 
     def _setup_logging_context(self, goal: str, plan_id: str):
         """Setup structured logging context for better observability."""
         execution_context.set({
-            'goal': goal,
-            'plan_id': plan_id,
-            'timestamp': datetime.now(timezone.utc).isoformat()
+            'goal': goal, 'plan_id': plan_id, 'timestamp': datetime.now(timezone.utc).isoformat()
         })
     
     def _extract_json_from_response(self, text: str) -> Optional[Dict]:
-        """
-        Extract JSON with multiple strategies and better error handling.
-        This version uses safer, non-backtracking regex patterns to prevent ReDoS.
-        """
-        # Strategy 1: Look for a markdown code block with 'json' using a safe pattern.
+        """Extracts a JSON object or array from a raw text response."""
         match = re.search(r'```json\s*(\{[\s\S]*?\}|\[[\s\S]*?\])\s*```', text, re.DOTALL)
         if match:
             try:
                 return json.loads(match.group(1))
             except json.JSONDecodeError:
                 log.warning("Found a JSON markdown block, but it contained invalid JSON.")
-
-        # Strategy 2: Look for the first complete JSON object or array in the text.
+        
         try:
-            first_brace = text.find('{')
-            first_bracket = text.find('[')
-            
-            if first_brace == -1 and first_bracket == -1: return None
-            
-            start_index = -1
-            if first_brace != -1 and (first_bracket == -1 or first_brace < first_bracket):
-                start_index = first_brace
-            else:
-                start_index = first_bracket
+            start_index = text.find('{')
+            if start_index == -1: start_index = text.find('[')
+            if start_index == -1: return None
             
             decoder = json.JSONDecoder()
             obj, _ = decoder.raw_decode(text[start_index:])
@@ -128,15 +85,13 @@ class PlannerAgent:
     def _validate_task_params(self, task: ExecutionTask):
         """Validates that a task has all the logically required parameters for its action."""
         params = task.params
-        if task.action == "add_capability_tag":
-            if not all([params.file_path, params.symbol_name, params.tag]):
-                raise PlanExecutionError(f"Task '{task.step}' is missing required parameters for 'add_capability_tag'.")
-        elif task.action == "create_file":
-            if not params.file_path:
-                raise PlanExecutionError(f"Task '{task.step}' is missing required parameter 'file_path' for 'create_file'.")
-        elif task.action == "edit_function":
-             if not all([params.file_path, params.symbol_name]):
-                raise PlanExecutionError(f"Task '{task.step}' is missing required parameters for 'edit_function'.")
+        required = []
+        if task.action == "add_capability_tag": required = ["file_path", "symbol_name", "tag"]
+        elif task.action == "create_file": required = ["file_path"]
+        elif task.action == "edit_function": required = ["file_path", "symbol_name"]
+        
+        if not all(getattr(params, p, None) for p in required):
+            raise PlanExecutionError(f"Task '{task.step}' is missing required parameters for '{task.action}'.")
 
     # CAPABILITY: llm_orchestration
     def create_execution_plan(self, high_level_goal: str) -> List[ExecutionTask]:
@@ -150,27 +105,14 @@ class PlannerAgent:
             You are a hyper-competent, meticulous system architect AI. Your task is to decompose a high-level goal into a JSON execution plan.
             Your entire output MUST be a single, valid JSON array of objects.
 
-            **High-Level Goal:**
-            "{goal}"
+            **High-Level Goal:** "{goal}"
 
-            **Reasoning Framework:**
-            1.  Analyze the Goal: What is the user's core intent?
-            2.  Choose the Right Tool: Select the correct action from the list below.
-                - To CREATE a NEW file, use the `create_file` action.
-                - To MODIFY an EXISTING file/function, use `edit_function`.
-                - To ADD a #CAPABILITY tag to an EXISTING function, use `add_capability_tag`.
-            3.  Construct the Plan: Build a JSON object for each step. **DO NOT generate any code content.** Just define the actions and targets.
-
-            **Available Actions & Required Parameters (for this step):**
-            - Action: `create_file` -> Params: `{{ "file_path": "<path_to_new_file>" }}`
-            - Action: `edit_function` -> Params: `{{ "file_path": "<path_to_existing_file>", "symbol_name": "<function_to_edit>" }}`
-            - Action: `add_capability_tag` -> Params: `{{ "file_path": "<path_to_existing_file>", "symbol_name": "<function_to_tag>", "tag": "<tag_name>" }}`
+            **Available Actions & Required Parameters:**
+            - Action: `create_file` -> Params: `{{ "file_path": "<path>" }}`
+            - Action: `edit_function` -> Params: `{{ "file_path": "<path>", "symbol_name": "<func_name>" }}`
+            - Action: `add_capability_tag` -> Params: `{{ "file_path": "<path>", "symbol_name": "<func_name>", "tag": "<tag_name>" }}`
             
-            **CRITICAL RULE:**
-            - Every task object MUST include a `"step"` and `"action"` key.
-            - The `"params"` object should ONLY contain the parameters listed above. DO NOT include a `"code"` parameter.
-
-            Generate the complete, code-free JSON plan now.
+            **CRITICAL RULE:** Do NOT include a `"code"` parameter in this step. Generate the code-free JSON plan now.
         """).strip()
 
         final_prompt = prompt_template.format(goal=high_level_goal)
@@ -184,198 +126,63 @@ class PlannerAgent:
                 if isinstance(parsed_json, dict): parsed_json = [parsed_json]
                 
                 validated_plan = [ExecutionTask(**task) for task in parsed_json]
+                for task in validated_plan: self._validate_task_params(task)
+                
                 self._log_plan_summary(validated_plan)
                 return validated_plan
                 
             except (ValueError, json.JSONDecodeError, ValidationError) as e:
-                log.warning(f"High-level plan creation attempt {attempt + 1} failed: {e}")
+                log.warning(f"Plan creation attempt {attempt + 1} failed: {e}")
                 if attempt == self.config.max_retries - 1:
-                    log.error("FATAL: Failed to create valid high-level plan after max retries.")
-                    raise PlanExecutionError("Failed to create a valid high-level plan.")
+                    raise PlanExecutionError("Failed to create a valid high-level plan after max retries.")
         return []
 
     async def _generate_code_for_task(self, task: ExecutionTask, goal: str) -> str:
         """Generates the code content for a single task."""
         log.info(f"✍️ Step 2: Generating code for task: '{task.step}'...")
-
         if task.action not in ["create_file", "edit_function"]:
             return ""
 
-        symbol_name = task.params.symbol_name if task.action == "edit_function" else ""
-
         prompt_template = textwrap.dedent("""
-            You are an expert Python programmer. Your task is to generate a single block of Python code to fulfill a specific step in a larger plan.
-
+            You are an expert Python programmer. Generate a single block of Python code to fulfill the task.
             **Overall Goal:** {goal}
             **Current Task:** {step}
             **Target File:** {file_path}
             **Target Symbol (if editing):** {symbol_name}
-
-            **Instructions:**
-            - Your output MUST be ONLY the raw Python code.
-            - Do not wrap the code in markdown blocks (```python ... ```).
-            - Do not add any conversational text or explanations.
-            - Ensure the code is complete, correct, and ready to be written to a file.
-            - If editing a function, you MUST provide the complete, new version of that function, including its decorator, signature, and docstring.
-            
-            Generate the code now.
+            **Instructions:** Your output MUST be ONLY the raw Python code. Do not wrap it in markdown blocks.
         """).strip()
 
         final_prompt = prompt_template.format(
-            goal=goal,
-            step=task.step,
-            file_path=task.params.file_path,
-            symbol_name=symbol_name,
+            goal=goal, step=task.step, file_path=task.params.file_path,
+            symbol_name=task.params.symbol_name or ""
         )
         enriched_prompt = self.prompt_pipeline.process(final_prompt)
-        
         return self.generator.make_request(enriched_prompt, user_id="planner_agent_coder")
 
-    async def _find_symbol_line_async(self, file_path: str, symbol_name: str) -> Optional[int]:
-        """Async version using shared thread pool for file I/O."""
-        loop = asyncio.get_event_loop()
-        full_path = self.repo_path / file_path
-        return await loop.run_in_executor(
-            self._executor, self.symbol_locator.find_symbol_line, full_path, symbol_name
-        )
-
-    async def _execute_task_with_timeout(self, task: ExecutionTask, timeout: int = None) -> None:
-        """Execute task with timeout protection."""
-        timeout = timeout or self.config.task_timeout
-        try:
-            await asyncio.wait_for(self._execute_task(task), timeout=timeout)
-        except asyncio.TimeoutError:
-            raise PlanExecutionError(f"Task '{task.step}' timed out after {timeout}s")
-
     async def execute_plan(self, high_level_goal: str) -> Tuple[bool, str]:
-        """Creates and executes a plan in a two-step (Plan -> Generate -> Execute) process."""
+        """Creates a plan, generates code for it, and orchestrates its execution."""
         try:
             plan = self.create_execution_plan(high_level_goal)
         except PlanExecutionError as e:
             return False, str(e)
-
         if not plan: return False, "Plan is empty or invalid."
         
-        progress = ExecutionProgress(total_tasks=len(plan), completed_tasks=0)
-        
+        log.info("--- Starting Code Generation Phase ---")
+        for task in plan:
+            task.params.code = await self._generate_code_for_task(task, high_level_goal)
+            if task.action in ["create_file", "edit_function"] and not task.params.code:
+                return False, f"Code generation failed for step: '{task.step}'"
+
+        log.info("--- Handing off to Executor ---")
         with PlanExecutionContext(self):
-            for i, task in enumerate(plan):
-                log.info(f"--- Executing Step {i + 1}/{len(plan)}: {task.step} ---")
-                try:
-                    if task.action in ["create_file", "edit_function"]:
-                        generated_code = await self._generate_code_for_task(task, high_level_goal)
-                        if not generated_code:
-                            raise PlanExecutionError("Code generation failed for this step.")
-                        task.params.code = generated_code
-
-                    await self._execute_task_with_timeout(task)
-                    progress.completed_tasks += 1
-                except Exception as e:
-                    error_detail = str(e)
-                    log.error(f"Step failed with error: {error_detail}", exc_info=True)
-                    if hasattr(e, 'violations') and e.violations:
-                        log.error("Violations found:")
-                        for v in e.violations:
-                            log.error(f"  - [{v.get('rule')}] L{v.get('line')}: {v.get('message')}")
-                    return False, f"Plan failed at step {i + 1} ('{task.step}'): {error_detail}"
-        
-        return True, "✅ Plan executed successfully."
-
-    async def _execute_add_tag(self, params: TaskParams):
-        """Executes the surgical 'add_capability_tag' action."""
-        file_path, symbol_name, tag = params.file_path, params.symbol_name, params.tag
-        line_number = await self._find_symbol_line_async(file_path, symbol_name)
-        if not line_number: raise PlanExecutionError(f"Could not find symbol '{symbol_name}' in '{file_path}'.")
-        
-        full_path = self.repo_path / file_path
-        if not full_path.exists():
-            raise PlanExecutionError(f"File '{file_path}' does not exist.")
-            
-        lines = full_path.read_text(encoding='utf-8').splitlines()
-        
-        insertion_index = line_number - 1
-        if insertion_index > 0 and f"# CAPABILITY: {tag}" in lines[insertion_index - 1]:
-            log.info(f"Tag '{tag}' already exists for '{symbol_name}'. Skipping.")
-            return
-
-        indentation = len(lines[insertion_index]) - len(lines[insertion_index].lstrip(' '))
-        lines.insert(insertion_index, f"{' ' * indentation}# CAPABILITY: {tag}")
-        modified_code = "\n".join(lines)
-
-        validation_result = validate_code(file_path, modified_code)
-        if validation_result["status"] == "dirty":
-            raise PlanExecutionError(f"Surgical modification for '{file_path}' failed validation.", violations=validation_result["violations"])
-            
-        pending_id = self.file_handler.add_pending_write(
-            prompt=f"Goal: add tag to {symbol_name}", suggested_path=file_path, code=validation_result["code"]
-        )
-        self.file_handler.confirm_write(pending_id)
-
-        if self.config.auto_commit and self.git_service.is_git_repo():
-            self.git_service.add(file_path)
-            self.git_service.commit(f"refactor(capability): Add '{tag}' tag to {symbol_name}")
-
-    async def _execute_create_file(self, params: TaskParams):
-        """Executes the 'create_file' action."""
-        file_path, code = params.file_path, params.code
-        full_path = self.repo_path / file_path
-        if full_path.exists():
-            raise FileExistsError(f"File '{file_path}' already exists. Use 'edit_function' or another edit action instead.")
-
-        validation_result = validate_code(file_path, code)
-        if validation_result["status"] == "dirty":
-            raise PlanExecutionError(f"Generated code for new file '{file_path}' failed validation.", violations=validation_result["violations"])
-
-        pending_id = self.file_handler.add_pending_write(
-            prompt=f"Goal: create file {file_path}", suggested_path=file_path, code=validation_result["code"]
-        )
-        self.file_handler.confirm_write(pending_id)
-
-        if self.config.auto_commit and self.git_service.is_git_repo():
-            self.git_service.add(file_path)
-            self.git_service.commit(f"feat: Create new file {file_path}")
-            
-    async def _execute_edit_function(self, params: TaskParams):
-        """Executes the 'edit_function' action using the CodeEditor."""
-        file_path, symbol_name, new_code = params.file_path, params.symbol_name, params.code
-        full_path = self.repo_path / file_path
-
-        if not full_path.exists():
-            raise FileNotFoundError(f"Cannot edit function, file not found: '{file_path}'")
-
-        loop = asyncio.get_event_loop()
-        original_code = await loop.run_in_executor(self._executor, full_path.read_text, "utf-8")
-
-        # Validate the generated snippet in isolation first.
-        validation_result = validate_code(file_path, new_code)
-        if validation_result["status"] == "dirty":
-            raise PlanExecutionError(f"Generated code for '{symbol_name}' failed validation.", violations=validation_result["violations"])
-
-        # Splice the now-validated and formatted code into the original file.
-        validated_code_snippet = validation_result["code"]
-        try:
-            final_code = self.code_editor.replace_symbol_in_code(original_code, symbol_name, validated_code_snippet)
-        except ValueError as e:
-            raise PlanExecutionError(f"Failed to edit code in '{file_path}': {e}")
-
-        pending_id = self.file_handler.add_pending_write(
-            prompt=f"Goal: edit function {symbol_name} in {file_path}", suggested_path=file_path, code=final_code
-        )
-        self.file_handler.confirm_write(pending_id)
-
-        if self.config.auto_commit and self.git_service.is_git_repo():
-            self.git_service.add(file_path)
-            self.git_service.commit(f"feat: Modify function {symbol_name} in {file_path}")
-
-    async def _execute_task(self, task: ExecutionTask) -> None:
-        """Dispatcher that executes a single task from a plan based on its action type."""
-        self._validate_task_params(task)
-
-        if task.action == "add_capability_tag":
-            await self._execute_add_tag(task.params)
-        elif task.action == "create_file":
-            await self._execute_create_file(task.params)
-        elif task.action == "edit_function":
-            await self._execute_edit_function(task.params)
-        else:
-            log.warning(f"Skipping task: Unknown action '{task.action}'.")
+            try:
+                await self.executor.execute_plan(plan)
+                return True, "✅ Plan executed successfully."
+            except Exception as e:
+                error_detail = str(e)
+                log.error(f"Execution failed with error: {error_detail}", exc_info=True)
+                if hasattr(e, 'violations') and e.violations:
+                    log.error("Violations found:")
+                    for v in e.violations:
+                        log.error(f"  - [{v.get('rule')}] L{v.get('line')}: {v.get('message')}")
+                return False, f"Plan execution failed: {error_detail}"

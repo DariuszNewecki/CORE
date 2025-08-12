@@ -1,4 +1,3 @@
-# src/system/tools/codegraph_builder.py
 import ast
 import json
 import re
@@ -11,6 +10,7 @@ from datetime import datetime, timezone
 
 from shared.config_loader import load_config
 from shared.logger import getLogger
+from system.tools.ast_visitor import ContextAwareVisitor, FunctionCallVisitor # <<<--- THE REFACTORING
 
 log = getLogger(__name__)
 
@@ -61,60 +61,9 @@ def find_project_root(start_path: Path) -> Path:
         current_path = current_path.parent
     raise ProjectStructureError("Could not find 'pyproject.toml'.")
 
-class FunctionCallVisitor(ast.NodeVisitor):
-    """An AST visitor that collects the names of all functions being called within a node."""
-    def __init__(self):
-        self.calls: Set[str] = set()
-
-    def visit_Call(self, node: ast.Call):
-        """Records function or method calls in `self.calls` and recursively visits child nodes."""
-        if isinstance(node.func, ast.Name): self.calls.add(node.func.id)
-        elif isinstance(node.func, ast.Attribute): self.calls.add(node.func.attr)
-        self.generic_visit(node)
-
 # CAPABILITY: manifest_updating
 class KnowledgeGraphBuilder:
     """Builds a comprehensive JSON representation of the project's code structure and relationships."""
-
-    class ContextAwareVisitor(ast.NodeVisitor):
-        """A stateful AST visitor that understands nested class and function contexts."""
-        def __init__(self, builder, filepath: Path, source_lines: List[str]):
-            self.builder = builder
-            self.filepath = filepath
-            self.source_lines = source_lines
-            self.context_stack: List[str] = []
-
-        def _process_and_visit(self, node, node_type: str):
-            """Helper to process a symbol and manage the context stack."""
-            parent_key = self.context_stack[-1] if self.context_stack else None
-            
-            is_method = False
-            if parent_key and parent_key in self.builder.functions:
-                if self.builder.functions[parent_key].is_class:
-                    is_method = True
-
-            symbol_key = self.builder._process_symbol_node(
-                node, self.filepath, self.source_lines, parent_key if is_method else None
-            )
-
-            if symbol_key:
-                self.context_stack.append(symbol_key)
-                self.generic_visit(node)
-                self.context_stack.pop()
-            else:
-                self.generic_visit(node)
-
-        def visit_ClassDef(self, node: ast.ClassDef):
-            """Processes a class definition node, and visits its children."""
-            self._process_and_visit(node, "ClassDef")
-
-        def visit_FunctionDef(self, node: ast.FunctionDef):
-            """Processes a function definition node, and visits its children."""
-            self._process_and_visit(node, "FunctionDef")
-
-        def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef):
-            """Processes an async function definition node, and visits its children."""
-            self._process_and_visit(node, "AsyncFunctionDef")
 
     def __init__(self, root_path: Path, exclude_patterns: Optional[List[str]] = None):
         """Initializes the builder, loading patterns and project configuration."""
@@ -228,7 +177,7 @@ class KnowledgeGraphBuilder:
                     visitor = FunctionCallVisitor(); visitor.visit(node); main_block_entries.update(visitor.calls)
             self.cli_entry_points.update(main_block_entries)
 
-            visitor = self.ContextAwareVisitor(self, filepath, source_lines)
+            visitor = ContextAwareVisitor(self, filepath, source_lines)
             visitor.visit(tree)
             return True
         except Exception as e:
@@ -295,13 +244,11 @@ class KnowledgeGraphBuilder:
                      if f"@{rules['has_decorator']}" not in decorator_line:
                          is_match = False
                 
-                # --- THIS IS THE NEW LOGIC ---
                 if "module_path_contains" in rules:
                     if rules["module_path_contains"] not in info.file:
                         is_match = False
                 if rules.get("is_public_function") and info.name.startswith("_"):
                     is_match = False
-                # --- END NEW LOGIC ---
 
                 if is_match:
                     info.entry_point_type, info.entry_point_justification = pattern["entry_point_type"], pattern["name"]
