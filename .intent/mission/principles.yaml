@@ -56,9 +56,8 @@ principles:
 
   - id: single_source_of_truth
     description: >
-      The `.intent/` directory is the single source of truth for the system's
-      capabilities, structure, and intent. Derived artifacts (e.g., knowledge_graph.json)
-      must always be generated from this source.
+      `project_manifest.yaml` is the single source of truth for capabilities, structure, and intent.
+      Derived artifacts (e.g., `knowledge_graph.json`) must be generated from it; manual edits are rejected.
 
   - id: separation_of_concerns
     description: >
@@ -70,9 +69,6 @@ principles:
     description: >
       Any action that modifies the system's state (e.g., a file write) must be
       explicit, logged, and reversible. Silent or unlogged changes are forbidden.
-
-  # This principle is now enforced by a specific policy.
-  # - id: immutable_constitution
 
   - id: policy_change_requires_human_review
     description: >

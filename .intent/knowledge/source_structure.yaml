@@ -142,14 +142,14 @@ structure:
     allowed_imports: [integrations, shared]
 
   - domain: mission
-    path: mission
+    path: .intent/mission
     description: CORE's declared beliefs, principles, and northstar
     editable: false
     restricted_types: [markdown, yaml]
     allowed_imports: []
 
   - domain: policies
-    path: policies
+    path: .intent/policies
     description: Governance rules and constraints
     editable: true
     default_handler: yaml

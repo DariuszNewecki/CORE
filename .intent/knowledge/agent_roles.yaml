@@ -4,33 +4,33 @@ roles:
   planner:
     description: "Responsible for breaking down intents, sequencing tasks, and preparing bundles."
     allowed_tags:
-      - planning
       - introspection
-      - orchestration
+      - llm_orchestration
+      - prompt_interpretation
 
   builder:
     description: "Executes generation and modification tasks according to a validated plan."
     allowed_tags:
-      - generation
-      - validation
-      - testing
+      - code_generation
+      - semantic_validation
+      - test_execution
 
   reviewer:
     description: "Evaluates changes for safety, structure, and declared alignment."
     allowed_tags:
-      - validation
-      - governance
-      - testing
+      - semantic_validation
+      - alignment_checking
+      - test_execution
 
   orchestrator:
     description: "Coordinates flows, executes bundles, and manages lifecycle rules."
     allowed_tags:
-      - orchestration
-      - governance
-      - llm
+      - llm_orchestration
+      - intent_guarding
+      - alignment_checking
 
   guardian:
     description: "Handles enforcement of rules and monitors intent integrity."
     allowed_tags:
-      - governance
-      - validation
+      - intent_guarding
+      - alignment_checking
