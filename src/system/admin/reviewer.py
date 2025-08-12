@@ -48,7 +48,7 @@ def _get_bundle_content() -> str:
     discovered_paths = find_paths_in_meta(meta_content)
     discovered_paths.append("meta.yaml")
     
-    log.info(f"   -> Found {len(discovered_paths)} constitutional files declared in meta.yaml.")
+    log.info(f"   -> Found {len(list(set(discovered_paths)))} constitutional files declared in meta.yaml.")
 
     for rel_path_str in sorted(list(set(discovered_paths))):
         if _is_ignored(rel_path_str):
@@ -87,13 +87,21 @@ def peer_review(
         Path("reports/constitutional_review.md"),
         "--output",
         "-o",
-        help="The path to save the LLM's review.",
+        help="The path to save the LLM's review or the bundled prompt.",
+    ),
+    no_send: bool = typer.Option(
+        False,
+        "--no-send",
+        help="Prepare the full prompt bundle and save it to the output file without sending to the LLM.",
     ),
 ):
     """
     Orchestrates sending the constitutional bundle to an external LLM for critique.
     """
-    log.info("🤖 Orchestrating Constitutional Peer Review...")
+    if no_send:
+        log.info("🤖 Preparing constitutional bundle for manual review (no-send mode)...")
+    else:
+        log.info("🤖 Orchestrating Constitutional Peer Review...")
     
     # 1. Load the review prompt from the constitution itself.
     prompt_path = settings.MIND / "prompts" / "constitutional_review.prompt"
@@ -107,14 +115,24 @@ def peer_review(
     log.info("   -> Bundling the constitution for review...")
     bundle = _get_bundle_content()
     
-    # 3. Combine them and send to the Orchestrator LLM.
+    # 3. Combine them into the final prompt.
     final_prompt = f"{review_prompt_template}\n\n{bundle}"
+    
+    # 4. If --no-send is used, save and exit.
+    if no_send:
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(final_prompt, encoding="utf-8")
+        log.info(f"✅ Successfully created prompt bundle for manual review.")
+        log.info(f"   -> Full prompt saved to: {output}")
+        raise typer.Exit()
+        
+    # 5. Otherwise, send to the Orchestrator LLM.
     log.info("   -> Sending bundle to external LLM for analysis. This may take a moment...")
     
     orchestrator = OrchestratorClient()
     review_feedback = orchestrator.make_request(final_prompt, user_id="constitutional_reviewer")
     
-    # 4. Save the feedback.
+    # 6. Save the feedback.
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(review_feedback, encoding="utf-8")
     
