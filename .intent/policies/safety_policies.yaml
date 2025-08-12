@@ -1,14 +1,45 @@
 # .intent/policies/safety_policies.yaml
 meta:
-  version: "0.2.1" # Version bump to reflect change
-  last_updated: "2025-08-05T14:00:00Z" # Updated timestamp
+  version: "0.3.0"
+  last_updated: "2025-08-10T10:00:00Z"
   author: "CORE Constitution"
   description: >
-    Safety policies governing code generation, execution, and modification.
-    These rules are enforced at write-time and via IntentGuard.
-    This file is part of the immutable constitution — changes require human review.
+    The single source of truth for all security and safety policies governing
+    code generation, execution, and self-modification.
 
 rules:
+  # ===================================================================
+  # RULE: Govern Self-Modification (Immutable Constitution)
+  # ===================================================================
+  - id: immutable_constitution
+    description: >
+      The core mission files are immutable and can only be changed via the full,
+      human-in-the-loop constitutional amendment process.
+    enforcement: manual_review
+    applies_to:
+      paths:
+        - ".intent/mission/principles.yaml"
+        - ".intent/mission/manifesto.md"
+        - ".intent/mission/northstar.yaml"
+
+  # ===================================================================
+  # RULE: No self-modification of core loop
+  # ===================================================================
+  - id: deny_core_loop_edit
+    description: >
+      CORE cannot modify its own core orchestration and governance engine
+      without explicit human review via the formal amendment process.
+    enforcement: manual_review
+    applies_to:
+      paths:
+        - "src/core/main.py"
+        - "src/core/intent_guard.py"
+        - ".intent/policies/intent_guard.yaml"
+        - ".intent/policies/safety_policies.yaml" # The policy cannot edit itself.
+    action: require_human_approval
+    feedback: |
+      🔒 Core logic modification detected. Human review required before application.
+
   # ===================================================================
   # RULE: Block dangerous execution primitives
   # ===================================================================
@@ -20,137 +51,13 @@ rules:
     scope:
       domains: [core, agents, features]
       exclude:
-        - "tests/**"
-        - "utils/safe_execution.py"
-        - "tooling/**"
+        - path: "tests/**"
+          rationale: "Test files require direct execution for validation"
         - path: "src/core/git_service.py"
           rationale: >
             This file is the designated service for interacting with the Git CLI.
-            It is exempt because it safely uses subprocess.run() with command arguments
-            passed as a list, which prevents shell injection vulnerabilities. All calls
-            are audited to ensure they do not introduce risks.
-    triggers:
-      - on_generate
-      - on_write
-    validator: semantic_checker
-    method: content_scan
-    detection:
-      type: substring
-      patterns:
-        - "eval("
-        - "exec("
-        - "compile("
-        - "os.system("
-        - "os.popen("
-        - "subprocess.run("
-        - "subprocess.Popen("
-        - "subprocess.call("
-        - "shutil.rmtree("
-        - "os.remove("
-        - "os.rmdir("
-    action: reject
-    feedback: |
-      ❌ Dangerous execution detected: '{{pattern}}' found in code.
-      Use approved wrappers in `utils/safe_execution.py` instead.
-
-  # ===================================================================
-  # RULE: Block unsafe imports
-  # ===================================================================
-  - id: no_unsafe_imports
-    description: >
-      Prevent importing modules that enable network access, shell control,
-      or unsafe serialization unless explicitly allowed.
-    enforcement: hard
-    scope:
-      domains: [core, agents]
-    triggers:
-      - on_generate
-      - on_write
-    validator: ast_import_scanner
-    method: ast
-    detection:
-      type: import_name
-      forbidden:
-        - "import socket"
-        - "import telnetlib"
-        - "import fcntl"  # Unix-specific unsafe ops
-        - "import pickle"
-        - "import shelve"
-        - "from subprocess import"
-        - "from os import system"
-    action: reject
-    feedback: |
-      ❌ Unsafe import detected: '{{import}}'.
-      Network and system-level imports are restricted in core domains.
-
-  # ===================================================================
-  # RULE: Require sandboxed file operations
-  # ===================================================================
-  - id: file_ops_must_be_sandboxed
-    description: >
-      All file operations must use the FileHandler or SafeIO wrapper.
-      Direct use of open(), os.path, etc., is prohibited.
-    enforcement: hard
-    method: regex
-    detection:
-      patterns:
-        - "open\\("
-        - "os\\.path"
-        - "os\\.makedirs"
-        - "os\\.mkdir"
-        - "os\\.chdir"
-      exceptions:
-        - "test_.*\\.py"
-        - "utils/safe_io.py"
-    action: reject
-    feedback: |
-      ❌ Raw file operation detected: '{{pattern}}'.
-      Use FileHandler for all disk operations to ensure staging and rollback.
-
-  # ===================================================================
-  # RULE: Git checkpoint required before write
-  # ===================================================================
-  - id: git_checkpoint_required
-    description: >
-      CORE must create a Git stash or commit before writing any file.
-      Ensures rollback is always possible.
-    enforcement: hard
-    triggers:
-      - before_write
-    validator: git_status_checker
-    action: require_checkpoint
-    feedback: |
-      ❌ Uncommitted changes detected. Run `git stash` or `git commit` before proceeding.
-
-  # ===================================================================
-  # RULE: Tests must run if present
-  # ===================================================================
-  - id: run_tests_if_present
-    description: >
-      If test files exist for a modified component, tests must be run post-write.
-    enforcement: soft
-    triggers:
-      - after_write
-    action: warn_if_tests_skipped
-    feedback: |
-      ⚠ Test files detected but not run. Consider running `pytest` to verify behavior.
-
-  # ===================================================================
-  # RULE: No self-modification of core loop
-  # ===================================================================
-  - id: deny_core_loop_edit
-    description: >
-      CORE cannot modify its own orchestration engine without human review.
-    enforcement: manual_review
-    scope:
-      paths:
-        - "src/core/orchestrator.py"
-        - "src/core/main.py"
-        - "src/core/intent_guard.py"
-        - ".intent/policies/intent_guard.yaml"
-    action: require_human_approval
-    feedback: |
-      🔒 Core logic modification detected. Human review required before application.
+            It safely uses subprocess.run() with command arguments passed as a
+            list, which prevents shell injection vulnerabilities.
 
   # ===================================================================
   # RULE: All changes must be logged

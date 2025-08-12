@@ -1,24 +1,13 @@
 # .intent/policies/intent_guard.yaml
-# This is the single source of truth for low-level, machine-enforceable governance rules.
+# This file contains low-level, machine-enforceable governance rules.
+# More complex security policies are defined in safety_policies.yaml.
 
-# Formal definition of enforcement levels, as recommended by external peer review.
 enforcement_levels:
   hard: "Automatic rejection of the action with no override possible. The process must stop."
   soft: "A warning is logged, but the action is allowed to proceed. May be escalated."
   manual_review: "Execution is paused and requires explicit human approval via a governed mechanism (e.g., CLI prompt, signed proposal)."
 
 rules:
-  - id: immutable_constitution
-    description: >
-      The core mission files are immutable and can only be changed via the full,
-      human-in-the-loop constitutional amendment process.
-    enforcement: manual_review
-    applies_to:
-      paths:
-        - ".intent/mission/principles.yaml"
-        - ".intent/mission/manifesto.md"
-        - ".intent/mission/northstar.yaml"
-
   - id: no_direct_intent_writes
     description: >
       Direct writes into the .intent/ directory are forbidden. All constitutional
