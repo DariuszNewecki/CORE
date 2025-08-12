@@ -70,10 +70,18 @@ tags:
     description: "Auditor check: Detects if a proposal's content has changed after being signed."
   - name: audit.check.proposals_list
     description: "Auditor check: Lists all pending proposals for visibility during an audit."
-  # --- THIS IS THE NEW CAPABILITY ---
   - name: audit.check.duplication
     description: "Auditor check: Finds structurally identical code, violating the 'dry_by_design' principle."
+  # --- THIS IS THE NEW CAPABILITY WE ARE ADDING ---
+  - name: audit.check.content_drift
+    description: "Auditor check: Detects duplicated or inconsistent content across designated data files."
 
   # --- Planned or Placeholder Capabilities ---
   - name: add_missing_docstrings
     description: "A planned capability to automatically add docstrings to undocumented code."
+  - name: refactor_to_shared_function
+    description: "A planned capability to consolidate duplicated logic into a single shared function."
+  - name: export_constitution
+    description: "Packages the full .intent/ directory into a single bundle for external analysis."
+  - name: constitutional_peer_review
+    description: "Orchestrates sending the constitutional bundle to an external LLM for critique and suggestions."

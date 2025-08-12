@@ -14,10 +14,14 @@ from shared.logger import getLogger
 from system.tools.codegraph_builder import KnowledgeGraphBuilder
 
 log = getLogger("core_admin.byor")
-# --- THIS IS THE CHANGE (Part 1 of 3) ---
-# We now know where our templates are located.
+
+# --- THIS IS THE FIX ---
+# We now point to the 'starter_kits/default' directory as the single
+# source of truth for all project scaffolding templates.
 CORE_ROOT = Path(__file__).resolve().parents[2]
-TEMPLATES_DIR = CORE_ROOT / "system" / "templates"
+TEMPLATES_DIR = CORE_ROOT / "system" / "starter_kits" / "default"
+# --- END OF FIX ---
+
 
 def initialize_repository(
     path: Path = typer.Argument(
@@ -53,9 +57,6 @@ def initialize_repository(
     # Step 2: Generate the content for the new constitutional files.
     log.info("   -> Step 2: Generating starter constitution from analysis...")
     
-    # --- THIS IS THE CHANGE (Part 2 of 3) ---
-    # We now create a dictionary of all the files we intend to generate.
-    
     # File 1: source_structure.yaml
     domains = builder.domain_map
     source_structure_content = {
@@ -75,6 +76,8 @@ def initialize_repository(
     }
 
     # File 3: capability_tags.yaml (dynamically populated)
+    # The content is read from the now-consolidated template file.
+    capability_tags_template = (TEMPLATES_DIR / "capability_tags.yaml.template").read_text()
     capability_tags_content = {
         "tags": [
             {"name": cap, "description": "A clear explanation of what this capability does."}
@@ -87,8 +90,8 @@ def initialize_repository(
         ".intent/knowledge/source_structure.yaml": source_structure_content,
         ".intent/project_manifest.yaml": project_manifest_content,
         ".intent/knowledge/capability_tags.yaml": capability_tags_content,
-        ".intent/mission/principles.yaml": (TEMPLATES_DIR / "principles.yaml.template").read_text(),
-        ".intent/policies/safety_policies.yaml": (TEMPLATES_DIR / "safety_policies.yaml.template").read_text(),
+        ".intent/mission/principles.yaml": (TEMPLATES_DIR / "principles.yaml").read_text(),
+        ".intent/policies/safety_policies.yaml": (TEMPLATES_DIR / "safety_policies.yaml").read_text(),
     }
 
     # Step 3: Write the files or display the dry run.
@@ -116,5 +119,4 @@ def initialize_repository(
 
 def register(app: typer.Typer) -> None:
     """Register BYOR commands (e.g., `byor-init`) under the admin CLI."""
-    """Intent: Register BYOR commands under the admin CLI."""
     app.command("byor-init")(initialize_repository)

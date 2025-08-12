@@ -68,4 +68,20 @@ This is the ultimate goal of the CORE project. With a scalable constitution and 
     4.  Accept further intents to evolve the new application.
 -   **Status:** ⏳ **Not Started**
 
-We believe that by solving the challenges in Phase 1 and 2, we will have built a foundation of trust and scalability that makes Phase 3 possible.
+---
+
+## Phase 4: Constitutional Self-Improvement
+
+This phase focuses on enabling CORE to reason about and improve its own "Mind". The goal is to build meta-capabilities that allow the system to use external intelligence to enhance its own governance.
+
+### 4.1: Implement Constitutional Peer Review
+
+-   **Challenge:** The system's own "Mind" (`.intent/`) can suffer from incompleteness or lack of clarity that its own internal checks cannot detect.
+-   **Goal:** Implement the **Constitutional Peer Review Loop**. This involves:
+    1.  Creating a `ReviewerAgent`.
+    2.  Building the `export_constitution` capability to bundle the `.intent/` directory for analysis.
+    3.  Implementing the `constitutional_peer_review` capability, which sends the bundle to an external LLM for critique.
+    4.  The agent will then parse the feedback and autonomously create a formal proposal (`cr-*.yaml`) with suggested improvements to its own constitution.
+-   **Status:** ⏳ **Not Started**
+
+We believe that by solving the challenges in Phase 1 and 2, we will have built a foundation of trust and scalability that makes Phase 3 and 4 possible.
