@@ -44,6 +44,7 @@ black = "^24"
 jsonschema = "^4"
 # --- ADDITION: A powerful CLI library ---
 typer = {extras = ["rich"], version = "^0.9.0"}
+radon = ">=5.1.0" # <<< --- THIS IS THE LINE THAT WAS MISSING ---
 
 # --- Development Dependencies ---
 # This replaces the old [project.optional-dependencies].

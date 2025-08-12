@@ -1,0 +1,24 @@
+# .intent/policies/code_health_policy.yaml
+#
+# This policy defines the machine-enforceable rules for maintaining the
+# health, clarity, and atomicity of the codebase ("The Body").
+# These rules are enforced by the 'audit.check.codebase_health' capability.
+
+rules:
+  # Defines the maximum acceptable Cognitive Complexity for any single function.
+  # Functions exceeding this limit are considered too difficult for a human to
+  # reliably understand and maintain.
+  # Recommended starting value: 15
+  max_cognitive_complexity: 15
+
+  # Defines the maximum acceptable nesting depth (e.g., if inside for inside if).
+  # Deeply nested logic is a primary source of bugs and confusion.
+  # This rule formalizes the soft rule that was previously in intent_guard.yaml.
+  # Recommended starting value: 4
+  max_nesting_depth: 4
+
+  # Defines the statistical threshold for identifying file size outliers.
+  # A file is flagged as an outlier if its Logical Lines of Code (LLOC)
+  # is greater than (average_lloc + standard_deviations * lloc_std_dev).
+  # Recommended starting value: 2.0
+  outlier_standard_deviations: 2.0

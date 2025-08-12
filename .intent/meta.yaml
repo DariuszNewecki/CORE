@@ -16,18 +16,17 @@ policies:
   intent_guard: "policies/intent_guard.yaml"
   safety_policies: "policies/safety_policies.yaml"
   security_intents: "policies/security_intents.yaml"
+  code_health_policy: "policies/code_health_policy.yaml"
 
-# --- THIS IS THE NEW SECTION ---
 prompts:
   constitutional_review: "prompts/constitutional_review.prompt"
-# --- END OF NEW SECTION ---
 
 project:
   manifest_yaml: "project_manifest.yaml"
 
 knowledge:
   source_structure: "knowledge/source_structure.yaml"
-  codegraph: "knowledge/knowledge_graph.json" # This is a generated artifact, but good to list
+  codegraph: "knowledge/knowledge_graph.json"
   capability_tags: "knowledge/capability_tags.yaml"
   agent_roles: "knowledge/agent_roles.yaml"
   entry_point_patterns: "knowledge/entry_point_patterns.yaml"
@@ -42,6 +41,5 @@ config:
   runtime_requirements: "config/runtime_requirements.yaml" 
 
 schemas:
-  # Schemas are currently discovered by the auditor via directory scan, not listed here.
   config: "schemas/config_schema.yaml"
   knowledge_graph_entry: "schemas/knowledge_graph_entry.schema.json"

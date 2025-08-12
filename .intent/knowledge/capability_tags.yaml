@@ -1,4 +1,3 @@
-# --- START OF FILE .intent/knowledge/capability_tags.yaml ---
 # .intent/knowledge/capability_tags.yaml
 #
 # This is the canonical dictionary of all valid capability tags in the CORE system.
@@ -75,6 +74,8 @@ tags:
     description: "Auditor check: Finds structurally identical code, violating the 'dry_by_design' principle."
   - name: audit.check.content_drift
     description: "Auditor check: Detects duplicated or inconsistent content across designated data files."
+  - name: audit.check.codebase_health
+    description: "Auditor check: Measures code complexity and atomicity against defined policies."
 
   # --- Planned or Placeholder Capabilities ---
   - name: add_missing_docstrings
@@ -82,7 +83,7 @@ tags:
   - name: refactor_to_shared_function
     description: "A planned capability to consolidate duplicated logic into a single shared function."
 
-  # --- THIS IS OUR NEW SECTION: Constitutional Peer Review ---
+  # --- Constitutional Peer Review ---
   - name: export_constitution
     description: "Packages the full .intent/ directory into a single bundle for external analysis."
   - name: constitutional_peer_review
