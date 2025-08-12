@@ -9,7 +9,7 @@ from __future__ import annotations
 import base64
 import shutil
 import tempfile
-import subprocess # <<< MODIFICATION: We need this to run git commands.
+import subprocess
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -161,9 +161,6 @@ def register(app: typer.Typer) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
             
-            # --- THIS IS THE FIX ---
-            # Instead of copying the current (potentially dirty) directory,
-            # we create a fresh, clean clone of the repository's current state.
             log.info(f"   -> Creating a clean clone of the repository at {tmp_path}...")
             try:
                 subprocess.run(
@@ -173,6 +170,13 @@ def register(app: typer.Typer) -> None:
             except subprocess.CalledProcessError as e:
                 log.error(f"❌ Failed to create clean git clone for canary. Aborting. Stderr: {e.stderr.decode()}")
                 raise typer.Exit(code=1)
+            
+            # --- THIS IS THE FIX ---
+            # Copy the .env file into the canary so it can pass its own environment checks.
+            env_file = settings.REPO_PATH / ".env"
+            if env_file.exists():
+                shutil.copy(env_file, tmp_path / ".env")
+                log.info("   -> Copied environment configuration to canary.")
             # --- END OF FIX ---
             
             # Apply proposed change in the clean canary environment
@@ -214,4 +218,3 @@ def register(app: typer.Typer) -> None:
     def _group_approve(proposal_name: str) -> None:
         """Intent: Group alias for proposals-approve (namespaced UX)."""
         proposals_approve(proposal_name)
-
