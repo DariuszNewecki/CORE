@@ -17,6 +17,11 @@ policies:
   safety_policies: "policies/safety_policies.yaml"
   security_intents: "policies/security_intents.yaml"
 
+# --- THIS IS THE NEW SECTION ---
+prompts:
+  constitutional_review: "prompts/constitutional_review.prompt"
+# --- END OF NEW SECTION ---
+
 project:
   manifest_yaml: "project_manifest.yaml"
 
