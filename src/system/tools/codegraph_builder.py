@@ -7,15 +7,20 @@ from pathlib import Path
 from typing import Dict, Set, Optional, List, Any
 from dataclasses import dataclass, asdict, field
 from datetime import datetime, timezone
+from filelock import FileLock  # Added for atomic file writes
 
 from shared.config_loader import load_config
 from shared.logger import getLogger
-from system.tools.ast_visitor import ContextAwareVisitor, FunctionCallVisitor # <<<--- THE REFACTORING
+from system.tools.ast_visitor import ContextAwareVisitor, FunctionCallVisitor
+
+"""
+Builds a knowledge graph of a Python project's code structure, capturing functions, classes, and their metadata for use in tools like docstring_adder.py.
+"""
 
 log = getLogger(__name__)
 
 def _strip_docstrings(node):
-    """Recursively remove docstring nodes from an AST tree."""
+    """Recursively remove docstring nodes from an AST tree for structural hashing."""
     if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef, ast.Module)):
         if node.body and isinstance(node.body[0], ast.Expr) and isinstance(node.body[0].value, ast.Constant):
             if isinstance(node.body[0].value.value, str):
@@ -26,7 +31,7 @@ def _strip_docstrings(node):
 
 @dataclass
 class FunctionInfo:
-    """A data structure holding all analyzed information about a single symbol (function or class)."""
+    """A data structure holding all analyzed information about a single symbol (function, method, or class)."""
     key: str
     name: str
     type: str
@@ -89,7 +94,8 @@ class KnowledgeGraphBuilder:
     def _get_cli_entry_points(self) -> Set[str]:
         """Parses pyproject.toml to find declared command-line entry points."""
         pyproject_path = self.root_path / "pyproject.toml"
-        if not pyproject_path.exists(): return set()
+        if not pyproject_path.exists():
+            return set()
         content = pyproject_path.read_text(encoding="utf-8")
         match = re.search(r"\[tool\.poetry\.scripts\]([^\[]*)", content, re.DOTALL)
         return set(re.findall(r'=\s*"[^"]+:(\w+)"', match.group(1))) if match else set()
@@ -162,6 +168,17 @@ class KnowledgeGraphBuilder:
         if node.name in self.cli_entry_points: return "cli_entry_point"
         return None
 
+    def _detect_docstring(self, node: ast.AST) -> Optional[str]:
+        """Detects both standard and non-standard docstrings for a node."""
+        standard_doc = ast.get_docstring(node)
+        if standard_doc:
+            return standard_doc
+        # Check for non-standard string literals (e.g., misplaced or single-quoted strings)
+        if node.body and isinstance(node.body[0], ast.Expr) and isinstance(node.body[0].value, ast.Constant):
+            if isinstance(node.body[0].value.value, str):
+                return node.body[0].value.value
+        return None
+
     def scan_file(self, filepath: Path) -> bool:
         """Scans a single Python file, parsing its AST to extract all symbols."""
         try:
@@ -174,75 +191,107 @@ class KnowledgeGraphBuilder:
                 if isinstance(node, ast.Assign) and isinstance(node.value, ast.Call) and isinstance(node.value.func, ast.Name) and node.value.func.id == 'FastAPI' and isinstance(node.targets[0], ast.Name):
                     self.fastapi_app_name = node.targets[0].id
                 elif isinstance(node, ast.If) and isinstance(node.test, ast.Compare) and isinstance(node.test.left, ast.Name) and node.test.left.id == '__name__' and isinstance(node.test.comparators[0], ast.Constant) and node.test.comparators[0].value == '__main__':
-                    visitor = FunctionCallVisitor(); visitor.visit(node); main_block_entries.update(visitor.calls)
+                    visitor = FunctionCallVisitor()
+                    visitor.visit(node)
+                    main_block_entries.update(visitor.calls)
             self.cli_entry_points.update(main_block_entries)
 
             visitor = ContextAwareVisitor(self, filepath, source_lines)
             visitor.visit(tree)
             return True
+        except UnicodeDecodeError as e:
+            log.error(f"Encoding error scanning {filepath}: {e}", exc_info=True)
+            return False
         except Exception as e:
-            log.error(f"Error scanning {filepath}: {e}", exc_info=False)
+            log.error(f"Error scanning {filepath}: {e}", exc_info=True)
             return False
 
     def _process_symbol_node(self, node: ast.AST, filepath: Path, source_lines: List[str], parent_key: Optional[str]) -> Optional[str]:
-        """Extracts and stores metadata from a single function or class AST node."""
-        if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)): return None
+        """Extracts and stores metadata from a single function or class AST node, including nested methods."""
+        if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            return None
         
         node_for_hashing = _strip_docstrings(ast.parse(ast.unparse(node)))
-        structural_string = ast.unparse(node_for_hashing)
+        structural_string = ast.unparse(node_for_hashing).replace('\n', '').replace(' ', '')  # Normalize for consistent hashing
         structural_hash = hashlib.sha256(structural_string.encode('utf-8')).hexdigest()
 
-        visitor = FunctionCallVisitor(); visitor.visit(node)
+        visitor = FunctionCallVisitor()
+        visitor.visit(node)
         key = f"{filepath.relative_to(self.root_path).as_posix()}::{node.name}"
-        doc = ast.get_docstring(node) or ""
+        doc = self._detect_docstring(node)
         domain = self._determine_domain(filepath.relative_to(self.root_path))
         is_class = isinstance(node, ast.ClassDef)
 
         base_classes = []
         if is_class:
             for base in node.bases:
-                if isinstance(base, ast.Name): base_classes.append(base.id)
-                elif isinstance(base, ast.Attribute): base_classes.append(base.attr)
+                if isinstance(base, ast.Name):
+                    base_classes.append(base.id)
+                elif isinstance(base, ast.Attribute):
+                    base_classes.append(base.attr)
         
         func_info = FunctionInfo(
-            key=key, name=node.name, type=node.__class__.__name__, file=filepath.relative_to(self.root_path).as_posix(),
-            calls=visitor.calls, line_number=node.lineno, is_async=isinstance(node, ast.AsyncFunctionDef),
-            docstring=doc, parameters=[arg.arg for arg in node.args.args] if hasattr(node, 'args') else [],
+            key=key,
+            name=node.name,
+            type=node.__class__.__name__,
+            file=filepath.relative_to(self.root_path).as_posix(),
+            calls=visitor.calls,
+            line_number=node.lineno,
+            is_async=isinstance(node, ast.AsyncFunctionDef),
+            docstring=doc,
+            parameters=[arg.arg for arg in node.args.args] if hasattr(node, 'args') else [],
             entry_point_type=self._get_entry_point_type(node) if not is_class else None,
-            domain=domain, agent=self._infer_agent_from_path(filepath.relative_to(self.root_path)),
+            domain=domain,
+            agent=self._infer_agent_from_path(filepath.relative_to(self.root_path)),
             capability=self._parse_metadata_comment(node, source_lines).get("capability", "unassigned"),
-            intent=doc.split('\n')[0].strip() or f"Provides functionality for the {domain} domain.",
-            last_updated=datetime.now(timezone.utc).isoformat(), is_class=is_class,
-            base_classes=base_classes, parent_class_key=parent_key,
+            intent=doc.split('\n')[0].strip() if doc else f"Provides functionality for the {domain} domain.",
+            last_updated=datetime.now(timezone.utc).isoformat(),
+            is_class=is_class,
+            base_classes=base_classes,
+            parent_class_key=parent_key,
             structural_hash=structural_hash
         )
         self.functions[key] = func_info
+
+        # Handle methods within classes
+        if is_class:
+            for child_node in node.body:
+                if isinstance(child_node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                    child_key = self._process_symbol_node(child_node, filepath, source_lines, key)
+                    if child_key:
+                        self.functions[child_key].parent_class_key = key
+
         return key
 
     def _apply_entry_point_patterns(self):
         """Applies declarative patterns to identify non-obvious entry points."""
         all_base_classes = {base for info in self.functions.values() for base in info.base_classes}
         for info in self.functions.values():
-            if info.entry_point_type: continue
+            if info.entry_point_type:
+                continue
             for pattern in self.patterns:
                 rules, is_match = pattern.get("match", {}), True
                 
-                if rules.get("has_capability_tag") and info.capability == "unassigned": is_match = False
-                if rules.get("is_base_class") and (not info.is_class or info.name not in all_base_classes): is_match = False
-                if "name_regex" in rules and not re.match(rules["name_regex"], info.name): is_match = False
+                if rules.get("has_capability_tag") and info.capability == "unassigned":
+                    is_match = False
+                if rules.get("is_base_class") and (not info.is_class or info.name not in all_base_classes):
+                    is_match = False
+                if "name_regex" in rules and not re.match(rules["name_regex"], info.name):
+                    is_match = False
                 
                 if "base_class_includes" in rules:
                     parent_bases = info.base_classes
                     if info.parent_class_key and info.parent_class_key in self.functions:
                         parent_bases.extend(self.functions[info.parent_class_key].base_classes)
-                    if not any(b == rules["base_class_includes"] for b in parent_bases): is_match = False
+                    if not any(b == rules["base_class_includes"] for b in parent_bases):
+                        is_match = False
                 
                 if "has_decorator" in rules:
-                     file_path = self.root_path / info.file
-                     source_lines = file_path.read_text().splitlines()
-                     decorator_line = source_lines[info.line_number - 2].strip()
-                     if f"@{rules['has_decorator']}" not in decorator_line:
-                         is_match = False
+                    file_path = self.root_path / info.file
+                    source_lines = file_path.read_text().splitlines()
+                    decorator_line = source_lines[info.line_number - 2].strip()
+                    if f"@{rules['has_decorator']}" not in decorator_line:
+                        is_match = False
                 
                 if "module_path_contains" in rules:
                     if rules["module_path_contains"] not in info.file:
@@ -251,7 +300,8 @@ class KnowledgeGraphBuilder:
                     is_match = False
 
                 if is_match:
-                    info.entry_point_type, info.entry_point_justification = pattern["entry_point_type"], pattern["name"]
+                    info.entry_point_type = pattern["entry_point_type"]
+                    info.entry_point_justification = pattern["name"]
                     break
 
     def build(self) -> Dict[str, Any]:
@@ -261,18 +311,25 @@ class KnowledgeGraphBuilder:
         log.info(f"Found {len(py_files)} Python files to scan in src/")
         
         for pyfile in py_files:
-            if self.scan_file(pyfile): self.files_scanned += 1
-            else: self.files_failed += 1
+            if self.scan_file(pyfile):
+                self.files_scanned += 1
+            else:
+                self.files_failed += 1
         
         log.info(f"Scanned {self.files_scanned} files ({self.files_failed} failed). Applying declarative patterns...")
         self._apply_entry_point_patterns()
 
         serializable_functions = {key: asdict(info, dict_factory=lambda x: {k: v for (k, v) in x if v is not None}) for key, info in self.functions.items()}
-        for data in serializable_functions.values(): data["calls"] = sorted(list(data["calls"]))
+        for data in serializable_functions.values():
+            data["calls"] = sorted(list(data["calls"]))
         
         return {
             "schema_version": "2.0.0",
-            "metadata": {"files_scanned": self.files_scanned, "total_symbols": len(self.functions), "timestamp_utc": datetime.now(timezone.utc).isoformat()},
+            "metadata": {
+                "files_scanned": self.files_scanned,
+                "total_symbols": len(self.functions),
+                "timestamp_utc": datetime.now(timezone.utc).isoformat()
+            },
             "symbols": serializable_functions
         }
 
@@ -285,7 +342,8 @@ def main():
         graph = builder.build()
         out_path = root / ".intent/knowledge/knowledge_graph.json"
         out_path.parent.mkdir(parents=True, exist_ok=True)
-        out_path.write_text(json.dumps(graph, indent=2))
+        with FileLock(str(out_path) + ".lock"):  # Ensure atomic write
+            out_path.write_text(json.dumps(graph, indent=2))
         log.info(f"✅ Knowledge graph generated! Scanned {builder.files_scanned} files, found {len(graph['symbols'])} symbols.")
         log.info(f"   -> Saved to {out_path}")
     except Exception as e:

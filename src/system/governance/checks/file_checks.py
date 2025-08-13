@@ -2,6 +2,7 @@
 """Auditor checks related to file existence, format, and structure."""
 
 from pathlib import Path
+from typing import List, Set
 from system.governance.models import AuditFinding, AuditSeverity
 from core.validation_pipeline import validate_code
 
@@ -9,107 +10,157 @@ class FileChecks:
     """Container for file-based constitutional checks."""
 
     def __init__(self, context):
-        """Initializes the check with a shared auditor context."""
+        """Initialize with a shared auditor context."""
         self.context = context
+        self.intent_dir: Path = context.intent_dir
+        self.repo_root: Path = context.repo_root
 
     # CAPABILITY: audit.check.required_files
-    def check_required_files(self) -> list[AuditFinding]:
-        """Verifies that all files declared in meta.yaml exist on disk."""
-        findings = []
+    def check_required_files(self) -> List[AuditFinding]:
+        """Verify that all files declared in meta.yaml exist on disk."""
+        findings: List[AuditFinding] = []
         check_name = "Required Intent File Existence"
         
         required_files = self._get_known_files_from_meta()
         
         if not required_files:
-            findings.append(AuditFinding(AuditSeverity.WARNING, "meta.yaml is empty or missing; cannot check for required files.", check_name))
+            findings.append(AuditFinding(
+                severity=AuditSeverity.WARNING,
+                message="meta.yaml is empty or missing; cannot check for required files.",
+                check_name=check_name
+            ))
             return findings
 
         missing_count = 0
-        for file_rel_path in sorted(list(required_files)):
-            full_path = self.context.repo_root / file_rel_path
+        for file_rel_path in sorted(required_files):
+            full_path = self.repo_root / file_rel_path
             if not full_path.exists():
                 missing_count += 1
-                findings.append(AuditFinding(AuditSeverity.ERROR, f"Missing constitutionally-required file: '{file_rel_path}'", check_name))
+                findings.append(AuditFinding(
+                    severity=AuditSeverity.ERROR,
+                    message=f"Missing constitutionally-required file: '{file_rel_path}'",
+                    check_name=check_name
+                ))
 
         if missing_count == 0:
-            findings.append(AuditFinding(AuditSeverity.SUCCESS, f"All {len(required_files)} constitutionally-required files are present.", check_name))
+            findings.append(AuditFinding(
+                severity=AuditSeverity.SUCCESS,
+                message=f"All {len(required_files)} constitutionally-required files are present.",
+                check_name=check_name
+            ))
             
         return findings
 
-    # --- THIS IS THE FIX ---
-    # Restore the missing capability tag.
     # CAPABILITY: audit.check.syntax
-    def check_syntax(self) -> list[AuditFinding]:
-        """Validates the syntax of all .intent YAML/JSON files (including proposals)."""
-        findings = []
+    def check_syntax(self) -> List[AuditFinding]:
+        """Validate syntax of all .intent YAML/JSON files (including proposals)."""
+        findings: List[AuditFinding] = []
         check_name = "YAML/JSON Syntax Validity"
-        error_findings = []
 
-        files_to_check = list(self.context.intent_dir.rglob("*.yaml")) + list(self.context.intent_dir.rglob("*.json"))
+        files_to_check = [
+            *self.intent_dir.rglob("*.yaml"),
+            *self.intent_dir.rglob("*.json")
+        ]
+        
+        error_findings = []
         for file_path in files_to_check:
-            if file_path.is_file():
-                result = validate_code(str(file_path), file_path.read_text(encoding='utf-8'), quiet=True)
+            if not file_path.is_file():
+                continue
+            try:
+                content = file_path.read_text(encoding='utf-8')
+                result = validate_code(str(file_path), content, quiet=True)
                 if result["status"] == "dirty":
                     for violation in result["violations"]:
                         error_findings.append(AuditFinding(
-                            AuditSeverity.ERROR,
-                            f"Syntax Error: {violation['message']}",
-                            check_name,
-                            str(file_path.relative_to(self.context.repo_root))
+                            severity=AuditSeverity.ERROR,
+                            message=f"Syntax Error: {violation['message']}",
+                            check_name=check_name,
+                            file_path=str(file_path.relative_to(self.repo_root))
                         ))
+            except UnicodeDecodeError:
+                error_findings.append(AuditFinding(
+                    severity=AuditSeverity.ERROR,
+                    message=f"Unable to read file '{file_path.name}' due to encoding issues",
+                    check_name=check_name,
+                    file_path=str(file_path.relative_to(self.repo_root))
+                ))
 
         if not error_findings:
-            findings.append(AuditFinding(AuditSeverity.SUCCESS, f"Validated syntax for {len(files_to_check)} YAML/JSON files.", check_name))
+            findings.append(AuditFinding(
+                severity=AuditSeverity.SUCCESS,
+                message=f"Validated syntax for {len(files_to_check)} YAML/JSON files.",
+                check_name=check_name
+            ))
         findings.extend(error_findings)
         return findings
 
     # CAPABILITY: audit.check.orphaned_intent_files
-    def check_for_orphaned_intent_files(self) -> list[AuditFinding]:
-        """Finds .intent files that are not referenced in meta.yaml."""
-        findings = []
+    def check_for_orphaned_intent_files(self) -> List[AuditFinding]:
+        """Find .intent files not referenced in meta.yaml."""
+        findings: List[AuditFinding] = []
         check_name = "Orphaned Intent Files"
         known_files = self._get_known_files_from_meta()
-        if not known_files: return []
-
-        ignore_patterns = [".bak", "proposals", ".example"]
-        physical_files = {str(p.relative_to(self.context.repo_root)).replace("\\", "/") for p in self.context.intent_dir.rglob("*") if p.is_file() and not any(pat in str(p) for pat in ignore_patterns)}
         
-        orphaned_files = sorted(list(physical_files - known_files))
+        if not known_files:
+            return findings
+
+        ignore_patterns = {".bak", "proposals", ".example", ".lock"}
+        physical_files = {
+            str(p.relative_to(self.repo_root)).replace("\\", "/")
+            for p in self.intent_dir.rglob("*")
+            if p.is_file() and not any(pat in str(p) for pat in ignore_patterns)
+        }
+        
+        orphaned_files = sorted(physical_files - known_files)
         
         if orphaned_files:
             for orphan in orphaned_files:
-                findings.append(AuditFinding(AuditSeverity.WARNING, f"Orphaned intent file: '{orphan}' is not a recognized system file.", check_name))
+                findings.append(AuditFinding(
+                    severity=AuditSeverity.WARNING,
+                    message=f"Orphaned intent file: '{orphan}' is not a recognized system file.",
+                    check_name=check_name
+                ))
         else:
-            findings.append(AuditFinding(AuditSeverity.SUCCESS, "No orphaned or unrecognized intent files found.", check_name))
+            findings.append(AuditFinding(
+                severity=AuditSeverity.SUCCESS,
+                message="No orphaned or unrecognized intent files found.",
+                check_name=check_name
+            ))
         return findings
 
-    def _get_known_files_from_meta(self) -> set:
-        """Builds a set of all known intent files by reading .intent/meta.yaml."""
-        meta_file_path = self.context.intent_dir / "meta.yaml"
-        if not meta_file_path.exists(): return set()
+    def _get_known_files_from_meta(self) -> Set[str]:
+        """Build a set of known intent files from .intent/meta.yaml."""
+        meta_file_path = self.intent_dir / "meta.yaml"
+        if not meta_file_path.exists():
+            return set()
 
-        meta_config = self.context.load_config(meta_file_path, "yaml")
-        known_files = set()
+        try:
+            meta_config = self.context.load_config(meta_file_path, "yaml")
+        except Exception as e:
+            return set()
+
+        known_files: Set[str] = set()
 
         def _recursive_find_paths(data):
-            """Recursively finds all file paths declared in the meta configuration."""
+            """Recursively find all file paths in meta configuration."""
             if isinstance(data, dict):
-                for value in data.values(): _recursive_find_paths(value)
+                for value in data.values():
+                    _recursive_find_paths(value)
             elif isinstance(data, list):
-                for item in data: _recursive_find_paths(item)
-            elif isinstance(data, str) and ('.' in data and '/' in data):
-                full_path_str = str(Path(".intent") / data)
-                known_files.add(full_path_str.replace("\\", "/"))
+                for item in data:
+                    _recursive_find_paths(item)
+            elif isinstance(data, str) and '.' in data and '/' in data:
+                full_path_str = str(Path(".intent") / data).replace("\\", "/")
+                known_files.add(full_path_str)
 
         _recursive_find_paths(meta_config)
         
         known_files.add(".intent/meta.yaml")
         known_files.add(".intent/project_manifest.yaml")
-        known_files.add(".intent/knowledge/knowledge_graph.json")
         
-        schema_dir = self.context.intent_dir / "schemas"
+        schema_dir = self.intent_dir / "schemas"
         if schema_dir.exists():
             for schema_file in schema_dir.glob("*.json"):
-                known_files.add(str(schema_file.relative_to(self.context.repo_root)).replace("\\", "/"))
+                known_files.add(str(schema_file.relative_to(self.repo_root)).replace("\\", "/"))
         
         return known_files

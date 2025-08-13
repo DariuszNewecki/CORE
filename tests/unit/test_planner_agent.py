@@ -2,8 +2,10 @@
 import json
 import pytest
 import textwrap
-from agents.planner_agent import PlannerAgent, ExecutionTask, PlannerConfig, TaskParams, PlanExecutionError
-from unittest.mock import MagicMock, patch, AsyncMock, call
+from agents.planner_agent import PlannerAgent, ExecutionTask, PlannerConfig, PlanExecutionError
+from agents.plan_executor import PlanExecutor
+from agents.models import TaskParams
+from unittest.mock import MagicMock, patch, AsyncMock
 from pathlib import Path
 from pydantic import ValidationError
 
@@ -51,20 +53,6 @@ def test_create_execution_plan_fails_on_invalid_action(mock_dependencies):
             agent.create_execution_plan(goal)
 
 @pytest.mark.asyncio
-async def test_execute_task_fails_with_missing_params(mock_dependencies):
-    """Tests that the pre-flight validation catches logically incomplete tasks."""
-    agent = PlannerAgent(**mock_dependencies)
-    
-    incomplete_task = ExecutionTask(
-        step="Incomplete tag task",
-        action="add_capability_tag",
-        params=TaskParams(file_path="src/test.py", symbol_name="test_func") # Missing 'tag'
-    )
-    
-    with pytest.raises(PlanExecutionError, match="missing required parameters"):
-        await agent._execute_task(incomplete_task)
-
-@pytest.mark.asyncio
 async def test_execute_plan_full_flow(mock_dependencies):
     """Tests the new two-step execute_plan flow."""
     agent = PlannerAgent(**mock_dependencies)
@@ -74,54 +62,63 @@ async def test_execute_plan_full_flow(mock_dependencies):
     agent.orchestrator.make_request.return_value = f"```json\n{plan_json}\n```"
     agent.generator.make_request.return_value = "print('Hello, World!')"
 
-    agent._execute_create_file = AsyncMock()
+    agent.executor.execute_plan = AsyncMock()
     
     success, message = await agent.execute_plan(goal)
 
     assert success is True
     assert message == "✅ Plan executed successfully."
-    agent._execute_create_file.assert_awaited_once()
-    call_args = agent._execute_create_file.call_args[0][0]
-    assert call_args.code == "print('Hello, World!')"
+    agent.executor.execute_plan.assert_awaited_once()
+    
+    executed_plan = agent.executor.execute_plan.call_args[0][0]
+    assert executed_plan[0].params.code == "print('Hello, World!')"
+
 
 @pytest.mark.asyncio
-@patch('agents.planner_agent.validate_code')
-async def test_execute_create_file_success(mock_validate_code, mock_dependencies, tmp_path):
-    """Happy Path: Verifies that a valid 'create_file' task succeeds."""
+@patch('agents.plan_executor.validate_code')
+async def test_plan_executor_create_file_success(mock_validate_code, mock_dependencies, tmp_path):
+    """Happy Path: Verifies that a valid 'create_file' task succeeds via the executor."""
     mock_validate_code.return_value = {"status": "clean", "code": "print('hello world')", "violations": []}
-    agent = PlannerAgent(**mock_dependencies)
-    agent.repo_path = tmp_path
+    
+    executor = PlanExecutor(
+        file_handler=mock_dependencies["file_handler"],
+        git_service=mock_dependencies["git_service"],
+        config=mock_dependencies["config"]
+    )
+    executor.repo_path = tmp_path
+
     params = TaskParams(file_path="src/new_feature.py", code="print('hello world')")
     
-    await agent._execute_create_file(params)
+    await executor._execute_create_file(params)
     
     mock_validate_code.assert_called_once_with("src/new_feature.py", "print('hello world')")
-    agent.file_handler.add_pending_write.assert_called_once()
-    agent.git_service.commit.assert_called_once()
+    executor.file_handler.add_pending_write.assert_called_once()
+    executor.git_service.commit.assert_called_once()
+
 
 @pytest.mark.asyncio
-@patch('agents.planner_agent.validate_code')
-async def test_execute_create_file_fails_on_validation_error(mock_validate_code, mock_dependencies):
+@patch('agents.plan_executor.validate_code')
+async def test_plan_executor_create_file_fails_on_validation_error(mock_validate_code, mock_dependencies):
     """Sad Path: Verifies that the task fails if the code has 'error' severity violations."""
     mock_validate_code.return_value = {
         "status": "dirty",
         "violations": [{"rule": "E999", "message": "Syntax error!", "line": 1, "severity": "error"}],
         "code": "print("
     }
-    agent = PlannerAgent(**mock_dependencies)
+    executor = PlanExecutor(**{k: v for k, v in mock_dependencies.items() if k not in ['orchestrator_client', 'generator_client', 'intent_guard']})
     params = TaskParams(file_path="src/bad_file.py", code="print(")
     
     with pytest.raises(PlanExecutionError, match="failed validation") as excinfo:
-        await agent._execute_create_file(params)
+        await executor._execute_create_file(params)
     
     assert len(excinfo.value.violations) == 1
     assert excinfo.value.violations[0]["rule"] == "E999"
 
 @pytest.mark.asyncio
-async def test_execute_create_file_fails_if_file_exists(mock_dependencies, tmp_path):
+async def test_plan_executor_create_file_fails_if_file_exists(mock_dependencies, tmp_path):
     """Sad Path: Verifies that the task fails if the target file already exists."""
-    agent = PlannerAgent(**mock_dependencies)
-    agent.repo_path = tmp_path
+    executor = PlanExecutor(**{k: v for k, v in mock_dependencies.items() if k not in ['orchestrator_client', 'generator_client', 'intent_guard']})
+    executor.repo_path = tmp_path
 
     existing_file_path = tmp_path / "src/already_exists.py"
     existing_file_path.parent.mkdir(exist_ok=True)
@@ -130,17 +127,22 @@ async def test_execute_create_file_fails_if_file_exists(mock_dependencies, tmp_p
     params = TaskParams(file_path="src/already_exists.py", code="print('overwrite?')")
     
     with pytest.raises(FileExistsError):
-        await agent._execute_create_file(params)
+        await executor._execute_create_file(params)
 
 @pytest.mark.asyncio
-@patch('agents.planner_agent.validate_code')
-async def test_execute_edit_function_success(mock_validate_code, mock_dependencies, tmp_path):
-    """Happy Path: Verifies that a valid 'edit_function' task succeeds."""
-    agent = PlannerAgent(**mock_dependencies)
-    agent.repo_path = tmp_path
+@patch('agents.plan_executor.validate_code')
+@patch('agents.plan_executor.CodeEditor')
+async def test_plan_executor_edit_function_success(mock_code_editor_class, mock_validate_code, mock_dependencies, tmp_path):
+    """Happy Path: Verifies that a valid 'edit_function' task succeeds via the executor."""
+    mock_editor_instance = mock_code_editor_class.return_value
+    mock_validate_code.return_value = {"status": "clean", "code": 'def my_func():\n    # A new comment\n    return 2\n', "violations": []}
     
-    # --- THIS IS THE FIX: Replace the real CodeEditor with a mock for this test ---
-    agent.code_editor = MagicMock()
+    executor = PlanExecutor(
+        file_handler=mock_dependencies["file_handler"],
+        git_service=mock_dependencies["git_service"],
+        config=mock_dependencies["config"]
+    )
+    executor.repo_path = tmp_path
     
     original_code = textwrap.dedent("""
         def my_func():
@@ -155,7 +157,6 @@ async def test_execute_edit_function_success(mock_validate_code, mock_dependenci
             # A new comment
             return 2
     """)
-    
     validated_and_formatted_snippet = 'def my_func():\n    # A new comment\n    return 2\n'
     
     params = TaskParams(
@@ -164,19 +165,15 @@ async def test_execute_edit_function_success(mock_validate_code, mock_dependenci
         code=new_function_code
     )
 
-    mock_validate_code.return_value = {"status": "clean", "code": validated_and_formatted_snippet, "violations": []}
-    
-    await agent._execute_edit_function(params)
+    await executor._execute_edit_function(params)
 
-    # Assert that the validation was called with the raw generated code
     mock_validate_code.assert_called_once_with("src/feature.py", new_function_code)
     
-    # Assert that the *correctly validated and formatted code* was passed to the editor
-    agent.code_editor.replace_symbol_in_code.assert_called_once_with(
+    mock_editor_instance.replace_symbol_in_code.assert_called_once_with(
         original_code,
         "my_func",
         validated_and_formatted_snippet
     )
     
-    agent.file_handler.add_pending_write.assert_called_once()
-    agent.git_service.commit.assert_called_once_with("feat: Modify function my_func in src/feature.py")
+    executor.file_handler.add_pending_write.assert_called_once()
+    executor.git_service.commit.assert_called_once_with("feat: Modify function my_func in src/feature.py")

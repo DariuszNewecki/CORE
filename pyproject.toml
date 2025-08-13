@@ -49,6 +49,7 @@ radon = ">=5.1.0" # <<< --- THIS IS THE LINE THAT WAS MISSING ---
 # --- Development Dependencies ---
 # This replaces the old [project.optional-dependencies].
 # All dev/test tools go here. You install them with `poetry install --with dev`.
+filelock = "^3.18.0"
 [tool.poetry.group.dev.dependencies]
 pytest = ">=7.0,<8.0" # Pinned to avoid the conflict we saw
 pytest-asyncio = "==0.21.0" # Pinned to the version we know works

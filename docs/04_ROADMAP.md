@@ -79,3 +79,19 @@ This new phase, based on feedback from the AI Peer Review Board, focuses on addi
 -   **Challenge:** The process for managing human approvers is not fully documented.
 -   **Goal:** Expand `.intent/constitution/approvers.yaml` or create a new procedure document that defines the formal process for onboarding, offboarding, and key rotation/revocation for human operators.
 -   **Status:** ⏳ **Not Started**
+
+---
+
+## Phase 6: Improving Architectural Health (New)
+
+This phase addresses technical debt identified by the `ConstitutionalAuditor` to ensure the long-term health and maintainability of the codebase, upholding the `separation_of_concerns` principle.
+
+### 6.1: Refactor `codegraph_builder.py`
+-   **Challenge:** The `KnowledgeGraphBuilder` class has grown too large (304 LLOC) and mixes responsibilities (file discovery, AST parsing, domain mapping, pattern matching).
+-   **Goal:** Decompose `KnowledgeGraphBuilder` into smaller, single-responsibility helper classes or modules. For example, a `PatternMatcher` class, a `DomainResolver` class, and a `SymbolParser` class.
+-   **Status:** ⏳ **Not Started**
+
+### 6.2: Refactor `proposal_checks.py`
+-   **Challenge:** The `ProposalChecks` class is becoming a complexity outlier (190 LLOC).
+-   **Goal:** Refactor the large check methods into smaller, more focused helper functions to improve readability and testability.
+-   **Status:** ⏳ **Not Started**
