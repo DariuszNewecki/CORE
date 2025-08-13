@@ -17,6 +17,10 @@ policies:
   safety_policies: "policies/safety_policies.yaml"
   security_intents: "policies/security_intents.yaml"
   code_health_policy: "policies/code_health_policy.yaml"
+  enforcement_model: "policies/enforcement_model.yaml"
+  secrets_management: "policies/secrets_management.yaml"
+  dependency_management: "policies/dependency_management.yaml"
+  incident_response: "policies/incident_response.yaml"
 
 prompts:
   constitutional_review: "prompts/constitutional_review.prompt"

@@ -1,0 +1,9 @@
+# .intent/policies/incident_response.yaml
+#
+# PURPOSE: This document will define the formal procedure for responding to
+# security incidents, constitutional violations, or critical operational failures.
+# It will include steps for containment, analysis, and remediation.
+#
+# STATUS: Not yet implemented.
+
+procedures: []

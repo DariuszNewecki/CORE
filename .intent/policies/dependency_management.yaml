@@ -1,0 +1,9 @@
+# .intent/policies/dependency_management.yaml
+#
+# PURPOSE: This policy will govern the addition and auditing of third-party
+# dependencies (e.g., Python packages from PyPI). It will include rules
+# for license compatibility, vulnerability scanning, and supply chain security.
+#
+# STATUS: Not yet implemented.
+
+rules: []

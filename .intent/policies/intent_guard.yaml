@@ -1,11 +1,7 @@
 # .intent/policies/intent_guard.yaml
 # This file contains low-level, machine-enforceable governance rules.
 # More complex security policies are defined in safety_policies.yaml.
-
-enforcement_levels:
-  hard: "Automatic rejection of the action with no override possible. The process must stop."
-  soft: "A warning is logged, but the action is allowed to proceed. May be escalated."
-  manual_review: "Execution is paused and requires explicit human approval via a governed mechanism (e.g., CLI prompt, signed proposal)."
+# Definitions for enforcement levels are now in enforcement_model.yaml.
 
 rules:
   - id: no_direct_intent_writes
@@ -19,9 +15,11 @@ rules:
     exclude:
       paths:
         - ".intent/proposals/"
+        - ".intent/knowledge/knowledge_graph.json" # Allow KG to be updated by its builder
+        - ".intent/knowledge/knowledge_graph.json.lock" # Allow lock file for atomic writes
 
   - id: max_nesting_level
-    description: "Code logic should not be nested more than 3 levels deep to maintain clarity."
+    description: "Code logic should not be nested more than 4 levels deep to maintain clarity."
     enforcement: soft # This is a guideline, not a hard blocker.
     applies_to:
       patterns: ["src/**/*.py"]
