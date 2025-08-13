@@ -78,7 +78,7 @@ def register(app: typer.Typer) -> None:
         proposal = load_yaml_file(proposal_path)
         private_key = load_private_key()
 
-        token = generate_approval_token(proposal.get("content", ""))
+        token = generate_approval_token(proposal)
         signature = private_key.sign(token.encode("utf-8"))
 
         identity = typer.prompt("Enter your identity (e.g., name@domain.com) to associate with this signature")
@@ -131,7 +131,7 @@ def register(app: typer.Typer) -> None:
                     continue
 
                 pub_key.verify(base64.b64decode(sig["signature_b64"]), sig["token"].encode("utf-8"))
-                if sig["token"] == generate_approval_token(proposal.get("content", "")):
+                if sig["token"] == generate_approval_token(proposal):
                     log.info(f"   ✅ Valid signature from '{identity}'.")
                     valid_signatures += 1
                 else:
@@ -171,15 +171,11 @@ def register(app: typer.Typer) -> None:
                 log.error(f"❌ Failed to create clean git clone for canary. Aborting. Stderr: {e.stderr.decode()}")
                 raise typer.Exit(code=1)
             
-            # --- THIS IS THE FIX ---
-            # Copy the .env file into the canary so it can pass its own environment checks.
             env_file = settings.REPO_PATH / ".env"
             if env_file.exists():
                 shutil.copy(env_file, tmp_path / ".env")
                 log.info("   -> Copied environment configuration to canary.")
-            # --- END OF FIX ---
             
-            # Apply proposed change in the clean canary environment
             canary_target_path = tmp_path / target_rel_path
             canary_target_path.parent.mkdir(parents=True, exist_ok=True)
             canary_target_path.write_text(proposal.get("content", ""), encoding="utf-8")
@@ -200,7 +196,6 @@ def register(app: typer.Typer) -> None:
                 log.error("❌ Canary audit FAILED. Proposal rejected; live system untouched.")
                 raise typer.Exit(code=1)
 
-    # Optional ergonomic namespace, keeps old single-word commands intact
     proposals = typer.Typer(help="Work with constitutional proposals")
     app.add_typer(proposals, name="proposals")
 

@@ -11,22 +11,13 @@ import datetime
 from typing import Dict
 from pathlib import Path
 from shared.logger import getLogger
+from shared.config import settings
 
 log = getLogger(__name__)
 
-LOG_DIR = Path("logs")
-LOG_FILE = LOG_DIR / "test_results.log"
-FAILURE_FILE = LOG_DIR / "test_failures.json"
-LOG_DIR.mkdir(exist_ok=True)
-
 # CAPABILITY: test_execution
 def run_tests(silent: bool = True) -> Dict[str, str]:
-    """Executes pytest on the tests/ directory, capturing stdout, stderr, exit code, and a summary, returning results as a structured dict."""
-    """
-    Executes pytest on the tests/ directory and returns a structured result.
-    This function captures stdout, stderr, and the exit code, providing a
-    comprehensive summary of the test run for agents to act upon.
-    """
+    """Executes pytest on the tests/ directory and returns a structured result."""
     log.info("🧪 Running tests with pytest...")
     result = {
         "exit_code": "-1",
@@ -84,7 +75,6 @@ def run_tests(silent: bool = True) -> Dict[str, str]:
     return result
 
 def _summarize(output: str) -> str:
-    """Error: Could not connect to LLM endpoint. Details: HTTPSConnectionPool(host='api.deepseek.com', port=443): Read timed out. (read timeout=180)"""
     """Parses pytest output to find the final summary line."""
     lines = output.strip().splitlines()
     for line in reversed(lines):
@@ -95,23 +85,26 @@ def _summarize(output: str) -> str:
 def _log_test_result(data: Dict[str, str]):
     """Appends a JSON record of a test run to the persistent log file."""
     try:
-        with open(LOG_FILE, "a", encoding="utf-8") as f:
+        log_path = Path(settings.CORE_ACTION_LOG_PATH)
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(log_path, "a", encoding="utf-8") as f:
             f.write(json.dumps(data) + "\n")
     except Exception as e:
         log.warning(f"Failed to write to persistent test log file: {e}", exc_info=True)
 
-    """Saves test failure details to FAILURE_FILE if exit_code is non-zero, otherwise removes the file if it exists."""
 def _store_failure_if_any(data: Dict[str, str]):
     """Saves the details of a failed test run to a dedicated file for easy access."""
     try:
+        failure_path = Path("logs/test_failures.json")
         if data.get("exit_code") != "0":
-            with open(FAILURE_FILE, "w", encoding="utf-8") as f:
-                json.dump({
-                    "summary": data.get("summary"),
-                    "stdout": data.get("stdout"),
-                    "timestamp": data.get("timestamp")
-                }, f, indent=2)
-        elif os.path.exists(FAILURE_FILE):
-            os.remove(FAILURE_FILE)
+            failure_path.parent.mkdir(parents=True, exist_ok=True)
+            payload = {
+                "summary": data.get("summary"),
+                "stdout": data.get("stdout"),
+                "timestamp": data.get("timestamp"),
+            }
+            failure_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+        elif failure_path.exists():
+            failure_path.unlink(missing_ok=True)
     except Exception as e:
         log.warning(f"Could not save test failure data: {e}", exc_info=True)
