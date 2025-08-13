@@ -75,9 +75,6 @@ async def generate_and_apply_docstring(
         source_code = file_path.read_text(encoding="utf-8")
         tree = ast.parse(source_code)
         
-        # --- THIS IS THE FIX ---
-        # We now perform a precise search for the node that matches BOTH name and line number.
-        # This allows us to find nested functions correctly.
         node_to_update = None
         for node in ast.walk(tree):
             if (isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)) 
@@ -127,15 +124,21 @@ async def _async_main(dry_run: bool):
     """The core asynchronous logic for finding and fixing docstrings."""
     log.info("🩺 Starting self-documentation cycle...")
     
-    if not KNOWLEDGE_GRAPH_PATH.exists():
-        log.error(f"Knowledge graph not found at {KNOWLEDGE_GRAPH_PATH}")
-        return
-
+    # --- THIS IS THE FIX ---
+    # Always rebuild the knowledge graph to ensure we are working with fresh data.
+    log.info("   -> Refreshing self-image (Knowledge Graph)...")
     try:
-        kg_data = json.loads(KNOWLEDGE_GRAPH_PATH.read_text())
-    except json.JSONDecodeError as e:
-        log.error(f"Invalid knowledge graph JSON: {str(e)}")
+        root = find_project_root(Path.cwd())
+        builder = KnowledgeGraphBuilder(root)
+        graph = builder.build()
+        KNOWLEDGE_GRAPH_PATH.write_text(json.dumps(graph, indent=2))
+        log.info("   -> Knowledge Graph refreshed.")
+    except Exception as e:
+        log.error(f"Failed to rebuild knowledge graph, cannot proceed: {e}")
         return
+    # --- END OF FIX ---
+
+    kg_data = graph # Use the freshly built graph data
 
     generator = GeneratorClient()
     symbols = kg_data.get("symbols", {}).values()

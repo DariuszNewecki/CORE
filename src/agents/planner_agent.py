@@ -14,6 +14,7 @@ from pydantic import ValidationError
 from core.clients import OrchestratorClient, GeneratorClient
 from core.file_handler import FileHandler
 from core.git_service import GitService
+from core.intent_guard import IntentGuard
 from core.prompt_pipeline import PromptPipeline
 from shared.logger import getLogger
 
@@ -36,15 +37,16 @@ class PlannerAgent:
                  generator_client: GeneratorClient,
                  file_handler: FileHandler,
                  git_service: GitService,
+                 intent_guard: IntentGuard, # <<< THIS IS THE FIX
                  config: Optional[PlannerConfig] = None):
         """Initializes the PlannerAgent with service dependencies."""
         self.orchestrator = orchestrator_client
         self.generator = generator_client
         self.file_handler = file_handler
         self.git_service = git_service
+        self.intent_guard = intent_guard # <<< THIS IS THE FIX
         self.config = config or PlannerConfig()
         self.prompt_pipeline = PromptPipeline(self.file_handler.repo_path)
-        # The executor is now a component of the planner
         self.executor = PlanExecutor(self.file_handler, self.git_service, self.config)
 
     def _setup_logging_context(self, goal: str, plan_id: str):
