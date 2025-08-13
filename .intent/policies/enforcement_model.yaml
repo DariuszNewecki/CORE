@@ -1,0 +1,27 @@
+# .intent/policies/enforcement_model.yaml
+#
+# PURPOSE: This file fulfills the 'clarity_first' principle by providing a
+# single, canonical source of truth for the definition of all enforcement
+# levels used in CORE's governance policies.
+
+enforcement_levels:
+  - level: hard
+    description: >
+      A non-negotiable rule. If a proposed action violates a 'hard' policy,
+      the action MUST be automatically rejected by the system's IntentGuard.
+      No override is possible without a formal, approved constitutional amendment
+      to the policy itself. This is the highest level of enforcement.
+
+  - level: soft
+    description: >
+      A strong guideline. If a proposed action violates a 'soft' policy, the
+      system's IntentGuard MUST log a formal WARNING. However, the action is
+      allowed to proceed. This is used for rules that are important but may have
+      valid exceptions, or for new rules being phased in.
+
+  - level: manual_review
+    description: >
+      A gate that requires human intervention. If a proposed action violates a
+      'manual_review' policy, the system MUST pause the execution and require
+      formal, cryptographic proof of human intent before proceeding. This is
+      typically handled via the 'core-admin proposals-approve' workflow.
