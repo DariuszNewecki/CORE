@@ -3,6 +3,12 @@
 # More complex security policies are defined in safety_policies.yaml.
 # Definitions for enforcement levels are now in enforcement_model.yaml.
 
+# NOTE:
+#  - Direct writes to `.intent/` remain forbidden.
+#  - The *only* sanctioned pathway for changing `.intent/*` is via
+#    the `core-admin proposals-approve` flow *after* a passing canary audit
+#    and quorum verification. No other entrypoint may write to `.intent/`.
+
 rules:
   - id: no_direct_intent_writes
     description: >

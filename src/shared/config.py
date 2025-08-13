@@ -21,18 +21,24 @@ class Settings(BaseSettings):
     REPO_PATH: Path = Path(".")
 
     # --- Orchestrator LLM Configuration ---
-    ORCHESTRATOR_API_URL: str
-    ORCHESTRATOR_API_KEY: str
+    # May be empty when LLMs are disabled.
+    ORCHESTRATOR_API_URL: str | None = None
+    ORCHESTRATOR_API_KEY: str | None = None
     ORCHESTRATOR_MODEL_NAME: str = "deepseek-chat"
 
     # --- Generator LLM Configuration ---
-    GENERATOR_API_URL: str
-    GENERATOR_API_KEY: str
+    # May be empty when LLMs are disabled.
+    GENERATOR_API_URL: str | None = None
+    GENERATOR_API_KEY: str | None = None
     GENERATOR_MODEL_NAME: str = "deepseek-coder"
     
     # --- CLI & Governance Configuration ---
     KEY_STORAGE_DIR: Path = Path.home() / ".config" / "core"
     CORE_ACTION_LOG_PATH: Path
+
+    # --- Feature Flags ---
+    # Disables LLM client initialization at startup when false.
+    LLM_ENABLED: bool = True
 
     class Config:
         """Defines Pydantic's behavior for the Settings model."""

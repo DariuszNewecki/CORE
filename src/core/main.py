@@ -25,6 +25,7 @@ from core.intent_guard import IntentGuard
 from agents.planner_agent import PlannerAgent, PlanExecutionError
 from core.capabilities import introspection
 from shared.logger import getLogger
+from shared.config import settings
 
 log = getLogger(__name__)
 load_dotenv()
@@ -42,10 +43,15 @@ async def lifespan(app: FastAPI):
     
     # Initialize services that are safe to be singletons and store them in the app state
     log.info("🛠️  Initializing shared services...")
-    app.state.orchestrator_client = OrchestratorClient()
-    app.state.generator_client = GeneratorClient()
+    if settings.LLM_ENABLED:
+        app.state.orchestrator_client = OrchestratorClient()
+        app.state.generator_client = GeneratorClient()
+    else:
+        log.info("⚙️  LLM_ENABLED=false — skipping LLM client initialization.")
+        app.state.orchestrator_client = None
+        app.state.generator_client = None
     app.state.git_service = GitService(".")
-    app.state.intent_guard = IntentGuard(Path(".")) # Corrected initialization
+    app.state.intent_guard = IntentGuard(Path("."))
     log.info("✅ CORE system is online and ready.")
     yield
     log.info("🛑 CORE system shutting down.")
@@ -62,9 +68,6 @@ async def execute_goal(request_data: GoalRequest, request: Request):
     goal = request_data.goal
     log.info(f"🎯 Received new goal: '{goal}'")
     
-    # --- THIS IS THE FIX (Part 3 of 3) ---
-    # We now create a new, request-specific instance of the FileHandler and PlannerAgent.
-    # This prevents state from leaking between different API calls.
     try:
         file_handler = FileHandler(".")
         planner = PlannerAgent(
