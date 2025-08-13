@@ -1,13 +1,9 @@
 # pyproject.toml
 
 [build-system]
-# This part is correct: it tells Python to use Poetry to build the project.
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
 
-# --- Poetry Project Metadata ---
-# This [tool.poetry] section replaces the old [project] section.
-# Poetry uses this to manage dependencies and package details.
 [tool.poetry]
 name = "core"
 version = "0.1.0"
@@ -15,7 +11,6 @@ description = "CORE: A self-governing, intent-driven software development system
 authors = ["Dariusz Newecki <d.newecki@gmail.com>"]
 license = "MIT"
 readme = "README.md"
-# --- MODIFICATION: Include all packages from the 'src' directory ---
 packages = [
     { include = "core", from = "src" },
     { include = "agents", from = "src" },
@@ -24,44 +19,35 @@ packages = [
 ]
 
 # --- Main Dependencies ---
-# This replaces the old [project].dependencies array.
 [tool.poetry.dependencies]
 python = ">=3.9"
 fastapi = ">=0.95.0"
-uvicorn = ">=0.21.0"
+uvicorn = {extras = ["standard"], version = ">=0.21.0"}
 pyyaml = ">=6.0"
-requests = ">=2.28.0"
-# --- THIS IS THE FIX ---
-# We are adding 'httpx' which is an asynchronous HTTP client.
 httpx = ">=0.25.0"
 python-dotenv = ">=1.0.0"
 pydantic = ">=2.0.0"
-# --- ADDITION: Centralized settings management ---
 pydantic-settings = "^2.0.0" 
 cryptography = ">=42.0.0"
 rich = "^13"
 black = "^24"
 jsonschema = "^4"
-# --- ADDITION: A powerful CLI library ---
 typer = {extras = ["rich"], version = "^0.9.0"}
-radon = ">=5.1.0" # <<< --- THIS IS THE LINE THAT WAS MISSING ---
+radon = ">=5.1.0"
+filelock = "^3.13.0"
 
 # --- Development Dependencies ---
-# This replaces the old [project.optional-dependencies].
-# All dev/test tools go here. You install them with `poetry install --with dev`.
-filelock = "^3.18.0"
 [tool.poetry.group.dev.dependencies]
-pytest = ">=7.0,<8.0" # Pinned to avoid the conflict we saw
-pytest-asyncio = "==0.21.0" # Pinned to the version we know works
+pytest = ">=7.0,<8.0"
+pytest-asyncio = "==0.21.0"
 ruff = ">=0.0.254"
+pytest-mock = "^3.12.0"
 
 # --- Command-Line Scripts ---
-# This replaces the old [project.scripts] section.
-# We will update this in a later step.
 [tool.poetry.scripts]
-core-admin = "system.admin_cli:app"
+core-admin = "src.system.admin:app"
 
-# --- Configuration for development tools (These do not change) ---
+# --- Configuration for development tools ---
 [tool.ruff]
 line-length = 88
 select = ["E", "W", "F", "I"]
