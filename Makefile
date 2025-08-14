@@ -12,7 +12,7 @@ HOST    ?= 0.0.0.0
 PORT    ?= 8000
 RELOAD  ?= --reload
 ENV_FILE ?= .env
-PATHS   ?= .
+PATHS   ?= src tests
 
 .PHONY: help install lock run stop audit lint format test coverage check clean clean-logs distclean nuke context
 
@@ -24,11 +24,11 @@ help:
 	@echo "make run           - Start uvicorn ($(APP)) on $(HOST):$(PORT)"
 	@echo "make stop          - Stop dev server reliably by killing process on port $(PORT)"
 	@echo "make audit         - Run the full self-audit (KnowledgeGraph + Auditor)"
-	@echo "make lint          - Ruff checks"
-	@echo "make format        - Black + Ruff --fix"
+	@echo "make lint          - Check formatting and code quality with Black and Ruff."
+	@echo "make format        - Auto-format code with Black and Ruff."
 	@echo "make test [ARGS=]  - Pytest (pass ARGS='-k expr -vv')"
 	@echo "make coverage      - Pytest with coverage"
-	@echo "make check         - Lint + Tests + Audit"
+	@echo "make check         - Run all checks: lint, test, and audit. The one command to run before you commit."
 	@echo "make context       - Build the project context file for AI collaboration"
 	@echo "make clean         - Remove caches, pending_writes, sandbox"
 	@echo "make distclean     - Clean + venv/build leftovers"
@@ -42,8 +42,7 @@ lock:
 	@echo "🔒 Resolving and locking dependencies..."
 	$(POETRY) lock
 
-# Ensure we stop before run
-run: stop
+run:
 	@echo "🚀 Starting FastAPI server at http://$(HOST):$(PORT)"
 	$(POETRY) run uvicorn $(APP) --host $(HOST) --port $(PORT) $(RELOAD) --env-file $(ENV_FILE)
 
@@ -67,13 +66,14 @@ audit:
 	$(POETRY) run python -m src.core.capabilities
 
 lint:
-	@echo "🎨 Checking code style with Ruff..."
+	@echo "🎨 Checking code style with Black and Ruff..."
+	$(POETRY) run black --check $(PATHS)
 	$(POETRY) run ruff check $(PATHS)
 
 format:
 	@echo "✨ Formatting code with Black and Ruff..."
 	$(POETRY) run black $(PATHS)
-	$(POETRY) run ruff check $(PATHS) --fix
+	$(POETRY) run ruff check $(PATHS) --fix --exit-non-zero-on-fix
 
 test:
 	@echo "🧪 Running tests with pytest..."

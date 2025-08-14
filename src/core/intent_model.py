@@ -11,9 +11,10 @@ Used to enforce boundaries, access rules, and governance alignment
 without hardcoding anything.
 """
 
-import yaml
 from pathlib import Path
 from typing import Dict, List, Optional
+
+import yaml
 
 
 class IntentModel:
@@ -21,6 +22,7 @@ class IntentModel:
     Loads and provides an queryable interface to the source code structure
     defined in .intent/knowledge/source_structure.yaml.
     """
+
     def __init__(self, repo_root: Optional[Path] = None):
         """Initializes the model by loading the source structure definition from the repository, inferring the root if not provided."""
         """
@@ -30,10 +32,13 @@ class IntentModel:
             repo_root (Optional[Path]): The root of the repository. Inferred if not provided.
         """
         self.repo_root = repo_root or Path(__file__).resolve().parents[2]
-        self.structure_path = self.repo_root / ".intent" / "knowledge" / "source_structure.yaml"
+        self.structure_path = (
+            self.repo_root / ".intent" / "knowledge" / "source_structure.yaml"
+        )
         self.structure: Dict[str, dict] = self._load_structure()
 
     """Load the domain structure from .intent/knowledge/source_structure.yaml and return a mapping of domain names to metadata (path, permissions, etc.)."""
+
     def _load_structure(self) -> Dict[str, dict]:
         """
         Load the domain structure from .intent/knowledge/source_structure.yaml.
@@ -48,7 +53,7 @@ class IntentModel:
 
         if not isinstance(data, dict) or "structure" not in data:
             raise ValueError(
-                f"Invalid source_structure.yaml: missing top-level 'structure' key"
+                "Invalid source_structure.yaml: missing top-level 'structure' key"
             )
 
         return {entry["domain"]: entry for entry in data["structure"]}
@@ -61,7 +66,7 @@ class IntentModel:
         # --- THIS IS THE FIX ---
         # Ensure the path is resolved relative to THIS model's root, not the CWD.
         full_path = (self.repo_root / file_path).resolve()
-        
+
         sorted_domains = sorted(
             self.structure.items(),
             key=lambda item: len((self.repo_root / item[1]["path"]).parts),

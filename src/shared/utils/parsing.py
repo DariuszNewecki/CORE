@@ -5,6 +5,7 @@ Parsing utility functions for the CORE system.
 import re
 from typing import Dict
 
+
 def parse_write_blocks(llm_output: str) -> Dict[str, str]:
     """
     Extracts all [[write:...]] blocks from LLM output.
@@ -23,7 +24,8 @@ def parse_write_blocks(llm_output: str) -> Dict[str, str]:
     matches = re.findall(pattern, llm_output, re.DOTALL)
     return {path.strip(): code.strip() for path, code in matches}
 
-#def extract_json_from_response(text: str) -> str:
+
+# def extract_json_from_response(text: str) -> str:
 #    """
 #    Extracts a JSON object or array from a raw text response.
 #    Handles both markdown ```json code blocks and raw JSON strings.#

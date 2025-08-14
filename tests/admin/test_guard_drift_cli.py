@@ -4,8 +4,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from typer.testing import CliRunner
 from system.admin import app  # uses core-admin entrypoint
+from typer.testing import CliRunner
 
 runner = CliRunner()
 
@@ -17,6 +17,7 @@ def write(p: Path, text: str) -> None:
 
 def manifest_yaml(capabilities):
     import yaml  # already a project dep
+
     # Prefer a top-level 'capabilities' key; adjust if your manifest uses a different key.
     data = {"capabilities": []}
     for c in capabilities:
@@ -26,13 +27,28 @@ def manifest_yaml(capabilities):
 
 def test_guard_drift_clean_repo(tmp_path: Path):
     # Arrange: manifest and code agree (no meta mismatch)
-    write(tmp_path / ".intent" / "project_manifest.yaml", manifest_yaml(["alpha.cap", "beta.cap"]))
-    write(tmp_path / "src" / "mod.py", "# CAPABILITY: alpha.cap\n# CAPABILITY: beta.cap\n")
+    write(
+        tmp_path / ".intent" / "project_manifest.yaml",
+        manifest_yaml(["alpha.cap", "beta.cap"]),
+    )
+    write(
+        tmp_path / "src" / "mod.py", "# CAPABILITY: alpha.cap\n# CAPABILITY: beta.cap\n"
+    )
     out = tmp_path / "reports" / "drift_report.json"
 
     # Act
     result = runner.invoke(
-        app, ["guard", "drift", "--root", str(tmp_path), "--format", "json", "--output", str(out)]
+        app,
+        [
+            "guard",
+            "drift",
+            "--root",
+            str(tmp_path),
+            "--format",
+            "json",
+            "--output",
+            str(out),
+        ],
     )
 
     # Assert
@@ -47,13 +63,27 @@ def test_guard_drift_clean_repo(tmp_path: Path):
 def test_guard_drift_detects_undeclared(tmp_path: Path):
     # Arrange: code has extra capability not in manifest
     write(tmp_path / ".intent" / "project_manifest.yaml", manifest_yaml(["alpha.cap"]))
-    write(tmp_path / "src" / "mod.py", "# CAPABILITY: alpha.cap\n# CAPABILITY: ghost.cap\n")
+    write(
+        tmp_path / "src" / "mod.py",
+        "# CAPABILITY: alpha.cap\n# CAPABILITY: ghost.cap\n",
+    )
     out = tmp_path / "reports" / "drift_report.json"
 
     # Act
     result = runner.invoke(
         app,
-        ["guard", "drift", "--root", str(tmp_path), "--format", "json", "--fail-on", "any", "--output", str(out)],
+        [
+            "guard",
+            "drift",
+            "--root",
+            str(tmp_path),
+            "--format",
+            "json",
+            "--fail-on",
+            "any",
+            "--output",
+            str(out),
+        ],
     )
 
     # Assert
@@ -69,7 +99,16 @@ def test_guard_drift_strict_requires_kg(tmp_path: Path):
 
     # Act
     result = runner.invoke(
-        app, ["guard", "drift", "--root", str(tmp_path), "--strict-intent", "--format", "json"]
+        app,
+        [
+            "guard",
+            "drift",
+            "--root",
+            str(tmp_path),
+            "--strict-intent",
+            "--format",
+            "json",
+        ],
     )
 
     # Assert
@@ -82,12 +121,25 @@ def test_guard_drift_strict_requires_kg(tmp_path: Path):
 def test_guard_drift_mismatched_mappings(tmp_path: Path):
     # Arrange: same capability both sides, but code has meta that manifest does not -> mismatch
     write(tmp_path / ".intent" / "project_manifest.yaml", manifest_yaml(["beta.cap"]))
-    write(tmp_path / "src" / "mod.py", "# CAPABILITY: beta.cap [domain=governance owner=ops]\n")
+    write(
+        tmp_path / "src" / "mod.py",
+        "# CAPABILITY: beta.cap [domain=governance owner=ops]\n",
+    )
     out = tmp_path / "reports" / "drift_report.json"
 
     # Act
     result = runner.invoke(
-        app, ["guard", "drift", "--root", str(tmp_path), "--format", "json", "--output", str(out)]
+        app,
+        [
+            "guard",
+            "drift",
+            "--root",
+            str(tmp_path),
+            "--format",
+            "json",
+            "--output",
+            str(out),
+        ],
     )
 
     # Assert: default --fail-on any -> should fail due to mismatched_mappings

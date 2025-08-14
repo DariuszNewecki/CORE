@@ -4,16 +4,18 @@ Runs pytest against the local /tests directory and captures results.
 This provides the core `test_execution` capability, allowing the system
 to verify its own integrity after making changes.
 """
-import subprocess
-import os
-import json
 import datetime
-from typing import Dict
+import json
+import os
+import subprocess
 from pathlib import Path
-from shared.logger import getLogger
+from typing import Dict
+
 from shared.config import settings
+from shared.logger import getLogger
 
 log = getLogger(__name__)
+
 
 # CAPABILITY: test_execution
 def run_tests(silent: bool = True) -> Dict[str, str]:
@@ -24,7 +26,7 @@ def run_tests(silent: bool = True) -> Dict[str, str]:
         "stdout": "",
         "stderr": "",
         "summary": "❌ Unknown error",
-        "timestamp": datetime.datetime.utcnow().isoformat()
+        "timestamp": datetime.datetime.utcnow().isoformat(),
     }
 
     repo_root = Path(__file__).resolve().parents[2]
@@ -70,9 +72,10 @@ def run_tests(silent: bool = True) -> Dict[str, str]:
 
     _log_test_result(result)
     _store_failure_if_any(result)
-    
+
     log.info(f"🏁 Test run complete. Summary: {result['summary']}")
     return result
+
 
 def _summarize(output: str) -> str:
     """Parses pytest output to find the final summary line."""
@@ -81,6 +84,7 @@ def _summarize(output: str) -> str:
         if "passed" in line or "failed" in line or "error" in line:
             return line.strip()
     return "No test summary found."
+
 
 def _log_test_result(data: Dict[str, str]):
     """Appends a JSON record of a test run to the persistent log file."""
@@ -91,6 +95,7 @@ def _log_test_result(data: Dict[str, str]):
             f.write(json.dumps(data) + "\n")
     except Exception as e:
         log.warning(f"Failed to write to persistent test log file: {e}", exc_info=True)
+
 
 def _store_failure_if_any(data: Dict[str, str]):
     """Saves the details of a failed test run to a dedicated file for easy access."""

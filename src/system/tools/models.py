@@ -4,11 +4,13 @@ Data models and shared structures for the system's tooling.
 This module exists to prevent circular import dependencies.
 """
 from dataclasses import dataclass, field
-from typing import Set, Optional, List
+from typing import List, Optional, Set
+
 
 @dataclass
 class FunctionInfo:
     """A data structure holding all analyzed information about a single symbol (function, method, or class)."""
+
     key: str
     name: str
     type: str

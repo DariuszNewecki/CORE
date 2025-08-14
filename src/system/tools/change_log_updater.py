@@ -1,9 +1,10 @@
 # src/system/tools/change_log_updater.py
 
 import json
-from pathlib import Path
 from datetime import datetime
-from typing import List, Dict
+from pathlib import Path
+from typing import Dict, List
+
 from shared.config_loader import load_config
 from shared.logger import getLogger
 
@@ -21,20 +22,28 @@ def load_existing_log() -> Dict:
     return data
 
 
-def append_change_entry(task: str, step: str, modified_files: List[str], score: float, violations: List[Dict]):
+def append_change_entry(
+    task: str,
+    step: str,
+    modified_files: List[str],
+    score: float,
+    violations: List[Dict],
+):
     """Appends a new, structured entry to the metacode change log."""
     log_data = load_existing_log()
     timestamp = datetime.utcnow().isoformat() + "Z"
 
-    log_data["changes"].append({
-        "timestamp": timestamp,
-        "task": task,
-        "step": step,
-        "modified_files": modified_files,
-        "score": score,
-        "violations": violations,
-        "source": "orchestrator"
-    })
+    log_data["changes"].append(
+        {
+            "timestamp": timestamp,
+            "task": task,
+            "step": step,
+            "modified_files": modified_files,
+            "score": score,
+            "violations": violations,
+            "source": "orchestrator",
+        }
+    )
 
     CHANGE_LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
     CHANGE_LOG_PATH.write_text(json.dumps(log_data, indent=2), encoding="utf-8")
@@ -48,5 +57,5 @@ if __name__ == "__main__":
         step="Check manifest before file write",
         modified_files=["src/core/cli.py", "src/core/intent_guard.py"],
         score=0.85,
-        violations=[]
+        violations=[],
     )

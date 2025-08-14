@@ -8,6 +8,7 @@ scaffold to begin governing it with CORE.
 """
 
 from pathlib import Path
+
 import typer
 import yaml
 from shared.logger import getLogger
@@ -49,38 +50,56 @@ def initialize_repository(
         builder = KnowledgeGraphBuilder(root_path=path)
         graph = builder.build()
         total_symbols = len(graph.get("symbols", {}))
-        log.info(f"   -> ✅ Knowledge Graph built successfully. Found {total_symbols} symbols.")
+        log.info(
+            f"   -> ✅ Knowledge Graph built successfully. Found {total_symbols} symbols."
+        )
     except Exception as e:
         log.error(f"   -> ❌ Failed to build Knowledge Graph: {e}", exc_info=True)
         raise typer.Exit(code=1)
 
     # Step 2: Generate the content for the new constitutional files.
     log.info("   -> Step 2: Generating starter constitution from analysis...")
-    
+
     # File 1: source_structure.yaml
     domains = builder.domain_map
     source_structure_content = {
         "structure": [
-            { "domain": name, "path": path_str, "description": f"Domain for '{name}' inferred by CORE.", "allowed_imports": [name, "shared"], }
+            {
+                "domain": name,
+                "path": path_str,
+                "description": f"Domain for '{name}' inferred by CORE.",
+                "allowed_imports": [name, "shared"],
+            }
             for path_str, name in domains.items()
         ]
     }
-    
+
     # File 2: project_manifest.yaml
-    discovered_capabilities = sorted(list(set(
-        s["capability"] for s in graph.get("symbols", {}).values() if s.get("capability") != "unassigned"
-    )))
+    discovered_capabilities = sorted(
+        list(
+            set(
+                s["capability"]
+                for s in graph.get("symbols", {}).values()
+                if s.get("capability") != "unassigned"
+            )
+        )
+    )
     project_manifest_content = {
-        "name": path.name, "version": "0.1.0-core-scaffold", "intent": "A high-level description of what this project is intended to do.",
+        "name": path.name,
+        "version": "0.1.0-core-scaffold",
+        "intent": "A high-level description of what this project is intended to do.",
         "required_capabilities": discovered_capabilities,
     }
 
     # File 3: capability_tags.yaml (dynamically populated)
     # The content is read from the now-consolidated template file.
-    capability_tags_template = (TEMPLATES_DIR / "capability_tags.yaml.template").read_text()
+    (TEMPLATES_DIR / "capability_tags.yaml.template").read_text()
     capability_tags_content = {
         "tags": [
-            {"name": cap, "description": "A clear explanation of what this capability does."}
+            {
+                "name": cap,
+                "description": "A clear explanation of what this capability does.",
+            }
             for cap in discovered_capabilities
         ]
     }
@@ -90,8 +109,12 @@ def initialize_repository(
         ".intent/knowledge/source_structure.yaml": source_structure_content,
         ".intent/project_manifest.yaml": project_manifest_content,
         ".intent/knowledge/capability_tags.yaml": capability_tags_content,
-        ".intent/mission/principles.yaml": (TEMPLATES_DIR / "principles.yaml").read_text(),
-        ".intent/policies/safety_policies.yaml": (TEMPLATES_DIR / "safety_policies.yaml").read_text(),
+        ".intent/mission/principles.yaml": (
+            TEMPLATES_DIR / "principles.yaml"
+        ).read_text(),
+        ".intent/policies/safety_policies.yaml": (
+            TEMPLATES_DIR / "safety_policies.yaml"
+        ).read_text(),
     }
 
     # Step 3: Write the files or display the dry run.
@@ -112,7 +135,9 @@ def initialize_repository(
                 target_path.write_text(yaml.dump(content, indent=2))
             else:
                 target_path.write_text(content)
-            typer.secho(f"   -> ✅ Wrote starter file to {target_path}", fg=typer.colors.GREEN)
+            typer.secho(
+                f"   -> ✅ Wrote starter file to {target_path}", fg=typer.colors.GREEN
+            )
 
     log.info("\n🎉 BYOR initialization complete.")
 

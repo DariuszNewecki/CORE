@@ -4,24 +4,25 @@ CORE Constitutional Auditor Orchestrator
 =======================================
 Discovers and runs modular checks to validate the system's integrity.
 """
-import sys
-import io
-import inspect
 import importlib
+import inspect
+import io
+import sys
 from pathlib import Path
-from typing import List, Optional, Callable, Tuple
+from typing import Callable, List, Optional, Tuple
+
+from core.intent_model import IntentModel
 from dotenv import load_dotenv
 from rich.console import Console
 from rich.panel import Panel
-
-from shared.path_utils import get_repo_root
 from shared.config_loader import load_config
-from core.intent_model import IntentModel
 from shared.logger import getLogger
-from system.governance.models import AuditFinding, AuditSeverity
+from shared.path_utils import get_repo_root
 from shared.utils.manifest_aggregator import aggregate_manifests
+from system.governance.models import AuditFinding, AuditSeverity
 
 log = getLogger(__name__)
+
 
 # CAPABILITY: alignment_checking
 class ConstitutionalAuditor:
@@ -29,6 +30,7 @@ class ConstitutionalAuditor:
 
     class _LoggingBridge(io.StringIO):
         """Redirects console output to the logger."""
+
         def write(self, s: str) -> None:
             """Redirects writes to the logger info stream."""
             if cleaned_s := s.strip():
@@ -42,7 +44,9 @@ class ConstitutionalAuditor:
             repo_root_override: If provided, use this directory as the repo root (used for canary validation).
         """
         self.repo_root: Path = repo_root_override or get_repo_root()
-        self.console = Console(file=self._LoggingBridge(), force_terminal=True, color_system="auto")
+        self.console = Console(
+            file=self._LoggingBridge(), force_terminal=True, color_system="auto"
+        )
         self.context = self.AuditorContext(self.repo_root)
         self.findings: List[AuditFinding] = []
         self.checks: List[Tuple[str, Callable[[], List[AuditFinding]]]] = []
@@ -57,6 +61,7 @@ class ConstitutionalAuditor:
 
     class AuditorContext:
         """Shared state container for audit checks."""
+
         def __init__(self, repo_root: Path):
             """Initialize context with repository paths and configurations."""
             self.repo_root: Path = repo_root
@@ -64,7 +69,9 @@ class ConstitutionalAuditor:
             self.src_dir: Path = repo_root / "src"
             self.intent_model = IntentModel(repo_root)
             self.project_manifest = aggregate_manifests(repo_root)
-            self.knowledge_graph = load_config(self.intent_dir / "knowledge/knowledge_graph.json", "json")
+            self.knowledge_graph = load_config(
+                self.intent_dir / "knowledge/knowledge_graph.json", "json"
+            )
             self.symbols_map: dict = self.knowledge_graph.get("symbols", {})
             self.symbols_list: list = list(self.symbols_map.values())
             self.load_config = load_config
@@ -81,16 +88,22 @@ class ConstitutionalAuditor:
             module_name = f"system.governance.checks.{check_file.stem}"
             try:
                 module = importlib.import_module(module_name)
-                for class_name, class_obj in inspect.getmembers(module, inspect.isclass):
+                for class_name, class_obj in inspect.getmembers(
+                    module, inspect.isclass
+                ):
                     if not class_name.endswith("Checks"):
                         continue
 
                     check_instance = class_obj(self.context)
-                    for method_name, method in inspect.getmembers(check_instance, inspect.ismethod):
+                    for method_name, method in inspect.getmembers(
+                        check_instance, inspect.ismethod
+                    ):
                         if method_name.startswith("_"):
                             continue
                         if method_name == "check_for_dead_code":
-                            log.warning(f"Skipping '{method_name}' check due to known false positives with CLI commands")
+                            log.warning(
+                                f"Skipping '{method_name}' check due to known false positives with CLI commands"
+                            )
                             continue
 
                         symbol_key = f"src/system/governance/checks/{check_file.name}::{method_name}"
@@ -99,7 +112,9 @@ class ConstitutionalAuditor:
                             check_name = symbol_data.get("intent", method_name)
                             discovered_checks.append((check_name, method))
             except ImportError as e:
-                log.error(f"Failed to import check module {module_name}: {e}", exc_info=True)
+                log.error(
+                    f"Failed to import check module {module_name}: {e}", exc_info=True
+                )
 
         log.debug(f"Discovered {len(discovered_checks)} audit checks")
         discovered_checks.sort(key=lambda item: item[0].split(":")[0])
@@ -107,7 +122,13 @@ class ConstitutionalAuditor:
 
     def run_full_audit(self) -> bool:
         """Run all discovered validation checks and return overall status."""
-        self.console.print(Panel("🧠 CORE Constitutional Integrity Audit", style="bold blue", expand=False))
+        self.console.print(
+            Panel(
+                "🧠 CORE Constitutional Integrity Audit",
+                style="bold blue",
+                expand=False,
+            )
+        )
 
         for check_name, check_fn in self.checks:
             short_name = check_name.split(":")[0]
@@ -125,12 +146,16 @@ class ConstitutionalAuditor:
                             case AuditSeverity.SUCCESS:
                                 log.info(f"✅ {finding.message}")
             except Exception as e:
-                log.error(f"💥 Check '{check_name}' failed unexpectedly: {e}", exc_info=True)
-                self.findings.append(AuditFinding(
-                    severity=AuditSeverity.ERROR,
-                    message=f"Check failed: {e}",
-                    check_name=check_name
-                ))
+                log.error(
+                    f"💥 Check '{check_name}' failed unexpectedly: {e}", exc_info=True
+                )
+                self.findings.append(
+                    AuditFinding(
+                        severity=AuditSeverity.ERROR,
+                        message=f"Check failed: {e}",
+                        check_name=check_name,
+                    )
+                )
 
         all_passed = not any(f.severity == AuditSeverity.ERROR for f in self.findings)
         self._report_final_status(all_passed)
@@ -150,6 +175,7 @@ class ConstitutionalAuditor:
 
         self.console.print(Panel(msg, style=style, expand=False))
 
+
 def main() -> None:
     """CLI entry point for the Constitutional Auditor."""
     load_dotenv()
@@ -158,11 +184,15 @@ def main() -> None:
         success = auditor.run_full_audit()
         sys.exit(0 if success else 1)
     except FileNotFoundError as e:
-        log.error(f"Required file not found: {e}. Try running the introspection cycle.", exc_info=True)
+        log.error(
+            f"Required file not found: {e}. Try running the introspection cycle.",
+            exc_info=True,
+        )
         sys.exit(1)
     except Exception as e:
         log.error(f"Unexpected error during audit: {e}", exc_info=True)
         sys.exit(1)
+
 
 if __name__ == "__main__":
     main()

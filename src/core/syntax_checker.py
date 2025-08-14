@@ -4,9 +4,10 @@ A simple syntax checker utility.
 Validates the syntax of Python code before it's staged for write/commit.
 """
 import ast
-from typing import List, Dict, Any
+from typing import Any, Dict, List
 
 Violation = Dict[str, Any]
+
 
 # --- MODIFICATION: The function now returns a list of structured violation dictionaries. ---
 # CAPABILITY: syntax_validation
@@ -30,9 +31,11 @@ def check_syntax(file_path: str, code: str) -> List[Violation]:
         return []
     except SyntaxError as e:
         error_line = e.text.strip() if e.text else "<source unavailable>"
-        return [{
-            "rule": "E999", # Ruff's code for syntax errors
-            "message": f"Invalid Python syntax: {e.msg} near '{error_line}'",
-            "line": e.lineno,
-            "severity": "error"
-        }]
+        return [
+            {
+                "rule": "E999",  # Ruff's code for syntax errors
+                "message": f"Invalid Python syntax: {e.msg} near '{error_line}'",
+                "line": e.lineno,
+                "severity": "error",
+            }
+        ]

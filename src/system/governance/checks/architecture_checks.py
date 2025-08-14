@@ -4,7 +4,9 @@ Auditor checks for higher-level architectural principles and smells,
 forming the basis of CORE's "architectural conscience."
 """
 from collections import defaultdict
+
 from system.governance.models import AuditFinding, AuditSeverity
+
 
 class ArchitectureChecks:
     """Container for architectural integrity checks."""
@@ -23,13 +25,13 @@ class ArchitectureChecks:
         """
         findings = []
         check_name = "Architectural Integrity: Code Duplication"
-        
+
         hashes = defaultdict(list)
         for symbol in self.context.symbols_list:
             # We only care about functions and classes, not their methods for now.
             if symbol.get("structural_hash") and not symbol.get("parent_class_key"):
                 hashes[symbol["structural_hash"]].append(symbol["key"])
-        
+
         duplicates_found = False
         for structural_hash, keys in hashes.items():
             if len(keys) > 1:
@@ -39,11 +41,19 @@ class ArchitectureChecks:
                     f"Structural duplication detected. The following symbols are "
                     f"identical: {locations}. This may violate the 'dry_by_design' principle."
                 )
-                findings.append(AuditFinding(AuditSeverity.WARNING, message, check_name))
-        
+                findings.append(
+                    AuditFinding(AuditSeverity.WARNING, message, check_name)
+                )
+
         # --- THIS IS THE FIX ---
         # We explicitly add a success message to the findings list if no duplicates are found.
         if not duplicates_found:
-            findings.append(AuditFinding(AuditSeverity.SUCCESS, "No structural code duplication found.", check_name))
-            
+            findings.append(
+                AuditFinding(
+                    AuditSeverity.SUCCESS,
+                    "No structural code duplication found.",
+                    check_name,
+                )
+            )
+
         return findings

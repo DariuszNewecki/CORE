@@ -5,15 +5,14 @@ the 'clarity_first' principle. This is a core capability for CORE's
 self-healing and self-improvement loop.
 """
 import ast
+import asyncio
 import json
 from pathlib import Path
-import asyncio
-from typing import Dict, Optional, Any
+from typing import Any, Dict
 
 import typer
-from rich.progress import track
-
 from core.clients import GeneratorClient
+from rich.progress import track
 from shared.logger import getLogger
 from system.tools.codegraph_builder import KnowledgeGraphBuilder, find_project_root
 
@@ -22,6 +21,7 @@ log = getLogger("docstring_adder")
 REPO_ROOT = Path(__file__).resolve().parents[3]
 KNOWLEDGE_GRAPH_PATH = REPO_ROOT / ".intent" / "knowledge" / "knowledge_graph.json"
 CONCURRENCY_LIMIT = 10
+
 
 def add_docstring_to_function_line_based(
     source_code: str, line_number: int, docstring: str
@@ -41,7 +41,7 @@ def add_docstring_to_function_line_based(
     if not docstring:
         log.warning("Empty docstring received")
         return source_code
-        
+
     formatted_docstring = f'{docstring_indent}"""{docstring}"""'
 
     if target_line_index + 1 < len(lines) and '"""' in lines[target_line_index + 1]:
@@ -51,17 +51,18 @@ def add_docstring_to_function_line_based(
     lines.insert(target_line_index + 1, formatted_docstring)
     return "\n".join(lines)
 
+
 async def generate_and_apply_docstring(
-    target: Dict[str, Any], 
-    generator: GeneratorClient, 
-    dry_run: bool
+    target: Dict[str, Any], generator: GeneratorClient, dry_run: bool
 ) -> None:
     """Generates and applies a docstring for a single function, precisely locating it using AST."""
     func_name = target.get("name")
-    
+
     file_rel_path = target.get("file")
     if not isinstance(file_rel_path, str):
-        log.error(f"Invalid KG entry for '{func_name}': 'file' key is not a string. Entry: {target}")
+        log.error(
+            f"Invalid KG entry for '{func_name}': 'file' key is not a string. Entry: {target}"
+        )
         return
 
     file_path = REPO_ROOT / file_rel_path
@@ -74,17 +75,21 @@ async def generate_and_apply_docstring(
 
         source_code = file_path.read_text(encoding="utf-8")
         tree = ast.parse(source_code)
-        
+
         node_to_update = None
         for node in ast.walk(tree):
-            if (isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)) 
-                and node.name == func_name 
-                and node.lineno == line_num):
+            if (
+                isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef))
+                and node.name == func_name
+                and node.lineno == line_num
+            ):
                 node_to_update = node
                 break
-        
+
         if not node_to_update:
-            log.warning(f"Could not precisely locate symbol `{func_name}` at line {line_num} in {file_path}. Skipping.")
+            log.warning(
+                f"Could not precisely locate symbol `{func_name}` at line {line_num} in {file_path}. Skipping."
+            )
             return
 
         if ast.get_docstring(node_to_update):
@@ -98,16 +103,21 @@ async def generate_and_apply_docstring(
             f"Your response must be ONLY the docstring text itself, without quotes.\n\n"
             f"Function:\n```python\n{function_source}\n```"
         )
-        
+
         generated_docstring = await generator.make_request_async(prompt)
         generated_docstring = generated_docstring.strip().replace('"', "")
 
         if "Error:" in generated_docstring:
-            log.warning(f"LLM failed for `{func_name}` in {file_path}: {generated_docstring}")
+            log.warning(
+                f"LLM failed for `{func_name}` in {file_path}: {generated_docstring}"
+            )
             return
 
         if dry_run:
-            typer.secho(f"\n📄 In {file_path.name}, would add to function `{func_name}`:", fg=typer.colors.YELLOW)
+            typer.secho(
+                f"\n📄 In {file_path.name}, would add to function `{func_name}`:",
+                fg=typer.colors.YELLOW,
+            )
             typer.secho(f'   """{generated_docstring}"""', fg=typer.colors.CYAN)
         else:
             new_source_code = add_docstring_to_function_line_based(
@@ -120,10 +130,11 @@ async def generate_and_apply_docstring(
     except Exception as e:
         log.error(f"Failed to process `{func_name}` in {file_path}: {e}", exc_info=True)
 
+
 async def _async_main(dry_run: bool):
     """The core asynchronous logic for finding and fixing docstrings."""
     log.info("🩺 Starting self-documentation cycle...")
-    
+
     # --- THIS IS THE FIX ---
     # Always rebuild the knowledge graph to ensure we are working with fresh data.
     log.info("   -> Refreshing self-image (Knowledge Graph)...")
@@ -138,17 +149,26 @@ async def _async_main(dry_run: bool):
         return
     # --- END OF FIX ---
 
-    kg_data = graph # Use the freshly built graph data
+    kg_data = graph  # Use the freshly built graph data
 
     generator = GeneratorClient()
     symbols = kg_data.get("symbols", {}).values()
-    targets = [s for s in symbols if not s.get("docstring") and s.get("type") in ["FunctionDef", "AsyncFunctionDef"]]
+    targets = [
+        s
+        for s in symbols
+        if not s.get("docstring")
+        and s.get("type") in ["FunctionDef", "AsyncFunctionDef"]
+    ]
 
     if not targets:
-        log.info("✅ No functions with missing docstrings found. Codebase is fully documented.")
+        log.info(
+            "✅ No functions with missing docstrings found. Codebase is fully documented."
+        )
         return
 
-    log.info(f"Found {len(targets)} functions requiring docstrings. Generating concurrently...")
+    log.info(
+        f"Found {len(targets)} functions requiring docstrings. Generating concurrently..."
+    )
 
     semaphore = asyncio.Semaphore(CONCURRENCY_LIMIT)
 
@@ -158,11 +178,16 @@ async def _async_main(dry_run: bool):
             await generate_and_apply_docstring(target, generator, dry_run)
 
     tasks = [worker(target) for target in targets]
-    
-    for f in track(asyncio.as_completed(tasks), description="Generating docstrings...", total=len(tasks)):
+
+    for f in track(
+        asyncio.as_completed(tasks),
+        description="Generating docstrings...",
+        total=len(tasks),
+    ):
         await f
 
     log.info("🎉 Self-documentation cycle complete.")
+
 
 # CAPABILITY: add_missing_docstrings
 def fix_missing_docstrings(
@@ -183,9 +208,10 @@ def fix_missing_docstrings(
             graph = builder.build()
             out_path = root / ".intent/knowledge/knowledge_graph.json"
             out_path.write_text(json.dumps(graph, indent=2))
-            log.info(f"✅ Knowledge graph successfully updated.")
+            log.info("✅ Knowledge graph successfully updated.")
         except Exception as e:
             log.error(f"Failed to rebuild knowledge graph: {e}", exc_info=True)
+
 
 if __name__ == "__main__":
     typer.run(fix_missing_docstrings)

@@ -9,12 +9,14 @@ operations. All writes go through a pending stage to enable review and rollback.
 import json
 import threading
 from datetime import datetime, timezone
-from uuid import uuid4
 from pathlib import Path
-from typing import Dict, Optional, Any
+from typing import Any, Dict
+from uuid import uuid4
+
 from shared.logger import getLogger
 
 log = getLogger(__name__)
+
 
 class FileHandler:
     """
@@ -30,7 +32,7 @@ class FileHandler:
         self.repo_path = Path(repo_path).resolve()
         if not self.repo_path.is_dir():
             raise ValueError(f"Invalid repository path provided: {repo_path}")
-        
+
         # --- THIS IS THE FIX ---
         # All operational directories are now relative to the repo_path
         # that the handler was initialized with. This makes the handler
@@ -42,7 +44,7 @@ class FileHandler:
         self.log_dir.mkdir(exist_ok=True)
         self.pending_dir.mkdir(exist_ok=True)
         # --- END OF FIX ---
-        
+
         self.pending_writes: Dict[str, Dict[str, Any]] = {}
         self._lock = threading.Lock()
 
@@ -79,28 +81,35 @@ class FileHandler:
             pending_file.unlink(missing_ok=True)
 
         if not pending_op:
-            return {"status": "error", "message": f"Pending write ID '{pending_id}' not found or already processed."}
+            return {
+                "status": "error",
+                "message": f"Pending write ID '{pending_id}' not found or already processed.",
+            }
 
         file_rel_path = pending_op["path"]
-        
+
         try:
             abs_file_path = self.repo_path / file_rel_path
-            
+
             if not abs_file_path.resolve().is_relative_to(self.repo_path.resolve()):
-                 raise ValueError(f"Attempted to write outside of repository boundary: {file_rel_path}")
+                raise ValueError(
+                    f"Attempted to write outside of repository boundary: {file_rel_path}"
+                )
 
             abs_file_path.parent.mkdir(parents=True, exist_ok=True)
             abs_file_path.write_text(pending_op["code"], encoding="utf-8")
-            
+
             log.info(f"Wrote to {file_rel_path}")
             return {
                 "status": "success",
                 "message": f"Wrote to {file_rel_path}",
-                "file_path": file_rel_path
+                "file_path": file_rel_path,
             }
         except Exception as e:
             if pending_op:
                 with self._lock:
                     self.pending_writes[pending_id] = pending_op
-                pending_file.write_text(json.dumps(pending_op, indent=2), encoding="utf-8")
+                pending_file.write_text(
+                    json.dumps(pending_op, indent=2), encoding="utf-8"
+                )
             return {"status": "error", "message": f"Failed to write file: {str(e)}"}
