@@ -7,8 +7,9 @@ Provides Ed25519 key generation and helper output for approver configuration.
 from __future__ import annotations
 
 import os
-import yaml
+
 import typer
+import yaml
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ed25519
 from shared.config import settings
@@ -19,9 +20,12 @@ log = getLogger("core_admin")
 
 def register(app: typer.Typer) -> None:
     """Intent: Register key management commands under the admin CLI."""
+
     @app.command("keygen")
     def keygen(
-        identity: str = typer.Argument(help="Identity for the key pair (e.g., 'your.name@example.com').")
+        identity: str = typer.Argument(
+            help="Identity for the key pair (e.g., 'your.name@example.com')."
+        ),
     ) -> None:
         """Intent: Generate a new Ed25519 key pair and print an approver YAML block."""
         log.info(f"🔑 Generating new key pair for identity: {identity}")
@@ -51,7 +55,9 @@ def register(app: typer.Typer) -> None:
         )
 
         log.info(f"\n✅ Private key saved securely to: {private_key_path}")
-        log.info("\n📋 Add the following YAML block to '.intent/constitution/approvers.yaml' under 'approvers':\n")
+        log.info(
+            "\n📋 Add the following YAML block to '.intent/constitution/approvers.yaml' under 'approvers':\n"
+        )
 
         approver_yaml = yaml.dump(
             [

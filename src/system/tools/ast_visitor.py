@@ -6,10 +6,12 @@ traversal from the main orchestration logic of the builder.
 """
 import ast
 from pathlib import Path
-from typing import List, Optional
+from typing import List
+
 
 class FunctionCallVisitor(ast.NodeVisitor):
     """An AST visitor that collects the names of all functions being called within a node."""
+
     def __init__(self):
         self.calls: set[str] = set()
 
@@ -21,8 +23,10 @@ class FunctionCallVisitor(ast.NodeVisitor):
             self.calls.add(node.func.attr)
         self.generic_visit(node)
 
+
 class ContextAwareVisitor(ast.NodeVisitor):
     """A stateful AST visitor that understands nested class and function contexts."""
+
     def __init__(self, builder, filepath: Path, source_lines: List[str]):
         """Initialize the instance with the given builder, filepath, source lines, and an empty context stack."""
         self.builder = builder
@@ -33,7 +37,7 @@ class ContextAwareVisitor(ast.NodeVisitor):
     def _process_and_visit(self, node, node_type: str):
         """Helper to process a symbol and manage the context stack."""
         parent_key = self.context_stack[-1] if self.context_stack else None
-        
+
         is_method = False
         if parent_key and parent_key in self.builder.functions:
             if self.builder.functions[parent_key].is_class:

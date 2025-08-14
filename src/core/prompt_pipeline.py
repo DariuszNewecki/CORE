@@ -13,12 +13,13 @@ This is the central "pre-processor" for all LLM interactions.
 """
 
 import re
-import yaml
 from pathlib import Path
-from typing import Dict
+
+import yaml
 
 # --- FIX: Define a constant for a reasonable file size limit (1MB) ---
 MAX_FILE_SIZE_BYTES = 1 * 1024 * 1024
+
 
 class PromptPipeline:
     """
@@ -61,6 +62,7 @@ class PromptPipeline:
         return self.context_pattern.sub(self._replace_context_match, prompt)
 
     """Dynamically replaces an [[include:...]] regex match with the corresponding file's content or an error message if the file is missing, unreadable, or exceeds size limits."""
+
     def _replace_include_match(self, match: re.Match) -> str:
         """Dynamically replaces an [[include:...]] regex match with file content or an error message."""
         file_path = match.group(1).strip()
@@ -108,12 +110,16 @@ class PromptPipeline:
             value = value.get(key) if isinstance(value, dict) else None
             if value is None:
                 break
-        
+
         if value is None:
             return f"\n❌ Manifest field not found: {field}\n"
-        
+
         # Pretty print for better context
-        value_str = yaml.dump(value, indent=2) if isinstance(value, (dict, list)) else str(value)
+        value_str = (
+            yaml.dump(value, indent=2)
+            if isinstance(value, (dict, list))
+            else str(value)
+        )
         return f"\n--- MANIFEST: {field} ---\n{value_str}\n--- END MANIFEST ---\n"
 
     def _inject_manifest(self, prompt: str) -> str:

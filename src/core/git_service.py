@@ -13,11 +13,11 @@ Used by main.py and self-correction engine.
 
 import subprocess
 from pathlib import Path
-from typing import Optional
 
 from shared.logger import getLogger
 
 log = getLogger(__name__)
+
 
 class GitService:
     """

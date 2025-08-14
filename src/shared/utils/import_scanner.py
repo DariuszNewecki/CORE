@@ -10,9 +10,11 @@ Scans a Python file for top-level import statements.
 import ast
 from pathlib import Path
 from typing import List
+
 from shared.logger import getLogger
 
 log = getLogger(__name__)
+
 
 def scan_imports_for_file(file_path: Path) -> List[str]:
     """

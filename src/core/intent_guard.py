@@ -9,11 +9,13 @@ self-modifications of the CORE constitution.
 
 import json
 from pathlib import Path
-from typing import List, Dict, Tuple, Any, Optional
+from typing import Dict, List, Tuple
+
 from shared.config_loader import load_config
 from shared.logger import getLogger
 
 log = getLogger(__name__)
+
 
 # CAPABILITY: intent_guarding
 class IntentGuard:
@@ -31,11 +33,13 @@ class IntentGuard:
         self.proposals_path = self.intent_path / "proposals"
         self.policies_path = self.intent_path / "policies"
         self.rules: List[Dict] = []
-        
+
         self._load_policies()
         self.source_code_manifest = self._load_source_manifest()
-        
-        log.info(f"IntentGuard initialized. {len(self.rules)} rules loaded. Watching {len(self.source_code_manifest)} source files.")
+
+        log.info(
+            f"IntentGuard initialized. {len(self.rules)} rules loaded. Watching {len(self.source_code_manifest)} source files."
+        )
 
     def _load_policies(self):
         """Load rules from all YAML files in the `.intent/policies/` directory."""
@@ -57,7 +61,9 @@ class IntentGuard:
             manifest_data = json.loads(manifest_file.read_text(encoding="utf-8"))
             symbols = manifest_data.get("symbols", {})
             # Use a set to get unique file paths, then convert to a sorted list.
-            unique_files = {entry.get("file") for entry in symbols.values() if entry.get("file")}
+            unique_files = {
+                entry.get("file") for entry in symbols.values() if entry.get("file")
+            }
             return sorted(list(unique_files))
         except (json.JSONDecodeError, TypeError):
             return []
@@ -70,22 +76,25 @@ class IntentGuard:
         This is the primary enforcement point for constitutional integrity.
         """
         violations = []
-        
+
         # Rule: Prevent direct writes to the .intent directory, except for proposals.
         for path_str in proposed_paths:
             # Resolve the path relative to the repository root, not the current working directory.
             # This makes the check robust regardless of where the script is executed from.
             path = (self.repo_path / path_str).resolve()
-            
+
             # Check if the path is within the .intent directory
             if self.intent_path.resolve() in path.parents:
                 # If it is, check if it's also within the allowed proposals directory
-                if self.proposals_path.resolve() not in path.parents and path.parent != self.proposals_path.resolve():
+                if (
+                    self.proposals_path.resolve() not in path.parents
+                    and path.parent != self.proposals_path.resolve()
+                ):
                     violations.append(
                         f"Rule Violation (immutable_intent): Direct write to '{path_str}' is forbidden. "
                         "All changes to the constitution must go through '.intent/proposals/'."
                     )
-        
+
         # Placeholder for future, more sophisticated rule checks
         # for rule in self.rules:
         #    ...

@@ -1,12 +1,14 @@
 # src/shared/config_loader.py
 
 import json
-import yaml
 from pathlib import Path
-from typing import Dict, Any
+from typing import Any, Dict
+
+import yaml
 from shared.logger import getLogger
 
 log = getLogger(__name__)
+
 
 def load_config(file_path: Path, file_type: str = "auto") -> Dict[str, Any]:
     """Loads a JSON or YAML file into a dictionary, handling missing files, invalid formats, and parsing errors by returning an empty dict."""
@@ -22,13 +24,19 @@ def load_config(file_path: Path, file_type: str = "auto") -> Dict[str, Any]:
     """
     file_path = Path(file_path)
     if not file_path.exists():
-        log.warning(f"Configuration file not found at {file_path}, returning empty dict.")
+        log.warning(
+            f"Configuration file not found at {file_path}, returning empty dict."
+        )
         return {}
 
     # Determine file type if 'auto'
     if file_type == "auto":
         suffix = file_path.suffix.lower()
-        file_type = "json" if suffix == ".json" else "yaml" if suffix in (".yaml", ".yml") else None
+        file_type = (
+            "json"
+            if suffix == ".json"
+            else "yaml" if suffix in (".yaml", ".yml") else None
+        )
 
     if file_type not in ("json", "yaml"):
         log.error(f"Unsupported file type for {file_path}, cannot load.")

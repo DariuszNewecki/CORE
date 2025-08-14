@@ -8,7 +8,6 @@ from pathlib import Path
 
 import typer
 import yaml
-
 from shared.logger import getLogger
 
 # --- Constants & Setup ---
@@ -42,7 +41,9 @@ def migrate_manifest(
             KNOWLEDGE_GRAPH_PATH,
         ]
     ):
-        log.error("❌ Critical file missing. Ensure manifest, source structure, and knowledge graph exist.")
+        log.error(
+            "❌ Critical file missing. Ensure manifest, source structure, and knowledge graph exist."
+        )
         raise typer.Exit(code=1)
 
     monolith = yaml.safe_load(MONOLITHIC_MANIFEST_PATH.read_text())
@@ -87,7 +88,11 @@ def migrate_manifest(
             if not content["capabilities"]:  # Don't create empty manifests
                 continue
             domain_path = source_structure["structure"][
-                [i for i, d in enumerate(source_structure["structure"]) if d["domain"] == domain][0]
+                [
+                    i
+                    for i, d in enumerate(source_structure["structure"])
+                    if d["domain"] == domain
+                ][0]
             ]["path"]
             target_path = REPO_ROOT / domain_path / "manifest.yaml"
             typer.secho(f"\n📄 Would write to: {target_path}", fg=typer.colors.YELLOW)
@@ -98,13 +103,21 @@ def migrate_manifest(
             if not content["capabilities"]:
                 continue
             domain_path_str = next(
-                (d["path"] for d in source_structure["structure"] if d["domain"] == domain), None
+                (
+                    d["path"]
+                    for d in source_structure["structure"]
+                    if d["domain"] == domain
+                ),
+                None,
             )
             if domain_path_str:
                 target_path = REPO_ROOT / domain_path_str / "manifest.yaml"
                 target_path.parent.mkdir(parents=True, exist_ok=True)
                 target_path.write_text(yaml.dump(content, indent=2))
-                typer.secho(f"   -> ✅ Wrote manifest for domain '{domain}' to {target_path}", fg=typer.colors.GREEN)
+                typer.secho(
+                    f"   -> ✅ Wrote manifest for domain '{domain}' to {target_path}",
+                    fg=typer.colors.GREEN,
+                )
 
     log.info("\n🎉 Migration process complete.")
 

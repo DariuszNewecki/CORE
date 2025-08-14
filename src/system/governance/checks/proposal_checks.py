@@ -3,14 +3,14 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-import json
 import hashlib
-import yaml
-import jsonschema
+import json
+from pathlib import Path
 
-from system.governance.models import AuditFinding, AuditSeverity
+import jsonschema
+import yaml
 from shared.schemas.manifest_validator import load_schema
+from system.governance.models import AuditFinding, AuditSeverity
 
 
 class ProposalChecks:
@@ -36,6 +36,7 @@ class ProposalChecks:
         )
 
     """Loads a proposal from a JSON or YAML file at the given path, returning an empty dict on parse failure or empty content."""
+
     def _load_proposal(self, path: Path) -> dict:
         """Load proposal preserving its format."""
         try:
@@ -55,6 +56,7 @@ class ProposalChecks:
     # --- checks --------------------------------------------------------------
 
     """Validate each cr-*.yaml/json proposal against proposal.schema.json, returning a list of AuditFindings for compliance or errors."""
+
     # CAPABILITY: audit.check.proposals_schema
     def check_proposal_files_match_schema(self) -> list[AuditFinding]:
         """Validate each cr-*.yaml/json proposal against proposal.schema.json."""
@@ -163,11 +165,11 @@ class ProposalChecks:
                 )
                 continue
 
-            mismatches = [
-                s for s in signatures if s.get("token") != expected
-            ]
+            mismatches = [s for s in signatures if s.get("token") != expected]
             if mismatches:
-                identities = ", ".join(s.get("identity", "<unknown>") for s in mismatches)
+                identities = ", ".join(
+                    s.get("identity", "<unknown>") for s in mismatches
+                )
                 findings.append(
                     AuditFinding(
                         AuditSeverity.WARNING,

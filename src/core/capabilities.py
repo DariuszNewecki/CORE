@@ -8,11 +8,12 @@ to perform a full self-analysis.
 import subprocess
 import sys
 from pathlib import Path
-from dotenv import load_dotenv
 
+from dotenv import load_dotenv
 from shared.logger import getLogger
 
 log = getLogger(__name__)
+
 
 # CAPABILITY: introspection
 def introspection():
@@ -22,7 +23,7 @@ def introspection():
     as separate, governed processes.
     """
     log.info("🔍 Starting introspection cycle...")
-    
+
     project_root = Path(__file__).resolve().parents[2]
     python_executable = sys.executable
 
@@ -40,7 +41,7 @@ def introspection():
                 cwd=project_root,
                 capture_output=True,
                 text=True,
-                check=True 
+                check=True,
             )
             # --- THIS IS THE FIX ---
             # If the process was successful, print its standard output.
@@ -49,7 +50,7 @@ def introspection():
                 # We use print() directly here so the rich formatting from the
                 # auditor's console is preserved perfectly.
                 print(result.stdout)
-            
+
             if result.stderr:
                 log.warning(f"{name} stderr:\n{result.stderr}")
             log.info(f"✅ {name} completed successfully.")
@@ -62,11 +63,15 @@ def introspection():
                 print(e.stderr)
             all_passed = False
         except Exception as e:
-            log.error(f"💥 An unexpected error occurred while running {name}: {e}", exc_info=True)
+            log.error(
+                f"💥 An unexpected error occurred while running {name}: {e}",
+                exc_info=True,
+            )
             all_passed = False
-            
+
     log.info("🧠 Introspection cycle completed.")
     return all_passed
+
 
 if __name__ == "__main__":
     load_dotenv()
