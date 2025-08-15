@@ -29,15 +29,29 @@ else
 fi
 echo "" >> "$out"
 
-echo "## Issues (all)" >> "$out"
-gh issue list --repo $OWNER/$REPO --state all --limit 200 \
-  --json number,title,state,labels,milestone,url,createdAt,closedAt > /tmp/issues.json
+# --- THIS IS THE MODIFIED SECTION ---
+
+echo "## Open Issues" >> "$out"
+gh issue list --repo $OWNER/$REPO --state open --limit 200 \
+  --json number,title,labels,milestone,url,createdAt > /tmp/issues_open.json
 if has_jq; then
-  jq '.[] | {number,title,state,milestone: .milestone.title,labels: [.labels[].name],url,createdAt,closedAt}' /tmp/issues.json >> "$out"
+  jq '.[] | {number,title,milestone: .milestone.title,labels: [.labels[].name],url,createdAt}' /tmp/issues_open.json >> "$out"
 else
-  cat /tmp/issues.json >> "$out"
+  cat /tmp/issues_open.json >> "$out"
 fi
 echo "" >> "$out"
+
+echo "## Recently Closed Issues" >> "$out"
+gh issue list --repo $OWNER/$REPO --state closed --limit 30 \
+  --json number,title,labels,milestone,url,closedAt > /tmp/issues_closed.json
+if has_jq; then
+  jq '.[] | {number,title,milestone: .milestone.title,labels: [.labels[].name],url,closedAt}' /tmp/issues_closed.json >> "$out"
+else
+  cat /tmp/issues_closed.json >> "$out"
+fi
+echo "" >> "$out"
+
+# --- END OF MODIFIED SECTION ---
 
 echo "## Labels" >> "$out"
 gh label list --repo $OWNER/$REPO --json name,color,description > /tmp/labels.json

@@ -1,4 +1,8 @@
 # .intent/knowledge/source_structure.yaml
+#
+# This document is the single source of truth for the project's architectural
+# layout. It defines the domains, their responsibilities, and the rules that
+# govern how they can interact. The ConstitutionalAuditor enforces these rules.
 
 paths:
   # Defines the default directory for scaffolding new, independent applications.
@@ -8,155 +12,113 @@ paths:
 structure:
   - domain: core
     path: src/core
-    description: Core logic for orchestration, routing, and CLI
-    editable: true
-    default_handler: python
-    restricted_types: [python, yaml]
-    allowed_imports: 
+    description: "Core logic for the application server, service orchestration, and primary capabilities."
+    allowed_imports:
       - core
       - shared
       - system
       - agents
-      # External & Standard Libs
-      - fastapi
-      - uvicorn
-      - yaml
-      - requests
-      - dotenv
+      # Standard & External Libraries
+      - ast
       - black
+      - contextlib
+      - datetime
+      - dotenv
+      - fastapi
       - json
       - os
-      - re
-      - typing
       - pathlib
-      - datetime
-      - subprocess
-      - contextlib
-      - threading
-      - uuid
       - platform
-      - ast
-      - tempfile
+      - re
+      - requests
+      - subprocess
+      - threading
+      - typing
+      - uvicorn
+      - uuid
+      - yaml
 
   - domain: agents
     path: src/agents
-    description: Specialized AI actors (planners, reviewers, suggesters)
-    editable: true
-    default_handler: python
-    known_files:
-      - manifest.yaml
-    allowed_imports: 
+    description: "Specialized AI actors (planners, reviewers) and their supporting models."
+    allowed_imports:
       - agents
       - shared
       - system
       - core
-      # External & Standard Libs
+      # Standard & External Libraries
       - json
       - re
       - textwrap
       - typing
       - pathlib
+      - subprocess
 
   - domain: system
     path: src/system
-    description: Governance tooling, lifecycle setup, CLI utilities
-    editable: true
-    default_handler: python
-    allowed_imports: 
+    description: "Governance tooling, constitutional auditor, and the admin CLI."
+    allowed_imports:
       - system
       - shared
       - core
       - tooling
-      # External & Standard Libs
-      - json
+      # Standard & External Libraries
       - ast
-      - pathlib
-      - typing
       - collections
+      - dataclasses
+      - json
+      - logging
+      - pathlib
+      - re
       - rich
       - sys
+      - typing
       - yaml
-      - re
-      - logging
-      - dataclasses
 
   - domain: shared
     path: src/shared
-    description: Shared models, helpers, and config interfaces
-    editable: true
-    default_handler: python
-    allowed_imports: 
+    description: "Shared utilities, data models, and configuration loaders accessible by all domains."
+    allowed_imports:
       - shared
-      # External & Standard Libs
+      # Standard & External Libraries
+      - ast
       - json
-      - yaml
+      - jsonschema
+      - logging
+      - os
       - pathlib
       - typing
-      - jsonschema
-      - os
-      - ast
-      
-  - domain: features
-    path: src/features
-    description: Modular capabilities and extensions
-    editable: true
-    default_handler: python
-    allowed_imports: [features, shared, data, services, integrations]
+      - yaml
 
   - domain: tooling
     path: src/system/tools
-    description: Internal introspection utilities
-    editable: true
-    default_handler: python
-    # --- THIS IS THE FIX ---
-    # We are adding 'core' to the list of allowed imports for the 'tooling' domain.
-    allowed_imports: [tooling, system, shared, core, ast, json, logging, pathlib, typing, dataclasses]
+    description: "Internal introspection and self-analysis utilities (e.g., KnowledgeGraphBuilder)."
+    allowed_imports:
+      - tooling
+      - system
+      - shared
+      - core
+      # Standard & External Libraries
+      - ast
+      - dataclasses
+      - json
+      - logging
+      - pathlib
+      - typing
 
+  # --- Placeholder Domains for future expansion ---
   - domain: data
     path: src/data
-    description: File access, storage backends, memory models
-    editable: true
-    default_handler: python
-    allowed_imports: [data, shared]
+    description: "Data access layers, storage backends, and data models."
+    allowed_imports: [data, shared, typing, pathlib]
 
-  - domain: api
-    path: src/api
-    description: HTTP-facing endpoints
-    editable: true
-    default_handler: python
-    allowed_imports: [api, shared, services]
-
-  - domain: services
-    path: src/services
-    description: Business logic and orchestration
-    editable: true
-    default_handler: python
-    allowed_imports: [services, shared, integrations, data]
-
-  - domain: automation
-    path: src/automation
-    description: Task runners, schedulers, retry logic
-    editable: true
-    default_handler: python
-    allowed_imports: [automation, shared, services]
-
-  - domain: integrations
-    path: src/integrations
-    description: External service bridges (e.g., GitHub, remote LLMs)
-    editable: true
-    default_handler: python
-    allowed_imports: [integrations, shared]
-
+  # --- Constitutional Domains (Non-code) ---
   - domain: mission
     path: .intent/mission
-    description: CORE's declared beliefs, principles, and northstar
-    editable: false
-    restricted_types: [markdown, yaml]
+    description: "CORE's declared beliefs, principles, and northstar."
     allowed_imports: []
 
   - domain: policies
     path: .intent/policies
-    description: Governance rules and constraints
-    editable: true
-    default_handler: yaml
+    description: "Machine-readable governance rules and constraints."
     allowed_imports: []

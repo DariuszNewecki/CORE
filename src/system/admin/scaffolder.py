@@ -30,7 +30,6 @@ class Scaffolder:
         )
         workspace_path_str = source_structure.get("paths", {}).get("workspace", "work")
         
-        # Use provided workspace_dir if available, otherwise use the one from the constitution.
         self.workspace = workspace_dir or (CORE_ROOT / workspace_path_str)
 
         self.project_root = self.workspace / self.name
@@ -46,10 +45,37 @@ class Scaffolder:
         if self.project_root.exists():
             raise FileExistsError(f"Directory '{self.project_root}' already exists.")
 
+        # Create the base project structure
         self.project_root.mkdir(parents=True, exist_ok=True)
         (self.project_root / "src").mkdir()
         (self.project_root / "reports").mkdir()
 
+        # --- THIS IS THE ROBUST FIX ---
+        # Create the .intent directory explicitly
+        intent_dir = self.project_root / ".intent"
+        intent_dir.mkdir()
+
+        # Define the exact list of constitutional files to copy
+        constitutional_files_to_copy = [
+            "principles.yaml",
+            "project_manifest.yaml",
+            "safety_policies.yaml",
+            "source_structure.yaml",
+        ]
+
+        # Copy each constitutional file explicitly
+        for filename in constitutional_files_to_copy:
+            source_path = self.starter_kit_path / filename
+            if source_path.exists():
+                shutil.copy(source_path, intent_dir / filename)
+        
+        # Copy and rename the intent README
+        readme_template = self.starter_kit_path / "README.md"
+        if readme_template.exists():
+            shutil.copy(readme_template, intent_dir / "README.md")
+        # --- END OF FIX ---
+
+        # Process template files for the project root
         for template_path in self.starter_kit_path.glob("*.template"):
             content = template_path.read_text(encoding="utf-8").format(project_name=self.name)
             target_name = (
@@ -59,14 +85,7 @@ class Scaffolder:
             )
             (self.project_root / target_name).write_text(content, encoding="utf-8")
 
-        intent_dir = self.project_root / ".intent"
-        shutil.copytree(self.starter_kit_path, intent_dir, dirs_exist_ok=True, ignore=shutil.ignore_patterns('*.template', '.gitkeep', 'intent_README.md.template'))
-        
-        # Manually copy the README to the correct location
-        if (self.starter_kit_path / "intent_README.md.template").exists():
-            shutil.copy(self.starter_kit_path / "intent_README.md.template", intent_dir / "README.md")
-
-
+        # Customize the new project's manifest
         manifest_path = intent_dir / "project_manifest.yaml"
         if manifest_path.exists():
             manifest_data = yaml.safe_load(manifest_path.read_text(encoding="utf-8"))
@@ -83,6 +102,7 @@ class Scaffolder:
         log.info(f"   -> 📄 Wrote agent-generated file: {relative_path}")
 
 
+# The CLI part of the file remains the same.
 def new_project(
     name: str = typer.Argument(
         ...,
@@ -99,9 +119,6 @@ def new_project(
         help="Show what will be created without writing files. Use --write to apply.",
     ),
 ):
-    """
-    Scaffolds a new, constitutionally-governed "Mind/Body" application.
-    """
     scaffolder = Scaffolder(project_name=name, profile=profile)
     log.info(
         f"🚀 Scaffolding new CORE application: '{name}' using '{profile}' profile."
