@@ -2,14 +2,9 @@
 
 ## Preamble: From Foundation to Future
 
-The initial development of CORE focused on building a stable, self-aware, and constitutionally governed foundation. The major phases of this foundational work are now complete, as documented in our **[Strategic Plan](StrategicPlan.md)**. That document tells the story of how we achieved our current stable state.
+The initial development of CORE focused on building a stable, self-aware, and constitutionally governed foundation. That foundational work established our current stable state and is now considered complete. A historical record of that process can be found in `docs/archive/StrategicPlan.md`.
 
-**This document outlines our future direction.** With a stable and secure foundation in place, the project is now moving into its next major phase: **enabling true autonomous application development.**
-
--   ✅ **A Unified "Mind":** The system's self-knowledge has been consolidated into a single, verifiable Knowledge Graph.
--   ✅ **A Unified Governance Engine:** The `ConstitutionalAuditor` is now the single, dynamic engine for enforcing all constitutional principles.
--   ✅ **Constitutional Compliance:** The system now passes its own strict self-audit with zero errors, proving its internal consistency.
--   ✅ **A Secure Amendment Process:** A robust, human-in-the-loop, cryptographically signed process for evolving the system's own constitution has been implemented and verified.
+**This document outlines our current and future direction.** With a stable and secure foundation in place, the project is now moving into its next major phase: **enabling true autonomous application development.**
 
 The following sections outline the key architectural challenges and features on our roadmap. We welcome discussion and contributions on these topics.
 
@@ -63,7 +58,7 @@ This phase focuses on enabling CORE to reason about and improve its own "Mind". 
 
 ## Phase 5: Achieving Operational Robustness
 
-This new phase, based on feedback from the AI Peer Review Board, focuses on adding the critical policies and procedures required for real-world operation and enterprise-grade governance.
+This phase, based on feedback from the AI Peer Review Board, focuses on adding the critical policies and procedures required for real-world operation and enterprise-grade governance.
 
 ### 5.1: Formalize Enforcement Levels
 -   **Challenge:** The terms "soft" and "hard" enforcement are ambiguous.
@@ -73,25 +68,36 @@ This new phase, based on feedback from the AI Peer Review Board, focuses on addi
 ### 5.2: Implement Critical Operational Policies
 -   **Challenge:** The constitution lacks policies for critical real-world operations.
 -   **Goal:** Create a series of new policy files to govern Data Privacy, Secrets Management, Incident Response, and External Dependency Management.
--   **Status:** ⏳ **Not Started**
+-   **Status:** 🚧 **In Progress.** Secrets management policy and auditor check have been implemented.
 
 ### 5.3: Define Human Operator Lifecycle
 -   **Challenge:** The process for managing human approvers is not fully documented.
--   **Goal:** Expand `.intent/constitution/approvers.yaml` or create a new procedure document that defines the formal process for onboarding, offboarding, and key rotation/revocation for human operators.
--   **Status:** ⏳ **Not Started**
+-   **Goal:** Create a formal procedure document that defines the process for onboarding, offboarding, and key rotation/revocation for human operators.
+-   **Status:** ✅ **Complete.** The process is now documented in `.intent/constitution/operator_lifecycle.md`.
 
 ---
 
-## Phase 6: Improving Architectural Health (New)
+## Phase 6: Improving Architectural Health
 
 This phase addresses technical debt identified by the `ConstitutionalAuditor` to ensure the long-term health and maintainability of the codebase, upholding the `separation_of_concerns` principle.
 
 ### 6.1: Refactor `codegraph_builder.py`
--   **Challenge:** The `KnowledgeGraphBuilder` class has grown too large (304 LLOC) and mixes responsibilities (file discovery, AST parsing, domain mapping, pattern matching).
--   **Goal:** Decompose `KnowledgeGraphBuilder` into smaller, single-responsibility helper classes or modules. For example, a `PatternMatcher` class, a `DomainResolver` class, and a `SymbolParser` class.
+-   **Challenge:** The `KnowledgeGraphBuilder` class has grown too large and mixes responsibilities.
+-   **Goal:** Decompose `KnowledgeGraphBuilder` into smaller, single-responsibility helper classes or modules.
 -   **Status:** ⏳ **Not Started**
 
 ### 6.2: Refactor `proposal_checks.py`
--   **Challenge:** The `ProposalChecks` class is becoming a complexity outlier (190 LLOC).
+-   **Challenge:** The `ProposalChecks` class is becoming a complexity outlier.
 -   **Goal:** Refactor the large check methods into smaller, more focused helper functions to improve readability and testability.
+-   **Status:** ⏳ **Not Started**
+
+---
+
+## Phase 7: Agentic Self-Improvement (New)
+
+This phase focuses on evolving CORE's agents to be more autonomous and resilient by teaching them to handle common development friction and failures without human intervention.
+
+### 7.1: Implement Autonomous Formatting & Linting Fixes
+-   **Challenge:** The system's agents can generate code that violates formatting or linting rules. Currently, the `ConstitutionalAuditor` detects this failure, but a human is required to run `make format` to fix it. This represents an incomplete `ADAPTATION` loop.
+-   **Goal:** Enhance the `PlannerAgent` and `SelfCorrectionEngine`. The internal validation pipeline that runs after code generation MUST automatically apply `black` formatting and `ruff --fix`. The formatted code should be used by default. If linting errors remain that cannot be auto-fixed, the `SelfCorrectionEngine` should be triggered with the linting report, just as it would be for a test failure. This will make the system capable of healing its own stylistic violations.
 -   **Status:** ⏳ **Not Started**

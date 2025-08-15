@@ -17,6 +17,19 @@ rules:
   # Recommended starting value: 4
   max_nesting_depth: 4
 
+  # --- THIS IS THE NEW RULE ---
+  # Defines the recommended maximum line length for code clarity.
+  # This is a "soft" guideline. While 'black' will attempt to format to 88
+  # characters, this rule allows the auditor to flag lines that remain
+  # excessively long, suggesting they may need manual refactoring.
+  max_line_length:
+    # Set slightly higher than black's default to only catch egregious cases.
+    limit: 100
+    # This is a 'soft' rule; it will produce a WARNING, not an ERROR,
+    # encouraging refactoring without blocking commits.
+    enforcement: soft
+  # --- END OF NEW RULE ---
+
   # Defines the statistical threshold for identifying file size outliers.
   # A file is flagged as an outlier if its Logical Lines of Code (LLOC)
   # is greater than (average_lloc + standard_deviations * lloc_std_dev).
