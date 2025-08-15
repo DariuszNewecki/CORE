@@ -10,6 +10,7 @@ CORE is a system governed by a constitution. We ask that all contributions align
 
 1.  **[The CORE Philosophy (`docs/01_PHILOSOPHY.md`)](docs/01_PHILOSOPHY.md)** — to understand the *why* behind the project.
 2.  **[The System Architecture (`docs/02_ARCHITECTURE.md`)](docs/02_ARCHITECTURE.md)** — to understand the *how* of the Mind/Body separation.
+3.  **[The Governance Model (`docs/03_GOVERNANCE.md`)](docs/03_GOVERNANCE.md)** — to understand the *process* for safe, constitutional change.
 
 The most important principle for contributors is `clarity_first`. Every change should make the system easier to understand, not harder.
 
@@ -21,10 +22,10 @@ There are many ways to contribute, and many of them don't involve writing a sing
 
 ### 🏛️ Discussing Architecture and Governance
 
-The most valuable contributions at this early stage are discussions about the core architecture and governance model.
+The most valuable contributions at this stage are discussions about the core architecture and governance model.
 
--   **Review our Roadmap:** Read our **[Project Roadmap (`docs/04_ROADMAP.md`)](docs/04_ROADMAP.md)**.
--   **Open an Issue or Discussion:** Find a challenge that interests you and open an issue or start a GitHub Discussion to talk about our proposed approach or suggest a new one.
+-   **Review our Roadmap:** Read our **[Project Roadmap (`docs/04_ROADMAP.md`)](docs/04_ROADMAP.md)**. Find a challenge that interests you and share your thoughts.
+-   **Propose a Constitutional Change:** If you believe a principle or policy could be improved, open an issue to discuss it. The health of the system's "Mind" is our top priority.
 
 ### 🐞 Reporting Bugs
 
@@ -33,11 +34,11 @@ If you find a bug or a constitutional inconsistency, please open an issue. A gre
 -   The full output, including the error and traceback.
 -   Your analysis of why you think it's happening.
 
-Our goal is for the system’s `ConstitutionalAuditor` to catch all inconsistencies, but if you find one it missed, you’ve found a valuable way to make our immune system stronger!
+Our goal is for the system’s `ConstitutionalAuditor` to catch all inconsistencies. If you find one it missed, you’ve found a valuable way to make our immune system stronger!
 
 ### ✍️ Improving Documentation
 
-If you find a part of our documentation confusing, unclear, or incomplete, a pull request to improve it is a massive contribution. Clear documentation is vital for the project's health.
+If you find a part of our documentation confusing, unclear, or incomplete, a pull request to improve it is a massive contribution. Clear documentation is vital for the project's health and aligns with our `clarity_first` principle.
 
 ---
 
@@ -49,8 +50,8 @@ If you'd like to contribute code, please follow these steps.
 
 To uphold the `clarity_first` principle, all code submitted to CORE must adhere to these standards:
 
--   **Formatting:** All Python code is formatted with `black` and `ruff`. You can auto-format your code by running `make format`.
--   **Linting:** We use `ruff` to enforce code quality.
+-   **Formatting:** All Python code is formatted with `black`. Our linter, `ruff`, is configured to follow `black`'s style. You can auto-format all code by running `make format`.
+-   **Linting:** We use `ruff` to enforce code quality and best practices.
 -   **Typing:** All functions and methods must have type hints.
 -   **Docstrings:** Every public module, class, function, and method must have a docstring explaining its purpose.
 
@@ -74,9 +75,9 @@ The project uses [Poetry](https://python-poetry.org/) to manage dependencies.
 1.  Find an open issue that you'd like to work on (or open a new one for discussion).
 2.  Fork the repository and create a new branch.
 3.  **Write the code.** Ensure your code adheres to the conventions listed above.
-4.  **Run the checks.** Before submitting a pull request, you must run the full validation suite.
+4.  **Run the checks.** This is a critical step to ensure your contribution is constitutionally compliant.
     - For quick, iterative checks while you work, run `make fast-check`. This will handle linting and unit tests.
-    - Before submitting, you MUST run the full suite, which includes the constitutional self-audit.
+    - Before submitting, you **MUST** run the full suite, which includes the constitutional self-audit.
     ```bash
     make check
     ```

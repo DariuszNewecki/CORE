@@ -4,7 +4,7 @@
 
 The initial development of CORE focused on building a stable, self-aware, and constitutionally governed foundation. That foundational work established our current stable state and is now considered complete. A historical record of that process can be found in `docs/archive/StrategicPlan.md`.
 
-**This document outlines our current and future direction.** With a stable and secure foundation in place, the project is now moving into its next major phase: **enabling true autonomous application development.**
+**This document outlines our current and future direction.** With a stable and secure foundation in place, the project is now moving into its next major phase: **enhancing agent intelligence and scaling complexity.**
 
 The following sections outline the key architectural challenges and features on our roadmap. We welcome discussion and contributions on these topics.
 
@@ -40,7 +40,8 @@ The next step is to make the system's AI agents smarter and safer in how they in
 ## Phase 3: Autonomous Application Generation
 
 This is the ultimate goal of the CORE project. With a scalable constitution and smarter agents, we will build the capabilities for CORE to generate and manage new software projects from a high-level intent.
--   **Status:** ⏳ **Not Started**
+
+-   **Status:** ✅ **MVP Complete.** The `core-admin agent scaffold` command can successfully generate a new, working, and constitutionally-governed application from a high-level goal. Future work will focus on increasing the complexity of generated applications.
 
 ---
 
@@ -71,7 +72,7 @@ This phase, based on feedback from the AI Peer Review Board, focuses on adding t
 -   **Status:** 🚧 **In Progress.** Secrets, Incident Response, and Dependency Management policies have been defined. Auditor checks are pending.
 
 ### 5.3: Define Human Operator Lifecycle
--   **Status:** ✅ **Complete.** This was addressed by creating `operator_lifecycle.md` and updating `approvers.yaml`.
+-   **Status:** ✅ **Complete.** This was addressed by creating `docs/07_PEER_REVIEW.md` and updating `approvers.yaml`.
 
 ---
 
