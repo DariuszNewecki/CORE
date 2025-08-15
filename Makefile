@@ -14,7 +14,7 @@ RELOAD  ?= --reload
 ENV_FILE ?= .env
 PATHS   ?= src tests
 
-.PHONY: help install lock run stop audit lint format test coverage check clean clean-logs distclean nuke context
+.PHONY: help install lock run stop audit lint format test coverage check fast-check clean clean-logs distclean nuke context
 
 help:
 	@echo "CORE Development Makefile"
@@ -28,7 +28,8 @@ help:
 	@echo "make format        - Auto-format code with Black and Ruff."
 	@echo "make test [ARGS=]  - Pytest (pass ARGS='-k expr -vv')"
 	@echo "make coverage      - Pytest with coverage"
-	@echo "make check         - Run all checks: lint, test, and audit. The one command to run before you commit."
+	@echo "make fast-check    - Run fast checks (lint, test). Use before committing minor changes."
+	@echo "make check         - Run all checks (lint, test, audit). Use before submitting a PR."
 	@echo "make context       - Build the project context file for AI collaboration"
 	@echo "make clean         - Remove caches, pending_writes, sandbox"
 	@echo "make distclean     - Clean + venv/build leftovers"
@@ -83,7 +84,9 @@ coverage:
 	@echo "🧮 Running tests with coverage..."
 	$(POETRY) run pytest --cov=src --cov-report=term-missing:skip-covered $(ARGS)
 
-check: lint test audit
+fast-check: lint test
+
+check: fast-check audit
 
 # ---- Clean targets ---------------------------------------------------------
 

@@ -13,7 +13,7 @@ CORE is a self-governing, constitutionally aligned AI development framework that
 
 The core self-governance and constitutional amendment loop is complete and stable. The system can audit and modify its own constitution via a human-in-the-loop, cryptographically signed approval process.
 
-The next phase, as outlined in our **[Strategic Plan](docs/StrategicPlan.md)**, is to expand agent capabilities so CORE can generate and manage entirely new applications based on user intent.
+The next phase, as outlined in our **[Project Roadmap](docs/04_ROADMAP.md)**, is to expand agent capabilities so CORE can generate and manage entirely new applications based on user intent.
 
 We’re making the project public now to invite collaboration on this foundational architecture.
 
@@ -21,10 +21,11 @@ We’re making the project public now to invite collaboration on this foundation
 
 ## 🧠 What CORE *is*
 
-* 🧾 Evolves itself through **declared intent**, not hidden assumptions
-* 🛡️ Enforces **constitutional rules**, **domain boundaries**, and **safety policies**
-* 🧩 Uses a modular agent architecture with a clear separation of concerns
-* 📚 Ensures every decision is **documented, reversible, and introspectable**
+* 🧾 Evolves itself through **declared intent**, not hidden assumptions.
+* 🛡️ Enforces **constitutional rules**, **domain boundaries**, and **safety policies**.
+* 🌱 Creates new, governed applications from **[Starter Kits](docs/06_STARTER_KITS.md)** that capture initial intent.
+* 🧩 Uses a modular agent architecture with a clear separation of concerns.
+* 📚 Ensures every decision is **documented, reversible, and introspectable**.
 
 ---
 
@@ -35,18 +36,10 @@ We’re making the project public now to invite collaboration on this foundation
 | **`.intent/`**              | The “mind” of CORE: constitution, policies, capability maps, and self-knowledge.         |
 | **`ConstitutionalAuditor`** | The “immune system,” continuously verifying code aligns with the constitution.           |
 | **`PlannerAgent`**          | Decomposes high-level goals into executable plans.                                       |
-| **`core-admin` CLI**        | Human-in-the-loop tool for signing and ratifying constitutional changes.                 |
+| **`core-admin` CLI**        | Human-in-the-loop tool for managing the system's lifecycle.                              |
+| **Starter Kits**            | Pre-packaged constitutions that serve as the user's first declaration of intent.         |
 | **Canary Check**            | Applies proposed changes to an isolated copy and runs a full self-audit before approval. |
 | **Knowledge Graph**         | Machine-readable map of symbols, roles, capabilities, and relationships.                 |
-| **Git & Rollback**          | Everything is versioned; invalid changes can be safely rolled back.                      |
-
----
-
-## ⚙️ Requirements
-
-* Python **3.9+**
-* [Poetry](https://python-poetry.org/) for dependency & venv management
-* Optional: `ruff`, `black` (installed via Poetry), `uvicorn` for the API server
 
 ---
 
@@ -54,173 +47,177 @@ We’re making the project public now to invite collaboration on this foundation
 
 1. **Install dependencies**
 
-```bash
-poetry install
-```
+   ```bash
+   poetry install
+   ```
 
 2. **Set up environment**
 
-```bash
-cp .env.example .env
-# Edit .env with your keys/URLs. See .intent/config/runtime_requirements.yaml for required variables.
-```
+   ```bash
+   cp .env.example .env
+   # Edit .env with your keys/URLs.
+   # See .intent/config/runtime_requirements.yaml for required variables.
+   ```
 
-3. **Quick validation (governance)**
+3. **Run a full self-audit**
 
-```bash
-# Generate a knowledge-graph artifact (used by strict checks)
-core-admin guard kg-export
+   ```bash
+   make audit
+   ```
 
-# Detect capability drift between .intent manifest and code (strict mode)
-core-admin guard drift --strict-intent --format pretty
-# or JSON for machines/CI:
-core-admin guard drift --strict-intent --format json
-```
+4. **Human-in-the-Loop (CLI)** — `core-admin` is your primary tool for guiding the system.
 
-4. **Run the server (optional)**
+   **Creating New Projects**
 
-```bash
-make run
-# FastAPI docs at: http://localhost:8000/docs
-```
+   ```bash
+   # Create a new, governed application using a starter kit
+   core-admin new my-new-app --profile default
+   ```
 
----
+   **Onboarding Existing Projects**
 
-## 🧑‍⚖️ Human-in-the-Loop (CLI)
+   ```bash
+   # Analyze an existing repo and propose a starter constitution
+   core-admin byor-init /path/to/existing-repo
+   ```
 
-Constitutional changes are proposed as files under `.intent/proposals/` and managed via the `core-admin` CLI.
+   **Managing the Constitution**
 
-```bash
-# List pending proposals
-core-admin proposals-list
+   ```bash
+   # List pending constitutional changes
+   core-admin proposals-list
 
-# Sign a proposal with your generated key
-core-admin proposals-sign cr-example.yaml
+   # Sign a proposal with your key
+   core-admin proposals-sign cr-example.yaml
 
-# Approve a proposal (runs canary self-audit in isolation)
-core-admin proposals-approve cr-example.yaml
+   # Approve a proposal (runs a canary self-audit)
+   core-admin proposals-approve cr-example.yaml
+   ```
 
-# Generate a new key pair for a new contributor
-core-admin keygen "name@example.com"
-```
-
-> If `core-admin` isn’t found, try: `poetry run core-admin ...`
-
----
-
-## ✅ Validation Tools (Operator & CI)
-
-### Capability Drift (source of truth = `.intent/`)
-
-* Compares declared capabilities in `.intent/*manifest*.yaml` with capabilities discovered in code (via Knowledge Graph or tagged comments).
-* **Strict mode** requires a KG artifact or live builder; it won’t “guess”.
-
-**Typical flow**
-
-```bash
-core-admin guard kg-export
-core-admin guard drift --strict-intent --format pretty
-```
-
-**Evidence**
-
-* A machine-readable JSON report is written to `reports/drift_report.json`.
-
-**Output UX defaults (human-friendly)**
-
-* By default, you’ll see a colored summary with **NONE** for empty sections and a clear ✅ or 🚨 status.
-* JSON remains available for CI.
-
-These defaults are governed by `.intent` (see below).
-
----
-
-## 📝 UX Defaults Governed by `.intent/`
-
-Place this block in `.intent/project_manifest.yaml` to make operator behavior explicit and predictable for anyone (human or agent):
-
-```yaml
-operator_experience:
-  guard:
-    drift:
-      default_format: pretty        # pretty | table | json
-      default_fail_on: any          # any | missing | undeclared
-      strict_default: true          # require KG/artifact by default
-      evidence_json: true           # always write JSON evidence
-      evidence_path: reports/drift_report.json
-      labels:
-        none: "NONE"
-        success: "✅ No capability drift"
-        failure: "🚨 Drift detected"
-```
-
-> Change `default_format` to `json` if you prefer raw JSON by default.
-
----
-
-## 🔪 What CORE *does*
-
-* Plans improvements using AI agents
-* Generates code, tests, and docstrings
-* **Self-audits** to ensure constitutional alignment
-* **Governs self-modification** via signed proposals + canary checks
-* Self-corrects when validation fails
-* Logs every step for transparency
-
----
-
-## 🌌 North Star
-
-CORE’s long-term aim is **A5 autonomy**: turn goals into governed code and running systems, safely and without human intervention in low-risk areas.
-See **[NORTH\_STAR](docs/NORTH_STAR.md)** and **[BYOR](docs/05_BYOR.md)** for how CORE applies the same rules to any repo — including itself.
-
----
-
-## 🧰 Troubleshooting
-
-* **Strict mode error about missing capabilities**
-
-  * Run `core-admin guard kg-export` first (or disable strict mode).
-* **CLI not found**
-
-  * Use `poetry run core-admin ...`
-* **Drift report not in expected folder**
-
-  * Reports are written under the repo root: `reports/`. You can change the path in `.intent` (`evidence_path`).
-
----
-
-## 📌 Why CORE is Different
-
-* **Separation of duties** between agents and roles
-* **Capability tags** (`# CAPABILITY:`) at the function/class level
-* A **declared, auditable constitution** that governs behavior
-* **Rollback, review, and cryptographic validation by default**
-* Built for **governance-heavy** and **safety-critical** contexts
+   > If `core-admin` isn’t found, prefix with: `poetry run core-admin ...`
 
 ---
 
 ## 🌱 Contributing
 
-We welcome contributions from:
+We welcome contributions from AI engineers, DevOps pros, and governance experts.
 
-* AI engineers
-* DevOps/GitOps pros
-* Policy designers
-* Governance/compliance experts
-
-👉 See **[`CONTRIBUTING.md`](CONTRIBUTING.md)** to get started.
-👉 Check the **[Strategic Plan](docs/StrategicPlan.md)** for where we're headed.
+* See **CONTRIBUTING.md** to get started.
+* Check the **Project Roadmap** for where we're headed: `docs/04_ROADMAP.md`.
 
 ---
 
 ## 📄 License
 
-Licensed under the **MIT License**. See **[LICENSE](LICENSE)**.
+Licensed under the **MIT License**. See `LICENSE`.
+
+\--- END OF FILE ./README.md ---
+
+\--- START OF FILE ./docs/04\_ROADMAP.md ---
+
+# 4. The CORE Project Roadmap
+
+## Preamble: From Foundation to Future
+
+The initial development of CORE focused on building a stable, self-aware, and constitutionally governed foundation. That foundational work established our current stable state and is now considered complete. A historical record of that process can be found in `docs/archive/StrategicPlan.md`.
+
+**This document outlines our current and future direction.** With a stable and secure foundation in place, the project is now moving into its next major phase: **enabling true autonomous application development.**
+
+The following sections outline the key architectural challenges and features on our roadmap. We welcome discussion and contributions on these topics.
 
 ---
 
-## 💡 Inspiration
+## Phase 1: Scaling the Constitution
 
-CORE was born from a simple but powerful idea:
-**“Software should not only work — it should know *why* it works, and who it’s working for.”**
+As identified in our external architectural reviews, the current constitutional structure, while sound, faces several scalability challenges. Our next priority is to evolve the `.intent/` directory to support a system that can manage hundreds or thousands of files.
+
+### 1.1: Implement Modular Manifests
+
+* **Status:** ⏳ Not Started
+
+### 1.2: Implement Hierarchical Capabilities
+
+* **Status:** ⏳ Not Started
+
+### 1.3: Implement Hierarchical Domains
+
+* **Status:** ⏳ Not Started
+
+---
+
+## Phase 2: Enhancing Agent Reasoning
+
+The next step is to make the system's AI agents smarter and safer in how they interpret and act upon the constitution.
+
+### 2.1: Implement a Precedence of Principles
+
+* **Status:** ⏳ Not Started
+
+### 2.2: Enforce Auditable Justification Logs
+
+* **Status:** ⏳ Not Started
+
+---
+
+## Phase 3: Autonomous Application Generation
+
+This is the ultimate goal of the CORE project. With a scalable constitution and smarter agents, we will build the capabilities for CORE to generate and manage new software projects from a high-level intent.
+
+* **Status:** ⏳ Not Started
+
+---
+
+## Phase 4: Constitutional Self-Improvement
+
+This phase focuses on enabling CORE to reason about and improve its own "Mind". The goal is to build meta-capabilities that allow the system to use external intelligence to enhance its own governance.
+
+### 4.1: Implement Constitutional Peer Review
+
+* **Status:** ✅ Complete. The `review export` and `review peer-review` commands are implemented. The system can successfully use an external LLM to critique its own constitution.
+
+### 4.2: Implement Content Drift Detection
+
+* **Status:** ⏳ Not Started
+
+---
+
+## Phase 5: Achieving Operational Robustness
+
+This new phase, based on feedback from the AI Peer Review Board, focuses on adding the critical policies and procedures required for real-world operation and enterprise-grade governance.
+
+### 5.1: Formalize Enforcement Levels
+
+* **Challenge:** The terms "soft" and "hard" enforcement are ambiguous.
+* **Goal:** Create a new policy file (`.intent/policies/enforcement_model.yaml`) that formally defines the behavior of each enforcement level, ensuring consistent and predictable governance.
+* **Status:** ⏳ Not Started
+
+### 5.2: Implement Critical Operational Policies
+
+* **Challenge:** The constitution lacks policies for critical real-world operations.
+* **Goal:** Create a series of new policy files to govern Data Privacy, Secrets Management, Incident Response, and External Dependency Management.
+* **Status:** ⏳ Not Started
+
+### 5.3: Define Human Operator Lifecycle
+
+* **Challenge:** The process for managing human approvers is not fully documented.
+* **Goal:** Expand `.intent/constitution/approvers.yaml` or create a new procedure document that defines the formal process for onboarding, offboarding, and key rotation/revocation for human operators.
+* **Status:** ⏳ Not Started
+
+---
+
+## Phase 6: Improving Architectural Health (New)
+
+This phase addresses technical debt identified by the `ConstitutionalAuditor` to ensure the long-term health and maintainability of the codebase, upholding the `separation_of_concerns` principle.
+
+### 6.1: Refactor `codegraph_builder.py`
+
+* **Challenge:** The `KnowledgeGraphBuilder` class has grown too large (304 LLOC) and mixes responsibilities (file discovery, AST parsing, domain mapping, pattern matching).
+* **Goal:** Decompose `KnowledgeGraphBuilder` into smaller, single-responsibility helper classes or modules. For example, a `PatternMatcher` class, a `DomainResolver` class, and a `SymbolParser` class.
+* **Status:** ⏳ Not Started
+
+### 6.2: Refactor `proposal_checks.py`
+
+* **Challenge:** The `ProposalChecks` class is becoming a complexity outlier (190 LLOC).
+* **Goal:** Refactor the large check methods into smaller, more focused helper functions to improve readability and testability.
+* **Status:** ⏳ Not Started
+

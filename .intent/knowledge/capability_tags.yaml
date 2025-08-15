@@ -76,6 +76,8 @@ tags:
     description: "Auditor check: Detects duplicated or inconsistent content across designated data files."
   - name: audit.check.codebase_health
     description: "Auditor check: Measures code complexity and atomicity against defined policies."
+  - name: audit.check.secrets
+    description: "Auditor check: Scans for hardcoded secrets like API keys or passwords."    
 
   # --- Planned or Placeholder Capabilities ---
   - name: add_missing_docstrings

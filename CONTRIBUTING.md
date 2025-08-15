@@ -74,7 +74,9 @@ The project uses [Poetry](https://python-poetry.org/) to manage dependencies.
 1.  Find an open issue that you'd like to work on (or open a new one for discussion).
 2.  Fork the repository and create a new branch.
 3.  **Write the code.** Ensure your code adheres to the conventions listed above.
-4.  **Run the checks.** Before submitting a pull request, you must run the full validation suite. This single command will handle formatting, linting, testing, and a full constitutional self-audit.
+4.  **Run the checks.** Before submitting a pull request, you must run the full validation suite.
+    - For quick, iterative checks while you work, run `make fast-check`. This will handle linting and unit tests.
+    - Before submitting, you MUST run the full suite, which includes the constitutional self-audit.
     ```bash
     make check
     ```
