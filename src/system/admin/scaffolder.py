@@ -1,10 +1,6 @@
 # src/system/admin/scaffolder.py
 """
-Intent: Implements the 'new' command for scaffolding new CORE-native projects.
-
-This command is the entry point for the "CORE-fication" pipeline, responsible
-for creating new Mind/Body applications from scratch, complete with a starter
-constitution and CI/CD wiring.
+Intent: Implements the 'new' command and provides a reusable Scaffolding service.
 """
 
 import shutil
@@ -20,6 +16,69 @@ STARTER_KITS_DIR = CORE_ROOT / "system" / "starter_kits"
 WORKSPACE_DIR = CORE_ROOT / "work"
 
 
+class Scaffolder:
+    """A reusable service for creating new, constitutionally-governed projects."""
+
+    def __init__(self, project_name: str, profile: str = "default"):
+        self.name = project_name
+        self.profile = profile
+        self.project_root = WORKSPACE_DIR / self.name
+        self.starter_kit_path = STARTER_KITS_DIR / self.profile
+
+        if not self.starter_kit_path.is_dir():
+            raise FileNotFoundError(
+                f"Starter kit profile '{self.profile}' not found at {self.starter_kit_path}."
+            )
+
+    def scaffold_base_structure(self):
+        """Creates the base directory structure and constitution from the starter kit."""
+        log.info(f"💾 Creating project structure at {self.project_root}...")
+        if self.project_root.exists():
+            raise FileExistsError(f"Directory '{self.project_root}' already exists.")
+
+        # Create the basic structure
+        self.project_root.mkdir(parents=True, exist_ok=True)
+        (self.project_root / "src").mkdir()
+        (self.project_root / "reports").mkdir()
+
+        # Copy and process template files
+        for template_path in self.starter_kit_path.glob("*.template"):
+            content = template_path.read_text().format(project_name=self.name)
+            target_name = (
+                ".gitignore"
+                if template_path.name == "gitignore.template"
+                else template_path.name.replace(".template", "")
+            )
+            (self.project_root / target_name).write_text(content)
+
+        # Copy constitutional files
+        intent_dir = self.project_root / ".intent"
+        shutil.copytree(self.starter_kit_path, intent_dir, dirs_exist_ok=True)
+
+        # Clean up non-constitutional files from the copied starter kit
+        for f in intent_dir.glob("*.template"):
+            f.unlink()
+        (intent_dir / ".gitkeep").unlink(missing_ok=True)
+
+
+        # Customize the new project's manifest
+        manifest_path = intent_dir / "project_manifest.yaml"
+        if manifest_path.exists():
+            manifest_data = yaml.safe_load(manifest_path.read_text())
+            manifest_data["name"] = self.name
+            manifest_path.write_text(yaml.dump(manifest_data, indent=2))
+        
+        log.info(f"   -> ✅ Base structure for '{self.name}' created successfully.")
+
+    def write_file(self, relative_path: str, content: str):
+        """Writes a file into the newly scaffolded project."""
+        target_file = self.project_root / relative_path
+        target_file.parent.mkdir(parents=True, exist_ok=True)
+        target_file.write_text(content, encoding="utf-8")
+        log.info(f"   -> 📄 Wrote agent-generated file: {relative_path}")
+
+
+# This remains the CLI command for manual scaffolding.
 def new_project(
     name: str = typer.Argument(
         ...,
@@ -42,18 +101,6 @@ def new_project(
     log.info(
         f"🚀 Scaffolding new CORE application: '{name}' using '{profile}' profile."
     )
-
-    project_root = WORKSPACE_DIR / name
-    starter_kit_path = STARTER_KITS_DIR / profile
-
-    if not starter_kit_path.is_dir():
-        log.error(
-            f"❌ Starter kit profile '{profile}' not found at {starter_kit_path}."
-        )
-        raise typer.Exit(code=1)
-
-    # --- THIS IS THE NEW, CLEAN LOGIC ---
-    # The scaffolder no longer contains hardcoded templates. It only reads files.
     if dry_run:
         log.info("\n💧 Dry Run Mode: No files will be written.")
         typer.secho(
@@ -61,66 +108,23 @@ def new_project(
             fg=typer.colors.YELLOW,
         )
     else:
-        log.info(
-            f"\n💾 **Write Mode:** Creating project structure at {project_root}..."
-        )
-        if project_root.exists():
-            log.error(f"❌ Directory '{project_root}' already exists. Aborting.")
+        try:
+            scaffolder = Scaffolder(project_name=name, profile=profile)
+            scaffolder.scaffold_base_structure()
+            # Add a basic README to the project root
+            readme_content = (
+                (scaffolder.starter_kit_path / "README.md.template")
+                .read_text()
+                .format(project_name=name)
+            )
+            scaffolder.write_file("README.md", readme_content)
+
+        except FileExistsError as e:
+            log.error(f"❌ {e}")
             raise typer.Exit(code=1)
-
-        # Create the basic structure
-        project_root.mkdir(parents=True, exist_ok=True)
-        (project_root / "src").mkdir()
-        (project_root / "reports").mkdir()
-
-        # Copy and process all template files from the starter kit
-        for template_path in starter_kit_path.glob("*.template"):
-            content = template_path.read_text().format(project_name=name)
-
-            # Remove '.template' and handle special case for '.gitignore'
-            if template_path.name == "gitignore.template":
-                target_name = ".gitignore"
-            else:
-                target_name = template_path.name.replace(".template", "")
-
-            target_path = project_root / target_name
-            target_path.write_text(content)
-            typer.secho(
-                f"   -> ✅ Created file:      {target_path}", fg=typer.colors.GREEN
-            )
-
-        # Copy constitutional files into the .intent directory
-        intent_dir = project_root / ".intent"
-        intent_dir.mkdir()
-
-        constitutional_files = [
-            "principles.yaml",
-            "project_manifest.yaml",
-            "safety_policies.yaml",
-            "source_structure.yaml",
-        ]
-        # Also copy the intent README
-        shutil.copy(
-            starter_kit_path / "intent_README.md.template", intent_dir / "README.md"
-        )
-
-        for f in constitutional_files:
-            shutil.copy(starter_kit_path / f, intent_dir / f)
-
-        typer.secho(
-            f"   -> ✅ Populated .intent/ from '{profile}' starter kit",
-            fg=typer.colors.GREEN,
-        )
-
-        # Dynamically update the project name in the new manifest
-        manifest_path = intent_dir / "project_manifest.yaml"
-        if manifest_path.exists():
-            manifest_data = yaml.safe_load(manifest_path.read_text())
-            manifest_data["name"] = name
-            manifest_path.write_text(yaml.dump(manifest_data, indent=2))
-            typer.secho(
-                "   -> ✅ Customized project name in manifest", fg=typer.colors.GREEN
-            )
+        except Exception as e:
+            log.error(f"❌ An unexpected error occurred: {e}", exc_info=True)
+            raise typer.Exit(code=1)
 
     log.info(f"\n🎉 Scaffolding for '{name}' complete.")
     typer.secho("\nNext Steps:", bold=True)

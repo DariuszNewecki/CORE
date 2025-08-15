@@ -14,5 +14,6 @@ capabilities:
 - audit.check.proposals_schema
 - audit.check.proposals_drift
 - audit.check.proposals_list
+- scaffold_project
 description: Governance tooling, lifecycle setup, CLI utilities
 domain: system

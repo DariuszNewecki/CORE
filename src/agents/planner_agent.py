@@ -16,6 +16,7 @@ from core.intent_guard import IntentGuard
 from core.prompt_pipeline import PromptPipeline
 from pydantic import ValidationError
 from shared.logger import getLogger
+from system.admin.scaffolder import Scaffolder
 
 from agents.models import ExecutionTask, PlannerConfig
 from agents.plan_executor import PlanExecutionError, PlanExecutor
@@ -25,11 +26,10 @@ log = getLogger(__name__)
 execution_context = contextvars.ContextVar("execution_context")
 
 
-# CAPABILITY: code_generation
 class PlannerAgent:
     """
-    Decomposes goals into plans, generates code for each step, and then
-    delegates execution to the PlanExecutor.
+    Decomposes goals into plans, generates code, and orchestrates execution.
+    Can also scaffold new applications from a high-level description.
     """
 
     def __init__(
@@ -38,7 +38,7 @@ class PlannerAgent:
         generator_client: GeneratorClient,
         file_handler: FileHandler,
         git_service: GitService,
-        intent_guard: IntentGuard,  # <<< THIS IS THE FIX
+        intent_guard: IntentGuard,
         config: Optional[PlannerConfig] = None,
     ):
         """Initializes the PlannerAgent with service dependencies."""
@@ -46,13 +46,13 @@ class PlannerAgent:
         self.generator = generator_client
         self.file_handler = file_handler
         self.git_service = git_service
-        self.intent_guard = intent_guard  # <<< THIS IS THE FIX
+        self.intent_guard = intent_guard
         self.config = config or PlannerConfig()
         self.prompt_pipeline = PromptPipeline(self.file_handler.repo_path)
         self.executor = PlanExecutor(self.file_handler, self.git_service, self.config)
 
     def _setup_logging_context(self, goal: str, plan_id: str):
-        """Setup structured logging context for better observability."""
+        # ... (existing method, no changes needed)
         execution_context.set(
             {
                 "goal": goal,
@@ -62,7 +62,7 @@ class PlannerAgent:
         )
 
     def _extract_json_from_response(self, text: str) -> Optional[Dict]:
-        """Extracts a JSON object or array from a raw text response."""
+        # ... (existing method, no changes needed)
         match = re.search(
             r"```json\s*(\{[\s\S]*?\}|\[[\s\S]*?\])\s*```", text, re.DOTALL
         )
@@ -73,31 +73,28 @@ class PlannerAgent:
                 log.warning(
                     "Found a JSON markdown block, but it contained invalid JSON."
                 )
-
         try:
             start_index = text.find("{")
             if start_index == -1:
                 start_index = text.find("[")
             if start_index == -1:
                 return None
-
             decoder = json.JSONDecoder()
             obj, _ = decoder.raw_decode(text[start_index:])
             return obj
         except (json.JSONDecodeError, ValueError):
             log.warning("Could not find a valid JSON object using boundary detection.")
-
         log.error("Failed to extract any valid JSON from the LLM response.")
         return None
 
     def _log_plan_summary(self, plan: List[ExecutionTask]) -> None:
-        """Log a readable summary of the execution plan."""
+        # ... (existing method, no changes needed)
         log.info(f"📋 Execution Plan Summary ({len(plan)} tasks):")
         for i, task in enumerate(plan, 1):
             log.info(f"  {i}. [{task.action}] {task.step}")
 
     def _validate_task_params(self, task: ExecutionTask):
-        """Validates that a task has all the logically required parameters for its action."""
+        # ... (existing method, no changes needed)
         params = task.params
         required = []
         if task.action == "add_capability_tag":
@@ -106,20 +103,16 @@ class PlannerAgent:
             required = ["file_path"]
         elif task.action == "edit_function":
             required = ["file_path", "symbol_name"]
-
         if not all(getattr(params, p, None) for p in required):
             raise PlanExecutionError(
                 f"Task '{task.step}' is missing required parameters for '{task.action}'."
             )
 
-    # CAPABILITY: llm_orchestration
     def create_execution_plan(self, high_level_goal: str) -> List[ExecutionTask]:
-        """Creates a high-level, code-agnostic execution plan."""
+        # ... (existing method, no changes needed)
         plan_id = f"plan_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}"
         self._setup_logging_context(high_level_goal, plan_id)
-
         log.info("🧠 Step 1: Decomposing goal into a high-level plan...")
-
         prompt_template = textwrap.dedent(
             """
             You are a hyper-competent, meticulous system architect AI. Your task is to decompose a high-level goal into a JSON execution plan.
@@ -135,10 +128,8 @@ class PlannerAgent:
             **CRITICAL RULE:** Do NOT include a `"code"` parameter in this step. Generate the code-free JSON plan now.
         """
         ).strip()
-
         final_prompt = prompt_template.format(goal=high_level_goal)
         enriched_prompt = self.prompt_pipeline.process(final_prompt)
-
         for attempt in range(self.config.max_retries):
             try:
                 response_text = self.orchestrator.make_request(
@@ -149,14 +140,11 @@ class PlannerAgent:
                     raise ValueError("No valid JSON found in response")
                 if isinstance(parsed_json, dict):
                     parsed_json = [parsed_json]
-
                 validated_plan = [ExecutionTask(**task) for task in parsed_json]
                 for task in validated_plan:
                     self._validate_task_params(task)
-
                 self._log_plan_summary(validated_plan)
                 return validated_plan
-
             except (ValueError, json.JSONDecodeError, ValidationError) as e:
                 log.warning(f"Plan creation attempt {attempt + 1} failed: {e}")
                 if attempt == self.config.max_retries - 1:
@@ -166,11 +154,10 @@ class PlannerAgent:
         return []
 
     async def _generate_code_for_task(self, task: ExecutionTask, goal: str) -> str:
-        """Generates the code content for a single task."""
+        # ... (existing method, no changes needed)
         log.info(f"✍️ Step 2: Generating code for task: '{task.step}'...")
         if task.action not in ["create_file", "edit_function"]:
             return ""
-
         prompt_template = textwrap.dedent(
             """
             You are an expert Python programmer. Generate a single block of Python code to fulfill the task.
@@ -181,7 +168,6 @@ class PlannerAgent:
             **Instructions:** Your output MUST be ONLY the raw Python code. Do not wrap it in markdown blocks.
         """
         ).strip()
-
         final_prompt = prompt_template.format(
             goal=goal,
             step=task.step,
@@ -194,20 +180,18 @@ class PlannerAgent:
         )
 
     async def execute_plan(self, high_level_goal: str) -> Tuple[bool, str]:
-        """Creates a plan, generates code for it, and orchestrates its execution."""
+        # ... (existing method, no changes needed)
         try:
             plan = self.create_execution_plan(high_level_goal)
         except PlanExecutionError as e:
             return False, str(e)
         if not plan:
             return False, "Plan is empty or invalid."
-
         log.info("--- Starting Code Generation Phase ---")
         for task in plan:
             task.params.code = await self._generate_code_for_task(task, high_level_goal)
             if task.action in ["create_file", "edit_function"] and not task.params.code:
                 return False, f"Code generation failed for step: '{task.step}'"
-
         log.info("--- Handing off to Executor ---")
         with PlanExecutionContext(self):
             try:
@@ -223,3 +207,75 @@ class PlannerAgent:
                             f"  - [{v.get('rule')}] L{v.get('line')}: {v.get('message')}"
                         )
                 return False, f"Plan execution failed: {error_detail}"
+
+    # --- THIS IS THE NEW METHOD ---
+    # CAPABILITY: scaffold_project
+    def scaffold_new_application(self, project_name: str, goal: str) -> Tuple[bool, str]:
+        """
+        Uses an LLM to plan and generate a new, multi-file application.
+
+        Args:
+            project_name: The directory name for the new project (e.g., 'web-calculator').
+            goal: A high-level description of the application's purpose.
+
+        Returns:
+            A tuple of (success, message).
+        """
+        log.info(f"🌱 Starting to scaffold new application '{project_name}'...")
+        prompt_template = textwrap.dedent(
+            """
+            You are a senior software architect. Your task is to design the file structure and content for a new Python application based on a high-level goal.
+
+            **Goal:** "{goal}"
+
+            **Instructions:**
+            1.  Think step-by-step about the necessary files for a minimal, working version of this application.
+            2.  Your output MUST be a single, valid JSON object.
+            3.  The JSON object should have file paths as keys and the complete file content as string values.
+            4.  Include a `pyproject.toml` with necessary dependencies (like `fastapi`, `flask`, etc.).
+            5.  Include a simple `src/main.py` to make the application runnable.
+            6.  Keep the code simple, clean, and functional.
+
+            **Example for "a simple Flask web server":**
+            ```json
+            {{
+                "pyproject.toml": "[tool.poetry.dependencies]\npython = \\">=3.9\\"\nflask = \\"^2.0\\" ...",
+                "src/main.py": "from flask import Flask\\n\\napp = Flask(__name__)\\n\\n@app.route('/')\\ndef hello():\\n    return 'Hello, World!'\\n"
+            }}
+            ```
+
+            Generate the JSON for the goal now.
+            """
+        ).strip()
+
+        final_prompt = prompt_template.format(goal=goal)
+        try:
+            response_text = self.orchestrator.make_request(
+                final_prompt, user_id="planner_agent_scaffolder"
+            )
+            file_structure = self._extract_json_from_response(response_text)
+
+            if not file_structure or not isinstance(file_structure, dict):
+                raise ValueError("LLM did not return a valid JSON object of files.")
+
+            log.info(f"   -> LLM planned a structure with {len(file_structure)} files.")
+
+            # Use the reusable Scaffolder service
+            scaffolder = Scaffolder(project_name=project_name)
+            scaffolder.scaffold_base_structure()
+
+            for rel_path, content in file_structure.items():
+                # Here you would add validation for each file's content
+                scaffolder.write_file(rel_path, content)
+
+            if self.git_service.is_git_repo():
+                self.git_service.add(".")
+                self.git_service.commit(
+                    f"feat(scaffold): Initial commit for new application '{project_name}'"
+                )
+
+            return True, f"✅ Successfully scaffolded new application '{project_name}'."
+
+        except Exception as e:
+            log.error(f"❌ Scaffolding failed: {e}", exc_info=True)
+            return False, f"Scaffolding failed: {str(e)}"

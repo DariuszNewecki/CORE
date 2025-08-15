@@ -1,47 +1,15 @@
 # .intent/project_manifest.yaml
 #
 # This is the single, canonical source of truth for the CORE project's
-# high-level intent, capabilities, and configuration.
-# All other manifests (e.g., function_manifest.json, codegraph.json) are
-# derived from the information here and the source code itself.
+# high-level intent and top-level configuration.
+#
+# Project-wide capabilities are now defined in a decentralized way, located in
+# manifest.yaml files within each source domain (e.g., src/core/manifest.yaml).
+# The ConstitutionalAuditor automatically discovers and aggregates them.
 
 name: "CORE"
 version: "0.6.0" # Using the more recent version from the .json file
 intent: "Build a self-improving AI coding assistant that can evolve itself through prompts, code, and validation."
-
-# A comprehensive list of all capabilities the system is expected to have.
-# This is the master list for all governance and validation checks.
-required_capabilities:
-  - prompt_interpretation
-  - code_generation
-  - syntax_validation
-  - test_execution
-  - introspection
-  - alignment_checking
-  - manifest_updating
-  - self_correction
-  - change_safety_enforcement
-  - llm_orchestration
-  - intent_guarding
-  - semantic_validation
-  - code_quality_analysis
-  - system_logging
-  - add_missing_docstrings
-  - audit.check.required_files
-  - audit.check.secrets 
-  - audit.check.syntax
-  - audit.check.project_manifest
-  - audit.check.capability_coverage
-  - audit.check.capability_definitions
-  - audit.check.knowledge_graph_schema
-  - audit.check.domain_integrity
-  - audit.check.docstrings
-  - audit.check.dead_code
-  - audit.check.orphaned_intent_files
-  - audit.check.environment
-  - audit.check.proposals_schema
-  - audit.check.proposals_drift
-  - audit.check.proposals_list
 
 # Defines the primary agents responsible for executing CORE's logic.
 active_agents:
@@ -66,7 +34,7 @@ configuration:
 meta:
   created_by: "CORE v0.1 bootstrap"
   created_at: "2025-07-23T00:00:00Z"
-  last_updated: "2025-08-05T12:00:00Z" # Using a placeholder for today
+  last_updated: "2025-08-15T12:00:00Z" # Using a placeholder for today
 
 # --- Operator UX policy -------------------------------------------------------
 operator_experience:
@@ -81,4 +49,4 @@ operator_experience:
       labels:
         none: "NONE"                # how to label empty sections
         success: "✅ No capability drift"
-        failure: "🚨 Drift detected"  
+        failure: "🚨 Drift detected"
