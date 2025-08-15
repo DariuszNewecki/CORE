@@ -1,4 +1,10 @@
 # .intent/knowledge/source_structure.yaml
+
+paths:
+  # Defines the default directory for scaffolding new, independent applications.
+  # This path is relative to the repository root.
+  workspace: "work"
+
 structure:
   - domain: core
     path: src/core
