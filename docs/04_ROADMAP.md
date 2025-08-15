@@ -15,7 +15,7 @@ The following sections outline the key architectural challenges and features on 
 As identified in our external architectural reviews, the current constitutional structure, while sound, faces several scalability challenges. Our next priority is to evolve the `.intent/` directory to support a system that can manage hundreds or thousands of files.
 
 ### 1.1: Implement Modular Manifests
--   **Status:** ⏳ **Not Started**
+-   **Status:** ✅ **Complete.** The `ConstitutionalAuditor` now aggregates capabilities from domain-specific `manifest.yaml` files.
 
 ### 1.2: Implement Hierarchical Capabilities
 -   **Status:** ⏳ **Not Started**

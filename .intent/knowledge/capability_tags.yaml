@@ -78,6 +78,8 @@ tags:
     description: "Auditor check: Measures code complexity and atomicity against defined policies."
   - name: audit.check.secrets
     description: "Auditor check: Scans for hardcoded secrets like API keys or passwords."    
+  - name: scaffold_project
+    description: "Generates a complete, multi-file project structure from a high-level goal, including a starter constitution."
 
   # --- Planned or Placeholder Capabilities ---
   - name: add_missing_docstrings
