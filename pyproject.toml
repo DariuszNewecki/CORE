@@ -52,6 +52,10 @@ core-admin = "src.system.admin:app"
 [tool.ruff]
 line-length = 88
 select = ["E", "W", "F", "I"]
+# --- THIS IS THE FIX ---
+# We are telling ruff to ignore the E501 rule (line too long).
+# This makes 'black' the single source of truth for all formatting.
+ignore = ["E501"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
