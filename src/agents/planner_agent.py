@@ -5,8 +5,8 @@ The primary agent responsible for decomposing high-level goals into executable p
 import contextvars
 import json
 import re
-import textwrap
 import subprocess
+import textwrap
 from datetime import datetime, timezone
 from typing import Dict, List, Optional, Tuple
 
@@ -17,7 +17,7 @@ from core.intent_guard import IntentGuard
 from core.prompt_pipeline import PromptPipeline
 from pydantic import ValidationError
 from shared.logger import getLogger
-from system.admin.scaffolder import Scaffolder
+from system.tools.scaffolder import Scaffolder
 
 from agents.models import ExecutionTask, PlannerConfig
 from agents.plan_executor import PlanExecutionError, PlanExecutor
@@ -53,7 +53,7 @@ class PlannerAgent:
         self.executor = PlanExecutor(self.file_handler, self.git_service, self.config)
 
     def _setup_logging_context(self, goal: str, plan_id: str):
-        # ... (existing method, no changes needed)
+        """Sets up a structured logging context for a planning and execution cycle."""
         execution_context.set(
             {
                 "goal": goal,
@@ -63,7 +63,7 @@ class PlannerAgent:
         )
 
     def _extract_json_from_response(self, text: str) -> Optional[Dict]:
-        # ... (existing method, no changes needed)
+        """Extracts a JSON object or array from a raw text response, handling markdown blocks."""
         match = re.search(
             r"```json\s*(\{[\s\S]*?\}|\[[\s\S]*?\])\s*```", text, re.DOTALL
         )
@@ -89,13 +89,13 @@ class PlannerAgent:
         return None
 
     def _log_plan_summary(self, plan: List[ExecutionTask]) -> None:
-        # ... (existing method, no changes needed)
+        """Logs a human-readable summary of the generated execution plan."""
         log.info(f"📋 Execution Plan Summary ({len(plan)} tasks):")
         for i, task in enumerate(plan, 1):
             log.info(f"  {i}. [{task.action}] {task.step}")
 
     def _validate_task_params(self, task: ExecutionTask):
-        # ... (existing method, no changes needed)
+        """Validates that a task has all required parameters for its specified action."""
         params = task.params
         required = []
         if task.action == "add_capability_tag":
@@ -109,8 +109,9 @@ class PlannerAgent:
                 f"Task '{task.step}' is missing required parameters for '{task.action}'."
             )
 
+    # CAPABILITY: llm_orchestration
     def create_execution_plan(self, high_level_goal: str) -> List[ExecutionTask]:
-        # ... (existing method, no changes needed)
+        """Decomposes a high-level goal into a structured, code-free execution plan using an LLM."""
         plan_id = f"plan_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}"
         self._setup_logging_context(high_level_goal, plan_id)
         log.info("🧠 Step 1: Decomposing goal into a high-level plan...")
@@ -154,8 +155,9 @@ class PlannerAgent:
                     )
         return []
 
+    # CAPABILITY: code_generation
     async def _generate_code_for_task(self, task: ExecutionTask, goal: str) -> str:
-        # ... (existing method, no changes needed)
+        """Generates the code content for a single task using a generator LLM."""
         log.info(f"✍️ Step 2: Generating code for task: '{task.step}'...")
         if task.action not in ["create_file", "edit_function"]:
             return ""
@@ -181,7 +183,7 @@ class PlannerAgent:
         )
 
     async def execute_plan(self, high_level_goal: str) -> Tuple[bool, str]:
-        # ... (existing method, no changes needed)
+        """Orchestrates the full cycle of planning, code generation, and execution for a goal."""
         try:
             plan = self.create_execution_plan(high_level_goal)
         except PlanExecutionError as e:
@@ -216,22 +218,14 @@ class PlannerAgent:
         goal: str,
         initialize_git: bool = False,
     ) -> Tuple[bool, str]:
-        """
-        Uses an LLM to plan and generate a new, multi-file application.
-
-        Args:
-            project_name: The directory name for the new project.
-            goal: A high-level description of the application's purpose.
-            initialize_git: If True, will initialize a new Git repository.
-
-        Returns:
-            A tuple of (success, message).
-        """
+        """Uses an LLM to plan and generate a new, multi-file application."""
         log.info(f"🌱 Starting to scaffold new application '{project_name}'...")
         prompt_template = textwrap.dedent(
             """
             You are a senior software architect. Your task is to design the file structure and content for a new Python application based on a high-level goal.
+
             **Goal:** "{goal}"
+
             **Instructions:**
             1.  Think step-by-step about the necessary files for a minimal, working version of this application.
             2.  Your output MUST be a single, valid JSON object.
@@ -255,7 +249,6 @@ class PlannerAgent:
 
             log.info(f"   -> LLM planned a structure with {len(file_structure)} files.")
 
-            # Scaffolder now correctly finds the workspace from the constitution.
             scaffolder = Scaffolder(project_name=project_name)
             scaffolder.scaffold_base_structure()
 
@@ -263,15 +256,25 @@ class PlannerAgent:
                 scaffolder.write_file(rel_path, content)
 
             if initialize_git:
-                log.info(f"   -> Initializing new Git repository in {scaffolder.project_root}...")
-                subprocess.run(["git", "init"], cwd=scaffolder.project_root, check=True, capture_output=True)
+                log.info(
+                    f"   -> Initializing new Git repository in {scaffolder.project_root}..."
+                )
+                subprocess.run(
+                    ["git", "init"],
+                    cwd=scaffolder.project_root,
+                    check=True,
+                    capture_output=True,
+                )
                 new_repo_git = GitService(str(scaffolder.project_root))
                 new_repo_git.add(".")
                 new_repo_git.commit(
                     f"feat(scaffold): Initial commit for new application '{project_name}'"
                 )
 
-            return True, f"✅ Successfully scaffolded new application '{project_name}' in '{scaffolder.workspace.relative_to(self.file_handler.repo_path)}'."
+            return (
+                True,
+                f"✅ Successfully scaffolded new application '{project_name}' in '{scaffolder.workspace.relative_to(self.file_handler.repo_path)}'.",
+            )
 
         except Exception as e:
             log.error(f"❌ Scaffolding failed: {e}", exc_info=True)

@@ -46,6 +46,7 @@ structure:
       - shared
       - system
       - core
+      - tooling # <-- FIX #1: Agents are now allowed to use Tools.
       # Standard & External Libraries
       - json
       - re
@@ -62,6 +63,7 @@ structure:
       - shared
       - core
       - tooling
+      - agents # <-- FIX #2: The System (CLI) is now allowed to use Agents.
       # Standard & External Libraries
       - ast
       - collections

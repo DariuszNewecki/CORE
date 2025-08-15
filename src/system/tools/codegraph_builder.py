@@ -66,6 +66,7 @@ class KnowledgeGraphBuilder:
             "__pycache__",
             ".git",
             "tests",
+            "work",
         ]
         self.functions: Dict[str, FunctionInfo] = {}
         self.files_scanned = 0

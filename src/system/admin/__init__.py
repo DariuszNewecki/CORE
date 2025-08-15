@@ -5,15 +5,17 @@ without changing the public console script target (system.admin_cli:app).
 """
 
 import typer
-from system.admin import agent as _agent # <-- ADD THIS LINE
+
+# All imports are now at the top of the file, before any other code.
+from system.admin import agent as _agent
 from system.admin import byor as _byor
 from system.admin import fixer as _fixer
 from system.admin import guard as _guard
 from system.admin import keys as _keys
 from system.admin import migrator as _migrator
+from system.admin import new as _new  # <-- NEW
 from system.admin import proposals
 from system.admin import reviewer as _reviewer
-from system.admin import scaffolder as _scaffolder
 
 app = typer.Typer(
     rich_markup_mode="markdown",
@@ -35,6 +37,7 @@ _migrator.register(app)
 _fixer.register(app)
 _byor.register(app)
 _reviewer.register(app)
+_new.register(app)  # <-- NEW
 
 
 __all__ = ["app"]
