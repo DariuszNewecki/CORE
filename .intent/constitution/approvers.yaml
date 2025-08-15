@@ -2,33 +2,11 @@
 #
 # This file defines the human operators authorized to approve constitutional
 # changes and the rules governing that process.
-
-# ========================================================================
-# HUMAN OPERATOR LIFECYCLE PROCEDURES
-# ========================================================================
-# This section documents the formal procedures for managing approvers.
-# All changes to the 'approvers' list must follow these procedures.
 #
-# --- Onboarding a New Approver ---
-# 1. The new operator must generate a key pair using:
-#    `poetry run core-admin keygen "new.operator@example.com"`
-# 2. A current, authorized approver must create a formal proposal to add
-#    the new operator's public key block to the 'approvers' list below.
-# 3. The proposal must be signed and approved, meeting the required quorum.
+# The formal procedures for onboarding, offboarding, and key management are
+# constitutionally defined in the following document:
 #
-# --- Standard Revocation of an Approver ---
-# 1. An authorized approver must create a formal proposal to remove the
-#    operator's block from the 'approvers' list.
-# 2. The justification must clearly state the reason for revocation.
-# 3. The proposal must be signed and approved, meeting the required quorum.
-#
-# --- Emergency Revocation of a Compromised Key ---
-# 1. If a private key is compromised, any active approver can issue an
-#    emergency revocation proposal.
-# 2. This proposal must meet the 'critical' quorum.
-# 3. The compromised approver is immediately considered invalid for quorum
-#    calculations once the proposal is created.
-# ========================================================================
+# ./operator_lifecycle.md
 
 approvers:
   - identity: "core-team@core-system.ai"
@@ -57,7 +35,6 @@ approvers:
     created_at: "2025-08-12T10:36:49.000000Z" # Using a placeholder, real value is in live file
     role: "maintainer"
     description: "Mentor"
-
 
 # Minimum number of signatures required for constitutional amendments
 quorum:

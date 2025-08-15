@@ -23,12 +23,12 @@ from system.admin import fixer as _fixer
 from system.admin import guard as _guard
 from system.admin import keys as _keys
 from system.admin import migrator as _migrator
-from system.admin import proposals as _proposals
+from system.admin import proposals
 from system.admin import reviewer as _reviewer
 from system.admin import scaffolder as _scaffolder
 
 _keys.register(app)
-_proposals.register(app)
+app.add_typer(proposals.proposals_app, name="proposals")
 _guard.register(app)
 _migrator.register(app)
 _fixer.register(app)

@@ -1,9 +1,9 @@
 {
   "schema_version": "2.0.0",
   "metadata": {
-    "files_scanned": 59,
+    "files_scanned": 60,
     "total_symbols": 246,
-    "timestamp_utc": "2025-08-13T20:55:48.695189+00:00"
+    "timestamp_utc": "2025-08-15T07:02:56.241070+00:00"
   },
   "symbols": {
     "src/core/clients.py::BaseLLMClient": {
@@ -27,15 +27,15 @@
         "raise_for_status",
         "rstrip"
       ],
-      "line_number": 18,
+      "line_number": 17,
       "is_async": false,
       "parameters": [],
       "entry_point_type": "base_class",
-      "last_updated": "2025-08-13T20:55:48.005308+00:00",
+      "last_updated": "2025-08-15T07:02:55.553650+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "framework_base_class",
-      "structural_hash": "38408b13a298d9bb537d3728a9c4a6ea2a3275c017328a7d183c5be076b4ee76"
+      "structural_hash": "0f66592a18c2280b2c2aef06c304204bbb7b0fb4ae9fea9bb45530e4aa7073e8"
     },
     "src/core/clients.py::__init__": {
       "key": "src/core/clients.py::__init__",
@@ -52,13 +52,13 @@
         "info",
         "super"
       ],
-      "line_number": 111,
+      "line_number": 149,
       "is_async": false,
       "parameters": [
         "self"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-13T20:55:48.021689+00:00",
+      "last_updated": "2025-08-15T07:02:55.570303+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -82,14 +82,14 @@
         "post",
         "raise_for_status"
       ],
-      "line_number": 47,
+      "line_number": 51,
       "is_async": false,
       "parameters": [
         "self",
         "prompt",
         "user_id"
       ],
-      "last_updated": "2025-08-13T20:55:48.014416+00:00",
+      "last_updated": "2025-08-15T07:02:55.562921+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/core/clients.py::BaseLLMClient",
@@ -112,18 +112,18 @@
         "post",
         "raise_for_status"
       ],
-      "line_number": 70,
+      "line_number": 88,
       "is_async": true,
       "parameters": [
         "self",
         "prompt",
         "user_id"
       ],
-      "last_updated": "2025-08-13T20:55:48.016833+00:00",
+      "last_updated": "2025-08-15T07:02:55.565274+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/core/clients.py::BaseLLMClient",
-      "structural_hash": "244c179b6450a2b51fe6ac2a7f7366217c04e6c2be3d75099bea845645be5224"
+      "structural_hash": "000933e12c6751ddaee82d36d6bc4e62a447f2cd6c3fa59c68c0ad1064d3c8b6"
     },
     "src/core/clients.py::OrchestratorClient": {
       "key": "src/core/clients.py::OrchestratorClient",
@@ -140,10 +140,10 @@
         "info",
         "super"
       ],
-      "line_number": 93,
+      "line_number": 128,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-13T20:55:48.017905+00:00",
+      "last_updated": "2025-08-15T07:02:55.566439+00:00",
       "is_class": true,
       "base_classes": [
         "BaseLLMClient"
@@ -165,10 +165,10 @@
         "info",
         "super"
       ],
-      "line_number": 106,
+      "line_number": 143,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-13T20:55:48.020202+00:00",
+      "last_updated": "2025-08-15T07:02:55.568766+00:00",
       "is_class": true,
       "base_classes": [
         "BaseLLMClient"
@@ -190,10 +190,10 @@
         "get_repo_root",
         "load_config"
       ],
-      "line_number": 28,
+      "line_number": 29,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-13T20:55:48.025595+00:00",
+      "last_updated": "2025-08-15T07:02:55.574468+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "cab90bc1e8a1e8e5ffececda4a227e4b8a931edb4fe02be9ce5a23bfae8d222f"
@@ -213,12 +213,12 @@
         "isinstance",
         "join"
       ],
-      "line_number": 38,
+      "line_number": 40,
       "is_async": false,
       "parameters": [
         "node"
       ],
-      "last_updated": "2025-08-13T20:55:48.026571+00:00",
+      "last_updated": "2025-08-15T07:02:55.575502+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "72bf270f183300199553865489182c447b5a4ccdc1ea03a3d5b94d95b162322e"
@@ -248,13 +248,13 @@
         "update",
         "walk"
       ],
-      "line_number": 49,
+      "line_number": 52,
       "is_async": false,
       "parameters": [
         "tree",
         "file_path"
       ],
-      "last_updated": "2025-08-13T20:55:48.030081+00:00",
+      "last_updated": "2025-08-15T07:02:55.579168+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "514dbf39224ab1741a836c6c28cab2e277f75d6d7c6d3671596cfc61f59efccf"
@@ -276,12 +276,12 @@
         "splitlines",
         "strip"
       ],
-      "line_number": 103,
+      "line_number": 123,
       "is_async": false,
       "parameters": [
         "code"
       ],
-      "last_updated": "2025-08-13T20:55:48.031869+00:00",
+      "last_updated": "2025-08-15T07:02:55.580986+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "c5b46c2eff257ea4efe9df4b282875ab698168db224abe219bf9f3ef4276594d"
@@ -300,14 +300,14 @@
         "_find_dangerous_patterns",
         "parse"
       ],
-      "line_number": 119,
+      "line_number": 142,
       "is_async": false,
       "parameters": [
         "code",
         "file_path"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-13T20:55:48.032696+00:00",
+      "last_updated": "2025-08-15T07:02:55.581801+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -334,13 +334,13 @@
         "format_code_with_black",
         "str"
       ],
-      "line_number": 128,
+      "line_number": 152,
       "is_async": false,
       "parameters": [
         "path_hint",
         "code"
       ],
-      "last_updated": "2025-08-13T20:55:48.034287+00:00",
+      "last_updated": "2025-08-15T07:02:55.583379+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "e96751308fac71051ef307581c6143cebf0852d2a595604b122d0c380c8f37fc"
@@ -359,12 +359,12 @@
         "append",
         "safe_load"
       ],
-      "line_number": 161,
+      "line_number": 193,
       "is_async": false,
       "parameters": [
         "code"
       ],
-      "last_updated": "2025-08-13T20:55:48.035520+00:00",
+      "last_updated": "2025-08-15T07:02:55.584617+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "c1cc9b3495cf7da110b274799aa0d90947cbb9d1605a43719d7aa6ecfb877cef"
@@ -383,12 +383,12 @@
         "Path",
         "lower"
       ],
-      "line_number": 175,
+      "line_number": 210,
       "is_async": false,
       "parameters": [
         "file_path"
       ],
-      "last_updated": "2025-08-13T20:55:48.036492+00:00",
+      "last_updated": "2025-08-15T07:02:55.585567+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "5389b48f5dc1b1c94a0a73168977c056aad4c0d85a4843163538780ff9c3cb91"
@@ -411,7 +411,7 @@
         "debug",
         "get"
       ],
-      "line_number": 184,
+      "line_number": 223,
       "is_async": false,
       "parameters": [
         "file_path",
@@ -419,7 +419,7 @@
         "quiet"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-13T20:55:48.038082+00:00",
+      "last_updated": "2025-08-15T07:02:55.587159+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -456,7 +456,7 @@
       "line_number": 22,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-13T20:55:48.043187+00:00",
+      "last_updated": "2025-08-15T07:02:55.592472+00:00",
       "is_class": true,
       "base_classes": [],
       "structural_hash": "ccc7b74514266784da6391edb69daa742b4ccb839f991520bf4bcd5f53f8bee9"
@@ -485,7 +485,7 @@
         "repo_path"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-13T20:55:48.050061+00:00",
+      "last_updated": "2025-08-15T07:02:55.599672+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -517,7 +517,7 @@
         "command"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-13T20:55:48.051257+00:00",
+      "last_updated": "2025-08-15T07:02:55.600928+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -545,7 +545,7 @@
         "self",
         "file_path"
       ],
-      "last_updated": "2025-08-13T20:55:48.052360+00:00",
+      "last_updated": "2025-08-15T07:02:55.601999+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/core/git_service.py::GitService",
@@ -573,7 +573,7 @@
         "self",
         "message"
       ],
-      "last_updated": "2025-08-13T20:55:48.053578+00:00",
+      "last_updated": "2025-08-15T07:02:55.603254+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/core/git_service.py::GitService",
@@ -597,7 +597,7 @@
       "parameters": [
         "self"
       ],
-      "last_updated": "2025-08-13T20:55:48.054284+00:00",
+      "last_updated": "2025-08-15T07:02:55.603946+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/core/git_service.py::GitService",
@@ -621,7 +621,7 @@
       "parameters": [
         "self"
       ],
-      "last_updated": "2025-08-13T20:55:48.054878+00:00",
+      "last_updated": "2025-08-15T07:02:55.604505+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/core/git_service.py::GitService",
@@ -648,7 +648,7 @@
         "self",
         "commit_hash"
       ],
-      "last_updated": "2025-08-13T20:55:48.055759+00:00",
+      "last_updated": "2025-08-15T07:02:55.605357+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/core/git_service.py::GitService",
@@ -669,14 +669,14 @@
         "parse",
         "strip"
       ],
-      "line_number": 13,
+      "line_number": 14,
       "is_async": false,
       "parameters": [
         "file_path",
         "code"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-13T20:55:48.057475+00:00",
+      "last_updated": "2025-08-15T07:02:55.607026+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -698,12 +698,12 @@
         "InvalidInput",
         "format_str"
       ],
-      "line_number": 9,
+      "line_number": 10,
       "is_async": false,
       "parameters": [
         "code"
       ],
-      "last_updated": "2025-08-13T20:55:48.058926+00:00",
+      "last_updated": "2025-08-15T07:02:55.608516+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "67aa7b50532f6c25f84285da5bbf9430a54f3b594a386a3299c19b82faa15fbf"
@@ -735,13 +735,13 @@
         "utcnow",
         "warning"
       ],
-      "line_number": 19,
+      "line_number": 21,
       "is_async": false,
       "parameters": [
         "silent"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-13T20:55:48.064191+00:00",
+      "last_updated": "2025-08-15T07:02:55.613727+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -762,12 +762,12 @@
         "splitlines",
         "strip"
       ],
-      "line_number": 77,
+      "line_number": 80,
       "is_async": false,
       "parameters": [
         "output"
       ],
-      "last_updated": "2025-08-13T20:55:48.065476+00:00",
+      "last_updated": "2025-08-15T07:02:55.615002+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "ecb56e37049e5532d9a6ce3afe63d1fd652cb164fc98e76a46565820fd320bf7"
@@ -790,12 +790,12 @@
         "warning",
         "write"
       ],
-      "line_number": 85,
+      "line_number": 89,
       "is_async": false,
       "parameters": [
         "data"
       ],
-      "last_updated": "2025-08-13T20:55:48.066605+00:00",
+      "last_updated": "2025-08-15T07:02:55.616121+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "13f83ee9bd80ac8766838342478341ecac3f76e1a251506d3a68a02723b420d3"
@@ -820,12 +820,12 @@
         "warning",
         "write_text"
       ],
-      "line_number": 95,
+      "line_number": 100,
       "is_async": false,
       "parameters": [
         "data"
       ],
-      "last_updated": "2025-08-13T20:55:48.068024+00:00",
+      "last_updated": "2025-08-15T07:02:55.617535+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "af76b1754db8cbc6ae124a21f9916aaa8bfc52fa38d68bc69f86fd7e70aed49e"
@@ -850,13 +850,13 @@
         "introspection",
         "warning"
       ],
-      "line_number": 34,
+      "line_number": 36,
       "is_async": true,
       "parameters": [
         "app"
       ],
       "entry_point_type": "context_manager",
-      "last_updated": "2025-08-13T20:55:48.070892+00:00",
+      "last_updated": "2025-08-15T07:02:55.620270+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "d5ac0bebc15291b880331ed3aedccab5a9099a7f8fbcac49cdf76b3b12b6f5a1"
@@ -872,11 +872,11 @@
       "intent": "Defines the request body for the /execute_goal endpoint.",
       "docstring": "Defines the request body for the /execute_goal endpoint.",
       "calls": [],
-      "line_number": 61,
+      "line_number": 67,
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-13T20:55:48.071556+00:00",
+      "last_updated": "2025-08-15T07:02:55.620897+00:00",
       "is_class": true,
       "base_classes": [
         "BaseModel"
@@ -905,14 +905,14 @@
         "post",
         "str"
       ],
-      "line_number": 66,
+      "line_number": 74,
       "is_async": true,
       "parameters": [
         "request_data",
         "request"
       ],
       "entry_point_type": "fastapi_route_post",
-      "last_updated": "2025-08-13T20:55:48.073570+00:00",
+      "last_updated": "2025-08-15T07:02:55.622795+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "35c32ac2bd4b62c5018ada127d9db98bda21a1a214371ea6f358933f3790268f"
@@ -930,11 +930,11 @@
       "calls": [
         "get"
       ],
-      "line_number": 98,
+      "line_number": 113,
       "is_async": true,
       "parameters": [],
       "entry_point_type": "fastapi_route_get",
-      "last_updated": "2025-08-13T20:55:48.074326+00:00",
+      "last_updated": "2025-08-15T07:02:55.623547+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "0f4ab9b7486b424e3726a154118bc8d237af730580bf891e8f58b65ba9fd8713"
@@ -971,10 +971,10 @@
         "strip",
         "sub"
       ],
-      "line_number": 23,
+      "line_number": 24,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-13T20:55:48.082415+00:00",
+      "last_updated": "2025-08-15T07:02:55.631524+00:00",
       "is_class": true,
       "base_classes": [],
       "structural_hash": "643ffeca004f05935522cc4d1c1b568539b9a36dd0ab361acf09bb0e399dec65"
@@ -994,14 +994,14 @@
         "compile",
         "resolve"
       ],
-      "line_number": 29,
+      "line_number": 30,
       "is_async": false,
       "parameters": [
         "self",
         "repo_path"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-13T20:55:48.092854+00:00",
+      "last_updated": "2025-08-15T07:02:55.641910+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -1027,13 +1027,13 @@
         "str",
         "strip"
       ],
-      "line_number": 44,
+      "line_number": 45,
       "is_async": false,
       "parameters": [
         "self",
         "match"
       ],
-      "last_updated": "2025-08-13T20:55:48.094565+00:00",
+      "last_updated": "2025-08-15T07:02:55.643535+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/core/prompt_pipeline.py::PromptPipeline",
@@ -1052,13 +1052,13 @@
       "calls": [
         "sub"
       ],
-      "line_number": 59,
+      "line_number": 60,
       "is_async": false,
       "parameters": [
         "self",
         "prompt"
       ],
-      "last_updated": "2025-08-13T20:55:48.095271+00:00",
+      "last_updated": "2025-08-15T07:02:55.644215+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/core/prompt_pipeline.py::PromptPipeline",
@@ -1083,13 +1083,13 @@
         "str",
         "strip"
       ],
-      "line_number": 64,
+      "line_number": 66,
       "is_async": false,
       "parameters": [
         "self",
         "match"
       ],
-      "last_updated": "2025-08-13T20:55:48.096863+00:00",
+      "last_updated": "2025-08-15T07:02:55.645736+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/core/prompt_pipeline.py::PromptPipeline",
@@ -1108,13 +1108,13 @@
       "calls": [
         "sub"
       ],
-      "line_number": 78,
+      "line_number": 80,
       "is_async": false,
       "parameters": [
         "self",
         "prompt"
       ],
-      "last_updated": "2025-08-13T20:55:48.097559+00:00",
+      "last_updated": "2025-08-15T07:02:55.646429+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/core/prompt_pipeline.py::PromptPipeline",
@@ -1134,13 +1134,13 @@
         "group",
         "strip"
       ],
-      "line_number": 82,
+      "line_number": 84,
       "is_async": false,
       "parameters": [
         "self",
         "match"
       ],
-      "last_updated": "2025-08-13T20:55:48.098288+00:00",
+      "last_updated": "2025-08-15T07:02:55.647167+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/core/prompt_pipeline.py::PromptPipeline",
@@ -1159,13 +1159,13 @@
       "calls": [
         "sub"
       ],
-      "line_number": 89,
+      "line_number": 91,
       "is_async": false,
       "parameters": [
         "self",
         "prompt"
       ],
-      "last_updated": "2025-08-13T20:55:48.098874+00:00",
+      "last_updated": "2025-08-15T07:02:55.647773+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/core/prompt_pipeline.py::PromptPipeline",
@@ -1193,13 +1193,13 @@
         "str",
         "strip"
       ],
-      "line_number": 93,
+      "line_number": 95,
       "is_async": false,
       "parameters": [
         "self",
         "match"
       ],
-      "last_updated": "2025-08-13T20:55:48.100847+00:00",
+      "last_updated": "2025-08-15T07:02:55.649777+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/core/prompt_pipeline.py::PromptPipeline",
@@ -1218,13 +1218,13 @@
       "calls": [
         "sub"
       ],
-      "line_number": 119,
+      "line_number": 125,
       "is_async": false,
       "parameters": [
         "self",
         "prompt"
       ],
-      "last_updated": "2025-08-13T20:55:48.101618+00:00",
+      "last_updated": "2025-08-15T07:02:55.650588+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/core/prompt_pipeline.py::PromptPipeline",
@@ -1246,14 +1246,14 @@
         "_inject_includes",
         "_inject_manifest"
       ],
-      "line_number": 124,
+      "line_number": 130,
       "is_async": false,
       "parameters": [
         "self",
         "prompt"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-13T20:55:48.102356+00:00",
+      "last_updated": "2025-08-15T07:02:55.651359+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -1279,11 +1279,11 @@
         "run",
         "warning"
       ],
-      "line_number": 18,
+      "line_number": 19,
       "is_async": false,
       "parameters": [],
       "entry_point_type": "cli_entry_point",
-      "last_updated": "2025-08-13T20:55:48.105675+00:00",
+      "last_updated": "2025-08-15T07:02:55.654725+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "65c205885812932a8159baa16c02658ee3be9c35f7e536cee2a1799fa9a682b7"
@@ -1311,13 +1311,13 @@
         "run",
         "write"
       ],
-      "line_number": 19,
+      "line_number": 20,
       "is_async": false,
       "parameters": [
         "code",
         "display_filename"
       ],
-      "last_updated": "2025-08-13T20:55:48.109463+00:00",
+      "last_updated": "2025-08-15T07:02:55.658568+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "43ca55ae34afc29c10e967766b01252dae62b0efe0b5e8f024d0d5f07d1cc287"
@@ -1352,10 +1352,10 @@
         "uuid4",
         "write_text"
       ],
-      "line_number": 19,
+      "line_number": 21,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-13T20:55:48.115122+00:00",
+      "last_updated": "2025-08-15T07:02:55.664186+00:00",
       "is_class": true,
       "base_classes": [],
       "structural_hash": "cf22b57d0019b89065c46a812e22e93b4b7115c5a8708f14c806b9a1d98a402f"
@@ -1378,14 +1378,14 @@
         "mkdir",
         "resolve"
       ],
-      "line_number": 26,
+      "line_number": 28,
       "is_async": false,
       "parameters": [
         "self",
         "repo_path"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-13T20:55:48.121103+00:00",
+      "last_updated": "2025-08-15T07:02:55.670298+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -1412,7 +1412,7 @@
         "uuid4",
         "write_text"
       ],
-      "line_number": 49,
+      "line_number": 51,
       "is_async": false,
       "parameters": [
         "self",
@@ -1420,7 +1420,7 @@
         "suggested_path",
         "code"
       ],
-      "last_updated": "2025-08-13T20:55:48.122494+00:00",
+      "last_updated": "2025-08-15T07:02:55.671646+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/core/file_handler.py::FileHandler",
@@ -1449,13 +1449,13 @@
         "unlink",
         "write_text"
       ],
-      "line_number": 70,
+      "line_number": 72,
       "is_async": false,
       "parameters": [
         "self",
         "pending_id"
       ],
-      "last_updated": "2025-08-13T20:55:48.124845+00:00",
+      "last_updated": "2025-08-15T07:02:55.674059+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/core/file_handler.py::FileHandler",
@@ -1486,13 +1486,13 @@
         "safe_load",
         "sorted"
       ],
-      "line_number": 19,
+      "line_number": 20,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-13T20:55:48.129088+00:00",
+      "last_updated": "2025-08-15T07:02:55.678202+00:00",
       "is_class": true,
       "base_classes": [],
-      "structural_hash": "44a97788e0f0dfef7fda9ee25c657d52b67e7dad28c1042de8a32d1f58d7bd5c"
+      "structural_hash": "ead52768c57f82f1780c8048368cab32f42cf88daf78acfe2535d08b2a8e4e0e"
     },
     "src/core/intent_model.py::__init__": {
       "key": "src/core/intent_model.py::__init__",
@@ -1509,14 +1509,14 @@
         "_load_structure",
         "resolve"
       ],
-      "line_number": 24,
+      "line_number": 26,
       "is_async": false,
       "parameters": [
         "self",
         "repo_root"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-13T20:55:48.134198+00:00",
+      "last_updated": "2025-08-15T07:02:55.683147+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -1541,16 +1541,16 @@
         "read_text",
         "safe_load"
       ],
-      "line_number": 37,
+      "line_number": 42,
       "is_async": false,
       "parameters": [
         "self"
       ],
-      "last_updated": "2025-08-13T20:55:48.135473+00:00",
+      "last_updated": "2025-08-15T07:02:55.684353+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/core/intent_model.py::IntentModel",
-      "structural_hash": "d9d85a3511a3996305a17ef31d8a47cdf054ee8f8b4a19dc102131db38c7b44f"
+      "structural_hash": "b824e94138bb02de0af5745ab5f6a071ce7b11cbfb5530c8f99e55a1bbccc06e"
     },
     "src/core/intent_model.py::resolve_domain_for_path": {
       "key": "src/core/intent_model.py::resolve_domain_for_path",
@@ -1568,13 +1568,13 @@
         "resolve",
         "sorted"
       ],
-      "line_number": 56,
+      "line_number": 61,
       "is_async": false,
       "parameters": [
         "self",
         "file_path"
       ],
-      "last_updated": "2025-08-13T20:55:48.136783+00:00",
+      "last_updated": "2025-08-15T07:02:55.685731+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/core/intent_model.py::IntentModel",
@@ -1594,13 +1594,13 @@
         "get",
         "isinstance"
       ],
-      "line_number": 77,
+      "line_number": 82,
       "is_async": false,
       "parameters": [
         "self",
         "domain"
       ],
-      "last_updated": "2025-08-13T20:55:48.137725+00:00",
+      "last_updated": "2025-08-15T07:02:55.686645+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/core/intent_model.py::IntentModel",
@@ -1637,11 +1637,11 @@
         "sorted",
         "values"
       ],
-      "line_number": 19,
+      "line_number": 21,
       "is_async": false,
       "parameters": [],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-13T20:55:48.142299+00:00",
+      "last_updated": "2025-08-15T07:02:55.691222+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -1665,14 +1665,14 @@
         "len",
         "resolve"
       ],
-      "line_number": 25,
+      "line_number": 27,
       "is_async": false,
       "parameters": [
         "self",
         "repo_path"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-13T20:55:48.148095+00:00",
+      "last_updated": "2025-08-15T07:02:55.696947+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -1696,12 +1696,12 @@
         "isinstance",
         "load_config"
       ],
-      "line_number": 40,
+      "line_number": 44,
       "is_async": false,
       "parameters": [
         "self"
       ],
-      "last_updated": "2025-08-13T20:55:48.149197+00:00",
+      "last_updated": "2025-08-15T07:02:55.697972+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/core/intent_guard.py::IntentGuard",
@@ -1726,12 +1726,12 @@
         "sorted",
         "values"
       ],
-      "line_number": 49,
+      "line_number": 53,
       "is_async": false,
       "parameters": [
         "self"
       ],
-      "last_updated": "2025-08-13T20:55:48.150594+00:00",
+      "last_updated": "2025-08-15T07:02:55.699196+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/core/intent_guard.py::IntentGuard",
@@ -1751,13 +1751,13 @@
         "append",
         "resolve"
       ],
-      "line_number": 67,
+      "line_number": 73,
       "is_async": false,
       "parameters": [
         "self",
         "proposed_paths"
       ],
-      "last_updated": "2025-08-13T20:55:48.152080+00:00",
+      "last_updated": "2025-08-15T07:02:55.700565+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/core/intent_guard.py::IntentGuard",
@@ -1786,17 +1786,17 @@
         "strip",
         "validate_code"
       ],
-      "line_number": 21,
+      "line_number": 24,
       "is_async": false,
       "parameters": [
         "failure_context"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-13T20:55:48.155575+00:00",
+      "last_updated": "2025-08-15T07:02:55.703797+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
-      "structural_hash": "fc3bfe1e9f114f7f1bccde372d3b2693ca57d29af66cf5355194f411e0d42718"
+      "structural_hash": "62b6c78116a25ee0860c615c72e2ad1e04c559c73432641d14917b0dffba0b64"
     },
     "src/agents/plan_executor.py::PlanExecutionError": {
       "key": "src/agents/plan_executor.py::PlanExecutionError",
@@ -1812,10 +1812,10 @@
         "__init__",
         "super"
       ],
-      "line_number": 20,
+      "line_number": 22,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-13T20:55:48.158973+00:00",
+      "last_updated": "2025-08-15T07:02:55.707218+00:00",
       "is_class": true,
       "base_classes": [
         "Exception"
@@ -1837,7 +1837,7 @@
         "SymbolLocator",
         "get_event_loop"
       ],
-      "line_number": 29,
+      "line_number": 33,
       "is_async": false,
       "parameters": [
         "self",
@@ -1846,7 +1846,7 @@
         "config"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-13T20:55:48.178883+00:00",
+      "last_updated": "2025-08-15T07:02:55.727225+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -1892,10 +1892,10 @@
         "wait_for",
         "warning"
       ],
-      "line_number": 26,
+      "line_number": 30,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-13T20:55:48.168020+00:00",
+      "last_updated": "2025-08-15T07:02:55.716344+00:00",
       "is_class": true,
       "base_classes": [],
       "structural_hash": "17735db12ab7b0a74cdffea83961886204476d970edac95c771a3ad3a5274554"
@@ -1916,13 +1916,13 @@
         "info",
         "len"
       ],
-      "line_number": 39,
+      "line_number": 45,
       "is_async": true,
       "parameters": [
         "self",
         "plan"
       ],
-      "last_updated": "2025-08-13T20:55:48.179875+00:00",
+      "last_updated": "2025-08-15T07:02:55.728259+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/agents/plan_executor.py::PlanExecutor",
@@ -1943,13 +1943,13 @@
         "_execute_task",
         "wait_for"
       ],
-      "line_number": 45,
+      "line_number": 51,
       "is_async": true,
       "parameters": [
         "self",
         "task"
       ],
-      "last_updated": "2025-08-13T20:55:48.180806+00:00",
+      "last_updated": "2025-08-15T07:02:55.729223+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/agents/plan_executor.py::PlanExecutor",
@@ -1968,13 +1968,13 @@
       "calls": [
         "warning"
       ],
-      "line_number": 53,
+      "line_number": 59,
       "is_async": true,
       "parameters": [
         "self",
         "task"
       ],
-      "last_updated": "2025-08-13T20:55:48.181774+00:00",
+      "last_updated": "2025-08-15T07:02:55.730265+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/agents/plan_executor.py::PlanExecutor",
@@ -2007,13 +2007,13 @@
         "splitlines",
         "validate_code"
       ],
-      "line_number": 65,
+      "line_number": 71,
       "is_async": true,
       "parameters": [
         "self",
         "params"
       ],
-      "last_updated": "2025-08-13T20:55:48.184464+00:00",
+      "last_updated": "2025-08-15T07:02:55.732994+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/agents/plan_executor.py::PlanExecutor",
@@ -2040,13 +2040,13 @@
         "is_git_repo",
         "validate_code"
       ],
-      "line_number": 94,
+      "line_number": 118,
       "is_async": true,
       "parameters": [
         "self",
         "params"
       ],
-      "last_updated": "2025-08-13T20:55:48.186424+00:00",
+      "last_updated": "2025-08-15T07:02:55.735063+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/agents/plan_executor.py::PlanExecutor",
@@ -2075,13 +2075,13 @@
         "replace_symbol_in_code",
         "validate_code"
       ],
-      "line_number": 114,
+      "line_number": 145,
       "is_async": true,
       "parameters": [
         "self",
         "params"
       ],
-      "last_updated": "2025-08-13T20:55:48.188783+00:00",
+      "last_updated": "2025-08-15T07:02:55.737482+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/agents/plan_executor.py::PlanExecutor",
@@ -2111,10 +2111,10 @@
         "strip",
         "walk"
       ],
-      "line_number": 17,
+      "line_number": 18,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-13T20:55:48.193080+00:00",
+      "last_updated": "2025-08-15T07:02:55.741838+00:00",
       "is_class": true,
       "base_classes": [],
       "structural_hash": "5eca4842cfee268823a13fb1d553a0c5931ee0c77194f4c37dbedfa00bfffccd"
@@ -2134,14 +2134,14 @@
         "isinstance",
         "walk"
       ],
-      "line_number": 20,
+      "line_number": 21,
       "is_async": false,
       "parameters": [
         "self",
         "tree",
         "symbol_name"
       ],
-      "last_updated": "2025-08-13T20:55:48.197148+00:00",
+      "last_updated": "2025-08-15T07:02:55.745742+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/agents/utils.py::CodeEditor",
@@ -2168,7 +2168,7 @@
         "splitlines",
         "strip"
       ],
-      "line_number": 30,
+      "line_number": 33,
       "is_async": false,
       "parameters": [
         "self",
@@ -2176,7 +2176,7 @@
         "symbol_name",
         "new_code_str"
       ],
-      "last_updated": "2025-08-13T20:55:48.199129+00:00",
+      "last_updated": "2025-08-15T07:02:55.747685+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/agents/utils.py::CodeEditor",
@@ -2201,10 +2201,10 @@
         "read_text",
         "walk"
       ],
-      "line_number": 69,
+      "line_number": 76,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-13T20:55:48.200786+00:00",
+      "last_updated": "2025-08-15T07:02:55.749320+00:00",
       "is_class": true,
       "base_classes": [],
       "structural_hash": "b81d8ed35b74c4eae80ee7232fe9fa14e7736c56390be056b5869d5f7a3f9a2b"
@@ -2228,13 +2228,13 @@
         "read_text",
         "walk"
       ],
-      "line_number": 73,
+      "line_number": 80,
       "is_async": false,
       "parameters": [
         "file_path",
         "symbol_name"
       ],
-      "last_updated": "2025-08-13T20:55:48.203576+00:00",
+      "last_updated": "2025-08-15T07:02:55.752215+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/agents/utils.py::SymbolLocator",
@@ -2257,10 +2257,10 @@
         "reset_to_commit",
         "warning"
       ],
-      "line_number": 90,
+      "line_number": 100,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-13T20:55:48.205179+00:00",
+      "last_updated": "2025-08-15T07:02:55.753862+00:00",
       "is_class": true,
       "base_classes": [],
       "structural_hash": "746974f99275530082a816c35d716e58bf90d20343d6eb6a37b0d707a44328a3"
@@ -2276,14 +2276,14 @@
       "intent": "Initializes the context with a reference to the calling agent.",
       "docstring": "Initializes the context with a reference to the calling agent.",
       "calls": [],
-      "line_number": 93,
+      "line_number": 103,
       "is_async": false,
       "parameters": [
         "self",
         "planner_agent"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-13T20:55:48.207897+00:00",
+      "last_updated": "2025-08-15T07:02:55.756589+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -2305,13 +2305,13 @@
         "is_git_repo",
         "warning"
       ],
-      "line_number": 98,
+      "line_number": 108,
       "is_async": false,
       "parameters": [
         "self"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-13T20:55:48.208688+00:00",
+      "last_updated": "2025-08-15T07:02:55.757420+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -2333,7 +2333,7 @@
         "reset_to_commit",
         "warning"
       ],
-      "line_number": 107,
+      "line_number": 117,
       "is_async": false,
       "parameters": [
         "self",
@@ -2342,7 +2342,7 @@
         "exc_tb"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-13T20:55:48.209612+00:00",
+      "last_updated": "2025-08-15T07:02:55.758344+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -2406,11 +2406,11 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-13T20:55:48.220810+00:00",
+      "last_updated": "2025-08-15T07:02:55.769896+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
-      "structural_hash": "bbeea25d8250680f3217bbfc49fd03216fa242781ce80fc5dbe15862f5f74956"
+      "structural_hash": "0f224ac51257310c0333a47706175787677b62c3c83c2b3a9a0ffdc05a284505"
     },
     "src/agents/planner_agent.py::__init__": {
       "key": "src/agents/planner_agent.py::__init__",
@@ -2439,7 +2439,7 @@
         "config"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-13T20:55:48.233189+00:00",
+      "last_updated": "2025-08-15T07:02:55.781878+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -2461,14 +2461,14 @@
         "now",
         "set"
       ],
-      "line_number": 52,
+      "line_number": 54,
       "is_async": false,
       "parameters": [
         "self",
         "goal",
         "plan_id"
       ],
-      "last_updated": "2025-08-13T20:55:48.233961+00:00",
+      "last_updated": "2025-08-15T07:02:55.782638+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/agents/planner_agent.py::PlannerAgent",
@@ -2494,17 +2494,17 @@
         "search",
         "warning"
       ],
-      "line_number": 58,
+      "line_number": 64,
       "is_async": false,
       "parameters": [
         "self",
         "text"
       ],
-      "last_updated": "2025-08-13T20:55:48.235523+00:00",
+      "last_updated": "2025-08-15T07:02:55.784088+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/agents/planner_agent.py::PlannerAgent",
-      "structural_hash": "49d1b1ca05800c37b3d8f60c468003df123d59ba697f3a8b88d3bb010d5eb8ea"
+      "structural_hash": "df6ba42dbade92e0423aa963b29741c7a7ca23bacd32fc9f8ea9b06713b5fa02"
     },
     "src/agents/planner_agent.py::_log_plan_summary": {
       "key": "src/agents/planner_agent.py::_log_plan_summary",
@@ -2521,13 +2521,13 @@
         "info",
         "len"
       ],
-      "line_number": 81,
+      "line_number": 93,
       "is_async": false,
       "parameters": [
         "self",
         "plan"
       ],
-      "last_updated": "2025-08-13T20:55:48.236703+00:00",
+      "last_updated": "2025-08-15T07:02:55.785258+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/agents/planner_agent.py::PlannerAgent",
@@ -2548,13 +2548,13 @@
         "all",
         "getattr"
       ],
-      "line_number": 87,
+      "line_number": 99,
       "is_async": false,
       "parameters": [
         "self",
         "task"
       ],
-      "last_updated": "2025-08-13T20:55:48.238054+00:00",
+      "last_updated": "2025-08-15T07:02:55.786594+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/agents/planner_agent.py::PlannerAgent",
@@ -2590,19 +2590,19 @@
         "strip",
         "warning"
       ],
-      "line_number": 99,
+      "line_number": 116,
       "is_async": false,
       "parameters": [
         "self",
         "high_level_goal"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-13T20:55:48.240408+00:00",
+      "last_updated": "2025-08-15T07:02:55.788820+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
       "parent_class_key": "src/agents/planner_agent.py::PlannerAgent",
-      "structural_hash": "087b23b8b6ac05904189257a663f47b74ca83039a495075b8661f63761795087"
+      "structural_hash": "f1bc7d55b870a76b185ebce643c83304eec845e7eae26003e1a1489573ff052a"
     },
     "src/agents/planner_agent.py::_generate_code_for_task": {
       "key": "src/agents/planner_agent.py::_generate_code_for_task",
@@ -2622,14 +2622,14 @@
         "process",
         "strip"
       ],
-      "line_number": 142,
+      "line_number": 168,
       "is_async": true,
       "parameters": [
         "self",
         "task",
         "goal"
       ],
-      "last_updated": "2025-08-13T20:55:48.241874+00:00",
+      "last_updated": "2025-08-15T07:02:55.790279+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/agents/planner_agent.py::PlannerAgent",
@@ -2656,13 +2656,13 @@
         "info",
         "str"
       ],
-      "line_number": 164,
+      "line_number": 196,
       "is_async": true,
       "parameters": [
         "self",
         "high_level_goal"
       ],
-      "last_updated": "2025-08-13T20:55:48.244298+00:00",
+      "last_updated": "2025-08-15T07:02:55.792797+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/agents/planner_agent.py::PlannerAgent",
@@ -2679,11 +2679,11 @@
       "intent": "Enumeration of possible states for an ExecutionTask.",
       "docstring": "Enumeration of possible states for an ExecutionTask.",
       "calls": [],
-      "line_number": 11,
+      "line_number": 13,
       "is_async": false,
       "parameters": [],
       "entry_point_type": "enum",
-      "last_updated": "2025-08-13T20:55:48.245811+00:00",
+      "last_updated": "2025-08-15T07:02:55.794225+00:00",
       "is_class": true,
       "base_classes": [
         "Enum"
@@ -2702,11 +2702,11 @@
       "intent": "Represents the progress of a plan's execution.",
       "docstring": "Represents the progress of a plan's execution.",
       "calls": [],
-      "line_number": 19,
+      "line_number": 23,
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-13T20:55:48.246703+00:00",
+      "last_updated": "2025-08-15T07:02:55.795155+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -2720,15 +2720,15 @@
       "domain": "agents",
       "agent": "generic_agent",
       "capability": "unassigned",
-      "intent": "Calculates the completion percentage of the plan as a float, returning 0 if there are no tasks.",
-      "docstring": "Calculates the completion percentage of the plan as a float, returning 0 if there are no tasks.",
+      "intent": "Calculates the completion percentage of the plan as a float,",
+      "docstring": "Calculates the completion percentage of the plan as a float,\nreturning 0 if there are no tasks.",
       "calls": [],
-      "line_number": 27,
+      "line_number": 32,
       "is_async": false,
       "parameters": [
         "self"
       ],
-      "last_updated": "2025-08-13T20:55:48.248009+00:00",
+      "last_updated": "2025-08-15T07:02:55.796540+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/agents/models.py::ExecutionProgress",
@@ -2745,11 +2745,11 @@
       "intent": "Configuration settings for the PlannerAgent's behavior.",
       "docstring": "Configuration settings for the PlannerAgent's behavior.",
       "calls": [],
-      "line_number": 33,
+      "line_number": 46,
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-13T20:55:48.248646+00:00",
+      "last_updated": "2025-08-15T07:02:55.797148+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -2766,11 +2766,11 @@
       "intent": "Data model for the parameters of a single task in an execution plan.",
       "docstring": "Data model for the parameters of a single task in an execution plan.",
       "calls": [],
-      "line_number": 42,
+      "line_number": 57,
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-13T20:55:48.249284+00:00",
+      "last_updated": "2025-08-15T07:02:55.797853+00:00",
       "is_class": true,
       "base_classes": [
         "BaseModel"
@@ -2789,11 +2789,11 @@
       "intent": "Data model for a single, executable step in a plan.",
       "docstring": "Data model for a single, executable step in a plan.",
       "calls": [],
-      "line_number": 49,
+      "line_number": 66,
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-13T20:55:48.249881+00:00",
+      "last_updated": "2025-08-15T07:02:55.798435+00:00",
       "is_class": true,
       "base_classes": [
         "BaseModel"
@@ -2818,12 +2818,12 @@
         "exists",
         "resolve"
       ],
-      "line_number": 6,
+      "line_number": 7,
       "is_async": false,
       "parameters": [
         "start_path"
       ],
-      "last_updated": "2025-08-13T20:55:48.251160+00:00",
+      "last_updated": "2025-08-15T07:02:55.799646+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "edc71d0c31594afdd9eea55c11cfb962e028462f15c08972f1a1d9cf1796ed79"
@@ -2849,13 +2849,13 @@
         "safe_load",
         "warning"
       ],
-      "line_number": 11,
+      "line_number": 13,
       "is_async": false,
       "parameters": [
         "file_path",
         "file_type"
       ],
-      "last_updated": "2025-08-13T20:55:48.254126+00:00",
+      "last_updated": "2025-08-15T07:02:55.802467+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "7124b13af5cffa8a06961f6fb04e4cad8794f6e029db463269b09ae500e68353"
@@ -2874,10 +2874,10 @@
         "Path",
         "home"
       ],
-      "line_number": 12,
+      "line_number": 14,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-13T20:55:48.256044+00:00",
+      "last_updated": "2025-08-15T07:02:55.804277+00:00",
       "is_class": true,
       "base_classes": [
         "BaseSettings"
@@ -2895,10 +2895,10 @@
       "intent": "Defines Pydantic's behavior for the Settings model.",
       "docstring": "Defines Pydantic's behavior for the Settings model.",
       "calls": [],
-      "line_number": 43,
+      "line_number": 46,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-13T20:55:48.256699+00:00",
+      "last_updated": "2025-08-15T07:02:55.804919+00:00",
       "is_class": true,
       "base_classes": [],
       "parent_class_key": "src/shared/config.py::Settings",
@@ -2917,13 +2917,13 @@
       "calls": [
         "getLogger"
       ],
-      "line_number": 44,
+      "line_number": 41,
       "is_async": false,
       "parameters": [
         "name"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-13T20:55:48.257934+00:00",
+      "last_updated": "2025-08-15T07:02:55.806046+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -2944,7 +2944,7 @@
         "collect_from_kgb",
         "collect_from_source_scan"
       ],
-      "line_number": 13,
+      "line_number": 15,
       "is_async": false,
       "parameters": [
         "root",
@@ -2952,7 +2952,7 @@
         "exclude_globs",
         "require_kgb"
       ],
-      "last_updated": "2025-08-13T20:55:48.259624+00:00",
+      "last_updated": "2025-08-15T07:02:55.807606+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "e48f7c87ea6b26ad0a7235a1de21d5d681fb9d602b84bc197e8e488ee74f9d56"
@@ -2970,13 +2970,13 @@
       "calls": [
         "load_manifest_capabilities"
       ],
-      "line_number": 34,
+      "line_number": 39,
       "is_async": false,
       "parameters": [
         "root",
         "explicit_path"
       ],
-      "last_updated": "2025-08-13T20:55:48.260426+00:00",
+      "last_updated": "2025-08-15T07:02:55.808339+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "7424757e7242faf2787f618be65139b5771145e1148c99ca1bd7844759895507"
@@ -2999,13 +2999,13 @@
         "set",
         "sorted"
       ],
-      "line_number": 15,
+      "line_number": 17,
       "is_async": false,
       "parameters": [
         "manifest_caps",
         "code_caps"
       ],
-      "last_updated": "2025-08-13T20:55:48.262836+00:00",
+      "last_updated": "2025-08-15T07:02:55.810697+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "fb9cc3adce19b9962fed21968390bc8fd63447ff630b4742636e98c8fb796d14"
@@ -3026,13 +3026,13 @@
         "to_dict",
         "write_text"
       ],
-      "line_number": 39,
+      "line_number": 43,
       "is_async": false,
       "parameters": [
         "report_path",
         "report"
       ],
-      "last_updated": "2025-08-13T20:55:48.263788+00:00",
+      "last_updated": "2025-08-15T07:02:55.811691+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "f470e15b680e9bda6d15592a0bcb69254df8aef37a8400043fda5abc2a84ec49"
@@ -3050,11 +3050,11 @@
       "calls": [
         "dataclass"
       ],
-      "line_number": 11,
+      "line_number": 13,
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-13T20:55:48.264901+00:00",
+      "last_updated": "2025-08-15T07:02:55.812779+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -3073,11 +3073,11 @@
       "calls": [
         "sorted"
       ],
-      "line_number": 18,
+      "line_number": 22,
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-13T20:55:48.265879+00:00",
+      "last_updated": "2025-08-15T07:02:55.813751+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -3096,12 +3096,12 @@
       "calls": [
         "sorted"
       ],
-      "line_number": 24,
+      "line_number": 29,
       "is_async": false,
       "parameters": [
         "self"
       ],
-      "last_updated": "2025-08-13T20:55:48.267221+00:00",
+      "last_updated": "2025-08-15T07:02:55.815046+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/system/guard/models.py::DriftReport",
@@ -3156,11 +3156,11 @@
         "values",
         "warning"
       ],
-      "line_number": 27,
+      "line_number": 28,
       "is_async": false,
       "parameters": [],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-13T20:55:48.277471+00:00",
+      "last_updated": "2025-08-15T07:02:55.825735+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -3184,14 +3184,14 @@
         "load_config",
         "values"
       ],
-      "line_number": 60,
+      "line_number": 65,
       "is_async": false,
       "parameters": [
         "self",
         "repo_root"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-13T20:55:48.292377+00:00",
+      "last_updated": "2025-08-15T07:02:55.840739+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -3225,12 +3225,12 @@
         "startswith",
         "warning"
       ],
-      "line_number": 72,
+      "line_number": 79,
       "is_async": false,
       "parameters": [
         "self"
       ],
-      "last_updated": "2025-08-13T20:55:48.295401+00:00",
+      "last_updated": "2025-08-15T07:02:55.843675+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/system/governance/constitutional_auditor.py::ConstitutionalAuditor",
@@ -3260,12 +3260,12 @@
         "split",
         "warning"
       ],
-      "line_number": 108,
+      "line_number": 123,
       "is_async": false,
       "parameters": [
         "self"
       ],
-      "last_updated": "2025-08-13T20:55:48.297986+00:00",
+      "last_updated": "2025-08-15T07:02:55.846201+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/system/governance/constitutional_auditor.py::ConstitutionalAuditor",
@@ -3286,13 +3286,13 @@
         "print",
         "sum"
       ],
-      "line_number": 139,
+      "line_number": 164,
       "is_async": false,
       "parameters": [
         "self",
         "passed"
       ],
-      "last_updated": "2025-08-13T20:55:48.299635+00:00",
+      "last_updated": "2025-08-15T07:02:55.847779+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/system/governance/constitutional_auditor.py::ConstitutionalAuditor",
@@ -3312,10 +3312,10 @@
         "info",
         "strip"
       ],
-      "line_number": 30,
+      "line_number": 31,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-13T20:55:48.286089+00:00",
+      "last_updated": "2025-08-15T07:02:55.834506+00:00",
       "is_class": true,
       "base_classes": [
         "StringIO"
@@ -3337,13 +3337,13 @@
         "info",
         "strip"
       ],
-      "line_number": 32,
+      "line_number": 34,
       "is_async": false,
       "parameters": [
         "self",
         "s"
       ],
-      "last_updated": "2025-08-13T20:55:48.287271+00:00",
+      "last_updated": "2025-08-15T07:02:55.835693+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/system/governance/constitutional_auditor.py::_LoggingBridge",
@@ -3367,10 +3367,10 @@
         "load_config",
         "values"
       ],
-      "line_number": 58,
+      "line_number": 62,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-13T20:55:48.290113+00:00",
+      "last_updated": "2025-08-15T07:02:55.838556+00:00",
       "is_class": true,
       "base_classes": [],
       "parent_class_key": "src/system/governance/constitutional_auditor.py::ConstitutionalAuditor",
@@ -3393,11 +3393,11 @@
         "load_dotenv",
         "run_full_audit"
       ],
-      "line_number": 153,
+      "line_number": 179,
       "is_async": false,
       "parameters": [],
       "entry_point_type": "cli_entry_point",
-      "last_updated": "2025-08-13T20:55:48.300924+00:00",
+      "last_updated": "2025-08-15T07:02:55.849071+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "f6fdbaa6bfe1e6124c035255bac2283c42602332b190a0302133de3a8620c2b6"
@@ -3413,11 +3413,11 @@
       "intent": "Severity levels for audit findings.",
       "docstring": "Severity levels for audit findings.",
       "calls": [],
-      "line_number": 9,
+      "line_number": 10,
       "is_async": false,
       "parameters": [],
       "entry_point_type": "enum",
-      "last_updated": "2025-08-13T20:55:48.301945+00:00",
+      "last_updated": "2025-08-15T07:02:55.850036+00:00",
       "is_class": true,
       "base_classes": [
         "Enum"
@@ -3436,11 +3436,11 @@
       "intent": "Represents a single audit finding.",
       "docstring": "Represents a single audit finding.",
       "calls": [],
-      "line_number": 16,
+      "line_number": 19,
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-13T20:55:48.302546+00:00",
+      "last_updated": "2025-08-15T07:02:55.850618+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -3461,13 +3461,13 @@
         "add_typer",
         "command"
       ],
-      "line_number": 9,
+      "line_number": 10,
       "is_async": false,
       "parameters": [
         "app"
       ],
       "entry_point_type": "cli_command",
-      "last_updated": "2025-08-13T20:55:48.303566+00:00",
+      "last_updated": "2025-08-15T07:02:55.851596+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "typer_cli_command",
@@ -3503,7 +3503,7 @@
         "secho",
         "write_text"
       ],
-      "line_number": 21,
+      "line_number": 23,
       "is_async": false,
       "parameters": [
         "name",
@@ -3511,11 +3511,11 @@
         "dry_run"
       ],
       "entry_point_type": "cli_command",
-      "last_updated": "2025-08-13T20:55:48.309460+00:00",
+      "last_updated": "2025-08-15T07:02:55.857489+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "typer_cli_command",
-      "structural_hash": "c37234c2860f6ea30bb18af6bcc43ac7a4d2f14eba04731b60f764046b895e13"
+      "structural_hash": "7d1f96bf13ad487d2a8de18d2003d8cbd2bfe6f908197331a7c9cc0b2a07b254"
     },
     "src/system/admin/scaffolder.py::register": {
       "key": "src/system/admin/scaffolder.py::register",
@@ -3530,13 +3530,13 @@
       "calls": [
         "command"
       ],
-      "line_number": 108,
+      "line_number": 134,
       "is_async": false,
       "parameters": [
         "app"
       ],
       "entry_point_type": "cli_command",
-      "last_updated": "2025-08-13T20:55:48.310651+00:00",
+      "last_updated": "2025-08-15T07:02:55.858699+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "typer_cli_command",
@@ -3555,13 +3555,13 @@
       "calls": [
         "command"
       ],
-      "line_number": 9,
+      "line_number": 10,
       "is_async": false,
       "parameters": [
         "app"
       ],
       "entry_point_type": "cli_command",
-      "last_updated": "2025-08-13T20:55:48.311555+00:00",
+      "last_updated": "2025-08-15T07:02:55.859595+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "typer_cli_command",
@@ -3581,14 +3581,14 @@
         "bool",
         "get"
       ],
-      "line_number": 22,
+      "line_number": 23,
       "is_async": false,
       "parameters": [
         "report",
         "fail_on"
       ],
       "entry_point_type": "cli_command",
-      "last_updated": "2025-08-13T20:55:48.313777+00:00",
+      "last_updated": "2025-08-15T07:02:55.861773+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "typer_cli_command",
@@ -3608,13 +3608,13 @@
         "read_text",
         "safe_load"
       ],
-      "line_number": 30,
+      "line_number": 36,
       "is_async": false,
       "parameters": [
         "path"
       ],
       "entry_point_type": "cli_command",
-      "last_updated": "2025-08-13T20:55:48.314543+00:00",
+      "last_updated": "2025-08-15T07:02:55.862533+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "typer_cli_command",
@@ -3634,14 +3634,14 @@
         "safe_dump",
         "write_text"
       ],
-      "line_number": 34,
+      "line_number": 41,
       "is_async": false,
       "parameters": [
         "path",
         "data"
       ],
       "entry_point_type": "cli_command",
-      "last_updated": "2025-08-13T20:55:48.315224+00:00",
+      "last_updated": "2025-08-15T07:02:55.863221+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "typer_cli_command",
@@ -3667,13 +3667,13 @@
         "hex",
         "update"
       ],
-      "line_number": 38,
+      "line_number": 46,
       "is_async": false,
       "parameters": [
         "proposal"
       ],
       "entry_point_type": "cli_command",
-      "last_updated": "2025-08-13T20:55:48.316404+00:00",
+      "last_updated": "2025-08-15T07:02:55.864377+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "typer_cli_command",
@@ -3696,11 +3696,11 @@
         "load_pem_private_key",
         "read_bytes"
       ],
-      "line_number": 53,
+      "line_number": 62,
       "is_async": false,
       "parameters": [],
       "entry_point_type": "cli_command",
-      "last_updated": "2025-08-13T20:55:48.317301+00:00",
+      "last_updated": "2025-08-15T07:02:55.865296+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "typer_cli_command",
@@ -3725,14 +3725,14 @@
         "utcnow",
         "write_text"
       ],
-      "line_number": 61,
+      "line_number": 73,
       "is_async": false,
       "parameters": [
         "proposal_name",
         "proposal"
       ],
       "entry_point_type": "cli_command",
-      "last_updated": "2025-08-13T20:55:48.318813+00:00",
+      "last_updated": "2025-08-15T07:02:55.866862+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "typer_cli_command",
@@ -3751,12 +3751,12 @@
       "calls": [
         "any"
       ],
-      "line_number": 20,
+      "line_number": 22,
       "is_async": false,
       "parameters": [
         "path_str"
       ],
-      "last_updated": "2025-08-13T20:55:48.321464+00:00",
+      "last_updated": "2025-08-15T07:02:55.869446+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "b0dcdbc5bcd3fad88dd29308c2d078febb3f76f3ca1abda9f84b84759ba7568d"
@@ -3791,10 +3791,10 @@
         "sorted",
         "values"
       ],
-      "line_number": 24,
+      "line_number": 27,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-13T20:55:48.324099+00:00",
+      "last_updated": "2025-08-15T07:02:55.872078+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "47a9e252ee6d00c1d63bb7b8ea1322c3335c77c9b3e9c9ddc0f381c0210bfecd"
@@ -3816,13 +3816,13 @@
         "isinstance",
         "values"
       ],
-      "line_number": 36,
+      "line_number": 41,
       "is_async": false,
       "parameters": [
         "data"
       ],
       "entry_point_type": "cli_command",
-      "last_updated": "2025-08-13T20:55:48.325226+00:00",
+      "last_updated": "2025-08-15T07:02:55.873199+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "typer_cli_command",
@@ -3846,13 +3846,13 @@
         "mkdir",
         "write_text"
       ],
-      "line_number": 67,
+      "line_number": 75,
       "is_async": false,
       "parameters": [
         "output"
       ],
       "entry_point_type": "cli_command",
-      "last_updated": "2025-08-13T20:55:48.326509+00:00",
+      "last_updated": "2025-08-15T07:02:55.874514+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "typer_cli_command",
@@ -3884,18 +3884,18 @@
         "secho",
         "write_text"
       ],
-      "line_number": 86,
+      "line_number": 95,
       "is_async": false,
       "parameters": [
         "output",
         "no_send"
       ],
       "entry_point_type": "cli_command",
-      "last_updated": "2025-08-13T20:55:48.329067+00:00",
+      "last_updated": "2025-08-15T07:02:55.877018+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "typer_cli_command",
-      "structural_hash": "8ea05ee4ce32f7e48bc94f1c17c97db1054d2bac7b6065ec14242ccf28bfe6af"
+      "structural_hash": "a1ddbefb544ca43ce68462c1c3bbca6412fc8e88ef2bde48aac844f6b81231bd"
     },
     "src/system/admin/reviewer.py::register": {
       "key": "src/system/admin/reviewer.py::register",
@@ -3912,13 +3912,13 @@
         "add_typer",
         "command"
       ],
-      "line_number": 146,
+      "line_number": 161,
       "is_async": false,
       "parameters": [
         "app"
       ],
       "entry_point_type": "cli_command",
-      "last_updated": "2025-08-13T20:55:48.330232+00:00",
+      "last_updated": "2025-08-15T07:02:55.878118+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "typer_cli_command",
@@ -3957,18 +3957,18 @@
         "values",
         "write_text"
       ],
-      "line_number": 26,
+      "line_number": 27,
       "is_async": false,
       "parameters": [
         "path",
         "dry_run"
       ],
       "entry_point_type": "cli_command",
-      "last_updated": "2025-08-13T20:55:48.335918+00:00",
+      "last_updated": "2025-08-15T07:02:55.883669+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "typer_cli_command",
-      "structural_hash": "0a9689eaf0e4bac87de825084b2ff0395207e7f11add07b2dff90079d729bbd9"
+      "structural_hash": "685e77beb1854c44e1d3adc89f529387ef92de25b3e864bb2a747777752208e6"
     },
     "src/system/admin/byor.py::register": {
       "key": "src/system/admin/byor.py::register",
@@ -3983,88 +3983,17 @@
       "calls": [
         "command"
       ],
-      "line_number": 120,
+      "line_number": 145,
       "is_async": false,
       "parameters": [
         "app"
       ],
       "entry_point_type": "cli_command",
-      "last_updated": "2025-08-13T20:55:48.337079+00:00",
+      "last_updated": "2025-08-15T07:02:55.884841+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "typer_cli_command",
       "structural_hash": "9b62691ef90f3390c625b2239aa9e80250dc156e4deba0ed1740245705a1dbf6"
-    },
-    "src/system/admin/proposals.py::register": {
-      "key": "src/system/admin/proposals.py::register",
-      "name": "register",
-      "type": "FunctionDef",
-      "file": "src/system/admin/proposals.py",
-      "domain": "system",
-      "agent": "generic_agent",
-      "capability": "unassigned",
-      "intent": "Intent: Register proposal lifecycle commands under the admin CLI.",
-      "docstring": "Intent: Register proposal lifecycle commands under the admin CLI.",
-      "calls": [
-        "Argument",
-        "ConstitutionalAuditor",
-        "Exit",
-        "Path",
-        "TemporaryDirectory",
-        "Typer",
-        "add_typer",
-        "any",
-        "append",
-        "archive_rollback_plan",
-        "b64decode",
-        "b64encode",
-        "command",
-        "copy",
-        "decode",
-        "encode",
-        "endswith",
-        "error",
-        "exists",
-        "generate_approval_token",
-        "get",
-        "glob",
-        "info",
-        "isinstance",
-        "isoformat",
-        "len",
-        "load_pem_public_key",
-        "load_private_key",
-        "load_yaml_file",
-        "mkdir",
-        "prompt",
-        "proposals_approve",
-        "proposals_list",
-        "proposals_sign",
-        "run",
-        "run_full_audit",
-        "save_yaml_file",
-        "setdefault",
-        "sign",
-        "sorted",
-        "str",
-        "strip",
-        "unlink",
-        "utcnow",
-        "verify",
-        "warning",
-        "write_text"
-      ],
-      "line_number": 36,
-      "is_async": false,
-      "parameters": [
-        "app"
-      ],
-      "entry_point_type": "cli_command",
-      "last_updated": "2025-08-13T20:55:48.351459+00:00",
-      "is_class": false,
-      "base_classes": [],
-      "entry_point_justification": "typer_cli_command",
-      "structural_hash": "48b7d47327698c739ce0e078adff2f37671f503c04ef36b7d4f2edd07c8a3630"
     },
     "src/system/admin/proposals.py::proposals_list": {
       "key": "src/system/admin/proposals.py::proposals_list",
@@ -4093,11 +4022,11 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "cli_command",
-      "last_updated": "2025-08-13T20:55:48.354066+00:00",
+      "last_updated": "2025-08-15T07:02:55.890635+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "typer_cli_command",
-      "structural_hash": "945118437b13733f1f4454a9627aad994be50dd4ab90f26e8864619ac3e58aeb"
+      "structural_hash": "3319d8858166139b9c523a3694781c7fe8e23ff252d7a4c04b72eca5fca2a3d3"
     },
     "src/system/admin/proposals.py::proposals_sign": {
       "key": "src/system/admin/proposals.py::proposals_sign",
@@ -4107,8 +4036,8 @@
       "domain": "system",
       "agent": "generic_agent",
       "capability": "unassigned",
-      "intent": "Intent: Sign a proposal with the operator's private key (content-bound token).",
-      "docstring": "Intent: Sign a proposal with the operator's private key (content-bound token).",
+      "intent": "Sign a proposal with the operator's private key (content-bound token).",
+      "docstring": "Sign a proposal with the operator's private key (content-bound token).",
       "calls": [
         "Argument",
         "Exit",
@@ -4131,17 +4060,17 @@
         "sign",
         "utcnow"
       ],
-      "line_number": 68,
+      "line_number": 78,
       "is_async": false,
       "parameters": [
         "proposal_name"
       ],
       "entry_point_type": "cli_command",
-      "last_updated": "2025-08-13T20:55:48.356500+00:00",
+      "last_updated": "2025-08-15T07:02:55.892950+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "typer_cli_command",
-      "structural_hash": "2bba36c8f98cb9ba143a3c44948670b9bef25d1b453ed53484ef07a0015784b3"
+      "structural_hash": "bde248a51a26e815c05964f60e1a85aadcfbe334e6ede8b995077fd523c2bb6b"
     },
     "src/system/admin/proposals.py::proposals_approve": {
       "key": "src/system/admin/proposals.py::proposals_approve",
@@ -4184,87 +4113,42 @@
         "warning",
         "write_text"
       ],
-      "line_number": 101,
+      "line_number": 119,
       "is_async": false,
       "parameters": [
         "proposal_name"
       ],
       "entry_point_type": "cli_command",
-      "last_updated": "2025-08-13T20:55:48.363220+00:00",
+      "last_updated": "2025-08-15T07:02:55.899656+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "typer_cli_command",
-      "structural_hash": "9e371730cd06a12bd288637f41cbb060c831cfab47fa9bc1c737139729531558"
+      "structural_hash": "c6ec0fe476daca2272ae9468633046c7cec412f55dcc0affea05a705d4b64f82"
     },
-    "src/system/admin/proposals.py::_group_list": {
-      "key": "src/system/admin/proposals.py::_group_list",
-      "name": "_group_list",
+    "src/system/admin/proposals.py::register": {
+      "key": "src/system/admin/proposals.py::register",
+      "name": "register",
       "type": "FunctionDef",
       "file": "src/system/admin/proposals.py",
       "domain": "system",
       "agent": "generic_agent",
       "capability": "unassigned",
-      "intent": "Intent: Group alias for proposals-list (namespaced UX).",
-      "docstring": "Intent: Group alias for proposals-list (namespaced UX).",
+      "intent": "Register proposal lifecycle commands under the admin CLI.",
+      "docstring": "Register proposal lifecycle commands under the admin CLI.",
       "calls": [
-        "command",
-        "proposals_list"
+        "add_typer"
       ],
-      "line_number": 203,
-      "is_async": false,
-      "parameters": [],
-      "last_updated": "2025-08-13T20:55:48.364833+00:00",
-      "is_class": false,
-      "base_classes": [],
-      "structural_hash": "34be9e205bf189f73a23a3f924302ae389a50e6077a5c21f0ba2a9434c7c6719"
-    },
-    "src/system/admin/proposals.py::_group_sign": {
-      "key": "src/system/admin/proposals.py::_group_sign",
-      "name": "_group_sign",
-      "type": "FunctionDef",
-      "file": "src/system/admin/proposals.py",
-      "domain": "system",
-      "agent": "generic_agent",
-      "capability": "unassigned",
-      "intent": "Intent: Group alias for proposals-sign (namespaced UX).",
-      "docstring": "Intent: Group alias for proposals-sign (namespaced UX).",
-      "calls": [
-        "command",
-        "proposals_sign"
-      ],
-      "line_number": 208,
+      "line_number": 252,
       "is_async": false,
       "parameters": [
-        "proposal_name"
+        "app"
       ],
-      "last_updated": "2025-08-13T20:55:48.365447+00:00",
+      "entry_point_type": "cli_command",
+      "last_updated": "2025-08-15T07:02:55.901170+00:00",
       "is_class": false,
       "base_classes": [],
-      "structural_hash": "b396b6f5503656c08b53427b7512373529f51fd58486e0963dd6e02b8da42b6d"
-    },
-    "src/system/admin/proposals.py::_group_approve": {
-      "key": "src/system/admin/proposals.py::_group_approve",
-      "name": "_group_approve",
-      "type": "FunctionDef",
-      "file": "src/system/admin/proposals.py",
-      "domain": "system",
-      "agent": "generic_agent",
-      "capability": "unassigned",
-      "intent": "Intent: Group alias for proposals-approve (namespaced UX).",
-      "docstring": "Intent: Group alias for proposals-approve (namespaced UX).",
-      "calls": [
-        "command",
-        "proposals_approve"
-      ],
-      "line_number": 213,
-      "is_async": false,
-      "parameters": [
-        "proposal_name"
-      ],
-      "last_updated": "2025-08-13T20:55:48.366041+00:00",
-      "is_class": false,
-      "base_classes": [],
-      "structural_hash": "66cd61441455b892ddb893806e070f5a018e8bacab2a44aa55ef3859c9bc4e1b"
+      "entry_point_justification": "typer_cli_command",
+      "structural_hash": "bed38ebf9ccf2e6383df444f57442b0563d41c4119e91f228822b5e95b6638ac"
     },
     "src/system/admin/guard.py::_find_manifest_path": {
       "key": "src/system/admin/guard.py::_find_manifest_path",
@@ -4280,13 +4164,13 @@
         "FileNotFoundError",
         "exists"
       ],
-      "line_number": 25,
+      "line_number": 31,
       "is_async": false,
       "parameters": [
         "root",
         "explicit"
       ],
-      "last_updated": "2025-08-13T20:55:48.369929+00:00",
+      "last_updated": "2025-08-15T07:02:55.905055+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "997cbcca37c4970ac2860b084efd79c6cf4ea2d5095ecc95b4902b248687abb7"
@@ -4306,13 +4190,13 @@
         "read_text",
         "safe_load"
       ],
-      "line_number": 34,
+      "line_number": 43,
       "is_async": false,
       "parameters": [
         "root",
         "explicit"
       ],
-      "last_updated": "2025-08-13T20:55:48.370783+00:00",
+      "last_updated": "2025-08-15T07:02:55.905909+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "7e41ce8438650c70d35208a79ab3d382ff23a33d6aded9037454bcbd17d86db9"
@@ -4332,13 +4216,13 @@
         "bool",
         "get"
       ],
-      "line_number": 40,
+      "line_number": 50,
       "is_async": false,
       "parameters": [
         "root",
         "explicit"
       ],
-      "last_updated": "2025-08-13T20:55:48.372113+00:00",
+      "last_updated": "2025-08-15T07:02:55.907246+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "62452ac1b181264f3d8f59bbcc99a76562f815b7bbd08e00e4257649cdee4f25"
@@ -4356,12 +4240,12 @@
       "calls": [
         "get"
       ],
-      "line_number": 55,
+      "line_number": 71,
       "is_async": false,
       "parameters": [
         "report"
       ],
-      "last_updated": "2025-08-13T20:55:48.373001+00:00",
+      "last_updated": "2025-08-15T07:02:55.908137+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "37959f8d821c2b4ca6b6146c0399c2561fc8e567a07025b5ba8ddaf66176f4d5"
@@ -4387,13 +4271,13 @@
         "row",
         "rprint"
       ],
-      "line_number": 59,
+      "line_number": 80,
       "is_async": false,
       "parameters": [
         "report_dict",
         "labels"
       ],
-      "last_updated": "2025-08-13T20:55:48.375603+00:00",
+      "last_updated": "2025-08-15T07:02:55.910690+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "8adb51eb76846db20ba682e57e97adc72ecb9a3dea4d84079e99507b35534913"
@@ -4412,14 +4296,14 @@
         "add_row",
         "join"
       ],
-      "line_number": 65,
+      "line_number": 86,
       "is_async": false,
       "parameters": [
         "title",
         "items"
       ],
       "entry_point_type": "cli_command",
-      "last_updated": "2025-08-13T20:55:48.376717+00:00",
+      "last_updated": "2025-08-15T07:02:55.911777+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "typer_cli_command",
@@ -4438,13 +4322,13 @@
       "calls": [
         "_print_table"
       ],
-      "line_number": 85,
+      "line_number": 119,
       "is_async": false,
       "parameters": [
         "report_dict",
         "labels"
       ],
-      "last_updated": "2025-08-13T20:55:48.377581+00:00",
+      "last_updated": "2025-08-15T07:02:55.912637+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "76f6ca2a3c5b52f7a6e59c006de9011d04cee89af176fc0e53f1feb7d5a739b6"
@@ -4484,13 +4368,13 @@
         "write_report",
         "write_text"
       ],
-      "line_number": 89,
+      "line_number": 124,
       "is_async": false,
       "parameters": [
         "app"
       ],
       "entry_point_type": "cli_command",
-      "last_updated": "2025-08-13T20:55:48.382008+00:00",
+      "last_updated": "2025-08-15T07:02:55.917217+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "typer_cli_command",
@@ -4523,7 +4407,7 @@
         "to_dict",
         "write_report"
       ],
-      "line_number": 95,
+      "line_number": 130,
       "is_async": false,
       "parameters": [
         "root",
@@ -4536,7 +4420,7 @@
         "strict_intent"
       ],
       "entry_point_type": "cli_command",
-      "last_updated": "2025-08-13T20:55:48.384528+00:00",
+      "last_updated": "2025-08-15T07:02:55.919866+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "typer_cli_command",
@@ -4566,7 +4450,7 @@
         "sorted",
         "write_text"
       ],
-      "line_number": 128,
+      "line_number": 169,
       "is_async": false,
       "parameters": [
         "root",
@@ -4576,7 +4460,7 @@
         "prefer"
       ],
       "entry_point_type": "cli_command",
-      "last_updated": "2025-08-13T20:55:48.386881+00:00",
+      "last_updated": "2025-08-15T07:02:55.922282+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "typer_cli_command",
@@ -4610,13 +4494,13 @@
         "public_key",
         "write_bytes"
       ],
-      "line_number": 20,
+      "line_number": 21,
       "is_async": false,
       "parameters": [
         "app"
       ],
       "entry_point_type": "cli_command",
-      "last_updated": "2025-08-13T20:55:48.390051+00:00",
+      "last_updated": "2025-08-15T07:02:55.925561+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "typer_cli_command",
@@ -4650,13 +4534,13 @@
         "public_key",
         "write_bytes"
       ],
-      "line_number": 23,
+      "line_number": 25,
       "is_async": false,
       "parameters": [
         "identity"
       ],
       "entry_point_type": "cli_command",
-      "last_updated": "2025-08-13T20:55:48.392031+00:00",
+      "last_updated": "2025-08-15T07:02:55.927462+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "typer_cli_command",
@@ -4675,10 +4559,10 @@
       "calls": [
         "load_config"
       ],
-      "line_number": 16,
+      "line_number": 17,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-13T20:55:48.393732+00:00",
+      "last_updated": "2025-08-15T07:02:55.929050+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "617e44205e9e392dcf047c13cf3fd9d88d9568ae09b5c487f92733eaf6167426"
@@ -4703,7 +4587,7 @@
         "utcnow",
         "write_text"
       ],
-      "line_number": 24,
+      "line_number": 25,
       "is_async": false,
       "parameters": [
         "task",
@@ -4713,7 +4597,7 @@
         "violations"
       ],
       "entry_point_type": "cli_entry_point",
-      "last_updated": "2025-08-13T20:55:48.395090+00:00",
+      "last_updated": "2025-08-15T07:02:55.930347+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "810699914d469cb08496ca059f28f88fc261f95546655275a5821abcca68cdce"
@@ -4733,12 +4617,12 @@
         "isinstance",
         "iter_child_nodes"
       ],
-      "line_number": 21,
+      "line_number": 22,
       "is_async": false,
       "parameters": [
         "node"
       ],
-      "last_updated": "2025-08-13T20:55:48.402213+00:00",
+      "last_updated": "2025-08-15T07:02:55.937520+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "424a26c746133086ed62a6a74682a190322accd0e679d38aae06a16a26e147ca"
@@ -4754,10 +4638,10 @@
       "intent": "Custom exception for when the project's root cannot be determined.",
       "docstring": "Custom exception for when the project's root cannot be determined.",
       "calls": [],
-      "line_number": 31,
+      "line_number": 39,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-13T20:55:48.402843+00:00",
+      "last_updated": "2025-08-15T07:02:55.938084+00:00",
       "is_class": true,
       "base_classes": [
         "Exception"
@@ -4779,12 +4663,12 @@
         "exists",
         "resolve"
       ],
-      "line_number": 35,
+      "line_number": 45,
       "is_async": false,
       "parameters": [
         "start_path"
       ],
-      "last_updated": "2025-08-13T20:55:48.403648+00:00",
+      "last_updated": "2025-08-15T07:02:55.938877+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "e730a8c97bbf62a3563d99cd7b52e176fcb2add0ee57994783e82f6fd4170b24"
@@ -4866,11 +4750,11 @@
         "walk",
         "warning"
       ],
-      "line_number": 45,
+      "line_number": 56,
       "is_async": false,
       "parameters": [],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-13T20:55:48.418255+00:00",
+      "last_updated": "2025-08-15T07:02:55.953573+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -4893,7 +4777,7 @@
         "_load_patterns",
         "resolve"
       ],
-      "line_number": 48,
+      "line_number": 59,
       "is_async": false,
       "parameters": [
         "self",
@@ -4901,7 +4785,7 @@
         "exclude_patterns"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-13T20:55:48.439514+00:00",
+      "last_updated": "2025-08-15T07:02:55.975481+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -4924,12 +4808,12 @@
         "load_config",
         "warning"
       ],
-      "line_number": 62,
+      "line_number": 79,
       "is_async": false,
       "parameters": [
         "self"
       ],
-      "last_updated": "2025-08-13T20:55:48.440507+00:00",
+      "last_updated": "2025-08-15T07:02:55.976497+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/system/tools/codegraph_builder.py::KnowledgeGraphBuilder",
@@ -4953,12 +4837,12 @@
         "search",
         "set"
       ],
-      "line_number": 70,
+      "line_number": 87,
       "is_async": false,
       "parameters": [
         "self"
       ],
-      "last_updated": "2025-08-13T20:55:48.441547+00:00",
+      "last_updated": "2025-08-15T07:02:55.977575+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/system/tools/codegraph_builder.py::KnowledgeGraphBuilder",
@@ -4977,13 +4861,13 @@
       "calls": [
         "any"
       ],
-      "line_number": 79,
+      "line_number": 96,
       "is_async": false,
       "parameters": [
         "self",
         "path"
       ],
-      "last_updated": "2025-08-13T20:55:48.442252+00:00",
+      "last_updated": "2025-08-15T07:02:55.978326+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/system/tools/codegraph_builder.py::KnowledgeGraphBuilder",
@@ -5009,12 +4893,12 @@
         "startswith",
         "warning"
       ],
-      "line_number": 83,
+      "line_number": 100,
       "is_async": false,
       "parameters": [
         "self"
       ],
-      "last_updated": "2025-08-13T20:55:48.443670+00:00",
+      "last_updated": "2025-08-15T07:02:55.979755+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/system/tools/codegraph_builder.py::KnowledgeGraphBuilder",
@@ -5037,12 +4921,12 @@
         "get",
         "load_config"
       ],
-      "line_number": 100,
+      "line_number": 121,
       "is_async": false,
       "parameters": [
         "self"
       ],
-      "last_updated": "2025-08-13T20:55:48.444864+00:00",
+      "last_updated": "2025-08-15T07:02:55.981013+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/system/tools/codegraph_builder.py::KnowledgeGraphBuilder",
@@ -5064,13 +4948,13 @@
         "max",
         "startswith"
       ],
-      "line_number": 111,
+      "line_number": 136,
       "is_async": false,
       "parameters": [
         "self",
         "file_path"
       ],
-      "last_updated": "2025-08-13T20:55:48.445772+00:00",
+      "last_updated": "2025-08-15T07:02:55.981951+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/system/tools/codegraph_builder.py::KnowledgeGraphBuilder",
@@ -5091,13 +4975,13 @@
         "lower",
         "str"
       ],
-      "line_number": 117,
+      "line_number": 146,
       "is_async": false,
       "parameters": [
         "self",
         "relative_path"
       ],
-      "last_updated": "2025-08-13T20:55:48.446876+00:00",
+      "last_updated": "2025-08-15T07:02:55.983103+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/system/tools/codegraph_builder.py::KnowledgeGraphBuilder",
@@ -5119,14 +5003,14 @@
         "startswith",
         "strip"
       ],
-      "line_number": 127,
+      "line_number": 161,
       "is_async": false,
       "parameters": [
         "self",
         "node",
         "source_lines"
       ],
-      "last_updated": "2025-08-13T20:55:48.448048+00:00",
+      "last_updated": "2025-08-15T07:02:55.984257+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/system/tools/codegraph_builder.py::KnowledgeGraphBuilder",
@@ -5145,13 +5029,13 @@
       "calls": [
         "isinstance"
       ],
-      "line_number": 136,
+      "line_number": 173,
       "is_async": false,
       "parameters": [
         "self",
         "node"
       ],
-      "last_updated": "2025-08-13T20:55:48.449559+00:00",
+      "last_updated": "2025-08-15T07:02:55.985727+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/system/tools/codegraph_builder.py::KnowledgeGraphBuilder",
@@ -5171,13 +5055,13 @@
         "get_docstring",
         "isinstance"
       ],
-      "line_number": 147,
+      "line_number": 196,
       "is_async": false,
       "parameters": [
         "self",
         "node"
       ],
-      "last_updated": "2025-08-13T20:55:48.450750+00:00",
+      "last_updated": "2025-08-15T07:02:55.986942+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/system/tools/codegraph_builder.py::KnowledgeGraphBuilder",
@@ -5207,13 +5091,13 @@
         "visit",
         "walk"
       ],
-      "line_number": 157,
+      "line_number": 210,
       "is_async": false,
       "parameters": [
         "self",
         "filepath"
       ],
-      "last_updated": "2025-08-13T20:55:48.453409+00:00",
+      "last_updated": "2025-08-15T07:02:55.989706+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/system/tools/codegraph_builder.py::KnowledgeGraphBuilder",
@@ -5257,7 +5141,7 @@
         "unparse",
         "visit"
       ],
-      "line_number": 184,
+      "line_number": 250,
       "is_async": false,
       "parameters": [
         "self",
@@ -5266,7 +5150,7 @@
         "source_lines",
         "parent_key"
       ],
-      "last_updated": "2025-08-13T20:55:48.457016+00:00",
+      "last_updated": "2025-08-15T07:02:55.993473+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/system/tools/codegraph_builder.py::KnowledgeGraphBuilder",
@@ -5297,12 +5181,12 @@
         "sorted",
         "values"
       ],
-      "line_number": 231,
+      "line_number": 320,
       "is_async": false,
       "parameters": [
         "self"
       ],
-      "last_updated": "2025-08-13T20:55:48.459764+00:00",
+      "last_updated": "2025-08-15T07:02:55.996348+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/system/tools/codegraph_builder.py::KnowledgeGraphBuilder",
@@ -5333,11 +5217,11 @@
         "str",
         "write_text"
       ],
-      "line_number": 260,
+      "line_number": 361,
       "is_async": false,
       "parameters": [],
       "entry_point_type": "cli_entry_point",
-      "last_updated": "2025-08-13T20:55:48.461648+00:00",
+      "last_updated": "2025-08-15T07:02:55.998304+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "af7babc3453097925778f631d2642faab007f6a38ac6ae7ee51f9c47226e87d8"
@@ -5375,12 +5259,12 @@
         "warning",
         "write_text"
       ],
-      "line_number": 23,
+      "line_number": 22,
       "is_async": false,
       "parameters": [
         "dry_run"
       ],
-      "last_updated": "2025-08-13T20:55:48.467842+00:00",
+      "last_updated": "2025-08-15T07:02:56.004785+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "ec4fdbcf778a03ddf923e5e7cd854d8665eeb680179b86c267b67848374f3291"
@@ -5401,10 +5285,10 @@
         "isinstance",
         "set"
       ],
-      "line_number": 11,
+      "line_number": 12,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-13T20:55:48.470430+00:00",
+      "last_updated": "2025-08-15T07:02:56.007439+00:00",
       "is_class": true,
       "base_classes": [
         "NodeVisitor"
@@ -5422,7 +5306,7 @@
       "intent": "Initialize the instance with the given builder, filepath, source lines, and an empty context stack.",
       "docstring": "Initialize the instance with the given builder, filepath, source lines, and an empty context stack.",
       "calls": [],
-      "line_number": 26,
+      "line_number": 30,
       "is_async": false,
       "parameters": [
         "self",
@@ -5431,7 +5315,7 @@
         "source_lines"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-13T20:55:48.479571+00:00",
+      "last_updated": "2025-08-15T07:02:56.016680+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -5453,14 +5337,14 @@
         "generic_visit",
         "isinstance"
       ],
-      "line_number": 16,
+      "line_number": 18,
       "is_async": false,
       "parameters": [
         "self",
         "node"
       ],
       "entry_point_type": "visitor_method",
-      "last_updated": "2025-08-13T20:55:48.473159+00:00",
+      "last_updated": "2025-08-15T07:02:56.010242+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "ast_visitor_method",
@@ -5484,10 +5368,10 @@
         "generic_visit",
         "pop"
       ],
-      "line_number": 24,
+      "line_number": 27,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-13T20:55:48.475276+00:00",
+      "last_updated": "2025-08-15T07:02:56.012329+00:00",
       "is_class": true,
       "base_classes": [
         "NodeVisitor"
@@ -5510,14 +5394,14 @@
         "generic_visit",
         "pop"
       ],
-      "line_number": 33,
+      "line_number": 37,
       "is_async": false,
       "parameters": [
         "self",
         "node",
         "node_type"
       ],
-      "last_updated": "2025-08-13T20:55:48.480818+00:00",
+      "last_updated": "2025-08-15T07:02:56.018003+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/system/tools/ast_visitor.py::ContextAwareVisitor",
@@ -5536,14 +5420,14 @@
       "calls": [
         "_process_and_visit"
       ],
-      "line_number": 53,
+      "line_number": 57,
       "is_async": false,
       "parameters": [
         "self",
         "node"
       ],
       "entry_point_type": "visitor_method",
-      "last_updated": "2025-08-13T20:55:48.481527+00:00",
+      "last_updated": "2025-08-15T07:02:56.018712+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "ast_visitor_method",
@@ -5563,14 +5447,14 @@
       "calls": [
         "_process_and_visit"
       ],
-      "line_number": 57,
+      "line_number": 61,
       "is_async": false,
       "parameters": [
         "self",
         "node"
       ],
       "entry_point_type": "visitor_method",
-      "last_updated": "2025-08-13T20:55:48.482083+00:00",
+      "last_updated": "2025-08-15T07:02:56.019315+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "ast_visitor_method",
@@ -5590,14 +5474,14 @@
       "calls": [
         "_process_and_visit"
       ],
-      "line_number": 61,
+      "line_number": 65,
       "is_async": false,
       "parameters": [
         "self",
         "node"
       ],
       "entry_point_type": "visitor_method",
-      "last_updated": "2025-08-13T20:55:48.482664+00:00",
+      "last_updated": "2025-08-15T07:02:56.019908+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "ast_visitor_method",
@@ -5630,10 +5514,10 @@
         "update",
         "values"
       ],
-      "line_number": 15,
+      "line_number": 16,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-13T20:55:48.488898+00:00",
+      "last_updated": "2025-08-15T07:02:56.026434+00:00",
       "is_class": true,
       "base_classes": [],
       "structural_hash": "dc1145748ce3e43439a314ff11f622ec61b5523d505af431d22cc7273b2339c0"
@@ -5649,7 +5533,7 @@
       "intent": "Initialize the PatternMatcher with a set of rules.",
       "docstring": "Initialize the PatternMatcher with a set of rules.\n\nArgs:\n    patterns: A list of pattern dictionaries from entry_point_patterns.yaml.\n    root_path: The absolute path to the repository root.",
       "calls": [],
-      "line_number": 18,
+      "line_number": 19,
       "is_async": false,
       "parameters": [
         "self",
@@ -5657,7 +5541,7 @@
         "root_path"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-13T20:55:48.495277+00:00",
+      "last_updated": "2025-08-15T07:02:56.032720+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -5680,13 +5564,13 @@
         "get",
         "values"
       ],
-      "line_number": 29,
+      "line_number": 30,
       "is_async": false,
       "parameters": [
         "self",
         "functions"
       ],
-      "last_updated": "2025-08-13T20:55:48.496757+00:00",
+      "last_updated": "2025-08-15T07:02:56.034221+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/system/tools/pattern_matcher.py::PatternMatcher",
@@ -5715,7 +5599,7 @@
         "strip",
         "update"
       ],
-      "line_number": 49,
+      "line_number": 56,
       "is_async": false,
       "parameters": [
         "self",
@@ -5724,7 +5608,7 @@
         "all_base_classes",
         "functions"
       ],
-      "last_updated": "2025-08-13T20:55:48.500234+00:00",
+      "last_updated": "2025-08-15T07:02:56.037727+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/system/tools/pattern_matcher.py::PatternMatcher",
@@ -5757,7 +5641,7 @@
         "line_number",
         "docstring"
       ],
-      "last_updated": "2025-08-13T20:55:48.505375+00:00",
+      "last_updated": "2025-08-15T07:02:56.042930+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "fd8f7f040998d45099bef706eaa87e421ebe821e8dbf4eb52efeaa3fde8fbbdc"
@@ -5791,14 +5675,14 @@
         "warning",
         "write_text"
       ],
-      "line_number": 54,
+      "line_number": 55,
       "is_async": true,
       "parameters": [
         "target",
         "generator",
         "dry_run"
       ],
-      "last_updated": "2025-08-13T20:55:48.509604+00:00",
+      "last_updated": "2025-08-15T07:02:56.047129+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "c02300ddbdd3fbb67c39b3f6f2f599302f2176d3b46c4e869d96b1293b4f560a"
@@ -5832,12 +5716,12 @@
         "worker",
         "write_text"
       ],
-      "line_number": 123,
+      "line_number": 134,
       "is_async": true,
       "parameters": [
         "dry_run"
       ],
-      "last_updated": "2025-08-13T20:55:48.512366+00:00",
+      "last_updated": "2025-08-15T07:02:56.049963+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "4fa8138c37be3c0aeb8d1e61d7444db05e38b5a0fbcbd0a5a45a7cbb6d03f319"
@@ -5855,12 +5739,12 @@
       "calls": [
         "generate_and_apply_docstring"
       ],
-      "line_number": 155,
+      "line_number": 175,
       "is_async": true,
       "parameters": [
         "target"
       ],
-      "last_updated": "2025-08-13T20:55:48.513177+00:00",
+      "last_updated": "2025-08-15T07:02:56.050769+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "bf227975be6db77562124c68865894e9d5ac82e03cb2cacf17189d59183d48df"
@@ -5888,17 +5772,17 @@
         "run",
         "write_text"
       ],
-      "line_number": 168,
+      "line_number": 193,
       "is_async": false,
       "parameters": [
         "dry_run"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-13T20:55:48.514606+00:00",
+      "last_updated": "2025-08-15T07:02:56.052227+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
-      "structural_hash": "149cb503ba066c746c5e20e5bab29ac84e57106ee40fdacd5fea26c4be9b3b1d"
+      "structural_hash": "2e1988d47ded4a18282071a53de7b24adcfaf2fc18bcfcc661a2880f5ee7f5fe"
     },
     "src/system/tools/models.py::FunctionInfo": {
       "key": "src/system/tools/models.py::FunctionInfo",
@@ -5913,11 +5797,11 @@
       "calls": [
         "field"
       ],
-      "line_number": 10,
+      "line_number": 11,
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-13T20:55:48.516594+00:00",
+      "last_updated": "2025-08-15T07:02:56.054090+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -5938,12 +5822,12 @@
         "group",
         "search"
       ],
-      "line_number": 17,
+      "line_number": 19,
       "is_async": false,
       "parameters": [
         "trailing"
       ],
-      "last_updated": "2025-08-13T20:55:48.518607+00:00",
+      "last_updated": "2025-08-15T07:02:56.056125+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "04e919d1580e0efe6c93a7e34d7b4adfd2afb95339c5246dd0ec1006bf3bca54"
@@ -5965,14 +5849,14 @@
         "rglob",
         "wanted"
       ],
-      "line_number": 23,
+      "line_number": 27,
       "is_async": false,
       "parameters": [
         "root",
         "include_globs",
         "exclude_globs"
       ],
-      "last_updated": "2025-08-13T20:55:48.519995+00:00",
+      "last_updated": "2025-08-15T07:02:56.057531+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "b5b675110e61cfb12eaf9fd7630d3b5493e662dd45521e6a570d58b4362ade36"
@@ -5991,12 +5875,12 @@
         "any",
         "match"
       ],
-      "line_number": 25,
+      "line_number": 32,
       "is_async": false,
       "parameters": [
         "p"
       ],
-      "last_updated": "2025-08-13T20:55:48.520898+00:00",
+      "last_updated": "2025-08-15T07:02:56.058418+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "5345aca39bfbb4edb9ef0d4011c61efa4c1c44757af84f97b1221aedc6165256"
@@ -6022,14 +5906,14 @@
         "splitlines",
         "strip"
       ],
-      "line_number": 35,
+      "line_number": 45,
       "is_async": false,
       "parameters": [
         "root",
         "include_globs",
         "exclude_globs"
       ],
-      "last_updated": "2025-08-13T20:55:48.522462+00:00",
+      "last_updated": "2025-08-15T07:02:56.059948+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "f68a4883d0b1d8129540c80e3007b4123c6fc828fe6240a8c5d087c8268fb313"
@@ -6050,12 +5934,12 @@
         "isinstance",
         "items"
       ],
-      "line_number": 16,
+      "line_number": 19,
       "is_async": false,
       "parameters": [
         "items"
       ],
-      "last_updated": "2025-08-13T20:55:48.525454+00:00",
+      "last_updated": "2025-08-15T07:02:56.062871+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "8034e0df53d1fc805acba6cc59b1bdbcfaed5b6f43b108e453d77102c727acef"
@@ -6074,12 +5958,12 @@
         "FileNotFoundError",
         "exists"
       ],
-      "line_number": 33,
+      "line_number": 41,
       "is_async": false,
       "parameters": [
         "start"
       ],
-      "last_updated": "2025-08-13T20:55:48.526450+00:00",
+      "last_updated": "2025-08-15T07:02:56.063822+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "4f158801cffc65b78cdf085755317868a5774eb7aab641bd4430a89467b2242f"
@@ -6102,12 +5986,12 @@
         "popleft",
         "values"
       ],
-      "line_number": 40,
+      "line_number": 49,
       "is_async": false,
       "parameters": [
         "raw"
       ],
-      "last_updated": "2025-08-13T20:55:48.527755+00:00",
+      "last_updated": "2025-08-15T07:02:56.065057+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "c8b250d00cc3b32e389a6565089f89153c1da6b89eadf90a2a5a99b21cf9d05c"
@@ -6129,13 +6013,13 @@
         "open",
         "safe_load"
       ],
-      "line_number": 54,
+      "line_number": 64,
       "is_async": false,
       "parameters": [
         "root",
         "explicit_path"
       ],
-      "last_updated": "2025-08-13T20:55:48.528952+00:00",
+      "last_updated": "2025-08-15T07:02:56.066248+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "e8c822ad152d5fd0ac2df2f08c8eaa8763cb5e391691f2dec9ebceb444bf0b92"
@@ -6154,10 +6038,10 @@
         "getattr",
         "import_module"
       ],
-      "line_number": 13,
+      "line_number": 15,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-13T20:55:48.530544+00:00",
+      "last_updated": "2025-08-15T07:02:56.067767+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "c5ede0ba8cbfe280f6be73af3858ad2da1470b31ac0bbec0a2bab297a805a134"
@@ -6177,12 +6061,12 @@
         "get",
         "str"
       ],
-      "line_number": 21,
+      "line_number": 24,
       "is_async": false,
       "parameters": [
         "node"
       ],
-      "last_updated": "2025-08-13T20:55:48.531731+00:00",
+      "last_updated": "2025-08-15T07:02:56.068886+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "b385da546dbc6c856c4048d18354072a90fb09870ff89f366757e4db9aaf9dee"
@@ -6206,12 +6090,12 @@
         "isinstance",
         "values"
       ],
-      "line_number": 32,
+      "line_number": 36,
       "is_async": false,
       "parameters": [
         "root"
       ],
-      "last_updated": "2025-08-13T20:55:48.533179+00:00",
+      "last_updated": "2025-08-15T07:02:56.070308+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "5240a9678f95db483d886d2ceb5a9f288efd705684e7496b06c7ea94b3fce821"
@@ -6234,10 +6118,10 @@
         "startswith",
         "update"
       ],
-      "line_number": 6,
+      "line_number": 7,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-13T20:55:48.537276+00:00",
+      "last_updated": "2025-08-15T07:02:56.074512+00:00",
       "is_class": true,
       "base_classes": [],
       "structural_hash": "b43e4683bb6582ecf1397eb6065567f8fe53f9828d8958b41782f5a893a0adb8"
@@ -6253,14 +6137,14 @@
       "intent": "Initializes the check with a shared auditor context.",
       "docstring": "Initializes the check with a shared auditor context.",
       "calls": [],
-      "line_number": 9,
+      "line_number": 10,
       "is_async": false,
       "parameters": [
         "self",
         "context"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-13T20:55:48.541795+00:00",
+      "last_updated": "2025-08-15T07:02:56.079014+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -6282,13 +6166,13 @@
         "append",
         "get"
       ],
-      "line_number": 14,
+      "line_number": 15,
       "is_async": false,
       "parameters": [
         "self"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-13T20:55:48.543589+00:00",
+      "last_updated": "2025-08-15T07:02:56.080820+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -6313,18 +6197,119 @@
         "startswith",
         "update"
       ],
-      "line_number": 31,
+      "line_number": 50,
       "is_async": false,
       "parameters": [
         "self"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-13T20:55:48.545401+00:00",
+      "last_updated": "2025-08-15T07:02:56.082616+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
       "parent_class_key": "src/system/governance/checks/quality_checks.py::QualityChecks",
       "structural_hash": "bb685c54a606e923f512ea3413c9a9567d6dbc9451b9d1cf0d3ce949e6836ad4"
+    },
+    "src/system/governance/checks/security_checks.py::SecurityChecks": {
+      "key": "src/system/governance/checks/security_checks.py::SecurityChecks",
+      "name": "SecurityChecks",
+      "type": "ClassDef",
+      "file": "src/system/governance/checks/security_checks.py",
+      "domain": "system",
+      "agent": "generic_agent",
+      "capability": "unassigned",
+      "intent": "Container for security-related constitutional checks.",
+      "docstring": "Container for security-related constitutional checks.",
+      "calls": [
+        "AuditFinding",
+        "Path",
+        "any",
+        "append",
+        "compile",
+        "enumerate",
+        "get",
+        "load_config",
+        "match",
+        "next",
+        "read_text",
+        "search",
+        "set",
+        "splitlines",
+        "str"
+      ],
+      "line_number": 9,
+      "is_async": false,
+      "parameters": [],
+      "last_updated": "2025-08-15T07:02:56.086700+00:00",
+      "is_class": true,
+      "base_classes": [],
+      "structural_hash": "c8d6f6266ecefbb1ed159a5937a9aa4ca6d2ba5e1978ee62c5ae0ac5f7e0c2f1"
+    },
+    "src/system/governance/checks/security_checks.py::__init__": {
+      "key": "src/system/governance/checks/security_checks.py::__init__",
+      "name": "__init__",
+      "type": "FunctionDef",
+      "file": "src/system/governance/checks/security_checks.py",
+      "domain": "system",
+      "agent": "generic_agent",
+      "capability": "unassigned",
+      "intent": "Initializes the check with a shared auditor context.",
+      "docstring": "Initializes the check with a shared auditor context.",
+      "calls": [
+        "load_config"
+      ],
+      "line_number": 12,
+      "is_async": false,
+      "parameters": [
+        "self",
+        "context"
+      ],
+      "entry_point_type": "magic_method",
+      "last_updated": "2025-08-15T07:02:56.090784+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "entry_point_justification": "python_magic_method",
+      "parent_class_key": "src/system/governance/checks/security_checks.py::SecurityChecks",
+      "structural_hash": "d609ebf2f5063400021d85393ed766550d4d97d15988fc0c6bcd9493ab9cbfbe"
+    },
+    "src/system/governance/checks/security_checks.py::check_for_hardcoded_secrets": {
+      "key": "src/system/governance/checks/security_checks.py::check_for_hardcoded_secrets",
+      "name": "check_for_hardcoded_secrets",
+      "type": "FunctionDef",
+      "file": "src/system/governance/checks/security_checks.py",
+      "domain": "system",
+      "agent": "generic_agent",
+      "capability": "audit.check.secrets",
+      "intent": "Scans source code for patterns that look like hardcoded secrets.",
+      "docstring": "Scans source code for patterns that look like hardcoded secrets.",
+      "calls": [
+        "AuditFinding",
+        "Path",
+        "any",
+        "append",
+        "compile",
+        "enumerate",
+        "get",
+        "match",
+        "next",
+        "read_text",
+        "search",
+        "set",
+        "splitlines",
+        "str"
+      ],
+      "line_number": 20,
+      "is_async": false,
+      "parameters": [
+        "self"
+      ],
+      "entry_point_type": "capability",
+      "last_updated": "2025-08-15T07:02:56.093456+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "entry_point_justification": "capability_implementation",
+      "parent_class_key": "src/system/governance/checks/security_checks.py::SecurityChecks",
+      "structural_hash": "ae0ccd04ba9271130c812a8ff6a27648856e7de792ada274fc5001573e1d1564"
     },
     "src/system/governance/checks/file_checks.py::FileChecks": {
       "key": "src/system/governance/checks/file_checks.py::FileChecks",
@@ -6361,13 +6346,13 @@
         "validate_code",
         "values"
       ],
-      "line_number": 9,
+      "line_number": 11,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-13T20:55:48.553871+00:00",
+      "last_updated": "2025-08-15T07:02:56.102464+00:00",
       "is_class": true,
       "base_classes": [],
-      "structural_hash": "61d944532c2bcab998aeaa6b9cedd6338b95bfabb509fea0ac905f65f7c7665d"
+      "structural_hash": "019ef7ff4ba5b57db58d96bb041f02f4ef513d4ffa5c789c58ede17b2a3e47e6"
     },
     "src/system/governance/checks/file_checks.py::__init__": {
       "key": "src/system/governance/checks/file_checks.py::__init__",
@@ -6380,14 +6365,14 @@
       "intent": "Initialize with a shared auditor context.",
       "docstring": "Initialize with a shared auditor context.",
       "calls": [],
-      "line_number": 12,
+      "line_number": 14,
       "is_async": false,
       "parameters": [
         "self",
         "context"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-13T20:55:48.562851+00:00",
+      "last_updated": "2025-08-15T07:02:56.111483+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -6412,13 +6397,13 @@
         "len",
         "sorted"
       ],
-      "line_number": 19,
+      "line_number": 21,
       "is_async": false,
       "parameters": [
         "self"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-13T20:55:48.564507+00:00",
+      "last_updated": "2025-08-15T07:02:56.113102+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -6447,13 +6432,13 @@
         "str",
         "validate_code"
       ],
-      "line_number": 55,
+      "line_number": 63,
       "is_async": false,
       "parameters": [
         "self"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-13T20:55:48.566811+00:00",
+      "last_updated": "2025-08-15T07:02:56.115505+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -6482,13 +6467,13 @@
         "sorted",
         "str"
       ],
-      "line_number": 98,
+      "line_number": 112,
       "is_async": false,
       "parameters": [
         "self"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-13T20:55:48.568795+00:00",
+      "last_updated": "2025-08-15T07:02:56.117550+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -6519,16 +6504,16 @@
         "str",
         "values"
       ],
-      "line_number": 131,
+      "line_number": 149,
       "is_async": false,
       "parameters": [
         "self"
       ],
-      "last_updated": "2025-08-13T20:55:48.571060+00:00",
+      "last_updated": "2025-08-15T07:02:56.119848+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/system/governance/checks/file_checks.py::FileChecks",
-      "structural_hash": "4774448a60fa843a17dbfb7aa3d3e3f680febc481c29ceb12c7221f930ec4dfb"
+      "structural_hash": "75cd06df240409221727441a2945a7619486321cdda8d1cc588458cc83157938"
     },
     "src/system/governance/checks/file_checks.py::_recursive_find_paths": {
       "key": "src/system/governance/checks/file_checks.py::_recursive_find_paths",
@@ -6549,12 +6534,12 @@
         "str",
         "values"
       ],
-      "line_number": 144,
+      "line_number": 162,
       "is_async": false,
       "parameters": [
         "data"
       ],
-      "last_updated": "2025-08-13T20:55:48.572270+00:00",
+      "last_updated": "2025-08-15T07:02:56.121045+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "c1d75135008e7db5a93e9140b98a36354272718041dcb0ba7ec8be3675f204a5"
@@ -6599,7 +6584,7 @@
       "line_number": 16,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-13T20:55:48.581318+00:00",
+      "last_updated": "2025-08-15T07:02:56.130138+00:00",
       "is_class": true,
       "base_classes": [],
       "structural_hash": "9510407f227ba8eff042eda320dd70853fb788c119ab310f7e5fb361eca6e203"
@@ -6622,7 +6607,7 @@
         "context"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-13T20:55:48.591612+00:00",
+      "last_updated": "2025-08-15T07:02:56.140426+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -6650,7 +6635,7 @@
       "parameters": [
         "self"
       ],
-      "last_updated": "2025-08-13T20:55:48.592576+00:00",
+      "last_updated": "2025-08-15T07:02:56.141381+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/system/governance/checks/proposal_checks.py::ProposalChecks",
@@ -6673,13 +6658,13 @@
         "read_text",
         "safe_load"
       ],
-      "line_number": 39,
+      "line_number": 40,
       "is_async": false,
       "parameters": [
         "self",
         "path"
       ],
-      "last_updated": "2025-08-13T20:55:48.593722+00:00",
+      "last_updated": "2025-08-15T07:02:56.142494+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/system/governance/checks/proposal_checks.py::ProposalChecks",
@@ -6700,12 +6685,12 @@
         "hexdigest",
         "sha256"
       ],
-      "line_number": 50,
+      "line_number": 51,
       "is_async": false,
       "parameters": [
         "content"
       ],
-      "last_updated": "2025-08-13T20:55:48.594562+00:00",
+      "last_updated": "2025-08-15T07:02:56.143294+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/system/governance/checks/proposal_checks.py::ProposalChecks",
@@ -6735,13 +6720,13 @@
         "relative_to",
         "str"
       ],
-      "line_number": 59,
+      "line_number": 61,
       "is_async": false,
       "parameters": [
         "self"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-13T20:55:48.596995+00:00",
+      "last_updated": "2025-08-15T07:02:56.145604+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -6770,13 +6755,13 @@
         "relative_to",
         "str"
       ],
-      "line_number": 127,
+      "line_number": 129,
       "is_async": false,
       "parameters": [
         "self"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-13T20:55:48.599772+00:00",
+      "last_updated": "2025-08-15T07:02:56.148378+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -6801,13 +6786,13 @@
         "relative_to",
         "str"
       ],
-      "line_number": 198,
+      "line_number": 200,
       "is_async": false,
       "parameters": [
         "self"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-13T20:55:48.601258+00:00",
+      "last_updated": "2025-08-15T07:02:56.149865+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -6833,10 +6818,10 @@
         "join",
         "len"
       ],
-      "line_number": 9,
+      "line_number": 11,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-13T20:55:48.604071+00:00",
+      "last_updated": "2025-08-15T07:02:56.152529+00:00",
       "is_class": true,
       "base_classes": [],
       "structural_hash": "3e86306196f142ddf5bcd347356aa6c44d43631e1c9b363ef6a034f3a6929d74"
@@ -6852,14 +6837,14 @@
       "intent": "Initializes the check with a shared auditor context.",
       "docstring": "Initializes the check with a shared auditor context.",
       "calls": [],
-      "line_number": 12,
+      "line_number": 14,
       "is_async": false,
       "parameters": [
         "self",
         "context"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-13T20:55:48.607043+00:00",
+      "last_updated": "2025-08-15T07:02:56.155524+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -6885,13 +6870,13 @@
         "join",
         "len"
       ],
-      "line_number": 17,
+      "line_number": 19,
       "is_async": false,
       "parameters": [
         "self"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-13T20:55:48.608877+00:00",
+      "last_updated": "2025-08-15T07:02:56.157322+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -6929,10 +6914,10 @@
         "validate_manifest_entry",
         "with_suffix"
       ],
-      "line_number": 8,
+      "line_number": 9,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-13T20:55:48.617986+00:00",
+      "last_updated": "2025-08-15T07:02:56.166766+00:00",
       "is_class": true,
       "base_classes": [],
       "structural_hash": "5a73a9fcdd51ff3ae1d7426c1b0f17c85e28284db3a0302a2f83df2770ee9391"
@@ -6948,14 +6933,14 @@
       "intent": "Initializes the check with a shared auditor context.",
       "docstring": "Initializes the check with a shared auditor context.",
       "calls": [],
-      "line_number": 11,
+      "line_number": 12,
       "is_async": false,
       "parameters": [
         "self",
         "context"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-13T20:55:48.627920+00:00",
+      "last_updated": "2025-08-15T07:02:56.176647+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -6976,13 +6961,13 @@
         "AuditFinding",
         "append"
       ],
-      "line_number": 16,
+      "line_number": 17,
       "is_async": false,
       "parameters": [
         "self"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-13T20:55:48.629123+00:00",
+      "last_updated": "2025-08-15T07:02:56.177908+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -7007,13 +6992,13 @@
         "set",
         "sorted"
       ],
-      "line_number": 31,
+      "line_number": 44,
       "is_async": false,
       "parameters": [
         "self"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-13T20:55:48.630629+00:00",
+      "last_updated": "2025-08-15T07:02:56.179411+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -7038,13 +7023,13 @@
         "load_config",
         "sorted"
       ],
-      "line_number": 47,
+      "line_number": 78,
       "is_async": false,
       "parameters": [
         "self"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-13T20:55:48.632343+00:00",
+      "last_updated": "2025-08-15T07:02:56.181126+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -7068,13 +7053,13 @@
         "len",
         "validate_manifest_entry"
       ],
-      "line_number": 66,
+      "line_number": 115,
       "is_async": false,
       "parameters": [
         "self"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-13T20:55:48.633990+00:00",
+      "last_updated": "2025-08-15T07:02:56.182749+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -7106,13 +7091,13 @@
         "startswith",
         "with_suffix"
       ],
-      "line_number": 84,
+      "line_number": 147,
       "is_async": false,
       "parameters": [
         "self"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-13T20:55:48.637160+00:00",
+      "last_updated": "2025-08-15T07:02:56.185919+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -7151,10 +7136,10 @@
         "strip",
         "values"
       ],
-      "line_number": 13,
+      "line_number": 11,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-13T20:55:48.642854+00:00",
+      "last_updated": "2025-08-15T07:02:56.191561+00:00",
       "is_class": true,
       "base_classes": [],
       "structural_hash": "dc4094cf311674d8302d4193243abbfeeba30d61ddd34811b39f849d9e55a7bb"
@@ -7172,14 +7157,14 @@
       "calls": [
         "load_config"
       ],
-      "line_number": 16,
+      "line_number": 14,
       "is_async": false,
       "parameters": [
         "self",
         "context"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-13T20:55:48.648234+00:00",
+      "last_updated": "2025-08-15T07:02:56.196941+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -7202,13 +7187,13 @@
         "startswith",
         "strip"
       ],
-      "line_number": 23,
+      "line_number": 21,
       "is_async": false,
       "parameters": [
         "self",
         "source_code"
       ],
-      "last_updated": "2025-08-13T20:55:48.649050+00:00",
+      "last_updated": "2025-08-15T07:02:56.197784+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/system/governance/checks/health_checks.py::HealthChecks",
@@ -7242,13 +7227,13 @@
         "stdev",
         "values"
       ],
-      "line_number": 31,
+      "line_number": 32,
       "is_async": false,
       "parameters": [
         "self"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-13T20:55:48.652297+00:00",
+      "last_updated": "2025-08-15T07:02:56.201072+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -7273,10 +7258,10 @@
         "getenv",
         "load_config"
       ],
-      "line_number": 6,
+      "line_number": 8,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-13T20:55:48.655475+00:00",
+      "last_updated": "2025-08-15T07:02:56.204094+00:00",
       "is_class": true,
       "base_classes": [],
       "structural_hash": "b015f829400a7cbb2277000e730b7be820b5242c7bbe211d846422397fd3a34d"
@@ -7292,14 +7277,14 @@
       "intent": "Initializes the check with a shared auditor context.",
       "docstring": "Initializes the check with a shared auditor context.",
       "calls": [],
-      "line_number": 9,
+      "line_number": 11,
       "is_async": false,
       "parameters": [
         "self",
         "context"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-13T20:55:48.658521+00:00",
+      "last_updated": "2025-08-15T07:02:56.207108+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -7324,13 +7309,13 @@
         "getenv",
         "load_config"
       ],
-      "line_number": 14,
+      "line_number": 16,
       "is_async": false,
       "parameters": [
         "self"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-13T20:55:48.660350+00:00",
+      "last_updated": "2025-08-15T07:02:56.208991+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -7346,7 +7331,7 @@
       "agent": "validator_agent",
       "capability": "unassigned",
       "intent": "Load a JSON schema from the .intent/schemas/ directory.",
-      "docstring": "Load a JSON schema from the .intent/schemas/ directory.\n\nArgs:\n    schema_name (str): The filename of the schema (e.g., 'knowledge_graph_entry.schema.json').\n    \nReturns:\n    Dict[str, Any]: The loaded JSON schema.\n    \nRaises:\n    FileNotFoundError: If the schema file is not found.\n    json.JSONDecodeError: If the schema file is not valid JSON.",
+      "docstring": "Load a JSON schema from the .intent/schemas/ directory.\n\nArgs:\n    schema_name (str): The filename of the schema (e.g., 'knowledge_graph_entry.schema.json').\n\nReturns:\n    Dict[str, Any]: The loaded JSON schema.\n\nRaises:\n    FileNotFoundError: If the schema file is not found.\n    json.JSONDecodeError: If the schema file is not valid JSON.",
       "calls": [
         "FileNotFoundError",
         "JSONDecodeError",
@@ -7359,7 +7344,7 @@
       "parameters": [
         "schema_name"
       ],
-      "last_updated": "2025-08-13T20:55:48.662561+00:00",
+      "last_updated": "2025-08-15T07:02:56.211206+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "6e3b8465838bb871ec1cd9f626c92298765c571cba61170572d50151c662f9be"
@@ -7373,7 +7358,7 @@
       "agent": "validator_agent",
       "capability": "unassigned",
       "intent": "Validate a single manifest entry against a schema.",
-      "docstring": "Validate a single manifest entry against a schema.\n\nArgs:\n    entry: The dictionary representing a single function/class entry.\n    schema_name: The filename of the schema to validate against.\n    \nReturns:\n    A tuple of (is_valid: bool, list_of_error_messages: List[str]).",
+      "docstring": "Validate a single manifest entry against a schema.\n\nArgs:\n    entry: The dictionary representing a single function/class entry.\n    schema_name: The filename of the schema to validate against.\n\nReturns:\n    A tuple of (is_valid: bool, list_of_error_messages: List[str]).",
       "calls": [
         "Draft7Validator",
         "append",
@@ -7382,13 +7367,13 @@
         "load_schema",
         "str"
       ],
-      "line_number": 38,
+      "line_number": 41,
       "is_async": false,
       "parameters": [
         "entry",
         "schema_name"
       ],
-      "last_updated": "2025-08-13T20:55:48.664172+00:00",
+      "last_updated": "2025-08-15T07:02:56.212923+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "df3df9d690f9e5aebdbffadea221df68a0ebfd500aaafa86a2205e3e452dedd2"
@@ -7416,12 +7401,12 @@
         "set",
         "sorted"
       ],
-      "line_number": 14,
+      "line_number": 15,
       "is_async": false,
       "parameters": [
         "repo_root"
       ],
-      "last_updated": "2025-08-13T20:55:48.667745+00:00",
+      "last_updated": "2025-08-15T07:02:56.216465+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "3424b54f3633ba0a128f765512d3694b531ca5dc1d7218058d3dfedb8b9e5880"
@@ -7444,12 +7429,12 @@
         "walk",
         "warning"
       ],
-      "line_number": 17,
+      "line_number": 19,
       "is_async": false,
       "parameters": [
         "file_path"
       ],
-      "last_updated": "2025-08-13T20:55:48.669900+00:00",
+      "last_updated": "2025-08-15T07:02:56.218559+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "42bb5532dfbc0b03134979db387ac69dab213de0539724e125ec4cdb88080722"
@@ -7468,12 +7453,12 @@
         "findall",
         "strip"
       ],
-      "line_number": 8,
+      "line_number": 9,
       "is_async": false,
       "parameters": [
         "llm_output"
       ],
-      "last_updated": "2025-08-13T20:55:48.671169+00:00",
+      "last_updated": "2025-08-15T07:02:56.219836+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "37291692a6c893a9df4f553fd55414349bd2ec0142680181140f7d6990e94a74"

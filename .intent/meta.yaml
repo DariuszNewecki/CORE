@@ -5,7 +5,8 @@ version: "0.1.0"
 constitution:
   # Public keys of constitutional approvers
   approvers: "constitution/approvers.yaml"
-  # NOTE: A full versioning system will be implemented in the future.
+  # Formal procedures for managing human operators
+  operator_lifecycle: "constitution/operator_lifecycle.md"
 
 mission:
   northstar: "mission/northstar.yaml"

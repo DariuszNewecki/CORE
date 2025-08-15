@@ -28,6 +28,7 @@ required_capabilities:
   - system_logging
   - add_missing_docstrings
   - audit.check.required_files
+  - audit.check.secrets 
   - audit.check.syntax
   - audit.check.project_manifest
   - audit.check.capability_coverage
