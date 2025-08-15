@@ -1,10 +1,24 @@
 ## Summary
-<!-- What does this change do? -->
+<!-- What does this change do? Keep it crisp. -->
 
-## Checks
-- [ ] I ran `poetry install && poetry run python -m src.core.capabilities` and it passed.
-- [ ] I ran `poetry run ruff check .` and `poetry run black --check .`.
-- [ ] I ran `poetry run pytest -q`.
+## Type
+- [ ] feat
+- [ ] fix
+- [ ] refactor
+- [ ] docs
+- [ ] chore
+- [ ] test
 
-## Governance
-- [ ] If I changed `.intent/*`, I used a proposal (`.intent/proposals/cr-*.yaml`) that validates against `proposal.schema.json`.
+## Why
+<!-- Link related issue(s) and explain the intent. -->
+
+## How
+<!-- High-level approach; call out risky areas or trade-offs. -->
+
+## Checklist
+- [ ] I ran `poetry install` and the checks (`black --check .`, `ruff check .`, `pytest`)
+- [ ] Added/updated tests where it made sense
+- [ ] Updated docs (README/CONTRIBUTING) if behavior changed
+- [ ] No domain boundary violations (aligns with `.intent/`)
+
+---

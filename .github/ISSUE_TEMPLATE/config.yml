@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Questions & Ideas
+    url: https://github.com/DariuszNewecki/CORE/discussions
+    about: Use Discussions for Q&A and brainstorming before filing issues.

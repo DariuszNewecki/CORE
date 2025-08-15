@@ -1,0 +1,15 @@
+changelog:
+  categories:
+    - title: ✨ Features
+      labels: [feat, type:feature]
+    - title: 🐛 Fixes
+      labels: [fix, type:bug]
+    - title: 🧹 Chores
+      labels: [chore]
+    - title: 🧠 Docs
+      labels: [docs, type:docs]
+    - title: 🔧 Refactors
+      labels: [refactor]
+    - title: ✅ Tests
+      labels: [test]
+
