@@ -67,13 +67,11 @@ This phase, based on feedback from the AI Peer Review Board, focuses on adding t
 
 ### 5.2: Implement Critical Operational Policies
 -   **Challenge:** The constitution lacks policies for critical real-world operations.
--   **Goal:** Create a series of new policy files to govern Data Privacy, Secrets Management, Incident Response, and External Dependency Management.
--   **Status:** 🚧 **In Progress.** Secrets management policy and auditor check have been implemented.
+-   **Goal:** Formalize policies for **Data Privacy** (minimization, erasure, encryption), **Secrets Management**, **Incident Response**, and **External Dependency Management** (licensing, vulnerabilities).
+-   **Status:** 🚧 **In Progress.** Secrets, Incident Response, and Dependency Management policies have been defined. Auditor checks are pending.
 
 ### 5.3: Define Human Operator Lifecycle
--   **Challenge:** The process for managing human approvers is not fully documented.
--   **Goal:** Create a formal procedure document that defines the process for onboarding, offboarding, and key rotation/revocation for human operators.
--   **Status:** ✅ **Complete.** The process is now documented in `.intent/constitution/operator_lifecycle.md`.
+-   **Status:** ✅ **Complete.** This was addressed by creating `operator_lifecycle.md` and updating `approvers.yaml`.
 
 ---
 
@@ -93,11 +91,32 @@ This phase addresses technical debt identified by the `ConstitutionalAuditor` to
 
 ---
 
-## Phase 7: Agentic Self-Improvement (New)
+## Phase 7: Agentic Self-Improvement
 
 This phase focuses on evolving CORE's agents to be more autonomous and resilient by teaching them to handle common development friction and failures without human intervention.
 
 ### 7.1: Implement Autonomous Formatting & Linting Fixes
--   **Challenge:** The system's agents can generate code that violates formatting or linting rules. Currently, the `ConstitutionalAuditor` detects this failure, but a human is required to run `make format` to fix it. This represents an incomplete `ADAPTATION` loop.
--   **Goal:** Enhance the `PlannerAgent` and `SelfCorrectionEngine`. The internal validation pipeline that runs after code generation MUST automatically apply `black` formatting and `ruff --fix`. The formatted code should be used by default. If linting errors remain that cannot be auto-fixed, the `SelfCorrectionEngine` should be triggered with the linting report, just as it would be for a test failure. This will make the system capable of healing its own stylistic violations.
+-   **Challenge:** The system's agents can generate code that violates formatting or linting rules, requiring human intervention to fix. This represents an incomplete `ADAPTATION` loop.
+-   **Goal:** Enhance the agent execution loop to automatically apply formatting and auto-fixable linting changes to any generated code before it is written to disk.
+-   **Status:** ⏳ **Not Started**
+
+---
+
+## Phase 8: Enterprise Readiness (New)
+
+This phase, based on feedback from the AI Peer Review Board, focuses on adding policies and documentation required for enterprise-grade operation.
+
+### 8.1: Define a Formal Testing Policy
+-   **Challenge:** Testing standards are not formally defined in the constitution.
+-   **Goal:** Create a new policy file governing test coverage requirements, data management, and mocking strategies.
+-   **Status:** ⏳ **Not Started**
+
+### 8.2: Define Formal Documentation Standards
+-   **Challenge:** Documentation quality is a principle, but the standards are not explicit.
+-   **Goal:** Create a new policy defining minimum documentation requirements for capabilities and a style guide for docstrings.
+-   **Status:** ⏳ **Not Started**
+
+### 8.3: Define Error Recovery Procedures
+-   **Challenge:** Procedures for recovering from a corrupted state are not documented.
+-   **Goal:** Create a formal document outlining procedures for automatic rollback scenarios and constitutional crisis resolution.
 -   **Status:** ⏳ **Not Started**

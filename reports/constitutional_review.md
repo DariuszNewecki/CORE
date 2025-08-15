@@ -1,136 +1,124 @@
+Here's my critical peer review of the CORE constitutional bundle:
+
 **1. Overall Assessment:**
 
-The CORE constitution is a well-structured and comprehensive governance framework that demonstrates strong adherence to principles of clarity, safety, and self-governance. Key strengths include:
-- Clear hierarchical organization of principles, policies, and capabilities
-- Robust safety mechanisms for file operations and code generation
-- Comprehensive capability tagging system for discoverability
-- Strong versioning and approval mechanisms for constitutional changes
+Strengths:
+- Excellent clarity and organization of governance documents
+- Strong coverage of core principles (safety, clarity, evolvability)
+- Comprehensive runtime requirements and configuration management
+- Well-defined agent roles and capability taxonomy
+- Robust change control processes for constitutional amendments
 
-Main weaknesses:
-- Some redundancy between policy files (e.g., immutable constitution rules appear in multiple places)
-- Missing documentation for certain critical processes (e.g., how to handle security incidents)
-- Some policy enforcement methods could be more specific (e.g., "soft" vs "hard" enforcement needs clearer definitions)
-- Limited coverage of data privacy and external system interactions
+Weaknesses:
+- Some policy files are marked as "not yet implemented"
+- Limited documentation on error handling and recovery procedures
+- Some redundancy between policy files that could be consolidated
+- Missing explicit data privacy and retention policies
+- Could benefit from more examples in documentation
 
 **2. Specific Suggestions for Improvement:**
 
-1. **File:** `.intent/policies/safety_policies.yaml`
-   - **Justification:** The `no_dangerous_execution` rule has exceptions that could be better organized and documented. This serves the `clarity_first` principle by making security exceptions more visible and traceable.
+1. **File:** `.intent/policies/dependency_management.yaml`
+   - **Justification:** Serves `clarity_first` and `completeness` by providing concrete rules for dependency management rather than being empty.
    - **Proposed Change:**
 ```diff
-     scope:
-       domains: [core, agents, features]
-       exclude:
--        - "tests/**"
--        - "utils/safe_execution.py"
--        - "tooling/**"
--        - path: "src/core/git_service.py"
--          rationale: >
--            This file is the designated service for interacting with the Git CLI.
--            It is exempt because it safely uses subprocess.run() with command arguments
--            passed as a list, which prevents shell injection vulnerabilities. All calls
--            are audited to ensure they do not introduce risks.
-+        - path: "tests/**"
-+          rationale: "Test files require direct execution for validation"
-+        - path: "utils/safe_execution.py"
-+          rationale: "Designated safe execution wrapper"
-+        - path: "tooling/**"
-+          rationale: "Internal tools require lower-level access"
-+        - path: "src/core/git_service.py"
-+          rationale: "Designated Git CLI interaction point with safe command handling"
+- rules: []
++ rules:
++   - id: license_compatibility
++     description: All dependencies must have OSI-approved licenses compatible with our MIT license
++     enforcement: hard
++   - id: vulnerability_scanning
++     description: All dependencies must be scanned for known vulnerabilities before addition
++     enforcement: hard
++   - id: pinned_versions
++     description: Production dependencies must have exact version pins
++     enforcement: hard
 ```
 
-2. **File:** `.intent/mission/principles.yaml`
-   - **Justification:** The `immutable_constitution` principle is duplicated in `intent_guard.yaml`. This serves the `dry_by_design` principle by removing redundancy.
+2. **File:** `.intent/policies/incident_response.yaml`
+   - **Justification:** Serves `safe_by_default` by defining concrete incident response procedures rather than being empty.
    - **Proposed Change:**
 ```diff
--  - id: immutable_constitution
--    description: >
--      The files principles.yaml, manifesto.md, and northstar.yaml are immutable.
--      CORE may propose changes via IntentBundle, but may not apply them directly.
--      Human review is required for constitutional updates.
+- procedures: []
++ procedures:
++   - id: containment
++     steps:
++       - Isolate affected components
++       - Freeze all change proposals
++       - Enable local_fallback mode
++   - id: analysis
++     steps:
++       - Create forensic copy of .intent/ and change logs
++       - Trace actions through audit logs
++   - id: remediation
++     steps:
++       - Constitutional amendment to address root cause
++       - Rotate all cryptographic keys if compromised
 ```
 
 3. **File:** `.intent/constitution/approvers.yaml`
-   - **Justification:** Missing documentation about key rotation and revocation. This serves the `safe_by_default` principle by ensuring compromised keys can be removed.
+   - **Justification:** Serves `evolvable_structure` by making quorum requirements more flexible for different stages of development.
    - **Proposed Change:**
 ```diff
-+# Key rotation and revocation policy
-+key_management:
-+  rotation_period: "P90D" # ISO 8601 duration format (90 days)
-+  revocation_process:
-+    - "Submit revocation request via IntentBundle"
-+    - "Requires 2/3 quorum of existing approvers"
-+    - "New key must be added before old one is removed"
+ quorum:
+-  # Regular amendments require 1 signature
+-  standard: 1
+-  # Critical changes require 1 signature while under solo development.
+-  critical: 1
++  development:
++    standard: 1
++    critical: 1
++  production:
++    standard: 2
++    critical: 3
++  current_mode: development
 ```
 
-4. **File:** `.intent/policies/security_intents.yaml`
-   - **Justification:** Security intents lack concrete implementation details. This serves the `actionability` principle by making security rules more enforceable.
+4. **File:** `.intent/policies/safety_policies.yaml`
+   - **Justification:** Serves `predictable_side_effects` by adding explicit network security controls.
    - **Proposed Change:**
 ```diff
- security_intents:
-   - id: prompt_based_security
-     description: "Security rules implemented as LLM prompts"
-     enforcement: soft_prompt
-     rules:
--      - prompt: "Verify no subprocess, eval, or os.system calls"
--      - prompt: "Check for safe file operations only"
--      - prompt: "Validate no external network calls in core logic"
-+      - id: no_dangerous_calls
-+        prompt: "Verify no subprocess, eval, or os.system calls"
-+        validation: "ast_scan_for_banned_functions"
-+        banned_functions: ["eval", "exec", "os.system"]
-+      - id: safe_file_ops
-+        prompt: "Check for safe file operations only"
-+        validation: "regex_scan"
-+        patterns: ["open\\(", "os\\.path"]
-+        exceptions: ["FileHandler", "SafeIO"]
-```
-
-5. **File:** `.intent/evaluation/audit_checklist.yaml`
-   - **Justification:** Missing security-specific audit items. This serves the `safe_by_default` principle by ensuring security considerations are systematically reviewed.
-   - **Proposed Change:**
-```diff
-   - id: quality_verified
-     item: "Was code quality verified post-write?"
-     required: true
-+  - id: security_reviewed
-+    item: "Were security implications considered and documented?"
-+    required: true
-+  - id: dependencies_checked
-+    item: "Were new dependencies reviewed for known vulnerabilities?"
-+    required: false
++  # ===================================================================
++  # RULE: Restrict network access
++  # ===================================================================
++  - id: restrict_network_access
++    description: >
++      Only explicitly allowed domains may be contacted. All outbound network
++      calls must be through approved integration points.
++    enforcement: hard
++    allowed_domains:
++      - "api.openai.com"
++      - "github.com"
++    action: reject
++    feedback: |
++      ❌ Attempt to contact unauthorized domain: {{domain}}. Update safety_policies.yaml to allow if needed.
 ```
 
 **3. Gaps and Missing Concepts:**
 
-1. **Data Privacy Policy:**
-   - Missing clear rules about handling sensitive data
-   - No documentation about data retention or anonymization
-   - Suggested addition: `.intent/policies/data_privacy.yaml`
+1. **Data Privacy Policy:** Missing explicit rules for handling user data, PII, and data retention. Should include:
+   - Data minimization principles
+   - Right to erasure procedures
+   - Data encryption requirements
 
-2. **Incident Response:**
-   - No defined process for security incidents or policy violations
-   - Missing rollback procedures for emergency situations
-   - Suggested addition: `.intent/policies/incident_response.yaml`
+2. **Error Recovery Procedures:** While there are safety checks, the system lacks documented procedures for:
+   - Automatic rollback scenarios
+   - Corruption detection and repair
+   - Constitutional crisis resolution (e.g., if .intent becomes corrupted)
 
-3. **External System Interactions:**
-   - Limited coverage of API security and rate limiting
-   - No clear rules for third-party service integrations
-   - Suggested addition: `.intent/policies/external_interactions.yaml`
+3. **Testing Policy:** Missing comprehensive rules for:
+   - Test coverage requirements
+   - Test data management
+   - Mocking strategies for external services
 
-4. **Approver Onboarding/Offboarding:**
-   - Process for adding/removing approvers not fully documented
-   - Missing key rotation procedures
-   - Suggested enhancement to `.intent/constitution/approvers.yaml`
+4. **Documentation Standards:** Could benefit from:
+   - Minimum documentation requirements for capabilities
+   - Style guide for docstrings
+   - Versioning policy for documentation
 
-5. **Enforcement Level Definitions:**
-   - "soft" vs "hard" vs "manual_review" not clearly defined
-   - Suggested addition to `.intent/policies/enforcement_levels.yaml`
+5. **Performance Policy:** Missing guidelines for:
+   - Acceptable latency for core operations
+   - Resource usage limits
+   - Scaling considerations
 
-6. **Testing Policy:**
-   - No minimum test coverage requirements
-   - Missing guidelines for test quality
-   - Suggested addition: `.intent/policies/testing_standards.yaml`
-
-The constitution would benefit from these additions to cover critical operational aspects while maintaining its current clarity and enforceability.
+The constitution is remarkably well-designed overall. These suggestions aim to make an already strong system even more robust and complete. The existing principles provide excellent guidance that these changes would help operationalize further.

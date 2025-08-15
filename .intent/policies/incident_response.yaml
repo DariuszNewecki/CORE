@@ -1,9 +1,27 @@
 # .intent/policies/incident_response.yaml
 #
-# PURPOSE: This document will define the formal procedure for responding to
+# PURPOSE: This document defines the formal procedure for responding to
 # security incidents, constitutional violations, or critical operational failures.
-# It will include steps for containment, analysis, and remediation.
+# It includes steps for containment, analysis, and remediation.
 #
-# STATUS: Not yet implemented.
+# STATUS: This policy is defined but not yet enforced by an auditor check.
 
-procedures: []
+procedures:
+  - id: containment
+    description: "The immediate steps to limit the impact of an incident."
+    steps:
+      - "Isolate affected components from the network."
+      - "Freeze all pending constitutional change proposals."
+      - "Switch system to safe/local_fallback mode to prevent external actions."
+
+  - id: analysis
+    description: "The process for understanding the root cause of an incident."
+    steps:
+      - "Create a forensic copy of the .intent/ directory and all change logs."
+      - "Trace the sequence of actions leading to the incident using audit logs."
+
+  - id: remediation
+    description: "The actions taken to resolve the incident and prevent recurrence."
+    steps:
+      - "Develop and ratify a constitutional amendment to address the root cause."
+      - "Rotate all cryptographic keys and secrets if a compromise is suspected."

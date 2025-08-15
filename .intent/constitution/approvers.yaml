@@ -36,12 +36,18 @@ approvers:
     role: "maintainer"
     description: "Mentor"
 
+# --- THIS IS THE MODIFIED SECTION ---
 # Minimum number of signatures required for constitutional amendments
 quorum:
-  # Regular amendments require 1 signature
-  standard: 1
-  # Critical changes require 1 signature while under solo development.
-  critical: 1
+  # Defines quorum levels for different operational stages.
+  development:
+    standard: 1
+    critical: 1
+  production:
+    standard: 2
+    critical: 3
+  # The currently active mode. Change to 'production' for a live system.
+  current_mode: development
 
 # Critical policy paths that require higher quorum
 critical_paths:
