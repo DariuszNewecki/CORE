@@ -1,17 +1,23 @@
 # FastAPI Hello World
 
-A simple FastAPI web server that returns 'Hello, World!'.
+A simple FastAPI web server that returns hello world.
 
-## Running the server
+## Installation
 
-1. Install dependencies:
+1. Install Poetry (if not already installed):
    ```bash
-   pip install fastapi uvicorn
+   pip install poetry
    ```
 
-2. Run the server:
+2. Install dependencies:
    ```bash
-   uvicorn src.main:app --reload
+   poetry install
    ```
 
-3. Open your browser to [http://localhost:8000](http://localhost:8000) to see the response.
+## Running the Server
+
+```bash
+poetry run uvicorn src.main:app --reload
+```
+
+Open your browser to [http://localhost:8000](http://localhost:8000) to see the response.

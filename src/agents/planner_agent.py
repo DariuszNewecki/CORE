@@ -6,6 +6,7 @@ import contextvars
 import json
 import re
 import textwrap
+import subprocess
 from datetime import datetime, timezone
 from typing import Dict, List, Optional, Tuple
 
@@ -208,15 +209,20 @@ class PlannerAgent:
                         )
                 return False, f"Plan execution failed: {error_detail}"
 
-    # --- THIS IS THE NEW METHOD ---
     # CAPABILITY: scaffold_project
-    def scaffold_new_application(self, project_name: str, goal: str) -> Tuple[bool, str]:
+    def scaffold_new_application(
+        self,
+        project_name: str,
+        goal: str,
+        initialize_git: bool = False,
+    ) -> Tuple[bool, str]:
         """
         Uses an LLM to plan and generate a new, multi-file application.
 
         Args:
-            project_name: The directory name for the new project (e.g., 'web-calculator').
+            project_name: The directory name for the new project.
             goal: A high-level description of the application's purpose.
+            initialize_git: If True, will initialize a new Git repository.
 
         Returns:
             A tuple of (success, message).
@@ -225,9 +231,7 @@ class PlannerAgent:
         prompt_template = textwrap.dedent(
             """
             You are a senior software architect. Your task is to design the file structure and content for a new Python application based on a high-level goal.
-
             **Goal:** "{goal}"
-
             **Instructions:**
             1.  Think step-by-step about the necessary files for a minimal, working version of this application.
             2.  Your output MUST be a single, valid JSON object.
@@ -235,15 +239,6 @@ class PlannerAgent:
             4.  Include a `pyproject.toml` with necessary dependencies (like `fastapi`, `flask`, etc.).
             5.  Include a simple `src/main.py` to make the application runnable.
             6.  Keep the code simple, clean, and functional.
-
-            **Example for "a simple Flask web server":**
-            ```json
-            {{
-                "pyproject.toml": "[tool.poetry.dependencies]\npython = \\">=3.9\\"\nflask = \\"^2.0\\" ...",
-                "src/main.py": "from flask import Flask\\n\\napp = Flask(__name__)\\n\\n@app.route('/')\\ndef hello():\\n    return 'Hello, World!'\\n"
-            }}
-            ```
-
             Generate the JSON for the goal now.
             """
         ).strip()
@@ -260,21 +255,23 @@ class PlannerAgent:
 
             log.info(f"   -> LLM planned a structure with {len(file_structure)} files.")
 
-            # Use the reusable Scaffolder service
+            # Scaffolder now correctly finds the workspace from the constitution.
             scaffolder = Scaffolder(project_name=project_name)
             scaffolder.scaffold_base_structure()
 
             for rel_path, content in file_structure.items():
-                # Here you would add validation for each file's content
                 scaffolder.write_file(rel_path, content)
 
-            if self.git_service.is_git_repo():
-                self.git_service.add(".")
-                self.git_service.commit(
+            if initialize_git:
+                log.info(f"   -> Initializing new Git repository in {scaffolder.project_root}...")
+                subprocess.run(["git", "init"], cwd=scaffolder.project_root, check=True, capture_output=True)
+                new_repo_git = GitService(str(scaffolder.project_root))
+                new_repo_git.add(".")
+                new_repo_git.commit(
                     f"feat(scaffold): Initial commit for new application '{project_name}'"
                 )
 
-            return True, f"✅ Successfully scaffolded new application '{project_name}'."
+            return True, f"✅ Successfully scaffolded new application '{project_name}' in '{scaffolder.workspace.relative_to(self.file_handler.repo_path)}'."
 
         except Exception as e:
             log.error(f"❌ Scaffolding failed: {e}", exc_info=True)
