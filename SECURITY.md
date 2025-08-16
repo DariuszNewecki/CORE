@@ -1,38 +1,22 @@
 # Security Policy
 
 ## Supported Versions
-Security fixes are provided for the latest minor in the **v0.2.x** line until v0.3.0 is released.
 
-| Version  | Supported |
-|---------:|:---------:|
-| v0.2.x   | ✅        |
-| < v0.2   | ❌        |
+Security fixes are provided for the latest minor version release.
+
+| Version | Supported          |
+| ------- | ------------------ |
+| 0.2.x   | :white_check_mark: |
+| < 0.2.0 | :x:                |
 
 ## Reporting a Vulnerability
 
-Please use **GitHub Security Advisories** for private reports:
-- Create a new advisory: https://github.com/DariuszNewecki/CORE/security/advisories/new
+We take all security vulnerabilities seriously. Please do not report security vulnerabilities through public GitHub issues.
 
-Optionally, you can also email a private security inbox (replace with your address):
-- `security@your-domain.example`
+Instead, please report them by using GitHub's private vulnerability reporting feature. Go to the "Security" tab of the repository and click "Report a vulnerability".
 
-Include:
-- A clear description and potential impact
-- Steps to reproduce or a proof-of-concept
-- Affected files/paths and suggested severity
+You should receive an acknowledgment within **3 business days**.
 
-**Do not open a public issue** for security reports.
+## Disclosure Process
 
-## Response Targets
-- Acknowledge receipt within **3 business days**
-- Status update or remediation plan within **10 business days**
-
-## Disclosure
-- We prefer **coordinated disclosure**.
-- Once a fix is available, we will publish a security note in **Releases** and credit reporters (if desired).
-
-## Scope
-- This policy covers the public repo at `DariuszNewecki/CORE`.
-- Third‑party dependencies are in scope only as used by CORE (we may upstream reports when appropriate).
-
----
+We follow a coordinated disclosure process. Once a vulnerability is reported, we will work to release a patch as quickly as possible. We will publish a security advisory on GitHub to notify users upon release.
