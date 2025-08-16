@@ -74,7 +74,7 @@ lint:
 format:
 	@echo "✨ Formatting code with Black and Ruff..."
 	$(POETRY) run black $(PATHS)
-	$(POETRY) run ruff check $(PATHS) --fix --exit-non-zero-on-fix
+	$(POETRY) run ruff check $(PATHS) --fix
 
 test:
 	@echo "🧪 Running tests with pytest..."

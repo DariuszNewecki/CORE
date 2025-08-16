@@ -1,13 +1,16 @@
-name: Nightly Constitutional Audit
+name: Governance Checks
 
 on:
   schedule:
     - cron: "15 2 * * *"   # 02:15 UTC nightly
+  pull_request:
+    branches: [ main ]
   workflow_dispatch:
 
 permissions:
   contents: read
   issues: write
+  pull-requests: write # Add this permission to allow commenting on PRs
 
 jobs:
   audit:
@@ -25,15 +28,22 @@ jobs:
         id: audit
         run: |
           set +e
-          poetry run python -m src.core.capabilities
+          # Run the audit and capture output to a file
+          poetry run python -m src.core.capabilities &> audit_output.txt
           echo "exit_code=$?" >> $GITHUB_OUTPUT
-      - name: Open/Update issue on failure
-        if: steps.audit.outputs.exit_code != '0'
+          # Make the output available for the next steps
+          echo "output<<EOF" >> $GITHUB_OUTPUT
+          cat audit_output.txt >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      # --- This block runs ONLY for scheduled nightly builds ---
+      - name: Open/Update issue on failure (for Nightly run)
+        if: github.event_name == 'schedule' && steps.audit.outputs.exit_code != '0'
         uses: actions/github-script@v7
         with:
           script: |
             const title = "❌ Nightly Constitutional Audit failed";
-            const body = "The nightly audit failed. Please check CI logs for details.\n\n- Workflow: nightly-audit\n- Run: " + process.env.GITHUB_RUN_ID;
+            const body = "The nightly audit failed. Please check CI logs for details.\n\n- Workflow: ${{ github.workflow }}\n- Run ID: ${{ github.run_id }}";
             const { data: issues } = await github.rest.issues.listForRepo({
               owner: context.repo.owner, repo: context.repo.repo, state: "open", labels: "ci,audit"
             });
@@ -46,8 +56,10 @@ jobs:
                 title, body, labels: ["ci","audit"]
               });
             }
-      - name: Close issue on success
-        if: steps.audit.outputs.exit_code == '0'
+
+      # --- This block runs ONLY for scheduled nightly builds ---
+      - name: Close issue on success (for Nightly run)
+        if: github.event_name == 'schedule' && steps.audit.outputs.exit_code == '0'
         uses: actions/github-script@v7
         with:
           script: |
@@ -62,3 +74,29 @@ jobs:
                 issue_number: existing.number, state: "closed"
               });
             }
+
+      # --- This NEW block runs ONLY for Pull Requests ---
+      - name: Post PR comment on failure (for PR run)
+        if: github.event_name == 'pull_request' && steps.audit.outputs.exit_code != '0'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const output = `
+            #### 🏛️ Constitutional Audit Failed
+            This change introduces a violation of the CORE constitution.
+            Please review the audit logs to resolve the issue.
+
+            <details><summary>Audit Failure Details</summary>
+
+            \`\`\`
+            ${{ steps.audit.outputs.output }}
+            \`\`\`
+            </details>
+            `;
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: output
+            });
