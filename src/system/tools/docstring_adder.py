@@ -7,7 +7,6 @@ self-healing and self-improvement loop.
 import ast
 import asyncio
 import json
-from pathlib import Path
 from typing import Any, Dict
 
 import typer
@@ -83,7 +82,9 @@ async def generate_and_apply_docstring(
             (
                 node
                 for node in ast.walk(tree)
-                if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef))
+                if isinstance(
+                    node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)
+                )
                 and node.name == func_name
                 and node.lineno == line_num
             ),
@@ -123,9 +124,11 @@ async def generate_and_apply_docstring(
         # --- VALIDATION STEP ---
         validation_result = validate_code(str(file_path), new_source_code, quiet=True)
         if validation_result["status"] == "dirty":
-            log.error(f"Generated docstring for `{func_name}` in {file_path} resulted in invalid code. Discarding change.")
+            log.error(
+                f"Generated docstring for `{func_name}` in {file_path} resulted in invalid code. Discarding change."
+            )
             return
-        
+
         final_code = validation_result["code"]
         # --- END VALIDATION STEP ---
 
