@@ -18,7 +18,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Request
 from fastapi import status as http_status
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from shared.config import settings
 from shared.logger import getLogger
 
@@ -55,8 +55,10 @@ async def lifespan(app: FastAPI):
         log.info("⚙️  LLM_ENABLED=false — skipping LLM client initialization.")
         app.state.orchestrator_client = None
         app.state.generator_client = None
+
     app.state.git_service = GitService(".")
     app.state.intent_guard = IntentGuard(Path("."))
+
     log.info("✅ CORE system is online and ready.")
     yield
     log.info("🛑 CORE system shutting down.")
@@ -69,14 +71,15 @@ register_exception_handlers(app)
 class GoalRequest(BaseModel):
     """Defines the request body for the /execute_goal endpoint."""
 
-    goal: str
+    goal: str = Field(min_length=1, strip_whitespace=True)
 
 
 @app.post("/execute_goal")
 async def execute_goal(request_data: GoalRequest, request: Request):
     """Execute a high-level goal by planning and generating code."""
     goal = request_data.goal
-    log.info(f"🎯 Received new goal: '{goal}'")
+    # Avoid logging excessively long/sensitive payloads
+    log.info("🎯 Received new goal: %r", goal[:200])
 
     try:
         file_handler = FileHandler(".")
@@ -91,24 +94,20 @@ async def execute_goal(request_data: GoalRequest, request: Request):
         success, message = await planner.execute_plan(goal)
 
         if success:
-            log.info(f"✅ Goal executed successfully. Message: {message}")
+            log.info("✅ Goal executed successfully: %s", message)
             return JSONResponse(
                 content={"status": "success", "message": message},
                 status_code=http_status.HTTP_200_OK,
             )
         else:
-            log.error(f"❌ Goal execution failed. Reason: {message}")
-            raise HTTPException(
-                status_code=500, detail=f"Goal execution failed: {message}"
-            )
+            # Log full details server-side; return generic failure to client (CWE-209 safe)
+            log.error("❌ Goal execution failed: %s", message)
+            raise HTTPException(status_code=500)
 
-    except Exception as e:
-        log.error(
-            f"💥 An unexpected error occurred during goal execution: {e}", exc_info=True
-        )
-        raise HTTPException(
-            status_code=500, detail=f"An unexpected error occurred: {str(e)}"
-        )
+    except Exception:
+        # Capture traceback in logs, but return generic error to client (handled by global handler)
+        log.exception("💥 Unexpected error during goal execution")
+        raise HTTPException(status_code=500)
 
 
 @app.get("/")

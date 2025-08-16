@@ -14,6 +14,12 @@ CORE has reached MVP: it can autonomously scaffold a governed application from a
 * Nightly audit validates the constitutional bundle and checks capability drift.
 * CI runs formatting, linting, tests, and self-audit.
 
+## 🎥 90‑second demo
+
+[![Watch the 90‑second demo](docs/assets/core-90s-demo.gif)](docs/assets/core-90s-demo.gif)
+
+> The GIF shows: `core-admin new` → `guard drift` on a fresh repo.
+
 ---
 
 ## What is CORE?
@@ -58,13 +64,10 @@ poetry run ruff check .
 poetry run pytest -q
 
 # 3) Generate a governed starter (example)
-poetry run core-admin new --name my_governed_app --kit default
+poetry run core-admin new my_governed_app
 
-# 4) Optional: scaffold an agent from intent
-poetry run core-admin agent scaffold --name PlannerAgent
-
-# 5) Run constitutional audit locally (verbose)
-poetry run core-admin audit --verbose
+# 4) Governance drift check (JSON → short)
+poetry run core-admin guard drift --format short
 ```
 
 If you prefer **pip**, you can export dependencies:
