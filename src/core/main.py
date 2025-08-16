@@ -24,6 +24,7 @@ from shared.logger import getLogger
 
 from core.capabilities import introspection
 from core.clients import GeneratorClient, OrchestratorClient
+from core.errors import register_exception_handlers
 from core.file_handler import FileHandler
 from core.git_service import GitService
 from core.intent_guard import IntentGuard
@@ -62,6 +63,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan)
+register_exception_handlers(app)
 
 
 class GoalRequest(BaseModel):

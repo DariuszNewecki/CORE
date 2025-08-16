@@ -1,0 +1,25 @@
+# .github/dependabot.yml
+#
+# CORE's automated dependency management configuration.
+# This file enables Dependabot to automatically create pull requests to keep
+# our dependencies up-to-date, enhancing our supply-chain security.
+
+version: 2
+updates:
+  # Maintain dependencies for GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "chore(actions)"
+      include: "scope"
+
+  # Maintain dependencies for Python (Poetry)
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "chore(deps)"
+      include: "scope"
