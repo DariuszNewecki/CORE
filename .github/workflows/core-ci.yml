@@ -11,16 +11,19 @@ permissions:
 
 jobs:
   build_and_test:
-    name: Build & Test
+    name: Build & Test (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [ "3.11", "3.12" ]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Python
+      - name: Setup Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: ${{ matrix.python-version }}
 
       - name: Install Poetry
         run: pipx install poetry
@@ -29,9 +32,9 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cache/pypoetry
-          key: poetry-${{ runner.os }}-${{ hashFiles('**/poetry.lock') }}
+          key: poetry-${{ runner.os }}-${{ matrix.python-version }}-${{ hashFiles('**/poetry.lock') }}
           restore-keys: |
-            poetry-${{ runner.os }}-
+            poetry-${{ runner.os }}-${{ matrix.python-version }}-
 
       - name: Install deps
         run: poetry install --no-interaction --no-root
@@ -45,8 +48,15 @@ jobs:
       - name: Self-audit (KnowledgeGraph + Auditor)
         run: poetry run python -m src.core.capabilities
 
-      - name: Tests
-        run: poetry run pytest -q
+      - name: Tests (with coverage)
+        run: poetry run pytest -q --cov=src --cov-report=xml --cov-fail-under=80
+
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-${{ matrix.python-version }}
+          path: coverage.xml
+          if-no-files-found: error
         
   governance:
     name: Governance & Drift Check
@@ -59,7 +69,7 @@ jobs:
       - name: Setup Python & Poetry
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.12" # Use the latest supported Python for governance checks
       - run: pipx install poetry
 
       - name: Install deps
