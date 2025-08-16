@@ -10,9 +10,9 @@
 
 CORE has reached MVP: it can autonomously scaffold a governed application from a high-level goal and verify it against a constitution. The governance loop, drift checks, and nightly audit are active.
 
-- **Releases:** https://github.com/DariuszNewecki/CORE/releases
-- Nightly audit validates the constitutional bundle and checks capability drift.
-- CI runs formatting, linting, tests, and self-audit.
+* **Releases:** [https://github.com/DariuszNewecki/CORE/releases](https://github.com/DariuszNewecki/CORE/releases)
+* Nightly audit validates the constitutional bundle and checks capability drift.
+* CI runs formatting, linting, tests, and self-audit.
 
 ---
 
@@ -20,33 +20,31 @@ CORE has reached MVP: it can autonomously scaffold a governed application from a
 
 CORE is a self-governing, constitution‑aligned AI development framework. It plans, writes, validates, and evolves software systems—autonomously, with traceability and guardrails.
 
-**Mind/Body model:**
+### Mind/Body model
 
 ```mermaid
 graph TD
-  subgraph Mind[.intent/ — Constitution & Knowledge]
+  subgraph Mind[".intent/ — Constitution & Knowledge"]
     A[Principles & Policies]
     B[NorthStar / Mission]
     C[Capabilities & Manifests]
     D[Knowledge Graph]
   end
-  subgraph Body[src/ — Executable System]
+  subgraph Body["src/ — Executable System"]
     E[Agents]
     F[Auditor & Drift Checks]
     G[Tools & Pipelines]
-    H[CLI (core-admin)]
+    H["CLI (core-admin)"]
   end
   A -- governs --> E
   C -- maps to --> G
   D -- validates --> F
   H -- operates --> E
-````
-
----
+```
 
 ## Quickstart (90 seconds)
 
-> Requires Python 3.11+ (3.12 supported), Linux/macOS. Uses Poetry.
+Requires Python **3.11+** (3.12 supported), Linux/macOS. Uses **Poetry**.
 
 ```bash
 # 1) Clone & install
@@ -69,65 +67,50 @@ poetry run core-admin agent scaffold --name PlannerAgent
 poetry run core-admin audit --verbose
 ```
 
-If you prefer `pip`, you can export dependencies:
+If you prefer **pip**, you can export dependencies:
 
 ```bash
 poetry export -f requirements.txt --output requirements.txt --without-hashes
 pip install -r requirements.txt
 ```
 
----
-
 ## Key Capabilities (MVP scope)
 
-* **Autonomous scaffold from intent** (`core-admin new`).
-* **Constitutional audit** (rules in `.intent/`; nightly CI job).
-* **Capability drift detection** (maps `# CAPABILITY:` tags ↔ manifests).
-* **Validation pipeline** for code and YAML.
-
----
+* Autonomous scaffold from intent (`core-admin new`).
+* Constitutional audit (rules in `.intent/`; nightly CI job).
+* Capability drift detection (maps `# CAPABILITY:` tags ↔ manifests).
+* Validation pipeline for code and YAML.
 
 ## CI / CD
 
 * **Format & Lint:** Black, Ruff
-* **Tests:** pytest (add coverage soon)
+* **Tests:** pytest (coverage gating planned)
 * **Security:** CodeQL
 * **Governance:** Nightly Constitutional Audit & Drift Check
 
 See `.github/workflows/` for details.
 
----
-
 ## Roadmap
 
-* v0.3: stronger examples, richer starter kits, coverage gating
-* v0.4: policy-as-code expansions, contributor UX polish
-* v0.5: advanced introspection & auto-refactor loops
+* **v0.3:** stronger examples, richer starter kits, coverage gating
+* **v0.4:** policy-as-code expansions, contributor UX polish
+* **v0.5:** advanced introspection & auto-refactor loops
 
-Track progress in **Projects** and **Issues**.
-
----
+Track progress in Projects and Issues.
 
 ## Contributing
 
 We welcome focused, high-quality contributions:
 
 * Read **CONTRIBUTING.md**
-* Use conventional commits (`feat:`, `fix:`, `chore:`…)
+* Use conventional commits (`feat:`, `fix:`, `chore:` …)
 * Open an issue before major changes
 * Run the checks above before pushing
 
----
-
 ## Security
 
-Please report vulnerabilities privately. See **SECURITY.md** for the disclosure process and response targets.
-
----
+Please report vulnerabilities **privately**. See **SECURITY.md** for the disclosure process and response targets.
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
-
----
-
+MIT — see **LICENSE**.
