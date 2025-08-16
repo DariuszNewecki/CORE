@@ -18,7 +18,7 @@ jobs:
         python-version: [ "3.11", "3.12" ]
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
@@ -64,7 +64,7 @@ jobs:
     needs: build_and_test
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Python & Poetry
         uses: actions/setup-python@v5
