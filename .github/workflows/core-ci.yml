@@ -87,14 +87,15 @@ jobs:
       - name: Install deps
         run: poetry install --no-interaction --no-root
 
+      # --- THIS IS THE FIX (Part 1) ---
       - name: Generate Knowledge Graph Artifact
-        run: poetry run core-admin guard kg-export
+        run: poetry run env PYTHONPATH=src core-admin guard kg-export
 
       - name: Detect Capability Drift
         id: drift_check
         run: |
           set +e
-          poetry run core-admin guard drift --strict-intent --fail-on any --format json > drift_report.json
+          poetry run env PYTHONPATH=src core-admin guard drift --strict-intent --fail-on any --format json > drift_report.json
           echo "exit_code=$?" >> $GITHUB_OUTPUT
           echo "report<<EOF" >> $GITHUB_OUTPUT
           cat drift_report.json >> $GITHUB_OUTPUT
@@ -113,13 +114,10 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const rawReport = '${{ steps.drift_check.outputs.report }}';
-            // --- THIS IS THE FIX ---
-            // Add a safety check to ensure the report is not empty before parsing.
             if (!rawReport || rawReport.trim() === '') {
               console.log('Drift report output was empty. Skipping comment.');
               return;
             }
-            // --- END OF FIX ---
             const report = JSON.parse(rawReport);
             const undeclared = report.undeclared_in_manifest.map(c => `- \`${c}\``).join('\n');
             const missing = report.missing_in_code.map(c => `- \`${c}\``).join('\n');
