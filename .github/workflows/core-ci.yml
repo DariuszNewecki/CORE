@@ -8,6 +8,7 @@ on:
 
 permissions:
   contents: read
+  pull-requests: write # Add permission to write comments on PRs
 
 jobs:
   build_and_test:
@@ -78,7 +79,48 @@ jobs:
       - name: Generate Knowledge Graph Artifact
         run: poetry run core-admin guard kg-export
 
-      - name: Detect Capability Drift (strict)
+      - name: Detect Capability Drift
+        id: drift_check
         run: |
-          set -e
-          poetry run core-admin guard drift --strict-intent --fail-on any --format json
+          set +e
+          poetry run core-admin guard drift --strict-intent --fail-on any --format json > drift_report.json
+          echo "exit_code=$?" >> $GITHUB_OUTPUT
+          # Make the report available for the next step
+          echo "report<<EOF" >> $GITHUB_OUTPUT
+          cat drift_report.json >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+      
+      - name: Fail job on drift
+        if: steps.drift_check.outputs.exit_code != '0'
+        run: |
+          echo "::error::Capability drift detected. See the report for details."
+          exit 1
+          
+      - name: Post PR comment on drift (for PR run)
+        if: failure() && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const report = JSON.parse('${{ steps.drift_check.outputs.report }}');
+            const undeclared = report.undeclared_in_manifest.map(c => `- \`${c}\``).join('\n');
+            const missing = report.missing_in_code.map(c => `- \`${c}\``).join('\n');
+            
+            const output = `
+            #### 🏛️ Constitutional Drift Detected
+            This change introduces a mismatch between the declared constitution (\`.intent/\`) and the implemented code (\`src/\`).
+
+            **Undeclared in Manifest:** (Found in code but not in a \`manifest.yaml\`)
+            ${undeclared || "_None_"}
+
+            **Missing in Code:** (Declared in a \`manifest.yaml\` but not found in code)
+            ${missing || "_None_"}
+
+            **To Fix:** Please add or remove the relevant \`# CAPABILITY:\` tags in the source code or update the corresponding domain's \`manifest.yaml\` file.
+            `;
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: output
+            });
