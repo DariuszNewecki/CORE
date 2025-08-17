@@ -114,6 +114,8 @@ We welcome focused, high-quality contributions:
 
 Please report vulnerabilities **privately**. See **SECURITY.md** for the disclosure process and response targets.
 
+---
+
 ## License
 
 MIT — see **LICENSE**.
