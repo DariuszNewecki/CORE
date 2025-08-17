@@ -38,7 +38,9 @@ async def test_execute_plan_success(mock_dependencies):
 
     # Mock the git_service used by the context manager
     agent.executor.git_service = MagicMock()
-    agent.executor.git_service.is_git_repo.return_value = False # Disable git logic for this test
+    agent.executor.git_service.is_git_repo.return_value = (
+        False  # Disable git logic for this test
+    )
 
     success, message = await agent.execute_plan(goal, plan)
 
@@ -89,12 +91,11 @@ async def test_execute_plan_handles_executor_failure(mock_dependencies):
     mock_dependencies["plan_executor"].execute_plan.side_effect = PlanExecutionError(
         "Validation failed", violations=[{"rule": "E999"}]
     )
-    
+
     # Mock the git_service used by the context manager
     agent.executor.git_service = MagicMock()
     agent.executor.git_service.is_git_repo.return_value = True
     agent.executor.git_service.get_current_commit.return_value = "dummy_hash"
-
 
     success, message = await agent.execute_plan(goal, plan)
 

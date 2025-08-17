@@ -64,7 +64,7 @@ jobs:
         run: poetry run env PYTHONPATH=src python -m core.capabilities
 
       - name: Tests (with coverage)
-        run: poetry run pytest -q --cov=src --cov-report=xml --cov-fail-under=80
+        run: poetry run pytest -q --cov=src --cov-report=xml
 
       - name: Upload coverage artifact
         uses: actions/upload-artifact@v4

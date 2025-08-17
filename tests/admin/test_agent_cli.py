@@ -1,12 +1,9 @@
 # tests/admin/test_agent_cli.py
 import json
-from pathlib import Path
 from unittest.mock import MagicMock
 
 import pytest
-from typer.testing import CliRunner
 
-from system.admin import app
 from system.admin.agent import scaffold_new_application
 
 
@@ -17,9 +14,7 @@ def mock_scaffolder_deps(mocker, tmp_path):
     mock_scaffolder_instance = MagicMock()
     mock_scaffolder_instance.workspace = tmp_path
     mock_scaffolder_instance.project_root = tmp_path / "test-app"
-    mocker.patch(
-        "system.admin.agent.Scaffolder", return_value=mock_scaffolder_instance
-    )
+    mocker.patch("system.admin.agent.Scaffolder", return_value=mock_scaffolder_instance)
 
     # Mock the Orchestrator to return a predictable file structure
     mock_orchestrator = MagicMock()
