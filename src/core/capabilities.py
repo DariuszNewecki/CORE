@@ -10,6 +10,7 @@ import sys
 from pathlib import Path
 
 from dotenv import load_dotenv
+
 from shared.logger import getLogger
 
 log = getLogger(__name__)

@@ -8,6 +8,7 @@ import json
 
 import httpx
 import requests
+
 from shared.config import settings
 from shared.logger import getLogger
 

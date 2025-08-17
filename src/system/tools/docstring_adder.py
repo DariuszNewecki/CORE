@@ -10,9 +10,10 @@ import json
 from typing import Any, Dict
 
 import typer
+from rich.progress import track
+
 from core.clients import GeneratorClient
 from core.validation_pipeline import validate_code
-from rich.progress import track
 from shared.logger import getLogger
 from shared.path_utils import get_repo_root
 from system.tools.codegraph_builder import KnowledgeGraphBuilder

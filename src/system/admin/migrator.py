@@ -4,6 +4,7 @@ Intent: Registers the manifest migration tool with the CORE Admin CLI.
 """
 
 import typer
+
 from system.tools.manifest_migrator import migrate_manifest
 
 

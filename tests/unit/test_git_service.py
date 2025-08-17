@@ -2,6 +2,7 @@
 from unittest.mock import MagicMock, call
 
 import pytest
+
 from core.git_service import GitService
 
 

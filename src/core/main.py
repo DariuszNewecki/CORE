@@ -13,17 +13,15 @@ Integrates all core capabilities into a unified interface.
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from agents.execution_agent import ExecutionAgent
-from agents.plan_executor import PlanExecutor
-from agents.planner_agent import PlannerAgent
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Request
 from fastapi import status as http_status
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
-from shared.config import settings
-from shared.logger import getLogger
 
+from agents.execution_agent import ExecutionAgent
+from agents.plan_executor import PlanExecutor
+from agents.planner_agent import PlannerAgent
 from core.capabilities import introspection
 from core.clients import GeneratorClient, OrchestratorClient
 from core.errors import register_exception_handlers
@@ -32,6 +30,8 @@ from core.git_service import GitService
 from core.intent_alignment import check_goal_alignment
 from core.intent_guard import IntentGuard
 from core.prompt_pipeline import PromptPipeline
+from shared.config import settings
+from shared.logger import getLogger
 
 log = getLogger(__name__)
 load_dotenv()

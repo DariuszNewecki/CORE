@@ -4,8 +4,9 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from system.admin import app  # uses core-admin entrypoint
 from typer.testing import CliRunner
+
+from system.admin import app  # uses core-admin entrypoint
 
 runner = CliRunner()
 

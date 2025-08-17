@@ -6,9 +6,10 @@ information to the client, aligning with the 'safe_by_default' principle.
 """
 from fastapi import Request
 from fastapi.responses import JSONResponse
-from shared.logger import getLogger
 from starlette import status
 from starlette.exceptions import HTTPException as StarletteHTTPException
+
+from shared.logger import getLogger
 
 log = getLogger("core_api.errors")
 

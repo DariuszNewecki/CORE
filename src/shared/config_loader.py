@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any, Dict
 
 import yaml
+
 from shared.logger import getLogger
 
 log = getLogger(__name__)

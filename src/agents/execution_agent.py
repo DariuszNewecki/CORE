@@ -7,13 +7,12 @@ about the "doing": generating code and running the execution tasks.
 import textwrap
 from typing import List
 
-from core.clients import GeneratorClient
-from core.prompt_pipeline import PromptPipeline
-from shared.logger import getLogger
-
 from agents.models import ExecutionTask
 from agents.plan_executor import PlanExecutionError, PlanExecutor
 from agents.utils import PlanExecutionContext
+from core.clients import GeneratorClient
+from core.prompt_pipeline import PromptPipeline
+from shared.logger import getLogger
 
 log = getLogger(__name__)
 
