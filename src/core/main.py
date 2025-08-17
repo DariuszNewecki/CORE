@@ -13,6 +13,8 @@ Integrates all core capabilities into a unified interface.
 from contextlib import asynccontextmanager
 from pathlib import Path
 
+from agents.execution_agent import ExecutionAgent
+from agents.plan_executor import PlanExecutor
 from agents.planner_agent import PlannerAgent
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Request
@@ -29,6 +31,7 @@ from core.file_handler import FileHandler
 from core.git_service import GitService
 from core.intent_alignment import check_goal_alignment
 from core.intent_guard import IntentGuard
+from core.prompt_pipeline import PromptPipeline
 
 log = getLogger(__name__)
 load_dotenv()
@@ -47,18 +50,19 @@ async def lifespan(app: FastAPI):
     else:
         log.info("✅ Introspection complete. System state is constitutionally valid.")
 
-    # Initialize services that are safe to be singletons and store them in the app state
     log.info("🛠️  Initializing shared services...")
+    repo_path = Path(".")
+    app.state.file_handler = FileHandler(str(repo_path))
+    app.state.git_service = GitService(str(repo_path))
+    app.state.intent_guard = IntentGuard(repo_path)
+    app.state.prompt_pipeline = PromptPipeline(repo_path)
+
     if settings.LLM_ENABLED:
         app.state.orchestrator_client = OrchestratorClient()
         app.state.generator_client = GeneratorClient()
     else:
-        log.info("⚙️  LLM_ENABLED=false — skipping LLM client initialization.")
         app.state.orchestrator_client = None
         app.state.generator_client = None
-
-    app.state.git_service = GitService(".")
-    app.state.intent_guard = IntentGuard(Path("."))
 
     log.info("✅ CORE system is online and ready.")
     yield
@@ -84,20 +88,14 @@ class AlignmentRequest(BaseModel):
 
 @app.post("/guard/align")
 async def guard_align(payload: AlignmentRequest):
-    """Evaluate a goal against the NorthStar and optional blocklist.
-
-    Returns {"status": "ok"|"rejected", "details": {...}} with short reason codes.
-    """
+    """Evaluate a goal against the NorthStar and optional blocklist."""
     ok, details = check_goal_alignment(payload.goal, Path("."))
-
-    # Optional threshold enforcement (client-provided)
     if payload.min_coverage is not None:
         cov = details.get("coverage")
         if cov is None or cov < payload.min_coverage:
             ok = False
             if "low_mission_overlap" not in details["violations"]:
                 details["violations"].append("low_mission_overlap")
-
     status = "ok" if ok else "rejected"
     return JSONResponse(
         {"status": status, "details": details}, status_code=http_status.HTTP_200_OK
@@ -108,20 +106,30 @@ async def guard_align(payload: AlignmentRequest):
 async def execute_goal(request_data: GoalRequest, request: Request):
     """Execute a high-level goal by planning and generating code."""
     goal = request_data.goal
-    # Avoid logging excessively long/sensitive payloads
     log.info("🎯 Received new goal: %r", goal[:200])
 
     try:
-        file_handler = FileHandler(".")
+        # 1. Instantiate the PlannerAgent to create the plan
         planner = PlannerAgent(
             orchestrator_client=request.app.state.orchestrator_client,
-            generator_client=request.app.state.generator_client,
-            file_handler=file_handler,
+            prompt_pipeline=request.app.state.prompt_pipeline,
+        )
+        plan = planner.create_execution_plan(goal)
+
+        # 2. Instantiate the ExecutionAgent to carry out the plan
+        plan_executor = PlanExecutor(
+            file_handler=request.app.state.file_handler,
             git_service=request.app.state.git_service,
-            intent_guard=request.app.state.intent_guard,
+            config=planner.config,  # Use the same config
+        )
+        execution_agent = ExecutionAgent(
+            generator_client=request.app.state.generator_client,
+            prompt_pipeline=request.app.state.prompt_pipeline,
+            plan_executor=plan_executor,
         )
 
-        success, message = await planner.execute_plan(goal)
+        # 3. Execute and get the result
+        success, message = await execution_agent.execute_plan(goal, plan)
 
         if success:
             log.info("✅ Goal executed successfully: %s", message)
@@ -130,14 +138,12 @@ async def execute_goal(request_data: GoalRequest, request: Request):
                 status_code=http_status.HTTP_200_OK,
             )
         else:
-            # Log full details server-side; return generic failure to client (CWE-209 safe)
             log.error("❌ Goal execution failed: %s", message)
-            raise HTTPException(status_code=500)
+            raise HTTPException(status_code=500, detail=message)
 
-    except Exception:
-        # Capture traceback in logs, but return generic error to client (handled by global handler)
+    except Exception as e:
         log.exception("💥 Unexpected error during goal execution")
-        raise HTTPException(status_code=500)
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.get("/")
