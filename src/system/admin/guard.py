@@ -13,8 +13,8 @@ import yaml
 from rich import print as rprint
 from rich.panel import Panel
 from rich.table import Table
-from shared.logger import getLogger
 
+from shared.logger import getLogger
 from system.admin.utils import should_fail
 from system.guard.capability_discovery import (
     collect_code_capabilities,
