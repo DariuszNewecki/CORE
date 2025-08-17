@@ -33,6 +33,8 @@ jobs:
           echo "output<<EOF" >> $GITHUB_OUTPUT
           cat audit_output.txt >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
+        env:
+          PYTHONPATH: src
 
       - name: Open/Update issue on failure (for Nightly run)
         if: github.event_name == 'schedule' && steps.audit.outputs.exit_code != '0'

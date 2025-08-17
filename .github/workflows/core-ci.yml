@@ -59,6 +59,8 @@ jobs:
 
       - name: Self-audit (KnowledgeGraph + Auditor)
         run: poetry run python -m src.core.capabilities
+        env:
+          PYTHONPATH: src
 
       - name: Tests (with coverage)
         run: poetry run pytest -q --cov=src --cov-report=xml
