@@ -109,7 +109,11 @@ jobs:
         id: drift_check
         run: |
           set +e
-          poetry run core-admin guard drift --strict-intent --fail-on any --format json > drift_report.json
+          # --- THIS IS THE FIX ---
+          # Use the command's built-in --output flag to create a clean JSON file,
+          # avoiding contamination from poetry's stderr warnings.
+          poetry run core-admin guard drift --strict-intent --fail-on any --format json --output drift_report.json
+          # --- END OF FIX ---
           echo "exit_code=$?" >> $GITHUB_OUTPUT
           echo "report<<EOF" >> $GITHUB_OUTPUT
           cat drift_report.json >> $GITHUB_OUTPUT
@@ -126,9 +130,6 @@ jobs:
       - name: Post PR comment on drift (for PR run)
         if: failure() && github.event_name == 'pull_request'
         uses: actions/github-script@v7
-        # --- THIS IS THE FIX ---
-        # Pass the report output as an environment variable to the script
-        # to avoid syntax errors from string injection.
         env:
           REPORT_JSON: ${{ steps.drift_check.outputs.report }}
         with:
