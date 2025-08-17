@@ -64,7 +64,7 @@ stop:
 
 audit:
 	@echo "🧠 Running constitutional self-audit..."
-	$(POETRY) run env PYTHONPATH=src python -m core.capabilities
+	$(POETRY) run python -m src.core.capabilities
 
 lint:
 	@echo "🎨 Checking code style with Black and Ruff..."

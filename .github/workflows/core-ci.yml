@@ -58,7 +58,7 @@ jobs:
         run: poetry run black --check .
 
       - name: Self-audit (KnowledgeGraph + Auditor)
-        run: poetry run env PYTHONPATH=src python -m core.capabilities
+        run: poetry run python -m src.core.capabilities
 
       - name: Tests (with coverage)
         run: poetry run pytest -q --cov=src --cov-report=xml
@@ -87,15 +87,14 @@ jobs:
       - name: Install deps
         run: poetry install --no-interaction --no-root
 
-      # --- THIS IS THE FIX (Part 1) ---
       - name: Generate Knowledge Graph Artifact
-        run: poetry run env PYTHONPATH=src core-admin guard kg-export
+        run: poetry run core-admin guard kg-export
 
       - name: Detect Capability Drift
         id: drift_check
         run: |
           set +e
-          poetry run env PYTHONPATH=src core-admin guard drift --strict-intent --fail-on any --format json > drift_report.json
+          poetry run core-admin guard drift --strict-intent --fail-on any --format json > drift_report.json
           echo "exit_code=$?" >> $GITHUB_OUTPUT
           echo "report<<EOF" >> $GITHUB_OUTPUT
           cat drift_report.json >> $GITHUB_OUTPUT
