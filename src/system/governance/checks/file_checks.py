@@ -162,9 +162,7 @@ class FileChecks:
         # --- START OF FIX ---
         # Handle special-case root-relative paths first.
         ux_config = (
-            meta_config.get("operator_experience", {})
-            .get("guard", {})
-            .get("drift", {})
+            meta_config.get("operator_experience", {}).get("guard", {}).get("drift", {})
         )
         if evidence_path := ux_config.get("evidence_path"):
             if isinstance(evidence_path, str):

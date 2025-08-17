@@ -19,8 +19,6 @@ from system.governance.models import AuditFinding, AuditSeverity
 class ProposalChecks(BaseAuditCheck):
     """Container for proposal-related constitutional checks."""
 
-
-
     def __init__(self, context):
         """Initializes the check with a shared auditor context."""
         super().__init__(context)
@@ -109,9 +107,7 @@ class ProposalChecks(BaseAuditCheck):
             )
         return findings
 
-    def _validate_single_proposal_signatures(
-        self, path: Path
-    ) -> List[AuditFinding]:
+    def _validate_single_proposal_signatures(self, path: Path) -> List[AuditFinding]:
         """Validates the signatures of a single proposal file for drift."""
         findings = []
         rel_path = str(path.relative_to(self.context.repo_root))
@@ -134,7 +130,9 @@ class ProposalChecks(BaseAuditCheck):
 
             mismatches = [s for s in signatures if s.get("token") != expected_token]
             if mismatches:
-                identities = ", ".join(s.get("identity", "<unknown>") for s in mismatches)
+                identities = ", ".join(
+                    s.get("identity", "<unknown>") for s in mismatches
+                )
                 findings.append(
                     AuditFinding(
                         AuditSeverity.WARNING,
@@ -170,11 +168,23 @@ class ProposalChecks(BaseAuditCheck):
     def check_proposal_files_match_schema(self) -> list[AuditFinding]:
         """Validate each cr-*.yaml/json proposal against proposal.schema.json."""
         if not self.proposal_schema:
-            return [AuditFinding(AuditSeverity.ERROR, "Proposal schema file could not be loaded.", "Proposals: Schema Compliance")]
+            return [
+                AuditFinding(
+                    AuditSeverity.ERROR,
+                    "Proposal schema file could not be loaded.",
+                    "Proposals: Schema Compliance",
+                )
+            ]
 
         paths = self._get_proposal_paths()
         if not paths:
-            return [AuditFinding(AuditSeverity.SUCCESS, "No pending proposals found.", "Proposals: Schema Compliance")]
+            return [
+                AuditFinding(
+                    AuditSeverity.SUCCESS,
+                    "No pending proposals found.",
+                    "Proposals: Schema Compliance",
+                )
+            ]
 
         validator = jsonschema.Draft7Validator(self.proposal_schema)
         all_findings = []
@@ -200,9 +210,15 @@ class ProposalChecks(BaseAuditCheck):
         paths = self._get_proposal_paths()
         if not paths:
             if self.proposals_dir.exists():
-                return [AuditFinding(AuditSeverity.SUCCESS, "No pending proposals.", "Proposals: Pending Summary")]
+                return [
+                    AuditFinding(
+                        AuditSeverity.SUCCESS,
+                        "No pending proposals.",
+                        "Proposals: Pending Summary",
+                    )
+                ]
             return []
-        
+
         return [
             AuditFinding(
                 AuditSeverity.WARNING,
