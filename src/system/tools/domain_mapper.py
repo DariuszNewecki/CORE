@@ -15,14 +15,13 @@ class DomainMapper:
     """Maps file paths to logical domains based on project structure."""
 
     def __init__(self, root_path: Path):
-        """Initialize the instance with root_path, setting src_root and loading domain_map."""
         self.root_path = root_path
         self.src_root = self.root_path / "src"
         self.domain_map = self._load_domain_map()
 
     def _load_domain_map(self) -> Dict[str, str]:
         """Loads the domain-to-path mapping from the constitution."""
-        path = self.root_path / ".intent/knowledge/source_structure.yaml"
+        path = self.root_path / ".intent" / "knowledge" / "source_structure.yaml"
         data = load_config(path, "yaml")
 
         if not data:
@@ -32,10 +31,11 @@ class DomainMapper:
         if not structure:
             return self._infer_domains_from_directory_structure()
 
+        # --- THIS IS THE FIX ---
+        # Use the string paths directly from the YAML to avoid Path object ambiguity
+        # relative to the current working directory vs. the test's temp directory.
         return {
-            Path(e["path"]).as_posix(): e["domain"]
-            for e in structure
-            if "path" in e and "domain" in e
+            e["path"]: e["domain"] for e in structure if "path" in e and "domain" in e
         }
 
     def _infer_domains_from_directory_structure(self) -> Dict[str, str]:
@@ -62,7 +62,6 @@ class DomainMapper:
 
     def determine_domain(self, file_path: Path) -> str:
         """Determines the logical domain for a file path based on the longest matching prefix."""
-        # This function receives a path that is already relative to the repo root.
         file_posix = file_path.as_posix()
         best_match = ""
 
