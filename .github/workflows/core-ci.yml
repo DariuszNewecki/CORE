@@ -89,8 +89,6 @@ jobs:
       - name: Install deps
         run: poetry install --no-interaction --no-root
 
-      # --- THIS IS THE FIX ---
-      # Set the required environment variables for this job, just like in the test job.
       - name: Set environment variables for governance checks
         run: |
           echo "MIND=.intent" >> $GITHUB_ENV
@@ -118,7 +116,6 @@ jobs:
           echo "EOF" >> $GITHUB_OUTPUT
         env:
           PYTHONPATH: src
-      # --- END OF FIX ---
       
       - name: Fail job on drift
         if: steps.drift_check.outputs.exit_code != '0'
@@ -129,10 +126,15 @@ jobs:
       - name: Post PR comment on drift (for PR run)
         if: failure() && github.event_name == 'pull_request'
         uses: actions/github-script@v7
+        # --- THIS IS THE FIX ---
+        # Pass the report output as an environment variable to the script
+        # to avoid syntax errors from string injection.
+        env:
+          REPORT_JSON: ${{ steps.drift_check.outputs.report }}
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const rawReport = '${{ steps.drift_check.outputs.report }}';
+            const rawReport = process.env.REPORT_JSON;
             if (!rawReport || rawReport.trim() === '') {
               console.log('Drift report output was empty. Skipping comment.');
               return;
