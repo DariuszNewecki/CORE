@@ -1,5 +1,4 @@
 # tests/admin/test_agent_cli.py
-from unittest.mock import MagicMock
 
 from typer.testing import CliRunner
 
@@ -22,9 +21,7 @@ def test_agent_scaffold_success(mocker):
     mocker.patch("system.admin.agent.OrchestratorClient")
     mocker.patch("system.admin.agent.FileHandler")
 
-    result = runner.invoke(
-        app, ["agent", "scaffold", "test-app", "A simple test app"]
-    )
+    result = runner.invoke(app, ["agent", "scaffold", "test-app", "A simple test app"])
 
     assert result.exit_code == 0
     assert "Success!" in result.stdout
@@ -47,9 +44,7 @@ def test_agent_scaffold_failure(mocker):
     mocker.patch("system.admin.agent.OrchestratorClient")
     mocker.patch("system.admin.agent.FileHandler")
 
-    result = runner.invoke(
-        app, ["agent", "scaffold", "test-app", "A simple test app"]
-    )
+    result = runner.invoke(app, ["agent", "scaffold", "test-app", "A simple test app"])
 
     assert result.exit_code == 1
     assert "Scaffolding failed." in result.stdout
