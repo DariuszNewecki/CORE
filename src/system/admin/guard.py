@@ -13,17 +13,13 @@ import yaml
 from rich import print as rprint
 from rich.panel import Panel
 from rich.table import Table
-
 from shared.logger import getLogger
 
-# --- END OF FIX ---
 from system.admin.utils import should_fail
 from system.guard.capability_discovery import (
     collect_code_capabilities,
     load_manifest_capabilities,
 )
-
-# --- THIS IS THE FINAL, CORRECTED IMPORT BLOCK ---
 from system.guard.drift_detector import detect_capability_drift, write_report
 
 log = getLogger("core_admin")
@@ -89,9 +85,12 @@ def _print_table(report_dict: dict, labels: Dict[str, str]) -> None:
         if not items:
             table.add_row(title, f"[bold green]{labels['none']}[/bold green]")
         else:
-            table.add_row(
-                title, f"[yellow]{'\\n'.join(f'- {it}' for it in items)}[/yellow]"
-            )
+            # --- THIS IS THE FIX ---
+            # We build the multi-line string first, then put it in the f-string.
+            # This avoids having a backslash inside an f-string expression.
+            formatted_items = "\n".join(f"- {it}" for it in items)
+            table.add_row(title, f"[yellow]{formatted_items}[/yellow]")
+            # --- END OF FIX ---
 
     row("Missing in code", report_dict.get("missing_in_code", []))
     row("Undeclared in manifest", report_dict.get("undeclared_in_manifest", []))
