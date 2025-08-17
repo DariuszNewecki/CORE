@@ -9,6 +9,8 @@ from pathlib import Path
 
 import typer
 import yaml
+from rich import print as rprint
+from rich.panel import Panel
 
 from core.clients import OrchestratorClient
 from shared.config import settings
@@ -98,20 +100,20 @@ def peer_review(
         Path("reports/constitutional_review.md"),
         "--output",
         "-o",
-        help="The path to save the LLM's review or the bundled prompt.",
+        help="The path to save the LLM's review.",
     ),
-    no_send: bool = typer.Option(
+    dry_run: bool = typer.Option(
         False,
-        "--no-send",
-        help="Prepare the full prompt bundle and save it to the output file without sending to the LLM.",
+        "--dry-run",
+        help="Prepare the full prompt and print it to the console without sending to the LLM.",
     ),
 ):
     """
     Orchestrates sending the constitutional bundle to an external LLM for critique.
     """
-    if no_send:
+    if dry_run:
         log.info(
-            "🤖 Preparing constitutional bundle for manual review (no-send mode)..."
+            "🤖 Preparing constitutional prompt for manual review (dry-run mode)..."
         )
     else:
         log.info("🤖 Orchestrating Constitutional Peer Review...")
@@ -122,7 +124,6 @@ def peer_review(
         log.error(f"❌ Review prompt not found at {prompt_path}. Cannot proceed.")
         raise typer.Exit(code=1)
     review_prompt_template = prompt_path.read_text(encoding="utf-8")
-    log.info("   -> Loaded review prompt from the constitution.")
 
     # 2. Export the constitutional bundle.
     log.info("   -> Bundling the constitution for review...")
@@ -131,12 +132,16 @@ def peer_review(
     # 3. Combine them into the final prompt.
     final_prompt = f"{review_prompt_template}\n\n{bundle}"
 
-    # 4. If --no-send is used, save and exit.
-    if no_send:
-        output.parent.mkdir(parents=True, exist_ok=True)
-        output.write_text(final_prompt, encoding="utf-8")
-        log.info("✅ Successfully created prompt bundle for manual review.")
-        log.info(f"   -> Full prompt saved to: {output}")
+    # 4. If --dry-run is used, print and exit.
+    if dry_run:
+        rprint(
+            Panel(
+                final_prompt,
+                title="[bold yellow]Final Prompt to be Sent[/bold yellow]",
+                border_style="yellow",
+            )
+        )
+        log.info("✅ Dry-run complete. No request was sent.")
         raise typer.Exit()
 
     # 5. Otherwise, send to the Orchestrator LLM.

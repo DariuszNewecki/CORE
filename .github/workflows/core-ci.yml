@@ -8,7 +8,7 @@ on:
 
 permissions:
   contents: read
-  pull-requests: write # Add permission to write comments on PRs
+  pull-requests: write
 
 jobs:
   build_and_test:
@@ -47,7 +47,7 @@ jobs:
         run: poetry run black --check .
 
       - name: Self-audit (KnowledgeGraph + Auditor)
-        run: poetry run python -m src.core.capabilities
+        run: poetry run env PYTHONPATH=src python -m core.capabilities
 
       - name: Tests (with coverage)
         run: poetry run pytest -q --cov=src --cov-report=xml --cov-fail-under=80
@@ -70,7 +70,7 @@ jobs:
       - name: Setup Python & Poetry
         uses: actions/setup-python@v5
         with:
-          python-version: "3.12" # Use the latest supported Python for governance checks
+          python-version: "3.12"
       - run: pipx install poetry
 
       - name: Install deps
@@ -85,7 +85,6 @@ jobs:
           set +e
           poetry run core-admin guard drift --strict-intent --fail-on any --format json > drift_report.json
           echo "exit_code=$?" >> $GITHUB_OUTPUT
-          # Make the report available for the next step
           echo "report<<EOF" >> $GITHUB_OUTPUT
           cat drift_report.json >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT

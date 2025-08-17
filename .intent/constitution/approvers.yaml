@@ -32,11 +32,10 @@ approvers:
       -----BEGIN PUBLIC KEY-----
       MCowBQYDK2VwAyEA+V4iUN4DElKdqXmU4ivNthnG8VgPb7QqZgzdJuh4igs=
       -----END PUBLIC KEY-----
-    created_at: "2025-08-12T10:36:49.000000Z" # Using a placeholder, real value is in live file
+    created_at: "2025-08-12T10:36:49.000000Z"
     role: "maintainer"
     description: "Mentor"
 
-# --- THIS IS THE MODIFIED SECTION ---
 # Minimum number of signatures required for constitutional amendments
 quorum:
   # Defines quorum levels for different operational stages.
@@ -46,8 +45,14 @@ quorum:
   production:
     standard: 2
     critical: 3
-  # The currently active mode. Change to 'production' for a live system.
+  
+  # The currently active mode. Must be one of the valid_modes.
   current_mode: development
+  
+  # --- NEW: As suggested by peer review ---
+  # Defines the valid operational modes for the system.
+  valid_modes: [development, production]
+  # NOTE: Changing the current_mode is a critical change and requires the critical quorum.
 
 # Critical policy paths that require higher quorum
 critical_paths:

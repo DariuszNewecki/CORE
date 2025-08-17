@@ -28,8 +28,10 @@ jobs:
         id: audit
         run: |
           set +e
-          # Run the audit and capture output to a file
-          poetry run python -m src.core.capabilities &> audit_output.txt
+          # --- THIS IS THE FIX ---
+          # We now run the audit with the correct PYTHONPATH so it can find the 'shared' module.
+          poetry run env PYTHONPATH=src python -m core.capabilities &> audit_output.txt
+          # --- END OF FIX ---
           echo "exit_code=$?" >> $GITHUB_OUTPUT
           # Make the output available for the next steps
           echo "output<<EOF" >> $GITHUB_OUTPUT
