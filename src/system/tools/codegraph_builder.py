@@ -10,11 +10,10 @@ from typing import Any, Dict, List, Optional, Set
 
 from dotenv import load_dotenv
 from filelock import FileLock
-
 from shared.config_loader import load_config
 from shared.logger import getLogger
 from system.tools.ast_visitor import ContextAwareVisitor, FunctionCallVisitor
-from system.tools.models import FunctionInfo  # <<< FIX: Import from the new models file
+from system.tools.models import FunctionInfo
 from system.tools.pattern_matcher import PatternMatcher
 
 log = getLogger(__name__)
@@ -112,7 +111,10 @@ class KnowledgeGraphBuilder:
         for item in self.src_root.iterdir():
             if item.is_dir() and not item.name.startswith(("_", ".")):
                 domain_name = item.name
-                domain_path = Path("src") / domain_name
+                # --- THIS IS THE FIX (Part 1) ---
+                # The path stored in the map must be relative to the root, not just "src/domain"
+                domain_path = item.relative_to(self.root_path)
+                # --- END OF FIX ---
                 domain_map[domain_path.as_posix()] = domain_name
 
         log.info(
@@ -137,13 +139,17 @@ class KnowledgeGraphBuilder:
 
     def _determine_domain(self, file_path: Path) -> str:
         """Determines the logical domain for a file path based on the longest matching prefix."""
+        # --- THIS IS THE FIX (Part 2) ---
+        # The file_path passed in is already relative, so we use it directly.
         file_posix = file_path.as_posix()
-        best = max(
-            (p for p in self.domain_map if file_posix.startswith(p)),
-            key=len,
-            default="",
-        )
-        return self.domain_map.get(best, "unassigned")
+        # --- END OF FIX ---
+        best_match = ""
+        for domain_path in self.domain_map:
+            if file_posix.startswith(domain_path):
+                if len(domain_path) > len(best_match):
+                    best_match = domain_path
+        
+        return self.domain_map.get(best_match, "unassigned")
 
     def _infer_agent_from_path(self, relative_path: Path) -> str:
         """Infers the most likely responsible agent based on keywords in the file path."""
