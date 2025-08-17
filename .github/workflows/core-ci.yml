@@ -91,6 +91,8 @@ jobs:
 
       - name: Generate Knowledge Graph Artifact
         run: poetry run core-admin guard kg-export
+        env:
+          PYTHONPATH: src
 
       - name: Detect Capability Drift
         id: drift_check
@@ -101,6 +103,8 @@ jobs:
           echo "report<<EOF" >> $GITHUB_OUTPUT
           cat drift_report.json >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
+        env:
+          PYTHONPATH: src
       
       - name: Fail job on drift
         if: steps.drift_check.outputs.exit_code != '0'

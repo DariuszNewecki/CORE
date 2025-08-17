@@ -45,7 +45,7 @@ lock:
 
 run:
 	@echo "🚀 Starting FastAPI server at http://$(HOST):$(PORT)"
-	$(POETRY) run uvicorn $(APP) --host $(HOST) --port $(PORT) $(RELOAD) --env-file $(ENV_FILE)
+	PYTHONPATH=src $(POETRY) run uvicorn $(APP) --host $(HOST) --port $(PORT) $(RELOAD) --env-file $(ENV_FILE)
 
 stop:
 	@echo "🛑 Stopping any process on port $(PORT)..."
