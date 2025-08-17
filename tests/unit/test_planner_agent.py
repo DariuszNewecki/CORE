@@ -6,7 +6,6 @@ import pytest
 from agents.models import ExecutionTask
 from agents.plan_executor import PlanExecutionError
 from agents.planner_agent import PlannerAgent, PlannerConfig
-from pydantic import ValidationError
 
 
 @pytest.fixture
@@ -53,12 +52,8 @@ def test_create_execution_plan_fails_on_invalid_action(mock_dependencies):
     )
     agent.orchestrator.make_request.return_value = f"```json\n{invalid_plan_json}\n```"
 
-    # --- THIS IS THE FIX ---
-    # The application code correctly catches the ValidationError and, after retries,
-    # raises a PlanExecutionError. The test must expect this final error type.
     with pytest.raises(PlanExecutionError):
         agent.create_execution_plan(goal)
-    # --- END OF FIX ---
 
 
 # Stop patching after tests are done
