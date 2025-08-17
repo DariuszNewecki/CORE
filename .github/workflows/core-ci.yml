@@ -89,6 +89,19 @@ jobs:
       - name: Install deps
         run: poetry install --no-interaction --no-root
 
+      # --- THIS IS THE FIX ---
+      # Set the required environment variables for this job, just like in the test job.
+      - name: Set environment variables for governance checks
+        run: |
+          echo "MIND=.intent" >> $GITHUB_ENV
+          echo "BODY=src" >> $GITHUB_ENV
+          echo "REPO_PATH=." >> $GITHUB_ENV
+          echo "CORE_ACTION_LOG_PATH=logs/action_log.jsonl" >> $GITHUB_ENV
+          echo "ORCHESTRATOR_API_URL=http://mock.url" >> $GITHUB_ENV
+          echo "ORCHESTRATOR_API_KEY=mock_key" >> $GITHUB_ENV
+          echo "GENERATOR_API_URL=http://mock.url" >> $GITHUB_ENV
+          echo "GENERATOR_API_KEY=mock_key" >> $GITHUB_ENV
+
       - name: Generate Knowledge Graph Artifact
         run: poetry run core-admin guard kg-export
         env:
@@ -105,6 +118,7 @@ jobs:
           echo "EOF" >> $GITHUB_OUTPUT
         env:
           PYTHONPATH: src
+      # --- END OF FIX ---
       
       - name: Fail job on drift
         if: steps.drift_check.outputs.exit_code != '0'
