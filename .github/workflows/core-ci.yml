@@ -40,6 +40,20 @@ jobs:
       - name: Install deps
         run: poetry install --no-interaction --no-root
 
+      # --- THIS IS THE FIX ---
+      - name: Set environment variables for tests
+        run: |
+          echo "MIND=.intent" >> $GITHUB_ENV
+          echo "BODY=src" >> $GITHUB_ENV
+          echo "REPO_PATH=." >> $GITHUB_ENV
+          echo "CORE_ACTION_LOG_PATH=logs/action_log.jsonl" >> $GITHUB_ENV
+          # Set dummy LLM vars so config loads, even if not used in tests
+          echo "ORCHESTRATOR_API_URL=http://mock.url" >> $GITHUB_ENV
+          echo "ORCHESTRATOR_API_KEY=mock_key" >> $GITHUB_ENV
+          echo "GENERATOR_API_URL=http://mock.url" >> $GITHUB_ENV
+          echo "GENERATOR_API_KEY=mock_key" >> $GITHUB_ENV
+      # --- END OF FIX ---
+
       - name: Lint (Ruff)
         run: poetry run ruff check .
 
