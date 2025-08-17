@@ -29,9 +29,18 @@ def test_guard_drift_clean_repo(tmp_path: Path):
     # Arrange: Create a realistic temporary project structure
     out = tmp_path / "reports" / "drift_report.json"
 
-    # 1. Create the source files with capability tags
-    write(tmp_path / "src" / "domain_alpha" / "mod.py", "# CAPABILITY: alpha.cap")
-    write(tmp_path / "src" / "domain_beta" / "mod.py", "# CAPABILITY: beta.cap")
+    # --- THIS IS THE FIX ---
+    # The KnowledgeGraphBuilder finds capabilities attached to symbols (def, class).
+    # We now create valid Python files with a dummy function for the KGB to find.
+    write(
+        tmp_path / "src" / "domain_alpha" / "mod.py",
+        "# CAPABILITY: alpha.cap\ndef alpha_func(): pass",
+    )
+    write(
+        tmp_path / "src" / "domain_beta" / "mod.py",
+        "# CAPABILITY: beta.cap\ndef beta_func(): pass",
+    )
+    # --- END OF FIX ---
 
     # 2. Create the corresponding domain manifests
     write(
@@ -92,7 +101,7 @@ def test_guard_drift_detects_undeclared(tmp_path: Path):
     )
     write(
         tmp_path / "src" / "domain_alpha" / "mod.py",
-        "# CAPABILITY: alpha.cap\n# CAPABILITY: ghost.cap\n",
+        "# CAPABILITY: alpha.cap\ndef alpha_func(): pass\n\n# CAPABILITY: ghost.cap\ndef ghost_func(): pass",
     )
     out = tmp_path / "reports" / "drift_report.json"
 
@@ -125,7 +134,6 @@ def test_guard_drift_detects_mismatched_domain(tmp_path: Path):
         domain_manifest_yaml("domain_alpha", ["beta.cap"]),
     )
     # ...but it is implemented in a file belonging to domain_beta.
-    # The KnowledgeGraphBuilder should associate it with domain_beta.
     write(
         tmp_path / ".intent/knowledge/source_structure.yaml",
         yaml.safe_dump(
@@ -139,8 +147,10 @@ def test_guard_drift_detects_mismatched_domain(tmp_path: Path):
     )
     write(
         tmp_path / "src" / "domain_beta" / "mod.py",
-        "# CAPABILITY: beta.cap",
+        "# CAPABILITY: beta.cap\ndef beta_func(): pass",
     )
+    write(tmp_path / ".intent/knowledge/entry_point_patterns.yaml", "patterns: []")
+    write(tmp_path / "pyproject.toml", "[tool.poetry]\nname = 'test-project'")
     out = tmp_path / "reports" / "drift_report.json"
 
     result = runner.invoke(

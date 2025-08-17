@@ -1,82 +1,110 @@
 # src/system/tools/domain_mapper.py
-"""
-Maps file paths to logical domains based on project structure configuration.
-"""
+import logging
 from pathlib import Path
 from typing import Dict
 
+# Corrected import path
 from shared.config_loader import load_config
-from shared.logger import getLogger
 
-log = getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 class DomainMapper:
-    """Maps file paths to logical domains based on project structure."""
+    """Maps source files to their architectural domains based on directory structure."""
 
     def __init__(self, root_path: Path):
-        """Initializes the mapper, always resolving paths to be absolute."""
-        self.root_path = root_path.resolve()
-        self.src_root = self.root_path / "src"
-        # The map will now store absolute, resolved Path objects as keys.
-        self.domain_map_abs: Dict[Path, str] = self._load_domain_map()
+        """Initialize the instance with a root path, resolved domain map, and sorted domain paths."""
+        self.root_path = Path(root_path).resolve()
+        # The map will now store relative Path objects as keys.
+        self.domain_map_relative: Dict[Path, str] = self._load_domain_map()
+        # Sort by depth (deepest first) for proper matching precedence
+        self.sorted_domain_paths = sorted(
+            self.domain_map_relative.keys(), key=lambda p: len(p.parts), reverse=True
+        )
 
     def _load_domain_map(self) -> Dict[Path, str]:
-        """Loads the domain-to-path mapping, resolving all paths to be absolute."""
-        path = self.root_path / ".intent" / "knowledge" / "source_structure.yaml"
-        data = load_config(path, "yaml")
+        """
+        Load domain mappings from source_structure.yaml.
+        Returns a dictionary mapping relative paths to domain names.
+        This avoids resolve() issues by working entirely in relative space.
+        """
+        config_path = self.root_path / ".intent" / "knowledge" / "source_structure.yaml"
 
-        if not data or "structure" not in data:
-            return self._infer_domains_from_directory_structure()
+        try:
+            data = load_config(config_path, "yaml")
+        except Exception as e:
+            logger.warning(
+                f"Could not load domain configuration from {config_path}: {e}"
+            )
+            return {}
 
-        structure = data.get("structure", [])
-        # Convert all declared paths to absolute, resolved paths for unambiguous matching.
-        return {
-            (self.root_path / e["path"]).resolve(): e["domain"]
-            for e in structure
-            if "path" in e and "domain" in e
-        }
-
-    def _infer_domains_from_directory_structure(self) -> Dict[Path, str]:
-        """A heuristic to guess domains if source_structure.yaml is missing."""
-        log.warning(
-            "source_structure.yaml not found. Falling back to directory-based domain inference."
-        )
-        if not self.src_root.is_dir():
-            log.warning("`src` directory not found. Cannot infer domains.")
+        # The key name in your file is 'structure', not 'source_structure'
+        structure = data.get("structure")
+        if not isinstance(structure, list):
+            logger.warning("source_structure.yaml is missing a 'structure' list.")
             return {}
 
         domain_map = {}
-        for item in self.src_root.iterdir():
-            if item.is_dir() and not item.name.startswith(("_", ".")):
-                # Store the absolute, resolved path as the key.
-                domain_map[item.resolve()] = item.name
-        log.info(
-            f"   -> Inferred {len(domain_map)} domains from `src/` directory structure."
-        )
+        for entry in structure:
+            if not isinstance(entry, dict):
+                continue
+
+            path_str = entry.get("path")
+            domain = entry.get("domain")
+
+            if not path_str or not domain:
+                continue
+
+            # Convert to Path and normalize - but keep as relative path
+            relative_path = Path(path_str)
+            if relative_path.is_absolute():
+                # Gracefully handle incorrect absolute paths in config
+                relative_path = (
+                    Path(*relative_path.parts[1:]) if relative_path.parts else Path(".")
+                )
+
+            domain_map[relative_path] = domain
+
+        logger.debug(f"Loaded {len(domain_map)} domain mappings: {domain_map}")
         return domain_map
 
     def determine_domain(self, file_path_relative: Path) -> str:
         """
-        Determines the logical domain for a file path using absolute path matching.
-        The input `file_path_relative` is expected to be relative to self.root_path.
-        """
-        full_path = (self.root_path / file_path_relative).resolve()
-        sorted_domain_paths = sorted(
-            self.domain_map_abs.keys(), key=lambda p: len(p.parts), reverse=True
-        )
+        Determine the domain for a file given its relative path from root.
 
-        for domain_root in sorted_domain_paths:
-            # Use Path.relative_to() in a try-except block. This is the most
-            # robust way to check if a path is within another path's tree.
+        Args:
+            file_path_relative: Path relative to the repository root
+
+        Returns:
+            Domain name or "unassigned" if no match found
+        """
+        if not isinstance(file_path_relative, Path):
+            file_path_relative = Path(file_path_relative)
+
+        if file_path_relative.is_absolute():
             try:
-                full_path.relative_to(domain_root)
-                # If the line above doesn't raise a ValueError, we have a match.
-                return self.domain_map_abs[domain_root]
+                file_path_relative = file_path_relative.relative_to(self.root_path)
             except ValueError:
-                # This means full_path is not under domain_root, so we continue.
+                logger.warning(
+                    f"Cannot make {file_path_relative} relative to {self.root_path}"
+                )
+                return "unassigned"
+
+        # Find the most specific (deepest) domain that contains this file
+        for domain_path in self.sorted_domain_paths:
+            try:
+                # Check if the file is under this domain path
+                file_path_relative.relative_to(domain_path)
+                domain = self.domain_map_relative[domain_path]
+                logger.debug(
+                    f"File {file_path_relative} mapped to domain '{domain}' via {domain_path}"
+                )
+                return domain
+            except ValueError:
+                # File is not under this domain path, continue searching
                 continue
 
+        logger.debug(f"File {file_path_relative} could not be mapped to any domain")
         return "unassigned"
 
     def infer_agent_from_path(self, relative_path: Path) -> str:
