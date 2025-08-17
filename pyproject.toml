@@ -66,3 +66,6 @@ testpaths = ["tests"]
 asyncio_mode = "auto"
 pythonpath = ["src"]
 addopts = ["-c", "pyproject.toml"]
+
+log_cli = true
+log_cli_level = "DEBUG"
