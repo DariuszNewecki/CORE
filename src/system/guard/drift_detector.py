@@ -30,7 +30,7 @@ def detect_capability_drift(
         # We will only compare the 'domain' for now, as 'owner' is not
         # a field that is declared in the manifest files.
         if m.domain != c.domain:
-        # --- END OF FIX ---
+            # --- END OF FIX ---
             mismatches.append(
                 {
                     "capability": k,

@@ -5,7 +5,6 @@ This version is updated to support the modular manifest architecture.
 """
 from __future__ import annotations
 
-from collections import deque
 from pathlib import Path
 from typing import Any, Dict, Optional
 
@@ -51,17 +50,17 @@ def load_manifest_capabilities(
         try:
             with path.open("r", encoding="utf-8") as f:
                 data = yaml.safe_load(f) or {}
-            
+
             # Extract capabilities and associate them with their domain
             domain = data.get("domain", "unknown")
             caps_list = data.get("capabilities", [])
             normalized_caps = _normalize_cap_list(caps_list)
-            
+
             for cap, meta in normalized_caps.items():
                 if cap not in all_caps:
                     all_caps[cap] = CapabilityMeta(capability=cap, domain=domain)
         except Exception:
             # Ignore files that fail to parse
             continue
-            
+
     return all_caps
