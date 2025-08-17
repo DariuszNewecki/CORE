@@ -35,18 +35,21 @@ def test_guard_drift_clean_repo(tmp_path: Path):
         tmp_path / "src" / "domain_beta" / "manifest.yaml",
         domain_manifest_yaml("domain_beta", ["beta.cap"]),
     )
-    write(
-        tmp_path / "src" / "domain_alpha" / "mod.py", "# CAPABILITY: alpha.cap"
-    )
-    write(
-        tmp_path / "src" / "domain_beta" / "mod.py", "# CAPABILITY: beta.cap"
-    )
+    write(tmp_path / "src" / "domain_alpha" / "mod.py", "# CAPABILITY: alpha.cap")
+    write(tmp_path / "src" / "domain_beta" / "mod.py", "# CAPABILITY: beta.cap")
     out = tmp_path / "reports" / "drift_report.json"
 
     result = runner.invoke(
         app,
         [
-            "guard", "drift", "--root", str(tmp_path), "--format", "json", "--output", str(out),
+            "guard",
+            "drift",
+            "--root",
+            str(tmp_path),
+            "--format",
+            "json",
+            "--output",
+            str(out),
         ],
     )
 
@@ -72,7 +75,16 @@ def test_guard_drift_detects_undeclared(tmp_path: Path):
     result = runner.invoke(
         app,
         [
-            "guard", "drift", "--root", str(tmp_path), "--format", "json", "--fail-on", "any", "--output", str(out),
+            "guard",
+            "drift",
+            "--root",
+            str(tmp_path),
+            "--format",
+            "json",
+            "--fail-on",
+            "any",
+            "--output",
+            str(out),
         ],
     )
 
@@ -92,12 +104,14 @@ def test_guard_drift_detects_mismatched_domain(tmp_path: Path):
     # The KnowledgeGraphBuilder should associate it with domain_beta.
     write(
         tmp_path / ".intent/knowledge/source_structure.yaml",
-        yaml.safe_dump({
-            "structure": [
-                {"domain": "domain_alpha", "path": "src/domain_alpha"},
-                {"domain": "domain_beta", "path": "src/domain_beta"},
-            ]
-        })
+        yaml.safe_dump(
+            {
+                "structure": [
+                    {"domain": "domain_alpha", "path": "src/domain_alpha"},
+                    {"domain": "domain_beta", "path": "src/domain_beta"},
+                ]
+            }
+        ),
     )
     write(
         tmp_path / "src" / "domain_beta" / "mod.py",
@@ -108,7 +122,14 @@ def test_guard_drift_detects_mismatched_domain(tmp_path: Path):
     result = runner.invoke(
         app,
         [
-            "guard", "drift", "--root", str(tmp_path), "--format", "json", "--output", str(out),
+            "guard",
+            "drift",
+            "--root",
+            str(tmp_path),
+            "--format",
+            "json",
+            "--output",
+            str(out),
         ],
     )
 
