@@ -20,7 +20,6 @@ class ProjectStructureError(Exception):
 def find_project_root(start_path: Path) -> Path:
     """Traverses upward from a starting path to find the project root, marked by 'pyproject.toml'."""
     current_path = start_path.resolve()
-    # Also check the start path itself
     for path in [current_path, *current_path.parents]:
         if (path / "pyproject.toml").exists():
             return path
@@ -49,8 +48,16 @@ def should_exclude_path(path: Path, exclude_patterns: list[str]) -> bool:
 
 def get_python_files(src_root: Path, exclude_patterns: list[str]) -> list[Path]:
     """Get all Python files in the source directory, excluding specified patterns."""
+    # --- THIS IS THE FIX ---
+    # The glob operation does not guarantee a specific order. By converting to a
+    # list and sorting it, we ensure that the KnowledgeGraphBuilder always
+    # processes files in a deterministic, alphabetical order. This eliminates
+    # a potential source of environment-specific inconsistencies.
+    all_files = list(src_root.rglob("*.py"))
+    all_files.sort()
+
     return [
         f
-        for f in src_root.rglob("*.py")
+        for f in all_files
         if f.name != "__init__.py" and not should_exclude_path(f, exclude_patterns)
     ]

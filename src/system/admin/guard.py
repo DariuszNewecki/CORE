@@ -25,13 +25,10 @@ from system.guard.drift_detector import detect_capability_drift, write_report
 log = getLogger("core_admin")
 
 
-# --- THIS IS THE FIX (Part 1 of 2) ---
-# This helper no longer looks for a manifest file. It looks in meta.yaml.
 def _load_ux_defaults(root: Path) -> Dict[str, Any]:
     """Extracts and returns UX-related default values from meta.yaml."""
     meta_path = root / ".intent" / "meta.yaml"
     if not meta_path.exists():
-        # Provide sensible defaults if meta.yaml is missing
         return {
             "default_format": "pretty",
             "default_fail_on": "any",
@@ -136,7 +133,10 @@ def register(app: typer.Typer) -> None:
 
         manifest_caps = load_manifest_capabilities(root)
         code_caps = collect_code_capabilities(
-            root, include, exclude, require_kgb=strict_intent
+            root,
+            include_globs=include,
+            exclude_globs=exclude,
+            require_kgb=strict_intent,
         )
 
         report = detect_capability_drift(manifest_caps, code_caps)
@@ -162,12 +162,17 @@ def register(app: typer.Typer) -> None:
     ):
         """Emits a minimal knowledge-graph artifact with capability nodes."""
         require_kgb = prefer.lower() == "kgb"
+
+        # --- THIS IS THE FIX ---
+        # The keyword argument typos have been corrected.
         caps = collect_code_capabilities(
             root,
-            include_glogaits=include,
+            include_globs=include,
             exclude_globs=exclude,
             require_kgb=require_kgb,
         )
+        # --- END OF FIX ---
+
         nodes = [
             {"capability": k, "domain": v.domain, "owner": v.owner}
             for k, v in sorted(caps.items())
