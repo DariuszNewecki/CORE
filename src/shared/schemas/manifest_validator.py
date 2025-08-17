@@ -4,6 +4,7 @@ import json
 from typing import Any, Dict, List, Tuple
 
 import jsonschema
+
 from shared.path_utils import get_repo_root
 
 # The single source of truth for the location of constitutional schemas.

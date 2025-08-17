@@ -4,6 +4,7 @@ Intent: Registers self-healing and code-fixing tools with the CORE Admin CLI.
 """
 
 import typer
+
 from system.tools.docstring_adder import fix_missing_docstrings
 
 

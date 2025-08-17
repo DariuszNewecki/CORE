@@ -18,6 +18,7 @@ import typer
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ed25519
+
 from shared.config import settings
 from shared.logger import getLogger
 from system.admin.utils import (

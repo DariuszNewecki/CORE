@@ -8,13 +8,12 @@ of the PlannerAgent, adhering to the 'separation_of_concerns' principle.
 import asyncio
 from typing import List
 
+from agents.models import ExecutionTask, PlannerConfig, TaskParams
+from agents.utils import CodeEditor, SymbolLocator
 from core.file_handler import FileHandler
 from core.git_service import GitService
 from core.validation_pipeline import validate_code
 from shared.logger import getLogger
-
-from agents.models import ExecutionTask, PlannerConfig, TaskParams
-from agents.utils import CodeEditor, SymbolLocator
 
 log = getLogger(__name__)
 

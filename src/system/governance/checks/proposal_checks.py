@@ -9,6 +9,7 @@ from pathlib import Path
 
 import jsonschema
 import yaml
+
 from shared.schemas.manifest_validator import load_schema
 from system.governance.models import AuditFinding, AuditSeverity
 

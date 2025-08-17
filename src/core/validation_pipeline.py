@@ -10,13 +10,13 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import black
 import yaml
-from shared.config_loader import load_config
-from shared.logger import getLogger
-from shared.path_utils import get_repo_root
 
 from core.black_formatter import format_code_with_black
 from core.ruff_linter import fix_and_lint_code_with_ruff
 from core.syntax_checker import check_syntax
+from shared.config_loader import load_config
+from shared.logger import getLogger
+from shared.path_utils import get_repo_root
 
 log = getLogger(__name__)
 Violation = Dict[str, Any]

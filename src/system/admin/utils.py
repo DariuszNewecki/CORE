@@ -14,6 +14,7 @@ from typing import Any, Dict
 import yaml
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import ed25519
+
 from shared.config import settings
 from shared.logger import getLogger
 

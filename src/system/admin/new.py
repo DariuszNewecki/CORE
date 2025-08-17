@@ -4,6 +4,7 @@ Intent: Defines the 'core-admin new' command, a user-facing wrapper
 around the Scaffolder tool.
 """
 import typer
+
 from system.tools.scaffolder import new_project
 
 

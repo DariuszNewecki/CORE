@@ -3,6 +3,7 @@
 from pathlib import Path
 
 import pytest
+
 from core.intent_model import IntentModel
 
 

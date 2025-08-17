@@ -10,6 +10,7 @@ from typing import Any, Dict, List, Optional, Set
 
 from dotenv import load_dotenv
 from filelock import FileLock
+
 from shared.config_loader import load_config
 from shared.logger import getLogger
 from system.tools.ast_visitor import ContextAwareVisitor, FunctionCallVisitor

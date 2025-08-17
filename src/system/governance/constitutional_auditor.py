@@ -11,10 +11,11 @@ import sys
 from pathlib import Path
 from typing import Callable, List, Optional, Tuple
 
-from core.intent_model import IntentModel
 from dotenv import load_dotenv
 from rich.console import Console
 from rich.panel import Panel
+
+from core.intent_model import IntentModel
 from shared.config_loader import load_config
 from shared.logger import getLogger
 from shared.path_utils import get_repo_root

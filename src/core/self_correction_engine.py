@@ -8,12 +8,11 @@ then stages the corrected version via the file handler.
 import json
 from pathlib import Path
 
-from shared.utils.parsing import parse_write_blocks
-
 from core.clients import GeneratorClient
 from core.file_handler import FileHandler
 from core.prompt_pipeline import PromptPipeline
 from core.validation_pipeline import validate_code
+from shared.utils.parsing import parse_write_blocks
 
 REPO_PATH = Path(".").resolve()
 pipeline = PromptPipeline(repo_path=REPO_PATH)

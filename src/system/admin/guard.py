@@ -13,6 +13,7 @@ import yaml
 from rich import print as rprint
 from rich.panel import Panel
 from rich.table import Table
+
 from shared.logger import getLogger
 
 # --- END OF FIX ---
