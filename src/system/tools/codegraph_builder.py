@@ -10,6 +10,7 @@ from typing import Any, Dict, List, Optional, Set
 
 from dotenv import load_dotenv
 from filelock import FileLock
+
 from shared.config_loader import load_config
 from shared.logger import getLogger
 from system.tools.ast_visitor import ContextAwareVisitor, FunctionCallVisitor
@@ -148,7 +149,7 @@ class KnowledgeGraphBuilder:
             if file_posix.startswith(domain_path):
                 if len(domain_path) > len(best_match):
                     best_match = domain_path
-        
+
         return self.domain_map.get(best_match, "unassigned")
 
     def _infer_agent_from_path(self, relative_path: Path) -> str:
