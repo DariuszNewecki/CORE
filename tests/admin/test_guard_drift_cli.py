@@ -89,14 +89,16 @@ def test_guard_drift_clean_repo(tmp_path: Path):
     print("--- END RAW CLI OUTPUT ---")
     assert result.exit_code == 0, result.output
     # --- END DIAGNOSTIC PART ---
-    
+
     report = json.loads(out.read_text(encoding="utf-8"))
     assert not report["missing_in_code"]
     assert not report["undeclared_in_manifest"]
     assert not report["mismatched_mappings"]
 
+
 # ... (the rest of the file remains the same) ...
 # ... I'm omitting the other two tests for brevity, they should not be changed ...
+
 
 def test_guard_drift_detects_undeclared(tmp_path: Path):
     """Tests that a capability in code but not in any manifest is detected."""
