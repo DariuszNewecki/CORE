@@ -184,6 +184,7 @@ async def _async_main(dry_run: bool):
     semaphore = asyncio.Semaphore(CONCURRENCY_LIMIT)
 
     async def worker(target):
+        """Processes a target by generating and applying a docstring while respecting a semaphore limit."""
         async with semaphore:
             await generate_and_apply_docstring(target, generator, dry_run)
 
