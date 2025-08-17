@@ -109,11 +109,9 @@ jobs:
         id: drift_check
         run: |
           set +e
-          # --- THIS IS THE FIX ---
           # Use the command's built-in --output flag to create a clean JSON file,
           # avoiding contamination from poetry's stderr warnings.
           poetry run core-admin guard drift --strict-intent --fail-on any --format json --output drift_report.json
-          # --- END OF FIX ---
           echo "exit_code=$?" >> $GITHUB_OUTPUT
           echo "report<<EOF" >> $GITHUB_OUTPUT
           cat drift_report.json >> $GITHUB_OUTPUT

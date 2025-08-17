@@ -3,15 +3,12 @@
 
 from shared.schemas.manifest_validator import validate_manifest_entry
 from shared.utils.import_scanner import scan_imports_for_file
+from system.governance.checks.base import BaseAuditCheck
 from system.governance.models import AuditFinding, AuditSeverity
 
 
-class StructureChecks:
+class StructureChecks(BaseAuditCheck):
     """Container for structural constitutional checks."""
-
-    def __init__(self, context):
-        """Initializes the check with a shared auditor context."""
-        self.context = context
 
     # CAPABILITY: audit.check.project_manifest
     def check_project_manifest(self) -> list[AuditFinding]:

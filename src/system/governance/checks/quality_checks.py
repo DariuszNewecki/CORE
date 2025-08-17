@@ -1,15 +1,14 @@
 # src/system/governance/checks/quality_checks.py
 """Auditor checks related to code quality and conventions."""
 
+from system.governance.checks.base import BaseAuditCheck
 from system.governance.models import AuditFinding, AuditSeverity
 
 
-class QualityChecks:
+class QualityChecks(BaseAuditCheck):
     """Container for code quality constitutional checks."""
 
-    def __init__(self, context):
-        """Initializes the check with a shared auditor context."""
-        self.context = context
+    # The __init__ method has been removed.
 
     # CAPABILITY: audit.check.docstrings
     def check_docstrings_and_intents(self) -> list[AuditFinding]:

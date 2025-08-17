@@ -5,19 +5,17 @@ forming the basis of CORE's "architectural conscience."
 """
 from collections import defaultdict
 
+from system.governance.checks.base import BaseAuditCheck
 from system.governance.models import AuditFinding, AuditSeverity
 
 
-class ArchitectureChecks:
+class ArchitectureChecks(BaseAuditCheck):
     """Container for architectural integrity checks."""
 
-    def __init__(self, context):
-        """Initializes the check with a shared auditor context."""
-        self.context = context
+    # The __init__ method has been removed.
 
     # CAPABILITY: audit.check.duplication
     def check_for_structural_duplication(self) -> list[AuditFinding]:
-        """Finds symbols with identical structural hashes, violating `dry_by_design`, using content-addressed knowledge graph for accurate duplication detection."""
         """
         Finds symbols with identical structural hashes, violating `dry_by_design`.
         This check uses the content-addressed nature of the knowledge graph to
@@ -45,8 +43,6 @@ class ArchitectureChecks:
                     AuditFinding(AuditSeverity.WARNING, message, check_name)
                 )
 
-        # --- THIS IS THE FIX ---
-        # We explicitly add a success message to the findings list if no duplicates are found.
         if not duplicates_found:
             findings.append(
                 AuditFinding(

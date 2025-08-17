@@ -1,60 +1,29 @@
 # src/system/tools/codegraph_builder.py
-import ast
-import hashlib
-import json
-import re
-from dataclasses import asdict
-from datetime import datetime, timezone
+"""
+Main knowledge graph builder orchestrating all components.
+"""
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional
 
 from dotenv import load_dotenv
-from filelock import FileLock
 
 from shared.config_loader import load_config
 from shared.logger import getLogger
-from system.tools.ast_visitor import ContextAwareVisitor, FunctionCallVisitor
-from system.tools.models import FunctionInfo
+from system.tools.domain_mapper import DomainMapper
+from system.tools.entry_point_detector import EntryPointDetector
+from system.tools.file_scanner import FileScanner
+from system.tools.graph_serializer import GraphSerializer
 from system.tools.pattern_matcher import PatternMatcher
+from system.tools.project_structure import (
+    ProjectStructureError,
+    find_project_root,
+    get_cli_entry_points,
+    get_python_files,
+)
 
 log = getLogger(__name__)
 
 
-def _strip_docstrings(node):
-    """Recursively remove docstring nodes from an AST tree for structural hashing."""
-    if isinstance(
-        node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef, ast.Module)
-    ):
-        if (
-            node.body
-            and isinstance(node.body[0], ast.Expr)
-            and isinstance(node.body[0].value, ast.Constant)
-            and isinstance(node.body[0].value.value, str)
-        ):
-            node.body = node.body[1:]
-
-    for child_node in ast.iter_child_nodes(node):
-        _strip_docstrings(child_node)
-    return node
-
-
-class ProjectStructureError(Exception):
-    """Custom exception for when the project's root cannot be determined."""
-
-    pass
-
-
-def find_project_root(start_path: Path) -> Path:
-    """Traverses upward from a starting path to find the project root, marked by 'pyproject.toml'."""
-    current_path = start_path.resolve()
-    while current_path != current_path.parent:
-        if (current_path / "pyproject.toml").exists():
-            return current_path
-        current_path = current_path.parent
-    raise ProjectStructureError("Could not find 'pyproject.toml'.")
-
-
-# CAPABILITY: manifest_updating
 class KnowledgeGraphBuilder:
     """Builds a comprehensive JSON representation of the project's code structure and relationships."""
 
@@ -70,14 +39,15 @@ class KnowledgeGraphBuilder:
             "tests",
             "work",
         ]
-        self.functions: Dict[str, FunctionInfo] = {}
         self.files_scanned = 0
         self.files_failed = 0
-        self.cli_entry_points = self._get_cli_entry_points()
-        self.patterns = self._load_patterns()
-        self.domain_map = self._get_domain_map()
-        self.fastapi_app_name: Optional[str] = None
-        self.pattern_matcher = PatternMatcher(self.patterns, self.root_path)
+
+        # Initialize components
+        cli_entry_points = get_cli_entry_points(self.root_path)
+        self.domain_mapper = DomainMapper(self.root_path)
+        self.entry_point_detector = EntryPointDetector(self.root_path, cli_entry_points)
+        self.file_scanner = FileScanner(self.domain_mapper, self.entry_point_detector)
+        self.pattern_matcher = PatternMatcher(self._load_patterns(), self.root_path)
 
     def _load_patterns(self) -> List[Dict]:
         """Loads entry point detection patterns from the intent file."""
@@ -88,350 +58,55 @@ class KnowledgeGraphBuilder:
         config = load_config(patterns_path, "yaml")
         return config.get("patterns", []) if config else []
 
-    def _get_cli_entry_points(self) -> Set[str]:
-        """Parses pyproject.toml to find declared command-line entry points."""
-        pyproject_path = self.root_path / "pyproject.toml"
-        if not pyproject_path.exists():
-            return set()
-
-        try:
-            content = pyproject_path.read_text(encoding="utf-8")
-            match = re.search(r"\[tool\.poetry\.scripts\]([^\[]*)", content, re.DOTALL)
-            return (
-                set(re.findall(r'=\s*"[^"]+:(\w+)"', match.group(1)))
-                if match
-                else set()
-            )
-        except (OSError, UnicodeDecodeError) as e:
-            log.warning(f"Could not read pyproject.toml: {e}")
-            return set()
-
-    def _should_exclude_path(self, path: Path) -> bool:
-        """Determines if a given path should be excluded from scanning."""
-        return any(pattern in path.parts for pattern in self.exclude_patterns)
-
-    def _infer_domains_from_directory_structure(self) -> Dict[str, str]:
-        """A heuristic to guess domains if source_structure.yaml is missing."""
-        log.warning(
-            "source_structure.yaml not found. Falling back to directory-based domain inference."
-        )
-
-        if not self.src_root.is_dir():
-            log.warning("`src` directory not found. Cannot infer domains.")
-            return {}
-
-        domain_map = {}
-        for item in self.src_root.iterdir():
-            if item.is_dir() and not item.name.startswith(("_", ".")):
-                domain_name = item.name
-                domain_path = item.relative_to(self.root_path)
-                domain_map[domain_path.as_posix()] = domain_name
-
-        log.info(
-            f"   -> Inferred {len(domain_map)} domains from `src/` directory structure."
-        )
-        return domain_map
-
-    def _get_domain_map(self) -> Dict[str, str]:
-        """Loads the domain-to-path mapping from the constitution."""
-        path = self.root_path / ".intent/knowledge/source_structure.yaml"
-        data = load_config(path, "yaml")
-
-        if not data:
-            return self._infer_domains_from_directory_structure()
-
-        structure = data.get("structure")
-        if not structure:
-            return self._infer_domains_from_directory_structure()
-
-        return {
-            Path(e["path"]).as_posix(): e["domain"]
-            for e in structure
-            if "path" in e and "domain" in e
-        }
-
-    def _determine_domain(self, file_path: Path) -> str:
-        """Determines the logical domain for a file path based on the longest matching prefix."""
-        file_posix = file_path.as_posix()
-        best_match = ""
-
-        for domain_path in self.domain_map:
-            if file_posix.startswith(domain_path) and len(domain_path) > len(
-                best_match
-            ):
-                best_match = domain_path
-
-        return self.domain_map.get(best_match, "unassigned")
-
-    def _infer_agent_from_path(self, relative_path: Path) -> str:
-        """Infers the most likely responsible agent based on keywords in the file path."""
-        path_lower = str(relative_path).lower()
-
-        agent_keywords = {
-            "planner": "planner_agent",
-            "generator": "generator_agent",
-            "core": "core_agent",
-            "tool": "tooling_agent",
-        }
-
-        for keyword, agent in agent_keywords.items():
-            if keyword in path_lower:
-                return agent
-
-        if any(x in path_lower for x in ["validator", "guard", "audit"]):
-            return "validator_agent"
-
-        return "generic_agent"
-
-    def _parse_metadata_comment(
-        self, node: ast.AST, source_lines: List[str]
-    ) -> Dict[str, str]:
-        """Parses the line immediately preceding a symbol definition for a '# CAPABILITY:' tag."""
-        if node.lineno > 1 and node.lineno - 2 < len(source_lines):
-            line = source_lines[node.lineno - 2].strip()
-            if line.startswith("#"):
-                match = re.search(r"CAPABILITY:\s*(\S+)", line, re.IGNORECASE)
-                if match:
-                    return {"capability": match.group(1).strip()}
-        return {}
-
-    def _is_fastapi_route_decorator(self, decorator: ast.AST) -> bool:
-        """Check if decorator is a FastAPI route decorator."""
-        return (
-            isinstance(decorator, ast.Call)
-            and isinstance(decorator.func, ast.Attribute)
-            and isinstance(decorator.func.value, ast.Name)
-            and decorator.func.value.id == self.fastapi_app_name
-        )
-
-    def _get_entry_point_type(
-        self, node: ast.FunctionDef | ast.AsyncFunctionDef
-    ) -> Optional[str]:
-        """Identifies decorator or CLI-based entry points for a function."""
-        for decorator in node.decorator_list:
-            if self._is_fastapi_route_decorator(decorator):
-                return f"fastapi_route_{decorator.func.attr}"
-            elif (
-                isinstance(decorator, ast.Name)
-                and decorator.id == "asynccontextmanager"
-            ):
-                return "context_manager"
-
-        if self.fastapi_app_name and node.name == "lifespan":
-            return "fastapi_lifespan"
-        if node.name in self.cli_entry_points:
-            return "cli_entry_point"
-        return None
-
-    def _detect_docstring(self, node: ast.AST) -> Optional[str]:
-        """Detects both standard and non-standard docstrings for a node."""
-        standard_doc = ast.get_docstring(node)
-        if standard_doc:
-            return standard_doc
-
-        if (
-            node.body
-            and isinstance(node.body[0], ast.Expr)
-            and isinstance(node.body[0].value, ast.Constant)
-            and isinstance(node.body[0].value.value, str)
-        ):
-            return node.body[0].value.value
-        return None
-
-    def _extract_base_classes(self, node: ast.ClassDef) -> List[str]:
-        """Extract base class names from a class definition."""
-        base_classes = []
-        for base in node.bases:
-            if isinstance(base, ast.Name):
-                base_classes.append(base.id)
-            elif isinstance(base, ast.Attribute):
-                base_classes.append(base.attr)
-        return base_classes
-
-    def scan_file(self, filepath: Path) -> bool:
-        """Scans a single Python file, parsing its AST to extract all symbols."""
-        try:
-            content = filepath.read_text(encoding="utf-8")
-            source_lines = content.splitlines()
-            tree = ast.parse(content, filename=str(filepath))
-
-            # Detect FastAPI app and main block entries
-            main_block_entries = set()
-            self.fastapi_app_name = None
-
-            for node in ast.walk(tree):
-                if self._is_fastapi_assignment(node):
-                    self.fastapi_app_name = node.targets[0].id
-                elif self._is_main_block(node):
-                    visitor = FunctionCallVisitor()
-                    visitor.visit(node)
-                    main_block_entries.update(visitor.calls)
-
-            self.cli_entry_points.update(main_block_entries)
-
-            visitor = ContextAwareVisitor(self, filepath, source_lines)
-            visitor.visit(tree)
-            return True
-
-        except UnicodeDecodeError as e:
-            log.error(f"Encoding error scanning {filepath}: {e}")
-            return False
-        except Exception as e:
-            log.error(f"Error scanning {filepath}: {e}")
-            return False
-
-    def _is_fastapi_assignment(self, node: ast.AST) -> bool:
-        """Check if node is a FastAPI app assignment."""
-        return (
-            isinstance(node, ast.Assign)
-            and isinstance(node.value, ast.Call)
-            and isinstance(node.value.func, ast.Name)
-            and node.value.func.id == "FastAPI"
-            and isinstance(node.targets[0], ast.Name)
-        )
-
-    def _is_main_block(self, node: ast.AST) -> bool:
-        """Check if node is an if __name__ == '__main__' block."""
-        return (
-            isinstance(node, ast.If)
-            and isinstance(node.test, ast.Compare)
-            and isinstance(node.test.left, ast.Name)
-            and node.test.left.id == "__name__"
-            and isinstance(node.test.comparators[0], ast.Constant)
-            and node.test.comparators[0].value == "__main__"
-        )
-
-    def _process_symbol_node(
-        self,
-        node: ast.AST,
-        filepath: Path,
-        source_lines: List[str],
-        parent_key: Optional[str] = None,
-    ) -> Optional[str]:
-        """Extracts and stores metadata from a single function or class AST node."""
-        if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
-            return None
-
-        # Generate structural hash
-        node_for_hashing = _strip_docstrings(ast.parse(ast.unparse(node)))
-        structural_string = (
-            ast.unparse(node_for_hashing).replace("\n", "").replace(" ", "")
-        )
-        structural_hash = hashlib.sha256(structural_string.encode("utf-8")).hexdigest()
-
-        # Extract function calls
-        visitor = FunctionCallVisitor()
-        visitor.visit(node)
-
-        # Build function info
-        key = f"{filepath.relative_to(self.root_path).as_posix()}::{node.name}"
-        doc = self._detect_docstring(node)
-        domain = self._determine_domain(filepath.relative_to(self.root_path))
-        is_class = isinstance(node, ast.ClassDef)
-
-        func_info = FunctionInfo(
-            key=key,
-            name=node.name,
-            type=node.__class__.__name__,
-            file=filepath.relative_to(self.root_path).as_posix(),
-            calls=visitor.calls,
-            line_number=node.lineno,
-            is_async=isinstance(node, ast.AsyncFunctionDef),
-            docstring=doc,
-            parameters=(
-                [arg.arg for arg in node.args.args] if hasattr(node, "args") else []
-            ),
-            entry_point_type=self._get_entry_point_type(node) if not is_class else None,
-            domain=domain,
-            agent=self._infer_agent_from_path(filepath.relative_to(self.root_path)),
-            capability=self._parse_metadata_comment(node, source_lines).get(
-                "capability", "unassigned"
-            ),
-            intent=(
-                doc.split("\n")[0].strip()
-                if doc
-                else f"Provides functionality for the {domain} domain."
-            ),
-            last_updated=datetime.now(timezone.utc).isoformat(),
-            is_class=is_class,
-            base_classes=self._extract_base_classes(node) if is_class else [],
-            parent_class_key=parent_key,
-            structural_hash=structural_hash,
-        )
-
-        self.functions[key] = func_info
-
-        # Process nested methods for classes
-        if is_class:
-            for child_node in node.body:
-                if isinstance(child_node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                    self._process_symbol_node(child_node, filepath, source_lines, key)
-
-        return key
-
     def build(self) -> Dict[str, Any]:
         """Orchestrates the full knowledge graph generation process."""
         log.info(f"Building knowledge graph for directory: {self.src_root}")
 
-        py_files = [
-            f
-            for f in self.src_root.rglob("*.py")
-            if f.name != "__init__.py" and not self._should_exclude_path(f)
-        ]
+        py_files = get_python_files(self.src_root, self.exclude_patterns)
         log.info(f"Found {len(py_files)} Python files to scan in src/")
 
+        # Scan all files
         for pyfile in py_files:
-            if self.scan_file(pyfile):
+            if self.file_scanner.scan_file(pyfile):
                 self.files_scanned += 1
             else:
                 self.files_failed += 1
 
         log.info(
-            f"Scanned {self.files_scanned} files ({self.files_failed} failed). Applying declarative patterns..."
+            f"Scanned {self.files_scanned} files ({self.files_failed} failed). "
+            f"Applying declarative patterns..."
         )
-        self.pattern_matcher.apply_patterns(self.functions)
 
-        # Convert to serializable format
-        serializable_functions = {
-            key: asdict(
-                info, dict_factory=lambda x: {k: v for (k, v) in x if v is not None}
-            )
-            for key, info in self.functions.items()
-        }
+        # Apply patterns to enhance the function data
+        self.pattern_matcher.apply_patterns(self.file_scanner.functions)
 
-        # Sort calls for consistent output
-        for data in serializable_functions.values():
-            data["calls"] = sorted(list(data["calls"]))
-
-        return {
-            "schema_version": "2.0.0",
-            "metadata": {
-                "files_scanned": self.files_scanned,
-                "total_symbols": len(self.functions),
-                "timestamp_utc": datetime.now(timezone.utc).isoformat(),
-            },
-            "symbols": serializable_functions,
-        }
+        # Build and return the serialized graph
+        return GraphSerializer.build_graph_data(
+            self.file_scanner.functions, self.files_scanned
+        )
 
 
 def main():
     """CLI entry point to run the knowledge graph builder and save the output."""
     load_dotenv()
     try:
-        root = find_project_root(Path.cwd())
+        # Find project root robustly
+        try:
+            root = find_project_root(Path.cwd())
+        except ProjectStructureError:
+            log.warning(
+                "Could not find pyproject.toml, using current directory as root. "
+                "This may cause issues."
+            )
+            root = Path.cwd()
+
+        # Build the knowledge graph
         builder = KnowledgeGraphBuilder(root)
         graph = builder.build()
 
+        # Save to file
         out_path = root / ".intent/knowledge/knowledge_graph.json"
-        out_path.parent.mkdir(parents=True, exist_ok=True)
-
-        with FileLock(str(out_path) + ".lock"):
-            out_path.write_text(json.dumps(graph, indent=2), encoding="utf-8")
-
-        log.info(
-            f"✅ Knowledge graph generated! Scanned {builder.files_scanned} files, found {len(graph['symbols'])} symbols."
-        )
-        log.info(f"   -> Saved to {out_path}")
+        GraphSerializer.save_to_file(graph, out_path)
 
     except Exception as e:
         log.error(f"An error occurred: {e}", exc_info=True)

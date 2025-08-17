@@ -2,15 +2,12 @@
 """Auditor checks related to the system's runtime environment."""
 import os
 
+from system.governance.checks.base import BaseAuditCheck
 from system.governance.models import AuditFinding, AuditSeverity
 
 
-class EnvironmentChecks:
+class EnvironmentChecks(BaseAuditCheck):
     """Container for environment and runtime configuration checks."""
-
-    def __init__(self, context):
-        """Initializes the check with a shared auditor context."""
-        self.context = context
 
     # CAPABILITY: audit.check.environment
     def check_runtime_environment(self) -> list[AuditFinding]:

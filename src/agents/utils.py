@@ -91,15 +91,12 @@ class PlanExecutionContext:
 
     def __init__(self, execution_agent):
         """Initializes the context with a reference to the ExecutionAgent."""
-        # --- THIS IS THE FIX (Part 1) ---
         # The context now correctly references the executor, which holds the git_service and config.
         self.executor = execution_agent.executor
-        # --- END OF FIX ---
         self.initial_commit = None
 
     def __enter__(self):
         """Sets up the execution context, capturing the initial git commit hash."""
-        # --- THIS IS THE FIX (Part 2) ---
         # It now correctly accesses git_service and config through the executor.
         if self.executor.git_service.is_git_repo():
             try:
@@ -115,7 +112,6 @@ class PlanExecutionContext:
             and self.initial_commit
             and self.executor.config.rollback_on_failure
         ):
-            # --- END OF FIX ---
             log.warning("Rolling back to initial state due to failure")
             try:
                 self.executor.git_service.reset_to_commit(self.initial_commit)

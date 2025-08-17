@@ -125,6 +125,11 @@ drift:
 	@echo "🧭 Running capability drift check (short JSON)..."
 	PYTHONPATH=src $(POETRY) run core-admin guard drift --format short
 
+fix-docstrings:
+	@echo "✍️  Using agent to fix missing docstrings..."
+	@echo "   (This will use the Generator LLM and may take a moment)"
+	PYTHONPATH=src $(POETRY) run core-admin fix docstrings --write
+	
 # Usage: make align GOAL='scaffold a governed starter from intent'
 align:
 	@test -n "$(GOAL)" || (echo 'GOAL is required. Example: make align GOAL="build a governed starter kit"'; exit 2)

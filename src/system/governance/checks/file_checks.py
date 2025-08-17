@@ -159,15 +159,35 @@ class FileChecks:
 
         known_files: Set[str] = set()
 
+        # --- START OF FIX ---
+        # Handle special-case root-relative paths first.
+        ux_config = (
+            meta_config.get("operator_experience", {})
+            .get("guard", {})
+            .get("drift", {})
+        )
+        if evidence_path := ux_config.get("evidence_path"):
+            if isinstance(evidence_path, str):
+                known_files.add(evidence_path.replace("\\", "/"))
+        # --- END OF FIX ---
+
         def _recursive_find_paths(data):
             """Recursively find all file paths in meta configuration."""
             if isinstance(data, dict):
-                for value in data.values():
-                    _recursive_find_paths(value)
+                # Exclude the special case we just handled from this recursive search.
+                if "operator_experience" in data:
+                    data_copy = data.copy()
+                    del data_copy["operator_experience"]
+                    for value in data_copy.values():
+                        _recursive_find_paths(value)
+                else:
+                    for value in data.values():
+                        _recursive_find_paths(value)
             elif isinstance(data, list):
                 for item in data:
                     _recursive_find_paths(item)
             elif isinstance(data, str) and "." in data and "/" in data:
+                # This part now correctly handles only the .intent-relative paths.
                 full_path_str = str(Path(".intent") / data).replace("\\", "/")
                 known_files.add(full_path_str)
 

@@ -26,7 +26,14 @@ def domain_manifest_yaml(domain: str, capabilities: list[str]):
 
 def test_guard_drift_clean_repo(tmp_path: Path):
     """Tests that a clean repository with modular manifests passes the drift check."""
-    # Arrange: Create domain-specific manifests that match the code
+    # Arrange: Create a realistic temporary project structure
+    out = tmp_path / "reports" / "drift_report.json"
+
+    # 1. Create the source files with capability tags
+    write(tmp_path / "src" / "domain_alpha" / "mod.py", "# CAPABILITY: alpha.cap")
+    write(tmp_path / "src" / "domain_beta" / "mod.py", "# CAPABILITY: beta.cap")
+
+    # 2. Create the corresponding domain manifests
     write(
         tmp_path / "src" / "domain_alpha" / "manifest.yaml",
         domain_manifest_yaml("domain_alpha", ["alpha.cap"]),
@@ -35,10 +42,26 @@ def test_guard_drift_clean_repo(tmp_path: Path):
         tmp_path / "src" / "domain_beta" / "manifest.yaml",
         domain_manifest_yaml("domain_beta", ["beta.cap"]),
     )
-    write(tmp_path / "src" / "domain_alpha" / "mod.py", "# CAPABILITY: alpha.cap")
-    write(tmp_path / "src" / "domain_beta" / "mod.py", "# CAPABILITY: beta.cap")
-    out = tmp_path / "reports" / "drift_report.json"
 
+    # 3. Create the source_structure.yaml to map files to domains
+    write(
+        tmp_path / ".intent/knowledge/source_structure.yaml",
+        yaml.safe_dump(
+            {
+                "structure": [
+                    {"domain": "domain_alpha", "path": "src/domain_alpha"},
+                    {"domain": "domain_beta", "path": "src/domain_beta"},
+                ]
+            }
+        ),
+    )
+
+    # 4. Create an empty patterns file and pyproject.toml to prevent warnings
+    # and ensure the KnowledgeGraphBuilder initializes correctly.
+    write(tmp_path / ".intent/knowledge/entry_point_patterns.yaml", "patterns: []")
+    write(tmp_path / "pyproject.toml", "[tool.poetry]\nname = 'test-project'")
+
+    # Act: Run the drift command on our temporary project
     result = runner.invoke(
         app,
         [
@@ -53,6 +76,7 @@ def test_guard_drift_clean_repo(tmp_path: Path):
         ],
     )
 
+    # Assert: The command should succeed and the report should be clean
     assert result.exit_code == 0, result.output
     report = json.loads(out.read_text(encoding="utf-8"))
     assert not report["missing_in_code"]

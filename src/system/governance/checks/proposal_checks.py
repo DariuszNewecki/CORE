@@ -6,27 +6,33 @@ from __future__ import annotations
 import hashlib
 import json
 from pathlib import Path
+from typing import List
 
 import jsonschema
 import yaml
 
 from shared.schemas.manifest_validator import load_schema
+from system.governance.checks.base import BaseAuditCheck
 from system.governance.models import AuditFinding, AuditSeverity
 
 
-class ProposalChecks:
+class ProposalChecks(BaseAuditCheck):
     """Container for proposal-related constitutional checks."""
 
+
+
     def __init__(self, context):
-        """Initializes the check with a shared auditor context, setting `repo_root` and `proposals_dir` paths."""
         """Initializes the check with a shared auditor context."""
-        self.context = context
-        self.repo_root: Path = context.repo_root
-        self.proposals_dir: Path = self.repo_root / ".intent" / "proposals"
+        super().__init__(context)
+        self.proposals_dir: Path = self.context.intent_dir / "proposals"
+        try:
+            self.proposal_schema = load_schema("proposal.schema.json")
+        except Exception:
+            self.proposal_schema = None
 
-    # --- helpers -------------------------------------------------------------
+    # --- Private Helper Methods for Single-Responsibility ---
 
-    def _proposal_paths(self) -> list[Path]:
+    def _get_proposal_paths(self) -> list[Path]:
         """Return all cr-* proposals (both YAML and JSON)."""
         if not self.proposals_dir.exists():
             return []
@@ -36,72 +42,41 @@ class ProposalChecks:
             + list(self.proposals_dir.glob("cr-*.json"))
         )
 
-    """Loads a proposal from a JSON or YAML file at the given path, returning an empty dict on parse failure or empty content."""
-
     def _load_proposal(self, path: Path) -> dict:
-        """Load proposal preserving its format."""
+        """Load proposal preserving its format, raising ValueError on failure."""
         try:
             text = path.read_text(encoding="utf-8")
             if path.suffix.lower() == ".json":
                 return json.loads(text) or {}
             return yaml.safe_load(text) or {}
-        except Exception as e:  # surface upstream with path context
+        except Exception as e:
             raise ValueError(f"parse error: {e}") from e
 
+    # --- CHANGE 1: Replaced the old v1 token logic with the secure v2 logic ---
     @staticmethod
-    def _expected_token_for_content(content: str) -> str:
-        """Mirror admin token format: 'core-proposal-v1:<sha256hex>'."""
-        digest = hashlib.sha256(content.encode("utf-8")).hexdigest()
-        return f"core-proposal-v1:{digest}"
+    def _expected_token_for_proposal(proposal: dict) -> str:
+        """
+        Produce a deterministic token for approvals bound to the full proposal intent.
+        This logic MUST mirror the token generation in `src/system/admin/utils.py`.
+        """
+        payload = {
+            "version": "v2",
+            "target_path": proposal.get("target_path"),
+            "action": proposal.get("action"),
+            "content": proposal.get("content", ""),
+        }
+        digest = hashlib.sha256()
+        digest.update(json.dumps(payload, sort_keys=True).encode("utf-8"))
+        return f"core-proposal-v2:{digest.finalize().hex()}"
 
-    # --- checks --------------------------------------------------------------
-
-    """Validate each cr-*.yaml/json proposal against proposal.schema.json, returning a list of AuditFindings for compliance or errors."""
-
-    # CAPABILITY: audit.check.proposals_schema
-    def check_proposal_files_match_schema(self) -> list[AuditFinding]:
-        """Validate each cr-*.yaml/json proposal against proposal.schema.json."""
-        findings: list[AuditFinding] = []
-        check_name = "Proposals: Schema Compliance"
-
-        paths = self._proposal_paths()
-        if not paths:
-            if not self.proposals_dir.exists():
-                findings.append(
-                    AuditFinding(
-                        AuditSeverity.SUCCESS,
-                        "No proposals directory found; nothing to validate.",
-                        check_name,
-                    )
-                )
-            else:
-                findings.append(
-                    AuditFinding(
-                        AuditSeverity.SUCCESS,
-                        "No pending proposals found.",
-                        check_name,
-                    )
-                )
-            return findings
-
-        schema = load_schema("proposal.schema.json")
-        validator = jsonschema.Draft7Validator(schema)
-
-        for path in paths:
-            rel = str(path.relative_to(self.repo_root))
-            try:
-                data = self._load_proposal(path)
-            except ValueError as e:
-                findings.append(
-                    AuditFinding(
-                        AuditSeverity.ERROR,
-                        f"{path.name}: {e}",
-                        check_name,
-                        rel,
-                    )
-                )
-                continue
-
+    def _validate_single_proposal_schema(
+        self, path: Path, validator: jsonschema.Draft7Validator
+    ) -> List[AuditFinding]:
+        """Validates a single proposal file against the JSON schema."""
+        findings = []
+        rel_path = str(path.relative_to(self.context.repo_root))
+        try:
+            data = self._load_proposal(path)
             errors = list(validator.iter_errors(data))
             if errors:
                 for err in errors:
@@ -110,8 +85,8 @@ class ProposalChecks:
                         AuditFinding(
                             AuditSeverity.ERROR,
                             f"{path.name}: {loc} -> {err.message}",
-                            check_name,
-                            rel,
+                            "Proposals: Schema Compliance",
+                            rel_path,
                         )
                     )
             else:
@@ -119,40 +94,31 @@ class ProposalChecks:
                     AuditFinding(
                         AuditSeverity.SUCCESS,
                         f"{path.name} conforms to proposal.schema.json",
-                        check_name,
-                        rel,
+                        "Proposals: Schema Compliance",
+                        rel_path,
                     )
                 )
-
+        except ValueError as e:
+            findings.append(
+                AuditFinding(
+                    AuditSeverity.ERROR,
+                    f"{path.name}: {e}",
+                    "Proposals: Schema Compliance",
+                    rel_path,
+                )
+            )
         return findings
 
-    # CAPABILITY: audit.check.proposals_drift
-    def check_signatures_match_content(self) -> list[AuditFinding]:
-        """
-        Detect content/signature drift:
-        - warn if a proposal has no signatures
-        - warn if any signature token does not match the current content
-        """
-        findings: list[AuditFinding] = []
-        check_name = "Proposals: Signature ↔ Content Drift"
-
-        for path in self._proposal_paths():
-            rel = str(path.relative_to(self.repo_root))
-            try:
-                data = self._load_proposal(path)
-            except ValueError as e:
-                findings.append(
-                    AuditFinding(
-                        AuditSeverity.ERROR,
-                        f"{path.name}: {e}",
-                        check_name,
-                        rel,
-                    )
-                )
-                continue
-
-            content = data.get("content", "")
-            expected = self._expected_token_for_content(content)
+    def _validate_single_proposal_signatures(
+        self, path: Path
+    ) -> List[AuditFinding]:
+        """Validates the signatures of a single proposal file for drift."""
+        findings = []
+        rel_path = str(path.relative_to(self.context.repo_root))
+        try:
+            data = self._load_proposal(path)
+            # --- CHANGE 2: Call the new v2 token generator method ---
+            expected_token = self._expected_token_for_proposal(data)
             signatures = data.get("signatures", [])
 
             if not signatures:
@@ -160,24 +126,21 @@ class ProposalChecks:
                     AuditFinding(
                         AuditSeverity.WARNING,
                         f"{path.name}: no signatures present.",
-                        check_name,
-                        rel,
+                        "Proposals: Signature ↔ Content Drift",
+                        rel_path,
                     )
                 )
-                continue
+                return findings
 
-            mismatches = [s for s in signatures if s.get("token") != expected]
+            mismatches = [s for s in signatures if s.get("token") != expected_token]
             if mismatches:
-                identities = ", ".join(
-                    s.get("identity", "<unknown>") for s in mismatches
-                )
+                identities = ", ".join(s.get("identity", "<unknown>") for s in mismatches)
                 findings.append(
                     AuditFinding(
                         AuditSeverity.WARNING,
-                        f"{path.name}: {len(mismatches)} signature(s) do not match current content "
-                        f"(likely edited after signing). Identities: {identities}",
-                        check_name,
-                        rel,
+                        f"{path.name}: {len(mismatches)} signature(s) do not match current content (likely edited after signing). Identities: {identities}",
+                        "Proposals: Signature ↔ Content Drift",
+                        rel_path,
                     )
                 )
             else:
@@ -185,43 +148,67 @@ class ProposalChecks:
                     AuditFinding(
                         AuditSeverity.SUCCESS,
                         f"{path.name}: all signatures match current content.",
-                        check_name,
-                        rel,
+                        "Proposals: Signature ↔ Content Drift",
+                        rel_path,
                     )
                 )
 
-        if not findings and not self._proposal_paths():
-            # nothing to report if there are no proposals
+        except ValueError as e:
+            findings.append(
+                AuditFinding(
+                    AuditSeverity.ERROR,
+                    f"{path.name}: {e}",
+                    "Proposals: Signature ↔ Content Drift",
+                    rel_path,
+                )
+            )
+        return findings
+
+    # --- Public Check Methods (Orchestrators) ---
+
+    # CAPABILITY: audit.check.proposals_schema
+    def check_proposal_files_match_schema(self) -> list[AuditFinding]:
+        """Validate each cr-*.yaml/json proposal against proposal.schema.json."""
+        if not self.proposal_schema:
+            return [AuditFinding(AuditSeverity.ERROR, "Proposal schema file could not be loaded.", "Proposals: Schema Compliance")]
+
+        paths = self._get_proposal_paths()
+        if not paths:
+            return [AuditFinding(AuditSeverity.SUCCESS, "No pending proposals found.", "Proposals: Schema Compliance")]
+
+        validator = jsonschema.Draft7Validator(self.proposal_schema)
+        all_findings = []
+        for path in paths:
+            all_findings.extend(self._validate_single_proposal_schema(path, validator))
+        return all_findings
+
+    # CAPABILITY: audit.check.proposals_drift
+    def check_signatures_match_content(self) -> list[AuditFinding]:
+        """Detect content/signature drift for all pending proposals."""
+        paths = self._get_proposal_paths()
+        if not paths:
             return []
 
-        return findings
-        """Return a list of AuditFinding objects summarizing pending proposals, including their paths and severity."""
+        all_findings = []
+        for path in paths:
+            all_findings.extend(self._validate_single_proposal_signatures(path))
+        return all_findings
 
     # CAPABILITY: audit.check.proposals_list
     def list_pending_proposals(self) -> list[AuditFinding]:
         """Emit a friendly summary of pending proposals."""
-        findings: list[AuditFinding] = []
-        check_name = "Proposals: Pending Summary"
-
-        paths = self._proposal_paths()
+        paths = self._get_proposal_paths()
         if not paths:
             if self.proposals_dir.exists():
-                findings.append(
-                    AuditFinding(
-                        AuditSeverity.SUCCESS,
-                        "No pending proposals.",
-                        check_name,
-                    )
-                )
-            return findings
-
-        for path in paths:
-            findings.append(
-                AuditFinding(
-                    AuditSeverity.WARNING,  # warning to make it visible in audit output
-                    f"Pending proposal: {path.name}",
-                    check_name,
-                    str(path.relative_to(self.repo_root)),
-                )
+                return [AuditFinding(AuditSeverity.SUCCESS, "No pending proposals.", "Proposals: Pending Summary")]
+            return []
+        
+        return [
+            AuditFinding(
+                AuditSeverity.WARNING,
+                f"Pending proposal: {path.name}",
+                "Proposals: Pending Summary",
+                str(path.relative_to(self.context.repo_root)),
             )
-        return findings
+            for path in paths
+        ]
