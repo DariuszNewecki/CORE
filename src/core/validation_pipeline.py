@@ -58,9 +58,15 @@ def _find_dangerous_patterns(tree: ast.AST, file_path: str) -> List[Violation]:
     forbidden_imports = set()
 
     for rule in rules:
-        is_excluded = any(
-            Path(file_path).match(p) for p in rule.get("scope", {}).get("exclude", [])
-        )
+        # --- THIS IS THE FIX ---
+        # The original code did not check if the items in the 'exclude' list were strings.
+        # We now ensure we only try to match string patterns, gracefully ignoring other types.
+        exclude_patterns = [
+            p for p in rule.get("scope", {}).get("exclude", []) if isinstance(p, str)
+        ]
+        is_excluded = any(Path(file_path).match(p) for p in exclude_patterns)
+        # --- END OF FIX ---
+
         if is_excluded:
             continue
 

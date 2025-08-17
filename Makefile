@@ -14,7 +14,7 @@ RELOAD  ?= --reload
 ENV_FILE ?= .env
 PATHS   ?= src tests
 
-.PHONY: help install lock run stop audit lint format test coverage check fast-check clean clean-logs distclean nuke context
+.PHONY: help install lock run stop audit lint format test coverage check fast-check clean clean-logs distclean nuke context drift align
 
 help:
 	@echo "CORE Development Makefile"
@@ -30,6 +30,8 @@ help:
 	@echo "make coverage      - Pytest with coverage"
 	@echo "make fast-check    - Run fast checks (lint, test). Use before committing minor changes."
 	@echo "make check         - Run all checks (lint, test, audit). Use before submitting a PR."
+	@echo "make drift         - Run capability drift check (short JSON)"
+	@echo "make align GOAL=   - Check goal ↔ NorthStar alignment via API"
 	@echo "make context       - Build the project context file for AI collaboration"
 	@echo "make clean         - Remove caches, pending_writes, sandbox"
 	@echo "make distclean     - Clean + venv/build leftovers"
@@ -116,3 +118,18 @@ nuke:
 context:
 	@echo "📦 Building project context for AI collaboration..."
 	@scripts/concat_project.sh
+
+# ---- Governance helpers -----------------------------------------------------
+
+drift:
+	@echo "🧭 Running capability drift check (short JSON)..."
+	$(POETRY) run core-admin guard drift --format short
+
+# Usage: make align GOAL='scaffold a governed starter from intent'
+align:
+	@test -n "$(GOAL)" || (echo 'GOAL is required. Example: make align GOAL="build a governed starter kit"'; exit 2)
+	@echo "🔎 Checking goal↔NorthStar alignment via API..."
+	@echo "   (ensure the API is running: make run)"
+	@curl -s -X POST http://$(HOST):$(PORT)/guard/align \
+	  -H 'Content-Type: application/json' \
+	  -d '{"goal":"$(GOAL)"}' | (command -v jq >/dev/null 2>&1 && jq . || cat)

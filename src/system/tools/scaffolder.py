@@ -19,7 +19,6 @@ STARTER_KITS_DIR = CORE_ROOT / "src" / "system" / "starter_kits"
 
 
 class Scaffolder:
-    # ... (The entire Scaffolder class remains exactly the same) ...
     """A reusable service for creating new, constitutionally-governed projects."""
 
     def __init__(
@@ -28,6 +27,7 @@ class Scaffolder:
         profile: str = "default",
         workspace_dir: Path | None = None,
     ):
+        """Initializes the Scaffolder with project name, profile, and workspace directory."""
         self.name = project_name
         self.profile = profile
 
@@ -98,6 +98,7 @@ class Scaffolder:
         log.info(f"   -> ✅ Base structure for '{self.name}' created successfully.")
 
     def write_file(self, relative_path: str, content: str):
+        """Writes content to a file within the new project's directory, creating parent directories as needed."""
         target_file = self.project_root / relative_path
         target_file.parent.mkdir(parents=True, exist_ok=True)
         target_file.write_text(content, encoding="utf-8")

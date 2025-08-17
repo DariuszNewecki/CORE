@@ -27,6 +27,7 @@ from core.clients import GeneratorClient, OrchestratorClient
 from core.errors import register_exception_handlers
 from core.file_handler import FileHandler
 from core.git_service import GitService
+from core.intent_alignment import check_goal_alignment
 from core.intent_guard import IntentGuard
 
 log = getLogger(__name__)
@@ -72,6 +73,35 @@ class GoalRequest(BaseModel):
     """Defines the request body for the /execute_goal endpoint."""
 
     goal: str = Field(min_length=1, strip_whitespace=True)
+
+
+class AlignmentRequest(BaseModel):
+    """Request schema for /guard/align."""
+
+    goal: str = Field(min_length=1, strip_whitespace=True)
+    min_coverage: float | None = Field(default=None, ge=0.0, le=1.0)
+
+
+@app.post("/guard/align")
+async def guard_align(payload: AlignmentRequest):
+    """Evaluate a goal against the NorthStar and optional blocklist.
+
+    Returns {"status": "ok"|"rejected", "details": {...}} with short reason codes.
+    """
+    ok, details = check_goal_alignment(payload.goal, Path("."))
+
+    # Optional threshold enforcement (client-provided)
+    if payload.min_coverage is not None:
+        cov = details.get("coverage")
+        if cov is None or cov < payload.min_coverage:
+            ok = False
+            if "low_mission_overlap" not in details["violations"]:
+                details["violations"].append("low_mission_overlap")
+
+    status = "ok" if ok else "rejected"
+    return JSONResponse(
+        {"status": status, "details": details}, status_code=http_status.HTTP_200_OK
+    )
 
 
 @app.post("/execute_goal")
