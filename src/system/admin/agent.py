@@ -7,7 +7,6 @@ import subprocess
 import textwrap
 
 import typer
-
 from core.clients import OrchestratorClient
 from core.file_handler import FileHandler
 from core.git_service import GitService
@@ -23,7 +22,6 @@ agent_app = typer.Typer(help="Directly invoke autonomous agent capabilities.")
 
 def _extract_json_from_response(text: str):
     """Helper to extract JSON from LLM responses for scaffolding."""
-    # Simplified version for CLI use
     import re
 
     match = re.search(r"```json\s*(\{[\s\S]*?\}|\[[\s\S]*?\])\s*```", text, re.DOTALL)
@@ -71,8 +69,26 @@ def scaffold_new_application(
         scaffolder = Scaffolder(project_name=project_name)
         scaffolder.scaffold_base_structure()
 
+        # Write the LLM-generated files
         for rel_path, content in file_structure.items():
             scaffolder.write_file(rel_path, content)
+
+        # --- THIS IS THE NEW SECTION ---
+        # Add the templated test and CI files
+        log.info("   -> Adding starter test and CI workflow...")
+        test_template_path = scaffolder.starter_kit_path / "test_main.py.template"
+        ci_template_path = scaffolder.starter_kit_path / "ci.yml.template"
+
+        if test_template_path.exists():
+            test_content = test_template_path.read_text(encoding="utf-8").format(
+                project_name=project_name
+            )
+            scaffolder.write_file("tests/test_main.py", test_content)
+
+        if ci_template_path.exists():
+            ci_content = ci_template_path.read_text(encoding="utf-8")
+            scaffolder.write_file(".github/workflows/ci.yml", ci_content)
+        # --- END OF NEW SECTION ---
 
         if initialize_git:
             log.info(

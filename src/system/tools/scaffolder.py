@@ -9,7 +9,6 @@ from pathlib import Path
 
 import typer
 import yaml
-
 from shared.config_loader import load_config
 from shared.logger import getLogger
 from shared.path_utils import get_repo_root
@@ -48,17 +47,24 @@ class Scaffolder:
             )
 
     def scaffold_base_structure(self):
-        """Creates the base project structure, including src, reports, and .intent directories, copies constitutional files, templates, and updates the project manifest."""
+        """Creates the base project structure, including tests and CI directories."""
         log.info(f"💾 Creating project structure at {self.project_root}...")
         if self.project_root.exists():
             raise FileExistsError(f"Directory '{self.project_root}' already exists.")
 
+        # --- THIS IS THE MODIFIED SECTION ---
+        # Create all necessary directories upfront
         self.project_root.mkdir(parents=True, exist_ok=True)
         (self.project_root / "src").mkdir()
+        (self.project_root / "tests").mkdir() # Create tests directory
+        (self.project_root / ".github" / "workflows").mkdir(parents=True, exist_ok=True) # Create CI directory
         (self.project_root / "reports").mkdir()
+        # --- END OF MODIFIED SECTION ---
 
         intent_dir = self.project_root / ".intent"
         intent_dir.mkdir()
+
+        # ... (rest of the function is the same) ...
 
         constitutional_files_to_copy = [
             "principles.yaml",
