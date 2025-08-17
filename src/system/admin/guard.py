@@ -13,8 +13,8 @@ import yaml
 from rich import print as rprint
 from rich.panel import Panel
 from rich.table import Table
-from shared.logger import getLogger
 
+from shared.logger import getLogger
 from system.admin.utils import should_fail
 from system.guard.capability_discovery import (
     collect_code_capabilities,
@@ -163,7 +163,10 @@ def register(app: typer.Typer) -> None:
         """Emits a minimal knowledge-graph artifact with capability nodes."""
         require_kgb = prefer.lower() == "kgb"
         caps = collect_code_capabilities(
-            root, include_glogaits=include, exclude_globs=exclude, require_kgb=require_kgb
+            root,
+            include_glogaits=include,
+            exclude_globs=exclude,
+            require_kgb=require_kgb,
         )
         nodes = [
             {"capability": k, "domain": v.domain, "owner": v.owner}
