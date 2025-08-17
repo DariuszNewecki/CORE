@@ -26,9 +26,6 @@ policies:
 prompts:
   constitutional_review: "prompts/constitutional_review.prompt"
 
-project:
-  manifest_yaml: "project_manifest.yaml"
-
 knowledge:
   source_structure: "knowledge/source_structure.yaml"
   codegraph: "knowledge/knowledge_graph.json"
@@ -48,3 +45,16 @@ config:
 schemas:
   config: "schemas/config_schema.yaml"
   knowledge_graph_entry: "schemas/knowledge_graph_entry.schema.json"
+
+# --- THIS IS THE FIX (Part 2 of 2) ---
+# Moved from project_manifest.yaml to here, the correct location for metadata.
+operator_experience:
+  guard:
+    drift:
+      default_format: pretty
+      default_fail_on: any
+      evidence_path: reports/drift_report.json
+      labels:
+        none: "NONE"
+        success: "✅ No capability drift"
+        failure: "🚨 Drift detected"
