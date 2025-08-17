@@ -9,8 +9,6 @@ import json
 from pathlib import Path
 from typing import Dict, List, Optional
 
-# --- THIS IS THE FIX ---
-# Import the data models from their new, central location.
 from .models import CapabilityMeta, DriftReport
 
 
@@ -28,7 +26,11 @@ def detect_capability_drift(
     for k in sorted(list(m_keys & c_keys)):
         m = manifest_caps[k]
         c = code_caps[k]
-        if (m.domain != c.domain) or (m.owner != c.owner):
+        # --- THIS IS THE FIX ---
+        # We will only compare the 'domain' for now, as 'owner' is not
+        # a field that is declared in the manifest files.
+        if m.domain != c.domain:
+        # --- END OF FIX ---
             mismatches.append(
                 {
                     "capability": k,

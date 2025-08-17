@@ -1,6 +1,7 @@
 # src/system/guard/discovery/from_manifest.py
 """
 Intent: Provides a focused tool for discovering capabilities from manifest files.
+This version is updated to support the modular manifest architecture.
 """
 from __future__ import annotations
 
@@ -19,55 +20,48 @@ from system.guard.models import CapabilityMeta
 def _normalize_cap_list(items: Any) -> Dict[str, CapabilityMeta]:
     """Normalizes various list/dict shapes into a standard {cap: Meta} dictionary."""
     out: Dict[str, CapabilityMeta] = {}
-    if isinstance(items, dict):
-        for cap, meta in items.items():
-            if isinstance(meta, dict):
-                out[cap] = CapabilityMeta(
-                    capability=cap, domain=meta.get("domain"), owner=meta.get("owner")
-                )
-    elif isinstance(items, list):
+    if isinstance(items, list):
         for it in items:
             if isinstance(it, str):
                 out[it] = CapabilityMeta(it)
-            elif isinstance(it, dict):
-                cap = it.get("name") or it.get("capability")
-                if cap:
-                    out[cap] = CapabilityMeta(
-                        capability=cap, domain=it.get("domain"), owner=it.get("owner")
-                    )
     return out
 
 
-def _find_manifest(start: Path) -> Path:
-    """Locates the authoritative .intent manifest file."""
-    for p in [start / ".intent/project_manifest.yaml", start / ".intent/manifest.yaml"]:
-        if p.exists():
-            return p
-    raise FileNotFoundError("No manifest found in .intent/")
-
-
-def _normalize_manifest_caps(raw: dict) -> Dict[str, CapabilityMeta]:
-    """Normalizes different manifest shapes into a {capability: Meta} map."""
-    q = deque([raw])
-    while q:
-        node = q.popleft()
-        for key in ("capabilities", "required_capabilities"):
-            if isinstance(node, dict) and key in node:
-                return _normalize_cap_list(node[key])
-        if isinstance(node, dict):
-            q.extend(node.values())
-        elif isinstance(node, list):
-            q.extend(node)
-    return {}
+def _find_all_manifests(start: Path) -> list[Path]:
+    """Locates all manifest.yaml files within the src directory."""
+    src_path = start / "src"
+    if not src_path.is_dir():
+        return []
+    return sorted(list(src_path.glob("**/manifest.yaml")))
 
 
 def load_manifest_capabilities(
     root: Path, explicit_path: Optional[Path] = None
 ) -> Dict[str, CapabilityMeta]:
-    """Loads, parses, and normalizes capabilities from the project's manifest."""
+    """
+    Loads, parses, and aggregates capabilities from all domain-specific manifests.
+    """
     if yaml is None:
-        raise RuntimeError("PyYAML is required.")
-    path = explicit_path or _find_manifest(root)
-    with path.open("r", encoding="utf-8") as f:
-        data = yaml.safe_load(f) or {}
-    return _normalize_manifest_caps(data)
+        raise RuntimeError("PyYAML is required to load manifests.")
+
+    all_caps: Dict[str, CapabilityMeta] = {}
+    manifest_paths = _find_all_manifests(root)
+
+    for path in manifest_paths:
+        try:
+            with path.open("r", encoding="utf-8") as f:
+                data = yaml.safe_load(f) or {}
+            
+            # Extract capabilities and associate them with their domain
+            domain = data.get("domain", "unknown")
+            caps_list = data.get("capabilities", [])
+            normalized_caps = _normalize_cap_list(caps_list)
+            
+            for cap, meta in normalized_caps.items():
+                if cap not in all_caps:
+                    all_caps[cap] = CapabilityMeta(capability=cap, domain=domain)
+        except Exception:
+            # Ignore files that fail to parse
+            continue
+            
+    return all_caps
