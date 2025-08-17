@@ -110,8 +110,12 @@ class PlanExecutionContext:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         """Cleans up and handles rollback on failure."""
-        if exc_type and self.initial_commit and self.executor.config.rollback_on_failure:
-        # --- END OF FIX ---
+        if (
+            exc_type
+            and self.initial_commit
+            and self.executor.config.rollback_on_failure
+        ):
+            # --- END OF FIX ---
             log.warning("Rolling back to initial state due to failure")
             try:
                 self.executor.git_service.reset_to_commit(self.initial_commit)
