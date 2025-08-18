@@ -41,35 +41,36 @@ jobs:
 
       - name: Run Knowledge Graph export + Auditor + Drift
         id: run_checks
+        shell: bash
         run: |
           set +e
           mkdir -p reports
 
-          PYTHONPATH=src poetry run python -m src.system.admin.guard kg-export || true
-          if [ ! -f reports/knowledge_graph.json ]; then
-            PYTHONPATH=src poetry run core-admin guard kg-export || true
+          # --- Knowledge Graph export (module form only; avoid admin/__init__ heavy imports) ---
+          # Try with explicit --output first; if not supported, capture stdout to file.
+          if PYTHONPATH=src poetry run python -m src.system.admin.guard kg-export --output reports/knowledge_graph.json 2> reports/kg_stderr.txt; then
+            echo "KG export (with --output) OK" >> reports/kg_stderr.txt
+          else
+            PYTHONPATH=src poetry run python -m src.system.admin.guard kg-export > reports/knowledge_graph.json 2>> reports/kg_stderr.txt || true
+            echo "KG export (stdout capture) attempted" >> reports/kg_stderr.txt
           fi
 
+          # --- Constitutional Auditor ---
           PYTHONPATH=src poetry run python -m src.core.capabilities \
             > reports/capabilities_stdout.txt \
             2> reports/auditor_stderr.txt
           AUDIT_EXIT=$?
 
+          # --- Drift (JSON report to reports/) ---
           PYTHONPATH=src poetry run python -m src.system.admin.guard drift \
             --strict-intent --fail-on any --format json --output reports/drift_report.json \
             > reports/drift_stdout.txt 2> reports/drift_stderr.txt
           DRIFT_EXIT=$?
 
-          if [ ! -s reports/drift_report.json ]; then
-            PYTHONPATH=src poetry run core-admin guard drift \
-              --strict-intent --fail-on any --format json --output reports/drift_report.json \
-              > reports/drift_stdout.txt 2> reports/drift_stderr.txt
-            DRIFT_EXIT=$?
-          fi
-
           echo "audit_exit=${AUDIT_EXIT}" >> "$GITHUB_OUTPUT"
           echo "drift_exit=${DRIFT_EXIT}" >> "$GITHUB_OUTPUT"
 
+          # Summary
           if [ "$AUDIT_EXIT" -eq 0 ]; then echo "✅ Constitutional Auditor passed" >> $GITHUB_STEP_SUMMARY; else echo "❌ Constitutional Auditor failed (exit $AUDIT_EXIT)" >> $GITHUB_STEP_SUMMARY; fi
           if [ "$DRIFT_EXIT" -eq 0 ]; then echo "✅ Drift clean" >> $GITHUB_STEP_SUMMARY; else echo "❌ Drift violations found (exit $DRIFT_EXIT)" >> $GITHUB_STEP_SUMMARY; fi
 
