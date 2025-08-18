@@ -4,6 +4,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
 import yaml
 from typer.testing import CliRunner
 
@@ -24,31 +25,9 @@ def domain_manifest_yaml(domain: str, capabilities: list[str]):
     )
 
 
-def test_guard_drift_clean_repo(tmp_path: Path):
-    """Tests that a clean repository with modular manifests passes the drift check."""
-    # Arrange: Create a realistic temporary project structure
-    out = tmp_path / "reports" / "drift_report.json"
-
-    # Create valid Python files with symbols for the KGB to find.
-    write(
-        tmp_path / "src" / "domain_alpha" / "mod.py",
-        "# CAPABILITY: alpha.cap\ndef alpha_func(): pass",
-    )
-    write(
-        tmp_path / "src" / "domain_beta" / "mod.py",
-        "# CAPABILITY: beta.cap\ndef beta_func(): pass",
-    )
-
-    # Create the corresponding domain manifests
-    write(
-        tmp_path / "src" / "domain_alpha" / "manifest.yaml",
-        domain_manifest_yaml("domain_alpha", ["alpha.cap"]),
-    )
-    write(
-        tmp_path / "src" / "domain_beta" / "manifest.yaml",
-        domain_manifest_yaml("domain_beta", ["beta.cap"]),
-    )
-
+@pytest.fixture
+def drift_test_repo(tmp_path: Path) -> Path:
+    """Creates a temporary repository with the basic constitutional files needed for drift tests."""
     # Create the source_structure.yaml to map files to domains
     write(
         tmp_path / ".intent/knowledge/source_structure.yaml",
@@ -61,12 +40,34 @@ def test_guard_drift_clean_repo(tmp_path: Path):
             }
         ),
     )
-
-    # Boilerplate files for correct initialization
+    # Boilerplate files for correct KGB initialization
     write(tmp_path / ".intent/knowledge/entry_point_patterns.yaml", "patterns: []")
     write(tmp_path / "pyproject.toml", "[tool.poetry]\nname = 'test-project'")
+    return tmp_path
 
-    # Act: Run the drift command on our temporary project
+
+def test_guard_drift_clean_repo(drift_test_repo: Path):
+    """Tests that a clean repository with modular manifests passes the drift check."""
+    tmp_path = drift_test_repo
+    out = tmp_path / "reports" / "drift_report.json"
+
+    write(
+        tmp_path / "src" / "domain_alpha" / "mod.py",
+        "# CAPABILITY: alpha.cap\ndef alpha_func(): pass",
+    )
+    write(
+        tmp_path / "src" / "domain_beta" / "mod.py",
+        "# CAPABILITY: beta.cap\ndef beta_func(): pass",
+    )
+    write(
+        tmp_path / "src" / "domain_alpha" / "manifest.yaml",
+        domain_manifest_yaml("domain_alpha", ["alpha.cap"]),
+    )
+    write(
+        tmp_path / "src" / "domain_beta" / "manifest.yaml",
+        domain_manifest_yaml("domain_beta", ["beta.cap"]),
+    )
+
     result = runner.invoke(
         app,
         [
@@ -81,27 +82,16 @@ def test_guard_drift_clean_repo(tmp_path: Path):
         ],
     )
 
-    # --- THIS IS THE DIAGNOSTIC PART ---
-    # We print the raw output from the command runner.
-    # The `assert False` guarantees the test fails and this output is shown in the CI logs.
-    print("\n--- RAW CLI OUTPUT FOR DIAGNOSIS ---")
-    print(result.output)
-    print("--- END RAW CLI OUTPUT ---")
     assert result.exit_code == 0, result.output
-    # --- END DIAGNOSTIC PART ---
-
     report = json.loads(out.read_text(encoding="utf-8"))
     assert not report["missing_in_code"]
     assert not report["undeclared_in_manifest"]
     assert not report["mismatched_mappings"]
 
 
-# ... (the rest of the file remains the same) ...
-# ... I'm omitting the other two tests for brevity, they should not be changed ...
-
-
-def test_guard_drift_detects_undeclared(tmp_path: Path):
+def test_guard_drift_detects_undeclared(drift_test_repo: Path):
     """Tests that a capability in code but not in any manifest is detected."""
+    tmp_path = drift_test_repo
     write(
         tmp_path / "src" / "domain_alpha" / "manifest.yaml",
         domain_manifest_yaml("domain_alpha", ["alpha.cap"]),
@@ -128,34 +118,23 @@ def test_guard_drift_detects_undeclared(tmp_path: Path):
         ],
     )
 
-    assert result.exit_code == 2
+    assert result.exit_code == 2, result.output
     report = json.loads(out.read_text(encoding="utf-8"))
     assert "ghost.cap" in report["undeclared_in_manifest"]
+    assert len(report["mismatched_mappings"]) == 0
 
 
-def test_guard_drift_detects_mismatched_domain(tmp_path: Path):
+def test_guard_drift_detects_mismatched_domain(drift_test_repo: Path):
     """Tests that a capability in the wrong domain is detected as a mismatch."""
+    tmp_path = drift_test_repo
     write(
         tmp_path / "src" / "domain_alpha" / "manifest.yaml",
         domain_manifest_yaml("domain_alpha", ["beta.cap"]),
     )
     write(
-        tmp_path / ".intent/knowledge/source_structure.yaml",
-        yaml.safe_dump(
-            {
-                "structure": [
-                    {"domain": "domain_alpha", "path": "src/domain_alpha"},
-                    {"domain": "domain_beta", "path": "src/domain_beta"},
-                ]
-            }
-        ),
-    )
-    write(
         tmp_path / "src" / "domain_beta" / "mod.py",
         "# CAPABILITY: beta.cap\ndef beta_func(): pass",
     )
-    write(tmp_path / ".intent/knowledge/entry_point_patterns.yaml", "patterns: []")
-    write(tmp_path / "pyproject.toml", "[tool.poetry]\nname = 'test-project'")
     out = tmp_path / "reports" / "drift_report.json"
 
     result = runner.invoke(
@@ -167,12 +146,14 @@ def test_guard_drift_detects_mismatched_domain(tmp_path: Path):
             str(tmp_path),
             "--format",
             "json",
+            "--fail-on",
+            "any",
             "--output",
             str(out),
         ],
     )
 
-    assert result.exit_code == 2
+    assert result.exit_code == 2, result.output
     report = json.loads(out.read_text(encoding="utf-8"))
     assert not report["missing_in_code"]
     assert not report["undeclared_in_manifest"]

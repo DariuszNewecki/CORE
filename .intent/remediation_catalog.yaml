@@ -1,0 +1,57 @@
+# .intent/remediation_catalog.yaml
+# Intent: Map governance findings to safe, reversible actions CORE may take autonomously.
+# Scope: Non-functional fixes only (docs/tags/manifests). All changes are gated by tests & auditor.
+version: 1
+
+allowed_actions:
+  - add_docstring           # add/update docstrings or "Intent:" header blocks
+  - add_capability_tag      # insert '# CAPABILITY: <name>' above the implementing symbol
+  - update_manifest         # add/remove capability entries in a domain's manifest.yaml
+
+scopes:
+  # Where each action is allowed. Keep narrow; expand as confidence grows.
+  core:    [add_docstring, add_capability_tag, update_manifest]
+  shared:  [add_docstring, add_capability_tag, update_manifest]
+  agents:  [add_docstring, add_capability_tag]        # manifest changes usually live in domain folders
+  system:  [add_docstring, add_capability_tag, update_manifest]
+  tooling: [add_docstring, add_capability_tag, update_manifest]
+
+policy:
+  acceptance_gates:
+    tests: must_pass              # pytest must be green
+    auditor: must_not_worsen      # constitutional auditor must be no worse than before
+    drift: must_be_clean          # capability drift must be clean after the change
+  evidence_bundle:
+    - diff                        # git patch/diff
+    - auditor_before              # auditor stderr/output BEFORE fixes
+    - auditor_after               # auditor stderr/output AFTER fixes
+    - drift_report                # reports/drift_report.json
+    - tests_summary               # pytest summary / coverage.xml
+
+# Map concrete finding keys to actions. Keys mirror the auditor/drift messages.
+remediations:
+  missing_docstring:
+    action: add_docstring
+
+  generic_intent:
+    action: add_docstring
+    params:
+      intent_mode: true           # nudge the generator to write an "Intent:"-style summary
+
+  missing_capability_implementation:
+    action: add_capability_tag
+
+  undeclared_capability:
+    action: update_manifest
+    params:
+      mode: add                   # add capability to the correct domain manifest
+
+  declared_but_missing_in_code:
+    action: update_manifest
+    params:
+      mode: remove                # remove capability from manifest if truly gone
+
+# Findings we do NOT auto-fix (diagnose only). CORE should open a "diagnostic PR" with plan.
+diagnostics_only:
+  - potential_dead_code
+  - complexity_outlier

@@ -1,14 +1,6 @@
-# src/shared/config.py
-"""
-Centralized Pydantic-based settings management for CORE.
-
-This module defines a `Settings` class that automatically loads configuration
-from environment variables and .env files. It provides a single, typed source
-of truth for all configuration parameters.
-"""
 from pathlib import Path
 
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -43,12 +35,11 @@ class Settings(BaseSettings):
     # Disables LLM client initialization at startup when false.
     LLM_ENABLED: bool = True
 
-    class Config:
-        """Defines Pydantic's behavior for the Settings model."""
-
-        # This tells Pydantic to load variables from a .env file if it exists.
-        env_file = ".env"
-        env_file_encoding = "utf-8"
+    # Pydantic v2 style configuration
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+    )
 
 
 # Create a single, reusable instance of the settings for other modules to import.

@@ -2,9 +2,13 @@
 """
 Intent: Exposes PlannerAgent capabilities directly to the human operator via the CLI.
 """
+from __future__ import annotations
+
 import json
+import re
 import subprocess
 import textwrap
+from typing import Any
 
 import typer
 
@@ -21,14 +25,82 @@ CORE_ROOT = get_repo_root()
 agent_app = typer.Typer(help="Directly invoke autonomous agent capabilities.")
 
 
-def _extract_json_from_response(text: str):
-    """Helper to extract JSON from LLM responses for scaffolding."""
-    import re
+def _extract_json_from_response(text: str) -> Any:
+    """
+    Robustly extract the first valid JSON value from a model response.
 
-    match = re.search(r"```json\s*(\{[\s\S]*?\}|\[[\s\S]*?\])\s*```", text, re.DOTALL)
-    if match:
-        return json.loads(match.group(1))
-    return json.loads(text)
+    Strategy (least → most permissive):
+      1) Direct parse if the whole text is JSON.
+      2) Trim common wrappers (code fences), try parse.
+      3) Find the first balanced JSON object/array in the text and parse that.
+
+    Raises JSONDecodeError if no valid JSON is found.
+    """
+    s = text.strip()
+
+    # 1) Direct parse
+    if s.startswith("{") or s.startswith("["):
+        return json.loads(s)
+
+    # 2) Strip common code-fence wrappers like ```json ... ``` or ``` ... ```
+    fence = re.compile(r"^```(?:json|JSON)?\s*(.*?)\s*```$", re.DOTALL)
+    m = fence.match(s)
+    if m:
+        inner = m.group(1).strip()
+        if inner.startswith("{") or inner.startswith("["):
+            return json.loads(inner)
+
+    # Also handle inline fenced blocks appearing anywhere; prefer ```json blocks first
+    for pattern in (r"```(?:json|JSON)\s*(.*?)\s*```", r"```\s*(.*?)\s*```"):
+        for mm in re.finditer(pattern, s, flags=re.DOTALL):
+            candidate = mm.group(1).strip()
+            if candidate.startswith("{") or candidate.startswith("["):
+                try:
+                    return json.loads(candidate)
+                except json.JSONDecodeError:
+                    # try the next candidate
+                    pass
+
+    # 3) Balanced-brace/bracket scan to locate the first JSON value
+    def _scan_balanced(src: str) -> str | None:
+        openers = {"{": "}", "[": "]"}
+        i = 0
+        n = len(src)
+        while i < n:
+            ch = src[i]
+            if ch in openers:
+                stack = [openers[ch]]
+                j = i + 1
+                in_str = False
+                escape = False
+                while j < n:
+                    c = src[j]
+                    if in_str:
+                        if escape:
+                            escape = False
+                        elif c == "\\":
+                            escape = True
+                        elif c == '"':
+                            in_str = False
+                    else:
+                        if c == '"':
+                            in_str = True
+                        elif c in openers:
+                            stack.append(openers[c])
+                        elif stack and c == stack[-1]:
+                            stack.pop()
+                            if not stack:
+                                return src[i : j + 1]
+                    j += 1
+            i += 1
+        return None
+
+    segment = _scan_balanced(s)
+    if segment is not None:
+        return json.loads(segment)
+
+    # Give a clear, actionable error
+    raise json.JSONDecodeError("No valid JSON found in response", s, 0)
 
 
 # CAPABILITY: scaffold_project
@@ -56,6 +128,8 @@ def scaffold_new_application(
     ).strip()
 
     final_prompt = prompt_template.format(goal=goal)
+    response_text: str | None = None  # for better error diagnostics
+
     try:
         response_text = orchestrator.make_request(
             final_prompt, user_id="scaffolding_agent"
@@ -74,7 +148,6 @@ def scaffold_new_application(
         for rel_path, content in file_structure.items():
             scaffolder.write_file(rel_path, content)
 
-        # --- THIS IS THE NEW SECTION ---
         # Add the templated test and CI files
         log.info("   -> Adding starter test and CI workflow...")
         test_template_path = scaffolder.starter_kit_path / "test_main.py.template"
@@ -89,21 +162,22 @@ def scaffold_new_application(
         if ci_template_path.exists():
             ci_content = ci_template_path.read_text(encoding="utf-8")
             scaffolder.write_file(".github/workflows/ci.yml", ci_content)
-        # --- END OF NEW SECTION ---
 
+        # Optionally initialize a Git repository and make an initial commit.
         if initialize_git:
-            log.info(
-                f"   -> Initializing new Git repository in {scaffolder.project_root}..."
-            )
-            subprocess.run(
-                ["git", "init"],
-                cwd=scaffolder.project_root,
-                check=True,
-                capture_output=True,
-            )
-            new_repo_git = GitService(str(scaffolder.project_root))
-            new_repo_git.add(".")
-            new_repo_git.commit(f"feat(scaffold): Initial commit for '{project_name}'")
+            log.info("   -> Initializing Git repository...")
+            git = GitService(scaffolder.project_root)
+            try:
+                # Create a repo if not already a git repo
+                if not git.is_git_repo():
+                    subprocess.run(
+                        ["git", "init"], cwd=scaffolder.project_root, check=True
+                    )
+                git.add(".")
+                git.commit(f"feat(scaffold): Initialize '{project_name}'")
+                log.info("   -> ✅ Initial commit created.")
+            except Exception as e:
+                log.warning(f"   -> ⚠️ Git initialization skipped: {e}")
 
         return (
             True,
@@ -111,7 +185,18 @@ def scaffold_new_application(
         )
 
     except Exception as e:
-        log.error(f"❌ Scaffolding failed: {e}", exc_info=True)
+        # Extra diagnostic preview when the LLM returns non-JSON and parsing fails
+        if isinstance(e, json.JSONDecodeError) and response_text:
+            preview = response_text.strip().replace("\n", " ")
+            if len(preview) > 200:
+                preview = preview[:200] + "…"
+            log.error(
+                "LLM response was not valid JSON. Preview: %r", preview, exc_info=True
+            )
+        else:
+            log.error(f"❌ Scaffolding failed: {e}", exc_info=True)
+
+        # Preserve the original operator-facing message to keep tests and UX stable
         return False, f"Scaffolding failed: {str(e)}"
 
 

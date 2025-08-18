@@ -10,14 +10,17 @@ Implements the FastAPI server that handles:
 
 Integrates all core capabilities into a unified interface.
 """
+import os
+import time
 from contextlib import asynccontextmanager
 from pathlib import Path
+from typing import Annotated
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Request
 from fastapi import status as http_status
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, StringConstraints
 
 from agents.execution_agent import ExecutionAgent
 from agents.plan_executor import PlanExecutor
@@ -31,15 +34,27 @@ from core.intent_alignment import check_goal_alignment
 from core.intent_guard import IntentGuard
 from core.prompt_pipeline import PromptPipeline
 from shared.config import settings
-from shared.logger import getLogger
+from shared.logger import configure_logging, getLogger
 
 log = getLogger(__name__)
 load_dotenv()
+
+# --- Pydantic v2 string constraints (trim + require non-empty) ---
+GoalText = Annotated[str, StringConstraints(min_length=1, strip_whitespace=True)]
+
+# simple process-start timestamp for /healthz diagnostics
+PROCESS_START_TS = time.time()
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """FastAPI lifespan handler — runs startup and shutdown logic."""
+
+    # Configure runtime logging once per app start.
+    level = os.getenv("CORE_LOG_LEVEL", "INFO")
+    json_mode = os.getenv("CORE_LOG_JSON", "false").lower() == "true"
+    configure_logging(level=level, json_mode=json_mode)  # logs to sys.__stderr__
+
     log.info("🚀 Starting CORE system...")
 
     log.info("🧠 Performing startup introspection...")
@@ -76,14 +91,21 @@ register_exception_handlers(app)
 class GoalRequest(BaseModel):
     """Defines the request body for the /execute_goal endpoint."""
 
-    goal: str = Field(min_length=1, strip_whitespace=True)
+    goal: GoalText
 
 
 class AlignmentRequest(BaseModel):
     """Request schema for /guard/align."""
 
-    goal: str = Field(min_length=1, strip_whitespace=True)
+    goal: GoalText
     min_coverage: float | None = Field(default=None, ge=0.0, le=1.0)
+
+
+@app.get("/healthz")
+async def healthz():
+    """Simple liveness/readiness probe."""
+    uptime_s = int(time.time() - PROCESS_START_TS)
+    return {"status": "ok", "uptime_seconds": uptime_s}
 
 
 @app.post("/guard/align")

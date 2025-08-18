@@ -5,20 +5,11 @@ live KnowledgeGraphBuilder.
 """
 from __future__ import annotations
 
-import importlib
 from pathlib import Path
 from typing import Any, Dict, Optional
 
 from system.guard.models import CapabilityMeta
-
-
-def _try_import_kgb():
-    """Attempts to access KnowledgeGraphBuilder without a static cross-domain import."""
-    try:
-        mod = importlib.import_module("system.tools.codegraph_builder")
-        return getattr(mod, "KnowledgeGraphBuilder", None)
-    except Exception:
-        return None
+from system.tools.codegraph_builder import KnowledgeGraphBuilder
 
 
 def _extract_cap_meta_from_node(node: Dict[str, Any]) -> Optional[CapabilityMeta]:
@@ -35,11 +26,8 @@ def _extract_cap_meta_from_node(node: Dict[str, Any]) -> Optional[CapabilityMeta
 
 def collect_from_kgb(root: Path) -> Dict[str, CapabilityMeta]:
     """Uses KnowledgeGraphBuilder (if present) to discover capabilities from the repo."""
-    KGB = _try_import_kgb()
-    if not KGB:
-        return {}
     try:
-        builder = KGB(root_path=root)
+        builder = KnowledgeGraphBuilder(root_path=root)
         graph = builder.build()
         caps: Dict[str, CapabilityMeta] = {}
         if isinstance(graph, dict):
@@ -51,4 +39,5 @@ def collect_from_kgb(root: Path) -> Dict[str, CapabilityMeta]:
                         caps[meta.capability] = meta
         return caps
     except Exception:
+        # If KGB fails for any reason (e.g., missing constitution), fall back gracefully.
         return {}

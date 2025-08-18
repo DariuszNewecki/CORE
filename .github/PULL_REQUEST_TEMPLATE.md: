@@ -10,15 +10,30 @@
 - [ ] test
 
 ## Why
-<!-- Link related issue(s) and explain the intent. -->
+<!-- Link related issue(s) and explain the intent. Reference `.intent/` where relevant. -->
 
 ## How
 <!-- High-level approach; call out risky areas or trade-offs. -->
 
+## Scope / Domains
+<!-- List impacted domains (e.g., core, shared, agents, system, tooling). -->
+
 ## Checklist
-- [ ] I ran `poetry install` and the checks (`black --check .`, `ruff check .`, `pytest`)
-- [ ] Added/updated tests where it made sense
-- [ ] Updated docs (README/CONTRIBUTING) if behavior changed
+- [ ] I ran local checks: `black --check .`, `ruff check .`, `pytest`
+- [ ] Governance: drift is clean; auditor is **no worse** than before
 - [ ] No domain boundary violations (aligns with `.intent/`)
+- [ ] Capability tags & manifests updated when relevant
+- [ ] Docs updated if behavior changed
 
 ---
+
+## Evidence Bundle (required for CORE/autonomy changes)
+- Diff: (inline or link to artifact)
+- Auditor BEFORE: (attach/log)
+- Auditor AFTER: (attach/log)
+- Drift report: `reports/drift_report.json`
+- Tests summary / coverage: (attach/log)
+
+## Risk
+- Category: Non-functional / Functional (choose one)
+- Rollback: Revert this PR to undo changes

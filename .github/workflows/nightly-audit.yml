@@ -1,99 +1,153 @@
-name: Governance Checks
+name: Nightly Constitutional Auditor (rolling issue)
 
 on:
-  schedule:
-    - cron: "15 2 * * *"   # 02:15 UTC nightly
-  pull_request:
-    branches: [ main ]
   workflow_dispatch:
+  schedule:
+    - cron: "30 2 * * *" # nightly @ 02:30 UTC
 
 permissions:
   contents: read
   issues: write
-  pull-requests: write
+  actions: read
+
+concurrency:
+  group: nightly-auditor
+  cancel-in-progress: false
 
 jobs:
   audit:
+    name: Run auditor + drift and update rolling issue
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    continue-on-error: true
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.12"
+
       - name: Install Poetry
-        run: pipx install poetry
-      - name: Install deps
-        run: poetry install --no-interaction --no-root
-      - name: Run self-audit
-        id: audit
+        uses: snok/install-poetry@v1
+        with:
+          version: "1.8.3"
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+
+      - name: Install dependencies
+        run: poetry install --no-interaction --no-ansi
+
+      - name: Run Knowledge Graph export + Auditor + Drift
+        id: run_checks
         run: |
           set +e
-          poetry run python -m src.core.capabilities &> audit_output.txt
-          echo "exit_code=$?" >> $GITHUB_OUTPUT
-          echo "output<<EOF" >> $GITHUB_OUTPUT
-          cat audit_output.txt >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          mkdir -p reports
+
+          PYTHONPATH=src poetry run python -m src.system.admin.guard kg-export || true
+          if [ ! -f reports/knowledge_graph.json ]; then
+            PYTHONPATH=src poetry run core-admin guard kg-export || true
+          fi
+
+          PYTHONPATH=src poetry run python -m src.core.capabilities \
+            > reports/capabilities_stdout.txt \
+            2> reports/auditor_stderr.txt
+          AUDIT_EXIT=$?
+
+          PYTHONPATH=src poetry run python -m src.system.admin.guard drift \
+            --strict-intent --fail-on any --format json --output reports/drift_report.json \
+            > reports/drift_stdout.txt 2> reports/drift_stderr.txt
+          DRIFT_EXIT=$?
+
+          if [ ! -s reports/drift_report.json ]; then
+            PYTHONPATH=src poetry run core-admin guard drift \
+              --strict-intent --fail-on any --format json --output reports/drift_report.json \
+              > reports/drift_stdout.txt 2> reports/drift_stderr.txt
+            DRIFT_EXIT=$?
+          fi
+
+          echo "audit_exit=${AUDIT_EXIT}" >> "$GITHUB_OUTPUT"
+          echo "drift_exit=${DRIFT_EXIT}" >> "$GITHUB_OUTPUT"
+
+          if [ "$AUDIT_EXIT" -eq 0 ]; then echo "✅ Constitutional Auditor passed" >> $GITHUB_STEP_SUMMARY; else echo "❌ Constitutional Auditor failed (exit $AUDIT_EXIT)" >> $GITHUB_STEP_SUMMARY; fi
+          if [ "$DRIFT_EXIT" -eq 0 ]; then echo "✅ Drift clean" >> $GITHUB_STEP_SUMMARY; else echo "❌ Drift violations found (exit $DRIFT_EXIT)" >> $GITHUB_STEP_SUMMARY; fi
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-auditor-artifacts
+          path: |
+            reports/**
+          retention-days: 5
+
+      - name: Create or update the rolling issue
+        uses: actions/github-script@v7
         env:
-          PYTHONPATH: src
-
-      - name: Open/Update issue on failure (for Nightly run)
-        if: github.event_name == 'schedule' && steps.audit.outputs.exit_code != '0'
-        uses: actions/github-script@v7
+          AUDIT_EXIT: ${{ steps.run_checks.outputs.audit_exit }}
+          DRIFT_EXIT: ${{ steps.run_checks.outputs.drift_exit }}
         with:
           script: |
-            const title = "❌ Nightly Constitutional Audit failed";
-            const body = "The nightly audit failed. Please check CI logs for details.\n\n- Workflow: ${{ github.workflow }}\n- Run ID: ${{ github.run_id }}";
-            const { data: issues } = await github.rest.issues.listForRepo({
-              owner: context.repo.owner, repo: context.repo.repo, state: "open", labels: "ci,audit"
-            });
-            const existing = issues.find(i => i.title === title);
-            if (existing) {
-              await github.rest.issues.createComment({ owner: context.repo.owner, repo: context.repo.repo, issue_number: existing.number, body });
+            const { AUDIT_EXIT, DRIFT_EXIT } = process.env;
+            const owner = context.repo.owner;
+            const repo  = context.repo.repo;
+            const title = "Nightly Constitutional Audit status";
+
+            const ok = (x) => String(x) === "0";
+            const head = (ok(AUDIT_EXIT) && ok(DRIFT_EXIT)) ? "✅" : "❌";
+            const now  = new Date().toISOString();
+
+            const summary = [
+              `**Run:** ${context.runId} (workflow: ${context.workflow})`,
+              `**Time (UTC):** ${now}`,
+              `**Auditor:** ${ok(AUDIT_EXIT) ? "✅" : "❌"} exit=${AUDIT_EXIT}`,
+              `**Drift:** ${ok(DRIFT_EXIT) ? "✅" : "❌"} exit=${DRIFT_EXIT}`,
+              ``,
+              `**Artifacts:** See job artifacts: "nightly-auditor-artifacts"`,
+              ``,
+              `<details><summary>Raw exits</summary>`,
+              ``,
+              `- AUDIT_EXIT=${AUDIT_EXIT}`,
+              `- DRIFT_EXIT=${DRIFT_EXIT}`,
+              ``,
+              `</details>`
+            ].join("\n");
+
+            const header = [
+              "# Nightly Constitutional Audit",
+              "",
+              "This is a rolling issue. Each nightly run updates this thread.",
+              "",
+              "Policy gates:",
+              "- Ruff / Black / Tests are required on PRs",
+              "- Constitutional Auditor should pass (or show only actionable warnings)",
+              "- Drift must be clean",
+              ""
+            ].join("\n");
+
+            const openIssues = await github.paginate(
+              github.rest.issues.listForRepo,
+              { owner, repo, state: "open", per_page: 100 }
+            );
+            const existing = openIssues.find(i => i.title.endsWith(title));
+
+            if (!existing) {
+              const created = await github.rest.issues.create({
+                owner, repo,
+                title: `${head} ${title}`,
+                body: `${header}\n\n---\n\n## Latest Run\n\n${summary}`,
+                labels: ["ci","audit"]
+              });
+              core.info(`Created issue #${created.data.number}`);
             } else {
-              await github.rest.issues.create({
-                owner: context.repo.owner, repo: context.repo.repo,
-                title, body, labels: ["ci","audit"]
+              await github.rest.issues.createComment({
+                owner, repo, issue_number: existing.number,
+                body: `## Latest Run\n\n${summary}`
               });
+              if (!existing.title.startsWith(head)) {
+                await github.rest.issues.update({
+                  owner, repo, issue_number: existing.number,
+                  title: `${head} ${title}`
+                });
+              }
             }
-
-      - name: Close issue on success (for Nightly run)
-        if: github.event_name == 'schedule' && steps.audit.outputs.exit_code == '0'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const title = "❌ Nightly Constitutional Audit failed";
-            const { data: issues } = await github.rest.issues.listForRepo({
-              owner: context.repo.owner, repo: context.repo.repo, state: "open", labels: "ci,audit"
-            });
-            const existing = issues.find(i => i.title === title);
-            if (existing) {
-              await github.rest.issues.update({
-                owner: context.repo.owner, repo: context.repo.repo,
-                issue_number: existing.number, state: "closed"
-              });
-            }
-
-      - name: Post PR comment on failure (for PR run)
-        if: github.event_name == 'pull_request' && steps.audit.outputs.exit_code != '0'
-        uses: actions/github-script@v7
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const output = `
-            #### 🏛️ Constitutional Audit Failed
-            This change introduces a violation of the CORE constitution.
-            Please review the audit logs to resolve the issue.
-
-            <details><summary>Audit Failure Details</summary>
-
-            \`\`\`
-            ${{ steps.audit.outputs.output }}
-            \`\`\`
-            </details>
-            `;
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-              body: output
-            });

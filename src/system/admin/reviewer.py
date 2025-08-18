@@ -9,8 +9,6 @@ from pathlib import Path
 
 import typer
 import yaml
-from rich import print as rprint
-from rich.panel import Panel
 
 from core.clients import OrchestratorClient
 from shared.config import settings
@@ -118,33 +116,26 @@ def peer_review(
     else:
         log.info("🤖 Orchestrating Constitutional Peer Review...")
 
-    # 1. Load the review prompt from the constitution itself.
     prompt_path = settings.MIND / "prompts" / "constitutional_review.prompt"
     if not prompt_path.exists():
         log.error(f"❌ Review prompt not found at {prompt_path}. Cannot proceed.")
         raise typer.Exit(code=1)
     review_prompt_template = prompt_path.read_text(encoding="utf-8")
 
-    # 2. Export the constitutional bundle.
     log.info("   -> Bundling the constitution for review...")
     bundle = _get_bundle_content()
 
-    # 3. Combine them into the final prompt.
     final_prompt = f"{review_prompt_template}\n\n{bundle}"
 
-    # 4. If --dry-run is used, print and exit.
     if dry_run:
-        rprint(
-            Panel(
-                final_prompt,
-                title="[bold yellow]Final Prompt to be Sent[/bold yellow]",
-                border_style="yellow",
-            )
+        typer.secho(
+            "\n--- Final Prompt to be Sent ---", fg=typer.colors.YELLOW, bold=True
         )
+        typer.echo(final_prompt)
+        typer.secho("--- End of Prompt ---", fg=typer.colors.YELLOW, bold=True)
         log.info("✅ Dry-run complete. No request was sent.")
         raise typer.Exit()
 
-    # 5. Otherwise, send to the Orchestrator LLM.
     log.info(
         "   -> Sending bundle to external LLM for analysis. This may take a moment..."
     )
@@ -154,7 +145,6 @@ def peer_review(
         final_prompt, user_id="constitutional_reviewer"
     )
 
-    # 6. Save the feedback.
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(review_feedback, encoding="utf-8")
 

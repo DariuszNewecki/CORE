@@ -1,0 +1,20 @@
+# Auto-apply labels based on changed paths
+feat:
+  - "src/**"
+fix:
+  - "src/**"
+docs:
+  - "README.md"
+  - "docs/**"
+test:
+  - "tests/**"
+governance:
+  - ".intent/**"
+  - "src/system/**"
+drift:
+  - "reports/drift_report.json"
+ci:
+  - ".github/workflows/**"
+deps:
+  - "pyproject.toml"
+  - "poetry.lock"

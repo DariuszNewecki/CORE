@@ -1,14 +1,14 @@
 # src/system/tools/domain_mapper.py
-import logging
 from pathlib import Path
 from typing import Dict
 
-# Corrected import path
+# Corrected import to use the project's custom, test-aware logger
 from shared.config_loader import load_config
+from shared.logger import getLogger
 
 # Configure logging for detailed CI diagnostics
-# Using getLogger to integrate with your existing rich logger setup
-logger = logging.getLogger(__name__)
+# Using getLogger to integrate with your existing logger setup
+log = getLogger(__name__)
 
 
 class DomainMapper:
@@ -20,12 +20,8 @@ class DomainMapper:
         self.root_path = Path(root_path).resolve()
 
         # INSTRUMENTATION
-        logger.debug(
-            f"DomainMapper.__init__ - Original root_path input: {original_root}"
-        )
-        logger.debug(
-            f"DomainMapper.__init__ - Final resolved root_path: {self.root_path}"
-        )
+        log.debug(f"DomainMapper.__init__ - Original root_path input: {original_root}")
+        log.debug(f"DomainMapper.__init__ - Final resolved root_path: {self.root_path}")
 
         self.domain_map_relative: Dict[Path, str] = self._load_domain_map()
         self.sorted_domain_paths = sorted(
@@ -39,14 +35,12 @@ class DomainMapper:
         try:
             data = load_config(config_path, "yaml")
         except Exception as e:
-            logger.warning(
-                f"Could not load domain configuration from {config_path}: {e}"
-            )
+            log.warning(f"Could not load domain configuration from {config_path}: {e}")
             return {}
 
         structure = data.get("structure", [])
         if not isinstance(structure, list):
-            logger.warning("source_structure.yaml is missing a 'structure' list.")
+            log.warning("source_structure.yaml is missing a 'structure' list.")
             return {}
 
         domain_map = {}
@@ -56,7 +50,7 @@ class DomainMapper:
                 domain_map[relative_path] = entry["domain"]
 
         # INSTRUMENTATION
-        logger.debug(
+        log.debug(
             f"DomainMapper._load_domain_map - Loaded {len(domain_map)} mappings: {domain_map}"
         )
         return domain_map
@@ -64,7 +58,7 @@ class DomainMapper:
     def determine_domain(self, file_path_relative: Path) -> str:
         """Determine the domain for a file given its relative path from root."""
         # INSTRUMENTATION
-        logger.debug(
+        log.debug(
             f"determine_domain - Input file_path_relative: '{file_path_relative}' (type: {type(file_path_relative)})"
         )
 
@@ -75,42 +69,50 @@ class DomainMapper:
             try:
                 file_path_relative = file_path_relative.relative_to(self.root_path)
             except ValueError:
-                logger.warning(
+                log.warning(
                     f"Cannot make {file_path_relative} relative to {self.root_path}"
                 )
                 return "unassigned"
 
         # INSTRUMENTATION
-        logger.debug(
+        log.debug(
             f"determine_domain - Starting domain matching loop for: '{file_path_relative}'"
         )
-        logger.debug(
+        log.debug(
             f"determine_domain - Available domain paths: {self.sorted_domain_paths}"
         )
 
         for domain_path in self.sorted_domain_paths:
             # INSTRUMENTATION
-            logger.debug(
+            log.debug(
                 f"determine_domain - ITERATION: Comparing '{file_path_relative}' against '{domain_path}'"
             )
             try:
-                file_path_relative.relative_to(domain_path)
-                domain = self.domain_map_relative[domain_path]
-                logger.debug(
-                    f"determine_domain - MATCH FOUND: '{file_path_relative}' belongs to domain '{domain}'"
-                )
-                return domain
-            except ValueError:
-                logger.debug("determine_domain - NO MATCH on this iteration.")
-                continue
+                # Use is_relative_to for a more robust check in Python 3.9+
+                if file_path_relative.is_relative_to(domain_path):
+                    domain = self.domain_map_relative[domain_path]
+                    log.debug(
+                        f"determine_domain - MATCH FOUND: '{file_path_relative}' belongs to domain '{domain}'"
+                    )
+                    return domain
+            except AttributeError:  # Fallback for older Python versions if needed
+                if str(file_path_relative).startswith(str(domain_path)):
+                    domain = self.domain_map_relative[domain_path]
+                    log.debug(
+                        f"determine_domain - MATCH FOUND: '{file_path_relative}' belongs to domain '{domain}'"
+                    )
+                    return domain
 
-        logger.debug(
+            log.debug("determine_domain - NO MATCH on this iteration.")
+            continue
+
+        log.debug(
             f"determine_domain - NO MATCH FOUND for '{file_path_relative}'. Returning 'unassigned'."
         )
         return "unassigned"
 
     def infer_agent_from_path(self, relative_path: Path) -> str:
-        # ... (rest of the file is unchanged)
+        # ... (rest of the file is unchanged) ...
         path_lower = str(relative_path).lower()
         agent_keywords = {
             "planner": "planner_agent",

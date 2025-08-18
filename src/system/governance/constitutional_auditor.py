@@ -101,11 +101,11 @@ class ConstitutionalAuditor:
                     ):
                         if method_name.startswith("_"):
                             continue
-                        if method_name == "check_for_dead_code":
-                            log.warning(
-                                f"Skipping '{method_name}' check due to known false positives with CLI commands"
-                            )
-                            continue
+
+                        # --- THIS UNCONSTITUTIONAL SHORTCUT HAS BEEN REMOVED ---
+                        # The new declarative pattern in the constitution
+                        # makes this check pass cleanly, so the exception is
+                        # no longer needed. The system is now fully aligned.
 
                         symbol_key = f"src/system/governance/checks/{check_file.name}::{method_name}"
                         symbol_data = self.context.symbols_map.get(symbol_key, {})

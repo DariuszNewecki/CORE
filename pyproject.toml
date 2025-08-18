@@ -30,10 +30,9 @@ python-dotenv = ">=1.0.0"
 pydantic = ">=2.0.0"
 pydantic-settings = "^2.0.0" 
 cryptography = ">=42.0.0"
-rich = "^13"
-black = "^24"
+# rich = "^13"  <-- This line should already be gone
 jsonschema = "^4"
-typer = {extras = ["rich"], version = "^0.9.0"}
+typer = "^0.9.0"  # <-- THIS IS THE FIX. REMOVED THE RICH EXTRA.
 radon = ">=5.1.0"
 filelock = "^3.13.0"
 
