@@ -113,6 +113,7 @@ def _print_pretty(report_dict: dict, labels: Dict[str, str]) -> None:
     typer.secho(f"\n--- {status} ---", bold=True)
 
     def print_section(title: str, items: List[str]):
+        """Prints a titled section with a list of items, highlighting the title in bold and items in yellow, or a 'none' label in green if the list is empty."""
         typer.secho(f"\n{title}:", bold=True)
         if not items:
             typer.secho(f"  {labels['none']}", fg=typer.colors.GREEN)

@@ -63,6 +63,7 @@ def _extract_json_from_response(text: str) -> Any:
 
     # 3) Balanced-brace/bracket scan to locate the first JSON value
     def _scan_balanced(src: str) -> str | None:
+        """Scan a string for a balanced bracket-enclosed expression (supports {}, [], and nested strings with escapes) and return it if found, else None."""
         openers = {"{": "}", "[": "]"}
         i = 0
         n = len(src)

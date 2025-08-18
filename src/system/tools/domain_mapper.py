@@ -112,6 +112,7 @@ class DomainMapper:
         return "unassigned"
 
     def infer_agent_from_path(self, relative_path: Path) -> str:
+        """Infer the agent type from the given relative path by checking for predefined keywords, returning the corresponding agent string or 'generic_agent' if no match is found."""
         # ... (rest of the file is unchanged) ...
         path_lower = str(relative_path).lower()
         agent_keywords = {

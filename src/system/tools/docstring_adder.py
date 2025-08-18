@@ -23,6 +23,7 @@ try:
 except Exception:  # pragma: no cover
 
     def track(iterable, description=None):
+        """Iterate over an iterable, optionally with a description (no-op, yields items unchanged)."""
         # minimal fallback: just pass items through
         for item in iterable:
             yield item
