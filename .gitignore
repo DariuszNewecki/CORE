@@ -36,6 +36,7 @@ pending_writes/
 sandbox/
 *.jsonl
 *.lock
+!poetry.lock
 reports/knowledge_graph.json
 reports/drift_report.json
 

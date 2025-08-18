@@ -5,56 +5,62 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main ]
-  workflow_dispatch:
 
 permissions:
   contents: read
 
-concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
-  build-test:
-    name: build-test
+  test:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Python
+      - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
-          cache: "poetry"
+          python-version: '3.12'
 
+      # --- Install Poetry and ensure it's on PATH ---
       - name: Install Poetry
-        uses: abatilo/actions-poetry@v2
-        with:
-          poetry-version: "1.8.3"
-
-      - name: Configure Poetry (local venv)
         run: |
-          poetry config virtualenvs.create true
-          poetry config virtualenvs.in-project true
+          python -m pip install --upgrade pip
+          python -m pip install pipx
+          python -m pipx ensurepath
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+          pipx install poetry
+      - name: Poetry version
+        run: poetry --version
 
-      # IMPORTANT: install the project itself so entry points (like `core-admin`) are created.
-      - name: Install dependencies (project + dev)
-        run: poetry install --no-interaction
+      # (Optional but handy) Put the venv inside the repo so we can cache it
+      - name: Configure Poetry
+        run: poetry config virtualenvs.in-project true
 
-      - name: Static checks (Ruff + Black)
+      # Cache the virtualenv based on poetry.lock
+      - name: Cache .venv
+        uses: actions/cache@v4
+        with:
+          path: .venv
+          key: venv-${{ runner.os }}-${{ hashFiles('**/poetry.lock') }}
+
+      - name: Install dependencies
+        run: poetry install --no-interaction --no-ansi
+
+      - name: Static checks
         run: |
           poetry run ruff check .
           poetry run black --check .
 
-      - name: Tests (pytest + coverage)
+      - name: Run tests
         run: poetry run pytest -q --cov=src --cov-report=xml
 
       - name: Export knowledge graph
-        run: poetry run core-admin guard kg-export
+        run: |
+          mkdir -p reports
+          poetry run core-admin guard kg-export
 
-      - name: Upload artifacts (coverage & KG)
+      - name: Upload artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
