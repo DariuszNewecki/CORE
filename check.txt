@@ -1,0 +1,103 @@
+🎨 Checking code style with Black and Ruff...
+python3 -m poetry run black --check src tests
+python3 -m poetry run ruff check src tests
+All checks passed!
+🧪 Running tests with pytest...
+python3 -m poetry run pytest 
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-7.4.4, pluggy-1.6.0
+rootdir: /opt/dev/CORE
+configfile: pyproject.toml
+testpaths: tests
+plugins: cov-4.1.0, mock-3.14.1, anyio-4.9.0, asyncio-0.21.0
+asyncio: mode=Mode.AUTO
+
+----------------------------- live log collection ------------------------------
+INFO     core_api.errors:errors.py:52 Registered global exception handlers.
+collected 30 items
+
+tests/admin/test_agent_cli.py::test_scaffold_new_application_logic_success 
+-------------------------------- live log call ---------------------------------
+INFO     core_admin.agent:agent.py:116 🌱 Starting to scaffold new application 'test-app'...
+INFO     core_admin.agent:agent.py:143    -> LLM planned a structure with 2 files.
+INFO     core_admin.agent:agent.py:153    -> Adding starter test and CI workflow...
+PASSED                                                                   [  3%]
+tests/admin/test_agent_cli.py::test_scaffold_new_application_handles_llm_failure 
+-------------------------------- live log call ---------------------------------
+INFO     core_admin.agent:agent.py:116 🌱 Starting to scaffold new application 'test-app'...
+ERROR    core_admin.agent:agent.py:194 LLM response was not valid JSON. Preview: 'this is not json'
+PASSED                                                                   [  6%]
+tests/admin/test_guard_drift_cli.py::test_guard_drift_clean_repo PASSED  [ 10%]
+tests/admin/test_guard_drift_cli.py::test_guard_drift_detects_undeclared PASSED [ 13%]
+tests/admin/test_guard_drift_cli.py::test_guard_drift_detects_mismatched_domain PASSED [ 16%]
+tests/core/test_intent_model.py::test_intent_model_loads_structure PASSED [ 20%]
+tests/core/test_intent_model.py::test_resolve_domain_for_path_core PASSED [ 23%]
+tests/core/test_intent_model.py::test_resolve_domain_for_path_agents PASSED [ 26%]
+tests/core/test_intent_model.py::test_resolve_domain_for_path_unassigned PASSED [ 30%]
+tests/core/test_intent_model.py::test_get_domain_permissions_core FAILED [ 33%]
+tests/core/test_intent_model.py::test_get_domain_permissions_unrestricted PASSED [ 36%]
+tests/governance/test_local_mode_governance.py::test_local_fallback_requires_git_checkpoint PASSED [ 40%]
+tests/integration/test_full_run.py::test_execute_goal_end_to_end PASSED  [ 43%]
+tests/unit/test_agent_utils.py::test_replace_simple_function PASSED      [ 46%]
+tests/unit/test_agent_utils.py::test_replace_method_in_class PASSED      [ 50%]
+tests/unit/test_agent_utils.py::test_replace_symbol_not_found_raises_error PASSED [ 53%]
+tests/unit/test_agent_utils.py::test_replace_with_invalid_original_syntax_raises_error PASSED [ 56%]
+tests/unit/test_clients.py::test_make_request_sends_correct_chat_payload PASSED [ 60%]
+tests/unit/test_execution_agent.py::test_execute_plan_success PASSED     [ 63%]
+tests/unit/test_execution_agent.py::test_execute_plan_fails_on_code_generation_failure PASSED [ 66%]
+tests/unit/test_execution_agent.py::test_execute_plan_handles_executor_failure PASSED [ 70%]
+tests/unit/test_git_service.py::test_git_add PASSED                      [ 73%]
+tests/unit/test_git_service.py::test_git_commit PASSED                   [ 76%]
+tests/unit/test_git_service.py::test_is_git_repo_true PASSED             [ 80%]
+tests/unit/test_git_service.py::test_is_git_repo_false PASSED            [ 83%]
+tests/unit/test_planner_agent.py::test_create_execution_plan_success PASSED [ 86%]
+tests/unit/test_planner_agent.py::test_create_execution_plan_fails_on_invalid_action PASSED [ 90%]
+tests/unit/test_test_runner.py::test_run_tests_success PASSED            [ 93%]
+tests/unit/test_test_runner.py::test_run_tests_failure PASSED            [ 96%]
+tests/unit/test_test_runner.py::test_run_tests_pytest_not_found FAILED   [100%]
+
+=================================== FAILURES ===================================
+_______________________ test_get_domain_permissions_core _______________________
+
+intent_model = <core.intent_model.IntentModel object at 0x7422fe19d5e0>
+
+    def test_get_domain_permissions_core(intent_model: IntentModel):
+        """Check the permissions for a domain that has defined allowed_imports."""
+        core_permissions = intent_model.get_domain_permissions("core")
+        assert isinstance(core_permissions, list)
+        assert "shared" in core_permissions
+>       assert "agents" in core_permissions
+E       AssertionError: assert 'agents' in ['core', 'shared']
+
+tests/core/test_intent_model.py:64: AssertionError
+_______________________ test_run_tests_pytest_not_found ________________________
+
+mock_subprocess_run = <MagicMock name='run' id='127693623605824'>
+
+    def test_run_tests_pytest_not_found(mock_subprocess_run):
+        """
+        Verify that run_tests handles the case where pytest is not installed.
+        """
+        # Arrange: Configure the mock to simulate a FileNotFoundError
+        mock_subprocess_run.side_effect = FileNotFoundError(
+            "No such file or directory: 'pytest'"
+        )
+    
+        # Act
+        result = run_tests()
+    
+        # Assert
+>       assert result["summary"] == "❌ Pytest not available"
+E       AssertionError: assert '❌ pytest not found' == '❌ Pytest not available'
+E         - ❌ Pytest not available
+E         + ❌ pytest not found
+
+tests/unit/test_test_runner.py:72: AssertionError
+----------------------------- Captured stderr call -----------------------------
+INFO:core.test_runner: 🧪 Running tests with pytest...
+------------------------------ Captured log call -------------------------------
+INFO     core.test_runner:test_runner.py:29 🧪 Running tests with pytest...
+=========================== short test summary info ============================
+FAILED tests/core/test_intent_model.py::test_get_domain_permissions_core - As...
+FAILED tests/unit/test_test_runner.py::test_run_tests_pytest_not_found - Asse...
+========================= 2 failed, 28 passed in 1.87s =========================

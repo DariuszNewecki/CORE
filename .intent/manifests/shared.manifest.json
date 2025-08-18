@@ -1,0 +1,13 @@
+{
+  "domain": "shared",
+  "version": "0.1.0",
+  "description": "Cross-cutting types, constants, helpers. NO runtime side-effects.",
+  "owners": [],
+  "capabilities": [
+    "shared:primitives",
+    "shared:validation-utils",
+    "shared:config-helpers"
+  ],
+  "imports": [],
+  "notes": "Foundation utilities used by all other domains."
+}

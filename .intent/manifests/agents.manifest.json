@@ -1,0 +1,13 @@
+{
+  "domain": "agents",
+  "version": "0.1.0",
+  "description": "Agent behaviors. May call core; never system or data.",
+  "owners": [],
+  "capabilities": [
+    "agents:scaffolding",
+    "agents:docstring-fixer",
+    "agents:proposal-review"
+  ],
+  "imports": ["shared", "core"],
+  "notes": "Agents invoke core services; data access must go via core."
+}

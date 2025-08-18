@@ -1,30 +1,56 @@
 # CORE — The Self-Improving System Architect
 
+<!-- Governance Status -->
+
+[![Guard & Drift](https://github.com/DariuszNewecki/CORE/actions/workflows/guard-and-drift.yml/badge.svg)](https://github.com/DariuszNewecki/CORE/actions/workflows/guard-and-drift.yml)
+
 > **Where Intelligence Lives.**
 
 [![Latest release](https://img.shields.io/github/v/release/DariuszNewecki/CORE?sort=semver)](https://github.com/DariuszNewecki/CORE/releases)
 ![Status: MVP Achieved](https://img.shields.io/badge/status-MVP%20achieved-brightgreen.svg)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
+---
+
 ## 🟢 Project Status: **MVP v0.2.0** (released 2025-08-15)
 
-CORE has reached MVP: it can autonomously scaffold a governed application from a high-level goal and verify it against a constitution. The governance loop, drift checks, and nightly audit are active.
+CORE can **enforce a constitution-backed workflow**: validate domain manifests, check domain boundaries via an AST-based guard, surface drift evidence, and run these checks in CI.
 
 * **Releases:** [https://github.com/DariuszNewecki/CORE/releases](https://github.com/DariuszNewecki/CORE/releases)
-* Nightly audit validates the constitutional bundle and checks capability drift.
-* CI runs formatting, linting, tests, and self-audit.
+* CI runs governance checks (guard & drift) plus lint and tests on every push/PR.
 
-## 🎥 90‑second demo
+---
 
-[![Watch the 90‑second demo](docs/assets/core-90s-demo.gif)](docs/assets/core-90s-demo.gif)
+## Governance Status
 
-> The GIF shows: `core-admin new` → `guard drift` on a fresh repo.
+This project is governed by the **constitution** in `.intent/`. Every push/PR runs:
+
+* **Manifest migration & validation** (schema + duplicate capability check)
+* **Intent Guard** (domain boundary & library policy)
+* **Fast checks** (lint + tests)
+
+### Quick commands
+
+```bash
+# Create missing manifests, validate, and check duplicates
+make migrate
+
+# Generate drift evidence and view summary
+make drift            # writes reports/drift_report.json
+
+# Enforce import boundaries
+make guard-check
+```
+
+### 🎥 90-second demo
+
+The GIF shows a typical loop: `make migrate` → `make drift` → `core-admin guard check`.
 
 ---
 
 ## What is CORE?
 
-CORE is a self-governing, constitution‑aligned AI development framework. It plans, writes, validates, and evolves software systems—autonomously, with traceability and guardrails.
+CORE is a self-governing, constitution-aligned AI development framework. It plans, validates, and evolves software with traceability and guardrails.
 
 ### Mind/Body model
 
@@ -48,9 +74,11 @@ graph TD
   H -- operates --> E
 ```
 
-## Quickstart (90 seconds)
+---
 
-Requires Python **3.11+** (3.12 supported), Linux/macOS. Uses **Poetry**.
+## Quickstart (≈90 seconds)
+
+Requires **Python 3.9+** (3.11 recommended), Linux/macOS. Uses **Poetry**.
 
 ```bash
 # 1) Clone & install
@@ -58,16 +86,15 @@ git clone https://github.com/DariuszNewecki/CORE.git
 cd CORE
 poetry install
 
-# 2) Sanity checks (format, lint, tests, self-audit)
+# 2) Sanity checks (format, lint, tests)
 poetry run black --check .
 poetry run ruff check .
 poetry run pytest -q
 
-# 3) Generate a governed starter (example)
-poetry run core-admin new my_governed_app
-
-# 4) Governance drift check (JSON → short)
-poetry run core-admin guard drift --format short
+# 3) Governance: scaffold/validate manifests and check boundaries
+make migrate
+make drift
+poetry run core-admin guard check
 ```
 
 If you prefer **pip**, you can export dependencies:
@@ -77,45 +104,55 @@ poetry export -f requirements.txt --output requirements.txt --without-hashes
 pip install -r requirements.txt
 ```
 
+---
+
 ## Key Capabilities (MVP scope)
 
-* Autonomous scaffold from intent (`core-admin new`).
-* Constitutional audit (rules in `.intent/`; nightly CI job).
-* Capability drift detection (maps `# CAPABILITY:` tags ↔ manifests).
-* Validation pipeline for code and YAML.
+* Constitution-first governance (`.intent/` is the source of truth)
+* Manifest validation (JSON Schema) and duplicate capability detection
+* AST-based import guard enforcing domain boundaries and library policy
+* Drift evidence generation to `reports/drift_report.json` and CLI surfacing
+* CI enforcement via GitHub Actions (Guard & Drift workflow)
+
+---
 
 ## CI / CD
 
+* **Governance:** Guard & Drift workflow on push/PR (`.github/workflows/guard-and-drift.yml`)
 * **Format & Lint:** Black, Ruff
-* **Tests:** pytest (coverage gating planned)
-* **Security:** CodeQL
-* **Governance:** Nightly Constitutional Audit & Drift Check
+* **Tests:** pytest
 
 See `.github/workflows/` for details.
 
+---
+
 ## Roadmap
 
-* **v0.3:** stronger examples, richer starter kits, coverage gating
+* **v0.3:** richer starter kits, extended guard rules, coverage gating
 * **v0.4:** policy-as-code expansions, contributor UX polish
-* **v0.5:** advanced introspection & auto-refactor loops
+* **v0.5:** deeper introspection & automated refactor loops
 
-Track progress in Projects and Issues.
+Track progress in **Projects** and **Issues**.
+
+---
 
 ## Contributing
 
 We welcome focused, high-quality contributions:
 
-* Read **CONTRIBUTING.md**
-* Use conventional commits (`feat:`, `fix:`, `chore:` …)
+* Read `CONTRIBUTING.md`
+* Use conventional commits (`feat:`, `fix:`, `chore:`, …)
 * Open an issue before major changes
 * Run the checks above before pushing
 
+---
+
 ## Security
 
-Please report vulnerabilities **privately**. See **SECURITY.md** for the disclosure process and response targets.
+Please report vulnerabilities privately. See `SECURITY.md` for the disclosure process.
 
 ---
 
 ## License
 
-MIT — see **LICENSE**.
+MIT — see `LICENSE`.

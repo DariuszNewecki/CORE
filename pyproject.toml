@@ -15,26 +15,33 @@ packages = [
     { include = "core", from = "src" },
     { include = "agents", from = "src" },
     { include = "system", from = "src" },
-    { include = "shared", from = "src" },
+    { include = "shared", from = "src" }
+    # { include = "data", from = "src" },  # enable only when src/data exists
 ]
 
 # --- Main Dependencies ---
 [tool.poetry.dependencies]
 python = ">=3.9"
-fastapi = ">=0.95.0"
-uvicorn = {extras = ["standard"], version = ">=0.21.0"}
-pyyaml = ">=6.0"
-httpx = ">=0.25.0"
-requests = ">=2.28.0" # <-- THIS IS THE FIX
+
+# API stack (compatible with Pydantic v2)
+fastapi = ">=0.103.0"
+uvicorn = { extras = ["standard"], version = ">=0.24.0" }
+
+# Core libraries
+pyyaml = ">=6.0.1"
+httpx = ">=0.27.0"
 python-dotenv = ">=1.0.0"
-pydantic = ">=2.0.0"
-pydantic-settings = "^2.0.0" 
+pydantic = ">=2.5.0"
+pydantic-settings = "^2.0.0"
 cryptography = ">=42.0.0"
-# rich = "^13"  <-- This line should already be gone
 jsonschema = "^4"
-typer = "^0.9.0"  # <-- THIS IS THE FIX. REMOVED THE RICH EXTRA.
+typer = "^0.9.0"
 radon = ">=5.1.0"
 filelock = "^3.13.0"
+
+# NOTE:
+# - We intentionally DO NOT depend on 'requests' (policy forbids it; use httpx).
+# - 'rich' is optional; our tools degrade gracefully if it's not installed.
 
 # --- Development Dependencies ---
 [tool.poetry.group.dev.dependencies]
@@ -47,7 +54,7 @@ pytest-cov = "^4.0"
 
 # --- Command-Line Scripts ---
 [tool.poetry.scripts]
-core-admin = "system.admin:app"
+core-admin = "system.admin_cli:app"
 
 # --- Configuration for development tools ---
 [tool.black]

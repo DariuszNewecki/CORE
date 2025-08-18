@@ -1,0 +1,45 @@
+name: Guard & Drift
+
+on:
+  push:
+    branches: [ "**" ]
+  pull_request:
+
+jobs:
+  guard-and-drift:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Poetry
+        run: pipx install poetry
+
+      - name: Install deps
+        run: poetry install --no-interaction --no-ansi
+
+      - name: Generate drift evidence (schema + duplicates)
+        env:
+          PYTHONPATH: src
+        run: poetry run python src/system/tools/manifest_migrator.py all --fail-on-conflicts
+
+      - name: Run import/dependency guard
+        env:
+          PYTHONPATH: src
+        run: poetry run core-admin guard check
+
+      - name: Lint + Tests (fast check)
+        run: make fast-check
+
+      - name: Upload drift_report.json
+        if: ${{ hashFiles('reports/drift_report.json') != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: drift_report
+          path: reports/drift_report.json

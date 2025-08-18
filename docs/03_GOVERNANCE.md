@@ -1,67 +1,93 @@
-# 3. The CORE Governance Model
+# Governance & Enforcement Guide
 
-CORE's ability to evolve its own constitution is its most powerful and most dangerous capability. To ensure this process is safe, auditable, and aligned with human intent, it is governed by a strict, multi-stage **Constitutional Amendment Process**.
+> **Constitution = `.intent/`**. Everything else conforms to it.
 
-This process is designed to solve the central paradox of self-modification: **how can a system safely approve a change that might break its own ability to approve changes?**
+## 1. What lives where
 
-## The Guiding Principle: The Canary Check
+* **Index:** `.intent/meta.yaml`
+* **Policies:** `.intent/policies/intent_guard.yaml`
+* **Domain map:** `.intent/knowledge/source_structure.yaml`
+* **Manifest schema:** `.intent/schemas/manifest.schema.json`
+* **Domain manifests:** `.intent/manifests/*.manifest.json`
+* **Drift evidence:** `reports/drift_report.json` (auto-generated)
 
-The entire process is built around a single, foolproof safety mechanism: the **"Canary" Check**.
+## 2. Daily workflow (short)
 
-Before any change is applied to the live constitution, the system performs a "what-if" simulation. It creates a temporary, isolated copy of itself in memory, applies the proposed change to this "canary," and then commands the canary to run a full self-audit.
+1. **Scaffold & validate manifests**
 
-* If the canary, operating under the new proposed rules, reports a perfect, error-free audit, the change is deemed safe and is automatically applied to the live system.
-* If the canary's audit fails, it proves the change would create a broken or inconsistent state. The proposal is automatically rejected, and the live system is never touched.
+   ```bash
+   make manifests-scaffold
+   make manifests-validate
+   make manifests-dups         # set FAIL_ON_CONFLICTS=1 to enforce
+   ```
 
-This mechanism ensures that CORE can never approve an amendment that would render it unable to govern itself.
+2. **Generate drift evidence & view**
 
-## The Life of a Constitutional Amendment
+   ```bash
+   make drift                   # writes reports/drift_report.json and prints a summary
+   ```
 
-A change to any file within the `.intent/` directory follows a formal, five-step lifecycle.
+3. **Run guard checks (imports/boundaries)**
 
-### Step 1: Proposal (`.intent/proposals/`)
+   ```bash
+   make guard-check             # pretty table output
+   PYTHONPATH=src poetry run core-admin guard check --format=json --no-fail
+   ```
 
-An AI agent or a human developer determines that a constitutional change is needed. They do not edit the target file directly. Instead, they create a formal **proposal file** in the `.intent/proposals/` directory.
+4. **Run tests & quality**
 
-This proposal is a YAML file containing:
+   ```bash
+   make fast-check              # lint + tests
+   make check                   # lint + tests + audit
+   ```
 
-* `target_path`: The file to be changed.
-* `justification`: A human-readable reason for the change.
-* `content`: The full proposed new content of the file.
+## 3. Adding or changing capabilities
 
-### Step 2: Signing (`core-admin proposals-sign`)
+* Pick the right **domain** (see “allowed imports” in `source_structure.yaml`).
+* Update its manifest in `.intent/manifests/<domain>.manifest.json`.
+* Keep capability names **unique** and **domain‑prefixed** (e.g., `core:task-router`).
+* Re-run:
 
-Constitutional changes require formal, cryptographic proof of human intent. A human operator uses the `core-admin` tool to sign the proposal with their private key.
+  ```bash
+  make migrate                  # scaffold + validate + duplicate check in one go
+  make guard-check
+  ```
+* Implement code **inside that domain only**. For cross-domain calls, go through **core interfaces**.
+
+## 4. Rules you must not break
+
+* **No cycles** between domains.
+* **Default deny**: if a domain pair isn’t explicitly allowed, it’s not allowed.
+* **Agents → system** is **forbidden** (system may import agents, not the other way).
+* **Core → data** is **forbidden** (Dependency Inversion: data implements core ports).
+* **Networking:** use `httpx` (not `requests`). The policy forbids `requests`.
+* If you hit a rule during a refactor and need temporary relief, add a **waiver** in `intent_guard.yaml` **with an expiry date**. Keep waivers rare and short‑lived.
+
+## 5. Troubleshooting (common failures)
+
+* **“may not import” error**
+  You imported across domains without permission. Move code or introduce a core interface.
+
+* **“forbidden-library 'requests'”**
+  Replace with `httpx`. Don’t add `requests` to dependencies.
+
+* **Schema validation errors**
+  Fix the manifest to match `.intent/schemas/manifest.schema.json`. Ensure `capabilities` is a **non-empty array** with **unique strings**.
+
+* **Duplicate capabilities**
+  Rename or consolidate; a capability must belong to **one** domain.
+
+## 6. CI recommendation (optional snippet)
+
+Add a job that fails on drift or guard violations:
 
 ```bash
-# Generate a personal key pair (one-time setup)
-core-admin keygen "your.name@example.com"
-
-# Sign a pending proposal
-core-admin proposals-sign cr-new-capability.yaml
+make migrate FAIL_ON_CONFLICTS=1
+PYTHONPATH=src poetry run core-admin guard check
 ```
 
-This action adds a verifiable signature to the proposal file.
+## 7. Glossary
 
-### Step 3: Quorum Verification
-
-The system checks `.intent/constitution/approvers.yaml` to determine how many signatures are required (the "quorum").
-
-* Standard changes (like adding a capability) might require only one signature.
-* Critical changes (like modifying the approver list itself) require a higher quorum, such as two or more signatures.
-
-### Step 4: Approval & The Canary Check (`core-admin proposals-approve`)
-
-Once a proposal has a sufficient number of valid signatures, any authorized operator can initiate the final approval.
-
-```bash
-core-admin proposals-approve cr-new-capability.yaml
-```
-
-This command triggers the automated canary check. The operator watches the log as the system simulates the change and runs its self-audit.
-
-### Step 5: Ratification
-
-If the canary check passes, the change is automatically applied to the live `.intent/` directory. The original proposal file is deleted, and the system now operates under its new, evolved constitution. The entire transaction is recorded in an auditable history log.
-
-This rigorous process ensures that every change to CORE's "mind" is deliberate, secure, and verifiably safe.
+* **Drift:** schema errors or duplicate capabilities across manifests.
+* **Guard:** static checks enforcing domain boundaries & library policy.
+* **Constitution:** `.intent/` directory; source of truth for governance.

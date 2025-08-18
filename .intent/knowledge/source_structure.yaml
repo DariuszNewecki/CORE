@@ -1,126 +1,118 @@
 # .intent/knowledge/source_structure.yaml
-#
-# This document is the single source of truth for the project's architectural
-# layout. It defines the domains, their responsibilities, and the rules that
-# govern how they can interact. The ConstitutionalAuditor enforces these rules.
+# Purpose: Single source of truth for domains, their folders, and import allow-lists.
+# This file is consumed by guards and tooling. It aligns with File 2 (intent_guard.yaml).
 
-paths:
-  # Defines the default directory for scaffolding new, independent applications.
-  # This path is relative to the repository root.
-  workspace: "work"
+version: 1
+about: "Domain map + allowed imports. Deny-by-default outside what’s listed here."
 
-structure:
+# ---- DRY anchors (not parsed as domains; just reusable lists) ----
+anchors:
+  stdlib_common: &stdlib_common
+    - typing
+    - types
+    - pathlib
+    - logging
+    - re
+    - dataclasses
+    - json
+    - os
+    - sys
+    - uuid
+    - itertools
+    - functools
+    - datetime
+
+  third_party_core: &third_party_core
+    - fastapi
+    - pydantic
+    - httpx
+    - uvicorn
+    - yaml
+    - jsonschema
+    - rich
+
+  third_party_cli: &third_party_cli
+    - typer
+    - black
+
+# ---- Domains ----
+domains:
+  - domain: shared
+    path: src/shared
+    enabled: true
+    description: "Cross-cutting types, constants, helpers. NO runtime side-effects."
+    allowed_imports:
+      - shared
+      - *stdlib_common
+      - pydantic        # shared models/helpers can use pydantic
+    forbidden_imports:
+      - core
+      - agents
+      - system
+      - data
+
   - domain: core
     path: src/core
-    description: "Core logic for the application server, service orchestration, and primary capabilities."
+    enabled: true
+    description: "Business logic and services. Depends on shared only (DIP)."
     allowed_imports:
       - core
       - shared
-      - system
+      - *stdlib_common
+      - *third_party_core
+    forbidden_imports:
       - agents
-      # Standard & External Libraries
-      - ast
-      - black
-      - contextlib
-      - datetime
-      - dotenv
-      - fastapi
-      - json
-      - os
-      - pathlib
-      - platform
-      - re
-      - requests
-      - subprocess
-      - threading
-      - typing
-      - uvicorn
-      - uuid
-      - yaml
+      - system
+      - data            # DIP: core does NOT import data; data implements core interfaces
 
   - domain: agents
     path: src/agents
-    description: "Specialized AI actors (planners, reviewers) and their supporting models."
+    enabled: true
+    description: "Agent behaviors. May call core; never system or data."
     allowed_imports:
       - agents
-      - shared
-      - system
       - core
-      - tooling # <-- FIX #1: Agents are now allowed to use Tools.
-      # Standard & External Libraries
-      - json
-      - re
-      - textwrap
-      - typing
-      - pathlib
-      - subprocess
+      - shared
+      - *stdlib_common
+      - *third_party_core
+      - subprocess      # gated by policy; only for scaffolding capability
+    forbidden_imports:
+      - system
+      - data
 
   - domain: system
     path: src/system
-    description: "Governance tooling, constitutional auditor, and the admin CLI."
+    enabled: true
+    description: "Orchestration/CLI/infra wiring. One-way bridge to agents."
     allowed_imports:
       - system
-      - shared
       - core
-      - tooling
-      - agents # <-- FIX #2: The System (CLI) is now allowed to use Agents.
-      # Standard & External Libraries
-      - ast
-      - collections
-      - dataclasses
-      - json
-      - logging
-      - pathlib
-      - re
-      - rich
-      - sys
-      - typing
-      - yaml
-
-  - domain: shared
-    path: src/shared
-    description: "Shared utilities, data models, and configuration loaders accessible by all domains."
-    allowed_imports:
+      - agents          # explicit bridge (system → agents)
       - shared
-      # Standard & External Libraries
-      - ast
-      - json
-      - jsonschema
-      - logging
-      - os
-      - pathlib
-      - typing
-      - yaml
+      - *stdlib_common
+      - *third_party_core
+      - *third_party_cli
+    forbidden_imports:
+      - data            # wiring to data happens via core abstractions
 
-  - domain: tooling
-    path: src/system/tools
-    description: "Internal introspection and self-analysis utilities (e.g., KnowledgeGraphBuilder)."
-    allowed_imports:
-      - tooling
-      - system
-      - shared
-      - core
-      # Standard & External Libraries
-      - ast
-      - dataclasses
-      - json
-      - logging
-      - pathlib
-      - typing
-
-  # --- Placeholder Domains for future expansion ---
   - domain: data
     path: src/data
-    description: "Data access layers, storage backends, and data models."
-    allowed_imports: [data, shared, typing, pathlib]
+    enabled: false      # toggle to true when the package exists and is included
+    description: "Implementations of core ports/adapters (DB, external systems)."
+    allowed_imports:
+      - data
+      - shared
+      - core            # implements interfaces defined in core (DIP)
+      - *stdlib_common
+      # Add DB libs here when you actually use them (example):
+      # - sqlalchemy
+      # - asyncpg
+    forbidden_imports:
+      - agents
+      - system
 
-  # --- Constitutional Domains (Non-code) ---
-  - domain: mission
-    path: .intent/mission
-    description: "CORE's declared beliefs, principles, and northstar."
-    allowed_imports: []
-
-  - domain: policies
-    path: .intent/policies
-    description: "Machine-readable governance rules and constraints."
-    allowed_imports: []
+# Optional: global notes for tools (non-enforced hints)
+notes:
+  - "Default stance is deny; keep lists minimal. Add imports only when needed."
+  - "Requests is intentionally NOT allowed; use httpx."
+  - "If you enable 'data', ensure your packaging includes src/data or flip enabled:true later."

@@ -1,58 +1,111 @@
 # .intent/policies/intent_guard.yaml
-# This file contains low-level, machine-enforceable governance rules.
-# More complex security policies are defined in safety_policies.yaml.
-# Definitions for enforcement levels are now in enforcement_model.yaml.
-
-# NOTE:
-#  - Direct writes to `.intent/` remain forbidden.
-#  - The *only* sanctioned pathway for changing `.intent/*` is via
-#    the `core-admin proposals-approve` flow *after* a passing canary audit
-#    and quorum verification. No other entrypoint may write to `.intent/`.
+# Purpose: Enforce clean domain boundaries, avoid cycles, and document explicit bridges.
+version: 2
+about: Import/dependency guard for domain boundaries. .intent/ is the constitution; this file is the law.
 
 rules:
-  - id: no_direct_intent_writes
-    description: >
-      Direct writes into the .intent/ directory are forbidden. All constitutional
-      changes must be submitted via the proposals mechanism.
-    enforcement: hard
-    applies_to:
-      paths:
-        - ".intent/"
-    exclude:
-      paths:
-        - ".intent/proposals/"
-        - ".intent/knowledge/knowledge_graph.json" # Allow KG to be updated by its builder
-        - ".intent/knowledge/knowledge_graph.json.lock" # Allow lock file for atomic writes
+  imports:
+    # HARD RULE: never allow dependency cycles between domains.
+    disallow_cycles: true
 
-  - id: max_nesting_level
-    description: "Code logic should not be nested more than 4 levels deep to maintain clarity."
-    enforcement: soft # This is a guideline, not a hard blocker.
-    applies_to:
-      patterns: ["src/**/*.py"]
+    # Treat any pair NOT listed as DENY.
+    default_policy: deny
 
-  - id: no_undocumented_change
-    description: >
-      CORE must not modify or create any file that is not declared in `project_manifest.yaml`
-      or traceable to a declared capability therein.
-    enforcement: hard
+    # Respect the domain switch in knowledge/source_structure.yaml.
+    # If a domain is marked enabled: false, ignore it in checks (no violations emitted).
+    respect_source_structure_enabled: true
 
-  - id: must_match_intent
-    description: >
-      All changes must be traceable to a declared high-level intent in the mission or policies.
-    enforcement: soft
+    # Declare which domains may import which other domains (one-way unless bridged).
+    domains:
+      shared:
+        may_import: []            # lowest layer; no internal deps
+      core:
+        may_import: [shared]      # business logic depends only on shared
+      agents:
+        may_import: [shared, core]  # agents call core services; no system/data dependency
+      system:
+        may_import: [shared, core, agents]  # one-way bridge: system → agents (CLI/orchestrators)
+      data:
+        may_import: [shared, core] # data implements core ports; core does NOT import data
 
-  - id: limit_rewrite_cycles
-    description: >
-      CORE may not rewrite the same file more than once per execution cycle
-      without explicit validation or feedback input.
-    enforcement: hard
+    # Explicit bridges (documented exceptions that are STILL acyclic).
+    allowed_bridges:
+      - from: system
+        to: agents
+        rationale: "CLIs/services in system orchestrate agents; keep direction one-way to avoid cycles."
 
-  - id: require_tests_for_capabilities
-    description: >
-      All capabilities declared in `project_manifest.yaml` must have at least one corresponding test in /tests.
-    enforcement: soft
+    # Hard forbids to make intent loud & clear (even if someone edits the domain map).
+    forbidden:
+      - from: agents
+        to: system
+        rationale: "Prevents system↔agents cycle. Agents must not depend on orchestration layer."
+      - from: agents
+        to: data
+        rationale: "Data access is centralized in core; agents go via core services."
+      - from: core
+        to: data
+        rationale: "Dependency inversion principle: core defines interfaces; data implements them."
 
-  - id: enforce_intent_bundle_usage
-    description: >
-      Any capability marked with `requires_intent_bundle: true` must be executed through an IntentBundle flow.
-    enforcement: hard
+    # Libraries guard (package-level).
+    libraries:
+      # Default stance for 3rd-party is allow-list; keep this list short.
+      policy: allow
+      allowed:
+        - fastapi
+        - httpx
+        - pydantic
+        - rich
+        - uvicorn
+        - yaml
+        - jsonschema
+        - python-dotenv
+        - typer
+        - black
+      # Make intent explicit: prefer httpx; forbid requests.
+      forbidden:
+        - requests
+      # Always ignore these stdlib imports (noise reduction).
+      ignore_stdlib_prefixes:
+        - typing
+        - pathlib
+        - logging
+        - re
+        - dataclasses
+        - json
+        - os
+        - sys
+        - uuid
+        - itertools
+        - functools
+        - datetime
+
+  # Guard potentially dangerous operations; we’ll wire this in tooling.
+  subprocess:
+    allowed_callers:
+      - domain: agents
+        capability: scaffolding
+    require_justification: true
+    log_all_invocations: true
+
+enforcement:
+  # Default is "fail". You can temporarily switch to "warn" during refactors.
+  mode: fail
+
+  # Paths to skip (regex). Constitution is never the target.
+  ignored_paths:
+    - "^tests/"         # test scaffolds may import fixtures freely
+    - "^scripts/"       # one-off scripts; keep out of shipping packages
+    - "^\\.intent/"     # the constitution itself
+
+  # Extra file-level exemptions (optional, regex). Keep this list short and time-boxed.
+  waivers:
+    # Example (remove when clean):
+    # - path: "^src/system/legacy/.*\\.py$"
+    #   reason: "Temporary waiver while refactoring legacy bootstrap"
+    #   expires: "2025-12-31"
+
+reporting:
+  # How violations are reported (tooling reads this to format output)
+  show_allowed_bridges: true
+  show_forbidden_reasons: true
+  group_by: ["domain_from", "domain_to"]

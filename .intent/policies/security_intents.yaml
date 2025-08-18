@@ -1,15 +1,152 @@
-security_intents:
-  - id: prompt_based_security
-    description: "Security rules implemented as LLM prompts"
-    enforcement: soft_prompt
-    rules:
-      - prompt: "Verify no subprocess, eval, or os.system calls"
-      - prompt: "Check for safe file operations only"
-      - prompt: "Validate no external network calls in core logic"
+# .intent/policies/security_intents.yaml
+# Purpose: Central source of truth for security stances that the system + contributors must follow.
+# Status: Policy-first (advisory). Enforcement will be added gradually in guard/tools.
 
-  - id: security_self_review
-    description: "Security improves via self-reflection"
-    process:
-      - "Generate security concerns as intents"
-      - "Review via LLM prompts"
-      - "Update security_intents.yaml iteratively"
+version: 1
+about: "Network, subprocess, secrets, and file I/O security intents. Constitution-first, deny by default."
+
+# ──────────────────────────────────────────────────────────────────────────────
+networking:
+  # Overall stance for *outbound* connections made by code.
+  # Options: deny | allow | monitor   (monitor = allow but require logging/justification)
+  default_policy: monitor
+
+  # Approved client libraries (must match dependency & guard policies).
+  clients:
+    allowed:
+      - httpx
+    forbidden:
+      - requests
+
+  # Transport requirements.
+  tls:
+    required: true          # no plaintext HTTP for external endpoints
+    min_version: "1.2"
+    allow_self_signed: false
+    # If you must allow a specific self-signed endpoint, pin its certificate SHA256 here:
+    allowed_fingerprints: []  # e.g., ["a1:b2:..."]
+
+  # Domain rules (advisory today; useful for audits and future enforcement).
+  domains:
+    allowlist: []           # empty = no hard allowlist; prefer adding approved domains here over time
+    blocklist:
+      - "169.254.169.254"   # block instance metadata by default
+      - "metadata.google.internal"
+      - "latest.meta.internal"
+
+  # Request hygiene (applies when code performs HTTP calls).
+  hygiene:
+    redact_headers:
+      - Authorization
+      - X-API-Key
+      - X-Auth-Token
+      - Api-Key
+      - Cookie
+    log:
+      mode: minimal         # minimal | full (never log bodies by default)
+      include:
+        - method
+        - scheme
+        - host
+        - path
+        - status_code
+        - duration_ms
+      exclude_query_keys:
+        - token
+        - key
+        - signature
+        - password
+    timeouts:
+      connect_seconds: 5
+      read_seconds: 30
+      total_seconds: 60
+    retries:
+      policy: exponential_backoff
+      max_retries: 3
+      jitter_ms: 200
+
+# ──────────────────────────────────────────────────────────────────────────────
+subprocess:
+  # Default stance: never spawn subprocesses unless explicitly allowed.
+  default_policy: deny
+
+  # Who may call subprocess, for what capability.
+  allowed_callers:
+    - domain: agents
+      capability: scaffolding
+      rationale: "Code generation / project scaffolding may need controlled shells."
+
+  # Restrict which binaries may be executed (exact names or safe regex).
+  # Keep this list tight; expand only with justification.
+  allowed_binaries: []  # e.g., ["python", "bash", "sh", "git"]
+
+  # Environmental controls for allowed calls.
+  controls:
+    require_justification: true               # human-readable reason in logs
+    log_all_invocations: true                 # command + args + duration; NEVER log secrets
+    max_runtime_seconds: 120                  # hard cap to prevent runaway processes
+    working_dir_policy: repo_root_only        # repo_root_only | anywhere
+    env_passlist:
+      - PATH
+      - PYTHONPATH
+    env_blocklist:
+      - AWS_ACCESS_KEY_ID
+      - AWS_SECRET_ACCESS_KEY
+      - GCP_SERVICE_ACCOUNT_KEY
+      - AZURE_CLIENT_SECRET
+      - OPENAI_API_KEY
+      - ANTHROPIC_API_KEY
+
+# ──────────────────────────────────────────────────────────────────────────────
+secrets:
+  # Never commit or log secrets. Keep this list small and focused.
+  detection:
+    # Heuristics/patterns to treat as sensitive if seen in config/logs.
+    patterns:
+      - "(?i)api[_-]?key"
+      - "(?i)secret"
+      - "(?i)token"
+      - "(?i)password"
+      - "(?i)private[_-]?key"
+  handling:
+    log_redaction: "****"      # replacement when redacting
+    allow_plaintext_secrets_in_repo: false
+    allow_secrets_in_logs: false
+    env_access_policy: allowlist
+    env_allowlist:
+      - PYTHONPATH
+      - CORE_*
+    env_blocklist:
+      - "*KEY*"
+      - "*TOKEN*"
+      - "*SECRET*"
+      - "*PASSWORD*"
+
+# ──────────────────────────────────────────────────────────────────────────────
+filesystem:
+  # Where tools/agents may write by default (explicitly).
+  write_paths_allowlist:
+    - "reports/**"
+    - "sandbox/**"
+    - "pending_writes/**"
+  write_paths_blocklist:
+    - ".intent/**"     # constitution must be edited via PRs, not runtime
+    - "src/**"         # no code writes at runtime
+  # Reading is generally allowed inside the repo. External paths are monitor-only for now.
+  read_policy: monitor
+
+# ──────────────────────────────────────────────────────────────────────────────
+telemetry:
+  # Outbound telemetry to third parties (analytics, error reporting).
+  default_policy: deny
+  allowlist: []        # e.g., ["sentry.io"] if explicitly approved later
+  pii_in_telemetry: false
+
+# ──────────────────────────────────────────────────────────────────────────────
+enforcement:
+  mode: advise         # advise | warn | fail
+  # Tooling will read these for future checks; non-breaking today.
+  reporting:
+    show_rationales: true
+    group_by: ["domain", "capability", "rule"]
+  waivers: []

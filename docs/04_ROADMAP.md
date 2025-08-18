@@ -16,6 +16,7 @@ As identified in our external architectural reviews, the current constitutional 
 
 ### 1.1: Implement Modular Manifests
 -   **Status:** ✅ **Complete.** The `ConstitutionalAuditor` now aggregates capabilities from domain-specific `manifest.yaml` files.
+-   **Note:** The implementation is complete, but the milestone remains open pending the completion of related documentation (see issue #14).
 
 ### 1.2: Implement Hierarchical Capabilities
 -   **Status:** ⏳ **Not Started**

@@ -1,0 +1,13 @@
+{
+  "domain": "data",
+  "version": "0.1.0",
+  "description": "Adapters for DB/external systems that implement core ports.",
+  "owners": [],
+  "capabilities": [
+    "data:adapters",
+    "data:repositories",
+    "data:external-integrations"
+  ],
+  "imports": ["shared", "core"],
+  "notes": "Even if domain is disabled in source_structure.yaml, a manifest is fine and keeps validation green."
+}

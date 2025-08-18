@@ -1,0 +1,13 @@
+{
+  "domain": "system",
+  "version": "0.1.0",
+  "description": "Orchestration/CLI/infra wiring. One-way bridge to agents.",
+  "owners": [],
+  "capabilities": [
+    "system:cli-orchestration",
+    "system:service-wiring",
+    "system:guard-execution"
+  ],
+  "imports": ["shared", "core", "agents"],
+  "notes": "System may import agents (bridge); agents must NOT import system."
+}

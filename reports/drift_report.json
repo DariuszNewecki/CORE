@@ -1,0 +1,352 @@
+{
+  "mismatched_mappings": [
+    {
+      "capability": "add_missing_docstrings",
+      "code": {
+        "domain": null,
+        "owner": null
+      },
+      "manifest": {
+        "domain": "tooling",
+        "owner": null
+      }
+    },
+    {
+      "capability": "alignment_checking",
+      "code": {
+        "domain": null,
+        "owner": null
+      },
+      "manifest": {
+        "domain": "system",
+        "owner": null
+      }
+    },
+    {
+      "capability": "audit.check.capability_coverage",
+      "code": {
+        "domain": null,
+        "owner": null
+      },
+      "manifest": {
+        "domain": "system",
+        "owner": null
+      }
+    },
+    {
+      "capability": "audit.check.capability_definitions",
+      "code": {
+        "domain": null,
+        "owner": null
+      },
+      "manifest": {
+        "domain": "system",
+        "owner": null
+      }
+    },
+    {
+      "capability": "audit.check.codebase_health",
+      "code": {
+        "domain": null,
+        "owner": null
+      },
+      "manifest": {
+        "domain": "system",
+        "owner": null
+      }
+    },
+    {
+      "capability": "audit.check.dead_code",
+      "code": {
+        "domain": null,
+        "owner": null
+      },
+      "manifest": {
+        "domain": "system",
+        "owner": null
+      }
+    },
+    {
+      "capability": "audit.check.docstrings",
+      "code": {
+        "domain": null,
+        "owner": null
+      },
+      "manifest": {
+        "domain": "system",
+        "owner": null
+      }
+    },
+    {
+      "capability": "audit.check.domain_integrity",
+      "code": {
+        "domain": null,
+        "owner": null
+      },
+      "manifest": {
+        "domain": "system",
+        "owner": null
+      }
+    },
+    {
+      "capability": "audit.check.duplication",
+      "code": {
+        "domain": null,
+        "owner": null
+      },
+      "manifest": {
+        "domain": "system",
+        "owner": null
+      }
+    },
+    {
+      "capability": "audit.check.environment",
+      "code": {
+        "domain": null,
+        "owner": null
+      },
+      "manifest": {
+        "domain": "system",
+        "owner": null
+      }
+    },
+    {
+      "capability": "audit.check.knowledge_graph_schema",
+      "code": {
+        "domain": null,
+        "owner": null
+      },
+      "manifest": {
+        "domain": "system",
+        "owner": null
+      }
+    },
+    {
+      "capability": "audit.check.orphaned_intent_files",
+      "code": {
+        "domain": null,
+        "owner": null
+      },
+      "manifest": {
+        "domain": "system",
+        "owner": null
+      }
+    },
+    {
+      "capability": "audit.check.project_manifest",
+      "code": {
+        "domain": null,
+        "owner": null
+      },
+      "manifest": {
+        "domain": "system",
+        "owner": null
+      }
+    },
+    {
+      "capability": "audit.check.proposals_drift",
+      "code": {
+        "domain": null,
+        "owner": null
+      },
+      "manifest": {
+        "domain": "system",
+        "owner": null
+      }
+    },
+    {
+      "capability": "audit.check.proposals_list",
+      "code": {
+        "domain": null,
+        "owner": null
+      },
+      "manifest": {
+        "domain": "system",
+        "owner": null
+      }
+    },
+    {
+      "capability": "audit.check.proposals_schema",
+      "code": {
+        "domain": null,
+        "owner": null
+      },
+      "manifest": {
+        "domain": "system",
+        "owner": null
+      }
+    },
+    {
+      "capability": "audit.check.required_files",
+      "code": {
+        "domain": null,
+        "owner": null
+      },
+      "manifest": {
+        "domain": "system",
+        "owner": null
+      }
+    },
+    {
+      "capability": "audit.check.secrets",
+      "code": {
+        "domain": null,
+        "owner": null
+      },
+      "manifest": {
+        "domain": "system",
+        "owner": null
+      }
+    },
+    {
+      "capability": "audit.check.syntax",
+      "code": {
+        "domain": null,
+        "owner": null
+      },
+      "manifest": {
+        "domain": "system",
+        "owner": null
+      }
+    },
+    {
+      "capability": "change_safety_enforcement",
+      "code": {
+        "domain": null,
+        "owner": null
+      },
+      "manifest": {
+        "domain": "core",
+        "owner": null
+      }
+    },
+    {
+      "capability": "code_generation",
+      "code": {
+        "domain": null,
+        "owner": null
+      },
+      "manifest": {
+        "domain": "agents",
+        "owner": null
+      }
+    },
+    {
+      "capability": "code_quality_analysis",
+      "code": {
+        "domain": null,
+        "owner": null
+      },
+      "manifest": {
+        "domain": "core",
+        "owner": null
+      }
+    },
+    {
+      "capability": "intent_guarding",
+      "code": {
+        "domain": null,
+        "owner": null
+      },
+      "manifest": {
+        "domain": "core",
+        "owner": null
+      }
+    },
+    {
+      "capability": "introspection",
+      "code": {
+        "domain": null,
+        "owner": null
+      },
+      "manifest": {
+        "domain": "core",
+        "owner": null
+      }
+    },
+    {
+      "capability": "llm_orchestration",
+      "code": {
+        "domain": null,
+        "owner": null
+      },
+      "manifest": {
+        "domain": "agents",
+        "owner": null
+      }
+    },
+    {
+      "capability": "prompt_interpretation",
+      "code": {
+        "domain": null,
+        "owner": null
+      },
+      "manifest": {
+        "domain": "core",
+        "owner": null
+      }
+    },
+    {
+      "capability": "scaffold_project",
+      "code": {
+        "domain": null,
+        "owner": null
+      },
+      "manifest": {
+        "domain": "system",
+        "owner": null
+      }
+    },
+    {
+      "capability": "self_correction",
+      "code": {
+        "domain": null,
+        "owner": null
+      },
+      "manifest": {
+        "domain": "core",
+        "owner": null
+      }
+    },
+    {
+      "capability": "semantic_validation",
+      "code": {
+        "domain": null,
+        "owner": null
+      },
+      "manifest": {
+        "domain": "core",
+        "owner": null
+      }
+    },
+    {
+      "capability": "syntax_validation",
+      "code": {
+        "domain": null,
+        "owner": null
+      },
+      "manifest": {
+        "domain": "core",
+        "owner": null
+      }
+    },
+    {
+      "capability": "system_logging",
+      "code": {
+        "domain": null,
+        "owner": null
+      },
+      "manifest": {
+        "domain": "shared",
+        "owner": null
+      }
+    }
+  ],
+  "missing_in_code": [
+    "manifest_updating",
+    "test_execution"
+  ],
+  "undeclared_in_manifest": [
+    "agents:docstring-fixer"
+  ]
+}

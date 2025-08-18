@@ -1,0 +1,13 @@
+{
+  "domain": "core",
+  "version": "0.1.0",
+  "description": "Business logic and services. Depends on shared only (DIP).",
+  "owners": [],
+  "capabilities": [
+    "core:business-services",
+    "core:intent-guard-engine",
+    "core:capability-mapping"
+  ],
+  "imports": ["shared"],
+  "notes": "Defines interfaces/ports; data implementations live elsewhere."
+}

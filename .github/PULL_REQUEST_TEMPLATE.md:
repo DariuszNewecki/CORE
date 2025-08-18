@@ -1,5 +1,5 @@
 ## Summary
-<!-- What does this change do? Keep it crisp. -->
+<!-- What does this change do? Keep it crisp. One or two sentences. -->
 
 ## Type
 - [ ] feat
@@ -10,30 +10,53 @@
 - [ ] test
 
 ## Why
-<!-- Link related issue(s) and explain the intent. Reference `.intent/` where relevant. -->
+<!-- Link related issue(s). Explain intent. Reference `.intent/` where relevant. -->
 
 ## How
-<!-- High-level approach; call out risky areas or trade-offs. -->
+<!-- High-level approach; call out risks or trade-offs. -->
 
 ## Scope / Domains
-<!-- List impacted domains (e.g., core, shared, agents, system, tooling). -->
-
-## Checklist
-- [ ] I ran local checks: `black --check .`, `ruff check .`, `pytest`
-- [ ] Governance: drift is clean; auditor is **no worse** than before
-- [ ] No domain boundary violations (aligns with `.intent/`)
-- [ ] Capability tags & manifests updated when relevant
-- [ ] Docs updated if behavior changed
+<!-- Tick all impacted domains -->
+- [ ] shared
+- [ ] core
+- [ ] agents
+- [ ] system
+- [ ] data (disabled by default)
 
 ---
 
-## Evidence Bundle (required for CORE/autonomy changes)
-- Diff: (inline or link to artifact)
-- Auditor BEFORE: (attach/log)
-- Auditor AFTER: (attach/log)
-- Drift report: `reports/drift_report.json`
-- Tests summary / coverage: (attach/log)
+## Governance Checklist (constitution-first)
+**Run locally before opening this PR. Keep commands & outputs attached where requested.**
+
+- [ ] **Manifests** are valid and de-duplicated  
+      `make migrate FAIL_ON_CONFLICTS=1`
+- [ ] **Guard** passes (no domain boundary violations / forbidden libs)  
+      `make guard-check`  *(or)*  `poetry run core-admin guard check`
+- [ ] **Drift evidence** reviewed (0 validation errors, 0 duplicates)  
+      `make drift` → attach `reports/drift_report.json` (see Evidence)
+- [ ] Any **waivers** added in `.intent/policies/intent_guard.yaml` are **time-boxed** with rationale & expiry
+- [ ] Capability names are **unique** and **domain-prefixed** (e.g., `core:task-router`)
+- [ ] No addition of `requests` (use **httpx**)
+
+## Quality Checklist
+- [ ] `black --check .`
+- [ ] `ruff check .`
+- [ ] `pytest` (add `-q` for quick run)
+- [ ] Docs updated if behavior/rules changed (README or `docs/`)
+- [ ] Security: no secrets or credentials added
+
+---
+
+## Evidence Bundle (attach/log)
+- **Diff summary:** (inline or link)
+- **Guard output:** (paste table or JSON)
+- **Drift report:** attach `reports/drift_report.json`
+- **Tests:** pass/fail summary (and coverage, if relevant)
 
 ## Risk
-- Category: Non-functional / Functional (choose one)
-- Rollback: Revert this PR to undo changes
+- Category: **Functional** / **Non-functional**
+- Impacted area(s): …
+- Rollback plan: Revert this PR
+
+## Notes for Reviewers (optional)
+<!-- Anything that helps reviewers navigate the change quickly. -->

@@ -16,7 +16,8 @@ from system.admin import byor as _byor
 from system.admin import fixer as _fixer
 from system.admin import guard as _guard
 from system.admin import keys as _keys
-from system.admin import migrator as _migrator
+
+# from system.admin import migrator as _migrator
 from system.admin import new as _new
 from system.admin import proposals
 from system.admin import reviewer as _reviewer
@@ -73,7 +74,7 @@ _agent.register(app)
 _keys.register(app)
 app.add_typer(proposals.proposals_app, name="proposals")
 _guard.register(app)
-_migrator.register(app)
+# _migrator.register(app)
 _fixer.register(app)
 _byor.register(app)
 _reviewer.register(app)

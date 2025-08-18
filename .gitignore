@@ -1,56 +1,59 @@
-# Python
+# --- Python bytecode & caches ---
 __pycache__/
 *.py[cod]
+*.so
+*.pyd
 *.pyo
 *.pyd
-*.so
-*.egg-info/
-__pypackages__/
-
-# Virtual environments
-.venv/
-.env
-
-# Typing / linting
+.pytest_cache/
 .mypy_cache/
+.pyre/
+.pytype/
 .ruff_cache/
 
-# Testing
-.pytest_cache/
+# --- Virtual environments ---
+.venv/
+venv/
+env/
+ENV/
+
+# --- Build & packaging ---
+build/
+dist/
+*.egg-info/
+.eggs/
+pip-wheel-metadata/
+
+# --- Coverage / testing artifacts ---
 .coverage
+.coverage.*
 htmlcov/
+.tox/
+
+# --- Logs ---
+logs/
 *.log
 
-# Editors
-.vscode/
-.idea/
-*.swp
-
-# System/OS
+# --- OS / Editor junk ---
 .DS_Store
 Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
 
-# CORE-specific
-logs/
-pending_writes/
-sandbox/
-*.jsonl
-*.lock
-!poetry.lock
-reports/knowledge_graph.json
-reports/drift_report.json
+# --- Environment files (keep an example if you want) ---
+.env
+.env.*
+!.env.example
 
-# --- Project-specific reports and temp files ---
-reports/constitutional_review.md
-reports/constitution_bundle.txt
-GH_STATUS.md
-project_context.txt
-test.txt
-audit.txt
+# --- Node (if present for UI) ---
+node_modules/
+npm-debug.log*
+yarn.lock
+pnpm-lock.yaml
 
-# Cache or checkpoints
-*.bak
-*.tmp
-
-work/*
-!work/.gitkeep
+# --- Reports: ignore everything except drift evidence & keep-file ---
+/reports/*
+!/reports/drift_report.json
+!/reports/.gitkeep

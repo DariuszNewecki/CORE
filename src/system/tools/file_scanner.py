@@ -3,7 +3,6 @@
 Scans individual Python files and extracts symbol information.
 """
 import ast
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, Optional
 
@@ -12,7 +11,6 @@ from system.tools.ast_utils import (
     calculate_structural_hash,
     detect_docstring,
     extract_base_classes,
-    parse_metadata_comment,
 )
 from system.tools.ast_visitor import FunctionCallVisitor
 from system.tools.domain_mapper import DomainMapper
@@ -87,39 +85,30 @@ class FileScanner:
         is_class = isinstance(node, ast.ClassDef)
 
         func_info = FunctionInfo(
-            key=key,
             name=node.name,
-            type=node.__class__.__name__,
-            file=filepath.relative_to(self.domain_mapper.root_path).as_posix(),
-            calls=visitor.calls,
-            line_number=node.lineno,
-            is_async=isinstance(node, ast.AsyncFunctionDef),
-            docstring=doc,
-            parameters=(
-                [arg.arg for arg in node.args.args] if hasattr(node, "args") else []
+            qualname=f"{domain}.{node.name}",
+            module=filepath.stem,
+            filepath=filepath.relative_to(self.domain_mapper.root_path).as_posix(),
+            lineno=node.lineno,
+            end_lineno=node.end_lineno if hasattr(node, "end_lineno") else None,
+            params=(
+                {arg.arg: None for arg in node.args.args}
+                if hasattr(node, "args")
+                else {}
             ),
-            entry_point_type=(
-                self.entry_point_detector.get_entry_point_type(node)
-                if not is_class
-                else None
+            returns=None,
+            decorators=(
+                [ast.unparse(d) for d in node.decorator_list]
+                if hasattr(node, "decorator_list")
+                else []
             ),
-            domain=domain,
-            agent=self.domain_mapper.infer_agent_from_path(
-                filepath.relative_to(self.domain_mapper.root_path)
-            ),
-            capability=parse_metadata_comment(node, source_lines).get(
-                "capability", "unassigned"
-            ),
-            intent=(
-                doc.split("\n")[0].strip()
-                if doc
-                else f"Provides functionality for the {domain} domain."
-            ),
-            last_updated=datetime.now(timezone.utc).isoformat(),
-            is_class=is_class,
             base_classes=extract_base_classes(node) if is_class else [],
-            parent_class_key=parent_key,
+            docstring=doc,
+            calls=visitor.calls,
+            complexity=None,
+            type=node.__class__.__name__,
             structural_hash=structural_hash,
+            tags=[key],
         )
 
         self.functions[key] = func_info

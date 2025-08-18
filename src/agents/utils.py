@@ -26,6 +26,7 @@ class CodeEditor:
                         return node.lineno, node.end_lineno
         return None
 
+    # CAPABILITY: agents:docstring-fixer
     def replace_symbol_in_code(
         self, original_code: str, symbol_name: str, new_code_str: str
     ) -> str:

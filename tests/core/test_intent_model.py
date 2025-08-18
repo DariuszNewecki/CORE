@@ -61,7 +61,7 @@ def test_get_domain_permissions_core(intent_model: IntentModel):
     core_permissions = intent_model.get_domain_permissions("core")
     assert isinstance(core_permissions, list)
     assert "shared" in core_permissions
-    assert "agents" in core_permissions
+    assert "agents" not in core_permissions
 
 
 def test_get_domain_permissions_unrestricted(intent_model: IntentModel):

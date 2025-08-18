@@ -1,89 +1,166 @@
 # Contributing to CORE
 
-First off, thank you for considering a contribution. CORE is an ambitious project exploring a new frontier of self-governing software, and every contribution — from a simple bug report to a deep philosophical discussion — is incredibly valuable.
+> **First principle:** The constitution lives in `.intent/`. Touch **.intent first, code second**.
 
-This document provides a guide for how you can get involved.
-
-## The Philosophy: Principled Contributions
-
-CORE is a system governed by a constitution. We ask that all contributions align with the principles laid out in our foundational documents. Before diving into code, we highly recommend reading:
-
-1.  **[The CORE Philosophy (`docs/01_PHILOSOPHY.md`)](docs/01_PHILOSOPHY.md)** — to understand the *why* behind the project.
-2.  **[The System Architecture (`docs/02_ARCHITECTURE.md`)](docs/02_ARCHITECTURE.md)** — to understand the *how* of the Mind/Body separation.
-3.  **[The Governance Model (`docs/03_GOVERNANCE.md`)](docs/03_GOVERNANCE.md)** — to understand the *process* for safe, constitutional change.
-
-The most important principle for contributors is `clarity_first`. Every change should make the system easier to understand, not harder.
+Thanks for helping improve CORE! This guide explains how to propose changes safely and predictably.
 
 ---
 
-## How You Can Contribute
+## 1) Prereqs
 
-There are many ways to contribute, and many of them don't involve writing a single line of code.
-
-### 🏛️ Discussing Architecture and Governance
-
-The most valuable contributions at this stage are discussions about the core architecture and governance model.
-
--   **Review our Roadmap:** Read our **[Project Roadmap (`docs/04_ROADMAP.md`)](docs/04_ROADMAP.md)**. Find a challenge that interests you and share your thoughts.
--   **Propose a Constitutional Change:** If you believe a principle or policy could be improved, open an issue to discuss it. The health of the system's "Mind" is our top priority.
-
-### 🐞 Reporting Bugs
-
-If you find a bug or a constitutional inconsistency, please open an issue. A great bug report includes:
--   The command you ran.
--   The full output, including the error and traceback.
--   Your analysis of why you think it's happening.
-
-Our goal is for the system’s `ConstitutionalAuditor` to catch all inconsistencies. If you find one it missed, you’ve found a valuable way to make our immune system stronger!
-
-### ✍️ Improving Documentation
-
-If you find a part of our documentation confusing, unclear, or incomplete, a pull request to improve it is a massive contribution. Clear documentation is vital for the project's health and aligns with our `clarity_first` principle.
+* Python **3.9+** (3.11 recommended)
+* [Poetry](https://python-poetry.org/) installed
+* Install deps: `poetry install`
 
 ---
 
-## 💻 Contributing Code
+## 2) Branch & Commit Rules
 
-If you'd like to contribute code, please follow these steps.
+**Branch names**
 
-### 1. Code Conventions
+* `feat/<short-purpose>` — new features
+* `fix/<short-purpose>` — bug fixes
+* `chore/<short-purpose>` — non-functional changes
+* `docs/<short-purpose>` — docs-only changes
 
-To uphold the `clarity_first` principle, all code submitted to CORE must adhere to these standards:
+**Conventional commits**
 
--   **Formatting:** All Python code is formatted with `black`. Our linter, `ruff`, is configured to follow `black`'s style. You can auto-format all code by running `make format`.
--   **Linting:** We use `ruff` to enforce code quality and best practices.
--   **Typing:** All functions and methods must have type hints.
--   **Docstrings:** Every public module, class, function, and method must have a docstring explaining its purpose.
+* `feat(core): add capability router`
+* `fix(system): handle empty drift file`
+* `chore(shared): bump pydantic floor`
+* `docs(governance): add waiver example`
 
-### 2. Architectural Principles
-
-To uphold the `separation_of_concerns` principle, the codebase is divided into strict architectural domains.
-
--   **Domain Definitions:** The domains and their responsibilities are defined in `.intent/knowledge/source_structure.yaml`.
--   **Import Rules:** A domain may only import from other domains listed in its `allowed_imports` list within that file. The `ConstitutionalAuditor` strictly enforces these boundaries. Before adding a new cross-domain import, you must first propose a change to the constitution.
-
-### 3. Dependency Management
-
-The project uses [Poetry](https://python-poetry.org/) to manage dependencies.
-
--   **Adding a dependency:** Use `poetry add <package_name>`.
--   **Adding a dev dependency:** Use `poetry add --group dev <package_name>`.
--   **Installation:** All dependencies are specified in `pyproject.toml` and locked in `poetry.lock`. A new contributor only needs to run `poetry install`.
-
-### 4. The Submission Workflow
-
-1.  Find an open issue that you'd like to work on (or open a new one for discussion).
-2.  Fork the repository and create a new branch.
-3.  **Write the code.** Ensure your code adheres to the conventions listed above.
-4.  **Run the checks.** This is a critical step to ensure your contribution is constitutionally compliant.
-    - For quick, iterative checks while you work, run `make fast-check`. This will handle linting and unit tests.
-    - Before submitting, you **MUST** run the full suite, which includes the constitutional self-audit.
-    ```bash
-    make check
-    ```
-    If you have formatting issues, you can run `make format` to fix them automatically.
-5.  Submit a pull request.
+**Scopes** should map to domains (`core`, `agents`, `system`, `shared`, `data`), docs (`docs`, `governance`), or infrastructure (`deps`, `actions`).
 
 ---
 
-We are excited to build this new future for software development with you.
+## 3) Adding or Changing Capabilities
+
+1. **Pick the right domain** in `.intent/knowledge/source_structure.yaml`.
+
+2. Edit the domain manifest in `.intent/manifests/<domain>.manifest.json`:
+
+   * Capabilities must be **unique** and **domain-prefixed** (e.g., `core:task-router`).
+
+3. Run:
+
+   ```bash
+   make migrate              # scaffold + validate + duplicate check
+   make guard-check          # enforce import boundaries
+   make drift                # writes reports/drift_report.json
+   ```
+
+4. Implement code inside that domain only. Cross-domain calls go through core interfaces.
+
+5. Update docs when behavior or rules change.
+
+---
+
+## 4) Dependency Policy
+
+* Use **httpx** for HTTP. Do not use `requests` (forbidden by policy).
+* Add third-party libs only if justified by architecture.
+* Reflect allow-lists in:
+
+  * `.intent/policies/intent_guard.yaml → rules.libraries.allowed`
+  * `.intent/knowledge/source_structure.yaml → domain allowed_imports`
+
+**Checklist for new deps:**
+
+* Added to `pyproject.toml`
+* Allowed in policy + source map (only where needed)
+* No violations from `make guard-check`
+
+---
+
+## 5) Temporary Waivers (rare)
+
+If you must defer a fix:
+
+* Add a time-boxed waiver in `.intent/policies/intent_guard.yaml` under `enforcement.waivers`:
+
+  ```yaml
+  waivers:
+    - path: "^src/system/legacy/.*\\.py$"
+      reason: "Temporary while refactoring bootstrap"
+      expires: "2025-12-31"
+  ```
+
+* Open an issue linking to the waiver.
+
+* Plan a follow-up PR to remove it. **Goal: zero waivers.**
+
+---
+
+## 6) Local Checks (run before every PR)
+
+```bash
+# Governance
+make migrate FAIL_ON_CONFLICTS=1
+make guard-check
+make drift
+
+# Quality
+make fast-check           # lint + tests
+```
+
+If you’re iterating fast and don’t want a failure to stop you:
+
+```bash
+poetry run core-admin guard check --no-fail
+```
+
+---
+
+## 7) Definition of Done (DoD)
+
+A PR is ready when:
+
+* `.intent/` updates (if any) are consistent and validated
+* `make migrate FAIL_ON_CONFLICTS=1` passes
+* `make guard-check` shows no violations
+* `make drift` generated **0 validation errors and 0 duplicate capabilities**
+* `make fast-check` is green (lint + tests)
+* Docs updated (`README` or `docs/`), including rationale for governance-relevant changes
+
+---
+
+## 8) PR Review Expectations
+
+Reviewers will check:
+
+* Constitution alignment (no cycles, correct domain imports)
+* Capability uniqueness and accurate domain placement
+* Library policy compliance (**httpx over requests**)
+* Tests & lint
+* Clear rationale in the PR description
+
+---
+
+## 9) CI Overview
+
+Every push/PR runs:
+
+* Manifest migration & validation (fails on duplicate capabilities)
+* Intent Guard (import boundaries & library policy)
+* Lint + tests
+
+**Workflow:** `.github/workflows/guard-and-drift.yml`
+**Artifacts:** `reports/drift_report.json` is attached to the run.
+
+---
+
+## 10) Security
+
+* Report vulnerabilities privately (see `SECURITY.md`).
+* Do not include secrets in PRs.
+
+---
+
+## 11) Questions
+
+Open a GitHub Discussion or issue. For governance questions, reference:
+
+* `.intent/policies/intent_guard.yaml`
+* `.intent/knowledge/source_structure.yaml`
+* `docs/03_GOVERNANCE.md`
