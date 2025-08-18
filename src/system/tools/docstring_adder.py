@@ -18,6 +18,16 @@ from shared.logger import getLogger
 from shared.path_utils import get_repo_root
 from system.tools.codegraph_builder import KnowledgeGraphBuilder
 
+try:
+    from rich.progress import track  # nice-to-have progress
+except Exception:  # pragma: no cover
+
+    def track(iterable, description=None):
+        # minimal fallback: just pass items through
+        for item in iterable:
+            yield item
+
+
 # --- Constants & Setup ---
 log = getLogger("docstring_adder")
 REPO_ROOT = get_repo_root()

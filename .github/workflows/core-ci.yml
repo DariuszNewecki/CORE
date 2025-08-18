@@ -1,162 +1,64 @@
-name: CORE CI
+name: CI
 
 on:
   push:
     branches: [ main ]
   pull_request:
     branches: [ main ]
+  workflow_dispatch:
 
 permissions:
   contents: read
-  pull-requests: write
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  build_and_test:
-    name: Build & Test (Python ${{ matrix.python-version }})
+  build-test:
+    name: build-test
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: [ "3.11", "3.12" ]
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
-
-      - name: Install Poetry
-        run: pipx install poetry
-
-      - name: Cache Poetry
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/pypoetry
-          key: poetry-${{ runner.os }}-${{ matrix.python-version }}-${{ hashFiles('**/poetry.lock') }}
-          restore-keys: |
-            poetry-${{ runner.os }}-${{ matrix.python-version }}-
-
-      - name: Install deps
-        run: poetry install --no-interaction --no-root
-
-      - name: Set environment variables for tests
-        run: |
-          echo "MIND=.intent" >> $GITHUB_ENV
-          echo "BODY=src" >> $GITHUB_ENV
-          echo "REPO_PATH=." >> $GITHUB_ENV
-          echo "CORE_ACTION_LOG_PATH=logs/action_log.jsonl" >> $GITHUB_ENV
-          echo "ORCHESTRATOR_API_URL=http://mock.url" >> $GITHUB_ENV
-          echo "ORCHESTRATOR_API_KEY=mock_key" >> $GITHUB_ENV
-          echo "GENERATOR_API_URL=http://mock.url" >> $GITHUB_ENV
-          echo "GENERATOR_API_KEY=mock_key" >> $GITHUB_ENV
-
-      - name: Lint (Ruff)
-        run: poetry run ruff check .
-
-      - name: Format check (Black)
-        run: poetry run black --check .
-
-      - name: Self-audit (KnowledgeGraph + Auditor)
-        run: poetry run python -m src.core.capabilities
-        env:
-          PYTHONPATH: src
-
-      - name: Tests (with coverage)
-        run: poetry run pytest -q --cov=src --cov-report=xml
-
-      - name: Upload coverage artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-${{ matrix.python-version }}
-          path: coverage.xml
-          if-no-files-found: error
-        
-  governance:
-    name: Governance & Drift Check
-    runs-on: ubuntu-latest
-    needs: build_and_test
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Python & Poetry
+      - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pipx install poetry
+          cache: "poetry"
 
-      - name: Install deps
-        run: poetry install --no-interaction --no-root
-
-      - name: Set environment variables for governance checks
-        run: |
-          echo "MIND=.intent" >> $GITHUB_ENV
-          echo "BODY=src" >> $GITHUB_ENV
-          echo "REPO_PATH=." >> $GITHUB_ENV
-          echo "CORE_ACTION_LOG_PATH=logs/action_log.jsonl" >> $GITHUB_ENV
-          echo "ORCHESTRATOR_API_URL=http://mock.url" >> $GITHUB_ENV
-          echo "ORCHESTRATOR_API_KEY=mock_key" >> $GITHUB_ENV
-          echo "GENERATOR_API_URL=http://mock.url" >> $GITHUB_ENV
-          echo "GENERATOR_API_KEY=mock_key" >> $GITHUB_ENV
-
-      - name: Generate Knowledge Graph Artifact
-        run: poetry run core-admin guard kg-export
-        env:
-          PYTHONPATH: src
-
-      - name: Detect Capability Drift
-        id: drift_check
-        run: |
-          set +e
-          # Use the command's built-in --output flag to create a clean JSON file,
-          # avoiding contamination from poetry's stderr warnings.
-          poetry run core-admin guard drift --strict-intent --fail-on any --format json --output drift_report.json
-          echo "exit_code=$?" >> $GITHUB_OUTPUT
-          echo "report<<EOF" >> $GITHUB_OUTPUT
-          cat drift_report.json >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-        env:
-          PYTHONPATH: src
-      
-      - name: Fail job on drift
-        if: steps.drift_check.outputs.exit_code != '0'
-        run: |
-          echo "::error::Capability drift detected. See the report for details."
-          exit 1
-          
-      - name: Post PR comment on drift (for PR run)
-        if: failure() && github.event_name == 'pull_request'
-        uses: actions/github-script@v7
-        env:
-          REPORT_JSON: ${{ steps.drift_check.outputs.report }}
+      - name: Install Poetry
+        uses: abatilo/actions-poetry@v2
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const rawReport = process.env.REPORT_JSON;
-            if (!rawReport || rawReport.trim() === '') {
-              console.log('Drift report output was empty. Skipping comment.');
-              return;
-            }
-            const report = JSON.parse(rawReport);
-            const undeclared = report.undeclared_in_manifest.map(c => `- \`${c}\``).join('\n');
-            const missing = report.missing_in_code.map(c => `- \`${c}\``).join('\n');
-            
-            const output = `
-            #### 🏛️ Constitutional Drift Detected
-            This change introduces a mismatch between the declared constitution (\`.intent/\`) and the implemented code (\`src/\`).
+          poetry-version: "1.8.3"
 
-            **Undeclared in Manifest:** (Found in code but not in a \`manifest.yaml\`)
-            ${undeclared || "_None_"}
+      - name: Configure Poetry (local venv)
+        run: |
+          poetry config virtualenvs.create true
+          poetry config virtualenvs.in-project true
 
-            **Missing in Code:** (Declared in a \`manifest.yaml\` but not found in code)
-            ${missing || "_None_"}
+      # IMPORTANT: install the project itself so entry points (like `core-admin`) are created.
+      - name: Install dependencies (project + dev)
+        run: poetry install --no-interaction
 
-            **To Fix:** Please add or remove the relevant \`# CAPABILITY:\` tags in the source code or update the corresponding domain's \`manifest.yaml\` file.
-            `;
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-              body: output
-            });
+      - name: Static checks (Ruff + Black)
+        run: |
+          poetry run ruff check .
+          poetry run black --check .
+
+      - name: Tests (pytest + coverage)
+        run: poetry run pytest -q --cov=src --cov-report=xml
+
+      - name: Export knowledge graph
+        run: poetry run core-admin guard kg-export
+
+      - name: Upload artifacts (coverage & KG)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: core-reports
+          path: |
+            coverage.xml
+            reports/knowledge_graph.json

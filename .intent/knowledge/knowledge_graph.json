@@ -2,8 +2,8 @@
   "schema_version": "2.0.0",
   "metadata": {
     "files_scanned": 73,
-    "total_symbols": 284,
-    "timestamp_utc": "2025-08-18T08:49:03.870141+00:00"
+    "total_symbols": 285,
+    "timestamp_utc": "2025-08-18T10:10:11.357429+00:00"
   },
   "symbols": {
     "src/agents/execution_agent.py::ExecutionAgent": {
@@ -33,7 +33,7 @@
       "line_number": 20,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-18T08:49:01.879897+00:00",
+      "last_updated": "2025-08-18T10:10:10.552857+00:00",
       "is_class": true,
       "base_classes": [],
       "structural_hash": "fb3eab1025ec12c2ffbb39faf0701b166484f43e2f998ed265e11237705fbf96"
@@ -58,7 +58,7 @@
         "plan_executor"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-18T08:49:01.893134+00:00",
+      "last_updated": "2025-08-18T10:10:10.558221+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -90,7 +90,7 @@
         "goal"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-18T08:49:01.896162+00:00",
+      "last_updated": "2025-08-18T10:10:10.559551+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -122,7 +122,7 @@
         "high_level_goal",
         "plan"
       ],
-      "last_updated": "2025-08-18T08:49:01.902096+00:00",
+      "last_updated": "2025-08-18T10:10:10.562064+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "7132bb041816821e22af4abcb7d00a531000ad3d8feadd17c7cabb4c2a07dcb6"
@@ -142,7 +142,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "enum",
-      "last_updated": "2025-08-18T08:49:01.906738+00:00",
+      "last_updated": "2025-08-18T10:10:10.563647+00:00",
       "is_class": true,
       "base_classes": [
         "Enum"
@@ -165,7 +165,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-18T08:49:01.909032+00:00",
+      "last_updated": "2025-08-18T10:10:10.564627+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -187,7 +187,7 @@
       "parameters": [
         "self"
       ],
-      "last_updated": "2025-08-18T08:49:01.917155+00:00",
+      "last_updated": "2025-08-18T10:10:10.568343+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "d101ab8c655802b187262c9f5903e00ac183fdeb8301e2ae136d4f279d4b027a"
@@ -207,7 +207,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-18T08:49:01.912272+00:00",
+      "last_updated": "2025-08-18T10:10:10.566157+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -228,7 +228,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-18T08:49:01.913921+00:00",
+      "last_updated": "2025-08-18T10:10:10.566907+00:00",
       "is_class": true,
       "base_classes": [
         "BaseModel"
@@ -251,7 +251,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-18T08:49:01.915340+00:00",
+      "last_updated": "2025-08-18T10:10:10.567561+00:00",
       "is_class": true,
       "base_classes": [
         "BaseModel"
@@ -276,7 +276,7 @@
       "line_number": 21,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-18T08:49:01.927211+00:00",
+      "last_updated": "2025-08-18T10:10:10.571903+00:00",
       "is_class": true,
       "base_classes": [
         "Exception"
@@ -307,7 +307,7 @@
         "config"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-18T08:49:01.977101+00:00",
+      "last_updated": "2025-08-18T10:10:10.592809+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -355,7 +355,7 @@
       "line_number": 29,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-18T08:49:01.948270+00:00",
+      "last_updated": "2025-08-18T10:10:10.580566+00:00",
       "is_class": true,
       "base_classes": [],
       "structural_hash": "17735db12ab7b0a74cdffea83961886204476d970edac95c771a3ad3a5274554"
@@ -382,7 +382,7 @@
         "self",
         "plan"
       ],
-      "last_updated": "2025-08-18T08:49:01.979408+00:00",
+      "last_updated": "2025-08-18T10:10:10.593842+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "8ab199f27dd1071d219d6c48bea8bd7a3d2fdf4eedef7cfc8b84368e2888ac41"
@@ -408,7 +408,7 @@
         "self",
         "task"
       ],
-      "last_updated": "2025-08-18T08:49:01.981565+00:00",
+      "last_updated": "2025-08-18T10:10:10.594824+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "2b19751daf33b16818e0df3ee50ab15cb04a6b011160ffe645b7763f6a2b17d1"
@@ -432,7 +432,7 @@
         "self",
         "task"
       ],
-      "last_updated": "2025-08-18T08:49:01.983859+00:00",
+      "last_updated": "2025-08-18T10:10:10.595831+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "142e7b01a2be8c7c8b602cc730558908a88986ef92ded59e5898efb9d3f2d4ce"
@@ -470,7 +470,7 @@
         "self",
         "params"
       ],
-      "last_updated": "2025-08-18T08:49:01.990492+00:00",
+      "last_updated": "2025-08-18T10:10:10.598503+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "92d0f7ab18897042061d91682aa174be9b4838e02c9cd239fd3531296aac57a7"
@@ -502,7 +502,7 @@
         "self",
         "params"
       ],
-      "last_updated": "2025-08-18T08:49:01.994676+00:00",
+      "last_updated": "2025-08-18T10:10:10.600223+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "4bb5563cf1361275428d4d0b4fec8e2fb191b87359137ff4a4827a076b7515f6"
@@ -536,7 +536,7 @@
         "self",
         "params"
       ],
-      "last_updated": "2025-08-18T08:49:02.000332+00:00",
+      "last_updated": "2025-08-18T10:10:10.602481+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "cd92f69e3aa453220e21b7be41d28f3af1dcd95af46dc15c7e67902679562f94"
@@ -588,7 +588,7 @@
       "line_number": 24,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-18T08:49:02.024042+00:00",
+      "last_updated": "2025-08-18T10:10:10.611179+00:00",
       "is_class": true,
       "base_classes": [],
       "structural_hash": "438ca1d2144b2e8fe0a22f68ed40617570ad8dc2086beb19f2c4ed449ee9bc98"
@@ -615,7 +615,7 @@
         "config"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-18T08:49:02.043964+00:00",
+      "last_updated": "2025-08-18T10:10:10.619791+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -643,7 +643,7 @@
         "goal",
         "plan_id"
       ],
-      "last_updated": "2025-08-18T08:49:02.045634+00:00",
+      "last_updated": "2025-08-18T10:10:10.620550+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "59a96cbfb2dca8f5653d7a9a4255ea9f20aae428732c8e7605bda8e6fb129170"
@@ -674,7 +674,7 @@
         "self",
         "text"
       ],
-      "last_updated": "2025-08-18T08:49:02.049267+00:00",
+      "last_updated": "2025-08-18T10:10:10.622077+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "df6ba42dbade92e0423aa963b29741c7a7ca23bacd32fc9f8ea9b06713b5fa02"
@@ -700,7 +700,7 @@
         "self",
         "plan"
       ],
-      "last_updated": "2025-08-18T08:49:02.051933+00:00",
+      "last_updated": "2025-08-18T10:10:10.623164+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "8dc5acc38cbf9becc59b88c68b3d4ae8eb6e605e3cdde45f0f4eb329070f3000"
@@ -726,7 +726,7 @@
         "self",
         "task"
       ],
-      "last_updated": "2025-08-18T08:49:02.055033+00:00",
+      "last_updated": "2025-08-18T10:10:10.624514+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "42ef310195a95119c6987788500180309637c4d4989bac83da214f72aa637488"
@@ -768,7 +768,7 @@
         "high_level_goal"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-18T08:49:02.060348+00:00",
+      "last_updated": "2025-08-18T10:10:10.626694+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -801,7 +801,7 @@
       "line_number": 15,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-18T08:49:02.075179+00:00",
+      "last_updated": "2025-08-18T10:10:10.631504+00:00",
       "is_class": true,
       "base_classes": [],
       "structural_hash": "1e325dcf304aa0ce36a35ad3940b9f6a12c98bc07ba1b0b7b5833c6a60521568"
@@ -828,7 +828,7 @@
         "tree",
         "symbol_name"
       ],
-      "last_updated": "2025-08-18T08:49:02.102445+00:00",
+      "last_updated": "2025-08-18T10:10:10.642591+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "e1f209cb8a4ecc20429ae00376a97016fce78fac28e7722e1c75c53a474bc3d2"
@@ -862,7 +862,7 @@
         "symbol_name",
         "new_code_str"
       ],
-      "last_updated": "2025-08-18T08:49:02.107200+00:00",
+      "last_updated": "2025-08-18T10:10:10.644497+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "cfb5faaf154f4f3a26a528a27d7d5bf3528f3fe6ae33480719e6c6d770fe0ee8"
@@ -889,7 +889,7 @@
       "line_number": 66,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-18T08:49:02.086463+00:00",
+      "last_updated": "2025-08-18T10:10:10.635996+00:00",
       "is_class": true,
       "base_classes": [],
       "structural_hash": "aa60ea7ae3b22f0acf89dcbc52608035efb94cdaf001b399ce61573f0275ff0b"
@@ -919,7 +919,7 @@
         "file_path",
         "symbol_name"
       ],
-      "last_updated": "2025-08-18T08:49:02.110556+00:00",
+      "last_updated": "2025-08-18T10:10:10.645912+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "8ddfab18561b557e08e78df5c6ee99ff25b0c38d0088f3ed18ec16efbb047dd9"
@@ -944,7 +944,7 @@
       "line_number": 89,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-18T08:49:02.093908+00:00",
+      "last_updated": "2025-08-18T10:10:10.639028+00:00",
       "is_class": true,
       "base_classes": [],
       "structural_hash": "213b39d472ca44a51dfa93ce0b7490709391d835c23d06710e87d1958bd23ef1"
@@ -967,7 +967,7 @@
         "execution_agent"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-18T08:49:02.111946+00:00",
+      "last_updated": "2025-08-18T10:10:10.646541+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -994,7 +994,7 @@
         "self"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-18T08:49:02.113917+00:00",
+      "last_updated": "2025-08-18T10:10:10.647404+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -1024,7 +1024,7 @@
         "exc_tb"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-18T08:49:02.116085+00:00",
+      "last_updated": "2025-08-18T10:10:10.648437+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -1051,7 +1051,7 @@
       "parameters": [
         "code"
       ],
-      "last_updated": "2025-08-18T08:49:02.121584+00:00",
+      "last_updated": "2025-08-18T10:10:10.650531+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "67aa7b50532f6c25f84285da5bbf9430a54f3b594a386a3299c19b82faa15fbf"
@@ -1079,7 +1079,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "cli_entry_point",
-      "last_updated": "2025-08-18T08:49:02.130676+00:00",
+      "last_updated": "2025-08-18T10:10:10.654528+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "65c205885812932a8159baa16c02658ee3be9c35f7e536cee2a1799fa9a682b7"
@@ -1109,7 +1109,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "base_class",
-      "last_updated": "2025-08-18T08:49:02.148164+00:00",
+      "last_updated": "2025-08-18T10:10:10.660907+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "framework_base_class",
@@ -1136,7 +1136,7 @@
         "self"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-18T08:49:02.185785+00:00",
+      "last_updated": "2025-08-18T10:10:10.676999+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -1166,7 +1166,7 @@
         "prompt",
         "user_id"
       ],
-      "last_updated": "2025-08-18T08:49:02.176965+00:00",
+      "last_updated": "2025-08-18T10:10:10.673257+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "f86839876ec208ce0f0efec9a1ee80bba0eccb140e30ccaa94c499b45e182a73"
@@ -1195,7 +1195,7 @@
         "prompt",
         "user_id"
       ],
-      "last_updated": "2025-08-18T08:49:02.182279+00:00",
+      "last_updated": "2025-08-18T10:10:10.675455+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "000933e12c6751ddaee82d36d6bc4e62a447f2cd6c3fa59c68c0ad1064d3c8b6"
@@ -1218,7 +1218,7 @@
       "line_number": 129,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-18T08:49:02.163257+00:00",
+      "last_updated": "2025-08-18T10:10:10.667368+00:00",
       "is_class": true,
       "base_classes": [
         "BaseLLMClient"
@@ -1243,7 +1243,7 @@
       "line_number": 144,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-18T08:49:02.166945+00:00",
+      "last_updated": "2025-08-18T10:10:10.669036+00:00",
       "is_class": true,
       "base_classes": [
         "BaseLLMClient"
@@ -1272,7 +1272,7 @@
       "parameters": [
         "app"
       ],
-      "last_updated": "2025-08-18T08:49:02.193506+00:00",
+      "last_updated": "2025-08-18T10:10:10.679748+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "b4391706ebcc3340825a8843452e9937dff660eae23258170b9a39025af234cd"
@@ -1298,7 +1298,7 @@
         "request",
         "exc"
       ],
-      "last_updated": "2025-08-18T08:49:02.196014+00:00",
+      "last_updated": "2025-08-18T10:10:10.680812+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "844a786fe8a0ce4cd5981900846e4e73cecae20bed3e51aaa59a30f251c850aa"
@@ -1324,7 +1324,7 @@
         "request",
         "exc"
       ],
-      "last_updated": "2025-08-18T08:49:02.198213+00:00",
+      "last_updated": "2025-08-18T10:10:10.681753+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "8fe5bb14073169e242922d7e0ec83028c9f5651f22f304eee50f7f1e66a093af"
@@ -1362,7 +1362,7 @@
       "line_number": 21,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-18T08:49:02.212770+00:00",
+      "last_updated": "2025-08-18T10:10:10.687232+00:00",
       "is_class": true,
       "base_classes": [],
       "structural_hash": "cf22b57d0019b89065c46a812e22e93b4b7115c5a8708f14c806b9a1d98a402f"
@@ -1392,7 +1392,7 @@
         "repo_path"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-18T08:49:02.227641+00:00",
+      "last_updated": "2025-08-18T10:10:10.693600+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -1426,7 +1426,7 @@
         "suggested_path",
         "code"
       ],
-      "last_updated": "2025-08-18T08:49:02.230646+00:00",
+      "last_updated": "2025-08-18T10:10:10.694865+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "97f53770943022e923da2c61ba40c8b032523785a1466c467746c7cf52a50e8f"
@@ -1460,7 +1460,7 @@
         "self",
         "pending_id"
       ],
-      "last_updated": "2025-08-18T08:49:02.236219+00:00",
+      "last_updated": "2025-08-18T10:10:10.697227+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "541b4ae3111b2b97acd6b799bddb038018fc5ddaf06d45bd53757acdbbe26688"
@@ -1496,7 +1496,7 @@
       "line_number": 22,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-18T08:49:02.250754+00:00",
+      "last_updated": "2025-08-18T10:10:10.702613+00:00",
       "is_class": true,
       "base_classes": [],
       "structural_hash": "ccc7b74514266784da6391edb69daa742b4ccb839f991520bf4bcd5f53f8bee9"
@@ -1525,7 +1525,7 @@
         "repo_path"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-18T08:49:02.267653+00:00",
+      "last_updated": "2025-08-18T10:10:10.710114+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -1556,7 +1556,7 @@
         "command"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-18T08:49:02.270533+00:00",
+      "last_updated": "2025-08-18T10:10:10.711374+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -1583,7 +1583,7 @@
         "self",
         "file_path"
       ],
-      "last_updated": "2025-08-18T08:49:02.272793+00:00",
+      "last_updated": "2025-08-18T10:10:10.712379+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "bf69c45ada0dfc032626720fafc60b9784d1b6f7671472abf04bbef419e3d3b2"
@@ -1610,7 +1610,7 @@
         "self",
         "message"
       ],
-      "last_updated": "2025-08-18T08:49:02.275626+00:00",
+      "last_updated": "2025-08-18T10:10:10.713583+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "28aacd32f8f933e003487892fc29991fec80707c4431f9d84ee198f07158791b"
@@ -1633,7 +1633,7 @@
       "parameters": [
         "self"
       ],
-      "last_updated": "2025-08-18T08:49:02.277045+00:00",
+      "last_updated": "2025-08-18T10:10:10.714221+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "44bf21e77508b2285243dbd4a291ad962face3886f645477a69fb5b1af1f182e"
@@ -1656,7 +1656,7 @@
       "parameters": [
         "self"
       ],
-      "last_updated": "2025-08-18T08:49:02.278338+00:00",
+      "last_updated": "2025-08-18T10:10:10.714816+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "9591cea61e11db1150d7179ac28a550cc2eba183bfc3d60f297b6a304022122a"
@@ -1682,7 +1682,7 @@
         "self",
         "commit_hash"
       ],
-      "last_updated": "2025-08-18T08:49:02.280445+00:00",
+      "last_updated": "2025-08-18T10:10:10.715758+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "949dc4328418bf308315afed23d47b25af2965af4c69af006041795f2264b0da"
@@ -1707,7 +1707,7 @@
       "parameters": [
         "paths"
       ],
-      "last_updated": "2025-08-18T08:49:02.286968+00:00",
+      "last_updated": "2025-08-18T10:10:10.718009+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "5c690a7094496e5795d7c4bde5518e0460231aceb1b54d26fa5870b9d65f2976"
@@ -1734,7 +1734,7 @@
       "line_number": 39,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-18T08:49:02.289464+00:00",
+      "last_updated": "2025-08-18T10:10:10.719147+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "645bcc9a39ef41488c5ea7a2940f13fc4b26c8c1bc436d53f993d814c77c15b3"
@@ -1758,7 +1758,7 @@
       "parameters": [
         "text"
       ],
-      "last_updated": "2025-08-18T08:49:02.290880+00:00",
+      "last_updated": "2025-08-18T10:10:10.719776+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "8b7e436b369f8a59e6ca968520fc9d02eec3f9d1e48258193e87e177d62d8e82"
@@ -1792,7 +1792,7 @@
         "goal",
         "project_root"
       ],
-      "last_updated": "2025-08-18T08:49:02.295010+00:00",
+      "last_updated": "2025-08-18T10:10:10.721488+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "0c7e02644a288a463670cc1472faa6701002593ecefcd8b3078631666b684468"
@@ -1832,7 +1832,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-18T08:49:02.308622+00:00",
+      "last_updated": "2025-08-18T10:10:10.726480+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -1863,7 +1863,7 @@
         "repo_path"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-18T08:49:02.322915+00:00",
+      "last_updated": "2025-08-18T10:10:10.732624+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -1891,7 +1891,7 @@
       "parameters": [
         "self"
       ],
-      "last_updated": "2025-08-18T08:49:02.325112+00:00",
+      "last_updated": "2025-08-18T10:10:10.733600+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "58ca81c87b60fa11ae873bbb67dd836b4bd82e1f065b14967d0a6b10c724ff1a"
@@ -1920,7 +1920,7 @@
       "parameters": [
         "self"
       ],
-      "last_updated": "2025-08-18T08:49:02.328024+00:00",
+      "last_updated": "2025-08-18T10:10:10.734827+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "192c2a51474b035387b5dd1d0b9b0c1ea56903c550b8ec5f2ca40f40b69679cb"
@@ -1945,7 +1945,7 @@
         "self",
         "proposed_paths"
       ],
-      "last_updated": "2025-08-18T08:49:02.331184+00:00",
+      "last_updated": "2025-08-18T10:10:10.736149+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "92924a1f132945e81b93a5ca688d1a218e3da14b4441bdea14f3888550cc533d"
@@ -1978,7 +1978,7 @@
       "line_number": 20,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-18T08:49:02.343051+00:00",
+      "last_updated": "2025-08-18T10:10:10.740628+00:00",
       "is_class": true,
       "base_classes": [],
       "structural_hash": "ead52768c57f82f1780c8048368cab32f42cf88daf78acfe2535d08b2a8e4e0e"
@@ -2005,7 +2005,7 @@
         "repo_root"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-18T08:49:02.355379+00:00",
+      "last_updated": "2025-08-18T10:10:10.746186+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -2034,7 +2034,7 @@
       "parameters": [
         "self"
       ],
-      "last_updated": "2025-08-18T08:49:02.358120+00:00",
+      "last_updated": "2025-08-18T10:10:10.747366+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "b824e94138bb02de0af5745ab5f6a071ce7b11cbfb5530c8f99e55a1bbccc06e"
@@ -2061,7 +2061,7 @@
         "self",
         "file_path"
       ],
-      "last_updated": "2025-08-18T08:49:02.361136+00:00",
+      "last_updated": "2025-08-18T10:10:10.748683+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "7233e373175714977e544959c79a24ce93db7915c6a103e729b62d514d42216c"
@@ -2086,7 +2086,7 @@
         "self",
         "domain"
       ],
-      "last_updated": "2025-08-18T08:49:02.363106+00:00",
+      "last_updated": "2025-08-18T10:10:10.749537+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "16a9b7ddeb463171579a3fbc9d32982a49bdb7faefbe080378a345cbbfda5698"
@@ -2123,7 +2123,7 @@
         "app"
       ],
       "entry_point_type": "context_manager",
-      "last_updated": "2025-08-18T08:49:02.374494+00:00",
+      "last_updated": "2025-08-18T10:10:10.753800+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "fbf113a46e4ad94071905af87505091bc949b17cc855db75c3c65327b9adba7e"
@@ -2143,7 +2143,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-18T08:49:02.375566+00:00",
+      "last_updated": "2025-08-18T10:10:10.754302+00:00",
       "is_class": true,
       "base_classes": [
         "BaseModel"
@@ -2168,7 +2168,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-18T08:49:02.376965+00:00",
+      "last_updated": "2025-08-18T10:10:10.754978+00:00",
       "is_class": true,
       "base_classes": [
         "BaseModel"
@@ -2195,7 +2195,7 @@
       "is_async": true,
       "parameters": [],
       "entry_point_type": "fastapi_route_get",
-      "last_updated": "2025-08-18T08:49:02.378718+00:00",
+      "last_updated": "2025-08-18T10:10:10.755729+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "7febe9b644c636fa632eed6757dfd61f5f793d2498af694bb276435f1e0a9136"
@@ -2224,7 +2224,7 @@
         "payload"
       ],
       "entry_point_type": "fastapi_route_post",
-      "last_updated": "2025-08-18T08:49:02.381732+00:00",
+      "last_updated": "2025-08-18T10:10:10.757003+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "202a6fe24c3a8647bb696b6e100fe53f4f38c1e9f869be4742b5850b1e063628"
@@ -2260,7 +2260,7 @@
         "request"
       ],
       "entry_point_type": "fastapi_route_post",
-      "last_updated": "2025-08-18T08:49:02.386097+00:00",
+      "last_updated": "2025-08-18T10:10:10.758761+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "42b4430778f928fe01ece455a066daf39c9e197f037e7c88a521f51e934efcff"
@@ -2282,7 +2282,7 @@
       "is_async": true,
       "parameters": [],
       "entry_point_type": "fastapi_route_get",
-      "last_updated": "2025-08-18T08:49:02.387451+00:00",
+      "last_updated": "2025-08-18T10:10:10.759337+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "0f4ab9b7486b424e3726a154118bc8d237af730580bf891e8f58b65ba9fd8713"
@@ -2322,7 +2322,7 @@
       "line_number": 24,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-18T08:49:02.410876+00:00",
+      "last_updated": "2025-08-18T10:10:10.767928+00:00",
       "is_class": true,
       "base_classes": [],
       "structural_hash": "643ffeca004f05935522cc4d1c1b568539b9a36dd0ab361acf09bb0e399dec65"
@@ -2349,7 +2349,7 @@
         "repo_path"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-18T08:49:02.435928+00:00",
+      "last_updated": "2025-08-18T10:10:10.779090+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -2380,7 +2380,7 @@
         "self",
         "match"
       ],
-      "last_updated": "2025-08-18T08:49:02.439630+00:00",
+      "last_updated": "2025-08-18T10:10:10.780710+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "69c3e72e7b03b25521273e77c42e156d65772c262f59ee1b25bcce6d70863bff"
@@ -2404,7 +2404,7 @@
         "self",
         "prompt"
       ],
-      "last_updated": "2025-08-18T08:49:02.440954+00:00",
+      "last_updated": "2025-08-18T10:10:10.781313+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "11fb0fa702d480e49fbad9fe7eaede86611b3cfb9b8944f520892ae15dffc7b0"
@@ -2434,7 +2434,7 @@
         "self",
         "match"
       ],
-      "last_updated": "2025-08-18T08:49:02.444561+00:00",
+      "last_updated": "2025-08-18T10:10:10.782886+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "3df3436cee404f0d98540037203c0e84c11e0f56cb31540ca3fe85350eeacdd8"
@@ -2458,7 +2458,7 @@
         "self",
         "prompt"
       ],
-      "last_updated": "2025-08-18T08:49:02.445877+00:00",
+      "last_updated": "2025-08-18T10:10:10.783524+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "6f77e4347ebd4b2deab3eace2798b591c4243c4cc43686cd319c0a1f5ff0c2ca"
@@ -2483,7 +2483,7 @@
         "self",
         "match"
       ],
-      "last_updated": "2025-08-18T08:49:02.447645+00:00",
+      "last_updated": "2025-08-18T10:10:10.784316+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "34274a0f7415695348ba0437bb6be2b7c6a211608372ea21fcf87b7bb7057f58"
@@ -2507,7 +2507,7 @@
         "self",
         "prompt"
       ],
-      "last_updated": "2025-08-18T08:49:02.448964+00:00",
+      "last_updated": "2025-08-18T10:10:10.784909+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "c503ae0368651ed52d0af07a2028044a4635852b4262fbe0b292a6de1fef9a74"
@@ -2540,7 +2540,7 @@
         "self",
         "match"
       ],
-      "last_updated": "2025-08-18T08:49:02.453637+00:00",
+      "last_updated": "2025-08-18T10:10:10.786888+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "4937c71be594f5ada7675be42dc716678817daa722e49398deafa963ac35acad"
@@ -2564,7 +2564,7 @@
         "self",
         "prompt"
       ],
-      "last_updated": "2025-08-18T08:49:02.454970+00:00",
+      "last_updated": "2025-08-18T10:10:10.787502+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "77f28434e5ad8ebaf00e1d6081b399fd2a9d7c90dac7829bbde092e51da55a4f"
@@ -2592,7 +2592,7 @@
         "prompt"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-18T08:49:02.456795+00:00",
+      "last_updated": "2025-08-18T10:10:10.788286+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -2627,7 +2627,7 @@
         "code",
         "display_filename"
       ],
-      "last_updated": "2025-08-18T08:49:02.468329+00:00",
+      "last_updated": "2025-08-18T10:10:10.792568+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "43ca55ae34afc29c10e967766b01252dae62b0efe0b5e8f024d0d5f07d1cc287"
@@ -2661,7 +2661,7 @@
         "failure_context"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-18T08:49:02.477614+00:00",
+      "last_updated": "2025-08-18T10:10:10.796083+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -2689,7 +2689,7 @@
         "code"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-18T08:49:02.482583+00:00",
+      "last_updated": "2025-08-18T10:10:10.797949+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -2728,7 +2728,7 @@
         "silent"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-18T08:49:02.495705+00:00",
+      "last_updated": "2025-08-18T10:10:10.802559+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -2754,7 +2754,7 @@
       "parameters": [
         "output"
       ],
-      "last_updated": "2025-08-18T08:49:02.497782+00:00",
+      "last_updated": "2025-08-18T10:10:10.803495+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "ecb56e37049e5532d9a6ce3afe63d1fd652cb164fc98e76a46565820fd320bf7"
@@ -2782,7 +2782,7 @@
       "parameters": [
         "data"
       ],
-      "last_updated": "2025-08-18T08:49:02.500428+00:00",
+      "last_updated": "2025-08-18T10:10:10.804593+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "13f83ee9bd80ac8766838342478341ecac3f76e1a251506d3a68a02723b420d3"
@@ -2812,7 +2812,7 @@
       "parameters": [
         "data"
       ],
-      "last_updated": "2025-08-18T08:49:02.503647+00:00",
+      "last_updated": "2025-08-18T10:10:10.806027+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "af76b1754db8cbc6ae124a21f9916aaa8bfc52fa38d68bc69f86fd7e70aed49e"
@@ -2835,7 +2835,7 @@
       "line_number": 29,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-18T08:49:02.517473+00:00",
+      "last_updated": "2025-08-18T10:10:10.810692+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "cab90bc1e8a1e8e5ffececda4a227e4b8a931edb4fe02be9ce5a23bfae8d222f"
@@ -2860,7 +2860,7 @@
       "parameters": [
         "node"
       ],
-      "last_updated": "2025-08-18T08:49:02.519722+00:00",
+      "last_updated": "2025-08-18T10:10:10.811711+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "72bf270f183300199553865489182c447b5a4ccdc1ea03a3d5b94d95b162322e"
@@ -2896,7 +2896,7 @@
         "tree",
         "file_path"
       ],
-      "last_updated": "2025-08-18T08:49:02.528461+00:00",
+      "last_updated": "2025-08-18T10:10:10.815511+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "812f91809662354e6852673feef4c0faf04a6c475d9b084ed329ce08d1100463"
@@ -2923,7 +2923,7 @@
       "parameters": [
         "code"
       ],
-      "last_updated": "2025-08-18T08:49:02.531465+00:00",
+      "last_updated": "2025-08-18T10:10:10.816850+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "c5b46c2eff257ea4efe9df4b282875ab698168db224abe219bf9f3ef4276594d"
@@ -2949,7 +2949,7 @@
         "file_path"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-18T08:49:02.533124+00:00",
+      "last_updated": "2025-08-18T10:10:10.817607+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -2982,7 +2982,7 @@
         "path_hint",
         "code"
       ],
-      "last_updated": "2025-08-18T08:49:02.537117+00:00",
+      "last_updated": "2025-08-18T10:10:10.819222+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "e96751308fac71051ef307581c6143cebf0852d2a595604b122d0c380c8f37fc"
@@ -3006,7 +3006,7 @@
       "parameters": [
         "code"
       ],
-      "last_updated": "2025-08-18T08:49:02.539745+00:00",
+      "last_updated": "2025-08-18T10:10:10.820337+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "c1cc9b3495cf7da110b274799aa0d90947cbb9d1605a43719d7aa6ecfb877cef"
@@ -3030,7 +3030,7 @@
       "parameters": [
         "file_path"
       ],
-      "last_updated": "2025-08-18T08:49:02.541893+00:00",
+      "last_updated": "2025-08-18T10:10:10.821263+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "5389b48f5dc1b1c94a0a73168977c056aad4c0d85a4843163538780ff9c3cb91"
@@ -3061,7 +3061,7 @@
         "quiet"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-18T08:49:02.545961+00:00",
+      "last_updated": "2025-08-18T10:10:10.822881+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -3085,7 +3085,7 @@
       "line_number": 6,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-18T08:49:02.555432+00:00",
+      "last_updated": "2025-08-18T10:10:10.825808+00:00",
       "is_class": true,
       "base_classes": [
         "BaseSettings"
@@ -3119,7 +3119,7 @@
         "file_path",
         "file_type"
       ],
-      "last_updated": "2025-08-18T08:49:02.563662+00:00",
+      "last_updated": "2025-08-18T10:10:10.828910+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "7124b13af5cffa8a06961f6fb04e4cad8794f6e029db463269b09ae500e68353"
@@ -3143,7 +3143,7 @@
       "line_number": 21,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-18T08:49:02.569731+00:00",
+      "last_updated": "2025-08-18T10:10:10.831254+00:00",
       "is_class": true,
       "base_classes": [
         "Formatter"
@@ -3172,7 +3172,7 @@
         "self",
         "record"
       ],
-      "last_updated": "2025-08-18T08:49:02.581768+00:00",
+      "last_updated": "2025-08-18T10:10:10.836435+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "ac7aa220547adaa2c6454dbc2de7433b7cda3fab6c22802a4ccfda37ae4bb901"
@@ -3198,7 +3198,7 @@
       "parameters": [
         "level"
       ],
-      "last_updated": "2025-08-18T08:49:02.574009+00:00",
+      "last_updated": "2025-08-18T10:10:10.833126+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "c8c7c3be9bc45ea54f8ac86281e56ab1007b54298be1e70755676e3a30d19cfd"
@@ -3226,7 +3226,7 @@
       "line_number": 45,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-18T08:49:02.577379+00:00",
+      "last_updated": "2025-08-18T10:10:10.834534+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "b947162196adb0bb6de959a505cb18845176d71283a61c90defb531bd714df51"
@@ -3251,7 +3251,7 @@
         "name"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-18T08:49:02.579310+00:00",
+      "last_updated": "2025-08-18T10:10:10.835362+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -3279,7 +3279,7 @@
       "parameters": [
         "start_path"
       ],
-      "last_updated": "2025-08-18T08:49:02.586092+00:00",
+      "last_updated": "2025-08-18T10:10:10.838080+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "edc71d0c31594afdd9eea55c11cfb962e028462f15c08972f1a1d9cf1796ed79"
@@ -3306,7 +3306,7 @@
       "parameters": [
         "schema_name"
       ],
-      "last_updated": "2025-08-18T08:49:02.591783+00:00",
+      "last_updated": "2025-08-18T10:10:10.840228+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "6e3b8465838bb871ec1cd9f626c92298765c571cba61170572d50151c662f9be"
@@ -3335,7 +3335,7 @@
         "entry",
         "schema_name"
       ],
-      "last_updated": "2025-08-18T08:49:02.595839+00:00",
+      "last_updated": "2025-08-18T10:10:10.841929+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "df3df9d690f9e5aebdbffadea221df68a0ebfd500aaafa86a2205e3e452dedd2"
@@ -3363,7 +3363,7 @@
       "parameters": [
         "file_path"
       ],
-      "last_updated": "2025-08-18T08:49:02.601682+00:00",
+      "last_updated": "2025-08-18T10:10:10.844138+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "42bb5532dfbc0b03134979db387ac69dab213de0539724e125ec4cdb88080722"
@@ -3396,7 +3396,7 @@
       "parameters": [
         "repo_root"
       ],
-      "last_updated": "2025-08-18T08:49:02.611203+00:00",
+      "last_updated": "2025-08-18T10:10:10.847780+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "3424b54f3633ba0a128f765512d3694b531ca5dc1d7218058d3dfedb8b9e5880"
@@ -3420,7 +3420,7 @@
       "parameters": [
         "llm_output"
       ],
-      "last_updated": "2025-08-18T08:49:02.615334+00:00",
+      "last_updated": "2025-08-18T10:10:10.849346+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "37291692a6c893a9df4f553fd55414349bd2ec0142680181140f7d6990e94a74"
@@ -3454,7 +3454,7 @@
       "parameters": [
         "text"
       ],
-      "last_updated": "2025-08-18T08:49:02.632970+00:00",
+      "last_updated": "2025-08-18T10:10:10.855989+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "f752215dcb3fff0b8071ccf4ab4d077ee7aed9a7a03c56ecc0930dfc36566227"
@@ -3506,11 +3506,11 @@
         "initialize_git"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-18T08:49:02.642884+00:00",
+      "last_updated": "2025-08-18T10:10:10.859962+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
-      "structural_hash": "c341329027f1ed4055562974777f40249c77772dbcf2c0f371a74d6a8a705980"
+      "structural_hash": "a0ab4afdc68880eeab5c49e8b534d824149f08ec661ef47243c527bce7c95cb1"
     },
     "src/system/admin/agent.py::agent_scaffold": {
       "key": "src/system/admin/agent.py::agent_scaffold",
@@ -3535,7 +3535,7 @@
         "secho",
         "str"
       ],
-      "line_number": 204,
+      "line_number": 202,
       "is_async": false,
       "parameters": [
         "name",
@@ -3543,7 +3543,7 @@
         "git_init"
       ],
       "entry_point_type": "cli_command",
-      "last_updated": "2025-08-18T08:49:02.647748+00:00",
+      "last_updated": "2025-08-18T10:10:10.862029+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "typer_cli_command",
@@ -3562,13 +3562,13 @@
       "calls": [
         "add_typer"
       ],
-      "line_number": 236,
+      "line_number": 234,
       "is_async": false,
       "parameters": [
         "app"
       ],
       "entry_point_type": "cli_command",
-      "last_updated": "2025-08-18T08:49:02.649276+00:00",
+      "last_updated": "2025-08-18T10:10:10.862751+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "typer_cli_command",
@@ -3593,7 +3593,7 @@
       "parameters": [
         "src"
       ],
-      "last_updated": "2025-08-18T08:49:02.654183+00:00",
+      "last_updated": "2025-08-18T10:10:10.864743+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "e218d44d78886b77c35c15765677d43dae683efebd2a17545c3a2b8452895420"
@@ -3638,7 +3638,7 @@
         "dry_run"
       ],
       "entry_point_type": "cli_command",
-      "last_updated": "2025-08-18T08:49:02.673085+00:00",
+      "last_updated": "2025-08-18T10:10:10.871462+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "typer_cli_command",
@@ -3663,7 +3663,7 @@
         "app"
       ],
       "entry_point_type": "cli_command",
-      "last_updated": "2025-08-18T08:49:02.674716+00:00",
+      "last_updated": "2025-08-18T10:10:10.872179+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "typer_cli_command",
@@ -3690,7 +3690,7 @@
         "app"
       ],
       "entry_point_type": "cli_command",
-      "last_updated": "2025-08-18T08:49:02.679273+00:00",
+      "last_updated": "2025-08-18T10:10:10.873922+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "typer_cli_command",
@@ -3717,7 +3717,7 @@
       "parameters": [
         "root"
       ],
-      "last_updated": "2025-08-18T08:49:02.692424+00:00",
+      "last_updated": "2025-08-18T10:10:10.878631+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "43626173a46d0a5f508019039627edb2df02970a1eae78904e1223fcf8cda96a"
@@ -3740,7 +3740,7 @@
       "parameters": [
         "report"
       ],
-      "last_updated": "2025-08-18T08:49:02.694386+00:00",
+      "last_updated": "2025-08-18T10:10:10.879471+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "37959f8d821c2b4ca6b6146c0399c2561fc8e567a07025b5ba8ddaf66176f4d5"
@@ -3767,7 +3767,7 @@
       "parameters": [
         "report"
       ],
-      "last_updated": "2025-08-18T08:49:02.698127+00:00",
+      "last_updated": "2025-08-18T10:10:10.881052+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "0e5632fd1ca4dc5079d51c50c9fcb9cba38735001acd9028e073c841445d9a9c"
@@ -3795,7 +3795,7 @@
         "report_dict",
         "labels"
       ],
-      "last_updated": "2025-08-18T08:49:02.705067+00:00",
+      "last_updated": "2025-08-18T10:10:10.883868+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "6315ddd509348301b0499e75cea80b6096404d0faded526108ab46974376b082"
@@ -3838,7 +3838,7 @@
         "app"
       ],
       "entry_point_type": "cli_command",
-      "last_updated": "2025-08-18T08:49:02.715825+00:00",
+      "last_updated": "2025-08-18T10:10:10.888162+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "typer_cli_command",
@@ -3863,7 +3863,7 @@
         "items"
       ],
       "entry_point_type": "cli_command",
-      "last_updated": "2025-08-18T08:49:02.718742+00:00",
+      "last_updated": "2025-08-18T10:10:10.889461+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "typer_cli_command",
@@ -3906,7 +3906,7 @@
         "dry_run"
       ],
       "entry_point_type": "cli_command",
-      "last_updated": "2025-08-18T08:49:02.724612+00:00",
+      "last_updated": "2025-08-18T10:10:10.891908+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "typer_cli_command",
@@ -3946,7 +3946,7 @@
         "prefer"
       ],
       "entry_point_type": "cli_command",
-      "last_updated": "2025-08-18T08:49:02.729843+00:00",
+      "last_updated": "2025-08-18T10:10:10.894070+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "typer_cli_command",
@@ -3975,7 +3975,7 @@
         "strict_intent"
       ],
       "entry_point_type": "cli_command",
-      "last_updated": "2025-08-18T08:49:02.736920+00:00",
+      "last_updated": "2025-08-18T10:10:10.896402+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "typer_cli_command",
@@ -4015,7 +4015,7 @@
         "app"
       ],
       "entry_point_type": "cli_command",
-      "last_updated": "2025-08-18T08:49:02.744408+00:00",
+      "last_updated": "2025-08-18T10:10:10.899366+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "typer_cli_command",
@@ -4055,7 +4055,7 @@
         "identity"
       ],
       "entry_point_type": "fastapi_route_command",
-      "last_updated": "2025-08-18T08:49:02.749475+00:00",
+      "last_updated": "2025-08-18T10:10:10.901470+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "5edbabd97e85a046b570023d6ec7330b5b9ce1e29657ade7ab78cf207ddb7f26"
@@ -4079,7 +4079,7 @@
         "app"
       ],
       "entry_point_type": "cli_command",
-      "last_updated": "2025-08-18T08:49:02.752343+00:00",
+      "last_updated": "2025-08-18T10:10:10.902668+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "typer_cli_command",
@@ -4104,7 +4104,7 @@
         "app"
       ],
       "entry_point_type": "cli_command",
-      "last_updated": "2025-08-18T08:49:02.754380+00:00",
+      "last_updated": "2025-08-18T10:10:10.903582+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "typer_cli_command",
@@ -4137,7 +4137,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "cli_command",
-      "last_updated": "2025-08-18T08:49:02.771465+00:00",
+      "last_updated": "2025-08-18T10:10:10.910187+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "typer_cli_command",
@@ -4181,7 +4181,7 @@
         "proposal_name"
       ],
       "entry_point_type": "cli_command",
-      "last_updated": "2025-08-18T08:49:02.777293+00:00",
+      "last_updated": "2025-08-18T10:10:10.912513+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "typer_cli_command",
@@ -4234,7 +4234,7 @@
         "proposal_name"
       ],
       "entry_point_type": "cli_command",
-      "last_updated": "2025-08-18T08:49:02.794378+00:00",
+      "last_updated": "2025-08-18T10:10:10.919072+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "typer_cli_command",
@@ -4259,7 +4259,7 @@
         "app"
       ],
       "entry_point_type": "cli_command",
-      "last_updated": "2025-08-18T08:49:02.795993+00:00",
+      "last_updated": "2025-08-18T10:10:10.919793+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "typer_cli_command",
@@ -4283,7 +4283,7 @@
       "parameters": [
         "path_str"
       ],
-      "last_updated": "2025-08-18T08:49:02.808555+00:00",
+      "last_updated": "2025-08-18T10:10:10.923748+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "b0dcdbc5bcd3fad88dd29308c2d078febb3f76f3ca1abda9f84b84759ba7568d"
@@ -4321,7 +4321,7 @@
       "line_number": 28,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-18T08:49:02.815377+00:00",
+      "last_updated": "2025-08-18T10:10:10.926501+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "47a9e252ee6d00c1d63bb7b8ea1322c3335c77c9b3e9c9ddc0f381c0210bfecd"
@@ -4350,7 +4350,7 @@
         "output"
       ],
       "entry_point_type": "cli_command",
-      "last_updated": "2025-08-18T08:49:02.818044+00:00",
+      "last_updated": "2025-08-18T10:10:10.927655+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "typer_cli_command",
@@ -4389,7 +4389,7 @@
         "dry_run"
       ],
       "entry_point_type": "cli_command",
-      "last_updated": "2025-08-18T08:49:02.824223+00:00",
+      "last_updated": "2025-08-18T10:10:10.930182+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "typer_cli_command",
@@ -4416,7 +4416,7 @@
         "app"
       ],
       "entry_point_type": "cli_command",
-      "last_updated": "2025-08-18T08:49:02.826304+00:00",
+      "last_updated": "2025-08-18T10:10:10.931165+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "typer_cli_command",
@@ -4445,7 +4445,7 @@
         "data"
       ],
       "entry_point_type": "cli_command",
-      "last_updated": "2025-08-18T08:49:02.829178+00:00",
+      "last_updated": "2025-08-18T10:10:10.932530+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "typer_cli_command",
@@ -4472,7 +4472,7 @@
         "fail_on"
       ],
       "entry_point_type": "cli_command",
-      "last_updated": "2025-08-18T08:49:02.838061+00:00",
+      "last_updated": "2025-08-18T10:10:10.935560+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "typer_cli_command",
@@ -4498,7 +4498,7 @@
         "path"
       ],
       "entry_point_type": "cli_command",
-      "last_updated": "2025-08-18T08:49:02.839901+00:00",
+      "last_updated": "2025-08-18T10:10:10.936369+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "typer_cli_command",
@@ -4525,7 +4525,7 @@
         "data"
       ],
       "entry_point_type": "cli_command",
-      "last_updated": "2025-08-18T08:49:02.841719+00:00",
+      "last_updated": "2025-08-18T10:10:10.937191+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "typer_cli_command",
@@ -4557,7 +4557,7 @@
         "proposal"
       ],
       "entry_point_type": "cli_command",
-      "last_updated": "2025-08-18T08:49:02.844704+00:00",
+      "last_updated": "2025-08-18T10:10:10.938467+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "typer_cli_command",
@@ -4584,7 +4584,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "cli_command",
-      "last_updated": "2025-08-18T08:49:02.846865+00:00",
+      "last_updated": "2025-08-18T10:10:10.939426+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "typer_cli_command",
@@ -4616,7 +4616,7 @@
         "proposal"
       ],
       "entry_point_type": "cli_command",
-      "last_updated": "2025-08-18T08:49:02.850584+00:00",
+      "last_updated": "2025-08-18T10:10:10.941007+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "typer_cli_command",
@@ -4644,7 +4644,7 @@
       "line_number": 12,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-18T08:49:02.858852+00:00",
+      "last_updated": "2025-08-18T10:10:10.944100+00:00",
       "is_class": true,
       "base_classes": [
         "BaseAuditCheck"
@@ -4676,7 +4676,7 @@
         "self"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-18T08:49:02.868237+00:00",
+      "last_updated": "2025-08-18T10:10:10.948060+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -4697,7 +4697,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "base_class",
-      "last_updated": "2025-08-18T08:49:02.870880+00:00",
+      "last_updated": "2025-08-18T10:10:10.949142+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "framework_base_class",
@@ -4721,7 +4721,7 @@
         "context"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-18T08:49:02.873963+00:00",
+      "last_updated": "2025-08-18T10:10:10.950540+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -4748,7 +4748,7 @@
       "line_number": 9,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-18T08:49:02.880718+00:00",
+      "last_updated": "2025-08-18T10:10:10.953283+00:00",
       "is_class": true,
       "base_classes": [
         "BaseAuditCheck"
@@ -4779,7 +4779,7 @@
         "self"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-18T08:49:02.890559+00:00",
+      "last_updated": "2025-08-18T10:10:10.957521+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -4825,7 +4825,7 @@
       "line_number": 11,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-18T08:49:02.916724+00:00",
+      "last_updated": "2025-08-18T10:10:10.967474+00:00",
       "is_class": true,
       "base_classes": [],
       "structural_hash": "451b029338435682415bdbde0023d13d1673dde0436a74c04354b74ae466b063"
@@ -4848,7 +4848,7 @@
         "context"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-18T08:49:02.942034+00:00",
+      "last_updated": "2025-08-18T10:10:10.977990+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -4878,7 +4878,7 @@
         "self"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-18T08:49:02.946344+00:00",
+      "last_updated": "2025-08-18T10:10:10.979780+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -4912,7 +4912,7 @@
         "self"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-18T08:49:02.952116+00:00",
+      "last_updated": "2025-08-18T10:10:10.982109+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -4946,7 +4946,7 @@
         "self"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-18T08:49:02.956660+00:00",
+      "last_updated": "2025-08-18T10:10:10.983996+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -4983,7 +4983,7 @@
       "parameters": [
         "self"
       ],
-      "last_updated": "2025-08-18T08:49:02.963771+00:00",
+      "last_updated": "2025-08-18T10:10:10.986830+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "fb4b9b60e3edba9e2631c5a37bacc3cee5534b8e5643c1ceaf856760d1fa081d"
@@ -5013,7 +5013,7 @@
       "parameters": [
         "data"
       ],
-      "last_updated": "2025-08-18T08:49:02.967713+00:00",
+      "last_updated": "2025-08-18T10:10:10.988467+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "0f44eacef430913ebbf5e52ad0100c5dc8af35eebc944cb6fe63bc0f0ad883b2"
@@ -5053,7 +5053,7 @@
       "line_number": 12,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-18T08:49:02.985172+00:00",
+      "last_updated": "2025-08-18T10:10:10.994751+00:00",
       "is_class": true,
       "base_classes": [],
       "structural_hash": "dc4094cf311674d8302d4193243abbfeeba30d61ddd34811b39f849d9e55a7bb"
@@ -5078,7 +5078,7 @@
         "context"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-18T08:49:02.999921+00:00",
+      "last_updated": "2025-08-18T10:10:11.000851+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -5106,7 +5106,7 @@
         "self",
         "source_code"
       ],
-      "last_updated": "2025-08-18T08:49:03.002069+00:00",
+      "last_updated": "2025-08-18T10:10:11.001799+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "a790caa3a6ae6c7e8af0b040561f7c4f4dbaf3ac73c80023c67311b7e9f89d70"
@@ -5145,7 +5145,7 @@
         "self"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-18T08:49:03.010653+00:00",
+      "last_updated": "2025-08-18T10:10:11.005204+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -5199,7 +5199,7 @@
       "line_number": 19,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-18T08:49:03.039066+00:00",
+      "last_updated": "2025-08-18T10:10:11.015498+00:00",
       "is_class": true,
       "base_classes": [
         "BaseAuditCheck"
@@ -5228,7 +5228,7 @@
         "context"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-18T08:49:03.070181+00:00",
+      "last_updated": "2025-08-18T10:10:11.028756+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -5255,7 +5255,7 @@
       "parameters": [
         "self"
       ],
-      "last_updated": "2025-08-18T08:49:03.072671+00:00",
+      "last_updated": "2025-08-18T10:10:11.029923+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "93925293886a6b028b04e4101097b098b6f9ab96498983cd1683b95169ea87b9"
@@ -5283,7 +5283,7 @@
         "self",
         "path"
       ],
-      "last_updated": "2025-08-18T08:49:03.075428+00:00",
+      "last_updated": "2025-08-18T10:10:11.031256+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "5c4a272b51f2ef2f388a2c0840c6e0fea194cf5ec94855341d4dc470197a96c2"
@@ -5312,7 +5312,7 @@
       "parameters": [
         "proposal"
       ],
-      "last_updated": "2025-08-18T08:49:03.078360+00:00",
+      "last_updated": "2025-08-18T10:10:11.032735+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "e9730bde0ad108925405e24d0d6c741fbab5e5a202d5a128759b21d15f57f595"
@@ -5344,7 +5344,7 @@
         "path",
         "validator"
       ],
-      "last_updated": "2025-08-18T08:49:03.083104+00:00",
+      "last_updated": "2025-08-18T10:10:11.034856+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "4052feee339d4f1ff48fbfb205a7627100e825092cd4d07ce15b4c00d7bec013"
@@ -5376,7 +5376,7 @@
         "self",
         "path"
       ],
-      "last_updated": "2025-08-18T08:49:03.088972+00:00",
+      "last_updated": "2025-08-18T10:10:11.037248+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "8b8f857f364c47985aae8697c739ecb34944518be83e61701b10eeaf538a35a2"
@@ -5404,7 +5404,7 @@
         "self"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-18T08:49:03.091964+00:00",
+      "last_updated": "2025-08-18T10:10:11.038516+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -5431,7 +5431,7 @@
         "self"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-18T08:49:03.094258+00:00",
+      "last_updated": "2025-08-18T10:10:11.039505+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -5460,7 +5460,7 @@
         "self"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-18T08:49:03.097107+00:00",
+      "last_updated": "2025-08-18T10:10:11.040741+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -5487,7 +5487,7 @@
       "line_number": 8,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-18T08:49:03.111078+00:00",
+      "last_updated": "2025-08-18T10:10:11.045706+00:00",
       "is_class": true,
       "base_classes": [
         "BaseAuditCheck"
@@ -5515,7 +5515,7 @@
         "self"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-18T08:49:03.124630+00:00",
+      "last_updated": "2025-08-18T10:10:11.051393+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -5545,7 +5545,7 @@
         "self"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-18T08:49:03.128865+00:00",
+      "last_updated": "2025-08-18T10:10:11.053322+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -5581,7 +5581,7 @@
       "line_number": 9,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-18T08:49:03.140806+00:00",
+      "last_updated": "2025-08-18T10:10:11.057748+00:00",
       "is_class": true,
       "base_classes": [],
       "structural_hash": "c8d6f6266ecefbb1ed159a5937a9aa4ca6d2ba5e1978ee62c5ae0ac5f7e0c2f1"
@@ -5606,7 +5606,7 @@
         "context"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-18T08:49:03.151982+00:00",
+      "last_updated": "2025-08-18T10:10:11.062263+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -5644,7 +5644,7 @@
         "self"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-18T08:49:03.159029+00:00",
+      "last_updated": "2025-08-18T10:10:11.065107+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -5684,7 +5684,7 @@
       "line_number": 10,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-18T08:49:03.185162+00:00",
+      "last_updated": "2025-08-18T10:10:11.074625+00:00",
       "is_class": true,
       "base_classes": [
         "BaseAuditCheck"
@@ -5711,7 +5711,7 @@
         "self"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-18T08:49:03.211521+00:00",
+      "last_updated": "2025-08-18T10:10:11.085482+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -5741,7 +5741,7 @@
         "self"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-18T08:49:03.215202+00:00",
+      "last_updated": "2025-08-18T10:10:11.087003+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -5771,7 +5771,7 @@
         "self"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-18T08:49:03.219524+00:00",
+      "last_updated": "2025-08-18T10:10:11.088770+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -5800,7 +5800,7 @@
         "self"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-18T08:49:03.223335+00:00",
+      "last_updated": "2025-08-18T10:10:11.090379+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -5837,7 +5837,7 @@
         "self"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-18T08:49:03.231441+00:00",
+      "last_updated": "2025-08-18T10:10:11.093601+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -5896,7 +5896,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-18T08:49:03.263642+00:00",
+      "last_updated": "2025-08-18T10:10:11.104761+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -5927,7 +5927,7 @@
         "repo_root"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-18T08:49:03.321440+00:00",
+      "last_updated": "2025-08-18T10:10:11.131457+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -5964,7 +5964,7 @@
       "parameters": [
         "self"
       ],
-      "last_updated": "2025-08-18T08:49:03.307468+00:00",
+      "last_updated": "2025-08-18T10:10:11.124283+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "7d994c3c3157d6e5746f17da0471adb29ea4abab2fcac99089adc5c5b23793ad"
@@ -5998,7 +5998,7 @@
       "parameters": [
         "self"
       ],
-      "last_updated": "2025-08-18T08:49:03.313099+00:00",
+      "last_updated": "2025-08-18T10:10:11.126891+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "0e5a342921730b79160f6b87b9173dfa7dbf260c69799dd33923b277d38d661f"
@@ -6024,7 +6024,7 @@
         "self",
         "passed"
       ],
-      "last_updated": "2025-08-18T08:49:03.316564+00:00",
+      "last_updated": "2025-08-18T10:10:11.128549+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "24f3456c07f2542af03ec4f96aab424a76aa133c1bfbab1b7b85fdcae32cd7ea"
@@ -6050,7 +6050,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "cli_entry_point",
-      "last_updated": "2025-08-18T08:49:03.286654+00:00",
+      "last_updated": "2025-08-18T10:10:11.114828+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "f6fdbaa6bfe1e6124c035255bac2283c42602332b190a0302133de3a8620c2b6"
@@ -6072,7 +6072,7 @@
       "line_number": 32,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-18T08:49:03.288641+00:00",
+      "last_updated": "2025-08-18T10:10:11.115750+00:00",
       "is_class": true,
       "base_classes": [
         "StringIO"
@@ -6099,7 +6099,7 @@
         "self",
         "s"
       ],
-      "last_updated": "2025-08-18T08:49:03.318324+00:00",
+      "last_updated": "2025-08-18T10:10:11.130035+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "32a110e0afaf2a1e54639b543cfc4509a1c00712e7244004cba4900925c2f79c"
@@ -6125,7 +6125,7 @@
       "line_number": 63,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-18T08:49:03.297482+00:00",
+      "last_updated": "2025-08-18T10:10:11.119763+00:00",
       "is_class": true,
       "base_classes": [],
       "structural_hash": "cdfb4eb71dd5acccbbd35233cc44232c7cc839cda3cd11df6058ea4dba5b1dd2"
@@ -6145,7 +6145,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "enum",
-      "last_updated": "2025-08-18T08:49:03.327547+00:00",
+      "last_updated": "2025-08-18T10:10:11.134204+00:00",
       "is_class": true,
       "base_classes": [
         "Enum"
@@ -6168,7 +6168,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-18T08:49:03.329168+00:00",
+      "last_updated": "2025-08-18T10:10:11.135150+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -6198,7 +6198,7 @@
         "exclude_globs",
         "require_kgb"
       ],
-      "last_updated": "2025-08-18T08:49:03.334307+00:00",
+      "last_updated": "2025-08-18T10:10:11.137401+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "c8f42a62f1eca05baf487e0dc4f2b0c5b5f6850ff0720caf0dc08e95ce61071c"
@@ -6222,7 +6222,7 @@
         "root",
         "explicit_path"
       ],
-      "last_updated": "2025-08-18T08:49:03.336072+00:00",
+      "last_updated": "2025-08-18T10:10:11.138264+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "7424757e7242faf2787f618be65139b5771145e1148c99ca1bd7844759895507"
@@ -6247,7 +6247,7 @@
       "parameters": [
         "node"
       ],
-      "last_updated": "2025-08-18T08:49:03.341434+00:00",
+      "last_updated": "2025-08-18T10:10:11.140614+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "b385da546dbc6c856c4048d18354072a90fb09870ff89f366757e4db9aaf9dee"
@@ -6275,7 +6275,7 @@
       "parameters": [
         "root"
       ],
-      "last_updated": "2025-08-18T08:49:03.344671+00:00",
+      "last_updated": "2025-08-18T10:10:11.142148+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "cf16b1b5c093d3279c72a8e676069f433169ab20b48c66755c326319cd433297"
@@ -6299,7 +6299,7 @@
       "parameters": [
         "items"
       ],
-      "last_updated": "2025-08-18T08:49:03.350233+00:00",
+      "last_updated": "2025-08-18T10:10:11.144372+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "2661bca830c843baba443291eaf1d76e8e05d4f82423889256244d948004f58f"
@@ -6325,7 +6325,7 @@
       "parameters": [
         "start"
       ],
-      "last_updated": "2025-08-18T08:49:03.352363+00:00",
+      "last_updated": "2025-08-18T10:10:11.145477+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "b15fdc1cbe22c819a11fc867a80252cc518242c8edf62867d0f4189e2b5dfbf9"
@@ -6356,7 +6356,7 @@
         "root",
         "explicit_path"
       ],
-      "last_updated": "2025-08-18T08:49:03.356572+00:00",
+      "last_updated": "2025-08-18T10:10:11.147485+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "e02b757e859bbf4068fd051e2370bbffeaaca6265f3a1264a07b7d0dcecd4b96"
@@ -6380,7 +6380,7 @@
       "parameters": [
         "trailing"
       ],
-      "last_updated": "2025-08-18T08:49:03.363511+00:00",
+      "last_updated": "2025-08-18T10:10:11.150327+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "4f31e6e74ed77090ee5626846af779359d56b55b771a32dd43b9e4f4aa681249"
@@ -6409,7 +6409,7 @@
         "include_globs",
         "exclude_globs"
       ],
-      "last_updated": "2025-08-18T08:49:03.366918+00:00",
+      "last_updated": "2025-08-18T10:10:11.151893+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "b5b675110e61cfb12eaf9fd7630d3b5493e662dd45521e6a570d58b4362ade36"
@@ -6447,7 +6447,7 @@
         "exclude_globs",
         "domain_mapper"
       ],
-      "last_updated": "2025-08-18T08:49:03.372207+00:00",
+      "last_updated": "2025-08-18T10:10:11.154292+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "9eb6d448b47a6227610f9b3e3bdc23b763538b7a15d194c651f23a0b0416a399"
@@ -6471,7 +6471,7 @@
       "parameters": [
         "p"
       ],
-      "last_updated": "2025-08-18T08:49:03.374690+00:00",
+      "last_updated": "2025-08-18T10:10:11.155536+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "5345aca39bfbb4edb9ef0d4011c61efa4c1c44757af84f97b1221aedc6165256"
@@ -6500,7 +6500,7 @@
         "manifest_caps",
         "code_caps"
       ],
-      "last_updated": "2025-08-18T08:49:03.382705+00:00",
+      "last_updated": "2025-08-18T10:10:11.158660+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "a8ad3d7d1c170a012cf984cfff280dd0e10ecd70d76fc464325010157af1fc06"
@@ -6527,7 +6527,7 @@
         "report_path",
         "report"
       ],
-      "last_updated": "2025-08-18T08:49:03.384680+00:00",
+      "last_updated": "2025-08-18T10:10:11.159634+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "f470e15b680e9bda6d15592a0bcb69254df8aef37a8400043fda5abc2a84ec49"
@@ -6549,7 +6549,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-18T08:49:03.388489+00:00",
+      "last_updated": "2025-08-18T10:10:11.161188+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -6572,7 +6572,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-18T08:49:03.391074+00:00",
+      "last_updated": "2025-08-18T10:10:11.162386+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -6596,7 +6596,7 @@
       "parameters": [
         "self"
       ],
-      "last_updated": "2025-08-18T08:49:03.394624+00:00",
+      "last_updated": "2025-08-18T10:10:11.164107+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "485033d9fffb5828ea2f692bf9505bb59c7f33d9d7cec1bd11506141277667e2"
@@ -6621,7 +6621,7 @@
       "parameters": [
         "node"
       ],
-      "last_updated": "2025-08-18T08:49:03.402410+00:00",
+      "last_updated": "2025-08-18T10:10:11.167168+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "520ff4dd6bf1ff781d0552b7e3c3d3667e4ea9aa97e12f094ef01c9d120e6d5f"
@@ -6650,7 +6650,7 @@
       "parameters": [
         "node"
       ],
-      "last_updated": "2025-08-18T08:49:03.404445+00:00",
+      "last_updated": "2025-08-18T10:10:11.168125+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "014a91cdb2aaf134603f4fe4415d0c4fd2ba3a530c44b9a2adedaf7fa21a6804"
@@ -6674,7 +6674,7 @@
       "parameters": [
         "node"
       ],
-      "last_updated": "2025-08-18T08:49:03.406945+00:00",
+      "last_updated": "2025-08-18T10:10:11.169329+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "361fcc6dddb36505bb1486f5f466435c20b3cf521499397941d909a870d6f163"
@@ -6698,7 +6698,7 @@
       "parameters": [
         "node"
       ],
-      "last_updated": "2025-08-18T08:49:03.408982+00:00",
+      "last_updated": "2025-08-18T10:10:11.170285+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "95dceab5bad0d24dd6e43a90d656b349b61f5529de711ec65c59a037bcff9af3"
@@ -6726,7 +6726,7 @@
         "node",
         "source_lines"
       ],
-      "last_updated": "2025-08-18T08:49:03.411792+00:00",
+      "last_updated": "2025-08-18T10:10:11.171629+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "580591c7d6fd7706edbb62b9dde1f347482f19c2d739bbbc519ce428f2caf391"
@@ -6749,7 +6749,7 @@
       "parameters": [
         "node"
       ],
-      "last_updated": "2025-08-18T08:49:03.413931+00:00",
+      "last_updated": "2025-08-18T10:10:11.172563+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "95692faf75510223cabe67d2830526fc20aea29ce646a59a804d1c7f9d55cabb"
@@ -6772,7 +6772,7 @@
       "parameters": [
         "node"
       ],
-      "last_updated": "2025-08-18T08:49:03.416260+00:00",
+      "last_updated": "2025-08-18T10:10:11.173555+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "ac818678d6bd6faf5ef7b7ac9bf0746a1a2915489dccc361c3c40b2716877ed8"
@@ -6796,7 +6796,7 @@
       "line_number": 12,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-18T08:49:03.423906+00:00",
+      "last_updated": "2025-08-18T10:10:11.176185+00:00",
       "is_class": true,
       "base_classes": [
         "NodeVisitor"
@@ -6823,7 +6823,7 @@
         "source_lines"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-18T08:49:03.445820+00:00",
+      "last_updated": "2025-08-18T10:10:11.185648+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -6850,7 +6850,7 @@
         "self",
         "node"
       ],
-      "last_updated": "2025-08-18T08:49:03.444100+00:00",
+      "last_updated": "2025-08-18T10:10:11.184875+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "6bd1e8e30a8e89ac8a9e78b12c02e5d78b2cf0b9187ff32da75aeedd1c8161af"
@@ -6875,7 +6875,7 @@
       "line_number": 27,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-18T08:49:03.432447+00:00",
+      "last_updated": "2025-08-18T10:10:11.179761+00:00",
       "is_class": true,
       "base_classes": [
         "NodeVisitor"
@@ -6905,7 +6905,7 @@
         "node",
         "node_type"
       ],
-      "last_updated": "2025-08-18T08:49:03.448881+00:00",
+      "last_updated": "2025-08-18T10:10:11.186959+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "72ed2d2e224dfe5a9879f157b463bde0bf9109eb7ccef5316baac6b310ae6c96"
@@ -6929,7 +6929,7 @@
         "self",
         "node"
       ],
-      "last_updated": "2025-08-18T08:49:03.450143+00:00",
+      "last_updated": "2025-08-18T10:10:11.187609+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "5fc309bc3b69e72b37ff19e6a7a79f9a377eae0dc1ec0f9e826863e744406929"
@@ -6953,7 +6953,7 @@
         "self",
         "node"
       ],
-      "last_updated": "2025-08-18T08:49:03.451420+00:00",
+      "last_updated": "2025-08-18T10:10:11.188189+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "3f2d3b5171306dce35ba70a697fe9bc954cd498e4d514ee7488742bb2cf1905c"
@@ -6977,7 +6977,7 @@
         "self",
         "node"
       ],
-      "last_updated": "2025-08-18T08:49:03.452685+00:00",
+      "last_updated": "2025-08-18T10:10:11.188762+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "ce568d79cf5bf2713454e3eb1f44137b0c2105b15ee76686ba9f48fcda3e23e2"
@@ -6998,7 +6998,7 @@
       "line_number": 17,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-18T08:49:03.457364+00:00",
+      "last_updated": "2025-08-18T10:10:11.190517+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "617e44205e9e392dcf047c13cf3fd9d88d9568ae09b5c487f92733eaf6167426"
@@ -7033,7 +7033,7 @@
         "violations"
       ],
       "entry_point_type": "cli_entry_point",
-      "last_updated": "2025-08-18T08:49:03.460551+00:00",
+      "last_updated": "2025-08-18T10:10:11.191824+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "810699914d469cb08496ca059f28f88fc261f95546655275a5821abcca68cdce"
@@ -7070,7 +7070,7 @@
       "line_number": 27,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-18T08:49:03.472220+00:00",
+      "last_updated": "2025-08-18T10:10:11.196097+00:00",
       "is_class": true,
       "base_classes": [],
       "structural_hash": "b246d912c35499ad9a6f10c2a493ef55b4c83586e3902da606c5d43efbf254c3"
@@ -7102,7 +7102,7 @@
         "exclude_patterns"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-18T08:49:03.486819+00:00",
+      "last_updated": "2025-08-18T10:10:11.202328+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -7129,7 +7129,7 @@
       "parameters": [
         "self"
       ],
-      "last_updated": "2025-08-18T08:49:03.488911+00:00",
+      "last_updated": "2025-08-18T10:10:11.203253+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "466ea43bdd1390ce477bcb475a9f1107c736fc9d7337069c4c26e7cd7fb652f2"
@@ -7157,7 +7157,7 @@
       "parameters": [
         "self"
       ],
-      "last_updated": "2025-08-18T08:49:03.492521+00:00",
+      "last_updated": "2025-08-18T10:10:11.204723+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "fa613bca8cedc5ec516a2b879e463e275d5396a0e972c966ee38db997d650162"
@@ -7186,7 +7186,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "cli_entry_point",
-      "last_updated": "2025-08-18T08:49:03.483558+00:00",
+      "last_updated": "2025-08-18T10:10:11.200993+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "efbba822b1676d18e03265cdca26d5fcac7c79777abcb553f79ed046b7e42b05"
@@ -7212,14 +7212,14 @@
         "strip",
         "warning"
       ],
-      "line_number": 28,
+      "line_number": 38,
       "is_async": false,
       "parameters": [
         "source_code",
         "line_number",
         "docstring"
       ],
-      "last_updated": "2025-08-18T08:49:03.507508+00:00",
+      "last_updated": "2025-08-18T10:10:11.210080+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "056c0063bbadc526ef803cbfecba77ca674c291b23cd5807f84ffabde2894624"
@@ -7255,14 +7255,14 @@
         "warning",
         "write_text"
       ],
-      "line_number": 58,
+      "line_number": 68,
       "is_async": true,
       "parameters": [
         "target",
         "generator",
         "dry_run"
       ],
-      "last_updated": "2025-08-18T08:49:03.518305+00:00",
+      "last_updated": "2025-08-18T10:10:11.214431+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "0e21817ea91aa2576fa37c72aa077d4748e0dad52fd5906d287641c4585f3494"
@@ -7294,12 +7294,12 @@
         "worker",
         "write_text"
       ],
-      "line_number": 151,
+      "line_number": 161,
       "is_async": true,
       "parameters": [
         "dry_run"
       ],
-      "last_updated": "2025-08-18T08:49:03.524029+00:00",
+      "last_updated": "2025-08-18T10:10:11.216798+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "1fd9ea967327de7f483a03c98bd7cb6d88d9d5b0e56e642a37a703c387ca0cbd"
@@ -7325,13 +7325,13 @@
         "run",
         "write_text"
       ],
-      "line_number": 204,
+      "line_number": 214,
       "is_async": false,
       "parameters": [
         "dry_run"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-18T08:49:03.526994+00:00",
+      "last_updated": "2025-08-18T10:10:11.218097+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -7350,15 +7350,36 @@
       "calls": [
         "generate_and_apply_docstring"
       ],
-      "line_number": 187,
+      "line_number": 197,
       "is_async": true,
       "parameters": [
         "target"
       ],
-      "last_updated": "2025-08-18T08:49:03.528672+00:00",
+      "last_updated": "2025-08-18T10:10:11.218777+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "bf227975be6db77562124c68865894e9d5ac82e03cb2cacf17189d59183d48df"
+    },
+    "src/system/tools/docstring_adder.py::track": {
+      "key": "src/system/tools/docstring_adder.py::track",
+      "name": "track",
+      "type": "FunctionDef",
+      "file": "src/system/tools/docstring_adder.py",
+      "domain": "tooling",
+      "agent": "tooling_agent",
+      "capability": "unassigned",
+      "intent": "Provides functionality for the tooling domain.",
+      "calls": [],
+      "line_number": 25,
+      "is_async": false,
+      "parameters": [
+        "iterable",
+        "description"
+      ],
+      "last_updated": "2025-08-18T10:10:11.219326+00:00",
+      "is_class": false,
+      "base_classes": [],
+      "structural_hash": "60118f7bb3c1b4679b6aa618665cb14795875cb58a3028d6aebbb3876a3dadd6"
     },
     "src/system/tools/domain_mapper.py::DomainMapper": {
       "key": "src/system/tools/domain_mapper.py::DomainMapper",
@@ -7395,7 +7416,7 @@
       "line_number": 14,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-18T08:49:03.551814+00:00",
+      "last_updated": "2025-08-18T10:10:11.227282+00:00",
       "is_class": true,
       "base_classes": [],
       "structural_hash": "510ba69edc168b218428190b11de3b5035d8f3747b34d9ec888985d1887adbbf"
@@ -7426,7 +7447,7 @@
         "root_path"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-18T08:49:03.570717+00:00",
+      "last_updated": "2025-08-18T10:10:11.235090+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -7456,7 +7477,7 @@
       "parameters": [
         "self"
       ],
-      "last_updated": "2025-08-18T08:49:03.574964+00:00",
+      "last_updated": "2025-08-18T10:10:11.236970+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "caf8f93f87dfac13f45344b57ca58774350860b4c5c8412c1bd1aedf214de0ff"
@@ -7489,7 +7510,7 @@
         "self",
         "file_path_relative"
       ],
-      "last_updated": "2025-08-18T08:49:03.581430+00:00",
+      "last_updated": "2025-08-18T10:10:11.239567+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "3a4d0be5b9750b4368b1ffec395c4346cb376982d754d815a2eeb01a7f00ca77"
@@ -7515,7 +7536,7 @@
         "self",
         "relative_path"
       ],
-      "last_updated": "2025-08-18T08:49:03.583791+00:00",
+      "last_updated": "2025-08-18T10:10:11.240608+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "c8e455f64f297ca1fe33d7ee15ebe0dc0f2463eddbc143c12c8cfc80c0c93bce"
@@ -7549,7 +7570,7 @@
       "line_number": 17,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-18T08:49:03.596567+00:00",
+      "last_updated": "2025-08-18T10:10:11.245169+00:00",
       "is_class": true,
       "base_classes": [],
       "structural_hash": "3f4b6803d48d01d1485f5e53d2907317a60c4e2cba54ab27f91aa882dd138e59"
@@ -7575,7 +7596,7 @@
         "cli_entry_points"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-18T08:49:03.609161+00:00",
+      "last_updated": "2025-08-18T10:10:11.250539+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -7602,7 +7623,7 @@
       "parameters": [
         "self"
       ],
-      "last_updated": "2025-08-18T08:49:03.611162+00:00",
+      "last_updated": "2025-08-18T10:10:11.251431+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "c17bede7a040dbd9e19d5ebbe55cbdddcb651d6ff36fd77b20826d2db0f62044"
@@ -7632,7 +7653,7 @@
         "self",
         "tree"
       ],
-      "last_updated": "2025-08-18T08:49:03.613556+00:00",
+      "last_updated": "2025-08-18T10:10:11.252415+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "633ba0172b6b1525bb0c11c4b1a0a44e81fc24e3135443aba4d701e809ae50fb"
@@ -7656,7 +7677,7 @@
         "self",
         "decorator"
       ],
-      "last_updated": "2025-08-18T08:49:03.615451+00:00",
+      "last_updated": "2025-08-18T10:10:11.253219+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "0baa596d3a2aec7ccaba8e6924d38fa0c576bace3c40669bb13de8f04d97cdf6"
@@ -7681,7 +7702,7 @@
         "self",
         "node"
       ],
-      "last_updated": "2025-08-18T08:49:03.618171+00:00",
+      "last_updated": "2025-08-18T10:10:11.254404+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "6556fc7a82812ea33dd452d67ab173f09bab3a076fe3f02cb4688d836ebabd3c"
@@ -7729,7 +7750,7 @@
       "line_number": 25,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-18T08:49:03.635246+00:00",
+      "last_updated": "2025-08-18T10:10:11.260562+00:00",
       "is_class": true,
       "base_classes": [],
       "structural_hash": "35b4c26a185985c1b90f7fcbbbf7dae248c77d6dbc1c0d1e5aaf35c88bdffba2"
@@ -7753,7 +7774,7 @@
         "entry_point_detector"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-18T08:49:03.649472+00:00",
+      "last_updated": "2025-08-18T10:10:11.266265+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -7787,7 +7808,7 @@
         "self",
         "filepath"
       ],
-      "last_updated": "2025-08-18T08:49:03.653232+00:00",
+      "last_updated": "2025-08-18T10:10:11.267855+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "bf9837da78b1262972e4462d7b5ef27aefebd01b1c4971a59b99e002ea91abe8"
@@ -7833,7 +7854,7 @@
         "source_lines",
         "parent_key"
       ],
-      "last_updated": "2025-08-18T08:49:03.660472+00:00",
+      "last_updated": "2025-08-18T10:10:11.270656+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "edece6d9f56fb6f4676be7cc8dec25f675e28d61c9ebbe6c125aaa995aeef2c9"
@@ -7868,7 +7889,7 @@
       "line_number": 19,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-18T08:49:03.671567+00:00",
+      "last_updated": "2025-08-18T10:10:11.274635+00:00",
       "is_class": true,
       "base_classes": [],
       "structural_hash": "1a4f84474c83f18c42d39a152c35c6c610e365faa18bb1bd6bf341d03848fb28"
@@ -7895,7 +7916,7 @@
       "parameters": [
         "functions"
       ],
-      "last_updated": "2025-08-18T08:49:03.681998+00:00",
+      "last_updated": "2025-08-18T10:10:11.279222+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "fb3e1081c1da8cee1cad99389b6926fb51e4477765ee8d241ae132ee9585ddb8"
@@ -7922,7 +7943,7 @@
         "functions",
         "files_scanned"
       ],
-      "last_updated": "2025-08-18T08:49:03.684125+00:00",
+      "last_updated": "2025-08-18T10:10:11.280141+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "8ec4ad74e865ef0686589880d5b8d751f12804aa620d86e51c0105498bf136b9"
@@ -7951,7 +7972,7 @@
         "graph_data",
         "output_path"
       ],
-      "last_updated": "2025-08-18T08:49:03.687166+00:00",
+      "last_updated": "2025-08-18T10:10:11.281463+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "04f11c853873d73a33f15630a38cc20d31a92b52e793cce87e54172fcd50079d"
@@ -7995,7 +8016,7 @@
         "dry_run"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-18T08:49:03.704225+00:00",
+      "last_updated": "2025-08-18T10:10:11.287576+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -8018,7 +8039,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-18T08:49:03.711302+00:00",
+      "last_updated": "2025-08-18T10:10:11.289864+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -8053,7 +8074,7 @@
       "line_number": 16,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-18T08:49:03.728334+00:00",
+      "last_updated": "2025-08-18T10:10:11.296157+00:00",
       "is_class": true,
       "base_classes": [],
       "structural_hash": "dc1145748ce3e43439a314ff11f622ec61b5523d505af431d22cc7273b2339c0"
@@ -8077,7 +8098,7 @@
         "root_path"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-18T08:49:03.743909+00:00",
+      "last_updated": "2025-08-18T10:10:11.302616+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -8105,7 +8126,7 @@
         "self",
         "functions"
       ],
-      "last_updated": "2025-08-18T08:49:03.747463+00:00",
+      "last_updated": "2025-08-18T10:10:11.304063+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "b56de77c134df1e7f4904dc8f21951df2565ebab3055dccfe9b65aaa9f21c97a"
@@ -8142,7 +8163,7 @@
         "all_base_classes",
         "functions"
       ],
-      "last_updated": "2025-08-18T08:49:03.755886+00:00",
+      "last_updated": "2025-08-18T10:10:11.307464+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "71a2b9c5bb6e02e6ac1c396728d0f0f41fc40b8bd4b5dda5395bc8522ef39502"
@@ -8161,7 +8182,7 @@
       "line_number": 14,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-18T08:49:03.761439+00:00",
+      "last_updated": "2025-08-18T10:10:11.309272+00:00",
       "is_class": true,
       "base_classes": [
         "Exception"
@@ -8188,7 +8209,7 @@
       "parameters": [
         "start_path"
       ],
-      "last_updated": "2025-08-18T08:49:03.763272+00:00",
+      "last_updated": "2025-08-18T10:10:11.310088+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "84c7db2ca5b8eda499b953a6bf3038470a575bed5d399c1af17a821e9181137b"
@@ -8217,7 +8238,7 @@
       "parameters": [
         "root_path"
       ],
-      "last_updated": "2025-08-18T08:49:03.766256+00:00",
+      "last_updated": "2025-08-18T10:10:11.311316+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "9e7e319527850d809e354ece4f140ab49f81f76411c7c2be86f9d7356a7871d9"
@@ -8241,7 +8262,7 @@
         "path",
         "exclude_patterns"
       ],
-      "last_updated": "2025-08-18T08:49:03.767781+00:00",
+      "last_updated": "2025-08-18T10:10:11.312031+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "7e43ba6fe776c51c6ed484b0bc17e16f113b4034b79840a7f38c898f9819d116"
@@ -8268,7 +8289,7 @@
         "src_root",
         "exclude_patterns"
       ],
-      "last_updated": "2025-08-18T08:49:03.769858+00:00",
+      "last_updated": "2025-08-18T10:10:11.312928+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "9b5742d83c5daa6d3d7c242bdede42e66c358c60c01a89b0f36771e3578bf3dd"
@@ -8304,7 +8325,7 @@
       "line_number": 22,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-18T08:49:03.788311+00:00",
+      "last_updated": "2025-08-18T10:10:11.319773+00:00",
       "is_class": true,
       "base_classes": [],
       "structural_hash": "460ac66b683039ecff54b93539963fd91bde8fa64de032d0724f5ececaf715fc"
@@ -8334,7 +8355,7 @@
         "workspace_dir"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-18T08:49:03.811510+00:00",
+      "last_updated": "2025-08-18T10:10:11.329141+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -8369,7 +8390,7 @@
       "parameters": [
         "self"
       ],
-      "last_updated": "2025-08-18T08:49:03.818606+00:00",
+      "last_updated": "2025-08-18T10:10:11.331959+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "c166cf9f5388008b3572799f587d0bbded4fdfca2f8677086d28f09dd8cbecf2"
@@ -8396,7 +8417,7 @@
         "relative_path",
         "content"
       ],
-      "last_updated": "2025-08-18T08:49:03.820635+00:00",
+      "last_updated": "2025-08-18T10:10:11.332866+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "133c8713ca7a9a324d48304f82fee2c2543196bcabba5e031e4f39758bfac180"
@@ -8434,7 +8455,7 @@
         "profile",
         "dry_run"
       ],
-      "last_updated": "2025-08-18T08:49:03.808158+00:00",
+      "last_updated": "2025-08-18T10:10:11.327700+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "0a4c9f0c2c40bb1dc27ac90be0c4f251ccc563fc2479428fcf7fd513f1e9ef42"

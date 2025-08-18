@@ -190,9 +190,7 @@ def scaffold_new_application(
             preview = response_text.strip().replace("\n", " ")
             if len(preview) > 200:
                 preview = preview[:200] + "…"
-            log.error(
-                "LLM response was not valid JSON. Preview: %r", preview, exc_info=True
-            )
+            log.error("LLM response was not valid JSON. Preview: %r", preview)
         else:
             log.error(f"❌ Scaffolding failed: {e}", exc_info=True)
 
