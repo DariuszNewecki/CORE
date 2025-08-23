@@ -10,7 +10,7 @@ from typing import Any, Dict, Tuple
 from agents.execution_agent import ExecutionAgent
 from agents.plan_executor import PlanExecutor
 from agents.planner_agent import PlannerAgent
-from core.clients import GeneratorClient, OrchestratorClient
+from core.cognitive_service import CognitiveService
 from core.file_handler import FileHandler
 from core.git_service import GitService
 from core.prompt_pipeline import PromptPipeline
@@ -24,37 +24,25 @@ log = getLogger("development_cycle")
 async def run_development_cycle(goal: str) -> Tuple[bool, str]:
     """
     Executes a full, autonomous development cycle from a high-level goal.
-
-    This function orchestrates the PlannerAgent and ExecutionAgent to
-    transform a goal into a plan, and then into code changes.
-
-    Args:
-        goal: The high-level development goal to achieve.
-
-    Returns:
-        A tuple containing:
-        - A boolean indicating success or failure.
-        - A string message summarizing the outcome.
     """
     try:
-        # Step 1: Instantiate all required services and agents.
+        # Step 1: Instantiate services. The CognitiveService is now the source of LLM clients.
         log.info("   -> Initializing CORE services for development cycle...")
+        cognitive_service = CognitiveService(settings.REPO_PATH)
         file_handler = FileHandler(str(settings.REPO_PATH))
         git_service = GitService(str(settings.REPO_PATH))
-        orchestrator_client = OrchestratorClient()
-        generator_client = GeneratorClient()
         prompt_pipeline = PromptPipeline(settings.REPO_PATH)
 
-        # Load the agent behavior policy from the constitution
+        # Load agent behavior policy from the constitution
         agent_policy = load_config(
             settings.REPO_PATH / ".intent/policies/agent_behavior_policy.yaml"
         )
         context: Dict[str, Any] = {"policies": {"agent_behavior_policy": agent_policy}}
 
-        # Instantiate the agents
+        # Step 2: Assemble agents using clients provided by the CognitiveService.
         log.info("   -> Assembling autonomous agents...")
         planner = PlannerAgent(
-            orchestrator_client=orchestrator_client,
+            orchestrator_client=cognitive_service.get_client_for_role("Planner"),
             prompt_pipeline=prompt_pipeline,
             context=context,
         )
@@ -72,19 +60,19 @@ async def run_development_cycle(goal: str) -> Tuple[bool, str]:
             config=planner_config,
         )
         execution_agent = ExecutionAgent(
-            generator_client=generator_client,
+            generator_client=cognitive_service.get_client_for_role("Coder"),
             prompt_pipeline=prompt_pipeline,
             plan_executor=plan_executor,
         )
 
-        # Step 2: Create the execution plan
+        # Step 3: Create the execution plan
         log.info("🧠 PlannerAgent: Decomposing goal into a high-level plan...")
         plan = planner.create_execution_plan(goal)
 
         if not plan:
             return False, "PlannerAgent failed to create a valid execution plan."
 
-        # Step 3: Execute the plan
+        # Step 4: Execute the plan
         log.info("⚡ ExecutionAgent: Starting execution of the plan...")
         success, message = await execution_agent.execute_plan(goal, plan)
 

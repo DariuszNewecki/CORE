@@ -16,6 +16,7 @@ mission:
 policies:
   intent_guard: "policies/intent_guard.yaml"
   safety_policies: "policies/safety_policies.yaml"
+  agent_reasoning_policy: "policies/agent_reasoning_policy.yaml" 
   security_intents: "policies/security_intents.yaml"
   code_health_policy: "policies/code_health_policy.yaml"
   agent_behavior_policy: "policies/agent_behavior_policy.yaml"
@@ -54,6 +55,7 @@ schemas:
   config: "schemas/config_schema.yaml"
   knowledge_graph_entry: "schemas/knowledge_graph_entry.schema.json"
   proposal: "schemas/proposal.schema.json"
+  agent_reasoning_policy: "schemas/agent_reasoning_policy.schema.json"
   canary_policy: "schemas/canary_policy.schema.json"
   data_privacy_policy: "schemas/data_privacy_policy.schema.json"
   data_retention_policy: "schemas/data_retention_policy.schema.json"

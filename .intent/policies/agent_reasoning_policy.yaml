@@ -1,0 +1,28 @@
+# .intent/policies/agent_reasoning_policy.yaml
+#
+# This policy governs the cognitive process of all autonomous agents, ensuring
+# their actions are based on an accurate self-image and a respect for existing
+# capabilities. It is the constitutional safeguard against stale knowledge and
+# redundant work.
+
+rules:
+  - id: reason_from_reality
+    description: >
+      An agent's reasoning must always be based on the current, true state of the
+      codebase. The Knowledge Graph must be considered "dirty" and must be
+      regenerated after any action that modifies source code.
+    enforcement: hard
+    # This rule would be checked by the orchestrator before starting a new planning phase.
+    precondition_for_planning: "knowledge_graph.is_fresh == true"
+
+  - id: reuse_before_building
+    description: >
+      Before generating any new function or class, an agent's PLAN must include
+      a step that explicitly justifies why an existing, similar capability cannot
+      be reused.
+    enforcement: soft # Starts as 'soft' to allow for logging, can be hardened later.
+    # The agent's PLAN object would need a new field for this justification.
+    required_justification_for_action: "code_generation"
+    evidence:
+      - "Query sent to Knowledge Graph for similar capabilities."
+      - "LLM-generated rationale for why reuse is not feasible."
