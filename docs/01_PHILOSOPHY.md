@@ -6,48 +6,49 @@
 
 It does not merely generate code; it **governs**, **learns**, and **rewrites** itself under the authority of an explicit, machine-readable constitution. It is a system designed to build other systems, safely and transparently.
 
-## The CORE Belief System
+## The Architectural Trinity: Mind, Body, and Will
 
-Our architecture is founded on a set of core beliefs about the future of software development:
+Our architecture is founded on a strict separation of concerns that mirrors a reasoned entity:
 
-1.  **Intent, Not Instructions:** Software development should be about declaring a desired outcome (`intent`), not writing a list of procedural steps (`instructions`).
-2.  **Governance is a Feature:** In a world of autonomous AI agents, safety, alignment, and auditability are not afterthoughts—they are the primary features of a trustworthy system.
-3.  **Code is a Liability:** All code must justify its existence. It must be traceable to a declared purpose, validated against constitutional principles, and be as simple as possible. Unnecessary or un-auditable code is a source of risk.
-4.  **A System Must Know Itself:** To evolve safely, a system must have a deep and accurate understanding of its own structure, capabilities, and rules. Self-awareness (`introspection`) is the prerequisite for self-improvement.
+*   🏛️ **The Mind (`.intent/`):** The Constitution. A declarative, version-controlled collection of files representing the system's complete self-knowledge, purpose, and rules. It is the timeless source of truth for **what** the system should be and **why**.
+
+*   🦾 **The Body (`src/`):** The Machinery. An imperative, executable collection of simple tools. Its capabilities are modest and reliable: writing files, running tests, parsing code. It handles the **how** of interacting with the world.
+
+*   🧠 **The Will (The LLM Layer):** The Reasoning. An orchestrated set of specialized AI cognitive roles. The Will is the dynamic, intelligent actor in the system. It is not part of the Body's code; it is the cognitive force that interprets the Mind's intent to wield the Body's tools.
+
+This trinity ensures that the system's intelligence (The Will) is always governed by its principles (The Mind), and its actions (The Body) are always simple, auditable, and safe. We do not build smart tools; we build simple tools that a smart, constitutionally-bound Will can use.
 
 ## The Ten-Phase Loop of Reasoned Action
 
-All autonomous actions in CORE are governed by a ten-phase loop. This structure ensures that every action is deliberate, justified, and validated. It prevents the system from taking impulsive or un-auditable shortcuts.
-
-The phases are:
+All autonomous actions in CORE are governed by a ten-phase loop. This structure ensures that every action is deliberate, justified, and validated.
 
 1.  **GOAL:** A high-level objective is received from a human operator.
     *(e.g., "Add cryptographic signing to the approval process.")*
 
-2.  **WHY:** The system links the goal to a core constitutional principle.
+2.  **WHY:** The system's **Will** links the goal to a core principle in the **Mind**.
     *(e.g., "This serves the `safe_by_default` principle.")*
 
 3.  **INTENT:** The goal and its justification are formalized into a clear, machine-readable intent.
     *(e.g., Formalize the request into a plan to modify the `core-admin` tool.)*
 
-4.  **AGENT:** The system selects the appropriate agent(s) for the task.
-    *(e.g., The `PlannerAgent` is assigned.)*
+4.  **AGENT:** The **Will** selects the appropriate cognitive role(s) for the task.
+    *(e.g., The `Planner` and `Coder` roles are assigned.)*
 
-5.  **MEANS:** The agent consults its capabilities and knowledge to determine *how* it can achieve the intent.
-    *(e.g., The agent knows it has `code_generation` and `introspection` capabilities.)*
+5.  **MEANS:** The selected cognitive role consults the capabilities of the **Body**.
+    *(e.g., The agent knows the Body has `code_generation` and `introspection` tools.)*
 
-6.  **PLAN:** The agent produces a detailed, step-by-step, auditable plan.
+6.  **PLAN:** The agent produces a detailed, auditable plan.
     *(e.g., 1. Add `cryptography` library. 2. Add `keygen` function. 3. Modify `approve` function...)*
 
-7.  **ACTION:** The system executes the plan, one validated step at a time.
-    *(e.g., The `GeneratorAgent` writes new code to files.)*
+7.  **ACTION:** The **Will** commands the **Body** to execute the plan, one step at a time.
+    *(e.g., The `FileHandler` tool writes new code to files.)*
 
-8.  **FEEDBACK:** The system's "immune system" (`ConstitutionalAuditor`, `pytest`, linters) provides feedback on the action.
+8.  **FEEDBACK:** The **Body's** "immune system" (`ConstitutionalAuditor`, `pytest`) provides feedback.
     *(e.g., "The new code fails a linting check." or "All tests pass.")*
 
-9.  **ADAPTATION:** The system uses the feedback to self-correct or confirm the change.
-    *(e.g., The `SelfCorrectionEngine` fixes the linting error, or `GitService` commits the successful change.)*
+9.  **ADAPTATION:** The **Will** uses the feedback to self-correct or confirm the change.
+    *(e.g., The `Refactorer` role fixes the linting error, or the `GitService` tool commits the successful change.)*
 
-10. **EVOLUTION:** The system updates its self-image (`KnowledgeGraph`) to reflect its new state, completing the loop.
+10. **EVOLUTION:** The **Mind** is updated (`KnowledgeGraph`) to reflect the new state, completing the loop.
 
 This loop ensures that CORE does not simply act, but *reasons*. Every change is a deliberate, auditable, and constitutionally-aligned evolution.

@@ -8,11 +8,12 @@
 
 ## 🟢 Project Status: **MVP v0.2.0** (released 2025-08-15)
 
-CORE has reached MVP: it can autonomously scaffold a governed application from a high-level goal and verify it against a constitution. The governance loop, drift checks, and nightly audit are active.
+CORE has reached its first major milestone: it can autonomously scaffold a new, governed software application from a high-level goal and continuously verify its architectural integrity against a formal constitution.
 
-* **Releases:** [https://github.com/DariuszNewecki/CORE/releases](https://github.com/DariuszNewecki/CORE/releases)
-* Nightly audit validates the constitutional bundle and checks capability drift.
-* CI runs formatting, linting, tests, and self-audit.
+* **Stable Release:** The `v0.2.0` release is available on the `release/v0.2.0` branch. This is the recommended starting point for new users.
+* **Active Development:** The `main` branch is now focused on a major architectural evolution to the **Mind/Body/Will** model.
+
+---
 
 ## 🎥 90‑second demo
 
@@ -26,96 +27,90 @@ CORE has reached MVP: it can autonomously scaffold a governed application from a
 
 CORE is a self-governing, constitution‑aligned AI development framework. It plans, writes, validates, and evolves software systems—autonomously, with traceability and guardrails.
 
-### Mind/Body model
+### The Architectural Trinity: Mind, Body, and Will
+
+CORE is built on a foundational trinity that separates purpose, action, and reasoning:
+
+* 🏛️ **The Mind (`.intent/`):** The declarative constitution. It holds the principles, policies, and knowledge of what the system *is* and *should be*. It is the source of truth.
+* 🦾 **The Body (`src/`):** The executable machinery. A set of simple, reliable tools (file writers, test runners, linters) that act upon the world.
+* 🧠 **The Will (LLMs):** The reasoning layer. An orchestrated set of specialized AI agents that interpret the Mind's intent and wield the Body's tools to achieve goals.
 
 ```mermaid
 graph TD
-  subgraph Mind[".intent/ — Constitution & Knowledge"]
-    A[Principles & Policies]
-    B[NorthStar / Mission]
-    C[Capabilities & Manifests]
-    D[Knowledge Graph]
-  end
-  subgraph Body["src/ — Executable System"]
-    E[Agents]
-    F[Auditor & Drift Checks]
-    G[Tools & Pipelines]
-    H["CLI (core-admin)"]
-  end
-  A -- governs --> E
-  C -- maps to --> G
-  D -- validates --> F
-  H -- operates --> E
+    subgraph Mind["Mind: The Constitution (.intent/)"]
+        A[Principles & Policies]
+    end
+    subgraph Will["Will: The Reasoning (LLMs)"]
+        B[Cognitive Roles]
+    end
+    subgraph Body["Body: The Machinery (src/)"]
+        C[Tools & Capabilities]
+    end
+
+    A -- "Provides Intent To" --> B
+    B -- "Uses Tools From" --> C
+    C -- "Acts & Gathers Feedback For" --> B
 ```
+
+---
 
 ## Quickstart (90 seconds)
 
-Requires Python **3.11+** (3.12 supported), Linux/macOS. Uses **Poetry**.
+> Requires **Python 3.11+** and **Poetry**.
 
 ```bash
-# 1) Clone & install
+# 1) Clone the repository and check out the stable release
 git clone https://github.com/DariuszNewecki/CORE.git
 cd CORE
+git checkout release/v0.2.0
+
+# 2) Install dependencies
 poetry install
 
-# 2) Sanity checks (format, lint, tests, self-audit)
-poetry run black --check .
-poetry run ruff check .
-poetry run pytest -q
+# 3) Run all checks (format, lint, tests, self-audit)
+make check
 
-# 3) Generate a governed starter (example)
+# 4) Generate a governed starter application
 poetry run core-admin new my_governed_app
-
-# 4) Governance drift check (JSON → short)
-poetry run core-admin guard drift --format short
 ```
 
-If you prefer **pip**, you can export dependencies:
+---
 
-```bash
-poetry export -f requirements.txt --output requirements.txt --without-hashes
-pip install -r requirements.txt
-```
+## Key Capabilities (v0.2.0 MVP)
 
-## Key Capabilities (MVP scope)
+* Autonomous scaffolding from high-level intent (`core-admin new`).
+* Constitutional self-audit against rules in `.intent/`.
+* Capability drift detection (maps `# CAPABILITY:` tags in code to manifests).
+* CI/CD pipeline for formatting, linting, testing, and nightly governance checks.
 
-* Autonomous scaffold from intent (`core-admin new`).
-* Constitutional audit (rules in `.intent/`; nightly CI job).
-* Capability drift detection (maps `# CAPABILITY:` tags ↔ manifests).
-* Validation pipeline for code and YAML.
-
-## CI / CD
-
-* **Format & Lint:** Black, Ruff
-* **Tests:** pytest (coverage gating planned)
-* **Security:** CodeQL
-* **Governance:** Nightly Constitutional Audit & Drift Check
-
-See `.github/workflows/` for details.
+---
 
 ## Roadmap
 
-* **v0.3:** stronger examples, richer starter kits, coverage gating
-* **v0.4:** policy-as-code expansions, contributor UX polish
-* **v0.5:** advanced introspection & auto-refactor loops
+The historical roadmap leading to v0.2.0 is now complete. Our future work is focused on a single epic: evolving CORE into a true reasoning system.
 
-Track progress in Projects and Issues.
+* **v1.0 — The Reasoning System:** Refactor the system to use a policy-driven, role-based cognitive layer (the "Will"), making its intelligence governable by the constitution.
+
+Track progress in the **v1.0 Milestone** and the full **Project Roadmap**.
+
+---
 
 ## Contributing
 
-We welcome focused, high-quality contributions:
+We welcome focused, high-quality contributions to our next evolution on the `main` branch.
 
-* Read **CONTRIBUTING.md**
-* Use conventional commits (`feat:`, `fix:`, `chore:` …)
-* Open an issue before major changes
-* Run the checks above before pushing
+* Read **[CONTRIBUTING.md](CONTRIBUTING.md)**.
+* Review our **[Roadmap](docs/04_ROADMAP.md)**.
+* Use **Conventional Commits** (`feat:`, `fix:`, `chore:`, …).
+
+---
 
 ## Security
 
-Please report vulnerabilities **privately**. See **SECURITY.md** for the disclosure process and response targets.
+Please report vulnerabilities privately. See **[SECURITY.md](SECURITY.md)** for the disclosure process.
 
 ---
 
 ## License
 
-MIT — see **LICENSE**.
+MIT — see **[LICENSE](LICENSE)**.
