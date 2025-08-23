@@ -12,15 +12,19 @@ class SecurityChecks:
     def __init__(self, context):
         """Initializes the check with a shared auditor context."""
         self.context = context
+        # This loads the rules from the secrets policy file.
         self.secrets_policy = self.context.load_config(
             self.context.intent_dir / "policies" / "secrets_management.yaml"
         )
 
+    # This is the "security guard" capability.
     # CAPABILITY: audit.check.secrets
     def check_for_hardcoded_secrets(self) -> list[AuditFinding]:
         """Scans source code for patterns that look like hardcoded secrets."""
         findings = []
         check_name = "Security: No Hardcoded Secrets"
+
+        # Find the specific rule for secrets in our policy file.
         rule = next(
             (
                 r
@@ -31,6 +35,7 @@ class SecurityChecks:
         )
 
         if not rule:
+            # If the rule can't be found, we report a warning.
             findings.append(
                 AuditFinding(
                     AuditSeverity.WARNING,
@@ -40,23 +45,23 @@ class SecurityChecks:
             )
             return findings
 
+        # Get the patterns (like "api_key = ...") and files to ignore from the policy.
         patterns = rule.get("detection", {}).get("patterns", [])
         exclude_globs = rule.get("detection", {}).get("exclude", [])
         compiled_patterns = [re.compile(p) for p in patterns]
 
+        # Get a list of all code files in the project.
         files_to_scan = [
             Path(s["file"]) for s in self.context.symbols_list if s.get("file")
         ]
 
-        scanned_files_count = 0
         violations_found = 0
-
+        # Loop through every file and check every line for a secret pattern.
         for file_path in set(files_to_scan):
             full_path = self.context.repo_root / file_path
             if any(full_path.match(glob) for glob in exclude_globs):
-                continue
+                continue  # Skip files we are told to ignore.
 
-            scanned_files_count += 1
             try:
                 content = full_path.read_text(encoding="utf-8")
                 for i, line in enumerate(content.splitlines(), 1):
@@ -72,13 +77,14 @@ class SecurityChecks:
                                 )
                             )
             except Exception:
-                continue  # Ignore files that can't be read
+                continue
 
         if violations_found == 0:
+            # If no secrets are found, report success.
             findings.append(
                 AuditFinding(
                     AuditSeverity.SUCCESS,
-                    f"Scanned {scanned_files_count} files; no hardcoded secrets found.",
+                    "Scanned source code; no hardcoded secrets found.",
                     check_name,
                 )
             )

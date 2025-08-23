@@ -32,6 +32,7 @@ Thumbs.db
 
 # CORE-specific
 logs/
+.intent/keys/
 pending_writes/
 sandbox/
 *.jsonl

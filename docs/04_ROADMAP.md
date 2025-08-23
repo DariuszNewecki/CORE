@@ -83,7 +83,7 @@ This phase addresses technical debt identified by the `ConstitutionalAuditor` to
 ### 6.1: Refactor `codegraph_builder.py`
 -   **Challenge:** The `KnowledgeGraphBuilder` class has grown too large and mixes responsibilities.
 -   **Goal:** Decompose `KnowledgeGraphBuilder` into smaller, single-responsibility helper classes or modules.
--   **Status:** ⏳ **Not Started**
+-   **Status:** ✅ **Complete.** Logic has been refactored into `ast_visitor.py`, `pattern_matcher.py`, and `models.py`.
 
 ### 6.2: Refactor `proposal_checks.py`
 -   **Challenge:** The `ProposalChecks` class is becoming a complexity outlier.

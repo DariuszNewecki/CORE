@@ -6,16 +6,16 @@ import pytest
 
 from agents.models import ExecutionTask
 from agents.plan_executor import PlanExecutionError
-from agents.planner_agent import PlannerAgent, PlannerConfig
+from agents.planner_agent import PlannerAgent
 
 
 @pytest.fixture
 def mock_dependencies():
-    """Mocks all external dependencies for the NEW, simpler PlannerAgent."""
+    """Mocks all external dependencies for the PlannerAgent."""
     return {
         "orchestrator_client": MagicMock(),
         "prompt_pipeline": MagicMock(),
-        "config": PlannerConfig(),
+        "context": {"policies": {"agent_behavior_policy": {"planner_agent": {}}}},
     }
 
 

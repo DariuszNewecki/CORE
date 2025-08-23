@@ -3,11 +3,9 @@
 The primary agent responsible for decomposing high-level goals into executable plans.
 """
 import contextvars
-import json
-import re
 import textwrap
 from datetime import datetime, timezone
-from typing import Dict, List, Optional
+from typing import Any, Dict, List
 
 from pydantic import ValidationError
 
@@ -16,6 +14,7 @@ from agents.plan_executor import PlanExecutionError
 from core.clients import OrchestratorClient
 from core.prompt_pipeline import PromptPipeline
 from shared.logger import getLogger
+from shared.utils.parsing import extract_json_from_response
 
 log = getLogger(__name__)
 execution_context = contextvars.ContextVar("execution_context")
@@ -28,12 +27,18 @@ class PlannerAgent:
         self,
         orchestrator_client: OrchestratorClient,
         prompt_pipeline: PromptPipeline,
-        config: Optional[PlannerConfig] = None,
+        context: Dict[str, Any],
     ):
         """Initializes the PlannerAgent with its dependencies."""
         self.orchestrator = orchestrator_client
         self.prompt_pipeline = prompt_pipeline
-        self.config = config or PlannerConfig()
+        
+        raw_config = (
+            context.get("policies", {})
+            .get("agent_behavior_policy", {})
+            .get("planner_agent", {})
+        )
+        self.config = PlannerConfig(**raw_config)
 
     def _setup_logging_context(self, goal: str, plan_id: str):
         """Sets up a structured logging context for a planning cycle."""
@@ -44,32 +49,6 @@ class PlannerAgent:
                 "timestamp": datetime.now(timezone.utc).isoformat(),
             }
         )
-
-    def _extract_json_from_response(self, text: str) -> Optional[Dict]:
-        """Extracts a JSON object or array from a raw text response, handling markdown blocks."""
-        match = re.search(
-            r"```json\s*(\{[\s\S]*?\}|\[[\s\S]*?\])\s*```", text, re.DOTALL
-        )
-        if match:
-            try:
-                return json.loads(match.group(1))
-            except json.JSONDecodeError:
-                log.warning(
-                    "Found a JSON markdown block, but it contained invalid JSON."
-                )
-        try:
-            start_index = text.find("{")
-            if start_index == -1:
-                start_index = text.find("[")
-            if start_index == -1:
-                return None
-            decoder = json.JSONDecoder()
-            obj, _ = decoder.raw_decode(text[start_index:])
-            return obj
-        except (json.JSONDecodeError, ValueError):
-            log.warning("Could not find a valid JSON object using boundary detection.")
-        log.error("Failed to extract any valid JSON from the LLM response.")
-        return None
 
     def _log_plan_summary(self, plan: List[ExecutionTask]) -> None:
         """Logs a human-readable summary of the generated execution plan."""
@@ -87,6 +66,10 @@ class PlannerAgent:
             required = ["file_path"]
         elif task.action == "edit_function":
             required = ["file_path", "symbol_name"]
+        # --- ADD VALIDATION FOR THE NEW ACTION ---
+        elif task.action == "create_proposal":
+            required = ["file_path", "code", "justification"]
+
         if not all(getattr(params, p, None) for p in required):
             raise PlanExecutionError(
                 f"Task '{task.step}' is missing required parameters for action '{task.action}'."
@@ -99,30 +82,57 @@ class PlannerAgent:
         self._setup_logging_context(high_level_goal, plan_id)
         log.info("🧠 Decomposing goal into a high-level plan...")
 
+        # --- THIS IS THE CRITICAL FIX ---
+        # Update the prompt to teach the agent about the new action and when to use it.
         prompt_template = textwrap.dedent(
             """
             You are a hyper-competent, meticulous system architect AI. Your task is to decompose a high-level goal into a JSON execution plan.
-            Your entire output MUST be a single, valid JSON array of objects.
+            Your entire output MUST be a single, valid JSON array of objects. Each object MUST have the keys "step", "action", and "params".
 
             **High-Level Goal:** "{goal}"
 
-            **Available Actions & Required Parameters:**
-            - Action: `create_file` -> Params: `{{ "file_path": "<path>" }}`
-            - Action: `edit_function` -> Params: `{{ "file_path": "<path>", "symbol_name": "<func_name>" }}`
-            - Action: `add_capability_tag` -> Params: `{{ "file_path": "<path>", "symbol_name": "<func_name>", "tag": "<tag_name>" }}`
+            **Constitutional Rule:** If the user's goal involves changing an existing file, you MUST NOT use `edit_function` directly.
+            Instead, you must generate the complete, final content for the file and use the `create_proposal` action.
+            This is a critical safety and governance requirement.
 
-            **CRITICAL RULE:** Do NOT include a `"code"` parameter in this step. Generate the code-free JSON plan now.
+            **Available Actions & Required Parameters:**
+            - Action: `create_file` (For NEW files only) -> Params: `{{ "file_path": "<path>" }}`
+            - Action: `create_proposal` (For changing EXISTING files) -> Params: `{{ "file_path": "<path_to_change>", "code": "<full_new_content>", "justification": "<reason_for_change>" }}`
+            - Action: `edit_function` -> DO NOT USE. Use `create_proposal` instead.
+            - Action: `add_capability_tag` -> DO NOT USE. Add the tag directly in the code provided to `create_proposal`.
+
+            **CRITICAL RULES FOR `create_proposal`:**
+            1. The `justification` MUST be a concise, single-line sentence.
+            2. The `code` parameter will be generated by a different agent later. You MUST pass the literal string "<CODE_GENERATED_LATER>" as its value.
+
+            **Example Output:**
+            ```json
+            [
+              {{
+                "step": "Propose changes to risk_gates.py to add docstrings.",
+                "action": "create_proposal",
+                "params": {{
+                  "file_path": "src/core/cli/risk_gates.py",
+                  "code": "<CODE_GENERATED_LATER>",
+                  "justification": "Add missing docstrings to src/core/cli/risk_gates.py to improve clarity."
+                }}
+              }}
+            ]
+            ```
+
+            Generate the plan now.
             """
         ).strip()
         final_prompt = prompt_template.format(goal=high_level_goal)
         enriched_prompt = self.prompt_pipeline.process(final_prompt)
 
-        for attempt in range(self.config.max_retries):
+        max_retries = self.config.max_retries
+        for attempt in range(max_retries):
             try:
                 response_text = self.orchestrator.make_request(
                     enriched_prompt, user_id="planner_agent_architect"
                 )
-                parsed_json = self._extract_json_from_response(response_text)
+                parsed_json = extract_json_from_response(response_text)
                 if not parsed_json:
                     raise ValueError("No valid JSON found in response")
                 if isinstance(parsed_json, dict):
@@ -134,9 +144,9 @@ class PlannerAgent:
 
                 self._log_plan_summary(validated_plan)
                 return validated_plan
-            except (ValueError, json.JSONDecodeError, ValidationError) as e:
+            except (ValueError, ValidationError) as e:
                 log.warning(f"Plan creation attempt {attempt + 1} failed: {e}")
-                if attempt == self.config.max_retries - 1:
+                if attempt == max_retries - 1:
                     raise PlanExecutionError(
                         "Failed to create a valid high-level plan after max retries."
                     )

@@ -19,17 +19,13 @@ from fastapi import status as http_status
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
-from agents.execution_agent import ExecutionAgent
-from agents.plan_executor import PlanExecutor
-from agents.planner_agent import PlannerAgent
+# --- REFACTORED IMPORT ---
+# We now import the single function that runs the whole cycle.
+from agents.development_cycle import run_development_cycle
 from core.capabilities import introspection
-from core.clients import GeneratorClient, OrchestratorClient
 from core.errors import register_exception_handlers
-from core.file_handler import FileHandler
-from core.git_service import GitService
-from core.intent_alignment import check_goal_alignment
-from core.intent_guard import IntentGuard
-from core.prompt_pipeline import PromptPipeline
+from core.intent_alignment import check_goal_alignment # This is needed for /guard/align
+from core.knowledge_service import KnowledgeService
 from shared.config import settings
 from shared.logger import getLogger
 
@@ -52,17 +48,10 @@ async def lifespan(app: FastAPI):
 
     log.info("🛠️  Initializing shared services...")
     repo_path = Path(".")
-    app.state.file_handler = FileHandler(str(repo_path))
-    app.state.git_service = GitService(str(repo_path))
-    app.state.intent_guard = IntentGuard(repo_path)
-    app.state.prompt_pipeline = PromptPipeline(repo_path)
+    app.state.knowledge_service = KnowledgeService(repo_path)
 
-    if settings.LLM_ENABLED:
-        app.state.orchestrator_client = OrchestratorClient()
-        app.state.generator_client = GeneratorClient()
-    else:
-        app.state.orchestrator_client = None
-        app.state.generator_client = None
+    if not settings.LLM_ENABLED:
+        log.warning("⚠️ LLMs are disabled. The 'execute_goal' endpoint will not be functional.")
 
     log.info("✅ CORE system is online and ready.")
     yield
@@ -79,6 +68,7 @@ class GoalRequest(BaseModel):
     goal: str = Field(min_length=1, strip_whitespace=True)
 
 
+# --- THIS SECTION IS PRESERVED FROM YOUR ORIGINAL FILE ---
 class AlignmentRequest(BaseModel):
     """Request schema for /guard/align."""
 
@@ -100,50 +90,44 @@ async def guard_align(payload: AlignmentRequest):
     return JSONResponse(
         {"status": status, "details": details}, status_code=http_status.HTTP_200_OK
     )
+# --- END OF PRESERVED SECTION ---
+
+
+@app.get("/knowledge/capabilities")
+async def list_capabilities(request: Request):
+    """Returns a list of all capabilities the system has declared."""
+    knowledge_service: KnowledgeService = request.app.state.knowledge_service
+    return {"capabilities": knowledge_service.list_capabilities()}
 
 
 @app.post("/execute_goal")
-async def execute_goal(request_data: GoalRequest, request: Request):
-    """Execute a high-level goal by planning and generating code."""
+async def execute_goal(request_data: GoalRequest):
+    """
+    Execute a high-level goal by planning and generating code.
+    This endpoint is a simple wrapper around the core development cycle logic.
+    """
     goal = request_data.goal
-    log.info("🎯 Received new goal: %r", goal[:200])
+    log.info("🎯 Received new goal via API: %r", goal[:200])
 
-    try:
-        # 1. Instantiate the PlannerAgent to create the plan
-        planner = PlannerAgent(
-            orchestrator_client=request.app.state.orchestrator_client,
-            prompt_pipeline=request.app.state.prompt_pipeline,
+    if not settings.LLM_ENABLED:
+        raise HTTPException(
+            status_code=503,
+            detail="LLM capabilities are disabled in the current environment configuration.",
         )
-        plan = planner.create_execution_plan(goal)
+    
+    # --- THIS IS THE REFACTORED LOGIC ---
+    # The endpoint now makes a single, clean call to our reusable function.
+    success, message = await run_development_cycle(goal)
 
-        # 2. Instantiate the ExecutionAgent to carry out the plan
-        plan_executor = PlanExecutor(
-            file_handler=request.app.state.file_handler,
-            git_service=request.app.state.git_service,
-            config=planner.config,  # Use the same config
+    if success:
+        log.info("✅ Goal executed successfully: %s", message)
+        return JSONResponse(
+            content={"status": "success", "message": message},
+            status_code=http_status.HTTP_200_OK,
         )
-        execution_agent = ExecutionAgent(
-            generator_client=request.app.state.generator_client,
-            prompt_pipeline=request.app.state.prompt_pipeline,
-            plan_executor=plan_executor,
-        )
-
-        # 3. Execute and get the result
-        success, message = await execution_agent.execute_plan(goal, plan)
-
-        if success:
-            log.info("✅ Goal executed successfully: %s", message)
-            return JSONResponse(
-                content={"status": "success", "message": message},
-                status_code=http_status.HTTP_200_OK,
-            )
-        else:
-            log.error("❌ Goal execution failed: %s", message)
-            raise HTTPException(status_code=500, detail=message)
-
-    except Exception as e:
-        log.exception("💥 Unexpected error during goal execution")
-        raise HTTPException(status_code=500, detail=str(e))
+    else:
+        log.error("❌ Goal execution failed: %s", message)
+        raise HTTPException(status_code=500, detail=message)
 
 
 @app.get("/")

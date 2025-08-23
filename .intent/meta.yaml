@@ -18,10 +18,15 @@ policies:
   safety_policies: "policies/safety_policies.yaml"
   security_intents: "policies/security_intents.yaml"
   code_health_policy: "policies/code_health_policy.yaml"
+  agent_behavior_policy: "policies/agent_behavior_policy.yaml"
+  tooling_policy: "policies/tooling_policy.yaml"
   enforcement_model: "policies/enforcement_model.yaml"
   secrets_management: "policies/secrets_management.yaml"
   dependency_management: "policies/dependency_management.yaml"
   incident_response: "policies/incident_response.yaml"
+  data_privacy_policy: "policies/data_privacy.yaml"
+  data_retention_policy: "policies/data_retention.yaml"
+  canary_policy: "policies/canary_policy.yaml"
 
 prompts:
   constitutional_review: "prompts/constitutional_review.prompt"
@@ -48,3 +53,9 @@ config:
 schemas:
   config: "schemas/config_schema.yaml"
   knowledge_graph_entry: "schemas/knowledge_graph_entry.schema.json"
+  proposal: "schemas/proposal.schema.json"
+  canary_policy: "schemas/canary_policy.schema.json"
+  data_privacy_policy: "schemas/data_privacy_policy.schema.json"
+  data_retention_policy: "schemas/data_retention_policy.schema.json"
+  runtime_requirements: "schemas/runtime_requirements.schema.json"
+  dev_fastpath: "policies/dev_fastpath.yaml"

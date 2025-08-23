@@ -12,7 +12,9 @@ HOST    ?= 0.0.0.0
 PORT    ?= 8000
 RELOAD  ?= --reload
 ENV_FILE ?= .env
-PATHS   ?= src tests
+# Get lintable paths directly from the constitution via the CLI
+# (This assumes a `core-admin tooling get-path lintable` command exists)
+LINT_PATHS ?= src tests
 
 .PHONY: help install lock run stop audit lint format test coverage check fast-check clean clean-logs distclean nuke context drift align
 
@@ -26,7 +28,7 @@ help:
 	@echo "make audit         - Run the full self-audit (KnowledgeGraph + Auditor)"
 	@echo "make lint          - Check formatting and code quality with Black and Ruff."
 	@echo "make format        - Auto-format code with Black and Ruff."
-	@echo "make test [ARGS=]  - Pytest (pass ARGS='-k expr -vv')"
+	@echo "make test          - Pytest"
 	@echo "make coverage      - Pytest with coverage"
 	@echo "make fast-check    - Run fast checks (lint, test). Use before committing minor changes."
 	@echo "make check         - Run all checks (lint, test, audit). Use before submitting a PR."
@@ -70,21 +72,21 @@ audit:
 
 lint:
 	@echo "🎨 Checking code style with Black and Ruff..."
-	$(POETRY) run black --check $(PATHS)
-	$(POETRY) run ruff check $(PATHS)
+	$(POETRY) run black --check $(LINT_PATHS)
+	$(POETRY) run ruff check $(LINT_PATHS)
 
 format:
 	@echo "✨ Formatting code with Black and Ruff..."
-	$(POETRY) run black $(PATHS)
-	$(POETRY) run ruff check $(PATHS) --fix
+	$(POETRY) run black $(LINT_PATHS)
+	$(POETRY) run ruff check $(LINT_PATHS) --fix
 
 test:
 	@echo "🧪 Running tests with pytest..."
-	$(POETRY) run pytest $(ARGS)
+	$(POETRY) run pytest
 
 coverage:
 	@echo "🧮 Running tests with coverage..."
-	$(POETRY) run pytest --cov=src --cov-report=term-missing:skip-covered $(ARGS)
+	$(POETRY) run pytest --cov=src --cov-report=term-missing:skip-covered
 
 fast-check: lint test
 

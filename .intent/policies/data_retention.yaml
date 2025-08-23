@@ -1,0 +1,47 @@
+# .intent/policies/data_retention.yaml
+title: Data Retention & Deletion Policy
+status: active
+
+retention_table:
+  - category: audit_logs
+    description: Access and governance logs
+    retention: P2Y        # ISO 8601 duration
+    deletion_sla: P30D
+    enforcement: hard
+
+  - category: operational_logs
+    description: Runtime app/service logs (no PII)
+    retention: P90D
+    deletion_sla: P14D
+    enforcement: hard
+
+  - category: proposals_and_reviews
+    description: Proposals, reviews, and audit evidence
+    retention: P1Y
+    deletion_sla: P30D
+    enforcement: hard
+
+  - category: training_artifacts
+    description: Prompts/templates/fine-tuning datasets (if any)
+    retention: P180D
+    deletion_sla: P30D
+    enforcement: soft
+
+  - category: personal_data
+    description: Any personal data processed by CORE or born apps
+    retention: "Until purpose complete + P30D (max P1Y unless legal basis documented)"
+    deletion_sla: P30D
+    enforcement: hard
+
+legal_holds:
+  rule: When a legal hold is active, suspend deletion until hold release is recorded.
+  enforcement: hard
+
+owners:
+  accountable: CISO
+  responsible:
+    - Data Protection Officer
+    - ITAM Process Owner
+
+review:
+  frequency: 6 months
