@@ -6,7 +6,6 @@ This module provides a base client for interacting with Chat Completions APIs.
 import json
 
 import httpx
-# The 'requests' and 'settings' imports are no longer needed here.
 from shared.logger import getLogger
 
 log = getLogger(__name__)
@@ -39,20 +38,17 @@ class BaseLLMClient:
         }
         self.async_client = httpx.AsyncClient(timeout=180.0)
 
-    # Note: The synchronous `make_request` method is preserved for potential future use
-    # in simple tooling or tests, even though the main agent loop will use the async version.
     def make_request(self, prompt: str, user_id: str = "core_system") -> str:
         """
         Sends a prompt to the configured Chat Completions API. (Synchronous)
         """
-        import requests  # Lazy import as it's not on the primary path
+        import requests  # Lazy import for this secondary method
 
         payload = {
             "model": self.model_name,
             "messages": [{"role": "user", "content": prompt}],
             "user": user_id,
         }
-
         try:
             log.debug(
                 f"Sending request to {self.api_url} for model {self.model_name}..."

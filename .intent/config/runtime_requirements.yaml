@@ -20,72 +20,61 @@ required_environment_variables:
     type: "config"
     required: true
 
-  - name: "ORCHESTRATOR_API_URL"
-    description: "The API endpoint for the high-level planning LLM."
+  - name: "LLM_ENABLED"
+    description: "Master flag to enable or disable all LLM-related capabilities."
+    type: "config"
+    required: true
+
+  # --- LLM Resource: deepseek_chat ---
+  - name: "DEEPSEEK_CHAT_API_URL"
+    description: "API URL for the 'deepseek_chat' resource."
     type: "config"
     required: false
-    required_when: "apis.llm.enabled == true"
+    required_when: "LLM_ENABLED == true"
 
-  - name: "ORCHESTRATOR_API_KEY"
-    description: "The API key for the high-level planning LLM."
+  - name: "DEEPSEEK_CHAT_API_KEY"
+    description: "API key for the 'deepseek_chat' resource."
     type: "secret"
     required: false
-    required_when: "apis.llm.enabled == true"
+    required_when: "LLM_ENABLED == true"
 
-  - name: "ORCHESTRATOR_MODEL_NAME"
-    description: "The name of the model to use for orchestration."
+  - name: "DEEPSEEK_CHAT_MODEL_NAME"
+    description: "Model name for the 'deepseek_chat' resource."
     type: "config"
     required: false
-    required_when: "apis.llm.enabled == true"
+    required_when: "LLM_ENABLED == true"
 
-  - name: "GENERATOR_API_URL"
-    description: "The API endpoint for the code generation LLM."
+  # --- LLM Resource: deepseek_coder ---
+  - name: "DEEPSEEK_CODER_API_URL"
+    description: "API URL for the 'deepseek_coder' resource."
     type: "config"
     required: false
-    required_when: "apis.llm.enabled == true"
+    required_when: "LLM_ENABLED == true"
 
-  - name: "GENERATOR_API_KEY"
-    description: "The API key for the code generation LLM."
+  - name: "DEEPSEEK_CODER_API_KEY"
+    description: "API key for the 'deepseek_coder' resource."
     type: "secret"
     required: false
-    required_when: "apis.llm.enabled == true"
+    required_when: "LLM_ENABLED == true"
 
+  - name: "DEEPSEEK_CODER_MODEL_NAME"
+    description: "Model name for the 'deepseek_coder' resource."
+    type: "config"
+    required: false
+    required_when: "LLM_ENABLED == true"
+  
+  # --- Other System Variables ---
   - name: "CORE_ACTION_LOG_PATH"
-    description: "Path to .intent/change_log.json used by safety policies."
+    description: "Path to the action log file."
     type: "config"
     required: true
 
   - name: "CORE_ENV"
-    description: "Runtime mode for CORE. Only 'development' or 'production' are valid."
+    description: "Runtime mode: 'development' or 'production'."
     type: "config"
     required: true
-
-  - name: "CORE_DEV_FASTPATH"
-    description: "If 'true', relaxes procedural steps in dev (never validation). Intended for local development only."
-    type: "config"
-    required: false
   
   - name: "LOG_LEVEL"
-    description: "Logging level: one of DEBUG, INFO, WARNING, ERROR."
+    description: "Logging level: DEBUG, INFO, WARNING, ERROR."
     type: "config"
     required: true
-
-  - name: "AUDITOR_MODEL"
-    description: "Model name/backend used by the governance auditor."
-    type: "config"
-    required: false
-
-  - name: "ALLOW_NETWORK"
-    description: "Permit outbound network for agents (true/false). Default false."
-    type: "config"
-    required: false
-
-  - name: "ALLOW_FS_WRITE"
-    description: "Permit filesystem writes for agents (true/false). Default false."
-    type: "config"
-    required: false
-
-  - name: "RISK_BUDGET"
-    description: "Max cumulative risk points per release window (integer)."
-    type: "config"
-    required: false

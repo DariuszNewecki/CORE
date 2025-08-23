@@ -23,6 +23,7 @@ from pydantic import BaseModel, Field
 # We now import the single function that runs the whole cycle.
 from agents.development_cycle import run_development_cycle
 from core.capabilities import introspection
+from core.cognitive_service import CognitiveService  # <-- ADD THIS IMPORT
 from core.errors import register_exception_handlers
 from core.intent_alignment import (
     check_goal_alignment,
@@ -51,6 +52,7 @@ async def lifespan(app: FastAPI):
     log.info("🛠️  Initializing shared services...")
     repo_path = Path(".")
     app.state.knowledge_service = KnowledgeService(repo_path)
+    app.state.cognitive_service = CognitiveService(repo_path)  # <-- ADD THIS LINE
 
     if not settings.LLM_ENABLED:
         log.warning(

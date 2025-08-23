@@ -30,9 +30,11 @@ class Settings(BaseSettings):
     LLM_ENABLED: bool = True
     CORE_DEV_FASTPATH: bool = False
 
-    # --- LLM Resource Registry Configuration ---
+    # ======================================================================
+    #                LLM RESOURCE REGISTRY CONFIGURATION
+    # ======================================================================
     # These variables are loaded from the .env file and correspond to the
-    # `env_prefix` in the resource_manifest.yaml.
+    # `env_prefix` in .intent/knowledge/resource_manifest.yaml.
 
     # -- Resource: deepseek_chat --
     DEEPSEEK_CHAT_API_URL: Optional[str] = None
@@ -43,11 +45,6 @@ class Settings(BaseSettings):
     DEEPSEEK_CODER_API_URL: Optional[str] = None
     DEEPSEEK_CODER_API_KEY: Optional[str] = None
     DEEPSEEK_CODER_MODEL_NAME: Optional[str] = None
-
-    # -- Example for a new resource --
-    # OPENAI_GPT4_API_URL: Optional[str] = None
-    # OPENAI_GPT4_API_KEY: Optional[str] = None
-    # OPENAI_GPT4_MODEL_NAME: Optional[str] = None
 
     class Config:
         """Defines Pydantic's behavior for the Settings model."""
