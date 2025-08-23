@@ -64,7 +64,7 @@ class PlanExecutor:
             "add_capability_tag": self._execute_add_tag,
             "create_file": self._execute_create_file,
             "edit_function": self._execute_edit_function,
-            "create_proposal": self._execute_create_proposal, # <-- ADD NEW ACTION
+            "create_proposal": self._execute_create_proposal,  # <-- ADD NEW ACTION
         }
         if task.action in action_map:
             await action_map[task.action](task.params)
@@ -82,22 +82,21 @@ class PlanExecutor:
             raise PlanExecutionError("Missing required parameters for create_proposal.")
 
         proposal_id = str(uuid.uuid4())[:8]
-        proposal_filename = f"cr-{proposal_id}-{target_path.split('/')[-1].replace('.py','')}.yaml"
+        proposal_filename = (
+            f"cr-{proposal_id}-{target_path.split('/')[-1].replace('.py','')}.yaml"
+        )
         proposal_path = self.repo_path / ".intent/proposals" / proposal_filename
-        
+
         proposal_content = {
             "target_path": target_path,
             "action": "replace_file",
             "justification": justification,
             "content": content,
         }
-        
+
         # Use canonical dump settings to ensure stable hashes
         yaml_content = yaml.dump(
-            proposal_content, 
-            indent=2, 
-            default_flow_style=False, 
-            sort_keys=True
+            proposal_content, indent=2, default_flow_style=False, sort_keys=True
         )
 
         proposal_path.parent.mkdir(parents=True, exist_ok=True)
@@ -106,7 +105,9 @@ class PlanExecutor:
 
         if self.config.auto_commit and self.git_service.is_git_repo():
             self.git_service.add(str(proposal_path))
-            self.git_service.commit(f"feat(proposal): Create proposal for {target_path}")
+            self.git_service.commit(
+                f"feat(proposal): Create proposal for {target_path}"
+            )
 
     async def _execute_add_tag(self, params: TaskParams):
         """Executes the surgical 'add_capability_tag' action."""

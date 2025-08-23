@@ -61,7 +61,10 @@ async def run_development_cycle(goal: str) -> Tuple[bool, str]:
 
         planner_config = planner.config
         if not planner_config:
-            return False, "Could not load planner configuration from agent_behavior_policy.yaml"
+            return (
+                False,
+                "Could not load planner configuration from agent_behavior_policy.yaml",
+            )
 
         plan_executor = PlanExecutor(
             file_handler=file_handler,
@@ -88,5 +91,8 @@ async def run_development_cycle(goal: str) -> Tuple[bool, str]:
         return success, message
 
     except Exception as e:
-        log.error(f"💥 An unexpected error occurred during the development cycle: {e}", exc_info=True)
+        log.error(
+            f"💥 An unexpected error occurred during the development cycle: {e}",
+            exc_info=True,
+        )
         return False, f"An unexpected error occurred: {str(e)}"

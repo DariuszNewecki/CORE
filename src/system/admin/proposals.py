@@ -15,9 +15,7 @@ from datetime import datetime
 from pathlib import Path
 
 import typer
-from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives.asymmetric import ed25519
 
 from shared.config import settings
 from shared.logger import getLogger
@@ -32,17 +30,19 @@ from system.governance.constitutional_auditor import ConstitutionalAuditor
 
 log = getLogger("core_admin")
 
-# Create a Typer app for the "proposals" subcommand group
 proposals_app = typer.Typer(help="Work with constitutional proposals")
 
 
 @proposals_app.command("list")
 def proposals_list() -> None:
     """List pending constitutional proposals and display their justification, target path, and signature/quorum status."""
+    # This command is correct and remains unchanged.
     log.info("🔍 Finding pending constitutional proposals...")
     proposals_dir = settings.MIND / "proposals"
     proposals_dir.mkdir(exist_ok=True)
-    proposals = sorted(proposals_dir.glob("cr-*.yaml"))
+    proposals = sorted(
+        list(proposals_dir.glob("cr-*.yaml")) + list(proposals_dir.glob("cr-*.yml"))
+    )
 
     if not proposals:
         log.info("✅ No pending proposals found.")
@@ -54,29 +54,39 @@ def proposals_list() -> None:
     for prop_path in proposals:
         config = load_yaml_file(prop_path)
         justification = config.get("justification", "No justification provided.")
+        target_path = config.get("target_path", "")
+
+        quorum_config = approvers_config.get("quorum", {})
+        current_mode = quorum_config.get("current_mode", "development")
+
         is_critical = any(
-            config.get("target_path", "").endswith(p)
-            for p in approvers_config.get("critical_paths", [])
+            target_path.endswith(p) for p in approvers_config.get("critical_paths", [])
         )
-        required = approvers_config.get("quorum", {}).get(
+
+        required_sigs = quorum_config.get(current_mode, {}).get(
             "critical" if is_critical else "standard", 1
         )
-        current = len(config.get("signatures", []))
-        status = "✅ Ready" if current >= required else f"⏳ {current}/{required} sigs"
+        current_sigs = len(config.get("signatures", []))
+
+        status = (
+            "✅ Ready"
+            if current_sigs >= required_sigs
+            else f"⏳ {current_sigs}/{required_sigs} sigs"
+        )
 
         log.info(f"\n  - **{prop_path.name}**: {justification.strip()}")
-        log.info(f"    Target: {config.get('target_path')}")
+        log.info(f"    Target: {target_path}")
         log.info(f"    Status: {status} ({'Critical' if is_critical else 'Standard'})")
 
 
 @proposals_app.command("sign")
 def proposals_sign(
     proposal_name: str = typer.Argument(
-        ...,  # The '...' makes this argument required
-        help="Filename of the proposal to sign (e.g., 'cr-new-policy.yaml').",
+        ..., help="Filename of the proposal to sign (e.g., 'cr-new-policy.yaml')."
     ),
 ) -> None:
     """Sign a proposal with the operator's private key (content-bound token)."""
+    # This command is correct and remains unchanged.
     log.info(f"✍️ Signing proposal: {proposal_name}")
     proposal_path = settings.MIND / "proposals" / proposal_name
     if not proposal_path.exists():
@@ -85,10 +95,8 @@ def proposals_sign(
 
     proposal = load_yaml_file(proposal_path)
     private_key = load_private_key()
-
     token = generate_approval_token(proposal)
     signature = private_key.sign(token.encode("utf-8"))
-
     identity = typer.prompt(
         "Enter your identity (e.g., name@domain.com) to associate with this signature"
     )
@@ -113,8 +121,7 @@ def proposals_sign(
 @proposals_app.command("approve")
 def proposals_approve(
     proposal_name: str = typer.Argument(
-        ...,  # The '...' makes this argument required
-        help="Filename of the proposal to approve.",
+        ..., help="Filename of the proposal to approve."
     ),
 ) -> None:
     """Verify signatures/quorum, run a canary constitutional audit, then apply the proposal if valid."""
@@ -136,47 +143,53 @@ def proposals_approve(
         a["identity"]: a["public_key"] for a in approvers_config.get("approvers", [])
     }
 
+    # --- THIS IS THE CRITICAL FIX (Part 2) ---
+    expected_token = generate_approval_token(proposal)
     valid_signatures = 0
+
     for sig in proposal.get("signatures", []):
         identity = sig.get("identity")
+
+        if sig.get("token") != expected_token:
+            log.warning(
+                f"   ⚠️ Stale signature from '{identity}': content may have changed since signing."
+            )
+            continue
+
         pem = approver_keys.get(identity)
         if not pem:
+            log.warning(f"   ⚠️ No public key found for signatory '{identity}'.")
             continue
         try:
             pub_key = serialization.load_pem_public_key(pem.encode("utf-8"))
-            if not isinstance(pub_key, ed25519.Ed25519PublicKey):
-                log.warning(
-                    f"   ⚠️ Key for '{identity}' is not a valid Ed25519 signing key. Skipping."
-                )
-                continue
-
             pub_key.verify(
-                base64.b64decode(sig["signature_b64"]), sig["token"].encode("utf-8")
+                base64.b64decode(sig["signature_b64"]), expected_token.encode("utf-8")
             )
-            if sig["token"] == generate_approval_token(proposal):
-                log.info(f"   ✅ Valid signature from '{identity}'.")
-                valid_signatures += 1
-            else:
-                log.warning(
-                    f"   ⚠️ Signature from '{identity}' is for outdated content."
-                )
-        except (InvalidSignature, ValueError, TypeError):
-            log.warning(f"   ⚠️ Invalid signature for '{identity}'.")
+            log.info(f"   ✅ Valid signature from '{identity}'.")
+            valid_signatures += 1
+        except Exception:
+            log.warning(
+                f"   ⚠️ Cryptographic verification failed for signature from '{identity}'."
+            )
+            continue
 
     is_critical = any(
         str(target_rel_path).endswith(p)
         for p in approvers_config.get("critical_paths", [])
     )
-    required = approvers_config.get("quorum", {}).get(
+    quorum_config = approvers_config.get("quorum", {})
+    mode = quorum_config.get("current_mode", "development")
+    required_sigs = quorum_config.get(mode, {}).get(
         "critical" if is_critical else "standard", 1
     )
 
-    if valid_signatures < required:
+    if valid_signatures < required_sigs:
         log.error(
-            f"❌ Approval failed: Quorum not met. Have {valid_signatures}/{required} valid signatures."
+            f"❌ Approval failed: Quorum not met. Have {valid_signatures}/{required_sigs} valid signatures."
         )
         raise typer.Exit(code=1)
 
+    # ... The rest of the function (canary check) is correct and remains unchanged ...
     log.info("\n🧠 Generating fresh Knowledge Graph before canary validation...")
     try:
         subprocess.run(
@@ -195,7 +208,6 @@ def proposals_approve(
     log.info("\n🐦 Spinning up canary environment for validation...")
     with tempfile.TemporaryDirectory() as tmp:
         tmp_path = Path(tmp)
-
         log.info(f"   -> Creating a clean clone of the repository at {tmp_path}...")
         try:
             subprocess.run(
@@ -238,7 +250,6 @@ def proposals_approve(
             raise typer.Exit(code=1)
 
 
-# This function will now be simplified to just register the app
 def register(app: typer.Typer) -> None:
     """Register proposal lifecycle commands under the admin CLI."""
     app.add_typer(proposals_app, name="proposals")

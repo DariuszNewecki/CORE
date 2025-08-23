@@ -10,8 +10,6 @@ import json
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict
-# --- ADD THIS IMPORT ---
-import hashlib
 
 import yaml
 from cryptography.hazmat.primitives import hashes, serialization
@@ -42,29 +40,40 @@ def load_yaml_file(path: Path) -> Dict[str, Any]:
 
 
 def save_yaml_file(path: Path, data: Dict[str, Any]) -> None:
-    """Intent: Persist YAML with stable ordering disabled to preserve human readability."""
-    path.write_text(yaml.safe_dump(data, sort_keys=False), encoding="utf-8")
+    """Intent: Persist YAML with stable ordering to ensure consistent hashes."""
+    # Using sort_keys=True creates a canonical file format, which is essential for stable hashing.
+    path.write_text(yaml.dump(data, sort_keys=True), encoding="utf-8")
 
 
-# --- THIS IS THE CORRECTED FUNCTION ---
-def generate_approval_token(proposal: Dict[str, Any]) -> str:
+# --- THIS IS THE CRITICAL FIX (Part 1) ---
+def _get_canonical_payload(proposal: Dict[str, Any]) -> str:
     """
-    Intent: Produce a deterministic token for approvals bound to the proposal's
-    intent and content, robust to YAML formatting changes.
+    Creates a stable, sorted JSON string of the proposal's core intent,
+    ignoring all other metadata like signatures. This is the single source
+    of truth for what gets signed.
     """
-    content_str = proposal.get("content", "")
-    content_hash = hashlib.sha256(content_str.encode("utf-8")).hexdigest()
-
-    payload = {
-        "version": "v3", # Bump version to indicate new hashing scheme
+    signable_data = {
         "target_path": proposal.get("target_path"),
         "action": proposal.get("action"),
-        "content_sha256": content_hash,
+        "justification": proposal.get("justification"),
+        "content": proposal.get("content", ""),
     }
-    
+    # Using json.dumps with sort_keys is the most reliable way to get a
+    # canonical string representation of the data structure.
+    return json.dumps(signable_data, sort_keys=True)
+
+
+def generate_approval_token(proposal: Dict[str, Any]) -> str:
+    """
+    Intent: Produce a deterministic token based on a canonical representation
+    of the proposal's intent.
+    """
+    canonical_string = _get_canonical_payload(proposal)
     digest = hashes.Hash(hashes.SHA256())
-    digest.update(json.dumps(payload, sort_keys=True).encode("utf-8"))
-    return f"core-proposal-v3:{digest.finalize().hex()}"
+    digest.update(canonical_string.encode("utf-8"))
+
+    # Version bump to reflect this definitive new token scheme.
+    return f"core-proposal-v6:{digest.finalize().hex()}"
 
 
 def load_private_key() -> ed25519.Ed25519PrivateKey:
@@ -79,7 +88,8 @@ def load_private_key() -> ed25519.Ed25519PrivateKey:
 
 
 def archive_rollback_plan(proposal_name: str, proposal: Dict[str, Any]) -> None:
-    """Intent: Persist a rollback plan snapshot for approved proposals under .intent/constitution/rollbacks/."""
+    """Intent: Persist a rollback plan snapshot for approved proposals."""
+    # This function is correct and does not need changes.
     rollback_plan = proposal.get("rollback_plan")
     if not rollback_plan:
         return

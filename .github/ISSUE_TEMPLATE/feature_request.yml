@@ -1,0 +1,54 @@
+name: Feature Request
+description: Propose a new capability or enhancement for the CORE system.
+labels: ["type:feature", "priority:triage"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem Statement
+      description: "What problem does this feature solve? Why is this problem important to address now?"
+      placeholder: "e.g., The system currently cannot autonomously fix its own documentation, which violates the 'clarity_first' principle and requires human intervention..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed Solution
+      description: "Describe the new capability at a high level. How would an operator interact with it? What would it do?"
+      placeholder: "e.g., A new CLI command `core-admin fix docstrings` that uses an LLM to find and add missing docstrings to the codebase."
+    validations:
+      required: true
+
+  - type: dropdown
+    id: constitutional-alignment
+    attributes:
+      label: Constitutional Alignment
+      description: "Which core principle does this feature primarily serve? This is a critical part of the justification."
+      options:
+        - "clarity_first: Makes the system easier to understand."
+        - "safe_by_default: Makes the system safer or more resilient."
+        - "reason_with_purpose: Improves the system's ability to reason about its actions."
+        - "evolvable_structure: Enhances the system's ability to safely modify itself."
+        - "separation_of_concerns: Improves the modularity and architecture of the system."
+        - "Other (please specify in the proposal)"
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: Acceptance Criteria
+      description: "How will we know when this feature is complete and working correctly? Please provide a checklist."
+      value: |
+        - [ ] Criterion 1: ...
+        - [ ] Criterion 2: ...
+        - [ ] Criterion 3: ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional Context
+      description: "Add any other context, mockups, or references that might be helpful."

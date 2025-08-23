@@ -39,7 +39,7 @@ _fixer.register(app)
 _byor.register(app)
 _reviewer.register(app)
 _new.register(app)
-_develop.register(app) 
+_develop.register(app)
 
 
 __all__ = ["app"]

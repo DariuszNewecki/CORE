@@ -1,0 +1,19 @@
+name: Documentation Request
+description: Propose an improvement or addition to the documentation.
+labels: ["type:docs", "priority:medium"]
+body:
+  - type: textarea
+    id: motivation
+    attributes:
+      label: Motivation
+      description: What is the reason for this documentation change? Why is it needed?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed Change
+      description: Describe the documentation you'd like to see added or changed.
+  - type: markdown
+    attributes:
+      value: "Thank you for helping improve the project's clarity!"

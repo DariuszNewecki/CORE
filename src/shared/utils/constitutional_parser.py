@@ -22,6 +22,7 @@ def get_all_constitutional_paths(intent_dir: Path) -> Set[str]:
     known_paths: Set[str] = {".intent/meta.yaml"}
 
     def _recursive_find(data: Any):
+        """Recursively traverses nested data structures (dicts/lists) to find string values containing '/' and '.', adding formatted '.intent/' prefixed paths to the known_paths set."""
         if isinstance(data, dict):
             for value in data.values():
                 _recursive_find(value)

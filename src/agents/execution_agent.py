@@ -40,7 +40,7 @@ class ExecutionAgent:
         log.info(f"✍️  Generating full file content for proposal: '{task.step}'...")
         file_path_str = task.params.file_path
         if not file_path_str:
-            return "" # Cannot proceed without a target file path
+            return ""  # Cannot proceed without a target file path
 
         # Read the original file content to provide context to the LLM
         original_content = ""
@@ -77,7 +77,6 @@ class ExecutionAgent:
         return self.generator.make_request(
             final_prompt, user_id="execution_agent_proposer"
         )
-
 
     # CAPABILITY: code_generation
     async def _generate_code_for_task(self, task: ExecutionTask, goal: str) -> str:
@@ -123,12 +122,16 @@ class ExecutionAgent:
             # --- THIS IS THE CRITICAL CHANGE ---
             # If the action is create_proposal, we use our new, specialized generator.
             if task.action == "create_proposal":
-                task.params.code = await self._generate_code_for_proposal(task, high_level_goal)
+                task.params.code = await self._generate_code_for_proposal(
+                    task, high_level_goal
+                )
             else:
-                task.params.code = await self._generate_code_for_task(task, high_level_goal)
+                task.params.code = await self._generate_code_for_task(
+                    task, high_level_goal
+                )
 
             if not task.params.code:
-                 return False, f"Code generation failed for step: '{task.step}'"
+                return False, f"Code generation failed for step: '{task.step}'"
 
         log.info("--- Handing off to Executor ---")
         with PlanExecutionContext(self.git_service, self.config):

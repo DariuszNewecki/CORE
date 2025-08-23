@@ -32,7 +32,7 @@ class PlannerAgent:
         """Initializes the PlannerAgent with its dependencies."""
         self.orchestrator = orchestrator_client
         self.prompt_pipeline = prompt_pipeline
-        
+
         raw_config = (
             context.get("policies", {})
             .get("agent_behavior_policy", {})
