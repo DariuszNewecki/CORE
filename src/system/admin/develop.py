@@ -41,10 +41,10 @@ def develop(
 
     # Report the final outcome to the user.
     if success:
-        typer.secho(f"\n✅ Goal achieved successfully.", fg=typer.colors.GREEN)
+        typer.secho("\n✅ Goal achieved successfully.", fg=typer.colors.GREEN)
         typer.secho(f"   -> {message}", fg=typer.colors.GREEN)
     else:
-        typer.secho(f"\n❌ Goal execution failed.", fg=typer.colors.RED)
+        typer.secho("\n❌ Goal execution failed.", fg=typer.colors.RED)
         typer.secho(f"   -> {message}", fg=typer.colors.RED)
         raise typer.Exit(code=1)
 

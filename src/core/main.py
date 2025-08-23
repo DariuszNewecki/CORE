@@ -24,7 +24,9 @@ from pydantic import BaseModel, Field
 from agents.development_cycle import run_development_cycle
 from core.capabilities import introspection
 from core.errors import register_exception_handlers
-from core.intent_alignment import check_goal_alignment # This is needed for /guard/align
+from core.intent_alignment import (
+    check_goal_alignment,
+)  # This is needed for /guard/align
 from core.knowledge_service import KnowledgeService
 from shared.config import settings
 from shared.logger import getLogger
@@ -51,7 +53,9 @@ async def lifespan(app: FastAPI):
     app.state.knowledge_service = KnowledgeService(repo_path)
 
     if not settings.LLM_ENABLED:
-        log.warning("⚠️ LLMs are disabled. The 'execute_goal' endpoint will not be functional.")
+        log.warning(
+            "⚠️ LLMs are disabled. The 'execute_goal' endpoint will not be functional."
+        )
 
     log.info("✅ CORE system is online and ready.")
     yield
@@ -90,6 +94,8 @@ async def guard_align(payload: AlignmentRequest):
     return JSONResponse(
         {"status": status, "details": details}, status_code=http_status.HTTP_200_OK
     )
+
+
 # --- END OF PRESERVED SECTION ---
 
 
@@ -114,7 +120,7 @@ async def execute_goal(request_data: GoalRequest):
             status_code=503,
             detail="LLM capabilities are disabled in the current environment configuration.",
         )
-    
+
     # --- THIS IS THE REFACTORED LOGIC ---
     # The endpoint now makes a single, clean call to our reusable function.
     success, message = await run_development_cycle(goal)

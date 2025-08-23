@@ -3,7 +3,7 @@
 Data models for the PlannerAgent and execution tasks.
 Defines the structure of plans, tasks, and configurations.
 """
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
 from typing import Literal, Optional
 

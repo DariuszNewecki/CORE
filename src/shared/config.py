@@ -41,7 +41,7 @@ class Settings(BaseSettings):
     # knows they are allowed.
     CORE_ENV: str = "production"
     CORE_DEV_FASTPATH: bool = False
-    
+
     # --- THIS IS THE FIX ---
     LOG_LEVEL: str = "INFO"
 
