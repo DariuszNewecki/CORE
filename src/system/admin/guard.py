@@ -4,7 +4,9 @@ Intent: Governance/validation guard commands exposed to the operator.
 """
 from __future__ import annotations
 
+import io
 import json
+from contextlib import redirect_stdout
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -15,35 +17,31 @@ from rich.panel import Panel
 from rich.table import Table
 
 from shared.logger import getLogger
-
-# --- END OF FIX ---
 from system.admin.utils import should_fail
 from system.guard.capability_discovery import (
     collect_code_capabilities,
     load_manifest_capabilities,
 )
-
-# --- THIS IS THE FINAL, CORRECTED IMPORT BLOCK ---
 from system.guard.drift_detector import detect_capability_drift, write_report
 
 log = getLogger("core_admin")
 
 
-def _find_manifest_path(root: Path, explicit: Optional[Path]) -> Path:
-    """Locate and return the path to the project manifest file."""
+def _find_manifest_path(root: Path, explicit: Optional[Path]) -> Optional[Path]:
+    """Locate and return the path to the project manifest file, or None."""
     if explicit and explicit.exists():
         return explicit
     for p in (root / ".intent/project_manifest.yaml", root / ".intent/manifest.yaml"):
         if p.exists():
             return p
-    raise FileNotFoundError(
-        "No manifest found (.intent/project_manifest.yaml or .intent/manifest.yaml)"
-    )
+    return None
 
 
 def _load_raw_manifest(root: Path, explicit: Optional[Path]) -> Dict[str, Any]:
-    """Loads and parses a YAML manifest file."""
+    """Loads and parses a YAML manifest file, returning an empty dict if not found."""
     path = _find_manifest_path(root, explicit)
+    if not path:
+        return {}
     data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
     return data
 
@@ -85,7 +83,7 @@ def _print_table(report_dict: dict, labels: Dict[str, str]) -> None:
     table.add_column("Values")
 
     def row(title: str, items: List[str]):
-        """Adds a row to a table with a title and formatted list of items, showing '[none]' if items is empty."""
+        """Adds a row to the table with the given title and a formatted list of items, using green text for an empty list and yellow text for individual bulleted items."""
         if not items:
             table.add_row(title, f"[bold green]{labels['none']}[/bold green]")
         else:
@@ -143,28 +141,45 @@ def register(app: typer.Typer) -> None:
         strict_intent: Optional[bool] = typer.Option(None, help="Require KGB."),
     ):
         """Compares manifest vs code to detect capability drift."""
-        ux = _ux_defaults(root, manifest_path)
-        fmt = (format or ux["default_format"]).lower()
-        fail_policy = (fail_on or ux["default_fail_on"]).lower()
-        strict = ux["strict_default"] if strict_intent is None else strict_intent
+        try:
+            ux = _ux_defaults(root, manifest_path)
+            fmt = (format or ux["default_format"]).lower()
+            fail_policy = (fail_on or ux["default_fail_on"]).lower()
+            strict = ux["strict_default"] if strict_intent is None else strict_intent
 
-        manifest_caps = load_manifest_capabilities(root, explicit_path=manifest_path)
-        code_caps = collect_code_capabilities(
-            root, include_globs=include, exclude_globs=exclude, require_kgb=strict
-        )
-        report = detect_capability_drift(manifest_caps, code_caps)
-        report_dict = report.to_dict()
+            manifest_caps = load_manifest_capabilities(
+                root, explicit_path=manifest_path
+            )
 
-        if ux["evidence_json"]:
-            write_report(output or (root / ux["evidence_path"]), report)
+            # Temporarily capture stdout to prevent logs from polluting the JSON output.
+            f = io.StringIO()
+            with redirect_stdout(f):
+                code_caps = collect_code_capabilities(
+                    root,
+                    include_globs=include,
+                    exclude_globs=exclude,
+                    require_kgb=strict,
+                )
 
-        if fmt in ("table", "pretty"):
-            _print_pretty(report_dict, ux["labels"])
-        else:
-            typer.echo(json.dumps(report_dict, indent=2))
+            report = detect_capability_drift(manifest_caps, code_caps)
+            report_dict = report.to_dict()
 
-        if should_fail(report_dict, fail_policy):
-            raise typer.Exit(code=2)
+            if ux["evidence_json"]:
+                write_report(output or (root / ux["evidence_path"]), report)
+
+            if fmt in ("table", "pretty"):
+                _print_pretty(report_dict, ux["labels"])
+            else:
+                typer.echo(json.dumps(report_dict, indent=2))
+
+            if should_fail(report_dict, fail_policy):
+                raise typer.Exit(code=2)
+        except FileNotFoundError as e:
+            typer.secho(
+                f"Error: A required constitutional file was not found: {e}",
+                fg=typer.colors.RED,
+            )
+            raise typer.Exit(code=1)
 
     @guard.command("kg-export")
     def kg_export(

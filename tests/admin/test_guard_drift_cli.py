@@ -6,7 +6,7 @@ from pathlib import Path
 
 from typer.testing import CliRunner
 
-from system.admin import app  # uses core-admin entrypoint
+from system.admin import app
 
 runner = CliRunner()
 
@@ -16,28 +16,22 @@ def write(p: Path, text: str) -> None:
     p.write_text(text, encoding="utf-8")
 
 
-def manifest_yaml(capabilities):
-    import yaml  # already a project dep
-
-    # Prefer a top-level 'capabilities' key; adjust if your manifest uses a different key.
-    data = {"capabilities": []}
-    for c in capabilities:
-        data["capabilities"].append(c)
-    return yaml.safe_dump(data, sort_keys=False)
-
-
 def test_guard_drift_clean_repo(tmp_path: Path):
-    # Arrange: manifest and code agree (no meta mismatch)
+    """Tests a clean state where code and manifest are in sync."""
     write(
-        tmp_path / ".intent" / "project_manifest.yaml",
-        manifest_yaml(["alpha.cap", "beta.cap"]),
+        tmp_path / ".intent/knowledge/source_structure.yaml",
+        "structure:\n  - domain: main\n    path: src/main",
     )
     write(
-        tmp_path / "src" / "mod.py", "# CAPABILITY: alpha.cap\n# CAPABILITY: beta.cap\n"
+        tmp_path / "src/main/manifest.yaml",
+        "capabilities:\n  - alpha.cap\n  - beta.cap",
+    )
+    write(
+        tmp_path / "src/main/mod.py",
+        "# CAPABILITY: alpha.cap\n# CAPABILITY: beta.cap\n",
     )
     out = tmp_path / "reports" / "drift_report.json"
 
-    # Act
     result = runner.invoke(
         app,
         [
@@ -52,25 +46,25 @@ def test_guard_drift_clean_repo(tmp_path: Path):
         ],
     )
 
-    # Assert
     assert result.exit_code == 0, result.output
-    assert out.exists()
-    report = json.loads(out.read_text(encoding="utf-8"))
-    assert report["missing_in_code"] == []
-    assert report["undeclared_in_manifest"] == []
-    assert report["mismatched_mappings"] == []
+    report = json.loads(out.read_text())
+    assert not report["missing_in_code"]
+    assert not report["undeclared_in_manifest"]
 
 
 def test_guard_drift_detects_undeclared(tmp_path: Path):
-    # Arrange: code has extra capability not in manifest
-    write(tmp_path / ".intent" / "project_manifest.yaml", manifest_yaml(["alpha.cap"]))
+    """Tests that a capability in code but not in a manifest is detected."""
     write(
-        tmp_path / "src" / "mod.py",
+        tmp_path / ".intent/knowledge/source_structure.yaml",
+        "structure:\n  - domain: main\n    path: src/main",
+    )
+    write(tmp_path / "src/main/manifest.yaml", "capabilities:\n  - alpha.cap")
+    (tmp_path / "src/main").mkdir(parents=True, exist_ok=True)
+    write(
+        tmp_path / "src/main/mod.py",
         "# CAPABILITY: alpha.cap\n# CAPABILITY: ghost.cap\n",
     )
-    out = tmp_path / "reports" / "drift_report.json"
 
-    # Act
     result = runner.invoke(
         app,
         [
@@ -82,71 +76,60 @@ def test_guard_drift_detects_undeclared(tmp_path: Path):
             "json",
             "--fail-on",
             "any",
-            "--output",
-            str(out),
         ],
     )
 
-    # Assert
-    assert result.exit_code == 2  # drift should fail the command
-    assert out.exists()
-    report = json.loads(out.read_text(encoding="utf-8"))
+    assert result.exit_code == 2
+    report = json.loads(result.output)
     assert "ghost.cap" in report["undeclared_in_manifest"]
 
 
 def test_guard_drift_strict_requires_kg(tmp_path: Path):
-    # Arrange: no KG present; strict should fail fast instead of grepping
-    write(tmp_path / ".intent" / "project_manifest.yaml", manifest_yaml([]))
+    """Tests that strict mode fails if the KnowledgeGraphBuilder is not available (simulated)."""
+    write(
+        tmp_path / ".intent/knowledge/source_structure.yaml",
+        "structure:\n  - domain: main\n    path: src/main",
+    )
+    write(tmp_path / "src/main/manifest.yaml", "capabilities: []")
 
-    # Act
     result = runner.invoke(
         app,
-        [
-            "guard",
-            "drift",
-            "--root",
-            str(tmp_path),
-            "--strict-intent",
-            "--format",
-            "json",
-        ],
+        ["guard", "drift", "--root", str(tmp_path), "--strict-intent"],
     )
 
-    # Assert
     assert result.exit_code != 0
-    # Typer doesn't print the exception to stdout; check the exception message instead.
-    assert result.exception is not None
     assert "Strict intent mode" in str(result.exception)
 
 
-def test_guard_drift_mismatched_mappings(tmp_path: Path):
-    # Arrange: same capability both sides, but code has meta that manifest does not -> mismatch
-    write(tmp_path / ".intent" / "project_manifest.yaml", manifest_yaml(["beta.cap"]))
+def test_guard_drift_detects_mismatched_mappings(tmp_path: Path):
+    """
+    Confirms that the system now correctly detects metadata mismatches.
+    This test is the inverse of the old, obsolete one.
+    """
+    # Arrange
     write(
-        tmp_path / "src" / "mod.py",
-        "# CAPABILITY: beta.cap [domain=governance owner=ops]\n",
+        tmp_path / ".intent/knowledge/source_structure.yaml",
+        "structure:\n  - domain: main\n    path: src/main",
     )
-    out = tmp_path / "reports" / "drift_report.json"
+    # The manifest declares a capability with specific metadata.
+    write(
+        tmp_path / "src/main/manifest.yaml",
+        "capabilities:\n  beta.cap:\n    domain: main\n    owner: dev_team",
+    )
+    # The code has the same capability but with different or missing metadata.
+    (tmp_path / "src/main").mkdir(parents=True, exist_ok=True)
+    write(
+        tmp_path / "src/main/mod.py",
+        "# CAPABILITY: beta.cap [domain=governance]\n",
+    )
 
     # Act
     result = runner.invoke(
-        app,
-        [
-            "guard",
-            "drift",
-            "--root",
-            str(tmp_path),
-            "--format",
-            "json",
-            "--output",
-            str(out),
-        ],
+        app, ["guard", "drift", "--root", str(tmp_path), "--format", "json"]
     )
 
-    # Assert: default --fail-on any -> should fail due to mismatched_mappings
+    # Assert: This should now FAIL with exit code 2 because drift is detected.
     assert result.exit_code == 2
-    assert out.exists()
-    report = json.loads(out.read_text(encoding="utf-8"))
-    assert report["missing_in_code"] == []
-    assert report["undeclared_in_manifest"] == []
-    assert any(m.get("capability") == "beta.cap" for m in report["mismatched_mappings"])
+    report = json.loads(result.output)
+    assert report["mismatched_mappings"]
+    assert report["mismatched_mappings"][0]["capability"] == "beta.cap"

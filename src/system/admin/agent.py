@@ -8,7 +8,8 @@ import textwrap
 
 import typer
 
-from core.clients import OrchestratorClient
+# --- FIX: Import the new service, not the old client ---
+from core.cognitive_service import CognitiveService
 from core.file_handler import FileHandler
 from core.git_service import GitService
 from shared.logger import getLogger
@@ -35,7 +36,7 @@ def _extract_json_from_response(text: str):
 def scaffold_new_application(
     project_name: str,
     goal: str,
-    orchestrator: OrchestratorClient,
+    cognitive_service: CognitiveService,  # <-- FIX: Takes the service now
     file_handler: FileHandler,
     initialize_git: bool = False,
 ) -> tuple[bool, str]:
@@ -57,7 +58,9 @@ def scaffold_new_application(
 
     final_prompt = prompt_template.format(goal=goal)
     try:
-        response_text = orchestrator.make_request(
+        # --- FIX: Use the CognitiveService to get the correct client for the job ---
+        planner_client = cognitive_service.get_client_for_role("Planner")
+        response_text = planner_client.make_request(
             final_prompt, user_id="scaffolding_agent"
         )
         file_structure = _extract_json_from_response(response_text)
@@ -70,12 +73,9 @@ def scaffold_new_application(
         scaffolder = Scaffolder(project_name=project_name)
         scaffolder.scaffold_base_structure()
 
-        # Write the LLM-generated files
         for rel_path, content in file_structure.items():
             scaffolder.write_file(rel_path, content)
 
-        # --- THIS IS THE NEW SECTION ---
-        # Add the templated test and CI files
         log.info("   -> Adding starter test and CI workflow...")
         test_template_path = scaffolder.starter_kit_path / "test_main.py.template"
         ci_template_path = scaffolder.starter_kit_path / "ci.yml.template"
@@ -89,7 +89,6 @@ def scaffold_new_application(
         if ci_template_path.exists():
             ci_content = ci_template_path.read_text(encoding="utf-8")
             scaffolder.write_file(".github/workflows/ci.yml", ci_content)
-        # --- END OF NEW SECTION ---
 
         if initialize_git:
             log.info(
@@ -128,12 +127,13 @@ def agent_scaffold(
     log.info(f"   -> Goal: '{goal}'")
 
     try:
-        orchestrator = OrchestratorClient()
+        # --- FIX: Instantiate the service, not the client ---
+        cognitive_service = CognitiveService(CORE_ROOT)
         file_handler = FileHandler(str(CORE_ROOT))
         success, message = scaffold_new_application(
             project_name=name,
             goal=goal,
-            orchestrator=orchestrator,
+            cognitive_service=cognitive_service,
             file_handler=file_handler,
             initialize_git=git_init,
         )

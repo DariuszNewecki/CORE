@@ -6,6 +6,7 @@ This module provides a base client for interacting with Chat Completions APIs.
 import json
 
 import httpx
+
 from shared.logger import getLogger
 
 log = getLogger(__name__)
@@ -112,6 +113,7 @@ class BaseLLMClient:
                 exc_info=True,
             )
             return "Error: Could not parse response from API."
+
 
 # The OrchestratorClient and GeneratorClient classes are now removed.
 # Their responsibilities have been taken over by the CognitiveService.

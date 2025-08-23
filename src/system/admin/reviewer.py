@@ -10,7 +10,8 @@ from pathlib import Path
 import typer
 import yaml
 
-from core.clients import OrchestratorClient
+# --- NEW: Import CognitiveService ---
+from core.cognitive_service import CognitiveService
 from shared.config import settings
 from shared.logger import getLogger
 
@@ -139,13 +140,18 @@ def peer_review(
         log.info(f"   -> Full prompt saved to: {output}")
         raise typer.Exit()
 
-    # 5. Otherwise, send to the Orchestrator LLM.
+    # 5. Otherwise, send to the  LLM.
     log.info(
         "   -> Sending bundle to external LLM for analysis. This may take a moment..."
     )
 
-    orchestrator = OrchestratorClient()
-    review_feedback = orchestrator.make_request(
+    # Get the orchestrator client
+    cognitive_service = CognitiveService(settings.REPO_PATH)
+    reviewer = cognitive_service.get_client_for_role(
+        "SecurityAnalyst"
+    )  # Using SecurityAnalyst as reviewer
+
+    review_feedback = reviewer.make_request(
         final_prompt, user_id="constitutional_reviewer"
     )
 

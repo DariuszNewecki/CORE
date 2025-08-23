@@ -1,73 +1,53 @@
 # src/system/guard/discovery/from_manifest.py
 """
 Intent: Provides a focused tool for discovering capabilities from manifest files.
+This version understands the new modular manifest architecture.
 """
 from __future__ import annotations
 
-from collections import deque
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Dict, Optional
 
-try:
-    import yaml
-except ImportError:
-    yaml = None
+import yaml
 
 from system.guard.models import CapabilityMeta
-
-
-def _normalize_cap_list(items: Any) -> Dict[str, CapabilityMeta]:
-    """Normalizes various list/dict shapes into a standard {cap: Meta} dictionary."""
-    out: Dict[str, CapabilityMeta] = {}
-    if isinstance(items, dict):
-        for cap, meta in items.items():
-            if isinstance(meta, dict):
-                out[cap] = CapabilityMeta(
-                    capability=cap, domain=meta.get("domain"), owner=meta.get("owner")
-                )
-    elif isinstance(items, list):
-        for it in items:
-            if isinstance(it, str):
-                out[it] = CapabilityMeta(it)
-            elif isinstance(it, dict):
-                cap = it.get("name") or it.get("capability")
-                if cap:
-                    out[cap] = CapabilityMeta(
-                        capability=cap, domain=it.get("domain"), owner=it.get("owner")
-                    )
-    return out
-
-
-def _find_manifest(start: Path) -> Path:
-    """Locates the authoritative .intent manifest file."""
-    for p in [start / ".intent/project_manifest.yaml", start / ".intent/manifest.yaml"]:
-        if p.exists():
-            return p
-    raise FileNotFoundError("No manifest found in .intent/")
-
-
-def _normalize_manifest_caps(raw: dict) -> Dict[str, CapabilityMeta]:
-    """Normalizes different manifest shapes into a {capability: Meta} map."""
-    q = deque([raw])
-    while q:
-        node = q.popleft()
-        for key in ("capabilities", "required_capabilities"):
-            if isinstance(node, dict) and key in node:
-                return _normalize_cap_list(node[key])
-        if isinstance(node, dict):
-            q.extend(node.values())
-        elif isinstance(node, list):
-            q.extend(node)
-    return {}
 
 
 def load_manifest_capabilities(
     root: Path, explicit_path: Optional[Path] = None
 ) -> Dict[str, CapabilityMeta]:
-    """Loads, parses, and normalizes capabilities from the project's manifest."""
-    if yaml is None:
-        raise RuntimeError("PyYAML is required.")
-    path = explicit_path or _find_manifest(root)
-    with path.open("r", encoding="utf-8") as f:
-        data = yaml.safe_load(f) or {}
-    return _normalize_manifest_caps(data)
+    """
+    Loads, parses, and normalizes capabilities by aggregating all domain-specific manifests.
+    """
+    if explicit_path:
+        # If an explicit path is given, we load just that one for simplicity.
+        # This path is not used in our current tests but is kept for utility.
+        with explicit_path.open("r", encoding="utf-8") as f:
+            data = yaml.safe_load(f) or {}
+            caps = data.get("capabilities", [])
+            return {cap: CapabilityMeta(capability=cap) for cap in caps}
+
+    # This is the primary logic path: discover and aggregate all manifests.
+    source_structure_path = root / ".intent/knowledge/source_structure.yaml"
+    if not source_structure_path.exists():
+        raise FileNotFoundError(
+            "Cannot load manifest capabilities: source_structure.yaml not found."
+        )
+
+    structure = yaml.safe_load(source_structure_path.read_text()) or {}
+    all_capabilities: set[str] = set()
+
+    for domain_entry in structure.get("structure", []):
+        domain_path_str = domain_entry.get("path")
+        if not domain_path_str:
+            continue
+
+        manifest_path = root / domain_path_str / "manifest.yaml"
+        if manifest_path.exists():
+            domain_manifest = yaml.safe_load(manifest_path.read_text()) or {}
+            if "capabilities" in domain_manifest:
+                all_capabilities.update(domain_manifest["capabilities"])
+
+    return {
+        cap: CapabilityMeta(capability=cap) for cap in sorted(list(all_capabilities))
+    }

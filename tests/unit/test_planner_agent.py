@@ -8,12 +8,16 @@ from agents.models import ExecutionTask
 from agents.plan_executor import PlanExecutionError
 from agents.planner_agent import PlannerAgent
 
+# --- FIX: We now mock the base client ---
+from core.clients import BaseLLMClient
+
 
 @pytest.fixture
 def mock_dependencies():
     """Mocks all external dependencies for the PlannerAgent."""
     return {
-        "orchestrator_client": MagicMock(),
+        # --- FIX: The agent expects a BaseLLMClient now ---
+        "orchestrator_client": MagicMock(spec=BaseLLMClient),
         "prompt_pipeline": MagicMock(),
         "context": {"policies": {"agent_behavior_policy": {"planner_agent": {}}}},
     }

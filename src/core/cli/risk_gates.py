@@ -174,6 +174,7 @@ def check(
     # This inner function is a helper and does not require its own docstring
     # as its purpose is clear from the context of this single command.
     def require_if(cond_key: str, flag_name: str) -> None:
+        """Conditionally adds `flag_name` to the required set if the evaluated expression from `cond_key` is truthy."""
         expr = conds.get(cond_key)
         if not expr:
             return
