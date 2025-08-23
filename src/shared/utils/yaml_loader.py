@@ -4,6 +4,7 @@ from typing import Any, Dict
 import yaml
 
 
+# CAPABILITY: yaml_loading
 def load_yaml(file_path: Path) -> Dict[str, Any]:
     """
     Load and parse a YAML file from the given path.
