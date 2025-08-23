@@ -54,27 +54,14 @@ from typing import Any, Dict
 import yaml
 
 
-def _load_yaml(file_path: Path) -> Dict[str, Any]:
-    """Load and parse a YAML file.
+from typing import Any, Dict, Optional
 
-    Args:
-        file_path: Path to the YAML file
+from shared.utils.yaml_loader import load_yaml_file
 
-    Returns:
-        Parsed YAML content as a dictionary
 
-    Raises:
-        FileNotFoundError: If the file doesn't exist
-        yaml.YAMLError: If the YAML is malformed
-    """
-    if not file_path.exists():
-        raise FileNotFoundError(f"YAML file not found: {file_path}")
-
-    with file_path.open("r") as f:
-        try:
-            return yaml.safe_load(f)
-        except yaml.YAMLError as e:
-            raise yaml.YAMLError(f"Error parsing YAML file {file_path}: {e}")
+def _load_yaml(file_path: str) -> Optional[Dict[str, Any]]:
+    """Load YAML content from a file using the shared utility function."""
+    return load_yaml_file(file_path)
 
 def _merge(a: ReviewContext, b: ReviewContext) -> ReviewContext:
     # CLI flags override file context when provided (typer passes defaults if not set).
