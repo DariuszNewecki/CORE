@@ -2,7 +2,7 @@
 """
 Centralized Pydantic-based settings management for CORE.
 
-This module defines a `Settings` class that automatically loads configuration
+This module defines a Settings class that automatically loads configuration
 from environment variables and .env files. It provides a single, typed source
 of truth for all configuration parameters.
 """
@@ -23,34 +23,31 @@ class Settings(BaseSettings):
     BODY: Path = Path("src")
     REPO_PATH: Path = Path(".")
 
-    # --- Orchestrator LLM Configuration ---
-    ORCHESTRATOR_API_URL: Optional[str] = None
-    ORCHESTRATOR_API_KEY: Optional[str] = None
-    ORCHESTRATOR_MODEL_NAME: str = "deepseek-chat"
-
-    # --- Generator LLM Configuration ---
-    GENERATOR_API_URL: Optional[str] = None
-    GENERATOR_API_KEY: Optional[str] = None
-    GENERATOR_MODEL_NAME: str = "deepseek-coder"
-
-    # --- CLI & Governance Configuration ---
-    KEY_STORAGE_DIR: Path = Path.home() / ".config" / "core"
-    CORE_ACTION_LOG_PATH: Path = Path(".intent/change_log.json")
-
-    # We must declare all variables from runtime_requirements.yaml so Pydantic
-    # knows they are allowed.
-    CORE_ENV: str = "production"
+    # --- System & Logging ---
+    CORE_ENV: str = "development"
+    LOG_LEVEL: str = "INFO"
+    CORE_ACTION_LOG_PATH: Path = Path("logs/action_log.jsonl")
+    LLM_ENABLED: bool = True
     CORE_DEV_FASTPATH: bool = False
 
-    # --- THIS IS THE FIX ---
-    LOG_LEVEL: str = "INFO"
+    # --- LLM Resource Registry Configuration ---
+    # These variables are loaded from the .env file and correspond to the
+    # `env_prefix` in the resource_manifest.yaml.
 
-    # These are optional, so we declare them as such.
-    CORE_DEV_KEY_PATH: Optional[str] = None
-    CORE_DEV_APPROVER_EMAIL: Optional[str] = None
+    # -- Resource: deepseek_chat --
+    DEEPSEEK_CHAT_API_URL: Optional[str] = None
+    DEEPSEEK_CHAT_API_KEY: Optional[str] = None
+    DEEPSEEK_CHAT_MODEL_NAME: Optional[str] = None
 
-    # --- Feature Flags ---
-    LLM_ENABLED: bool = True
+    # -- Resource: deepseek_coder --
+    DEEPSEEK_CODER_API_URL: Optional[str] = None
+    DEEPSEEK_CODER_API_KEY: Optional[str] = None
+    DEEPSEEK_CODER_MODEL_NAME: Optional[str] = None
+
+    # -- Example for a new resource --
+    # OPENAI_GPT4_API_URL: Optional[str] = None
+    # OPENAI_GPT4_API_KEY: Optional[str] = None
+    # OPENAI_GPT4_MODEL_NAME: Optional[str] = None
 
     class Config:
         """Defines Pydantic's behavior for the Settings model."""
