@@ -26,9 +26,11 @@ class CognitiveService:
         self.repo_path = repo_path
         self._client_cache: Dict[str, BaseLLMClient] = {}
 
+        # Load the constitution
         self.roles_policy = load_config(repo_path / ".intent/knowledge/cognitive_roles.yaml")
         self.resource_manifest = load_config(repo_path / ".intent/knowledge/resource_manifest.yaml")
 
+        # Pre-process for efficient lookups
         self._roles_map = {role['role']: role for role in self.roles_policy.get('cognitive_roles', [])}
         self._resources_map = {res['name']: res for res in self.resource_manifest.get('llm_resources', [])}
 
