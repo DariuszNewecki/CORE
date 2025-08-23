@@ -12,7 +12,7 @@ from typing import Any, Dict
 import typer
 from rich.progress import track
 
-from core.clients import GeneratorClient
+from core.cognitive_service import CognitiveService
 from core.validation_pipeline import validate_code
 from shared.logger import getLogger
 from shared.path_utils import get_repo_root
@@ -56,16 +56,13 @@ def add_docstring_to_function_line_based(
 
 
 async def generate_and_apply_docstring(
-    target: Dict[str, Any], generator: GeneratorClient, dry_run: bool
+    target: Dict[str, Any], cognitive_service: CognitiveService, dry_run: bool
 ) -> None:
     """Generates, validates, and applies a docstring for a single symbol."""
     func_name = target.get("name")
 
     file_rel_path = target.get("file")
     if not isinstance(file_rel_path, str):
-        log.error(
-            f"Invalid KG entry for '{func_name}': 'file' key is not a string. Entry: {target}"
-        )
         return
 
     file_path = REPO_ROOT / file_rel_path
@@ -73,7 +70,6 @@ async def generate_and_apply_docstring(
 
     try:
         if not file_path.exists():
-            log.error(f"File not found: {file_path}")
             return
 
         source_code = file_path.read_text(encoding="utf-8")
@@ -92,16 +88,10 @@ async def generate_and_apply_docstring(
             None,
         )
 
-        if not node_to_update:
-            log.warning(
-                f"Could not precisely locate symbol `{func_name}` at line {line_num} in {file_path}. Skipping."
-            )
+        if not node_to_update or ast.get_docstring(node_to_update):
             return
 
-        if ast.get_docstring(node_to_update):
-            log.info(f"Symbol `{func_name}` already has a docstring. Skipping.")
-            return
-
+        doc_writer_client = cognitive_service.get_client_for_role("DocstringWriter")
         function_source = ast.unparse(node_to_update)
         prompt = (
             f"You are an expert Python programmer specializing in documentation.\n"
@@ -110,28 +100,18 @@ async def generate_and_apply_docstring(
             f"Symbol:\n```python\n{function_source}\n```"
         )
 
-        generated_docstring = await generator.make_request_async(prompt)
-
+        generated_docstring = await doc_writer_client.make_request_async(
+            prompt, user_id="docstring_adder"
+        )
         if "Error:" in generated_docstring:
-            log.warning(
-                f"LLM failed for `{func_name}` in {file_path}: {generated_docstring}"
-            )
             return
 
         new_source_code = add_docstring_to_function_line_based(
             source_code, line_num, generated_docstring
         )
-
-        # --- VALIDATION STEP ---
         validation_result = validate_code(str(file_path), new_source_code, quiet=True)
         if validation_result["status"] == "dirty":
-            log.error(
-                f"Generated docstring for `{func_name}` in {file_path} resulted in invalid code. Discarding change."
-            )
             return
-
-        final_code = validation_result["code"]
-        # --- END VALIDATION STEP ---
 
         if dry_run:
             typer.secho(
@@ -139,10 +119,9 @@ async def generate_and_apply_docstring(
                 fg=typer.colors.YELLOW,
             )
             typer.secho(f'   """{generated_docstring.strip()}"""', fg=typer.colors.CYAN)
-        else:
-            if final_code != source_code:
-                file_path.write_text(final_code, encoding="utf-8")
-                log.info(f"Added docstring to `{func_name}` in {file_path.name}")
+        elif validation_result["code"] != source_code:
+            file_path.write_text(validation_result["code"], encoding="utf-8")
+            log.info(f"Added docstring to `{func_name}` in {file_path.name}")
 
     except Exception as e:
         log.error(f"Failed to process `{func_name}` in {file_path}: {e}", exc_info=True)
@@ -152,19 +131,12 @@ async def _async_main(dry_run: bool):
     """The core asynchronous logic for finding and fixing docstrings."""
     log.info("🩺 Starting self-documentation cycle...")
 
-    log.info("   -> Refreshing self-image (Knowledge Graph)...")
-    try:
-        builder = KnowledgeGraphBuilder(REPO_ROOT)
-        graph = builder.build()
-        KNOWLEDGE_GRAPH_PATH.write_text(json.dumps(graph, indent=2), encoding="utf-8")
-        log.info("   -> Knowledge Graph refreshed.")
-    except Exception as e:
-        log.error(f"Failed to rebuild knowledge graph, cannot proceed: {e}")
-        return
+    builder = KnowledgeGraphBuilder(REPO_ROOT)
+    graph = builder.build()
+    KNOWLEDGE_GRAPH_PATH.write_text(json.dumps(graph, indent=2), encoding="utf-8")
 
-    kg_data = graph
-    generator = GeneratorClient()
-    symbols = kg_data.get("symbols", {}).values()
+    cognitive_service = CognitiveService(REPO_ROOT)
+    symbols = graph.get("symbols", {}).values()
     targets = [
         s
         for s in symbols
@@ -173,21 +145,15 @@ async def _async_main(dry_run: bool):
     ]
 
     if not targets:
-        log.info(
-            "✅ No symbols with missing docstrings found. Codebase is fully documented."
-        )
+        log.info("✅ No symbols with missing docstrings found.")
         return
-
-    log.info(
-        f"Found {len(targets)} symbols requiring docstrings. Generating concurrently..."
-    )
 
     semaphore = asyncio.Semaphore(CONCURRENCY_LIMIT)
 
     async def worker(target):
-        """Processes a target by generating and applying a docstring while respecting a semaphore limit."""
+        """Asynchronously processes a target by acquiring a semaphore, then generating and applying a docstring using a cognitive service."""
         async with semaphore:
-            await generate_and_apply_docstring(target, generator, dry_run)
+            await generate_and_apply_docstring(target, cognitive_service, dry_run)
 
     tasks = [worker(target) for target in targets]
     for f in track(
@@ -213,14 +179,11 @@ def fix_missing_docstrings(
 
     if not dry_run:
         log.info("🧠 Rebuilding knowledge graph to reflect changes...")
-        try:
-            builder = KnowledgeGraphBuilder(REPO_ROOT)
-            graph = builder.build()
-            out_path = REPO_ROOT / ".intent/knowledge/knowledge_graph.json"
-            out_path.write_text(json.dumps(graph, indent=2), encoding="utf-8")
-            log.info("✅ Knowledge graph successfully updated.")
-        except Exception as e:
-            log.error(f"Failed to rebuild knowledge graph: {e}", exc_info=True)
+        builder = KnowledgeGraphBuilder(REPO_ROOT)
+        graph = builder.build()
+        out_path = REPO_ROOT / ".intent/knowledge/knowledge_graph.json"
+        out_path.write_text(json.dumps(graph, indent=2), encoding="utf-8")
+        log.info("✅ Knowledge graph successfully updated.")
 
 
 if __name__ == "__main__":

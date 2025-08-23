@@ -11,7 +11,9 @@ from typing import List
 from agents.models import ExecutionTask
 from agents.plan_executor import PlanExecutionError, PlanExecutor
 from agents.utils import PlanExecutionContext
-from core.clients import GeneratorClient
+
+# --- FIX: Import the base client, not a specific one ---
+from core.clients import BaseLLMClient
 from core.prompt_pipeline import PromptPipeline
 from shared.logger import getLogger
 
@@ -23,7 +25,8 @@ class ExecutionAgent:
 
     def __init__(
         self,
-        generator_client: GeneratorClient,
+        # --- FIX: Expects the generic base client ---
+        generator_client: BaseLLMClient,
         prompt_pipeline: PromptPipeline,
         plan_executor: PlanExecutor,
     ):
@@ -34,15 +37,14 @@ class ExecutionAgent:
         self.git_service = self.executor.git_service
         self.config = self.executor.config
 
-    # --- THIS IS A NEW METHOD ---
+    # ... (rest of the file is the same)
     async def _generate_code_for_proposal(self, task: ExecutionTask, goal: str) -> str:
         """Generates the full file content for a create_proposal task."""
         log.info(f"✍️  Generating full file content for proposal: '{task.step}'...")
         file_path_str = task.params.file_path
         if not file_path_str:
-            return ""  # Cannot proceed without a target file path
+            return ""
 
-        # Read the original file content to provide context to the LLM
         original_content = ""
         try:
             original_content = Path(file_path_str).read_text(encoding="utf-8")
@@ -73,7 +75,6 @@ class ExecutionAgent:
             file_path=file_path_str,
             original_content=original_content,
         )
-        # We don't need to process this prompt, as it contains the raw code already.
         return self.generator.make_request(
             final_prompt, user_id="execution_agent_proposer"
         )
@@ -119,8 +120,6 @@ class ExecutionAgent:
 
         log.info("--- Starting Code Generation Phase ---")
         for task in plan:
-            # --- THIS IS THE CRITICAL CHANGE ---
-            # If the action is create_proposal, we use our new, specialized generator.
             if task.action == "create_proposal":
                 task.params.code = await self._generate_code_for_proposal(
                     task, high_level_goal

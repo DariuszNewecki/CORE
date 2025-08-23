@@ -1,29 +1,31 @@
 # .intent/knowledge/cognitive_roles.yaml
 #
-# This file maps a cognitive role to a named LLM resource. The specific model and
-# credentials for that resource are defined in the runtime environment (e.g., .env file)
-# using a consistent prefix (e.g., PLANNER_API_URL, PLANNER_API_KEY).
-# This decouples the Mind's intent from the Body's specific implementation.
+# Maps an abstract cognitive role to a named resource from the resource_manifest.
+# It also declares the capabilities required by that role, which allows the
+# ConstitutionalAuditor to verify the assignment is valid.
 
 cognitive_roles:
-  - role: Planner
+  - role: "Planner"
     description: "Decomposes high-level goals into abstract, executable plans."
-    # The system will look for PLANNER_API_URL, PLANNER_API_KEY, etc. in the environment.
-    resource_env_prefix: "PLANNER"
-    capabilities: [ "planning", "decomposition" ]
+    assigned_resource: "deepseek_chat"
+    required_capabilities:
+      - "planning"
+      - "decomposition"
 
-  - role: Coder
+  - role: "Coder"
     description: "Writes clean, efficient code to implement a specific task."
-    resource_env_prefix: "CODER"
-    capabilities: [ "code_generation" ]
+    assigned_resource: "deepseek_coder"
+    required_capabilities:
+      - "code_generation"
 
-  - role: DocstringWriter
+  - role: "DocstringWriter"
     description: "A specialist in writing clear, concise documentation for code symbols."
-    # For now, we can reuse the same resource for multiple roles.
-    resource_env_prefix: "DOCSWRITER"
-    capabilities: [ "documentation" ]
+    assigned_resource: "deepseek_chat"  # <-- THIS KEY WAS LIKELY THE PROBLEM
+    required_capabilities:
+      - "documentation"
 
-  - role: SecurityAnalyst
+  - role: "SecurityAnalyst"
     description: "Reviews code for potential security vulnerabilities according to policy."
-    resource_env_prefix: "SECURITY"
-    capabilities: [ "security_review" ]
+    assigned_resource: "deepseek_chat"  # <-- ENSURE THIS KEY IS CORRECT
+    required_capabilities:
+      - "security_review"

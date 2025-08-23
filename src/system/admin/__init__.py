@@ -15,7 +15,7 @@ from system.admin import guard as _guard
 from system.admin import keys as _keys
 from system.admin import migrator as _migrator
 from system.admin import new as _new
-from system.admin import proposals
+from system.admin import proposals as _proposals  # <-- FIX: Corrected import
 from system.admin import reviewer as _reviewer
 
 app = typer.Typer(
@@ -32,7 +32,7 @@ app = typer.Typer(
 # Register command groups
 _agent.register(app)
 _keys.register(app)
-app.add_typer(proposals.proposals_app, name="proposals")
+app.add_typer(_proposals.proposals_app, name="proposals")  # <-- FIX: Corrected variable
 _guard.register(app)
 _migrator.register(app)
 _fixer.register(app)

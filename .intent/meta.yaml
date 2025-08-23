@@ -40,6 +40,8 @@ knowledge:
   codegraph: "knowledge/knowledge_graph.json"
   capability_tags: "knowledge/capability_tags.yaml"
   agent_roles: "knowledge/agent_roles.yaml"
+  cognitive_roles: "knowledge/cognitive_roles.yaml"
+  resource_manifest: "knowledge/resource_manifest.yaml"
   entry_point_patterns: "knowledge/entry_point_patterns.yaml"
   file_handlers: "knowledge/file_handlers.yaml"
 
@@ -56,6 +58,8 @@ schemas:
   knowledge_graph_entry: "schemas/knowledge_graph_entry.schema.json"
   proposal: "schemas/proposal.schema.json"
   agent_reasoning_policy: "schemas/agent_reasoning_policy.schema.json"
+  cognitive_roles: "schemas/cognitive_roles.schema.json"
+  resource_manifest: "schemas/resource_manifest.schema.json"
   canary_policy: "schemas/canary_policy.schema.json"
   data_privacy_policy: "schemas/data_privacy_policy.schema.json"
   data_retention_policy: "schemas/data_retention_policy.schema.json"

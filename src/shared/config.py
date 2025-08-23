@@ -30,6 +30,12 @@ class Settings(BaseSettings):
     LLM_ENABLED: bool = True
     CORE_DEV_FASTPATH: bool = False
 
+    # --- THIS IS THE FIX ---
+    # Add the missing dev-specific variables so Pydantic recognizes them.
+    CORE_DEV_KEY_PATH: Optional[str] = None
+    CORE_DEV_APPROVER_EMAIL: Optional[str] = None
+    # --- END OF FIX ---
+
     # ======================================================================
     #                LLM RESOURCE REGISTRY CONFIGURATION
     # ======================================================================
