@@ -1,0 +1,20 @@
+# Describes the capabilities of the LLM resources available to the system.
+# The `env_prefix` links this logical resource to a concrete set of
+# environment variables (e.g., DEEPSEEK_CHAT_API_URL).
+
+llm_resources:
+  - name: "deepseek_chat"
+    # These are the skills this model has, as declared by the human operator.
+    provided_capabilities:
+      - "natural_language_understanding"
+      - "planning"
+      - "decomposition"
+      - "documentation"
+      - "security_review"
+    env_prefix: "DEEPSEEK_CHAT"
+
+  - name: "deepseek_coder"
+    provided_capabilities:
+      - "code_generation"
+      - "refactoring"
+    env_prefix: "DEEPSEEK_CODER"
