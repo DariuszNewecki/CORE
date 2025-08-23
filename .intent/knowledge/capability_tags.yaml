@@ -30,6 +30,8 @@ tags:
     description: "Runs a pipeline of quality checks (e.g., formatting, linting)."
   - name: test_execution
     description: "Executes automated tests (e.g., pytest) and reports results."
+  - name: yaml_loading
+    description: "Provides a safe, standardized way to load and parse YAML files."
 
   # --- LLM & Agent Orchestration ---
   - name: llm_orchestration
@@ -92,3 +94,5 @@ tags:
     description: "Packages the full .intent/ directory into a single bundle for external analysis."
   - name: constitutional_peer_review
     description: "Orchestrates sending the constitutional bundle to an external LLM for critique and suggestions."
+  - name: autonomous_development
+    description: "Orchestrates the full goal -> plan -> execute cycle from a single user command."
