@@ -24,8 +24,24 @@ from typing import Any, Dict
 from shared.utils.yaml_loader import load_yaml_file
 
 
+from typing import Any, Dict
+
+from shared.utils.yaml_loader import load_yaml_file
+
+
 def _load_yaml(file_path: str) -> Dict[str, Any]:
-    """Load and parse YAML file from given path."""
+    """Load YAML content from a file.
+
+    Args:
+        file_path: Path to the YAML file
+
+    Returns:
+        Parsed YAML content as dictionary
+
+    Raises:
+        FileNotFoundError: If the file doesn't exist
+        yaml.YAMLError: If the YAML is invalid
+    """
     return load_yaml_file(file_path)
 
 def _load_json(path: Path) -> dict:
