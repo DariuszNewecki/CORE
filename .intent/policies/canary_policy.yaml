@@ -1,0 +1,40 @@
+# .intent/policies/canary_policy.yaml
+title: Canary Pre-Flight Policy
+status: active
+
+triggers:
+  - name: risk_tier_medium_or_high
+    condition: "risk_tier in ['medium','high']"
+  - name: touches_critical_paths
+    condition: "touches_critical_paths == true"
+
+requirements:
+  - id: canary-1
+    rule: Run in an isolated canary environment with production-like data (no PII).
+    enforcement: hard
+    evidence: ["canary_run_id"]
+
+  - id: canary-2
+    rule: Achieve test_pass_rate >= 0.95 on impacted suites.
+    enforcement: hard
+    evidence: ["test_report"]
+
+  - id: canary-3
+    rule: Governance audit score >= 0.80 and zero FAIL items.
+    enforcement: hard
+    evidence: ["audit_scorecard"]
+
+  - id: canary-4
+    rule: Provide a rollback plan and verify it in canary.
+    enforcement: hard
+    evidence: ["rollback_procedure"]
+
+failure_actions:
+  - block_merge
+  - notify: ["owners.accountable","owners.responsible"]
+
+owners:
+  accountable: Release Manager
+  responsible:
+    - Platform SRE
+    - ITAM Process Owner

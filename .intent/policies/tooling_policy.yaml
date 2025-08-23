@@ -1,0 +1,20 @@
+# .intent/policies/tooling_policy.yaml
+#
+# Defines the configuration for external development tools like linters,
+# formatters, and the CI/CD pipeline. This allows the Makefile and CI scripts
+# to be driven by the constitution.
+
+# Paths to be targeted by linting and formatting tools.
+lintable_paths:
+  - src
+  - tests
+
+# Path where pytest should look for tests.
+test_path: tests
+
+# Commands that can be queried by the Makefile or CI scripts.
+# This ensures that CI behavior is constitutionally defined.
+ci_commands:
+  lint: "poetry run ruff check ."
+  format_check: "poetry run black --check ."
+  test: "poetry run pytest"

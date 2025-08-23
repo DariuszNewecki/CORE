@@ -9,6 +9,7 @@ from pathlib import Path
 
 import typer
 import yaml
+
 from shared.config_loader import load_config
 from shared.logger import getLogger
 from shared.path_utils import get_repo_root
@@ -56,8 +57,10 @@ class Scaffolder:
         # Create all necessary directories upfront
         self.project_root.mkdir(parents=True, exist_ok=True)
         (self.project_root / "src").mkdir()
-        (self.project_root / "tests").mkdir() # Create tests directory
-        (self.project_root / ".github" / "workflows").mkdir(parents=True, exist_ok=True) # Create CI directory
+        (self.project_root / "tests").mkdir()  # Create tests directory
+        (self.project_root / ".github" / "workflows").mkdir(
+            parents=True, exist_ok=True
+        )  # Create CI directory
         (self.project_root / "reports").mkdir()
         # --- END OF MODIFIED SECTION ---
 

@@ -54,3 +54,38 @@ required_environment_variables:
     description: "Path to .intent/change_log.json used by safety policies."
     type: "config"
     required: true
+
+  - name: "CORE_ENV"
+    description: "Runtime mode for CORE. Only 'development' or 'production' are valid."
+    type: "config"
+    required: true
+
+  - name: "CORE_DEV_FASTPATH"
+    description: "If 'true', relaxes procedural steps in dev (never validation). Intended for local development only."
+    type: "config"
+    required: false
+  
+  - name: "LOG_LEVEL"
+    description: "Logging level: one of DEBUG, INFO, WARNING, ERROR."
+    type: "config"
+    required: true
+
+  - name: "AUDITOR_MODEL"
+    description: "Model name/backend used by the governance auditor."
+    type: "config"
+    required: false
+
+  - name: "ALLOW_NETWORK"
+    description: "Permit outbound network for agents (true/false). Default false."
+    type: "config"
+    required: false
+
+  - name: "ALLOW_FS_WRITE"
+    description: "Permit filesystem writes for agents (true/false). Default false."
+    type: "config"
+    required: false
+
+  - name: "RISK_BUDGET"
+    description: "Max cumulative risk points per release window (integer)."
+    type: "config"
+    required: false

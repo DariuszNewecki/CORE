@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import List, Set
 
 from core.validation_pipeline import validate_code
+from shared.utils.constitutional_parser import get_all_constitutional_paths
 from system.governance.models import AuditFinding, AuditSeverity
 
 
@@ -118,7 +119,13 @@ class FileChecks:
         if not known_files:
             return findings
 
-        ignore_patterns = {".bak", "proposals", ".example", ".lock"}
+        ignore_patterns = {
+            ".bak",
+            "proposals",
+            ".example",
+            ".lock",
+            "knowledge_graph.json",
+        }
         physical_files = {
             str(p.relative_to(self.repo_root)).replace("\\", "/")
             for p in self.intent_dir.rglob("*")
@@ -147,40 +154,8 @@ class FileChecks:
         return findings
 
     def _get_known_files_from_meta(self) -> Set[str]:
-        """Build a set of known intent files from .intent/meta.yaml."""
-        meta_file_path = self.intent_dir / "meta.yaml"
-        if not meta_file_path.exists():
-            return set()
-
-        try:
-            meta_config = self.context.load_config(meta_file_path, "yaml")
-        except Exception:
-            return set()
-
-        known_files: Set[str] = set()
-
-        def _recursive_find_paths(data):
-            """Recursively find all file paths in meta configuration."""
-            if isinstance(data, dict):
-                for value in data.values():
-                    _recursive_find_paths(value)
-            elif isinstance(data, list):
-                for item in data:
-                    _recursive_find_paths(item)
-            elif isinstance(data, str) and "." in data and "/" in data:
-                full_path_str = str(Path(".intent") / data).replace("\\", "/")
-                known_files.add(full_path_str)
-
-        _recursive_find_paths(meta_config)
-
-        known_files.add(".intent/meta.yaml")
-        known_files.add(".intent/project_manifest.yaml")
-
-        schema_dir = self.intent_dir / "schemas"
-        if schema_dir.exists():
-            for schema_file in schema_dir.glob("*.json"):
-                known_files.add(
-                    str(schema_file.relative_to(self.repo_root)).replace("\\", "/")
-                )
-
-        return known_files
+        """Build a set of known intent files by delegating to the shared constitutional parser."""
+        known = get_all_constitutional_paths(self.intent_dir)
+        # Add files that are constitutionally significant but not listed in meta.yaml
+        known.add(".intent/project_manifest.yaml")
+        return known

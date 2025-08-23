@@ -1,0 +1,61 @@
+name: Intent Policy Validation
+
+on:
+  push:
+    paths: [".intent/**"]
+  pull_request:
+    paths: [".intent/**"]
+
+jobs:
+  validate-intent-policies:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install validators
+        run: pip install pyyaml jsonschema
+
+      - name: Validate policy YAMLs against JSON Schemas
+        run: |
+          python - <<'PY'
+          import sys, json, pathlib, yaml
+          from jsonschema import validate, ValidationError
+
+          repo = pathlib.Path(".")
+          checks = [
+            (repo/".intent/policies/data_privacy.yaml",  repo/".intent/schemas/data_privacy_policy.schema.json"),
+            (repo/".intent/policies/data_retention.yaml", repo/".intent/schemas/data_retention_policy.schema.json"),
+            (repo/".intent/policies/canary_policy.yaml",  repo/".intent/schemas/canary_policy.schema.json"),
+          ]
+
+          errors = []
+          for yml_path, schema_path in checks:
+            if not yml_path.exists():
+              errors.append(f"Missing file: {yml_path}")
+              continue
+            if not schema_path.exists():
+              errors.append(f"Missing schema: {schema_path}")
+              continue
+
+            with open(yml_path, "r", encoding="utf-8") as f:
+              data = yaml.safe_load(f) or {}
+            with open(schema_path, "r", encoding="utf-8") as f:
+              schema = json.load(f)
+
+            try:
+              validate(instance=data, schema=schema)
+              print(f"[OK] {yml_path} ✓")
+            except ValidationError as e:
+              path = ".".join([str(p) for p in e.path]) or "(root)"
+              errors.append(f"[FAIL] {yml_path}: {e.message} at {path}")
+
+          if errors:
+            print("\n".join(errors), file=sys.stderr)
+            sys.exit(1)
+          PY

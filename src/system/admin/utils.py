@@ -10,6 +10,8 @@ import json
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict
+# --- ADD THIS IMPORT ---
+import hashlib
 
 import yaml
 from cryptography.hazmat.primitives import hashes, serialization
@@ -44,20 +46,25 @@ def save_yaml_file(path: Path, data: Dict[str, Any]) -> None:
     path.write_text(yaml.safe_dump(data, sort_keys=False), encoding="utf-8")
 
 
+# --- THIS IS THE CORRECTED FUNCTION ---
 def generate_approval_token(proposal: Dict[str, Any]) -> str:
     """
-    Intent: Produce a deterministic token for approvals bound to the *full proposal intent*,
-    not just raw content. This prevents replay against a different target.
+    Intent: Produce a deterministic token for approvals bound to the proposal's
+    intent and content, robust to YAML formatting changes.
     """
+    content_str = proposal.get("content", "")
+    content_hash = hashlib.sha256(content_str.encode("utf-8")).hexdigest()
+
     payload = {
-        "version": "v2",
+        "version": "v3", # Bump version to indicate new hashing scheme
         "target_path": proposal.get("target_path"),
         "action": proposal.get("action"),
-        "content": proposal.get("content", ""),
+        "content_sha256": content_hash,
     }
+    
     digest = hashes.Hash(hashes.SHA256())
     digest.update(json.dumps(payload, sort_keys=True).encode("utf-8"))
-    return f"core-proposal-v2:{digest.finalize().hex()}"
+    return f"core-proposal-v3:{digest.finalize().hex()}"
 
 
 def load_private_key() -> ed25519.Ed25519PrivateKey:
