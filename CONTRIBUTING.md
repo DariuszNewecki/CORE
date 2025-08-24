@@ -6,11 +6,11 @@ This document provides a guide for how you can get involved.
 
 ## The Philosophy: Principled Contributions
 
-CORE is a system governed by a constitution. We ask that all contributions align with the principles laid out in our foundational documents. Before diving into code, we highly recommend reading the core docs in order:
+CORE is a system governed by a constitution. We ask that all contributions align with the principles laid out in our foundational documents. Before diving into code, we highly recommend reading:
 
-1.  **[What is CORE? (`docs/00_WHAT_IS_CORE.md`)](docs/00_WHAT_IS_CORE.md)** — The high-level purpose and value proposition.
-2.  **[The CORE Philosophy (`docs/01_PHILOSOPHY.md`)](docs/01_PHILOSOPHY.md)** — The principles and architecture.
-3.  **[The Governance Model (`docs/03_GOVERNANCE.md`)](docs/03_GOVERNANCE.md)** — The process for safe, constitutional change.
+1.  **The main [README.md](../README.md)** — For the high-level vision and the 5-minute tutorial.
+2.  **[The CORE Philosophy (`docs/01_PHILOSOPHY.md`)](docs/01_PHILOSOPHY.md)** — For a deeper dive into the principles and architecture.
+3.  **[The Governance Model (`docs/03_GOVERNANCE.md`)](docs/03_GOVERNANCE.md)** — For the formal process for safe, constitutional change.
 
 The most important principle for contributors is `clarity_first`. Every change should make the system easier to understand, not harder.
 
