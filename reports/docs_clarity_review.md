@@ -113,129 +113,71 @@ We are excited to build this new future for software development with you.
 --- END OF FILE ./CONTRIBUTING.md ---
 
 --- START OF FILE ./README.md ---
-# CORE — The Self-Improving System Architect
+# CORE — The Self-Governing System Architect
 
 > **Where Intelligence Lives.**
 
-[![Latest release](https://img.shields.io/github/v/release/DariuszNewecki/CORE?sort=semver)](https://github.com/DariuszNewecki/CORE/releases)
-![Status: MVP Achieved](https://img.shields.io/badge/status-MVP%20achieved-brightgreen.svg)
+![Status: Architectural Prototype](https://img.shields.io/badge/status-architectural%20prototype-blue.svg)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
----
-
-## 🟢 Project Status: **MVP v0.2.0** (released 2025-08-15)
-
-CORE has reached its first major milestone: it can **autonomously scaffold a new, governed software application from a high-level goal** and continuously verify its architectural integrity against a formal constitution.
-
-* **Stable Release:** The `v0.2.0` release is available on the `release/v0.2.0` branch. This is the recommended starting point for new users.
-* **Active Development:** The `main` branch is now focused on a major architectural evolution to the **Mind/Body/Will** model.
+**CORE is an AI-driven framework that builds and evolves software in constant alignment with a machine-readable constitution.**
+It helps you turn high-level goals into safe, traceable, and architecturally sound applications.
 
 ---
 
-## 🎥 90-second Demo
+## The 5-Minute "Aha!" Moment
 
-[![Watch the 90-second demo](docs/assets/core-90s-demo.gif)](docs/assets/core-90s-demo.gif)
+The best way to understand CORE is to see its "immune system" in action.
 
-> The GIF shows: `core-admin new` → `guard drift` on a fresh repo.
+**[➡️ Start here: Your First Governed Application (A 5-min Tutorial)](docs/09_WORKED_EXAMPLE.md)**
 
----
+This tutorial will guide you through:
 
-## What is CORE?
-
-CORE is a **self-governing, constitution-aligned AI development framework**.
-It plans, writes, validates, and evolves software systems — **autonomously, with traceability and guardrails.**
-
-### The Architectural Trinity: Mind, Body, and Will
-
-CORE is built on a foundational trinity that separates purpose, action, and reasoning:
-
-* 🏛️ **The Mind (`.intent/`):** The declarative constitution. It holds the principles, policies, and knowledge of what the system *is* and *should be*. It is the source of truth.
-* 🦾 **The Body (`src/`):** The executable machinery. A set of simple, reliable tools (file writers, test runners, linters) that act upon the world.
-* 🧠 **The Will (LLMs):** The reasoning layer. An orchestrated set of specialized AI agents that interpret the Mind's intent and wield the Body's tools to achieve goals.
-
-```mermaid
-graph TD
-    subgraph Mind["Mind: The Constitution (.intent/)"]
-        A[Principles & Policies]
-    end
-    subgraph Will["Will: The Reasoning (LLMs)"]
-        B[Cognitive Roles]
-    end
-    subgraph Body["Body: The Machinery (src/)"]
-        C[Tools & Capabilities]
-    end
-
-    A -- "Provides Intent To" --> B
-    B -- "Uses Tools From" --> C
-    C -- "Acts & Gathers Feedback For" --> B
-```
+1. Generating a new, governed application with a single command.
+2. Intentionally violating its architectural rules.
+3. Watching CORE's `ConstitutionalAuditor` instantly detect and report the violation.
 
 ---
 
-## 🚀 Quickstart (90 seconds)
+## What is This For? (The Vision)
+
+CORE is for developers and teams who need to enforce architectural integrity and maintain long-term alignment with a project's goals, especially in complex or AI-driven systems. It solves the problem of **architectural drift**, where the code no longer matches the design.
+
+* To understand the philosophy, read **[What is CORE?](docs/00_WHAT_IS_CORE.md)**.
+* To see how it's different from other tools, read **[Context and Comparisons](docs/08_CONTEXT_AND_COMPARISONS.md)**.
+
+---
+
+## Installation & Setup
 
 > Requires **Python 3.11+** and **Poetry**.
 
 ```bash
-# 1) Clone the repository and check out the stable release
+# 1. Clone & Install
 git clone https://github.com/DariuszNewecki/CORE.git
 cd CORE
-git checkout release/v0.2.0
-
-# 2) Install dependencies
 poetry install
 
-# 3) Run all checks (format, lint, tests, self-audit)
-make check
+# 2. Set Up Environment
+cp .env.example .env
+# Edit .env with your LLM API keys.
 
-# 4) Generate a governed starter application
-poetry run core-admin new my_governed_app
+# 3. Verify the System is Healthy
+make check
 ```
 
 ---
 
-## ✨ Key Capabilities (v0.2.0 MVP)
+## Contributing
 
-* Autonomous scaffolding from high-level intent (`core-admin new`).
-* Constitutional self-audit against rules in `.intent/`.
-* Capability drift detection (maps `# CAPABILITY:` tags in code to manifests).
-* CI/CD pipeline for formatting, linting, testing, and nightly governance checks.
+We welcome focused, high-quality contributions.
+Please read **CONTRIBUTING.md** to get started.
 
 ---
 
-## 🛣️ Roadmap
+## License
 
-The historical roadmap leading to **v0.2.0** is now complete.
-Our future work is focused on a single epic: evolving CORE into a true reasoning system.
-
-* **v1.0 — The Reasoning System:** Refactor the system to use a policy-driven, role-based cognitive layer (the "Will"), making its intelligence governable by the constitution.
-
-➡️ Track progress in the [v1.0 Milestone](https://github.com/DariuszNewecki/CORE/milestone/1) and the full [Project Roadmap](docs/04_ROADMAP.md).
-
----
-
-## 🤝 Contributing
-
-We welcome focused, high-quality contributions to our next evolution on the `main` branch.
-
-* Read [CONTRIBUTING.md](CONTRIBUTING.md).
-* Review our [Roadmap](docs/04_ROADMAP.md).
-* Use **Conventional Commits** (`feat:`, `fix:`, `chore:`, …).
-
----
-
-## 🔒 Security
-
-Please report vulnerabilities **privately**.
-See [SECURITY.md](SECURITY.md) for the disclosure process.
-
----
-
-## 📄 License
-
-MIT — see [LICENSE](LICENSE).
-
----
+MIT — see **LICENSE**.
 
 --- END OF FILE ./README.md ---
 
@@ -888,6 +830,115 @@ CORE is often compared to other AI-assisted development tools. Here’s how it�
 
 CORE is designed for environments where **long-term maintainability, safety, and architectural integrity** are more important than the raw speed of code generation.
 --- END OF FILE ./docs/08_CONTEXT_AND_COMPARISONS.md ---
+
+--- START OF FILE ./docs/09_WORKED_EXAMPLE.md ---
+# 9. Worked Example: Your First Governed Application
+
+The best way to understand CORE is to see it in action.
+This guide walks you through creating a new, governed application and then demonstrates how CORE's "immune system" protects it.
+
+> ⏱️ Estimated time: \~5 minutes
+
+---
+
+## Step 1: Create a New Application
+
+From the root of the CORE repository, run the `new` command.
+We'll create a simple **Quote of the Day API**.
+
+```bash
+poetry run core-admin new quote-api --profile default
+```
+
+This command scaffolds a complete, governed project inside the `work/` directory.
+
+**What just happened?**
+CORE created a new application with its own **Mind**—a pre-packaged `.intent/` directory that defines its architectural rules.
+
+---
+
+## Step 2: See the Generated "Mind"
+
+Inspect the new project. You will see a file structure like this:
+
+```
+work/quote-api/
+├── .intent/
+│   ├── principles.yaml
+│   ├── project_manifest.yaml
+│   ├── safety_policies.yaml
+│   └── source_structure.yaml
+├── src/
+│   └── ...
+├── tests/
+└── pyproject.toml
+```
+
+Inside `work/quote-api/.intent/source_structure.yaml`, you'll find the **architectural law** for this new app.
+For example, it specifies that the `main` domain can only import from `shared`.
+
+---
+
+## Step 3: Intentionally Violate the Constitution
+
+Now we’ll act as a developer making a common mistake.
+We’ll add a feature to the `main` domain that incorrectly performs a direct file system operation—a task that belongs in a separate `services` domain.
+
+Open the file:
+
+```
+work/quote-api/src/main/api.py
+```
+
+Add the following forbidden import and function at the top:
+
+```python
+import os  # ❌ Illegal import for the 'main' domain!
+
+def log_quote_to_disk(quote: str):
+    # Direct file I/O should be handled in a separate service.
+    with open("/tmp/quotes.log", "a") as f:
+        f.write(quote + "\n")
+```
+
+You’ve just introduced **architectural drift**.
+In a normal project, this mistake might go unnoticed for months.
+
+---
+
+## Step 4: Run the Constitutional Audit
+
+Now ask CORE to audit the new `quote-api` project.
+The `byor-init` command can also run a **read-only audit** on any existing CORE-aware repository.
+
+```bash
+# From the root of the CORE repository
+poetry run core-admin byor-init work/quote-api/
+```
+
+### Expected Output
+
+You’ll see a constitutional failure.
+The **ConstitutionalAuditor** has detected the illegal import because it violates the rules in `source_structure.yaml`.
+
+```
+[ERROR] 🚨 Domain Integrity Violation 🚨
+File:    src/main/api.py
+Domain:  'main'
+Problem: Attempted to import 'os', which is not in the list of allowed imports for this domain.
+```
+
+---
+
+## The Value Proposition
+
+This is the **core** value proposition of CORE:
+
+* Provides **automated, continuous architectural governance**.
+* Catches errors that simple linters and formatters miss.
+* Ensures the system evolves **in alignment with its declared intent**.
+
+--- END OF FILE ./docs/09_WORKED_EXAMPLE.md ---
 
 --- START OF FILE ./docs/NORTH_STAR.md ---
 # CORE North Star
