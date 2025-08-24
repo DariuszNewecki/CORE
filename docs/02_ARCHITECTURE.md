@@ -36,4 +36,13 @@ The `src/` directory is organized into strict architectural **domains**. These d
 
 ## The Flow of Knowledge: From Code to Graph
 
-The syst
+The system's self-awareness is not magic; it is a deliberate, mechanical process. The `KnowledgeGraphBuilder` tool is responsible for reading the entire `src/` directory and producing the `knowledge_graph.json` artifact.
+
+This process involves:
+1.  **AST Parsing:** The builder reads every Python file and parses it into an Abstract Syntax Tree.
+2.  **Symbol Extraction:** It walks the tree to identify every class, function, and method.
+3.  **Metadata Analysis:** For each symbol, it extracts its name, parameters, docstring (intent), and relationships (function calls).
+4.  **Capability Tagging:** It inspects the comments above each symbol for `# CAPABILITY:` tags to understand its high-level purpose.
+5.  **Structural Hashing:** It generates a unique "fingerprint" of each symbol's logic, allowing for perfect duplicate code detection.
+
+The resulting `knowledge_graph.json` is the Mind's complete and accurate "map" of the Body, which the `ConstitutionalAuditor` then uses to enforce all architectural rules.
