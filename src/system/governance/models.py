@@ -7,7 +7,6 @@ from enum import Enum
 from typing import Optional
 
 
-# CAPABILITY: governance.model.audit_severity
 class AuditSeverity(Enum):
     """Severity levels for audit findings."""
 
@@ -16,7 +15,6 @@ class AuditSeverity(Enum):
     SUCCESS = "success"
 
 
-# CAPABILITY: governance.model.audit_finding
 @dataclass
 class AuditFinding:
     """Represents a single audit finding."""

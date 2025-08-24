@@ -43,6 +43,25 @@ tags:
   - name: self_correction
     description: "Attempts to automatically fix errors based on validation or test feedback."
 
+  # --- NEW: V1.0 Architecture & Governance Capabilities ---
+  - name: cognitive_service.management
+    description: "Manages the lifecycle and provision of role-based LLM clients."
+  - name: config.load
+    description: "Loads a JSON or YAML file with consistent error handling and logging."
+  - name: governance.cli.should_fail
+    description: "Determines if the CLI should exit with an error based on a drift report."
+  - name: governance.cli.load_yaml
+    description: "Loads a YAML file specifically for a governance CLI operation."
+  - name: governance.cli.save_yaml
+    description: "Saves a YAML file with stable ordering for governance operations."
+  - name: governance.cli.generate_token
+    description: "Generates a deterministic, content-bound approval token for a proposal."
+  - name: governance.cli.load_key
+    description: "Loads an operator's private key from the secure key store."
+  - name: governance.cli.archive_plan
+    description: "Archives a rollback plan for an approved proposal."
+  # NOTE: Data models are not executable capabilities. We do not define them here.
+
   # --- Constitutional Auditor Checks (discoverable micro-capabilities) ---
   - name: audit.check.required_files
     description: "Auditor check: Verifies the existence of critical .intent files."
@@ -79,7 +98,7 @@ tags:
   - name: audit.check.codebase_health
     description: "Auditor check: Measures code complexity and atomicity against defined policies."
   - name: audit.check.secrets
-    description: "Auditor check: Scans for hardcoded secrets like API keys or passwords."    
+    description: "Auditor check: Scans for hardcoded secrets like API keys or passwords."
   - name: scaffold_project
     description: "Generates a complete, multi-file project structure from a high-level goal, including a starter constitution."
 

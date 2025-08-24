@@ -25,10 +25,6 @@ capabilities:
   - governance.cli.load_yaml
   - governance.cli.save_yaml
   - governance.cli.should_fail
-  - governance.model.audit_finding
-  - governance.model.audit_severity
-  - governance.model.capability_meta
-  - governance.model.drift_report
   - scaffold_project
 description: Governance tooling, constitutional auditor, and the admin CLI.
 domain: system

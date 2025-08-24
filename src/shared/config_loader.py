@@ -1,5 +1,4 @@
 # src/shared/config_loader.py
-
 import json
 from pathlib import Path
 from typing import Any, Dict
@@ -11,8 +10,8 @@ from shared.logger import getLogger
 log = getLogger(__name__)
 
 
+# CAPABILITY: config.load
 def load_config(file_path: Path, file_type: str = "auto") -> Dict[str, Any]:
-    """Loads a JSON or YAML file into a dictionary, handling missing files, invalid formats, and parsing errors by returning an empty dict."""
     """
     Loads a JSON or YAML file into a dictionary with consistent error handling.
 
@@ -33,24 +32,38 @@ def load_config(file_path: Path, file_type: str = "auto") -> Dict[str, Any]:
     # Determine file type if 'auto'
     if file_type == "auto":
         suffix = file_path.suffix.lower()
-        file_type = (
-            "json"
-            if suffix == ".json"
-            else "yaml" if suffix in (".yaml", ".yml") else None
-        )
+        if suffix == ".json":
+            file_type = "json"
+        elif suffix in (".yaml", ".yml"):
+            file_type = "yaml"
+        else:
+            log.error(
+                f"Cannot determine file type from extension '{suffix}' for {file_path}"
+            )
+            return {}
 
     if file_type not in ("json", "yaml"):
-        log.error(f"Unsupported file type for {file_path}, cannot load.")
+        log.error(f"Unsupported file type '{file_type}' for {file_path}")
         return {}
 
     try:
         with file_path.open(encoding="utf-8") as f:
             if file_type == "json":
                 data = json.load(f)
-                return data if isinstance(data, dict) else {}
             else:  # yaml
                 data = yaml.safe_load(f)
-                return data if isinstance(data, dict) else {}
+
+            if not isinstance(data, dict):
+                log.warning(
+                    f"File {file_path} does not contain a dictionary, returning empty dict."
+                )
+                return {}
+
+            return data
+
     except (json.JSONDecodeError, yaml.YAMLError) as e:
-        log.error(f"Error parsing {file_path}: {e}", exc_info=True)
+        log.error(f"Error parsing {file_path}: {e}")
+        return {}
+    except (OSError, IOError) as e:
+        log.error(f"Error reading file {file_path}: {e}")
         return {}
