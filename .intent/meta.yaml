@@ -31,6 +31,7 @@ policies:
 
 prompts:
   constitutional_review: "prompts/constitutional_review.prompt"
+  docs_clarity_review: "prompts/docs_clarity_review.prompt"
 
 project:
   manifest_yaml: "project_manifest.yaml"
