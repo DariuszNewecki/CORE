@@ -7,6 +7,7 @@ human-readable documentation.
 """
 
 from pathlib import Path
+from typing import List, Set
 
 import typer
 import yaml
@@ -17,31 +18,39 @@ from shared.logger import getLogger
 
 log = getLogger("core_admin.review")
 
-# A set of files/patterns within .intent/ to ignore during the constitutional export.
+# --- Configuration for what to ignore during bundling ---
 INTENT_IGNORE_PATTERNS = {"proposals", "knowledge_graph.json", ".bak", ".example"}
-
-# A set of directories to ignore when bundling human-readable documentation.
 DOCS_IGNORE_DIRS = {"assets", "archive", "migrations", "examples"}
 
 
-def _is_intent_ignored(path_str: str) -> bool:
-    """Checks if a given .intent file path should be ignored."""
-    return any(pattern in path_str for pattern in INTENT_IGNORE_PATTERNS)
+def _get_bundle_content(files_to_bundle: List[Path], root_dir: Path) -> str:
+    """Generic function to bundle the content of a list of files."""
+    bundle_parts = []
+    for file_path in sorted(list(files_to_bundle)):
+        if file_path.exists() and file_path.is_file():
+            try:
+                content = file_path.read_text(encoding="utf-8")
+                # --- THIS IS THE FIX ---
+                # Ensure we are always working with absolute paths before calculating relativity.
+                rel_path = file_path.resolve().relative_to(root_dir.resolve())
+                bundle_parts.append(f"--- START OF FILE ./{rel_path} ---\n")
+                bundle_parts.append(content)
+                bundle_parts.append(f"\n--- END OF FILE ./{rel_path} ---\n\n")
+            except ValueError:
+                log.warning(
+                    f"Could not determine relative path for {file_path}. Skipping."
+                )
+    return "".join(bundle_parts)
 
 
-def _get_constitutional_bundle_content() -> str:
-    """Gathers and bundles the content of all machine-readable constitutional files."""
+def _get_constitutional_files() -> List[Path]:
+    """Discovers and returns a list of all machine-readable constitutional files."""
     intent_dir = settings.MIND
     meta_path = intent_dir / "meta.yaml"
     if not meta_path.exists():
-        log.error(
-            f"❌ Critical file not found: {meta_path}. Cannot export constitution."
-        )
-        raise typer.Exit(code=1)
+        return []
 
     meta_content = yaml.safe_load(meta_path.read_text())
-
-    bundle_parts = []
 
     def find_paths_in_meta(data):
         paths = []
@@ -58,164 +67,119 @@ def _get_constitutional_bundle_content() -> str:
     discovered_paths = find_paths_in_meta(meta_content)
     discovered_paths.append("meta.yaml")
 
-    log.info(
-        f"   -> Found {len(list(set(discovered_paths)))} constitutional files declared in meta.yaml."
-    )
-
-    for rel_path_str in sorted(list(set(discovered_paths))):
-        if _is_intent_ignored(rel_path_str):
-            continue
-
-        file_path = intent_dir / rel_path_str
-        if file_path.exists() and file_path.is_file():
-            content = file_path.read_text(encoding="utf-8")
-            bundle_parts.append(f"--- START OF FILE .intent/{rel_path_str} ---\n")
-            bundle_parts.append(content)
-            bundle_parts.append(f"\n--- END OF FILE .intent/{rel_path_str} ---\n\n")
-
-    return "".join(bundle_parts)
+    return [
+        intent_dir / p
+        for p in set(discovered_paths)
+        if not any(ign in p for ign in INTENT_IGNORE_PATTERNS)
+    ]
 
 
-def export_constitution(
-    output: Path = typer.Option(
-        Path("reports/constitution_bundle.txt"),
-        "--output",
-        "-o",
-        help="The path to save the exported constitutional bundle.",
-    ),
+def _get_docs_files() -> List[Path]:
+    """Discovers and returns a list of all human-readable documentation files."""
+    # --- THIS IS THE FIX ---
+    # The scan paths are now more specific. We only look for a few key files in the root,
+    # and then recursively search ONLY the /docs directory. This prevents scanning .venv, .intent, etc.
+    root_dir = settings.REPO_PATH
+    scan_files = [
+        root_dir / "README.md",
+        root_dir / "CONTRIBUTING.md",
+        root_dir / "SECURITY.md",
+    ]
+    docs_dir = root_dir / "docs"
+
+    found_files: Set[Path] = {f for f in scan_files if f.exists()}
+
+    if docs_dir.is_dir():
+        for md_file in docs_dir.rglob("*.md"):
+            if not any(ignored in md_file.parts for ignored in DOCS_IGNORE_DIRS):
+                found_files.add(md_file)
+
+    return list(found_files)
+
+
+def _orchestrate_review(
+    bundle_name: str,
+    prompt_filename: str,
+    file_gatherer_fn,
+    output_path: Path,
+    no_send: bool,
 ):
-    """
-    Packages the full .intent/ directory into a single bundle for external analysis.
-    """
-    log.info("🏛️  Exporting constitutional bundle...")
-    final_bundle = _get_constitutional_bundle_content()
-    output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(final_bundle, encoding="utf-8")
-    log.info(f"✅ Successfully exported constitutional bundle to: {output}")
+    """Generic orchestrator for all review commands."""
+    log.info(f"🤖 Orchestrating review for: {bundle_name}...")
 
-
-def peer_review(
-    output: Path = typer.Option(
-        Path("reports/constitutional_review.md"),
-        "--output",
-        "-o",
-        help="The path to save the LLM's review or the bundled prompt.",
-    ),
-    no_send: bool = typer.Option(
-        False,
-        "--no-send",
-        help="Prepare the full prompt bundle and save it without sending to the LLM.",
-    ),
-):
-    """
-    Orchestrates sending the constitutional bundle to an external LLM for critique.
-    """
-    if no_send:
-        log.info(
-            "🤖 Preparing constitutional bundle for manual review (no-send mode)..."
-        )
-    else:
-        log.info("🤖 Orchestrating Constitutional Peer Review...")
-
-    prompt_path = settings.MIND / "prompts" / "constitutional_review.prompt"
+    prompt_path = settings.MIND / "prompts" / prompt_filename
     if not prompt_path.exists():
         log.error(f"❌ Review prompt not found at {prompt_path}. Cannot proceed.")
         raise typer.Exit(code=1)
     review_prompt_template = prompt_path.read_text(encoding="utf-8")
-    log.info("   -> Loaded review prompt from the constitution.")
+    log.info(f"   -> Loaded review prompt: {prompt_filename}")
 
-    log.info("   -> Bundling the constitution for review...")
-    bundle = _get_constitutional_bundle_content()
-    final_prompt = f"{review_prompt_template}\n\n{bundle}"
+    log.info("   -> Bundling files for review...")
+    files_to_bundle = file_gatherer_fn()
+    bundle_content = _get_bundle_content(files_to_bundle, settings.REPO_PATH)
+    log.info(f"   -> Bundled {len(files_to_bundle)} files.")
+
+    bundle_output_path = Path("reports") / f"{bundle_name}_bundle.txt"
+    bundle_output_path.parent.mkdir(parents=True, exist_ok=True)
+    bundle_output_path.write_text(bundle_content, encoding="utf-8")
+    log.info(f"   -> Saved review bundle to: {bundle_output_path}")
+
+    final_prompt = f"{review_prompt_template}\n\n{bundle_content}"
 
     if no_send:
-        output.parent.mkdir(parents=True, exist_ok=True)
-        output.write_text(final_prompt, encoding="utf-8")
-        log.info(f"✅ Full prompt bundle for manual review saved to: {output}")
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        output_path.write_text(final_prompt, encoding="utf-8")
+        log.info(f"✅ Full prompt bundle for manual review saved to: {output_path}")
         raise typer.Exit()
 
-    log.info(
-        "   -> Sending bundle to external LLM for analysis. This may take a moment..."
-    )
+    log.info("   -> Sending bundle to LLM for analysis. This may take a moment...")
     cognitive_service = CognitiveService(settings.REPO_PATH)
     reviewer = cognitive_service.get_client_for_role("SecurityAnalyst")
     review_feedback = reviewer.make_request(
-        final_prompt, user_id="constitutional_reviewer"
+        final_prompt, user_id=f"{bundle_name}_reviewer"
     )
 
-    output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(review_feedback, encoding="utf-8")
-    log.info(
-        f"✅ Successfully received feedback from peer review and saved to: {output}"
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(review_feedback, encoding="utf-8")
+    log.info(f"✅ Successfully received feedback and saved to: {output_path}")
+    typer.secho(
+        f"\n--- {bundle_name.replace('_', ' ').title()} Review Summary ---", bold=True
     )
-    typer.secho("\n--- Review Summary ---", bold=True)
     typer.echo(review_feedback)
 
 
-# --- NEW CAPABILITY IMPLEMENTATION ---
+# CAPABILITY: constitutional_peer_review
+def peer_review(
+    output: Path = typer.Option(
+        Path("reports/constitutional_review.md"), "--output", "-o"
+    ),
+    no_send: bool = typer.Option(False, "--no-send"),
+):
+    """Audits the machine-readable constitution (.intent files) for clarity and consistency."""
+    _orchestrate_review(
+        bundle_name="constitutional",
+        prompt_filename="constitutional_review.prompt",
+        file_gatherer_fn=_get_constitutional_files,
+        output_path=output,
+        no_send=no_send,
+    )
+
+
 # CAPABILITY: docs.clarity_audit
 def docs_clarity_audit(
     output: Path = typer.Option(
-        Path("reports/docs_clarity_review.md"),
-        "--output",
-        "-o",
-        help="The path to save the LLM's documentation review.",
+        Path("reports/docs_clarity_review.md"), "--output", "-o"
     ),
+    no_send: bool = typer.Option(False, "--no-send"),
 ):
-    """
-    Bundles all human-facing documentation for a conceptual clarity review by an LLM.
-    """
-    log.info("🧐 Performing Human Clarity Audit on project documentation...")
-
-    # 1. Load the specific prompt for this audit.
-    prompt_path = settings.MIND / "prompts" / "docs_clarity_review.prompt"
-    if not prompt_path.exists():
-        log.error(
-            f"❌ Clarity review prompt not found at {prompt_path}. Cannot proceed."
-        )
-        raise typer.Exit(code=1)
-    review_prompt_template = prompt_path.read_text(encoding="utf-8")
-    log.info("   -> Loaded clarity review prompt from the constitution.")
-
-    # 2. Bundle all human-readable documentation (.md files).
-    log.info("   -> Bundling all .md documentation files...")
-    bundle_parts = []
-    # Scan both the root and the docs directory for markdown files.
-    scan_paths = [Path("."), Path("docs")]
-    found_files = set()
-    for p in scan_paths:
-        for md_file in p.rglob("*.md"):
-            # Exclude files in ignored directories
-            if any(ignored in md_file.parts for ignored in DOCS_IGNORE_DIRS):
-                continue
-            if md_file not in found_files:
-                content = md_file.read_text(encoding="utf-8")
-                bundle_parts.append(f"--- START OF FILE ./{md_file} ---\n")
-                bundle_parts.append(content)
-                bundle_parts.append(f"\n--- END OF FILE ./{md_file} ---\n\n")
-                found_files.add(md_file)
-
-    docs_bundle = "".join(bundle_parts)
-    log.info(f"   -> Bundled {len(found_files)} documentation files.")
-
-    # 3. Combine them into the final prompt.
-    final_prompt = f"{review_prompt_template}\n\n{docs_bundle}"
-
-    # 4. Send to the LLM for review.
-    log.info("   -> Sending documentation bundle to LLM for clarity analysis...")
-    cognitive_service = CognitiveService(settings.REPO_PATH)
-    # The 'SecurityAnalyst' role is a good generic choice for high-level analysis.
-    reviewer = cognitive_service.get_client_for_role("SecurityAnalyst")
-    review_feedback = reviewer.make_request(
-        final_prompt, user_id="docs_clarity_auditor"
+    """Audits the human-readable documentation (.md files) for conceptual clarity."""
+    _orchestrate_review(
+        bundle_name="docs_clarity",
+        prompt_filename="docs_clarity_review.prompt",
+        file_gatherer_fn=_get_docs_files,
+        output_path=output,
+        no_send=no_send,
     )
-
-    # 5. Save and display the feedback.
-    output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(review_feedback, encoding="utf-8")
-    log.info(f"✅ Successfully received clarity review and saved to: {output}")
-    typer.secho("\n--- Human Clarity Audit Summary ---", bold=True)
-    typer.echo(review_feedback)
 
 
 def register(app: typer.Typer):
@@ -223,9 +187,5 @@ def register(app: typer.Typer):
     review_app = typer.Typer(help="Tools for constitutional and documentation review.")
     app.add_typer(review_app, name="review")
 
-    # Machine-readable constitution review
     review_app.command("constitution")(peer_review)
-    review_app.command("export-constitution")(export_constitution)
-
-    # Human-readable documentation review
     review_app.command("docs")(docs_clarity_audit)
