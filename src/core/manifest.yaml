@@ -1,12 +1,16 @@
+# src/core/manifest.yaml
 capabilities:
-- prompt_interpretation
-- syntax_validation
-- test_execution
-- introspection
-- self_correction
-- change_safety_enforcement
-- intent_guarding
-- semantic_validation
-- code_quality_analysis
-description: Core logic for orchestration, routing, and CLI
+  - cognitive_service.management
+  - code_quality_analysis
+  - llm_orchestration
+  - prompt_interpretation
+  - semantic_validation
+  - syntax_validation
+  - test_execution
+  - change_safety_enforcement
+  - intent_guarding
+  - introspection
+  - self_correction
+description: Core logic for the application server, service orchestration, and primary
+  capabilities.
 domain: core

@@ -16,6 +16,7 @@ from shared.logger import getLogger
 log = getLogger(__name__)
 
 
+# CAPABILITY: cognitive_service.management
 class CognitiveService:
     """Manages the lifecycle and provision of role-based LLM clients."""
 

@@ -12,6 +12,7 @@ from shared.logger import getLogger
 log = getLogger(__name__)
 
 
+# CAPABILITY: llm_orchestration
 class BaseLLMClient:
     """
     Base class for LLM clients, handling common request logic for Chat APIs.
@@ -113,7 +114,3 @@ class BaseLLMClient:
                 exc_info=True,
             )
             return "Error: Could not parse response from API."
-
-
-# The OrchestratorClient and GeneratorClient classes are now removed.
-# Their responsibilities have been taken over by the CognitiveService.
