@@ -1,5 +1,12 @@
 # src/agents/utils.py
 """
+Utility classes and functions for CORE agents including code editing, symbol location, and plan execution context management.
+"""
+
+from __future__ import annotations
+
+# src/agents/utils.py
+"""
 Utility classes and functions for CORE agents.
 """
 import ast

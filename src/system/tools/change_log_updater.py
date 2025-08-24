@@ -1,4 +1,14 @@
 # src/system/tools/change_log_updater.py
+"""
+Manages the structured logging of code changes, scores, and violations to a persistent JSON-based change log.
+"""
+
+from __future__ import annotations
+
+"""
+Manages the structured logging of code changes, scores, and violations to a persistent JSON-based change log.
+"""
+# src/system/tools/change_log_updater.py
 
 import json
 from datetime import datetime

@@ -1,4 +1,11 @@
 # src/system/governance/checks/structure_checks.py
+"""
+Audits the structural integrity of the system's declared architecture, capabilities, and domain boundaries.
+"""
+
+from __future__ import annotations
+
+# src/system/governance/checks/structure_checks.py
 """Auditor checks related to the system's declared structure and relationships."""
 
 from shared.schemas.manifest_validator import validate_manifest_entry

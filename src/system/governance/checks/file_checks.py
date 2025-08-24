@@ -1,4 +1,11 @@
 # src/system/governance/checks/file_checks.py
+"""
+Audits file existence, syntax validity, and orphan detection for constitutional governance files.
+"""
+
+from __future__ import annotations
+
+# src/system/governance/checks/file_checks.py
 """Auditor checks related to file existence, format, and structure."""
 
 from pathlib import Path

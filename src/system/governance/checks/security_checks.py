@@ -1,4 +1,11 @@
 # src/system/governance/checks/security_checks.py
+"""
+Scans source code for hardcoded secrets based on configurable detection patterns and exclusion rules.
+"""
+
+from __future__ import annotations
+
+# src/system/governance/checks/security_checks.py
 """Auditor checks for security-related policies."""
 import re
 from pathlib import Path

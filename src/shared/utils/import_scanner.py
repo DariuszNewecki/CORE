@@ -1,4 +1,11 @@
 # src/shared/utils/import_scanner.py
+"""
+Scans Python files to extract top-level import statements.
+"""
+
+from __future__ import annotations
+
+# src/shared/utils/import_scanner.py
 
 """
 Import Scanner Utility

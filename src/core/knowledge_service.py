@@ -1,5 +1,12 @@
 # src/core/knowledge_service.py
 """
+Provides a runtime service for agents to query the system's knowledge graph for capabilities and self-knowledge.
+"""
+
+from __future__ import annotations
+
+# src/core/knowledge_service.py
+"""
 Provides a runtime service for agents to query the system's
 self-knowledge from the Knowledge Graph.
 """

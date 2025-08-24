@@ -1,5 +1,12 @@
 # src/system/governance/checks/architecture_checks.py
 """
+Audits codebase architecture for structural duplication and other high-level design violations.
+"""
+
+from __future__ import annotations
+
+# src/system/governance/checks/architecture_checks.py
+"""
 Auditor checks for higher-level architectural principles and smells,
 forming the basis of CORE's "architectural conscience."
 """

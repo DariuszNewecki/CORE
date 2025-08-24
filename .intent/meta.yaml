@@ -28,10 +28,14 @@ policies:
   data_privacy_policy: "policies/data_privacy.yaml"
   data_retention_policy: "policies/data_retention.yaml"
   canary_policy: "policies/canary_policy.yaml"
+  code_style_policy: "policies/code_style_policy.yaml"
 
 prompts:
   constitutional_review: "prompts/constitutional_review.prompt"
   docs_clarity_review: "prompts/docs_clarity_review.prompt"
+  code_peer_review: "prompts/code_peer_review.prompt"
+  module_docstring_writer: "prompts/module_docstring_writer.prompt"
+  refactor_outlier: "prompts/refactor_outlier.prompt" 
 
 project:
   manifest_yaml: "project_manifest.yaml"

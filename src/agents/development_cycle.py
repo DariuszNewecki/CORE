@@ -1,5 +1,12 @@
 # src/agents/development_cycle.py
 """
+Provides the primary autonomous development cycle function that orchestrates planning and execution for self-directed software development.
+"""
+
+from __future__ import annotations
+
+# src/agents/development_cycle.py
+"""
 Intent: Provides a single, reusable function that encapsulates the entire
 autonomous development cycle. This is the "heart" of CORE's self-development
 capability, ensuring the process is consistent whether triggered by the CLI

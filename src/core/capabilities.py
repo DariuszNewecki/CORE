@@ -1,5 +1,12 @@
 # src/core/capabilities.py
 """
+Orchestrates the system's self-analysis cycle by executing introspection tools as governed subprocesses.
+"""
+
+from __future__ import annotations
+
+# src/core/capabilities.py
+"""
 CORE Capability Registry
 This file is the high-level entry point for the system's self-awareness loop.
 It defines the `introspection` capability, which orchestrates the system's tools

@@ -1,4 +1,10 @@
 # src/system/tools/ast_utils.py
+"""
+Provides utilities for analyzing and manipulating Python abstract syntax trees (ASTs) for documentation and structural analysis.
+"""
+
+from __future__ import annotations
+
 import ast
 import hashlib
 import re

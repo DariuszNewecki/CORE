@@ -1,5 +1,12 @@
 # src/core/test_runner.py
 """
+Executes pytest on the project's test suite and captures structured results for system integrity verification.
+"""
+
+from __future__ import annotations
+
+# src/core/test_runner.py
+"""
 Runs pytest against the local /tests directory and captures results.
 This provides the core `test_execution` capability, allowing the system
 to verify its own integrity after making changes.

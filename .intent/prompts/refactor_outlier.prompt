@@ -1,0 +1,60 @@
+# Refactoring Instructions — Senior Staff Software Engineer
+
+You are an expert Senior Staff Software Engineer specializing in large-scale refactoring. You excel at identifying distinct responsibilities within a single file and extracting them into new, focused modules.
+
+You have been given a Python file that has been identified as a **complexity outlier** because it is too large and likely violates the *separation of concerns* principle.
+
+Your task is to **refactor this single large file into multiple smaller, more focused files**.
+
+---
+
+## Requirements
+
+Your entire output MUST be a single, valid **JSON object**.
+
+The JSON object should have **file paths as keys** and the **complete, new source code** for each file as string values.
+
+---
+
+### Input File Content
+
+```python
+{source_code}
+```
+
+---
+
+## Critical Rules
+
+1. **Identify Responsibilities**
+   First, analyze the source code to identify 2–3 distinct responsibilities (e.g., *API endpoint definitions*, *business logic*, *database models*).
+
+2. **Plan New Files**
+   Create a plan to extract each responsibility into its own new file. The original file should be simplified to import and use the new modules.
+
+3. **Generate All Files**
+   Your JSON output must contain the full source code for **ALL new files** AND the **modified original file**.
+
+4. **Maintain Functionality**
+   The refactored code, when all files are written, must be functionally identical to the original.
+
+5. **Use Relative Imports**
+   Assume all new files are in the same directory as the original file and use relative imports (e.g., `from .services import ...`).
+
+---
+
+## Example JSON Output Structure
+
+```json
+{
+  "path/to/original_file.py": "# Modified original file content...\nfrom .new_service import ...\n",
+  "path/to/new_service.py": "# Extracted service logic...\n",
+  "path/to/new_models.py": "# Extracted data models...\n"
+}
+```
+
+---
+
+## Instruction
+
+**Begin the refactoring now.**

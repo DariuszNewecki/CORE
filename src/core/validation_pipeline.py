@@ -1,5 +1,12 @@
 # src/core/validation_pipeline.py
 """
+A context-aware validation pipeline that applies different validation steps based on file type, serving as the single source of truth for all code and configuration validation.
+"""
+
+from __future__ import annotations
+
+# src/core/validation_pipeline.py
+"""
 A context-aware validation pipeline that applies different validation steps
 based on the type of file being processed. This is the single source of truth
 for all code and configuration validation.

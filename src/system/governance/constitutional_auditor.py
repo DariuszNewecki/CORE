@@ -1,5 +1,12 @@
 # src/system/governance/constitutional_auditor.py
 """
+Orchestrates the discovery and execution of modular integrity checks to validate system governance and constitutional compliance.
+"""
+
+from __future__ import annotations
+
+# src/system/governance/constitutional_auditor.py
+"""
 CORE Constitutional Auditor Orchestrator
 =======================================
 Discovers and runs modular checks to validate the system's integrity.
@@ -82,6 +89,20 @@ class ConstitutionalAuditor:
         discovered_checks: List[Tuple[str, Callable[[], List[AuditFinding]]]] = []
         checks_dir = Path(__file__).parent / "checks"
 
+        # --- THIS IS THE REFACTORED SECTION ---
+        # Special handling for ProposalChecks to inject dependencies.
+        from .checks.proposal_loader import ProposalLoader
+        from .checks.proposal_signature_checker import ProposalSignatureChecker
+        from .checks.proposal_summarizer import ProposalSummarizer
+        from .checks.proposal_validator import ProposalValidator
+
+        proposals_dir = self.repo_root / ".intent" / "proposals"
+        proposal_loader = ProposalLoader(proposals_dir, self.repo_root)
+        proposal_validator = ProposalValidator(self.repo_root)
+        proposal_signature_checker = ProposalSignatureChecker()
+        proposal_summarizer = ProposalSummarizer(proposals_dir, self.repo_root)
+        # --- END REFACTORED SECTION ---
+
         for check_file in checks_dir.glob("*.py"):
             if check_file.name.startswith("__"):
                 continue
@@ -95,7 +116,18 @@ class ConstitutionalAuditor:
                     if not class_name.endswith("Checks"):
                         continue
 
-                    check_instance = class_obj(self.context)
+                    # --- THIS IS THE REFACTORED SECTION ---
+                    if class_name == "ProposalChecks":
+                        check_instance = class_obj(
+                            loader=proposal_loader,
+                            validator=proposal_validator,
+                            signature_checker=proposal_signature_checker,
+                            summarizer=proposal_summarizer,
+                        )
+                    else:
+                        check_instance = class_obj(self.context)
+                    # --- END REFACTORED SECTION ---
+
                     for method_name, method in inspect.getmembers(
                         check_instance, inspect.ismethod
                     ):
@@ -103,7 +135,7 @@ class ConstitutionalAuditor:
                             continue
                         if method_name == "check_for_dead_code":
                             log.warning(
-                                f"Skipping '{method_name}' check due to known false positives with CLI commands"
+                                "Skipping 'check_for_dead_code' check due to known false positives with CLI commands"
                             )
                             continue
 

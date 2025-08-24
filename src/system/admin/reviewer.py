@@ -1,5 +1,12 @@
 # src/system/admin/reviewer.py
 """
+Provides commands for AI-powered review of the constitution, documentation, and source code files.
+"""
+
+from __future__ import annotations
+
+# src/system/admin/reviewer.py
+"""
 Intent: Implements commands related to constitutional review and improvement.
 This includes exporting the constitution for external analysis and orchestrating
 an AI-powered peer review for both the machine-readable constitution and the
@@ -11,6 +18,9 @@ from typing import List, Set
 
 import typer
 import yaml
+from rich.console import Console
+from rich.markdown import Markdown
+from rich.panel import Panel
 
 from core.cognitive_service import CognitiveService
 from shared.config import settings
@@ -30,8 +40,6 @@ def _get_bundle_content(files_to_bundle: List[Path], root_dir: Path) -> str:
         if file_path.exists() and file_path.is_file():
             try:
                 content = file_path.read_text(encoding="utf-8")
-                # --- THIS IS THE FIX ---
-                # Ensure we are always working with absolute paths before calculating relativity.
                 rel_path = file_path.resolve().relative_to(root_dir.resolve())
                 bundle_parts.append(f"--- START OF FILE ./{rel_path} ---\n")
                 bundle_parts.append(content)
@@ -50,7 +58,7 @@ def _get_constitutional_files() -> List[Path]:
     if not meta_path.exists():
         return []
 
-    meta_content = yaml.safe_load(meta_path.read_text())
+    meta_content = yaml.safe_load(meta_path.read_text(encoding="utf-8"))
 
     def find_paths_in_meta(data):
         paths = []
@@ -76,9 +84,6 @@ def _get_constitutional_files() -> List[Path]:
 
 def _get_docs_files() -> List[Path]:
     """Discovers and returns a list of all human-readable documentation files."""
-    # --- THIS IS THE FIX ---
-    # The scan paths are now more specific. We only look for a few key files in the root,
-    # and then recursively search ONLY the /docs directory. This prevents scanning .venv, .intent, etc.
     root_dir = settings.REPO_PATH
     scan_files = [
         root_dir / "README.md",
@@ -182,6 +187,53 @@ def docs_clarity_audit(
     )
 
 
+# CAPABILITY: code.peer_review
+def code_review(
+    file_path: Path = typer.Argument(
+        ...,
+        help="The relative path to the source code file to be reviewed.",
+        exists=True,
+        dir_okay=False,
+        resolve_path=True,
+    ),
+):
+    """Submits a source file to an AI expert for a peer review and improvement suggestions."""
+    log.info(
+        f"🤖 Submitting '{file_path.relative_to(settings.REPO_PATH)}' for AI peer review..."
+    )
+    console = Console()
+
+    try:
+        source_code = file_path.read_text(encoding="utf-8")
+        prompt_path = settings.MIND / "prompts" / "code_peer_review.prompt"
+        review_prompt_template = prompt_path.read_text(encoding="utf-8")
+
+        final_prompt = f"{review_prompt_template}\n\n```python\n{source_code}\n```"
+
+        with console.status(
+            "[bold green]Asking AI expert for review...[/bold green]", spinner="dots"
+        ):
+            cognitive_service = CognitiveService(settings.REPO_PATH)
+            reviewer_client = cognitive_service.get_client_for_role("CodeReviewer")
+            review_feedback = reviewer_client.make_request(
+                final_prompt, user_id="code_review_operator"
+            )
+
+        console.print(
+            Panel("AI Peer Review Complete", style="bold green", expand=False)
+        )
+        console.print(Markdown(review_feedback))
+
+    except FileNotFoundError:
+        log.error(f"❌ Error: File not found at '{file_path}'")
+        raise typer.Exit(code=1)
+    except Exception as e:
+        log.error(
+            f"❌ An unexpected error occurred during peer review: {e}", exc_info=True
+        )
+        raise typer.Exit(code=1)
+
+
 def register(app: typer.Typer):
     """Registers the 'review' command group and its subcommands."""
     review_app = typer.Typer(help="Tools for constitutional and documentation review.")
@@ -189,3 +241,4 @@ def register(app: typer.Typer):
 
     review_app.command("constitution")(peer_review)
     review_app.command("docs")(docs_clarity_audit)
+    review_app.command("code")(code_review)

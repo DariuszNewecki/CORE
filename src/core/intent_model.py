@@ -1,4 +1,11 @@
 # src/core/intent_model.py
+"""
+Loads and provides a queryable interface to the declared domain structure defined in .intent/knowledge/source_structure.yaml.
+"""
+
+from __future__ import annotations
+
+# src/core/intent_model.py
 
 """
 CORE Intent Structure Loader

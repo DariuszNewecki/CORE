@@ -1,5 +1,12 @@
 # src/core/self_correction_engine.py
 """
+Handles automated correction of code failures by generating and validating LLM-suggested repairs based on structured violation data.
+"""
+
+from __future__ import annotations
+
+# src/core/self_correction_engine.py
+"""
 Self-Correction Engine
 This module takes failure context (from validation or test failure)
 and attempts to repair the issue using a structured LLM prompt,

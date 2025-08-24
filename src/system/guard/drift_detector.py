@@ -9,8 +9,6 @@ import json
 from pathlib import Path
 from typing import Dict, List, Optional
 
-# --- THIS IS THE FIX ---
-# Import the data models from their new, central location.
 from .models import CapabilityMeta, DriftReport
 
 

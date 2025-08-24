@@ -1,5 +1,12 @@
 # src/core/git_service.py
 """
+Provides safe, auditable Git operations for the CORE system including staging, committing, and resetting changes.
+"""
+
+from __future__ import annotations
+
+# src/core/git_service.py
+"""
 GitService — CORE's Git Integration Layer
 
 Provides safe, auditable Git operations:

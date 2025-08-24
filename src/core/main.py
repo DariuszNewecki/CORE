@@ -1,5 +1,12 @@
 # src/core/main.py
 """
+Provides the FastAPI-based API gateway and execution engine for the CORE system's goal processing and system integration.
+"""
+
+from __future__ import annotations
+
+# src/core/main.py
+"""
 main.py — CORE's API Gateway and Execution Engine
 
 Implements the FastAPI server that handles:

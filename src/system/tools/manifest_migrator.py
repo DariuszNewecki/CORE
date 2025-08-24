@@ -1,5 +1,12 @@
 # src/system/tools/manifest_migrator.py
 """
+A CLI tool to migrate a monolithic project manifest into domain-specific manifests based on the modular architecture.
+"""
+
+from __future__ import annotations
+
+# src/system/tools/manifest_migrator.py
+"""
 A CLI tool to migrate the monolithic project_manifest.yaml into domain-specific
 manifests, as per the modular manifest architecture.
 """

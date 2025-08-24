@@ -1,5 +1,12 @@
 # src/system/admin/byor.py
 """
+Implements the 'byor-init' command to analyze external repositories and scaffold minimal CORE governance structures.
+"""
+
+from __future__ import annotations
+
+# src/system/admin/byor.py
+"""
 Intent: Implements the 'byor-init' command for the CORE Admin CLI.
 
 This command is the entry point for the "Bring Your Own Repo" capability.

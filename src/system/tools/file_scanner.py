@@ -1,4 +1,11 @@
 # src/system/tools/file_scanner.py
+"""
+Handles the discovery and filtering of Python source files for analysis.
+"""
+
+from __future__ import annotations
+
+# src/system/tools/file_scanner.py
 from pathlib import Path
 from typing import List
 
