@@ -80,10 +80,11 @@ rules:
       Only explicitly allowed domains may be contacted. All outbound network
       calls must be through approved integration points.
     enforcement: hard
+    evidence: ["network_access_log"] # Added per review suggestion
     allowed_domains:
       - "api.openai.com"
       - "github.com"
-      - "api.deepseek.com" # Added from your .env.example
+      - "api.deepseek.com"
     action: reject
     feedback: |
       ❌ Attempt to contact unauthorized domain: {{domain}}. Update safety_policies.yaml to allow if needed.

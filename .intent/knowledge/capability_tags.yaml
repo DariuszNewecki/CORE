@@ -40,6 +40,8 @@ tags:
     description: "Processes and enriches prompts with context before sending them to an LLM."
   - name: code_generation
     description: "Specifically handles the generation of new source code."
+  - name: documentation # <-- NEWLY ADDED CAPABILITY
+    description: "Specifically handles the generation of documentation (docstrings, comments, etc.)."
   - name: self_correction
     description: "Attempts to automatically fix errors based on validation or test feedback."
 
@@ -60,7 +62,6 @@ tags:
     description: "Loads an operator's private key from the secure key store."
   - name: governance.cli.archive_plan
     description: "Archives a rollback plan for an approved proposal."
-  # NOTE: Data models are not executable capabilities. We do not define them here.
 
   # --- Constitutional Auditor Checks (discoverable micro-capabilities) ---
   - name: audit.check.required_files

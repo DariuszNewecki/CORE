@@ -9,8 +9,10 @@ llm_resources:
       - "natural_language_understanding"
       - "planning"
       - "decomposition"
-      - "documentation"
+      - "documentation" # <-- ADDED PER OUR AGREEMENT
       - "security_review"
+      - "prompt_interpretation" # Added for completeness as it's used by Planner role
+
     env_prefix: "DEEPSEEK_CHAT"
 
   - name: "deepseek_coder"
