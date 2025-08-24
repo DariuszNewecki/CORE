@@ -3,6 +3,9 @@
 Placeholder for the dev_fastpath constitutional check.
 This feature is currently disabled due to unresolved dependencies.
 """
+
+from __future__ import annotations
+
 from pathlib import Path
 
 

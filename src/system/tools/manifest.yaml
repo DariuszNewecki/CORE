@@ -1,5 +1,4 @@
 capabilities:
 - manifest_updating
-- add_missing_docstrings
 description: Internal introspection utilities
 domain: tooling

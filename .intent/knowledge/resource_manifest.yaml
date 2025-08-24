@@ -20,3 +20,13 @@ llm_resources:
       - "code_generation"
       - "refactoring"
     env_prefix: "DEEPSEEK_CODER"
+
+  - name: "anthropic_claude_sonnet"
+    provided_capabilities:
+      - "natural_language_understanding"
+      - "planning"
+      - "decomposition"
+      - "documentation"
+      - "security_review"
+      - "code_generation"
+    env_prefix: "ANTHROPIC_CLAUDE_SONNET"

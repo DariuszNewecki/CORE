@@ -1,11 +1,10 @@
 # src/shared/config.py
 """
-Centralized Pydantic-based settings management for CORE.
-
-This module defines a Settings class that automatically loads configuration
-from environment variables and .env files. It provides a single, typed source
-of truth for all configuration parameters.
+Centralizes configuration management using Pydantic to load and validate settings from environment variables and .env files.
 """
+
+from __future__ import annotations
+
 from pathlib import Path
 from typing import Optional
 
@@ -30,17 +29,13 @@ class Settings(BaseSettings):
     LLM_ENABLED: bool = True
     CORE_DEV_FASTPATH: bool = False
 
-    # --- THIS IS THE FIX ---
-    # Add the missing dev-specific variables so Pydantic recognizes them.
+    # --- Dev-specific variables ---
     CORE_DEV_KEY_PATH: Optional[str] = None
     CORE_DEV_APPROVER_EMAIL: Optional[str] = None
-    # --- END OF FIX ---
 
     # ======================================================================
     #                LLM RESOURCE REGISTRY CONFIGURATION
     # ======================================================================
-    # These variables are loaded from the .env file and correspond to the
-    # `env_prefix` in .intent/knowledge/resource_manifest.yaml.
 
     # -- Resource: deepseek_chat --
     DEEPSEEK_CHAT_API_URL: Optional[str] = None
@@ -52,11 +47,20 @@ class Settings(BaseSettings):
     DEEPSEEK_CODER_API_KEY: Optional[str] = None
     DEEPSEEK_CODER_MODEL_NAME: Optional[str] = None
 
+    # --- THIS IS THE FIX ---
+    # Add the new Anthropic variables so Pydantic knows about them.
+    # -- Resource: anthropic_claude_sonnet --
+    ANTHROPIC_CLAUDE_SONNET_API_URL: Optional[str] = None
+    ANTHROPIC_CLAUDE_SONNET_API_KEY: Optional[str] = None
+    ANTHROPIC_CLAUDE_SONNET_MODEL_NAME: Optional[str] = None
+    # --- END OF FIX ---
+
     class Config:
         """Defines Pydantic's behavior for the Settings model."""
 
         env_file = ".env"
         env_file_encoding = "utf-8"
+        extra = "ignore"  # Allow other variables in the env, just don't load them.
 
 
 # Create a single, reusable instance of the settings for other modules to import.

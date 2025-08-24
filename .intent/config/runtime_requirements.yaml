@@ -84,3 +84,22 @@ required_environment_variables:
     type: "config"
     required: false
     required_when: "CORE_ENV == 'development'"
+
+# --- LLM Resource: anthropic_claude_sonnet ---
+  - name: "ANTHROPIC_CLAUDE_SONNET_API_URL"
+    description: "API URL for the 'anthropic_claude_sonnet' resource."
+    type: "config"
+    required: false
+    required_when: "LLM_ENABLED == true"
+
+  - name: "ANTHROPIC_CLAUDE_SONNET_API_KEY"
+    description: "API key for the 'anthropic_claude_sonnet' resource."
+    type: "secret"
+    required: false
+    required_when: "LLM_ENABLED == true"
+
+  - name: "ANTHROPIC_CLAUDE_SONNET_MODEL_NAME"
+    description: "Model name for the 'anthropic_claude_sonnet' resource."
+    type: "config"
+    required: false
+    required_when: "LLM_ENABLED == true"

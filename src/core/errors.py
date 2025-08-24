@@ -1,5 +1,12 @@
 # src/core/errors.py
 """
+Centralizes HTTP exception handling to prevent sensitive stack trace leaks and ensure consistent error responses.
+"""
+
+from __future__ import annotations
+
+# src/core/errors.py
+"""
 Centralized HTTP exception handlers for the CORE FastAPI application.
 This module ensures that no unhandled exceptions leak sensitive stack trace
 information to the client, aligning with the 'safe_by_default' principle.

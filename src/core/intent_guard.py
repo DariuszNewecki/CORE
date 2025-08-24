@@ -1,5 +1,12 @@
 # src/core/intent_guard.py
 """
+Enforces safety and governance policies for all proposed file changes to maintain constitutional integrity.
+"""
+
+from __future__ import annotations
+
+# src/core/intent_guard.py
+"""
 IntentGuard — CORE's Constitutional Enforcement Module
 
 Enforces safety, structure, and intent alignment for all file changes.

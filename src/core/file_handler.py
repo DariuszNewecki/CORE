@@ -1,5 +1,12 @@
 # src/core/file_handler.py
 """
+Provides safe, auditable file operations with staged writes requiring confirmation for traceability and rollback capabilities.
+"""
+
+from __future__ import annotations
+
+# src/core/file_handler.py
+"""
 Backend File Handling Module (Refactored)
 
 Handles staging and writing file changes. It supports traceable, auditable

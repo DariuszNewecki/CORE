@@ -1,5 +1,12 @@
 # src/system/admin/develop.py
 """
+Implements the core-admin develop command for orchestrating CORE's autonomous goal-to-execution development cycle.
+"""
+
+from __future__ import annotations
+
+# src/system/admin/develop.py
+"""
 Intent: Implements the `core-admin develop` command, which is the primary
 entry point for CORE's autonomous self-development loop. This command
 orchestrates the full "goal -> plan -> execute" cycle.

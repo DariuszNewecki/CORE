@@ -1,4 +1,11 @@
 # src/system/governance/checks/environment_checks.py
+"""
+Audits the system's runtime environment for required configuration and environment variables.
+"""
+
+from __future__ import annotations
+
+# src/system/governance/checks/environment_checks.py
 """Auditor checks related to the system's runtime environment."""
 import os
 

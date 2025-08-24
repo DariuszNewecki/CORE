@@ -1,5 +1,12 @@
 # src/shared/logger.py
 """
+Provides a pre-configured, application-wide logging system using the rich library for consistent and beautifully formatted output.
+"""
+
+from __future__ import annotations
+
+# src/shared/logger.py
+"""
 CORE's Unified Logging System.
 
 This module provides a single, pre-configured logger instance for the entire

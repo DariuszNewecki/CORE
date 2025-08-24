@@ -1,0 +1,22 @@
+# .intent/policies/code_style_policy.yaml
+#
+# This policy defines the machine-enforceable rules for maintaining the
+# clarity, consistency, and style of the codebase ("The Body").
+# These rules are enforced by the ConstitutionalAuditor.
+
+rules:
+  - id: require_filepath_comment
+    description: "Every Python module (.py file) must begin with a '# src/...' comment indicating its location."
+    enforcement: hard
+
+  - id: require_module_docstring
+    description: "Every Python module must have a module-level docstring immediately following the filepath comment."
+    enforcement: hard
+
+  - id: require_future_annotations
+    description: "Every Python module must include 'from __future__ import annotations' immediately following the module docstring."
+    enforcement: hard
+
+  - id: require_import_grouping
+    description: "Imports in every Python module must be grouped in the following order: standard library, external libraries, project-specific libraries."
+    enforcement: soft

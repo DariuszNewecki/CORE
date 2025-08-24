@@ -1,4 +1,11 @@
 # src/system/governance/checks/health_checks.py
+"""
+Audits codebase health by measuring cognitive complexity and detecting statistical outliers in file size.
+"""
+
+from __future__ import annotations
+
+# src/system/governance/checks/health_checks.py
 """Auditor checks for codebase health, complexity, and atomicity."""
 
 import ast

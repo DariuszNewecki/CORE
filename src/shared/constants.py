@@ -1,3 +1,4 @@
+# src/shared/constants.py
 """
 Centralized location for system-wide constant values.
 """

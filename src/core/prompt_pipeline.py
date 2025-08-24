@@ -1,5 +1,12 @@
 # src/core/prompt_pipeline.py
 """
+Processes and enriches user prompts by resolving [[directive:...]] blocks to inject context, includes, analysis, and manifest data before LLM interaction.
+"""
+
+from __future__ import annotations
+
+# src/core/prompt_pipeline.py
+"""
 PromptPipeline — CORE's Unified Directive Processor
 
 A single pipeline that processes all [[directive:...]] blocks in a user prompt.

@@ -1,5 +1,12 @@
 # src/agents/plan_executor.py
 """
+Executes a sequence of predefined code modification tasks including file creation, function editing, capability tagging, and proposal generation.
+"""
+
+from __future__ import annotations
+
+# src/agents/plan_executor.py
+"""
 Intent: Provides a dedicated, atomic service for executing a pre-defined plan.
 
 This module separates the execution logic from the planning and generation logic

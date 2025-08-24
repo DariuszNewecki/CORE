@@ -32,6 +32,10 @@ tags:
     description: "Executes automated tests (e.g., pytest) and reports results."
   - name: yaml_loading
     description: "Provides a safe, standardized way to load and parse YAML files."
+  - name: code.peer_review
+    description: "Orchestrates sending a code file to an external LLM for critique and suggestions for improvement."
+  - name: refactor.complexity_outlier
+    description: "Identifies and refactors large, complex files into smaller, more focused modules to improve separation of concerns."
 
   # --- LLM & Agent Orchestration ---
   - name: llm_orchestration
@@ -45,7 +49,7 @@ tags:
   - name: self_correction
     description: "Attempts to automatically fix errors based on validation or test feedback."
 
-  # --- V1.0 Architecture & Governance Capabilities ---
+  # --- Architecture & Governance Capabilities ---
   - name: cognitive_service.management
     description: "Manages the lifecycle and provision of role-based LLM clients."
   - name: config.load
@@ -94,8 +98,12 @@ tags:
     description: "Auditor check: Lists all pending proposals for visibility during an audit."
   - name: audit.check.duplication
     description: "Auditor check: Finds structurally identical code, violating the 'dry_by_design' principle."
-  - name: audit.check.content_drift
+  - name: fix.headers
+    description: "A unified tool to enforce all constitutional header conventions on Python files, including file path comments, docstrings, and future imports."    
+  - name: audit.check.content_drift  
     description: "Auditor check: Detects duplicated or inconsistent content across designated data files."
+  - name: audit.check.code_style
+    description: "Auditor check: Verifies code files adhere to defined style policies (e.g., module docstrings)."
   - name: audit.check.codebase_health
     description: "Auditor check: Measures code complexity and atomicity against defined policies."
   - name: audit.check.secrets

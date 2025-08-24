@@ -1,5 +1,12 @@
 # src/system/admin/migrator.py
 """
+Registers the manifest migration tool with the CORE Admin CLI.
+"""
+
+from __future__ import annotations
+
+# src/system/admin/migrator.py
+"""
 Intent: Registers the manifest migration tool with the CORE Admin CLI.
 """
 

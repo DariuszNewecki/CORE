@@ -1,5 +1,12 @@
 # src/shared/utils/manifest_aggregator.py
 """
+Aggregates domain-specific manifests into a unified system constitution.
+"""
+
+from __future__ import annotations
+
+# src/shared/utils/manifest_aggregator.py
+"""
 A utility to discover and aggregate domain-specific manifests into a single,
 unified view of the system's constitution.
 """

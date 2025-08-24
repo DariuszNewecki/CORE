@@ -1,5 +1,12 @@
 # src/system/tools/ast_visitor.py
 """
+Provides specialized AST visitors for the KnowledgeGraphBuilder to separate tree traversal logic from main orchestration.
+"""
+
+from __future__ import annotations
+
+# src/system/tools/ast_visitor.py
+"""
 Contains specialized AST (Abstract Syntax Tree) visitors for the
 KnowledgeGraphBuilder. This module separates the complex logic of tree
 traversal from the main orchestration logic of the builder.

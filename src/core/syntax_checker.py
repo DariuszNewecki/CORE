@@ -1,5 +1,12 @@
 # src/core/syntax_checker.py
 """
+Handles Python syntax validation for code before it's staged for write/commit operations.
+"""
+
+from __future__ import annotations
+
+# src/core/syntax_checker.py
+"""
 A simple syntax checker utility.
 Validates the syntax of Python code before it's staged for write/commit.
 """

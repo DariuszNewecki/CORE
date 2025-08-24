@@ -1,5 +1,12 @@
 # src/system/tools/scaffolder.py
 """
+Provides a reusable service for scaffolding new CORE-governed projects with constitutional compliance.
+"""
+
+from __future__ import annotations
+
+# src/system/tools/scaffolder.py
+"""
 Intent: Provides a reusable Scaffolding service that is fully compliant
 with the declared constitution.
 """

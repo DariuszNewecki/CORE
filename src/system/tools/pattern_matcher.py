@@ -1,5 +1,12 @@
 # src/system/tools/pattern_matcher.py
 """
+Applies declarative patterns to identify non-obvious entry points in the knowledge graph.
+"""
+
+from __future__ import annotations
+
+# src/system/tools/pattern_matcher.py
+"""
 A dedicated module for applying declarative patterns to identify non-obvious
 entry points in the knowledge graph.
 """

@@ -7,7 +7,7 @@
 cognitive_roles:
   - role: "Planner"
     description: "Decomposes high-level goals into abstract, executable plans."
-    assigned_resource: "deepseek_chat"
+    assigned_resource: "anthropic_claude_sonnet"
     required_capabilities:
       - "llm_orchestration"
       - "prompt_interpretation"
@@ -20,12 +20,25 @@ cognitive_roles:
 
   - role: "DocstringWriter"
     description: "A specialist in writing clear, concise documentation for code symbols."
-    assigned_resource: "deepseek_chat"
+    assigned_resource: "anthropic_claude_sonnet"
     required_capabilities:
-      - "documentation" # This assumes a 'documentation' capability exists or will be added.
+      - "documentation"
 
   - role: "SecurityAnalyst"
     description: "Reviews code for potential security vulnerabilities according to policy."
     assigned_resource: "deepseek_chat"
     required_capabilities:
       - "self_review" # Using 'self_review' as a proxy for security analysis.
+  
+  - role: "CodeReviewer"
+    description: "Analyzes existing code for improvements in clarity, efficiency, and adherence to best practices."
+    assigned_resource: "deepseek_coder"
+    required_capabilities:
+      - "self_review"
+
+  - role: "RefactoringArchitect"
+    description: "Plans and executes multi-file refactoring of complex code to improve modularity and clarity."
+    assigned_resource: "deepseek_coder"
+    required_capabilities:
+      - "code_generation"
+      - "planning"
