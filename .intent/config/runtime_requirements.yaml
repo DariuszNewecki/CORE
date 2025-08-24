@@ -78,3 +78,9 @@ required_environment_variables:
     description: "Logging level: DEBUG, INFO, WARNING, ERROR."
     type: "config"
     required: true
+  
+  - name: "CORE_DEV_FASTPATH"
+    description: "Enables development fastpath mode when set to 'true'."
+    type: "config"
+    required: false
+    required_when: "CORE_ENV == 'development'"
