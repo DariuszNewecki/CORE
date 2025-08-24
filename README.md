@@ -18,6 +18,14 @@ It solves the problem of architectural drift and ensures that every change, whet
 
 ---
 
+## How is CORE Different?
+
+CORE is not a code generator like Copilot or an unconstrained agent like AutoGPT. It is an **AI System Architect** designed for governance and long-term maintainability.
+
+**[➡️ See a full comparison: `docs/08_CONTEXT_AND_COMPARISONS.md`](docs/08_CONTEXT_AND_COMPARISONS.md)**
+
+---
+
 ## Quickstart (90 seconds)
 
 > Requires **Python 3.11+** and **Poetry**.
@@ -32,3 +40,27 @@ poetry install
 
 # 3) Run all checks (format, lint, tests, self-audit)
 make check
+```
+
+---
+
+## Project Status & Roadmap
+
+We have recently completed a major architectural refactor to the **Mind/Body/Will** model. Our current work is focused on hardening this foundation and expanding the system's autonomous capabilities.
+
+➡️ Track our progress in the **Project Roadmap**.
+
+---
+
+## Contributing
+
+We welcome focused, high-quality contributions. To get started, please read:
+
+* [What is CORE?](docs/00_WHAT_IS_CORE.md)
+* [CONTRIBUTING.md](CONTRIBUTING.md)
+
+---
+
+## License
+
+MIT — see [LICENSE](LICENSE).
