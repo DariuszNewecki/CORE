@@ -40,12 +40,12 @@ tags:
     description: "Processes and enriches prompts with context before sending them to an LLM."
   - name: code_generation
     description: "Specifically handles the generation of new source code."
-  - name: documentation # <-- NEWLY ADDED CAPABILITY
+  - name: documentation
     description: "Specifically handles the generation of documentation (docstrings, comments, etc.)."
   - name: self_correction
     description: "Attempts to automatically fix errors based on validation or test feedback."
 
-  # --- NEW: V1.0 Architecture & Governance Capabilities ---
+  # --- V1.0 Architecture & Governance Capabilities ---
   - name: cognitive_service.management
     description: "Manages the lifecycle and provision of role-based LLM clients."
   - name: config.load
@@ -108,6 +108,10 @@ tags:
     description: "A planned capability to automatically add docstrings to undocumented code."
   - name: refactor_to_shared_function
     description: "A planned capability to consolidate duplicated logic into a single shared function."
+
+  # --- Documentation & Clarity ---
+  - name: docs.clarity_audit
+    description: "Bundles all human-facing documentation (.md files) for a conceptual clarity review by an LLM."
 
   # --- Constitutional Peer Review ---
   - name: export_constitution
