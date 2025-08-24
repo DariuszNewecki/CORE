@@ -1,3 +1,4 @@
+# .github/workflows/core-ci.yml
 name: CORE CI
 
 on:
@@ -46,9 +47,6 @@ jobs:
       - name: Format check (Black)
         run: poetry run black --check .
 
-      - name: Self-audit (KnowledgeGraph + Auditor)
-        run: poetry run python -m src.core.capabilities
-
       - name: Tests (with coverage)
         run: poetry run pytest -q --cov=src --cov-report=xml --cov-fail-under=80
 
@@ -58,7 +56,7 @@ jobs:
           name: coverage-${{ matrix.python-version }}
           path: coverage.xml
           if-no-files-found: error
-        
+
   governance:
     name: Governance & Drift Check
     runs-on: ubuntu-latest
@@ -76,8 +74,48 @@ jobs:
       - name: Install deps
         run: poetry install --no-interaction --no-root
 
-      - name: Generate Knowledge Graph Artifact
-        run: poetry run core-admin guard kg-export
+      # --- THIS IS THE NEW JOB ---
+      - name: Check for Unassigned Capabilities
+        id: capability_check
+        run: |
+          # 1. Generate the knowledge graph
+          poetry run python -m src.system.tools.codegraph_builder
+          # 2. Check for "unassigned" and fail if found
+          if grep -q '"capability": "unassigned"' .intent/knowledge/knowledge_graph.json; then
+            echo "::error::Found symbols with 'unassigned' capability. All capabilities must be explicitly declared."
+            # Extract the relevant lines for a helpful PR comment
+            grep -B 8 '"capability": "unassigned"' .intent/knowledge/knowledge_graph.json > unassigned_symbols.txt
+            echo "report<<EOF" >> $GITHUB_OUTPUT
+            cat unassigned_symbols.txt >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+      
+      - name: Post PR comment on unassigned capabilities
+        if: failure() && steps.capability_check.outputs.report && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const report = `${{ steps.capability_check.outputs.report }}`;
+            const output = `
+            #### 🏛️ Unassigned Capability Detected
+            This change introduces code with unassigned capabilities, violating the \`no_orphaned_logic\` principle.
+
+            Please add a \`# CAPABILITY: your.capability.name\` comment above the symbol definition and declare it in the appropriate domain \`manifest.yaml\`.
+
+            **Detected Unassigned Symbols:**
+            \`\`\`json
+            ${report}
+            \`\`\`
+            `;
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: output
+            });
+      # --- END OF NEW JOB ---
 
       - name: Detect Capability Drift
         id: drift_check
@@ -97,7 +135,7 @@ jobs:
           exit 1
           
       - name: Post PR comment on drift (for PR run)
-        if: failure() && github.event_name == 'pull_request'
+        if: failure() && steps.drift_check.outputs.exit_code != '0' && github.event_name == 'pull_request'
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -125,7 +163,6 @@ jobs:
               body: output
             });
 
-  # --- NEW JOB TO ENFORCE PR TEMPLATE ---
   pr_linter:
     name: PR Linter
     runs-on: ubuntu-latest

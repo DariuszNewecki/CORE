@@ -21,6 +21,7 @@ from shared.logger import getLogger
 log = getLogger("core_admin")
 
 
+# CAPABILITY: governance.cli.should_fail
 def should_fail(report: dict, fail_on: str) -> bool:
     """Determines if the CLI should exit with an error code based on the drift report and the specified fail condition (missing, undeclared, or any drift)."""
     if fail_on == "missing":
@@ -34,18 +35,19 @@ def should_fail(report: dict, fail_on: str) -> bool:
     )
 
 
+# CAPABILITY: governance.cli.load_yaml
 def load_yaml_file(path: Path) -> Dict[str, Any]:
     """Intent: Load YAML for governance operations. Returns {} for empty documents."""
     return yaml.safe_load(path.read_text(encoding="utf-8")) or {}
 
 
+# CAPABILITY: governance.cli.save_yaml
 def save_yaml_file(path: Path, data: Dict[str, Any]) -> None:
     """Intent: Persist YAML with stable ordering to ensure consistent hashes."""
     # Using sort_keys=True creates a canonical file format, which is essential for stable hashing.
     path.write_text(yaml.dump(data, sort_keys=True), encoding="utf-8")
 
 
-# --- THIS IS THE CRITICAL FIX (Part 1) ---
 def _get_canonical_payload(proposal: Dict[str, Any]) -> str:
     """
     Creates a stable, sorted JSON string of the proposal's core intent,
@@ -63,6 +65,7 @@ def _get_canonical_payload(proposal: Dict[str, Any]) -> str:
     return json.dumps(signable_data, sort_keys=True)
 
 
+# CAPABILITY: governance.cli.generate_token
 def generate_approval_token(proposal: Dict[str, Any]) -> str:
     """
     Intent: Produce a deterministic token based on a canonical representation
@@ -76,9 +79,10 @@ def generate_approval_token(proposal: Dict[str, Any]) -> str:
     return f"core-proposal-v6:{digest.finalize().hex()}"
 
 
+# CAPABILITY: governance.cli.load_key
 def load_private_key() -> ed25519.Ed25519PrivateKey:
     """Intent: Load the operator's Ed25519 private key from the protected key store."""
-    key_path = settings.KEY_STORAGE_DIR / "private.key"
+    key_path = (settings.MIND / "keys" / "private.key")
     if not key_path.exists():
         log.error(
             "❌ Private key not found. Please run 'core-admin keygen' to create one."
@@ -87,9 +91,9 @@ def load_private_key() -> ed25519.Ed25519PrivateKey:
     return serialization.load_pem_private_key(key_path.read_bytes(), password=None)
 
 
+# CAPABILITY: governance.cli.archive_plan
 def archive_rollback_plan(proposal_name: str, proposal: Dict[str, Any]) -> None:
     """Intent: Persist a rollback plan snapshot for approved proposals."""
-    # This function is correct and does not need changes.
     rollback_plan = proposal.get("rollback_plan")
     if not rollback_plan:
         return

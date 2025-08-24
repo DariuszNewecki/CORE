@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from typing import Dict, List, Optional
 
 
+# CAPABILITY: governance.model.capability_meta
 @dataclass(frozen=True)
 class CapabilityMeta:
     """A minimal, shared data container for capability metadata."""
@@ -18,6 +19,7 @@ class CapabilityMeta:
     owner: Optional[str] = None
 
 
+# CAPABILITY: governance.model.drift_report
 @dataclass
 class DriftReport:
     """Structured result for capability drift suitable for JSON emission and CI gating."""

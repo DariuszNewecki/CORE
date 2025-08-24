@@ -1,20 +1,34 @@
+# src/system/manifest.yaml
 capabilities:
-- alignment_checking
-- audit.check.required_files
-- audit.check.syntax
-- audit.check.project_manifest
-- audit.check.capability_coverage
-- audit.check.capability_definitions
-- audit.check.knowledge_graph_schema
-- audit.check.domain_integrity
-- audit.check.docstrings
-- audit.check.dead_code
-- audit.check.orphaned_intent_files
-- audit.check.environment
-- audit.check.proposals_schema
-- audit.check.proposals_drift
-- audit.check.proposals_list
-- scaffold_project
-- autonomous_development
-description: Governance tooling, lifecycle setup, CLI utilities
+  - alignment_checking
+  - audit.check.capability_coverage
+  - audit.check.capability_definitions
+  - audit.check.codebase_health
+  - audit.check.dead_code
+  - audit.check.docstrings
+  - audit.check.domain_integrity
+  - audit.check.duplication
+  - audit.check.environment
+  - audit.check.knowledge_graph_schema
+  - audit.check.orphaned_intent_files
+  - audit.check.project_manifest
+  - audit.check.proposals_drift
+  - audit.check.proposals_list
+  - audit.check.proposals_schema
+  - audit.check.required_files
+  - audit.check.secrets
+  - audit.check.syntax
+  - autonomous_development
+  - governance.cli.archive_plan
+  - governance.cli.generate_token
+  - governance.cli.load_key
+  - governance.cli.load_yaml
+  - governance.cli.save_yaml
+  - governance.cli.should_fail
+  - governance.model.audit_finding
+  - governance.model.audit_severity
+  - governance.model.capability_meta
+  - governance.model.drift_report
+  - scaffold_project
+description: Governance tooling, constitutional auditor, and the admin CLI.
 domain: system
