@@ -9,8 +9,8 @@ cognitive_roles:
     description: "Decomposes high-level goals into abstract, executable plans."
     assigned_resource: "deepseek_chat"
     required_capabilities:
-      - "planning"
-      - "decomposition"
+      - "llm_orchestration"
+      - "prompt_interpretation"
 
   - role: "Coder"
     description: "Writes clean, efficient code to implement a specific task."
@@ -20,12 +20,12 @@ cognitive_roles:
 
   - role: "DocstringWriter"
     description: "A specialist in writing clear, concise documentation for code symbols."
-    assigned_resource: "deepseek_chat"  # <-- THIS KEY WAS LIKELY THE PROBLEM
+    assigned_resource: "deepseek_chat"
     required_capabilities:
-      - "documentation"
+      - "documentation" # This assumes a 'documentation' capability exists or will be added.
 
   - role: "SecurityAnalyst"
     description: "Reviews code for potential security vulnerabilities according to policy."
-    assigned_resource: "deepseek_chat"  # <-- ENSURE THIS KEY IS CORRECT
+    assigned_resource: "deepseek_chat"
     required_capabilities:
-      - "security_review"
+      - "self_review" # Using 'self_review' as a proxy for security analysis.

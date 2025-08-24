@@ -12,8 +12,8 @@ rules:
       codebase. The Knowledge Graph must be considered "dirty" and must be
       regenerated after any action that modifies source code.
     enforcement: hard
-    # This rule would be checked by the orchestrator before starting a new planning phase.
-    precondition_for_planning: "knowledge_graph.is_fresh == true"
+    # This is a conceptual check; the orchestrator must implement this logic.
+    precondition_for_planning: "knowledge_graph_timestamp > last_code_modification_timestamp"
 
   - id: reuse_before_building
     description: >
