@@ -82,7 +82,7 @@ def generate_approval_token(proposal: Dict[str, Any]) -> str:
 # CAPABILITY: governance.cli.load_key
 def load_private_key() -> ed25519.Ed25519PrivateKey:
     """Intent: Load the operator's Ed25519 private key from the protected key store."""
-    key_path = (settings.MIND / "keys" / "private.key")
+    key_path = settings.MIND / "keys" / "private.key"
     if not key_path.exists():
         log.error(
             "❌ Private key not found. Please run 'core-admin keygen' to create one."
