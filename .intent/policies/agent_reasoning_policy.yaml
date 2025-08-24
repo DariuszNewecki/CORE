@@ -12,16 +12,16 @@ rules:
       codebase. The Knowledge Graph must be considered "dirty" and must be
       regenerated after any action that modifies source code.
     enforcement: hard
-    # This is a conceptual check; the orchestrator must implement this logic.
-    precondition_for_planning: "knowledge_graph_timestamp > last_code_modification_timestamp"
+    # This is a procedural enforcement. The orchestrator (e.g., the 'develop' command)
+    # MUST run the 'manifest_updating' capability before initiating a planning cycle.
+    required_action_before_planning: "manifest_updating"
 
   - id: reuse_before_building
     description: >
       Before generating any new function or class, an agent's PLAN must include
       a step that explicitly justifies why an existing, similar capability cannot
       be reused.
-    enforcement: soft # Starts as 'soft' to allow for logging, can be hardened later.
-    # The agent's PLAN object would need a new field for this justification.
+    enforcement: soft
     required_justification_for_action: "code_generation"
     evidence:
       - "Query sent to Knowledge Graph for similar capabilities."
