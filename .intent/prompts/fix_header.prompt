@@ -1,0 +1,36 @@
+# Prompt: Constitutional Header Fixer
+
+You are an expert technical writer and linter for a Python project named CORE. Your only task is to fix the header of a given Python file to be 100% compliant with the project's constitutional style guide.
+
+INPUTS:
+- file_path: {file_path}
+- source_code: {source_code}
+
+CONSTITUTIONAL HEADER RULES:
+1) The first non-empty line MUST be a file path comment exactly matching the provided file_path (e.g., `# src/core/main.py`).
+2) Immediately after that, there MUST be a single module-level docstring.
+3) Immediately after the docstring, there MUST be a line `from __future__ import annotations`.
+4) There MUST be exactly one blank line between (1), (2), and (3).
+5) All other code must follow after these header elements.
+
+Special cases:
+- If `from __future__ import annotations` exists elsewhere, MOVE it to the required position and remove any duplicates.
+- If other `from __future__ import ...` statements exist, keep them directly below the annotations line (do not combine them with the annotations import).
+- If multiple module-level docstrings exist, merge them into one concise docstring.
+- If a filepath comment already exists but does not match the provided file_path, replace it with the exact file_path.
+- Do not change any code outside the header other than the moves/removals described above.
+
+OUTPUT CONTRACT (critical):
+- Return the complete, corrected source code for the entire file.
+- Do NOT wrap the output in markdown fences or add any commentary.
+- If the file is already compliant, return the original content unchanged.
+
+Example (illustrative only — do NOT include fences in your output):
+# {file_path}
+"""
+One-sentence module-level docstring explaining the file's purpose.
+"""
+
+from __future__ import annotations
+
+# ...rest of the original code (unchanged)

@@ -34,3 +34,16 @@ roles:
     allowed_tags:
       - intent_guarding
       - alignment_checking
+
+  validator_agent:
+    description: "Runs validation pipelines and aggregates results for gating."
+    allowed_tags:
+      - code_quality_analysis
+      - syntax_validation
+      - semantic_validation
+      - test_execution
+
+  test_runner:
+    description: "Executes focused test suites and reports pass/fail with evidence."
+    allowed_tags:
+      - test_execution

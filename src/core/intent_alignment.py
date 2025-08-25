@@ -6,6 +6,7 @@ Lightweight guard to ensure a requested goal aligns with CORE's mission/scope.
 - Optional blocklist: .intent/policies/blocked_topics.txt (one term per line).
 - Returns (ok: bool, details: dict) with short reason codes only.
 """
+
 from __future__ import annotations
 
 import logging

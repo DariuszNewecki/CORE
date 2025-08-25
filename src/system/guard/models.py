@@ -3,6 +3,7 @@
 Intent: Provides the shared data models for the governance guard tools,
 breaking a potential circular import dependency.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass

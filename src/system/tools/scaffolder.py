@@ -5,12 +5,6 @@ Provides a reusable service for scaffolding new CORE-governed projects with cons
 
 from __future__ import annotations
 
-# src/system/tools/scaffolder.py
-"""
-Intent: Provides a reusable Scaffolding service that is fully compliant
-with the declared constitution.
-"""
-
 import shutil
 from pathlib import Path
 

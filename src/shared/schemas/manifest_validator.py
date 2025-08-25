@@ -5,8 +5,6 @@ Provides utilities for validating manifest entries against JSON schemas using js
 
 from __future__ import annotations
 
-# src/shared/schemas/manifest_validator.py
-"""Shared utilities for validating manifest files against schemas."""
 import json
 from typing import Any, Dict, List, Tuple
 

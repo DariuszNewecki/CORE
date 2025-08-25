@@ -3,6 +3,7 @@
 Intent: Orchestrates the discovery of capabilities from all available sources,
 respecting the principle of precedence (live analysis > source scan).
 """
+
 from __future__ import annotations
 
 from pathlib import Path

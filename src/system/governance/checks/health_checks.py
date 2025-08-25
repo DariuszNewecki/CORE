@@ -5,9 +5,6 @@ Audits codebase health by measuring cognitive complexity and detecting statistic
 
 from __future__ import annotations
 
-# src/system/governance/checks/health_checks.py
-"""Auditor checks for codebase health, complexity, and atomicity."""
-
 import ast
 import statistics
 

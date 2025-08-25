@@ -5,7 +5,6 @@ Processes AST nodes (functions, classes) into structured FunctionInfo objects wi
 
 from __future__ import annotations
 
-# src/system/tools/symbol_processor.py
 import ast
 from dataclasses import dataclass
 from datetime import datetime, timezone

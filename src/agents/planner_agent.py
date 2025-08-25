@@ -5,10 +5,6 @@ Handles the decomposition of high-level goals into structured, code-free executi
 
 from __future__ import annotations
 
-# src/agents/planner_agent.py
-"""
-The primary agent responsible for decomposing high-level goals into executable plans.
-"""
 import contextvars
 import textwrap
 from datetime import datetime, timezone

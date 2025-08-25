@@ -1,7 +1,9 @@
 # src/system/admin/fixer_header.py
 """
-The orchestration logic for the unified header fixer.
+The orchestration logic for the unified header fixer, which uses an LLM
+to enforce constitutional style rules on Python file headers.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -11,54 +13,44 @@ import typer
 from rich.progress import track
 
 from core.cognitive_service import CognitiveService
+from core.validation_pipeline import validate_code
 from shared.config import settings
 from shared.logger import getLogger
 from shared.path_utils import get_repo_root
-from system.tools.header_tools import HeaderTools
 
 log = getLogger("core_admin.fixer")
 REPO_ROOT = get_repo_root()
-CONCURRENCY_LIMIT = 5
 
 
 async def _run_header_fix_cycle(dry_run: bool, all_py_files: list[str]):
     """The core async logic for finding and fixing all header style violations."""
-    # THIS IS THE FIX: The service is now created inside the function.
     cognitive_service = CognitiveService(REPO_ROOT)
     modification_plan: Dict[str, str] = {}
+
+    prompt_template = (settings.MIND / "prompts" / "fix_header.prompt").read_text(
+        encoding="utf-8"
+    )
+
+    fixer_client = cognitive_service.get_client_for_role("Coder")
 
     async def worker(file_path_str: str):
         file_path = REPO_ROOT / file_path_str
         try:
-            content = file_path.read_text(encoding="utf-8")
-            header = HeaderTools.parse(content)
+            original_content = file_path.read_text(encoding="utf-8")
 
-            is_compliant = (
-                header.location is not None
-                and header.module_description is not None
-                and header.has_future_import
+            # We will now ask the LLM to fix every file.
+            # The prompt itself handles the idempotency check.
+            final_prompt = prompt_template.format(
+                file_path=file_path_str, source_code=original_content
             )
-            if is_compliant:
-                return
 
-            header.location = f"# {file_path_str.replace('\\', '/')}"
-            header.has_future_import = True
+            corrected_code = await fixer_client.make_request_async(
+                final_prompt, user_id="header_fixer_agent"
+            )
 
-            if not header.module_description:
-                prompt_template = (
-                    settings.MIND / "prompts" / "module_docstring_writer.prompt"
-                ).read_text(encoding="utf-8")
-                final_prompt = prompt_template.replace("{source_code}", content)
-                doc_writer = cognitive_service.get_client_for_role("DocstringWriter")
-                docstring_text = await doc_writer.make_request_async(
-                    final_prompt, user_id="header_fixer"
-                )
-                if "Error:" not in docstring_text:
-                    header.module_description = f'"""\n{docstring_text.strip()}\n"""'
-
-            new_content = HeaderTools.reconstruct(header)
-            if new_content != content:
-                modification_plan[file_path_str] = new_content
+            # If the LLM's fix is different from the original, stage it.
+            if corrected_code and corrected_code.strip() != original_content.strip():
+                modification_plan[file_path_str] = corrected_code
 
         except Exception as e:
             log.warning(f"Could not process {file_path_str}: {e}")
@@ -82,12 +74,11 @@ async def _run_header_fix_cycle(dry_run: bool, all_py_files: list[str]):
         return
 
     log.info("💾 Validating and writing changes to disk...")
-    # (The rest of the logic remains the same)
-    from core.validation_pipeline import validate_code
-
     for file_path, new_code in track(modification_plan.items(), "Applying fixes..."):
         validation_result = validate_code(file_path, new_code, quiet=True)
         if validation_result["status"] == "clean":
             (REPO_ROOT / file_path).write_text(validation_result["code"], "utf-8")
         else:
-            log.error(f"❌ Skipping {file_path} due to validation failure after fix.")
+            log.error(
+                f"❌ Skipping {file_path} due to validation failure after LLM fix."
+            )

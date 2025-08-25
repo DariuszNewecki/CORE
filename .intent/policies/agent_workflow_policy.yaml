@@ -1,0 +1,19 @@
+# .intent/policies/agent_workflow_policy.yaml
+#
+# This policy governs the internal workflow of any AI agent that modifies
+# the codebase. It ensures that all agent actions are safe, validated,
+# and constitutionally compliant *before* they are committed.
+
+rules:
+  - id: constitutional_preservation_during_modification
+    description: >
+      An agent that modifies or creates code must ensure its output is
+      fully compliant with all constitutional policies *before* writing
+      to disk. An agent must not degrade the constitutional health of the
+      system, even temporarily.
+    enforcement: hard
+    applies_to_capabilities:
+      - "refactor.complexity_outlier"
+      - "code_generation"
+      - "self_correction"
+    required_workflow_step: "pre_write_validation"

@@ -5,8 +5,6 @@ Provides a base client for synchronous and asynchronous communication with Chat 
 
 from __future__ import annotations
 
-import json
-
 import httpx
 
 from shared.logger import getLogger
@@ -36,14 +34,16 @@ class BaseLLMClient:
 
         if self.api_type == "anthropic":
             log.debug("Anthropic API detected. Setting custom headers.")
-            self.api_url = f"{base_url}/v1/messages" # Correctly appends the endpoint
+            self.api_url = f"{base_url}/v1/messages"  # Correctly appends the endpoint
             self.headers = {
                 "x-api-key": api_key,
                 "anthropic-version": "2023-06-01",
                 "Content-Type": "application/json",
             }
         else:  # OpenAI/DeepSeek compatible
-            log.debug("OpenAI/DeepSeek compatible API detected. Setting standard headers.")
+            log.debug(
+                "OpenAI/DeepSeek compatible API detected. Setting standard headers."
+            )
             self.api_url = f"{base_url}/v1/chat/completions"
             self.headers = {
                 "Authorization": f"Bearer {api_key}",
@@ -77,13 +77,13 @@ class BaseLLMClient:
         except (KeyError, IndexError):
             log.error(f"Could not parse response structure: {response_data}")
             return "Error: Invalid response structure from API."
-            
+
     # This synchronous version is preserved for compatibility
     def make_request(self, prompt: str, user_id: str = "core_system") -> str:
         """
         Sends a prompt to the configured API. (Synchronous)
         """
-        import requests 
+        import requests
 
         payload = self._prepare_payload(prompt, user_id)
         try:

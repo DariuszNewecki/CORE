@@ -1,5 +1,4 @@
 # src/system/tools/header_tools.py
-
 """
 Provides atomic tools for parsing and reconstructing Python file header decorators including location markers, module descriptions, and future imports.
 """

@@ -3,6 +3,7 @@
 Intent: Provides a focused tool for discovering capabilities by running the
 live KnowledgeGraphBuilder.
 """
+
 from __future__ import annotations
 
 import importlib

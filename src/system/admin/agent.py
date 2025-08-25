@@ -5,10 +5,6 @@ Provides a CLI interface for human operators to directly invoke autonomous agent
 
 from __future__ import annotations
 
-# src/system/admin/agent.py
-"""
-Intent: Exposes PlannerAgent capabilities directly to the human operator via the CLI.
-"""
 import json
 import subprocess
 import textwrap

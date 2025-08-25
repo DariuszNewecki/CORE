@@ -5,7 +5,6 @@ Centralizes configuration management for the knowledge graph builder by loading 
 
 from __future__ import annotations
 
-# src/system/tools/config/builder_config.py
 import re
 from dataclasses import dataclass
 from pathlib import Path

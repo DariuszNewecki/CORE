@@ -5,12 +5,6 @@ Orchestrates the discovery and execution of modular integrity checks to validate
 
 from __future__ import annotations
 
-# src/system/governance/constitutional_auditor.py
-"""
-CORE Constitutional Auditor Orchestrator
-=======================================
-Discovers and runs modular checks to validate the system's integrity.
-"""
 import importlib
 import inspect
 import io

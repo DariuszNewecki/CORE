@@ -2,6 +2,7 @@
 """
 Handles the summarization and listing of pending proposals.
 """
+
 from __future__ import annotations
 
 from pathlib import Path

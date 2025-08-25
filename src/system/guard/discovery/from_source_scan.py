@@ -3,6 +3,7 @@
 Intent: Provides a fallback capability discovery method by scanning source
 files for '# CAPABILITY:' tags.
 """
+
 from __future__ import annotations
 
 import re

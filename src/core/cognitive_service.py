@@ -1,17 +1,10 @@
 # src/core/cognitive_service.py
 """
-Manages the provisioning of configured LLM clients for cognitive roles based on the project's constitutional architecture.
+Manages the provisioning of configured LLM clients for cognitive roles based on the project's constitutional architecture. The CognitiveService is the central nervous system for CORE's reasoning capabilities. It reads the Mind's intent regarding cognitive roles and resources, and provides configured LLM clients to the Body's agents. This service leverages the centralized Pydantic Settings for configuration.
 """
 
 from __future__ import annotations
 
-# src/core/cognitive_service.py
-"""
-The CognitiveService is the central nervous system for CORE's reasoning capabilities.
-It reads the Mind's intent regarding cognitive roles and resources, and provides
-configured LLM clients to the Body's agents. This service leverages the centralized
-Pydantic Settings for configuration.
-"""
 from pathlib import Path
 from typing import Dict
 

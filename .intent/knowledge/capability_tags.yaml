@@ -36,7 +36,19 @@ tags:
     description: "Orchestrates sending a code file to an external LLM for critique and suggestions for improvement."
   - name: refactor.complexity_outlier
     description: "Identifies and refactors large, complex files into smaller, more focused modules to improve separation of concerns."
-
+  - name: classify_files_by_extension_for_validation_routing
+    description: "Classifies a file's type based on its extension to route it to the correct validation pipeline."
+  - name: determine_overall_validation_status_from_violations
+    description: "Determines the final validation status (clean/dirty) based on the severity of reported violations."
+  - name: route_files_to_appropriate_validation_pipeline
+    description: "Acts as the main entry point for validation, routing files to specialized validators based on type."
+  - name: standardize_validation_results_across_file_types
+    description: "Ensures that the output of all validation pipelines follows a consistent, predictable data structure."
+  - name: validate_python_code_with_comprehensive_pipeline
+    description: "Executes a multi-stage validation process for Python code, including formatting, linting, and policy checks."
+  - name: validate_yaml_syntax_and_structure
+    description: "Executes a validation process for YAML files to ensure they are well-formed."
+  
   # --- LLM & Agent Orchestration ---
   - name: llm_orchestration
     description: "Manages the flow of requests and plans to one or more LLMs."
@@ -48,6 +60,16 @@ tags:
     description: "Specifically handles the generation of documentation (docstrings, comments, etc.)."
   - name: self_correction
     description: "Attempts to automatically fix errors based on validation or test feedback."
+  - name: planning
+    description: "Breaks down high-level intents into executable steps."
+  - name: decomposition
+    description: "Structures problems into coherent sub-problems and tasks."
+  - name: natural_language_understanding
+    description: "Understands and interprets free-text instructions and context."
+  - name: security_review
+    description: "Performs targeted security analysis according to policy."
+  - name: refactoring
+    description: "Improves code structure without changing behavior."
 
   # --- Architecture & Governance Capabilities ---
   - name: cognitive_service.management

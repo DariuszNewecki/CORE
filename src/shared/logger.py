@@ -1,12 +1,5 @@
 # src/shared/logger.py
 """
-Provides a pre-configured, application-wide logging system using the rich library for consistent and beautifully formatted output.
-"""
-
-from __future__ import annotations
-
-# src/shared/logger.py
-"""
 CORE's Unified Logging System.
 
 This module provides a single, pre-configured logger instance for the entire
@@ -16,6 +9,9 @@ beautifully formatted, and informative.
 All other modules should import `getLogger` from this file instead of using
 print() or configuring their own loggers.
 """
+
+from __future__ import annotations
+
 import logging
 
 from rich.logging import RichHandler

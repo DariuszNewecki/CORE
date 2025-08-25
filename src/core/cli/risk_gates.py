@@ -10,6 +10,7 @@ Usage examples (from repo root):
   # Or use a simple review context file, then optionally override via CLI flags
   python -m src.core.cli.risk_gates check --context review_context.yaml
 """
+
 from __future__ import annotations
 
 import ast

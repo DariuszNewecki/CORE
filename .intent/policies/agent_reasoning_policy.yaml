@@ -14,7 +14,7 @@ rules:
     enforcement: hard
     # This is a procedural enforcement. The orchestrator (e.g., the 'develop' command)
     # MUST run the 'manifest_updating' capability before initiating a planning cycle.
-    required_action_before_planning: "manifest_updating"
+    precondition_for_planning: "manifest_updating"
 
   - id: reuse_before_building
     description: >

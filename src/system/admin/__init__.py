@@ -32,7 +32,7 @@ app = typer.Typer(
 # Register command groups
 _agent.register(app)
 _keys.register(app)
-app.add_typer(_proposals.proposals_app, name="proposals")  # <-- FIX: Corrected variable
+_proposals.register(app)
 _guard.register(app)
 _migrator.register(app)
 _fixer.register(app)

@@ -5,15 +5,6 @@ Scans Python files to extract top-level import statements.
 
 from __future__ import annotations
 
-# src/shared/utils/import_scanner.py
-
-"""
-Import Scanner Utility
-======================
-
-Scans a Python file for top-level import statements.
-"""
-
 import ast
 from pathlib import Path
 from typing import List

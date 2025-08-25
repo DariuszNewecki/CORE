@@ -24,12 +24,6 @@ rules:
         - ".intent/knowledge/knowledge_graph.json" # Allow KG to be updated by its builder
         - ".intent/knowledge/knowledge_graph.json.lock" # Allow lock file for atomic writes
 
-  - id: max_nesting_level
-    description: "Code logic should not be nested more than 4 levels deep to maintain clarity."
-    enforcement: soft # This is a guideline, not a hard blocker.
-    applies_to:
-      patterns: ["src/**/*.py"]
-
   - id: no_undocumented_change
     description: >
       CORE must not modify or create any file that is not declared in `project_manifest.yaml`

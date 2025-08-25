@@ -3,6 +3,7 @@
 Intent: Provides a focused tool for discovering capabilities from manifest files.
 This version understands the new modular manifest architecture.
 """
+
 from __future__ import annotations
 
 from pathlib import Path

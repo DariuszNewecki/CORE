@@ -5,18 +5,6 @@ Provides the FastAPI-based API gateway and execution engine for the CORE system'
 
 from __future__ import annotations
 
-# src/core/main.py
-"""
-main.py — CORE's API Gateway and Execution Engine
-
-Implements the FastAPI server that handles:
-- Goal submission
-- Write confirmation
-- Test execution
-- System status
-
-Integrates all core capabilities into a unified interface.
-"""
 from contextlib import asynccontextmanager
 from pathlib import Path
 

@@ -1,15 +1,11 @@
 # src/shared/utils/parsing.py
 """
-Shared utilities for parsing structured JSON data from unstructured text, particularly from Large Language Model (LLM) outputs.
+Shared utilities for parsing structured data from unstructured text,
+primarily from Large Language Model (LLM) outputs.
 """
 
 from __future__ import annotations
 
-# src/shared/utils/parsing.py
-"""
-Shared utilities for parsing structured data from unstructured text,
-primarily from Large Language Model (LLM) outputs.
-"""
 import json
 import re
 from typing import Dict, List, Optional

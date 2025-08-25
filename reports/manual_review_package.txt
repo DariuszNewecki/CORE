@@ -27,7 +27,7 @@ Identify any potential gaps in the constitution. Are there missing policies, und
 Begin your review now. The constitutional bundle is provided below.
 
 
---- START OF FILE .intent/config/local_mode.yaml ---
+--- START OF FILE ./.intent/config/local_mode.yaml ---
 # .intent/config/local_mode.yaml
 
 mode: local_fallback
@@ -37,89 +37,158 @@ apis:
     fallback: local_validator
   git:
     ignore_validation: false
---- END OF FILE .intent/config/local_mode.yaml ---
 
---- START OF FILE .intent/config/runtime_requirements.yaml ---
-# .intent/config/runtime_requirements.yaml
-#
-# PURPOSE: This file makes the system aware of its dependencies on the external environment.
-# It allows the ConstitutionalAuditor to verify that the system is correctly configured
-# at startup, without ever reading secret values.
+# Development-specific overrides
+dev_fastpath: true        # allow auto-sign in dev env only
 
-required_environment_variables:
-  - name: "MIND"
+--- END OF FILE ./.intent/config/local_mode.yaml ---
+
+--- START OF FILE ./.intent/config/runtime_requirements.yaml ---
+id: runtime_requirements
+version: 1
+title: "Runtime Requirements"
+status: active
+owners:
+  accountable: "Platform SRE"
+  responsible: ["Core Maintainer"]
+review:
+  frequency: "6 months"
+
+variables:
+  MIND:
     description: "The relative path to the system's declarative 'mind' (.intent directory)."
-    type: "config"
+    source: env
     required: true
-
-  - name: "BODY"
+    type: path
+    used_by: ["system", "auditor"]
+  BODY:
     description: "The relative path to the system's executable 'body' (src directory)."
-    type: "config"
+    source: env
     required: true
-
-  - name: "REPO_PATH"
+    type: path
+    used_by: ["system"]
+  REPO_PATH:
     description: "The absolute path to the root of the repository."
-    type: "config"
+    source: env
     required: true
-
-  - name: "ORCHESTRATOR_API_URL"
-    description: "The API endpoint for the high-level planning LLM."
-    type: "config"
+    type: path
+    used_by: ["system","auditor"]
+  LLM_ENABLED:
+    description: "Master flag to enable or disable all LLM-related capabilities."
+    source: env
     required: true
-
-  - name: "ORCHESTRATOR_API_KEY"
-    description: "The API key for the high-level planning LLM."
-    type: "secret"
+    type: bool
+    allowed: ["true","false"]
+    used_by: ["agents"]
+  KEY_STORAGE_DIR:
+    description: "The secure directory for storing operator private keys."
+    source: env
     required: true
-
-  - name: "ORCHESTRATOR_MODEL_NAME"
-    description: "The name of the model to use for orchestration."
-    type: "config"
+    type: path
+    default: ".intent/keys"
+    used_by: ["system"]
+  CORE_ACTION_LOG_PATH:
+    description: "Path to the action/change log file."
+    source: env
     required: true
-
-  - name: "GENERATOR_API_URL"
-    description: "The API endpoint for the code generation LLM."
-    type: "config"
+    type: path
+    used_by: ["auditor"]
+  CORE_ENV:
+    description: "Runtime mode: 'development' or 'production'."
+    source: env
     required: true
-
-  - name: "GENERATOR_API_KEY"
-    description: "The API key for the code generation LLM."
-    type: "secret"
+    type: enum
+    allowed: ["development","production"]
+    used_by: ["system"]
+  LOG_LEVEL:
+    description: "Logging level."
+    source: env
     required: true
---- END OF FILE .intent/config/runtime_requirements.yaml ---
+    type: enum
+    allowed: ["DEBUG","INFO","WARNING","ERROR"]
+    used_by: ["system"]
+  CORE_DEV_FASTPATH:
+    description: "Enable development fastpath."
+    source: env
+    required: false
+    type: bool
+    used_by: ["system"]
+    required_when: "CORE_ENV == 'development'"
+  DEEPSEEK_CHAT_API_URL:
+    description: "API URL for the 'deepseek_chat' resource."
+    source: env
+    required: false
+    type: uri
+    used_by: ["agents"]
+    required_when: "LLM_ENABLED == true"
+  DEEPSEEK_CHAT_API_KEY:
+    description: "API key for the 'deepseek_chat' resource."
+    source: secret
+    required: false
+    type: string
+    used_by: ["agents"]
+    required_when: "LLM_ENABLED == true"
+  DEEPSEEK_CHAT_MODEL_NAME:
+    description: "Model name for the 'deepseek_chat' resource."
+    source: env
+    required: false
+    type: string
+    used_by: ["agents"]
+    required_when: "LLM_ENABLED == true"
+  DEEPSEEK_CODER_API_URL:
+    description: "API URL for the 'deepseek_coder' resource."
+    source: env
+    required: false
+    type: uri
+    used_by: ["agents"]
+    required_when: "LLM_ENABLED == true"
+  DEEPSEEK_CODER_API_KEY:
+    description: "API key for the 'deepseek_coder' resource."
+    source: secret
+    required: false
+    type: string
+    used_by: ["agents"]
+    required_when: "LLM_ENABLED == true"
+  DEEPSEEK_CODER_MODEL_NAME:
+    description: "Model name for the 'deepseek_coder' resource."
+    source: env
+    required: false
+    type: string
+    used_by: ["agents"]
+    required_when: "LLM_ENABLED == true"
+  ANTHROPIC_CLAUDE_SONNET_API_URL:
+    description: "API URL for the 'anthropic_claude_sonnet' resource."
+    source: env
+    required: false
+    type: uri
+    used_by: ["agents"]
+    required_when: "LLM_ENABLED == true"
+  ANTHROPIC_CLAUDE_SONNET_API_KEY:
+    description: "API key for the 'anthropic_claude_sonnet' resource."
+    source: secret
+    required: false
+    type: string
+    used_by: ["agents"]
+    required_when: "LLM_ENABLED == true"
+  ANTHROPIC_CLAUDE_SONNET_MODEL_NAME:
+    description: "Model name for the 'anthropic_claude_sonnet' resource."
+    source: env
+    required: false
+    type: string
+    used_by: ["agents"]
+    required_when: "LLM_ENABLED == true"
+--- END OF FILE ./.intent/config/runtime_requirements.yaml ---
 
---- START OF FILE .intent/constitution/approvers.yaml ---
+--- START OF FILE ./.intent/constitution/approvers.yaml ---
 # .intent/constitution/approvers.yaml
 #
 # This file defines the human operators authorized to approve constitutional
 # changes and the rules governing that process.
-
-# ========================================================================
-# HUMAN OPERATOR LIFECYCLE PROCEDURES
-# ========================================================================
-# This section documents the formal procedures for managing approvers.
-# All changes to the 'approvers' list must follow these procedures.
 #
-# --- Onboarding a New Approver ---
-# 1. The new operator must generate a key pair using:
-#    `poetry run core-admin keygen "new.operator@example.com"`
-# 2. A current, authorized approver must create a formal proposal to add
-#    the new operator's public key block to the 'approvers' list below.
-# 3. The proposal must be signed and approved, meeting the required quorum.
+# The formal procedures for onboarding, offboarding, and key management are
+# constitutionally defined in the following document:
 #
-# --- Standard Revocation of an Approver ---
-# 1. An authorized approver must create a formal proposal to remove the
-#    operator's block from the 'approvers' list.
-# 2. The justification must clearly state the reason for revocation.
-# 3. The proposal must be signed and approved, meeting the required quorum.
-#
-# --- Emergency Revocation of a Compromised Key ---
-# 1. If a private key is compromised, any active approver can issue an
-#    emergency revocation proposal.
-# 2. This proposal must meet the 'critical' quorum.
-# 3. The compromised approver is immediately considered invalid for quorum
-#    calculations once the proposal is created.
-# ========================================================================
+# ./operator_lifecycle.md
 
 approvers:
   - identity: "core-team@core-system.ai"
@@ -143,29 +212,60 @@ approvers:
   - identity: "d.newecki@gmail.com"
     public_key: |
       -----BEGIN PUBLIC KEY-----
-      MCowBQYDK2VwAyEA+V4iUN4DElKdqXmU4ivNthnG8VgPb7QqZgzdJuh4igs=
+      MCowBQYDK2VwAyEAmcbNEgYFEUUNf8XYGZEscamfzqrYHpgKoPHehtPuiDQ=
       -----END PUBLIC KEY-----
-    created_at: "2025-08-12T10:36:49.000000Z" # Using a placeholder, real value is in live file
+    created_at: "2025-08-12T10:36:49.000000Z"
     role: "maintainer"
     description: "Mentor"
 
-
-# Minimum number of signatures required for constitutional amendments
 quorum:
-  # Regular amendments require 1 signature
-  standard: 1
-  # Critical changes require 1 signature while under solo development.
-  critical: 1
+  development:
+    standard: 1
+    critical: 1
+  production:
+    standard: 2
+    critical: 3
+  current_mode: development
 
-# Critical policy paths that require higher quorum
 critical_paths:
   - ".intent/policies/intent_guard.yaml"
   - ".intent/constitution/approvers.yaml"
   - ".intent/meta.yaml"
+  
+emergency_contact: "security-emergency@core-system.ai" # Added per review suggestion
+--- END OF FILE ./.intent/constitution/approvers.yaml ---
 
---- END OF FILE .intent/constitution/approvers.yaml ---
+--- START OF FILE ./.intent/constitution/operator_lifecycle.md ---
+# Human Operator Lifecycle Procedures
 
---- START OF FILE .intent/evaluation/audit_checklist.yaml ---
+This document defines the formal, constitutionally-mandated procedures for managing human operators who have the authority to approve changes to the CORE constitution. Adherence to these procedures is mandatory and enforced by peer review during any change to the `approvers.yaml` file.
+
+## Onboarding a New Approver
+
+1.  **Key Generation:** The candidate operator MUST generate a new, secure Ed25519 key pair using the following command from the CORE repository root:
+    ```bash
+    poetry run core-admin keygen "candidate.email@example.com"
+    ```
+2.  **Proposal Creation:** A currently active, authorized approver MUST create a formal constitutional amendment proposal.
+    - The `target_path` of the proposal MUST be `.intent/constitution/approvers.yaml`.
+    - The `justification` MUST clearly state the reason for adding the new approver, including their role and identity.
+    - The `content` of the proposal MUST be the complete `approvers.yaml` file with the new approver's YAML block appended.
+3.  **Ratification:** The proposal must be signed and approved, meeting the required quorum as defined in `approvers.yaml`. Upon successful canary validation and approval, the new operator is considered active.
+
+## Standard Revocation of an Approver
+
+1.  **Proposal Creation:** An authorized approver MUST create a formal proposal to remove the target operator's block from the `approvers` list in `approvers.yaml`.
+2.  **Justification:** The `justification` MUST clearly state the non-emergency reason for revocation (e.g., operator has left the project).
+3.  **Ratification:** The proposal must be signed and approved, meeting the required quorum.
+
+## Emergency Revocation of a Compromised Key
+
+1.  **Proposal Creation:** In the event of a suspected or confirmed private key compromise, any active approver MUST immediately create an emergency revocation proposal targeting `approvers.yaml`.
+2.  **Quorum:** This proposal requires the **critical** quorum to be met for approval.
+3.  **Immediate Invalidation:** The moment a revocation proposal is created for an identity, that identity's signature is considered invalid for all quorum calculations on that proposal and any subsequent proposals until the matter is resolved.
+--- END OF FILE ./.intent/constitution/operator_lifecycle.md ---
+
+--- START OF FILE ./.intent/evaluation/audit_checklist.yaml ---
 audit_checklist:
   - id: declared_intent
     item: "Was the intent declared before the change?"
@@ -183,9 +283,9 @@ audit_checklist:
     item: "Was code quality verified post-write?"
     required: true
 
---- END OF FILE .intent/evaluation/audit_checklist.yaml ---
+--- END OF FILE ./.intent/evaluation/audit_checklist.yaml ---
 
---- START OF FILE .intent/evaluation/score_policy.yaml ---
+--- START OF FILE ./.intent/evaluation/score_policy.yaml ---
 score_policy:
   strategy: weighted_criteria
 
@@ -211,50 +311,84 @@ score_policy:
     warn: 0.5
     fail: 0.4
 
---- END OF FILE .intent/evaluation/score_policy.yaml ---
+# ----- RISK-TIER GATES (append) ---------------------------------------------
+risk_tier_gates:
+  # For medium-risk changes we require a governance checkpoint and a canary run.
+  medium:
+    min_score: 0.80        # tighten pass threshold
+    require:
+      - checkpoint         # e.g., human-in-the-loop signoff recorded
+      - canary             # canary run ID must be present
 
---- START OF FILE .intent/knowledge/agent_roles.yaml ---
+  # For high-risk changes we raise the bar and require approver quorum too.
+  high:
+    min_score: 0.90
+    require:
+      - checkpoint
+      - canary
+      - approver_quorum    # follow your constitution/approvers
+
+# Declarative conditions so the auditor can enforce gates consistently.
+gate_conditions:
+  checkpoint_required_when: "risk_tier in ['medium','high']"
+  canary_required_when: "risk_tier in ['medium','high'] or touches_critical_paths == true"
+  approver_quorum_required_when: "risk_tier == 'high' or touches_critical_paths == true"
+
+--- END OF FILE ./.intent/evaluation/score_policy.yaml ---
+
+--- START OF FILE ./.intent/knowledge/agent_roles.yaml ---
 # .intent/knowledge/agent_roles.yaml
 
 roles:
   planner:
     description: "Responsible for breaking down intents, sequencing tasks, and preparing bundles."
     allowed_tags:
-      - planning
       - introspection
-      - orchestration
+      - llm_orchestration
+      - prompt_interpretation
 
   builder:
     description: "Executes generation and modification tasks according to a validated plan."
     allowed_tags:
-      - generation
-      - validation
-      - testing
+      - code_generation
+      - semantic_validation
+      - test_execution
 
   reviewer:
     description: "Evaluates changes for safety, structure, and declared alignment."
     allowed_tags:
-      - validation
-      - governance
-      - testing
+      - semantic_validation
+      - alignment_checking
+      - test_execution
 
   orchestrator:
     description: "Coordinates flows, executes bundles, and manages lifecycle rules."
     allowed_tags:
-      - orchestration
-      - governance
-      - llm
+      - llm_orchestration
+      - intent_guarding
+      - alignment_checking
 
   guardian:
     description: "Handles enforcement of rules and monitors intent integrity."
     allowed_tags:
-      - governance
-      - validation
+      - intent_guarding
+      - alignment_checking
 
---- END OF FILE .intent/knowledge/agent_roles.yaml ---
+  validator_agent:
+    description: "Runs validation pipelines and aggregates results for gating."
+    allowed_tags:
+      - code_quality_analysis
+      - syntax_validation
+      - semantic_validation
+      - test_execution
 
---- START OF FILE .intent/knowledge/capability_tags.yaml ---
-# --- START OF FILE .intent/knowledge/capability_tags.yaml ---
+  test_runner:
+    description: "Executes focused test suites and reports pass/fail with evidence."
+    allowed_tags:
+      - test_execution
+--- END OF FILE ./.intent/knowledge/agent_roles.yaml ---
+
+--- START OF FILE ./.intent/knowledge/capability_tags.yaml ---
 # .intent/knowledge/capability_tags.yaml
 #
 # This is the canonical dictionary of all valid capability tags in the CORE system.
@@ -287,7 +421,25 @@ tags:
     description: "Runs a pipeline of quality checks (e.g., formatting, linting)."
   - name: test_execution
     description: "Executes automated tests (e.g., pytest) and reports results."
-
+  - name: yaml_loading
+    description: "Provides a safe, standardized way to load and parse YAML files."
+  - name: code.peer_review
+    description: "Orchestrates sending a code file to an external LLM for critique and suggestions for improvement."
+  - name: refactor.complexity_outlier
+    description: "Identifies and refactors large, complex files into smaller, more focused modules to improve separation of concerns."
+  - name: classify_files_by_extension_for_validation_routing
+    description: "Classifies a file's type based on its extension to route it to the correct validation pipeline."
+  - name: determine_overall_validation_status_from_violations
+    description: "Determines the final validation status (clean/dirty) based on the severity of reported violations."
+  - name: route_files_to_appropriate_validation_pipeline
+    description: "Acts as the main entry point for validation, routing files to specialized validators based on type."
+  - name: standardize_validation_results_across_file_types
+    description: "Ensures that the output of all validation pipelines follows a consistent, predictable data structure."
+  - name: validate_python_code_with_comprehensive_pipeline
+    description: "Executes a multi-stage validation process for Python code, including formatting, linting, and policy checks."
+  - name: validate_yaml_syntax_and_structure
+    description: "Executes a validation process for YAML files to ensure they are well-formed."
+  
   # --- LLM & Agent Orchestration ---
   - name: llm_orchestration
     description: "Manages the flow of requests and plans to one or more LLMs."
@@ -295,8 +447,38 @@ tags:
     description: "Processes and enriches prompts with context before sending them to an LLM."
   - name: code_generation
     description: "Specifically handles the generation of new source code."
+  - name: documentation
+    description: "Specifically handles the generation of documentation (docstrings, comments, etc.)."
   - name: self_correction
     description: "Attempts to automatically fix errors based on validation or test feedback."
+  - name: planning
+    description: "Breaks down high-level intents into executable steps."
+  - name: decomposition
+    description: "Structures problems into coherent sub-problems and tasks."
+  - name: natural_language_understanding
+    description: "Understands and interprets free-text instructions and context."
+  - name: security_review
+    description: "Performs targeted security analysis according to policy."
+  - name: refactoring
+    description: "Improves code structure without changing behavior."
+
+  # --- Architecture & Governance Capabilities ---
+  - name: cognitive_service.management
+    description: "Manages the lifecycle and provision of role-based LLM clients."
+  - name: config.load
+    description: "Loads a JSON or YAML file with consistent error handling and logging."
+  - name: governance.cli.should_fail
+    description: "Determines if the CLI should exit with an error based on a drift report."
+  - name: governance.cli.load_yaml
+    description: "Loads a YAML file specifically for a governance CLI operation."
+  - name: governance.cli.save_yaml
+    description: "Saves a YAML file with stable ordering for governance operations."
+  - name: governance.cli.generate_token
+    description: "Generates a deterministic, content-bound approval token for a proposal."
+  - name: governance.cli.load_key
+    description: "Loads an operator's private key from the secure key store."
+  - name: governance.cli.archive_plan
+    description: "Archives a rollback plan for an approved proposal."
 
   # --- Constitutional Auditor Checks (discoverable micro-capabilities) ---
   - name: audit.check.required_files
@@ -329,8 +511,18 @@ tags:
     description: "Auditor check: Lists all pending proposals for visibility during an audit."
   - name: audit.check.duplication
     description: "Auditor check: Finds structurally identical code, violating the 'dry_by_design' principle."
-  - name: audit.check.content_drift
+  - name: fix.headers
+    description: "A unified tool to enforce all constitutional header conventions on Python files, including file path comments, docstrings, and future imports."    
+  - name: audit.check.content_drift  
     description: "Auditor check: Detects duplicated or inconsistent content across designated data files."
+  - name: audit.check.code_style
+    description: "Auditor check: Verifies code files adhere to defined style policies (e.g., module docstrings)."
+  - name: audit.check.codebase_health
+    description: "Auditor check: Measures code complexity and atomicity against defined policies."
+  - name: audit.check.secrets
+    description: "Auditor check: Scans for hardcoded secrets like API keys or passwords."
+  - name: scaffold_project
+    description: "Generates a complete, multi-file project structure from a high-level goal, including a starter constitution."
 
   # --- Planned or Placeholder Capabilities ---
   - name: add_missing_docstrings
@@ -338,15 +530,67 @@ tags:
   - name: refactor_to_shared_function
     description: "A planned capability to consolidate duplicated logic into a single shared function."
 
-  # --- THIS IS OUR NEW SECTION: Constitutional Peer Review ---
+  # --- Documentation & Clarity ---
+  - name: docs.clarity_audit
+    description: "Bundles all human-facing documentation (.md files) for a conceptual clarity review by an LLM."
+
+  # --- Constitutional Peer Review ---
   - name: export_constitution
     description: "Packages the full .intent/ directory into a single bundle for external analysis."
   - name: constitutional_peer_review
     description: "Orchestrates sending the constitutional bundle to an external LLM for critique and suggestions."
+  - name: autonomous_development
+    description: "Orchestrates the full goal -> plan -> execute cycle from a single user command."
+--- END OF FILE ./.intent/knowledge/capability_tags.yaml ---
 
---- END OF FILE .intent/knowledge/capability_tags.yaml ---
+--- START OF FILE ./.intent/knowledge/cognitive_roles.yaml ---
+# .intent/knowledge/cognitive_roles.yaml
+#
+# Maps an abstract cognitive role to a named resource from the resource_manifest.
+# It also declares the capabilities required by that role, which allows the
+# ConstitutionalAuditor to verify the assignment is valid.
 
---- START OF FILE .intent/knowledge/entry_point_patterns.yaml ---
+cognitive_roles:
+  - role: "Planner"
+    description: "Decomposes high-level goals into abstract, executable plans."
+    assigned_resource: "anthropic_claude_sonnet"
+    required_capabilities:
+      - "llm_orchestration"
+      - "prompt_interpretation"
+
+  - role: "Coder"
+    description: "Writes clean, efficient code to implement a specific task."
+    assigned_resource: "deepseek_coder"
+    required_capabilities:
+      - "code_generation"
+
+  - role: "DocstringWriter"
+    description: "A specialist in writing clear, concise documentation for code symbols."
+    assigned_resource: "anthropic_claude_sonnet"
+    required_capabilities:
+      - "documentation"
+
+  - role: "SecurityAnalyst"
+    description: "Reviews code for potential security vulnerabilities according to policy."
+    assigned_resource: "deepseek_chat"
+    required_capabilities:
+      - "self_review" # Using 'self_review' as a proxy for security analysis.
+  
+  - role: "CodeReviewer"
+    description: "Analyzes existing code for improvements in clarity, efficiency, and adherence to best practices."
+    assigned_resource: "deepseek_coder"
+    required_capabilities:
+      - "self_review"
+
+  - role: "RefactoringArchitect"
+    description: "Plans and executes multi-file refactoring of complex code to improve modularity and clarity."
+    assigned_resource: "anthropic_claude_sonnet"
+    required_capabilities:
+      - "code_generation"
+      - "planning"
+--- END OF FILE ./.intent/knowledge/cognitive_roles.yaml ---
+
+--- START OF FILE ./.intent/knowledge/entry_point_patterns.yaml ---
 # .intent/knowledge/entry_point_patterns.yaml
 #
 # A declarative set of rules for the KnowledgeGraphBuilder to identify valid
@@ -366,22 +610,31 @@ patterns:
     match:
       type: "function"
       name_regex: "^visit_"
-      # This requires the builder to know the base classes of a symbol.
       base_class_includes: "NodeVisitor"
     entry_point_type: "visitor_method"
 
   - name: "capability_implementation"
     description: "Any symbol tagged with a # CAPABILITY is a primary entry point for the CORE system's reasoning loop."
     match:
-      # This will be matched based on the 'capability' field in the symbol data.
       has_capability_tag: true
     entry_point_type: "capability"
+    
+  # --- THIS IS THE NEW RULE ---
+  - name: "typer_cli_command"
+    description: "Functions registered as Typer CLI commands are valid entry points called by the user."
+    match:
+      # This is a heuristic. A more robust check might look for specific decorators,
+      # but for our project, checking the module path is very effective.
+      module_path_contains: "src/system/admin"
+      is_public_function: true # i.e., does not start with an underscore
+    entry_point_type: "cli_command"
+  # --- END OF NEW RULE ---
 
   - name: "framework_base_class"
     description: "Classes that other components inherit from are valid entry points."
     match:
       type: "class"
-      is_base_class: true # This will be true if any other class inherits from it.
+      is_base_class: true
     entry_point_type: "base_class"
 
   - name: "pydantic_model"
@@ -402,14 +655,11 @@ patterns:
     description: "Dataclasses are data structures, not callable code, and are valid entry points."
     match:
       type: "class"
-      # The builder checks for the @dataclass decorator. This is a conceptual rule.
-      # A simple way to implement is to check for __post_init__ or other dataclass markers if available.
-      # For now, we will rely on Pydantic and Enum, which covers our current warnings.
-      # We can add a more specific `is_dataclass` check to the builder if needed.
+      has_decorator: "dataclass"
     entry_point_type: "data_model"
---- END OF FILE .intent/knowledge/entry_point_patterns.yaml ---
+--- END OF FILE ./.intent/knowledge/entry_point_patterns.yaml ---
 
---- START OF FILE .intent/knowledge/file_handlers.yaml ---
+--- START OF FILE ./.intent/knowledge/file_handlers.yaml ---
 handlers:
   - type: python
     extensions: [".py"]
@@ -441,169 +691,173 @@ handlers:
     editable: false
     description: Visual artifacts — viewable only
 
---- END OF FILE .intent/knowledge/file_handlers.yaml ---
+--- END OF FILE ./.intent/knowledge/file_handlers.yaml ---
 
---- START OF FILE .intent/knowledge/source_structure.yaml ---
+--- START OF FILE ./.intent/knowledge/resource_manifest.yaml ---
+# Describes the capabilities of the LLM resources available to the system.
+# The `env_prefix` links this logical resource to a concrete set of
+# environment variables (e.g., DEEPSEEK_CHAT_API_URL).
+
+llm_resources:
+  - name: "deepseek_chat"
+    # These are the skills this model has, as declared by the human operator.
+    provided_capabilities:
+      - "natural_language_understanding"
+      - "planning"
+      - "decomposition"
+      - "documentation" # <-- ADDED PER OUR AGREEMENT
+      - "security_review"
+      - "prompt_interpretation" # Added for completeness as it's used by Planner role
+
+    env_prefix: "DEEPSEEK_CHAT"
+
+  - name: "deepseek_coder"
+    provided_capabilities:
+      - "code_generation"
+      - "refactoring"
+    env_prefix: "DEEPSEEK_CODER"
+
+  - name: "anthropic_claude_sonnet"
+    provided_capabilities:
+      - "natural_language_understanding"
+      - "planning"
+      - "decomposition"
+      - "documentation"
+      - "security_review"
+      - "code_generation"
+    env_prefix: "ANTHROPIC_CLAUDE_SONNET"
+--- END OF FILE ./.intent/knowledge/resource_manifest.yaml ---
+
+--- START OF FILE ./.intent/knowledge/source_structure.yaml ---
 # .intent/knowledge/source_structure.yaml
+#
+# This document is the single source of truth for the project's architectural
+# layout. It defines the domains, their responsibilities, and the rules that
+# govern how they can interact. The ConstitutionalAuditor enforces these rules.
+
+paths:
+  # Defines the default directory for scaffolding new, independent applications.
+  # This path is relative to the repository root.
+  workspace: "work"
+
 structure:
   - domain: core
     path: src/core
-    description: Core logic for orchestration, routing, and CLI
-    editable: true
-    default_handler: python
-    restricted_types: [python, yaml]
-    allowed_imports: 
+    description: "Core logic for the application server, service orchestration, and primary capabilities."
+    allowed_imports:
       - core
       - shared
       - system
       - agents
-      # External & Standard Libs
-      - fastapi
-      - uvicorn
-      - yaml
-      - requests
-      - dotenv
+      # Standard & External Libraries
+      - ast
       - black
+      - contextlib
+      - datetime
+      - dotenv
+      - fastapi
       - json
       - os
-      - re
-      - typing
       - pathlib
-      - datetime
-      - subprocess
-      - contextlib
-      - threading
-      - uuid
       - platform
-      - ast
-      - tempfile
+      - re
+      - requests
+      - subprocess
+      - threading
+      - typing
+      - uvicorn
+      - uuid
+      - yaml
 
   - domain: agents
     path: src/agents
-    description: Specialized AI actors (planners, reviewers, suggesters)
-    editable: true
-    default_handler: python
-    known_files:
-      - manifest.yaml
-    allowed_imports: 
+    description: "Specialized AI actors (planners, reviewers) and their supporting models."
+    allowed_imports:
       - agents
       - shared
       - system
       - core
-      # External & Standard Libs
+      - tooling # <-- FIX #1: Agents are now allowed to use Tools.
+      # Standard & External Libraries
       - json
       - re
       - textwrap
       - typing
       - pathlib
+      - subprocess
 
   - domain: system
     path: src/system
-    description: Governance tooling, lifecycle setup, CLI utilities
-    editable: true
-    default_handler: python
-    allowed_imports: 
+    description: "Governance tooling, constitutional auditor, and the admin CLI."
+    allowed_imports:
       - system
       - shared
       - core
       - tooling
-      # External & Standard Libs
-      - json
+      - agents # <-- FIX #2: The System (CLI) is now allowed to use Agents.
+      # Standard & External Libraries
       - ast
-      - pathlib
-      - typing
       - collections
+      - dataclasses
+      - json
+      - logging
+      - pathlib
+      - re
       - rich
       - sys
+      - typing
       - yaml
-      - re
-      - logging
-      - dataclasses
 
   - domain: shared
     path: src/shared
-    description: Shared models, helpers, and config interfaces
-    editable: true
-    default_handler: python
-    allowed_imports: 
+    description: "Shared utilities, data models, and configuration loaders accessible by all domains."
+    allowed_imports:
       - shared
-      # External & Standard Libs
+      # Standard & External Libraries
+      - ast
       - json
-      - yaml
+      - jsonschema
+      - logging
+      - os
       - pathlib
       - typing
-      - jsonschema
-      - os
-      - ast
-      
-  - domain: features
-    path: src/features
-    description: Modular capabilities and extensions
-    editable: true
-    default_handler: python
-    allowed_imports: [features, shared, data, services, integrations]
+      - yaml
 
   - domain: tooling
     path: src/system/tools
-    description: Internal introspection utilities
-    editable: true
-    default_handler: python
-    # --- THIS IS THE FIX ---
-    # We are adding 'core' to the list of allowed imports for the 'tooling' domain.
-    allowed_imports: [tooling, system, shared, core, ast, json, logging, pathlib, typing, dataclasses]
+    description: "Internal introspection and self-analysis utilities (e.g., KnowledgeGraphBuilder)."
+    allowed_imports:
+      - tooling
+      - system
+      - shared
+      - core
+      # Standard & External Libraries
+      - ast
+      - dataclasses
+      - json
+      - logging
+      - pathlib
+      - typing
 
+  # --- Placeholder Domains for future expansion ---
   - domain: data
     path: src/data
-    description: File access, storage backends, memory models
-    editable: true
-    default_handler: python
-    allowed_imports: [data, shared]
+    description: "Data access layers, storage backends, and data models."
+    allowed_imports: [data, shared, typing, pathlib]
 
-  - domain: api
-    path: src/api
-    description: HTTP-facing endpoints
-    editable: true
-    default_handler: python
-    allowed_imports: [api, shared, services]
-
-  - domain: services
-    path: src/services
-    description: Business logic and orchestration
-    editable: true
-    default_handler: python
-    allowed_imports: [services, shared, integrations, data]
-
-  - domain: automation
-    path: src/automation
-    description: Task runners, schedulers, retry logic
-    editable: true
-    default_handler: python
-    allowed_imports: [automation, shared, services]
-
-  - domain: integrations
-    path: src/integrations
-    description: External service bridges (e.g., GitHub, remote LLMs)
-    editable: true
-    default_handler: python
-    allowed_imports: [integrations, shared]
-
+  # --- Constitutional Domains (Non-code) ---
   - domain: mission
-    path: mission
-    description: CORE's declared beliefs, principles, and northstar
-    editable: false
-    restricted_types: [markdown, yaml]
+    path: .intent/mission
+    description: "CORE's declared beliefs, principles, and northstar."
     allowed_imports: []
 
   - domain: policies
-    path: policies
-    description: Governance rules and constraints
-    editable: true
-    default_handler: yaml
+    path: .intent/policies
+    description: "Machine-readable governance rules and constraints."
     allowed_imports: []
+--- END OF FILE ./.intent/knowledge/source_structure.yaml ---
 
---- END OF FILE .intent/knowledge/source_structure.yaml ---
-
---- START OF FILE .intent/meta.yaml ---
+--- START OF FILE ./.intent/meta.yaml ---
 version: "0.1.0"
 
 # PURPOSE: This fulfills the evolvable_structure principle by establishing a clear
@@ -611,7 +865,8 @@ version: "0.1.0"
 constitution:
   # Public keys of constitutional approvers
   approvers: "constitution/approvers.yaml"
-  # NOTE: A full versioning system will be implemented in the future.
+  # Formal procedures for managing human operators
+  operator_lifecycle: "constitution/operator_lifecycle.md"
 
 mission:
   northstar: "mission/northstar.yaml"
@@ -621,21 +876,39 @@ mission:
 policies:
   intent_guard: "policies/intent_guard.yaml"
   safety_policies: "policies/safety_policies.yaml"
+  agent_reasoning_policy: "policies/agent_reasoning_policy.yaml" 
   security_intents: "policies/security_intents.yaml"
+  code_health_policy: "policies/code_health_policy.yaml"
+  agent_behavior_policy: "policies/agent_behavior_policy.yaml"
+  tooling_policy: "policies/tooling_policy.yaml"
+  enforcement_model: "policies/enforcement_model.yaml"
+  secrets_management: "policies/secrets_management.yaml"
+  dependency_management: "policies/dependency_management.yaml"
+  incident_response: "policies/incident_response.yaml"
+  data_privacy_policy: "policies/data_privacy.yaml"
+  data_retention_policy: "policies/data_retention.yaml"
+  canary_policy: "policies/canary_policy.yaml"
+  agent_workflow_policy: "policies/agent_workflow_policy.yaml"
+  code_style_policy: "policies/code_style_policy.yaml"
+  dev_fastpath: "policies/dev_fastpath.yaml"
 
-# --- THIS IS THE NEW SECTION ---
 prompts:
   constitutional_review: "prompts/constitutional_review.prompt"
-# --- END OF NEW SECTION ---
+  docs_clarity_review: "prompts/docs_clarity_review.prompt"
+  code_peer_review: "prompts/code_peer_review.prompt"
+  module_docstring_writer: "prompts/module_docstring_writer.prompt"
+  refactor_outlier: "prompts/refactor_outlier.prompt" 
 
 project:
   manifest_yaml: "project_manifest.yaml"
 
 knowledge:
   source_structure: "knowledge/source_structure.yaml"
-  codegraph: "knowledge/knowledge_graph.json" # This is a generated artifact, but good to list
+  codegraph: "knowledge/knowledge_graph.json"
   capability_tags: "knowledge/capability_tags.yaml"
   agent_roles: "knowledge/agent_roles.yaml"
+  cognitive_roles: "knowledge/cognitive_roles.yaml"
+  resource_manifest: "knowledge/resource_manifest.yaml"
   entry_point_patterns: "knowledge/entry_point_patterns.yaml"
   file_handlers: "knowledge/file_handlers.yaml"
 
@@ -648,13 +921,20 @@ config:
   runtime_requirements: "config/runtime_requirements.yaml" 
 
 schemas:
-  # Schemas are currently discovered by the auditor via directory scan, not listed here.
   config: "schemas/config_schema.yaml"
   knowledge_graph_entry: "schemas/knowledge_graph_entry.schema.json"
+  proposal: "schemas/proposal.schema.json"
+  agent_reasoning_policy: "schemas/agent_reasoning_policy.schema.json"
+  cognitive_roles: "schemas/cognitive_roles.schema.json"
+  resource_manifest: "schemas/resource_manifest.schema.json"
+  canary_policy: "schemas/canary_policy.schema.json"
+  data_privacy_policy: "schemas/data_privacy_policy.schema.json"
+  data_retention_policy: "schemas/data_retention_policy.schema.json"
+  runtime_requirements: "schemas/runtime_requirements.schema.json"
+  dev_fastpath: "policies/dev_fastpath.yaml"
+--- END OF FILE ./.intent/meta.yaml ---
 
---- END OF FILE .intent/meta.yaml ---
-
---- START OF FILE .intent/mission/manifesto.md ---
+--- START OF FILE ./.intent/mission/manifesto.md ---
 # CORE Manifesto
 
 CORE is not a framework. It is not a plugin system.  
@@ -684,9 +964,9 @@ CORE is a system that evolves itself — governed by explicit declarations of pu
 CORE does not pretend to be perfect.  
 But it refuses to be mindless.
 
---- END OF FILE .intent/mission/manifesto.md ---
+--- END OF FILE ./.intent/mission/manifesto.md ---
 
---- START OF FILE .intent/mission/northstar.yaml ---
+--- START OF FILE ./.intent/mission/northstar.yaml ---
 # .intent/mission/northstar.yaml
 
 # PURPOSE: This fulfills evolvable_structure and defines CORE's NorthStar.
@@ -715,9 +995,9 @@ values:
 notes:
   - CORE evolves iteratively, but never silently.
   - All changes must fulfill a declared intent or generate a proposal to revise that intent.
---- END OF FILE .intent/mission/northstar.yaml ---
+--- END OF FILE ./.intent/mission/northstar.yaml ---
 
---- START OF FILE .intent/mission/principles.yaml ---
+--- START OF FILE ./.intent/mission/principles.yaml ---
 # .intent/mission/principles.yaml
 #
 # CORE's Constitution: clear, enforceable, and readable by humans and LLMs.
@@ -776,9 +1056,8 @@ principles:
 
   - id: single_source_of_truth
     description: >
-      The `.intent/` directory is the single source of truth for the system's
-      capabilities, structure, and intent. Derived artifacts (e.g., knowledge_graph.json)
-      must always be generated from this source.
+      `project_manifest.yaml` is the single source of truth for capabilities, structure, and intent.
+      Derived artifacts (e.g., `knowledge_graph.json`) must be generated from it; manual edits are rejected.
 
   - id: separation_of_concerns
     description: >
@@ -791,26 +1070,436 @@ principles:
       Any action that modifies the system's state (e.g., a file write) must be
       explicit, logged, and reversible. Silent or unlogged changes are forbidden.
 
-  # This principle is now enforced by a specific policy.
-  # - id: immutable_constitution
-
   - id: policy_change_requires_human_review
     description: >
       Any change to a policy file within the `.intent/policies/` directory must be
       ratified through the formal constitutional amendment process, requiring
       human review and approval.
+--- END OF FILE ./.intent/mission/principles.yaml ---
 
---- END OF FILE .intent/mission/principles.yaml ---
+--- START OF FILE ./.intent/policies/agent_behavior_policy.yaml ---
+# .intent/policies/agent_behavior_policy.yaml
+#
+# Defines the operational parameters for CORE's autonomous agents.
+# This file allows agent behavior to be governed as a constitutional policy
+# rather than being hardcoded in Python.
 
---- START OF FILE .intent/policies/intent_guard.yaml ---
+planner_agent:
+  # The number of times the planner should retry on a parsing or validation failure.
+  max_retries: 3
+  # The maximum time in seconds to wait for a single task to complete.
+  task_timeout: 300
+
+execution_agent:
+  # If true, the agent will automatically commit its changes to Git upon successful plan execution.
+  auto_commit_on_success: true
+  # If true, the agent will attempt to `git reset --hard` to the initial state if plan execution fails.
+  rollback_on_failure: true
+--- END OF FILE ./.intent/policies/agent_behavior_policy.yaml ---
+
+--- START OF FILE ./.intent/policies/agent_reasoning_policy.yaml ---
+# .intent/policies/agent_reasoning_policy.yaml
+#
+# This policy governs the cognitive process of all autonomous agents, ensuring
+# their actions are based on an accurate self-image and a respect for existing
+# capabilities. It is the constitutional safeguard against stale knowledge and
+# redundant work.
+
+rules:
+  - id: reason_from_reality
+    description: >
+      An agent's reasoning must always be based on the current, true state of the
+      codebase. The Knowledge Graph must be considered "dirty" and must be
+      regenerated after any action that modifies source code.
+    enforcement: hard
+    # This is a procedural enforcement. The orchestrator (e.g., the 'develop' command)
+    # MUST run the 'manifest_updating' capability before initiating a planning cycle.
+    precondition_for_planning: "manifest_updating"
+
+  - id: reuse_before_building
+    description: >
+      Before generating any new function or class, an agent's PLAN must include
+      a step that explicitly justifies why an existing, similar capability cannot
+      be reused.
+    enforcement: soft
+    required_justification_for_action: "code_generation"
+    evidence:
+      - "Query sent to Knowledge Graph for similar capabilities."
+      - "LLM-generated rationale for why reuse is not feasible."
+--- END OF FILE ./.intent/policies/agent_reasoning_policy.yaml ---
+
+--- START OF FILE ./.intent/policies/agent_workflow_policy.yaml ---
+# .intent/policies/agent_workflow_policy.yaml
+#
+# This policy governs the internal workflow of any AI agent that modifies
+# the codebase. It ensures that all agent actions are safe, validated,
+# and constitutionally compliant *before* they are committed.
+
+rules:
+  - id: constitutional_preservation_during_modification
+    description: >
+      An agent that modifies or creates code must ensure its output is
+      fully compliant with all constitutional policies *before* writing
+      to disk. An agent must not degrade the constitutional health of the
+      system, even temporarily.
+    enforcement: hard
+    applies_to_capabilities:
+      - "refactor.complexity_outlier"
+      - "code_generation"
+      - "self_correction"
+    required_workflow_step: "pre_write_validation"
+--- END OF FILE ./.intent/policies/agent_workflow_policy.yaml ---
+
+--- START OF FILE ./.intent/policies/canary_policy.yaml ---
+# .intent/policies/canary_policy.yaml
+title: Canary Pre-Flight Policy
+version: 1
+id: canary_policy
+status: active
+
+triggers:
+  - name: risk_tier_medium_or_high
+    condition: "risk_tier in ['medium','high']"
+  - name: touches_critical_paths
+    condition: "touches_critical_paths == true"
+
+requirements:
+  - id: canary-1
+    rule: Run in an isolated canary environment with production-like data (no PII).
+    enforcement: hard
+    evidence: ["canary_run_id"]
+
+  - id: canary-2
+    rule: Achieve test_pass_rate >= 0.95 on impacted suites.
+    enforcement: hard
+    evidence: ["test_report"]
+
+  - id: canary-3
+    rule: Governance audit score >= 0.80 and zero FAIL items.
+    enforcement: hard
+    evidence: ["audit_scorecard"]
+
+  - id: canary-4
+    rule: Provide a rollback plan and verify it in canary.
+    enforcement: hard
+    evidence: ["rollback_procedure"]
+
+failure_actions:
+  - block_merge
+  - notify: ["owners.accountable","owners.responsible"]
+
+owners:
+  accountable: Release Manager
+  responsible:
+    - Platform SRE
+    - ITAM Process Owner
+
+--- END OF FILE ./.intent/policies/canary_policy.yaml ---
+
+--- START OF FILE ./.intent/policies/code_health_policy.yaml ---
+# .intent/policies/code_health_policy.yaml
+#
+# This policy defines the machine-enforceable rules for maintaining the
+# health, clarity, and atomicity of the codebase ("The Body").
+# These rules are enforced by the 'audit.check.codebase_health' capability.
+
+rules:
+  # Defines the maximum acceptable Cognitive Complexity for any single function.
+  # Functions exceeding this limit are considered too difficult for a human to
+  # reliably understand and maintain.
+  # Recommended starting value: 15
+  max_cognitive_complexity: 15
+
+  # Defines the maximum acceptable nesting depth (e.g., if inside for inside if).
+  # Deeply nested logic is a primary source of bugs and confusion.
+  # This rule formalizes the soft rule that was previously in intent_guard.yaml.
+  # Recommended starting value: 4
+  max_nesting_depth: 4
+
+  # --- THIS IS THE NEW RULE ---
+  # Defines the recommended maximum line length for code clarity.
+  # This is a "soft" guideline. While 'black' will attempt to format to 88
+  # characters, this rule allows the auditor to flag lines that remain
+  # excessively long, suggesting they may need manual refactoring.
+  max_line_length:
+    # Set slightly higher than black's default to only catch egregious cases.
+    limit: 100
+    # This is a 'soft' rule; it will produce a WARNING, not an ERROR,
+    # encouraging refactoring without blocking commits.
+    enforcement: soft
+  # --- END OF NEW RULE ---
+
+  # Defines the statistical threshold for identifying file size outliers.
+  # A file is flagged as an outlier if its Logical Lines of Code (LLOC)
+  # is greater than (average_lloc + standard_deviations * lloc_std_dev).
+  # Recommended starting value: 2.0
+  outlier_standard_deviations: 2.0
+--- END OF FILE ./.intent/policies/code_health_policy.yaml ---
+
+--- START OF FILE ./.intent/policies/code_style_policy.yaml ---
+# .intent/policies/code_style_policy.yaml
+#
+# This policy defines the machine-enforceable rules for maintaining the
+# clarity, consistency, and style of the codebase ("The Body").
+# These rules are enforced by the ConstitutionalAuditor.
+
+rules:
+  - id: require_filepath_comment
+    description: "Every Python module (.py file) must begin with a '# src/...' comment indicating its location."
+    enforcement: hard
+
+  - id: require_module_docstring
+    description: "Every Python module must have a module-level docstring immediately following the filepath comment."
+    enforcement: hard
+
+  - id: require_future_annotations
+    description: "Every Python module must include 'from __future__ import annotations' immediately following the module docstring."
+    enforcement: hard
+
+  - id: require_import_grouping
+    description: "Imports in every Python module must be grouped in the following order: standard library, external libraries, project-specific libraries."
+    enforcement: soft
+--- END OF FILE ./.intent/policies/code_style_policy.yaml ---
+
+--- START OF FILE ./.intent/policies/data_privacy.yaml ---
+# .intent/policies/data_privacy.yaml
+title: Data Privacy Policy
+version: 1 
+id: data_privacy
+status: active
+
+scope:
+  applies_to:
+    - core
+    - born_apps
+  data_in_scope:
+    - personal_data
+    - operational_telemetry
+    - training_artifacts
+
+principles:
+  - id: dp-1
+    name: Data minimization
+    rule: Collect/store only data strictly necessary for the declared purpose.
+    enforcement: hard
+    evidence: ["purpose_map", "collection_inventory"]
+
+  - id: dp-2
+    name: Purpose limitation
+    rule: Process data only for declared purposes; new purposes require proposal + approval.
+    enforcement: hard
+    evidence: ["proposal_id", "approvals"]
+
+  - id: dp-3
+    name: Access control
+    rule: Role-based access; least privilege; no shared accounts.
+    enforcement: hard
+    evidence: ["rbac_matrix", "audit_log"]
+
+  - id: dp-4
+    name: Encryption
+    rule: TLS in transit; at-rest encryption for stores containing personal/sensitive data.
+    enforcement: hard
+    evidence: ["tls_config", "storage_encryption_report"]
+
+  - id: dp-5
+    name: DPIA for higher risk
+    rule: For risk_tier in [medium, high] touching personal_data, run the DPIA checklist.
+    enforcement: hard
+    evidence: ["dpia_report"]
+
+  - id: dp-6
+    name: Data subject rights
+    rule: Provide delete/export on request; complete within 30 days.
+    enforcement: soft
+    evidence: ["dsr_log"]
+
+  - id: dp-7
+    name: Logging & auditability
+    rule: All access to personal_data is logged and retained per retention policy.
+    enforcement: hard
+    evidence: ["audit_log", "retention_evidence"]
+
+  - id: dp-8
+    name: Third-party processors
+    rule: Processors must have a signed DPA; no transfer to unvetted vendors.
+    enforcement: hard
+    evidence: ["dpa_record"]
+
+owners:
+  accountable: CISO
+  responsible:
+    - ITAM Process Owner
+    - Platform Security Lead
+
+review:
+  frequency: 6 months
+
+--- END OF FILE ./.intent/policies/data_privacy.yaml ---
+
+--- START OF FILE ./.intent/policies/data_retention.yaml ---
+# .intent/policies/data_retention.yaml
+title: Data Retention & Deletion Policy
+version: 1 
+id: data_retention
+status: active
+
+retention_table:
+  - category: audit_logs
+    description: Access and governance logs
+    retention: P2Y        # ISO 8601 duration
+    deletion_sla: P30D
+    enforcement: hard
+
+  - category: operational_logs
+    description: Runtime app/service logs (no PII)
+    retention: P90D
+    deletion_sla: P14D
+    enforcement: hard
+
+  - category: proposals_and_reviews
+    description: Proposals, reviews, and audit evidence
+    retention: P1Y
+    deletion_sla: P30D
+    enforcement: hard
+
+  - category: training_artifacts
+    description: Prompts/templates/fine-tuning datasets (if any)
+    retention: P180D
+    deletion_sla: P30D
+    enforcement: soft
+
+  - category: personal_data
+    description: Any personal data processed by CORE or born apps
+    retention: "Until purpose complete + P30D (max P1Y unless legal basis documented)"
+    deletion_sla: P30D
+    enforcement: hard
+
+legal_holds:
+  rule: When a legal hold is active, suspend deletion until hold release is recorded.
+  enforcement: hard
+
+owners:
+  accountable: CISO
+  responsible:
+    - Data Protection Officer
+    - ITAM Process Owner
+
+review:
+  frequency: 6 months
+
+--- END OF FILE ./.intent/policies/data_retention.yaml ---
+
+--- START OF FILE ./.intent/policies/dependency_management.yaml ---
+# .intent/policies/dependency_management.yaml
+#
+# PURPOSE: This policy governs the addition and auditing of third-party
+# dependencies (e.g., Python packages from PyPI). It includes rules
+# for license compatibility, vulnerability scanning, and supply chain security.
+#
+# STATUS: This policy is defined but not yet enforced by an auditor check.
+
+rules:
+  - id: license_compatibility
+    description: All dependencies must have OSI-approved licenses compatible with our MIT license.
+    enforcement: hard
+
+  - id: vulnerability_scanning
+    description: All dependencies must be scanned for known vulnerabilities before addition.
+    enforcement: hard
+
+  - id: pinned_versions
+    description: Production dependencies must have exact version pins.
+    enforcement: hard
+--- END OF FILE ./.intent/policies/dependency_management.yaml ---
+
+--- START OF FILE ./.intent/policies/dev_fastpath.yaml ---
+# .intent/policies/dev_fastpath.yaml
+#
+# Authoritative policy for development fastpath behavior.
+# Tools and checks must read this; no code may redefine it.
+
+modes:
+  allowed: ["development", "production"]
+
+dev_fastpath:
+  allowed_in_modes: ["development"]
+  requires_repo_flag: true         # .intent/config/local_mode.yaml: dev_fastpath: true
+  requires_env_flag: true          # CORE_DEV_FASTPATH=true
+
+--- END OF FILE ./.intent/policies/dev_fastpath.yaml ---
+
+--- START OF FILE ./.intent/policies/enforcement_model.yaml ---
+# .intent/policies/enforcement_model.yaml
+#
+# PURPOSE: This file fulfills the 'clarity_first' principle by providing a
+# single, canonical source of truth for the definition of all enforcement
+# levels used in CORE's governance policies.
+
+enforcement_levels:
+  - level: hard
+    description: >
+      A non-negotiable rule. If a proposed action violates a 'hard' policy,
+      the action MUST be automatically rejected by the system's IntentGuard.
+      No override is possible without a formal, approved constitutional amendment
+      to the policy itself. This is the highest level of enforcement.
+
+  - level: soft
+    description: >
+      A strong guideline. If a proposed action violates a 'soft' policy, the
+      system's IntentGuard MUST log a formal WARNING. However, the action is
+      allowed to proceed. This is used for rules that are important but may have
+      valid exceptions, or for new rules being phased in.
+
+  - level: manual_review
+    description: >
+      A gate that requires human intervention. If a proposed action violates a
+      'manual_review' policy, the system MUST pause the execution and require
+      formal, cryptographic proof of human intent before proceeding. This is
+      typically handled via the 'core-admin proposals-approve' workflow.
+--- END OF FILE ./.intent/policies/enforcement_model.yaml ---
+
+--- START OF FILE ./.intent/policies/incident_response.yaml ---
+# .intent/policies/incident_response.yaml
+#
+# PURPOSE: This document defines the formal procedure for responding to
+# security incidents, constitutional violations, or critical operational failures.
+# It includes steps for containment, analysis, and remediation.
+#
+# STATUS: This policy is defined but not yet enforced by an auditor check.
+
+procedures:
+  - id: containment
+    description: "The immediate steps to limit the impact of an incident."
+    steps:
+      - "Isolate affected components from the network."
+      - "Freeze all pending constitutional change proposals."
+      - "Switch system to safe/local_fallback mode to prevent external actions."
+
+  - id: analysis
+    description: "The process for understanding the root cause of an incident."
+    steps:
+      - "Create a forensic copy of the .intent/ directory and all change logs."
+      - "Trace the sequence of actions leading to the incident using audit logs."
+
+  - id: remediation
+    description: "The actions taken to resolve the incident and prevent recurrence."
+    steps:
+      - "Develop and ratify a constitutional amendment to address the root cause."
+      - "Rotate all cryptographic keys and secrets if a compromise is suspected."
+--- END OF FILE ./.intent/policies/incident_response.yaml ---
+
+--- START OF FILE ./.intent/policies/intent_guard.yaml ---
 # .intent/policies/intent_guard.yaml
 # This file contains low-level, machine-enforceable governance rules.
 # More complex security policies are defined in safety_policies.yaml.
+# Definitions for enforcement levels are now in enforcement_model.yaml.
 
-enforcement_levels:
-  hard: "Automatic rejection of the action with no override possible. The process must stop."
-  soft: "A warning is logged, but the action is allowed to proceed. May be escalated."
-  manual_review: "Execution is paused and requires explicit human approval via a governed mechanism (e.g., CLI prompt, signed proposal)."
+# NOTE:
+#  - Direct writes to `.intent/` remain forbidden.
+#  - The *only* sanctioned pathway for changing `.intent/*` is via
+#    the `core-admin proposals-approve` flow *after* a passing canary audit
+#    and quorum verification. No other entrypoint may write to `.intent/`.
 
 rules:
   - id: no_direct_intent_writes
@@ -824,17 +1513,13 @@ rules:
     exclude:
       paths:
         - ".intent/proposals/"
-
-  - id: max_nesting_level
-    description: "Code logic should not be nested more than 3 levels deep to maintain clarity."
-    enforcement: soft # This is a guideline, not a hard blocker.
-    applies_to:
-      patterns: ["src/**/*.py"]
+        - ".intent/knowledge/knowledge_graph.json" # Allow KG to be updated by its builder
+        - ".intent/knowledge/knowledge_graph.json.lock" # Allow lock file for atomic writes
 
   - id: no_undocumented_change
     description: >
-      CORE must not modify or create any file that is not traceable to a known
-      capability or a file declared in a manifest.
+      CORE must not modify or create any file that is not declared in `project_manifest.yaml`
+      or traceable to a declared capability therein.
     enforcement: hard
 
   - id: must_match_intent
@@ -850,21 +1535,20 @@ rules:
 
   - id: require_tests_for_capabilities
     description: >
-      All capabilities declared in the function_manifest must have at least one corresponding test in /tests.
+      All capabilities declared in `project_manifest.yaml` must have at least one corresponding test in /tests.
     enforcement: soft
 
   - id: enforce_intent_bundle_usage
     description: >
       Any capability marked with `requires_intent_bundle: true` must be executed through an IntentBundle flow.
     enforcement: hard
+--- END OF FILE ./.intent/policies/intent_guard.yaml ---
 
---- END OF FILE .intent/policies/intent_guard.yaml ---
-
---- START OF FILE .intent/policies/safety_policies.yaml ---
+--- START OF FILE ./.intent/policies/safety_policies.yaml ---
 # .intent/policies/safety_policies.yaml
 meta:
-  version: "0.4.0"
-  last_updated: "2025-08-10T11:00:00Z"
+  version: "0.5.0"
+  last_updated: "2025-08-15T10:00:00Z"
   author: "CORE Constitution"
   description: >
     The single source of truth for all security and safety policies governing
@@ -935,6 +1619,22 @@ rules:
     feedback: |
       ❌ Dangerous execution detected: '{{pattern}}'. Use safe wrappers or avoid shell=True.
 
+  # ===================================================================
+  # RULE: Restrict network access (NEW)
+  # ===================================================================
+  - id: restrict_network_access
+    description: >
+      Only explicitly allowed domains may be contacted. All outbound network
+      calls must be through approved integration points.
+    enforcement: hard
+    evidence: ["network_access_log"] # Added per review suggestion
+    allowed_domains:
+      - "api.openai.com"
+      - "github.com"
+      - "api.deepseek.com"
+    action: reject
+    feedback: |
+      ❌ Attempt to contact unauthorized domain: {{domain}}. Update safety_policies.yaml to allow if needed.
 
   # ===================================================================
   # RULE: All changes must be logged
@@ -950,10 +1650,35 @@ rules:
     action: reject_if_unlogged
     feedback: |
       ❌ No prior log entry found for this change. Use CHANGE_LOG_PATH to register intent first.
+--- END OF FILE ./.intent/policies/safety_policies.yaml ---
 
---- END OF FILE .intent/policies/safety_policies.yaml ---
+--- START OF FILE ./.intent/policies/secrets_management.yaml ---
+# .intent/policies/secrets_management.yaml
+#
+# PURPOSE: This policy governs the handling of secrets, API keys, and
+# other sensitive credentials within the CORE system and any applications
+# it generates.
 
---- START OF FILE .intent/policies/security_intents.yaml ---
+rules:
+  - id: no_hardcoded_secrets
+    description: >
+      Source code MUST NOT contain hardcoded secrets (e.g., API keys, passwords).
+      Secrets must be loaded from environment variables or a secure vault,
+      as declared in runtime_requirements.yaml.
+    enforcement: hard
+    detection:
+      type: regex
+      patterns:
+        - "(?i)api_key\\s*=\\s*[\"'](?!your_api_key_here)[a-zA-Z0-9_]{16,}"
+        - "(?i)secret\\s*=\\s*[\"'][a-zA-Z0-9_]{16,}"
+        - "(?i)password\\s*=\\s*[\"'][a-zA-Z0-9_]{8,}"
+      exclude:
+        # Allow examples in documentation and config templates
+        - "*.md"
+        - ".env.example"
+--- END OF FILE ./.intent/policies/secrets_management.yaml ---
+
+--- START OF FILE ./.intent/policies/security_intents.yaml ---
 security_intents:
   - id: prompt_based_security
     description: "Security rules implemented as LLM prompts"
@@ -970,9 +1695,112 @@ security_intents:
       - "Review via LLM prompts"
       - "Update security_intents.yaml iteratively"
 
---- END OF FILE .intent/policies/security_intents.yaml ---
+--- END OF FILE ./.intent/policies/security_intents.yaml ---
 
---- START OF FILE .intent/prompts/constitutional_review.prompt ---
+--- START OF FILE ./.intent/policies/tooling_policy.yaml ---
+# .intent/policies/tooling_policy.yaml
+#
+# Defines the configuration for external development tools like linters,
+# formatters, and the CI/CD pipeline. This allows the Makefile and CI scripts
+# to be driven by the constitution.
+
+# Paths to be targeted by linting and formatting tools.
+lintable_paths:
+  - src
+  - tests
+
+# Path where pytest should look for tests.
+test_path: tests
+
+# Commands that can be queried by the Makefile or CI scripts.
+# This ensures that CI behavior is constitutionally defined.
+ci_commands:
+  lint: "poetry run ruff check ."
+  format_check: "poetry run black --check ."
+  test: "poetry run pytest"
+--- END OF FILE ./.intent/policies/tooling_policy.yaml ---
+
+--- START OF FILE ./.intent/project_manifest.yaml ---
+# .intent/project_manifest.yaml
+#
+# This is the single, canonical source of truth for the CORE project's
+# high-level intent and top-level configuration.
+#
+# Project-wide capabilities are now defined in a decentralized way, located in
+# manifest.yaml files within each source domain (e.g., src/core/manifest.yaml).
+# The ConstitutionalAuditor automatically discovers and aggregates them.
+
+name: "CORE"
+version: "0.6.0" # Using the more recent version from the .json file
+intent: "Build a self-improving AI coding assistant that can evolve itself through prompts, code, and validation."
+
+# Defines the primary agents responsible for executing CORE's logic.
+active_agents:
+  - planner_agent
+  - test_runner
+  - validator_agent # Added for clarity
+
+# Defines high-level roles for key directories.
+folder_roles:
+  "src/core": "Core logic and FastAPI services"
+  "src/system": "Governance, introspection, and lifecycle tools"
+  "src/agents": "Specialized AI actors (planners, reviewers, suggesters)"
+  "tests": "Pytest-based validation for core behaviors"
+  ".intent": "The 'brain' of the system: declarations, policies, and knowledge"
+
+# Top-level configuration flags for system behavior.
+configuration:
+  allow_self_rewrites: true
+  execution_mode: "auto" # 'auto' or 'manual_review'
+
+# Metadata about the manifest file itself.
+meta:
+  created_by: "CORE v0.1 bootstrap"
+  created_at: "2025-07-23T00:00:00Z"
+  last_updated: "2025-08-15T12:00:00Z" # Using a placeholder for today
+
+# --- Operator UX policy -------------------------------------------------------
+operator_experience:
+  guard:
+    drift:
+      # Default presentation when the operator runs the command with no flags:
+      default_format: pretty        # options: pretty | table | json
+      default_fail_on: any          # options: any | missing | undeclared
+      strict_default: true          # require KG/artifact by default
+      evidence_json: true           # always write JSON evidence to disk
+      evidence_path: reports/drift_report.json
+      labels:
+        none: "NONE"                # how to label empty sections
+        success: "✅ No capability drift"
+        failure: "🚨 Drift detected"
+--- END OF FILE ./.intent/project_manifest.yaml ---
+
+--- START OF FILE ./.intent/prompts/code_peer_review.prompt ---
+You are an expert Senior Staff Software Engineer, renowned for your insightful, pragmatic, and constructive code reviews. You prioritize clarity, simplicity, and robustness over cleverness or over-engineering.
+
+You will be provided with a Python source code file from the CORE project. Your task is to analyze it and provide a better, improved version along with a clear justification for your changes.
+
+Your entire output MUST be in Markdown format and follow this structure precisely:
+
+### 1. Overall Assessment
+A brief, high-level summary of the code's quality, strengths, and primary areas for improvement.
+
+### 2. Justification for Changes
+A bulleted list explaining *why* you are making each change. Reference specific principles like clarity, efficiency, or robustness. Be concise but clear.
+
+### 3. Improved Code
+Provide the complete, final, and improved version of the source code inside a single Python markdown block.
+
+**CRITICAL RULES:**
+- **Do not over-engineer.** The goal is improvement, not a total rewrite into a different paradigm.
+- **Preserve functionality.** The improved code must do exactly what the original code did, just better.
+- **Respect the existing style.** Maintain the overall coding style of the file.
+- **Your output must be the full file content.** Do not provide only a diff or a snippet.
+
+Begin your review. The source code is provided below.
+--- END OF FILE ./.intent/prompts/code_peer_review.prompt ---
+
+--- START OF FILE ./.intent/prompts/constitutional_review.prompt ---
 You are an expert AI system architect and a specialist in writing clear, machine-readable governance documents.
 
 You will be provided with a "constitutional bundle" from a self-governing software system named CORE. This bundle contains the entire ".intent/" directory, which is the system's "Mind". It defines all of the system's principles, policies, capabilities, and self-knowledge.
@@ -1001,9 +1829,256 @@ Identify any potential gaps in the constitution. Are there missing policies, und
 
 Begin your review now. The constitutional bundle is provided below.
 
---- END OF FILE .intent/prompts/constitutional_review.prompt ---
+--- END OF FILE ./.intent/prompts/constitutional_review.prompt ---
 
---- START OF FILE .intent/schemas/config_schema.yaml ---
+--- START OF FILE ./.intent/prompts/docs_clarity_review.prompt ---
+You are an expert technical writer and developer advocate. Your primary skill is explaining complex software concepts to intelligent, but busy, programmers.
+
+You will be provided with a bundle of all the human-facing documentation (.md files) for a software project called CORE.
+
+Your task is to perform a "human clarity audit." Read all the documents and then answer the following questions from the perspective of a first-time reader who is a skilled developer but knows nothing about this project.
+
+Your entire output MUST be in Markdown format.
+
+**1. The "Stijn Test": What Does It Do?**
+In one or two simple sentences, what is CORE and what problem does it solve? If you cannot answer this clearly, state that the documentation has failed this primary test.
+
+**2. Overall Clarity Score (1-10):**
+Give a score from 1 (completely incomprehensible) to 10 (perfectly clear). Justify your score with specific examples from the text.
+
+**3. Suggestions for Improvement:**
+Provide a numbered list of the top 3-5 concrete suggestions to improve the documentation's clarity. For each suggestion, quote the confusing text and explain WHY it is confusing.
+
+**4. Conceptual Gaps:**
+Are there any obvious questions a new user would have that the documentation doesn't answer? (e.g., "Who is this for?", "What's the difference between this and X?").
+
+Begin your audit now. The documentation bundle is provided below.
+--- END OF FILE ./.intent/prompts/docs_clarity_review.prompt ---
+
+--- START OF FILE ./.intent/prompts/module_docstring_writer.prompt ---
+# Prompt — Module-Level Docstring Writer
+
+You are an expert technical writer for a Python project called CORE. Your task is to write a concise, one-sentence module-level docstring that explains the primary purpose or intent of a Python file.
+
+---
+
+## Critical Rules
+
+1. Your output MUST be a single line of text.
+2. Do **NOT** wrap the output in quotes or markdown.
+3. The docstring should describe the module's high-level responsibility.
+
+---
+
+## File Content
+
+```python
+{source_code}
+```
+
+---
+
+## Example Output
+
+Handles the discovery and loading of constitutional proposal files from disk.
+
+
+
+--- END OF FILE ./.intent/prompts/module_docstring_writer.prompt ---
+
+--- START OF FILE ./.intent/prompts/refactor_outlier.prompt ---
+# Refactoring Instructions — Senior Staff Software Engineer
+
+You are an expert Senior Staff Software-Engineer specializing in large-scale refactoring for a project named **CORE**. You excel at identifying distinct responsibilities within a single file and extracting them into new, focused modules that align with the existing architecture and avoid code duplication.
+
+You have been given a Python file that has been identified as a **complexity outlier** because it is too large and likely violates the `separation_of_concerns` principle.
+
+Your task is to **intelligently refactor this single large file into multiple smaller, focused files**, ensuring the new code is clean, efficient, and well-documented.
+
+---
+
+## ARCHITECTURAL HEURISTICS
+
+Your primary goal is to improve clarity and maintainability. Follow these heuristics to guide your refactoring decisions:
+
+* **Cohesion over Fragmentation:** Group related functions and data together. A module should have a single, clear, and significant responsibility. **Do not create a new file for a single variable or a trivial helper function.**
+* **The "Entry Point" Pattern:** It is good practice to have a main file for a module (e.g., `proposals.py`) that acts as the public API or entry point. This file should be simple, importing the complex logic from one or two dedicated helper modules (e.g., `proposals_commands.py`).
+* **Minimize New Files:** Aim to solve the complexity problem by creating the *minimum number of new files necessary*. A good refactoring often results in only one or two new files, not five.
+
+---
+
+## CONTEXT: Existing Project Capabilities
+
+To prevent code duplication, first review this summary of key functions that already exist elsewhere in the project. **If a function you need already exists, import and reuse it instead of rewriting it.**
+
+```json
+{knowledge_graph_summary}
+```
+
+---
+
+## REQUIREMENTS: Input File to Refactor
+
+```python
+{source_code}
+```
+
+---
+
+## CRITICAL RULES & WORKFLOW
+
+You must follow this precise workflow:
+
+1. **Analyze & Plan**
+   First, analyze the source code to identify distinct responsibilities. Create a plan to extract each responsibility into its own new file. The original file should be simplified to a clean entry point that imports and uses the new modules.
+
+2. **Generate Compliant Code**
+   Generate the complete source code for **ALL new files AND the modified original file**. The refactored code must be functionally identical to the original.
+
+3. **Adhere to the Constitution**
+   The full source code for ALL files in your output MUST be 100% compliant with the **CORE constitutional style guide**. This means every file MUST include:
+
+   * A file path comment on the first line (e.g., `# src/system/admin/proposals_commands.py`).
+   * A complete, high-quality module-level docstring explaining the file's single responsibility.
+   * The `from __future__ import annotations` import.
+   * Docstrings for all public functions and classes you create. These docstrings must clearly describe the function's purpose, its parameters (**Args:**), and what it returns (**Returns:**).
+
+   **Use Relative Imports**: Assume all new files are in the same directory as the original file and use relative imports (e.g., `from . import ...`).
+
+---
+
+## OUTPUT FORMAT
+
+Your entire output MUST be a single, valid **JSON object**.
+
+The JSON object must have **file paths as keys** and the complete, new source code for each file as **string values**.
+
+---
+
+## INSTRUCTION
+
+Begin the refactoring now.
+
+--- END OF FILE ./.intent/prompts/refactor_outlier.prompt ---
+
+--- START OF FILE ./.intent/schemas/agent_reasoning_policy.schema.json ---
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Agent Reasoning Policy",
+  "description": "Schema for governing the cognitive processes of autonomous agents.",
+  "type": "object",
+  "required": ["rules"],
+  "properties": {
+    "rules": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "description", "enforcement"],
+        "properties": {
+          "id": { "type": "string" },
+          "description": { "type": "string" },
+          "enforcement": { "enum": ["hard", "soft", "manual_review"] },
+          "precondition_for_planning": { "type": "string" },
+          "required_justification_for_action": { "type": "string" },
+          "evidence": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        }
+      }
+    }
+  },
+  "additionalProperties": false
+}
+--- END OF FILE ./.intent/schemas/agent_reasoning_policy.schema.json ---
+
+--- START OF FILE ./.intent/schemas/canary_policy.schema.json ---
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Canary Policy",
+  "type": "object",
+  "required": ["version", "id", "title", "status", "triggers", "requirements", "failure_actions", "owners"],
+  "properties": {
+    "version": { "type": "integer", "minimum": 1 },
+    "id": { "const": "canary_policy" },
+    "title": { "type": "string" },
+    "status": { "enum": ["active", "draft", "archived"] },
+    "triggers": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["name", "condition"],
+        "properties": {
+          "name": { "type": "string" },
+          "condition": { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "requirements": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "rule", "enforcement", "evidence"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^canary-\\d+$" },
+          "rule": { "type": "string" },
+          "enforcement": { "enum": ["hard", "soft"] },
+          "evidence": { "type": "array", "items": { "type": "string" } }
+        },
+        "additionalProperties": false
+      }
+    },
+    "failure_actions": { "type": "array", "items": { "type": ["string", "object"] } },
+    "owners": { "type": "object" }
+  },
+  "additionalProperties": true
+}
+
+--- END OF FILE ./.intent/schemas/canary_policy.schema.json ---
+
+--- START OF FILE ./.intent/schemas/cognitive_roles.schema.json ---
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Cognitive Roles Policy",
+  "description": "Schema for defining abstract cognitive roles and assigning them to named resources.",
+  "type": "object",
+  "required": ["cognitive_roles"],
+  "properties": {
+    "cognitive_roles": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["role", "description", "assigned_resource", "required_capabilities"],
+        "properties": {
+          "role": {
+            "type": "string",
+            "description": "The unique name of the cognitive role (e.g., 'Planner')."
+          },
+          "description": {
+            "type": "string"
+          },
+          "assigned_resource": {
+            "type": "string",
+            "description": "The named resource (e.g., 'deepseek_chat') to assign to this role."
+          },
+          "required_capabilities": {
+            "type": "array",
+            "description": "A list of skills required by this role for validation.",
+            "items": { "type": "string" }
+          }
+        }
+      }
+    }
+  },
+  "additionalProperties": false
+}
+--- END OF FILE ./.intent/schemas/cognitive_roles.schema.json ---
+
+--- START OF FILE ./.intent/schemas/config_schema.yaml ---
 # .intent/schemas/config_schema.yaml
 git:
   ignore_validation:
@@ -1012,9 +2087,81 @@ git:
     description: >
       If true, skips Git pre-write checks. MUST be false in production or fallback modes
       to maintain rollback safety. Only for emergency recovery.
---- END OF FILE .intent/schemas/config_schema.yaml ---
+--- END OF FILE ./.intent/schemas/config_schema.yaml ---
 
---- START OF FILE .intent/schemas/knowledge_graph_entry.schema.json ---
+--- START OF FILE ./.intent/schemas/data_privacy_policy.schema.json ---
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Data Privacy Policy",
+  "type": "object",
+  "required": ["version", "id", "title", "status", "scope", "principles", "owners", "review"],
+  "properties": {
+    "version": { "type": "integer", "minimum": 1 },
+    "id": { "const": "data_privacy" },
+    "title": { "type": "string" },
+    "status": { "enum": ["active", "draft", "archived"] },
+    "scope": { "type": "object" },
+    "principles": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "rule", "enforcement", "evidence"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^dp-\\d+$" },
+          "name": { "type": "string" },
+          "rule": { "type": "string" },
+          "enforcement": { "enum": ["hard", "soft"] },
+          "evidence": { "type": "array", "items": { "type": "string" } }
+        },
+        "additionalProperties": false
+      }
+    },
+    "owners": { "type": "object" },
+    "review": { "type": "object" }
+  },
+  "additionalProperties": true
+}
+
+--- END OF FILE ./.intent/schemas/data_privacy_policy.schema.json ---
+
+--- START OF FILE ./.intent/schemas/data_retention_policy.schema.json ---
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Data Retention Policy",
+  "type": "object",
+  "required": ["version", "id", "title", "status", "retention_table", "owners", "review"],
+  "properties": {
+    "version": { "type": "integer", "minimum": 1 },
+    "id": { "const": "data_retention" },
+    "title": { "type": "string" },
+    "status": { "enum": ["active", "draft", "archived"] },
+    "retention_table": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["category", "retention", "deletion_sla", "enforcement"],
+        "properties": {
+          "category": { "type": "string" },
+          "description": { "type": "string" },
+          "retention": { "type": "string" },
+          "deletion_sla": { "type": "string" },
+          "enforcement": { "enum": ["hard", "soft"] }
+        },
+        "additionalProperties": false
+      }
+    },
+    "legal_holds": { "type": "object" },
+    "owners": { "type": "object" },
+    "review": { "type": "object" }
+  },
+  "additionalProperties": true
+}
+
+--- END OF FILE ./.intent/schemas/data_retention_policy.schema.json ---
+
+--- START OF FILE ./.intent/schemas/knowledge_graph_entry.schema.json ---
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://core.system/schema/knowledge_graph_entry.json",
@@ -1076,5 +2223,136 @@ git:
   "additionalProperties": false
 }
 
---- END OF FILE .intent/schemas/knowledge_graph_entry.schema.json ---
+--- END OF FILE ./.intent/schemas/knowledge_graph_entry.schema.json ---
+
+--- START OF FILE ./.intent/schemas/proposal.schema.json ---
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://core.local/schemas/proposal.schema.json",
+  "title": "CORE Proposal (v1)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["target_path", "action", "justification", "content"],
+  "properties": {
+    "target_path": {
+      "type": "string",
+      "description": "Repo-relative path to the file to be replaced. Must not be inside .intent/proposals/.",
+      "pattern": "^(?!\\.intent\\/proposals\\/)[\\w\\-\\.\\/]+$",
+      "$comment": "Allows any path as long as it's not writing into the proposals directory itself."
+    },
+    "action": {
+      "type": "string",
+      "enum": ["replace_file"],
+      "description": "Currently only full file replacement is supported."
+    },
+    "justification": {
+      "type": "string",
+      "minLength": 10,
+      "description": "Human-readable rationale for the change.",
+      "pattern": "\\S"
+    },
+    "content": {
+      "type": "string",
+      "minLength": 1
+    },
+    "signatures": {
+      "type": "array",
+      "description": "Optional array of signature objects.",
+      "items": { "$ref": "#/$defs/signature" }
+    }
+  },
+  "$defs": {
+    "signature": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["identity", "signature_b64", "token", "timestamp"],
+      "properties": {
+        "identity": { "type": "string" },
+        "signature_b64": { "type": "string", "contentEncoding": "base64" },
+        "token": {
+          "type": "string",
+          "pattern": "^core-proposal-v[0-9]+:[a-f0-9]{64}$",
+          "$comment": "Allows any version number for the token, e.g., v1, v6."
+        },
+        "timestamp": { "type": "string", "format": "date-time" }
+      }
+    }
+  }
+}
+--- END OF FILE ./.intent/schemas/proposal.schema.json ---
+
+--- START OF FILE ./.intent/schemas/resource_manifest.schema.json ---
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "LLM Resource Manifest",
+  "description": "Schema for defining the available LLM resources and their capabilities.",
+  "type": "object",
+  "required": ["llm_resources"],
+  "properties": {
+    "llm_resources": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["name", "provided_capabilities", "env_prefix"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "The unique logical name for this resource (e.g., 'deepseek_chat')."
+          },
+          "provided_capabilities": {
+            "type": "array",
+            "description": "A list of skills this resource offers.",
+            "items": { "type": "string" }
+          },
+          "env_prefix": {
+            "type": "string",
+            "description": "The prefix for environment variables (e.g., 'DEEPSEEK_CHAT' for DEEPSEEK_CHAT_API_URL)."
+          }
+        }
+      }
+    }
+  },
+  "additionalProperties": false
+}
+--- END OF FILE ./.intent/schemas/resource_manifest.schema.json ---
+
+--- START OF FILE ./.intent/schemas/runtime_requirements.schema.json ---
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Runtime Requirements",
+  "type": "object",
+  "required": ["id", "version", "title", "status", "variables", "owners", "review"],
+  "properties": {
+    "id": { "const": "runtime_requirements" },
+    "version": { "type": "integer", "minimum": 1 },
+    "title": { "type": "string" },
+    "status": { "enum": ["active", "draft", "archived"] },
+    "owners": { "type": "object" },
+    "review": { "type": "object" },
+    "variables": {
+      "type": "object",
+      "minProperties": 1,
+      "patternProperties": {
+        "^[A-Z0-9_]+$": {
+          "type": "object",
+          "required": ["description", "source", "required", "type", "used_by"],
+          "properties": {
+            "description": { "type": "string" },
+            "source": { "enum": ["env", "secret", "cli"] },
+            "required": { "type": "boolean" },
+            "type": { "enum": ["string", "integer", "bool", "enum", "uri", "path"] },
+            "allowed": { "type": "array", "items": { "type": "string" } },
+            "default": {},
+            "used_by": { "type": "array", "items": { "type": "string" } },
+            "required_when": { "type": "string" }
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}
+--- END OF FILE ./.intent/schemas/runtime_requirements.schema.json ---
 

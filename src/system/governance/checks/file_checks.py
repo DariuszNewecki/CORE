@@ -1,12 +1,7 @@
 # src/system/governance/checks/file_checks.py
-"""
-Audits file existence, syntax validity, and orphan detection for constitutional governance files.
-"""
+"""Audits file existence, syntax validity, and orphan detection for constitutional governance files."""
 
 from __future__ import annotations
-
-# src/system/governance/checks/file_checks.py
-"""Auditor checks related to file existence, format, and structure."""
 
 from pathlib import Path
 from typing import List, Set
@@ -24,6 +19,10 @@ class FileChecks:
         self.context = context
         self.intent_dir: Path = context.intent_dir
         self.repo_root: Path = context.repo_root
+        # Load the new audit ignore policy at initialization.
+        self.audit_ignore_policy = self.context.load_config(
+            self.context.intent_dir / "policies" / "audit_ignore.yaml"
+        )
 
     # CAPABILITY: audit.check.required_files
     def check_required_files(self) -> List[AuditFinding]:
@@ -126,13 +125,14 @@ class FileChecks:
         if not known_files:
             return findings
 
-        ignore_patterns = {
-            ".bak",
-            "proposals",
-            ".example",
-            ".lock",
-            "knowledge_graph.json",
+        # Combine hardcoded ignores with policy-driven ignores
+        policy_ignores = set(self.audit_ignore_policy.get("ignore_patterns", []))
+        runtime_ignores = {
+            "proposals",  # The whole directory is handled by proposal checks
+            "knowledge_graph.json",  # It's a generated artifact
         }
+        ignore_patterns = policy_ignores.union(runtime_ignores)
+
         physical_files = {
             str(p.relative_to(self.repo_root)).replace("\\", "/")
             for p in self.intent_dir.rglob("*")

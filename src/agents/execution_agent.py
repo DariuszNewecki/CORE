@@ -5,12 +5,6 @@ Handles the execution of validated plans by generating required code and orchest
 
 from __future__ import annotations
 
-# src/agents/execution_agent.py
-"""
-The ExecutionAgent is responsible for taking a concrete, validated execution
-plan from the PlannerAgent and carrying it out. Its concerns are purely
-about the "doing": generating code and running the execution tasks.
-"""
 import textwrap
 from pathlib import Path
 from typing import List

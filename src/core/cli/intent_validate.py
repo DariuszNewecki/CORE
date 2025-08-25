@@ -6,6 +6,7 @@ Usage (from repo root):
   # or (after wiring into your CLI)
   core-admin validate-intent
 """
+
 from __future__ import annotations
 
 import json

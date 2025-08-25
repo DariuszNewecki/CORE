@@ -5,10 +5,6 @@ Loads JSON or YAML configuration files into dictionaries with consistent error h
 
 from __future__ import annotations
 
-"""
-Provides a utility function for loading JSON or YAML configuration files into dictionaries with consistent error handling.
-"""
-# src/shared/config_loader.py
 import json
 from pathlib import Path
 from typing import Any, Dict

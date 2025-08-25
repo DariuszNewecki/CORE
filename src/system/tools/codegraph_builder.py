@@ -5,10 +5,6 @@ Orchestrates the generation of a comprehensive knowledge graph from a Python cod
 
 from __future__ import annotations
 
-"""
-Orchestrates the generation of a comprehensive knowledge graph from a Python codebase by scanning files, analyzing ASTs, mapping domains, and applying patterns.
-"""
-# src/system/tools/codegraph_builder.py
 import json
 from dataclasses import asdict
 from datetime import datetime, timezone

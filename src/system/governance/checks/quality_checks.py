@@ -5,9 +5,6 @@ Audits code quality by checking for missing docstrings, generic intents, and dea
 
 from __future__ import annotations
 
-# src/system/governance/checks/quality_checks.py
-"""Auditor checks related to code quality and conventions."""
-
 from system.governance.models import AuditFinding, AuditSeverity
 
 

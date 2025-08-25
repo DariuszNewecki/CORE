@@ -5,11 +5,6 @@ Applies declarative patterns to identify non-obvious entry points in the knowled
 
 from __future__ import annotations
 
-# src/system/tools/pattern_matcher.py
-"""
-A dedicated module for applying declarative patterns to identify non-obvious
-entry points in the knowledge graph.
-"""
 import re
 from pathlib import Path
 from typing import Any, Dict, List, Set

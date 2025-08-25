@@ -1,15 +1,12 @@
 # src/shared/utils/constitutional_parser.py
 """
 Parses the constitutional structure definition from meta.yaml to discover all declared file paths.
+Provides the single, authoritative source for interpreting the structure
+of the constitution as defined in .intent/meta.yaml.
 """
 
 from __future__ import annotations
 
-# src/shared/utils/constitutional_parser.py
-"""
-Provides the single, authoritative source for interpreting the structure
-of the constitution as defined in .intent/meta.yaml.
-"""
 from pathlib import Path
 from typing import Any, Set
 

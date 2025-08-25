@@ -3,6 +3,7 @@
 Intent: Compares two sets of capabilities (from manifest and code) to detect
 drift and produces a machine-readable report.
 """
+
 from __future__ import annotations
 
 import json

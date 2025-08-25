@@ -4,6 +4,7 @@ Orchestrates all proposal-related checks by delegating to specialized,
 injected dependencies. This adheres to Dependency Injection principles for
 better modularity and testability.
 """
+
 from __future__ import annotations
 
 from .proposal_loader import ProposalLoader
