@@ -9,7 +9,7 @@ cognitive_roles:
     description: "Decomposes high-level goals into abstract, executable plans."
     assigned_resource: "anthropic_claude_sonnet"
     required_capabilities:
-      - "llm_orchestration"
+      - "planning"
       - "prompt_interpretation"
 
   - role: "Coder"
@@ -28,17 +28,18 @@ cognitive_roles:
     description: "Reviews code for potential security vulnerabilities according to policy."
     assigned_resource: "deepseek_chat"
     required_capabilities:
-      - "self_review" # Using 'self_review' as a proxy for security analysis.
+      - "security_review"
   
   - role: "CodeReviewer"
     description: "Analyzes existing code for improvements in clarity, efficiency, and adherence to best practices."
     assigned_resource: "deepseek_coder"
     required_capabilities:
       - "self_review"
+      - "refactoring"
 
   - role: "RefactoringArchitect"
     description: "Plans and executes multi-file refactoring of complex code to improve modularity and clarity."
     assigned_resource: "anthropic_claude_sonnet"
     required_capabilities:
       - "code_generation"
-      - "planning"
+      - "llm_orchestration"

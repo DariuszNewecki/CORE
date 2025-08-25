@@ -9,9 +9,9 @@ llm_resources:
       - "natural_language_understanding"
       - "planning"
       - "decomposition"
-      - "documentation" # <-- ADDED PER OUR AGREEMENT
+      - "documentation"
       - "security_review"
-      - "prompt_interpretation" # Added for completeness as it's used by Planner role
+      - "prompt_interpretation"
 
     env_prefix: "DEEPSEEK_CHAT"
 
@@ -19,6 +19,7 @@ llm_resources:
     provided_capabilities:
       - "code_generation"
       - "refactoring"
+      - "self_review"
     env_prefix: "DEEPSEEK_CODER"
 
   - name: "anthropic_claude_sonnet"
@@ -29,4 +30,5 @@ llm_resources:
       - "documentation"
       - "security_review"
       - "code_generation"
+      - "prompt_interpretation"
     env_prefix: "ANTHROPIC_CLAUDE_SONNET"
