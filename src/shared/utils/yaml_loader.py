@@ -5,9 +5,6 @@ Provides utilities for loading and parsing YAML files into Python dictionaries.
 
 from __future__ import annotations
 
-"""
-Provides utilities for loading and parsing YAML files into Python dictionaries.
-"""
 from pathlib import Path
 from typing import Any, Dict
 

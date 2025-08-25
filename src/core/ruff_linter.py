@@ -1,15 +1,12 @@
 # src/core/ruff_linter.py
 """
 Provides a utility to fix and lint Python code using Ruff's JSON output format.
+Runs Ruff lint checks on generated Python code before it's staged.
+Returns a success flag and an optional linting message.
 """
 
 from __future__ import annotations
 
-# src/core/ruff_linter.py
-"""
-Runs Ruff lint checks on generated Python code before it's staged.
-Returns a success flag and an optional linting message.
-"""
 import json
 import os
 import subprocess

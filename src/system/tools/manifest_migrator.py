@@ -5,11 +5,6 @@ A CLI tool to migrate a monolithic project manifest into domain-specific manifes
 
 from __future__ import annotations
 
-# src/system/tools/manifest_migrator.py
-"""
-A CLI tool to migrate the monolithic project_manifest.yaml into domain-specific
-manifests, as per the modular manifest architecture.
-"""
 import json
 from pathlib import Path
 

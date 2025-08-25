@@ -5,14 +5,6 @@ Provides safe, auditable file operations with staged writes requiring confirmati
 
 from __future__ import annotations
 
-# src/core/file_handler.py
-"""
-Backend File Handling Module (Refactored)
-
-Handles staging and writing file changes. It supports traceable, auditable
-operations. All writes go through a pending stage to enable review and rollback.
-"""
-
 import json
 import threading
 from datetime import datetime, timezone

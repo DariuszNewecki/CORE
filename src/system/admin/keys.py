@@ -7,6 +7,7 @@ Provides Ed25519 key generation and helper output for approver configuration.
 from __future__ import annotations
 
 import os
+from datetime import datetime, timezone
 
 import typer
 import yaml
@@ -16,7 +17,7 @@ from cryptography.hazmat.primitives.asymmetric import ed25519
 from shared.config import settings
 from shared.logger import getLogger
 
-log = getLogger("core_admin")
+log = getLogger("core_admin.keys")
 
 
 def register(app: typer.Typer) -> None:
@@ -25,13 +26,17 @@ def register(app: typer.Typer) -> None:
     @app.command("keygen")
     def keygen(
         identity: str = typer.Argument(
-            help="Identity for the key pair (e.g., 'your.name@example.com')."
+            ..., help="Identity for the key pair (e.g., 'your.name@example.com')."
         ),
     ) -> None:
         """Intent: Generate a new Ed25519 key pair and print an approver YAML block."""
         log.info(f"🔑 Generating new key pair for identity: {identity}")
-        settings.KEY_STORAGE_DIR.mkdir(parents=True, exist_ok=True)
-        private_key_path = settings.KEY_STORAGE_DIR / "private.key"
+
+        # --- THIS IS THE FIX: Use the new, constitutionally-valid setting ---
+        key_storage_dir = settings.REPO_PATH / settings.KEY_STORAGE_DIR
+        key_storage_dir.mkdir(parents=True, exist_ok=True)
+        private_key_path = key_storage_dir / "private.key"
+        # --- END OF FIX ---
 
         if private_key_path.exists():
             typer.confirm(
@@ -60,15 +65,12 @@ def register(app: typer.Typer) -> None:
             "\n📋 Add the following YAML block to '.intent/constitution/approvers.yaml' under 'approvers':\n"
         )
 
-        approver_yaml = yaml.dump(
-            [
-                {
-                    "identity": identity,
-                    "public_key": pem_public.decode("utf-8"),
-                    "role": "maintainer",
-                    "description": "Primary maintainer",
-                }
-            ],
-            indent=2,
-        )
-        print(approver_yaml)
+        approver_data = {
+            "identity": identity,
+            "public_key": pem_public.decode("utf-8"),
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "role": "maintainer",
+            "description": "Primary maintainer",
+        }
+        # Use sort_keys=False to maintain a more readable order
+        print(yaml.dump([approver_data], indent=2, sort_keys=False))

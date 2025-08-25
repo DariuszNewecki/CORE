@@ -5,8 +5,6 @@ Audits the system's runtime environment for required configuration and environme
 
 from __future__ import annotations
 
-# src/system/governance/checks/environment_checks.py
-"""Auditor checks related to the system's runtime environment."""
 import os
 
 from system.governance.models import AuditFinding, AuditSeverity
@@ -22,7 +20,6 @@ class EnvironmentChecks:
     # CAPABILITY: audit.check.environment
     def check_runtime_environment(self) -> list[AuditFinding]:
         """Verifies that required environment variables specified in runtime_requirements.yaml are set, returning a list of audit findings for missing variables or configuration issues."""
-        """Verifies that required environment variables are set."""
         findings = []
         check_name = "Runtime Environment Validation"
 
@@ -40,12 +37,20 @@ class EnvironmentChecks:
             return findings
 
         requirements = self.context.load_config(requirements_path, "yaml")
-        required_vars = requirements.get("required_environment_variables", [])
+        # The new structure is a map under the 'variables' key.
+        required_vars = requirements.get("variables", {})
 
         missing_vars = []
-        for var in required_vars:
-            if var.get("required") and not os.getenv(var.get("name")):
-                missing_vars.append(var)
+        for name, config in required_vars.items():
+            # Check if required is true and the env var is not set.
+            if config.get("required") and not os.getenv(name):
+                # Also pass along the description for a better error message.
+                missing_vars.append(
+                    {
+                        "name": name,
+                        "description": config.get("description", "No description."),
+                    }
+                )
 
         if missing_vars:
             for var in missing_vars:

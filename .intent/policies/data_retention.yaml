@@ -1,4 +1,6 @@
 # .intent/policies/data_retention.yaml
+version: 1
+id: data_retention
 title: Data Retention & Deletion Policy
 status: active
 

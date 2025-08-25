@@ -5,15 +5,6 @@ Implements the 'byor-init' command to analyze external repositories and scaffold
 
 from __future__ import annotations
 
-# src/system/admin/byor.py
-"""
-Intent: Implements the 'byor-init' command for the CORE Admin CLI.
-
-This command is the entry point for the "Bring Your Own Repo" capability.
-It analyzes an external repository and proposes a minimal `.intent/`
-scaffold to begin governing it with CORE.
-"""
-
 from pathlib import Path
 
 import typer

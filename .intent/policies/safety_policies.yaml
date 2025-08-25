@@ -85,6 +85,7 @@ rules:
       - "api.openai.com"
       - "github.com"
       - "api.deepseek.com"
+      - "api.anthropic.com"
     action: reject
     feedback: |
       ❌ Attempt to contact unauthorized domain: {{domain}}. Update safety_policies.yaml to allow if needed.
@@ -94,7 +95,7 @@ rules:
   # ===================================================================
   - id: change_must_be_logged
     description: >
-      Every file change must be preceded by a log entry in .intent/change_log.json
+      Every file change must be preceded by a log entry recorded at CORE_ACTION_LOG_PATH
       with IntentBundle ID and description.
     enforcement: hard
     triggers:
@@ -102,4 +103,4 @@ rules:
     validator: change_log_checker
     action: reject_if_unlogged
     feedback: |
-      ❌ No prior log entry found for this change. Use CHANGE_LOG_PATH to register intent first.
+      ❌ No prior log entry found for this change. Write to CORE_ACTION_LOG_PATH before modifying files.

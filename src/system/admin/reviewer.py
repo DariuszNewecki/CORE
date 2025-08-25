@@ -5,19 +5,10 @@ Provides commands for AI-powered review of the constitution, documentation, and 
 
 from __future__ import annotations
 
-# src/system/admin/reviewer.py
-"""
-Intent: Implements commands related to constitutional review and improvement.
-This includes exporting the constitution for external analysis and orchestrating
-an AI-powered peer review for both the machine-readable constitution and the
-human-readable documentation.
-"""
-
 from pathlib import Path
 from typing import List, Set
 
 import typer
-import yaml
 from rich.console import Console
 from rich.markdown import Markdown
 from rich.panel import Panel
@@ -28,8 +19,16 @@ from shared.logger import getLogger
 
 log = getLogger("core_admin.review")
 
-# --- Configuration for what to ignore during bundling ---
-INTENT_IGNORE_PATTERNS = {"proposals", "knowledge_graph.json", ".bak", ".example"}
+# Defines patterns to exclude from the constitutional bundle export.
+# This is more robust and pragmatic than relying solely on meta.yaml.
+INTENT_IGNORE_PATTERNS = {
+    "proposals",  # Excludes the entire directory of unratified changes
+    "keys",  # Excludes the directory with sensitive private keys
+    "knowledge_graph.json",  # Excludes the large, generated artifact
+    ".lock",  # Excludes lock files
+    ".bak",  # Excludes backup files
+    ".example",  # Excludes example files
+}
 DOCS_IGNORE_DIRS = {"assets", "archive", "migrations", "examples"}
 
 
@@ -52,34 +51,26 @@ def _get_bundle_content(files_to_bundle: List[Path], root_dir: Path) -> str:
 
 
 def _get_constitutional_files() -> List[Path]:
-    """Discovers and returns a list of all machine-readable constitutional files."""
+    """
+    Discovers all constitutional files by scanning the .intent directory and
+    applying a deny-list, rather than relying on meta.yaml.
+    """
     intent_dir = settings.MIND
-    meta_path = intent_dir / "meta.yaml"
-    if not meta_path.exists():
-        return []
+    found_files = []
 
-    meta_content = yaml.safe_load(meta_path.read_text(encoding="utf-8"))
+    for file_path in intent_dir.rglob("*"):
+        if not file_path.is_file():
+            continue
 
-    def find_paths_in_meta(data):
-        paths = []
-        if isinstance(data, dict):
-            for value in data.values():
-                paths.extend(find_paths_in_meta(value))
-        elif isinstance(data, list):
-            for item in data:
-                paths.extend(find_paths_in_meta(item))
-        elif isinstance(data, str) and "/" in data:
-            paths.append(data)
-        return paths
+        # Check if any part of the path contains an ignored pattern
+        if not any(
+            ign in str(part)
+            for ign in INTENT_IGNORE_PATTERNS
+            for part in file_path.parts
+        ):
+            found_files.append(file_path)
 
-    discovered_paths = find_paths_in_meta(meta_content)
-    discovered_paths.append("meta.yaml")
-
-    return [
-        intent_dir / p
-        for p in set(discovered_paths)
-        if not any(ign in p for ign in INTENT_IGNORE_PATTERNS)
-    ]
+    return found_files
 
 
 def _get_docs_files() -> List[Path]:
@@ -242,3 +233,15 @@ def register(app: typer.Typer):
     review_app.command("constitution")(peer_review)
     review_app.command("docs")(docs_clarity_audit)
     review_app.command("code")(code_review)
+
+    # Add the export command directly here for simplicity
+    @review_app.command("export")
+    def export_bundle():
+        """Packages the full .intent/ directory into a single bundle for external analysis."""
+        _orchestrate_review(
+            bundle_name="constitutional",
+            prompt_filename="constitutional_review.prompt",
+            file_gatherer_fn=_get_constitutional_files,
+            output_path=Path("reports/manual_review_package.txt"),
+            no_send=True,
+        )

@@ -5,13 +5,6 @@ Handles automated correction of code failures by generating and validating LLM-s
 
 from __future__ import annotations
 
-# src/core/self_correction_engine.py
-"""
-Self-Correction Engine
-This module takes failure context (from validation or test failure)
-and attempts to repair the issue using a structured LLM prompt,
-then stages the corrected version via the file handler.
-"""
 import json
 from pathlib import Path
 

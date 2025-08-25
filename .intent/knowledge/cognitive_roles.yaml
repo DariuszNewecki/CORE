@@ -38,7 +38,7 @@ cognitive_roles:
 
   - role: "RefactoringArchitect"
     description: "Plans and executes multi-file refactoring of complex code to improve modularity and clarity."
-    assigned_resource: "deepseek_coder"
+    assigned_resource: "anthropic_claude_sonnet"
     required_capabilities:
       - "code_generation"
       - "planning"

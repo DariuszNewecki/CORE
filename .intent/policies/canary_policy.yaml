@@ -1,4 +1,6 @@
 # .intent/policies/canary_policy.yaml
+version: 1
+id: canary_policy
 title: Canary Pre-Flight Policy
 status: active
 

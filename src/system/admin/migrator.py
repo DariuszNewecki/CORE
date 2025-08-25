@@ -5,11 +5,6 @@ Registers the manifest migration tool with the CORE Admin CLI.
 
 from __future__ import annotations
 
-# src/system/admin/migrator.py
-"""
-Intent: Registers the manifest migration tool with the CORE Admin CLI.
-"""
-
 import typer
 
 from system.tools.manifest_migrator import migrate_manifest

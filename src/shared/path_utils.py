@@ -5,7 +5,6 @@ Provides utility functions for working with file system paths within the reposit
 
 from __future__ import annotations
 
-# src/shared/path_utils.py
 from pathlib import Path
 from typing import Optional
 

@@ -3,6 +3,7 @@
 Auditor checks for code style and convention compliance, as defined in
 .intent/policies/code_style_policy.yaml.
 """
+
 from __future__ import annotations
 
 import ast

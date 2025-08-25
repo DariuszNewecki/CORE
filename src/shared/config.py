@@ -21,6 +21,7 @@ class Settings(BaseSettings):
     MIND: Path = Path(".intent")
     BODY: Path = Path("src")
     REPO_PATH: Path = Path(".")
+    KEY_STORAGE_DIR: Path = Path(".intent/keys")
 
     # --- System & Logging ---
     CORE_ENV: str = "development"

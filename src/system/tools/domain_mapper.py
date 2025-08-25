@@ -5,10 +5,6 @@ Maps file paths and symbols to their logical domains and responsible agents.
 
 from __future__ import annotations
 
-"""
-Maps file paths and symbols to their logical domains and responsible agents.
-"""
-# src/system/tools/domain_mapper.py
 from pathlib import Path
 
 from system.tools.config.builder_config import BuilderConfig

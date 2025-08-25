@@ -5,11 +5,6 @@ Data models and shared structures for the system's tooling to prevent circular i
 
 from __future__ import annotations
 
-# src/system/tools/models.py
-"""
-Data models and shared structures for the system's tooling.
-This module exists to prevent circular import dependencies.
-"""
 from dataclasses import dataclass, field
 from typing import List, Optional, Set
 

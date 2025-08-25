@@ -1,4 +1,6 @@
 # .intent/policies/data_privacy.yaml
+version: 1
+id: data_privacy
 title: Data Privacy Policy
 status: active
 

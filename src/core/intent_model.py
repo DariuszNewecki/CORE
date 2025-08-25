@@ -5,19 +5,6 @@ Loads and provides a queryable interface to the declared domain structure define
 
 from __future__ import annotations
 
-# src/core/intent_model.py
-
-"""
-CORE Intent Structure Loader
-============================
-
-Provides a normalized interface to the declared domain structure in:
-.intent/knowledge/source_structure.yaml
-
-Used to enforce boundaries, access rules, and governance alignment
-without hardcoding anything.
-"""
-
 from pathlib import Path
 from typing import Dict, List, Optional
 

@@ -1,15 +1,12 @@
 # src/system/admin/new.py
 """
 Handles the 'core-admin new' command for creating new project scaffolds.
+Intent: Defines the 'core-admin new' command, a user-facing wrapper
+around the Scaffolder tool.
 """
 
 from __future__ import annotations
 
-# src/system/admin/new.py
-"""
-Intent: Defines the 'core-admin new' command, a user-facing wrapper
-around the Scaffolder tool.
-"""
 import typer
 
 from system.tools.scaffolder import new_project

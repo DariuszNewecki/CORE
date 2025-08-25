@@ -5,10 +5,6 @@ Provides AST-based detection and classification of Python entry points including
 
 from __future__ import annotations
 
-"""
-Provides AST-based detection and classification of Python entry points, including CLI commands, FastAPI routes, and main block function calls.
-"""
-# src/system/tools/entry_point_detector.py
 import ast
 from typing import Optional, Set
 

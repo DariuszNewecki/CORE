@@ -5,10 +5,6 @@ Formats Python code using the Black formatter with robust error handling for syn
 
 from __future__ import annotations
 
-# src/core/black_formatter.py
-"""
-Formats Python code using Black before it's written to disk.
-"""
 import black
 
 

@@ -1,105 +1,133 @@
-# .intent/config/runtime_requirements.yaml
-#
-# PURPOSE: This file makes the system aware of its dependencies on the external environment.
-# It allows the ConstitutionalAuditor to verify that the system is correctly configured
-# at startup, without ever reading secret values.
+id: runtime_requirements
+version: 1
+title: "Runtime Requirements"
+status: active
+owners:
+  accountable: "Platform SRE"
+  responsible: ["Core Maintainer"]
+review:
+  frequency: "6 months"
 
-required_environment_variables:
-  - name: "MIND"
+variables:
+  MIND:
     description: "The relative path to the system's declarative 'mind' (.intent directory)."
-    type: "config"
+    source: env
     required: true
-
-  - name: "BODY"
+    type: path
+    used_by: ["system", "auditor"]
+  BODY:
     description: "The relative path to the system's executable 'body' (src directory)."
-    type: "config"
+    source: env
     required: true
-
-  - name: "REPO_PATH"
+    type: path
+    used_by: ["system"]
+  REPO_PATH:
     description: "The absolute path to the root of the repository."
-    type: "config"
+    source: env
     required: true
-
-  - name: "LLM_ENABLED"
+    type: path
+    used_by: ["system","auditor"]
+  LLM_ENABLED:
     description: "Master flag to enable or disable all LLM-related capabilities."
-    type: "config"
+    source: env
     required: true
-
-  # --- LLM Resource: deepseek_chat ---
-  - name: "DEEPSEEK_CHAT_API_URL"
-    description: "API URL for the 'deepseek_chat' resource."
-    type: "config"
-    required: false
-    required_when: "LLM_ENABLED == true"
-
-  - name: "DEEPSEEK_CHAT_API_KEY"
-    description: "API key for the 'deepseek_chat' resource."
-    type: "secret"
-    required: false
-    required_when: "LLM_ENABLED == true"
-
-  - name: "DEEPSEEK_CHAT_MODEL_NAME"
-    description: "Model name for the 'deepseek_chat' resource."
-    type: "config"
-    required: false
-    required_when: "LLM_ENABLED == true"
-
-  # --- LLM Resource: deepseek_coder ---
-  - name: "DEEPSEEK_CODER_API_URL"
-    description: "API URL for the 'deepseek_coder' resource."
-    type: "config"
-    required: false
-    required_when: "LLM_ENABLED == true"
-
-  - name: "DEEPSEEK_CODER_API_KEY"
-    description: "API key for the 'deepseek_coder' resource."
-    type: "secret"
-    required: false
-    required_when: "LLM_ENABLED == true"
-
-  - name: "DEEPSEEK_CODER_MODEL_NAME"
-    description: "Model name for the 'deepseek_coder' resource."
-    type: "config"
-    required: false
-    required_when: "LLM_ENABLED == true"
-  
-  # --- Other System Variables ---
-  - name: "CORE_ACTION_LOG_PATH"
-    description: "Path to the action log file."
-    type: "config"
+    type: bool
+    allowed: ["true","false"]
+    used_by: ["agents"]
+  KEY_STORAGE_DIR:
+    description: "The secure directory for storing operator private keys."
+    source: env
     required: true
-
-  - name: "CORE_ENV"
+    type: path
+    default: ".intent/keys"
+    used_by: ["system"]
+  CORE_ACTION_LOG_PATH:
+    description: "Path to the action/change log file."
+    source: env
+    required: true
+    type: path
+    used_by: ["auditor"]
+  CORE_ENV:
     description: "Runtime mode: 'development' or 'production'."
-    type: "config"
+    source: env
     required: true
-  
-  - name: "LOG_LEVEL"
-    description: "Logging level: DEBUG, INFO, WARNING, ERROR."
-    type: "config"
+    type: enum
+    allowed: ["development","production"]
+    used_by: ["system"]
+  LOG_LEVEL:
+    description: "Logging level."
+    source: env
     required: true
-  
-  - name: "CORE_DEV_FASTPATH"
-    description: "Enables development fastpath mode when set to 'true'."
-    type: "config"
+    type: enum
+    allowed: ["DEBUG","INFO","WARNING","ERROR"]
+    used_by: ["system"]
+  CORE_DEV_FASTPATH:
+    description: "Enable development fastpath."
+    source: env
     required: false
+    type: bool
+    used_by: ["system"]
     required_when: "CORE_ENV == 'development'"
-
-# --- LLM Resource: anthropic_claude_sonnet ---
-  - name: "ANTHROPIC_CLAUDE_SONNET_API_URL"
+  DEEPSEEK_CHAT_API_URL:
+    description: "API URL for the 'deepseek_chat' resource."
+    source: env
+    required: false
+    type: uri
+    used_by: ["agents"]
+    required_when: "LLM_ENABLED == true"
+  DEEPSEEK_CHAT_API_KEY:
+    description: "API key for the 'deepseek_chat' resource."
+    source: secret
+    required: false
+    type: string
+    used_by: ["agents"]
+    required_when: "LLM_ENABLED == true"
+  DEEPSEEK_CHAT_MODEL_NAME:
+    description: "Model name for the 'deepseek_chat' resource."
+    source: env
+    required: false
+    type: string
+    used_by: ["agents"]
+    required_when: "LLM_ENABLED == true"
+  DEEPSEEK_CODER_API_URL:
+    description: "API URL for the 'deepseek_coder' resource."
+    source: env
+    required: false
+    type: uri
+    used_by: ["agents"]
+    required_when: "LLM_ENABLED == true"
+  DEEPSEEK_CODER_API_KEY:
+    description: "API key for the 'deepseek_coder' resource."
+    source: secret
+    required: false
+    type: string
+    used_by: ["agents"]
+    required_when: "LLM_ENABLED == true"
+  DEEPSEEK_CODER_MODEL_NAME:
+    description: "Model name for the 'deepseek_coder' resource."
+    source: env
+    required: false
+    type: string
+    used_by: ["agents"]
+    required_when: "LLM_ENABLED == true"
+  ANTHROPIC_CLAUDE_SONNET_API_URL:
     description: "API URL for the 'anthropic_claude_sonnet' resource."
-    type: "config"
+    source: env
     required: false
+    type: uri
+    used_by: ["agents"]
     required_when: "LLM_ENABLED == true"
-
-  - name: "ANTHROPIC_CLAUDE_SONNET_API_KEY"
+  ANTHROPIC_CLAUDE_SONNET_API_KEY:
     description: "API key for the 'anthropic_claude_sonnet' resource."
-    type: "secret"
+    source: secret
     required: false
+    type: string
+    used_by: ["agents"]
     required_when: "LLM_ENABLED == true"
-
-  - name: "ANTHROPIC_CLAUDE_SONNET_MODEL_NAME"
+  ANTHROPIC_CLAUDE_SONNET_MODEL_NAME:
     description: "Model name for the 'anthropic_claude_sonnet' resource."
-    type: "config"
+    source: env
     required: false
+    type: string
+    used_by: ["agents"]
     required_when: "LLM_ENABLED == true"

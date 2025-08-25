@@ -5,10 +5,6 @@ Data models for the Constitutional Auditor's audit findings and severity levels.
 
 from __future__ import annotations
 
-# src/system/governance/models.py
-"""
-Data models for the Constitutional Auditor.
-"""
 from dataclasses import dataclass
 from enum import Enum
 from typing import Optional

@@ -5,7 +5,6 @@ Parses Python source files to extract function and class symbols while detecting
 
 from __future__ import annotations
 
-# src/system/tools/ast_analyzer.py
 import ast
 from pathlib import Path
 from typing import Dict, List

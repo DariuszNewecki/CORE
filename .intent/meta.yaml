@@ -17,18 +17,19 @@ policies:
   intent_guard: "policies/intent_guard.yaml"
   safety_policies: "policies/safety_policies.yaml"
   agent_reasoning_policy: "policies/agent_reasoning_policy.yaml" 
-  security_intents: "policies/security_intents.yaml"
   code_health_policy: "policies/code_health_policy.yaml"
   agent_behavior_policy: "policies/agent_behavior_policy.yaml"
   tooling_policy: "policies/tooling_policy.yaml"
   enforcement_model: "policies/enforcement_model.yaml"
   secrets_management: "policies/secrets_management.yaml"
-  dependency_management: "policies/dependency_management.yaml"
   incident_response: "policies/incident_response.yaml"
   data_privacy_policy: "policies/data_privacy.yaml"
   data_retention_policy: "policies/data_retention.yaml"
   canary_policy: "policies/canary_policy.yaml"
+  agent_workflow_policy: "policies/agent_workflow_policy.yaml"
   code_style_policy: "policies/code_style_policy.yaml"
+  dev_fastpath: "policies/dev_fastpath.yaml"
+  audit_ignore: "policies/audit_ignore.yaml"
 
 prompts:
   constitutional_review: "prompts/constitutional_review.prompt"
@@ -36,6 +37,7 @@ prompts:
   code_peer_review: "prompts/code_peer_review.prompt"
   module_docstring_writer: "prompts/module_docstring_writer.prompt"
   refactor_outlier: "prompts/refactor_outlier.prompt" 
+  fix_header: "prompts/fix_header.prompt"
 
 project:
   manifest_yaml: "project_manifest.yaml"
@@ -69,4 +71,4 @@ schemas:
   data_privacy_policy: "schemas/data_privacy_policy.schema.json"
   data_retention_policy: "schemas/data_retention_policy.schema.json"
   runtime_requirements: "schemas/runtime_requirements.schema.json"
-  dev_fastpath: "policies/dev_fastpath.yaml"
+  intent_bundle: "schemas/intent_bundle.schema.json"
