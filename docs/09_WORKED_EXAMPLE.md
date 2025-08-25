@@ -1,105 +1,103 @@
-# 9. Worked Example: Your First Governed Application
+# Worked Example: Your First Governed Application
 
-The best way to understand CORE is to see it in action.
-This guide walks you through creating a new, governed application and then demonstrates how CORE's "immune system" protects it.
+⏱️ **Time: \~5 minutes**
 
-> ⏱️ Estimated time: \~5 minutes
+---
+
+## For New Users: See CORE in Action
+
+This demo creates a **“Quote of the Day” API**, breaks a rule, and shows CORE fixing it.
+No experience needed — just follow the commands!
 
 ---
 
 ## Step 1: Create a New Application
 
-From the root of the CORE repository, run the `new` command.
-We'll create a simple **Quote of the Day API**.
+From CORE root:
 
 ```bash
 poetry run core-admin new quote-api --profile default
+# Output: Created work/quote-api/
 ```
 
-This command scaffolds a complete, governed project inside the `work/` directory.
-
-**What just happened?**
-CORE created a new application with its own **Mind**—a pre-packaged `.intent/` directory that defines its architectural rules.
+**What Happens:** Builds `work/quote-api/` with `.intent/` (rules) and `src/` (code).
 
 ---
 
 ## Step 2: See the Generated "Mind"
 
-Inspect the new project. You will see a file structure like this:
+Check `work/quote-api/.intent/source_structure.yaml`:
 
-```
-work/quote-api/
-├── .intent/
-│   ├── principles.yaml
-│   ├── project_manifest.yaml
-│   ├── safety_policies.yaml
-│   └── source_structure.yaml
-├── src/
-│   └── ...
-├── tests/
-└── pyproject.toml
+```yaml
+structure:
+  - domain: main
+    path: src/main
+    allowed_imports: [shared]
 ```
 
-Inside `work/quote-api/.intent/source_structure.yaml`, you'll find the **architectural law** for this new app.
-For example, it specifies that the `main` domain can only import from `shared`.
+**Meaning:** `main` domain can only import `shared`.
 
 ---
 
 ## Step 3: Intentionally Violate the Constitution
 
-Now we’ll act as a developer making a common mistake.
-We’ll add a feature to the `main` domain that incorrectly performs a direct file system operation—a task that belongs in a separate `services` domain.
-
-Open the file:
-
-```
-work/quote-api/src/main/api.py
-```
-
-Add the following forbidden import and function at the top:
+Edit `work/quote-api/src/main/api.py`:
 
 ```python
-import os  # ❌ Illegal import for the 'main' domain!
+# src/main/api.py
+import os  # ❌ Forbidden import!
 
 def log_quote_to_disk(quote: str):
-    # Direct file I/O should be handled in a separate service.
+    """Log a quote to disk."""
     with open("/tmp/quotes.log", "a") as f:
         f.write(quote + "\n")
 ```
 
-You’ve just introduced **architectural drift**.
-In a normal project, this mistake might go unnoticed for months.
+**Why Wrong?** File I/O belongs in a **services domain**.
+
+💡 *Screenshot Note*: Visualize this in your editor — `api.py` now has an error.
 
 ---
 
 ## Step 4: Run the Constitutional Audit
 
-Now ask CORE to audit the new `quote-api` project.
-The `byor-init` command can also run a **read-only audit** on any existing CORE-aware repository.
-
 ```bash
-# From the root of the CORE repository
-poetry run core-admin byor-init work/quote-api/
+poetry run core-admin byor-init work/quote-api
 ```
 
-### Expected Output
-
-You’ll see a constitutional failure.
-The **ConstitutionalAuditor** has detected the illegal import because it violates the rules in `source_structure.yaml`.
+**Output:**
 
 ```
-[ERROR] 🚨 Domain Integrity Violation 🚨
-File:    src/main/api.py
-Domain:  'main'
-Problem: Attempted to import 'os', which is not in the list of allowed imports for this domain.
+[ERROR] 🚨 Domain Violation
+File: src/main/api.py
+Problem: Imported 'os' (not in allowed_imports)
+Rule: 'main' only imports 'shared'
 ```
 
 ---
 
 ## The Value Proposition
 
-This is the **core** value proposition of CORE:
+CORE catches **architectural mistakes early**, unlike linters.
 
-* Provides **automated, continuous architectural governance**.
-* Catches errors that simple linters and formatters miss.
-* Ensures the system evolves **in alignment with its declared intent**.
+**For experts:** Integrate with CI via `make audit`.
+
+---
+
+## Troubleshooting
+
+* **Command fails?** Use `poetry shell` or check `.env` for keys.
+* **No errors?** Verify `reports/drift_report.json`.
+
+---
+
+## Takeaways
+
+* Automated **governance saves time**.
+* **Next**: Try **BYOR** on your project.
+
+---
+
+## Contribute
+
+Add a **test for this scenario**! See `CONTRIBUTING.md`.

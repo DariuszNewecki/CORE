@@ -1,48 +1,71 @@
-# 2. The CORE Architecture
+# The CORE Architecture
+
+---
+
+## Quick Start for New Users
+
+The **"Mind-Body Problem"** is simple:
+
+* **Rules (Mind)** are separate from **code (Body)** to avoid chaos.
+* The **Auditor** checks everything.
+
+👉 Start with the *Worked Example* to see directories in action.
+
+---
 
 ## The Mind-Body Problem, Solved
 
-The central architectural pattern in CORE is a strict separation between the system's "Mind" and its "Body."
+* **Separation**: Mind for *“is/should be”*, Body for *execution*, bridged by **Auditor**.
 
--   **The Mind (`.intent/`):** A declarative, version-controlled, and human-readable collection of files that represents the system's complete self-knowledge, purpose, and rules. It is the single source of truth for what the system *is* and *should be*.
--   **The Body (`src/`):** An imperative, executable collection of Python modules that acts upon the world. Its sole purpose is to carry out the will of the Mind, and its every action is governed by the rules declared within the Mind.
+---
 
-This separation is not just a convention; it is a constitutional law enforced by the system itself. The `ConstitutionalAuditor` is the bridge between the two, constantly ensuring the Body is in perfect alignment with the Mind.
+## Anatomy of the Mind (`.intent/`)
 
-## The Anatomy of the Mind (`.intent/`)
+Your project's **constitution**:
 
-The `.intent/` directory is structured to provide a complete and transparent view of the system's governance.
+| Directory       | Purpose    | Key Files                   | Beginner Tip     |
+| --------------- | ---------- | --------------------------- | ---------------- |
+| `/mission`      | Principles | `principles.yaml`           | High-level goals |
+| `/policies`     | Rules      | `safety_policies.yaml`      | Safety checks    |
+| `/knowledge`    | Self-map   | `knowledge_graph.json`      | Code inventory   |
+| `/constitution` | Processes  | `approvers.yaml`            | Change approvals |
+| `/proposals`    | Drafts     | `cr-*.yaml`                 | Proposed updates |
+| `/config`       | Env        | `runtime_requirements.yaml` | Setup vars       |
+| `/schemas`      | Blueprints | `*.schema.json`             | File formats     |
 
-| Directory | Purpose | Key Files |
-|---|---|---|
-| **`/mission`** | **The Constitution's Soul:** High-level, philosophical principles. | `principles.yaml`, `northstar.yaml` |
-| **`/policies`** | **The Constitution's Laws:** Specific, machine-readable rules that govern agent behavior. | `safety_policies.yaml`, `intent_guard.yaml` |
-| **`/knowledge`** | **The System's Self-Image:** Declarative knowledge about the system's own structure. | `knowledge_graph.json`, `source_structure.yaml` |
-| **`/constitution`** | **The Machinery of Governance:** Defines the human operators and processes for changing the constitution. | `approvers.yaml` |
-| **`/proposals`** | **The Legislative Floor:** A safe, temporary "sandbox" for drafting and signing proposed constitutional changes. | `cr-*.yaml` |
-| **`/config`** | **Environmental Awareness:** Declares the system's dependencies on its runtime environment. | `runtime_requirements.yaml` |
-| **`/schemas`** | **The Blueprint:** JSON schemas that define the structure of the knowledge files. | `knowledge_graph_entry.schema.json` |
+**For Experts:** `KnowledgeGraphBuilder` uses AST to build graph (parsing → extraction → hashing).
 
-## The Anatomy of the Body (`src/`)
+### Visual Flow
 
-The `src/` directory is organized into strict architectural **domains**. These domains are defined in `.intent/knowledge/source_structure.yaml`, and cross-domain communication is tightly controlled by rules enforced by the `ConstitutionalAuditor`.
+```mermaid
+graph LR
+    A[Read src/ Files] --> B[AST Parse]
+    B --> C[Extract Symbols]
+    C --> D[Analyze Metadata]
+    D --> E[Tag Capabilities]
+    E --> F[Hash Structure]
+    F --> G[Generate knowledge_graph.json]
+    G --> H[Auditor Uses for Enforcement]
+```
 
-| Directory | Domain | Responsibility |
-|---|---|---|
-| **`/core`** | `core` | The central nervous system. Handles the main application loop, API, and core services like file handling and Git integration. |
-| **`/agents`** | `agents` | The specialized AI actors. Contains the `PlannerAgent` and its related models and utilities. |
-| **`/system`** | `system` | The machinery of self-governance. Contains the `ConstitutionalAuditor`, `core-admin` CLI, and introspection tools. |
-| **`/shared`** | `shared` | The common library. Provides shared utilities like logging and configuration loading that are accessible by all other domains. |
+---
 
-## The Flow of Knowledge: From Code to Graph
+## Anatomy of the Body (`src/`)
 
-The system's self-awareness is not magic; it is a deliberate, mechanical process. The `KnowledgeGraphBuilder` tool is responsible for reading the entire `src/` directory and producing the `knowledge_graph.json` artifact.
+Domains for **separation of concerns**:
 
-This process involves:
-1.  **AST Parsing:** The builder reads every Python file and parses it into an Abstract Syntax Tree.
-2.  **Symbol Extraction:** It walks the tree to identify every class, function, and method.
-3.  **Metadata Analysis:** For each symbol, it extracts its name, parameters, docstring (intent), and relationships (function calls).
-4.  **Capability Tagging:** It inspects the comments above each symbol for `# CAPABILITY:` tags to understand its high-level purpose.
-5.  **Structural Hashing:** It generates a unique "fingerprint" of each symbol's logic, allowing for perfect duplicate code detection.
+| Directory | Domain | Responsibility | Allowed Imports |
+| --------- | ------ | -------------- | --------------- |
+| `/core`   | core   | App loop, API  | shared, agents  |
+| `/agents` | agents | AI roles       | core, shared    |
+| `/system` | system | Auditor, CLI   | shared          |
+| `/shared` | shared | Utils          | None (base)     |
 
-The resulting `knowledge_graph.json` is the Mind's complete and accurate "map" of the Body, which the `ConstitutionalAuditor` then uses to enforce all architectural rules.
+**Troubleshooting:** Illegal import? Auditor flags it → propose fix in `/proposals`.
+
+---
+
+## Takeaways
+
+* **Scalable design**: clear separation of Mind, Body, Auditor.
+* **Next**: Governance.
