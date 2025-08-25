@@ -1,67 +1,115 @@
-# 3. The CORE Governance Model
+# The CORE Governance Model
 
-CORE's ability to evolve its own constitution is its most powerful and most dangerous capability. To ensure this process is safe, auditable, and aligned with human intent, it is governed by a strict, multi-stage **Constitutional Amendment Process**.
+---
 
-This process is designed to solve the central paradox of self-modification: **how can a system safely approve a change that might break its own ability to approve changes?**
+## For New Users: Safe Changes
+
+CORE evolves like a **government with checks**: you propose changes, sign them, and test them in a *sandbox* (**Canary Check**) to avoid breaking things.
+
+It’s like updating laws safely.
+
+👉 **Try It**: Generate a key with:
+
+```bash
+core-admin keygen "your.email@example.com"
+```
+
+---
 
 ## The Guiding Principle: The Canary Check
 
-The entire process is built around a single, foolproof safety mechanism: the **"Canary" Check**.
+Before changing `.intent/`, CORE tests changes **in memory**:
 
-Before any change is applied to the live constitution, the system performs a "what-if" simulation. It creates a temporary, isolated copy of itself in memory, applies the proposed change to this "canary," and then commands the canary to run a full self-audit.
+* ✅ **Pass**: Apply to live system.
+* ❌ **Fail**: Reject to avoid damage.
 
-* If the canary, operating under the new proposed rules, reports a perfect, error-free audit, the change is deemed safe and is automatically applied to the live system.
-* If the canary's audit fails, it proves the change would create a broken or inconsistent state. The proposal is automatically rejected, and the live system is never touched.
+**Analogy:** Like testing a new recipe before serving it.
 
-This mechanism ensures that CORE can never approve an amendment that would render it unable to govern itself.
+---
 
 ## The Life of a Constitutional Amendment
 
-A change to any file within the `.intent/` directory follows a formal, five-step lifecycle.
+5 steps to update `.intent/`:
+
+### Visual
+
+```mermaid
+graph TD
+    A[Proposal in /proposals/] --> B[Sign with core-admin]
+    B --> C[Quorum Check]
+    C --> D[Approval & Canary]
+    D --> E[Ratification]
+```
+
+---
 
 ### Step 1: Proposal (`.intent/proposals/`)
 
-An AI agent or a human developer determines that a constitutional change is needed. They do not edit the target file directly. Instead, they create a formal **proposal file** in the `.intent/proposals/` directory.
+Create a YAML file (e.g., `cr-rate-limit.yaml`):
 
-This proposal is a YAML file containing:
+```yaml
+target_path: .intent/policies/safety_policies.yaml
+justification: Add rate limiting for safety.
+content: |
+  rate_limiting:
+    max_requests: 100
+```
 
-* `target_path`: The file to be changed.
-* `justification`: A human-readable reason for the change.
-* `content`: The full proposed new content of the file.
+---
 
 ### Step 2: Signing (`core-admin proposals-sign`)
 
-Constitutional changes require formal, cryptographic proof of human intent. A human operator uses the `core-admin` tool to sign the proposal with their private key.
+Prove human intent:
 
 ```bash
-# Generate a personal key pair (one-time setup)
-core-admin keygen "your.name@example.com"
-
-# Sign a pending proposal
-core-admin proposals-sign cr-new-capability.yaml
+core-admin keygen "your.email@example.com"  # One-time
+core-admin proposals-sign cr-rate-limit.yaml
+# Output: Signed cr-rate-limit.yaml with key your.email@example.com
 ```
 
-This action adds a verifiable signature to the proposal file.
+---
 
 ### Step 3: Quorum Verification
 
-The system checks `.intent/constitution/approvers.yaml` to determine how many signatures are required (the "quorum").
+Check `approvers.yaml` for signatures needed:
 
-* Standard changes (like adding a capability) might require only one signature.
-* Critical changes (like modifying the approver list itself) require a higher quorum, such as two or more signatures.
+* **Standard**: 1 signature.
+* **Critical**: 2+ signatures.
 
-### Step 4: Approval & The Canary Check (`core-admin proposals-approve`)
+---
 
-Once a proposal has a sufficient number of valid signatures, any authorized operator can initiate the final approval.
+### Step 4: Approval & Canary (`core-admin proposals-approve`)
 
 ```bash
-core-admin proposals-approve cr-new-capability.yaml
+core-admin proposals-approve cr-rate-limit.yaml
+# Output: Canary passed; change ready to apply
 ```
 
-This command triggers the automated canary check. The operator watches the log as the system simulates the change and runs its self-audit.
+---
 
 ### Step 5: Ratification
 
-If the canary check passes, the change is automatically applied to the live `.intent/` directory. The original proposal file is deleted, and the system now operates under its new, evolved constitution. The entire transaction is recorded in an auditable history log.
+* If passed, updates `.intent/`.
+* Logs history.
 
-This rigorous process ensures that every change to CORE's "mind" is deliberate, secure, and verifiably safe.
+**Deep Dive:** Uses **cryptographic signatures**; quorum from `approvers.yaml`.
+
+---
+
+## Troubleshooting
+
+* **Key error?** Regenerate with `core-admin keygen`.
+* **Audit fails?** Check `reports/` logs.
+
+---
+
+## Takeaways
+
+* Safe, **auditable evolution**.
+* **Next**: Roadmap for future plans.
+
+---
+
+## Contribute
+
+Propose a **new policy**! See `CONTRIBUTING.md`.

@@ -1,56 +1,113 @@
-# 1. The CORE Philosophy
+# The CORE Philosophy
+
+---
+
+## For New Users: What Is CORE?
+
+CORE is like a **“smart architect”** for software: it ensures your code follows your project’s rules, preventing chaos even when AI writes code.
+
+Think of it as a **city**:
+
+* 🏛️ **Mind** = the plan.
+* 🦾 **Body** = the buildings.
+* 🧠 **Will** = the planners who follow the plan.
+
+👉 **Try It:** Run the *Worked Example* to see CORE catch a mistake in 5 minutes.
+
+---
 
 ## Prime Directive
 
-**CORE exists to transform human intent into complete, evolving software systems — without drift, duplication, or degradation.**
+CORE transforms **human intent into complete, evolving software systems** — without drift, duplication, or degradation.
 
-It does not merely generate code; it **governs**, **learns**, and **rewrites** itself under the authority of an explicit, machine-readable constitution. It is a system designed to build other systems, safely and transparently.
+It governs, learns, and rewrites itself using a **machine-readable constitution**, ensuring safe and transparent development.
 
 ---
 
 ## The Architectural Trinity: Mind, Body, and Will
 
-Our architecture is founded on a strict separation of concerns that mirrors a reasoned entity. This trinity ensures that the system's intelligence is always governed by its principles, and its actions are always simple, auditable, and safe.
+CORE’s design separates concerns for **governance and safety**:
 
-*   🏛️ **The Mind (`.intent/`):** The Constitution. A declarative, version-controlled collection of files representing the system's complete self-knowledge, purpose, and rules. It is the timeless source of truth for **what** the system should be and **why**.
+* 🏛️ **Mind (`.intent/`)**: YAML/JSON files defining rules and purpose (*what* and *why*).
+* 🦾 **Body (`src/`)**: Simple Python tools for actions (*how*), like writing files.
+* 🧠 **Will (AI Layer)**: AI agents (e.g., Planner) that reason within Mind’s rules to use Body’s tools.
 
-*   🦾 **The Body (`src/`):** The Machinery. An imperative, executable collection of simple tools. Its capabilities are modest and reliable: writing files, running tests, parsing code. It handles the **how** of interacting with the world. We do not build smart tools; we build simple tools that a smart, constitutionally-bound Will can use.
+### Visual
 
-*   🧠 **The Will (The LLM Layer):** The Reasoning. An orchestrated set of specialized AI cognitive roles. The Will is the dynamic, intelligent actor in the system. It is not part of the Body's code; it is the cognitive force that interprets the Mind's intent to wield the Body's tools.
+```mermaid
+graph TB
+    Mind[🏛️ Mind: .intent/ Rules]
+    Will[🧠 Will: AI Agents]
+    Body[🦾 Body: src/ Code]
+    Auditor[Auditor: Checks Compliance]
+    Mind --> Will
+    Will --> Body
+    Body --> Auditor
+    Auditor --> Mind
+```
+
+**Deep Dive for Experts:** The trinity enforces `separation_of_concerns`.
+The **ConstitutionalAuditor** validates Body against Mind, preventing ungoverned AI actions.
+See `source_structure.yaml` for domain rules.
 
 ---
 
 ## The Ten-Phase Loop of Reasoned Action
 
-All autonomous actions in CORE are governed by a ten-phase loop. This structure ensures that every action is deliberate, justified, traceable, and validated against the constitution. It prevents the system from taking impulsive or un-auditable shortcuts.
+Every action follows this **deliberate cycle**:
 
-1.  **GOAL:** A high-level objective is received from a human operator.
-    *(e.g., "Add cryptographic signing to the approval process.")*
+1. **GOAL**: Human request (e.g., *“Add cryptographic signing”*).
+2. **WHY**: Tie to principle (e.g., `safe_by_default`).
+3. **INTENT**: Formal plan (machine-readable).
+4. **AGENT**: Pick AI role (e.g., Planner).
+5. **MEANS**: Check Body’s tools (e.g., file writing).
+6. **PLAN**: Detail steps.
+7. **ACTION**: Execute via Body.
+8. **FEEDBACK**: Auditor/tests check compliance.
+9. **ADAPTATION**: AI fixes errors.
+10. **EVOLUTION**: Update Mind’s knowledge.
 
-2.  **WHY:** The system's **Will** links the goal to a core principle in the **Mind**.
-    *(e.g., "This serves the `safe_by_default` principle.")*
+👉 Simplified: It’s a **“think–plan–do–check”** loop to avoid reckless changes.
 
-3.  **INTENT:** The goal and its justification are formalized into a clear, machine-readable intent.
-    *(e.g., Formalize the request into a plan to modify the `core-admin` tool.)*
+### Diagram
 
-4.  **AGENT:** The **Will** selects the appropriate cognitive role(s) for the task.
-    *(e.g., The `Planner` and `Coder` roles are assigned.)*
+```mermaid
+graph TD
+    A[GOAL] --> B[WHY]
+    B --> C[INTENT]
+    C --> D[AGENT]
+    D --> E[MEANS]
+    E --> F[PLAN]
+    F --> G[ACTION]
+    G --> H[FEEDBACK]
+    H --> I[ADAPTATION]
+    I --> J[EVOLUTION]
+    J --> A
+```
 
-5.  **MEANS:** The selected agent consults the capabilities of the **Body**.
-    *(e.g., The agent knows the Body has `code_generation` and `introspection` tools.)*
+---
 
-6.  **PLAN:** The agent produces a detailed, auditable plan.
-    *(e.g., 1. Add `cryptography` library. 2. Add `keygen` function. 3. Modify `approve` function...)*
+## Glossary
 
-7.  **ACTION:** The **Will** commands the **Body** to execute the plan, one step at a time.
-    *(e.g., The `FileHandler` tool writes new code to files.)*
+* **Drift**: Code breaking rules.
+* **Constitution**: Rules in `.intent/`.
 
-8.  **FEEDBACK:** The **Body's** "immune system" (`ConstitutionalAuditor`, `pytest`) provides feedback.
-    *(e.g., "The new code fails a linting check." or "All tests pass.")*
+---
 
-9.  **ADAPTATION:** The **Will** uses the feedback to self-correct or confirm the change.
-    *(e.g., The `Refactorer` role fixes the linting error, or the `GitService` tool commits the successful change.)*
+## Troubleshooting
 
-10. **EVOLUTION:** The **Mind** is updated (`KnowledgeGraph`) to reflect the new state, completing the loop.
+* **Confused by terms?** See **README**.
+* **Audit fails?** Run `make check` and check `reports/drift_report.json`.
 
-This loop ensures that CORE does not simply act, but *reasons*. Every change is a deliberate, auditable, and constitutionally-aligned evolution.
+---
+
+## Takeaways
+
+* CORE ensures **deliberate, safe changes**.
+* **Next**: See *Architecture* for technical details.
+
+---
+
+## Contribute
+
+Suggest a new principle in `principles.yaml`! Open an issue.

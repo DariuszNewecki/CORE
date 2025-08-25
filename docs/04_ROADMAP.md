@@ -1,49 +1,74 @@
-# 4. The CORE Project Roadmap
+# The CORE Project Roadmap
+
+---
+
+## For New Users: Where CORE Is Going
+
+CORE’s roadmap takes it from a **prototype that watches code (A0)** to **building apps autonomously (A4)**. Each phase is a step toward **AI-driven development**.
+
+👉 **You can help!**
+
+**Try It:** Check open issues to join a phase.
+
+---
 
 ## Preamble: From Foundation to Reason
 
-The initial development of CORE (up to and including the `v0.2.0` release) focused on building a stable, self-aware, and constitutionally governed foundation. That foundational work is now considered complete. A historical record of that process can be found in `docs/archive/StrategicPlan.md`.
-
-**This document outlines our new, singular direction.** With a stable foundation in place, the project is moving into its next major phase: **evolving from a system with hardcoded logic to a true reasoning system built on the Mind/Body/Will architecture.**
-
-Our entire development effort is now focused on the epic described below.
+* **v0.2.0** built a stable base (audits, governance).
+* Now, CORE aims for a **policy-driven AI layer (Mind/Body/Will)**.
+* Historical work is in `StrategicPlan.md`.
 
 ---
 
-## The `v1.0` Epic: Implementing the Mind/Body/Will Trinity
+## GitHub Epic: Policy-Driven Cognitive Layer
 
-**GitHub Epic:** [epic: Refactor to a Policy-Driven Cognitive Layer (Mind/Body/Will)](https://github.com/DariuszNewecki/CORE/issues/43)
+### The v1.0 Epic: Mind/Body/Will Trinity
 
-**Goal:** To fundamentally refactor CORE's architecture to recognize the LLM layer as the system's "Will." We will replace the hardcoded `OrchestratorClient` and `GeneratorClient` with a policy-driven, role-based system for selecting and using cognitive resources.
+**Goal:** Replace hardcoded AI logic with **role-based system**.
 
-### Phase 1: Amend the Constitution (The Mind)
--   **Challenge:** The system's cognitive capabilities are implicitly defined in Python code.
--   **Goal:** Create a new constitutional file, `.intent/knowledge/cognitive_roles.yaml`, to explicitly define the reasoning agents (e.g., `Planner`, `Coder`, `SecurityAnalyst`) and the models that power them.
--   **Status:** ⏳ **Not Started**
+| Phase               | Challenge                 | Goal                          | Status        | Opportunity                           | ETA     |
+| ------------------- | ------------------------- | ----------------------------- | ------------- | ------------------------------------- | ------- |
+| **1: Constitution** | Implicit AI roles in code | Define `cognitive_roles.yaml` | ⏳ Not Started | Propose roles (e.g., SecurityAnalyst) | Q4 2025 |
+| **2: Machinery**    | Body has AI logic         | Simple CognitiveService       | ⏳ Not Started | Code client config                    | Q4 2025 |
+| **3: Agents**       | Agents use clients        | Refactor to CognitiveService  | ⏳ Not Started | Update `run_development_cycle`        | Q1 2026 |
+| **4: Cleanup**      | Obsolete classes          | Remove old clients            | ⏳ Not Started | Update `runtime_requirements.yaml`    | Q1 2026 |
 
-### Phase 2: Evolve the Machinery (The Body)
--   **Challenge:** The Body currently contains logic for choosing and calling LLMs.
--   **Goal:** Create a new, simple `CognitiveService` in the `core` domain. Its only job is to read `cognitive_roles.yaml` and provide a configured client for a requested role. All complex reasoning is removed from the Body.
--   **Status:** ⏳ **Not Started**
+### Visual
 
-### Phase 3: Adapt the Agents (The Will)
--   **Challenge:** The system's agents directly instantiate specific clients.
--   **Goal:** Refactor all agentic processes (e.g., `run_development_cycle`) to use the new `CognitiveService`. The agent's logic will be simplified to: "I need to perform a `planning` task, please give me a client for the `Planner` role."
--   **Status:** ⏳ **Not Started**
-
-### Phase 4: Deprecate and Remove (Cleanup)
--   **Challenge:** The old client classes and configurations will become obsolete.
--   **Goal:** Once all agents are migrated, completely remove the old `OrchestratorClient` and `GeneratorClient` classes and update `runtime_requirements.yaml` to reflect the new, more generic configuration.
--   **Status:** ⏳ **Not Started**
+```mermaid
+graph TD
+    A[Phase 1: Define Roles] --> B[Phase 2: Build Service]
+    B --> C[Phase 3: Refactor Agents]
+    C --> D[Phase 4: Cleanup]
+    D --> E[v1.0: Autonomous AI]
+```
 
 ---
 
-## Historical Roadmap (Completed in v0.2.0)
+## Historical Roadmap (v0.2.0, Completed)
 
-The following goals were part of the initial push to create a stable foundation and are now complete.
+* ✅ Scaling Constitution
+* ✅ Autonomous MVP
+* ✅ Self-Improvement
+* ✅ Robustness
+* ✅ Architectural Health
 
-*   **Phase: Scaling the Constitution** (✅ Complete)
-*   **Phase: Autonomous Application Generation (MVP)** (✅ Complete)
-*   **Phase: Constitutional Self-Improvement (Peer Review)** (✅ Complete)
-*   **Phase: Achieving Operational Robustness** (🚧 In Progress -> Completed in v0.2.0)
-*   **Phase: Improving Architectural Health** (🚧 In Progress -> Completed in v0.2.0)
+---
+
+## Troubleshooting
+
+**Want to contribute?** Open an issue for a phase task.
+
+---
+
+## Takeaways
+
+* **v1.0 targets Q1 2026** with community help.
+* **Next**: See `CONTRIBUTING.md` to join.
+
+---
+
+## Contribute
+
+Pick a **phase** (e.g., Phase 2) and PR!
+See GitHub issues.
