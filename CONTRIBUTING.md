@@ -1,116 +1,138 @@
-Contributing to CORE
-Thank you for considering a contribution to CORE! This project pioneers self-governing software through a unique constitutional framework, and every contribution—from bug reports to philosophical discussions—is vital to its evolution.
-This guide outlines how you can get involved, whether you're a coder, architect, or documentation enthusiast.
-The Philosophy: Principled Contributions
-CORE is governed by a machine-readable "constitution" in the .intent/ directory. All contributions must align with its principles, particularly clarity_first, which prioritizes making the system easier to understand. Before contributing, please read:
+# Contributing to CORE
 
-README.md: High-level vision and a 5-minute demo.
-The CORE Philosophy (docs/01_PHILOSOPHY.md): Deep dive into the Mind-Body-Will architecture.
-The Governance Model (docs/03_GOVERNANCE.md): How safe, auditable changes are made to the constitution.
+Thank you for joining CORE’s mission to pioneer self-governing software! Whether you’re fixing a typo or designing AI agents, your contribution helps shape AI-driven development. This guide makes contributing easy for beginners while providing depth for experts.
 
-Contribution Workflow Overview
-+---------------------------------+
-| 1. Read Docs & Roadmap          |
-|   Understand CORE's principles  |
-+---------------------------------+
-                |
-                v
-+---------------------------------+
-| 2. Choose Contribution Type     |
-|   - Bug Report                  |
-|   - Docs Improvement            |
-|   - Code (Tests, Features)      |
-|   - Constitutional Proposal     |
-+---------------------------------+
-                |
-                v
-+---------------------------------+
-| 3. Submit via GitHub            |
-|   Fork, Branch, PR, Run Checks  |
-|   Ensure `make check` passes    |
-+---------------------------------+
+---
 
-How You Can Contribute
-There are many ways to contribute, and most don't require coding expertise.
-🏛️ Discussing Architecture and Governance
-The most impactful contributions are ideas that shape CORE's architecture and governance. These align with our Roadmap (docs/04_ROADMAP.md), targeting the v1.0 Epic for a policy-driven cognitive layer.
+## Our Philosophy: Principled Contributions
 
-Review the Roadmap: Explore open challenges (e.g., implementing cognitive_roles.yaml for AI roles). Share thoughts via GitHub Issues.
-Propose Constitutional Changes: Suggest improvements to principles or policies (e.g., new safety rules). Open an issue to discuss, then draft a proposal in .intent/proposals/. See Governance Model for the process.
-Example Task: Propose a new safety policy for secrets management in .intent/policies/safety_policies.yaml.
+CORE is governed by a **“constitution”** (rules in `.intent/`). Contributions must align with principles like `clarity_first`, making the system easier to understand. Start with these docs:
 
-🐞 Reporting Bugs
-Help strengthen CORE's ConstitutionalAuditor by reporting bugs or inconsistencies. A great bug report includes:
+* **README.md**: Project vision and quick demo.
+* **Philosophy** (`docs/01_PHILOSOPHY.md`): Mind-Body-Will architecture.
+* **Governance** (`docs/03_GOVERNANCE.md`): Safe change process.
 
-The command run (e.g., poetry run core-admin byor-init .).
-Full output, including errors and tracebacks.
-Your hypothesis on the cause.
+**Key Term**: A **“constitutional change”** updates `.intent/` files (e.g., adding a rule), requiring a signed proposal and audit.
 
-Example: If the auditor misses an illegal import, report it to improve the "immune system."
-✍️ Improving Documentation
-Clear docs are critical to CORE's clarity_first principle. If you find unclear, outdated, or missing documentation:
+---
 
-Submit a PR to fix typos, clarify concepts, or add examples.
-Suggest visuals (e.g., diagrams for architecture).
-Beginner Task: Add a docstring to an undocumented function in src/system/tools/ or improve a tutorial in docs/.
+## Contribution Workflow
 
-💻 Contributing Code
-Code contributions are welcome but must adhere to CORE's strict governance.
-1. Code Conventions
-To ensure clarity_first:
+1. **Explore Docs & Issues**
+   Read README, Roadmap; find/open an issue.
 
-Formatting: Use black (run make format to auto-format).
-Linting: Enforce quality with ruff (included in make check).
-Typing: All functions/methods must have type hints.
-Docstrings: Every public module, class, function, and method needs a clear docstring.
-Capability Tags: Add # CAPABILITY: <name> comments for key functions (see project_manifest.yaml).
+   ↓
 
-2. Architectural Principles
-CORE enforces separation_of_concerns via domains:
+2. **Choose Your Contribution**
+   Bugs, Docs, Code, or Governance.
 
-Domains (e.g., core, agents) are defined in .intent/knowledge/source_structure.yaml.
-Import rules: Only import from allowed_imports in that file. The ConstitutionalAuditor enforces this.
-Note: Propose constitutional changes before adding new cross-domain imports.
+   ↓
 
-3. Dependency Management
-CORE uses Poetry:
+3. **Submit via GitHub**
+   Fork → Branch → Code → Run `make check` → PR.
 
-Add dependencies: poetry add <package_name>.
-Add dev dependencies: poetry add --group dev <package_name>.
-Install: Run poetry install to set up the environment.
+---
 
-Troubleshooting: If Poetry fails, ensure Python 3.12+ is used and check .env for required LLM API keys.
-4. Testing
-Tests are critical to CORE's safety. Write tests for new code:
+## How to Contribute
 
-Unit tests: tests/unit/ (e.g., test_git_service.py).
-Integration tests: tests/integration/ (e.g., test_full_run.py).
-Governance tests: tests/governance/ (e.g., test_local_mode_governance.py).
-Goal: Aim for 80%+ code coverage (check with pytest --cov).
-Run tests: make test or poetry run pytest.
+### 🏛️ Discuss Architecture & Governance
 
-5. Submission Workflow
+Shape CORE’s future by discussing its design or rules:
 
-Find or open an issue on GitHub to discuss your contribution.
-Fork the repo and create a branch (e.g., feat/add-cognitive-service).
-Write code, adhering to conventions.
-Run checks:
-Quick checks: make fast-check (linting + unit tests).
-Full audit: make check (includes constitutional audit).
-Fix formatting: make format.
+* **Read the Roadmap**: See `docs/04_ROADMAP.md` for challenges (e.g., CognitiveService for AI roles).
+* **Propose Changes**: Suggest new principles or policies via GitHub Issues. Example: Add a policy for API rate limiting in `.intent/policies/safety_policies.yaml`.
+* **Why It Matters**: Your ideas advance CORE to **A1 autonomy** (auto-PRs).
 
+---
 
-Submit a pull request (PR) with a clear description linking to the issue.
+### 🐞 Report Bugs
 
-Debugging Tip: If make check fails, check reports/drift_report.json for details on violations (e.g., illegal imports).
-Example Code Contributions
+Strengthen the **ConstitutionalAuditor** by reporting issues:
 
-Add a test case for symbol_processor.py to handle invalid ASTs.
-Implement CognitiveService in src/core/ for the v1.0 Epic (see Roadmap Phase 2).
-Create a new starter kit in src/system/starter_kits/ for a REST API.
+* **Include**: Command run, full error/traceback, your analysis.
+* **Example**: “Auditor missed an import in `src/api/`; here’s the log.”
+* **Beginner Task**: Run `make audit` on a test project and report a missed violation.
 
-Why Contribute?
-Your contributions shape the future of AI-governed software development. Whether you fix a typo, propose a safety policy, or build a new agent, you're helping CORE achieve its North Star: autonomous, safe software creation.
-Get Started: Try a small task, like adding a capability tag to a function in src/, and run make check to verify compliance.
-Questions?
-Join the discussion on GitHub Issues or reach out via the project's community channels (TBD). We're excited to build this future with you!
+---
+
+### ✍️ Improve Documentation
+
+Docs drive **clarity\_first**. Help by:
+
+* Fixing typos or unclear sections.
+* Adding examples or diagrams (e.g., for audit flow).
+* **Beginner Task**: Clarify a sentence in `docs/09_WORKED_EXAMPLE.md`.
+
+---
+
+### 💻 Contribute Code
+
+Code contributions must follow CORE’s governance.
+
+#### 1. Code Conventions
+
+* **Formatting**: Use `black` (`make format`).
+* **Linting**: `ruff` enforces quality (`make check`).
+* **Type Hints**: Required for all functions/methods.
+* **Docstrings**: Every public module/class/function needs one.
+* **Capability Tags**: Add `# CAPABILITY: <name>` for key functions.
+
+#### 2. Architecture Rules
+
+* **Domains**: Defined in `.intent/knowledge/source_structure.yaml` (e.g., `core`, `agents`).
+* **Imports**: Only use `allowed_imports` from that file. Propose constitutional changes for new imports.
+* **Auditor**: Enforces rules via `make check`.
+
+#### 3. Dependencies
+
+* **Use Poetry**: `poetry add <package>` or `poetry add --group dev <package>`.
+* **Install**: `poetry install`.
+* **Tip**: Run `poetry shell` if commands fail.
+
+#### 4. Testing
+
+* **Write tests** in `tests/` (unit, integration, governance).
+* **Goal**: 80%+ coverage (`poetry run pytest --cov`).
+* **Run**: `make test`.
+* **Beginner Task**: Add a test for `src/system/tools/symbol_processor.py`.
+
+#### 5. Submission Steps
+
+1. Find/open a GitHub Issue.
+2. Fork repo, create branch (e.g., `fix/docstring`).
+3. Write code/tests, following conventions.
+4. Run checks:
+
+   * `make fast-check`: Linting + unit tests.
+   * `make check`: Full audit (**required**).
+   * `make format`: Fix formatting.
+5. Submit PR, linking to the issue.
+
+**Troubleshooting**:
+
+* Audit failure? Check `reports/drift_report.json`.
+* Poetry issues? Verify Python 3.12+ and `.env`.
+
+---
+
+## Example Contributions
+
+* **Beginner**: Add a docstring to `src/system/tools/file_scanner.py`.
+* **Intermediate**: Write a test for CognitiveService (Roadmap Phase 2).
+* **Advanced**: Implement a new starter kit for a CLI app in `src/system/starter_kits/`.
+
+---
+
+## Why Contribute?
+
+Your work helps CORE evolve from **observing codebases (A0)** to **generating apps autonomously (A4)**.
+Be part of the future of safe, AI-driven software!
+
+**Quick Start**: Fix a typo in a doc or add a `# CAPABILITY:` tag, then run `make check`.
+
+---
+
+## Questions?
+
+Ask in **GitHub Issues** or join our **community (TBD)**.
+We’re excited to collaborate!
