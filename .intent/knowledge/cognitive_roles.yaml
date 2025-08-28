@@ -1,5 +1,4 @@
 # .intent/knowledge/cognitive_roles.yaml
-#
 # Maps an abstract cognitive role to a named resource from the resource_manifest.
 # It also declares the capabilities required by that role, which allows the
 # ConstitutionalAuditor to verify the assignment is valid.
@@ -43,3 +42,10 @@ cognitive_roles:
     required_capabilities:
       - "code_generation"
       - "llm_orchestration"
+
+  # --- THIS IS THE NEW ROLE ---
+  - role: "IntentTranslator"
+    description: "Translates informal, natural language goals into structured, executable commands for the CORE system."
+    assigned_resource: "anthropic_claude_sonnet" # A strong reasoning model is needed
+    required_capabilities:
+      - "natural_language_understanding"

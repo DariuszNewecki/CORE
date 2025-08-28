@@ -66,6 +66,8 @@ tags:
     description: "Structures problems into coherent sub-problems and tasks."
   - name: natural_language_understanding
     description: "Understands and interprets free-text instructions and context."
+  - name: conversational_interface
+    description: "Provides a direct, natural language interface for the user to interact with the system."
   - name: security_review
     description: "Performs targeted security analysis according to policy."
   - name: refactoring
