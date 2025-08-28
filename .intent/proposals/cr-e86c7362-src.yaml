@@ -1,0 +1,70 @@
+action: replace_file
+content: "I'll analyze the codebase to find all imports of BaseLLMClient from src/core/clients.py.\
+  \ Let me create a script that searches through the codebase.\n\n```python\nimport\
+  \ os\nimport ast\nfrom pathlib import Path\n\ndef find_base_llm_client_imports(root_dir):\n\
+  \    \"\"\"\n    Search through all Python files in the codebase to find imports\
+  \ of BaseLLMClient\n    from src.core.clients\n    \"\"\"\n    root_path = Path(root_dir)\n\
+  \    python_files = list(root_path.rglob(\"*.py\"))\n    \n    files_with_imports\
+  \ = []\n    \n    for file_path in python_files:\n        try:\n            with\
+  \ open(file_path, 'r', encoding='utf-8') as file:\n                content = file.read()\n\
+  \            \n            # Parse the AST\n            tree = ast.parse(content)\n\
+  \            \n            # Check for imports\n            for node in ast.walk(tree):\n\
+  \                if isinstance(node, ast.ImportFrom):\n                    # Check\
+  \ if it's importing from src.core.clients\n                    if (node.module and\
+  \ \n                        (node.module == 'src.core.clients' or \n           \
+  \              node.module.endswith('.clients') and 'src.core' in node.module)):\n\
+  \                        \n                        # Check if BaseLLMClient is imported\n\
+  \                        for alias in node.names:\n                            if\
+  \ alias.name == 'BaseLLMClient':\n                                files_with_imports.append({\n\
+  \                                    'file_path': str(file_path),\n            \
+  \                        'line_number': node.lineno if hasattr(node, 'lineno') else\
+  \ 'unknown',\n                                    'import_statement': ast.get_source_segment(content,\
+  \ node)\n                                })\n                                break\n\
+  \                \n                elif isinstance(node, ast.Import):\n        \
+  \            # Check for direct imports that might be aliased\n                \
+  \    for alias in node.names:\n                        if alias.name == 'src.core.clients'\
+  \ or (\n                            hasattr(alias, 'name') and 'clients' in alias.name\
+  \ and 'src.core' in alias.name):\n                            # This is a more complex\
+  \ case where we'd need to check usage\n                            files_with_imports.append({\n\
+  \                                'file_path': str(file_path),\n                \
+  \                'line_number': node.lineno if hasattr(node, 'lineno') else 'unknown',\n\
+  \                                'import_statement': ast.get_source_segment(content,\
+  \ node),\n                                'note': 'Module import - check for BaseLLMClient\
+  \ usage'\n                            })\n            \n        except (SyntaxError,\
+  \ UnicodeDecodeError) as e:\n            print(f\"Could not parse {file_path}: {e}\"\
+  )\n            continue\n    \n    return files_with_imports\n\ndef search_for_text_imports(root_dir):\n\
+  \    \"\"\"\n    Also do a simple text search as a backup to catch edge cases\n\
+  \    \"\"\"\n    root_path = Path(root_dir)\n    python_files = list(root_path.rglob(\"\
+  *.py\"))\n    \n    text_matches = []\n    \n    for file_path in python_files:\n\
+  \        try:\n            with open(file_path, 'r', encoding='utf-8') as file:\n\
+  \                lines = file.readlines()\n            \n            for line_num,\
+  \ line in enumerate(lines, 1):\n                if ('BaseLLMClient' in line and\
+  \ \n                    ('from' in line or 'import' in line) and\n             \
+  \       'clients' in line):\n                    text_matches.append({\n       \
+  \                 'file_path': str(file_path),\n                        'line_number':\
+  \ line_num,\n                        'line_content': line.strip()\n            \
+  \        })\n                    \n        except UnicodeDecodeError:\n        \
+  \    continue\n    \n    return text_matches\n\ndef main():\n    root_directory\
+  \ = \"src\"  # Search from the src directory\n    \n    if not os.path.exists(root_directory):\n\
+  \        print(f\"Directory {root_directory} does not exist.\")\n        return\n\
+  \    \n    print(\"Searching for BaseLLMClient imports from src.core.clients...\"\
+  )\n    print(\"=\" * 60)\n    \n    # AST-based search\n    ast_results = find_base_llm_client_imports(root_directory)\n\
+  \    \n    # Text-based search as backup\n    text_results = search_for_text_imports(root_directory)\n\
+  \    \n    # Combine and deduplicate results\n    all_results = ast_results + text_results\n\
+  \    unique_files = set()\n    \n    print(f\"Found {len(all_results)} potential\
+  \ import(s):\\n\")\n    \n    for result in all_results:\n        file_key = result['file_path']\n\
+  \        if file_key not in unique_files:\n            unique_files.add(file_key)\n\
+  \            print(f\"File: {result['file_path']}\")\n            print(f\"Line:\
+  \ {result.get('line_number', 'unknown')}\")\n            print(f\"Import: {result.get('import_statement',\
+  \ result.get('line_content', 'N/A'))}\")\n            if 'note' in result:\n   \
+  \             print(f\"Note: {result['note']}\")\n            print(\"-\" * 40)\n\
+  \    \n    if not all_results:\n        print(\"No BaseLLMClient imports found from\
+  \ src.core.clients\")\n    \n    # Also search for the clients.py file itself\n\
+  \    clients_file = Path(root_directory) / \"core\" / \"clients.py\"\n    if clients_file.exists():\n\
+  \        print(f\"\\nFound the clients.py file at: {clients_file}\")\n        print(\"\
+  This file should be removed as part of the migration.\")\n    else:\n        print(f\"\
+  \\nclients.py not found at: {clients_file}\")\n\nif __name__ == \"__main__\":\n\
+  \    main()\n```"
+justification: Need to search through all Python files in the source directory to
+  find imports of BaseLLMClient that need to be updated to use CognitiveService instead
+target_path: src
