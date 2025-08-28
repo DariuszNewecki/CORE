@@ -1,0 +1,23 @@
+action: replace_file
+content: "```python\n# Architecture Overview\n\nThis document outlines the high-level\
+  \ architecture of the project.\n\n## Core Components\n\n### Client Layer\nThe client\
+  \ layer handles interactions with external AI services through the `CognitiveService`\
+  \ class. This service provides a unified interface for various AI capabilities including\
+  \ language models, speech recognition, and computer vision.\n\n**Key Class:**\n\
+  - `CognitiveService`: Main service for interacting with Azure Cognitive Services\
+  \ and other AI providers\n\n### Service Layer\nThe service layer contains business\
+  \ logic and orchestrates interactions between different components. Services depend\
+  \ on the client layer for AI capabilities.\n\n### Data Layer\nThe data layer manages\
+  \ persistence and data access through repositories and database connections.\n\n\
+  ## Service Integration\n\nAll AI service interactions should use the `CognitiveService`\
+  \ through dependency injection:\n\n```python\nfrom core.services import CognitiveService\n\
+  \nclass MyService:\n    def __init__(self, cognitive_service: CognitiveService):\n\
+  \        self.cognitive_service = cognitive_service\n```\n\n## API Endpoints\n\n\
+  The web API exposes endpoints that leverage the `CognitiveService` for AI capabilities:\n\
+  \n- `/api/chat` - For conversational AI interactions\n- `/api/vision` - For image\
+  \ analysis\n- `/api/speech` - For speech processing\n\n## Configuration\n\nService\
+  \ configuration is managed through environment variables and config files, focusing\
+  \ on Azure Cognitive Services endpoints and credentials.\n```"
+justification: Update architectural documentation to remove references to BaseLLMClient
+  and document the use of CognitiveService as the standard client interface
+target_path: docs/architecture.md
