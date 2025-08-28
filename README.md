@@ -29,9 +29,9 @@ Linters catch syntax errors, but architectural mistakes slip through.
 
 ```
 ❌ Violation: src/api/user.py
-   Issue: 'api' imported 'database.models'
-   Rule: API layer only imports 'services'
-   Fix: Use UserService for database logic
+Issue: 'api' imported 'database.models'
+Rule: API layer only imports 'services'
+Fix: Use UserService for database logic
 ```
 
 ---
@@ -44,6 +44,8 @@ See CORE in action with the worked example:
 2. Break a rule (e.g., add a forbidden import).
 3. Watch CORE catch it and suggest a fix.
 
+👉 **[Run the Worked Example (`docs/09_WORKED_EXAMPLE.md`)](docs/09_WORKED_EXAMPLE.md)**
+
 ---
 
 ## Visualizing CORE
@@ -54,29 +56,42 @@ CORE’s **Mind–Body–Will** model ensures governance:
 +-----------------+
 | Mind (.intent/) | Rules & Principles (YAML/JSON)
 +-----------------+
-          |
-          v
+        |
+        v
 +-----------------+
 | Will (AI Agents)| Plans & Generates Code
 +-----------------+
-          |
-          v
+        |
+        v
 +-----------------+
 | Body (src/)     | Your Codebase
 +-----------------+
-          |
-          v
+        |
+        v
 [Auditor] Ensures code aligns with rules
 ```
 
 ---
 
-## Glossary
+## Project Status & Independent Review
 
-* **Mind**: Rules in `.intent/` (e.g., domain boundaries).
-* **Body**: Your code in `src/`.
-* **Will**: AI agents that plan and write code.
-* **Auditor**: Checks code against rules, with safe “canary” tests for changes.
+CORE is an **Architectural Prototype (v0.2.0)**, with a stable and functional governance loop. It has been independently reviewed by multiple AI assessors (Grok, ChatGPT) with a strong consensus:
+
+* **Overall Score:** \~7.9 / 10
+* **Key Strengths:** Governance & Safety (9/10), Documentation (8.5/10)
+* **Next Steps:** Focus is on enhancing the AI reasoning layer and feature completeness.
+
+The reviews confirm that CORE's foundation is exceptionally strong. The full reviews are archived in `docs/reviews/`.
+
+---
+
+## Documentation Portal
+
+* **[What is CORE? (`docs/00_WHAT_IS_CORE.md`)](docs/00_WHAT_IS_CORE.md)** — The vision and philosophy.
+* **[Architecture (`docs/02_ARCHITECTURE.md`)](docs/02_ARCHITECTURE.md)** — Technical details of the Mind and Body.
+* **[Governance (`docs/03_GOVERNANCE.md`)](docs/03_GOVERNANCE.md)** — How changes are made safely.
+* **[Roadmap (`docs/04_ROADMAP.md`)](docs/04_ROADMAP.md)** — See where we're going.
+* **[Contributing (`CONTRIBUTING.md`)](CONTRIBUTING.md)** — Join our mission!
 
 ---
 
@@ -92,110 +107,21 @@ poetry install
 
 # Set up environment
 cp .env.example .env
-# Edit .env with LLM API keys (see .intent/config/runtime_requirements.yaml)
+# Edit .env with your LLM API keys
 
-# Verify setup
+# Verify setup is clean
 make check
 
-# Create a governed project
-poetry run core-admin new my-app --profile default
-
-# Run an audit
-cd work/my-app && make audit
+# Try the new conversational command!
+poetry run core-admin chat "make me a simple command-line tool that prints a random number"
 ```
-
-### Troubleshooting
-
-* **Poetry errors?** Run `poetry shell` or prefix with `poetry run`.
-* **Audit fails?** Check `reports/drift_report.json` for details.
-* **Need keys?** See `.intent/config/runtime_requirements.yaml`.
-
----
-
-## When to Use CORE
-
-Perfect for:
-
-* Teams building complex systems (e.g., microservices, enterprise apps).
-* Projects needing traceable, auditable changes.
-* Developers using AI safely with governance.
-
-Not ideal for:
-
-* Simple scripts or one-off prototypes.
-* Teams relying only on manual reviews.
-
----
-
-## Real-World Example
-
-Turn a Flask app into a governed project:
-
-```bash
-# Initialize governance in an existing app
-poetry run core-admin byor-init /path/to/flask-app --write
-```
-
-* Get a `.intent/` directory with rules (e.g., “API only imports services”).
-* Run `make audit` to ensure compliance.
-
----
-
-## How It Works
-
-* **Mind (.intent/):** YAML/JSON files define rules, like domain boundaries or safety policies.
-* **Body (src/):** Your code, organized into domains (e.g., core, agents).
-* **Will (AI):** Agents (e.g., PlannerAgent) generate code within rules.
-* **Auditor:** Checks for violations (e.g., illegal imports) and suggests fixes.
-
-Changes are secured with **cryptographic signatures** and **“canary checks”** (testing changes in isolation).
-
----
-
-## Project Status
-
-CORE is an **Architectural Prototype (v0.2.0)**, stable for auditing and governance.
-It’s at **A0 (Observe)** on the Autonomy Ladder, moving toward **A1 (Propose)** by generating safe PRs.
-
-**Next steps**: autonomous app creation (see *Roadmap*).
-
-Join us to shape AI-driven development!
-
----
-
-## Documentation
-
-* **What is CORE?**: Philosophy and vision.
-* **Architecture**: Technical details.
-* **Governance**: How changes are made safely.
-* **Starter Kits**: Templates for new projects.
-* **Contributing**: How to get involved.
-
----
-
-## Comparison to Other Tools
-
-| Tool            | Purpose              | CORE’s Edge                         |
-| --------------- | -------------------- | ----------------------------------- |
-| ESLint / Pylint | Syntax checking      | Enforces architectural rules        |
-| SonarQube       | Code quality metrics | Traceable, governed changes         |
-| ArchUnit        | Architecture testing | AI-driven analysis with clear fixes |
-| GitHub Copilot  | Code completion      | Governed, safe AI code generation   |
-| AutoGPT         | Autonomous tasks     | Structured, auditable code changes  |
-
-**CORE is an AI architect, ensuring maintainability and safety.**
 
 ---
 
 ## Contributing
 
-We welcome all contributors! See `CONTRIBUTING.md` for details. Help with:
-
-* AI agents (e.g., autonomous code generation).
-* Safety policies or starter kits.
-* Docs or sample apps (e.g., a REST API).
-
-**Quick Start:** Fix a docstring or run `make audit` on a sample project.
+We welcome all contributors! The best place to start is our **Contributing Guide**.
+Check the **Project Roadmap** for "Next Up" tasks and see our open issues on GitHub.
 
 ---
 
