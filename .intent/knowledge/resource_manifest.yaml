@@ -31,4 +31,5 @@ llm_resources:
       - "security_review"
       - "code_generation"
       - "prompt_interpretation"
+      - "llm_orchestration"
     env_prefix: "ANTHROPIC_CLAUDE_SONNET"

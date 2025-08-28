@@ -29,7 +29,7 @@ cognitive_roles:
     assigned_resource: "deepseek_chat"
     required_capabilities:
       - "security_review"
-  
+
   - role: "CodeReviewer"
     description: "Analyzes existing code for improvements in clarity, efficiency, and adherence to best practices."
     assigned_resource: "deepseek_coder"

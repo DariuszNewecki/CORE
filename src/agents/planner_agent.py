@@ -23,6 +23,7 @@ log = getLogger(__name__)
 execution_context = contextvars.ContextVar("execution_context")
 
 
+# CAPABILITY: planning
 class PlannerAgent:
     """Decomposes goals into plans but does not execute them."""
 

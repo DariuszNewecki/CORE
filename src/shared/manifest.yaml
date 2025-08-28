@@ -1,6 +1,6 @@
-# src/shared/manifest.yaml
+domain: shared
+description: Shared models, helpers, and config interfaces
 capabilities:
   - system_logging
   - config.load
-description: Shared models, helpers, and config interfaces
-domain: shared
+  - yaml_loading

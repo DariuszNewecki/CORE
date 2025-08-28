@@ -1,5 +1,6 @@
-capabilities:
-- code_generation
-- llm_orchestration
-description: Specialized AI actors (planners, reviewers, suggesters)
 domain: agents
+description: Specialized AI actors (planners, reviewers) and their supporting models.
+capabilities:
+  - code_generation
+  - llm_orchestration
+  - planning

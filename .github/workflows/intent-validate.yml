@@ -32,6 +32,9 @@ jobs:
             (repo/".intent/policies/data_privacy.yaml",  repo/".intent/schemas/data_privacy_policy.schema.json"),
             (repo/".intent/policies/data_retention.yaml", repo/".intent/schemas/data_retention_policy.schema.json"),
             (repo/".intent/policies/canary_policy.yaml",  repo/".intent/schemas/canary_policy.schema.json"),
+            (repo/".intent/policies/agent_behavior_policy.yaml",  repo/".intent/schemas/agent_behavior_policy.schema.json"),
+            (repo/".intent/policies/enforcement_model.yaml",  repo/".intent/schemas/enforcement_model.schema.json"),
+            (repo/".intent/policies/intent_guard.yaml",  repo/".intent/schemas/intent_guard.schema.json"),
           ]
 
           errors = []

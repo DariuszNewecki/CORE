@@ -14,6 +14,7 @@ from shared.logger import getLogger
 log = getLogger(__name__)
 
 
+# CAPABILITY: introspection
 class KnowledgeService:
     """A read-only service to access the system's knowledge graph."""
 
