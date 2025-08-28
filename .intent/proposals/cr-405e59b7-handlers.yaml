@@ -1,0 +1,34 @@
+action: replace_file
+content: "```python\nfrom fastapi import APIRouter, HTTPException, Depends\nfrom sqlalchemy.orm\
+  \ import Session\nfrom typing import List\nfrom ..core.database import get_db\n\
+  from ..core.clients import CognitiveService\nfrom ..models.schemas import QueryRequest,\
+  \ QueryResponse, ConversationCreate, Conversation\nfrom ..models import crud\n\n\
+  router = APIRouter()\n\ndef get_cognitive_service():\n    return CognitiveService()\n\
+  \n@router.post(\"/query\", response_model=QueryResponse)\nasync def query_endpoint(\n\
+  \    request: QueryRequest, \n    db: Session = Depends(get_db),\n    cognitive_service:\
+  \ CognitiveService = Depends(get_cognitive_service)\n):\n    try:\n        conversation\
+  \ = crud.get_conversation(db, request.conversation_id)\n        if not conversation:\n\
+  \            conversation = crud.create_conversation(db, ConversationCreate())\n\
+  \        \n        response = cognitive_service.generate_response(request.query,\
+  \ conversation.context)\n        \n        crud.add_message(\n            db, \n\
+  \            conversation_id=conversation.id,\n            message_text=request.query,\n\
+  \            is_user=True\n        )\n        crud.add_message(\n            db,\n\
+  \            conversation_id=conversation.id,\n            message_text=response,\n\
+  \            is_user=False\n        )\n        \n        return QueryResponse(response=response,\
+  \ conversation_id=conversation.id)\n    except Exception as e:\n        raise HTTPException(status_code=500,\
+  \ detail=f\"Error processing query: {str(e)}\")\n\n@router.get(\"/conversations/{conversation_id}\"\
+  , response_model=Conversation)\nasync def get_conversation(conversation_id: int,\
+  \ db: Session = Depends(get_db)):\n    conversation = crud.get_conversation(db,\
+  \ conversation_id)\n    if not conversation:\n        raise HTTPException(status_code=404,\
+  \ detail=\"Conversation not found\")\n    return conversation\n\n@router.get(\"\
+  /conversations\", response_model=List[Conversation])\nasync def get_conversations(skip:\
+  \ int = 0, limit: int = 100, db: Session = Depends(get_db)):\n    conversations\
+  \ = crud.get_conversations(db, skip=skip, limit=limit)\n    return conversations\n\
+  \n@router.delete(\"/conversations/{conversation_id}\")\nasync def delete_conversation(conversation_id:\
+  \ int, db: Session = Depends(get_db)):\n    success = crud.delete_conversation(db,\
+  \ conversation_id)\n    if not success:\n        raise HTTPException(status_code=404,\
+  \ detail=\"Conversation not found\")\n    return {\"message\": \"Conversation deleted\
+  \ successfully\"}\n```"
+justification: Update API handlers to use CognitiveService instead of the obsolete
+  BaseLLMClient to ensure API endpoints continue to function correctly
+target_path: src/api/handlers.py
