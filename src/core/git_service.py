@@ -13,6 +13,7 @@ from shared.logger import getLogger
 log = getLogger(__name__)
 
 
+# CAPABILITY: change_safety_enforcement
 class GitService:
     """
     Encapsulates Git operations for the CORE system.
@@ -26,7 +27,6 @@ class GitService:
             raise ValueError(f"Invalid Git repository: {repo_path}")
         log.info(f"GitService initialized for repo at {self.repo_path}")
 
-    # CAPABILITY: change_safety_enforcement
     def _run_command(self, command: list) -> str:
         """
         Run a Git command and return stdout.
@@ -68,8 +68,6 @@ class GitService:
             message (str): Commit message explaining the change.
         """
         try:
-            # --- THIS IS THE FIX ---
-            # First, check if there are any staged changes.
             status_output = self._run_command(["git", "status", "--porcelain"])
             if not status_output:
                 log.info("No changes to commit.")
@@ -78,14 +76,10 @@ class GitService:
             self._run_command(["git", "commit", "-m", message])
             log.info(f"Committed changes with message: {message}")
         except RuntimeError as e:
-            # It's possible for a race condition, or for the status check to be insufficient.
-            # We specifically check for the "nothing to commit" message from Git.
             if "nothing to commit" in str(e).lower():
                 log.info("No changes to commit.")
             else:
-                # Re-raise any other unexpected error.
                 raise e
-            # --- END OF FIX ---
 
     def is_git_repo(self) -> bool:
         """

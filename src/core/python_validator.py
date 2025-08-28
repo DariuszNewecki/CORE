@@ -22,7 +22,7 @@ from .validation_quality import QualityChecker
 Violation = Dict[str, Any]
 
 
-# CAPABILITY: validate_python_code_with_comprehensive_pipeline
+# CAPABILITY: code_quality_analysis
 def validate_python_code(path_hint: str, code: str) -> Tuple[str, List[Violation]]:
     """Comprehensive validation pipeline for Python code.
 

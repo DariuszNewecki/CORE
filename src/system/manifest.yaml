@@ -1,4 +1,5 @@
-# src/system/manifest.yaml
+domain: system
+description: Governance tooling, constitutional auditor, and the admin CLI.
 capabilities:
   - alignment_checking
   - audit.check.capability_coverage
@@ -19,6 +20,7 @@ capabilities:
   - audit.check.secrets
   - audit.check.syntax
   - autonomous_development
+  - fix.headers
   - governance.cli.archive_plan
   - governance.cli.generate_token
   - governance.cli.load_key
@@ -26,5 +28,3 @@ capabilities:
   - governance.cli.save_yaml
   - governance.cli.should_fail
   - scaffold_project
-description: Governance tooling, constitutional auditor, and the admin CLI.
-domain: system

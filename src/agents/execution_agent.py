@@ -12,8 +12,6 @@ from typing import List
 from agents.models import ExecutionTask
 from agents.plan_executor import PlanExecutionError, PlanExecutor
 from agents.utils import PlanExecutionContext
-
-# --- FIX: Import the base client, not a specific one ---
 from core.clients import BaseLLMClient
 from core.prompt_pipeline import PromptPipeline
 from shared.logger import getLogger
@@ -21,12 +19,12 @@ from shared.logger import getLogger
 log = getLogger(__name__)
 
 
+# CAPABILITY: code_generation
 class ExecutionAgent:
     """Orchestrates the execution of a plan, including code generation and validation."""
 
     def __init__(
         self,
-        # --- FIX: Expects the generic base client ---
         generator_client: BaseLLMClient,
         prompt_pipeline: PromptPipeline,
         plan_executor: PlanExecutor,
@@ -38,7 +36,6 @@ class ExecutionAgent:
         self.git_service = self.executor.git_service
         self.config = self.executor.config
 
-    # ... (rest of the file is the same)
     async def _generate_code_for_proposal(self, task: ExecutionTask, goal: str) -> str:
         """Generates the full file content for a create_proposal task."""
         log.info(f"✍️  Generating full file content for proposal: '{task.step}'...")
@@ -76,11 +73,10 @@ class ExecutionAgent:
             file_path=file_path_str,
             original_content=original_content,
         )
-        return self.generator.make_request(
+        return await self.generator.make_request_async(
             final_prompt, user_id="execution_agent_proposer"
         )
 
-    # CAPABILITY: code_generation
     async def _generate_code_for_task(self, task: ExecutionTask, goal: str) -> str:
         """Generates the code content for a single task using a generator LLM."""
         log.info(f"✍️  Generating code for task: '{task.step}'...")
@@ -105,7 +101,7 @@ class ExecutionAgent:
             symbol_name=task.params.symbol_name or "",
         )
         enriched_prompt = self.prompt_pipeline.process(final_prompt)
-        return self.generator.make_request(
+        return await self.generator.make_request_async(
             enriched_prompt, user_id="execution_agent_coder"
         )
 

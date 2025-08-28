@@ -1,3 +1,4 @@
+# .intent/meta.yaml
 version: "0.1.0"
 
 # PURPOSE: This fulfills the evolvable_structure principle by establishing a clear
@@ -72,3 +73,5 @@ schemas:
   data_retention_policy: "schemas/data_retention_policy.schema.json"
   runtime_requirements: "schemas/runtime_requirements.schema.json"
   intent_bundle: "schemas/intent_bundle.schema.json"
+  enforcement_model: "schemas/enforcement_model.schema.json" # <-- ADD THIS LINE
+  intent_guard: "schemas/intent_guard.schema.json" # <-- AND THIS LINE

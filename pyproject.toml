@@ -1,5 +1,4 @@
 # pyproject.toml
-
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
@@ -18,16 +17,15 @@ packages = [
     { include = "shared", from = "src" },
 ]
 
-# --- Main Dependencies ---
 [tool.poetry.dependencies]
-python = ">=3.9"
+python = ">=3.12"
 fastapi = ">=0.95.0"
 uvicorn = {extras = ["standard"], version = ">=0.21.0"}
 pyyaml = ">=6.0"
 httpx = ">=0.25.0"
 python-dotenv = ">=1.0.0"
-pydantic = ">=2.0.0"
-pydantic-settings = "^2.0.0"
+pydantic = ">=2.11"
+pydantic-settings = "^2.10.1"
 cryptography = ">=42.0.0"
 rich = "^13"
 black = "^24"
@@ -36,19 +34,16 @@ typer = {extras = ["rich"], version = "^0.16.1"}
 radon = ">=5.1.0"
 filelock = "^3.13.0"
 
-# --- Development Dependencies ---
 [tool.poetry.group.dev.dependencies]
 pytest = ">=7.0,<8.0"
 pytest-asyncio = "==0.21.0"
 pytest-mock = "^3.12.0"
 pytest-cov = "^6.2"
-pytest-fastapi = "^0.3.0"
+pytest-dotenv = "^0.5.2" # <-- THIS LINE IS FIXED
 
-# --- Command-Line Scripts ---
 [tool.poetry.scripts]
 core-admin = "src.system.admin:app"
 
-# --- Configuration for development tools ---
 [tool.black]
 line-length = 88
 
@@ -57,10 +52,13 @@ line-length = 88
 
 [tool.ruff.lint]
 select = ["E", "W", "F", "I"]
-ignore = ["E402", "E501"]  # Moved E402 here and kept E501
+ignore = ["E402", "E501"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
 pythonpath = ["src"]
 addopts = ["-c", "pyproject.toml"]
+env_files = [
+    ".env"
+]
