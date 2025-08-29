@@ -5,6 +5,7 @@ Implements the IntentTranslator agent, responsible for converting natural langua
 from __future__ import annotations
 
 from core.cognitive_service import CognitiveService
+from core.prompt_pipeline import PromptPipeline  # <-- ADD THIS IMPORT
 from shared.config import settings
 from shared.logger import getLogger
 
@@ -17,6 +18,7 @@ class IntentTranslator:
     def __init__(self, cognitive_service: CognitiveService):
         """Initializes the translator with the CognitiveService."""
         self.cognitive_service = cognitive_service
+        self.prompt_pipeline = PromptPipeline(settings.REPO_PATH)  # <-- ADD THIS LINE
         self.prompt_path = settings.MIND / "prompts" / "intent_translator.prompt"
         if not self.prompt_path.exists():
             raise FileNotFoundError(
@@ -33,7 +35,10 @@ class IntentTranslator:
         log.info(f"Translating user intent: '{user_input}'")
         client = self.cognitive_service.get_client_for_role("IntentTranslator")
 
-        final_prompt = self.prompt_template.format(user_input=user_input)
+        # Use the pipeline to inject context into the prompt
+        final_prompt = self.prompt_pipeline.process(
+            self.prompt_template.format(user_input=user_input)
+        )
 
         structured_goal = client.make_request(final_prompt, user_id="intent_translator")
         log.info(f"Translated goal: '{structured_goal}'")
