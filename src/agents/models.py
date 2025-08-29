@@ -68,8 +68,12 @@ class ExecutionTask(BaseModel):
     """Data model for a single, executable step in a plan."""
 
     step: str
-    # --- THIS IS THE FIX ---
+    # --- THIS IS THE CHANGE ---
     action: Literal[
-        "add_capability_tag", "create_file", "edit_function", "create_proposal"
+        "add_capability_tag",
+        "create_file",
+        "edit_function",
+        "create_proposal",
+        "delete_file",  # The new, constitutionally-recognized action
     ]
     params: TaskParams
