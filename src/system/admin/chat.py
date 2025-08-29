@@ -4,14 +4,13 @@ Implements the 'core-admin chat' command for conversational interaction.
 """
 from __future__ import annotations
 
-import asyncio
+import json
 
 import typer
 from dotenv import load_dotenv
 
-from agents.development_cycle import run_development_cycle
-from agents.intent_translator import IntentTranslator
 from core.cognitive_service import CognitiveService
+from core.prompt_pipeline import PromptPipeline
 from shared.config import settings
 from shared.logger import getLogger
 
@@ -22,7 +21,7 @@ load_dotenv()
 # CAPABILITY: conversational_interface
 def chat(user_input: str = typer.Argument(..., help="Your goal in natural language.")):
     """
-    Translates your natural language goal into a structured plan and executes it.
+    Assesses your natural language goal and provides a clear, actionable command.
     """
     if not settings.LLM_ENABLED:
         log.error(
@@ -30,38 +29,50 @@ def chat(user_input: str = typer.Argument(..., help="Your goal in natural langua
         )
         raise typer.Exit(code=1)
 
-    log.info(f"Received user input via chat: '{user_input}'")
+    log.info(f"Assessing user goal: '{user_input}'")
 
-    # Step 1: Instantiate the services and the translator agent.
+    # --- This is the new "Triage" logic ---
     cognitive_service = CognitiveService(settings.REPO_PATH)
-    translator = IntentTranslator(cognitive_service)
+    prompt_pipeline = PromptPipeline(settings.REPO_PATH)
 
-    # Step 2: Use the translator to convert natural language to a structured goal.
-    structured_goal = translator.translate(user_input)
-
-    if not structured_goal or "Error:" in structured_goal:
-        log.error(
-            f"❌ Failed to translate the user's intent. AI response: {structured_goal}"
-        )
+    prompt_path = settings.MIND / "prompts" / "goal_assessor.prompt"
+    if not prompt_path.exists():
+        log.error(f"❌ Constitutional prompt not found at: {prompt_path}")
         raise typer.Exit(code=1)
 
-    typer.secho("\n🧠 Structured Goal:", bold=True)
-    typer.secho(f"{structured_goal}", fg=typer.colors.CYAN)
+    prompt_template = prompt_path.read_text(encoding="utf-8")
+    final_prompt = prompt_pipeline.process(
+        prompt_template.format(user_input=user_input)
+    )
 
-    if not typer.confirm("\nDo you want to proceed with executing this goal?"):
-        log.warning("Execution cancelled by user.")
-        raise typer.Exit()
+    # Use a strong reasoning model for this assessment
+    assessor_client = cognitive_service.get_client_for_role("Planner")
+    response_text = assessor_client.make_request(final_prompt, user_id="goal_assessor")
 
-    # Step 3: Pass the structured goal to the existing development cycle.
-    success, message = asyncio.run(run_development_cycle(structured_goal))
+    try:
+        assessment = json.loads(response_text)
+        status = assessment.get("status")
 
-    # Step 4: Report the final outcome.
-    if success:
-        typer.secho("\n✅ Goal achieved successfully.", fg=typer.colors.GREEN)
-        typer.secho(f"   -> {message}", fg=typer.colors.GREEN)
-    else:
-        typer.secho("\n❌ Goal execution failed.", fg=typer.colors.RED)
-        typer.secho(f"   -> {message}", fg=typer.colors.RED)
+        if status == "clear":
+            goal = assessment.get("goal")
+            typer.secho(
+                "\n✅ Your goal is clear and actionable.", fg=typer.colors.GREEN
+            )
+            typer.echo("You can now run the 'develop' command with this goal:")
+            typer.secho(
+                f'\npoetry run core-admin develop "{goal}"\n', fg=typer.colors.CYAN
+            )
+
+        elif status == "vague":
+            suggestion = assessment.get("suggestion")
+            typer.secho("\n⚠️ Your goal is a bit vague.", fg=typer.colors.YELLOW)
+            typer.echo(suggestion)
+        else:
+            log.error(f"AI returned an unexpected status: {status}")
+
+    except (json.JSONDecodeError, KeyError):
+        log.error("Failed to parse the AI's assessment. The raw response was:")
+        typer.echo(response_text)
         raise typer.Exit(code=1)
 
 

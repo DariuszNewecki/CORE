@@ -3,7 +3,7 @@
   "metadata": {
     "files_scanned": 96,
     "total_symbols": 327,
-    "timestamp_utc": "2025-08-28T20:09:59.683275+00:00"
+    "timestamp_utc": "2025-08-29T08:59:16.287557+00:00"
   },
   "symbols": {
     "src/core/knowledge_service.py::KnowledgeService": {
@@ -31,7 +31,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-28T20:09:59.059671+00:00",
+      "last_updated": "2025-08-29T08:59:15.662982+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -57,7 +57,7 @@
         "repo_path"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-28T20:09:59.060279+00:00",
+      "last_updated": "2025-08-29T08:59:15.663594+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -85,7 +85,7 @@
       "parameters": [
         "self"
       ],
-      "last_updated": "2025-08-28T20:09:59.060943+00:00",
+      "last_updated": "2025-08-29T08:59:15.664230+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/core/knowledge_service.py::KnowledgeService",
@@ -112,7 +112,7 @@
       "parameters": [
         "self"
       ],
-      "last_updated": "2025-08-28T20:09:59.061761+00:00",
+      "last_updated": "2025-08-29T08:59:15.665077+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/core/knowledge_service.py::KnowledgeService",
@@ -147,7 +147,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-28T20:09:59.069918+00:00",
+      "last_updated": "2025-08-29T08:59:15.673391+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -178,7 +178,7 @@
         "model_name"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-28T20:09:59.071424+00:00",
+      "last_updated": "2025-08-29T08:59:15.674927+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -203,7 +203,7 @@
         "prompt",
         "user_id"
       ],
-      "last_updated": "2025-08-28T20:09:59.072146+00:00",
+      "last_updated": "2025-08-29T08:59:15.675653+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/core/clients.py::BaseLLMClient",
@@ -229,7 +229,7 @@
         "self",
         "response_data"
       ],
-      "last_updated": "2025-08-28T20:09:59.073053+00:00",
+      "last_updated": "2025-08-29T08:59:15.676565+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/core/clients.py::BaseLLMClient",
@@ -263,7 +263,7 @@
         "prompt",
         "user_id"
       ],
-      "last_updated": "2025-08-28T20:09:59.074732+00:00",
+      "last_updated": "2025-08-29T08:59:15.678234+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/core/clients.py::BaseLLMClient",
@@ -297,7 +297,7 @@
         "prompt",
         "user_id"
       ],
-      "last_updated": "2025-08-28T20:09:59.076536+00:00",
+      "last_updated": "2025-08-29T08:59:15.680065+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/core/clients.py::BaseLLMClient",
@@ -328,7 +328,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-28T20:09:59.080950+00:00",
+      "last_updated": "2025-08-29T08:59:15.684550+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -357,7 +357,7 @@
         "repo_path"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-28T20:09:59.082187+00:00",
+      "last_updated": "2025-08-29T08:59:15.685818+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -389,7 +389,7 @@
         "self",
         "role_name"
       ],
-      "last_updated": "2025-08-28T20:09:59.084271+00:00",
+      "last_updated": "2025-08-29T08:59:15.687919+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/core/cognitive_service.py::CognitiveService",
@@ -421,7 +421,7 @@
         "quiet"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-28T20:09:59.086270+00:00",
+      "last_updated": "2025-08-29T08:59:15.689973+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -459,7 +459,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-28T20:09:59.091217+00:00",
+      "last_updated": "2025-08-29T08:59:15.694993+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -489,7 +489,7 @@
         "repo_path"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-28T20:09:59.091977+00:00",
+      "last_updated": "2025-08-29T08:59:15.695739+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -520,7 +520,7 @@
         "self",
         "command"
       ],
-      "last_updated": "2025-08-28T20:09:59.092987+00:00",
+      "last_updated": "2025-08-29T08:59:15.696738+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/core/git_service.py::GitService",
@@ -547,7 +547,7 @@
         "self",
         "file_path"
       ],
-      "last_updated": "2025-08-28T20:09:59.093799+00:00",
+      "last_updated": "2025-08-29T08:59:15.697539+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/core/git_service.py::GitService",
@@ -575,7 +575,7 @@
         "self",
         "message"
       ],
-      "last_updated": "2025-08-28T20:09:59.094789+00:00",
+      "last_updated": "2025-08-29T08:59:15.698532+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/core/git_service.py::GitService",
@@ -599,7 +599,7 @@
       "parameters": [
         "self"
       ],
-      "last_updated": "2025-08-28T20:09:59.095217+00:00",
+      "last_updated": "2025-08-29T08:59:15.698980+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/core/git_service.py::GitService",
@@ -623,7 +623,7 @@
       "parameters": [
         "self"
       ],
-      "last_updated": "2025-08-28T20:09:59.095617+00:00",
+      "last_updated": "2025-08-29T08:59:15.699373+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/core/git_service.py::GitService",
@@ -650,7 +650,7 @@
         "self",
         "commit_hash"
       ],
-      "last_updated": "2025-08-28T20:09:59.096311+00:00",
+      "last_updated": "2025-08-29T08:59:15.700231+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/core/git_service.py::GitService",
@@ -676,7 +676,7 @@
       "line_number": 17,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-28T20:09:59.098010+00:00",
+      "last_updated": "2025-08-29T08:59:15.702032+00:00",
       "is_class": true,
       "base_classes": [],
       "structural_hash": "861806124e18cf98cd000444ad5b3cabf21c1b541f226671f22b9374d47f9fce"
@@ -704,7 +704,7 @@
         "self",
         "code"
       ],
-      "last_updated": "2025-08-28T20:09:59.099137+00:00",
+      "last_updated": "2025-08-29T08:59:15.703220+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/core/validation_quality.py::QualityChecker",
@@ -730,7 +730,7 @@
         "file_path"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-28T20:09:59.100223+00:00",
+      "last_updated": "2025-08-29T08:59:15.704318+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -758,7 +758,7 @@
         "code"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-28T20:09:59.101680+00:00",
+      "last_updated": "2025-08-29T08:59:15.705891+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -784,7 +784,7 @@
         "code"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-28T20:09:59.103003+00:00",
+      "last_updated": "2025-08-29T08:59:15.707228+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -820,7 +820,7 @@
         "code"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-28T20:09:59.105335+00:00",
+      "last_updated": "2025-08-29T08:59:15.709502+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -847,7 +847,7 @@
       "parameters": [
         "code"
       ],
-      "last_updated": "2025-08-28T20:09:59.106609+00:00",
+      "last_updated": "2025-08-29T08:59:15.710725+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "67aa7b50532f6c25f84285da5bbf9430a54f3b594a386a3299c19b82faa15fbf"
@@ -885,7 +885,7 @@
         "silent"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-28T20:09:59.111683+00:00",
+      "last_updated": "2025-08-29T08:59:15.715775+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -911,7 +911,7 @@
       "parameters": [
         "output"
       ],
-      "last_updated": "2025-08-28T20:09:59.112353+00:00",
+      "last_updated": "2025-08-29T08:59:15.716494+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "ecb56e37049e5532d9a6ce3afe63d1fd652cb164fc98e76a46565820fd320bf7"
@@ -939,7 +939,7 @@
       "parameters": [
         "data"
       ],
-      "last_updated": "2025-08-28T20:09:59.113251+00:00",
+      "last_updated": "2025-08-29T08:59:15.717382+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "13f83ee9bd80ac8766838342478341ecac3f76e1a251506d3a68a02723b420d3"
@@ -969,7 +969,7 @@
       "parameters": [
         "data"
       ],
-      "last_updated": "2025-08-28T20:09:59.114432+00:00",
+      "last_updated": "2025-08-29T08:59:15.718564+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "af76b1754db8cbc6ae124a21f9916aaa8bfc52fa38d68bc69f86fd7e70aed49e"
@@ -998,7 +998,7 @@
         "app"
       ],
       "entry_point_type": "context_manager",
-      "last_updated": "2025-08-28T20:09:59.117084+00:00",
+      "last_updated": "2025-08-29T08:59:15.721252+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "1160d0a73abf43c2644a70e1783a9fa80d56949605a58f0df5af495c12fb85df"
@@ -1020,7 +1020,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-28T20:09:59.117459+00:00",
+      "last_updated": "2025-08-29T08:59:15.721628+00:00",
       "is_class": true,
       "base_classes": [
         "BaseModel"
@@ -1045,7 +1045,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-28T20:09:59.118007+00:00",
+      "last_updated": "2025-08-29T08:59:15.722137+00:00",
       "is_class": true,
       "base_classes": [
         "BaseModel"
@@ -1077,7 +1077,7 @@
         "payload"
       ],
       "entry_point_type": "fastapi_route_post",
-      "last_updated": "2025-08-28T20:09:59.119074+00:00",
+      "last_updated": "2025-08-29T08:59:15.723217+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "202a6fe24c3a8647bb696b6e100fe53f4f38c1e9f869be4742b5850b1e063628"
@@ -1102,7 +1102,7 @@
         "request"
       ],
       "entry_point_type": "fastapi_route_get",
-      "last_updated": "2025-08-28T20:09:59.119558+00:00",
+      "last_updated": "2025-08-29T08:59:15.723727+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "5099e7071ee405b695b02a297922f4b33dd002e3aa3400ddf0b0de6e7e1f83cb"
@@ -1131,7 +1131,7 @@
         "request_data"
       ],
       "entry_point_type": "fastapi_route_post",
-      "last_updated": "2025-08-28T20:09:59.120602+00:00",
+      "last_updated": "2025-08-29T08:59:15.724785+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "7552572d05d27156c4fb5697fc6b3ce8829fb0454186d09523581b1f1ebf0aca"
@@ -1153,7 +1153,7 @@
       "is_async": true,
       "parameters": [],
       "entry_point_type": "fastapi_route_get",
-      "last_updated": "2025-08-28T20:09:59.120988+00:00",
+      "last_updated": "2025-08-29T08:59:15.725163+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "0f4ab9b7486b424e3726a154118bc8d237af730580bf891e8f58b65ba9fd8713"
@@ -1193,7 +1193,7 @@
       "line_number": 26,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-28T20:09:59.129162+00:00",
+      "last_updated": "2025-08-29T08:59:15.733358+00:00",
       "is_class": true,
       "base_classes": [],
       "structural_hash": "643ffeca004f05935522cc4d1c1b568539b9a36dd0ab361acf09bb0e399dec65"
@@ -1220,7 +1220,7 @@
         "repo_path"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-28T20:09:59.129867+00:00",
+      "last_updated": "2025-08-29T08:59:15.734067+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -1252,7 +1252,7 @@
         "self",
         "match"
       ],
-      "last_updated": "2025-08-28T20:09:59.131253+00:00",
+      "last_updated": "2025-08-29T08:59:15.735464+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/core/prompt_pipeline.py::PromptPipeline",
@@ -1277,7 +1277,7 @@
         "self",
         "prompt"
       ],
-      "last_updated": "2025-08-28T20:09:59.131652+00:00",
+      "last_updated": "2025-08-29T08:59:15.735871+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/core/prompt_pipeline.py::PromptPipeline",
@@ -1308,7 +1308,7 @@
         "self",
         "match"
       ],
-      "last_updated": "2025-08-28T20:09:59.133059+00:00",
+      "last_updated": "2025-08-29T08:59:15.737222+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/core/prompt_pipeline.py::PromptPipeline",
@@ -1333,7 +1333,7 @@
         "self",
         "prompt"
       ],
-      "last_updated": "2025-08-28T20:09:59.133464+00:00",
+      "last_updated": "2025-08-29T08:59:15.737625+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/core/prompt_pipeline.py::PromptPipeline",
@@ -1359,7 +1359,7 @@
         "self",
         "match"
       ],
-      "last_updated": "2025-08-28T20:09:59.134057+00:00",
+      "last_updated": "2025-08-29T08:59:15.738218+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/core/prompt_pipeline.py::PromptPipeline",
@@ -1384,7 +1384,7 @@
         "self",
         "prompt"
       ],
-      "last_updated": "2025-08-28T20:09:59.134452+00:00",
+      "last_updated": "2025-08-29T08:59:15.738616+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/core/prompt_pipeline.py::PromptPipeline",
@@ -1418,7 +1418,7 @@
         "self",
         "match"
       ],
-      "last_updated": "2025-08-28T20:09:59.136228+00:00",
+      "last_updated": "2025-08-29T08:59:15.740395+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/core/prompt_pipeline.py::PromptPipeline",
@@ -1443,7 +1443,7 @@
         "self",
         "prompt"
       ],
-      "last_updated": "2025-08-28T20:09:59.136631+00:00",
+      "last_updated": "2025-08-29T08:59:15.740818+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/core/prompt_pipeline.py::PromptPipeline",
@@ -1472,7 +1472,7 @@
         "prompt"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-28T20:09:59.137210+00:00",
+      "last_updated": "2025-08-29T08:59:15.741384+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -1499,7 +1499,7 @@
       "parameters": [
         "paths"
       ],
-      "last_updated": "2025-08-28T20:09:59.139121+00:00",
+      "last_updated": "2025-08-29T08:59:15.743296+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "5c690a7094496e5795d7c4bde5518e0460231aceb1b54d26fa5870b9d65f2976"
@@ -1526,7 +1526,7 @@
       "line_number": 40,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-28T20:09:59.140094+00:00",
+      "last_updated": "2025-08-29T08:59:15.744226+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "645bcc9a39ef41488c5ea7a2940f13fc4b26c8c1bc436d53f993d814c77c15b3"
@@ -1550,7 +1550,7 @@
       "parameters": [
         "text"
       ],
-      "last_updated": "2025-08-28T20:09:59.140515+00:00",
+      "last_updated": "2025-08-29T08:59:15.744651+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "8b7e436b369f8a59e6ca968520fc9d02eec3f9d1e48258193e87e177d62d8e82"
@@ -1584,7 +1584,7 @@
         "goal",
         "project_root"
       ],
-      "last_updated": "2025-08-28T20:09:59.141993+00:00",
+      "last_updated": "2025-08-29T08:59:15.746136+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "0c7e02644a288a463670cc1472faa6701002593ecefcd8b3078631666b684468"
@@ -1612,7 +1612,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "cli_entry_point",
-      "last_updated": "2025-08-28T20:09:59.145204+00:00",
+      "last_updated": "2025-08-29T08:59:15.749381+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "65c205885812932a8159baa16c02658ee3be9c35f7e536cee2a1799fa9a682b7"
@@ -1651,7 +1651,7 @@
       "line_number": 22,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-28T20:09:59.152131+00:00",
+      "last_updated": "2025-08-29T08:59:15.756350+00:00",
       "is_class": true,
       "base_classes": [],
       "structural_hash": "df7a2b669971a3c8f58b1ef812fdf55df327bfa3948f49e11b159a8da2a6cd0e"
@@ -1673,7 +1673,7 @@
         "self"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-28T20:09:59.152543+00:00",
+      "last_updated": "2025-08-29T08:59:15.756779+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -1700,7 +1700,7 @@
       "parameters": [
         "self"
       ],
-      "last_updated": "2025-08-28T20:09:59.153268+00:00",
+      "last_updated": "2025-08-29T08:59:15.757509+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/core/validation_policies.py::PolicyValidator",
@@ -1727,7 +1727,7 @@
         "self",
         "node"
       ],
-      "last_updated": "2025-08-28T20:09:59.154047+00:00",
+      "last_updated": "2025-08-29T08:59:15.758275+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/core/validation_policies.py::PolicyValidator",
@@ -1765,7 +1765,7 @@
         "tree",
         "file_path"
       ],
-      "last_updated": "2025-08-28T20:09:59.157340+00:00",
+      "last_updated": "2025-08-29T08:59:15.761545+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/core/validation_policies.py::PolicyValidator",
@@ -1792,7 +1792,7 @@
         "code",
         "file_path"
       ],
-      "last_updated": "2025-08-28T20:09:59.157968+00:00",
+      "last_updated": "2025-08-29T08:59:15.762135+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/core/validation_policies.py::PolicyValidator",
@@ -1827,7 +1827,7 @@
         "code",
         "display_filename"
       ],
-      "last_updated": "2025-08-28T20:09:59.161503+00:00",
+      "last_updated": "2025-08-29T08:59:15.765670+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "43ca55ae34afc29c10e967766b01252dae62b0efe0b5e8f024d0d5f07d1cc287"
@@ -1865,7 +1865,7 @@
       "line_number": 20,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-28T20:09:59.167001+00:00",
+      "last_updated": "2025-08-29T08:59:15.771185+00:00",
       "is_class": true,
       "base_classes": [],
       "structural_hash": "cf22b57d0019b89065c46a812e22e93b4b7115c5a8708f14c806b9a1d98a402f"
@@ -1895,7 +1895,7 @@
         "repo_path"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-28T20:09:59.168126+00:00",
+      "last_updated": "2025-08-29T08:59:15.772311+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -1930,7 +1930,7 @@
         "suggested_path",
         "code"
       ],
-      "last_updated": "2025-08-28T20:09:59.169179+00:00",
+      "last_updated": "2025-08-29T08:59:15.773373+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/core/file_handler.py::FileHandler",
@@ -1965,7 +1965,7 @@
         "self",
         "pending_id"
       ],
-      "last_updated": "2025-08-28T20:09:59.171272+00:00",
+      "last_updated": "2025-08-29T08:59:15.775486+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/core/file_handler.py::FileHandler",
@@ -1999,7 +1999,7 @@
       "line_number": 14,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-28T20:09:59.175264+00:00",
+      "last_updated": "2025-08-29T08:59:15.779460+00:00",
       "is_class": true,
       "base_classes": [],
       "structural_hash": "ead52768c57f82f1780c8048368cab32f42cf88daf78acfe2535d08b2a8e4e0e"
@@ -2026,7 +2026,7 @@
         "repo_root"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-28T20:09:59.176084+00:00",
+      "last_updated": "2025-08-29T08:59:15.780331+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -2056,7 +2056,7 @@
       "parameters": [
         "self"
       ],
-      "last_updated": "2025-08-28T20:09:59.177112+00:00",
+      "last_updated": "2025-08-29T08:59:15.781314+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/core/intent_model.py::IntentModel",
@@ -2084,7 +2084,7 @@
         "self",
         "file_path"
       ],
-      "last_updated": "2025-08-28T20:09:59.178250+00:00",
+      "last_updated": "2025-08-29T08:59:15.782427+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/core/intent_model.py::IntentModel",
@@ -2110,7 +2110,7 @@
         "self",
         "domain"
       ],
-      "last_updated": "2025-08-28T20:09:59.178936+00:00",
+      "last_updated": "2025-08-29T08:59:15.783077+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/core/intent_model.py::IntentModel",
@@ -2138,7 +2138,7 @@
       "parameters": [
         "app"
       ],
-      "last_updated": "2025-08-28T20:09:59.181093+00:00",
+      "last_updated": "2025-08-29T08:59:15.785122+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "b4391706ebcc3340825a8843452e9937dff660eae23258170b9a39025af234cd"
@@ -2178,7 +2178,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-28T20:09:59.185877+00:00",
+      "last_updated": "2025-08-29T08:59:15.789757+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -2209,7 +2209,7 @@
         "repo_path"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-28T20:09:59.186924+00:00",
+      "last_updated": "2025-08-29T08:59:15.790808+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -2238,7 +2238,7 @@
       "parameters": [
         "self"
       ],
-      "last_updated": "2025-08-28T20:09:59.187672+00:00",
+      "last_updated": "2025-08-29T08:59:15.791563+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/core/intent_guard.py::IntentGuard",
@@ -2268,7 +2268,7 @@
       "parameters": [
         "self"
       ],
-      "last_updated": "2025-08-28T20:09:59.188683+00:00",
+      "last_updated": "2025-08-29T08:59:15.792585+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/core/intent_guard.py::IntentGuard",
@@ -2294,7 +2294,7 @@
         "self",
         "proposed_paths"
       ],
-      "last_updated": "2025-08-28T20:09:59.189799+00:00",
+      "last_updated": "2025-08-29T08:59:15.793684+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/core/intent_guard.py::IntentGuard",
@@ -2329,7 +2329,7 @@
         "failure_context"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-28T20:09:59.193025+00:00",
+      "last_updated": "2025-08-29T08:59:15.796889+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -2366,7 +2366,7 @@
       "parameters": [
         "goal"
       ],
-      "last_updated": "2025-08-28T20:09:59.196165+00:00",
+      "last_updated": "2025-08-29T08:59:15.800028+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "b937a6268d5a4ef34d90aa97ff67f3783d13d41ec66abf553bb4dc38c13c2af8"
@@ -2388,7 +2388,7 @@
       "line_number": 24,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-28T20:09:59.200624+00:00",
+      "last_updated": "2025-08-29T08:59:15.804410+00:00",
       "is_class": true,
       "base_classes": [
         "Exception"
@@ -2419,7 +2419,7 @@
         "config"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-28T20:09:59.211240+00:00",
+      "last_updated": "2025-08-29T08:59:15.815018+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -2476,7 +2476,7 @@
       "line_number": 32,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-28T20:09:59.210569+00:00",
+      "last_updated": "2025-08-29T08:59:15.814333+00:00",
       "is_class": true,
       "base_classes": [],
       "structural_hash": "ef7c20082076250e8823da7454e6b94865e7233b441f19e685c5532a13c41264"
@@ -2503,7 +2503,7 @@
         "self",
         "plan"
       ],
-      "last_updated": "2025-08-28T20:09:59.212019+00:00",
+      "last_updated": "2025-08-29T08:59:15.815805+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/agents/plan_executor.py::PlanExecutor",
@@ -2530,7 +2530,7 @@
         "self",
         "task"
       ],
-      "last_updated": "2025-08-28T20:09:59.212737+00:00",
+      "last_updated": "2025-08-29T08:59:15.816507+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/agents/plan_executor.py::PlanExecutor",
@@ -2555,7 +2555,7 @@
         "self",
         "task"
       ],
-      "last_updated": "2025-08-28T20:09:59.213515+00:00",
+      "last_updated": "2025-08-29T08:59:15.817287+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/agents/plan_executor.py::PlanExecutor",
@@ -2592,7 +2592,7 @@
         "self",
         "params"
       ],
-      "last_updated": "2025-08-28T20:09:59.215329+00:00",
+      "last_updated": "2025-08-29T08:59:15.819165+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/agents/plan_executor.py::PlanExecutor",
@@ -2631,7 +2631,7 @@
         "self",
         "params"
       ],
-      "last_updated": "2025-08-28T20:09:59.217781+00:00",
+      "last_updated": "2025-08-29T08:59:15.821645+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/agents/plan_executor.py::PlanExecutor",
@@ -2664,7 +2664,7 @@
         "self",
         "params"
       ],
-      "last_updated": "2025-08-28T20:09:59.219254+00:00",
+      "last_updated": "2025-08-29T08:59:15.823148+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/agents/plan_executor.py::PlanExecutor",
@@ -2699,7 +2699,7 @@
         "self",
         "params"
       ],
-      "last_updated": "2025-08-28T20:09:59.221271+00:00",
+      "last_updated": "2025-08-29T08:59:15.825172+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/agents/plan_executor.py::PlanExecutor",
@@ -2732,7 +2732,7 @@
       "line_number": 21,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-28T20:09:59.225689+00:00",
+      "last_updated": "2025-08-29T08:59:15.829643+00:00",
       "is_class": true,
       "base_classes": [],
       "structural_hash": "1e325dcf304aa0ce36a35ad3940b9f6a12c98bc07ba1b0b7b5833c6a60521568"
@@ -2759,7 +2759,7 @@
         "tree",
         "symbol_name"
       ],
-      "last_updated": "2025-08-28T20:09:59.226595+00:00",
+      "last_updated": "2025-08-29T08:59:15.830522+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/agents/utils.py::CodeEditor",
@@ -2794,7 +2794,7 @@
         "symbol_name",
         "new_code_str"
       ],
-      "last_updated": "2025-08-28T20:09:59.228258+00:00",
+      "last_updated": "2025-08-29T08:59:15.832239+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/agents/utils.py::CodeEditor",
@@ -2822,7 +2822,7 @@
       "line_number": 72,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-28T20:09:59.229541+00:00",
+      "last_updated": "2025-08-29T08:59:15.833473+00:00",
       "is_class": true,
       "base_classes": [],
       "structural_hash": "aa60ea7ae3b22f0acf89dcbc52608035efb94cdaf001b399ce61573f0275ff0b"
@@ -2852,7 +2852,7 @@
         "file_path",
         "symbol_name"
       ],
-      "last_updated": "2025-08-28T20:09:59.230777+00:00",
+      "last_updated": "2025-08-29T08:59:15.834683+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/agents/utils.py::SymbolLocator",
@@ -2878,7 +2878,7 @@
       "line_number": 95,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-28T20:09:59.232094+00:00",
+      "last_updated": "2025-08-29T08:59:15.836123+00:00",
       "is_class": true,
       "base_classes": [],
       "structural_hash": "0b5739e5879cc46fa7179e8c5de1d2f18481edbf8bde3cbfe93ab969e6059e1a"
@@ -2902,7 +2902,7 @@
         "config"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-28T20:09:59.232534+00:00",
+      "last_updated": "2025-08-29T08:59:15.836617+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -2930,7 +2930,7 @@
         "self"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-28T20:09:59.233147+00:00",
+      "last_updated": "2025-08-29T08:59:15.837250+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -2961,7 +2961,7 @@
         "exc_tb"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-28T20:09:59.233849+00:00",
+      "last_updated": "2025-08-29T08:59:15.837989+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -3010,7 +3010,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-28T20:09:59.240076+00:00",
+      "last_updated": "2025-08-29T08:59:15.844491+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -3039,7 +3039,7 @@
         "context"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-28T20:09:59.240799+00:00",
+      "last_updated": "2025-08-29T08:59:15.845265+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -3068,7 +3068,7 @@
         "goal",
         "plan_id"
       ],
-      "last_updated": "2025-08-28T20:09:59.241297+00:00",
+      "last_updated": "2025-08-29T08:59:15.845842+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/agents/planner_agent.py::PlannerAgent",
@@ -3095,7 +3095,7 @@
         "self",
         "plan"
       ],
-      "last_updated": "2025-08-28T20:09:59.242150+00:00",
+      "last_updated": "2025-08-29T08:59:15.846743+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/agents/planner_agent.py::PlannerAgent",
@@ -3122,7 +3122,7 @@
         "self",
         "task"
       ],
-      "last_updated": "2025-08-28T20:09:59.243341+00:00",
+      "last_updated": "2025-08-29T08:59:15.847948+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/agents/planner_agent.py::PlannerAgent",
@@ -3165,7 +3165,7 @@
         "high_level_goal"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-28T20:09:59.245316+00:00",
+      "last_updated": "2025-08-29T08:59:15.849910+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -3204,7 +3204,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-28T20:09:59.251894+00:00",
+      "last_updated": "2025-08-29T08:59:15.856402+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -3230,7 +3230,7 @@
         "plan_executor"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-28T20:09:59.252474+00:00",
+      "last_updated": "2025-08-29T08:59:15.856966+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -3265,7 +3265,7 @@
         "task",
         "goal"
       ],
-      "last_updated": "2025-08-28T20:09:59.253902+00:00",
+      "last_updated": "2025-08-29T08:59:15.858363+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/agents/execution_agent.py::ExecutionAgent",
@@ -3296,7 +3296,7 @@
         "task",
         "goal"
       ],
-      "last_updated": "2025-08-28T20:09:59.254973+00:00",
+      "last_updated": "2025-08-29T08:59:15.859434+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/agents/execution_agent.py::ExecutionAgent",
@@ -3329,7 +3329,7 @@
         "high_level_goal",
         "plan"
       ],
-      "last_updated": "2025-08-28T20:09:59.257270+00:00",
+      "last_updated": "2025-08-29T08:59:15.861753+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/agents/execution_agent.py::ExecutionAgent",
@@ -3347,20 +3347,22 @@
       "docstring": "An agent that translates natural language into structured goals.",
       "calls": [
         "FileNotFoundError",
+        "PromptPipeline",
         "exists",
         "format",
         "get_client_for_role",
         "info",
         "make_request",
+        "process",
         "read_text"
       ],
-      "line_number": 14,
+      "line_number": 15,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-28T20:09:59.259201+00:00",
+      "last_updated": "2025-08-29T08:59:15.863873+00:00",
       "is_class": true,
       "base_classes": [],
-      "structural_hash": "a0a55265b0bad914e044ed4fcac32bbb111344f93cb3074f6d1a9471b672ba3f"
+      "structural_hash": "a8499d072a77087d167d7650c51d62feba7f836dbbaf531846339bc22103dad1"
     },
     "src/agents/intent_translator.py::__init__": {
       "key": "src/agents/intent_translator.py::__init__",
@@ -3374,22 +3376,23 @@
       "docstring": "Initializes the translator with the CognitiveService.",
       "calls": [
         "FileNotFoundError",
+        "PromptPipeline",
         "exists",
         "read_text"
       ],
-      "line_number": 17,
+      "line_number": 18,
       "is_async": false,
       "parameters": [
         "self",
         "cognitive_service"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-28T20:09:59.259864+00:00",
+      "last_updated": "2025-08-29T08:59:15.864621+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
       "parent_class_key": "src/agents/intent_translator.py::IntentTranslator",
-      "structural_hash": "1008e789beb597e9a3285e8695f4b7e6f32dcf9274ba539d8cb4ef2b1bdc754b"
+      "structural_hash": "1f51d433afc1acafb7bf47afeef0b12d65b24f2bef897294b69262950b55bd20"
     },
     "src/agents/intent_translator.py::translate": {
       "key": "src/agents/intent_translator.py::translate",
@@ -3405,21 +3408,22 @@
         "format",
         "get_client_for_role",
         "info",
-        "make_request"
+        "make_request",
+        "process"
       ],
-      "line_number": 28,
+      "line_number": 30,
       "is_async": false,
       "parameters": [
         "self",
         "user_input"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-28T20:09:59.260727+00:00",
+      "last_updated": "2025-08-29T08:59:15.865519+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
       "parent_class_key": "src/agents/intent_translator.py::IntentTranslator",
-      "structural_hash": "2c20ea3fbee2fd444861ab215ef0cc4c475642808c99e7f959a03716f9e13bd9"
+      "structural_hash": "fd7c063d6334140162a5f0daa059cde34fe46e7b47a53b6179a4a4882de42886"
     },
     "src/agents/models.py::TaskStatus": {
       "key": "src/agents/models.py::TaskStatus",
@@ -3436,7 +3440,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "enum",
-      "last_updated": "2025-08-28T20:09:59.261814+00:00",
+      "last_updated": "2025-08-29T08:59:15.866620+00:00",
       "is_class": true,
       "base_classes": [
         "Enum"
@@ -3459,7 +3463,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-28T20:09:59.262501+00:00",
+      "last_updated": "2025-08-29T08:59:15.867344+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -3481,7 +3485,7 @@
       "parameters": [
         "self"
       ],
-      "last_updated": "2025-08-28T20:09:59.262997+00:00",
+      "last_updated": "2025-08-29T08:59:15.867875+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/agents/models.py::ExecutionProgress",
@@ -3502,7 +3506,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-28T20:09:59.263461+00:00",
+      "last_updated": "2025-08-29T08:59:15.868307+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -3523,7 +3527,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-28T20:09:59.264046+00:00",
+      "last_updated": "2025-08-29T08:59:15.868874+00:00",
       "is_class": true,
       "base_classes": [
         "BaseModel"
@@ -3546,7 +3550,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-28T20:09:59.264463+00:00",
+      "last_updated": "2025-08-29T08:59:15.869292+00:00",
       "is_class": true,
       "base_classes": [
         "BaseModel"
@@ -3576,7 +3580,7 @@
       "parameters": [
         "start_path"
       ],
-      "last_updated": "2025-08-28T20:09:59.265586+00:00",
+      "last_updated": "2025-08-29T08:59:15.870456+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "edc71d0c31594afdd9eea55c11cfb962e028462f15c08972f1a1d9cf1796ed79"
@@ -3609,7 +3613,7 @@
         "file_type"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-28T20:09:59.269069+00:00",
+      "last_updated": "2025-08-29T08:59:15.873896+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -3632,7 +3636,7 @@
       "line_number": 18,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-28T20:09:59.271596+00:00",
+      "last_updated": "2025-08-29T08:59:15.876403+00:00",
       "is_class": true,
       "base_classes": [
         "BaseSettings"
@@ -3658,7 +3662,7 @@
         "name"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-28T20:09:59.272553+00:00",
+      "last_updated": "2025-08-29T08:59:15.877364+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -3687,7 +3691,7 @@
         "exclude_globs",
         "require_kgb"
       ],
-      "last_updated": "2025-08-28T20:09:59.274041+00:00",
+      "last_updated": "2025-08-29T08:59:15.878909+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "e48f7c87ea6b26ad0a7235a1de21d5d681fb9d602b84bc197e8e488ee74f9d56"
@@ -3711,7 +3715,7 @@
         "root",
         "explicit_path"
       ],
-      "last_updated": "2025-08-28T20:09:59.274520+00:00",
+      "last_updated": "2025-08-29T08:59:15.879380+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "7424757e7242faf2787f618be65139b5771145e1148c99ca1bd7844759895507"
@@ -3740,7 +3744,7 @@
         "manifest_caps",
         "code_caps"
       ],
-      "last_updated": "2025-08-28T20:09:59.276902+00:00",
+      "last_updated": "2025-08-29T08:59:15.881720+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "fb9cc3adce19b9962fed21968390bc8fd63447ff630b4742636e98c8fb796d14"
@@ -3767,7 +3771,7 @@
         "report_path",
         "report"
       ],
-      "last_updated": "2025-08-28T20:09:59.277476+00:00",
+      "last_updated": "2025-08-29T08:59:15.882288+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "f470e15b680e9bda6d15592a0bcb69254df8aef37a8400043fda5abc2a84ec49"
@@ -3789,7 +3793,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-28T20:09:59.278407+00:00",
+      "last_updated": "2025-08-29T08:59:15.883217+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -3812,7 +3816,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-28T20:09:59.279181+00:00",
+      "last_updated": "2025-08-29T08:59:15.884003+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -3836,7 +3840,7 @@
       "parameters": [
         "self"
       ],
-      "last_updated": "2025-08-28T20:09:59.279663+00:00",
+      "last_updated": "2025-08-29T08:59:15.884488+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/system/guard/models.py::DriftReport",
@@ -3899,7 +3903,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-28T20:09:59.291620+00:00",
+      "last_updated": "2025-08-29T08:59:15.896512+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -3932,7 +3936,7 @@
         "repo_root_override"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-28T20:09:59.292973+00:00",
+      "last_updated": "2025-08-29T08:59:15.897891+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -3975,7 +3979,7 @@
       "parameters": [
         "self"
       ],
-      "last_updated": "2025-08-28T20:09:59.296028+00:00",
+      "last_updated": "2025-08-29T08:59:15.900985+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/system/governance/constitutional_auditor.py::ConstitutionalAuditor",
@@ -4010,7 +4014,7 @@
       "parameters": [
         "self"
       ],
-      "last_updated": "2025-08-28T20:09:59.298079+00:00",
+      "last_updated": "2025-08-29T08:59:15.902980+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/system/governance/constitutional_auditor.py::ConstitutionalAuditor",
@@ -4037,7 +4041,7 @@
         "self",
         "passed"
       ],
-      "last_updated": "2025-08-28T20:09:59.299234+00:00",
+      "last_updated": "2025-08-29T08:59:15.904135+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/system/governance/constitutional_auditor.py::ConstitutionalAuditor",
@@ -4064,7 +4068,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "cli_entry_point",
-      "last_updated": "2025-08-28T20:09:59.300230+00:00",
+      "last_updated": "2025-08-29T08:59:15.905132+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "f6fdbaa6bfe1e6124c035255bac2283c42602332b190a0302133de3a8620c2b6"
@@ -4084,7 +4088,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "enum",
-      "last_updated": "2025-08-28T20:09:59.300974+00:00",
+      "last_updated": "2025-08-29T08:59:15.905877+00:00",
       "is_class": true,
       "base_classes": [
         "Enum"
@@ -4107,7 +4111,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-28T20:09:59.301397+00:00",
+      "last_updated": "2025-08-29T08:59:15.906278+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -4132,7 +4136,7 @@
         "app"
       ],
       "entry_point_type": "cli_command",
-      "last_updated": "2025-08-28T20:09:59.302035+00:00",
+      "last_updated": "2025-08-29T08:59:15.906907+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "typer_cli_command",
@@ -4174,7 +4178,7 @@
         "dry_run"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-28T20:09:59.304830+00:00",
+      "last_updated": "2025-08-29T08:59:15.909787+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -4201,7 +4205,7 @@
         "app"
       ],
       "entry_point_type": "cli_command",
-      "last_updated": "2025-08-28T20:09:59.305452+00:00",
+      "last_updated": "2025-08-29T08:59:15.910396+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "typer_cli_command",
@@ -4244,7 +4248,7 @@
         "dry_run",
         "all_py_files"
       ],
-      "last_updated": "2025-08-28T20:09:59.309579+00:00",
+      "last_updated": "2025-08-29T08:59:15.914581+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "49e82fe1d0154a49aa17ce16df33bfdd21fbc17861747f33da835ea09b5dcef0"
@@ -4269,7 +4273,7 @@
       "parameters": [
         "text"
       ],
-      "last_updated": "2025-08-28T20:09:59.312352+00:00",
+      "last_updated": "2025-08-29T08:59:15.917279+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "10f0c5d7a50aa56e299e0a3866b80236d02458d27d59d3ed38f71d42e00ec4d5"
@@ -4319,7 +4323,7 @@
         "initialize_git"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-28T20:09:59.315424+00:00",
+      "last_updated": "2025-08-29T08:59:15.920370+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -4356,7 +4360,7 @@
         "git_init"
       ],
       "entry_point_type": "cli_command",
-      "last_updated": "2025-08-28T20:09:59.317180+00:00",
+      "last_updated": "2025-08-29T08:59:15.922126+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "typer_cli_command",
@@ -4381,7 +4385,7 @@
         "app"
       ],
       "entry_point_type": "cli_command",
-      "last_updated": "2025-08-28T20:09:59.317584+00:00",
+      "last_updated": "2025-08-29T08:59:15.922533+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "typer_cli_command",
@@ -4395,33 +4399,37 @@
       "domain": "system",
       "agent": "generic_agent",
       "capability": "conversational_interface",
-      "intent": "Translates your natural language goal into a structured plan and executes it.",
-      "docstring": "Translates your natural language goal into a structured plan and executes it.",
+      "intent": "Assesses your natural language goal and provides a clear, actionable command.",
+      "docstring": "Assesses your natural language goal and provides a clear, actionable command.",
       "calls": [
         "Argument",
         "CognitiveService",
         "Exit",
-        "IntentTranslator",
-        "confirm",
+        "PromptPipeline",
+        "echo",
         "error",
+        "exists",
+        "format",
+        "get",
+        "get_client_for_role",
         "info",
-        "run",
-        "run_development_cycle",
-        "secho",
-        "translate",
-        "warning"
+        "loads",
+        "make_request",
+        "process",
+        "read_text",
+        "secho"
       ],
-      "line_number": 23,
+      "line_number": 22,
       "is_async": false,
       "parameters": [
         "user_input"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-28T20:09:59.320808+00:00",
+      "last_updated": "2025-08-29T08:59:15.926332+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
-      "structural_hash": "ab636700b2ceabf1c7014bb23489153fb9a7b904dc610da67366d773f359b870"
+      "structural_hash": "971327b150ccdd74c362504b492831e336b1b9cadc71e838616850a66ce8db3a"
     },
     "src/system/admin/chat.py::register": {
       "key": "src/system/admin/chat.py::register",
@@ -4436,13 +4444,13 @@
       "calls": [
         "command"
       ],
-      "line_number": 68,
+      "line_number": 79,
       "is_async": false,
       "parameters": [
         "app"
       ],
       "entry_point_type": "cli_command",
-      "last_updated": "2025-08-28T20:09:59.321200+00:00",
+      "last_updated": "2025-08-29T08:59:15.926762+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "typer_cli_command",
@@ -4467,7 +4475,7 @@
         "app"
       ],
       "entry_point_type": "cli_command",
-      "last_updated": "2025-08-28T20:09:59.321889+00:00",
+      "last_updated": "2025-08-29T08:59:15.927429+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "typer_cli_command",
@@ -4494,7 +4502,7 @@
         "fail_on"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-28T20:09:59.324210+00:00",
+      "last_updated": "2025-08-29T08:59:15.929789+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -4520,7 +4528,7 @@
         "path"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-28T20:09:59.324742+00:00",
+      "last_updated": "2025-08-29T08:59:15.930294+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -4547,7 +4555,7 @@
         "data"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-28T20:09:59.325242+00:00",
+      "last_updated": "2025-08-29T08:59:15.930825+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -4572,7 +4580,7 @@
       "parameters": [
         "proposal"
       ],
-      "last_updated": "2025-08-28T20:09:59.325966+00:00",
+      "last_updated": "2025-08-29T08:59:15.931543+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "cd368980a1ec19c61879bf251b291bcbbba9c6a4a3adcb371e221d8f0cbff772"
@@ -4602,7 +4610,7 @@
         "proposal"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-28T20:09:59.326690+00:00",
+      "last_updated": "2025-08-29T08:59:15.932275+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -4629,7 +4637,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-28T20:09:59.327361+00:00",
+      "last_updated": "2025-08-29T08:59:15.932969+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -4661,7 +4669,7 @@
         "proposal"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-28T20:09:59.328653+00:00",
+      "last_updated": "2025-08-29T08:59:15.934255+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -4694,7 +4702,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "cli_command",
-      "last_updated": "2025-08-28T20:09:59.334835+00:00",
+      "last_updated": "2025-08-29T08:59:15.940366+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "typer_cli_command",
@@ -4737,7 +4745,7 @@
         "proposal_name"
       ],
       "entry_point_type": "cli_command",
-      "last_updated": "2025-08-28T20:09:59.336634+00:00",
+      "last_updated": "2025-08-29T08:59:15.942158+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "typer_cli_command",
@@ -4788,7 +4796,7 @@
         "proposal_name"
       ],
       "entry_point_type": "cli_command",
-      "last_updated": "2025-08-28T20:09:59.341901+00:00",
+      "last_updated": "2025-08-29T08:59:15.947523+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "typer_cli_command",
@@ -4822,7 +4830,7 @@
         "files_to_bundle",
         "root_dir"
       ],
-      "last_updated": "2025-08-28T20:09:59.346802+00:00",
+      "last_updated": "2025-08-29T08:59:15.952609+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "b83cd0ec8f3ed72ba86afcef9e646cc9c3582aedad53c2c42054b54ef9dd67f4"
@@ -4847,7 +4855,7 @@
       "line_number": 53,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-28T20:09:59.347616+00:00",
+      "last_updated": "2025-08-29T08:59:15.953431+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "772d88b5750417236468e09b4efa8aa0f483ed1962c166640e1f1e0eb4d759eb"
@@ -4873,7 +4881,7 @@
       "line_number": 76,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-28T20:09:59.348644+00:00",
+      "last_updated": "2025-08-29T08:59:15.954517+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "248f113a0c3c36aee237b373081b5ac93555a49ee72363ad647213e3f69f9697"
@@ -4917,7 +4925,7 @@
         "output_path",
         "no_send"
       ],
-      "last_updated": "2025-08-28T20:09:59.351687+00:00",
+      "last_updated": "2025-08-29T08:59:15.957556+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "5b956ffc9015ca3a23af71a90dfb06de0c2e5e526cb65748a2351b5ef63cc6a2"
@@ -4944,7 +4952,7 @@
         "no_send"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-28T20:09:59.352343+00:00",
+      "last_updated": "2025-08-29T08:59:15.958166+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -4972,7 +4980,7 @@
         "no_send"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-28T20:09:59.352971+00:00",
+      "last_updated": "2025-08-29T08:59:15.958776+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -5010,7 +5018,7 @@
         "file_path"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-28T20:09:59.354952+00:00",
+      "last_updated": "2025-08-29T08:59:15.960755+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -5039,7 +5047,7 @@
         "app"
       ],
       "entry_point_type": "cli_command",
-      "last_updated": "2025-08-28T20:09:59.355884+00:00",
+      "last_updated": "2025-08-29T08:59:15.961683+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "typer_cli_command",
@@ -5085,7 +5093,7 @@
         "dry_run"
       ],
       "entry_point_type": "cli_command",
-      "last_updated": "2025-08-28T20:09:59.361491+00:00",
+      "last_updated": "2025-08-29T08:59:15.967497+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "typer_cli_command",
@@ -5110,7 +5118,7 @@
         "app"
       ],
       "entry_point_type": "cli_command",
-      "last_updated": "2025-08-28T20:09:59.361918+00:00",
+      "last_updated": "2025-08-29T08:59:15.967974+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "typer_cli_command",
@@ -5135,7 +5143,7 @@
         "app"
       ],
       "entry_point_type": "cli_command",
-      "last_updated": "2025-08-28T20:09:59.362787+00:00",
+      "last_updated": "2025-08-29T08:59:15.968816+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "typer_cli_command",
@@ -5160,7 +5168,7 @@
         "root",
         "explicit"
       ],
-      "last_updated": "2025-08-28T20:09:59.367249+00:00",
+      "last_updated": "2025-08-29T08:59:15.973460+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "6dd09295daf064db06a1ec5f1748ef584230a79a2c12aff3e6ff5d3d08653108"
@@ -5186,7 +5194,7 @@
         "root",
         "explicit"
       ],
-      "last_updated": "2025-08-28T20:09:59.367962+00:00",
+      "last_updated": "2025-08-29T08:59:15.974215+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "5ba2a3e01f6a1ff0de5b94fbb1c20721738ba2589d77a32d38da472ac6e12f64"
@@ -5212,7 +5220,7 @@
         "root",
         "explicit"
       ],
-      "last_updated": "2025-08-28T20:09:59.369148+00:00",
+      "last_updated": "2025-08-29T08:59:15.975404+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "62452ac1b181264f3d8f59bbcc99a76562f815b7bbd08e00e4257649cdee4f25"
@@ -5235,7 +5243,7 @@
       "parameters": [
         "report"
       ],
-      "last_updated": "2025-08-28T20:09:59.369666+00:00",
+      "last_updated": "2025-08-29T08:59:15.975939+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "37959f8d821c2b4ca6b6146c0399c2561fc8e567a07025b5ba8ddaf66176f4d5"
@@ -5267,7 +5275,7 @@
         "report_dict",
         "labels"
       ],
-      "last_updated": "2025-08-28T20:09:59.372061+00:00",
+      "last_updated": "2025-08-29T08:59:15.978424+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "8adb51eb76846db20ba682e57e97adc72ecb9a3dea4d84079e99507b35534913"
@@ -5291,7 +5299,7 @@
         "report_dict",
         "labels"
       ],
-      "last_updated": "2025-08-28T20:09:59.372506+00:00",
+      "last_updated": "2025-08-29T08:59:15.978887+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "76f6ca2a3c5b52f7a6e59c006de9011d04cee89af176fc0e53f1feb7d5a739b6"
@@ -5340,7 +5348,7 @@
         "app"
       ],
       "entry_point_type": "cli_command",
-      "last_updated": "2025-08-28T20:09:59.377025+00:00",
+      "last_updated": "2025-08-29T08:59:15.983515+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "typer_cli_command",
@@ -5382,7 +5390,7 @@
         "app"
       ],
       "entry_point_type": "cli_command",
-      "last_updated": "2025-08-28T20:09:59.380104+00:00",
+      "last_updated": "2025-08-29T08:59:15.986694+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "typer_cli_command",
@@ -5406,7 +5414,7 @@
       "parameters": [
         "code"
       ],
-      "last_updated": "2025-08-28T20:09:59.383358+00:00",
+      "last_updated": "2025-08-29T08:59:15.990032+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "bb30408a8dc3fb017aff425e0da47986106644a816c142ff86f2290700d88218"
@@ -5436,7 +5444,7 @@
       "parameters": [
         "proposal_plan"
       ],
-      "last_updated": "2025-08-28T20:09:59.384848+00:00",
+      "last_updated": "2025-08-29T08:59:15.991509+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "607a82020705fa6fd90289d6a04035f1bea2c9dc4a35a75b3236f6d7c6587b2f"
@@ -5470,7 +5478,7 @@
         "original_capabilities",
         "refactoring_plan"
       ],
-      "last_updated": "2025-08-28T20:09:59.386751+00:00",
+      "last_updated": "2025-08-29T08:59:15.993463+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "2345e857ac80f98d6d027d808dfd4586f891814befa89eb37af0556bff30969a"
@@ -5519,7 +5527,7 @@
         "dry_run"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-28T20:09:59.390594+00:00",
+      "last_updated": "2025-08-29T08:59:15.997315+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -5551,7 +5559,7 @@
         "goal"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-28T20:09:59.392811+00:00",
+      "last_updated": "2025-08-29T08:59:15.999598+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -5576,7 +5584,7 @@
         "app"
       ],
       "entry_point_type": "cli_command",
-      "last_updated": "2025-08-28T20:09:59.393206+00:00",
+      "last_updated": "2025-08-29T08:59:16.000041+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "typer_cli_command",
@@ -5598,7 +5606,7 @@
       "line_number": 22,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-28T20:09:59.394552+00:00",
+      "last_updated": "2025-08-29T08:59:16.001496+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "617e44205e9e392dcf047c13cf3fd9d88d9568ae09b5c487f92733eaf6167426"
@@ -5633,7 +5641,7 @@
         "violations"
       ],
       "entry_point_type": "cli_entry_point",
-      "last_updated": "2025-08-28T20:09:59.395768+00:00",
+      "last_updated": "2025-08-29T08:59:16.002690+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "810699914d469cb08496ca059f28f88fc261f95546655275a5821abcca68cdce"
@@ -5652,7 +5660,7 @@
       "line_number": 27,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-28T20:09:59.398090+00:00",
+      "last_updated": "2025-08-29T08:59:16.005118+00:00",
       "is_class": true,
       "base_classes": [
         "Exception"
@@ -5679,7 +5687,7 @@
       "parameters": [
         "start_path"
       ],
-      "last_updated": "2025-08-28T20:09:59.398747+00:00",
+      "last_updated": "2025-08-29T08:59:16.005774+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "e730a8c97bbf62a3563d99cd7b52e176fcb2add0ee57994783e82f6fd4170b24"
@@ -5721,7 +5729,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-28T20:09:59.401545+00:00",
+      "last_updated": "2025-08-29T08:59:16.008580+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -5753,7 +5761,7 @@
         "config"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-28T20:09:59.402364+00:00",
+      "last_updated": "2025-08-29T08:59:16.009406+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -5784,7 +5792,7 @@
       "parameters": [
         "self"
       ],
-      "last_updated": "2025-08-28T20:09:59.403318+00:00",
+      "last_updated": "2025-08-29T08:59:16.010413+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/system/tools/codegraph_builder.py::KnowledgeGraphBuilder",
@@ -5816,7 +5824,7 @@
         "self",
         "symbols"
       ],
-      "last_updated": "2025-08-28T20:09:59.404483+00:00",
+      "last_updated": "2025-08-29T08:59:16.011603+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/system/tools/codegraph_builder.py::KnowledgeGraphBuilder",
@@ -5841,7 +5849,7 @@
       "parameters": [
         "self"
       ],
-      "last_updated": "2025-08-28T20:09:59.405068+00:00",
+      "last_updated": "2025-08-29T08:59:16.012210+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/system/tools/codegraph_builder.py::KnowledgeGraphBuilder",
@@ -5875,7 +5883,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "cli_entry_point",
-      "last_updated": "2025-08-28T20:09:59.406505+00:00",
+      "last_updated": "2025-08-29T08:59:16.013640+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "f41ce8a5b0466b306efee0986b97fdaa12d89505480024611da1914903693a00"
@@ -5911,7 +5919,7 @@
       "line_number": 23,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-28T20:09:59.413195+00:00",
+      "last_updated": "2025-08-29T08:59:16.020364+00:00",
       "is_class": true,
       "base_classes": [],
       "structural_hash": "460ac66b683039ecff54b93539963fd91bde8fa64de032d0724f5ececaf715fc"
@@ -5941,7 +5949,7 @@
         "workspace_dir"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-28T20:09:59.414390+00:00",
+      "last_updated": "2025-08-29T08:59:16.021573+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -5977,7 +5985,7 @@
       "parameters": [
         "self"
       ],
-      "last_updated": "2025-08-28T20:09:59.417037+00:00",
+      "last_updated": "2025-08-29T08:59:16.024228+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/system/tools/scaffolder.py::Scaffolder",
@@ -6005,7 +6013,7 @@
         "relative_path",
         "content"
       ],
-      "last_updated": "2025-08-28T20:09:59.417810+00:00",
+      "last_updated": "2025-08-29T08:59:16.024960+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/system/tools/scaffolder.py::Scaffolder",
@@ -6044,7 +6052,7 @@
         "profile",
         "dry_run"
       ],
-      "last_updated": "2025-08-28T20:09:59.420467+00:00",
+      "last_updated": "2025-08-29T08:59:16.027606+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "0a4c9f0c2c40bb1dc27ac90be0c4f251ccc563fc2479428fcf7fd513f1e9ef42"
@@ -6064,7 +6072,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-28T20:09:59.422461+00:00",
+      "last_updated": "2025-08-29T08:59:16.029634+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -6098,7 +6106,7 @@
       "line_number": 23,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-28T20:09:59.425560+00:00",
+      "last_updated": "2025-08-29T08:59:16.032826+00:00",
       "is_class": true,
       "base_classes": [],
       "structural_hash": "467719cf12c4f5e30186b7436ed28cbcf551d451875b2717c777dfd56a89c70d"
@@ -6131,7 +6139,7 @@
       "parameters": [
         "file_content"
       ],
-      "last_updated": "2025-08-28T20:09:59.427582+00:00",
+      "last_updated": "2025-08-29T08:59:16.034833+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/system/tools/header_tools.py::HeaderTools",
@@ -6158,7 +6166,7 @@
       "parameters": [
         "header"
       ],
-      "last_updated": "2025-08-28T20:09:59.428889+00:00",
+      "last_updated": "2025-08-29T08:59:16.036201+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/system/tools/header_tools.py::HeaderTools",
@@ -6186,7 +6194,7 @@
       "line_number": 17,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-28T20:09:59.431103+00:00",
+      "last_updated": "2025-08-29T08:59:16.038335+00:00",
       "is_class": true,
       "base_classes": [],
       "structural_hash": "377c24b25c426f82c93a1530b5978e7924f6a1cf40a290cfe18e033370c531af"
@@ -6209,7 +6217,7 @@
         "config"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-28T20:09:59.431476+00:00",
+      "last_updated": "2025-08-29T08:59:16.038719+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -6239,7 +6247,7 @@
       "parameters": [
         "self"
       ],
-      "last_updated": "2025-08-28T20:09:59.432560+00:00",
+      "last_updated": "2025-08-29T08:59:16.039806+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/system/tools/file_scanner.py::FileScanner",
@@ -6264,7 +6272,7 @@
         "self",
         "path"
       ],
-      "last_updated": "2025-08-28T20:09:59.433040+00:00",
+      "last_updated": "2025-08-29T08:59:16.040271+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/system/tools/file_scanner.py::FileScanner",
@@ -6308,7 +6316,7 @@
       "parameters": [
         "dry_run"
       ],
-      "last_updated": "2025-08-28T20:09:59.439092+00:00",
+      "last_updated": "2025-08-29T08:59:16.046274+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "ec4fdbcf778a03ddf923e5e7cd854d8665eeb680179b86c267b67848374f3291"
@@ -6335,7 +6343,7 @@
       "line_number": 14,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-28T20:09:59.443675+00:00",
+      "last_updated": "2025-08-29T08:59:16.050858+00:00",
       "is_class": true,
       "base_classes": [],
       "structural_hash": "d4140c5caf1116ce0f8ac07e0a33d02f87f06cc6f4cbdd7d91062359997e92f3"
@@ -6360,7 +6368,7 @@
         "config"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-28T20:09:59.444162+00:00",
+      "last_updated": "2025-08-29T08:59:16.051329+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -6387,7 +6395,7 @@
         "self",
         "tree"
       ],
-      "last_updated": "2025-08-28T20:09:59.445037+00:00",
+      "last_updated": "2025-08-29T08:59:16.052210+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/system/tools/entry_point_detector.py::EntryPointDetector",
@@ -6417,7 +6425,7 @@
         "self",
         "tree"
       ],
-      "last_updated": "2025-08-28T20:09:59.446176+00:00",
+      "last_updated": "2025-08-29T08:59:16.053346+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/system/tools/entry_point_detector.py::EntryPointDetector",
@@ -6442,7 +6450,7 @@
         "self",
         "additional_points"
       ],
-      "last_updated": "2025-08-28T20:09:59.446597+00:00",
+      "last_updated": "2025-08-29T08:59:16.053786+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/system/tools/entry_point_detector.py::EntryPointDetector",
@@ -6467,7 +6475,7 @@
         "self",
         "node"
       ],
-      "last_updated": "2025-08-28T20:09:59.447918+00:00",
+      "last_updated": "2025-08-29T08:59:16.054992+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/system/tools/entry_point_detector.py::EntryPointDetector",
@@ -6495,7 +6503,7 @@
       "line_number": 13,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-28T20:09:59.450215+00:00",
+      "last_updated": "2025-08-29T08:59:16.057139+00:00",
       "is_class": true,
       "base_classes": [],
       "structural_hash": "5df01de869c9d627ac9e7436d52b9d60fe3961f48a010617484d68747eabf182"
@@ -6518,7 +6526,7 @@
         "config"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-28T20:09:59.450662+00:00",
+      "last_updated": "2025-08-29T08:59:16.057565+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -6547,7 +6555,7 @@
         "self",
         "file_path"
       ],
-      "last_updated": "2025-08-28T20:09:59.451331+00:00",
+      "last_updated": "2025-08-29T08:59:16.058202+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/system/tools/domain_mapper.py::DomainMapper",
@@ -6574,7 +6582,7 @@
         "self",
         "relative_path"
       ],
-      "last_updated": "2025-08-28T20:09:59.452266+00:00",
+      "last_updated": "2025-08-29T08:59:16.059121+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/system/tools/domain_mapper.py::DomainMapper",
@@ -6599,7 +6607,7 @@
       "line_number": 13,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-28T20:09:59.454392+00:00",
+      "last_updated": "2025-08-29T08:59:16.061064+00:00",
       "is_class": true,
       "base_classes": [
         "NodeVisitor"
@@ -6626,7 +6634,7 @@
         "source_lines"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-28T20:09:59.458212+00:00",
+      "last_updated": "2025-08-29T08:59:16.064643+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -6655,7 +6663,7 @@
         "node"
       ],
       "entry_point_type": "visitor_method",
-      "last_updated": "2025-08-28T20:09:59.455490+00:00",
+      "last_updated": "2025-08-29T08:59:16.062098+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "ast_visitor_method",
@@ -6682,7 +6690,7 @@
       "line_number": 28,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-28T20:09:59.457613+00:00",
+      "last_updated": "2025-08-29T08:59:16.064086+00:00",
       "is_class": true,
       "base_classes": [
         "NodeVisitor"
@@ -6712,7 +6720,7 @@
         "node",
         "node_type"
       ],
-      "last_updated": "2025-08-28T20:09:59.459328+00:00",
+      "last_updated": "2025-08-29T08:59:16.065693+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/system/tools/ast_visitor.py::ContextAwareVisitor",
@@ -6738,7 +6746,7 @@
         "node"
       ],
       "entry_point_type": "visitor_method",
-      "last_updated": "2025-08-28T20:09:59.459770+00:00",
+      "last_updated": "2025-08-29T08:59:16.066100+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "ast_visitor_method",
@@ -6765,7 +6773,7 @@
         "node"
       ],
       "entry_point_type": "visitor_method",
-      "last_updated": "2025-08-28T20:09:59.460175+00:00",
+      "last_updated": "2025-08-29T08:59:16.066497+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "ast_visitor_method",
@@ -6792,7 +6800,7 @@
         "node"
       ],
       "entry_point_type": "visitor_method",
-      "last_updated": "2025-08-28T20:09:59.460590+00:00",
+      "last_updated": "2025-08-29T08:59:16.066899+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "ast_visitor_method",
@@ -6828,7 +6836,7 @@
       "line_number": 18,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-28T20:09:59.467679+00:00",
+      "last_updated": "2025-08-29T08:59:16.073507+00:00",
       "is_class": true,
       "base_classes": [],
       "structural_hash": "dc1145748ce3e43439a314ff11f622ec61b5523d505af431d22cc7273b2339c0"
@@ -6852,7 +6860,7 @@
         "root_path"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-28T20:09:59.468321+00:00",
+      "last_updated": "2025-08-29T08:59:16.074103+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -6881,7 +6889,7 @@
         "self",
         "functions"
       ],
-      "last_updated": "2025-08-28T20:09:59.469673+00:00",
+      "last_updated": "2025-08-29T08:59:16.075355+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/system/tools/pattern_matcher.py::PatternMatcher",
@@ -6919,7 +6927,7 @@
         "all_base_classes",
         "functions"
       ],
-      "last_updated": "2025-08-28T20:09:59.473083+00:00",
+      "last_updated": "2025-08-29T08:59:16.078593+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/system/tools/pattern_matcher.py::PatternMatcher",
@@ -6945,7 +6953,7 @@
       "parameters": [
         "node"
       ],
-      "last_updated": "2025-08-28T20:09:59.475916+00:00",
+      "last_updated": "2025-08-29T08:59:16.081159+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "dff236902c1d9feeac5f019ddbffb46bf09ed0d3c1601ee866760797c23f417d"
@@ -6970,7 +6978,7 @@
       "parameters": [
         "node"
       ],
-      "last_updated": "2025-08-28T20:09:59.476888+00:00",
+      "last_updated": "2025-08-29T08:59:16.082081+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "0ff82d2cbcc3595fa9d78a61078bbd2a8a65ef9a6e2d863b3849d4ef2463559f"
@@ -6999,7 +7007,7 @@
       "parameters": [
         "node"
       ],
-      "last_updated": "2025-08-28T20:09:59.477609+00:00",
+      "last_updated": "2025-08-29T08:59:16.082785+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "014a91cdb2aaf134603f4fe4415d0c4fd2ba3a530c44b9a2adedaf7fa21a6804"
@@ -7026,7 +7034,7 @@
         "node",
         "source_lines"
       ],
-      "last_updated": "2025-08-28T20:09:59.478567+00:00",
+      "last_updated": "2025-08-29T08:59:16.083731+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "3ff25bd3fd0202a993cef39c56fd2ec62136247385fc1196c4bb29fe3d9edafc"
@@ -7050,7 +7058,7 @@
       "parameters": [
         "node"
       ],
-      "last_updated": "2025-08-28T20:09:59.479295+00:00",
+      "last_updated": "2025-08-29T08:59:16.084421+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "95dceab5bad0d24dd6e43a90d656b349b61f5529de711ec65c59a037bcff9af3"
@@ -7073,7 +7081,7 @@
       "parameters": [
         "node"
       ],
-      "last_updated": "2025-08-28T20:09:59.479930+00:00",
+      "last_updated": "2025-08-29T08:59:16.085023+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "6439f7faf56d51a3d64c82408f1642ea6895b3b7a2f2b5777d309fc4515d06e8"
@@ -7095,7 +7103,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-28T20:09:59.481753+00:00",
+      "last_updated": "2025-08-29T08:59:16.086657+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -7116,7 +7124,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-28T20:09:59.483657+00:00",
+      "last_updated": "2025-08-29T08:59:16.088420+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -7157,7 +7165,7 @@
       "line_number": 39,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-28T20:09:59.486404+00:00",
+      "last_updated": "2025-08-29T08:59:16.090987+00:00",
       "is_class": true,
       "base_classes": [],
       "structural_hash": "b2a3abf090be8599969440bf57f164f20154e49e6c33c89bd2f355a9584ea4e4"
@@ -7199,7 +7207,7 @@
         "node",
         "context"
       ],
-      "last_updated": "2025-08-28T20:09:59.488607+00:00",
+      "last_updated": "2025-08-29T08:59:16.093035+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/system/tools/symbol_processor.py::SymbolProcessor",
@@ -7226,7 +7234,7 @@
         "docstring",
         "domain"
       ],
-      "last_updated": "2025-08-28T20:09:59.489266+00:00",
+      "last_updated": "2025-08-29T08:59:16.093657+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/system/tools/symbol_processor.py::SymbolProcessor",
@@ -7264,7 +7272,7 @@
       "line_number": 22,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-28T20:09:59.494905+00:00",
+      "last_updated": "2025-08-29T08:59:16.098909+00:00",
       "is_class": true,
       "base_classes": [],
       "structural_hash": "fa5b91785c420e7decab3777bfb75411892df3466817e41bb11c637ef92f4c88"
@@ -7290,7 +7298,7 @@
         "config"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-28T20:09:59.495479+00:00",
+      "last_updated": "2025-08-29T08:59:16.099507+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -7319,7 +7327,7 @@
         "files",
         "domain_mapper"
       ],
-      "last_updated": "2025-08-28T20:09:59.496342+00:00",
+      "last_updated": "2025-08-29T08:59:16.100624+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/system/tools/ast_analyzer.py::ASTAnalyzer",
@@ -7357,7 +7365,7 @@
         "filepath",
         "domain_mapper"
       ],
-      "last_updated": "2025-08-28T20:09:59.498489+00:00",
+      "last_updated": "2025-08-29T08:59:16.102810+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/system/tools/ast_analyzer.py::ASTAnalyzer",
@@ -7386,7 +7394,7 @@
         "context",
         "parent_key"
       ],
-      "last_updated": "2025-08-28T20:09:59.499483+00:00",
+      "last_updated": "2025-08-29T08:59:16.103837+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/system/tools/ast_analyzer.py::ASTAnalyzer",
@@ -7412,7 +7420,7 @@
       "parameters": [
         "trailing"
       ],
-      "last_updated": "2025-08-28T20:09:59.501456+00:00",
+      "last_updated": "2025-08-29T08:59:16.105834+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "04e919d1580e0efe6c93a7e34d7b4adfd2afb95339c5246dd0ec1006bf3bca54"
@@ -7441,7 +7449,7 @@
         "include_globs",
         "exclude_globs"
       ],
-      "last_updated": "2025-08-28T20:09:59.502678+00:00",
+      "last_updated": "2025-08-29T08:59:16.107032+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "b5b675110e61cfb12eaf9fd7630d3b5493e662dd45521e6a570d58b4362ade36"
@@ -7474,7 +7482,7 @@
         "include_globs",
         "exclude_globs"
       ],
-      "last_updated": "2025-08-28T20:09:59.504007+00:00",
+      "last_updated": "2025-08-29T08:59:16.108376+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "f68a4883d0b1d8129540c80e3007b4123c6fc828fe6240a8c5d087c8268fb313"
@@ -7508,7 +7516,7 @@
         "root",
         "explicit_path"
       ],
-      "last_updated": "2025-08-28T20:09:59.506815+00:00",
+      "last_updated": "2025-08-29T08:59:16.111231+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "1445cbac1e44b1abf289904b7388e4267bcac6442c7012fad9f8f10f42e7b5f0"
@@ -7530,7 +7538,7 @@
       "line_number": 16,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-28T20:09:59.508220+00:00",
+      "last_updated": "2025-08-29T08:59:16.112692+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "c5ede0ba8cbfe280f6be73af3858ad2da1470b31ac0bbec0a2bab297a805a134"
@@ -7555,7 +7563,7 @@
       "parameters": [
         "node"
       ],
-      "last_updated": "2025-08-28T20:09:59.509179+00:00",
+      "last_updated": "2025-08-29T08:59:16.113651+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "b385da546dbc6c856c4048d18354072a90fb09870ff89f366757e4db9aaf9dee"
@@ -7584,7 +7592,7 @@
       "parameters": [
         "root"
       ],
-      "last_updated": "2025-08-28T20:09:59.510394+00:00",
+      "last_updated": "2025-08-29T08:59:16.114924+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "5240a9678f95db483d886d2ceb5a9f288efd705684e7496b06c7ea94b3fce821"
@@ -7610,7 +7618,7 @@
       "line_number": 11,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-28T20:09:59.514580+00:00",
+      "last_updated": "2025-08-29T08:59:16.119139+00:00",
       "is_class": true,
       "base_classes": [],
       "structural_hash": "b43e4683bb6582ecf1397eb6065567f8fe53f9828d8958b41782f5a893a0adb8"
@@ -7633,7 +7641,7 @@
         "context"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-28T20:09:59.514974+00:00",
+      "last_updated": "2025-08-29T08:59:16.119538+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -7661,7 +7669,7 @@
         "self"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-28T20:09:59.516631+00:00",
+      "last_updated": "2025-08-29T08:59:16.121207+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -7692,7 +7700,7 @@
         "self"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-28T20:09:59.518105+00:00",
+      "last_updated": "2025-08-29T08:59:16.122693+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -7723,7 +7731,7 @@
       "line_number": 14,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-28T20:09:59.520365+00:00",
+      "last_updated": "2025-08-29T08:59:16.125052+00:00",
       "is_class": true,
       "base_classes": [],
       "structural_hash": "38477c5058ac42f60d3bd45989350340b2ccecf227b99db4f96a4a48a8785aa9"
@@ -7747,7 +7755,7 @@
         "repo_root"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-28T20:09:59.520849+00:00",
+      "last_updated": "2025-08-29T08:59:16.125514+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -7775,7 +7783,7 @@
       "parameters": [
         "self"
       ],
-      "last_updated": "2025-08-28T20:09:59.521588+00:00",
+      "last_updated": "2025-08-29T08:59:16.126264+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/system/governance/checks/proposal_loader.py::ProposalLoader",
@@ -7804,7 +7812,7 @@
         "self",
         "path"
       ],
-      "last_updated": "2025-08-28T20:09:59.522489+00:00",
+      "last_updated": "2025-08-29T08:59:16.127170+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/system/governance/checks/proposal_loader.py::ProposalLoader",
@@ -7839,7 +7847,7 @@
       "line_number": 14,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-28T20:09:59.527624+00:00",
+      "last_updated": "2025-08-29T08:59:16.132078+00:00",
       "is_class": true,
       "base_classes": [],
       "structural_hash": "8fd255037137a569792ef5814244ab7d206f1b399fccf653ee6c65527a98e652"
@@ -7864,7 +7872,7 @@
         "context"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-28T20:09:59.528167+00:00",
+      "last_updated": "2025-08-29T08:59:16.132601+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -7902,7 +7910,7 @@
         "self"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-28T20:09:59.531530+00:00",
+      "last_updated": "2025-08-29T08:59:16.135784+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -7939,7 +7947,7 @@
       "line_number": 15,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-28T20:09:59.535546+00:00",
+      "last_updated": "2025-08-29T08:59:16.139610+00:00",
       "is_class": true,
       "base_classes": [],
       "structural_hash": "afd08501765515a7f6ad4565d9dce3a6f68f23da08822ae000966534d0a86f37"
@@ -7964,7 +7972,7 @@
         "context"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-28T20:09:59.536114+00:00",
+      "last_updated": "2025-08-29T08:59:16.140174+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -8003,7 +8011,7 @@
         "self"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-28T20:09:59.538592+00:00",
+      "last_updated": "2025-08-29T08:59:16.142594+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -8031,7 +8039,7 @@
       "line_number": 15,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-28T20:09:59.540498+00:00",
+      "last_updated": "2025-08-29T08:59:16.144409+00:00",
       "is_class": true,
       "base_classes": [],
       "structural_hash": "7c7a6cac13c65dc1e5f7ded90cc627023cc246bccb60a9be0ade20bebc00f387"
@@ -8055,7 +8063,7 @@
         "repo_root"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-28T20:09:59.540957+00:00",
+      "last_updated": "2025-08-29T08:59:16.144862+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -8086,7 +8094,7 @@
         "self",
         "loader"
       ],
-      "last_updated": "2025-08-28T20:09:59.542020+00:00",
+      "last_updated": "2025-08-29T08:59:16.145891+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/system/governance/checks/proposal_summarizer.py::ProposalSummarizer",
@@ -8128,7 +8136,7 @@
       "line_number": 14,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-28T20:09:59.549589+00:00",
+      "last_updated": "2025-08-29T08:59:16.153203+00:00",
       "is_class": true,
       "base_classes": [],
       "structural_hash": "a497f7b6ff62bcaa7efb2ccdb59b629d0da062de1776814e5cde7dee4e938b4a"
@@ -8153,7 +8161,7 @@
         "context"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-28T20:09:59.550226+00:00",
+      "last_updated": "2025-08-29T08:59:16.153838+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -8184,7 +8192,7 @@
         "self"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-28T20:09:59.551751+00:00",
+      "last_updated": "2025-08-29T08:59:16.155269+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -8219,7 +8227,7 @@
         "self"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-28T20:09:59.553746+00:00",
+      "last_updated": "2025-08-29T08:59:16.157291+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -8257,7 +8265,7 @@
         "self"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-28T20:09:59.555411+00:00",
+      "last_updated": "2025-08-29T08:59:16.158984+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -8283,7 +8291,7 @@
       "parameters": [
         "self"
       ],
-      "last_updated": "2025-08-28T20:09:59.555912+00:00",
+      "last_updated": "2025-08-29T08:59:16.159484+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/system/governance/checks/file_checks.py::FileChecks",
@@ -8316,7 +8324,7 @@
       "line_number": 18,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-28T20:09:59.559282+00:00",
+      "last_updated": "2025-08-29T08:59:16.162876+00:00",
       "is_class": true,
       "base_classes": [],
       "structural_hash": "e99685efae32be32b7d1676ea4b4063db348c9440eb03853c3ae59dbe8e7a544"
@@ -8339,7 +8347,7 @@
         "repo_root"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-28T20:09:59.559670+00:00",
+      "last_updated": "2025-08-29T08:59:16.163257+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -8376,7 +8384,7 @@
         "self",
         "loader"
       ],
-      "last_updated": "2025-08-28T20:09:59.561810+00:00",
+      "last_updated": "2025-08-29T08:59:16.165435+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/system/governance/checks/proposal_validator.py::ProposalValidator",
@@ -8400,7 +8408,7 @@
       "line_number": 16,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-28T20:09:59.563359+00:00",
+      "last_updated": "2025-08-29T08:59:16.166967+00:00",
       "is_class": true,
       "base_classes": [],
       "structural_hash": "c16301a7f02f54947d6d9ee4ac1cb61504bf6c513beb2179c1a01a0c48c0618a"
@@ -8426,7 +8434,7 @@
         "summarizer"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-28T20:09:59.563899+00:00",
+      "last_updated": "2025-08-29T08:59:16.167493+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -8452,7 +8460,7 @@
         "self"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-28T20:09:59.564292+00:00",
+      "last_updated": "2025-08-29T08:59:16.167951+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -8478,7 +8486,7 @@
         "self"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-28T20:09:59.564727+00:00",
+      "last_updated": "2025-08-29T08:59:16.168367+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -8504,7 +8512,7 @@
         "self"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-28T20:09:59.565115+00:00",
+      "last_updated": "2025-08-29T08:59:16.168787+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -8533,7 +8541,7 @@
       "line_number": 13,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-28T20:09:59.567635+00:00",
+      "last_updated": "2025-08-29T08:59:16.171300+00:00",
       "is_class": true,
       "base_classes": [],
       "structural_hash": "3e86306196f142ddf5bcd347356aa6c44d43631e1c9b363ef6a034f3a6929d74"
@@ -8556,7 +8564,7 @@
         "context"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-28T20:09:59.568015+00:00",
+      "last_updated": "2025-08-29T08:59:16.171678+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -8588,7 +8596,7 @@
         "self"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-28T20:09:59.569654+00:00",
+      "last_updated": "2025-08-29T08:59:16.173363+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -8611,7 +8619,7 @@
       "parameters": [
         "repo_root"
       ],
-      "last_updated": "2025-08-28T20:09:59.570182+00:00",
+      "last_updated": "2025-08-29T08:59:16.173933+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "e1eb98e89eee91e11eafbf87c11f0d65d5d35a8005e5015b8837e71c7fd456d8"
@@ -8641,7 +8649,7 @@
       "line_number": 14,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-28T20:09:59.573463+00:00",
+      "last_updated": "2025-08-29T08:59:16.177214+00:00",
       "is_class": true,
       "base_classes": [],
       "structural_hash": "00516bae6d0a287f2de530bf345b5dc2997af2821f3dd32a794c5ffe24e5739c"
@@ -8674,7 +8682,7 @@
         "self",
         "loader"
       ],
-      "last_updated": "2025-08-28T20:09:59.575700+00:00",
+      "last_updated": "2025-08-29T08:59:16.179462+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/system/governance/checks/proposal_signature_checker.py::ProposalSignatureChecker",
@@ -8714,7 +8722,7 @@
       "line_number": 13,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-28T20:09:59.591675+00:00",
+      "last_updated": "2025-08-29T08:59:16.195420+00:00",
       "is_class": true,
       "base_classes": [],
       "structural_hash": "5a73a9fcdd51ff3ae1d7426c1b0f17c85e28284db3a0302a2f83df2770ee9391"
@@ -8737,7 +8745,7 @@
         "context"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-28T20:09:59.592066+00:00",
+      "last_updated": "2025-08-29T08:59:16.195828+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -8764,7 +8772,7 @@
         "self"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-28T20:09:59.593107+00:00",
+      "last_updated": "2025-08-29T08:59:16.196876+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -8795,7 +8803,7 @@
         "self"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-28T20:09:59.594300+00:00",
+      "last_updated": "2025-08-29T08:59:16.198069+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -8826,7 +8834,7 @@
         "self"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-28T20:09:59.595765+00:00",
+      "last_updated": "2025-08-29T08:59:16.199495+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -8856,7 +8864,7 @@
         "self"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-28T20:09:59.597066+00:00",
+      "last_updated": "2025-08-29T08:59:16.200782+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -8894,7 +8902,7 @@
         "self"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-28T20:09:59.599979+00:00",
+      "last_updated": "2025-08-29T08:59:16.203664+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -8936,7 +8944,7 @@
       "line_number": 16,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-28T20:09:59.605355+00:00",
+      "last_updated": "2025-08-29T08:59:16.209186+00:00",
       "is_class": true,
       "base_classes": [],
       "structural_hash": "dc4094cf311674d8302d4193243abbfeeba30d61ddd34811b39f849d9e55a7bb"
@@ -8961,7 +8969,7 @@
         "context"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-28T20:09:59.605896+00:00",
+      "last_updated": "2025-08-29T08:59:16.209755+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -8990,7 +8998,7 @@
         "self",
         "source_code"
       ],
-      "last_updated": "2025-08-28T20:09:59.606493+00:00",
+      "last_updated": "2025-08-29T08:59:16.210367+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/system/governance/checks/health_checks.py::HealthChecks",
@@ -9030,7 +9038,7 @@
         "self"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-28T20:09:59.609544+00:00",
+      "last_updated": "2025-08-29T08:59:16.213559+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -9059,7 +9067,7 @@
       "line_number": 13,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-28T20:09:59.612301+00:00",
+      "last_updated": "2025-08-29T08:59:16.216356+00:00",
       "is_class": true,
       "base_classes": [],
       "structural_hash": "659d4d301add5fcd920752c1342e0f1d18d1992878228e924734b44009887d50"
@@ -9082,7 +9090,7 @@
         "context"
       ],
       "entry_point_type": "magic_method",
-      "last_updated": "2025-08-28T20:09:59.612675+00:00",
+      "last_updated": "2025-08-29T08:59:16.216751+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "python_magic_method",
@@ -9114,7 +9122,7 @@
         "self"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-28T20:09:59.614424+00:00",
+      "last_updated": "2025-08-29T08:59:16.218483+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -9161,7 +9169,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-28T20:09:59.620111+00:00",
+      "last_updated": "2025-08-29T08:59:16.224160+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -9191,7 +9199,7 @@
         "cls",
         "root_path"
       ],
-      "last_updated": "2025-08-28T20:09:59.620849+00:00",
+      "last_updated": "2025-08-29T08:59:16.224902+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/system/tools/config/builder_config.py::BuilderConfig",
@@ -9211,7 +9219,7 @@
       "line_number": 46,
       "is_async": false,
       "parameters": [],
-      "last_updated": "2025-08-28T20:09:59.621273+00:00",
+      "last_updated": "2025-08-29T08:59:16.225330+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/system/tools/config/builder_config.py::BuilderConfig",
@@ -9238,7 +9246,7 @@
       "parameters": [
         "root_path"
       ],
-      "last_updated": "2025-08-28T20:09:59.621956+00:00",
+      "last_updated": "2025-08-29T08:59:16.226015+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/system/tools/config/builder_config.py::BuilderConfig",
@@ -9268,7 +9276,7 @@
       "parameters": [
         "root_path"
       ],
-      "last_updated": "2025-08-28T20:09:59.622979+00:00",
+      "last_updated": "2025-08-29T08:59:16.227036+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/system/tools/config/builder_config.py::BuilderConfig",
@@ -9297,7 +9305,7 @@
         "root_path",
         "src_root"
       ],
-      "last_updated": "2025-08-28T20:09:59.623916+00:00",
+      "last_updated": "2025-08-29T08:59:16.227975+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/system/tools/config/builder_config.py::BuilderConfig",
@@ -9328,7 +9336,7 @@
       "parameters": [
         "src_root"
       ],
-      "last_updated": "2025-08-28T20:09:59.625138+00:00",
+      "last_updated": "2025-08-29T08:59:16.229194+00:00",
       "is_class": false,
       "base_classes": [],
       "parent_class_key": "src/system/tools/config/builder_config.py::BuilderConfig",
@@ -9349,7 +9357,7 @@
       "is_async": false,
       "parameters": [],
       "entry_point_type": "data_model",
-      "last_updated": "2025-08-28T20:09:59.628842+00:00",
+      "last_updated": "2025-08-29T08:59:16.232869+00:00",
       "is_class": true,
       "base_classes": [],
       "entry_point_justification": "dataclass_definition",
@@ -9382,7 +9390,7 @@
         "expr",
         "ctx"
       ],
-      "last_updated": "2025-08-28T20:09:59.630131+00:00",
+      "last_updated": "2025-08-29T08:59:16.234164+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "3bc67586fd89d7c1c091280d2e4b8c58070833bfc7e3ad8082a2125737ca287b"
@@ -9405,7 +9413,7 @@
       "parameters": [
         "file_path"
       ],
-      "last_updated": "2025-08-28T20:09:59.630588+00:00",
+      "last_updated": "2025-08-29T08:59:16.234600+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "50c947b29eb9e3a8ccf80d005200755e8ab6f90d7ee9c8d46e6a29213d1041b1"
@@ -9429,7 +9437,7 @@
         "a",
         "b"
       ],
-      "last_updated": "2025-08-28T20:09:59.631402+00:00",
+      "last_updated": "2025-08-29T08:59:16.235395+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "3418fd055791110019aa9a7a2986511623d2ba4fd3776340ab9700583008ddbb"
@@ -9481,7 +9489,7 @@
         "approver_quorum"
       ],
       "entry_point_type": "fastapi_route_command",
-      "last_updated": "2025-08-28T20:09:59.636496+00:00",
+      "last_updated": "2025-08-29T08:59:16.240545+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "94c7c5d764a8f4981f3af5abe2f8017fa65fd2e6351ca53c660c77a2970abb15"
@@ -9504,7 +9512,7 @@
       "parameters": [
         "file_path"
       ],
-      "last_updated": "2025-08-28T20:09:59.638257+00:00",
+      "last_updated": "2025-08-29T08:59:16.242301+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "3068f31b3094b27879d10068c2b2ee71df09f1e30815bdacf4c0c857ad47453e"
@@ -9528,7 +9536,7 @@
       "parameters": [
         "path"
       ],
-      "last_updated": "2025-08-28T20:09:59.638754+00:00",
+      "last_updated": "2025-08-29T08:59:16.242800+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "02c318416cfcaa54c205ac81b39731e3425173c52ec560282026d62a1bda356c"
@@ -9557,7 +9565,7 @@
       "parameters": [
         "pair"
       ],
-      "last_updated": "2025-08-28T20:09:59.640248+00:00",
+      "last_updated": "2025-08-29T08:59:16.244303+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "4ea28c1f29a3fae4d249303b4355c0f4a2aa17c12baa132b868c6ad34be2dae1"
@@ -9589,7 +9597,7 @@
         "mind_path"
       ],
       "entry_point_type": "fastapi_route_command",
-      "last_updated": "2025-08-28T20:09:59.641658+00:00",
+      "last_updated": "2025-08-29T08:59:16.245686+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "03da59d28862d5f4c8b9168f790267c4e19af08ca2d92a0159a03154cfa6dfaa"
@@ -9616,7 +9624,7 @@
       "parameters": [
         "schema_name"
       ],
-      "last_updated": "2025-08-28T20:09:59.643596+00:00",
+      "last_updated": "2025-08-29T08:59:16.247631+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "6e3b8465838bb871ec1cd9f626c92298765c571cba61170572d50151c662f9be"
@@ -9645,7 +9653,7 @@
         "entry",
         "schema_name"
       ],
-      "last_updated": "2025-08-28T20:09:59.644975+00:00",
+      "last_updated": "2025-08-29T08:59:16.249013+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "df3df9d690f9e5aebdbffadea221df68a0ebfd500aaafa86a2205e3e452dedd2"
@@ -9678,7 +9686,7 @@
       "parameters": [
         "repo_root"
       ],
-      "last_updated": "2025-08-28T20:09:59.648319+00:00",
+      "last_updated": "2025-08-29T08:59:16.252392+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "3424b54f3633ba0a128f765512d3694b531ca5dc1d7218058d3dfedb8b9e5880"
@@ -9711,7 +9719,7 @@
       "parameters": [
         "intent_dir"
       ],
-      "last_updated": "2025-08-28T20:09:59.650426+00:00",
+      "last_updated": "2025-08-29T08:59:16.254542+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "835dd983ebd08a72aff877b565603f043ec5bdbb7c6ddbdf240553e54e2f8e03"
@@ -9739,7 +9747,7 @@
       "parameters": [
         "file_path"
       ],
-      "last_updated": "2025-08-28T20:09:59.652177+00:00",
+      "last_updated": "2025-08-29T08:59:16.256249+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "42bb5532dfbc0b03134979db387ac69dab213de0539724e125ec4cdb88080722"
@@ -9767,7 +9775,7 @@
         "file_path"
       ],
       "entry_point_type": "capability",
-      "last_updated": "2025-08-28T20:09:59.653569+00:00",
+      "last_updated": "2025-08-29T08:59:16.257593+00:00",
       "is_class": false,
       "base_classes": [],
       "entry_point_justification": "capability_implementation",
@@ -9796,7 +9804,7 @@
       "parameters": [
         "text"
       ],
-      "last_updated": "2025-08-28T20:09:59.655517+00:00",
+      "last_updated": "2025-08-29T08:59:16.259540+00:00",
       "is_class": false,
       "base_classes": [],
       "structural_hash": "c43317d6d97515ab1773956642b8de3a0cbba200e22c46a54f88d62899f34719"
