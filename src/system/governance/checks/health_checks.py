@@ -1,6 +1,6 @@
 # src/system/governance/checks/health_checks.py
 """
-Audits codebase health by measuring cognitive complexity and detecting statistical outliers in file size.
+Audits codebase health by measuring cognitive complexity, nesting depth, line length, and detecting statistical outliers in file size.
 """
 
 from __future__ import annotations
@@ -39,16 +39,17 @@ class HealthChecks:
         findings = []
         check_name = "Codebase Health & Atomicity"
 
-        # --- Policy Thresholds ---
-        max_complexity = self.health_policy.get("rules", {}).get(
-            "max_cognitive_complexity", 15
-        )
-        std_dev_threshold = self.health_policy.get("rules", {}).get(
-            "outlier_standard_deviations", 2.0
-        )
+        # --- Policy Thresholds from the Constitution ---
+        rules = self.health_policy.get("rules", {})
+        max_complexity = rules.get("max_cognitive_complexity", 15)
+        max_nesting = rules.get("max_nesting_depth", 4)
+        max_line_len_config = rules.get("max_line_length", {})
+        max_lines = max_line_len_config.get("limit", 100)
+        line_len_enforcement = max_line_len_config.get("enforcement", "soft")
+        std_dev_threshold = rules.get("outlier_standard_deviations", 2.0)
 
         file_llocs = {}
-        complexity_violations = []
+        all_violations = []
 
         # --- Analysis Phase ---
         for symbol in self.context.symbols_list:
@@ -57,49 +58,72 @@ class HealthChecks:
                 continue
 
             file_path = self.context.repo_root / file_path_str
-            if file_path not in file_llocs:  # Analyze each file only once
-                try:
-                    source_code = file_path.read_text(encoding="utf-8")
-                    file_llocs[file_path] = self._get_logical_lines_of_code(source_code)
+            if file_path in file_llocs:  # Analyze each file only once
+                continue
 
-                    # Analyze complexity for all functions in the file
-                    tree = ast.parse(source_code)
-                    visitor = ComplexityVisitor.from_ast(tree)
-                    for func in visitor.functions:
-                        if func.cognitive_complexity > max_complexity:
-                            msg = (
-                                f"Function '{func.name}' in '{file_path_str}' has a Cognitive "
-                                f"Complexity of {func.cognitive_complexity}, exceeding the policy limit of {max_complexity}."
+            try:
+                source_code = file_path.read_text(encoding="utf-8")
+                file_llocs[file_path] = self._get_logical_lines_of_code(source_code)
+                tree = ast.parse(source_code)
+
+                # 1. Check Cognitive Complexity
+                visitor = ComplexityVisitor.from_ast(tree)
+                for func in visitor.functions:
+                    if func.cognitive_complexity > max_complexity:
+                        msg = f"Function '{func.name}' has Cognitive Complexity of {func.cognitive_complexity} (limit: {max_complexity})."
+                        all_violations.append(
+                            AuditFinding(
+                                AuditSeverity.WARNING, msg, check_name, file_path_str
                             )
-                            complexity_violations.append(
-                                AuditFinding(AuditSeverity.WARNING, msg, check_name)
+                        )
+
+                # 2. Check Nesting Depth
+                for func in visitor.functions:
+                    if func.max_nesting_depth > max_nesting:
+                        msg = f"Function '{func.name}' has nesting depth of {func.max_nesting_depth} (limit: {max_nesting})."
+                        all_violations.append(
+                            AuditFinding(
+                                AuditSeverity.WARNING, msg, check_name, file_path_str
                             )
-                except Exception:
-                    continue  # Skip files that can't be parsed
+                        )
+
+                # 3. Check Line Length
+                for i, line in enumerate(source_code.splitlines(), 1):
+                    if len(line) > max_lines:
+                        severity = (
+                            AuditSeverity.WARNING
+                            if line_len_enforcement == "soft"
+                            else AuditSeverity.ERROR
+                        )
+                        msg = f"Line {i} exceeds max length of {max_lines} characters."
+                        all_violations.append(
+                            AuditFinding(severity, msg, check_name, file_path_str)
+                        )
+
+            except Exception:
+                continue
 
         # --- Statistical Outlier Detection Phase ---
-        if len(file_llocs) < 3:  # Need enough data for meaningful stats
-            return complexity_violations  # Return any complexity issues found
+        if len(file_llocs) >= 3:
+            lloc_values = list(file_llocs.values())
+            average_lloc = statistics.mean(lloc_values)
+            std_dev = statistics.stdev(lloc_values)
+            outlier_threshold = average_lloc + (std_dev_threshold * std_dev)
 
-        lloc_values = list(file_llocs.values())
-        average_lloc = statistics.mean(lloc_values)
-        std_dev = statistics.stdev(lloc_values)
-        outlier_threshold = average_lloc + (std_dev_threshold * std_dev)
-
-        outlier_findings = []
-        for path, lloc in file_llocs.items():
-            if lloc > outlier_threshold:
-                msg = (
-                    f"File '{path.relative_to(self.context.repo_root)}' is a complexity outlier "
-                    f"({lloc} LLOC vs. project average of {average_lloc:.0f}). "
-                    "This may violate the 'separation_of_concerns' principle."
-                )
-                outlier_findings.append(
-                    AuditFinding(AuditSeverity.WARNING, msg, check_name)
-                )
+            for path, lloc in file_llocs.items():
+                if lloc > outlier_threshold:
+                    msg = f"File is a complexity outlier ({lloc} LLOC vs. project average of {average_lloc:.0f}). This may violate 'separation_of_concerns'."
+                    all_violations.append(
+                        AuditFinding(
+                            AuditSeverity.WARNING,
+                            msg,
+                            check_name,
+                            str(path.relative_to(self.context.repo_root)),
+                        )
+                    )
 
         # --- Reporting Phase ---
-        if not complexity_violations and not outlier_findings:
+        if not all_violations:
             findings.append(
                 AuditFinding(
                     AuditSeverity.SUCCESS,
@@ -108,7 +132,6 @@ class HealthChecks:
                 )
             )
         else:
-            findings.extend(complexity_violations)
-            findings.extend(outlier_findings)
+            findings.extend(all_violations)
 
         return findings

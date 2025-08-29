@@ -64,14 +64,40 @@ class PlanExecutor:
             "add_capability_tag": self._execute_add_tag,
             "create_file": self._execute_create_file,
             "edit_function": self._execute_edit_function,
-            "create_proposal": self._execute_create_proposal,  # <-- ADD NEW ACTION
+            "create_proposal": self._execute_create_proposal,
+            "delete_file": self._execute_delete_file,  # Wire in the new action
         }
         if task.action in action_map:
             await action_map[task.action](task.params)
         else:
             log.warning(f"Skipping task: Unknown action '{task.action}'.")
 
-    # --- THIS IS THE NEW FUNCTION ---
+    # --- THIS IS THE NEW METHOD ---
+    async def _execute_delete_file(self, params: TaskParams):
+        """Executes the 'delete_file' action."""
+        file_path_str = params.file_path
+        if not file_path_str:
+            raise PlanExecutionError("Missing 'file_path' for delete_file action.")
+
+        full_path = self.repo_path / file_path_str
+        if not full_path.exists():
+            log.warning(
+                f"File '{file_path_str}' to be deleted does not exist. Skipping."
+            )
+            return
+
+        # Perform the deletion
+        full_path.unlink()
+        log.info(f"🗑️  Deleted file: {file_path_str}")
+
+        # If using git, commit the deletion
+        if self.config.auto_commit and self.git_service.is_git_repo():
+            # Use git rm for proper tracking of the deletion
+            self.git_service._run_command(["git", "rm", file_path_str])
+            self.git_service.commit(
+                f"refactor(cleanup): Remove obsolete file {file_path_str}"
+            )
+
     async def _execute_create_proposal(self, params: TaskParams):
         """Executes the 'create_proposal' action."""
         target_path = params.file_path
@@ -94,7 +120,6 @@ class PlanExecutor:
             "content": content,
         }
 
-        # Use canonical dump settings to ensure stable hashes
         yaml_content = yaml.dump(
             proposal_content, indent=2, default_flow_style=False, sort_keys=True
         )
