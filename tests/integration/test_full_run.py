@@ -40,10 +40,26 @@ def test_git_repo(tmp_path: Path):
     subprocess.run(["git", "init"], cwd=tmp_path, check=True)
     (tmp_path / "src").mkdir()
     intent_dir = tmp_path / ".intent"
+
+    # Create policies directory and file
     (intent_dir / "policies").mkdir(parents=True)
     (intent_dir / "policies" / "agent_behavior_policy.yaml").write_text(
         "planner_agent:\n  max_retries: 1\n  task_timeout: 30"
     )
+
+    # Create the knowledge directory and the required config files
+    knowledge_dir = intent_dir / "knowledge"
+    knowledge_dir.mkdir(parents=True)
+    (knowledge_dir / "cognitive_roles.yaml").write_text(
+        "cognitive_roles: []"  # Provide minimal valid content
+    )
+    # --- THIS IS THE FIX ---
+    # Add the second missing file, resource_manifest.yaml
+    (knowledge_dir / "resource_manifest.yaml").write_text(
+        "llm_resources: []"  # Provide minimal valid content
+    )
+    # --- END OF FIX ---
+
     return tmp_path
 
 

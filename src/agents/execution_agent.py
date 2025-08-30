@@ -1,6 +1,7 @@
 # src/agents/execution_agent.py
 """
 Handles the execution of validated plans by generating required code and orchestrating task completion.
+This version implements a full Generate -> Govern -> Self-Correct -> Write loop.
 """
 
 from __future__ import annotations
@@ -12,25 +13,39 @@ from typing import List
 from agents.models import ExecutionTask
 from agents.plan_executor import PlanExecutionError, PlanExecutor
 from agents.utils import PlanExecutionContext
-from core.clients import BaseLLMClient
+
+# --- MODIFICATION START ---
+# from core.clients import BaseLLMClient # This line is removed.
+from core.cognitive_service import CognitiveService  # This line is added.
+
+# --- MODIFICATION END ---
 from core.prompt_pipeline import PromptPipeline
+from core.self_correction_engine import attempt_correction
+from core.validation_pipeline import validate_code
 from shared.logger import getLogger
 
 log = getLogger(__name__)
+MAX_CORRECTION_ATTEMPTS = 2
 
 
 # CAPABILITY: code_generation
 class ExecutionAgent:
     """Orchestrates the execution of a plan, including code generation and validation."""
 
+    # --- MODIFICATION START ---
+    # The __init__ signature is changed to accept the cognitive_service
     def __init__(
         self,
-        generator_client: BaseLLMClient,
+        cognitive_service: CognitiveService,
         prompt_pipeline: PromptPipeline,
         plan_executor: PlanExecutor,
     ):
         """Initializes the ExecutionAgent with its required tools."""
-        self.generator = generator_client
+        self.cognitive_service = cognitive_service
+        self.generator = self.cognitive_service.get_client_for_role(
+            "Coder"
+        )  # Get client from service
+        # --- MODIFICATION END ---
         self.prompt_pipeline = prompt_pipeline
         self.executor = plan_executor
         self.git_service = self.executor.git_service
@@ -109,41 +124,94 @@ class ExecutionAgent:
         self, high_level_goal: str, plan: List[ExecutionTask]
     ) -> tuple[bool, str]:
         """
-        Takes a plan, generates code for each step, and then executes the
-        fully-populated plan.
+        Takes a plan, generates code for each step, validates it, attempts
+        self-correction on failure, and then executes the fully-populated plan.
         """
         if not plan:
             return False, "Plan is empty or invalid."
 
-        log.info("--- Starting Code Generation Phase ---")
+        log.info("--- Starting Governed Code Generation Phase ---")
         for task in plan:
+            log.info(f"Processing task: '{task.step}'")
             if task.action == "create_proposal":
-                task.params.code = await self._generate_code_for_proposal(
+                generated_code = await self._generate_code_for_proposal(
                     task, high_level_goal
                 )
             else:
-                task.params.code = await self._generate_code_for_task(
+                generated_code = await self._generate_code_for_task(
                     task, high_level_goal
                 )
 
-            if not task.params.code:
-                return False, f"Code generation failed for step: '{task.step}'"
+            if not generated_code:
+                return False, f"Initial code generation failed for step: '{task.step}'"
 
-        log.info("--- Handing off to Executor ---")
+            current_code = generated_code
+            for attempt in range(MAX_CORRECTION_ATTEMPTS + 1):
+                log.info(f"  -> Validation attempt {attempt + 1}...")
+                validation_result = validate_code(task.params.file_path, current_code)
+
+                if validation_result["status"] == "clean":
+                    log.info("  -> ✅ Code is constitutionally valid.")
+                    task.params.code = validation_result["code"]
+                    break
+
+                log.warning(
+                    "  -> ⚠️ Code failed validation. Preparing for self-correction."
+                )
+                log.warning(f"     Violations: {validation_result['violations']}")
+
+                if attempt >= MAX_CORRECTION_ATTEMPTS:
+                    return (
+                        False,
+                        f"Self-correction failed after {MAX_CORRECTION_ATTEMPTS} attempts for step: '{task.step}'",
+                    )
+
+                correction_context = {
+                    "file_path": task.params.file_path,
+                    "code": current_code,
+                    "violations": validation_result["violations"],
+                    "original_prompt": high_level_goal,
+                }
+
+                log.info("  -> 🧬 Invoking self-correction engine...")
+                # --- MODIFICATION START ---
+                # Pass the cognitive_service dependency to the correction engine
+                correction_result = attempt_correction(
+                    correction_context, self.cognitive_service
+                )
+                # --- MODIFICATION END ---
+
+                if correction_result.get("status") == "retry_staged":
+                    pending_id = correction_result.get("pending_id")
+                    pending_op = self.executor.file_handler.pending_writes.get(
+                        pending_id
+                    )
+                    if pending_op:
+                        log.info("  -> ✅ Self-correction generated a potential fix.")
+                        current_code = pending_op["code"]
+                    else:
+                        return (
+                            False,
+                            "Self-correction failed to produce a valid retry operation.",
+                        )
+                else:
+                    return (
+                        False,
+                        f"Self-correction failed: {correction_result.get('message')}",
+                    )
+            else:
+                return (
+                    False,
+                    f"Could not produce valid code for step '{task.step}' after all attempts.",
+                )
+
+        log.info("--- Handing off fully validated plan to Executor ---")
         with PlanExecutionContext(self.git_service, self.config):
             try:
                 await self.executor.execute_plan(plan)
                 return True, "✅ Plan executed successfully."
             except PlanExecutionError as e:
-                error_detail = str(e)
-                log.error(f"Execution failed: {error_detail}", exc_info=True)
-                if e.violations:
-                    log.error("Violations found:")
-                    for v in e.violations:
-                        log.error(
-                            f"  - [{v.get('rule')}] L{v.get('line')}: {v.get('message')}"
-                        )
-                return False, f"Plan execution failed: {error_detail}"
+                return False, f"Plan execution failed: {str(e)}"
             except Exception as e:
                 log.error(
                     "An unexpected error occurred during execution.", exc_info=True

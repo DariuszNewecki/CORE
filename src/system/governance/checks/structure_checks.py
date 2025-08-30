@@ -86,7 +86,7 @@ class StructureChecks:
         capability_tags_path = (
             self.context.intent_dir / "knowledge" / "capability_tags.yaml"
         )
-        defined_tags_data = self.context.load_config(capability_tags_path, "yaml")
+        defined_tags_data = self.context.load_config(capability_tags_path)
         defined_tags = {tag["name"] for tag in defined_tags_data.get("tags", [])}
 
         implemented_caps = {
@@ -145,8 +145,6 @@ class StructureChecks:
             )
         return findings
 
-    # --- THIS IS THE FIX ---
-    # Restore the missing capability tag.
     # CAPABILITY: audit.check.domain_integrity
     def check_domain_integrity(self) -> list[AuditFinding]:
         """Checks for domain mismatches and illegal imports."""

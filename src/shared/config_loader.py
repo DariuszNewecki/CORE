@@ -1,6 +1,6 @@
 # src/shared/config_loader.py
 """
-Loads JSON or YAML configuration files into dictionaries with consistent error handling.
+Utility for loading configuration files (YAML or JSON) safely.
 """
 
 from __future__ import annotations
@@ -17,59 +17,35 @@ log = getLogger(__name__)
 
 
 # CAPABILITY: config.load
-def load_config(file_path: Path, file_type: str = "auto") -> Dict[str, Any]:
-    """
-    Loads a JSON or YAML file into a dictionary with consistent error handling.
+def load_config(file_path: Path) -> Dict[str, Any]:
+    """Loads a YAML or JSON config file safely, with consistent error handling.
 
     Args:
-        file_path (Path): Path to the file to load.
-        file_type (str): 'json', 'yaml', or 'auto' to infer from extension.
+        file_path: Path to the configuration file (must be .yaml, .yml, or .json).
 
     Returns:
-        Dict[str, Any]: Parsed file content or empty dict if file is missing/invalid.
+        A dictionary containing the parsed configuration data.
+
+    Raises:
+        FileNotFoundError: If the file does not exist.
+        ValueError: If the file format is unsupported or parsing fails.
     """
-    file_path = Path(file_path)
     if not file_path.exists():
-        log.warning(
-            f"Configuration file not found at {file_path}, returning empty dict."
-        )
-        return {}
-
-    # Determine file type if 'auto'
-    if file_type == "auto":
-        suffix = file_path.suffix.lower()
-        if suffix == ".json":
-            file_type = "json"
-        elif suffix in (".yaml", ".yml"):
-            file_type = "yaml"
-        else:
-            log.error(
-                f"Cannot determine file type from extension '{suffix}' for {file_path}"
-            )
-            return {}
-
-    if file_type not in ("json", "yaml"):
-        log.error(f"Unsupported file type '{file_type}' for {file_path}")
-        return {}
+        log.error(f"Config file not found: {file_path}")
+        raise FileNotFoundError(f"Config file not found: {file_path}")
 
     try:
-        with file_path.open(encoding="utf-8") as f:
-            if file_type == "json":
-                data = json.load(f)
-            else:  # yaml
-                data = yaml.safe_load(f)
-
-            if not isinstance(data, dict):
-                log.warning(
-                    f"File {file_path} does not contain a dictionary, returning empty dict."
-                )
-                return {}
-
-            return data
-
-    except (json.JSONDecodeError, yaml.YAMLError) as e:
-        log.error(f"Error parsing {file_path}: {e}")
-        return {}
-    except (OSError, IOError) as e:
-        log.error(f"Error reading file {file_path}: {e}")
-        return {}
+        content = file_path.read_text(encoding="utf-8")
+        if file_path.suffix in (".yaml", ".yml"):
+            return yaml.safe_load(content) or {}
+        elif file_path.suffix == ".json":
+            return json.loads(content) or {}
+        else:
+            log.error(f"Unsupported file type: {file_path.suffix}")
+            raise ValueError(f"Unsupported config file type: {file_path}")
+    except (yaml.YAMLError, json.JSONDecodeError) as e:
+        log.error(f"Error parsing config {file_path}: {e}")
+        raise ValueError(f"Invalid config format in {file_path}") from e
+    except UnicodeDecodeError as e:
+        log.error(f"Encoding error in {file_path}: {e}")
+        raise ValueError(f"Encoding error in config {file_path}") from e

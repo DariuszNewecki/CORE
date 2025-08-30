@@ -1,6 +1,7 @@
 # src/system/tools/symbol_processor.py
 """
 Processes AST nodes (functions, classes) into structured FunctionInfo objects with metadata and domain context.
+# CAPABILITY: symbol_processing
 """
 
 from __future__ import annotations
@@ -11,14 +12,14 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import List, Optional
 
-from system.tools.ast_utils import (
+from shared.ast_utility import (  # Import shared utilities
+    FunctionCallVisitor,
     calculate_structural_hash,
-    detect_docstring,
     extract_base_classes,
-    extract_function_parameters,
+    extract_docstring,
+    extract_parameters,
     parse_metadata_comment,
 )
-from system.tools.ast_visitor import FunctionCallVisitor
 from system.tools.domain_mapper import DomainMapper
 from system.tools.entry_point_detector import EntryPointDetector
 from system.tools.models import FunctionInfo
@@ -46,10 +47,9 @@ class SymbolProcessor:
         if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
             return None
 
-        # Calculate structural hash
+        # Use shared utilities for AST processing
         structural_hash = calculate_structural_hash(node)
 
-        # Extract function calls
         visitor = FunctionCallVisitor()
         visitor.visit(node)
 
@@ -58,8 +58,8 @@ class SymbolProcessor:
             f"{context.filepath.relative_to(context.root_path).as_posix()}::{node.name}"
         )
 
-        # Extract docstring
-        docstring = detect_docstring(node)
+        # Extract docstring using shared utility
+        docstring = extract_docstring(node)
 
         # Determine domain and agent
         relative_path = context.filepath.relative_to(context.root_path)
@@ -69,11 +69,11 @@ class SymbolProcessor:
         # Determine if this is a class
         is_class = isinstance(node, ast.ClassDef)
 
-        # Extract class-specific information
+        # Extract class-specific information using shared utility
         base_classes = extract_base_classes(node) if is_class else []
 
-        # Extract function parameters (not applicable to classes)
-        parameters = [] if is_class else extract_function_parameters(node)
+        # Extract function parameters (not applicable to classes) using shared utility
+        parameters = [] if is_class else extract_parameters(node)
 
         # Detect entry points (not applicable to classes)
         entry_point_type = (
@@ -82,7 +82,7 @@ class SymbolProcessor:
             else context.entry_point_detector.get_entry_point_type(node)
         )
 
-        # Parse metadata comments
+        # Parse metadata comments using shared utility
         capability = parse_metadata_comment(node, context.source_lines).get(
             "capability", "unassigned"
         )

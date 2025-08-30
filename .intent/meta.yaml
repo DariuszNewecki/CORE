@@ -40,7 +40,8 @@ prompts:
   refactor_outlier: "prompts/refactor_outlier.prompt"
   fix_header: "prompts/fix_header.prompt"
   goal_assessor: "prompts/goal_assessor.prompt"
-  intent_translator: "prompts/intent_translator.prompt" # <-- THIS WAS THE MISSING LINE
+  planner_agent: "prompts/planner_agent.prompt"
+  intent_translator: "prompts/intent_translator.prompt"
 
 project:
   manifest_yaml: "project_manifest.yaml"
@@ -74,6 +75,7 @@ schemas:
   data_privacy_policy: "schemas/data_privacy_policy.schema.json"
   data_retention_policy: "schemas/data_retention_policy.schema.json"
   runtime_requirements: "schemas/runtime_requirements.schema.json"
+  # --- THIS IS THE FIXED LINE ---
   intent_bundle: "schemas/intent_bundle.schema.json"
   enforcement_model: "schemas/enforcement_model.schema.json"
   intent_guard: "schemas/intent_guard.schema.json"

@@ -2,7 +2,6 @@
 """
 Provides the primary autonomous development cycle function that orchestrates planning and execution for self-directed software development.
 """
-
 from __future__ import annotations
 
 from typing import Any, Dict, Tuple
@@ -10,9 +9,11 @@ from typing import Any, Dict, Tuple
 from agents.execution_agent import ExecutionAgent
 from agents.plan_executor import PlanExecutor
 from agents.planner_agent import PlannerAgent
+from agents.reconnaissance_agent import ReconnaissanceAgent
 from core.cognitive_service import CognitiveService
 from core.file_handler import FileHandler
 from core.git_service import GitService
+from core.knowledge_service import KnowledgeService
 from core.prompt_pipeline import PromptPipeline
 from shared.config import settings
 from shared.config_loader import load_config
@@ -26,53 +27,49 @@ async def run_development_cycle(goal: str) -> Tuple[bool, str]:
     Executes a full, autonomous development cycle from a high-level goal.
     """
     try:
-        # Step 1: Instantiate services. The CognitiveService is now the source of LLM clients.
         log.info("   -> Initializing CORE services for development cycle...")
         cognitive_service = CognitiveService(settings.REPO_PATH)
+        knowledge_service = KnowledgeService(settings.REPO_PATH)
         file_handler = FileHandler(str(settings.REPO_PATH))
         git_service = GitService(str(settings.REPO_PATH))
         prompt_pipeline = PromptPipeline(settings.REPO_PATH)
-
-        # Load agent behavior policy from the constitution
         agent_policy = load_config(
             settings.REPO_PATH / ".intent/policies/agent_behavior_policy.yaml"
         )
         context: Dict[str, Any] = {"policies": {"agent_behavior_policy": agent_policy}}
 
-        # Step 2: Assemble agents using clients provided by the CognitiveService.
+        recon_agent = ReconnaissanceAgent(knowledge_service.graph)
+        surgical_context = recon_agent.generate_report(goal)
+        context["surgical_context"] = surgical_context
+
         log.info("   -> Assembling autonomous agents...")
+
+        # --- MODIFICATION START ---
+        # PlannerAgent is now instantiated with the service itself.
         planner = PlannerAgent(
-            orchestrator_client=cognitive_service.get_client_for_role("Planner"),
+            cognitive_service=cognitive_service,
             prompt_pipeline=prompt_pipeline,
             context=context,
         )
-
-        planner_config = planner.config
-        if not planner_config:
-            return (
-                False,
-                "Could not load planner configuration from agent_behavior_policy.yaml",
-            )
+        # --- MODIFICATION END ---
 
         plan_executor = PlanExecutor(
             file_handler=file_handler,
             git_service=git_service,
-            config=planner_config,
+            config=planner.config,
         )
         execution_agent = ExecutionAgent(
-            generator_client=cognitive_service.get_client_for_role("Coder"),
+            cognitive_service=cognitive_service,
             prompt_pipeline=prompt_pipeline,
             plan_executor=plan_executor,
         )
 
-        # Step 3: Create the execution plan
         log.info("🧠 PlannerAgent: Decomposing goal into a high-level plan...")
         plan = planner.create_execution_plan(goal)
 
         if not plan:
             return False, "PlannerAgent failed to create a valid execution plan."
 
-        # Step 4: Execute the plan
         log.info("⚡ ExecutionAgent: Starting execution of the plan...")
         success, message = await execution_agent.execute_plan(goal, plan)
 

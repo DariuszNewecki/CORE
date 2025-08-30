@@ -36,7 +36,7 @@ class EnvironmentChecks:
             )
             return findings
 
-        requirements = self.context.load_config(requirements_path, "yaml")
+        requirements = self.context.load_config(requirements_path)
         # The new structure is a map under the 'variables' key.
         required_vars = requirements.get("variables", {})
 

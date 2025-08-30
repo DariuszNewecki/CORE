@@ -4,3 +4,4 @@ capabilities:
   - code_generation
   - llm_orchestration
   - planning
+  - reconnaissance
