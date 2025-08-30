@@ -18,11 +18,9 @@ from pydantic import BaseModel, Field
 # We now import the single function that runs the whole cycle.
 from agents.development_cycle import run_development_cycle
 from core.capabilities import introspection
-from core.cognitive_service import CognitiveService  # <-- ADD THIS IMPORT
+from core.cognitive_service import CognitiveService
 from core.errors import register_exception_handlers
-from core.intent_alignment import (
-    check_goal_alignment,
-)  # This is needed for /guard/align
+from core.intent_alignment import check_goal_alignment
 from core.knowledge_service import KnowledgeService
 from shared.config import settings
 from shared.logger import getLogger
@@ -66,14 +64,13 @@ register_exception_handlers(app)
 class GoalRequest(BaseModel):
     """Defines the request body for the /execute_goal endpoint."""
 
-    goal: str = Field(min_length=1, strip_whitespace=True)
+    goal: str = Field(min_length=1, json_schema_extra={"strip_whitespace": True})
 
 
-# --- THIS SECTION IS PRESERVED FROM YOUR ORIGINAL FILE ---
 class AlignmentRequest(BaseModel):
     """Request schema for /guard/align."""
 
-    goal: str = Field(min_length=1, strip_whitespace=True)
+    goal: str = Field(min_length=1, json_schema_extra={"strip_whitespace": True})
     min_coverage: float | None = Field(default=None, ge=0.0, le=1.0)
 
 

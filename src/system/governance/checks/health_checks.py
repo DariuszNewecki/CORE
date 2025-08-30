@@ -112,7 +112,8 @@ class HealthChecks:
 
             for path, lloc in file_llocs.items():
                 if lloc > outlier_threshold:
-                    msg = f"File is a complexity outlier ({lloc} LLOC vs. project average of {average_lloc:.0f}). This may violate 'separation_of_concerns'."
+                    # --- THIS IS THE CORRECTED MESSAGE FORMAT ---
+                    msg = f"Possible complexity outlier ({lloc} LLOC vs. AVG of {average_lloc:.0f}). This may violate 'separation_of_concerns'."
                     all_violations.append(
                         AuditFinding(
                             AuditSeverity.WARNING,

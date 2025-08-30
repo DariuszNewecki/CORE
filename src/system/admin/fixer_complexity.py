@@ -23,6 +23,7 @@ from core.cognitive_service import CognitiveService
 from core.validation_pipeline import validate_code
 from shared.config import settings
 from shared.logger import getLogger
+from shared.utils.parsing import extract_json_from_response
 
 log = getLogger("core_admin.fixer_complexity")
 console = Console()
@@ -101,12 +102,13 @@ Your entire output must be a single, valid JSON object.
     response = constitutionalist.make_request(prompt, user_id="constitutionalist_agent")
 
     try:
-        # A more robust regex to find the JSON blob
-        json_match = re.search(r"\{[\s\S]*\}", response)
-        if not json_match:
-            raise ValueError("No JSON object found in the AI's response.")
+        # --- THIS IS THE CORRECTED PART ---
+        # Use a smarter function to find the JSON, even if the AI response is messy.
+        reconciliation_result = extract_json_from_response(response)
+        if not reconciliation_result:
+            raise ValueError("No valid JSON object found in the AI's response.")
+        # --- END OF CORRECTION ---
 
-        reconciliation_result = json.loads(json_match.group(0))
         log.info("   -> ✅ AI Constitutionalist provided a valid reconciliation plan.")
         return reconciliation_result
     except (json.JSONDecodeError, ValueError) as e:

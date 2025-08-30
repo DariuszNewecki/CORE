@@ -6,39 +6,39 @@ Handles automated correction of code failures by generating and validating LLM-s
 from __future__ import annotations
 
 import json
-from pathlib import Path
 
-from core.clients import GeneratorClient
+from core.cognitive_service import CognitiveService
 from core.file_handler import FileHandler
 from core.prompt_pipeline import PromptPipeline
 from core.validation_pipeline import validate_code
+from shared.config import settings
 from shared.utils.parsing import parse_write_blocks
 
-REPO_PATH = Path(".").resolve()
+# Use settings for a consistent repo path
+REPO_PATH = settings.REPO_PATH
 pipeline = PromptPipeline(repo_path=REPO_PATH)
-file_handler = FileHandler(repo_path=REPO_PATH)
+file_handler = FileHandler(str(REPO_PATH))
 
 
 # CAPABILITY: self_correction
-def attempt_correction(failure_context: dict) -> dict:
-    """Attempts to fix a failed validation or test result by generating corrected code via an LLM prompt based on the provided failure context."""
-    """
-    Attempts to fix a failed validation or test result using an enriched LLM prompt.
-    """
-    generator = GeneratorClient()
+def attempt_correction(
+    failure_context: dict, cognitive_service: CognitiveService
+) -> dict:
+    """Attempts to fix a failed validation or test result using an enriched LLM prompt."""
+    # The generator is now acquired from the service, not instantiated directly.
+    # We use the 'Coder' role as it's specialized for writing/fixing code.
+    generator = cognitive_service.get_client_for_role("Coder")
+
     file_path = failure_context.get("file_path")
     code = failure_context.get("code")
-    # --- MODIFICATION: The key is now "violations", not "error_type" or "details" ---
     violations = failure_context.get("violations", [])
-    failure_context.get("original_prompt", "")
 
-    if not file_path or not code or not violations:
+    if not all([file_path, code, violations]):
         return {
             "status": "error",
             "message": "Missing required failure context fields.",
         }
 
-    # --- MODIFICATION: The prompt is updated to send structured violation data to the LLM ---
     correction_prompt = (
         f"You are CORE's self-correction agent.\n\nA recent code generation attempt failed validation.\n"
         f"Please analyze the violations and fix the code below.\n\nFile: {file_path}\n\n"
@@ -58,11 +58,9 @@ def attempt_correction(failure_context: dict) -> dict:
             "message": "LLM did not produce a valid correction in a write block.",
         }
 
-    # Assuming one write block for self-correction
     path, fixed_code = list(write_blocks.items())[0]
 
     validation_result = validate_code(path, fixed_code)
-    # --- MODIFICATION: Check for 'error' severity in the new violations list ---
     if validation_result["status"] == "dirty":
         return {
             "status": "correction_failed_validation",

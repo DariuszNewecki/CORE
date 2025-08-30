@@ -5,6 +5,7 @@ Orchestrates the discovery and execution of modular integrity checks to validate
 
 from __future__ import annotations
 
+import ast
 import importlib
 import inspect
 import io
@@ -17,6 +18,10 @@ from rich.console import Console
 from rich.panel import Panel
 
 from core.intent_model import IntentModel
+from shared.ast_utility import (
+    FunctionCallVisitor,
+    parse_metadata_comment,
+)  # New imports
 from shared.config_loader import load_config
 from shared.logger import getLogger
 from shared.path_utils import get_repo_root
@@ -72,7 +77,7 @@ class ConstitutionalAuditor:
             self.intent_model = IntentModel(repo_root)
             self.project_manifest = aggregate_manifests(repo_root)
             self.knowledge_graph = load_config(
-                self.intent_dir / "knowledge/knowledge_graph.json", "json"
+                self.intent_dir / "knowledge/knowledge_graph.json"
             )
             self.symbols_map: dict = self.knowledge_graph.get("symbols", {})
             self.symbols_list: list = list(self.symbols_map.values())
@@ -83,8 +88,6 @@ class ConstitutionalAuditor:
         discovered_checks: List[Tuple[str, Callable[[], List[AuditFinding]]]] = []
         checks_dir = Path(__file__).parent / "checks"
 
-        # --- THIS IS THE REFACTORED SECTION ---
-        # Special handling for ProposalChecks to inject dependencies.
         from .checks.proposal_loader import ProposalLoader
         from .checks.proposal_signature_checker import ProposalSignatureChecker
         from .checks.proposal_summarizer import ProposalSummarizer
@@ -95,7 +98,6 @@ class ConstitutionalAuditor:
         proposal_validator = ProposalValidator(self.repo_root)
         proposal_signature_checker = ProposalSignatureChecker()
         proposal_summarizer = ProposalSummarizer(proposals_dir, self.repo_root)
-        # --- END REFACTORED SECTION ---
 
         for check_file in checks_dir.glob("*.py"):
             if check_file.name.startswith("__"):
@@ -110,7 +112,6 @@ class ConstitutionalAuditor:
                     if not class_name.endswith("Checks"):
                         continue
 
-                    # --- THIS IS THE REFACTORED SECTION ---
                     if class_name == "ProposalChecks":
                         check_instance = class_obj(
                             loader=proposal_loader,
@@ -120,7 +121,6 @@ class ConstitutionalAuditor:
                         )
                     else:
                         check_instance = class_obj(self.context)
-                    # --- END REFACTORED SECTION ---
 
                     for method_name, method in inspect.getmembers(
                         check_instance, inspect.ismethod
@@ -147,6 +147,43 @@ class ConstitutionalAuditor:
         discovered_checks.sort(key=lambda item: item[0].split(":")[0])
         return discovered_checks
 
+    def validate_capability_tags(self, file_path: Path) -> List[AuditFinding]:
+        """Validates capability tags in a file using shared AST utilities."""
+        findings = []
+        try:
+            source = file_path.read_text(encoding="utf-8")
+            lines = source.splitlines()
+            tree = ast.parse(source)
+
+            for node in ast.iter_child_nodes(tree):
+                metadata = parse_metadata_comment(node, lines)  # Use shared utility
+                if metadata.get("capability") == "unassigned":
+                    findings.append(
+                        AuditFinding(
+                            severity=AuditSeverity.WARNING,
+                            message=f"Unassigned capability tag in {node.name}",
+                            check_name="capability_validation",
+                            file_path=str(file_path),
+                        )
+                    )
+
+                visitor = FunctionCallVisitor()  # Use shared visitor
+                visitor.visit(node)
+                # Optionally use visitor.calls for further checks (e.g., forbidden calls)
+
+        except Exception as e:
+            log.error(f"Error validating {file_path}: {e}")
+            findings.append(
+                AuditFinding(
+                    severity=AuditSeverity.ERROR,
+                    message=f"Failed to validate capability tags: {e}",
+                    check_name="capability_validation",
+                    file_path=str(file_path),
+                )
+            )
+
+        return findings
+
     def run_full_audit(self) -> bool:
         """Run all discovered validation checks and return overall status."""
         self.console.print(
@@ -165,13 +202,17 @@ class ConstitutionalAuditor:
                 if findings:
                     self.findings.extend(findings)
                     for finding in findings:
+                        message = finding.message
+                        if finding.file_path:
+                            message += f" (in {finding.file_path})"
+
                         match finding.severity:
                             case AuditSeverity.ERROR:
-                                log.error(f"❌ {finding.message}")
+                                log.error(f"❌ {message}")
                             case AuditSeverity.WARNING:
-                                log.warning(f"⚠️ {finding.message}")
+                                log.warning(f"⚠️ {message}")
                             case AuditSeverity.SUCCESS:
-                                log.info(f"✅ {finding.message}")
+                                log.info(f"✅ {message}")
             except Exception as e:
                 log.error(
                     f"💥 Check '{check_name}' failed unexpectedly: {e}", exc_info=True

@@ -1,21 +1,20 @@
 # src/system/tools/manifest_migrator.py
 """
 A CLI tool to migrate a monolithic project manifest into domain-specific manifests based on the modular architecture.
+# CAPABILITY: manifest_updating
 """
 
 from __future__ import annotations
 
-import json
-from pathlib import Path
-
 import typer
 import yaml
 
+from shared.config_loader import load_config  # Use shared loader
 from shared.logger import getLogger
+from shared.path_utils import get_repo_root
 
-# --- Constants & Setup ---
 log = getLogger("manifest_migrator")
-REPO_ROOT = Path(__file__).resolve().parents[3]
+REPO_ROOT = get_repo_root()
 INTENT_DIR = REPO_ROOT / ".intent"
 MONOLITHIC_MANIFEST_PATH = INTENT_DIR / "project_manifest.yaml"
 SOURCE_STRUCTURE_PATH = INTENT_DIR / "knowledge" / "source_structure.yaml"
@@ -49,9 +48,9 @@ def migrate_manifest(
         )
         raise typer.Exit(code=1)
 
-    monolith = yaml.safe_load(MONOLITHIC_MANIFEST_PATH.read_text())
-    source_structure = yaml.safe_load(SOURCE_STRUCTURE_PATH.read_text())
-    knowledge_graph = json.loads(KNOWLEDGE_GRAPH_PATH.read_text())
+    monolith = load_config(MONOLITHIC_MANIFEST_PATH)
+    source_structure = load_config(SOURCE_STRUCTURE_PATH)
+    knowledge_graph = load_config(KNOWLEDGE_GRAPH_PATH)
 
     # Step 2: Build a map to determine which domain "owns" each capability.
     # The Knowledge Graph is the source of truth for this.

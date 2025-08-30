@@ -32,7 +32,7 @@ class KnowledgeService:
             log.warning("Knowledge graph not found. Introspection may be needed.")
             self.graph = {}
         else:
-            self.graph = load_config(self.knowledge_graph_path, "json")
+            self.graph = load_config(self.knowledge_graph_path)
             log.info("Knowledge Service loaded the knowledge graph successfully.")
 
     def list_capabilities(self) -> List[str]:

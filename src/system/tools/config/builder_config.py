@@ -54,7 +54,7 @@ class BuilderConfig:
         if not patterns_path.exists():
             log.warning("entry_point_patterns.yaml not found.")
             return []
-        return load_config(patterns_path, "yaml").get("patterns", [])
+        return load_config(patterns_path).get("patterns", [])
 
     @staticmethod
     def _load_cli_entry_points(root_path: Path) -> Set[str]:
@@ -77,7 +77,7 @@ class BuilderConfig:
     def _load_domain_map(root_path: Path, src_root: Path) -> Dict[str, str]:
         """Load domain-to-path mapping from configuration."""
         path = root_path / ".intent/knowledge/source_structure.yaml"
-        data = load_config(path, "yaml")
+        data = load_config(path)
         structure = data.get("structure")
 
         if not structure:

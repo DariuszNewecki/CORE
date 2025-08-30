@@ -62,6 +62,8 @@ tags:
     description: "Attempts to automatically fix errors based on validation or test feedback."
   - name: planning
     description: "Breaks down high-level intents into executable steps."
+  - name: reconnaissance
+    description: "Analyzes a goal and queries the knowledge graph to generate a surgical context report for other agents."
   - name: decomposition
     description: "Structures problems into coherent sub-problems and tasks."
   - name: natural_language_understanding
