@@ -1,0 +1,19 @@
+action: replace_file
+content: "# Configuration file for the application\n\n# Logging configuration\nlogging:\n\
+  \  level: INFO\n  format: \"%(asctime)s - %(name)s - %(levelname)s - %(message)s\"\
+  \n  file: logs/app.log\n\n# Server configuration\nserver:\n  host: 0.0.0.0\n  port:\
+  \ 8000\n  debug: false\n\n# Database configuration\ndatabase:\n  url: postgresql://user:password@localhost:5432/mydatabase\n\
+  \  pool_size: 20\n  max_overflow: 10\n  echo: false\n\n# OpenAI client configuration\n\
+  openai_client:\n  api_key: ${OPENAI_API_KEY}\n  timeout: 30\n  max_retries: 3\n\n\
+  # Anthropic client configuration\nanthropic_client:\n  api_key: ${ANTHROPIC_API_KEY}\n\
+  \  timeout: 30\n  max_retries: 3\n\n# Azure OpenAI client configuration\nazure_openai_client:\n\
+  \  api_key: ${AZURE_OPENAI_API_KEY}\n  endpoint: ${AZURE_OPENAI_ENDPOINT}\n  api_version:\
+  \ \"2023-05-15\"\n  timeout: 30\n  max_retries: 3\n\n# Model configuration\nmodels:\n\
+  \  default: gpt-4\n  available:\n    - gpt-4\n    - gpt-3.5-turbo\n    - claude-2\n\
+  \    - claude-instant-1\n\n# Caching configuration\ncaching:\n  enabled: true\n\
+  \  ttl: 3600  # 1 hour in seconds\n\n# Rate limiting configuration\nrate_limiting:\n\
+  \  enabled: true\n  requests_per_minute: 60\n\n# Monitoring configuration\nmonitoring:\n\
+  \  enabled: true\n  metrics_port: 9090\n  health_check_interval: 30"
+justification: Remove configuration variables related to the obsolete BaseLLMClient
+  to maintain clean configuration
+target_path: config/config.yaml
