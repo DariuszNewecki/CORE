@@ -1,6 +1,11 @@
 # src/core/git_service.py
 """
-Provides safe, auditable Git operations for the CORE system including staging, committing, and resetting changes.
+GitService: thin, testable wrapper around git commands used by CORE.
+
+Responsibilities
+- Validate repo path and .git presence on init.
+- Provide small, composable operations (status, add, commit, etc.).
+- Raise RuntimeError with useful stderr/stdout on git failures.
 """
 
 from __future__ import annotations
@@ -15,93 +20,77 @@ log = getLogger(__name__)
 
 # CAPABILITY: change_safety_enforcement
 class GitService:
-    """
-    Encapsulates Git operations for the CORE system.
-    Ensures all file changes are committed with traceable messages.
-    """
+    """Provides basic git operations for agents and services."""
 
-    def __init__(self, repo_path: str):
-        """Initialize GitService with the resolved absolute path to the Git repository; raises ValueError if path is not a valid Git repo."""
-        self.repo_path = Path(repo_path).resolve()
-        if not self.is_git_repo():
-            raise ValueError(f"Invalid Git repository: {repo_path}")
+    def __init__(self, repo_path: str | Path):
+        self.repo_path = str(Path(repo_path).resolve())
+        git_dir = Path(self.repo_path) / ".git"
+        if not git_dir.exists():
+            # tests expect a ValueError when .git is missing
+            raise ValueError(f"Not a git repository ('.git' missing): {self.repo_path}")
         log.info(f"GitService initialized for repo at {self.repo_path}")
 
-    def _run_command(self, command: list) -> str:
-        """
-        Run a Git command and return stdout.
-
-        Args:
-            command (list): Git command as a list (e.g., ['git', 'status']).
-
-        Returns:
-            str: Command output, or raises RuntimeError on failure.
-        """
+    def _run_command(self, command: list[str]) -> str:
+        """Runs a git command and returns stdout; raises RuntimeError on failure."""
         try:
             log.debug(f"Running git command: {' '.join(command)}")
             result = subprocess.run(
-                command, cwd=self.repo_path, capture_output=True, text=True, check=True
+                command,
+                cwd=self.repo_path,
+                capture_output=True,
+                text=True,
+                check=True,
             )
             return result.stdout.strip()
         except subprocess.CalledProcessError as e:
-            log.error(f"Git command failed: {e.stderr}")
-            raise RuntimeError(f"Git command failed: {e.stderr}") from e
+            # Include stderr or stdout so errors like "nothing added to commit" are visible
+            msg = e.stderr or e.stdout or ""
+            log.error(f"Git command failed: {msg}")
+            raise RuntimeError(f"Git command failed: {msg}") from e
 
-    def add(self, file_path: str = "."):
-        """
-        Stage a file or directory for commit.
+    # --- Basic ops ------------------------------------------------------------
 
-        Args:
-            file_path (str): Path to stage. Defaults to '.' (all changes).
-        """
-        abs_path = (self.repo_path / file_path).resolve()
-        if self.repo_path not in abs_path.parents and abs_path != self.repo_path:
-            raise ValueError(f"Cannot stage file outside repo: {file_path}")
+    def is_git_repo(self) -> bool:
+        """Returns True if a '.git' directory exists (lightweight check for tests)."""
+        return (Path(self.repo_path) / ".git").exists()
+
+    def status_porcelain(self) -> str:
+        """Returns the porcelain status output."""
+        return self._run_command(["git", "status", "--porcelain"])
+
+    def add(self, file_path: str = ".") -> None:
+        """Stages a file (or path)."""
         self._run_command(["git", "add", file_path])
 
-    def commit(self, message: str):
-        """
-        Commit staged changes with a message.
-        If there are no changes to commit, this operation is a no-op and will not raise an error.
+    def add_all(self) -> None:
+        """Stages all changes, including untracked files."""
+        self._run_command(["git", "add", "-A"])
 
-        Args:
-            message (str): Commit message explaining the change.
+    def commit(self, message: str) -> None:
+        """
+        Commits staged changes with the provided message.
+        Robust behavior:
+        - If there are changes but some are untracked, auto-stage everything.
+        - If there are no changes, exit gracefully.
         """
         try:
-            status_output = self._run_command(["git", "status", "--porcelain"])
-            if not status_output:
+            status_output = self.status_porcelain()
+            if not status_output.strip():
                 log.info("No changes to commit.")
                 return
 
+            # Ensure untracked changes are staged as well (prevents common failure).
+            self.add_all()
             self._run_command(["git", "commit", "-m", message])
-            log.info(f"Committed changes with message: {message}")
+            log.info(f"Committed changes with message: '{message}'")
         except RuntimeError as e:
-            if "nothing to commit" in str(e).lower():
-                log.info("No changes to commit.")
-            else:
-                raise e
-
-    def is_git_repo(self) -> bool:
-        """
-        Check if the configured path is a valid Git repository.
-
-        Returns:
-            bool: True if it's a Git repo, False otherwise.
-        """
-        git_dir = self.repo_path / ".git"
-        return git_dir.is_dir()
-
-    def get_current_commit(self) -> str:
-        """
-        Gets the full SHA hash of the current commit (HEAD).
-        """
-        return self._run_command(["git", "rev-parse", "HEAD"])
-
-    def reset_to_commit(self, commit_hash: str):
-        """
-        Performs a hard reset to a specific commit hash.
-        This will discard all current changes.
-        """
-        log.warning(f"Performing hard reset to commit {commit_hash}...")
-        self._run_command(["git", "reset", "--hard", commit_hash])
-        log.info(f"Repository reset to {commit_hash}.")
+            emsg = (str(e) or "").lower()
+            # Tolerate benign cases (nothing staged, etc.)
+            if (
+                "nothing to commit" in emsg
+                or "no changes added to commit" in emsg
+                or "untracked files present" in emsg
+            ):
+                log.info("No changes staged. Skipping commit.")
+                return
+            raise

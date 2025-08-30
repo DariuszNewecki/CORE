@@ -13,10 +13,11 @@ def mock_git_service(mocker, tmp_path):
 
     mock_run = mocker.patch("subprocess.run")
 
-    # Configure mock for multiple calls: first for status, then for commit
+    # Configure mock for the common flow: status -> add -A -> commit
     mock_run.side_effect = [
-        MagicMock(stdout=" M my_file.py", stderr="", returncode=0),  # For git status
-        MagicMock(stdout="commit success", stderr="", returncode=0),  # For git commit
+        MagicMock(stdout="?? new_file.py", stderr="", returncode=0),  # status
+        MagicMock(stdout="", stderr="", returncode=0),  # add -A
+        MagicMock(stdout="commit success", stderr="", returncode=0),  # commit
     ]
 
     service = GitService(repo_path=str(tmp_path))
@@ -43,20 +44,25 @@ def test_git_add(mock_git_service):
 
 
 def test_git_commit(mock_git_service):
-    """Tests that the commit method calls subprocess.run with status and then commit."""
+    """Tests that commit runs: status -> add -A -> commit."""
     service, mock_run = mock_git_service
     commit_message = "feat(agent): Test commit"
 
     service.commit(commit_message)
 
-    # --- THIS IS THE FIX ---
-    # Assert that run was called twice
-    assert mock_run.call_count == 2
+    # With robust GitService: status -> add -A -> commit
+    assert mock_run.call_count == 3
 
-    # Check the calls were made in the correct order with correct arguments
     expected_calls = [
         call(
             ["git", "status", "--porcelain"],
+            cwd=service.repo_path,
+            capture_output=True,
+            text=True,
+            check=True,
+        ),
+        call(
+            ["git", "add", "-A"],
             cwd=service.repo_path,
             capture_output=True,
             text=True,
@@ -74,13 +80,13 @@ def test_git_commit(mock_git_service):
 
 
 def test_is_git_repo_true(tmp_path):
-    """Tests that is_git_repo returns True when a .git directory exists."""
+    """Returns True when a .git directory exists."""
     (tmp_path / ".git").mkdir()
     service = GitService(repo_path=str(tmp_path))
     assert service.is_git_repo() is True
 
 
 def test_is_git_repo_false(tmp_path):
-    """Tests that GitService raises an error if .git directory is missing on init."""
+    """Raises ValueError if .git is missing on init."""
     with pytest.raises(ValueError):
         GitService(repo_path=str(tmp_path))

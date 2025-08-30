@@ -13,12 +13,7 @@ from typing import List
 from agents.models import ExecutionTask
 from agents.plan_executor import PlanExecutionError, PlanExecutor
 from agents.utils import PlanExecutionContext
-
-# --- MODIFICATION START ---
-# from core.clients import BaseLLMClient # This line is removed.
-from core.cognitive_service import CognitiveService  # This line is added.
-
-# --- MODIFICATION END ---
+from core.cognitive_service import CognitiveService
 from core.prompt_pipeline import PromptPipeline
 from core.self_correction_engine import attempt_correction
 from core.validation_pipeline import validate_code
@@ -32,8 +27,6 @@ MAX_CORRECTION_ATTEMPTS = 2
 class ExecutionAgent:
     """Orchestrates the execution of a plan, including code generation and validation."""
 
-    # --- MODIFICATION START ---
-    # The __init__ signature is changed to accept the cognitive_service
     def __init__(
         self,
         cognitive_service: CognitiveService,
@@ -42,10 +35,7 @@ class ExecutionAgent:
     ):
         """Initializes the ExecutionAgent with its required tools."""
         self.cognitive_service = cognitive_service
-        self.generator = self.cognitive_service.get_client_for_role(
-            "Coder"
-        )  # Get client from service
-        # --- MODIFICATION END ---
+        self.generator = self.cognitive_service.get_client_for_role("Coder")
         self.prompt_pipeline = prompt_pipeline
         self.executor = plan_executor
         self.git_service = self.executor.git_service
@@ -120,9 +110,11 @@ class ExecutionAgent:
             enriched_prompt, user_id="execution_agent_coder"
         )
 
+    # --- THIS IS THE FIX ---
     async def execute_plan(
         self, high_level_goal: str, plan: List[ExecutionTask]
     ) -> tuple[bool, str]:
+        # --- END OF FIX ---
         """
         Takes a plan, generates code for each step, validates it, attempts
         self-correction on failure, and then executes the fully-populated plan.
@@ -174,12 +166,9 @@ class ExecutionAgent:
                 }
 
                 log.info("  -> 🧬 Invoking self-correction engine...")
-                # --- MODIFICATION START ---
-                # Pass the cognitive_service dependency to the correction engine
                 correction_result = attempt_correction(
                     correction_context, self.cognitive_service
                 )
-                # --- MODIFICATION END ---
 
                 if correction_result.get("status") == "retry_staged":
                     pending_id = correction_result.get("pending_id")

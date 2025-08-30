@@ -91,8 +91,11 @@ def load_private_key() -> ed25519.Ed25519PrivateKey:
     return serialization.load_pem_private_key(key_path.read_bytes(), password=None)
 
 
+# --- THIS IS THE FIX ---
+# We are adding the missing capability tag to the function.
 # CAPABILITY: governance.cli.archive_plan
 def archive_rollback_plan(proposal_name: str, proposal: Dict[str, Any]) -> None:
+    # --- END OF FIX ---
     """Intent: Persist a rollback plan snapshot for approved proposals."""
     rollback_plan = proposal.get("rollback_plan")
     if not rollback_plan:

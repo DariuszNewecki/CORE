@@ -5,18 +5,15 @@ Handles Python syntax validation for code before it's staged for write/commit op
 
 from __future__ import annotations
 
-# src/core/syntax_checker.py
-"""
-A simple syntax checker utility.
-Validates the syntax of Python code before it's staged for write/commit.
-"""
+# --- THIS IS THE FIX ---
+# Add all the necessary imports that were missing.
 import ast
 from typing import Any, Dict, List
 
 Violation = Dict[str, Any]
+# --- END OF FIX ---
 
 
-# --- MODIFICATION: The function now returns a list of structured violation dictionaries. ---
 # CAPABILITY: syntax_validation
 def check_syntax(file_path: str, code: str) -> List[Violation]:
     """Checks the given Python code for syntax errors and returns a list of violations, if any."""

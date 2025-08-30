@@ -33,27 +33,35 @@ async def _run_header_fix_cycle(dry_run: bool, all_py_files: list[str]):
 
     fixer_client = cognitive_service.get_client_for_role("Coder")
 
+    # --- THIS IS THE CORRECT FIX: Read the limit from the settings ---
+    # The settings object automatically loads from the .env file and runtime_requirements.
+    concurrency_limit = settings.CORE_MAX_CONCURRENT_REQUESTS
+    log.info(f"Using a concurrency limit of {concurrency_limit} requests.")
+    semaphore = asyncio.Semaphore(concurrency_limit)
+    # --- END OF FIX ---
+
     async def worker(file_path_str: str):
-        file_path = REPO_ROOT / file_path_str
-        try:
-            original_content = file_path.read_text(encoding="utf-8")
+        async with semaphore:
+            file_path = REPO_ROOT / file_path_str
+            try:
+                original_content = file_path.read_text(encoding="utf-8")
 
-            # We will now ask the LLM to fix every file.
-            # The prompt itself handles the idempotency check.
-            final_prompt = prompt_template.format(
-                file_path=file_path_str, source_code=original_content
-            )
+                final_prompt = prompt_template.format(
+                    file_path=file_path_str, source_code=original_content
+                )
 
-            corrected_code = await fixer_client.make_request_async(
-                final_prompt, user_id="header_fixer_agent"
-            )
+                corrected_code = await fixer_client.make_request_async(
+                    final_prompt, user_id="header_fixer_agent"
+                )
 
-            # If the LLM's fix is different from the original, stage it.
-            if corrected_code and corrected_code.strip() != original_content.strip():
-                modification_plan[file_path_str] = corrected_code
+                if (
+                    corrected_code
+                    and corrected_code.strip() != original_content.strip()
+                ):
+                    modification_plan[file_path_str] = corrected_code
 
-        except Exception as e:
-            log.warning(f"Could not process {file_path_str}: {e}")
+            except Exception as e:
+                log.warning(f"Could not process {file_path_str}: {e}")
 
     tasks = [worker(file_path) for file_path in all_py_files]
     for task in track(

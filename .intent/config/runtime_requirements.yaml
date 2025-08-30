@@ -68,6 +68,17 @@ variables:
     type: bool
     used_by: ["system"]
     required_when: "CORE_ENV == 'development'"
+
+  # --- THIS IS THE NEW CONSTITUTIONAL VARIABLE ---
+  CORE_MAX_CONCURRENT_REQUESTS:
+    description: "The maximum number of simultaneous outbound LLM requests to prevent rate-limiting."
+    source: env
+    required: false
+    type: integer
+    default: 5
+    used_by: ["system"]
+  # --- END OF NEW VARIABLE ---
+
   DEEPSEEK_CHAT_API_URL:
     description: "API URL for the 'deepseek_chat' resource."
     source: env

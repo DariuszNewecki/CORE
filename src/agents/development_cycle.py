@@ -1,64 +1,69 @@
 # src/agents/development_cycle.py
 """
-Provides the primary autonomous development cycle function that orchestrates planning and execution for self-directed software development.
+Orchestrates the autonomous development cycle, including reconnaissance, planning, and execution.
 """
+
 from __future__ import annotations
 
-from typing import Any, Dict, Tuple
-
 from agents.execution_agent import ExecutionAgent
+from agents.models import PlannerConfig
 from agents.plan_executor import PlanExecutor
 from agents.planner_agent import PlannerAgent
 from agents.reconnaissance_agent import ReconnaissanceAgent
 from core.cognitive_service import CognitiveService
 from core.file_handler import FileHandler
 from core.git_service import GitService
-from core.knowledge_service import KnowledgeService
 from core.prompt_pipeline import PromptPipeline
-from shared.config import settings
-from shared.config_loader import load_config
 from shared.logger import getLogger
+from shared.path_utils import get_repo_root
 
-log = getLogger("development_cycle")
+log = getLogger(__name__)
 
 
-async def run_development_cycle(goal: str) -> Tuple[bool, str]:
+class PlanExecutionError(Exception):
+    """Custom exception for errors during the planning or execution phase."""
+
+    pass
+
+
+async def run_development_cycle(
+    goal: str, auto_commit: bool = True
+) -> tuple[bool, str]:
     """
-    Executes a full, autonomous development cycle from a high-level goal.
+    Runs the full development cycle for a given goal.
+
+    Args:
+        goal: The high-level goal to be achieved.
+        auto_commit: Whether to automatically commit the changes on success.
+
+    Returns:
+        A tuple containing (success: bool, message: str).
     """
     try:
+        log.info(f"🚀 Received new development goal: '{goal}'")
         log.info("   -> Initializing CORE services for development cycle...")
-        cognitive_service = CognitiveService(settings.REPO_PATH)
-        knowledge_service = KnowledgeService(settings.REPO_PATH)
-        file_handler = FileHandler(str(settings.REPO_PATH))
-        git_service = GitService(str(settings.REPO_PATH))
-        prompt_pipeline = PromptPipeline(settings.REPO_PATH)
-        agent_policy = load_config(
-            settings.REPO_PATH / ".intent/policies/agent_behavior_policy.yaml"
-        )
-        context: Dict[str, Any] = {"policies": {"agent_behavior_policy": agent_policy}}
 
-        recon_agent = ReconnaissanceAgent(knowledge_service.graph)
-        surgical_context = recon_agent.generate_report(goal)
-        context["surgical_context"] = surgical_context
-
-        log.info("   -> Assembling autonomous agents...")
-
-        # --- MODIFICATION START ---
-        # PlannerAgent is now instantiated with the service itself.
-        planner = PlannerAgent(
-            cognitive_service=cognitive_service,
-            prompt_pipeline=prompt_pipeline,
-            context=context,
-        )
-        # --- MODIFICATION END ---
-
+        repo_path = get_repo_root()
+        git_service = GitService(repo_path=str(repo_path))
+        cognitive_service = CognitiveService(repo_path=repo_path)
+        file_handler = FileHandler(repo_path=str(repo_path))
+        prompt_pipeline = PromptPipeline(repo_path=repo_path)
+        planner_config = PlannerConfig()
         plan_executor = PlanExecutor(
             file_handler=file_handler,
             git_service=git_service,
-            config=planner.config,
+            config=planner_config,
         )
-        execution_agent = ExecutionAgent(
+
+        log.info("🔬 Conducting reconnaissance for goal: '%s'", goal)
+        knowledge_graph = {"symbols": {}}  # Placeholder for now
+        recon_agent = ReconnaissanceAgent(knowledge_graph)
+        context = recon_agent.generate_report(goal)
+        log.info("   -> Generated Surgical Context Report:\n" + context)
+
+        log.info("   -> Assembling autonomous agents...")
+        planner = PlannerAgent(cognitive_service=cognitive_service)
+        executor = ExecutionAgent(
             cognitive_service=cognitive_service,
             prompt_pipeline=prompt_pipeline,
             plan_executor=plan_executor,
@@ -70,14 +75,24 @@ async def run_development_cycle(goal: str) -> Tuple[bool, str]:
         if not plan:
             return False, "PlannerAgent failed to create a valid execution plan."
 
-        log.info("⚡ ExecutionAgent: Starting execution of the plan...")
-        success, message = await execution_agent.execute_plan(goal, plan)
+        # Execute the plan (async)
+        success, message = await executor.execute_plan(high_level_goal=goal, plan=plan)
+
+        if success and auto_commit:
+            log.info("✅ Plan executed successfully. Committing changes...")
+            commit_message = f"feat(AI): execute plan for goal - {goal}"
+            # No need to stage here; GitService.commit() auto-stages
+            git_service.commit(commit_message)
+            log.info(f"   -> Committed changes with message: '{commit_message}'")
 
         return success, message
 
+    except PlanExecutionError as e:
+        log.error(f"💥 A critical error occurred during the planning phase: {e}")
+        return False, f"A critical error occurred during planning: {e}"
     except Exception as e:
         log.error(
             f"💥 An unexpected error occurred during the development cycle: {e}",
             exc_info=True,
         )
-        return False, f"An unexpected error occurred: {str(e)}"
+        return False, f"An unexpected error occurred: {e}"

@@ -5,7 +5,7 @@ An end-to-end integration test for the CORE system.
 
 import json
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import MagicMock
 
 import pytest
 from fastapi.testclient import TestClient
@@ -17,19 +17,19 @@ from core.main import app
 def mock_cognitive_service(mocker):
     """Mocks the CognitiveService to return mock clients."""
     mock_service = MagicMock()
-    # Configure the mock to return a mock client when get_client_for_role is called
     mock_client = MagicMock()
     mock_client.make_request.return_value = json.dumps(
         [
             {
                 "step": "Create a simple Python file.",
                 "action": "create_file",
-                "params": {"file_path": "src/hello.py"},
+                "params": {"file_path": "src/hello.py", "code": "print('hello')"},
             }
         ]
     )
     mock_service.get_client_for_role.return_value = mock_client
     mocker.patch("agents.development_cycle.CognitiveService", return_value=mock_service)
+    mocker.patch("core.main.CognitiveService", return_value=mock_service)
 
 
 @pytest.fixture
@@ -41,22 +41,27 @@ def test_git_repo(tmp_path: Path):
     (tmp_path / "src").mkdir()
     intent_dir = tmp_path / ".intent"
 
-    # Create policies directory and file
+    # --- THIS IS THE FIX ---
+    # Create all required constitutional files for the development cycle to run.
     (intent_dir / "policies").mkdir(parents=True)
     (intent_dir / "policies" / "agent_behavior_policy.yaml").write_text(
         "planner_agent:\n  max_retries: 1\n  task_timeout: 30"
     )
 
-    # Create the knowledge directory and the required config files
-    knowledge_dir = intent_dir / "knowledge"
-    knowledge_dir.mkdir(parents=True)
-    (knowledge_dir / "cognitive_roles.yaml").write_text(
-        "cognitive_roles: []"  # Provide minimal valid content
+    (intent_dir / "knowledge").mkdir(parents=True)
+    (intent_dir / "knowledge" / "cognitive_roles.yaml").write_text(
+        "cognitive_roles: []"
     )
-    # --- THIS IS THE FIX ---
-    # Add the second missing file, resource_manifest.yaml
-    (knowledge_dir / "resource_manifest.yaml").write_text(
-        "llm_resources: []"  # Provide minimal valid content
+    (intent_dir / "knowledge" / "resource_manifest.yaml").write_text(
+        "llm_resources: []"
+    )
+
+    (intent_dir / "prompts").mkdir(parents=True)
+    (intent_dir / "prompts" / "planner_agent.prompt").write_text("Goal: {goal}")
+
+    (intent_dir / "config").mkdir(parents=True)
+    (intent_dir / "config" / "actions.yaml").write_text(
+        "actions:\n  - name: create_file\n    description: Creates a file."
     )
     # --- END OF FIX ---
 
@@ -69,9 +74,8 @@ def test_execute_goal_end_to_end(
     """Tests the /execute_goal endpoint with a mocked cognitive service."""
     monkeypatch.chdir(test_git_repo)
 
-    # We still need to mock the execution part to avoid actual file writes
     mocker.patch(
-        "agents.development_cycle.ExecutionAgent.execute_plan", new_callable=AsyncMock
+        "agents.development_cycle.ExecutionAgent.execute_plan",
     ).return_value = (True, "Plan executed successfully.")
 
     with TestClient(app) as client:

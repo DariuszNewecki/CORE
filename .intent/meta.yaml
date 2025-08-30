@@ -75,7 +75,6 @@ schemas:
   data_privacy_policy: "schemas/data_privacy_policy.schema.json"
   data_retention_policy: "schemas/data_retention_policy.schema.json"
   runtime_requirements: "schemas/runtime_requirements.schema.json"
-  # --- THIS IS THE FIXED LINE ---
   intent_bundle: "schemas/intent_bundle.schema.json"
   enforcement_model: "schemas/enforcement_model.schema.json"
   intent_guard: "schemas/intent_guard.schema.json"
