@@ -14,8 +14,6 @@ from fastapi import status as http_status
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
-# --- REFACTORED IMPORT ---
-# We now import the single function that runs the whole cycle.
 from agents.development_cycle import run_development_cycle
 from core.capabilities import introspection
 from core.cognitive_service import CognitiveService
@@ -45,7 +43,7 @@ async def lifespan(app: FastAPI):
     log.info("🛠️  Initializing shared services...")
     repo_path = Path(".")
     app.state.knowledge_service = KnowledgeService(repo_path)
-    app.state.cognitive_service = CognitiveService(repo_path)  # <-- ADD THIS LINE
+    app.state.cognitive_service = CognitiveService(repo_path)
 
     if not settings.LLM_ENABLED:
         log.warning(
@@ -90,9 +88,6 @@ async def guard_align(payload: AlignmentRequest):
     )
 
 
-# --- END OF PRESERVED SECTION ---
-
-
 @app.get("/knowledge/capabilities")
 async def list_capabilities(request: Request):
     """Returns a list of all capabilities the system has declared."""
@@ -115,9 +110,9 @@ async def execute_goal(request_data: GoalRequest):
             detail="LLM capabilities are disabled in the current environment configuration.",
         )
 
-    # --- THIS IS THE REFACTORED LOGIC ---
-    # The endpoint now makes a single, clean call to our reusable function.
+    # --- THIS IS THE FIX ---
     success, message = await run_development_cycle(goal)
+    # --- END OF FIX ---
 
     if success:
         log.info("✅ Goal executed successfully: %s", message)

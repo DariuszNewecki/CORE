@@ -2,6 +2,7 @@
 """
 Implements the 'core-admin chat' command for conversational interaction.
 """
+
 from __future__ import annotations
 
 import json

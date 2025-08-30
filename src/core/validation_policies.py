@@ -35,7 +35,11 @@ class PolicyValidator:
         if self._safety_policies_cache is None:
             repo_root = get_repo_root()
             policies_path = repo_root / ".intent" / "policies" / "safety_policies.yaml"
-            policy_data = load_config(policies_path, "yaml")
+            # --- THIS IS THE FIX ---
+            # The load_config function is now smarter and only needs the path.
+            # We remove the second argument, "yaml".
+            policy_data = load_config(policies_path)
+            # --- END OF FIX ---
             self._safety_policies_cache = policy_data.get("rules", [])
         return self._safety_policies_cache
 

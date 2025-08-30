@@ -52,6 +52,16 @@ tags:
   # --- LLM & Agent Orchestration ---
   - name: llm_orchestration
     description: "Manages the flow of requests and plans to one or more LLMs."
+  - name: llm.client.initialize
+    description: "Handles the initialization and configuration of an LLM client."
+  - name: llm.client.payload_formatting
+    description: "Prepares the API-specific JSON payload for an LLM request."
+  - name: llm.client.response_parsing
+    description: "Parses the API-specific JSON response from an LLM."
+  - name: llm.client.sync_request
+    description: "Executes a synchronous (blocking) request to an LLM."
+  - name: llm.client.async_request
+    description: "Executes an asynchronous (non-blocking) request to an LLM."
   - name: prompt_interpretation
     description: "Processes and enriches prompts with context before sending them to an LLM."
   - name: code_generation

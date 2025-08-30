@@ -9,7 +9,7 @@ import typer
 # All imports are now at the top of the file, before any other code.
 from system.admin import agent as _agent
 from system.admin import byor as _byor
-from system.admin import chat as _chat  # <-- ADD THIS LINE
+from system.admin import chat as _chat
 from system.admin import develop as _develop
 from system.admin import fixer as _fixer
 from system.admin import guard as _guard
@@ -41,7 +41,7 @@ _byor.register(app)
 _reviewer.register(app)
 _new.register(app)
 _develop.register(app)
-_chat.register(app)  # <-- AND THIS LINE
+_chat.register(app)
 
 
 __all__ = ["app"]

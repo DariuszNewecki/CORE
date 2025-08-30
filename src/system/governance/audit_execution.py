@@ -101,22 +101,36 @@ class AuditExecutor:
             case AuditSeverity.SUCCESS:
                 log.info(f"✅ {finding.message}")
 
-    def report_final_status(self, findings: List[AuditFinding], passed: bool) -> None:
+    def report_final_status(
+        self, findings: List[AuditFinding], passed: bool, symbols_list: list
+    ) -> None:
         """
-        Print final audit summary to the console.
+        Print final audit summary to the console, including the unassigned capability count.
 
         Args:
             findings: List of all audit findings to summarize.
             passed: Whether all checks passed without errors.
+            symbols_list: The list of all symbols from the knowledge graph.
         """
         errors = sum(1 for f in findings if f.severity == AuditSeverity.ERROR)
         warnings = sum(1 for f in findings if f.severity == AuditSeverity.WARNING)
+        unassigned_count = sum(
+            1
+            for s in symbols_list
+            if s.get("capability") == "unassigned" and not s.get("parent_class_key")
+        )
+
+        summary_text = (
+            f"Errors: {errors}\n"
+            f"Warnings: {warnings}\n"
+            f"Unassigned Capabilities: {unassigned_count}"
+        )
 
         if passed:
-            msg = f"✅ ALL CHECKS PASSED ({warnings} warnings)"
+            title = "✅ ALL CHECKS PASSED"
             style = "bold green"
         else:
-            msg = f"❌ AUDIT FAILED: {errors} error(s) and {warnings} warning(s) found"
+            title = "❌ AUDIT FAILED"
             style = "bold red"
 
-        self.console.print(Panel(msg, style=style, expand=False))
+        self.console.print(Panel(summary_text, title=title, style=style, expand=False))

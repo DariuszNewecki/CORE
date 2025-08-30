@@ -226,22 +226,18 @@ class ConstitutionalAuditor:
                 )
 
         all_passed = not any(f.severity == AuditSeverity.ERROR for f in self.findings)
-        self._report_final_status(all_passed)
+
+        # --- THIS IS THE FIX ---
+        # We now pass the full symbols list to the reporting function.
+        from system.governance.audit_execution import AuditExecutor
+
+        executor = AuditExecutor(self.context)
+        executor.report_final_status(
+            self.findings, all_passed, self.context.symbols_list
+        )
+        # --- END OF FIX ---
+
         return all_passed
-
-    def _report_final_status(self, passed: bool) -> None:
-        """Print final audit summary to the console."""
-        errors = sum(1 for f in self.findings if f.severity == AuditSeverity.ERROR)
-        warnings = sum(1 for f in self.findings if f.severity == AuditSeverity.WARNING)
-
-        if passed:
-            msg = f"✅ ALL CHECKS PASSED ({warnings} warnings)"
-            style = "bold green"
-        else:
-            msg = f"❌ AUDIT FAILED: {errors} error(s) and {warnings} warning(s) found"
-            style = "bold red"
-
-        self.console.print(Panel(msg, style=style, expand=False))
 
 
 def main() -> None:

@@ -44,6 +44,12 @@ class Settings(BaseSettings):
     CORE_DEV_KEY_PATH: Optional[str] = None
     CORE_DEV_APPROVER_EMAIL: Optional[str] = None
 
+    # --- THIS IS THE FIX ---
+    # We add the new variable here so that Pydantic knows to load it from the .env file.
+    # The default value of 5 ensures the system works even if it's not in the .env file.
+    CORE_MAX_CONCURRENT_REQUESTS: int = 5
+    # --- END OF FIX ---
+
     # --- LLM Resource Registry Configuration ---
     # Made these optional to allow tests to run without a .env file
     DEEPSEEK_CHAT_API_URL: Optional[str] = None

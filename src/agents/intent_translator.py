@@ -2,6 +2,7 @@
 """
 Implements the IntentTranslator agent, responsible for converting natural language user requests into structured, executable goals for the CORE system.
 """
+
 from __future__ import annotations
 
 from core.cognitive_service import CognitiveService
