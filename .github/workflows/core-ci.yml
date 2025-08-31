@@ -102,7 +102,9 @@ jobs:
             #### 🏛️ Unassigned Capability Detected
             This change introduces code with unassigned capabilities, violating the \`no_orphaned_logic\` principle.
 
-            Please add a \`# CAPABILITY: your.capability.name\` comment above the symbol definition and declare it in the appropriate domain \`manifest.yaml\`.
+            **To Fix:**
+            1. Manually add a \`# CAPABILITY: your.capability.name\` comment above the symbol definition.
+            2. **(Recommended)** Run the AI-powered fixer to suggest and apply tags for you: \`poetry run core-admin fix tags --write\`
 
             **Detected Unassigned Symbols:**
             \`\`\`json

@@ -10,7 +10,7 @@ import json
 from pathlib import Path
 
 from rich.console import Console
-from rich.progress import track  # --- CHANGE 1: Import 'track' for the progress bar ---
+from rich.progress import track
 from rich.table import Table
 
 from core.cognitive_service import CognitiveService
@@ -70,9 +70,6 @@ class CapabilityTaggerAgent:
         log.info(f"Found {len(target_symbols)} unassigned symbols. Analyzing...")
 
         existing_capabilities = self.knowledge_service.list_capabilities()
-
-        # --- CHANGE 2: Request a more appropriate AI role ---
-        # This makes the agent's intent clearer and fixes the subtle bug.
         tagger_client = self.cognitive_service.get_client_for_role("CodeReviewer")
 
         suggestions_to_apply = {}
@@ -86,7 +83,6 @@ class CapabilityTaggerAgent:
         table.add_column("File", style="green")
         table.add_column("Suggested Capability", style="yellow")
 
-        # --- CHANGE 1 (continued): Wrap the loop with the progress bar ---
         for symbol in track(target_symbols, description="Analyzing symbols..."):
             symbol_info = {
                 "key": symbol.get("key"),

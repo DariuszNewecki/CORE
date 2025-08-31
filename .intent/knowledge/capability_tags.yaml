@@ -86,6 +86,8 @@ tags:
     description: "Performs targeted security analysis according to policy."
   - name: refactoring
     description: "Improves code structure without changing behavior."
+  - name: autonomous_development
+    description: "Orchestrates the full goal -> plan -> execute cycle from a single user command."
 
   # --- Architecture & Governance Capabilities ---
   - name: cognitive_service.management
@@ -104,6 +106,8 @@ tags:
     description: "Loads an operator's private key from the secure key store."
   - name: governance.cli.archive_plan
     description: "Archives a rollback plan for an approved proposal."
+  - name: system.proposal.canonicalize
+    description: "Creates a stable, sorted string of a proposal's core content for consistent hashing and signing."
 
   # --- Constitutional Auditor Checks (discoverable micro-capabilities) ---
   - name: audit.check.required_files
@@ -164,9 +168,9 @@ tags:
     description: "Packages the full .intent/ directory into a single bundle for external analysis."
   - name: constitutional_peer_review
     description: "Orchestrates sending the constitutional bundle to an external LLM for critique and suggestions."
-  - name: autonomous_development
-    description: "Orchestrates the full goal -> plan -> execute cycle from a single user command."
+
+  # --- Autonomous Tooling & Agents ---
   - name: agent.capability_tagger
     description: "An agent that finds unassigned capabilities and suggests names."
   - name: fix.unassigned_tags
-    description: "A CLI command to run the Capability Tagger Agent."    
+    description: "A CLI command to run the Capability Tagger Agent."
