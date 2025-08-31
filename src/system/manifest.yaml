@@ -21,6 +21,7 @@ capabilities:
   - audit.check.syntax
   - autonomous_development
   - fix.headers
+  - fix.unassigned_tags
   - governance.cli.archive_plan
   - governance.cli.generate_token
   - governance.cli.load_key

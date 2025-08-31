@@ -33,7 +33,7 @@ async def _run_header_fix_cycle(dry_run: bool, all_py_files: list[str]):
 
     fixer_client = cognitive_service.get_client_for_role("Coder")
 
-    # --- THIS IS THE CORRECT FIX: Read the limit from the settings ---
+    # --- THIS IS THE FIX: Read the limit from the settings ---
     # The settings object automatically loads from the .env file and runtime_requirements.
     concurrency_limit = settings.CORE_MAX_CONCURRENT_REQUESTS
     log.info(f"Using a concurrency limit of {concurrency_limit} requests.")
