@@ -19,13 +19,11 @@ class Settings(BaseSettings):
     variables, which can be accessed via `model_extra`.
     """
 
-    # This configuration is now more robust and explicit, incorporating your suggestions.
-    # It tells Pydantic to handle loading the .env file itself, solving the race condition.
     model_config = SettingsConfigDict(
-        env_file=".env",  # Looks for a .env file in the project root.
+        env_file=".env",
         env_file_encoding="utf-8",
-        extra="allow",  # Allows loading variables not explicitly defined in this class.
-        case_sensitive=True,  # Enforces that environment variable names are case-sensitive.
+        extra="allow",
+        case_sensitive=True,
     )
 
     # --- Core, explicitly typed attributes that the system relies on ---
@@ -38,15 +36,12 @@ class Settings(BaseSettings):
     CORE_ACTION_LOG_PATH: Path = Path("logs/action_log.jsonl")
     RESOURCE_MANIFEST_PATH: Path = Path(".intent/knowledge/resource_manifest.yaml")
 
-    # The custom @model_validator has been removed in favor of Pydantic's robust handling.
-
     @property
     def model_extra(self) -> Dict[str, Any]:
         """
         Return extra fields that were loaded from environment variables.
         This provides backward compatibility for accessing dynamic variables.
         """
-        # In Pydantic v2, extra fields are stored in __pydantic_extra__
         return getattr(self, "__pydantic_extra__", {})
 
 

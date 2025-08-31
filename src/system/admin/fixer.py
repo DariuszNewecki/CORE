@@ -99,9 +99,6 @@ def fix_tags(
 
         agent.suggest_and_apply_tags(file_path=relative_path, write_changes=write)
 
-        # --- THIS IS THE MISSING LOGIC ---
-        # If changes were written, the knowledge graph is now out of date.
-        # We must rebuild it to reflect the new state of the codebase.
         if write:
             log.info("🧠 Rebuilding knowledge graph to reflect tag changes...")
             builder = KnowledgeGraphBuilder(REPO_ROOT)
@@ -110,7 +107,6 @@ def fix_tags(
                 json.dumps(graph, indent=2), encoding="utf-8"
             )
             log.info("✅ Knowledge graph successfully updated.")
-        # --- END OF MISSING LOGIC ---
 
     except Exception as e:
         log.error(f"❌ Agent execution failed: {e}", exc_info=True)
