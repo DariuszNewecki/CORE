@@ -4,7 +4,6 @@
 
 llm_resources:
   - name: "deepseek_chat"
-    # These are the skills this model has, as declared by the human operator.
     provided_capabilities:
       - "natural_language_understanding"
       - "planning"
@@ -12,8 +11,12 @@ llm_resources:
       - "documentation"
       - "security_review"
       - "prompt_interpretation"
-
     env_prefix: "DEEPSEEK_CHAT"
+    performance_metadata:
+      cost_rating: 2       # Scale of 1-5 (1=cheapest)
+      speed_rating: 4      # Scale of 1-5 (1=slowest)
+      quality_rating: 3
+      reasoning_rating: 3
 
   - name: "deepseek_coder"
     provided_capabilities:
@@ -21,6 +24,11 @@ llm_resources:
       - "refactoring"
       - "self_review"
     env_prefix: "DEEPSEEK_CODER"
+    performance_metadata:
+      cost_rating: 2
+      speed_rating: 5
+      quality_rating: 4
+      reasoning_rating: 2
 
   - name: "anthropic_claude_sonnet"
     provided_capabilities:
@@ -33,3 +41,8 @@ llm_resources:
       - "prompt_interpretation"
       - "llm_orchestration"
     env_prefix: "ANTHROPIC_CLAUDE_SONNET"
+    performance_metadata:
+      cost_rating: 3
+      speed_rating: 3
+      quality_rating: 5
+      reasoning_rating: 5
