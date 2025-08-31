@@ -31,6 +31,8 @@ policies:
   code_style_policy: "policies/code_style_policy.yaml"
   dev_fastpath: "policies/dev_fastpath.yaml"
   audit_ignore: "policies/audit_ignore.yaml"
+  # --- THIS IS THE NEW LINE ---
+  deduction_policy: "policies/deduction_policy.yaml"
 
 prompts:
   constitutional_review: "prompts/constitutional_review.prompt"
