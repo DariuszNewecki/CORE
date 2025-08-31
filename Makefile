@@ -1,4 +1,5 @@
 # Makefile for CORE – Cognitive Orchestration Runtime Engine
+# This file provides convenient shortcuts to the canonical 'core-admin' CLI commands.
 
 SHELL := /bin/bash
 .SHELLFLAGS := -eu -o pipefail -c
@@ -6,38 +7,27 @@ SHELL := /bin/bash
 
 # ---- Configurable knobs -----------------------------------------------------
 POETRY  ?= python3 -m poetry
-PYTHON  ?= python3
 APP     ?= src.core.main:app
 HOST    ?= 0.0.0.0
 PORT    ?= 8000
 RELOAD  ?= --reload
 ENV_FILE ?= .env
-# Get lintable paths directly from the constitution via the CLI
-# (This assumes a `core-admin tooling get-path lintable` command exists)
-LINT_PATHS ?= src tests
 
-.PHONY: help install lock run stop audit lint format test coverage check fast-check clean clean-logs distclean nuke context drift align
+.PHONY: help install lock run stop audit lint format test check fast-check clean distclean nuke
 
 help:
 	@echo "CORE Development Makefile"
 	@echo "-------------------------"
-	@echo "make install       - Install deps with Poetry"
-	@echo "make lock          - Update poetry.lock"
-	@echo "make run           - Start uvicorn ($(APP)) on $(HOST):$(PORT)"
-	@echo "make stop          - Stop dev server reliably by killing process on port $(PORT)"
-	@echo "make audit         - Run the full self-audit (KnowledgeGraph + Auditor)"
-	@echo "make lint          - Check formatting and code quality with Black and Ruff."
-	@echo "make format        - Auto-format code with Black and Ruff."
-	@echo "make test          - Pytest"
-	@echo "make coverage      - Pytest with coverage"
-	@echo "make fast-check    - Run fast checks (lint, test). Use before committing minor changes."
-	@echo "make check         - Run all checks (lint, test, audit). Use before submitting a PR."
-	@echo "make drift         - Run capability drift check (short JSON)"
-	@echo "make align GOAL=   - Check goal ↔ NorthStar alignment via API"
-	@echo "make context       - Build the project context file for AI collaboration"
-	@echo "make clean         - Remove caches, pending_writes, sandbox"
-	@echo "make distclean     - Clean + venv/build leftovers"
-	@echo "make nuke          - git clean -fdx (danger)"
+	@echo "This Makefile provides shortcuts to the main CLI."
+	@echo "For all commands, see: 'poetry run core-admin --help'"
+	@echo ""
+	@echo "Common Shortcuts:"
+	@echo "make install       - Install dependencies"
+	@echo "make check         - Run all checks via 'core-admin system check'"
+	@echo "make test          - Run tests via 'core-admin system test'"
+	@echo "make format        - Format code via 'core-admin system format'"
+	@echo "make run           - Start the API server"
+	@echo "make clean         - Remove temporary files"
 
 install:
 	@echo "📦 Installing dependencies..."
@@ -53,44 +43,28 @@ run:
 
 stop:
 	@echo "🛑 Stopping any process on port $(PORT)..."
-	@if command -v lsof >/dev/null 2>&1; then \
-		PID=$$(lsof -t -i:$(PORT) || true); \
-		if [ -n "$$PID" ]; then \
-			echo "  -> Found process with PID: $$PID. Terminating..."; \
-			kill $$PID || true; \
-		else \
-			echo "  -> No process found on port $(PORT)."; \
-		fi; \
-	else \
-		echo "  -> 'lsof' not found. Trying 'pkill'. You might want to install 'lsof' for better reliability."; \
-		pkill -f "uvicorn.*$(APP)" || true; \
-	fi
+	@lsof -t -i:$(PORT) | xargs kill -9 2>/dev/null || true
+
+# --- CORE CLI SHORTCUTS ---
 
 audit:
-	@echo "🧠 Running constitutional self-audit..."
-	$(POETRY) run python -m src.core.capabilities
+	$(POETRY) run core-admin system audit
 
 lint:
-	@echo "🎨 Checking code style with Black and Ruff..."
-	$(POETRY) run black --check $(LINT_PATHS)
-	$(POETRY) run ruff check $(LINT_PATHS)
+	$(POETRY) run core-admin system lint
 
 format:
-	@echo "✨ Formatting code with Black and Ruff..."
-	$(POETRY) run black $(LINT_PATHS)
-	$(POETRY) run ruff check $(LINT_PATHS) --fix
+	$(POETRY) run core-admin system format
 
 test:
-	@echo "🧪 Running tests with pytest..."
-	$(POETRY) run pytest
+	$(POETRY) run core-admin system test
 
-coverage:
-	@echo "🧮 Running tests with coverage..."
-	$(POETRY) run pytest --cov=src --cov-report=term-missing:skip-covered
+check:
+	$(POETRY) run core-admin system check
 
-fast-check: lint test
-
-check: fast-check audit
+fast-check:
+	$(POETRY) run core-admin system lint
+	$(POETRY) run core-admin system test
 
 # ---- Clean targets ---------------------------------------------------------
 
@@ -115,23 +89,3 @@ nuke:
 	@sleep 3
 	git clean -fdx
 	@echo "✅ Repo nuked (untracked files/dirs removed)."
-
-# ---- Developer Tooling ------------------------------------------------------
-context:
-	@echo "📦 Building project context for AI collaboration..."
-	@scripts/concat_project.sh
-
-# ---- Governance helpers -----------------------------------------------------
-
-drift:
-	@echo "🧭 Running capability drift check (short JSON)..."
-	$(POETRY) run core-admin guard drift --format short
-
-# Usage: make align GOAL='scaffold a governed starter from intent'
-align:
-	@test -n "$(GOAL)" || (echo 'GOAL is required. Example: make align GOAL="build a governed starter kit"'; exit 2)
-	@echo "🔎 Checking goal↔NorthStar alignment via API..."
-	@echo "   (ensure the API is running: make run)"
-	@curl -s -X POST http://$(HOST):$(PORT)/guard/align \
-	  -H 'Content-Type: application/json' \
-	  -d '{"goal":"$(GOAL)"}' | (command -v jq >/dev/null 2>&1 && jq . || cat)
