@@ -36,7 +36,7 @@ Our roadmap is now focused on two major epics:
 | 3: Agents | Agents use hardcoded clients | Refactor agents to use `CognitiveService` | ✅ Completed | Improve the agent reasoning loop in `run_development_cycle`. | Completed Q3 2024 |
 | 4: Cleanup | Obsolete classes | Remove old `BaseLLMClient`; update `runtime_requirements.yaml` | ⏳ Planned | A great first-time contributor task to remove `src/core/clients.py`. | Q4 2024 |
 | 5: Conversational Access | CLI limits non-coders | Add `IntentTranslator` agent and core-admin chat command | ✅ Completed | Improve the `intent_translator.prompt` for more complex queries. | Completed Q3 2024 |
-| 6: Dynamic Deduction | Static LLM assignments | Add `DeductionAgent` + policy to optimize LLM choices | ▶️ **Next Up** | Propose `deduction_policy.yaml`; design and code the scoring logic. | Q1 2025 |
+| 6: Dynamic Deduction | Static LLM assignments | Add `DeductionAgent` + policy to optimize LLM choices | ✅ Completed | Refine the `deduction_policy.yaml` scoring weights for different tasks. | Completed Q3 2024 |
 
 ---
 
@@ -48,10 +48,10 @@ Our roadmap is now focused on two major epics:
 
 | Phase | Challenge | Goal | Status | Opportunity | ETA |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| 1: Consolidation | Multiple entry points (`make`, `poetry run`) | Migrate all `Makefile` logic into scriptable `core-admin system` commands. | ⏳ Planned | Help create the new CLI commands (e.g., `system check`). | Q2 2025 |
+| 1: Consolidation | Multiple entry points (`make`, `poetry run`) | Migrate all `Makefile` logic into scriptable `core-admin system` commands. | ✅ Completed | Help document the new `core-admin system` commands. | Completed Q3 2024 |
 | 2: Discoverability | Poor command visibility | Implement a richly formatted, grouped help screen for `core-admin --help`. | ⏳ Planned | Design the layout and grouping for the new help text. | Q2 2025 |
-| 3: Accessibility | High cognitive load for new users | Build an interactive, menu-driven TUI that launches on `core-admin`. | 💡 **Idea** | Research TUI libraries like `rich` or `questionary`. | Q2 2025 |
-| 4: API Clarity | Undefined API purpose | Create `docs/10_API_REFERENCE.md` to formalize the API for machine use. | ⏳ Planned | A great documentation task for a beginner. | Q2 2025 |
+| 3: Accessibility | High cognitive load for new users | Build an interactive, menu-driven TUI that launches on `core-admin`. | ✅ Completed | Suggest improvements to the menu flow or wording in `interactive.py`. | Completed Q3 2024 |
+| 4: API Clarity | Undefined API purpose | Create `docs/10_API_REFERENCE.md` to formalize the API for machine use. | ▶️ **Next Up** | A great documentation task for a beginner. | Q1 2025 |
 
 ---
 
@@ -75,16 +75,15 @@ Our roadmap is now focused on two major epics:
 
 ## Takeaways
 
-*   The immediate AI focus is **Phase 1.6: Dynamic Deduction**, which will make the system's reasoning smarter.
-*   The next major user-facing epic is **v1.1: The Accessible Operator**, which will solve the issues of confusing commands and poor discoverability.
-*   The project is on track for a **v1.0 release in Q1 2025**, followed by the major UX overhaul in Q2 2025.
+*   The major AI work from the v1.0 epic is **complete**.
+*   The next major user-facing task is **Phase 1.1.4: API Clarity**, which will improve how other machines can talk to CORE.
+*   The project is on track for a **v1.1 release in Q1 2025**.
 
 ---
 
 ## Contribute
 
-*   For AI and systems engineers: **Phase 1.6: Dynamic Deduction** is the next big challenge.
-*   For those interested in developer experience and accessibility: The tasks in **Epic v1.1** are perfect opportunities.
-*   For beginners: **Phase 1.4: Cleanup** or the documentation task in **Phase 2.4** are perfect first issues.
+*   For those interested in developer experience: The documentation task in **Phase 1.1.4** is a perfect first issue.
+*   For beginners: The **Phase 1.0.4: Cleanup** task is a great, well-defined first issue to tackle.
 
 ✅ **Check GitHub issues to get started!**

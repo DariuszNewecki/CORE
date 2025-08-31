@@ -17,10 +17,10 @@ from core.cognitive_service import CognitiveService
 from core.prompt_pipeline import PromptPipeline
 from core.self_correction_engine import attempt_correction
 from core.validation_pipeline import validate_code
+from shared.config_loader import load_config
 from shared.logger import getLogger
 
 log = getLogger(__name__)
-MAX_CORRECTION_ATTEMPTS = 2
 
 
 # CAPABILITY: code_generation
@@ -40,6 +40,13 @@ class ExecutionAgent:
         self.executor = plan_executor
         self.git_service = self.executor.git_service
         self.config = self.executor.config
+
+        # Load behavior policy from the constitution
+        policy_path = (
+            self.git_service.repo_path / ".intent/policies/agent_behavior_policy.yaml"
+        )
+        agent_policy = load_config(policy_path).get("execution_agent", {})
+        self.max_correction_attempts = agent_policy.get("max_correction_attempts", 2)
 
     async def _generate_code_for_proposal(self, task: ExecutionTask, goal: str) -> str:
         """Generates the full file content for a create_proposal task."""
@@ -110,11 +117,9 @@ class ExecutionAgent:
             enriched_prompt, user_id="execution_agent_coder"
         )
 
-    # --- THIS IS THE FIX ---
     async def execute_plan(
         self, high_level_goal: str, plan: List[ExecutionTask]
     ) -> tuple[bool, str]:
-        # --- END OF FIX ---
         """
         Takes a plan, generates code for each step, validates it, attempts
         self-correction on failure, and then executes the fully-populated plan.
@@ -138,7 +143,7 @@ class ExecutionAgent:
                 return False, f"Initial code generation failed for step: '{task.step}'"
 
             current_code = generated_code
-            for attempt in range(MAX_CORRECTION_ATTEMPTS + 1):
+            for attempt in range(self.max_correction_attempts + 1):
                 log.info(f"  -> Validation attempt {attempt + 1}...")
                 validation_result = validate_code(task.params.file_path, current_code)
 
@@ -152,10 +157,10 @@ class ExecutionAgent:
                 )
                 log.warning(f"     Violations: {validation_result['violations']}")
 
-                if attempt >= MAX_CORRECTION_ATTEMPTS:
+                if attempt >= self.max_correction_attempts:
                     return (
                         False,
-                        f"Self-correction failed after {MAX_CORRECTION_ATTEMPTS} attempts for step: '{task.step}'",
+                        f"Self-correction failed after {self.max_correction_attempts} attempts for step: '{task.step}'",
                     )
 
                 correction_context = {

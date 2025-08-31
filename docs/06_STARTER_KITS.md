@@ -33,12 +33,10 @@ poetry run core-admin new my-secure-api --profile security
 
 If you do not provide a profile, CORE will default to the safest, most balanced option.
 
----
-
-## The Life of a Starter Kit
+### The Life of a Starter Kit
 
 * **Scaffolding:** CORE creates your new project structure and populates the `.intent/` directory with the constitutional files from your chosen starter kit.
-* **Ownership:** From that moment on, that constitution is yours. It is no longer a template. It is the living *Mind* of your new project.
+* **Ownership:** From that moment on, that constitution is yours. It is no longer a template. It is the living Mind of your new project.
 * **Evolution:** You can (and should) immediately begin to amend and evolve your new constitution to perfectly match your project's unique goals, using the standard proposals workflow.
 
 Starter kits are just the beginning of the conversation, not the end. They are the most effective way to kickstart the CORE partnership and begin the journey of building a truly intent-driven system.

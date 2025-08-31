@@ -48,6 +48,7 @@ def save_yaml_file(path: Path, data: Dict[str, Any]) -> None:
     path.write_text(yaml.dump(data, sort_keys=True), encoding="utf-8")
 
 
+# CAPABILITY: system.proposal.canonicalize
 def _get_canonical_payload(proposal: Dict[str, Any]) -> str:
     """
     Creates a stable, sorted JSON string of the proposal's core intent,

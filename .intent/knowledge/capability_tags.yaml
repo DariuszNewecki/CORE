@@ -20,6 +20,8 @@ tags:
     description: "Implements safety checks or operations related to modifying files or state (e.g., Git)."
   - name: system_logging
     description: "Provides system-wide logging capabilities."
+  - name: system.git.initialize
+    description: "Initializes the GitService and validates the repository path."
 
   # --- Code Validation & Quality ---
   - name: semantic_validation
@@ -164,3 +166,7 @@ tags:
     description: "Orchestrates sending the constitutional bundle to an external LLM for critique and suggestions."
   - name: autonomous_development
     description: "Orchestrates the full goal -> plan -> execute cycle from a single user command."
+  - name: agent.capability_tagger
+    description: "An agent that finds unassigned capabilities and suggests names."
+  - name: fix.unassigned_tags
+    description: "A CLI command to run the Capability Tagger Agent."    

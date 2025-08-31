@@ -1,6 +1,7 @@
 domain: agents
 description: Specialized AI actors (planners, reviewers) and their supporting models.
 capabilities:
+  - agent.capability_tagger
   - code_generation
   - llm_orchestration
   - planning

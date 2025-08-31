@@ -22,9 +22,17 @@ log = getLogger(__name__)
 class GitService:
     """Provides basic git operations for agents and services."""
 
+    # --- THIS IS THE FIX ---
+    # We added a clear docstring and a capability tag.
+    # CAPABILITY: system.git.initialize
     def __init__(self, repo_path: str | Path):
-        self.repo_path = str(Path(repo_path).resolve())
-        git_dir = Path(self.repo_path) / ".git"
+        """
+        Initializes the GitService and validates the repository path.
+        """
+        self.repo_path = Path(repo_path).resolve()
+        # --- END OF FIX ---
+
+        git_dir = self.repo_path / ".git"
         if not git_dir.exists():
             # tests expect a ValueError when .git is missing
             raise ValueError(f"Not a git repository ('.git' missing): {self.repo_path}")
@@ -52,7 +60,7 @@ class GitService:
 
     def is_git_repo(self) -> bool:
         """Returns True if a '.git' directory exists (lightweight check for tests)."""
-        return (Path(self.repo_path) / ".git").exists()
+        return (self.repo_path / ".git").exists()
 
     def status_porcelain(self) -> str:
         """Returns the porcelain status output."""
