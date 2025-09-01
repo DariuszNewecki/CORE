@@ -13,9 +13,11 @@ from radon.visitors import ComplexityVisitor
 from system.governance.models import AuditFinding, AuditSeverity
 
 
+# CAPABILITY: audit.check.codebase_health
 class HealthChecks:
     """Container for codebase health constitutional checks."""
 
+    # CAPABILITY: system.health_check.initialize
     def __init__(self, context):
         """Initializes the check with a shared auditor context."""
         self.context = context
@@ -23,6 +25,7 @@ class HealthChecks:
             self.context.intent_dir / "policies" / "code_health_policy.yaml"
         )
 
+    # CAPABILITY: audit.check.logical_lines_of_code
     def _get_logical_lines_of_code(self, source_code: str) -> int:
         """Calculates the Logical Lines of Code (LLOC), ignoring comments and blank lines."""
         return len(

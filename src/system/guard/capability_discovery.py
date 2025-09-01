@@ -13,6 +13,7 @@ from .discovery import from_kgb, from_manifest, from_source_scan
 from .models import CapabilityMeta
 
 
+# CAPABILITY: system.capability.discover
 def collect_code_capabilities(
     root: Path,
     include_globs: Optional[List[str]] = None,
@@ -37,6 +38,7 @@ def collect_code_capabilities(
     return from_source_scan.collect_from_source_scan(root, include, exclude)
 
 
+# CAPABILITY: system.manifest.load_capabilities
 def load_manifest_capabilities(
     root: Path, explicit_path: Optional[Path] = None
 ) -> Dict[str, CapabilityMeta]:

@@ -11,6 +11,7 @@ import re
 from typing import Dict, List, Optional
 
 
+# CAPABILITY: shared.parsing.extract_json_response
 def extract_json_from_response(text: str) -> Optional[Dict | List]:
     """
     Extracts a JSON object or array from a raw text response.
@@ -40,6 +41,7 @@ def extract_json_from_response(text: str) -> Optional[Dict | List]:
 
 
 # --- THIS IS THE NEW, MISSING FUNCTION ---
+# CAPABILITY: code.parsing.extract_write_blocks
 def parse_write_blocks(text: str) -> Dict[str, str]:
     """
     Parses a string for one or more [[write:file_path]]...[[/write]] blocks.

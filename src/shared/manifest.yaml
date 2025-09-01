@@ -4,3 +4,4 @@ capabilities:
   - system_logging
   - config.load
   - yaml_loading
+  - shared.throttled_parallel_processing

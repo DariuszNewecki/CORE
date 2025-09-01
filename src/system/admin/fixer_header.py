@@ -6,8 +6,7 @@ to enforce constitutional style rules on Python file headers.
 
 from __future__ import annotations
 
-import asyncio
-from typing import Dict
+from typing import Dict, Optional
 
 import typer
 from rich.progress import track
@@ -18,56 +17,50 @@ from shared.config import settings
 from shared.logger import getLogger
 from shared.path_utils import get_repo_root
 
+# --- CHANGE 1: Import the new tool ---
+from shared.utils.parallel_processor import ThrottledParallelProcessor
+
 log = getLogger("core_admin.fixer")
 REPO_ROOT = get_repo_root()
 
+# CAPABILITY: system.header.fix_cycle
 
-async def _run_header_fix_cycle(dry_run: bool, all_py_files: list[str]):
-    """The core async logic for finding and fixing all header style violations."""
+
+# --- CHANGE 2: The entire function is refactored for clarity and reuse ---
+def _run_header_fix_cycle(dry_run: bool, all_py_files: list[str]):
+    """The core logic for finding and fixing all header style violations."""
     cognitive_service = CognitiveService(REPO_ROOT)
-    modification_plan: Dict[str, str] = {}
-
     prompt_template = (settings.MIND / "prompts" / "fix_header.prompt").read_text(
         encoding="utf-8"
     )
-
     fixer_client = cognitive_service.get_client_for_role("Coder")
 
-    # --- THIS IS THE FIX: Read the limit from the settings ---
-    # The settings object automatically loads from the .env file and runtime_requirements.
-    concurrency_limit = settings.CORE_MAX_CONCURRENT_REQUESTS
-    log.info(f"Using a concurrency limit of {concurrency_limit} requests.")
-    semaphore = asyncio.Semaphore(concurrency_limit)
-    # --- END OF FIX ---
+    # Define the async worker function that processes a single file
+    async def worker(file_path_str: str) -> Optional[tuple[str, str]]:
+        """Async worker that returns (file_path, corrected_code) or None."""
+        file_path = REPO_ROOT / file_path_str
+        try:
+            original_content = file_path.read_text(encoding="utf-8")
+            final_prompt = prompt_template.format(
+                file_path=file_path_str, source_code=original_content
+            )
+            corrected_code = await fixer_client.make_request_async(
+                final_prompt, user_id="header_fixer_agent"
+            )
+            if corrected_code and corrected_code.strip() != original_content.strip():
+                return (file_path_str, corrected_code)
+        except Exception as e:
+            log.warning(f"Could not process {file_path_str}: {e}")
+        return None
 
-    async def worker(file_path_str: str):
-        async with semaphore:
-            file_path = REPO_ROOT / file_path_str
-            try:
-                original_content = file_path.read_text(encoding="utf-8")
+    # Instantiate and run the processor
+    processor = ThrottledParallelProcessor(description="Analyzing headers...")
+    results = processor.run(all_py_files, worker)
 
-                final_prompt = prompt_template.format(
-                    file_path=file_path_str, source_code=original_content
-                )
-
-                corrected_code = await fixer_client.make_request_async(
-                    final_prompt, user_id="header_fixer_agent"
-                )
-
-                if (
-                    corrected_code
-                    and corrected_code.strip() != original_content.strip()
-                ):
-                    modification_plan[file_path_str] = corrected_code
-
-            except Exception as e:
-                log.warning(f"Could not process {file_path_str}: {e}")
-
-    tasks = [worker(file_path) for file_path in all_py_files]
-    for task in track(
-        asyncio.as_completed(tasks), "Analyzing headers...", total=len(tasks)
-    ):
-        await task
+    # Process the results
+    modification_plan: Dict[str, str] = {
+        file_path: code for file_path, code in filter(None, results)
+    }
 
     if not modification_plan:
         log.info("✅ All file headers are constitutionally compliant.")

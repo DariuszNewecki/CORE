@@ -25,6 +25,7 @@ CORE_ROOT = get_repo_root()
 agent_app = typer.Typer(help="Directly invoke autonomous agent capabilities.")
 
 
+# CAPABILITY: system.llm.extract_json
 def _extract_json_from_response(text: str):
     """Helper to extract JSON from LLM responses for scaffolding."""
     import re
@@ -118,6 +119,7 @@ def scaffold_new_application(
 
 
 @agent_app.command("scaffold")
+# CAPABILITY: system.agent.scaffold_application
 def agent_scaffold(
     name: str = typer.Argument(..., help="The directory name for the new application."),
     goal: str = typer.Argument(..., help="A high-level goal for the application."),
@@ -151,6 +153,7 @@ def agent_scaffold(
         raise typer.Exit(code=1)
 
 
+# CAPABILITY: system.cli.register_agent
 def register(app: typer.Typer):
     """Register the 'agent' command group with the main CLI app."""
     app.add_typer(agent_app, name="agent")

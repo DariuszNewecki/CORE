@@ -14,6 +14,7 @@ import yaml
 from system.guard.models import CapabilityMeta
 
 
+# CAPABILITY: system.manifest.load_capabilities
 def load_manifest_capabilities(
     root: Path, explicit_path: Optional[Path] = None
 ) -> Dict[str, CapabilityMeta]:

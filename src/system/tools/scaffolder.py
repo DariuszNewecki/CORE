@@ -20,9 +20,11 @@ CORE_ROOT = get_repo_root()
 STARTER_KITS_DIR = CORE_ROOT / "src" / "system" / "starter_kits"
 
 
+# CAPABILITY: tooling.scaffolder.create_project
 class Scaffolder:
     """A reusable service for creating new, constitutionally-governed projects."""
 
+    # CAPABILITY: tooling.scaffolder.initialize
     def __init__(
         self,
         project_name: str,
@@ -48,6 +50,7 @@ class Scaffolder:
                 f"Starter kit profile '{self.profile}' not found at {self.starter_kit_path}."
             )
 
+    # CAPABILITY: system.tools.scaffold_base_structure
     def scaffold_base_structure(self):
         """Creates the base project structure, including tests and CI directories."""
         log.info(f"💾 Creating project structure at {self.project_root}...")
@@ -108,6 +111,7 @@ class Scaffolder:
 
         log.info(f"   -> ✅ Base structure for '{self.name}' created successfully.")
 
+    # CAPABILITY: tooling.scaffold.write_file
     def write_file(self, relative_path: str, content: str):
         """Writes content to a file within the new project's directory, creating parent directories as needed."""
         target_file = self.project_root / relative_path
@@ -116,6 +120,7 @@ class Scaffolder:
         log.info(f"   -> 📄 Wrote agent-generated file: {relative_path}")
 
 
+# CAPABILITY: tooling.scaffold.create_project
 def new_project(
     name: str = typer.Argument(
         ...,

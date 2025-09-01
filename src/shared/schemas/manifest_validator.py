@@ -16,6 +16,7 @@ from shared.path_utils import get_repo_root
 SCHEMA_DIR = get_repo_root() / ".intent" / "schemas"
 
 
+# CAPABILITY: system.schema.load
 def load_schema(schema_name: str) -> Dict[str, Any]:
     """
     Load a JSON schema from the .intent/schemas/ directory.
@@ -44,6 +45,7 @@ def load_schema(schema_name: str) -> Dict[str, Any]:
         )
 
 
+# CAPABILITY: audit.check.manifest_entry
 def validate_manifest_entry(
     entry: Dict[str, Any], schema_name: str = "knowledge_graph_entry.schema.json"
 ) -> Tuple[bool, List[str]]:

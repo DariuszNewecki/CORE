@@ -17,6 +17,7 @@ _INLINE_KV_RE = re.compile("\\[\\s*([^\\]]+)\\s*\\]")
 _KV_PAIR_RE = re.compile("([A-Za-z0-9_.\\-:/]+)\\s*=\\s*([^\\s,;]+)")
 
 
+# CAPABILITY: system.guard.parse_inline_meta
 def _parse_inline_meta(trailing: str) -> Dict[str, str]:
     """Parse inline [key=value] metadata from trailing text."""
     m = _INLINE_KV_RE.search(trailing or "")
@@ -25,6 +26,7 @@ def _parse_inline_meta(trailing: str) -> Dict[str, str]:
     return {k: v for k, v in _KV_PAIR_RE.findall(m.group(1))}
 
 
+# CAPABILITY: system.files.discover
 def _iter_source_files(
     root: Path, include_globs: List[str], exclude_globs: List[str]
 ) -> Iterable[Path]:
@@ -43,6 +45,7 @@ def _iter_source_files(
             yield p
 
 
+# CAPABILITY: system.capability.discovery
 def collect_from_source_scan(
     root: Path, include_globs: List[str], exclude_globs: List[str]
 ) -> Dict[str, CapabilityMeta]:

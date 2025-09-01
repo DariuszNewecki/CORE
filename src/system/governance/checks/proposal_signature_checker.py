@@ -11,9 +11,11 @@ from system.governance.models import AuditFinding, AuditSeverity
 from .proposal_loader import ProposalLoader
 
 
+# CAPABILITY: system.proposal.validate_signature
 class ProposalSignatureChecker:
     """Handles signature validation and content drift detection for proposals."""
 
+    # CAPABILITY: audit.check.proposal_signature_drift
     def check_signatures_match_content(
         self, loader: ProposalLoader
     ) -> list[AuditFinding]:

@@ -14,13 +14,16 @@ from system.tools.config.builder_config import BuilderConfig
 log = getLogger(__name__)
 
 
+# CAPABILITY: tooling.file_scanner.discover
 class FileScanner:
     """Handles file discovery and filtering."""
 
+    # CAPABILITY: tooling.file_scanner.initialize
     def __init__(self, config: BuilderConfig):
         """Initializes the FileScanner with the builder configuration."""
         self.config = config
 
+    # CAPABILITY: tooling.file_scanner.find_python_files
     def find_python_files(self) -> List[Path]:
         """Find all Python files in src/ that should be analyzed."""
         if not self.config.src_root.is_dir():
@@ -38,6 +41,7 @@ class FileScanner:
         )
         return py_files
 
+    # CAPABILITY: tooling.file_scanner.exclude_path
     def should_exclude_path(self, path: Path) -> bool:
         """Determine if a given path should be excluded from scanning."""
         return any(pattern in path.parts for pattern in self.config.exclude_patterns)

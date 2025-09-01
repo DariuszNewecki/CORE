@@ -28,6 +28,7 @@ app = typer.Typer(
 
 
 @dataclass
+# CAPABILITY: governance.review.context
 class ReviewContext:
     """A data structure holding the context for a governance review."""
 
@@ -60,6 +61,7 @@ _ALLOWED_NODES = {
 }
 
 
+# CAPABILITY: governance.risk_gate.evaluate_expression
 def _safe_eval(expr: str, ctx: Dict[str, Any]) -> bool:
     """Safely evaluates a simple boolean expression from a string, allowing only a small subset of Python's AST nodes."""
     # Normalize booleans (true/false) commonly used in YAML-like strings.
@@ -73,11 +75,13 @@ def _safe_eval(expr: str, ctx: Dict[str, Any]) -> bool:
     return bool(eval(compile(tree, "<cond>", "eval"), {"__builtins__": {}}, ctx))
 
 
+# CAPABILITY: governance.cli.load_yaml
 def _load_yaml(file_path: str) -> Optional[Dict[str, Any]]:
     """Load YAML content from a file using the shared utility function."""
     return load_yaml_file(file_path)
 
 
+# CAPABILITY: governance.cli.merge_review_contexts
 def _merge(a: ReviewContext, b: ReviewContext) -> ReviewContext:
     """Merges two ReviewContext objects, preferring non-default values from `b` when available."""
     # CLI flags override file context when provided (typer passes defaults if not set).
@@ -92,6 +96,7 @@ def _merge(a: ReviewContext, b: ReviewContext) -> ReviewContext:
 
 
 @app.command("check")
+# CAPABILITY: governance.risk_gates.enforce
 def check(
     mind_path: Path = typer.Option(
         Path(".intent"), "--mind-path", help="Path to the .intent directory."

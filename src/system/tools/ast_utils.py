@@ -11,6 +11,7 @@ import re
 from typing import Dict, List, Optional
 
 
+# CAPABILITY: tooling.ast.strip_docstrings
 def strip_docstrings(node: ast.AST) -> ast.AST:
     """Recursively remove docstring nodes from an AST tree for structural hashing."""
     if isinstance(
@@ -30,6 +31,7 @@ def strip_docstrings(node: ast.AST) -> ast.AST:
     return node
 
 
+# CAPABILITY: tooling.ast.detect_docstring
 def detect_docstring(node: ast.AST) -> Optional[str]:
     """Detect both standard and non-standard docstrings for a node."""
     # Try standard docstring first
@@ -50,6 +52,7 @@ def detect_docstring(node: ast.AST) -> Optional[str]:
     return None
 
 
+# CAPABILITY: tooling.ast.calculate_structural_hash
 def calculate_structural_hash(node: ast.AST) -> str:
     """Calculate a hash for structural comparison of AST nodes."""
     node_for_hashing = strip_docstrings(ast.parse(ast.unparse(node)))
@@ -57,6 +60,7 @@ def calculate_structural_hash(node: ast.AST) -> str:
     return hashlib.sha256(structural_string.encode("utf-8")).hexdigest()
 
 
+# CAPABILITY: tooling.ast.parse_capability_metadata
 def parse_metadata_comment(node: ast.AST, source_lines: List[str]) -> Dict[str, str]:
     """Parse the line immediately preceding a symbol definition for a '# CAPABILITY:' tag."""
     if node.lineno > 1:
@@ -68,6 +72,7 @@ def parse_metadata_comment(node: ast.AST, source_lines: List[str]) -> Dict[str, 
     return {}
 
 
+# CAPABILITY: tooling.ast.extract_base_classes
 def extract_base_classes(node: ast.ClassDef) -> List[str]:
     """Extract base class names from a class definition."""
     base_classes = []
@@ -79,6 +84,7 @@ def extract_base_classes(node: ast.ClassDef) -> List[str]:
     return base_classes
 
 
+# CAPABILITY: tooling.ast.extract_function_parameters
 def extract_function_parameters(
     node: ast.FunctionDef | ast.AsyncFunctionDef,
 ) -> List[str]:

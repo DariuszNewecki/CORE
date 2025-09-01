@@ -15,6 +15,7 @@ from shared.logger import getLogger
 log = getLogger("core_api.errors")
 
 
+# CAPABILITY: core.errors.register_handlers
 def register_exception_handlers(app):
     """Registers custom exception handlers with the FastAPI application."""
 

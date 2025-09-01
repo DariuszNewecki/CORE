@@ -15,12 +15,14 @@ from shared.logger import getLogger
 log = getLogger("deduction_agent")
 
 
+# CAPABILITY: agent.llm.resource_selection
 class DeductionAgent:
     """
     Scores and selects the optimal LLM resource for a given task.
     This agent acts as the reasoning core for the CognitiveService.
     """
 
+    # CAPABILITY: agents.deduction_agent.initialize
     def __init__(self, settings: Settings):
         """Initializes the DeductionAgent by loading its governing policies."""
         self.settings = settings
@@ -29,6 +31,7 @@ class DeductionAgent:
         )
         self.resource_manifest = load_config(self.settings.RESOURCE_MANIFEST_PATH)
 
+    # CAPABILITY: agent.llm.resource_score
     def _calculate_score(
         self, resource_metadata: Dict[str, Any], weights: Dict[str, float]
     ) -> float:
@@ -51,6 +54,7 @@ class DeductionAgent:
 
         return score
 
+    # CAPABILITY: agent.llm.resource_selection
     def select_best_resource(self, task_context: Dict[str, Any] | None = None) -> str:
         """
         Selects the best LLM resource based on the deduction policy and task context.

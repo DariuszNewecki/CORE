@@ -17,6 +17,7 @@ log = getLogger(__name__)
 
 
 @dataclass
+# CAPABILITY: tooling.config.builder.load
 class BuilderConfig:
     """Centralized configuration for the knowledge graph builder."""
 
@@ -28,6 +29,7 @@ class BuilderConfig:
     patterns: List[Dict]
 
     @classmethod
+    # CAPABILITY: tooling.config.load_from_project
     def from_project(cls, root_path: Path) -> "BuilderConfig":
         """Factory method to load configuration from project files."""
         root_path = root_path.resolve()
@@ -43,11 +45,13 @@ class BuilderConfig:
         )
 
     @staticmethod
+    # CAPABILITY: tooling.config.load_exclude_patterns
     def _load_exclude_patterns() -> List[str]:
         """Load default exclude patterns."""
         return ["venv", ".venv", "__pycache__", ".git", "tests", "work"]
 
     @staticmethod
+    # CAPABILITY: tooling.config.load_patterns
     def _load_patterns(root_path: Path) -> List[Dict]:
         """Load entry point detection patterns from configuration."""
         patterns_path = root_path / ".intent/knowledge/entry_point_patterns.yaml"
@@ -57,6 +61,7 @@ class BuilderConfig:
         return load_config(patterns_path).get("patterns", [])
 
     @staticmethod
+    # CAPABILITY: tooling.config.parse_entry_points
     def _load_cli_entry_points(root_path: Path) -> Set[str]:
         """Parse pyproject.toml to find declared command-line entry points."""
         pyproject_path = root_path / "pyproject.toml"
@@ -74,6 +79,7 @@ class BuilderConfig:
         return set()
 
     @staticmethod
+    # CAPABILITY: tooling.config.load_domain_map
     def _load_domain_map(root_path: Path, src_root: Path) -> Dict[str, str]:
         """Load domain-to-path mapping from configuration."""
         path = root_path / ".intent/knowledge/source_structure.yaml"
@@ -90,6 +96,7 @@ class BuilderConfig:
         }
 
     @staticmethod
+    # CAPABILITY: tooling.config.infer_domains
     def _infer_domains_from_directory_structure(src_root: Path) -> Dict[str, str]:
         """Heuristic to guess domains from directory structure."""
         log.warning(

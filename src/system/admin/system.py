@@ -26,6 +26,7 @@ POETRY_EXECUTABLE = shutil.which("poetry")
 LINT_PATHS = ["src", "tests"]
 
 
+# CAPABILITY: system.poetry.execute_command
 def _run_poetry_command(description: str, command: list[str]):
     """Helper to run a command via Poetry, log it, and handle errors."""
     if not POETRY_EXECUTABLE:
@@ -43,6 +44,7 @@ def _run_poetry_command(description: str, command: list[str]):
 
 
 @system_app.command()
+# CAPABILITY: system.code.lint
 def lint():
     """Check code formatting and quality with Black and Ruff."""
     _run_poetry_command(
@@ -56,6 +58,7 @@ def lint():
 
 
 @system_app.command(name="format")
+# CAPABILITY: system.code.format
 def format_code():
     """Auto-format all code to be constitutionally compliant."""
     _run_poetry_command(
@@ -69,6 +72,7 @@ def format_code():
 
 
 @system_app.command(name="test")
+# CAPABILITY: system.test.execute
 def test_system():
     """Run the pytest suite."""
     _run_poetry_command(
@@ -78,6 +82,7 @@ def test_system():
 
 
 @system_app.command()
+# CAPABILITY: system.audit.run_constitutional
 def audit():
     """Run the full constitutional self-audit."""
     _run_poetry_command(
@@ -87,6 +92,7 @@ def audit():
 
 
 @system_app.command()
+# CAPABILITY: system.admin.run_checks
 def check():
     """Run all checks: lint, test, and a full constitutional audit."""
     typer.secho("🚀 Running all system checks...", fg=typer.colors.BLUE)
@@ -101,6 +107,7 @@ def check():
     typer.secho("\n✅ All system checks passed successfully!", fg=typer.colors.GREEN)
 
 
+# CAPABILITY: system.cli.register
 def register(app: typer.Typer) -> None:
     """Register the 'system' command group with the main CLI app."""
     app.add_typer(system_app, name="system")

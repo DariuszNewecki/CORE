@@ -26,6 +26,7 @@ from system.tools.models import FunctionInfo
 
 
 @dataclass
+# CAPABILITY: tooling.ast.processing_context
 class ProcessingContext:
     """Context information needed for processing AST nodes."""
 
@@ -37,9 +38,11 @@ class ProcessingContext:
     parent_key: Optional[str] = None
 
 
+# CAPABILITY: tooling.ast.process_symbol
 class SymbolProcessor:
     """Processes individual AST nodes into FunctionInfo objects."""
 
+    # CAPABILITY: tooling.ast.process_node
     def process_node(
         self, node: ast.AST, context: ProcessingContext
     ) -> Optional[FunctionInfo]:
@@ -112,6 +115,7 @@ class SymbolProcessor:
             structural_hash=structural_hash,
         )
 
+    # CAPABILITY: tooling.symbol.generate_intent
     def _generate_intent(self, docstring: Optional[str], domain: str) -> str:
         """Generate an intent description from docstring or domain."""
         if docstring:

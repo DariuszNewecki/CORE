@@ -19,6 +19,7 @@ CHANGE_LOG_PATH = Path(".intent/knowledge/meta_code_change_log.json")
 SCHEMA_VERSION = "1.0.0"
 
 
+# CAPABILITY: tooling.change_log.load
 def load_existing_log() -> Dict:
     """Loads the existing change log from disk or returns a new structure."""
     data = load_config(CHANGE_LOG_PATH, "json")
@@ -27,6 +28,7 @@ def load_existing_log() -> Dict:
     return data
 
 
+# CAPABILITY: tooling.change_log.append_entry
 def append_change_entry(
     task: str,
     step: str,

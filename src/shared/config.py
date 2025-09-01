@@ -12,6 +12,7 @@ from pydantic import ValidationError
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
+# CAPABILITY: config.settings.load
 class Settings(BaseSettings):
     """
     Validated configuration for the CORE system, loaded from environment variables.
@@ -37,6 +38,7 @@ class Settings(BaseSettings):
     RESOURCE_MANIFEST_PATH: Path = Path(".intent/knowledge/resource_manifest.yaml")
 
     @property
+    # CAPABILITY: config.environment.extra_fields
     def model_extra(self) -> Dict[str, Any]:
         """
         Return extra fields that were loaded from environment variables.

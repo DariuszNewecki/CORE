@@ -20,12 +20,14 @@ from shared.path_utils import get_repo_root
 log = getLogger(__name__)
 
 
+# CAPABILITY: agent.plan.error
 class PlanExecutionError(Exception):
     """Custom exception for errors during the planning or execution phase."""
 
     pass
 
 
+# CAPABILITY: agent.development_cycle.execute
 async def run_development_cycle(
     goal: str, auto_commit: bool = True
 ) -> tuple[bool, str]:

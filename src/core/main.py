@@ -28,6 +28,7 @@ load_dotenv()
 
 
 @asynccontextmanager
+# CAPABILITY: core.application.lifespan
 async def lifespan(app: FastAPI):
     """FastAPI lifespan handler — runs startup and shutdown logic."""
     log.info("🚀 Starting CORE system...")
@@ -59,12 +60,14 @@ app = FastAPI(lifespan=lifespan)
 register_exception_handlers(app)
 
 
+# CAPABILITY: core.endpoint.execute_goal.request
 class GoalRequest(BaseModel):
     """Defines the request body for the /execute_goal endpoint."""
 
     goal: str = Field(min_length=1, json_schema_extra={"strip_whitespace": True})
 
 
+# CAPABILITY: alignment.request.schema
 class AlignmentRequest(BaseModel):
     """Request schema for /guard/align."""
 
@@ -73,6 +76,7 @@ class AlignmentRequest(BaseModel):
 
 
 @app.post("/guard/align")
+# CAPABILITY: alignment_checking.guard_goal
 async def guard_align(payload: AlignmentRequest):
     """Evaluate a goal against the NorthStar and optional blocklist."""
     ok, details = check_goal_alignment(payload.goal, Path("."))
@@ -89,6 +93,7 @@ async def guard_align(payload: AlignmentRequest):
 
 
 @app.get("/knowledge/capabilities")
+# CAPABILITY: core.capability.list
 async def list_capabilities(request: Request):
     """Returns a list of all capabilities the system has declared."""
     knowledge_service: KnowledgeService = request.app.state.knowledge_service
@@ -96,6 +101,7 @@ async def list_capabilities(request: Request):
 
 
 @app.post("/execute_goal")
+# CAPABILITY: core.development.execute_goal
 async def execute_goal(request_data: GoalRequest):
     """
     Execute a high-level goal by planning and generating code.
@@ -126,6 +132,7 @@ async def execute_goal(request_data: GoalRequest):
 
 
 @app.get("/")
+# CAPABILITY: system.status.get
 async def root():
     """Root endpoint — returns system status."""
     return {"message": "CORE system is online and self-governing."}

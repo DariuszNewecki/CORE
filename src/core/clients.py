@@ -19,6 +19,7 @@ class BaseLLMClient:
     Provides shared initialization and error handling for all LLM clients.
     """
 
+    # CAPABILITY: llm.client.initialize
     def __init__(self, api_url: str, api_key: str, model_name: str):
         """
         Initialize the LLM client with API credentials and endpoint.
@@ -52,6 +53,7 @@ class BaseLLMClient:
 
         self.async_client = httpx.AsyncClient(timeout=180.0)
 
+    # CAPABILITY: llm.client.payload_formatting
     def _prepare_payload(self, prompt: str, user_id: str) -> dict:
         """Prepares the request payload based on the API type."""
         if self.api_type == "anthropic":
@@ -67,6 +69,7 @@ class BaseLLMClient:
                 "user": user_id,
             }
 
+    # CAPABILITY: llm.client.response_parsing
     def _parse_response(self, response_data: dict) -> str:
         """Parses the response to extract the content based on API type."""
         try:
@@ -79,6 +82,7 @@ class BaseLLMClient:
             return "Error: Invalid response structure from API."
 
     # This synchronous version is preserved for compatibility
+    # CAPABILITY: llm.client.sync_request
     def make_request(self, prompt: str, user_id: str = "core_system") -> str:
         """
         Sends a prompt to the configured API. (Synchronous)
@@ -111,6 +115,7 @@ class BaseLLMClient:
             )
             return "Error: Could not parse response from API."
 
+    # CAPABILITY: llm.client.async_request
     async def make_request_async(
         self, prompt: str, user_id: str = "core_system"
     ) -> str:

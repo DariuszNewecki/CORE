@@ -32,6 +32,7 @@ INTENT_IGNORE_PATTERNS = {
 DOCS_IGNORE_DIRS = {"assets", "archive", "migrations", "examples"}
 
 
+# CAPABILITY: system.file.bundle_content
 def _get_bundle_content(files_to_bundle: List[Path], root_dir: Path) -> str:
     """Generic function to bundle the content of a list of files."""
     bundle_parts = []
@@ -50,6 +51,7 @@ def _get_bundle_content(files_to_bundle: List[Path], root_dir: Path) -> str:
     return "".join(bundle_parts)
 
 
+# CAPABILITY: system.constitution.discover_files
 def _get_constitutional_files() -> List[Path]:
     """
     Discovers all constitutional files by scanning the .intent directory and
@@ -73,6 +75,7 @@ def _get_constitutional_files() -> List[Path]:
     return found_files
 
 
+# CAPABILITY: system.docs.discover_files
 def _get_docs_files() -> List[Path]:
     """Discovers and returns a list of all human-readable documentation files."""
     root_dir = settings.REPO_PATH
@@ -93,6 +96,7 @@ def _get_docs_files() -> List[Path]:
     return list(found_files)
 
 
+# CAPABILITY: system.review.orchestrate
 def _orchestrate_review(
     bundle_name: str,
     prompt_filename: str,
@@ -225,6 +229,7 @@ def code_review(
         raise typer.Exit(code=1)
 
 
+# CAPABILITY: system.admin.review.register
 def register(app: typer.Typer):
     """Registers the 'review' command group and its subcommands."""
     review_app = typer.Typer(help="Tools for constitutional and documentation review.")

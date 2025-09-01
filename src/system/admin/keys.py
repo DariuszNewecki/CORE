@@ -20,6 +20,7 @@ from shared.logger import getLogger
 log = getLogger("core_admin.keys")
 
 
+# CAPABILITY: system.cli.register_key_commands
 def register(app: typer.Typer) -> None:
     """Intent: Register key management commands under the admin CLI."""
 

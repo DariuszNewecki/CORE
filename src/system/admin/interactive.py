@@ -15,6 +15,7 @@ from rich.panel import Panel
 console = Console()
 
 
+# CAPABILITY: system.admin.execute_command
 def run_command(command: list[str]):
     """Executes a core-admin command as a subprocess."""
     try:
@@ -29,6 +30,7 @@ def run_command(command: list[str]):
     input()
 
 
+# CAPABILITY: system.admin.show_development_menu
 def show_development_menu():
     """Displays the AI Development & Self-Healing submenu."""
     while True:
@@ -57,6 +59,7 @@ def show_development_menu():
             sys.exit(0)
 
 
+# CAPABILITY: system.governance.show_menu
 def show_governance_menu():
     """Displays the Constitutional Governance submenu."""
     while True:
@@ -88,6 +91,7 @@ def show_governance_menu():
             sys.exit(0)
 
 
+# CAPABILITY: system.admin.show_menu
 def show_system_menu():
     """Displays the System Health & CI submenu."""
     while True:
@@ -112,6 +116,7 @@ def show_system_menu():
             sys.exit(0)
 
 
+# CAPABILITY: system.admin.show_project_lifecycle_menu
 def show_project_lifecycle_menu():
     """Displays the Project Lifecycle submenu."""
     while True:
@@ -137,6 +142,7 @@ def show_project_lifecycle_menu():
             sys.exit(0)
 
 
+# CAPABILITY: system.admin.launch_interactive_menu
 def launch_interactive_menu():
     """The main entry point for the interactive TUI menu."""
     while True:

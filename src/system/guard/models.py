@@ -11,6 +11,7 @@ from typing import Dict, List, Optional
 
 
 @dataclass(frozen=True)
+# CAPABILITY: system.capability.metadata
 class CapabilityMeta:
     """A minimal, shared data container for capability metadata."""
 
@@ -20,6 +21,7 @@ class CapabilityMeta:
 
 
 @dataclass
+# CAPABILITY: system.guard.report_drift
 class DriftReport:
     """Structured result for capability drift suitable for JSON emission and CI gating."""
 
@@ -27,6 +29,7 @@ class DriftReport:
     undeclared_in_manifest: List[str]
     mismatched_mappings: List[Dict[str, Dict[str, Optional[str]]]]
 
+    # CAPABILITY: system.guard.serialize_drift_report
     def to_dict(self) -> dict:
         """Converts the drift report into a stable JSON-serializable dict."""
         return {

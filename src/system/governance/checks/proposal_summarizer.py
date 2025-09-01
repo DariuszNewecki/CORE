@@ -12,14 +12,17 @@ from system.governance.models import AuditFinding, AuditSeverity
 from .proposal_loader import ProposalLoader
 
 
+# CAPABILITY: system.proposal.summarize
 class ProposalSummarizer:
     """Provides a summary of pending proposals."""
 
+    # CAPABILITY: system.governance.summarize_proposals
     def __init__(self, proposals_dir: Path, repo_root: Path):
         """Initializes the summarizer with necessary path information."""
         self.proposals_dir = proposals_dir
         self.repo_root = repo_root
 
+    # CAPABILITY: system.proposal.list_pending
     def list_pending_proposals(self, loader: ProposalLoader) -> list[AuditFinding]:
         """Emit a friendly summary of pending proposals."""
         check_name = "Proposals: Pending Summary"

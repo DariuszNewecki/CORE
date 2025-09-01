@@ -17,6 +17,7 @@ from shared.logger import getLogger
 log = getLogger(__name__)
 
 
+# CAPABILITY: core.file_handler.manage
 class FileHandler:
     """
     Central class for safe, auditable file operations in CORE.
@@ -24,6 +25,7 @@ class FileHandler:
     by the calling agent via the validation_pipeline.
     """
 
+    # CAPABILITY: core.file_handler.initialize
     def __init__(self, repo_path: str):
         """
         Initialize FileHandler with repository root.
@@ -47,6 +49,7 @@ class FileHandler:
         self.pending_writes: Dict[str, Dict[str, Any]] = {}
         self._lock = threading.Lock()
 
+    # CAPABILITY: core.file_handler.stage_write
     def add_pending_write(self, prompt: str, suggested_path: str, code: str) -> str:
         """
         Stages a pending write operation for later confirmation.
@@ -68,6 +71,7 @@ class FileHandler:
         pending_file.write_text(json.dumps(entry, indent=2), encoding="utf-8")
         return pending_id
 
+    # CAPABILITY: core.file_handler.confirm_write
     def confirm_write(self, pending_id: str) -> Dict[str, str]:
         """
         Confirms and applies a pending write to disk. Assumes content has been validated.

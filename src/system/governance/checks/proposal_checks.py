@@ -13,9 +13,11 @@ from .proposal_summarizer import ProposalSummarizer
 from .proposal_validator import ProposalValidator
 
 
+# CAPABILITY: audit.check.proposals
 class ProposalChecks:
     """Container for proposal-related constitutional checks."""
 
+    # CAPABILITY: system.governance.checks.initialize
     def __init__(
         self,
         loader: ProposalLoader,

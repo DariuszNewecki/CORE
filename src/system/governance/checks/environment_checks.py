@@ -10,9 +10,11 @@ import os
 from system.governance.models import AuditFinding, AuditSeverity
 
 
+# CAPABILITY: audit.check.environment_configuration
 class EnvironmentChecks:
     """Container for environment and runtime configuration checks."""
 
+    # CAPABILITY: audit.check.environment.initialize
     def __init__(self, context):
         """Initializes the check with a shared auditor context."""
         self.context = context

@@ -12,9 +12,11 @@ from pathlib import Path
 from system.governance.models import AuditFinding, AuditSeverity
 
 
+# CAPABILITY: audit.check.security
 class SecurityChecks:
     """Container for security-related constitutional checks."""
 
+    # CAPABILITY: system.governance.security_checks.initialize
     def __init__(self, context):
         """Initializes the check with a shared auditor context."""
         self.context = context

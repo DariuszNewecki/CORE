@@ -108,6 +108,12 @@ structure:
       - pathlib
       - typing
 
+  - domain: example
+    path: src/example
+    description: "Demonstration files and worked examples."
+    allowed_imports: [shared, typing]
+
+
   # --- Placeholder Domains for future expansion ---
   - domain: data
     path: src/data

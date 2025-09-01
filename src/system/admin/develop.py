@@ -53,6 +53,7 @@ def develop(
         raise typer.Exit(code=1)
 
 
+# CAPABILITY: system.cli.register_command
 def register(app: typer.Typer):
     """Register the 'develop' command with the main CLI app."""
     app.command("develop")(develop)

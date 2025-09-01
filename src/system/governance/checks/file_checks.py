@@ -11,9 +11,11 @@ from shared.utils.constitutional_parser import get_all_constitutional_paths
 from system.governance.models import AuditFinding, AuditSeverity
 
 
+# CAPABILITY: audit.check.file_integrity
 class FileChecks:
     """Container for file-based constitutional checks."""
 
+    # CAPABILITY: system.governance.checks.initialize
     def __init__(self, context):
         """Initialize with a shared auditor context."""
         self.context = context
@@ -160,6 +162,7 @@ class FileChecks:
             )
         return findings
 
+    # CAPABILITY: system.governance.discover_known_files
     def _get_known_files_from_meta(self) -> Set[str]:
         """Build a set of known intent files by delegating to the shared constitutional parser."""
         known = get_all_constitutional_paths(self.intent_dir)

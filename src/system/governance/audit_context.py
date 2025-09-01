@@ -16,9 +16,11 @@ from shared.config_loader import load_config
 from shared.utils.manifest_aggregator import aggregate_manifests
 
 
+# CAPABILITY: system.audit.context
 class AuditorContext:
     """Shared state container for audit checks."""
 
+    # CAPABILITY: system.governance.audit_context.initialize
     def __init__(self, repo_root: Path):
         """
         Initialize context with repository paths and configurations.

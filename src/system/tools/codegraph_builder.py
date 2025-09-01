@@ -24,12 +24,14 @@ from system.tools.pattern_matcher import PatternMatcher
 log = getLogger(__name__)
 
 
+# CAPABILITY: tooling.knowledge_graph.project_structure_error
 class ProjectStructureError(Exception):
     """Custom exception for when the project's root cannot be determined."""
 
     pass
 
 
+# CAPABILITY: tooling.filesystem.find_project_root
 def find_project_root(start_path: Path) -> Path:
     """Traverse upward from a starting path to find the project root, marked by 'pyproject.toml'."""
     current_path = start_path.resolve()
@@ -49,6 +51,7 @@ class KnowledgeGraphBuilder:
     and pattern matching to generate a complete knowledge graph of the codebase.
     """
 
+    # CAPABILITY: tooling.knowledge_graph_builder.initialize
     def __init__(self, root_path: Path, config: Optional[BuilderConfig] = None):
         """Initialize the builder with configuration and component dependencies."""
         self.root_path = root_path.resolve()
@@ -60,6 +63,7 @@ class KnowledgeGraphBuilder:
         self.domain_mapper = DomainMapper(self.config)
         self.pattern_matcher = PatternMatcher(self.config.patterns, root_path)
 
+    # CAPABILITY: tooling.knowledge_graph.build
     def build(self) -> Dict[str, Any]:
         """
         Orchestrate the full knowledge graph generation process.
@@ -85,6 +89,7 @@ class KnowledgeGraphBuilder:
         # Step 4: Build final output
         return self._build_output(symbols)
 
+    # CAPABILITY: tooling.knowledge_graph.build_output
     def _build_output(self, symbols: Dict[str, Any]) -> Dict[str, Any]:
         """Build the final JSON output structure."""
         # Convert FunctionInfo objects to dictionaries, filtering out None values
@@ -109,6 +114,7 @@ class KnowledgeGraphBuilder:
             "symbols": serializable_symbols,
         }
 
+    # CAPABILITY: tooling.knowledge_graph.build_empty
     def _build_empty_output(self) -> Dict[str, Any]:
         """Build output structure when no files are found."""
         return {
@@ -122,6 +128,7 @@ class KnowledgeGraphBuilder:
         }
 
 
+# CAPABILITY: tooling.knowledge_graph.build
 def main():
     """CLI entry point to run the knowledge graph builder and save the output."""
     load_dotenv()

@@ -77,6 +77,7 @@ def chat(user_input: str = typer.Argument(..., help="Your goal in natural langua
         raise typer.Exit(code=1)
 
 
+# CAPABILITY: system.cli.register_chat_command
 def register(app: typer.Typer):
     """Register the 'chat' command with the main CLI app."""
     app.command("chat")(chat)

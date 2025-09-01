@@ -14,6 +14,7 @@ from shared.logger import getLogger
 log = getLogger(__name__)
 
 
+# CAPABILITY: code.import.scan_file
 def scan_imports_for_file(file_path: Path) -> List[str]:
     """
     Parse a Python file and extract all imported module paths.

@@ -21,6 +21,7 @@ SOURCE_STRUCTURE_PATH = INTENT_DIR / "knowledge" / "source_structure.yaml"
 KNOWLEDGE_GRAPH_PATH = INTENT_DIR / "knowledge" / "knowledge_graph.json"
 
 
+# CAPABILITY: system.manifest.migrate
 def migrate_manifest(
     dry_run: bool = typer.Option(
         True,  # Default to True for safety

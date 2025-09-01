@@ -19,13 +19,16 @@ from shared.path_utils import get_repo_root
 Violation = Dict[str, Any]
 
 
+# CAPABILITY: validation.policy.enforce
 class PolicyValidator:
     """Handles policy-aware validation including safety checks and forbidden patterns."""
 
+    # CAPABILITY: core.validation_policies.initialize
     def __init__(self) -> None:
         """Initialize the policy validator with cached policies."""
         self._safety_policies_cache: Optional[List[Dict]] = None
 
+    # CAPABILITY: validation.policy.load_safety
     def _load_safety_policies(self) -> List[Dict]:
         """Loads and caches the safety policies from the .intent directory.
 
@@ -43,6 +46,7 @@ class PolicyValidator:
             self._safety_policies_cache = policy_data.get("rules", [])
         return self._safety_policies_cache
 
+    # CAPABILITY: core.ast.attribute_name_builder
     def _get_full_attribute_name(self, node: ast.Attribute) -> str:
         """Recursively builds the full name of an attribute call.
 
@@ -61,6 +65,7 @@ class PolicyValidator:
             parts.insert(0, current.id)
         return ".".join(parts)
 
+    # CAPABILITY: audit.check.dangerous_patterns
     def _find_dangerous_patterns(
         self, tree: ast.AST, file_path: str
     ) -> List[Violation]:
@@ -146,6 +151,7 @@ class PolicyValidator:
                     )
         return violations
 
+    # CAPABILITY: audit.check.semantics
     def check_semantics(self, code: str, file_path: str) -> List[Violation]:
         """Runs all policy-aware semantic checks on a string of Python code.
 

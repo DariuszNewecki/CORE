@@ -17,9 +17,11 @@ from shared.logger import getLogger
 log = getLogger(__name__)
 
 
+# CAPABILITY: llm_orchestration.client_provisioning
 class CognitiveService:
     """Manages the lifecycle and provision of role-based LLM clients."""
 
+    # CAPABILITY: core.cognitive_service.initialize
     def __init__(self, repo_path: Path):
         """
         Initializes the service by loading and parsing the cognitive architecture from the constitution.
@@ -44,6 +46,7 @@ class CognitiveService:
             f"CognitiveService initialized with {len(self._roles_map)} roles and {len(self._resources_map)} resources."
         )
 
+    # CAPABILITY: llm_orchestration.client_provisioning
     def get_client_for_role(
         self, role_name: str, task_context: Dict[str, Any] | None = None
     ) -> BaseLLMClient:

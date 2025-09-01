@@ -10,12 +10,14 @@ from pathlib import Path
 from typing import List
 
 
+# CAPABILITY: tooling.ast.collect_function_calls
 class FunctionCallVisitor(ast.NodeVisitor):
     """An AST visitor that collects the names of all functions being called within a node."""
 
     def __init__(self):
         self.calls: set[str] = set()
 
+    # CAPABILITY: tooling.ast.record_calls
     def visit_Call(self, node: ast.Call):
         """Records function or method calls in `self.calls` and recursively visits child nodes."""
         if isinstance(node.func, ast.Name):
@@ -25,9 +27,11 @@ class FunctionCallVisitor(ast.NodeVisitor):
         self.generic_visit(node)
 
 
+# CAPABILITY: tooling.ast.context_aware_visit
 class ContextAwareVisitor(ast.NodeVisitor):
     """A stateful AST visitor that understands nested class and function contexts."""
 
+    # CAPABILITY: tooling.ast_visitor.initialize
     def __init__(self, builder, filepath: Path, source_lines: List[str]):
         """Initialize the instance with the given builder, filepath, source lines, and an empty context stack."""
         self.builder = builder
@@ -35,6 +39,7 @@ class ContextAwareVisitor(ast.NodeVisitor):
         self.source_lines = source_lines
         self.context_stack: List[str] = []
 
+    # CAPABILITY: tooling.ast.context_management
     def _process_and_visit(self, node, node_type: str):
         """Helper to process a symbol and manage the context stack."""
         parent_key = self.context_stack[-1] if self.context_stack else None
@@ -55,14 +60,17 @@ class ContextAwareVisitor(ast.NodeVisitor):
         else:
             self.generic_visit(node)
 
+    # CAPABILITY: tooling.ast.visit_class_definition
     def visit_ClassDef(self, node: ast.ClassDef):
         """Processes a class definition node, and visits its children."""
         self._process_and_visit(node, "ClassDef")
 
+    # CAPABILITY: tooling.ast.visit_function_definition
     def visit_FunctionDef(self, node: ast.FunctionDef):
         """Processes a function definition node, and visits its children."""
         self._process_and_visit(node, "FunctionDef")
 
+    # CAPABILITY: tooling.ast.visit_async_function_def
     def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef):
         """Processes an async function definition node, and visits its children."""
         self._process_and_visit(node, "AsyncFunctionDef")

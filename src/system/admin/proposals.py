@@ -34,6 +34,7 @@ proposals_app = typer.Typer(
 
 
 @proposals_app.command("list")
+# CAPABILITY: system.proposal.list_pending
 def proposals_list() -> None:
     """List pending constitutional proposals and display their status."""
     log.info("🔍 Finding pending constitutional proposals...")
@@ -73,6 +74,7 @@ def proposals_list() -> None:
 
 
 @proposals_app.command("sign")
+# CAPABILITY: system.proposal.sign
 def proposals_sign(
     proposal_name: str = typer.Argument(
         ..., help="Filename of the proposal to sign (e.g., 'cr-new-policy.yaml')."
@@ -111,6 +113,7 @@ def proposals_sign(
 
 
 @proposals_app.command("approve")
+# CAPABILITY: system.proposal.approve
 def proposals_approve(
     proposal_name: str = typer.Argument(
         ..., help="Filename of the proposal to approve."
@@ -213,6 +216,7 @@ def proposals_approve(
             raise typer.Exit(code=1)
 
 
+# CAPABILITY: system.cli.register_proposals
 def register(app: typer.Typer) -> None:
     """
     Registers the 'proposals' command group with the main admin CLI application.

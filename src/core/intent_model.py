@@ -11,12 +11,14 @@ from typing import Dict, List, Optional
 import yaml
 
 
+# CAPABILITY: core.intent.load_source_structure
 class IntentModel:
     """
     Loads and provides an queryable interface to the source code structure
     defined in .intent/knowledge/source_structure.yaml.
     """
 
+    # CAPABILITY: core.intent_model.initialize
     def __init__(self, repo_root: Optional[Path] = None):
         """Initializes the model by loading the source structure definition from the repository, inferring the root if not provided."""
         """
@@ -33,6 +35,7 @@ class IntentModel:
 
     """Load the domain structure from .intent/knowledge/source_structure.yaml and return a mapping of domain names to metadata (path, permissions, etc.)."""
 
+    # CAPABILITY: core.intent.load_structure
     def _load_structure(self) -> Dict[str, dict]:
         """
         Load the domain structure from .intent/knowledge/source_structure.yaml.
@@ -52,6 +55,7 @@ class IntentModel:
 
         return {entry["domain"]: entry for entry in data["structure"]}
 
+    # CAPABILITY: core.intent.resolve_domain
     def resolve_domain_for_path(self, file_path: Path) -> Optional[str]:
         """
         Given an absolute or relative path, determine which domain it belongs to.
@@ -73,6 +77,7 @@ class IntentModel:
                 return domain
         return None
 
+    # CAPABILITY: governance.domain.permissions_query
     def get_domain_permissions(self, domain: str) -> List[str]:
         """
         Return a list of allowed domains that the given domain can import from.

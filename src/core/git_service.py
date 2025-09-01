@@ -38,6 +38,7 @@ class GitService:
             raise ValueError(f"Not a git repository ('.git' missing): {self.repo_path}")
         log.info(f"GitService initialized for repo at {self.repo_path}")
 
+    # CAPABILITY: system.git.execute_command
     def _run_command(self, command: list[str]) -> str:
         """Runs a git command and returns stdout; raises RuntimeError on failure."""
         try:
@@ -58,22 +59,27 @@ class GitService:
 
     # --- Basic ops ------------------------------------------------------------
 
+    # CAPABILITY: system.git.detect_repository
     def is_git_repo(self) -> bool:
         """Returns True if a '.git' directory exists (lightweight check for tests)."""
         return (self.repo_path / ".git").exists()
 
+    # CAPABILITY: system.git.status_porcelain
     def status_porcelain(self) -> str:
         """Returns the porcelain status output."""
         return self._run_command(["git", "status", "--porcelain"])
 
+    # CAPABILITY: system.git.add
     def add(self, file_path: str = ".") -> None:
         """Stages a file (or path)."""
         self._run_command(["git", "add", file_path])
 
+    # CAPABILITY: system.git.add_all
     def add_all(self) -> None:
         """Stages all changes, including untracked files."""
         self._run_command(["git", "add", "-A"])
 
+    # CAPABILITY: system.git.commit
     def commit(self, message: str) -> None:
         """
         Commits staged changes with the provided message.

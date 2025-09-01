@@ -10,14 +10,17 @@ from pathlib import Path
 from system.tools.config.builder_config import BuilderConfig
 
 
+# CAPABILITY: tooling.domain.determine
 class DomainMapper:
     """Handles domain determination for files and symbols."""
 
+    # CAPABILITY: tooling.domain_mapper.initialize
     def __init__(self, config: BuilderConfig):
         """Initializes the DomainMapper with the builder configuration."""
         self.domain_map = config.domain_map
         self.root_path = config.root_path
 
+    # CAPABILITY: system.file.domain_mapping
     def get_domain_for_file(self, file_path: Path) -> str:
         """Determine the logical domain for a file path based on longest matching prefix."""
         file_posix = file_path.as_posix()
@@ -28,6 +31,7 @@ class DomainMapper:
         )
         return self.domain_map.get(best_match, "unassigned")
 
+    # CAPABILITY: system.agent.infer_from_path
     def infer_agent_from_path(self, relative_path: Path) -> str:
         """Infer the most likely responsible agent based on keywords in the file path."""
         path_str = str(relative_path).lower()

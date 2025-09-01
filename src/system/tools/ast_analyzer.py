@@ -19,9 +19,11 @@ from system.tools.symbol_processor import ProcessingContext, SymbolProcessor
 log = getLogger(__name__)
 
 
+# CAPABILITY: tooling.ast.analyze
 class ASTAnalyzer:
     """Handles AST parsing and symbol extraction from Python files."""
 
+    # CAPABILITY: tooling.ast.initialize
     def __init__(self, config: BuilderConfig):
         """Initializes the ASTAnalyzer with the builder configuration."""
         self.config = config
@@ -30,6 +32,7 @@ class ASTAnalyzer:
         self.files_scanned = 0
         self.files_failed = 0
 
+    # CAPABILITY: tooling.ast.analyze_files
     def analyze_files(
         self, files: List[Path], domain_mapper: DomainMapper
     ) -> Dict[str, FunctionInfo]:
@@ -43,6 +46,7 @@ class ASTAnalyzer:
         log.info(f"Scanned {self.files_scanned} files ({self.files_failed} failed)")
         return symbols
 
+    # CAPABILITY: tooling.ast.analyze_file
     def analyze_file(
         self, filepath: Path, domain_mapper: DomainMapper
     ) -> Dict[str, FunctionInfo]:
@@ -96,6 +100,7 @@ class ASTAnalyzer:
             self.files_failed += 1
             return {}
 
+    # CAPABILITY: tooling.ast.process_class_methods
     def _process_class_methods(
         self, class_node: ast.ClassDef, context: ProcessingContext, parent_key: str
     ) -> Dict[str, FunctionInfo]:
