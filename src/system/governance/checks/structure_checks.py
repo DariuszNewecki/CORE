@@ -10,9 +10,11 @@ from shared.utils.import_scanner import scan_imports_for_file
 from system.governance.models import AuditFinding, AuditSeverity
 
 
+# CAPABILITY: audit.check.structure
 class StructureChecks:
     """Container for structural constitutional checks."""
 
+    # CAPABILITY: system.governance.check.structure.initialize
     def __init__(self, context):
         """Initializes the check with a shared auditor context."""
         self.context = context

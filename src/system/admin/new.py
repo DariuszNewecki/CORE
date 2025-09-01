@@ -12,6 +12,7 @@ import typer
 from system.tools.scaffolder import new_project
 
 
+# CAPABILITY: system.cli.register_command
 def register(app: typer.Typer) -> None:
     """Register the 'new' command with the main CLI app."""
     # Directly register the imported new_project function under the name 'new'

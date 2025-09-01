@@ -43,6 +43,7 @@ class ConstitutionalAuditor:
             if cleaned_s := s.strip():
                 log.info(cleaned_s)
 
+    # CAPABILITY: system.governance.auditor.initialize
     def __init__(self, repo_root_override: Optional[Path] = None):
         """
         Initialize the auditor, loading configuration and knowledge files.
@@ -83,6 +84,7 @@ class ConstitutionalAuditor:
             self.symbols_list: list = list(self.symbols_map.values())
             self.load_config = load_config
 
+    # CAPABILITY: audit.check.discovery
     def _discover_checks(self) -> List[Tuple[str, Callable[[], List[AuditFinding]]]]:
         """Discover check methods from modules in the 'checks' directory."""
         discovered_checks: List[Tuple[str, Callable[[], List[AuditFinding]]]] = []
@@ -147,6 +149,7 @@ class ConstitutionalAuditor:
         discovered_checks.sort(key=lambda item: item[0].split(":")[0])
         return discovered_checks
 
+    # CAPABILITY: audit.check.capability_tags
     def validate_capability_tags(self, file_path: Path) -> List[AuditFinding]:
         """Validates capability tags in a file using shared AST utilities."""
         findings = []
@@ -184,6 +187,7 @@ class ConstitutionalAuditor:
 
         return findings
 
+    # CAPABILITY: audit.execute.full
     def run_full_audit(self) -> bool:
         """Run all discovered validation checks and return overall status."""
         self.console.print(
@@ -227,19 +231,17 @@ class ConstitutionalAuditor:
 
         all_passed = not any(f.severity == AuditSeverity.ERROR for f in self.findings)
 
-        # --- THIS IS THE FIX ---
-        # We now pass the full symbols list to the reporting function.
         from system.governance.audit_execution import AuditExecutor
 
         executor = AuditExecutor(self.context)
         executor.report_final_status(
             self.findings, all_passed, self.context.symbols_list
         )
-        # --- END OF FIX ---
 
         return all_passed
 
 
+# CAPABILITY: governance.cli.run_constitutional_audit
 def main() -> None:
     """CLI entry point for the Constitutional Auditor."""
     load_dotenv()

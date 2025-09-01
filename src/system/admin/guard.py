@@ -27,6 +27,7 @@ from system.guard.drift_detector import detect_capability_drift, write_report
 log = getLogger("core_admin")
 
 
+# CAPABILITY: system.manifest.locate
 def _find_manifest_path(root: Path, explicit: Optional[Path]) -> Optional[Path]:
     """Locate and return the path to the project manifest file, or None."""
     if explicit and explicit.exists():
@@ -37,6 +38,7 @@ def _find_manifest_path(root: Path, explicit: Optional[Path]) -> Optional[Path]:
     return None
 
 
+# CAPABILITY: system.manifest.load_raw
 def _load_raw_manifest(root: Path, explicit: Optional[Path]) -> Dict[str, Any]:
     """Loads and parses a YAML manifest file, returning an empty dict if not found."""
     path = _find_manifest_path(root, explicit)
@@ -46,6 +48,7 @@ def _load_raw_manifest(root: Path, explicit: Optional[Path]) -> Dict[str, Any]:
     return data
 
 
+# CAPABILITY: system.manifest.extract_ux_defaults
 def _ux_defaults(root: Path, explicit: Optional[Path]) -> Dict[str, Any]:
     """Extracts and returns UX-related default values from the manifest."""
     raw = _load_raw_manifest(root, explicit)
@@ -67,6 +70,7 @@ def _ux_defaults(root: Path, explicit: Optional[Path]) -> Dict[str, Any]:
     }
 
 
+# CAPABILITY: system.report.check_clean
 def _is_clean(report: dict) -> bool:
     """Determines if a report is clean."""
     return not (
@@ -76,6 +80,7 @@ def _is_clean(report: dict) -> bool:
     )
 
 
+# CAPABILITY: system.admin.report_drift_table
 def _print_table(report_dict: dict, labels: Dict[str, str]) -> None:
     """Prints a formatted table of the drift report."""
     table = Table(show_header=True, header_style="bold", title="Capability Drift")
@@ -115,11 +120,13 @@ def _print_table(report_dict: dict, labels: Dict[str, str]) -> None:
     rprint(Panel.fit(table, title=status))
 
 
+# CAPABILITY: system.admin.guard.print_drift_summary
 def _print_pretty(report_dict: dict, labels: Dict[str, str]) -> None:
     """Prints a user-friendly summary of the drift report."""
     _print_table(report_dict, labels)
 
 
+# CAPABILITY: system.cli.register_guard
 def register(app: typer.Typer) -> None:
     """Registers the 'guard' command group with the CLI."""
     guard = typer.Typer(help="Governance/validation guards")

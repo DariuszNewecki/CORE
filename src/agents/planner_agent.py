@@ -23,6 +23,7 @@ from shared.logger import getLogger
 log = getLogger(__name__)
 
 
+# CAPABILITY: agent.plan.error
 class PlanExecutionError(Exception):
     """Custom exception for errors during plan execution."""
 
@@ -33,12 +34,14 @@ class PlanExecutionError(Exception):
 class PlannerAgent:
     """Decomposes goals into executable plans."""
 
+    # CAPABILITY: agents.planner.initialize
     def __init__(self, cognitive_service: CognitiveService):
         """Initializes the PlannerAgent."""
         self.cognitive_service = cognitive_service
         self.config = settings
         self.prompt_template = self._load_prompt_template()
 
+    # CAPABILITY: agent.prompt.load_template
     def _load_prompt_template(self) -> str:
         """Loads the planner prompt from the constitution."""
         prompt_path = Path(self.config.MIND) / "prompts" / "planner_agent.prompt"
@@ -46,6 +49,7 @@ class PlannerAgent:
             raise FileNotFoundError(f"Planner prompt not found at {prompt_path}")
         return prompt_path.read_text(encoding="utf-8")
 
+    # CAPABILITY: agent.planner.load_available_actions
     def _get_available_actions(self) -> List[Dict]:
         """Loads the available actions from the constitution."""
         actions_path = Path(self.config.MIND) / "config" / "actions.yaml"
@@ -54,6 +58,7 @@ class PlannerAgent:
         with actions_path.open("r", encoding="utf-8") as f:
             return yaml.safe_load(f).get("actions", [])
 
+    # CAPABILITY: agent.planning.build_prompt
     def _build_planning_prompt(self, goal: str) -> str:
         """Builds the detailed prompt for the planning LLM."""
         available_actions = self._get_available_actions()
@@ -67,6 +72,7 @@ class PlannerAgent:
             goal=goal, action_descriptions=action_descriptions
         )
 
+    # CAPABILITY: agent.planning.validate_task_parameters
     def _validate_task_params(self, task: ExecutionTask, actions: List[Dict]):
         """Validates that all required parameters for a task's action are present."""
         action_map = {action["name"]: action for action in actions}
@@ -85,6 +91,7 @@ class PlannerAgent:
                     )
         # --- END OF FIX ---
 
+    # CAPABILITY: agent.planning.log_summary
     def _log_plan_summary(self, plan: List[ExecutionTask]):
         """Logs a human-readable summary of the execution plan."""
         console = Console()
@@ -98,6 +105,7 @@ class PlannerAgent:
         except Exception:
             log.warning("Could not serialize plan to JSON for logging.")
 
+    # CAPABILITY: planning.execution.create
     def create_execution_plan(self, goal: str) -> List[ExecutionTask]:
         """Creates an execution plan from a user goal."""
         max_retries = getattr(self.config, "CORE_MAX_RETRIES", 3)

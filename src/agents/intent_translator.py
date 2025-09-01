@@ -13,9 +13,11 @@ from shared.logger import getLogger
 log = getLogger("intent_translator")
 
 
+# CAPABILITY: agent.intent.translate
 class IntentTranslator:
     """An agent that translates natural language into structured goals."""
 
+    # CAPABILITY: agents.intent_translator.initialize
     def __init__(self, cognitive_service: CognitiveService):
         """Initializes the translator with the CognitiveService."""
         self.cognitive_service = cognitive_service

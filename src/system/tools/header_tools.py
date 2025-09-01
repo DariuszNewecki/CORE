@@ -10,6 +10,7 @@ from dataclasses import dataclass
 
 
 @dataclass
+# CAPABILITY: tooling.header.parse
 class ParsedHeader:
     """A structured representation of the decorators in a file's header."""
 
@@ -20,10 +21,12 @@ class ParsedHeader:
     original_lines: list[str] | None = None
 
 
+# CAPABILITY: tooling.headers.manage
 class HeaderTools:
     """A collection of atomic tools for managing file header decorators."""
 
     @staticmethod
+    # CAPABILITY: tooling.header.parse
     def parse(file_content: str) -> ParsedHeader:
         """Parses a file's content into its distinct decorator components."""
         lines = file_content.splitlines()
@@ -69,6 +72,7 @@ class HeaderTools:
         return header
 
     @staticmethod
+    # CAPABILITY: tooling.header.reconstruct
     def reconstruct(header: ParsedHeader) -> str:
         """Reconstructs a file's content from its decorator components."""
         new_lines = []

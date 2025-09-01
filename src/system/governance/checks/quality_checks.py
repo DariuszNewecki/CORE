@@ -8,9 +8,11 @@ from __future__ import annotations
 from system.governance.models import AuditFinding, AuditSeverity
 
 
+# CAPABILITY: audit.check.code_quality
 class QualityChecks:
     """Container for code quality constitutional checks."""
 
+    # CAPABILITY: system.governance.quality_checks.initialize
     def __init__(self, context):
         """Initializes the check with a shared auditor context."""
         self.context = context

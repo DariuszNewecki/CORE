@@ -30,11 +30,13 @@ console = Console()
 REPO_ROOT = settings.REPO_PATH
 
 
+# CAPABILITY: system.code.parse_capability_tags
 def _get_capabilities_from_code(code: str) -> List[str]:
     """A simple parser to extract # CAPABILITY tags from a string of code."""
     return re.findall(r"#\s*CAPABILITY:\s*(\S+)", code)
 
 
+# CAPABILITY: system.constitution.propose_amendment
 def _propose_constitutional_amendment(proposal_plan: Dict[str, Any]):
     """Creates a formal proposal file for a constitutional amendment."""
     proposal_dir = REPO_ROOT / ".intent" / "proposals"
@@ -65,6 +67,7 @@ def _propose_constitutional_amendment(proposal_plan: Dict[str, Any]):
     return True
 
 
+# CAPABILITY: system.capability.reconcile
 def _run_capability_reconciliation(
     cognitive_service: CognitiveService,
     original_code: str,

@@ -13,6 +13,7 @@ from typing import Any, Dict, Optional
 from system.guard.models import CapabilityMeta
 
 
+# CAPABILITY: system.kgb.discovery.try_import
 def _try_import_kgb():
     """Attempts to access KnowledgeGraphBuilder without a static cross-domain import."""
     try:
@@ -22,6 +23,7 @@ def _try_import_kgb():
         return None
 
 
+# CAPABILITY: system.guard.discover.capability_metadata
 def _extract_cap_meta_from_node(node: Dict[str, Any]) -> Optional[CapabilityMeta]:
     """Extracts capability metadata from a Knowledge Graph node."""
     cap = node.get("capability")
@@ -34,6 +36,7 @@ def _extract_cap_meta_from_node(node: Dict[str, Any]) -> Optional[CapabilityMeta
     return None
 
 
+# CAPABILITY: system.guard.discover.capabilities_from_kgb
 def collect_from_kgb(root: Path) -> Dict[str, CapabilityMeta]:
     """Uses KnowledgeGraphBuilder (if present) to discover capabilities from the repo."""
     KGB = _try_import_kgb()

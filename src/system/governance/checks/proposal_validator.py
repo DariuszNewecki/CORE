@@ -15,13 +15,16 @@ from system.governance.models import AuditFinding, AuditSeverity
 from .proposal_loader import ProposalLoader
 
 
+# CAPABILITY: system.proposal.validate_schema
 class ProposalValidator:
     """Handles schema validation of proposal files."""
 
+    # CAPABILITY: system.proposal.validator.initialize
     def __init__(self, repo_root: Path):
         """Initializes the instance with the provided repository root path."""
         self.repo_root = repo_root
 
+    # CAPABILITY: audit.check.proposals_schema
     def validate_proposals_schema(self, loader: ProposalLoader) -> list[AuditFinding]:
         """Validate each cr-*.yaml/json proposal against proposal.schema.json."""
         findings: list[AuditFinding] = []

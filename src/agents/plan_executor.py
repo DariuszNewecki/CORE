@@ -21,6 +21,7 @@ from shared.logger import getLogger
 log = getLogger(__name__)
 
 
+# CAPABILITY: agent.plan.error
 class PlanExecutionError(Exception):
     """Custom exception for failures during plan execution."""
 
@@ -29,9 +30,11 @@ class PlanExecutionError(Exception):
         self.violations = violations or []
 
 
+# CAPABILITY: agent.plan.execute
 class PlanExecutor:
     """A service that takes a list of ExecutionTasks and executes them sequentially."""
 
+    # CAPABILITY: agents.plan_executor.initialize
     def __init__(
         self, file_handler: FileHandler, git_service: GitService, config: PlannerConfig
     ):
@@ -44,12 +47,14 @@ class PlanExecutor:
         self.code_editor = CodeEditor()
         self._executor = asyncio.get_event_loop().run_in_executor
 
+    # CAPABILITY: agent.plan.execute
     async def execute_plan(self, plan: List[ExecutionTask]):
         """Executes the entire plan, one task at a time."""
         for i, task in enumerate(plan, 1):
             log.info(f"--- Executing Step {i}/{len(plan)}: {task.step} ---")
             await self._execute_task_with_timeout(task)
 
+    # CAPABILITY: agent.task.execute_with_timeout
     async def _execute_task_with_timeout(self, task: ExecutionTask):
         """Execute task with timeout protection."""
         timeout = self.config.task_timeout
@@ -58,6 +63,7 @@ class PlanExecutor:
         except asyncio.TimeoutError:
             raise PlanExecutionError(f"Task '{task.step}' timed out after {timeout}s")
 
+    # CAPABILITY: agent.plan.execute_task
     async def _execute_task(self, task: ExecutionTask):
         """Dispatcher that executes a single task from a plan based on its action type."""
         action_map = {
@@ -73,6 +79,7 @@ class PlanExecutor:
             log.warning(f"Skipping task: Unknown action '{task.action}'.")
 
     # --- THIS IS THE NEW METHOD ---
+    # CAPABILITY: agent.plan_executor.delete_file
     async def _execute_delete_file(self, params: TaskParams):
         """Executes the 'delete_file' action."""
         file_path_str = params.file_path
@@ -98,6 +105,7 @@ class PlanExecutor:
                 f"refactor(cleanup): Remove obsolete file {file_path_str}"
             )
 
+    # CAPABILITY: agent.proposal.create
     async def _execute_create_proposal(self, params: TaskParams):
         """Executes the 'create_proposal' action."""
         target_path = params.file_path
@@ -134,6 +142,7 @@ class PlanExecutor:
                 f"feat(proposal): Create proposal for {target_path}"
             )
 
+    # CAPABILITY: agent.plan_executor.add_capability_tag
     async def _execute_add_tag(self, params: TaskParams):
         """Executes the surgical 'add_capability_tag' action."""
         file_path, symbol_name, tag = params.file_path, params.symbol_name, params.tag
@@ -181,6 +190,7 @@ class PlanExecutor:
                 f"refactor(capability): Add '{tag}' tag to {symbol_name}"
             )
 
+    # CAPABILITY: agent.plan_executor.create_file
     async def _execute_create_file(self, params: TaskParams):
         """Executes the 'create_file' action."""
         file_path, code = params.file_path, params.code
@@ -208,6 +218,7 @@ class PlanExecutor:
             self.git_service.add(file_path)
             self.git_service.commit(f"feat: Create new file {file_path}")
 
+    # CAPABILITY: agent.code_editor.edit
     async def _execute_edit_function(self, params: TaskParams):
         """Executes the 'edit_function' action using the CodeEditor."""
         file_path, symbol_name, new_code = (

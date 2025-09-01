@@ -10,7 +10,6 @@ import textwrap
 from pathlib import Path
 from typing import Optional, Tuple
 
-# --- THIS IS THE FIX: ADD MISSING IMPORTS ---
 from agents.models import PlannerConfig
 from core.git_service import GitService
 from shared.logger import getLogger
@@ -18,9 +17,11 @@ from shared.logger import getLogger
 log = getLogger(__name__)
 
 
+# CAPABILITY: agent.code_editor.edit
 class CodeEditor:
     """Provides capabilities to surgically edit code files."""
 
+    # CAPABILITY: agent.code_editor.get_symbol_lines
     def _get_symbol_start_end_lines(
         self, tree: ast.AST, symbol_name: str
     ) -> Optional[Tuple[int, int]]:
@@ -32,6 +33,7 @@ class CodeEditor:
                         return node.lineno, node.end_lineno
         return None
 
+    # CAPABILITY: code.refactor.replace_symbol
     def replace_symbol_in_code(
         self, original_code: str, symbol_name: str, new_code_str: str
     ) -> str:
@@ -69,10 +71,12 @@ class CodeEditor:
         return "\n".join(final_lines)
 
 
+# CAPABILITY: agent.symbol.locate
 class SymbolLocator:
     """Dedicated class for finding symbols in code files."""
 
     @staticmethod
+    # CAPABILITY: agent.symbol.locate_line
     def find_symbol_line(file_path: Path, symbol_name: str) -> Optional[int]:
         """Finds the line number of a function or class definition in a file."""
         if not file_path.exists():
@@ -92,15 +96,18 @@ class SymbolLocator:
         return None
 
 
+# CAPABILITY: agent.plan.execution_context
 class PlanExecutionContext:
     """Context manager for safe plan execution with rollback."""
 
+    # CAPABILITY: agents.execution_context.initialize
     def __init__(self, git_service: GitService, config: PlannerConfig):
         """Initializes the context with the required services."""
         self.git_service = git_service
         self.config = config
         self.initial_commit = None
 
+    # CAPABILITY: agents.execution_context.initialize
     def __enter__(self):
         """Sets up the execution context, capturing the initial git commit hash."""
         if self.git_service.is_git_repo():
@@ -110,6 +117,7 @@ class PlanExecutionContext:
                 log.warning(f"Could not get current commit for rollback: {e}")
         return self
 
+    # CAPABILITY: agent.execution.rollback
     def __exit__(self, exc_type, exc_val, exc_tb):
         """Cleans up and handles rollback on failure."""
         if exc_type and self.initial_commit and self.config.rollback_on_failure:

@@ -113,6 +113,7 @@ def fix_tags(
         raise typer.Exit(code=1)
 
 
+# CAPABILITY: system.admin.register_fixer_commands
 def register(app: typer.Typer) -> None:
     """Intent: Register fixer commands under the admin CLI."""
     fixer_app = typer.Typer(

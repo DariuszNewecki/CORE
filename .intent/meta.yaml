@@ -43,6 +43,7 @@ prompts:
   fix_header: "prompts/fix_header.prompt"
   goal_assessor: "prompts/goal_assessor.prompt"
   planner_agent: "prompts/planner_agent.prompt"
+  capability_tagger: "prompts/capability_tagger.prompt"
   intent_translator: "prompts/intent_translator.prompt"
 
 project:

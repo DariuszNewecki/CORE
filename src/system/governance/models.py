@@ -10,6 +10,7 @@ from enum import Enum
 from typing import Optional
 
 
+# CAPABILITY: system.audit.severity_level
 class AuditSeverity(Enum):
     """Severity levels for audit findings."""
 
@@ -19,6 +20,7 @@ class AuditSeverity(Enum):
 
 
 @dataclass
+# CAPABILITY: system.audit.finding
 class AuditFinding:
     """Represents a single audit finding."""
 

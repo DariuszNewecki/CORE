@@ -15,6 +15,7 @@ from shared.logger import getLogger
 log = getLogger("manifest_aggregator")
 
 
+# CAPABILITY: system.manifest.aggregate
 def aggregate_manifests(repo_root: Path) -> Dict[str, Any]:
     """
     Finds all domain-specific manifest.yaml files and merges them.

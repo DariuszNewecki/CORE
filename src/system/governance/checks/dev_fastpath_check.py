@@ -9,6 +9,7 @@ from __future__ import annotations
 from pathlib import Path
 
 
+# CAPABILITY: audit.check.dev_fastpath
 def run_check(repo_root: Path) -> None:
     """
     This check is currently disabled. It performs no actions.

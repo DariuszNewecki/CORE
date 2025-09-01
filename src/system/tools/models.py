@@ -10,6 +10,7 @@ from typing import List, Optional, Set
 
 
 @dataclass
+# CAPABILITY: tooling.models.function_info
 class FunctionInfo:
     """A data structure holding all analyzed information about a single symbol (function, method, or class)."""
 

@@ -12,6 +12,7 @@ from typing import Literal, Optional
 from pydantic import BaseModel
 
 
+# CAPABILITY: agent.task.status_enum
 class TaskStatus(Enum):
     """Enumeration of possible states for an ExecutionTask."""
 
@@ -22,6 +23,7 @@ class TaskStatus(Enum):
 
 
 @dataclass
+# CAPABILITY: agent.execution.progress_tracking
 class ExecutionProgress:
     """Represents the progress of a plan's execution."""
 
@@ -31,6 +33,7 @@ class ExecutionProgress:
     status: TaskStatus = TaskStatus.PENDING
 
     @property
+    # CAPABILITY: agent.execution_progress.calculate_percentage
     def completion_percentage(self) -> float:
         """
         Calculates the completion percentage of the plan as a float,
@@ -44,6 +47,7 @@ class ExecutionProgress:
 
 
 @dataclass
+# CAPABILITY: agent.planner.config
 class PlannerConfig:
     """Configuration settings for the PlannerAgent's behavior."""
 
@@ -54,6 +58,7 @@ class PlannerConfig:
     task_timeout: int = 300  # seconds
 
 
+# CAPABILITY: agent.task.params_model
 class TaskParams(BaseModel):
     """Data model for the parameters of a single task in an execution plan."""
 
@@ -64,6 +69,7 @@ class TaskParams(BaseModel):
     justification: Optional[str] = None
 
 
+# CAPABILITY: agent.execution.task_model
 class ExecutionTask(BaseModel):
     """Data model for a single, executable step in a plan."""
 

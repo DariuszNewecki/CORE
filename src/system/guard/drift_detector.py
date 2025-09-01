@@ -13,6 +13,7 @@ from typing import Dict, List, Optional
 from .models import CapabilityMeta, DriftReport
 
 
+# CAPABILITY: audit.check.capability_drift
 def detect_capability_drift(
     manifest_caps: Dict[str, CapabilityMeta], code_caps: Dict[str, CapabilityMeta]
 ) -> DriftReport:
@@ -39,6 +40,7 @@ def detect_capability_drift(
     return DriftReport(missing, undeclared, mismatches)
 
 
+# CAPABILITY: system.guard.persist_drift_report
 def write_report(report_path: Path, report: DriftReport) -> None:
     """Persists the drift report to disk for evidence and CI."""
     report_path.parent.mkdir(parents=True, exist_ok=True)

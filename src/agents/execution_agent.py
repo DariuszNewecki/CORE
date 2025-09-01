@@ -27,6 +27,7 @@ log = getLogger(__name__)
 class ExecutionAgent:
     """Orchestrates the execution of a plan, including code generation and validation."""
 
+    # CAPABILITY: agents.execution.initialize
     def __init__(
         self,
         cognitive_service: CognitiveService,
@@ -48,6 +49,7 @@ class ExecutionAgent:
         agent_policy = load_config(policy_path).get("execution_agent", {})
         self.max_correction_attempts = agent_policy.get("max_correction_attempts", 2)
 
+    # CAPABILITY: agent.code_generation.generate_proposal_file
     async def _generate_code_for_proposal(self, task: ExecutionTask, goal: str) -> str:
         """Generates the full file content for a create_proposal task."""
         log.info(f"✍️  Generating full file content for proposal: '{task.step}'...")
@@ -89,6 +91,7 @@ class ExecutionAgent:
             final_prompt, user_id="execution_agent_proposer"
         )
 
+    # CAPABILITY: agent.code_generation.generate_task
     async def _generate_code_for_task(self, task: ExecutionTask, goal: str) -> str:
         """Generates the code content for a single task using a generator LLM."""
         log.info(f"✍️  Generating code for task: '{task.step}'...")
@@ -117,6 +120,7 @@ class ExecutionAgent:
             enriched_prompt, user_id="execution_agent_coder"
         )
 
+    # CAPABILITY: agent.execution.execute_plan
     async def execute_plan(
         self, high_level_goal: str, plan: List[ExecutionTask]
     ) -> tuple[bool, str]:

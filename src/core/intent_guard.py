@@ -26,6 +26,7 @@ class IntentGuard:
     Ensures all proposed file changes comply with declared rules and classifications.
     """
 
+    # CAPABILITY: intent_guarding.initialize
     def __init__(self, repo_path: Path):
         """
         Initialize IntentGuard with repository path and load all policies.
@@ -43,6 +44,7 @@ class IntentGuard:
             f"IntentGuard initialized. {len(self.rules)} rules loaded. Watching {len(self.source_code_manifest)} source files."
         )
 
+    # CAPABILITY: intent_guard.policies.load
     def _load_policies(self):
         """Load rules from all YAML files in the `.intent/policies/` directory."""
         if not self.policies_path.is_dir():
@@ -52,6 +54,7 @@ class IntentGuard:
             if content and "rules" in content and isinstance(content["rules"], list):
                 self.rules.extend(content["rules"])
 
+    # CAPABILITY: core.intent_guard.load_source_manifest
     def _load_source_manifest(self) -> List[str]:
         """
         Load the list of all known source files from the knowledge graph.
@@ -72,6 +75,7 @@ class IntentGuard:
 
     # --- THIS IS THE FIX ---
     # The method now correctly resolves paths relative to the repository root.
+    # CAPABILITY: intent_guard.check_transaction
     def check_transaction(self, proposed_paths: List[str]) -> Tuple[bool, List[str]]:
         """
         Check if a proposed set of file changes complies with all active rules.

@@ -18,6 +18,7 @@ log = getLogger(__name__)
 class KnowledgeService:
     """A read-only service to access the system's knowledge graph."""
 
+    # CAPABILITY: core.knowledge.load_graph
     def __init__(self, repo_path: Path):
         """Initializes the service and loads the knowledge graph."""
         self.knowledge_graph_path = (
@@ -26,6 +27,7 @@ class KnowledgeService:
         self.graph: Dict[str, Any] = {}
         self.load_graph()
 
+    # CAPABILITY: core.knowledge.load_graph
     def load_graph(self):
         """Loads or reloads the knowledge graph from disk."""
         if not self.knowledge_graph_path.exists():
@@ -35,6 +37,7 @@ class KnowledgeService:
             self.graph = load_config(self.knowledge_graph_path)
             log.info("Knowledge Service loaded the knowledge graph successfully.")
 
+    # CAPABILITY: knowledge.capability.list
     def list_capabilities(self) -> List[str]:
         """Returns a sorted list of all unique, declared capabilities."""
         symbols = self.graph.get("symbols", {}).values()

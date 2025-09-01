@@ -13,6 +13,7 @@ from typing import Any, Set
 import yaml
 
 
+# CAPABILITY: system.constitution.discover_files
 def get_all_constitutional_paths(intent_dir: Path) -> Set[str]:
     """
     Reads meta.yaml and recursively discovers all declared constitutional file paths.

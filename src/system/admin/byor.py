@@ -23,6 +23,7 @@ TEMPLATES_DIR = CORE_ROOT / "system" / "starter_kits" / "default"
 # --- END OF FIX ---
 
 
+# CAPABILITY: system.repository.scaffold_constitution
 def initialize_repository(
     path: Path = typer.Argument(
         ...,
@@ -141,6 +142,7 @@ def initialize_repository(
     log.info("\n🎉 BYOR initialization complete.")
 
 
+# CAPABILITY: system.cli.register_byor_commands
 def register(app: typer.Typer) -> None:
     """Register BYOR commands (e.g., `byor-init`) under the admin CLI."""
     app.command("byor-init")(initialize_repository)

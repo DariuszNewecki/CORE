@@ -23,9 +23,11 @@ if TYPE_CHECKING:
 log = getLogger(__name__)
 
 
+# CAPABILITY: system.governance.discover_checks
 class CheckDiscovery:
     """Discovers and instantiates constitutional audit checks with proper dependency injection."""
 
+    # CAPABILITY: system.governance.check_discovery.initialize
     def __init__(self, context: ConstitutionalAuditor.AuditorContext, repo_root: Path):
         """
         Initialize the check discovery system.
@@ -38,6 +40,7 @@ class CheckDiscovery:
         self.repo_root = repo_root
         self.checks_dir = Path(__file__).parent / "checks"
 
+    # CAPABILITY: system.governance.discover_checks
     def discover_checks(self) -> List[Tuple[str, Callable[[], List[AuditFinding]]]]:
         """
         Discover check methods from modules in the 'checks' directory.
@@ -63,6 +66,7 @@ class CheckDiscovery:
         discovered_checks.sort(key=lambda item: item[0].split(":")[0])
         return discovered_checks
 
+    # CAPABILITY: system.proposal.initialize_dependencies
     def _initialize_proposal_dependencies(self) -> dict:
         """
         Initialize proposal-related dependencies for dependency injection.
@@ -88,6 +92,7 @@ class CheckDiscovery:
             log.warning(f"Could not initialize proposal dependencies: {e}")
             return {}
 
+    # CAPABILITY: system.governance.discover_checks
     def _process_check_file(
         self, check_file: Path, proposal_dependencies: dict
     ) -> List[Tuple[str, Callable[[], List[AuditFinding]]]]:
@@ -127,6 +132,7 @@ class CheckDiscovery:
 
         return checks_from_file
 
+    # CAPABILITY: system.governance.check.instantiate
     def _instantiate_check_class(
         self, class_name: str, class_obj: type, proposal_dependencies: dict
     ):
@@ -153,6 +159,7 @@ class CheckDiscovery:
             )
             return None
 
+    # CAPABILITY: system.governance.discover_checks
     def _extract_check_methods(
         self, check_instance, check_file: Path
     ) -> List[Tuple[str, Callable[[], List[AuditFinding]]]]:

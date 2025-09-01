@@ -15,9 +15,11 @@ from system.tools.models import FunctionInfo  # <<< FIX: Import from the new mod
 log = getLogger(__name__)
 
 
+# CAPABILITY: tooling.pattern_matcher.identify_entry_points
 class PatternMatcher:
     """Applies declarative patterns to a list of symbols to identify entry points."""
 
+    # CAPABILITY: tooling.pattern_matcher.initialize
     def __init__(self, patterns: List[Dict[str, Any]], root_path: Path):
         """
         Initialize the PatternMatcher with a set of rules.
@@ -29,6 +31,7 @@ class PatternMatcher:
         self.patterns: List[Dict[str, Any]] = patterns
         self.root_path: Path = root_path
 
+    # CAPABILITY: tooling.pattern_matcher.identify_entry_points
     def apply_patterns(self, functions: Dict[str, FunctionInfo]) -> None:
         """
         Apply configured patterns to identify entry points in function symbols.
@@ -55,6 +58,7 @@ class PatternMatcher:
                     )
                     break
 
+    # CAPABILITY: tooling.pattern_matcher.match_symbol
     def _is_match(
         self,
         info: FunctionInfo,

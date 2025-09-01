@@ -23,6 +23,7 @@ app = typer.Typer(
 )
 
 
+# CAPABILITY: system.yaml.load_file
 def _load_yaml(file_path: str) -> Dict[str, Any]:
     """Load YAML content from a file.
 
@@ -39,12 +40,14 @@ def _load_yaml(file_path: str) -> Dict[str, Any]:
     return load_yaml_file(file_path)
 
 
+# CAPABILITY: system.file.load_json
 def _load_json(path: Path) -> dict:
     """Loads and returns a JSON dictionary from the specified file path."""
     with path.open("r", encoding="utf-8") as f:
         return json.load(f)
 
 
+# CAPABILITY: validation.yaml.validate_schema
 def _check(pair: Tuple[Path, Path]) -> str | None:
     """Validates a YAML file against a JSON Schema, returning an error message if validation fails or files are missing, or None if successful."""
     yml_path, schema_path = pair
@@ -64,6 +67,7 @@ def _check(pair: Tuple[Path, Path]) -> str | None:
 
 
 @app.command("run")
+# CAPABILITY: audit.check.intent_schema
 def run(
     mind_path: Path = typer.Option(
         Path(".intent"), "--mind-path", help="Path to the .intent directory."

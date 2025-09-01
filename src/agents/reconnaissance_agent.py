@@ -16,9 +16,11 @@ log = getLogger("recon_agent")
 SYMBOL_REGEX = re.compile(r"\b([A-Z][A-Za-z0-9_]+|`[a-zA-Z0-9_./]+`)\b")
 
 
+# CAPABILITY: agent.reconnaissance.query_knowledge_graph
 class ReconnaissanceAgent:
     """Queries the knowledge graph to build a focused context for a task."""
 
+    # CAPABILITY: agents.reconnaissance.initialize
     def __init__(self, knowledge_graph: Dict[str, Any]):
         """Initializes with the full knowledge graph."""
         self.graph = knowledge_graph
@@ -70,6 +72,7 @@ class ReconnaissanceAgent:
         log.info(f"   -> Generated Surgical Context Report:\n{report}")
         return report
 
+    # CAPABILITY: agent.reconnaissance.find_symbol_data
     def _find_symbol_data(self, symbol_name: str) -> Dict | None:
         """Finds the main data entry for a symbol by name or key."""
         for key, data in self.symbols.items():
@@ -77,6 +80,7 @@ class ReconnaissanceAgent:
                 return data
         return None
 
+    # CAPABILITY: reconnaissance.symbol.find_callers
     def _find_callers(self, symbol_name: str) -> List[Dict]:
         """Finds all symbols in the graph that call the target symbol."""
         return [

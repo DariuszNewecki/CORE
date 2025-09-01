@@ -11,9 +11,11 @@ import ast
 from system.governance.models import AuditFinding, AuditSeverity
 
 
+# CAPABILITY: audit.check.code_style
 class StyleChecks:
     """Container for code style and convention constitutional checks."""
 
+    # CAPABILITY: audit.check.style.initialize
     def __init__(self, context):
         """Initializes the check with a shared auditor context."""
         self.context = context

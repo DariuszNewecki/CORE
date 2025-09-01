@@ -10,9 +10,11 @@ from collections import defaultdict
 from system.governance.models import AuditFinding, AuditSeverity
 
 
+# CAPABILITY: audit.check.architecture_integrity
 class ArchitectureChecks:
     """Container for architectural integrity checks."""
 
+    # CAPABILITY: system.governance.checks.initialize
     def __init__(self, context):
         """Initializes the check with a shared auditor context."""
         self.context = context

@@ -23,6 +23,7 @@ from .audit_context import AuditorContext
 log = getLogger(__name__)
 
 
+# CAPABILITY: audit.execute.full
 class AuditExecutor:
     """Handles the execution of constitutional audit checks."""
 
@@ -39,6 +40,7 @@ class AuditExecutor:
             if cleaned_s := s.strip():
                 log.info(cleaned_s)
 
+    # CAPABILITY: system.audit.executor.initialize
     def __init__(self, context: AuditorContext):
         """
         Initialize the audit executor.
@@ -51,6 +53,7 @@ class AuditExecutor:
             file=self._LoggingBridge(), force_terminal=True, color_system="auto"
         )
 
+    # CAPABILITY: audit.execute.checks
     def execute_checks(self, checks: List[Tuple[str, Callable]]) -> List[AuditFinding]:
         """
         Execute all provided audit checks and collect findings.
@@ -86,6 +89,7 @@ class AuditExecutor:
 
         return findings
 
+    # CAPABILITY: system.audit.log_finding
     def _log_finding(self, finding: AuditFinding) -> None:
         """
         Log an individual audit finding with appropriate severity level.
@@ -101,6 +105,7 @@ class AuditExecutor:
             case AuditSeverity.SUCCESS:
                 log.info(f"✅ {finding.message}")
 
+    # CAPABILITY: audit.report.final_status
     def report_final_status(
         self, findings: List[AuditFinding], passed: bool, symbols_list: list
     ) -> None:

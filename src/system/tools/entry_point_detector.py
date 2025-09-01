@@ -11,14 +11,17 @@ from typing import Optional, Set
 from system.tools.config.builder_config import BuilderConfig
 
 
+# CAPABILITY: tooling.entry_point.detect
 class EntryPointDetector:
     """Detects various types of entry points (CLI, FastAPI, etc.)."""
 
+    # CAPABILITY: tooling.entry_point_detector.initialize
     def __init__(self, config: BuilderConfig):
         """Initializes the EntryPointDetector with the builder configuration."""
         self.cli_entry_points = config.cli_entry_points.copy()
         self.fastapi_app_name: Optional[str] = None
 
+    # CAPABILITY: tooling.ast.detect_fastapi_app
     def detect_fastapi_app_name(self, tree: ast.AST) -> None:
         """Scan AST tree to find FastAPI app instance name."""
         for node in ast.walk(tree):
@@ -32,6 +35,7 @@ class EntryPointDetector:
                 self.fastapi_app_name = node.targets[0].id
                 break
 
+    # CAPABILITY: tooling.entry_point.detect_main_calls
     def detect_main_block_calls(self, tree: ast.AST) -> Set[str]:
         """Find function calls in if __name__ == '__main__' blocks."""
         main_block_entries = set()
@@ -53,10 +57,12 @@ class EntryPointDetector:
 
         return main_block_entries
 
+    # CAPABILITY: tooling.cli.update_entry_points
     def update_cli_entry_points(self, additional_points: Set[str]) -> None:
         """Add newly discovered CLI entry points."""
         self.cli_entry_points.update(additional_points)
 
+    # CAPABILITY: tooling.entry_point.detect_type
     def get_entry_point_type(
         self, node: ast.FunctionDef | ast.AsyncFunctionDef
     ) -> Optional[str]:
