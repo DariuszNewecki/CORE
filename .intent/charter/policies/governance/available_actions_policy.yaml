@@ -13,6 +13,16 @@ review:
   frequency: "annual"
 
 actions:
+  # --- THIS IS THE FIX ---
+  - name: "read_file"
+    description: "Reads the entire content of a specified file to provide context for subsequent steps."
+    required_parameters: ["file_path"]
+
+  - name: "edit_file"
+    description: "Performs a surgical replacement of a block of code within an existing file."
+    required_parameters: ["file_path", "start_line", "end_line", "new_content"]
+  # --- END OF FIX ---
+
   - name: "create_file"
     description: "Creates a new source code or documentation file at a specified path with the given content."
     required_parameters: ["file_path", "code"]
