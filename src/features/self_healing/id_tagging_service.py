@@ -52,9 +52,12 @@ def assign_missing_ids(dry_run: bool = True) -> int:
                     tag_line_index = node.lineno - 2
                     has_id = False
                     if 0 <= tag_line_index < len(source_lines):
-                        line_above = source_lines[tag_line_index].strip()
-                        if line_above.startswith("# ID:"):
+                        line_above = source_lines[tag_line_index]
+                        # --- THIS IS THE FIX ---
+                        # Use .strip() to correctly find indented ID tags.
+                        if line_above.strip().startswith("# ID:"):
                             has_id = True
+                        # --- END OF FIX ---
 
                     if not has_id:
                         # Found a public symbol that needs an ID

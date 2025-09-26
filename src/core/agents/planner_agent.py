@@ -24,6 +24,7 @@ from shared.utils.parsing import extract_json_from_response
 log = getLogger(__name__)
 
 
+# ID: 8a33ab90-80db-4455-b1b8-636405897ced
 class PlannerAgent:
     """Decomposes goals into executable plans."""
 
@@ -67,6 +68,7 @@ class PlannerAgent:
         except Exception:
             log.warning("Could not serialize plan to JSON for logging.")
 
+    # ID: b918335b-60af-4132-a944-88628a3caa66
     async def create_execution_plan(
         self, goal: str, reconnaissance_report: str
     ) -> List[ExecutionTask]:

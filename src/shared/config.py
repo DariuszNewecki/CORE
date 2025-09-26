@@ -16,6 +16,7 @@ log = getLogger("core.config")
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
+# ID: 07a85609-ecab-4168-a4dd-dc9112f974d3
 class Settings(BaseSettings):
     """
     The single, canonical source of truth for all CORE configuration.
@@ -73,6 +74,7 @@ class Settings(BaseSettings):
             return json.loads(content) or {}
         raise ValueError(f"Unsupported config file type: {file_path}")
 
+    # ID: 8e9be503-e7c9-4afb-a6a5-385750ec91cf
     def get_path(self, logical_path: str) -> Path:
         """
         Gets the absolute path to a constitutional file using its logical,
@@ -91,6 +93,7 @@ class Settings(BaseSettings):
                 f"Logical path '{logical_path}' not found or invalid in meta.yaml."
             )
 
+    # ID: 08272f29-c9c9-4c54-8253-b7fea9938050
     def load(self, logical_path: str) -> Dict[str, Any]:
         """
         Loads and parses a constitutional YAML/JSON file using its logical path.

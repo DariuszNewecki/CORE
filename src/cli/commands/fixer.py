@@ -23,6 +23,7 @@ from features.self_healing.docstring_service import fix_docstrings
 from features.self_healing.header_service import _run_header_fix_cycle
 from features.self_healing.id_tagging_service import assign_missing_ids
 from features.self_healing.linelength_service import fix_line_lengths
+from features.self_healing.policy_id_service import add_missing_policy_ids
 from features.self_healing.prune_orphaned_vectors import (
     main_sync as prune_orphaned_vectors,
 )
@@ -145,12 +146,9 @@ def fix_tags_cmd_wrapper(
                     symbol_data = graph["symbols"][new_info["key"]]
                     line_to_tag = symbol_data["line_number"] - 1
 
-                    # --- THIS IS THE FIX ---
-                    # Remove the unused variable 'indentation_spaces'
                     original_line = lines[line_to_tag]
                     indentation = len(original_line) - len(original_line.lstrip(" "))
-                    tag_line = f"{' ' * indentation}# ID: {suggested_name}"  # Corrected to use ID
-                    # --- END OF FIX ---
+                    tag_line = f"{' ' * indentation}# ID: {suggested_name}"
 
                     lines.insert(line_to_tag, tag_line)
                     source_file_path.write_text(
@@ -238,6 +236,34 @@ def assign_ids_command(
         console.print(
             "\n[bold]NEXT STEP:[/bold] Run 'poetry run core-admin knowledge sync --write' to update the database."
         )
+
+
+# --- THIS IS THE NEW COMMAND ---
+@fix_app.command(
+    "policy-ids", help="Adds a UUID to all policy files that are missing one."
+)
+# ID: 81a2b3c4-d5e6-f7a8-b9c0-d1e2f3a4b5c6
+def fix_policy_ids_command(
+    write: bool = typer.Option(
+        False, "--write", help="Apply the changes and add new IDs to policy files."
+    ),
+):
+    """CLI wrapper for the policy ID migration service."""
+    dry_run = not write
+    total_updated = add_missing_policy_ids(dry_run=dry_run)
+
+    console.print("\n--- Policy ID Migration Complete ---")
+    if dry_run:
+        console.print(f"💧 DRY RUN: Found {total_updated} policies that need a UUID.")
+        console.print("   Run with '--write' to apply these changes.")
+    else:
+        console.print(f"✅ APPLIED: Successfully updated {total_updated} policies.")
+        console.print(
+            "\n[bold]NEXT STEP:[/bold] Run 'poetry run core-admin check ci audit' to verify constitutional compliance."
+        )
+
+
+# --- END OF NEW COMMAND ---
 
 
 # ID: a119b740-e2ef-4386-9ef1-ac607e4128e2

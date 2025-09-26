@@ -40,6 +40,7 @@ charter:
       available_actions_policy: "charter/policies/governance/available_actions_policy.yaml"
       cli_governance_policy: "charter/policies/governance/cli_governance_policy.yaml"
       enforcement_model_policy: "charter/policies/governance/enforcement_model_policy.yaml"
+      intent_crate_policy: "charter/policies/governance/intent_crate_policy.yaml"  # <-- ADDED
       intent_guard_policy: "charter/policies/governance/intent_guard_policy.yaml"
       knowledge_source_policy: "charter/policies/governance/knowledge_source_policy.yaml"
       reporting_policy: "charter/policies/governance/reporting_policy.yaml"
@@ -65,6 +66,7 @@ charter:
       
     constitutional:
       intent_bundle_schema: "charter/schemas/constitutional/intent_bundle_schema.json"
+      intent_crate_schema: "charter/schemas/constitutional/intent_crate_schema.json"  # <-- ADDED
       proposal_schema: "charter/schemas/constitutional/proposal_schema.json"
 
     data:
@@ -115,5 +117,5 @@ mind:
     planner_agent: "mind/prompts/planner_agent.prompt"
     refactor_for_clarity: "mind/prompts/refactor_for_clarity.prompt"
     refactor_outlier: "mind/prompts/refactor_outlier.prompt"
-    standard_task_generator: "mind/prompts/standard_task_generator.prompt" # <-- ADD THIS LINE
+    standard_task_generator: "mind/prompts/standard_task_generator.prompt"
     vectorizer: "mind/prompts/vectorizer.prompt"

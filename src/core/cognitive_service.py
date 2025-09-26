@@ -24,6 +24,7 @@ from shared.utils.embedding_utils import _Adapter, chunk_and_embed
 log = getLogger(__name__)
 
 
+# ID: aa34ec94-6843-45c5-8558-a9dcd34e60f3
 class CognitiveService:
     """Manages the lifecycle and provision of role-based LLM clients."""
 
@@ -85,6 +86,7 @@ class CognitiveService:
                 f"Loaded {len(self._roles_map)} roles and {len(self._resources_map)} resources from DB."
             )
 
+    # ID: 62a17551-c92a-43bd-8544-58fc5ab07468
     async def get_client_for_role(
         self, role_name: str, task_context: Dict[str, Any] | None = None
     ) -> BaseLLMClient:
@@ -133,6 +135,7 @@ class CognitiveService:
         )
         return client
 
+    # ID: 482c11b6-9d96-4c1c-b680-fdb00ea7cb0b
     async def get_embedding_for_code(self, source_code: str) -> List[float]:
         """
         Gets a vector embedding for a piece of source code using the 'Vectorizer' role.
@@ -146,6 +149,7 @@ class CognitiveService:
             log.error(f"Failed to generate embedding: {e}", exc_info=True)
             raise
 
+    # ID: a0c7430d-93ee-4cd2-9bc3-3dbf399bf848
     async def search_capabilities(
         self, query: str, limit: int = 5
     ) -> List[Dict[str, Any]]:

@@ -4,8 +4,13 @@
   "title": "CORE Policy",
   "description": "The canonical schema for all constitutional policy files in .intent/charter/policies/.",
   "type": "object",
-  "required": ["id", "version", "title", "purpose", "status", "owners", "review"],
+  "required": ["policy_id", "id", "version", "title", "purpose", "status", "owners", "review"],
   "properties": {
+    "policy_id": {
+      "type": "string",
+      "description": "A unique and stable UUID for this policy document.",
+      "pattern": "^[0-9a-fA-F]{8}-([0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}$"
+    },
     "id": {
       "type": "string",
       "description": "The unique, snake_case identifier for the policy, matching the file name (e.g., 'agent_policy').",
