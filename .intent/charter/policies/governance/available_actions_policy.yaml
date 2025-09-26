@@ -1,0 +1,34 @@
+id: available_actions_policy
+version: "1.0.0"
+title: "Available Actions Policy"
+status: active
+purpose: >
+  Defines the canonical list of atomic actions that the PlannerAgent is
+  constitutionally permitted to include in an execution plan.
+scope:
+  applies_to: [agents, planner_agent]
+owners:
+  accountable: "Core Maintainer"
+review:
+  frequency: "annual"
+
+actions:
+  - name: "create_file"
+    description: "Creates a new source code or documentation file at a specified path with the given content."
+    required_parameters: ["file_path", "code"]
+  
+  - name: "edit_function"
+    description: "Surgically replaces the code of an existing function or class within a file."
+    required_parameters: ["file_path", "symbol_name", "code"]
+
+  - name: "delete_file"
+    description: "Deletes an existing file from the repository."
+    required_parameters: ["file_path"]
+
+  - name: "create_proposal"
+    description: "Creates a formal, human-in-the-loop constitutional amendment proposal (a cr-*.yaml file)."
+    required_parameters: ["file_path", "justification", "code"]
+    
+  - name: "add_capability_tag"
+    description: "Adds a new # ID tag to a specific function or class. (Note: This is a legacy action, prefer 'fix assign-ids')."
+    required_parameters: ["file_path", "symbol_name", "tag"]

@@ -1,0 +1,32 @@
+id: dev_fastpath_policy
+version: "1.0.0"
+title: Developer Fastpath Policy
+purpose: >
+  Allow fast, local feedback loops for developers while preserving safety via CI hard gates.
+scope:
+  applies_to:
+    - developers
+    - cli
+    - ci
+owners:
+  primary: ["DX Lead"]
+  reviewers: ["Governance Lead"]
+review:
+  frequency: "12 months"
+
+rules:
+  thresholds:
+    max_changed_files: 20
+    allow_intent_changes: false
+  required_checks:
+    - syntax
+    - linter
+    - formatter
+  disallowed_paths:
+    - ".intent/**"
+    - "src/system/governance/**"
+
+checklist:
+  - Pre-commit runs syntax + linter + formatter on changed files (< thresholds).
+  - Pre-push runs a mini-audit; CI enforces full auditor run.
+  - Any change under .intent/** or governance/** bypasses fastpath and triggers full checks.

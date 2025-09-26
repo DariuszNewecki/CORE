@@ -20,7 +20,7 @@ pipeline = PromptPipeline(repo_path=REPO_PATH)
 file_handler = FileHandler(str(REPO_PATH))
 
 
-# CAPABILITY: self_correction
+# ID: c60020bd-5910-406e-ae64-ca227982142d
 def attempt_correction(
     failure_context: dict, cognitive_service: CognitiveService
 ) -> dict:

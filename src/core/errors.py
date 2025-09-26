@@ -15,18 +15,20 @@ from shared.logger import getLogger
 log = getLogger("core_api.errors")
 
 
-# CAPABILITY: core.errors.register_handlers
+# ID: 08e2d78e-754e-4050-a426-dcca66d5319c
 def register_exception_handlers(app):
     """Registers custom exception handlers with the FastAPI application."""
 
     @app.exception_handler(StarletteHTTPException)
+    # ID: f3baf803-cdab-47ae-8a50-2f612e783819
     async def http_exception_handler(request: Request, exc: StarletteHTTPException):
         """
         Handles FastAPI's built-in HTTP exceptions to ensure consistent
         JSON error responses.
         """
         log.warning(
-            f"HTTP Exception: {exc.status_code} {exc.detail} for request: {request.method} {request.url.path}"
+            f"HTTP Exception: {exc.status_code} {exc.detail} for request: "
+            f"{request.method} {request.url.path}"
         )
         return JSONResponse(
             status_code=exc.status_code,
@@ -34,6 +36,7 @@ def register_exception_handlers(app):
         )
 
     @app.exception_handler(Exception)
+    # ID: 37d3d6d4-048d-4a31-9e02-93f3a7ddf5bc
     async def unhandled_exception_handler(request: Request, exc: Exception):
         """
         Catches any unhandled exception, logs the full traceback internally,

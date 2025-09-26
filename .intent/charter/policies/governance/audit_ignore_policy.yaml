@@ -1,0 +1,54 @@
+id: audit_ignore_policy
+version: "1.0.0"
+title: "Audit Ignore Policy"
+status: active
+purpose: >
+  To allow narrow, explicit exceptions for files or symbols to reduce audit noise
+  without weakening the Constitution. Every ignore must have a reason and an expiry date.
+scope:
+  applies_to: [governance, ci]
+owners:
+  accountable: "Core Maintainer"
+review:
+  frequency: "semiannual"
+
+rules:
+  - id: ignore.must_expire
+    statement: Every ignore MUST include an 'expires' date to force review.
+    enforcement: warn
+  - id: ignore.must_have_reason
+    statement: Every ignore MUST include a reason.
+    enforcement: error
+
+ignores:
+  - path: "src/**/generated/**"
+    reason: "Generated code; excluded from style/health checks."
+    expires: "2026-01-01"
+  - path: "vendor/**"
+    reason: "Third-party code; owned externally."
+    expires: "2026-01-01"
+
+symbol_ignores:
+  - key: "src/core/intent_guard.py::_get_rules_by_severity"
+    reason: "Internal helper method, not a public capability."
+    expires: "2026-01-01"
+  # --- START: Suppress high-noise duplication warnings after refactor ---
+  - key: "src/features/governance/checks/health_checks.py::HealthChecks"
+    reason: "Temporarily ignoring self-duplication warnings after major refactor."
+    expires: "2025-12-01"
+  - key: "src/features/governance/checks/style_checks.py::StyleChecks"
+    reason: "Temporarily ignoring self-duplication warnings after major refactor."
+    expires: "2025-12-01"
+  - key: "src/features/governance/checks/security_checks.py::SecurityChecks"
+    reason: "Temporarily ignoring self-duplication warnings after major refactor."
+    expires: "2025-12-01"
+  - key: "src/features/governance/checks/file_checks.py::FileChecks"
+    reason: "Temporarily ignoring self-duplication warnings after major refactor."
+    expires: "2025-12-01"
+  - key: "src/features/governance/checks/manifest_lint.py::ManifestLintCheck"
+    reason: "Temporarily ignoring self-duplication warnings after major refactor."
+    expires: "2025-12-01"
+  - key: "src/features/governance/checks/capability_coverage.py::CapabilityCoverageCheck"
+    reason: "Temporarily ignoring self-duplication warnings after major refactor."
+    expires: "2025-12-01"
+  # --- END: Suppress high-noise duplication warnings ---

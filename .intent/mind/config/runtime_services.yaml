@@ -1,0 +1,11 @@
+# This file declares all available runtime services and their concrete implementations.
+# It is the single source of truth for the system's service layer.
+services:
+  - name: "knowledge_service"
+    implementation: "core.knowledge_service.KnowledgeService"
+  - name: "cognitive_service"
+    implementation: "core.cognitive_service.CognitiveService"
+  - name: "qdrant_service"
+    implementation: "services.clients.qdrant_client.QdrantService"
+  - name: "auditor"
+    implementation: "features.governance.constitutional_auditor.ConstitutionalAuditor"

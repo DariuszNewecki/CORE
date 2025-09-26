@@ -11,37 +11,48 @@ import re
 from typing import Dict, List, Optional
 
 
-# CAPABILITY: shared.parsing.extract_json_response
+# ID: f2bd2480-f310-4090-ac1a-58ce05bfc4d3
 def extract_json_from_response(text: str) -> Optional[Dict | List]:
     """
     Extracts a JSON object or array from a raw text response.
     Handles markdown code blocks (```json) and raw JSON.
     Returns None if no valid JSON is found.
     """
-    # Pattern for JSON within a markdown block
-    match = re.search(r"```json\s*(\{[\s\S]*?\}|\[[\s\S]*?\])\s*```", text, re.DOTALL)
+    # Pattern for JSON within a markdown block, now more lenient
+    match = re.search(
+        r"```(json)?\s*(\{[\s\S]*?\}|\[[\s\S]*?\])\s*```", text, re.DOTALL
+    )
     if match:
+        # Group 2 will contain the JSON object or array
+        json_str = match.group(2)
         try:
-            return json.loads(match.group(1))
+            return json.loads(json_str)
         except json.JSONDecodeError:
-            pass
-    try:
-        start_index = text.find("{")
-        if start_index == -1 or (text.find("[") != -1 and text.find("[") < start_index):
-            start_index = text.find("[")
+            pass  # Fall through to the next method if parsing fails
 
-        if start_index != -1:
-            decoder = json.JSONDecoder()
-            obj, _ = decoder.raw_decode(text[start_index:])
-            return obj
+    # Fallback: Find the first '{' or '[' and try to parse from there
+    try:
+        start_brace = text.find("{")
+        start_bracket = text.find("[")
+
+        if start_brace == -1 and start_bracket == -1:
+            return None
+
+        if start_brace != -1 and (start_bracket == -1 or start_brace < start_bracket):
+            start_index = start_brace
+        else:
+            start_index = start_bracket
+
+        decoder = json.JSONDecoder()
+        obj, _ = decoder.raw_decode(text[start_index:])
+        return obj
     except (json.JSONDecodeError, ValueError):
         pass
 
     return None
 
 
-# --- THIS IS THE NEW, MISSING FUNCTION ---
-# CAPABILITY: code.parsing.extract_write_blocks
+# ID: 853be68b-f2d4-4494-bf4c-98200bc08026
 def parse_write_blocks(text: str) -> Dict[str, str]:
     """
     Parses a string for one or more [[write:file_path]]...[[/write]] blocks.

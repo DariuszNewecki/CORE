@@ -1,0 +1,80 @@
+# .intent/knowledge/entry_point_patterns.yaml
+#
+# A declarative set of rules for the KnowledgeGraphBuilder to identify valid
+# system entry points that are not discoverable through simple call-graph analysis.
+# This prevents the auditor from incorrectly flagging valid code as "dead."
+
+patterns:
+  - name: "python_magic_method"
+    description: "Standard Python __dunder__ methods are entry points called by the interpreter."
+    match:
+      type: "function"
+      name_regex: "^__.+__$"
+    entry_point_type: "magic_method"
+
+  - name: "ast_visitor_method"
+    description: "Methods in ast.NodeVisitor subclasses starting with 'visit_' are entry points for the visitor pattern."
+    match:
+      type: "function"
+      name_regex: "^visit_"
+      base_class_includes: "NodeVisitor"
+    entry_point_type: "visitor_method"
+
+  - name: "capability_implementation"
+    description: "Any symbol tagged with a # CAPABILITY is a primary entry point for the CORE system's reasoning loop."
+    match:
+      has_capability_tag: true
+    entry_point_type: "capability"
+    
+  - name: "typer_cli_command"
+    description: "Functions registered as Typer CLI commands are valid entry points called by the user."
+    match:
+      # This is a heuristic. A more robust check might look for specific decorators,
+      # but for our project, checking the module path is very effective.
+      module_path_contains: "src/system/admin"
+      is_public_function: true # i.e., does not start with an underscore
+    entry_point_type: "cli_command"
+
+  # --- THIS IS THE FIX ---
+  - name: "core_tooling_component"
+    description: "Classes within the internal tooling directory are considered essential system components and are always live."
+    match:
+      type: "class"
+      module_path_contains: "src/system/tools"
+    entry_point_type: "core_tool"
+  # --- END OF FIX ---
+
+  - name: "framework_base_class"
+    description: "Classes that other components inherit from are valid entry points."
+    match:
+      type: "class"
+      is_base_class: true
+    entry_point_type: "base_class"
+
+  - name: "pydantic_model"
+    description: "Pydantic models are data structures, not callable code, and are valid entry points."
+    match:
+      type: "class"
+      base_class_includes: "BaseModel"
+    entry_point_type: "data_model"
+
+  - name: "pydantic_property"
+    description: "Functions decorated with @property in Pydantic models are data accessors, not callable logic."
+    match:
+      has_decorator: "property"
+      base_class_includes: "BaseSettings"
+    entry_point_type: "data_property"
+
+  - name: "enum_definition"
+    description: "Enum classes are data structures, not callable code, and are valid entry points."
+    match:
+      type: "class"
+      base_class_includes: "Enum"
+    entry_point_type: "enum"
+
+  - name: "dataclass_definition"
+    description: "Dataclasses are data structures, not callable code, and are valid entry points."
+    match:
+      type: "class"
+      has_decorator: "dataclass"
+    entry_point_type: "data_model"

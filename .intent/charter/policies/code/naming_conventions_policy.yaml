@@ -1,0 +1,86 @@
+# .intent/charter/policies/naming_conventions_policy.yaml
+id: naming_conventions_policy
+version: "1.0.0"
+title: "Constitutional Naming Conventions"
+status: active
+purpose: >
+  To provide a single, machine-readable source of truth for all naming
+  conventions across the entire repository. This policy governs the structure of
+  the constitution itself (.intent/) and the codebase (src/), ensuring clarity
+  and predictability as the system evolves.
+
+scope:
+  applies_to: ["auditor", "repository"]
+
+owners:
+  accountable: "Core Maintainer"
+
+review:
+  frequency: "annual"
+
+rules:
+  # ==============================================================================
+  # PART 1: GOVERNANCE OF THE CONSTITUTION ITSELF (.intent/)
+  # ==============================================================================
+
+  - id: intent.policy_file_naming
+    description: "All policy files must use snake_case and end with '_policy.yaml'."
+    enforcement: error
+    scope: ".intent/charter/policies/*.yaml"
+    target: "filename"
+    pattern: "^[a-z0-9_]+_policy\\.yaml$"
+
+  - id: intent.policy_schema_naming
+    description: "Schemas for policy files must end with '_policy_schema.json'."
+    enforcement: error
+    scope: ".intent/charter/schemas/*_policy_schema.json"
+    target: "filename"
+    pattern: "^[a-z0-9_]+_policy_schema\\.json$"
+
+  - id: intent.artifact_schema_naming
+    description: "Schemas for non-policy artifacts must end with '_schema.[json|yaml]'."
+    enforcement: error
+    scope: ".intent/charter/schemas/*"
+    target: "filename"
+    pattern: "^[a-z0-9_]+_schema\\.(json|yaml)$"
+    exclusions:
+      - "*_policy_schema.json" # Exclude policy schemas to avoid rule conflict.
+
+  - id: intent.prompt_file_naming
+    description: "All prompt files must use snake_case and end with '.prompt'."
+    enforcement: error
+    scope: ".intent/mind/prompts/*.prompt"
+    target: "filename"
+    pattern: "^[a-z0-9_]+\\.prompt$"
+
+  - id: intent.proposal_file_naming
+    description: "All proposal files must follow the 'cr-*.yaml' naming convention."
+    enforcement: warn
+    scope: ".intent/proposals/*.yaml"
+    target: "filename"
+    pattern: "^cr-[a-zA-Z0-9_-]+\\.yaml$"
+    exclusions:
+      - "README.md" # The README is not a proposal.
+
+  # ==============================================================================
+  # PART 2: GOVERNANCE OF THE CODEBASE (src/ and tests/)
+  # ==============================================================================
+
+  - id: code.python_module_naming
+    description: "All Python source files must use snake_case naming."
+    enforcement: error
+    scope: "src/**/*.py"
+    target: "filename"
+    pattern: "^[a-z0-9_]+\\.py$"
+    exclusions:
+      - "__init__.py"
+
+  - id: code.python_test_module_naming
+    description: "All Python test files must be prefixed with 'test_'."
+    enforcement: error
+    scope: "tests/**/*.py"
+    target: "filename"
+    pattern: "^test_[a-z0-9_]+\\.py$"
+    exclusions:
+      - "__init__.py"
+      - "conftest.py"

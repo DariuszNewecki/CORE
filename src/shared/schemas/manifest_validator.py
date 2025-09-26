@@ -12,11 +12,13 @@ import jsonschema
 
 from shared.path_utils import get_repo_root
 
+# --- THIS IS THE FIX ---
 # The single source of truth for the location of constitutional schemas.
-SCHEMA_DIR = get_repo_root() / ".intent" / "schemas"
+SCHEMA_DIR = get_repo_root() / ".intent" / "charter" / "schemas"
+# --- END OF FIX ---
 
 
-# CAPABILITY: system.schema.load
+# ID: cfab52b8-8fed-4536-bc75-ed81a1161331
 def load_schema(schema_name: str) -> Dict[str, Any]:
     """
     Load a JSON schema from the .intent/schemas/ directory.
@@ -45,7 +47,7 @@ def load_schema(schema_name: str) -> Dict[str, Any]:
         )
 
 
-# CAPABILITY: audit.check.manifest_entry
+# ID: 047e2cb8-1e18-4175-9be2-1017a2fba3d7
 def validate_manifest_entry(
     entry: Dict[str, Any], schema_name: str = "knowledge_graph_entry.schema.json"
 ) -> Tuple[bool, List[str]]:

@@ -1,0 +1,24 @@
+id: cli_governance_policy
+version: "1.0.0"
+title: "CLI Governance Policy"
+status: active
+purpose: >
+  To govern the structure, registration, and evolution of all commands
+  exposed via the core-admin CLI, ensuring clarity and safety.
+scope:
+  applies_to: [cli, auditor]
+owners:
+  accountable: "Core Maintainer"
+review:
+  frequency: "annual"
+
+rules:
+  - id: cli.must_be_registered
+    statement: "All CLI commands MUST be declaratively registered in '.intent/mind/knowledge/cli_registry.yaml'."
+    enforcement: error
+  - id: cli.must_have_summary
+    statement: "Every registered CLI command MUST have a concise summary for help text."
+    enforcement: warn
+  - id: cli.must_implement_capability
+    statement: "Every CLI command SHOULD implement at least one semantic capability."
+    enforcement: warn

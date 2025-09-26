@@ -1,0 +1,24 @@
+id: code_health_policy
+version: "1.0.0"
+title: "Code Health Policy"
+status: active
+purpose: >
+  To maintain small, focused modules and functions, limit complexity, and encourage
+  refactoring before entropy accumulates.
+scope:
+  applies_to: [code, agents, auditor]
+owners:
+  accountable: "Core Maintainer"
+review:
+  frequency: "semiannual"
+
+rules:
+  max_cognitive_complexity: 15
+  max_nesting_depth: 4
+  max_line_length:
+    limit: 120
+    enforcement: soft
+  max_module_lloc: 300
+  max_function_lloc: 80
+  outlier_standard_deviations: 2.0
+  enforce_dead_public_symbols: true

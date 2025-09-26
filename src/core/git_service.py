@@ -18,33 +18,27 @@ from shared.logger import getLogger
 log = getLogger(__name__)
 
 
-# CAPABILITY: change_safety_enforcement
+# ID: c1c9c30d-f864-4d43-8e12-d5263e52c15c
 class GitService:
     """Provides basic git operations for agents and services."""
 
-    # --- THIS IS THE FIX ---
-    # We added a clear docstring and a capability tag.
-    # CAPABILITY: system.git.initialize
     def __init__(self, repo_path: str | Path):
         """
         Initializes the GitService and validates the repository path.
         """
         self.repo_path = Path(repo_path).resolve()
-        # --- END OF FIX ---
 
         git_dir = self.repo_path / ".git"
         if not git_dir.exists():
-            # tests expect a ValueError when .git is missing
             raise ValueError(f"Not a git repository ('.git' missing): {self.repo_path}")
         log.info(f"GitService initialized for repo at {self.repo_path}")
 
-    # CAPABILITY: system.git.execute_command
     def _run_command(self, command: list[str]) -> str:
         """Runs a git command and returns stdout; raises RuntimeError on failure."""
         try:
             log.debug(f"Running git command: {' '.join(command)}")
             result = subprocess.run(
-                command,
+                ["git", *command],  # Corrected to prepend git to the command list
                 cwd=self.repo_path,
                 capture_output=True,
                 text=True,
@@ -52,40 +46,53 @@ class GitService:
             )
             return result.stdout.strip()
         except subprocess.CalledProcessError as e:
-            # Include stderr or stdout so errors like "nothing added to commit" are visible
             msg = e.stderr or e.stdout or ""
             log.error(f"Git command failed: {msg}")
             raise RuntimeError(f"Git command failed: {msg}") from e
 
-    # --- Basic ops ------------------------------------------------------------
+    # --- START: AMENDMENT ---
+    # ID: eed906a4-ba54-4af9-94fe-9865d6906c96
+    def get_staged_files(self) -> list[str]:
+        """Returns a list of files that are currently staged for commit."""
+        try:
+            # --diff-filter=ACMR means Added, Copied, Modified, Renamed
+            # This gives us a reliable list of files with substantive changes.
+            output = self._run_command(
+                ["diff", "--cached", "--name-only", "--diff-filter=ACMR"]
+            )
+            if not output:
+                return []
+            return output.splitlines()
+        except RuntimeError:
+            # This can happen if there's no initial commit yet, which is a valid state.
+            return []
 
-    # CAPABILITY: system.git.detect_repository
+    # --- END: AMENDMENT ---
+
+    # ID: 8d60714d-0214-48a9-be5b-9011e53ad93e
     def is_git_repo(self) -> bool:
         """Returns True if a '.git' directory exists (lightweight check for tests)."""
         return (self.repo_path / ".git").exists()
 
-    # CAPABILITY: system.git.status_porcelain
+    # ID: b5420530-081f-4fa8-9754-5a00bedd5924
     def status_porcelain(self) -> str:
         """Returns the porcelain status output."""
-        return self._run_command(["git", "status", "--porcelain"])
+        return self._run_command(["status", "--porcelain"])
 
-    # CAPABILITY: system.git.add
+    # ID: 5f740625-7aa7-4755-9fcd-f464ae852b2f
     def add(self, file_path: str = ".") -> None:
         """Stages a file (or path)."""
-        self._run_command(["git", "add", file_path])
+        self._run_command(["add", file_path])
 
-    # CAPABILITY: system.git.add_all
+    # ID: 2874a643-2e40-44f0-917f-a928484b2c67
     def add_all(self) -> None:
         """Stages all changes, including untracked files."""
-        self._run_command(["git", "add", "-A"])
+        self._run_command(["add", "-A"])
 
-    # CAPABILITY: system.git.commit
+    # ID: 55ed0386-16c1-458a-9b8f-f3ca0dc73696
     def commit(self, message: str) -> None:
         """
         Commits staged changes with the provided message.
-        Robust behavior:
-        - If there are changes but some are untracked, auto-stage everything.
-        - If there are no changes, exit gracefully.
         """
         try:
             status_output = self.status_porcelain()
@@ -93,18 +100,12 @@ class GitService:
                 log.info("No changes to commit.")
                 return
 
-            # Ensure untracked changes are staged as well (prevents common failure).
             self.add_all()
-            self._run_command(["git", "commit", "-m", message])
+            self._run_command(["commit", "-m", message])
             log.info(f"Committed changes with message: '{message}'")
         except RuntimeError as e:
             emsg = (str(e) or "").lower()
-            # Tolerate benign cases (nothing staged, etc.)
-            if (
-                "nothing to commit" in emsg
-                or "no changes added to commit" in emsg
-                or "untracked files present" in emsg
-            ):
+            if "nothing to commit" in emsg or "no changes added to commit" in emsg:
                 log.info("No changes staged. Skipping commit.")
                 return
             raise

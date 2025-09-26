@@ -1,0 +1,29 @@
+audit_checklist:
+  - id: declared_intent
+    item: "Was the intent declared before the change?"
+    required: true
+  - id: explanation
+    item: "Was the change explained or justified?"
+    required: true
+  - id: manifest_sync
+    item: "Did the change include a manifest update?"
+    required: true
+  - id: checkpoint
+    item: "Was a rollback plan or checkpoint created?"
+    required: false
+  - id: quality_verified
+    item: "Was code quality verified post-write?"
+    required: true
+  - id: audit.database_schema_declared
+    description: Database schema must be present and valid.
+    policy: "charter/policies/database_policy.yaml"
+  - id: quorum-evidence-for-risky-changes
+    title: "Quorum evidence recorded for medium/high risk"
+    applies_when:
+      risk_tier_in: ["medium", "high"]
+    require:
+      - "evidence.quorum.approvers"       # list of approvers
+      - "evidence.quorum.mode"            # development/staging/production
+      - "evidence.quorum.timestamp"       # ISO 8601
+    severity: "block"
+    guidance: "Attach the approver list and timestamp. Fails if missing."

@@ -15,7 +15,7 @@ import yaml
 Violation = Dict[str, Any]
 
 
-# CAPABILITY: validate_yaml_syntax_and_structure
+# ID: f3bbf4e9-71b5-4dad-8ad8-ee93b90dd8c0
 def validate_yaml_code(code: str) -> Tuple[str, List[Violation]]:
     """Validation pipeline for YAML code.
 

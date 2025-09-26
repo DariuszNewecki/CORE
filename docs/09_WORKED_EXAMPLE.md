@@ -1,103 +1,66 @@
-# Worked Example: Your First Governed Application
+FILE: docs/09_WORKED_EXAMPLE.md
+Worked Example: Your First Governed Application
+⏱️ Time: ~5 minutes
 
-⏱️ **Time: \~5 minutes**
+For New Users: See CORE in Action
+This demo creates a "Quote of the Day" API, intentionally breaks a rule, and shows CORE's auditor catching the violation. No experience needed — just follow the commands!
 
----
+Step 1: Create a New Application
+From the root of the CORE project, run the following command. This uses a built-in starter kit to scaffold a new, governed application in the work/ directory.
+bashpoetry run core-admin new quote-api --write
+Output:
+text✅ Successfully scaffolded 'quote-api' in 'work/'.
+What Happens: CORE builds a new project at work/quote-api/ complete with its own constitution (.intent/) and basic source code (src/).
 
-## For New Users: See CORE in Action
-
-This demo creates a **“Quote of the Day” API**, breaks a rule, and shows CORE fixing it.
-No experience needed — just follow the commands!
-
----
-
-## Step 1: Create a New Application
-
-From CORE root:
-
-```bash
-poetry run core-admin new quote-api --profile default
-# Output: Created work/quote-api/
-```
-
-**What Happens:** Builds `work/quote-api/` with `.intent/` (rules) and `src/` (code).
-
----
-
-## Step 2: See the Generated "Mind"
-
-Check `work/quote-api/.intent/source_structure.yaml`:
-
-```yaml
-structure:
+Step 2: See the Generated "Mind"
+Check the architectural rules for your new application. This file acts as a blueprint for your code, enforced by the auditor.
+File: work/quote-api/.intent/knowledge/source_structure.yaml
+yamlstructure:
   - domain: main
     path: src/main
+    description: "The primary domain for this application's core logic."
+    allowed_imports: [main, shared]
+  - domain: shared
+    path: src/shared
+    description: "Shared utilities and data models."
     allowed_imports: [shared]
-```
+Meaning: Code in the main domain is only allowed to import modules from shared or from within main itself. This prevents spaghetti code.
 
-**Meaning:** `main` domain can only import `shared`.
-
----
-
-## Step 3: Intentionally Violate the Constitution
-
-Edit `work/quote-api/src/main/api.py`:
-
-```python
-# src/main/api.py
+Step 3: Intentionally Violate the Constitution
+Now, let's break that rule. Edit the main API file to add a forbidden import and some logic that doesn't belong there (direct file I/O).
+Edit work/quote-api/src/main/api.py and add the following:
+python# work/quote-api/src/main/api.py
 import os  # ❌ Forbidden import!
 
 def log_quote_to_disk(quote: str):
     """Log a quote to disk."""
     with open("/tmp/quotes.log", "a") as f:
         f.write(quote + "\n")
-```
+Why is this wrong?
 
-**Why Wrong?** File I/O belongs in a **services domain**.
+Illegal Import: The main domain is not allowed to import os.
+Misplaced Responsibility: Direct file I/O is a side effect that should be handled in a dedicated services or shared domain, not in the main API logic.
 
-💡 *Screenshot Note*: Visualize this in your editor — `api.py` now has an error.
 
----
+Step 4: Run the Constitutional Audit
+Now, ask CORE to audit your new application. The system audit command acts as an AI architect, checking the code against the constitutional rules.
+bash# Run the audit from within your new project's directory
+cd work/quote-api
+poetry run core-admin system audit
+Expected Output:
+You will see the auditor fail with a clear error message:
+text[ERROR] 🚨 Domain Violation in src/main/api.py:
+        Forbidden import of 'os'. The 'main' domain is only allowed to import from: ['main', 'shared'].
+        This violates the 'separation_of_concerns' principle.
 
-## Step 4: Run the Constitutional Audit
+The Value Proposition
+You've just seen CORE do something a normal linter can't: it caught an architectural violation.
+By declaring your intent for how the system should be structured, you've empowered an AI partner to help you maintain that structure as the codebase evolves. This prevents architectural drift and keeps your project clean and maintainable over the long term.
 
-```bash
-poetry run core-admin byor-init work/quote-api
-```
+Next Steps
+Now that you've seen the auditor in action, try running the self-healing commands to fix other issues:
 
-**Output:**
+poetry run core-admin fix docstrings --write
+poetry run core-admin system format
 
-```
-[ERROR] 🚨 Domain Violation
-File: src/main/api.py
-Problem: Imported 'os' (not in allowed_imports)
-Rule: 'main' only imports 'shared'
-```
-
----
-
-## The Value Proposition
-
-CORE catches **architectural mistakes early**, unlike linters.
-
-**For experts:** Integrate with CI via `make audit`.
-
----
-
-## Troubleshooting
-
-* **Command fails?** Use `poetry shell` or check `.env` for keys.
-* **No errors?** Verify `reports/drift_report.json`.
-
----
-
-## Takeaways
-
-* Automated **governance saves time**.
-* **Next**: Try **BYOR** on your project.
-
----
-
-## Contribute
-
-Add a **test for this scenario**! See `CONTRIBUTING.md`.
+Explore the other documentation to learn more about CORE's capabilities.

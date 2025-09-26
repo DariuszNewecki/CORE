@@ -28,14 +28,16 @@ jobs:
           from jsonschema import validate, ValidationError
 
           repo = pathlib.Path(".")
+          # --- THIS IS THE FIX ---
+          # All paths now correctly point to the .intent/charter/ subdirectories.
           checks = [
-            (repo/".intent/policies/data_privacy.yaml",  repo/".intent/schemas/data_privacy_policy.schema.json"),
-            (repo/".intent/policies/data_retention.yaml", repo/".intent/schemas/data_retention_policy.schema.json"),
-            (repo/".intent/policies/canary_policy.yaml",  repo/".intent/schemas/canary_policy.schema.json"),
-            (repo/".intent/policies/agent_behavior_policy.yaml",  repo/".intent/schemas/agent_behavior_policy.schema.json"),
-            (repo/".intent/policies/enforcement_model.yaml",  repo/".intent/schemas/enforcement_model.schema.json"),
-            (repo/".intent/policies/intent_guard.yaml",  repo/".intent/schemas/intent_guard.schema.json"),
+            (repo/".intent/charter/policies/agent_policy.yaml",  repo/".intent/charter/schemas/agent_policy_schema.json"),
+            (repo/".intent/charter/policies/database_policy.yaml", repo/".intent/charter/schemas/database_policy_schema.json"),
+            (repo/".intent/charter/policies/canary_policy.yaml",  repo/".intent/charter/schemas/canary_policy_schema.json"),
+            (repo/".intent/charter/policies/enforcement_model_policy.yaml",  repo/".intent/charter/schemas/enforcement_model_schema.json"),
+            (repo/".intent/charter/policies/reporting_policy.yaml",  repo/".intent/charter/schemas/reporting_policy_schema.json"),
           ]
+          # --- END OF FIX ---
 
           errors = []
           for yml_path, schema_path in checks:

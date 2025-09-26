@@ -1,61 +1,29 @@
 # src/core/validation_policies.py
 """
-Policy-aware validation logic for enforcing safety and security policies from configuration files.
-
-This module handles loading safety policies from YAML configuration and scanning
-AST nodes for violations of those policies, including dangerous function calls
-and forbidden imports.
+Policy-aware validation logic for enforcing safety and security policies.
+This module is given pre-loaded policies and scans AST nodes for violations.
 """
-
 from __future__ import annotations
 
 import ast
 from pathlib import Path
-from typing import Any, Dict, List, Optional
-
-from shared.config_loader import load_config
-from shared.path_utils import get_repo_root
+from typing import Any, Dict, List
 
 Violation = Dict[str, Any]
 
 
-# CAPABILITY: validation.policy.enforce
+# ID: dcff1afd-963d-419c-8f66-31978115cfc9
 class PolicyValidator:
     """Handles policy-aware validation including safety checks and forbidden patterns."""
 
-    # CAPABILITY: core.validation_policies.initialize
-    def __init__(self) -> None:
-        """Initialize the policy validator with cached policies."""
-        self._safety_policies_cache: Optional[List[Dict]] = None
-
-    # CAPABILITY: validation.policy.load_safety
-    def _load_safety_policies(self) -> List[Dict]:
-        """Loads and caches the safety policies from the .intent directory.
-
-        Returns:
-            List of safety policy dictionaries loaded from YAML configuration
+    def __init__(self, safety_policy_rules: List[Dict]):
         """
-        if self._safety_policies_cache is None:
-            repo_root = get_repo_root()
-            policies_path = repo_root / ".intent" / "policies" / "safety_policies.yaml"
-            # --- THIS IS THE FIX ---
-            # The load_config function is now smarter and only needs the path.
-            # We remove the second argument, "yaml".
-            policy_data = load_config(policies_path)
-            # --- END OF FIX ---
-            self._safety_policies_cache = policy_data.get("rules", [])
-        return self._safety_policies_cache
+        Initialize the policy validator with pre-loaded safety policy rules.
+        """
+        self.safety_rules = safety_policy_rules
 
-    # CAPABILITY: core.ast.attribute_name_builder
     def _get_full_attribute_name(self, node: ast.Attribute) -> str:
-        """Recursively builds the full name of an attribute call.
-
-        Args:
-            node: AST Attribute node to process
-
-        Returns:
-            Full dotted name of the attribute (e.g., 'os.path.join')
-        """
+        """Recursively builds the full name of an attribute call."""
         parts = []
         current = node
         while isinstance(current, ast.Attribute):
@@ -65,27 +33,17 @@ class PolicyValidator:
             parts.insert(0, current.id)
         return ".".join(parts)
 
-    # CAPABILITY: audit.check.dangerous_patterns
     def _find_dangerous_patterns(
         self, tree: ast.AST, file_path: str
     ) -> List[Violation]:
-        """Scans the AST for calls and imports forbidden by safety policies.
-
-        Args:
-            tree: Parsed AST to scan
-            file_path: Path to the file being analyzed (for exclusion matching)
-
-        Returns:
-            List of violations found in the code
-        """
+        """Scans the AST for calls and imports forbidden by safety policies."""
         violations: List[Violation] = []
-        rules = self._load_safety_policies()
+        rules = self.safety_rules
 
         forbidden_calls = set()
         forbidden_imports = set()
 
         for rule in rules:
-            # Check if file is excluded from this rule
             exclude_patterns = [
                 p
                 for p in rule.get("scope", {}).get("exclude", [])
@@ -110,7 +68,6 @@ class PolicyValidator:
                 forbidden_imports.update(patterns)
 
         for node in ast.walk(tree):
-            # Check for dangerous function calls
             if isinstance(node, ast.Call):
                 full_call_name = ""
                 if isinstance(node.func, ast.Name):
@@ -127,7 +84,6 @@ class PolicyValidator:
                             "severity": "error",
                         }
                     )
-            # Check for forbidden imports
             elif isinstance(node, ast.Import):
                 for alias in node.names:
                     if alias.name.split(".")[0] in forbidden_imports:
@@ -151,20 +107,11 @@ class PolicyValidator:
                     )
         return violations
 
-    # CAPABILITY: audit.check.semantics
+    # ID: d6059c1e-83ab-4c9a-8ebf-e596fa79494d
     def check_semantics(self, code: str, file_path: str) -> List[Violation]:
-        """Runs all policy-aware semantic checks on a string of Python code.
-
-        Args:
-            code: The Python source code to analyze
-            file_path: Path to the file being analyzed
-
-        Returns:
-            List of policy violations found in the code
-        """
+        """Runs all policy-aware semantic checks on a string of Python code."""
         try:
             tree = ast.parse(code)
         except SyntaxError:
-            # Syntax errors are caught by check_syntax, so we can ignore them here.
             return []
         return self._find_dangerous_patterns(tree, file_path)

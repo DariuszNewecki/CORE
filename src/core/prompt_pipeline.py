@@ -23,14 +23,14 @@ import yaml
 MAX_FILE_SIZE_BYTES = 1 * 1024 * 1024
 
 
-# CAPABILITY: prompt_interpretation
+# ID: 55fc4bff-0f88-435c-b988-23861ee401e8
 class PromptPipeline:
     """
-    Processes and enriches user prompts by resolving directives like [[include:...]] and [[analysis:...]].
-    Ensures the LLM receives full context before generating code.
+    Processes and enriches user prompts by resolving directives like
+    [[include:...]] and [[analysis:...]]. Ensures the LLM receives full
+    context before generating code.
     """
 
-    # CAPABILITY: core.prompt_pipeline.initialize
     def __init__(self, repo_path: Path):
         """
         Initialize PromptPipeline with repository root.
@@ -46,65 +46,84 @@ class PromptPipeline:
         self.analysis_pattern = re.compile(r"\[\[analysis:(.+?)\]\]")
         self.manifest_pattern = re.compile(r"\[\[manifest:(.+?)\]\]")
 
-    # CAPABILITY: prompt.pipeline.replace_context
     def _replace_context_match(self, match: re.Match) -> str:
-        """Dynamically replaces a [[context:...]] regex match with file content or an error message if the file is missing, unreadable, or exceeds size limits."""
-        """Dynamically replaces a [[context:...]] regex match with file content or an error message."""
+        """
+        Dynamically replaces a [[context:...]] regex match with file content
+        or an error message if the file is missing, unreadable, or exceeds
+        size limits.
+        """
         file_path = match.group(1).strip()
         abs_path = self.repo_path / file_path
         if abs_path.exists() and abs_path.is_file():
             # --- FIX: Add file size check to prevent memory bloat ---
             if abs_path.stat().st_size > MAX_FILE_SIZE_BYTES:
-                return f"\n❌ Could not include {file_path}: File size exceeds 1MB limit.\n"
+                return (
+                    f"\n❌ Could not include {file_path}: "
+                    f"File size exceeds 1MB limit.\n"
+                )
             try:
-                return f"\n--- CONTEXT: {file_path} ---\n{abs_path.read_text(encoding='utf-8')}\n--- END CONTEXT ---\n"
+                content = abs_path.read_text(encoding="utf-8")
+                return (
+                    f"\n--- CONTEXT: {file_path} ---\n"
+                    f"{content}\n"
+                    f"--- END CONTEXT ---\n"
+                )
             except Exception as e:
                 return f"\n❌ Could not read {file_path}: {str(e)}\n"
         return f"\n❌ File not found: {file_path}\n"
 
-    # CAPABILITY: prompt.analysis.inject
     def _inject_context(self, prompt: str) -> str:
         """Replaces [[context:file.py]] directives with actual file content."""
         return self.context_pattern.sub(self._replace_context_match, prompt)
 
-    """Dynamically replaces an [[include:...]] regex match with the corresponding file's content or an error message if the file is missing, unreadable, or exceeds size limits."""
-
-    # CAPABILITY: prompt.pipeline.replace_include
     def _replace_include_match(self, match: re.Match) -> str:
-        """Dynamically replaces an [[include:...]] regex match with file content or an error message."""
+        """
+        Dynamically replaces an [[include:...]] regex match with file content
+        or an error message if the file is missing, unreadable, or exceeds
+        size limits.
+        """
         file_path = match.group(1).strip()
         abs_path = self.repo_path / file_path
         if abs_path.exists() and abs_path.is_file():
             # --- FIX: Add file size check to prevent memory bloat ---
             if abs_path.stat().st_size > MAX_FILE_SIZE_BYTES:
-                return f"\n❌ Could not include {file_path}: File size exceeds 1MB limit.\n"
+                return (
+                    f"\n❌ Could not include {file_path}: "
+                    f"File size exceeds 1MB limit.\n"
+                )
             try:
-                return f"\n--- INCLUDED: {file_path} ---\n{abs_path.read_text(encoding='utf-8')}\n--- END INCLUDE ---\n"
+                content = abs_path.read_text(encoding="utf-8")
+                return (
+                    f"\n--- INCLUDED: {file_path} ---\n"
+                    f"{content}\n"
+                    f"--- END INCLUDE ---\n"
+                )
             except Exception as e:
                 return f"\n❌ Could not read {file_path}: {str(e)}\n"
         return f"\n❌ File not found: {file_path}\n"
 
-    # CAPABILITY: prompt.pipeline.inject_includes
     def _inject_includes(self, prompt: str) -> str:
         """Replaces [[include:file.py]] directives with file content."""
         return self.include_pattern.sub(self._replace_include_match, prompt)
 
-    # CAPABILITY: prompt.analysis.inject
     def _replace_analysis_match(self, match: re.Match) -> str:
-        """Dynamically replaces an [[analysis:...]] regex match with a placeholder analysis message for the given file path."""
-        """Dynamically replaces an [[analysis:...]] regex match with a placeholder analysis message."""
+        """
+        Dynamically replaces an [[analysis:...]] regex match with a
+        placeholder analysis message for the given file path.
+        """
         file_path = match.group(1).strip()
         # This functionality is a placeholder.
         return f"\n--- ANALYSIS FOR {file_path} (DEFERRED) ---\n"
 
-    # CAPABILITY: prompt.analysis.inject
     def _inject_analysis(self, prompt: str) -> str:
         """Replaces [[analysis:file.py]] directives with code analysis."""
         return self.analysis_pattern.sub(self._replace_analysis_match, prompt)
 
-    # CAPABILITY: prompt.manifest.inject
     def _replace_manifest_match(self, match: re.Match) -> str:
-        """Dynamically replaces a [[manifest:...]] regex match with manifest data or an error."""
+        """
+        Dynamically replaces a [[manifest:...]] regex match with
+        manifest data or an error.
+        """
         manifest_path = self.repo_path / ".intent" / "project_manifest.yaml"
         if not manifest_path.exists():
             return f"\n❌ Manifest file not found at {manifest_path}\n"
@@ -126,19 +145,23 @@ class PromptPipeline:
             return f"\n❌ Manifest field not found: {field}\n"
 
         # Pretty print for better context
-        value_str = (
-            yaml.dump(value, indent=2)
-            if isinstance(value, (dict, list))
-            else str(value)
-        )
-        return f"\n--- MANIFEST: {field} ---\n{value_str}\n--- END MANIFEST ---\n"
+        if isinstance(value, (dict, list)):
+            value_str = yaml.dump(value, indent=2)
+        else:
+            value_str = str(value)
 
-    # CAPABILITY: prompt.manifest.inject
+        return (
+            f"\n--- MANIFEST: {field} ---\n" f"{value_str}\n" f"--- END MANIFEST ---\n"
+        )
+
     def _inject_manifest(self, prompt: str) -> str:
-        """Replaces [[manifest:field]] directives with data from project_manifest.yaml."""
+        """
+        Replaces [[manifest:field]] directives with data from
+        project_manifest.yaml.
+        """
         return self.manifest_pattern.sub(self._replace_manifest_match, prompt)
 
-    # CAPABILITY: prompt_interpretation
+    # ID: 05c566aa-d219-49bd-8b74-daa023b81e46
     def process(self, prompt: str) -> str:
         """
         Processes the full prompt by sequentially resolving all directives.

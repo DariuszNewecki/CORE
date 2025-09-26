@@ -11,7 +11,7 @@ from __future__ import annotations
 from pathlib import Path
 
 
-# CAPABILITY: classify_files_by_extension_for_validation_routing
+# ID: efe53dfb-fd71-4cd1-9f4d-1b1718c4f76a
 def get_file_classification(file_path: str) -> str:
     """Determines the file type based on its extension.
 

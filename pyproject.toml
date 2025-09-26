@@ -11,9 +11,11 @@ authors = ["Dariusz Newecki <d.newecki@gmail.com>"]
 license = "MIT"
 readme = "README.md"
 packages = [
+    { include = "api", from = "src" },
+    { include = "cli", from = "src" },
     { include = "core", from = "src" },
-    { include = "agents", from = "src" },
-    { include = "system", from = "src" },
+    { include = "features", from = "src" },
+    { include = "services", from = "src" },
     { include = "shared", from = "src" },
 ]
 
@@ -33,16 +35,24 @@ jsonschema = "^4"
 typer = {extras = ["rich"], version = "^0.16.1"}
 radon = ">=5.1.0"
 filelock = "^3.13.0"
+ruamel-yaml = "^0.18.6"
+qdrant-client = "^1.9.2"
+numpy = "^2.3.2"
+scikit-learn = "^1.5.1"
+scipy = "^1.14.0"
+sqlalchemy = ">=2.0"
+asyncpg = "^0.30.0"
+sqlparse = "^0.5.3"
 
 [tool.poetry.group.dev.dependencies]
 pytest = ">=7.0,<8.0"
 pytest-asyncio = "==0.21.0"
 pytest-mock = "^3.12.0"
 pytest-cov = "^6.2"
-pytest-dotenv = "^0.5.2" # <-- THIS LINE IS FIXED
+pytest-dotenv = "^0.5.2"
 
 [tool.poetry.scripts]
-core-admin = "src.system.admin:app"
+core-admin = "cli.admin_cli:app"
 
 [tool.black]
 line-length = 88
@@ -57,7 +67,11 @@ ignore = ["E402", "E501"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
+# --- START OF FIX ---
+# This line tells pytest to add the 'src' directory to the Python path
+# so that imports like 'from core.knowledge_service' work correctly.
 pythonpath = ["src"]
+# --- END OF FIX ---
 addopts = ["-c", "pyproject.toml"]
 env_files = [
     ".env"

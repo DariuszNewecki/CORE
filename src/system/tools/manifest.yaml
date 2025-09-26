@@ -1,4 +1,0 @@
-capabilities:
-- manifest_updating
-description: Internal introspection utilities
-domain: tooling

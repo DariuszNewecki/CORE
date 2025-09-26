@@ -14,7 +14,7 @@ Violation = Dict[str, Any]
 # --- END OF FIX ---
 
 
-# CAPABILITY: syntax_validation
+# ID: c1e335fb-1ee0-4e76-b6bd-9ed7a7494f14
 def check_syntax(file_path: str, code: str) -> List[Violation]:
     """Checks the given Python code for syntax errors and returns a list of violations, if any."""
     """

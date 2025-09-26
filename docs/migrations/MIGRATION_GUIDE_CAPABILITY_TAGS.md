@@ -6,14 +6,25 @@ This document outlines the formal, approved plan to migrate CORE's capability de
 
 This migration is a critical step in CORE's evolution, transforming a simple list into a structured, semantically-rich, and safely governable capability system.
 
-## 2. The Target Architecture
+---
+**UPDATE:** The migration described below has been successfully **completed and superseded**. The final architecture is simpler and more constitutionally aligned than the original plan.
 
--   **Decentralized:** Capabilities will be defined in `manifest.yaml` files within each architectural domain's directory (e.g., `src/core/manifest.yaml`).
--   **Semantically Rich:** Each capability will be a structured object with clear metadata (key, owner, risk_level, status, aliases).
--   **Cleanly Defined:** The public capability registry will only contain true, callable actions, not internal implementation details.
--   **Self-Validating:** The new structure will be enforced by formal JSON schemas and an upgraded Constitutional Auditor.
+---
 
-## 3. The Phased Migration Plan
+## 2. Final Implemented Architecture (Current State)
+
+The migration is **complete**. The final architecture improves upon the original plan by adhering more strictly to the `separation_of_concerns` principle (Mind vs. Body).
+
+-   **Centralized in the Mind:** All capability definitions now reside within the `.intent/` directory (The Mind). No declarative manifests are located in `src/`.
+-   **Domain-Driven:** Capabilities are organized into domain-specific YAML files within `.intent/knowledge/domains/` (e.g., `audit.yaml`, `tooling.yaml`).
+-   **Semantically Rich:** Each capability is a structured object with clear metadata (key, title, description, owner, status, risk_level).
+-   **Self-Validating:** The structure is enforced by the `ConstitutionalAuditor`, which reads from this single, authoritative location.
+
+This approach was chosen because it prevents constitutional declarations from leaking into the executable `src/` directory, reinforcing the Mind-Body separation.
+
+## 3. Superseded Migration Plan (Historical Record)
+
+The following sections describe the original phased plan. It is preserved here as a historical artifact of the system's evolution, as required by the `evolvable_structure` principle.
 
 ### Phase 1: Discovery & Design (Timebox: 1-2 weeks)
 

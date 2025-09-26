@@ -1,0 +1,24 @@
+id: tooling_policy
+version: "1.0.0"
+title: "Tooling Policy"
+status: active
+purpose: >
+  To define the sanctioned tools and how they are invoked by agents and operators,
+  ensuring reproducibility, performance, and constitutional compliance.
+scope:
+  applies_to: [cli, agents, services]
+owners:
+  accountable: "Core Maintainer"
+review:
+  frequency: "annual"
+
+rules:
+  - id: tools.registered_only
+    statement: "Only tools/commands registered in '.intent/mind/knowledge/cli_registry.yaml' may be invoked by agents/services."
+    enforcement: error
+  - id: tools.version_pinned
+    statement: "Critical tools (linters, formatters, test runners) MUST be version-pinned in pyproject or lockfiles."
+    enforcement: warn
+  - id: tools.no_write_intent
+    statement: "Tooling MUST NOT write to '.intent/charter/**'; proposals are the only path for constitutional changes."
+    enforcement: error

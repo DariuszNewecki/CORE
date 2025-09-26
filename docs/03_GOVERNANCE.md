@@ -1,115 +1,54 @@
-# The CORE Governance Model
-
----
-
-## For New Users: Safe Changes
-
-CORE evolves like a **government with checks**: you propose changes, sign them, and test them in a *sandbox* (**Canary Check**) to avoid breaking things.
-
-It’s like updating laws safely.
-
-👉 **Try It**: Generate a key with:
-
-```bash
-core-admin keygen "your.email@example.com"
-```
-
----
-
-## The Guiding Principle: The Canary Check
-
-Before changing `.intent/`, CORE tests changes **in memory**:
-
-* ✅ **Pass**: Apply to live system.
-* ❌ **Fail**: Reject to avoid damage.
-
-**Analogy:** Like testing a new recipe before serving it.
-
----
-
-## The Life of a Constitutional Amendment
-
-5 steps to update `.intent/`:
-
-### Visual
-
-```mermaid
+03_GOVERNANCE.md
+The CORE Governance Model
+For New Users: How CORE Makes Changes Safely
+CORE evolves like a government with checks and balances. To change a rule (a file in .intent/), you must:
+Propose the change in writing.
+Sign it with a cryptographic key to prove human intent.
+Have enough approvers sign it (a "quorum").
+Let CORE test the change in a safe sandbox (Canary Check).
+This process prevents accidental or unauthorized changes to the system's constitution.
+👉 Try It: Generate your personal cryptographic key with one command:
+code
+Bash
+poetry run core-admin keys keygen "your.email@example.com"
+The Guiding Principle: The Canary Check
+Before any constitutional change is applied, CORE runs a "canary check". It creates a temporary, in-memory copy of the entire system, applies the proposed change to it, and runs a full self-audit.
+✅ If the audit passes, the change is applied to the live system.
+❌ If the audit fails, the change is automatically rejected, and the live system is never touched.
+This ensures that a faulty constitutional amendment can never break the system.
+The Life of a Constitutional Amendment
+Updating .intent/ is a formal, 5-step process orchestrated by the core-admin proposals command group.
+code
+Mermaid
 graph TD
-    A[Proposal in /proposals/] --> B[Sign with core-admin]
-    B --> C[Quorum Check]
-    C --> D[Approval & Canary]
-    D --> E[Ratification]
-```
-
----
-
-### Step 1: Proposal (`.intent/proposals/`)
-
-Create a YAML file (e.g., `cr-rate-limit.yaml`):
-
-```yaml
-target_path: .intent/policies/safety_policies.yaml
-justification: Add rate limiting for safety.
-content: |
-  rate_limiting:
-    max_requests: 100
-```
-
----
-
-### Step 2: Signing (`core-admin proposals-sign`)
-
-Prove human intent:
-
-```bash
-core-admin keygen "your.email@example.com"  # One-time
-core-admin proposals-sign cr-rate-limit.yaml
-# Output: Signed cr-rate-limit.yaml with key your.email@example.com
-```
-
----
-
-### Step 3: Quorum Verification
-
-Check `approvers.yaml` for signatures needed:
-
-* **Standard**: 1 signature.
-* **Critical**: 2+ signatures.
-
----
-
-### Step 4: Approval & Canary (`core-admin proposals-approve`)
-
-```bash
-core-admin proposals-approve cr-rate-limit.yaml
-# Output: Canary passed; change ready to apply
-```
-
----
-
-### Step 5: Ratification
-
-* If passed, updates `.intent/`.
-* Logs history.
-
-**Deep Dive:** Uses **cryptographic signatures**; quorum from `approvers.yaml`.
-
----
-
-## Troubleshooting
-
-* **Key error?** Regenerate with `core-admin keygen`.
-* **Audit fails?** Check `reports/` logs.
-
----
-
-## Takeaways
-
-* Safe, **auditable evolution**.
-* **Next**: Roadmap for future plans.
-
----
-
-## Contribute
-
-Propose a **new policy**! See `CONTRIBUTING.md`.
+    A[1. Draft Proposal] --> B[2. Sign Proposal]
+    B --> C[3. Verify Quorum]
+    C --> D[4. Run Canary Audit]
+    D --> E[5. Ratify & Apply]
+Step 1: Draft the Proposal
+Create a YAML file in the .intent/proposals/ directory (e.g., cr-new-rule.yaml). This file must state what you want to change (target_path) and why (justification).
+Step 2: Sign the Proposal
+Use the core-admin CLI to cryptographically sign the proposal with your private key.
+code
+Bash
+poetry run core-admin proposals sign cr-new-rule.yaml
+Step 3: Verify Quorum
+The system checks .intent/constitution/approvers.yaml to see if enough authorized operators have signed the proposal.
+Standard changes (e.g., updating a policy) typically require 1 signature.
+Critical changes (e.g., adding a new approver) require more.
+Step 4: Approve and Run Canary Check
+A maintainer runs the approve command. This triggers the signature verification and the critical canary check.
+code
+Bash
+poetry run core-admin proposals approve cr-new-rule.yaml
+Output:
+code
+Text
+✅ Canary audit PASSED. Change is constitutionally valid.
+✅ Successfully approved and applied 'cr-new-rule.yaml'.
+Step 5: Ratification
+If the canary audit passes, the change is applied to the target file, and the proposal is archived. The system's constitution has now evolved safely.
+Takeaways
+CORE's evolution is governed by a safe, auditable, and cryptographically secure process.
+The canary check is the ultimate safety net that prevents self-inflicted damage.
+Next: See the Project Roadmap to understand where the project is evolving next.

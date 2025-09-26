@@ -1,6 +1,7 @@
 # src/core/test_runner.py
 """
-Executes pytest on the project's test suite and captures structured results for system integrity verification.
+Executes pytest on the project's test suite and captures structured results for
+system integrity verification.
 """
 
 from __future__ import annotations
@@ -18,7 +19,7 @@ from shared.logger import getLogger
 log = getLogger(__name__)
 
 
-# CAPABILITY: test_execution
+# ID: f22f2743-a396-4ca4-b88b-94cd76ee8572
 def run_tests(silent: bool = True) -> Dict[str, str]:
     """Executes pytest on the tests/ directory and returns a structured result."""
     log.info("🧪 Running tests with pytest...")
@@ -78,7 +79,6 @@ def run_tests(silent: bool = True) -> Dict[str, str]:
     return result
 
 
-# CAPABILITY: test_execution.summarize_results
 def _summarize(output: str) -> str:
     """Parses pytest output to find the final summary line."""
     lines = output.strip().splitlines()
@@ -88,7 +88,6 @@ def _summarize(output: str) -> str:
     return "No test summary found."
 
 
-# CAPABILITY: test_execution.log_result
 def _log_test_result(data: Dict[str, str]):
     """Appends a JSON record of a test run to the persistent log file."""
     try:
@@ -100,7 +99,6 @@ def _log_test_result(data: Dict[str, str]):
         log.warning(f"Failed to write to persistent test log file: {e}", exc_info=True)
 
 
-# CAPABILITY: test_execution.store_failure
 def _store_failure_if_any(data: Dict[str, str]):
     """Saves the details of a failed test run to a dedicated file for easy access."""
     try:

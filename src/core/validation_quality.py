@@ -14,11 +14,11 @@ from typing import Any, Dict, List
 Violation = Dict[str, Any]
 
 
-# CAPABILITY: audit.check.code_quality
+# ID: 0c6502f3-6d97-41e8-a618-6ae63a489e8b
 class QualityChecker:
     """Handles code quality and clarity validation checks."""
 
-    # CAPABILITY: audit.check.todo_comments
+    # ID: 972208ef-200e-4836-851d-f82f24e3b779
     def check_for_todo_comments(self, code: str) -> List[Violation]:
         """Scans source code for TODO/FIXME comments and returns them as violations.
 

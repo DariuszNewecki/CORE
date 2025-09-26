@@ -1,0 +1,70 @@
+id: agent_policy
+version: "1.1.0" # Version bump due to consolidation
+title: "Agent Governance Policy"
+status: active
+purpose: >
+  The single source of truth for all rules governing the behavior, reasoning,
+  and operational safety of all AI agents within the CORE system.
+
+scope:
+  applies_to: ["agents"]
+
+owners:
+  accountable: "Core Maintainer"
+
+review:
+  frequency: "annual"
+
+rules:
+  # --- Safety & Compliance Rules ---
+  - id: agent.compliance.no_write_intent
+    statement: "Agents MUST NOT write directly to '.intent/charter/**'. Constitutional changes require a formal, human-approved proposal."
+    enforcement: error
+
+  - id: agent.compliance.respect_cli_registry
+    statement: "All tool invocations and system actions MUST be routed through commands registered in '.intent/mind/knowledge/cli_registry.yaml'."
+    enforcement: error
+
+  # --- Reasoning & Auditing Rules ---
+  - id: agent.reasoning.trace_required
+    statement: "Agents MUST produce a concise, inspectable trace for non-trivial tasks, including inputs, tools used, and outcomes for auditability."
+    enforcement: warn
+
+  - id: agent.reasoning.source_attribution
+    statement: "All claims, especially those influencing code generation or policy changes, MUST provide source attribution (e.g., file paths, policy IDs)."
+    enforcement: warn
+
+  # --- Execution & Safety Rules ---
+  - id: agent.execution.no_unverified_code
+    statement: "Agents MUST NOT execute or commit any generated or refactored code without first passing it through the full validation pipeline (lint, test, constitutional audit)."
+    enforcement: error
+
+  - id: agent.execution.fail_closed
+    statement: "If an agent encounters ambiguous instructions or a high-risk uncertainty, it MUST halt its current task and escalate for human clarification rather than proceeding."
+    enforcement: warn
+
+  - id: agent.execution.limit_scope
+    statement: "Agent actions MUST be limited to the immediate scope of the declared goal. Broad, opportunistic refactoring requires a separate, explicit intent and plan."
+    enforcement: warn
+
+# --- Resource Selection Logic (Merged from deduction_policy) ---
+resource_selection:
+  scoring_weights:
+    cost: 0.5
+    speed: 0.3
+    quality: 0.1
+    reasoning: 0.1
+
+  task_specific_overrides:
+    - task_keywords: ["docstringwriter", "propose a domain name", "label cluster"]
+      weights:
+        cost: 0.9
+        speed: 0.1
+        quality: 0.0
+        reasoning: 0.0
+    - task_keywords: ["refactor", "architect", "planner", "generate"]
+      weights:
+        cost: 0.1
+        speed: 0.1
+        quality: 0.4
+        reasoning: 0.4
