@@ -6,7 +6,6 @@ Provides functionality for the execution_agent module.
 from __future__ import annotations
 
 import textwrap
-from pathlib import Path
 from typing import TYPE_CHECKING, List
 
 from core.agents.plan_executor import PlanExecutor
@@ -15,6 +14,7 @@ from core.cognitive_service import CognitiveService
 from core.prompt_pipeline import PromptPipeline
 from core.self_correction_engine import attempt_correction
 from core.validation_pipeline import validate_code
+from features.governance.micro_proposal_validator import MicroProposalValidator
 from shared.config import settings
 from shared.logger import getLogger
 from shared.models import ExecutionTask, PlanExecutionError
@@ -44,17 +44,12 @@ class ExecutionAgent:
         self.git_service = self.executor.git_service
         self.config = self.executor.config
         self.auditor_context = auditor_context
+        self.validator = MicroProposalValidator()
 
-        # --- THIS IS THE REFACTOR ---
         agent_policy = settings.load("charter.policies.agent.agent_policy")
         self.max_correction_attempts = agent_policy.get("execution_agent", {}).get(
             "max_correction_attempts", 2
         )
-
-        self.micro_proposal_policy = settings.load(
-            "charter.policies.agent.micro_proposal_policy"
-        )
-        # --- END OF REFACTOR ---
 
     def _verify_plan(self, plan: List[ExecutionTask]) -> None:
         """
@@ -64,69 +59,31 @@ class ExecutionAgent:
         log.info(
             "🕵️  ExecutionAgent is verifying the received plan against the constitution..."
         )
-        rules = self.micro_proposal_policy.get("rules", [])
-        policy_rules = {rule.get("id"): rule for rule in rules}
-
-        safe_actions_rule = policy_rules.get("safe_actions", {})
-        allowed_actions = set(safe_actions_rule.get("allowed_actions", []))
-
-        safe_paths_rule = policy_rules.get("safe_paths", {})
-        allowed_paths = safe_paths_rule.get("allowed_paths", [])
-        forbidden_paths = safe_paths_rule.get("forbidden_paths", [])
-
-        for task in plan:
-            if task.action not in allowed_actions:
-                raise PlanExecutionError(
-                    f"Plan validation failed: Action '{task.action}' is not in the list of allowed safe actions."
-                )
-
-            file_path = Path(task.params.file_path)
-
-            is_forbidden = False
-            if forbidden_paths:
-                for pattern in forbidden_paths:
-                    try:
-                        if "**" in pattern:
-                            base_dir_str = pattern.split("**")[0]
-                            base_dir = Path(base_dir_str)
-                            if file_path.is_relative_to(base_dir) or file_path.match(
-                                pattern
-                            ):
-                                is_forbidden = True
-                                break
-                        elif file_path.match(pattern):
-                            is_forbidden = True
-                            break
-                    except Exception:
-                        continue
-
-            if is_forbidden:
-                raise PlanExecutionError(
-                    f"Plan validation failed: Path '{file_path}' is explicitly forbidden by the micro-proposal policy."
-                )
-
-            if allowed_paths and not any(
-                file_path.match(pattern) for pattern in allowed_paths
-            ):
-                raise PlanExecutionError(
-                    f"Plan validation failed: Path '{file_path}' does not match any allowed path patterns in the micro-proposal policy."
-                )
-
+        is_valid, error_message = self.validator.validate(plan)
+        if not is_valid:
+            raise PlanExecutionError(f"Plan validation failed: {error_message}")
         log.info("   -> ✅ Plan is constitutionally valid.")
 
+    # --- THIS IS THE FIX ---
     async def execute_plan(
-        self, high_level_goal: str, plan: List[ExecutionTask]
+        self,
+        high_level_goal: str,
+        plan: List[ExecutionTask],
+        is_micro_proposal: bool = False,
     ) -> tuple[bool, str]:
         if not plan:
             return False, "Plan is empty or invalid."
 
         try:
-            self._verify_plan(plan)
+            # Only run strict validation for micro-proposals
+            if is_micro_proposal:
+                self._verify_plan(plan)
         except PlanExecutionError as e:
             log.error(
                 f"❌ CRITICAL: Received an invalid plan. Execution aborted. Reason: {e}"
             )
             return False, str(e)
+        # --- END OF FIX ---
 
         log.info("--- Starting Governed Code Generation Phase ---")
         success, error_message = await self._generate_and_validate_all_tasks(

@@ -20,6 +20,7 @@ from shared.logger import getLogger
 log = getLogger("policy_coverage_service")
 
 
+# ID: 01a2975a-5754-435d-9e5a-78fc10648abc
 class PolicyCoverageReport(BaseModel):
     report_id: str
     generated_at_utc: str
@@ -39,6 +40,7 @@ class _PolicyRef:
     title: Optional[str] = None
 
 
+# ID: 78d662f3-f672-4f51-b73e-fb411c106728
 class PolicyCoverageService:
     """
     Runs a meta-audit on the constitution to ensure all active policies
@@ -73,6 +75,7 @@ class PolicyCoverageService:
         # settings._meta_config is a private but convenient accessor here
         policies_in_meta = settings._meta_config.get("charter", {}).get("policies", {})
 
+        # ID: 1fead1e3-077b-4243-92dc-5b151d6fc690
         def find_policies_recursive(data: Any, prefix: str):
             if isinstance(data, dict):
                 for key, value in data.items():
@@ -104,6 +107,7 @@ class PolicyCoverageService:
                 )
         return extracted or [{"id": "__policy_present__", "enforcement": "warn"}]
 
+    # ID: 07977c2f-e3df-4c79-a7eb-f7761d4a6487
     def run(self) -> PolicyCoverageReport:
         """
         Executes the policy coverage audit and returns a structured report.

@@ -16,6 +16,7 @@ from shared.utils.parsing import extract_json_from_response
 log = getLogger("micro_planner_agent")
 
 
+# ID: cc3308b8-f2b2-43ab-b412-0f5067a031a1
 class MicroPlannerAgent:
     """Decomposes goals into safe, auto-approvable plans."""
 
@@ -31,6 +32,7 @@ class MicroPlannerAgent:
         ).read_text(encoding="utf-8")
         # --- END OF REFACTOR ---
 
+    # ID: f9c908ca-b681-4f2d-9009-ba1ad3c936b3
     async def create_micro_plan(self, goal: str) -> List[Dict[str, Any]]:
         """Creates a safe execution plan from a user goal."""
         policy_content = json.dumps(self.policy, indent=2)

@@ -12,7 +12,7 @@ Your entire assessment must be grounded in this philosophy.
 1.  **The Architectural Trinity:** The system is strictly divided into three parts:
     *   🏛️ **The Mind (`.intent/`):** The Constitution. This is the single source of truth, divided into two parts:
         *   **The Charter (`.intent/charter/`):** The immutable, human-governed laws, principles, and schemas.
-        *   **The Working Mind (`.intent/mind/`):** The dynamic, system-maintained knowledge and configuration, governed by the Charter.
+        *   **The Working Mind (`.intent/mind/`):**  The dynamic, system-maintained knowledge, with the database as the primary source of truth and .intent/mind/ files acting as human-readable sources for that truth.
     *   🦾 **The Body (`src/`):** The Machinery. The complete, implemented source code and tools that perform actions but do not make decisions.
     *   🧠 **The Will (AI Agents):** The Reasoning Layer. AI agents that read the Mind and use the Body's tools to achieve goals. Their actions are policed by the `ConstitutionalAuditor`.
 

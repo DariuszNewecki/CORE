@@ -6,13 +6,17 @@ the project's constitutional architecture.
 
 from __future__ import annotations
 
+import asyncio
 from pathlib import Path
 from typing import Any, Dict, List
+
+from sqlalchemy import text
 
 from core.agents.deduction_agent import DeductionAgent
 from services.adapters.embedding_provider import EmbeddingService
 from services.clients.llm_api_client import BaseLLMClient
 from services.clients.qdrant_client import QdrantService
+from services.repositories.db.engine import get_session
 from shared.config import settings
 from shared.logger import getLogger
 from shared.utils.embedding_utils import _Adapter, chunk_and_embed
@@ -25,56 +29,77 @@ class CognitiveService:
 
     def __init__(self, repo_path: Path | None = None):
         """
-        Initializes the service by loading and parsing the cognitive architecture
-        from the constitution via the settings object.
+        Initializes the service. Policies are loaded asynchronously on first use.
         """
-        # repo_path is kept for potential future use but is no longer the primary way to find configs
         self.repo_path = repo_path or settings.REPO_PATH
         self._client_cache: Dict[str, BaseLLMClient] = {}
         self._deduction_agent = DeductionAgent()
 
-        # --- THIS IS THE REFACTOR ---
-        # The service now loads its governing policies by their logical names.
-        self.roles_policy = settings.load(
-            "charter.policies.agent.cognitive_roles_policy"
-        )
-        self._roles_map = {
-            role["role"]: role for role in self.roles_policy.get("cognitive_roles", [])
-        }
-
-        # The deduction agent now handles loading the resource manifest itself.
-        self._resources_map = {
-            res["name"]: res
-            for res in self._deduction_agent.resource_manifest.get("llm_resources", [])
-        }
-        # --- END OF REFACTOR ---
+        self._roles_map: Dict[str, Any] | None = None
+        self._resources_map: Dict[str, Any] | None = None
+        self._lock = asyncio.Lock()
 
         log.info(
-            f"CognitiveService initialized with {len(self._roles_map)} roles and "
-            f"{len(self._resources_map)} resources."
+            "CognitiveService initialized. Policies will be loaded from DB on first use."
         )
         self.qdrant_service = QdrantService()
 
+        # --- THIS IS THE FIX ---
+        # The api_key is now correctly passed, and it can be None.
         self.embedding_service = EmbeddingService(
             model=settings.LOCAL_EMBEDDING_MODEL_NAME,
             base_url=settings.LOCAL_EMBEDDING_API_URL,
-            api_key=settings.LOCAL_EMBEDDING_API_KEY,
+            api_key=settings.LOCAL_EMBEDDING_API_KEY,  # This is now safe
             expected_dim=settings.LOCAL_EMBEDDING_DIM,
         )
+        # --- END OF FIX ---
 
-    def get_client_for_role(
+    async def _load_policies_from_db(self):
+        """Loads cognitive roles and LLM resources from the database."""
+        async with self._lock:
+            if self._roles_map is not None and self._resources_map is not None:
+                return
+
+            log.info("Loading cognitive policies from database for the first time...")
+            async with get_session() as session:
+                # Load roles
+                roles_result = await session.execute(
+                    text("SELECT * FROM core.cognitive_roles")
+                )
+                self._roles_map = {
+                    row._mapping["role"]: dict(row._mapping) for row in roles_result
+                }
+
+                # Load resources
+                resources_result = await session.execute(
+                    text("SELECT * FROM core.llm_resources")
+                )
+                self._resources_map = {
+                    row._mapping["name"]: dict(row._mapping) for row in resources_result
+                }
+
+            # The deduction agent now loads its manifest from the DB as well
+            await self._deduction_agent._load_resource_manifest_from_db()
+
+            log.info(
+                f"Loaded {len(self._roles_map)} roles and {len(self._resources_map)} resources from DB."
+            )
+
+    async def get_client_for_role(
         self, role_name: str, task_context: Dict[str, Any] | None = None
     ) -> BaseLLMClient:
         """
         Gets a configured LLM client for a specific cognitive role.
         """
+        await self._load_policies_from_db()
+
         role_config = self._roles_map.get(role_name)
         if not role_config:
             raise ValueError(f"Cognitive role '{role_name}' is not defined.")
 
         context = task_context or {}
         context["role_config"] = role_config
-        resource_name = self._deduction_agent.select_best_resource(context)
+        resource_name = await self._deduction_agent.select_best_resource(context)
 
         if resource_name in self._client_cache:
             return self._client_cache[resource_name]
@@ -84,10 +109,7 @@ class CognitiveService:
             raise ValueError(f"Resource '{resource_name}' is not in the manifest.")
 
         env_prefix = resource_config.get("env_prefix", "").upper()
-
-        # Pydantic v2+: Use model_extra for dynamic attribute access
         model_extra = settings.model_extra or {}
-
         api_url = getattr(settings, f"{env_prefix}_API_URL", None) or model_extra.get(
             f"{env_prefix}_API_URL"
         )
@@ -107,8 +129,7 @@ class CognitiveService:
         self._client_cache[resource_name] = client
 
         log.info(
-            f"Dynamically provisioned client for role '{role_name}' "
-            f"using resource '{resource_name}' ({model_name})."
+            f"Dynamically provisioned client for role '{role_name}' using resource '{resource_name}' ({model_name})."
         )
         return client
 
@@ -137,9 +158,13 @@ class CognitiveService:
             query_vector = await self.get_embedding_for_code(query)
 
             log.debug("   -> Searching for similar capabilities in Qdrant...")
-            search_results = self.qdrant_service.search_similar(
+            search_results = await self.qdrant_service.search_similar(
                 query_vector, limit=limit
             )
+            # Add the key to the payload for easier access
+            for result in search_results:
+                if "payload" in result and "symbol" in result["payload"]:
+                    result["payload"]["key"] = result["payload"]["symbol"]
 
             return search_results
 

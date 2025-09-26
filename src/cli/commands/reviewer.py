@@ -17,22 +17,15 @@ from rich.panel import Panel
 from core.cognitive_service import CognitiveService
 from shared.config import settings
 from shared.logger import getLogger
+from shared.utils.constitutional_parser import get_all_constitutional_paths
 
 log = getLogger("core_admin.review")
+console = Console()  # Define console once at the module level
 
-# The knowledge_graph.json is now a build artifact, not a constitutional file.
-INTENT_IGNORE_PATTERNS = {
-    "proposals",
-    "keys",
-    ".lock",
-    ".bak",
-    ".example",
-}
 DOCS_IGNORE_DIRS = {"assets", "archive", "migrations", "examples"}
 
 
 def _get_bundle_content(files_to_bundle: List[Path], root_dir: Path) -> str:
-    """Generic function to bundle the content of a list of files."""
     bundle_parts = []
     for file_path in sorted(list(files_to_bundle)):
         if file_path.exists() and file_path.is_file():
@@ -51,69 +44,51 @@ def _get_bundle_content(files_to_bundle: List[Path], root_dir: Path) -> str:
 
 def _get_constitutional_files() -> List[Path]:
     """
-    Discovers all constitutional files by scanning the .intent directory and
-    applying a deny-list.
+    Discovers all constitutional files by parsing meta.yaml via the settings object.
     """
-    intent_dir = settings.MIND
-    found_files = []
-
-    for file_path in intent_dir.rglob("*"):
-        if not file_path.is_file():
-            continue
-
-        if not any(
-            ign in str(part)
-            for ign in INTENT_IGNORE_PATTERNS
-            for part in file_path.parts
-        ):
-            found_files.append(file_path)
-
-    return found_files
+    meta_content = settings._meta_config
+    relative_paths = get_all_constitutional_paths(meta_content, settings.MIND)
+    return [settings.REPO_PATH / p for p in relative_paths]
 
 
 def _get_docs_files() -> List[Path]:
-    """Discovers and returns a list of all human-readable documentation files."""
     root_dir = settings.REPO_PATH
     scan_files = [
         root_dir / "README.md",
         root_dir / "CONTRIBUTING.md",
-        root_dir / "SECURITY.md",
     ]
     docs_dir = root_dir / "docs"
-
     found_files: Set[Path] = {f for f in scan_files if f.exists()}
-
     if docs_dir.is_dir():
         for md_file in docs_dir.rglob("*.md"):
             if not any(ignored in md_file.parts for ignored in DOCS_IGNORE_DIRS):
                 found_files.add(md_file)
-
     return list(found_files)
 
 
 def _orchestrate_review(
     bundle_name: str,
-    prompt_filename: str,
+    prompt_key: str,
     file_gatherer_fn,
     output_path: Path,
     no_send: bool,
 ):
-    """Generic orchestrator for all review commands."""
     log.info(f"🤖 Orchestrating review for: {bundle_name}...")
-
-    prompt_path = settings.MIND / "prompts" / prompt_filename
-    if not prompt_path.exists():
-        log.error(f"❌ Review prompt not found at {prompt_path}. Cannot proceed.")
+    try:
+        prompt_path = settings.get_path(f"mind.prompts.{prompt_key}")
+        review_prompt_template = prompt_path.read_text(encoding="utf-8")
+    except FileNotFoundError:
+        log.error(
+            f"❌ Review prompt '{prompt_key}' not found in meta.yaml. Cannot proceed."
+        )
         raise typer.Exit(code=1)
-    review_prompt_template = prompt_path.read_text(encoding="utf-8")
-    log.info(f"   -> Loaded review prompt: {prompt_filename}")
 
+    log.info(f"   -> Loaded review prompt: {prompt_key}")
     log.info("   -> Bundling files for review...")
     files_to_bundle = file_gatherer_fn()
     bundle_content = _get_bundle_content(files_to_bundle, settings.REPO_PATH)
     log.info(f"   -> Bundled {len(files_to_bundle)} files.")
-
-    bundle_output_path = Path("reports") / f"{bundle_name}_bundle.txt"
+    bundle_output_path = settings.REPO_PATH / "reports" / f"{bundle_name}_bundle.txt"
     bundle_output_path.parent.mkdir(parents=True, exist_ok=True)
     bundle_output_path.write_text(bundle_content, encoding="utf-8")
     log.info(f"   -> Saved review bundle to: {bundle_output_path}")
@@ -130,7 +105,7 @@ def _orchestrate_review(
     cognitive_service = CognitiveService(settings.REPO_PATH)
     reviewer = cognitive_service.get_client_for_role("SecurityAnalyst")
 
-    # ID: 91f5babf-706f-4781-bcbe-6629ae14e6e5
+    # ID: f666ec25-e399-4b50-a887-afc0b37f048f
     async def run_async_review():
         return await reviewer.make_request_async(
             final_prompt, user_id=f"{bundle_name}_reviewer"
@@ -141,13 +116,11 @@ def _orchestrate_review(
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(review_feedback, encoding="utf-8")
     log.info(f"✅ Successfully received feedback and saved to: {output_path}")
-    typer.secho(
-        f"\n--- {bundle_name.replace('_', ' ').title()} Review Summary ---", bold=True
-    )
-    typer.echo(review_feedback)
+    console.print(f"\n--- {bundle_name.replace('_', ' ').title()} Review Summary ---")
+    console.print(Markdown(review_feedback))
 
 
-# ID: f67d2f70-7ef6-47aa-b359-b8fe236e2910
+# ID: 791a17b0-8edf-43f0-ab74-7218bc9a4830
 def peer_review(
     output: Path = typer.Option(
         Path("reports/constitutional_review.md"), "--output", "-o"
@@ -156,15 +129,15 @@ def peer_review(
 ):
     """Audits the machine-readable constitution (.intent files) for clarity and consistency."""
     _orchestrate_review(
-        bundle_name="constitutional",
-        prompt_filename="constitutional_review.prompt",
-        file_gatherer_fn=_get_constitutional_files,
-        output_path=output,
-        no_send=no_send,
+        "constitutional",
+        "constitutional_review",
+        _get_constitutional_files,
+        output,
+        no_send,
     )
 
 
-# ID: 1506d4b7-2ac1-40c1-99be-4bb14b47f88d
+# ID: cf79cabf-12fc-49e9-8c15-0bfdaae8c301
 def docs_clarity_audit(
     output: Path = typer.Option(
         Path("reports/docs_clarity_review.md"), "--output", "-o"
@@ -173,26 +146,21 @@ def docs_clarity_audit(
 ):
     """Audits the human-readable documentation (.md files) for conceptual clarity."""
     _orchestrate_review(
-        bundle_name="docs_clarity",
-        prompt_filename="docs_clarity_review.prompt",
-        file_gatherer_fn=_get_docs_files,
-        output_path=output,
-        no_send=no_send,
+        "docs_clarity",
+        "docs_clarity_review",
+        _get_docs_files,
+        output,
+        no_send,
     )
 
 
-# ID: 5ffff9dd-5109-458e-b650-df521b0b2be3
+# ID: 7c2b8cf2-fecf-4ed9-97a7-72f102a5427d
 def code_review(
     file_path: Path = typer.Argument(
-        ...,
-        help="The relative path to the source code file to be reviewed.",
-        exists=True,
-        dir_okay=False,
-        resolve_path=True,
+        ..., exists=True, dir_okay=False, resolve_path=True
     ),
 ):
     """Submits a source file to an AI expert for a peer review and improvement suggestions."""
-    console = Console()
 
     async def _async_code_review():
         log.info(
@@ -200,7 +168,7 @@ def code_review(
         )
         try:
             source_code = file_path.read_text(encoding="utf-8")
-            prompt_path = settings.MIND / "prompts" / "code_peer_review.prompt"
+            prompt_path = settings.get_path("mind.prompts.code_peer_review")
             review_prompt_template = prompt_path.read_text(encoding="utf-8")
             final_prompt = f"{review_prompt_template}\n\n```python\n{source_code}\n```"
 
@@ -230,24 +198,21 @@ def code_review(
     asyncio.run(_async_code_review())
 
 
-# ID: 9efc0bae-2ebb-4649-bba8-38965d05ed49
+# ID: dcd2c2bc-4c65-436a-9646-22834c917f41
 def register(app: typer.Typer):
-    """Registers the 'review' command group and its subcommands."""
     review_app = typer.Typer(help="Tools for constitutional and documentation review.")
     app.add_typer(review_app, name="review")
-
     review_app.command("constitution")(peer_review)
     review_app.command("docs")(docs_clarity_audit)
     review_app.command("code")(code_review)
 
     @review_app.command("export")
-    # ID: 3e63de47-830d-4a81-96c7-b330ba388902
+    # ID: 2e4cea1d-3aca-46ef-a0b9-9361bdb595b5
     def export_bundle():
-        """Packages the full .intent/ directory into a single bundle for external analysis."""
         _orchestrate_review(
-            bundle_name="constitutional",
-            prompt_filename="constitutional_review.prompt",
-            file_gatherer_fn=_get_constitutional_files,
-            output_path=Path("reports/manual_review_package.txt"),
+            "constitutional",
+            "constitutional_review",
+            _get_constitutional_files,
+            settings.REPO_PATH / "reports/manual_review_package.txt",
             no_send=True,
         )

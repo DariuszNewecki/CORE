@@ -21,9 +21,7 @@ charter:
 
     agent:
       agent_policy: "charter/policies/agent/agent_policy.yaml"
-      cognitive_roles_policy: "charter/policies/agent/cognitive_roles_policy.yaml"
       micro_proposal_policy: "charter/policies/agent/micro_proposal_policy.yaml"
-      resource_manifest_policy: "charter/policies/agent/resource_manifest_policy.yaml"
 
     code:
       capability_linter_policy: "charter/policies/code/capability_linter_policy.yaml"
@@ -41,9 +39,9 @@ charter:
       auditor_policy: "charter/policies/governance/auditor_policy.yaml"
       available_actions_policy: "charter/policies/governance/available_actions_policy.yaml"
       cli_governance_policy: "charter/policies/governance/cli_governance_policy.yaml"
-      cli_registry_policy: "charter/policies/governance/cli_registry_policy.yaml"
       enforcement_model_policy: "charter/policies/governance/enforcement_model_policy.yaml"
       intent_guard_policy: "charter/policies/governance/intent_guard_policy.yaml"
+      knowledge_source_policy: "charter/policies/governance/knowledge_source_policy.yaml"
       reporting_policy: "charter/policies/governance/reporting_policy.yaml"
       tooling_policy: "charter/policies/governance/tooling_policy.yaml"
 
@@ -91,7 +89,6 @@ mind:
   config:
     local_mode: "mind/config/local_mode.yaml"
     runtime_requirements: "mind/config/runtime_requirements.yaml"
-    runtime_services: "mind/config/runtime_services.yaml"
 
   evaluation:
     score_policy: "mind/evaluation/score_policy.yaml"
@@ -104,23 +101,18 @@ mind:
     source_structure: "mind/knowledge/source_structure.yaml"
 
   prompts:
+    capability_definer: "mind/prompts/capability_definer.prompt"
     code_peer_review: "mind/prompts/code_peer_review.prompt"
     constitutional_review: "mind/prompts/constitutional_review.prompt"
-    capability_definer: "mind/prompts/capability_definer.prompt" 
-    code_peer_review: "mind/prompts/code_peer_review.prompt"
-    constitutional_review: "mind/prompts/constitutional_review.prompt"
-    planner_agent: "mind/prompts/planner_agent.prompt"
-    intent_translator: "mind/prompts/intent_translator.prompt"
-    capability_tagger: "mind/prompts/capability_tagger.prompt"
-    constitutional_review: "mind/prompts/constitutional_review.prompt"
-    code_peer_review: "mind/prompts/code_peer_review.prompt"
-    refactor_for_clarity: "mind/prompts/refactor_for_clarity.prompt"
     fix_capability_manifest: "mind/prompts/fix_capability_manifest.prompt"
     fix_function_docstring: "mind/prompts/fix_function_docstring.prompt"
     fix_header: "mind/prompts/fix_header.prompt"
     fix_line_length: "mind/prompts/fix_line_length.prompt"
     goal_assessor: "mind/prompts/goal_assessor.prompt"
+    intent_translator: "mind/prompts/intent_translator.prompt"
     module_docstring_writer: "mind/prompts/module_docstring_writer.prompt"
     new_capability_generator: "mind/prompts/new_capability_generator.prompt"
+    planner_agent: "mind/prompts/planner_agent.prompt"
+    refactor_for_clarity: "mind/prompts/refactor_for_clarity.prompt"
     refactor_outlier: "mind/prompts/refactor_outlier.prompt"
     vectorizer: "mind/prompts/vectorizer.prompt"

@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 import yaml
 from pydantic import PrivateAttr
@@ -34,7 +34,21 @@ class Settings(BaseSettings):
     BODY: Path = REPO_PATH / "src"
     LLM_ENABLED: bool = True
     LOG_LEVEL: str = "INFO"
-    # ... add other core ENV VARS here ...
+    CORE_MAX_CONCURRENT_REQUESTS: int = 5
+
+    # --- THIS IS THE FIX ---
+    # Formally declare all required/optional ENV VARS from runtime_requirements.
+    # This ensures the attributes always exist, even if their value is None.
+    DATABASE_URL: str
+    QDRANT_URL: str
+    QDRANT_COLLECTION_NAME: str = "core_capabilities"
+
+    LOCAL_EMBEDDING_API_URL: str
+    LOCAL_EMBEDDING_MODEL_NAME: str
+    LOCAL_EMBEDDING_DIM: int
+    LOCAL_EMBEDDING_API_KEY: Optional[str] = None  # Make it optional
+    EMBED_MODEL_REVISION: str = "2025-09-15"
+    # --- END OF FIX ---
 
     def __init__(self, **values: Any):
         super().__init__(**values)
@@ -59,8 +73,6 @@ class Settings(BaseSettings):
             return json.loads(content) or {}
         raise ValueError(f"Unsupported config file type: {file_path}")
 
-    # --- THIS IS THE FIX ---
-    # The lru_cache decorator has been removed to prevent the TypeError.
     def get_path(self, logical_path: str) -> Path:
         """
         Gets the absolute path to a constitutional file using its logical,
@@ -78,8 +90,6 @@ class Settings(BaseSettings):
             raise FileNotFoundError(
                 f"Logical path '{logical_path}' not found or invalid in meta.yaml."
             )
-
-    # --- END OF FIX ---
 
     def load(self, logical_path: str) -> Dict[str, Any]:
         """

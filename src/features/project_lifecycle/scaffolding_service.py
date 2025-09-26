@@ -22,6 +22,7 @@ CORE_ROOT = get_repo_root()
 STARTER_KITS_DIR = CORE_ROOT / "src" / "features" / "project_lifecycle" / "starter_kits"
 
 
+# ID: 356e7222-34ea-443d-8e17-2ab64b3f9c8b
 class Scaffolder:
     """A reusable service for creating new, constitutionally-governed projects."""
 
@@ -52,6 +53,7 @@ class Scaffolder:
                 f"{self.starter_kit_path}."
             )
 
+    # ID: c4ca3239-7e79-48d8-8a6a-dddf3323cf66
     def scaffold_base_structure(self):
         """Creates the base project structure, including tests and CI directories."""
         log.info(f"💾 Creating project structure at {self.project_root}...")
@@ -105,6 +107,7 @@ class Scaffolder:
 
         log.info(f"   -> ✅ Base structure for '{self.name}' created successfully.")
 
+    # ID: 167f91ce-7b9f-4d07-9722-a5283af11019
     def write_file(self, relative_path: str, content: str):
         """Writes content to a file within the new project's directory, creating parent directories as needed."""
         target_file = self.project_root / relative_path
@@ -113,6 +116,7 @@ class Scaffolder:
         log.info(f"   -> 📄 Wrote agent-generated file: {relative_path}")
 
 
+# ID: c38bc7ce-2f6f-447b-9919-b6f7c2e6cf64
 def new_project(
     name: str = typer.Argument(
         ...,

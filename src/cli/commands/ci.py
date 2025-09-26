@@ -19,6 +19,7 @@ from cli.commands.cli_utils import (
     find_test_file_for_capability_async,
 )
 from core.service_registry import service_registry
+from shared.models.audit_models import AuditSeverity
 
 console = Console()
 ci_app = typer.Typer(help="High-level CI and system health checks.")
@@ -28,7 +29,7 @@ ci_app = typer.Typer(help="High-level CI and system health checks.")
     "lint",
     help="Check code formatting and quality with Black and Ruff without changing files.",
 )
-# ID: 3713a069-0edb-4488-996a-55f5d81b21a7
+# ID: 8afdeab9-fc81-4d7c-b05f-dd27f936b3e6
 def lint():
     """Checks code formatting and quality using Black and Ruff."""
     _run_poetry_command(
@@ -40,7 +41,7 @@ def lint():
 
 
 @ci_app.command("test", help="Run the pytest suite.")
-# ID: ee519092-3ea8-4ee8-ad4d-674f739b1d4d
+# ID: f4d514f7-e277-446e-98ff-06e881710a99
 def test_system(
     target: str | None = typer.Argument(
         None, help="Optional: A specific test file path or a capability ID."
@@ -77,60 +78,137 @@ def test_system(
     "audit",
     help="Run the full constitutional self-audit and print a summary of findings.",
 )
-# ID: d2fff57e-241c-4758-a3fb-ae7c07af8937
-def audit():
+# --- THIS IS THE FIX ---
+# ID: f7bc6512-03d2-4bf9-b718-6fb9323e38ea
+def audit(
+    severity: str = typer.Option(
+        "warning",
+        "--severity",
+        "-s",
+        help="Filter findings by minimum severity level (info, warning, error).",
+        case_sensitive=False,
+    )
+):
     """Run a full constitutional self-audit and print a summary of findings."""
-    auditor = service_registry.get_service("auditor")
-    # run_full_audit is now a synchronous wrapper around the async logic
-    passed, findings, unassigned_count = auditor.run_full_audit()
 
-    summary_table = Table.grid(expand=True, padding=(0, 1))
-    summary_table.add_column(justify="left")
-    summary_table.add_column(justify="right", style="bold")
-    errors = [f for f in findings if f.severity.is_blocking]
-    warnings = [f for f in findings if not f.severity.is_blocking]
-    summary_table.add_row("Errors:", f"[red]{len(errors)}[/red]")
-    summary_table.add_row("Warnings:", f"[yellow]{len(warnings)}[/yellow]")
-    summary_table.add_row("Unassigned Symbols:", f"[cyan]{unassigned_count}[/cyan]")
-    title = "✅ ALL CHECKS PASSED" if passed else "❌ AUDIT FAILED"
-    style = "bold green" if passed else "bold red"
-    console.print(Panel(summary_table, title=title, style=style, expand=False))
+    async def _async_audit():
+        auditor = await service_registry.get_service("auditor")
+        passed, all_findings, unassigned_count = await auditor.run_full_audit_async()
 
-    if not passed:
-        raise typer.Exit(1)
+        try:
+            min_severity = AuditSeverity[severity.upper()]
+        except KeyError:
+            console.print(
+                f"[bold red]Invalid severity level '{severity}'. Must be 'info', 'warning', or 'error'.[/bold red]"
+            )
+            raise typer.Exit(code=1)
+
+        filtered_findings = [f for f in all_findings if f.severity >= min_severity]
+
+        summary_table = Table.grid(expand=True, padding=(0, 1))
+        summary_table.add_column(justify="left")
+        summary_table.add_column(justify="right", style="bold")
+        errors = [f for f in all_findings if f.severity.is_blocking]
+        warnings = [f for f in all_findings if f.severity == AuditSeverity.WARNING]
+        summary_table.add_row("Errors:", f"[red]{len(errors)}[/red]")
+        summary_table.add_row("Warnings:", f"[yellow]{len(warnings)}[/yellow]")
+        summary_table.add_row("Unassigned Symbols:", f"[cyan]{unassigned_count}[/cyan]")
+
+        title = "✅ AUDIT PASSED" if passed else "❌ AUDIT FAILED"
+        style = "bold green" if passed else "bold red"
+        console.print(Panel(summary_table, title=title, style=style, expand=False))
+
+        if filtered_findings:
+            console.print("\n[bold]Audit Findings:[/bold]")
+            findings_table = Table()
+            findings_table.add_column("Severity", style="bold")
+            findings_table.add_column("Check ID")
+            findings_table.add_column("Message")
+            findings_table.add_column("File:Line")
+
+            for f in sorted(filtered_findings, key=lambda x: x.severity, reverse=True):
+                color = {"error": "red", "warning": "yellow", "info": "cyan"}.get(
+                    str(f.severity), "white"
+                )
+                loc = (
+                    f"{f.file_path}:{f.line_number}"
+                    if f.file_path and f.line_number
+                    else f.file_path or ""
+                )
+                findings_table.add_row(
+                    f"[{color}]{str(f.severity).upper()}[/{color}]",
+                    f.check_id,
+                    f.message,
+                    loc,
+                )
+
+            console.print(findings_table)
+
+        if not passed:
+            raise typer.Exit(1)
+
+    asyncio.run(_async_audit())
+
+
+# --- END OF FIX ---
 
 
 @ci_app.command(
     "report", help="Run a full audit and save the detailed findings to a JSON file."
 )
-# ID: fae1aafa-0aa5-44c8-b055-97b573ffca67
+# ID: 745c70cf-6fc7-4b31-aaa0-ef27bcacc695
 def audit_report(
     output_path: Path = typer.Option(
         "reports/audit_report.json",
         "--output",
         "-o",
         help="Path to save the JSON report file.",
-    )
+    ),
+    severity: str = typer.Option(
+        "info",
+        "--severity",
+        "-s",
+        help="Filter findings by minimum severity level (info, warning, error).",
+        case_sensitive=False,
+    ),
 ):
     """Runs a full constitutional audit and saves the detailed findings to a JSON file."""
     console.print(
-        "[bold cyan]🚀 Running full audit and generating report...[/bold cyan]"
+        f"[bold cyan]🚀 Running full audit and generating report (min-severity: {severity})...[/bold cyan]"
     )
-    auditor = service_registry.get_service("auditor")
-    passed, findings, unassigned_count = auditor.run_full_audit()
 
-    report = {
-        "passed": passed,
-        "summary": {
-            "errors": len([f for f in findings if f.severity.is_blocking]),
-            "warnings": len([f for f in findings if not f.severity.is_blocking]),
-            "unassigned_symbols": unassigned_count,
-        },
-        "findings": [f.as_dict() for f in findings],
-    }
+    async def _async_audit_report():
+        auditor = await service_registry.get_service("auditor")
+        passed, all_findings, unassigned_count = await auditor.run_full_audit_async()
 
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    output_path.write_text(json.dumps(report, indent=2))
+        try:
+            min_severity = AuditSeverity[severity.upper()]
+        except KeyError:
+            console.print(
+                f"[bold red]Invalid severity level '{severity}'. Must be 'info', 'warning', or 'error'.[/bold red]"
+            )
+            raise typer.Exit(code=1)
 
-    console.print(f"[bold green]✅ Audit report saved to: {output_path}[/bold green]")
-    console.print(JSON(json.dumps(report["summary"])))
+        filtered_findings = [f for f in all_findings if f.severity >= min_severity]
+
+        report = {
+            "passed": passed,
+            "summary": {
+                "errors": len([f for f in all_findings if f.severity.is_blocking]),
+                "warnings": len(
+                    [f for f in all_findings if f.severity == AuditSeverity.WARNING]
+                ),
+                "unassigned_symbols": unassigned_count,
+            },
+            "findings": [f.as_dict() for f in filtered_findings],
+        }
+
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        output_path.write_text(json.dumps(report, indent=2))
+
+        console.print(
+            f"[bold green]✅ Audit report saved to: {output_path}[/bold green]"
+        )
+        console.print(JSON(json.dumps(report["summary"])))
+
+    asyncio.run(_async_audit_report())

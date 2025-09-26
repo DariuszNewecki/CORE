@@ -1,36 +1,48 @@
 # src/features/governance/checks/knowledge_source_check.py
 """
 A constitutional audit check to enforce the single source of truth for knowledge.
-This check ensures that no component reads the legacy knowledge_graph.json file
-directly, forcing them to use the KnowledgeService instead.
 """
 from __future__ import annotations
 
 from typing import List
 
 from features.governance.checks.base_check import BaseCheck
+from shared.config import settings
 from shared.models import AuditFinding, AuditSeverity
 
 
-# ID: 4ecc31b1-7bc6-48ae-9933-f062f73c82cf
+# ID: 17efaec9-2238-46a9-945e-fa2610882d80
 class KnowledgeSourceCheck(BaseCheck):
     """
-    Verifies that knowledge_graph.json is not read directly by runtime components.
+    Verifies that knowledge_graph.json is not read directly by runtime components,
+    except for those explicitly permitted by the knowledge_source_policy.
     """
 
-    # ID: 49b73ea2-7298-4272-9493-2b5d01cab77c
+    # ID: 8dfccaae-a166-4e22-8673-33d0e3b6a784
     def execute(self) -> List[AuditFinding]:
         """
         Runs the check by scanning all source files for forbidden access patterns.
         """
         findings = []
         forbidden_string = "knowledge_graph.json"
-        allowed_file = "src/features/introspection/knowledge_graph_service.py"
+
+        # --- THIS IS THE FIX ---
+        # The check now loads its configuration from the constitution via the settings object.
+        # It has no hardcoded knowledge of which files are allowed.
+        try:
+            policy = settings.load(
+                "charter.policies.governance.knowledge_source_policy"
+            )
+            allowed_files = set(policy.get("allowed_access_paths", []))
+        except (FileNotFoundError, IOError):
+            # Fail safely if the policy is missing
+            allowed_files = set()
+        # --- END OF FIX ---
 
         for file_path in self.src_dir.rglob("*.py"):
             file_path_str = str(file_path.relative_to(self.repo_root))
 
-            if file_path_str == allowed_file:
+            if file_path_str in allowed_files:
                 continue
 
             try:
@@ -45,6 +57,6 @@ class KnowledgeSourceCheck(BaseCheck):
                         )
                     )
             except Exception:
-                continue  # Ignore files that can't be read
+                continue
 
         return findings

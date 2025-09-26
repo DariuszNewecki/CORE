@@ -1,4 +1,4 @@
-# FILE: .intent/charter/policies/database_policy.yaml
+# FILE: .intent/charter/policies/data/database_policy.yaml
 
 id: database_policy
 version: "2.0.0"
@@ -27,6 +27,7 @@ migrations:
     - "005_add_symbol_key.sql"
     - "006_knowledge_graph_view.sql"
     - "007_capabilities_registry.sql"
+    - "008_operational_tables.sql"
 rules:
   - id: db.mind_remains_source
     statement: "`.intent/**` is the single source of constitutional truth; DB is not authoritative for policies/manifests."
