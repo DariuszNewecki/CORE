@@ -71,6 +71,7 @@ class AlignmentRequest(BaseModel):
     min_coverage: float | None = Field(default=None, ge=0.0, le=1.0)
 
 
+# ID: f8653eb9-4323-4302-9774-8d99e16b7026
 class SearchRequest(BaseModel):
     """Defines the request body for the /knowledge/search endpoint."""
 

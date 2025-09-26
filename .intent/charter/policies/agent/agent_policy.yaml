@@ -1,3 +1,4 @@
+policy_id: 18f048cb-b084-4faa-ac62-17fca55fed77
 id: agent_policy
 version: "1.1.0" # Version bump due to consolidation
 title: "Agent Governance Policy"

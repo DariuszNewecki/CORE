@@ -50,10 +50,12 @@ class GitService:
             log.error(f"Git command failed: {msg}")
             raise RuntimeError(f"Git command failed: {msg}") from e
 
+    # ID: 41b4a07f-880b-4180-8e2e-ab7109b07ffc
     def get_current_commit(self) -> str:
         """Returns the hash of the current HEAD commit."""
         return self._run_command(["rev-parse", "HEAD"])
 
+    # ID: 33b35c95-2d76-4729-9c16-32d7a877585b
     def reset_to_commit(self, commit_hash: str):
         """Resets the repository to a specific commit."""
         self._run_command(["reset", "--hard", commit_hash])

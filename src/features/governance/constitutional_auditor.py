@@ -6,6 +6,7 @@ It runs a series of checks to ensure the codebase and its declared intent are al
 from __future__ import annotations
 
 import asyncio
+from enum import Enum, auto
 from pathlib import Path
 from typing import Any, List, Tuple
 
@@ -33,6 +34,13 @@ log = getLogger("constitutional_auditor")
 console = Console()
 
 
+# ID: 7a8b9c0d-1e2f-3a4b-5c6d-7e8f9a0b1c2e
+class AuditScope(Enum):
+    """Defines the scope of an audit, allowing for targeted check execution."""
+    FULL = auto()
+    STATIC_ONLY = auto()
+
+
 # ID: 5e27884e-b01e-4861-84b0-2e8c8facdb74
 class ConstitutionalAuditor:
     """Orchestrates all constitutional checks and reports the findings."""
@@ -40,12 +48,14 @@ class ConstitutionalAuditor:
     def __init__(self, repo_root_override: Path | None = None):
         self.repo_root = repo_root_override or Path(".").resolve()
         self.context = AuditorContext(self.repo_root)
-        self.checks: List[Any] = []
+        self.all_checks: List[Any] = []
 
     async def _initialize_checks(self):
         """Initializes all checks after the context has loaded its async data."""
+        if self.all_checks:
+            return
         await self.context.load_knowledge_graph()
-        self.checks = [
+        self.all_checks = [
             FileChecks(self.context),
             EnvironmentChecks(self.context),
             HealthChecks(self.context),
@@ -59,38 +69,46 @@ class ConstitutionalAuditor:
             OrphanedLogicCheck(self.context),
             DuplicationCheck(self.context),
             KnowledgeSourceCheck(self.context),
-            IdCoverageCheck(self.context),  # Add the new check
+            IdCoverageCheck(self.context),
         ]
-        log.info(f"ConstitutionalAuditor initialized with {len(self.checks)} checks.")
+        log.info(f"ConstitutionalAuditor initialized with {len(self.all_checks)} total checks.")
+
+    def _get_checks_for_scope(self, scope: AuditScope) -> List[Any]:
+        """Filters the list of checks based on the requested audit scope."""
+        if scope == AuditScope.FULL:
+            return self.all_checks
+
+        if scope == AuditScope.STATIC_ONLY:
+            # Exclude checks that require a live environment or are known to be noisy
+            excluded_checks = (EnvironmentChecks, DuplicationCheck)
+            return [check for check in self.all_checks if not isinstance(check, excluded_checks)]
+
+        return []
 
     # ID: fcbf94ee-eb92-4c49-8c84-7b5b2aeff2ff
-    async def run_full_audit_async(self) -> Tuple[bool, List[AuditFinding], int]:
-        """Asynchronously runs all registered checks and returns the results."""
-        if not self.checks:
-            await self._initialize_checks()
+    async def run_full_audit_async(self, scope: AuditScope = AuditScope.FULL) -> Tuple[bool, List[AuditFinding], int]:
+        """Asynchronously runs all registered checks for a given scope and returns the results."""
+        await self._initialize_checks()
+        checks_to_run = self._get_checks_for_scope(scope)
+        log.info(f"Running audit with scope '{scope.name}' ({len(checks_to_run)} checks)...")
 
         all_findings: List[AuditFinding] = []
-        for check in self.checks:
+        for check in checks_to_run:
             try:
-                if isinstance(check, DuplicationCheck):
+                # DuplicationCheck is now handled like any other async check
+                if asyncio.iscoroutinefunction(getattr(check, "execute", None)):
                     findings = await check.execute()
                 else:
                     findings = check.execute()
                 all_findings.extend(findings)
             except Exception as e:
-                log.error(
-                    f"Error executing check '{type(check).__name__}': {e}",
-                    exc_info=True,
-                )
+                log.error(f"Error executing check '{type(check).__name__}': {e}", exc_info=True)
 
-        unassigned_symbols_count = len(
-            OrphanedLogicCheck(self.context).find_unassigned_public_symbols()
-        )
-
+        unassigned_symbols_count = len(OrphanedLogicCheck(self.context).find_unassigned_public_symbols())
         has_errors = any(f.severity.is_blocking for f in all_findings)
         return not has_errors, all_findings, unassigned_symbols_count
 
     # ID: 0c850a95-21f6-4a54-8c23-f731e8eb4a8f
-    def run_full_audit(self) -> Tuple[bool, List[AuditFinding], int]:
-        """Synchronous wrapper to run the full async audit."""
-        return asyncio.run(self.run_full_audit_async())
+    def run_full_audit(self, scope: AuditScope = AuditScope.FULL) -> Tuple[bool, List[AuditFinding], int]:
+        """Synchronous wrapper to run the full async audit for a given scope."""
+        return asyncio.run(self.run_full_audit_async(scope))

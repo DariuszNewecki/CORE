@@ -25,6 +25,7 @@ if TYPE_CHECKING:
 log = getLogger(__name__)
 
 
+# ID: 3adc833a-41c4-462d-8118-5126e634c57f
 class ExecutionAgent:
     """Orchestrates the execution of a plan, including code generation and validation."""
 
@@ -62,6 +63,7 @@ class ExecutionAgent:
             raise PlanExecutionError(f"Plan validation failed: {error_message}")
         log.info("   -> ✅ Plan is constitutionally valid.")
 
+    # ID: 0a9e4ece-68f3-4711-9633-23598d5c7c2a
     async def execute_plan(
         self,
         high_level_goal: str,

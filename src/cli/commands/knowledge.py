@@ -30,6 +30,7 @@ knowledge_app = typer.Typer(
 )
 # ID: a4d3f3b1-3e4c-4e8a-9f6b-7c8d9e0a1b2c
 # --- THIS IS THE FIX ---
+# ID: 66832289-1bc0-48fa-8f8f-2d83fecfe3d9
 def search_knowledge_command(
     query: str = typer.Argument(..., help="The natural language search query."),
     limit: int = typer.Option(5, "--limit", "-l", help="Number of results to return."),

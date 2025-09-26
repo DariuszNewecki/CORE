@@ -1,3 +1,4 @@
+policy_id: cb081a61-5c2b-4623-8249-f26796e68d40
 id: capability_linter_policy
 version: "1.1.0" # Version bump to reflect #ID change
 title: "Capability Linter Policy"

@@ -1,3 +1,4 @@
+policy_id: 56dbc018-cb44-44a3-81aa-e9a2dd429069
 # .intent/charter/policies/enforcement_model_policy.yaml
 version: "2.0.0" # Version bump to signify harmonization
 title: "Canonical Enforcement Model Policy"

@@ -1,3 +1,4 @@
+policy_id: 1d311fd2-97db-462a-bacc-862e8f3c3777
 # .intent/charter/policies/intent_guard_policy.yaml
 version: "2.0.0" # Version bump to clarify Mind/Charter separation.
 title: "Intent Guard Policy"

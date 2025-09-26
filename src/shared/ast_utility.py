@@ -18,6 +18,39 @@ from typing import Dict, List, Optional
 log = logging.getLogger(__name__)
 
 
+# --- THIS IS THE NEW, ROBUST HELPER FUNCTION ---
+# ID: a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d
+def find_definition_line(
+    node: ast.FunctionDef | ast.AsyncFunctionDef | ast.ClassDef, source_lines: List[str]
+) -> int:
+    """
+    Finds the actual line number of the 'def' or 'class' keyword,
+    skipping over any decorators.
+    """
+    if not node.decorator_list:
+        return node.lineno
+
+    # The line number of the last decorator
+    last_decorator_line = (
+        node.decorator_list[-1].end_lineno or node.decorator_list[-1].lineno
+    )
+
+    # Search for "def" or "class" from the last decorator onwards
+    for i in range(last_decorator_line, len(source_lines)):
+        line = source_lines[i].strip()
+        if (
+            line.startswith(f"def {node.name}")
+            or line.startswith(f"async def {node.name}")
+            or line.startswith(f"class {node.name}")
+        ):
+            return i + 1  # Return 1-based line number
+
+    return node.lineno  # Fallback
+
+
+# --- END OF NEW HELPER FUNCTION ---
+
+
 # ---------------------------------------------------------------------------
 # Basic extractors
 # ---------------------------------------------------------------------------
