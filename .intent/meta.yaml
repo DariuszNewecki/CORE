@@ -115,4 +115,5 @@ mind:
     planner_agent: "mind/prompts/planner_agent.prompt"
     refactor_for_clarity: "mind/prompts/refactor_for_clarity.prompt"
     refactor_outlier: "mind/prompts/refactor_outlier.prompt"
+    standard_task_generator: "mind/prompts/standard_task_generator.prompt" # <-- ADD THIS LINE
     vectorizer: "mind/prompts/vectorizer.prompt"

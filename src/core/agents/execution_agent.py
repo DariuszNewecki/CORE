@@ -5,7 +5,6 @@ Provides functionality for the execution_agent module.
 
 from __future__ import annotations
 
-import textwrap
 from typing import TYPE_CHECKING, List
 
 from core.agents.plan_executor import PlanExecutor
@@ -38,7 +37,6 @@ class ExecutionAgent:
     ):
         """Initializes the ExecutionAgent with its required tools and constitutional policies."""
         self.cognitive_service = cognitive_service
-        self.generator = self.cognitive_service.get_client_for_role("Coder")
         self.prompt_pipeline = prompt_pipeline
         self.executor = plan_executor
         self.git_service = self.executor.git_service
@@ -64,7 +62,6 @@ class ExecutionAgent:
             raise PlanExecutionError(f"Plan validation failed: {error_message}")
         log.info("   -> ✅ Plan is constitutionally valid.")
 
-    # --- THIS IS THE FIX ---
     async def execute_plan(
         self,
         high_level_goal: str,
@@ -75,7 +72,6 @@ class ExecutionAgent:
             return False, "Plan is empty or invalid."
 
         try:
-            # Only run strict validation for micro-proposals
             if is_micro_proposal:
                 self._verify_plan(plan)
         except PlanExecutionError as e:
@@ -83,7 +79,6 @@ class ExecutionAgent:
                 f"❌ CRITICAL: Received an invalid plan. Execution aborted. Reason: {e}"
             )
             return False, str(e)
-        # --- END OF FIX ---
 
         log.info("--- Starting Governed Code Generation Phase ---")
         success, error_message = await self._generate_and_validate_all_tasks(
@@ -173,7 +168,7 @@ class ExecutionAgent:
             "original_prompt": goal,
         }
         log.info("  -> 🧬 Invoking self-correction engine...")
-        correction_result = attempt_correction(
+        correction_result = await attempt_correction(
             correction_context, self.cognitive_service
         )
         if correction_result.get("status") == "retry_staged":
@@ -206,16 +201,15 @@ class ExecutionAgent:
         if not file_path_str:
             return ""
         original_content = self._read_existing_file(file_path_str)
-        prompt_template = settings.load(
-            "mind.prompts.proposal_generator"
-        )  # Example of loading a prompt
+        prompt_template = settings.load("mind.prompts.proposal_generator")
         final_prompt = prompt_template.format(
             goal=goal,
             step=task.step,
             file_path=file_path_str,
             original_content=original_content,
         )
-        return await self.generator.make_request_async(
+        generator = await self.cognitive_service.get_client_for_role("Coder")
+        return await generator.make_request_async(
             final_prompt, user_id="execution_agent_proposer"
         )
 
@@ -227,7 +221,7 @@ class ExecutionAgent:
             return ""
         prompt_template = settings.get_path(
             "mind.prompts.standard_task_generator"
-        ).read_text()  # Example of getting path
+        ).read_text()
         final_prompt = prompt_template.format(
             goal=goal,
             step=task.step,
@@ -235,7 +229,8 @@ class ExecutionAgent:
             symbol_name=task.params.symbol_name or "",
         )
         enriched_prompt = self.prompt_pipeline.process(final_prompt)
-        return await self.generator.make_request_async(
+        generator = await self.cognitive_service.get_client_for_role("Coder")
+        return await generator.make_request_async(
             enriched_prompt, user_id="execution_agent_coder"
         )
 
@@ -248,36 +243,3 @@ class ExecutionAgent:
         except Exception as e:
             log.error(f"Error reading {file_path_str}: {e}")
             return ""
-
-    def _get_proposal_prompt_template(self) -> str:
-        return textwrap.dedent(
-            """
-            You are an expert Python programmer.
-            Your task is to generate the complete, final source code for a file based on a goal.
-            **Overall Goal:** {goal}
-            **Current Task:** {step}
-            **Target File:** {file_path}
-            **Original File Content (for context):**
-            ```python
-            {original_content}
-            ```
-
-            **Instructions:** Your output MUST be ONLY the raw, complete,
-            and final Python code for the entire file. Do not wrap it in markdown.
-            """
-        ).strip()
-
-    def _get_standard_task_prompt_template(self) -> str:
-        return textwrap.dedent(
-            """
-            You are an expert Python programmer.
-            Generate a single block of Python code to fulfill the task.
-            **Overall Goal:** {goal}
-            **Current Task:** {step}
-            **Target File:** {file_path}
-            **Target Symbol (if editing):** {symbol_name}
-            **Instructions:**
-            - Your output MUST be ONLY the raw Python code.
-            - Do not wrap it in markdown blocks.
-            """
-        ).strip()

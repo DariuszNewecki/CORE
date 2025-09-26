@@ -38,7 +38,7 @@ class GitService:
         try:
             log.debug(f"Running git command: {' '.join(command)}")
             result = subprocess.run(
-                ["git", *command],  # Corrected to prepend git to the command list
+                ["git", *command],
                 cwd=self.repo_path,
                 capture_output=True,
                 text=True,
@@ -50,13 +50,19 @@ class GitService:
             log.error(f"Git command failed: {msg}")
             raise RuntimeError(f"Git command failed: {msg}") from e
 
-    # --- START: AMENDMENT ---
+    def get_current_commit(self) -> str:
+        """Returns the hash of the current HEAD commit."""
+        return self._run_command(["rev-parse", "HEAD"])
+
+    def reset_to_commit(self, commit_hash: str):
+        """Resets the repository to a specific commit."""
+        self._run_command(["reset", "--hard", commit_hash])
+        log.info(f"Repository reset to commit {commit_hash}")
+
     # ID: eed906a4-ba54-4af9-94fe-9865d6906c96
     def get_staged_files(self) -> list[str]:
         """Returns a list of files that are currently staged for commit."""
         try:
-            # --diff-filter=ACMR means Added, Copied, Modified, Renamed
-            # This gives us a reliable list of files with substantive changes.
             output = self._run_command(
                 ["diff", "--cached", "--name-only", "--diff-filter=ACMR"]
             )
@@ -64,10 +70,7 @@ class GitService:
                 return []
             return output.splitlines()
         except RuntimeError:
-            # This can happen if there's no initial commit yet, which is a valid state.
             return []
-
-    # --- END: AMENDMENT ---
 
     # ID: 8d60714d-0214-48a9-be5b-9011e53ad93e
     def is_git_repo(self) -> bool:

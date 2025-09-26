@@ -1,7 +1,7 @@
-# src/agents/reconnaissance_agent.py
+# src/core/agents/reconnaissance_agent.py
 """
-Implements the ReconnaissanceAgent, a non-LLM agent that performs targeted
-queries against the knowledge graph to build a minimal, surgical context for the Planner.
+Implements the ReconnaissanceAgent, which performs targeted queries and semantic
+search against the knowledge graph to build a minimal, surgical context for the Planner.
 """
 
 from __future__ import annotations
@@ -9,6 +9,7 @@ from __future__ import annotations
 import re
 from typing import Any, Dict, List
 
+from core.cognitive_service import CognitiveService
 from shared.logger import getLogger
 
 log = getLogger("recon_agent")
@@ -20,59 +21,94 @@ SYMBOL_REGEX = re.compile(r"\b([A-Z][A-Za-z0-9_]+|`[a-zA-Z0-9_./]+`)\b")
 class ReconnaissanceAgent:
     """Queries the knowledge graph to build a focused context for a task."""
 
-    def __init__(self, knowledge_graph: Dict[str, Any]):
-        """Initializes with the full knowledge graph."""
+    def __init__(
+        self, knowledge_graph: Dict[str, Any], cognitive_service: CognitiveService
+    ):
+        """Initializes with the knowledge graph and cognitive service for search."""
         self.graph = knowledge_graph
         self.symbols = knowledge_graph.get("symbols", {})
+        self.cognitive_service = cognitive_service
+
+    async def _find_relevant_files(self, goal: str) -> List[str]:
+        """Performs a semantic search to find files relevant to the goal."""
+        log.info("   -> Performing semantic search for relevant files...")
+        try:
+            search_results = await self.cognitive_service.search_capabilities(
+                goal, limit=3
+            )
+            if not search_results:
+                return []
+
+            relevant_files = set()
+            for hit in search_results:
+                if (payload := hit.get("payload")) and (
+                    file_path := payload.get("source_path")
+                ):
+                    relevant_files.add(file_path)
+
+            log.info(f"   -> Found relevant files: {list(relevant_files)}")
+            return sorted(list(relevant_files))
+        except Exception as e:
+            log.warning(f"Semantic file search failed: {e}")
+            return []
 
     # ID: f3952e9d-1228-4013-9bc8-91d0b551d3b2
-    def generate_report(self, goal: str) -> str:
+    async def generate_report(self, goal: str) -> str:
         """
         Analyzes a goal, queries the graph, and generates a surgical context report.
         """
         log.info(f"🔬 Conducting reconnaissance for goal: '{goal}'")
 
+        # Perform both symbol-based and semantic search for comprehensive context
         target_symbols = [s.replace("`", "") for s in SYMBOL_REGEX.findall(goal)]
+        relevant_files = await self._find_relevant_files(goal)
+
         log.info(f"   -> Identified target symbols: {target_symbols}")
 
-        if not target_symbols:
-            return (
-                "# Reconnaissance Report\n\n- No specific code symbols were "
-                "identified in the goal."
+        report_parts = ["# Reconnaissance Report"]
+
+        if relevant_files:
+            report_parts.append("\n## Relevant Files Identified by Semantic Search:")
+            for file in relevant_files:
+                report_parts.append(f"- `{file}`")
+        else:
+            report_parts.append(
+                "\n- No specific relevant files were identified via semantic search."
             )
 
-        report_parts = ["# Reconnaissance Report\n"]
-        for symbol_name in target_symbols:
-            symbol_data = self._find_symbol_data(symbol_name)
-            if not symbol_data:
+        if not target_symbols:
+            report_parts.append(
+                "\n- No specific code symbols were identified in the goal."
+            )
+        else:
+            for symbol_name in target_symbols:
+                symbol_data = self._find_symbol_data(symbol_name)
+                if not symbol_data:
+                    report_parts.append(
+                        f"\n## Symbol: `{symbol_name}`\n\n- **Status:** Not found in the Knowledge Graph."
+                    )
+                    continue
+
+                callers = self._find_callers(symbol_name)
                 report_parts.append(
-                    f"\n## Symbol: `{symbol_name}`\n\n- **Status:** Not found "
-                    "in the Knowledge Graph."
+                    f"\n## Symbol: `{symbol_data.get('key', symbol_name)}`"
                 )
-                continue
+                report_parts.append(f"- **Type:** {symbol_data.get('type')}")
+                report_parts.append(f"- **Location:** `{symbol_data.get('file')}`")
+                report_parts.append(f"- **Intent:** {symbol_data.get('intent')}")
 
-            callers = self._find_callers(symbol_name)
-
-            report_parts.append(f"\n## Symbol: `{symbol_data['key']}`")
-            report_parts.append(f"- **Type:** {symbol_data['type']}")
-            report_parts.append(f"- **Location:** `{symbol_data['file']}`")
-            report_parts.append(f"- **Intent:** {symbol_data['intent']}")
-
-            if callers:
-                report_parts.append("- **Referenced By:**")
-                for caller in callers:
-                    report_parts.append(f"  - `{caller['key']}`")
-            else:
-                report_parts.append(
-                    "- **Referenced By:** None. This symbol appears to be "
-                    "unreferenced."
-                )
+                if callers:
+                    report_parts.append("- **Referenced By:**")
+                    for caller in callers:
+                        report_parts.append(f"  - `{caller.get('key')}`")
+                else:
+                    report_parts.append(
+                        "- **Referenced By:** None. This symbol appears to be unreferenced."
+                    )
 
         report_parts.append(
-            "\n---\n**Conclusion:** The analysis is complete. Use this "
-            "information to form a precise plan."
+            "\n---\n**Conclusion:** The analysis is complete. Use this information to form a precise plan."
         )
-
         report = "\n".join(report_parts)
         log.info(f"   -> Generated Surgical Context Report:\n{report}")
         return report

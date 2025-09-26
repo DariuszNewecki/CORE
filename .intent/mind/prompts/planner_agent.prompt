@@ -6,31 +6,17 @@ You must respond with a JSON array of tasks. Each task must be an object with th
 - `action`: The name of the action to be performed. Must be one of the available actions.
 - `params`: An object containing the parameters for the action. The keys must match the required parameters for that action.
 
+**CRITICAL CONTEXT: This information has been provided by a reconnaissance agent.**
+You MUST use this context to inform your plan.
+{reconnaissance_report}
+
+**CRITICAL RULES:**
+1.  You MUST use the file paths provided in the "Relevant Files Identified by Semantic Search" section of the report. Do not invent file paths.
+2.  If the plan involves editing code, your first step should almost always be to `read_file` to understand the current state before proposing an `edit_file` or `edit_function` action.
+3.  For `edit_file` actions, you MUST provide the complete, final code for the file in the `code` parameter. Do not provide partial snippets or diffs.
+
 Available Actions:
 {action_descriptions}
-
-Here is an example of a perfect plan:
-Goal: "Refactor the `process_data` function in `utils.py` to improve its readability and add error handling."
-
-[
-    {{
-        "step": "Read the existing content of the file to understand the current implementation.",
-        "action": "read_file",
-        "params": {{
-            "file_path": "src/utils.py"
-        }}
-    }},
-    {{
-        "step": "Modify the `process_data` function with the required improvements.",
-        "action": "edit_file",
-        "params": {{
-            "file_path": "src/utils.py",
-            "start_line": 85,
-            "end_line": 120,
-            "new_content": "def process_data(data):\\n    # ... new, improved code here ...\\n    return result"
-        }}
-    }}
-]
 
 Now, create a plan for the following goal.
 

@@ -44,7 +44,6 @@ async def run_development_cycle(
         log.info(f"🚀 Received new development goal: '{goal}'")
         repo_path = get_repo_root()
 
-        # --- CORRECTED SERVICE INITIALIZATION ---
         auditor_context = AuditorContext(repo_path)
         git_service = GitService(repo_path=str(repo_path))
         cognitive_service = CognitiveService(repo_path=repo_path)
@@ -54,27 +53,28 @@ async def run_development_cycle(
         planner_config = PlannerConfig()
         plan_executor = PlanExecutor(file_handler, git_service, planner_config)
 
-        # Load the real knowledge graph for reconnaissance
         knowledge_graph = await knowledge_service.get_graph()
-        recon_agent = ReconnaissanceAgent(knowledge_graph)
-        context = recon_agent.generate_report(goal)
-        log.info("   -> Generated Surgical Context Report:\n" + context)
 
-        # Initialize agents
+        # --- THIS IS THE FIX ---
+        # The Recon Agent now requires the cognitive_service to do its own search
+        recon_agent = ReconnaissanceAgent(knowledge_graph, cognitive_service)
+        context_report = await recon_agent.generate_report(goal)
+
         planner = PlannerAgent(cognitive_service)
+        # The planner now requires the report to generate an informed plan
+        plan = await planner.create_execution_plan(goal, context_report)
+        # --- END OF FIX ---
+
         executor = ExecutionAgent(
             cognitive_service, prompt_pipeline, plan_executor, auditor_context
         )
 
-        # Create and execute the plan
-        plan = await planner.create_execution_plan(goal)
         if not plan:
             return False, "PlannerAgent failed to create a valid execution plan."
 
         success, message = await executor.execute_plan(
             high_level_goal=goal, plan=plan, is_micro_proposal=False
         )
-        # --- END OF CORRECTION ---
 
         if success and auto_commit:
             commit_message = f"feat(AI): execute plan for goal - {goal}"

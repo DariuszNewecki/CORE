@@ -17,6 +17,7 @@ from core.agents.utils import SymbolLocator
 from core.file_handler import FileHandler
 from core.git_service import GitService
 from core.validation_pipeline import validate_code
+from features.governance.audit_context import AuditorContext
 from shared.logger import getLogger
 from shared.models import ExecutionTask, PlanExecutionError, PlannerConfig, TaskParams
 
@@ -38,6 +39,8 @@ class PlanExecutor:
         self.symbol_locator = SymbolLocator()
         self.code_editor = CodeEditor()
         self._executor = asyncio.get_event_loop().run_in_executor
+        self.file_context: dict[str, str] = {}  # To store content from read_file
+        self.auditor_context = AuditorContext(self.repo_path)
 
     # ID: 65f105d2-27e4-4fca-8f96-27decc90bca5
     async def execute_plan(self, plan: List[ExecutionTask]):
@@ -57,6 +60,8 @@ class PlanExecutor:
     async def _execute_task(self, task: ExecutionTask):
         """Dispatcher that executes a single task from a plan based on its action type."""
         action_map = {
+            "read_file": self._execute_read_file,
+            "edit_file": self._execute_edit_file,
             "add_capability_tag": self._execute_add_tag,
             "create_file": self._execute_create_file,
             "edit_function": self._execute_edit_function,
@@ -67,6 +72,54 @@ class PlanExecutor:
             await action_map[task.action](task.params)
         else:
             log.warning(f"Skipping task: Unknown action '{task.action}'.")
+
+    async def _execute_read_file(self, params: TaskParams):
+        """Executes the 'read_file' action and stores content in context."""
+        file_path_str = params.file_path
+        if not file_path_str:
+            raise PlanExecutionError("Missing 'file_path' for read_file action.")
+
+        full_path = self.repo_path / file_path_str
+        if not full_path.exists():
+            raise PlanExecutionError(f"File to be read does not exist: {file_path_str}")
+
+        self.file_context[file_path_str] = full_path.read_text(encoding="utf-8")
+        log.info(f"📖 Read file '{file_path_str}' into context.")
+
+    async def _execute_edit_file(self, params: TaskParams):
+        """Executes the 'edit_file' action using the context from 'read_file'."""
+        file_path_str = params.file_path
+        new_content = params.code  # The planner should now provide the full new content
+        if not all([file_path_str, new_content]):
+            raise PlanExecutionError(
+                "Missing 'file_path' or 'code' for edit_file action."
+            )
+
+        full_path = self.repo_path / file_path_str
+        if not full_path.exists():
+            raise PlanExecutionError(
+                f"File to be edited does not exist: {file_path_str}"
+            )
+
+        validation_result = validate_code(
+            file_path_str, new_content, auditor_context=self.auditor_context
+        )
+        if validation_result["status"] == "dirty":
+            raise PlanExecutionError(
+                f"Generated code for '{file_path_str}' failed validation.",
+                violations=validation_result["violations"],
+            )
+
+        pending_id = self.file_handler.add_pending_write(
+            prompt=f"Goal: edit file {file_path_str}",
+            suggested_path=file_path_str,
+            code=validation_result["code"],
+        )
+        self.file_handler.confirm_write(pending_id)
+
+        if self.config.auto_commit and self.git_service.is_git_repo():
+            self.git_service.add(file_path_str)
+            self.git_service.commit(f"feat: Modify file {file_path_str}")
 
     async def _execute_delete_file(self, params: TaskParams):
         """Executes the 'delete_file' action."""
@@ -148,18 +201,15 @@ class PlanExecutor:
 
         insertion_index = line_number - 1
 
-        # --- THIS IS THE FIX ---
-        # The 'indentation' variable was unused, so it has been removed.
         original_line = lines[insertion_index]
         indentation_spaces = len(original_line) - len(original_line.lstrip(" "))
-        lines.insert(
-            insertion_index, f"{' ' * indentation_spaces}# ID: {tag}"
-        )  # Corrected to use ID
-        # --- END OF FIX ---
+        lines.insert(insertion_index, f"{' ' * indentation_spaces}# ID: {tag}")
 
         modified_code = "\n".join(lines)
 
-        validation_result = validate_code(file_path, modified_code)
+        validation_result = validate_code(
+            file_path, modified_code, auditor_context=self.auditor_context
+        )
         if validation_result["status"] == "dirty":
             raise PlanExecutionError(
                 f"Surgical modification for '{file_path}' failed validation.",
@@ -188,7 +238,9 @@ class PlanExecutor:
                 f"File '{file_path}' already exists. Use 'edit_function' instead."
             )
 
-        validation_result = validate_code(file_path, code)
+        validation_result = validate_code(
+            file_path, code, auditor_context=self.auditor_context
+        )
         if validation_result["status"] == "dirty":
             raise PlanExecutionError(
                 f"Generated code for '{file_path}' failed validation.",
@@ -222,7 +274,9 @@ class PlanExecutor:
 
         original_code = await self._executor(None, full_path.read_text, "utf-8")
 
-        validation_result = validate_code(file_path, new_code)
+        validation_result = validate_code(
+            file_path, new_code, auditor_context=self.auditor_context
+        )
         if validation_result["status"] == "dirty":
             raise PlanExecutionError(
                 f"Generated code for '{symbol_name}' failed validation.",
