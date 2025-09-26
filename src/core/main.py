@@ -71,6 +71,35 @@ class AlignmentRequest(BaseModel):
     min_coverage: float | None = Field(default=None, ge=0.0, le=1.0)
 
 
+class SearchRequest(BaseModel):
+    """Defines the request body for the /knowledge/search endpoint."""
+
+    query: str = Field(..., min_length=1, description="The natural language query.")
+    limit: int = Field(
+        5, gt=0, le=50, description="The maximum number of results to return."
+    )
+
+
+@app.post("/knowledge/search")
+# ID: c1e2f3a4-b5d6-7e8f-9a0b-1c2d3e4f5a6b
+async def search_knowledge(request_data: SearchRequest, request: Request):
+    """
+    Performs a semantic search for capabilities in the knowledge base.
+    """
+    cognitive_service: CognitiveService = request.app.state.cognitive_service
+    try:
+        results = await cognitive_service.search_capabilities(
+            query=request_data.query, limit=request_data.limit
+        )
+        return {"results": results}
+    except Exception as e:
+        log.error(f"Semantic search API endpoint failed: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An error occurred during the search process.",
+        )
+
+
 @app.post("/guard/align")
 # ID: 16de5543-e473-492d-a09d-2ee4927e944e
 async def guard_align(payload: AlignmentRequest):

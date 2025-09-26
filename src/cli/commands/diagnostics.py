@@ -22,6 +22,7 @@ from features.governance.policy_coverage_service import PolicyCoverageService
 from features.introspection.audit_unassigned_capabilities import get_unassigned_symbols
 from shared.config import settings
 from shared.models import AuditSeverity
+from shared.utils.constitutional_parser import get_all_constitutional_paths
 
 console = Console()
 yaml_loader = YAML(typ="safe")
@@ -107,6 +108,22 @@ def policy_coverage():
         console.print(
             "\n[bold green]✅ All active policies are well-formed and covered.[/bold green]"
         )
+
+
+@diagnostics_app.command(
+    "debug-meta", help="Prints the auditor's view of all required constitutional files."
+)
+# ID: c4dba9d9-6c1a-4328-b473-2e3286e9d291
+def debug_meta_paths():
+    """A diagnostic tool to debug the constitutional file parser."""
+    console.print(
+        "[bold yellow]--- Auditor's Interpretation of meta.yaml ---[/bold yellow]"
+    )
+    intent_dir = settings.REPO_PATH / ".intent"
+    required_paths = get_all_constitutional_paths(intent_dir)
+
+    for path in sorted(list(required_paths)):
+        console.print(path)
 
 
 @diagnostics_app.command(

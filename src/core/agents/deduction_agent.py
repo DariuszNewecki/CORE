@@ -6,8 +6,13 @@ efficient and effective LLM resource for a given task based on a constitutional 
 
 from __future__ import annotations
 
+import asyncio
+import json
 from typing import Any, Dict
 
+from sqlalchemy import text
+
+from services.repositories.db.engine import get_session
 from shared.config import settings
 from shared.logger import getLogger
 
@@ -22,13 +27,43 @@ class DeductionAgent:
     """
 
     def __init__(self):
-        """Initializes the DeductionAgent by loading its governing policies."""
+        """Initializes the DeductionAgent. Policies are loaded from DB on first use."""
         agent_policy_content = settings.load("charter.policies.agent.agent_policy")
         self.deduction_policy = agent_policy_content.get("resource_selection", {})
-        resource_manifest_content = settings.load(
-            "charter.policies.agent.resource_manifest_policy"
-        )
-        self.resource_manifest = resource_manifest_content
+
+        self.resource_manifest: Dict[str, Any] | None = None
+        self._lock = asyncio.Lock()
+
+    async def _load_resource_manifest_from_db(self):
+        """Lazily loads the LLM resource manifest from the database."""
+        async with self._lock:
+            if self.resource_manifest is not None:
+                return
+
+            log.debug(
+                "Loading LLM resource manifest from database for DeductionAgent..."
+            )
+            async with get_session() as session:
+                result = await session.execute(text("SELECT * FROM core.llm_resources"))
+                resources = []
+                for row in result:
+                    # The database driver returns JSONB columns as strings.
+                    # We must parse them back into Python dictionaries/lists.
+                    row_dict = dict(row._mapping)
+                    if isinstance(row_dict.get("performance_metadata"), str):
+                        row_dict["performance_metadata"] = json.loads(
+                            row_dict["performance_metadata"]
+                        )
+                    # --- THIS IS THE FIX ---
+                    if isinstance(row_dict.get("provided_capabilities"), str):
+                        row_dict["provided_capabilities"] = json.loads(
+                            row_dict["provided_capabilities"]
+                        )
+                    # --- END OF FIX ---
+                    resources.append(row_dict)
+
+            self.resource_manifest = {"llm_resources": resources}
+            log.debug(f"Loaded {len(resources)} LLM resources from DB.")
 
     def _calculate_score(
         self, resource_metadata: Dict[str, Any], weights: Dict[str, float]
@@ -50,16 +85,27 @@ class DeductionAgent:
 
         return score
 
-    # ID: b9d91c1d-d520-4f28-ab8f-8a83107cea7a
-    def select_best_resource(self, task_context: Dict[str, Any] | None = None) -> str:
+    async def select_best_resource(
+        self, task_context: Dict[str, Any] | None = None
+    ) -> str:
         """
         Selects the best LLM resource based on the deduction policy and task context.
         """
+        await self._load_resource_manifest_from_db()
+
         task_context = task_context or {}
         role_config = task_context.get("role_config", {})
         role_name = role_config.get("role", "UnknownRole")
         role_description = role_config.get("description", "")
-        required_caps = set(role_config.get("required_capabilities", []))
+
+        # --- THIS IS THE FIX for the CognitiveService side ---
+        # The required capabilities from the roles table might also be a JSON string
+        required_caps_raw = role_config.get("required_capabilities", [])
+        if isinstance(required_caps_raw, str):
+            required_caps = set(json.loads(required_caps_raw))
+        else:
+            required_caps = set(required_caps_raw)
+        # --- END OF FIX ---
 
         weights = self.deduction_policy.get("scoring_weights", {})
         overrides = self.deduction_policy.get("task_specific_overrides", [])
@@ -81,7 +127,7 @@ class DeductionAgent:
 
         resources = self.resource_manifest.get("llm_resources", [])
         if not resources:
-            raise ValueError("No LLM resources defined in the constitution.")
+            raise ValueError("No LLM resources defined in the database.")
 
         scored_resources = []
         for resource in resources:
@@ -89,7 +135,7 @@ class DeductionAgent:
             if not required_caps.issubset(provided_caps):
                 log.debug(
                     f"Skipping resource '{resource['name']}' due to missing "
-                    f"capabilities for role '{role_name}'."
+                    f"capabilities for role '{role_name}'. Required: {required_caps - provided_caps}"
                 )
                 continue
 

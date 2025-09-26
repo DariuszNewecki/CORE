@@ -18,6 +18,7 @@ from features.governance.checks.duplication_check import DuplicationCheck
 from features.governance.checks.environment_checks import EnvironmentChecks
 from features.governance.checks.file_checks import FileChecks
 from features.governance.checks.health_checks import HealthChecks
+from features.governance.checks.id_coverage_check import IdCoverageCheck
 from features.governance.checks.import_rules import ImportRulesCheck
 from features.governance.checks.knowledge_source_check import KnowledgeSourceCheck
 from features.governance.checks.manifest_lint import ManifestLintCheck
@@ -58,6 +59,7 @@ class ConstitutionalAuditor:
             OrphanedLogicCheck(self.context),
             DuplicationCheck(self.context),
             KnowledgeSourceCheck(self.context),
+            IdCoverageCheck(self.context),  # Add the new check
         ]
         log.info(f"ConstitutionalAuditor initialized with {len(self.checks)} checks.")
 

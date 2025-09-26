@@ -17,6 +17,7 @@ from core.agents.reconnaissance_agent import ReconnaissanceAgent
 from core.cognitive_service import CognitiveService
 from core.file_handler import FileHandler
 from core.git_service import GitService
+from core.knowledge_service import KnowledgeService
 from core.prompt_pipeline import PromptPipeline
 from features.governance.audit_context import AuditorContext
 from features.introspection.vectorization_service import run_vectorize
@@ -42,25 +43,39 @@ async def run_development_cycle(
     try:
         log.info(f"🚀 Received new development goal: '{goal}'")
         repo_path = get_repo_root()
+
+        # --- CORRECTED SERVICE INITIALIZATION ---
         auditor_context = AuditorContext(repo_path)
         git_service = GitService(repo_path=str(repo_path))
         cognitive_service = CognitiveService(repo_path=repo_path)
+        knowledge_service = KnowledgeService(repo_path=repo_path)
         file_handler = FileHandler(repo_path=str(repo_path))
         prompt_pipeline = PromptPipeline(repo_path=repo_path)
         planner_config = PlannerConfig()
         plan_executor = PlanExecutor(file_handler, git_service, planner_config)
-        knowledge_graph = {"symbols": {}}  # Placeholder
+
+        # Load the real knowledge graph for reconnaissance
+        knowledge_graph = await knowledge_service.get_graph()
         recon_agent = ReconnaissanceAgent(knowledge_graph)
         context = recon_agent.generate_report(goal)
         log.info("   -> Generated Surgical Context Report:\n" + context)
+
+        # Initialize agents
         planner = PlannerAgent(cognitive_service)
         executor = ExecutionAgent(
             cognitive_service, prompt_pipeline, plan_executor, auditor_context
         )
-        plan = planner.create_execution_plan(goal)
+
+        # Create and execute the plan
+        plan = await planner.create_execution_plan(goal)
         if not plan:
             return False, "PlannerAgent failed to create a valid execution plan."
-        success, message = await executor.execute_plan(high_level_goal=goal, plan=plan)
+
+        success, message = await executor.execute_plan(
+            high_level_goal=goal, plan=plan, is_micro_proposal=False
+        )
+        # --- END OF CORRECTION ---
+
         if success and auto_commit:
             commit_message = f"feat(AI): execute plan for goal - {goal}"
             git_service.commit(commit_message)
@@ -121,6 +136,6 @@ def vectorize_capabilities(
 
 
 # ID: ec7405ee-fb7c-424c-8d41-239a77a7a24d
-def register(app: typer.Typer) -> None:
+def register(app: typer.Typer):
     """Register the 'run' command group with the main CLI app."""
     app.add_typer(run_app, name="run")

@@ -1,4 +1,4 @@
-# src/cli/commands/common.py
+# src/services/repositories/db/common.py
 """
 Provides common utilities for database-related CLI commands.
 """
@@ -12,21 +12,55 @@ from datetime import datetime, timezone
 from typing import List, Set
 
 import sqlparse
+import yaml
 from sqlalchemy import text
 
 from services.repositories.db.engine import get_session
-from shared.utils.yaml_processor import strict_yaml_processor
 
-INTENT_DIR = pathlib.Path(".intent")
-POLICY_PATH = INTENT_DIR / "charter" / "policies" / "database_policy.yaml"
+
+# --- THIS IS THE DEFINITIVE FIX ---
+# This module must be self-sufficient. This robust function finds the project
+# root without relying on the global settings object, which may not be initialized yet.
+def _get_repo_root_for_migration() -> pathlib.Path:
+    """Finds the repo root by searching upwards for a known marker file."""
+    current_path = pathlib.Path(__file__).resolve()
+    for parent in [current_path, *current_path.parents]:
+        if (parent / "pyproject.toml").exists():
+            return parent
+    raise RuntimeError("Could not determine the repository root for migration.")
+
+
+REPO_ROOT = _get_repo_root_for_migration()
+META_YAML_PATH = REPO_ROOT / ".intent" / "meta.yaml"
+# --- END OF FIX ---
 
 
 # ID: 80ae5adf-d9cc-432e-b962-369b8992c700
 def load_policy() -> dict:
-    """Load .intent/policies/database_policy.yaml (required)."""
-    if not POLICY_PATH.exists():
-        raise FileNotFoundError(f"database_policy.yaml not found at {POLICY_PATH}")
-    return strict_yaml_processor.load(POLICY_PATH) or {}
+    """Load the database_policy.yaml using a minimal, self-contained pathfinder."""
+    try:
+        # Manually parse meta.yaml to find the true path to the database policy.
+        # This makes the migration command robust and independent of the main app's
+        # initialization sequence.
+        with META_YAML_PATH.open("r", encoding="utf-8") as f:
+            meta_config = yaml.safe_load(f)
+
+        db_policy_path_str = meta_config["charter"]["policies"]["data"][
+            "database_policy"
+        ]
+        # The path in meta.yaml is relative to the .intent directory
+        db_policy_path = REPO_ROOT / ".intent" / db_policy_path_str
+
+        with db_policy_path.open("r", encoding="utf-8") as f:
+            return yaml.safe_load(f) or {}
+    except (FileNotFoundError, KeyError) as e:
+        raise FileNotFoundError(
+            f"Could not locate database policy via meta.yaml. Ensure it's correctly indexed. Original error: {e}"
+        ) from e
+    except yaml.YAMLError as e:
+        raise ValueError(
+            f"Failed to parse a required YAML file for DB migration: {e}"
+        ) from e
 
 
 # ID: a5ec72d4-d489-434f-ad69-a36a39229d92

@@ -1,0 +1,1008 @@
+[12:50:13] INFO     Initializing ServiceRegistry from database...                                                                              
+           INFO     ServiceRegistry initialized with 4 services.                                                                               
+           INFO     KnowledgeService initialized.                                                                                              
+           INFO     Knowledge graph not loaded, fetching from database...                                                                      
+           INFO     Successfully loaded 331 symbols from database.                                                                             
+           INFO     ConstitutionalAuditor initialized with 14 checks.                                                                          
+Checking for duplicate code... ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100% 0:00:00
+╭──── ✅ AUDIT PASSED ────╮
+│ Errors:               0 │
+│ Warnings:           200 │
+│ Unassigned Symbols:   0 │
+╰─────────────────────────╯
+
+Audit Findings:
+┏━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ Severity ┃ Check ID                                  ┃ Message                                   ┃ File:Line                                ┃
+┡━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/core/agents/utils.py                 │
+│          │                                           │ 'src/core/agents/utils.py::SymbolLocator' │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/core/agents/utils.py::SymbolLocator… │                                          │
+│          │                                           │ (Similarity: 0.89)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/core/agents/utils.py                 │
+│          │                                           │ 'src/core/agents/utils.py::SymbolLocator' │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/introspection/knowledge_he… │                                          │
+│          │                                           │ (Similarity: 0.87)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/core/agents/utils.py                 │
+│          │                                           │ 'src/core/agents/utils.py::SymbolLocator' │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/introspection/vectorizatio… │                                          │
+│          │                                           │ (Similarity: 0.83)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/core/agents/utils.py                 │
+│          │                                           │ 'src/core/agents/utils.py::SymbolLocator' │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/introspection/sync_service… │                                          │
+│          │                                           │ (Similarity: 0.82)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/features/introspection/capability_d… │
+│          │                                           │ 'src/features/introspection/capability_d… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/introspection/capability_d… │                                          │
+│          │                                           │ (Similarity: 0.93)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/features/introspection/capability_d… │
+│          │                                           │ 'src/features/introspection/capability_d… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/shared/utils/alias_resolver.py::Ali… │                                          │
+│          │                                           │ (Similarity: 0.86)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/features/introspection/capability_d… │
+│          │                                           │ 'src/features/introspection/capability_d… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/introspection/capability_d… │                                          │
+│          │                                           │ (Similarity: 0.85)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/features/introspection/capability_d… │
+│          │                                           │ 'src/features/introspection/capability_d… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/shared/utils/alias_resolver.py::Ali… │                                          │
+│          │                                           │ (Similarity: 0.84)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/core/intent_guard.py                 │
+│          │                                           │ 'src/core/intent_guard.py::PolicyRule'    │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/core/intent_guard.py::PolicyRule::f… │                                          │
+│          │                                           │ (Similarity: 0.85)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/core/intent_guard.py                 │
+│          │                                           │ 'src/core/intent_guard.py::PolicyRule'    │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/governance/policy_coverage… │                                          │
+│          │                                           │ (Similarity: 0.80)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/cli/commands/guard_cli.py            │
+│          │                                           │ 'src/cli/commands/guard_cli.py::register… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/self_healing/docstring_ser… │                                          │
+│          │                                           │ (Similarity: 0.84)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/cli/commands/guard_cli.py            │
+│          │                                           │ 'src/cli/commands/guard_cli.py::register… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/governance/proposal_servic… │                                          │
+│          │                                           │ (Similarity: 0.83)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/core/agents/code_editor.py           │
+│          │                                           │ 'src/core/agents/code_editor.py::CodeEdi… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/core/agents/code_editor.py::CodeEdi… │                                          │
+│          │                                           │ (Similarity: 0.95)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/core/agents/code_editor.py           │
+│          │                                           │ 'src/core/agents/code_editor.py::CodeEdi… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/self_healing/id_tagging_se… │                                          │
+│          │                                           │ (Similarity: 0.83)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/core/agents/code_editor.py           │
+│          │                                           │ 'src/core/agents/code_editor.py::CodeEdi… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/self_healing/prune_private… │                                          │
+│          │                                           │ (Similarity: 0.82)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/core/agents/code_editor.py           │
+│          │                                           │ 'src/core/agents/code_editor.py::CodeEdi… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/introspection/sync_service… │                                          │
+│          │                                           │ (Similarity: 0.82)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/cli/commands/guard_cli.py            │
+│          │                                           │ 'src/cli/commands/guard_cli.py::drift'    │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/cli/commands/guard_cli.py::register… │                                          │
+│          │                                           │ (Similarity: 0.96)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/cli/commands/guard_cli.py            │
+│          │                                           │ 'src/cli/commands/guard_cli.py::drift'    │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/self_healing/docstring_ser… │                                          │
+│          │                                           │ (Similarity: 0.84)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/cli/commands/guard_cli.py            │
+│          │                                           │ 'src/cli/commands/guard_cli.py::drift'    │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/introspection/knowledge_gr… │                                          │
+│          │                                           │ (Similarity: 0.82)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/features/introspection/sync_service… │
+│          │                                           │ 'src/features/introspection/sync_service… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/introspection/sync_service… │                                          │
+│          │                                           │ (Similarity: 0.94)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/features/introspection/sync_service… │
+│          │                                           │ 'src/features/introspection/sync_service… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/self_healing/prune_private… │                                          │
+│          │                                           │ (Similarity: 0.89)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/core/agents/deduction_agent.py       │
+│          │                                           │ 'src/core/agents/deduction_agent.py::Ded… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/core/agents/deduction_agent.py::Ded… │                                          │
+│          │                                           │ (Similarity: 0.96)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/core/agents/deduction_agent.py       │
+│          │                                           │ 'src/core/agents/deduction_agent.py::Ded… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/core/cognitive_service.py::Cognitiv… │                                          │
+│          │                                           │ (Similarity: 0.89)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/core/agents/deduction_agent.py       │
+│          │                                           │ 'src/core/agents/deduction_agent.py::Ded… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/core/agents/deduction_agent.py::Ded… │                                          │
+│          │                                           │ (Similarity: 0.84)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/core/agents/deduction_agent.py       │
+│          │                                           │ 'src/core/agents/deduction_agent.py::Ded… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/core/cognitive_service.py::Cognitiv… │                                          │
+│          │                                           │ (Similarity: 0.83)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/features/introspection/knowledge_gr… │
+│          │                                           │ 'src/features/introspection/knowledge_gr… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/introspection/sync_service… │                                          │
+│          │                                           │ (Similarity: 0.91)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/features/introspection/knowledge_gr… │
+│          │                                           │ 'src/features/introspection/knowledge_gr… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/introspection/knowledge_gr… │                                          │
+│          │                                           │ (Similarity: 0.90)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/features/introspection/knowledge_gr… │
+│          │                                           │ 'src/features/introspection/knowledge_gr… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/self_healing/docstring_ser… │                                          │
+│          │                                           │ (Similarity: 0.90)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/core/agents/intent_translator.py     │
+│          │                                           │ 'src/core/agents/intent_translator.py::I… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/core/agents/intent_translator.py::I… │                                          │
+│          │                                           │ (Similarity: 0.89)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/core/agents/intent_translator.py     │
+│          │                                           │ 'src/core/agents/intent_translator.py::I… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/core/agents/planner_agent.py::Plann… │                                          │
+│          │                                           │ (Similarity: 0.84)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/core/agents/intent_translator.py     │
+│          │                                           │ 'src/core/agents/intent_translator.py::I… │                                          │
+│          │                                           │ and 'src/core/main.py::execute_goal'      │                                          │
+│          │                                           │ (Similarity: 0.83)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/features/governance/checks/naming_c… │
+│          │                                           │ 'src/features/governance/checks/naming_c… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/governance/checks/naming_c… │                                          │
+│          │                                           │ (Similarity: 0.94)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/features/governance/checks/naming_c… │
+│          │                                           │ 'src/features/governance/checks/naming_c… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/governance/checks/security… │                                          │
+│          │                                           │ (Similarity: 0.88)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/features/governance/checks/naming_c… │
+│          │                                           │ 'src/features/governance/checks/naming_c… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/governance/checks/style_ch… │                                          │
+│          │                                           │ (Similarity: 0.88)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/shared/models/drift_models.py        │
+│          │                                           │ 'src/shared/models/drift_models.py::Drif… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/shared/utils/cli_helpers.py::should… │                                          │
+│          │                                           │ (Similarity: 0.81)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/services/clients/llm_api_client.py   │
+│          │                                           │ 'src/services/clients/llm_api_client.py:… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/services/clients/llm_api_client.py:… │                                          │
+│          │                                           │ (Similarity: 0.89)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/services/clients/llm_api_client.py   │
+│          │                                           │ 'src/services/clients/llm_api_client.py:… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/services/clients/llm_api_client.py:… │                                          │
+│          │                                           │ (Similarity: 0.88)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/services/clients/llm_api_client.py   │
+│          │                                           │ 'src/services/clients/llm_api_client.py:… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/services/clients/llm_api_client.py:… │                                          │
+│          │                                           │ (Similarity: 0.88)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/features/governance/checks/orphaned… │
+│          │                                           │ 'src/features/governance/checks/orphaned… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/governance/checks/orphaned… │                                          │
+│          │                                           │ (Similarity: 0.93)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/features/governance/checks/orphaned… │
+│          │                                           │ 'src/features/governance/checks/orphaned… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/introspection/audit_unassi… │                                          │
+│          │                                           │ (Similarity: 0.86)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/core/agents/reconnaissance_agent.py  │
+│          │                                           │ 'src/core/agents/reconnaissance_agent.py… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/core/agents/reconnaissance_agent.py… │                                          │
+│          │                                           │ (Similarity: 0.96)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/core/agents/reconnaissance_agent.py  │
+│          │                                           │ 'src/core/agents/reconnaissance_agent.py… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/core/agents/tagger_agent.py::Capabi… │                                          │
+│          │                                           │ (Similarity: 0.85)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/core/agents/reconnaissance_agent.py  │
+│          │                                           │ 'src/core/agents/reconnaissance_agent.py… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/introspection/knowledge_gr… │                                          │
+│          │                                           │ (Similarity: 0.85)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/core/agents/reconnaissance_agent.py  │
+│          │                                           │ 'src/core/agents/reconnaissance_agent.py… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/governance/checks/manifest… │                                          │
+│          │                                           │ (Similarity: 0.84)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/features/governance/constitutional_… │
+│          │                                           │ 'src/features/governance/constitutional_… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/governance/constitutional_… │                                          │
+│          │                                           │ (Similarity: 0.89)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/features/governance/constitutional_… │
+│          │                                           │ 'src/features/governance/constitutional_… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/governance/constitutional_… │                                          │
+│          │                                           │ (Similarity: 0.89)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/features/governance/checks/duplicat… │
+│          │                                           │ 'src/features/governance/checks/duplicat… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/governance/constitutional_… │                                          │
+│          │                                           │ (Similarity: 0.80)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/core/agents/tagger_agent.py          │
+│          │                                           │ 'src/core/agents/tagger_agent.py::Capabi… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/core/agents/tagger_agent.py::Capabi… │                                          │
+│          │                                           │ (Similarity: 0.93)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/core/agents/tagger_agent.py          │
+│          │                                           │ 'src/core/agents/tagger_agent.py::Capabi… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/core/agents/tagger_agent.py::Capabi… │                                          │
+│          │                                           │ (Similarity: 0.89)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/core/agents/tagger_agent.py          │
+│          │                                           │ 'src/core/agents/tagger_agent.py::Capabi… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/self_healing/fix_capabilit… │                                          │
+│          │                                           │ (Similarity: 0.88)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/core/agents/tagger_agent.py          │
+│          │                                           │ 'src/core/agents/tagger_agent.py::Capabi… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/project_lifecycle/definiti… │                                          │
+│          │                                           │ (Similarity: 0.88)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/features/governance/checks/capabili… │
+│          │                                           │ 'src/features/governance/checks/capabili… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/governance/checks/capabili… │                                          │
+│          │                                           │ (Similarity: 0.92)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/features/governance/checks/capabili… │
+│          │                                           │ 'src/features/governance/checks/capabili… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/governance/checks/domain_p… │                                          │
+│          │                                           │ (Similarity: 0.90)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/features/governance/checks/capabili… │
+│          │                                           │ 'src/features/governance/checks/capabili… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/shared/utils/manifest_aggregator.py… │                                          │
+│          │                                           │ (Similarity: 0.89)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/features/governance/checks/capabili… │
+│          │                                           │ 'src/features/governance/checks/capabili… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/governance/checks/domain_p… │                                          │
+│          │                                           │ (Similarity: 0.88)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/services/clients/qdrant_client.py    │
+│          │                                           │ 'src/services/clients/qdrant_client.py::… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/services/clients/qdrant_client.py::… │                                          │
+│          │                                           │ (Similarity: 0.87)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/shared/ast_utility.py                │
+│          │                                           │ 'src/shared/ast_utility.py::FunctionCall… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/shared/ast_utility.py::FunctionCall… │                                          │
+│          │                                           │ (Similarity: 0.92)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/core/git_service.py                  │
+│          │                                           │ 'src/core/git_service.py::GitService' and │                                          │
+│          │                                           │ 'src/core/git_service.py::GitService::_r… │                                          │
+│          │                                           │ (Similarity: 0.89)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/core/git_service.py                  │
+│          │                                           │ 'src/core/git_service.py::GitService' and │                                          │
+│          │                                           │ 'src/core/git_service.py::commit'         │                                          │
+│          │                                           │ (Similarity: 0.86)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/core/git_service.py                  │
+│          │                                           │ 'src/core/git_service.py::GitService' and │                                          │
+│          │                                           │ 'src/core/git_service.py::GitService::co… │                                          │
+│          │                                           │ (Similarity: 0.86)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/features/maintenance/maintenance_se… │
+│          │                                           │ 'src/features/maintenance/maintenance_se… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/self_healing/linelength_se… │                                          │
+│          │                                           │ (Similarity: 0.84)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/features/maintenance/maintenance_se… │
+│          │                                           │ 'src/features/maintenance/maintenance_se… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/self_healing/prune_private… │                                          │
+│          │                                           │ (Similarity: 0.84)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/features/maintenance/maintenance_se… │
+│          │                                           │ 'src/features/maintenance/maintenance_se… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/self_healing/id_tagging_se… │                                          │
+│          │                                           │ (Similarity: 0.83)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/core/git_service.py                  │
+│          │                                           │ 'src/core/git_service.py::add' and        │                                          │
+│          │                                           │ 'src/core/git_service.py::add_all'        │                                          │
+│          │                                           │ (Similarity: 0.84)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/features/governance/checks/environm… │
+│          │                                           │ 'src/features/governance/checks/environm… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/governance/checks/environm… │                                          │
+│          │                                           │ (Similarity: 0.93)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/features/governance/checks/environm… │
+│          │                                           │ 'src/features/governance/checks/environm… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/governance/checks/environm… │                                          │
+│          │                                           │ (Similarity: 0.92)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/features/governance/checks/environm… │
+│          │                                           │ 'src/features/governance/checks/environm… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/governance/checks/style_ch… │                                          │
+│          │                                           │ (Similarity: 0.83)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/features/governance/checks/environm… │
+│          │                                           │ 'src/features/governance/checks/environm… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/governance/checks/style_ch… │                                          │
+│          │                                           │ (Similarity: 0.82)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/cli/commands/tools.py                │
+│          │                                           │ 'src/cli/commands/tools.py::rewire_impor… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/maintenance/maintenance_se… │                                          │
+│          │                                           │ (Similarity: 0.84)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/features/governance/checks/style_ch… │
+│          │                                           │ 'src/features/governance/checks/style_ch… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/governance/checks/style_ch… │                                          │
+│          │                                           │ (Similarity: 0.96)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/features/governance/checks/style_ch… │
+│          │                                           │ 'src/features/governance/checks/style_ch… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/governance/checks/style_ch… │                                          │
+│          │                                           │ (Similarity: 0.96)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/core/intent_guard.py                 │
+│          │                                           │ 'src/core/intent_guard.py::IntentGuard'   │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/core/intent_guard.py::IntentGuard::… │                                          │
+│          │                                           │ (Similarity: 0.92)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/core/intent_guard.py                 │
+│          │                                           │ 'src/core/intent_guard.py::IntentGuard'   │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/governance/policy_coverage… │                                          │
+│          │                                           │ (Similarity: 0.90)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/core/intent_guard.py                 │
+│          │                                           │ 'src/core/intent_guard.py::IntentGuard'   │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/core/intent_guard.py::IntentGuard::… │                                          │
+│          │                                           │ (Similarity: 0.88)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/core/intent_guard.py                 │
+│          │                                           │ 'src/core/intent_guard.py::IntentGuard'   │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/core/intent_guard.py::IntentGuard::… │                                          │
+│          │                                           │ (Similarity: 0.88)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/core/intent_guard.py                 │
+│          │                                           │ 'src/core/intent_guard.py::check_transac… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/governance/checks/health_c… │                                          │
+│          │                                           │ (Similarity: 0.82)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/shared/utils/embedding_utils.py      │
+│          │                                           │ 'src/shared/utils/embedding_utils.py::Em… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/shared/utils/embedding_utils.py::_A… │                                          │
+│          │                                           │ (Similarity: 0.84)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/shared/utils/embedding_utils.py      │
+│          │                                           │ 'src/shared/utils/embedding_utils.py::Em… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/shared/utils/embedding_utils.py::_A… │                                          │
+│          │                                           │ (Similarity: 0.82)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/shared/utils/embedding_utils.py      │
+│          │                                           │ 'src/shared/utils/embedding_utils.py::Em… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/shared/utils/embedding_utils.py::Em… │                                          │
+│          │                                           │ (Similarity: 0.82)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/shared/utils/alias_resolver.py       │
+│          │                                           │ 'src/shared/utils/alias_resolver.py::Ali… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/shared/utils/alias_resolver.py::Ali… │                                          │
+│          │                                           │ (Similarity: 0.87)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/features/governance/checks/health_c… │
+│          │                                           │ 'src/features/governance/checks/health_c… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/governance/checks/health_c… │                                          │
+│          │                                           │ (Similarity: 0.96)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/features/governance/checks/health_c… │
+│          │                                           │ 'src/features/governance/checks/health_c… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/governance/checks/health_c… │                                          │
+│          │                                           │ (Similarity: 0.93)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/features/governance/checks/health_c… │
+│          │                                           │ 'src/features/governance/checks/health_c… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/governance/checks/health_c… │                                          │
+│          │                                           │ (Similarity: 0.93)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/features/governance/checks/health_c… │
+│          │                                           │ 'src/features/governance/checks/health_c… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/governance/checks/health_c… │                                          │
+│          │                                           │ (Similarity: 0.91)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/cli/commands/cli_utils.py            │
+│          │                                           │ 'src/cli/commands/cli_utils.py::load_yam… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/shared/utils/cli_helpers.py::load_y… │                                          │
+│          │                                           │ (Similarity: 0.98)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/cli/commands/cli_utils.py            │
+│          │                                           │ 'src/cli/commands/cli_utils.py::load_yam… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/introspection/capability_d… │                                          │
+│          │                                           │ (Similarity: 0.95)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/cli/commands/cli_utils.py            │
+│          │                                           │ 'src/cli/commands/cli_utils.py::load_yam… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/shared/utils/yaml_processor.py::YAM… │                                          │
+│          │                                           │ (Similarity: 0.86)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/cli/commands/cli_utils.py            │
+│          │                                           │ 'src/cli/commands/cli_utils.py::load_yam… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/shared/utils/yaml_processor.py::YAM… │                                          │
+│          │                                           │ (Similarity: 0.84)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/services/adapters/embedding_provide… │
+│          │                                           │ 'src/services/adapters/embedding_provide… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/services/clients/llm_api_client.py:… │                                          │
+│          │                                           │ (Similarity: 0.91)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/services/adapters/embedding_provide… │
+│          │                                           │ 'src/services/adapters/embedding_provide… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/services/adapters/embedding_provide… │                                          │
+│          │                                           │ (Similarity: 0.89)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/services/adapters/embedding_provide… │
+│          │                                           │ 'src/services/adapters/embedding_provide… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/services/adapters/embedding_provide… │                                          │
+│          │                                           │ (Similarity: 0.87)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/services/adapters/embedding_provide… │
+│          │                                           │ 'src/services/adapters/embedding_provide… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/services/adapters/embedding_provide… │                                          │
+│          │                                           │ (Similarity: 0.86)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/cli/commands/cli_utils.py            │
+│          │                                           │ 'src/cli/commands/cli_utils.py::archive_… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/shared/utils/cli_helpers.py::archiv… │                                          │
+│          │                                           │ (Similarity: 0.98)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/features/governance/checks/legacy_t… │
+│          │                                           │ 'src/features/governance/checks/legacy_t… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/governance/checks/legacy_t… │                                          │
+│          │                                           │ (Similarity: 0.94)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/features/governance/checks/legacy_t… │
+│          │                                           │ 'src/features/governance/checks/legacy_t… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/governance/checks/naming_c… │                                          │
+│          │                                           │ (Similarity: 0.88)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/features/governance/checks/legacy_t… │
+│          │                                           │ 'src/features/governance/checks/legacy_t… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/governance/checks/security… │                                          │
+│          │                                           │ (Similarity: 0.87)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/features/governance/checks/legacy_t… │
+│          │                                           │ 'src/features/governance/checks/legacy_t… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/governance/checks/style_ch… │                                          │
+│          │                                           │ (Similarity: 0.86)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/features/project_lifecycle/integrat… │
+│          │                                           │ 'src/features/project_lifecycle/integrat… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/self_healing/fix_capabilit… │                                          │
+│          │                                           │ (Similarity: 0.84)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/shared/utils/header_tools.py         │
+│          │                                           │ 'src/shared/utils/header_tools.py::Heade… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/shared/utils/header_tools.py::parse' │                                          │
+│          │                                           │ (Similarity: 0.97)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/shared/utils/header_tools.py         │
+│          │                                           │ 'src/shared/utils/header_tools.py::Heade… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/shared/utils/header_tools.py::Heade… │                                          │
+│          │                                           │ (Similarity: 0.95)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/shared/utils/header_tools.py         │
+│          │                                           │ 'src/shared/utils/header_tools.py::Heade… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/shared/utils/header_tools.py::Heade… │                                          │
+│          │                                           │ (Similarity: 0.92)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/shared/utils/header_tools.py         │
+│          │                                           │ 'src/shared/utils/header_tools.py::Heade… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/shared/utils/header_tools.py::recon… │                                          │
+│          │                                           │ (Similarity: 0.91)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/core/knowledge_service.py            │
+│          │                                           │ 'src/core/knowledge_service.py::Knowledg… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/project_lifecycle/definiti… │                                          │
+│          │                                           │ (Similarity: 0.89)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/core/knowledge_service.py            │
+│          │                                           │ 'src/core/knowledge_service.py::Knowledg… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/introspection/knowledge_gr… │                                          │
+│          │                                           │ (Similarity: 0.89)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/core/knowledge_service.py            │
+│          │                                           │ 'src/core/knowledge_service.py::Knowledg… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/core/knowledge_service.py::get_grap… │                                          │
+│          │                                           │ (Similarity: 0.88)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/core/knowledge_service.py            │
+│          │                                           │ 'src/core/knowledge_service.py::Knowledg… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/introspection/knowledge_gr… │                                          │
+│          │                                           │ (Similarity: 0.87)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/features/governance/checks/import_r… │
+│          │                                           │ 'src/features/governance/checks/import_r… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/governance/checks/import_r… │                                          │
+│          │                                           │ (Similarity: 0.94)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/features/governance/checks/import_r… │
+│          │                                           │ 'src/features/governance/checks/import_r… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/governance/checks/naming_c… │                                          │
+│          │                                           │ (Similarity: 0.87)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/features/governance/checks/import_r… │
+│          │                                           │ 'src/features/governance/checks/import_r… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/governance/checks/import_r… │                                          │
+│          │                                           │ (Similarity: 0.86)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/features/governance/checks/import_r… │
+│          │                                           │ 'src/features/governance/checks/import_r… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/governance/checks/naming_c… │                                          │
+│          │                                           │ (Similarity: 0.84)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/cli/commands/cli_utils.py            │
+│          │                                           │ 'src/cli/commands/cli_utils.py::save_yam… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/shared/utils/cli_helpers.py::save_y… │                                          │
+│          │                                           │ (Similarity: 0.98)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/cli/commands/cli_utils.py            │
+│          │                                           │ 'src/cli/commands/cli_utils.py::save_yam… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/shared/utils/cli_helpers.py::load_y… │                                          │
+│          │                                           │ (Similarity: 0.84)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/cli/commands/cli_utils.py            │
+│          │                                           │ 'src/cli/commands/cli_utils.py::save_yam… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/introspection/capability_d… │                                          │
+│          │                                           │ (Similarity: 0.83)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/cli/commands/fixer.py                │
+│          │                                           │ 'src/cli/commands/fixer.py::fix_tags_cmd… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/self_healing/prune_private… │                                          │
+│          │                                           │ (Similarity: 0.91)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/cli/commands/fixer.py                │
+│          │                                           │ 'src/cli/commands/fixer.py::fix_tags_cmd… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/self_healing/docstring_ser… │                                          │
+│          │                                           │ (Similarity: 0.90)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/cli/commands/fixer.py                │
+│          │                                           │ 'src/cli/commands/fixer.py::fix_tags_cmd… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/self_healing/fix_capabilit… │                                          │
+│          │                                           │ (Similarity: 0.88)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/cli/commands/cli_utils.py            │
+│          │                                           │ 'src/cli/commands/cli_utils.py::should_f… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/shared/utils/cli_helpers.py::should… │                                          │
+│          │                                           │ (Similarity: 0.95)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/cli/commands/cli_utils.py            │
+│          │                                           │ 'src/cli/commands/cli_utils.py::should_f… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/cli/commands/guard.py::_is_clean'    │                                          │
+│          │                                           │ (Similarity: 0.80)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/cli/commands/cli_utils.py            │
+│          │                                           │ 'src/cli/commands/cli_utils.py::find_tes… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/shared/utils/cli_helpers.py::find_t… │                                          │
+│          │                                           │ (Similarity: 0.94)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/cli/commands/cli_utils.py            │
+│          │                                           │ 'src/cli/commands/cli_utils.py::find_tes… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/introspection/knowledge_gr… │                                          │
+│          │                                           │ (Similarity: 0.86)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/cli/commands/cli_utils.py            │
+│          │                                           │ 'src/cli/commands/cli_utils.py::find_tes… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/introspection/knowledge_he… │                                          │
+│          │                                           │ (Similarity: 0.84)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/cli/commands/cli_utils.py            │
+│          │                                           │ 'src/cli/commands/cli_utils.py::find_tes… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/core/agents/tagger_agent.py::Capabi… │                                          │
+│          │                                           │ (Similarity: 0.83)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/features/governance/checks/security… │
+│          │                                           │ 'src/features/governance/checks/security… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/governance/checks/security… │                                          │
+│          │                                           │ (Similarity: 0.96)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/features/governance/checks/security… │
+│          │                                           │ 'src/features/governance/checks/security… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/governance/checks/security… │                                          │
+│          │                                           │ (Similarity: 0.95)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/features/project_lifecycle/definiti… │
+│          │                                           │ 'src/features/project_lifecycle/definiti… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/project_lifecycle/definiti… │                                          │
+│          │                                           │ (Similarity: 0.82)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/features/project_lifecycle/definiti… │
+│          │                                           │ 'src/features/project_lifecycle/definiti… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/project_lifecycle/definiti… │                                          │
+│          │                                           │ (Similarity: 0.81)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/features/introspection/discovery/fr… │
+│          │                                           │ 'src/features/introspection/discovery/fr… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/shared/utils/manifest_aggregator.py… │                                          │
+│          │                                           │ (Similarity: 0.88)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/features/governance/checks/manifest… │
+│          │                                           │ 'src/features/governance/checks/manifest… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/governance/checks/manifest… │                                          │
+│          │                                           │ (Similarity: 0.90)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/features/governance/checks/manifest… │
+│          │                                           │ 'src/features/governance/checks/manifest… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/governance/checks/manifest… │                                          │
+│          │                                           │ (Similarity: 0.90)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/core/errors.py                       │
+│          │                                           │ 'src/core/errors.py::register_exception_… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/core/errors.py::unhandled_exception… │                                          │
+│          │                                           │ (Similarity: 0.91)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/core/errors.py                       │
+│          │                                           │ 'src/core/errors.py::register_exception_… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/services/adapters/embedding_provide… │                                          │
+│          │                                           │ (Similarity: 0.82)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/core/errors.py                       │
+│          │                                           │ 'src/core/errors.py::register_exception_… │                                          │
+│          │                                           │ and 'src/core/main.py::execute_goal'      │                                          │
+│          │                                           │ (Similarity: 0.80)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/features/governance/audit_context.py │
+│          │                                           │ 'src/features/governance/audit_context.p… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/introspection/knowledge_gr… │                                          │
+│          │                                           │ (Similarity: 0.83)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/shared/utils/parallel_processor.py   │
+│          │                                           │ 'src/shared/utils/parallel_processor.py:… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/shared/utils/parallel_processor.py:… │                                          │
+│          │                                           │ (Similarity: 0.92)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/shared/utils/parallel_processor.py   │
+│          │                                           │ 'src/shared/utils/parallel_processor.py:… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/shared/utils/parallel_processor.py:… │                                          │
+│          │                                           │ (Similarity: 0.91)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/shared/utils/parallel_processor.py   │
+│          │                                           │ 'src/shared/utils/parallel_processor.py:… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/shared/utils/parallel_processor.py:… │                                          │
+│          │                                           │ (Similarity: 0.90)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/shared/utils/parallel_processor.py   │
+│          │                                           │ 'src/shared/utils/parallel_processor.py:… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/shared/utils/parallel_processor.py:… │                                          │
+│          │                                           │ (Similarity: 0.83)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/features/project_lifecycle/definiti… │
+│          │                                           │ 'src/features/project_lifecycle/definiti… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/self_healing/fix_capabilit… │                                          │
+│          │                                           │ (Similarity: 0.84)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/core/validation_quality.py           │
+│          │                                           │ 'src/core/validation_quality.py::Quality… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/core/validation_quality.py::Quality… │                                          │
+│          │                                           │ (Similarity: 0.87)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/core/validation_quality.py           │
+│          │                                           │ 'src/core/validation_quality.py::Quality… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/core/yaml_validator.py::validate_ya… │                                          │
+│          │                                           │ (Similarity: 0.83)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/core/validation_quality.py           │
+│          │                                           │ 'src/core/validation_quality.py::Quality… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/governance/checks/health_c… │                                          │
+│          │                                           │ (Similarity: 0.83)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/features/governance/checks/domain_p… │
+│          │                                           │ 'src/features/governance/checks/domain_p… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/governance/checks/domain_p… │                                          │
+│          │                                           │ (Similarity: 0.94)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/features/governance/checks/domain_p… │
+│          │                                           │ 'src/features/governance/checks/domain_p… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/self_healing/fix_capabilit… │                                          │
+│          │                                           │ (Similarity: 0.89)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/features/governance/checks/domain_p… │
+│          │                                           │ 'src/features/governance/checks/domain_p… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/shared/utils/manifest_aggregator.py… │                                          │
+│          │                                           │ (Similarity: 0.89)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/features/governance/audit_context.py │
+│          │                                           │ 'src/features/governance/audit_context.p… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/governance/audit_context.p… │                                          │
+│          │                                           │ (Similarity: 0.91)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/features/governance/audit_context.py │
+│          │                                           │ 'src/features/governance/audit_context.p… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/introspection/knowledge_gr… │                                          │
+│          │                                           │ (Similarity: 0.88)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/features/governance/audit_context.py │
+│          │                                           │ 'src/features/governance/audit_context.p… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/governance/policy_coverage… │                                          │
+│          │                                           │ (Similarity: 0.87)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/cli/commands/fixer.py                │
+│          │                                           │ 'src/cli/commands/fixer.py::assign_ids_c… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/self_healing/id_tagging_se… │                                          │
+│          │                                           │ (Similarity: 0.82)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/features/introspection/knowledge_he… │
+│          │                                           │ 'src/features/introspection/knowledge_he… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/introspection/vectorizatio… │                                          │
+│          │                                           │ (Similarity: 0.92)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/core/knowledge_service.py            │
+│          │                                           │ 'src/core/knowledge_service.py::get_grap… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/governance/audit_context.p… │                                          │
+│          │                                           │ (Similarity: 0.80)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/core/main.py                         │
+│          │                                           │ 'src/core/main.py::execute_goal' and      │                                          │
+│          │                                           │ 'src/features/self_healing/complexity_se… │                                          │
+│          │                                           │ (Similarity: 0.86)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/cli/commands/fixer.py                │
+│          │                                           │ 'src/cli/commands/fixer.py::fix_headers_… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/self_healing/header_servic… │                                          │
+│          │                                           │ (Similarity: 0.88)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/cli/commands/fixer.py                │
+│          │                                           │ 'src/cli/commands/fixer.py::fix_headers_… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/self_healing/linelength_se… │                                          │
+│          │                                           │ (Similarity: 0.84)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/cli/commands/fixer.py                │
+│          │                                           │ 'src/cli/commands/fixer.py::fix_headers_… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/self_healing/docstring_ser… │                                          │
+│          │                                           │ (Similarity: 0.84)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/cli/commands/fixer.py                │
+│          │                                           │ 'src/cli/commands/fixer.py::fix_headers_… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/introspection/knowledge_gr… │                                          │
+│          │                                           │ (Similarity: 0.84)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/cli/commands/knowledge_sync.py       │
+│          │                                           │ 'src/cli/commands/knowledge_sync.py::reg… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/cli/commands/system.py::register'    │                                          │
+│          │                                           │ (Similarity: 0.88)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/cli/commands/knowledge_sync.py       │
+│          │                                           │ 'src/cli/commands/knowledge_sync.py::reg… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/governance/proposal_servic… │                                          │
+│          │                                           │ (Similarity: 0.87)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/features/project_lifecycle/definiti… │
+│          │                                           │ 'src/features/project_lifecycle/definiti… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/self_healing/fix_capabilit… │                                          │
+│          │                                           │ (Similarity: 0.85)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/features/governance/checks/manifest… │
+│          │                                           │ 'src/features/governance/checks/manifest… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/governance/checks/orphaned… │                                          │
+│          │                                           │ (Similarity: 0.91)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/features/governance/checks/manifest… │
+│          │                                           │ 'src/features/governance/checks/manifest… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/governance/checks/orphaned… │                                          │
+│          │                                           │ (Similarity: 0.86)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/shared/utils/yaml_processor.py       │
+│          │                                           │ 'src/shared/utils/yaml_processor.py::YAM… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/shared/utils/yaml_processor.py::YAM… │                                          │
+│          │                                           │ (Similarity: 0.97)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/shared/utils/yaml_processor.py       │
+│          │                                           │ 'src/shared/utils/yaml_processor.py::YAM… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/shared/utils/yaml_processor.py::YAM… │                                          │
+│          │                                           │ (Similarity: 0.90)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/shared/utils/yaml_processor.py       │
+│          │                                           │ 'src/shared/utils/yaml_processor.py::YAM… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/shared/utils/yaml_processor.py::YAM… │                                          │
+│          │                                           │ (Similarity: 0.89)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/cli/commands/cli_utils.py            │
+│          │                                           │ 'src/cli/commands/cli_utils.py::load_pri… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/shared/utils/cli_helpers.py::load_p… │                                          │
+│          │                                           │ (Similarity: 0.98)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/cli/commands/system.py               │
+│          │                                           │ 'src/cli/commands/system.py::register'    │                                          │
+│          │                                           │ and 'src/cli/commands/tools.py::register' │                                          │
+│          │                                           │ (Similarity: 0.94)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/features/introspection/knowledge_he… │
+│          │                                           │ 'src/features/introspection/knowledge_he… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/introspection/knowledge_he… │                                          │
+│          │                                           │ (Similarity: 0.87)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/features/introspection/knowledge_he… │
+│          │                                           │ 'src/features/introspection/knowledge_he… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/introspection/sync_service… │                                          │
+│          │                                           │ (Similarity: 0.84)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/features/introspection/knowledge_he… │
+│          │                                           │ 'src/features/introspection/knowledge_he… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/introspection/vectorizatio… │                                          │
+│          │                                           │ (Similarity: 0.84)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/core/main.py                         │
+│          │                                           │ 'src/core/main.py::list_capabilities' and │                                          │
+│          │                                           │ 'src/features/introspection/generate_cap… │                                          │
+│          │                                           │ (Similarity: 0.82)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/features/self_healing/id_tagging_se… │
+│          │                                           │ 'src/features/self_healing/id_tagging_se… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/self_healing/prune_private… │                                          │
+│          │                                           │ (Similarity: 0.88)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/cli/commands/knowledge_sync.py       │
+│          │                                           │ 'src/cli/commands/knowledge_sync.py::syn… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/cli/commands/sync.py::sync_knowledg… │                                          │
+│          │                                           │ (Similarity: 0.82)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/features/governance/key_management_… │
+│          │                                           │ 'src/features/governance/key_management_… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/governance/proposal_servic… │                                          │
+│          │                                           │ (Similarity: 0.85)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/core/knowledge_service.py            │
+│          │                                           │ 'src/core/knowledge_service.py::list_cap… │                                          │
+│          │                                           │ and 'src/core/main.py::list_capabilities' │                                          │
+│          │                                           │ (Similarity: 0.87)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/cli/commands/diagnostics.py          │
+│          │                                           │ 'src/cli/commands/diagnostics.py::policy… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/governance/policy_coverage… │                                          │
+│          │                                           │ (Similarity: 0.84)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/cli/commands/diagnostics.py          │
+│          │                                           │ 'src/cli/commands/diagnostics.py::policy… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/governance/policy_coverage… │                                          │
+│          │                                           │ (Similarity: 0.83)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/shared/utils/header_tools.py         │
+│          │                                           │ 'src/shared/utils/header_tools.py::parse' │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/shared/utils/header_tools.py::recon… │                                          │
+│          │                                           │ (Similarity: 0.84)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/features/governance/checks/legacy_t… │
+│          │                                           │ 'src/features/governance/checks/legacy_t… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/governance/checks/naming_c… │                                          │
+│          │                                           │ (Similarity: 0.90)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/features/governance/checks/legacy_t… │
+│          │                                           │ 'src/features/governance/checks/legacy_t… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/governance/checks/security… │                                          │
+│          │                                           │ (Similarity: 0.89)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/features/governance/checks/legacy_t… │
+│          │                                           │ 'src/features/governance/checks/legacy_t… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/governance/checks/naming_c… │                                          │
+│          │                                           │ (Similarity: 0.89)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/cli/commands/system.py               │
+│          │                                           │ 'src/cli/commands/system.py::integrate_c… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/project_lifecycle/integrat… │                                          │
+│          │                                           │ (Similarity: 0.80)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/cli/commands/diagnostics.py          │
+│          │                                           │ 'src/cli/commands/diagnostics.py::check_… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/self_healing/purge_legacy_… │                                          │
+│          │                                           │ (Similarity: 0.82)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/cli/commands/diagnostics.py          │
+│          │                                           │ 'src/cli/commands/diagnostics.py::check_… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/self_healing/prune_private… │                                          │
+│          │                                           │ (Similarity: 0.81)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/cli/commands/diagnostics.py          │
+│          │                                           │ 'src/cli/commands/diagnostics.py::check_… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/cli/commands/fixer.py::fix_tags_cmd… │                                          │
+│          │                                           │ (Similarity: 0.81)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/features/introspection/audit_unassi… │
+│          │                                           │ 'src/features/introspection/audit_unassi… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/introspection/knowledge_gr… │                                          │
+│          │                                           │ (Similarity: 0.83)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/features/governance/checks/duplicat… │
+│          │                                           │ 'src/features/governance/checks/duplicat… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/governance/checks/duplicat… │                                          │
+│          │                                           │ (Similarity: 0.96)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/features/governance/checks/duplicat… │
+│          │                                           │ 'src/features/governance/checks/duplicat… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/governance/checks/duplicat… │                                          │
+│          │                                           │ (Similarity: 0.85)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/features/governance/checks/duplicat… │
+│          │                                           │ 'src/features/governance/checks/duplicat… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/introspection/knowledge_ve… │                                          │
+│          │                                           │ (Similarity: 0.84)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/features/governance/checks/duplicat… │
+│          │                                           │ 'src/features/governance/checks/duplicat… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/governance/checks/manifest… │                                          │
+│          │                                           │ (Similarity: 0.84)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/core/agents/plan_executor.py         │
+│          │                                           │ 'src/core/agents/plan_executor.py::PlanE… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/core/agents/plan_executor.py::PlanE… │                                          │
+│          │                                           │ (Similarity: 0.95)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/core/agents/plan_executor.py         │
+│          │                                           │ 'src/core/agents/plan_executor.py::PlanE… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/core/agents/plan_executor.py::PlanE… │                                          │
+│          │                                           │ (Similarity: 0.94)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/core/agents/plan_executor.py         │
+│          │                                           │ 'src/core/agents/plan_executor.py::PlanE… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/core/agents/plan_executor.py::PlanE… │                                          │
+│          │                                           │ (Similarity: 0.92)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/core/validation_policies.py          │
+│          │                                           │ 'src/core/validation_policies.py::Policy… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/core/validation_policies.py::Policy… │                                          │
+│          │                                           │ (Similarity: 0.98)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/core/validation_policies.py          │
+│          │                                           │ 'src/core/validation_policies.py::Policy… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/shared/utils/import_scanner.py::sca… │                                          │
+│          │                                           │ (Similarity: 0.84)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/core/validation_policies.py          │
+│          │                                           │ 'src/core/validation_policies.py::Policy… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/governance/checks/import_r… │                                          │
+│          │                                           │ (Similarity: 0.82)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/core/file_handler.py                 │
+│          │                                           │ 'src/core/file_handler.py::FileHandler'   │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/core/file_handler.py::FileHandler::… │                                          │
+│          │                                           │ (Similarity: 0.96)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/core/file_handler.py                 │
+│          │                                           │ 'src/core/file_handler.py::FileHandler'   │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/core/file_handler.py::FileHandler::… │                                          │
+│          │                                           │ (Similarity: 0.89)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/core/prompt_pipeline.py              │
+│          │                                           │ 'src/core/prompt_pipeline.py::PromptPipe… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/core/prompt_pipeline.py::PromptPipe… │                                          │
+│          │                                           │ (Similarity: 0.90)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/core/prompt_pipeline.py              │
+│          │                                           │ 'src/core/prompt_pipeline.py::PromptPipe… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/core/prompt_pipeline.py::PromptPipe… │                                          │
+│          │                                           │ (Similarity: 0.90)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/core/prompt_pipeline.py              │
+│          │                                           │ 'src/core/prompt_pipeline.py::PromptPipe… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/core/prompt_pipeline.py::PromptPipe… │                                          │
+│          │                                           │ (Similarity: 0.90)                        │                                          │
+│ WARNING  │ duplication.semantic.near_duplicate_found │ Potential duplicate logic found between   │ src/core/prompt_pipeline.py              │
+│          │                                           │ 'src/core/prompt_pipeline.py::PromptPipe… │                                          │
+│          │                                           │ and                                       │                                          │
+│          │                                           │ 'src/features/self_healing/linelength_se… │                                          │
+│          │                                           │ (Similarity: 0.89)                        │                                          │
+└──────────┴───────────────────────────────────────────┴───────────────────────────────────────────┴──────────────────────────────────────────┘

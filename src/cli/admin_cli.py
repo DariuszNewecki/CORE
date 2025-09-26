@@ -23,7 +23,7 @@ from cli.commands import (
     guard,
     interactive,
     knowledge,
-    knowledge_sync,  # <-- ADD THIS LINE
+    knowledge_sync,
     new,
     proposal_service,
     run,
@@ -49,13 +49,14 @@ app = typer.Typer(
 
 
 # --- Command Registration ---
+# <-- RESTORED STATIC REGISTRATION TO FIX BOOTSTRAPPING PARADOX
 # The order here determines the order in the --help output.
 system.register(app)
 check.register(app)
 fixer.register(app)
 db.register(app)
 knowledge.register(app)
-knowledge_sync.register(app)  # <-- ADD THIS LINE
+knowledge_sync.register(app)
 run.register(app)
 build.register(app)
 tools.register(app)

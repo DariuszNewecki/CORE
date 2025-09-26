@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import subprocess
 import tempfile
 import uuid
 from pathlib import Path
@@ -16,6 +17,7 @@ from core.agents.plan_executor import PlanExecutor
 from core.prompt_pipeline import PromptPipeline
 from core.service_registry import service_registry
 from features.governance.audit_context import AuditorContext
+from features.governance.micro_proposal_validator import MicroProposalValidator
 from shared.config import settings
 from shared.logger import getLogger
 
@@ -74,28 +76,48 @@ def micro_apply(
     try:
         proposal_content = proposal_path.read_text(encoding="utf-8")
         proposal_data = json.loads(proposal_content)
+        plan = proposal_data.get("plan", [])
     except Exception as e:
         console.print(f"[bold red]❌ Error loading proposal file: {e}[/bold red]")
         raise typer.Exit(code=1)
 
-    original_plan = proposal_data.get("plan", [])
-    if not original_plan:
-        console.print("[bold red]❌ Proposal file contains an empty plan.[/bold red]")
+    # 1. Zero-Trust Validation
+    console.print(
+        "[bold]Step 1/3: Validating plan against constitutional policy...[/bold]"
+    )
+    validator = MicroProposalValidator()
+    is_valid, validation_error = validator.validate(plan)
+    if not is_valid:
+        console.print(
+            f"[bold red]❌ Plan is constitutionally invalid: {validation_error}[/bold red]"
+        )
         raise typer.Exit(code=1)
+    console.print("   -> ✅ Plan is valid.")
 
-    console.print("Original plan from MicroPlannerAgent:")
-    console.print(json.dumps(original_plan, indent=2))
-
-    execution_plan = original_plan
-
-    for step in execution_plan:
-        if not isinstance(step, dict) or "action" not in step or "params" not in step:
-            console.print(f"[bold red]❌ Invalid plan step format: {step}[/bold red]")
+    # 2. Gather Evidence via CI Checks
+    console.print("[bold]Step 2/3: Gathering evidence via pre-flight checks...[/bold]")
+    checks = [
+        ("lint", "check ci lint"),
+        ("test", "check ci test"),
+        ("audit", "check ci audit"),
+    ]
+    for name, command in checks:
+        console.print(f"   -> Running {name} check...")
+        result = subprocess.run(
+            ["poetry", "run", "core-admin", *command.split()],
+            capture_output=True,
+            text=True,
+        )
+        if result.returncode != 0:
+            console.print(
+                f"[bold red]❌ Pre-flight '{name}' check failed. Aborting.[/bold red]"
+            )
+            console.print(result.stderr)
             raise typer.Exit(code=1)
+    console.print("   -> ✅ All pre-flight checks passed.")
 
-    console.print("Translated/Validated plan for ExecutionAgent:")
-    console.print(json.dumps(execution_plan, indent=2))
-
+    # 3. Apply the Change via ExecutionAgent
+    console.print("[bold]Step 3/3: Executing the validated plan...[/bold]")
     try:
         cognitive_service = service_registry.get_service("cognitive_service")
         prompt_pipeline = PromptPipeline(settings.REPO_PATH)
@@ -111,7 +133,7 @@ def micro_apply(
 
         success = asyncio.run(
             execution_agent.execute_plan(
-                high_level_goal=proposal_data.get("goal", ""), plan=execution_plan
+                high_level_goal=proposal_data.get("goal", ""), plan=plan
             )
         )
 
