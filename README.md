@@ -4,6 +4,7 @@
 
 [![Status: Architectural Prototype](https://img.shields.io/badge/status-architectural%20prototype-blue.svg)](#-project-status)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![codecov](https://codecov.io/gh/DariuszNewecki/CORE/graph/badge.svg)](https://codecov.io/gh/DariuszNewecki/CORE)
 
 CORE is a self-governing, constitutionally aligned AI development framework that can plan, write, validate, and evolve software systems — autonomously and safely. It is designed for environments where **trust, traceability, and governance matter**.
 
@@ -63,22 +64,15 @@ poetry install
 cp .env.example .env
 # Edit .env with your LLM API keys
 
-# Verify setup is clean by running all checks
-make check
+# Verify setup is clean by running the full system check
+poetry run core-admin system check
 
-# Try the new conversational command!
+# Try the conversational command!
 poetry run core-admin chat "make me a simple command-line tool that prints a random number"
-```
 
----
+# 🌱 Contributing
+We welcome all contributors! The best place to start is our Contributing Guide.
 
-## 🌱 Contributing
-
-We welcome all contributors! The best place to start is our **Contributing Guide**.
-Check the **Project Roadmap** for "Next Up" tasks and see our open issues on GitHub.
-
----
-
-## 📄 License
-
-Licensed under the MIT License. See [LICENSE](LICENSE).
+Check the Project Roadmap for "Next Up" tasks and see our open issues on GitHub.
+# 📄 License
+Licensed under the MIT License. See LICENSE.

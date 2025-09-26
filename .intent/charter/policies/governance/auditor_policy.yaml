@@ -1,0 +1,42 @@
+# .intent/charter/policies/auditor_policy.yaml
+id: auditor_policy
+version: "1.0.1"
+title: "Constitutional Auditor Policy"
+status: active
+purpose: >
+  Define the identity, responsibilities, and operational mandate of the Constitutional Auditor.
+  The Auditor enforces all Charter policies and fails CI when error-level violations are present.
+
+scope:
+  applies_to: ["governance", "ci", "system"]
+
+owners:
+  accountable: "Core Maintainer"
+
+review:
+  frequency: "annual"
+
+rules:
+  - id: auditor.must_enforce_error_level
+    statement: "If any guard rule with enforcement=error is violated, the audit MUST fail."
+    enforcement: error
+
+  - id: auditor.must_report_policy_and_path
+    statement: "Findings MUST include policy id, rule id, severity, message, and a concrete file path or symbol key."
+    enforcement: error
+
+  - id: auditor.must_respect_ignores
+    statement: "The Auditor MUST respect scoped ignores defined in '.intent/charter/policies/audit_ignore_policy.yaml'."
+    enforcement: warn
+
+  - id: auditor.output_location
+    statement: "When a report file is requested, it MUST be written under 'reports/' and use a stable JSON structure."
+    enforcement: warn
+
+  - id: auditor.single_active_constitution
+    statement: "Exactly one active constitution version MUST be referenced by '.intent/constitution/ACTIVE'."
+    enforcement: error
+
+  - id: auditor.cli_registry_source_of_truth
+    statement: "All operator actions MUST be backed by entries in '.intent/mind/knowledge/cli_registry.yaml'."
+    enforcement: error

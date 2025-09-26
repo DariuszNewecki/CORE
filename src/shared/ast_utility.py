@@ -1,72 +1,142 @@
 # src/shared/ast_utility.py
 """
-Shared utilities for AST parsing, used by builders and auditors to avoid duplication.
-# CAPABILITY: ast_parsing
+Utility functions for working with Python AST (Abstract Syntax Trees).
+
+Provides helpers to parse, inspect, and analyze Python source code at the
+AST level. Includes visitors for extracting function calls, base classes,
+docstrings, parameters, metadata tags, and a robust structural hash that is
+insensitive to docstrings and whitespace.
 """
 
 from __future__ import annotations
 
 import ast
 import hashlib
-from typing import List, Optional, Set
+import logging
+from typing import Dict, List, Optional
 
-from shared.logger import getLogger
-
-log = getLogger(__name__)
-
-
-# CAPABILITY: tooling.ast.collect_function_calls
-class FunctionCallVisitor(ast.NodeVisitor):
-    """AST visitor to collect function calls."""
-
-    # CAPABILITY: shared.ast.function_call_visitor.initialize
-    def __init__(self):
-        """Initializes the visitor with an empty set to store call names."""
-        self.calls: Set[str] = set()
-
-    # CAPABILITY: code.ast.visit_call
-    def visit_Call(self, node: ast.Call):
-        """Adds the function name to the set of calls and visits child nodes."""
-        if isinstance(node.func, ast.Name):
-            self.calls.add(node.func.id)
-        elif isinstance(node.func, ast.Attribute):
-            self.calls.add(node.func.attr)
-        self.generic_visit(node)
+log = logging.getLogger(__name__)
 
 
-# CAPABILITY: code.ast.extract_docstring
+# ---------------------------------------------------------------------------
+# Basic extractors
+# ---------------------------------------------------------------------------
+
+
+# ID: 79ccf26e-3710-4802-9ccb-29423f545e45
 def extract_docstring(node: ast.AST) -> Optional[str]:
-    """Extracts the docstring from an AST node."""
+    """Extract the docstring from the given AST node if it exists."""
     return ast.get_docstring(node)
 
 
-# CAPABILITY: tooling.ast.extract_function_parameters
-def extract_parameters(node: ast.FunctionDef | ast.AsyncFunctionDef) -> List[str]:
-    """Extracts parameter names from a function definition."""
-    return [arg.arg for arg in node.args.args]
-
-
-# CAPABILITY: tooling.ast.extract_base_classes
+# ID: 79024211-279d-40af-91c3-679d5afdcf9f
 def extract_base_classes(node: ast.ClassDef) -> List[str]:
-    """Extracts base class names from a class definition."""
-    return [base.id if isinstance(base, ast.Name) else "" for base in node.bases]
+    """Return a list of base class names for the given class node."""
+    bases: List[str] = []
+    for base in node.bases:
+        if isinstance(base, ast.Name):
+            bases.append(base.id)
+        elif isinstance(base, ast.Attribute):
+            # e.g. module.Class — capture best-effort dotted path
+            left = None
+            if isinstance(base.value, ast.Name):
+                left = base.value.id
+            elif isinstance(base.value, ast.Attribute):
+                # fallback: last attribute segment
+                left = base.value.attr
+            bases.append(f"{left}.{base.attr}" if left else base.attr)
+    return bases
 
 
-# CAPABILITY: shared.ast.calculate_structural_hash
+# ID: 502f4096-53ca-49d8-b3e4-ec7a075b0881
+def extract_parameters(node: ast.FunctionDef | ast.AsyncFunctionDef) -> List[str]:
+    """Extract parameter names from a function (or async function) definition node."""
+    if not hasattr(node, "args") or node.args is None:
+        return []
+    return [arg.arg for arg in getattr(node.args, "args", [])]
+
+
+# ID: d73a2936-68f4-4dc4-b6ef-db6188740683
+class FunctionCallVisitor(ast.NodeVisitor):
+    """Visitor that collects function call names within a node."""
+
+    def __init__(self) -> None:
+        """Initialize an empty collection of function call names."""
+        self.calls: List[str] = []
+
+    # ID: 2eec3148-6aeb-4d74-9dd3-b73be105ee02
+    def visit_Call(self, node: ast.Call) -> None:
+        """Record the called function/method name, then continue traversal."""
+        if isinstance(node.func, ast.Name):
+            self.calls.append(node.func.id)
+        elif isinstance(node.func, ast.Attribute):
+            self.calls.append(node.func.attr)
+        self.generic_visit(node)
+
+
+# ---------------------------------------------------------------------------
+# Metadata parsing (used by knowledge discovery)
+# ---------------------------------------------------------------------------
+
+
+# ID: 5f4a3e52-b52a-49ac-aa37-a5201376979f
+def parse_metadata_comment(node: ast.AST, source_lines: List[str]) -> Dict[str, str]:
+    """Returns a dict like {'capability': 'domain.key'} when present; otherwise empty dict."""
+    if getattr(node, "lineno", None) and node.lineno > 1:
+        line = source_lines[node.lineno - 2].strip()
+        if line.startswith("#") and "CAPABILITY:" in line.upper():
+            try:
+                # split on the first colon to preserve values containing colons
+                prefix, value = line.split(":", 1)
+                return {"capability": value.strip()}
+            except ValueError:
+                pass
+    return {}
+
+
+# ---------------------------------------------------------------------------
+# Structural hashing (canonical implementation lives here)
+# ---------------------------------------------------------------------------
+
+
+def _strip_docstrings(node: ast.AST) -> ast.AST:
+    """Remove leading docstring expressions from modules/classes/functions."""
+    if isinstance(
+        node, (ast.Module, ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)
+    ):
+        if (
+            getattr(node, "body", None)
+            and len(node.body) > 0
+            and isinstance(node.body[0], ast.Expr)
+            and isinstance(getattr(node.body[0], "value", None), ast.Constant)
+            and isinstance(node.body[0].value.value, str)
+        ):
+            node.body = node.body[1:]
+
+    for child in ast.iter_child_nodes(node):
+        _strip_docstrings(child)
+
+    return node
+
+
+# ID: 1b0ec762-579f-4b3d-93eb-c88e42253c54
 def calculate_structural_hash(node: ast.AST) -> str:
-    """Calculates a structural hash for an AST node."""
-    source = ast.unparse(node)
-    return hashlib.sha256(source.encode("utf-8")).hexdigest()
+    """Calculate a stable structural hash for an AST node.
 
-
-# CAPABILITY: shared.ast.parse_metadata_comment
-def parse_metadata_comment(node: ast.AST, lines: List[str]) -> dict:
-    """Parses metadata comments above a node (e.g., # CAPABILITY:)."""
-    metadata = {}
-    if node.lineno > 1:
-        prev_line = lines[node.lineno - 2].strip()
-        if prev_line.startswith("# CAPABILITY:"):
-            parts = prev_line.split(":", 1)
-            if len(parts) > 1:
-                metadata["capability"] = parts[1].strip()
-    return metadata
+    The hash is:
+      - insensitive to docstrings (they are stripped)
+      - insensitive to whitespace and newlines
+    """
+    try:
+        normalized = ast.parse(ast.unparse(node))
+        normalized = _strip_docstrings(normalized)
+        structural = ast.unparse(normalized).replace("\n", "").replace(" ", "")
+        return hashlib.sha256(structural.encode("utf-8")).hexdigest()
+    except Exception:
+        # Fallback: never block callers on hashing
+        try:
+            fallback = ast.unparse(node)
+        except Exception:
+            fallback = repr(node)
+        log.exception("Structural hash computation failed; using fallback hash.")
+        return hashlib.sha256(fallback.encode("utf-8")).hexdigest()

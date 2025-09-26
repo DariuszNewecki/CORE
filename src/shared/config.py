@@ -1,53 +1,104 @@
 # src/shared/config.py
-"""
-Configuration loading and validation for the CORE system.
-"""
-
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import Any, Dict
 
-from pydantic import ValidationError
+import yaml
+from pydantic import PrivateAttr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from shared.logger import getLogger
 
-# CAPABILITY: config.settings.load
+log = getLogger("core.config")
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+
+
 class Settings(BaseSettings):
     """
-    Validated configuration for the CORE system, loaded from environment variables.
-    It uses `extra='allow'` to dynamically load any additional environment
-    variables, which can be accessed via `model_extra`.
+    The single, canonical source of truth for all CORE configuration.
+    It loads from environment variables and provides "Pathfinder" methods
+    to access constitutional files via the .intent/meta.yaml index.
     """
 
     model_config = SettingsConfigDict(
-        env_file=".env",
-        env_file_encoding="utf-8",
-        extra="allow",
-        case_sensitive=True,
+        env_file=".env", env_file_encoding="utf-8", extra="allow", case_sensitive=True
     )
 
-    # --- Core, explicitly typed attributes that the system relies on ---
-    MIND: Path = Path(".intent")
-    BODY: Path = Path("src")
-    REPO_PATH: Path = Path(".")
-    LLM_ENABLED: bool = True
-    CORE_MAX_CONCURRENT_REQUESTS: int = 5
-    LOG_LEVEL: str = "INFO"
-    CORE_ACTION_LOG_PATH: Path = Path("logs/action_log.jsonl")
-    RESOURCE_MANIFEST_PATH: Path = Path(".intent/knowledge/resource_manifest.yaml")
+    _meta_config: Dict[str, Any] = PrivateAttr(default_factory=dict)
 
-    @property
-    # CAPABILITY: config.environment.extra_fields
-    def model_extra(self) -> Dict[str, Any]:
+    REPO_PATH: Path = REPO_ROOT
+    MIND: Path = REPO_PATH / ".intent"
+    BODY: Path = REPO_PATH / "src"
+    LLM_ENABLED: bool = True
+    LOG_LEVEL: str = "INFO"
+    # ... add other core ENV VARS here ...
+
+    def __init__(self, **values: Any):
+        super().__init__(**values)
+        self._load_meta_config()
+
+    def _load_meta_config(self):
+        """Loads and caches the .intent/meta.yaml file, failing loudly if invalid."""
+        meta_path = self.REPO_PATH / ".intent" / "meta.yaml"
+        if not meta_path.exists():
+            raise FileNotFoundError("FATAL: .intent/meta.yaml is missing.")
+        try:
+            self._meta_config = self._load_file_content(meta_path)
+        except (IOError, ValueError) as e:
+            raise RuntimeError(f"FATAL: Could not parse .intent/meta.yaml: {e}")
+
+    def _load_file_content(self, file_path: Path) -> Dict[str, Any]:
+        """Internal, unified loader for YAML or JSON files."""
+        content = file_path.read_text("utf-8")
+        if file_path.suffix in (".yaml", ".yml"):
+            return yaml.safe_load(content) or {}
+        elif file_path.suffix == ".json":
+            return json.loads(content) or {}
+        raise ValueError(f"Unsupported config file type: {file_path}")
+
+    # --- THIS IS THE FIX ---
+    # The lru_cache decorator has been removed to prevent the TypeError.
+    def get_path(self, logical_path: str) -> Path:
         """
-        Return extra fields that were loaded from environment variables.
-        This provides backward compatibility for accessing dynamic variables.
+        Gets the absolute path to a constitutional file using its logical,
+        dot-notation path from meta.yaml.
         """
-        return getattr(self, "__pydantic_extra__", {})
+        keys = logical_path.split(".")
+        value = self._meta_config
+        try:
+            for key in keys:
+                value = value[key]
+            if not isinstance(value, str):
+                raise TypeError
+            return self.MIND / value
+        except (KeyError, TypeError):
+            raise FileNotFoundError(
+                f"Logical path '{logical_path}' not found or invalid in meta.yaml."
+            )
+
+    # --- END OF FIX ---
+
+    def load(self, logical_path: str) -> Dict[str, Any]:
+        """
+        Loads and parses a constitutional YAML/JSON file using its logical path.
+        """
+        file_path = self.get_path(logical_path)
+        try:
+            return self._load_file_content(file_path)
+        except FileNotFoundError:
+            log.error(
+                f"File for logical path '{logical_path}' not found at expected location: {file_path}"
+            )
+            raise
+        except (IOError, ValueError) as e:
+            raise IOError(f"Failed to load or parse file for '{logical_path}': {e}")
 
 
 try:
     settings = Settings()
-except ValidationError as e:
-    raise RuntimeError(f"Configuration validation failed: {e}")
+except (RuntimeError, FileNotFoundError) as e:
+    log.critical(f"FATAL ERROR during settings initialization: {e}")
+    raise

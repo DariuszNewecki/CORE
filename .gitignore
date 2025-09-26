@@ -36,18 +36,10 @@ demo/
 .intent/keys/
 pending_writes/
 sandbox/
+knowledge_graph.json
 *.jsonl
 *.lock
-reports/knowledge_graph.json
-reports/drift_report.json
-
-# --- Project-specific reports and temp files ---
-reports/constitutional_review.md
-reports/constitution_bundle.txt
-GH_STATUS.md
-project_context.txt
-test.txt
-audit.txt
+reports/
 
 # Cache or checkpoints
 *.bak

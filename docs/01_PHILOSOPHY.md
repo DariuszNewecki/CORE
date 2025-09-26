@@ -1,113 +1,50 @@
-# The CORE Philosophy
-
----
-
-## For New Users: What Is CORE?
-
-CORE is like a **“smart architect”** for software: it ensures your code follows your project’s rules, preventing chaos even when AI writes code.
-
-Think of it as a **city**:
-
-* 🏛️ **Mind** = the plan.
-* 🦾 **Body** = the buildings.
-* 🧠 **Will** = the planners who follow the plan.
-
-👉 **Try It:** Run the *Worked Example* to see CORE catch a mistake in 5 minutes.
-
----
-
-## Prime Directive
-
-CORE transforms **human intent into complete, evolving software systems** — without drift, duplication, or degradation.
-
-It governs, learns, and rewrites itself using a **machine-readable constitution**, ensuring safe and transparent development.
-
----
-
-## The Architectural Trinity: Mind, Body, and Will
-
-CORE’s design separates concerns for **governance and safety**:
-
-* 🏛️ **Mind (`.intent/`)**: YAML/JSON files defining rules and purpose (*what* and *why*).
-* 🦾 **Body (`src/`)**: Simple Python tools for actions (*how*), like writing files.
-* 🧠 **Will (AI Layer)**: AI agents (e.g., Planner) that reason within Mind’s rules to use Body’s tools.
-
-### Visual
-
-```mermaid
-graph TB
-    Mind[🏛️ Mind: .intent/ Rules]
-    Will[🧠 Will: AI Agents]
-    Body[🦾 Body: src/ Code]
-    Auditor[Auditor: Checks Compliance]
-    Mind --> Will
-    Will --> Body
-    Body --> Auditor
-    Auditor --> Mind
-```
-
-**Deep Dive for Experts:** The trinity enforces `separation_of_concerns`.
-The **ConstitutionalAuditor** validates Body against Mind, preventing ungoverned AI actions.
-See `source_structure.yaml` for domain rules.
-
----
-
-## The Ten-Phase Loop of Reasoned Action
-
-Every action follows this **deliberate cycle**:
-
-1. **GOAL**: Human request (e.g., *“Add cryptographic signing”*).
-2. **WHY**: Tie to principle (e.g., `safe_by_default`).
-3. **INTENT**: Formal plan (machine-readable).
-4. **AGENT**: Pick AI role (e.g., Planner).
-5. **MEANS**: Check Body’s tools (e.g., file writing).
-6. **PLAN**: Detail steps.
-7. **ACTION**: Execute via Body.
-8. **FEEDBACK**: Auditor/tests check compliance.
-9. **ADAPTATION**: AI fixes errors.
-10. **EVOLUTION**: Update Mind’s knowledge.
-
-👉 Simplified: It’s a **“think–plan–do–check”** loop to avoid reckless changes.
-
-### Diagram
-
-```mermaid
+01_PHILOSOPHY.md
+1. The CORE Philosophy
+The Prime Directive
+CORE exists to transform human intent into complete, evolving software systems — without the usual decay into architectural drift, duplication, and degradation.
+It achieves this by governing itself with a machine-readable constitution, ensuring that all development, whether performed by humans or AI, is safe, transparent, and aligned with its declared purpose.
+The Architectural Trinity: Mind, Body, and Will
+To ensure safety and clear separation of concerns, CORE's design is a simple trinity:
+🏛️ The Mind (.intent/): The Constitution. A collection of YAML/JSON files that define the project's rules, goals, and self-knowledge. It answers what the system should be and why.
+🦾 The Body (src/): The Machinery. Simple, reliable Python code and tools that perform actions like writing files or running tests. The Body's job is to do, not to think.
+🧠 The Will (AI Agents): The Reasoning Layer. A set of specialized AI agents that read the Mind and use the Body's tools to achieve the declared goals.
+This separation is enforced by an automated ConstitutionalAuditor that continuously verifies the Body's compliance with the Mind.
+code
+Mermaid
 graph TD
-    A[GOAL] --> B[WHY]
-    B --> C[INTENT]
-    C --> D[AGENT]
-    D --> E[MEANS]
-    E --> F[PLAN]
-    F --> G[ACTION]
-    G --> H[FEEDBACK]
-    H --> I[ADAPTATION]
-    I --> J[EVOLUTION]
-    J --> A
-```
+    subgraph core[CORE System]
+        Mind[🏛️ Mind: .intent/ Rules] --> Will[🧠 Will: AI Agents]
+        Will --> Body[🦾 Body: src/ Code]
+    end
 
----
-
-## Glossary
-
-* **Drift**: Code breaking rules.
-* **Constitution**: Rules in `.intent/`.
-
----
-
-## Troubleshooting
-
-* **Confused by terms?** See **README**.
-* **Audit fails?** Run `make check` and check `reports/drift_report.json`.
-
----
-
-## Takeaways
-
-* CORE ensures **deliberate, safe changes**.
-* **Next**: See *Architecture* for technical details.
-
----
-
-## Contribute
-
-Suggest a new principle in `principles.yaml`! Open an issue.
+    Body -- "State of the Code" --> Auditor[ConstitutionalAuditor]
+    Auditor -- "Compliance Report" --> Mind
+The Ten-Phase Loop of Reasoned Action
+To prevent reckless changes, every significant autonomous action in CORE follows a deliberate "think-plan-do-check" cycle. This ensures every change is traceable to a purpose and is validated against the constitution.
+GOAL: A human operator provides a high-level request.
+WHY: The system links the goal to a core constitutional principle (e.g., safe_by_default).
+INTENT: The goal is formalized into a machine-readable plan.
+AGENT: The right AI agent (e.g., Planner, Coder) is selected for the job.
+MEANS: The agent consults the Body's known capabilities to see what tools it can use.
+PLAN: The agent creates a detailed, step-by-step sequence of actions.
+ACTION: The plan is executed by the Body's tools.
+FEEDBACK: The ConstitutionalAuditor and test suite verify the change for compliance.
+ADAPTATION: If feedback is negative, the AI attempts to self-correct the change.
+EVOLUTION: The Mind's knowledge is updated to reflect the new state of the system.
+code
+Mermaid
+graph TD
+    A[1. Goal] --> B[2. Why]
+    B --> C[3. Intent]
+    C --> D[4. Agent]
+    D --> E[5. Means]
+    E --> F[6. Plan]
+    F --> G[7. Action]
+    G --> H[8. Feedback]
+    H --> I[9. Adaptation]
+    I --> J[10. Evolution]
+    J -.-> A
+Takeaways
+CORE is architected for deliberate, safe, and auditable change.
+The separation of Mind, Body, and Will is the core safety mechanism.
+Next: See the Architecture Document for technical details on these components.

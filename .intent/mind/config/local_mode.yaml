@@ -1,0 +1,12 @@
+# .intent/mind/config/local_mode.yaml
+
+mode: local_fallback
+apis:
+  llm:
+    enabled: false
+    fallback: local_validator
+  git:
+    ignore_validation: false
+
+# Development-specific overrides
+dev_fastpath: true        # allow auto-sign in dev env only

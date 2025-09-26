@@ -1,7 +1,0 @@
-domain: shared
-description: Shared models, helpers, and config interfaces
-capabilities:
-  - system_logging
-  - config.load
-  - yaml_loading
-  - shared.throttled_parallel_processing

@@ -19,37 +19,64 @@ from shared.config import Settings
 @pytest.fixture
 def mock_constitution(tmp_path: Path) -> Path:
     intent_dir = tmp_path / ".intent"
-    (intent_dir / "policies").mkdir(parents=True)
-    (intent_dir / "knowledge").mkdir(parents=True)
-    deduction_policy = {
-        "scoring_weights": {"cost": 0.8, "speed": 0.2, "quality": 0.0, "reasoning": 0.0}
+    (intent_dir / "charter" / "policies").mkdir(parents=True)  # Policies are in charter
+    (intent_dir / "mind" / "knowledge").mkdir(parents=True)  # Knowledge is in mind
+
+    # --- FIX: Policy is now agent_policy.yaml ---
+    agent_policy = {
+        "resource_selection": {
+            "scoring_weights": {
+                "cost": 0.8,
+                "speed": 0.2,
+                "quality": 0.0,
+                "reasoning": 0.0,
+            }
+        }
     }
-    (intent_dir / "policies" / "deduction_policy.yaml").write_text(
-        yaml.dump(deduction_policy)
+    (intent_dir / "charter" / "policies" / "agent_policy.yaml").write_text(
+        yaml.dump(agent_policy)
     )
+
     resource_manifest = {
         "llm_resources": [
             {
                 "name": "expensive_high_quality_model",
                 "env_prefix": "EXPENSIVE",
-                "performance_metadata": {"cost_rating": 5, "speed_rating": 1},
+                "provided_capabilities": ["natural_language_understanding"],
+                "performance_metadata": {
+                    "cost_rating": 5,
+                    "speed_rating": 1,
+                    "quality_rating": 5,
+                    "reasoning_rating": 5,
+                },
             },
             {
                 "name": "cheap_fast_model",
                 "env_prefix": "CHEAP",
-                "performance_metadata": {"cost_rating": 1, "speed_rating": 5},
+                "provided_capabilities": ["natural_language_understanding"],
+                "performance_metadata": {
+                    "cost_rating": 1,
+                    "speed_rating": 5,
+                    "quality_rating": 2,
+                    "reasoning_rating": 2,
+                },
             },
         ]
     }
-    (intent_dir / "knowledge" / "resource_manifest.yaml").write_text(
+    (intent_dir / "mind" / "knowledge" / "resource_manifest.yaml").write_text(
         yaml.dump(resource_manifest)
     )
     cognitive_roles = {
         "cognitive_roles": [
-            {"role": "Proofreader", "assigned_resource": "cheap_fast_model"}
+            {
+                "role": "Proofreader",
+                "description": "A test role",
+                "assigned_resource": "cheap_fast_model",  # This is now just a default
+                "required_capabilities": ["natural_language_understanding"],
+            }
         ]
     }
-    (intent_dir / "knowledge" / "cognitive_roles.yaml").write_text(
+    (intent_dir / "mind" / "knowledge" / "cognitive_roles.yaml").write_text(
         yaml.dump(cognitive_roles)
     )
     return tmp_path
@@ -62,7 +89,6 @@ def test_cognitive_service_selects_cheapest_model_based_on_policy(
     Verify that the CognitiveService, guided by the DeductionAgent, selects the
     resource that best matches the scoring policy (in this case, prioritizing cost).
     """
-    # Arrange: Set up dummy environment variables for our test models
     monkeypatch.setenv("CHEAP_API_URL", "http://cheap.api")
     monkeypatch.setenv("CHEAP_API_KEY", "cheap_key")
     monkeypatch.setenv("CHEAP_MODEL_NAME", "cheap-model")
@@ -70,13 +96,9 @@ def test_cognitive_service_selects_cheapest_model_based_on_policy(
     monkeypatch.setenv("EXPENSIVE_API_KEY", "expensive_key")
     monkeypatch.setenv("EXPENSIVE_MODEL_NAME", "expensive-model")
 
-    # Arrange: Create a temporary settings instance for this test
-    # that uses our mock constitution's paths and includes the env vars directly
     test_settings = Settings(
+        REPO_PATH=mock_constitution,
         MIND=mock_constitution / ".intent",
-        RESOURCE_MANIFEST_PATH=mock_constitution
-        / ".intent/knowledge/resource_manifest.yaml",
-        # Pass the environment variables directly to ensure they're loaded
         CHEAP_API_URL="http://cheap.api",
         CHEAP_API_KEY="cheap_key",
         CHEAP_MODEL_NAME="cheap-model",
@@ -86,20 +108,12 @@ def test_cognitive_service_selects_cheapest_model_based_on_policy(
         _env_file=None,
     )
 
-    # Import the DeductionAgent here since we need it in the test
-    from agents.deduction_agent import DeductionAgent
-
-    # Act: Use dependency injection by patching the 'settings' object that will be
-    # imported by the cognitive_service module. Since DeductionAgent receives settings
-    # through its constructor, we don't need to patch it separately.
-    with patch("core.cognitive_service.settings", test_settings):
-        # Create the service and pass the test settings directly to ensure proper initialization
+    # --- FIX: Update the patch paths ---
+    with patch("core.agents.deduction_agent.settings", test_settings), patch(
+        "core.cognitive_service.settings", test_settings
+    ):
         service = CognitiveService(repo_path=mock_constitution)
-        # Override the deduction agent to use our test settings
-        service._deduction_agent = DeductionAgent(settings=test_settings)
-
         client = service.get_client_for_role("Proofreader")
 
-        # Assert
         assert client.model_name == "cheap-model"
-        assert "cheap.api" in client.api_url
+        assert "cheap.api" in client.base_url

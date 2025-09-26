@@ -1,4 +1,5 @@
 # src/shared/logger.py
+
 """
 CORE's Unified Logging System.
 
@@ -13,36 +14,46 @@ print() or configuring their own loggers.
 from __future__ import annotations
 
 import logging
+import os
 
 from rich.logging import RichHandler
 
 # --- Configuration ---
-LOG_LEVEL = "INFO"
+# Get the log level from the environment, defaulting to INFO
+LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
 LOG_FORMAT = "%(message)s"
 LOG_DATE_FORMAT = "[%X]"  # e.g., [14:30:55]
 
 # --- Prevent duplicate handlers if this module is reloaded ---
-# This is crucial for environments like Uvicorn's reloader.
 logging.getLogger().handlers = []
 
 # --- Create and configure the handler ---
-# The RichHandler will format the output beautifully.
 handler = RichHandler(
     rich_tracebacks=True,
     show_time=True,
     show_level=True,
-    show_path=False,  # Can be enabled for deeper debugging
+    show_path=False,
     log_time_format=LOG_DATE_FORMAT,
 )
 
 # --- Configure the root logger ---
-# All loggers created with logging.getLogger(name) will inherit this config.
-logging.basicConfig(level=LOG_LEVEL, format=LOG_FORMAT, handlers=[handler])
+logging.basicConfig(
+    level=LOG_LEVEL,
+    format=LOG_FORMAT,
+    handlers=[handler],
+    force=True,  # Ensure our configuration overwrites any defaults
+)
+
+# --- THIS IS THE FIX: Set quieter log levels for noisy libraries ---
+# This tells the http client library used by Qdrant to only log warnings and errors.
+logging.getLogger("httpx").setLevel(logging.WARNING)
+# We can also make our own verbose services quieter by default.
+logging.getLogger("qdrant_service").setLevel(logging.WARNING)
+# --- END OF FIX ---
 
 
-# CAPABILITY: system_logging
+# ID: b6a332e8-17ca-4a0a-8699-4eaff466aafe
 def getLogger(name: str) -> logging.Logger:
-    """Returns a pre-configured logger instance with the given name."""
     """
     Returns a pre-configured logger instance.
 
@@ -57,3 +68,6 @@ def getLogger(name: str) -> logging.Logger:
 
 # Example of a root-level logger if needed directly
 log = getLogger("core_root")
+
+# Set the log level for the root logger from the environment variable
+log.setLevel(LOG_LEVEL)

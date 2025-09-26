@@ -26,7 +26,6 @@ _INTENT_PATH_CANDIDATES: List[Path] = [
 _BLOCKLIST_PATH = Path(".intent/policies/blocked_topics.txt")
 
 
-# CAPABILITY: system.file.read_first
 def _read_text_first(paths: List[Path]) -> str:
     """Finds and reads the first existing file from a list of candidate paths."""
     for p in paths:
@@ -38,7 +37,6 @@ def _read_text_first(paths: List[Path]) -> str:
     return ""
 
 
-# CAPABILITY: intent_alignment.blocklist.read
 def _read_blocklist() -> List[str]:
     """Reads the blocklist file, returning a list of lowercased, stripped terms."""
     if _BLOCKLIST_PATH.exists():
@@ -55,13 +53,12 @@ def _read_blocklist() -> List[str]:
     return []
 
 
-# CAPABILITY: core.intent.tokenize
 def _tokenize(text: str) -> List[str]:
     """Converts a string into a list of lowercase alphanumeric tokens."""
     return re.findall(r"[a-zA-Z0-9]+", text.lower())
 
 
-# CAPABILITY: alignment_checking.goal_validation
+# ID: f1267ace-1e0a-47f8-8d81-36ce4262913a
 def check_goal_alignment(
     goal: str, project_root: Path = Path(".")
 ) -> Tuple[bool, Dict]:

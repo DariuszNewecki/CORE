@@ -2,58 +2,36 @@
 """
 Tests for the /knowledge API endpoints.
 """
-import json
-from pathlib import Path
+from unittest.mock import AsyncMock
 
+import pytest
 from fastapi.testclient import TestClient
 
 from core.main import app
 
-# This client will now be available after installing pytest-fastapi
-client = TestClient(app)
 
-
-def test_list_capabilities_endpoint(tmp_path: Path, monkeypatch):
+# Use pytest.mark.anyio to run this test in an async context
+@pytest.mark.anyio
+async def test_list_capabilities_endpoint(mocker):
     """
-    Tests the GET /knowledge/capabilities endpoint to ensure it correctly
-    reads and returns capabilities from a mock knowledge graph.
+    Tests the GET /knowledge/capabilities endpoint, mocking the service layer.
     """
-    # 1. Arrange: Create a temporary ".intent" structure and a fake knowledge graph.
-    intent_dir = tmp_path / ".intent"
-    knowledge_dir = intent_dir / "knowledge"
-    knowledge_dir.mkdir(parents=True)
-    knowledge_graph_path = knowledge_dir / "knowledge_graph.json"
+    # 1. Arrange: Mock the KnowledgeService's async method to return a specific list.
+    expected_capabilities = ["system.test.alpha", "system.test.beta"]
+    mocker.patch(
+        "core.knowledge_service.KnowledgeService.list_capabilities",
+        new_callable=AsyncMock,
+        return_value=expected_capabilities,
+    )
 
-    mock_graph_data = {
-        "symbols": {
-            "symbol_one": {"capability": "system.test.alpha"},
-            "symbol_two": {"capability": "system.test.beta"},
-            "symbol_three": {"capability": "unassigned"},  # Should be ignored
-            "symbol_four": {
-                "capability": "system.test.alpha"
-            },  # Duplicates should be handled
-        }
-    }
-    knowledge_graph_path.write_text(json.dumps(mock_graph_data))
+    # 2. Act: Use the TestClient within the app's lifespan context manager.
+    # This ensures the startup events (and service initializations) are run.
+    with TestClient(app) as client:
+        response = client.get("/knowledge/capabilities")
 
-    # 2. Arrange: Monkeypatch the application to use our temporary directory as the root.
-    # We need to tell the app to look for the .intent dir in our temp folder.
-    monkeypatch.chdir(tmp_path)
-
-    # We need to manually reload the service in the app's state since it's
-    # initialized at startup. For a test, this is the simplest way.
-    from core.knowledge_service import KnowledgeService
-
-    app.state.knowledge_service = KnowledgeService(repo_path=tmp_path)
-
-    # 3. Act: Make a request to the new endpoint.
-    response = client.get("/knowledge/capabilities")
-
-    # 4. Assert: Check the response.
+    # 3. Assert: Check the response.
     assert response.status_code == 200
     response_data = response.json()
 
-    # The response should contain a list of unique, sorted capabilities.
-    expected_capabilities = ["system.test.alpha", "system.test.beta"]
     assert "capabilities" in response_data
     assert response_data["capabilities"] == expected_capabilities

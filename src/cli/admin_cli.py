@@ -1,0 +1,87 @@
+# src/cli/admin_cli.py
+"""
+The single, canonical entry point for the core-admin CLI.
+This module assembles all command groups into a single Typer application.
+"""
+
+from __future__ import annotations
+
+import typer
+from rich.console import Console
+
+# --- Command Group Imports ---
+# These imports bring in the modules that contain the 'register' functions.
+from cli.commands import (
+    agent,
+    build,
+    byor,
+    capability,
+    chat,
+    check,
+    db,
+    fixer,
+    guard,
+    interactive,
+    knowledge,
+    knowledge_sync,  # <-- ADD THIS LINE
+    new,
+    proposal_service,
+    run,
+    system,
+    tools,
+)
+from features.governance import key_management_service
+from features.project_lifecycle import bootstrap_service
+
+console = Console()
+
+# --- Main Application ---
+app = typer.Typer(
+    name="core-admin",
+    help="""
+    CORE: The Self-Improving System Architect's Toolkit.
+
+    This CLI is the primary interface for operating and governing the CORE system.
+    Run with no arguments to enter the interactive menu.
+    """,
+    no_args_is_help=False,  # We want to launch the interactive menu by default
+)
+
+
+# --- Command Registration ---
+# The order here determines the order in the --help output.
+system.register(app)
+check.register(app)
+fixer.register(app)
+db.register(app)
+knowledge.register(app)
+knowledge_sync.register(app)  # <-- ADD THIS LINE
+run.register(app)
+build.register(app)
+tools.register(app)
+agent.register(app)
+proposal_service.register(app)
+key_management_service.register(app)
+new.register(app)
+bootstrap_service.register(app)
+byor.register(app)
+guard.register(app)
+capability.register(app)
+chat.register(app)
+
+
+@app.callback(invoke_without_command=True)
+# ID: 25555fd8-2556-4a77-b222-a68988ef2b01
+def main(ctx: typer.Context):
+    """
+    If no command is specified, launch the interactive menu.
+    """
+    if ctx.invoked_subcommand is None:
+        console.print(
+            "[bold green]No command specified. Launching interactive menu...[/bold green]"
+        )
+        interactive.launch_interactive_menu()
+
+
+if __name__ == "__main__":
+    app()

@@ -1,0 +1,112 @@
+id: safety_policy
+version: "1.0.0"
+title: "System Safety & Security Policy"
+status: active
+purpose: >
+  The single source of truth for all security and safety policies governing
+  code generation, execution, and self-modification.
+scope:
+  applies_to: [agents, code, ci, services]
+owners:
+  primary: "Security Lead"
+  reviewers: ["Core Maintainer"]
+review:
+  frequency: "12 months"
+
+rules:
+  # ===================================================================
+  # RULE: Govern Self-Modification (Immutable Constitution)
+  # ===================================================================
+  - id: immutable_constitution
+    description: >
+      The core mission files are immutable and can only be changed via the full,
+      human-in-the-loop constitutional amendment process.
+    enforcement: warn # This is a meta-rule; its enforcement is the amendment process itself.
+    applies_to:
+      paths:
+        - "charter/mission/principles.yaml"
+        - "charter/mission/manifesto.md"
+        - "charter/mission/northstar.yaml"
+
+  # ===================================================================
+  # RULE: No self-modification of core loop
+  # ===================================================================
+  - id: deny_core_loop_edit
+    description: >
+      CORE cannot modify its own core orchestration and governance engine
+      without explicit human review via the formal amendment process.
+    enforcement: error # An automated change here is a critical violation.
+    applies_to:
+      paths:
+        - "src/core/main.py"
+        - "src/core/intent_guard.py"
+        - "charter/policies/intent_guard_policy.yaml"
+        - "charter/policies/safety_policy.yaml"
+    action: require_human_approval
+    feedback: |
+      🔒 Core logic modification detected. Human review required before application.
+
+  # ===================================================================
+  # RULE: Block dangerous execution primitives
+  # ===================================================================
+  - id: no_dangerous_execution
+    description: >
+      Generated or modified code must not contain calls to dangerous functions
+      that enable arbitrary code execution, shell access, or unsafe deserialization.
+    enforcement: error
+    scope:
+      domains: [core, agents, features]
+      exclude:
+        - path: "tests/**"
+          rationale: "Test files require direct execution for validation"
+        - path: "src/core/git_service.py"
+          rationale: >
+            This file is exempt as it safely uses subprocess.run() without shell=True.
+    detection:
+      type: regex
+      patterns:
+        - "eval\\("
+        - "exec\\("
+        - "compile\\("
+        - "os\\.system\\("
+        - "os\\.popen\\("
+        - "subprocess\\.(run|Popen|call)\\([^)]*shell\\s*=\\s*True"
+        - "shutil\\.rmtree\\("
+        - "os\\.remove\\("
+        - "os\\.rmdir\\("
+    action: reject
+    feedback: |
+      ❌ Dangerous execution detected: '{{pattern}}'. Use safe wrappers or avoid shell=True.
+
+  # ===================================================================
+  # RULE: Restrict network access
+  # ===================================================================
+  - id: restrict_network_access
+    description: >
+      Only explicitly allowed domains may be contacted. All outbound network
+      calls must be through approved integration points.
+    enforcement: error
+    evidence: ["network_access_log"]
+    allowed_domains:
+      - "api.openai.com"
+      - "github.com"
+      - "api.deepseek.com"
+      - "api.anthropic.com"
+    action: reject
+    feedback: |
+      ❌ Attempt to contact unauthorized domain: {{domain}}. Update safety_policy.yaml to allow if needed.
+
+  # ===================================================================
+  # RULE: All changes must be logged
+  # ===================================================================
+  - id: change_must_be_logged
+    description: >
+      Every file change must be preceded by a log entry recorded at CORE_ACTION_LOG_PATH
+      with IntentBundle ID and description.
+    enforcement: error
+    triggers:
+      - before_write
+    validator: change_log_checker
+    action: reject_if_unlogged
+    feedback: |
+      ❌ No prior log entry found for this change. Write to CORE_ACTION_LOG_PATH before modifying files.

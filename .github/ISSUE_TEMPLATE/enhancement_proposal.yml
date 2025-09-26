@@ -1,0 +1,63 @@
+name: Enhancement Proposal
+description: Propose a new feature, epic, or significant enhancement.
+labels: ["type:feature", "priority:triage"]
+body:
+  - type: input
+    id: title
+    attributes:
+      label: Title
+      description: A concise, high-level name for this body of work.
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem_justification
+    attributes:
+      label: Problem & Justification
+      description: "What problem does this solve? Why is it important now? Which constitutional principles does it serve?"
+      placeholder: "e.g., The system currently cannot do X, which violates the 'clarity_first' principle and requires human intervention..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed Solution
+      description: "Describe the new capability at a high level. How would an operator interact with it? What would it do?"
+      placeholder: "e.g., A new CLI command `core-admin fix docstrings` that uses an LLM to find and add missing docstrings."
+    validations:
+      required: true
+
+  - type: dropdown
+    id: constitutional-alignment
+    attributes:
+      label: Constitutional Alignment
+      description: "Which core principle does this feature primarily serve?"
+      options:
+        - "clarity_first: Makes the system easier to understand."
+        - "safe_by_default: Makes the system safer or more resilient."
+        - "reason_with_purpose: Improves the system's ability to reason about its actions."
+        - "evolvable_structure: Enhances the system's ability to safely modify itself."
+        - "separation_of_concerns: Improves the modularity and architecture of the system."
+        - "Other (please specify in the proposal)"
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: Acceptance Criteria / Sub-Tasks
+      description: "How will we know when this is complete? Provide a checklist of smaller, concrete issues or tasks."
+      value: |
+        - [ ] Criterion 1 / Sub-task 1
+        - [ ] Criterion 2 / Sub-task 2
+        - [ ] Criterion 3 / Sub-task 3
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional Context
+      description: "Add any other context, mockups, or references that might be helpful."
+--- END OF FILE .github/ISSUE_TEMPLATE/enhancement_proposal.yml ---

@@ -1,0 +1,201 @@
+# .intent/mind/config/runtime_requirements.yaml
+id: runtime_requirements
+version: 1
+title: "Runtime Requirements"
+status: active
+owners:
+  accountable: "Platform SRE"
+  responsible: ["Core Maintainer"]
+review:
+  frequency: "6 months"
+
+variables:
+  MIND:
+    description: "The relative path to the system's declarative 'mind' (.intent directory)."
+    source: env
+    required: true
+    type: path
+    used_by: ["system", "auditor"]
+  BODY:
+    description: "The relative path to the system's executable 'body' (src directory)."
+    source: env
+    required: true
+    type: path
+    used_by: ["system"]
+  REPO_PATH:
+    description: "The absolute path to the root of the repository."
+    source: env
+    required: true
+    type: path
+    used_by: ["system","auditor"]
+  LLM_ENABLED:
+    description: "Master flag to enable or disable all LLM-related capabilities."
+    source: env
+    required: true
+    type: bool
+    allowed: ["true","false"]
+    used_by: ["agents"]
+  KEY_STORAGE_DIR:
+    description: "The secure directory for storing operator private keys."
+    source: env
+    required: true
+    type: path
+    default: ".intent/keys"
+    used_by: ["system"]
+  CORE_ACTION_LOG_PATH:
+    description: "Path to the action/change log file, required for the safety policy 'change_must_be_logged'."
+    source: env
+    required: true
+    type: path
+    used_by: ["auditor", "system"]
+  CORE_ENV:
+    description: "Runtime mode: 'development' or 'production'."
+    source: env
+    required: true
+    type: enum
+    allowed: ["development","production"]
+    used_by: ["system"]
+  LOG_LEVEL:
+    description: "Logging level."
+    source: env
+    required: true
+    type: enum
+    allowed: ["DEBUG","INFO","WARNING","ERROR"]
+    used_by: ["system"]
+  CORE_DEV_FASTPATH:
+    description: "Enable development fastpath."
+    source: env
+    required: false
+    type: bool
+    used_by: ["system"]
+    required_when: "CORE_ENV == 'development'"
+  CORE_MAX_CONCURRENT_REQUESTS:
+    description: "The maximum number of simultaneous outbound LLM requests to prevent rate-limiting."
+    source: env
+    required: false
+    type: integer
+    default: 5
+    used_by: ["system"]
+  DEEPSEEK_CHAT_API_URL:
+    description: "API URL for the 'deepseek_chat' resource."
+    source: env
+    required: false
+    type: uri
+    used_by: ["agents"]
+    required_when: "LLM_ENABLED == true"
+  DEEPSEEK_CHAT_API_KEY:
+    description: "API key for the 'deepseek_chat' resource."
+    source: secret
+    required: false
+    type: string
+    used_by: ["agents"]
+    required_when: "LLM_ENABLED == true"
+  DEEPSEEK_CHAT_MODEL_NAME:
+    description: "Model name for the 'deepseek_chat' resource."
+    source: env
+    required: false
+    type: string
+    used_by: ["agents"]
+    required_when: "LLM_ENABLED == true"
+  DEEPSEEK_CODER_API_URL:
+    description: "API URL for the 'deepseek_coder' resource."
+    source: env
+    required: false
+    type: uri
+    used_by: ["agents"]
+    required_when: "LLM_ENABLED == true"
+  DEEPSEEK_CODER_API_KEY:
+    description: "API key for the 'deepseek_coder' resource."
+    source: secret
+    required: false
+    type: string
+    used_by: ["agents"]
+    required_when: "LLM_ENABLED == true"
+  DEEPSEEK_CODER_MODEL_NAME:
+    description: "Model name for the 'deepseek_coder' resource."
+    source: env
+    required: false
+    type: string
+    used_by: ["agents"]
+    required_when: "LLM_ENABLED == true"
+  ANTHROPIC_CLAUDE_SONNET_API_URL:
+    description: "API URL for the 'anthropic_claude_sonnet' resource."
+    source: env
+    required: false
+    type: uri
+    used_by: ["agents"]
+    required_when: "LLM_ENABLED == true"
+  ANTHROPIC_CLAUDE_SONNET_API_KEY:
+    description: "API key for the 'anthropic_claude_sonnet' resource."
+    source: secret
+    required: false
+    type: string
+    used_by: ["agents"]
+    required_when: "LLM_ENABLED == true"
+  ANTHROPIC_CLAUDE_SONNET_MODEL_NAME:
+    description: "Model name for the 'anthropic_claude_sonnet' resource."
+    source: env
+    required: false
+    type: string
+    used_by: ["agents"]
+    required_when: "LLM_ENABLED == true"
+
+  # --- START: Governed Embedding & Vector Store Configuration ---
+  LOCAL_EMBEDDING_API_URL:
+    description: "API URL for the local embedding resource."
+    source: env
+    required: true
+    type: uri
+    used_by: ["system"]
+    required_when: "LLM_ENABLED == true"
+  LOCAL_EMBEDDING_API_KEY:
+    description: "API key for the local embedding resource (if required)."
+    source: secret
+    required: false
+    type: string
+    used_by: ["system"]
+    required_when: "LLM_ENABLED == true"
+  LOCAL_EMBEDDING_MODEL_NAME:
+    description: "Model name for the local embedding resource."
+    source: env
+    required: true
+    type: string
+    used_by: ["system"]
+    required_when: "LLM_ENABLED == true"
+  LOCAL_EMBEDDING_DIM:
+    description: "The output dimension of the embedding model."
+    source: env
+    required: true
+    type: integer
+    default: 768
+    used_by: ["system"]
+    required_when: "LLM_ENABLED == true"
+  EMBED_MODEL_REVISION:
+    description: "A revision tag/date for the embedding model to track provenance."
+    source: env
+    required: true
+    type: string
+    default: "2025-09-15"
+    used_by: ["system"]
+    required_when: "LLM_ENABLED == true"
+  EMBEDDING_MAX_CONCURRENT_REQUESTS:
+    description: "Maximum concurrent requests to the embedding model to prevent overload."
+    source: env
+    required: false
+    type: integer
+    default: 4 # A safer default for local models
+    used_by: ["system"]
+
+  QDRANT_URL:
+    description: "URL for the Qdrant vector database instance."
+    source: env
+    required: true
+    type: uri
+    used_by: ["system"]
+  QDRANT_COLLECTION_NAME:
+    description: "The name of the collection within Qdrant to use for capabilities."
+    source: env
+    required: true
+    type: string
+    default: "core_capabilities"
+    used_by: ["system"]

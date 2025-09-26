@@ -1,6 +1,7 @@
 # src/core/file_handler.py
 """
-Provides safe, auditable file operations with staged writes requiring confirmation for traceability and rollback capabilities.
+Provides safe, auditable file operations with staged writes
+requiring confirmation for traceability and rollback capabilities.
 """
 
 from __future__ import annotations
@@ -17,7 +18,7 @@ from shared.logger import getLogger
 log = getLogger(__name__)
 
 
-# CAPABILITY: core.file_handler.manage
+# ID: 8e74376f-d709-48be-bf0c-0e286f390f67
 class FileHandler:
     """
     Central class for safe, auditable file operations in CORE.
@@ -25,7 +26,6 @@ class FileHandler:
     by the calling agent via the validation_pipeline.
     """
 
-    # CAPABILITY: core.file_handler.initialize
     def __init__(self, repo_path: str):
         """
         Initialize FileHandler with repository root.
@@ -49,7 +49,7 @@ class FileHandler:
         self.pending_writes: Dict[str, Dict[str, Any]] = {}
         self._lock = threading.Lock()
 
-    # CAPABILITY: core.file_handler.stage_write
+    # ID: bf348511-75e7-442c-9aac-58ced078e564
     def add_pending_write(self, prompt: str, suggested_path: str, code: str) -> str:
         """
         Stages a pending write operation for later confirmation.
@@ -71,7 +71,7 @@ class FileHandler:
         pending_file.write_text(json.dumps(entry, indent=2), encoding="utf-8")
         return pending_id
 
-    # CAPABILITY: core.file_handler.confirm_write
+    # ID: 6238a0d8-0c8d-4c74-b792-7587dc13807a
     def confirm_write(self, pending_id: str) -> Dict[str, str]:
         """
         Confirms and applies a pending write to disk. Assumes content has been validated.

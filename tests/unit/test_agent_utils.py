@@ -4,7 +4,7 @@ import textwrap
 
 import pytest
 
-from agents.utils import CodeEditor
+from core.agents.code_editor import CodeEditor
 
 
 @pytest.fixture
@@ -51,7 +51,7 @@ def test_replace_simple_function(code_editor, sample_code):
     assert "return a + b" not in modified_code
     assert "class MyClass:" in modified_code
     assert "method_one" in modified_code
-    assert "# A sample file" in modified_code  # Check that comments are preserved
+    assert "# A sample file" in modified_code
 
 
 def test_replace_method_in_class(code_editor, sample_code):
@@ -68,10 +68,8 @@ def test_replace_method_in_class(code_editor, sample_code):
     )
 
     assert "return 100" in modified_code
-    # Ensure there's no standalone "return 1" line (avoid substring false positives)
     assert not re.search(r"(?m)^\s*return\s+1\s*$", modified_code)
     assert "top_level_function" in modified_code
-    # Crucially, check that the class definition is still present
     assert "class MyClass:" in modified_code
 
 

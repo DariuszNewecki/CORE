@@ -10,15 +10,14 @@
 - [ ] test: Adding missing tests or correcting existing tests
 
 ## Intent & Justification
-<!--
-**REQUIRED**: Link the issue and explain the "why" behind this change.
-This MUST be filled out for the PR to be considered.
-Example: "Fixes #123. This change improves safety by..."
--->
+> **REQUIRED**: Link the issue and explain the "why" behind this change.
+> This MUST be filled out for the PR to be considered.
+> Example: "Fixes #123. This change improves safety by..."
+
 
 
 ## Checklist
 - [ ] I ran `make check` locally to ensure all tests and audits pass.
 - [ ] I have added or updated tests that prove my fix is effective or that my feature works.
-- [tbd] I have updated the necessary documentation (if appropriate).
+- [ ] I have updated the necessary documentation (if appropriate).
 - [ ] This PR does not violate any constitutional principles.

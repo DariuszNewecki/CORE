@@ -1,0 +1,71 @@
+id: resource_manifest_policy
+version: "1.0.0"
+title: "LLM Resource Manifest Policy"
+status: active
+purpose: >
+  The single source of truth defining the available LLM resources, their
+  capabilities, performance characteristics, and the environment variables
+  required to access them. This policy is a key control against AI drift and cost overruns.
+scope:
+  applies_to: [agents, cognitive_service]
+owners:
+  accountable: "Core Maintainer"
+review:
+  frequency: "annual"
+
+# Original content is now nested under this key
+llm_resources:
+  - name: "deepseek_chat"
+    provided_capabilities:
+      - "natural_language_understanding"
+      - "planning"
+      - "decomposition"
+      - "documentation"
+      - "security_review"
+      - "prompt_interpretation"
+    env_prefix: "DEEPSEEK_CHAT"
+    performance_metadata:
+      cost_rating: 2
+      speed_rating: 4
+      quality_rating: 3
+      reasoning_rating: 3
+
+  - name: "deepseek_coder"
+    provided_capabilities:
+      - "code_generation"
+      - "refactoring"
+      - "self_review"
+    env_prefix: "DEEPSEEK_CODER"
+    performance_metadata:
+      cost_rating: 2
+      speed_rating: 5
+      quality_rating: 4
+      reasoning_rating: 2
+
+  - name: "anthropic_claude_sonnet"
+    provided_capabilities:
+      - "natural_language_understanding"
+      - "planning"
+      - "decomposition"
+      - "documentation"
+      - "security_review"
+      - "code_generation"
+      - "prompt_interpretation"
+      - "llm_orchestration"
+      - "refactoring"
+    env_prefix: "ANTHROPIC_CLAUDE_SONNET"
+    performance_metadata:
+      cost_rating: 3
+      speed_rating: 3
+      quality_rating: 5
+      reasoning_rating: 5
+  
+  - name: "local_embedding"
+    provided_capabilities:
+      - "vectorization"
+    env_prefix: "LOCAL_EMBEDDING" 
+    performance_metadata:
+      cost_rating: 1
+      speed_rating: 5
+      quality_rating: 5
+      reasoning_rating: 1

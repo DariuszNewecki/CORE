@@ -21,7 +21,7 @@ Violation = Dict[str, Any]
 
 # --- MODIFICATION: Complete refactor to use Ruff's JSON output. ---
 # --- The function now returns the fixed code and a list of structured violations. ---
-# CAPABILITY: code.lint.fix_with_ruff
+# ID: 592ac81a-25a7-4313-9977-41f4dbca3cde
 def fix_and_lint_code_with_ruff(
     code: str, display_filename: str = "<code>"
 ) -> Tuple[str, List[Violation]]:

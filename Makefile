@@ -1,3 +1,4 @@
+# FILE: Makefile
 # Makefile for CORE – Cognitive Orchestration Runtime Engine
 # This file provides convenient shortcuts to the canonical 'core-admin' CLI commands.
 
@@ -13,7 +14,9 @@ PORT    ?= 8000
 RELOAD  ?= --reload
 ENV_FILE ?= .env
 
-.PHONY: help install lock run stop audit lint format test check fast-check clean distclean nuke
+OUTPUT_PATH ?= docs/10_CAPABILITY_REFERENCE.md
+
+.PHONY: help install lock run stop audit lint format test check fast-check clean distclean nuke docs check-docs cli-tree
 
 help:
 	@echo "CORE Development Makefile"
@@ -23,11 +26,15 @@ help:
 	@echo ""
 	@echo "Common Shortcuts:"
 	@echo "make install       - Install dependencies"
-	@echo "make check         - Run all checks via 'core-admin system check'"
-	@echo "make test          - Run tests via 'core-admin system test'"
-	@echo "make format        - Format code via 'core-admin system format'"
+	@echo "make fast-check    - Run linting and tests (RECOMMENDED FOR LOCAL DEV)"
+	@echo "make check         - Run all checks including vectorization (for CI)"
+	@echo "make lint          - Check code format and quality (read-only)"
+	@echo "make format        - Fix code format and quality issues"
+	@echo "make test          - Run tests via 'core-admin check ci test'"
 	@echo "make run           - Start the API server"
+	@echo "make cli-tree      - Display the full CLI command tree"
 	@echo "make clean         - Remove temporary files"
+	@echo "make docs          - Generate capability documentation"
 
 install:
 	@echo "📦 Installing dependencies..."
@@ -45,26 +52,60 @@ stop:
 	@echo "🛑 Stopping any process on port $(PORT)..."
 	@lsof -t -i:$(PORT) | xargs kill -9 2>/dev/null || true
 
-# --- CORE CLI SHORTCUTS ---
 
+# --- START: CORRECTED COMMANDS ---
 audit:
-	$(POETRY) run core-admin system audit
+	$(POETRY) run core-admin check ci audit
 
 lint:
-	$(POETRY) run core-admin system lint
+	$(POETRY) run core-admin check ci lint
 
 format:
-	$(POETRY) run core-admin system format
+	$(POETRY) run core-admin fix format
 
 test:
-	$(POETRY) run core-admin system test
+	$(POETRY) run core-admin check ci test
 
-check:
-	$(POETRY) run core-admin system check
+cli-tree:
+	@echo "🌳 Generating CLI command tree..."
+	$(POETRY) run core-admin check diagnostics cli-tree
 
 fast-check:
-	$(POETRY) run core-admin system lint
-	$(POETRY) run core-admin system test
+	$(POETRY) run core-admin check ci lint
+	$(POETRY) run core-admin check ci test
+# --- END: CORRECTED COMMANDS ---
+	
+fix-lines:
+	@echo "📏 Fixing long lines with AI assistant..."
+	$(POETRY) run core-admin fix line-lengths --write
+	
+fix-docs:
+	@echo "✍️  Adding missing docstrings with AI assistant..."
+	$(POETRY) run core-admin fix docstrings --write
+
+build-graph:
+	@echo "🏗️  Building knowledge graph..."
+	$(POETRY) run core-admin build graph
+
+vectorize: build-graph
+	@echo "🧠 Vectorizing knowledge graph..."
+	$(POETRY) run core-admin run vectorize
+
+check:
+	@echo "🤝 Running full constitutional audit and documentation check..."
+	$(MAKE) lint
+	$(MAKE) test
+	$(MAKE) audit
+	@$(MAKE) check-docs
+
+docs:
+	@echo "📚 Generating capability documentation..."
+	$(POETRY) run core-admin build docs
+
+check-docs: docs
+	@echo "🔎 Checking for documentation drift..."
+	@git diff --exit-code --quiet $(OUTPUT_PATH) || (echo "❌ ERROR: Documentation is out of sync. Please run 'make docs' and commit the changes." && exit 1)
+	@echo "✅ Documentation is up to date."
 
 # ---- Clean targets ---------------------------------------------------------
 

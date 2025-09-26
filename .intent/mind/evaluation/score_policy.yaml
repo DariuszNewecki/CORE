@@ -1,0 +1,54 @@
+score_policy:
+  strategy: weighted_criteria
+
+  criteria:
+    - id: intent_alignment
+      description: "Does this change serve a declared intent?"
+      weight: 0.4
+
+    - id: structural_compliance
+      description: "Does it follow folder conventions and manifest structure?"
+      weight: 0.2
+
+    - id: safety
+      description: "Was the change gated by a test or checkpoint?"
+      weight: 0.2
+
+    - id: code_quality
+      description: "Does it pass formatting, linting, and basic semantic checks?"
+      weight: 0.2
+
+  # --- THRESHOLD LOGIC ---
+  # Pass: score >= 0.7
+  # Warn: score >= 0.5 and score < 0.7
+  # Fail: score < 0.5
+  thresholds:
+    pass: 0.7
+    warn: 0.5
+
+# ----- RISK-TIER GATES (append) ---------------------------------------------
+risk_tier_gates:
+  # For medium-risk changes we require a governance checkpoint and a canary run.
+  medium:
+    min_score: 0.80        # tighten pass threshold
+    require:
+      - checkpoint         # e.g., human-in-the-loop signoff recorded
+      - canary             # canary run ID must be present
+
+  # For high-risk changes we raise the bar and require approver quorum too.
+  high:
+    min_score: 0.90
+    require:
+      - checkpoint
+      - canary
+      - approver_quorum    # follow your constitution/approvers
+
+# The source of truth for what constitutes a "critical path".
+# The auditor MUST use this file to evaluate the conditions below.
+critical_paths_source: "charter/constitution/critical_paths.yaml"
+
+# Declarative conditions so the auditor can enforce gates consistently.
+gate_conditions:
+  checkpoint_required_when: "risk_tier in ['medium','high']"
+  canary_required_when: "risk_tier in ['medium','high'] or any change touches a file listed in critical_paths_source"
+  approver_quorum_required_when: "risk_tier == 'high' or any change touches a file listed in critical_paths_source"

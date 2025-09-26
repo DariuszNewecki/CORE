@@ -1,0 +1,70 @@
+# FILE: .intent/charter/policies/database_policy.yaml
+
+id: database_policy
+version: "2.0.0"
+title: "Consolidated Database Governance Policy"
+purpose: >
+  Provide a durable, auditable ledger of what actually happened in CORE (events, audits, CLI runs, capability history)
+  without becoming a new source of constitutional truth. This policy is the single source of truth for schema,
+  migrations, data privacy, and data retention.
+scope:
+  applies_to: [postgresql]
+owners:
+  primary: "Security Lead"
+  reviewers: ["Governance Lead"]
+review:
+  frequency: "12 months"
+engine:
+  type: postgresql
+  schema: core
+migrations:
+  directory: sql
+  order:
+    - "001_init.sql"
+    - "002_catalog.sql"
+    - "003_implementations.sql"
+    - "004_refactor_to_symbols.sql"
+    - "005_add_symbol_key.sql"
+    - "006_knowledge_graph_view.sql"
+    - "007_capabilities_registry.sql"
+rules:
+  - id: db.mind_remains_source
+    statement: "`.intent/**` is the single source of constitutional truth; DB is not authoritative for policies/manifests."
+    enforcement: error
+  - id: db.schema_declared
+    statement: "All tables and columns MUST be declared in the database schema/migrations and validated at CI time."
+    enforcement: error
+  - id: db.migrations_logged
+    statement: "Schema migrations MUST have an id, description, created_at, and approver recorded in the repo."
+    enforcement: warn
+  - id: db.write_via_governed_cli
+    statement: "All writes MUST originate from registered CLI commands (see CLI Governance Policy)."
+    enforcement: error
+  - id: db.enforce_domains_from_intent
+    statement: "Capability domains MUST match mind/knowledge/domains.yaml."
+    enforcement: warn
+  - id: db.vector_index_consistency
+    statement: "Vector index rows MUST match EMBED_MODEL_REVISION and LOCAL_EMBEDDING_DIM."
+    enforcement: warn
+  - id: db.privacy.no_pii_or_secrets
+    statement: "Personal data and secrets MUST NOT be stored in operational tables unless explicitly exempted."
+    enforcement: error
+  - id: db.privacy.masking
+    statement: "Logs and audit records MUST redact tokens, keys, and secrets before persistence."
+    enforcement: error
+  - id: db.privacy.access_least_privilege
+    statement: "Access to operational data MUST follow least-privilege via roles/groups."
+    enforcement: warn
+retention:
+  audit_runs_days: 180
+  cli_runs_days: 90
+  capability_history_days: 365
+  proposals_days: 1095
+drift:
+  development: warn
+  production: block
+backup_restore:
+  cadence: daily
+  test_restore_quarterly: true
+quorum:
+  changes_require_critical_paths: true

@@ -1,0 +1,33 @@
+# .intent/mind/knowledge/agent_roles.yaml
+# This file now maps agent roles to specific, auditable capability keys.
+# This ensures that agent permissions are tied directly to implemented, governed
+# functions, fulfilling the 'safe_by_default' and 'clarity_first' principles.
+
+agent_roles:
+  planner_agent:
+    description: "Decomposes high-level goals into concrete, executable plans."
+    allowed_capabilities:
+      - "autonomy.planning.create_plan"
+
+  execution_agent:
+    description: "Executes a validated plan, including code generation and file modification."
+    allowed_capabilities:
+      - "autonomy.execution.execute_plan"
+      - "autonomy.filesystem.confirm_write"
+      - "autonomy.code.replace_symbol"
+
+  validator_agent:
+    description: "Runs validation pipelines and constitutional audits to ensure system integrity."
+    allowed_capabilities:
+      - "system.governance.run_full_audit"
+      - "system.validation.validate_code"
+
+  test_runner:
+    description: "Executes focused test suites and reports pass/fail with evidence."
+    allowed_capabilities:
+      - "system.testing.run_tests"
+
+  reconnaissance_agent:
+    description: "Analyzes goals and queries the knowledge graph to build context."
+    allowed_capabilities:
+      - "system.audit.generate_report"

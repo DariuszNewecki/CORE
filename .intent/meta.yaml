@@ -1,83 +1,126 @@
-# .intent/meta.yaml
-version: "0.1.0"
+version: "0.7.0" # Ratification of the Final Constitutional Alignment
+# PURPOSE: This is the master index for the entire CORE constitution. It maps
+# abstract concepts to their concrete file paths, fully embracing the new
+# hierarchical policy structure for maximum clarity and governance.
 
-# PURPOSE: This fulfills the evolvable_structure principle by establishing a clear
-# index of all constitutional and governance files.
-constitution:
-  # Public keys of constitutional approvers
-  approvers: "constitution/approvers.yaml"
-  # Formal procedures for managing human operators
-  operator_lifecycle: "constitution/operator_lifecycle.md"
+charter:
+  constitution:
+    active_version: "charter/constitution/ACTIVE"
+    amendment_process: "charter/constitution/amendment_process.md"
+    approvers: "charter/constitution/approvers.yaml"
+    critical_paths: "charter/constitution/critical_paths.yaml"
+    operator_lifecycle: "charter/constitution/operator_lifecycle.md"
 
-mission:
-  northstar: "mission/northstar.yaml"
-  manifesto: "mission/manifesto.md"
-  principles: "mission/principles.yaml"
+  mission:
+    manifesto: "charter/mission/manifesto.md"
+    northstar: "charter/mission/northstar.yaml"
+    principles: "charter/mission/principles.yaml"
 
-policies:
-  intent_guard: "policies/intent_guard.yaml"
-  safety_policies: "policies/safety_policies.yaml"
-  agent_reasoning_policy: "policies/agent_reasoning_policy.yaml"
-  code_health_policy: "policies/code_health_policy.yaml"
-  agent_behavior_policy: "policies/agent_behavior_policy.yaml"
-  tooling_policy: "policies/tooling_policy.yaml"
-  enforcement_model: "policies/enforcement_model.yaml"
-  secrets_management: "policies/secrets_management.yaml"
-  incident_response: "policies/incident_response.yaml"
-  data_privacy_policy: "policies/data_privacy.yaml"
-  data_retention_policy: "policies/data_retention.yaml"
-  canary_policy: "policies/canary_policy.yaml"
-  agent_workflow_policy: "policies/agent_workflow_policy.yaml"
-  code_style_policy: "policies/code_style_policy.yaml"
-  dev_fastpath: "policies/dev_fastpath.yaml"
-  audit_ignore: "policies/audit_ignore.yaml"
-  # --- THIS IS THE NEW LINE ---
-  deduction_policy: "policies/deduction_policy.yaml"
+  policies:
+    safety_policy: "charter/policies/safety_policy.yaml"
 
-prompts:
-  constitutional_review: "prompts/constitutional_review.prompt"
-  docs_clarity_review: "prompts/docs_clarity_review.prompt"
-  code_peer_review: "prompts/code_peer_review.prompt"
-  module_docstring_writer: "prompts/module_docstring_writer.prompt"
-  refactor_outlier: "prompts/refactor_outlier.prompt"
-  fix_header: "prompts/fix_header.prompt"
-  goal_assessor: "prompts/goal_assessor.prompt"
-  planner_agent: "prompts/planner_agent.prompt"
-  capability_tagger: "prompts/capability_tagger.prompt"
-  intent_translator: "prompts/intent_translator.prompt"
+    agent:
+      agent_policy: "charter/policies/agent/agent_policy.yaml"
+      cognitive_roles_policy: "charter/policies/agent/cognitive_roles_policy.yaml"
+      micro_proposal_policy: "charter/policies/agent/micro_proposal_policy.yaml"
+      resource_manifest_policy: "charter/policies/agent/resource_manifest_policy.yaml"
 
-project:
-  manifest_yaml: "project_manifest.yaml"
+    code:
+      capability_linter_policy: "charter/policies/code/capability_linter_policy.yaml"
+      code_health_policy: "charter/policies/code/code_health_policy.yaml"
+      code_style_policy: "charter/policies/code/code_style_policy.yaml"
+      naming_conventions_policy: "charter/policies/code/naming_conventions_policy.yaml"
+      refactoring_patterns_policy: "charter/policies/code/refactoring_patterns_policy.yaml"
 
-knowledge:
-  source_structure: "knowledge/source_structure.yaml"
-  codegraph: "knowledge/knowledge_graph.json"
-  capability_tags: "knowledge/capability_tags.yaml"
-  agent_roles: "knowledge/agent_roles.yaml"
-  cognitive_roles: "knowledge/cognitive_roles.yaml"
-  resource_manifest: "knowledge/resource_manifest.yaml"
-  entry_point_patterns: "knowledge/entry_point_patterns.yaml"
-  file_handlers: "knowledge/file_handlers.yaml"
+    data:
+      database_policy: "charter/policies/data/database_policy.yaml"
+      secrets_management_policy: "charter/policies/data/secrets_management_policy.yaml"
 
-evaluation:
-  score_policy: "evaluation/score_policy.yaml"
-  audit_checklist: "evaluation/audit_checklist.yaml"
+    governance:
+      audit_ignore_policy: "charter/policies/governance/audit_ignore_policy.yaml"
+      auditor_policy: "charter/policies/governance/auditor_policy.yaml"
+      available_actions_policy: "charter/policies/governance/available_actions_policy.yaml"
+      cli_governance_policy: "charter/policies/governance/cli_governance_policy.yaml"
+      cli_registry_policy: "charter/policies/governance/cli_registry_policy.yaml"
+      enforcement_model_policy: "charter/policies/governance/enforcement_model_policy.yaml"
+      intent_guard_policy: "charter/policies/governance/intent_guard_policy.yaml"
+      reporting_policy: "charter/policies/governance/reporting_policy.yaml"
+      tooling_policy: "charter/policies/governance/tooling_policy.yaml"
 
-config:
-  local_mode: "config/local_mode.yaml"
-  runtime_requirements: "config/runtime_requirements.yaml"
+    operations:
+      canary_policy: "charter/policies/operations/canary_policy.yaml"
+      dev_fastpath_policy: "charter/policies/operations/dev_fastpath_policy.yaml"
+      incident_response_policy: "charter/policies/operations/incident_response_policy.yaml"
 
-schemas:
-  config: "schemas/config_schema.yaml"
-  knowledge_graph_entry: "schemas/knowledge_graph_entry.schema.json"
-  proposal: "schemas/proposal.schema.json"
-  agent_reasoning_policy: "schemas/agent_reasoning_policy.schema.json"
-  cognitive_roles: "schemas/cognitive_roles.schema.json"
-  resource_manifest: "schemas/resource_manifest.schema.json"
-  canary_policy: "schemas/canary_policy.schema.json"
-  data_privacy_policy: "schemas/data_privacy_policy.schema.json"
-  data_retention_policy: "schemas/data_retention_policy.schema.json"
-  runtime_requirements: "schemas/runtime_requirements.schema.json"
-  intent_bundle: "schemas/intent_bundle.schema.json"
-  enforcement_model: "schemas/enforcement_model.schema.json"
-  intent_guard: "schemas/intent_guard.schema.json"
+  schemas:
+    policy_schema: "charter/schemas/policy_schema.json"
+    
+    agent:
+      agent_policy_schema: "charter/schemas/agent/agent_policy_schema.json"
+      cognitive_roles_schema: "charter/schemas/agent/cognitive_roles_schema.json"
+      micro_proposal_policy_schema: "charter/schemas/agent/micro_proposal_policy_schema.json"
+      resource_manifest_policy_schema: "charter/schemas/agent/resource_manifest_policy_schema.json"
+
+    code:
+      capability_tag_schema: "charter/schemas/code/capability_tag_schema.json"
+      knowledge_graph_entry_schema: "charter/schemas/code/knowledge_graph_entry_schema.json"
+      
+    constitutional:
+      intent_bundle_schema: "charter/schemas/constitutional/intent_bundle_schema.json"
+      proposal_schema: "charter/schemas/constitutional/proposal_schema.json"
+
+    data:
+      database_policy_schema: "charter/schemas/data/database_policy_schema.json"
+      database_schema: "charter/schemas/data/database_schema.yaml"
+      
+    governance:
+      available_actions_policy_schema: "charter/schemas/governance/available_actions_policy_schema.json"
+      cli_registry_schema: "charter/schemas/governance/cli_registry_schema.json"
+      enforcement_model_schema: "charter/schemas/governance/enforcement_model_schema.json"
+      intent_guard_schema: "charter/schemas/governance/intent_guard_schema.json"
+      reporting_policy_schema: "charter/schemas/governance/reporting_policy_schema.json"
+
+    operations:
+      canary_policy_schema: "charter/schemas/operations/canary_policy_schema.json"
+      config_schema: "charter/schemas/operations/config_schema.yaml"
+      runtime_requirements_schema: "charter/schemas/operations/runtime_requirements_schema.json"
+
+mind:
+  project_manifest: "mind/project_manifest.yaml"
+
+  config:
+    local_mode: "mind/config/local_mode.yaml"
+    runtime_requirements: "mind/config/runtime_requirements.yaml"
+    runtime_services: "mind/config/runtime_services.yaml"
+
+  evaluation:
+    score_policy: "mind/evaluation/score_policy.yaml"
+    audit_checklist: "mind/evaluation/audit_checklist.yaml"
+
+  knowledge:
+    domains: "mind/knowledge/domains.yaml"
+    entry_point_patterns: "mind/knowledge/entry_point_patterns.yaml"
+    file_handlers: "mind/knowledge/file_handlers.yaml"
+    source_structure: "mind/knowledge/source_structure.yaml"
+
+  prompts:
+    code_peer_review: "mind/prompts/code_peer_review.prompt"
+    constitutional_review: "mind/prompts/constitutional_review.prompt"
+    capability_definer: "mind/prompts/capability_definer.prompt" 
+    code_peer_review: "mind/prompts/code_peer_review.prompt"
+    constitutional_review: "mind/prompts/constitutional_review.prompt"
+    planner_agent: "mind/prompts/planner_agent.prompt"
+    intent_translator: "mind/prompts/intent_translator.prompt"
+    capability_tagger: "mind/prompts/capability_tagger.prompt"
+    constitutional_review: "mind/prompts/constitutional_review.prompt"
+    code_peer_review: "mind/prompts/code_peer_review.prompt"
+    refactor_for_clarity: "mind/prompts/refactor_for_clarity.prompt"
+    fix_capability_manifest: "mind/prompts/fix_capability_manifest.prompt"
+    fix_function_docstring: "mind/prompts/fix_function_docstring.prompt"
+    fix_header: "mind/prompts/fix_header.prompt"
+    fix_line_length: "mind/prompts/fix_line_length.prompt"
+    goal_assessor: "mind/prompts/goal_assessor.prompt"
+    module_docstring_writer: "mind/prompts/module_docstring_writer.prompt"
+    new_capability_generator: "mind/prompts/new_capability_generator.prompt"
+    refactor_outlier: "mind/prompts/refactor_outlier.prompt"
+    vectorizer: "mind/prompts/vectorizer.prompt"

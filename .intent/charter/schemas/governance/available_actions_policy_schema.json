@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Available Actions Policy",
+  "description": "Defines the complete set of actions available to the PlannerAgent.",
+  "type": "object",
+  "allOf": [{ "$ref": "../policy_schema.json" }],
+  "properties": {
+    "id": { "const": "available_actions_policy" },
+    "actions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "description"],
+        "properties": {
+          "name": { "type": "string" },
+          "description": { "type": "string" },
+          "required_parameters": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    }
+  },
+  "required": ["actions"]
+}

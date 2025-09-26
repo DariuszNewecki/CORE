@@ -1,71 +1,34 @@
-# The CORE Architecture
-
----
-
-## Quick Start for New Users
-
-The **"Mind-Body Problem"** is simple:
-
-* **Rules (Mind)** are separate from **code (Body)** to avoid chaos.
-* The **Auditor** checks everything.
-
-👉 Start with the *Worked Example* to see directories in action.
-
----
-
-## The Mind-Body Problem, Solved
-
-* **Separation**: Mind for *“is/should be”*, Body for *execution*, bridged by **Auditor**.
-
----
-
-## Anatomy of the Mind (`.intent/`)
-
-Your project's **constitution**:
-
-| Directory       | Purpose    | Key Files                   | Beginner Tip     |
-| --------------- | ---------- | --------------------------- | ---------------- |
-| `/mission`      | Principles | `principles.yaml`           | High-level goals |
-| `/policies`     | Rules      | `safety_policies.yaml`      | Safety checks    |
-| `/knowledge`    | Self-map   | `knowledge_graph.json`      | Code inventory   |
-| `/constitution` | Processes  | `approvers.yaml`            | Change approvals |
-| `/proposals`    | Drafts     | `cr-*.yaml`                 | Proposed updates |
-| `/config`       | Env        | `runtime_requirements.yaml` | Setup vars       |
-| `/schemas`      | Blueprints | `*.schema.json`             | File formats     |
-
-**For Experts:** `KnowledgeGraphBuilder` uses AST to build graph (parsing → extraction → hashing).
-
-### Visual Flow
-
-```mermaid
-graph LR
-    A[Read src/ Files] --> B[AST Parse]
-    B --> C[Extract Symbols]
-    C --> D[Analyze Metadata]
-    D --> E[Tag Capabilities]
-    E --> F[Hash Structure]
-    F --> G[Generate knowledge_graph.json]
-    G --> H[Auditor Uses for Enforcement]
-```
-
----
-
-## Anatomy of the Body (`src/`)
-
-Domains for **separation of concerns**:
-
-| Directory | Domain | Responsibility | Allowed Imports |
-| --------- | ------ | -------------- | --------------- |
-| `/core`   | core   | App loop, API  | shared, agents  |
-| `/agents` | agents | AI roles       | core, shared    |
-| `/system` | system | Auditor, CLI   | shared          |
-| `/shared` | shared | Utils          | None (base)     |
-
-**Troubleshooting:** Illegal import? Auditor flags it → propose fix in `/proposals`.
-
----
-
-## Takeaways
-
-* **Scalable design**: clear separation of Mind, Body, Auditor.
-* **Next**: Governance.
+02_ARCHITECTURE.md
+The CORE Architecture
+Quick Start for New Users
+The "Mind-Body Problem" is simple:
+Rules (The Mind) are kept separate from the code (The Body) to maintain order and prevent architectural drift.
+An automated Auditor constantly checks that the code follows the rules.
+👉 Start with the Worked Example to see these directories in action and watch the Auditor catch a rule violation.
+The Mind-Body Problem, Solved
+CORE's architecture strictly separates the project's intent from its implementation.
+The Mind (.intent/) is the source of truth. It declares what the system should do and why. It contains all policies, goals, and knowledge.
+The Body (src/) is the machinery. It contains the Python code that performs actions but does not make decisions.
+The Bridge is the ConstitutionalAuditor. It ensures the Body never violates the rules declared in the Mind.
+Anatomy of the Mind (.intent/)
+This is your project's constitution, containing all its rules and self-knowledge.
+Directory	Purpose	Key Files
+/mission	The project's ultimate goals	principles.yaml
+/policies	Enforceable rules for code & agents	safety_policies.yaml
+/knowledge	The system's map of its own code	knowledge_graph.json
+/constitution	The process for making changes	approvers.yaml
+/proposals	Drafts of proposed changes	cr-*.yaml
+/config	Environment & runtime requirements	runtime_requirements.yaml
+/schemas	The structure all other files follow	*.schema.json
+Anatomy of the Body (src/)
+The Body is organized into distinct domains, each with a single responsibility, as defined in source_structure.yaml.
+Directory	Domain	Responsibility
+/core	core	The application's main loop, API server, and core services.
+/agents	agents	Specialized AI actors (e.g., Planner, Coder, Reviewer).
+/system	system	Governance tools, including the Auditor and the core-admin CLI.
+/shared	shared	Utilities and data models used by all other domains.
+Architectural Enforcement: The ConstitutionalAuditor reads source_structure.yaml and will fail the build if any code file makes a forbidden import (e.g., if the core domain tries to import directly from system).
+Takeaways
+The architecture enforces a scalable and maintainable separation of concerns.
+The system's self-knowledge (knowledge_graph.json) is generated directly from the source code, ensuring it is never out of date.
+Next: Read about the Governance Model to understand how changes are made safely.

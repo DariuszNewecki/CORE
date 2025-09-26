@@ -16,7 +16,7 @@ from shared.logger import getLogger
 log = getLogger(__name__)
 
 
-# CAPABILITY: introspection
+# ID: b36292a6-98b1-44fb-b76a-a2faad96564b
 def introspection():
     """
     Runs a full self-analysis cycle to inspect system structure and health.

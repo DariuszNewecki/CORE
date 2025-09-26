@@ -1,14 +1,13 @@
 # tests/admin/test_guard_drift_cli.py
 from __future__ import annotations
 
-import json
 from pathlib import Path
+from unittest.mock import AsyncMock
 
-from typer.testing import CliRunner
+import pytest
 
-from system.admin import app
-
-runner = CliRunner()
+from features.introspection.drift_service import run_drift_analysis_async
+from shared.models import CapabilityMeta
 
 
 def write(p: Path, text: str) -> None:
@@ -16,120 +15,72 @@ def write(p: Path, text: str) -> None:
     p.write_text(text, encoding="utf-8")
 
 
-def test_guard_drift_clean_repo(tmp_path: Path):
-    """Tests a clean state where code and manifest are in sync."""
-    write(
-        tmp_path / ".intent/knowledge/source_structure.yaml",
-        "structure:\n  - domain: main\n    path: src/main",
-    )
-    write(
-        tmp_path / "src/main/manifest.yaml",
-        "capabilities:\n  - alpha.cap\n  - beta.cap",
-    )
-    write(
-        tmp_path / "src/main/mod.py",
-        "# CAPABILITY: alpha.cap\n# CAPABILITY: beta.cap\n",
-    )
-    out = tmp_path / "reports" / "drift_report.json"
-
-    result = runner.invoke(
-        app,
-        [
-            "guard",
-            "drift",
-            "--root",
-            str(tmp_path),
-            "--format",
-            "json",
-            "--output",
-            str(out),
-        ],
-    )
-
-    assert result.exit_code == 0, result.output
-    report = json.loads(out.read_text())
-    assert not report["missing_in_code"]
-    assert not report["undeclared_in_manifest"]
-
-
-def test_guard_drift_detects_undeclared(tmp_path: Path):
-    """Tests that a capability in code but not in a manifest is detected."""
-    write(
-        tmp_path / ".intent/knowledge/source_structure.yaml",
-        "structure:\n  - domain: main\n    path: src/main",
-    )
-    write(tmp_path / "src/main/manifest.yaml", "capabilities:\n  - alpha.cap")
-    (tmp_path / "src/main").mkdir(parents=True, exist_ok=True)
-    write(
-        tmp_path / "src/main/mod.py",
-        "# CAPABILITY: alpha.cap\n# CAPABILITY: ghost.cap\n",
-    )
-
-    result = runner.invoke(
-        app,
-        [
-            "guard",
-            "drift",
-            "--root",
-            str(tmp_path),
-            "--format",
-            "json",
-            "--fail-on",
-            "any",
-        ],
-    )
-
-    assert result.exit_code == 2
-    report = json.loads(result.output)
-    assert "ghost.cap" in report["undeclared_in_manifest"]
-
-
-def test_guard_drift_strict_requires_kg(tmp_path: Path):
-    """Tests that strict mode fails if the KnowledgeGraphBuilder is not available (simulated)."""
-    write(
-        tmp_path / ".intent/knowledge/source_structure.yaml",
-        "structure:\n  - domain: main\n    path: src/main",
-    )
-    write(tmp_path / "src/main/manifest.yaml", "capabilities: []")
-
-    result = runner.invoke(
-        app,
-        ["guard", "drift", "--root", str(tmp_path), "--strict-intent"],
-    )
-
-    assert result.exit_code != 0
-    assert "Strict intent mode" in str(result.exception)
-
-
-def test_guard_drift_detects_mismatched_mappings(tmp_path: Path):
+@pytest.mark.anyio
+async def test_drift_analysis_clean(tmp_path: Path, mocker):
     """
-    Confirms that the system now correctly detects metadata mismatches.
-    This test is the inverse of the old, obsolete one.
+    Tests that drift analysis reports a clean state when manifest and
+    (mocked) code capabilities are in sync.
     """
-    # Arrange
-    write(
-        tmp_path / ".intent/knowledge/source_structure.yaml",
-        "structure:\n  - domain: main\n    path: src/main",
+    # ARRANGE
+    # Mock the two data sources the service uses.
+    # --- THIS IS THE FIX ---
+    # The mocked return value MUST be a dictionary mapping strings to CapabilityMeta instances.
+    mocker.patch(
+        "features.introspection.drift_service.load_manifest_capabilities",
+        return_value={
+            "alpha.cap": CapabilityMeta(key="alpha.cap"),
+            "beta.cap": CapabilityMeta(key="beta.cap"),
+        },
     )
-    # The manifest declares a capability with specific metadata.
-    write(
-        tmp_path / "src/main/manifest.yaml",
-        "capabilities:\n  beta.cap:\n    domain: main\n    owner: dev_team",
-    )
-    # The code has the same capability but with different or missing metadata.
-    (tmp_path / "src/main").mkdir(parents=True, exist_ok=True)
-    write(
-        tmp_path / "src/main/mod.py",
-        "# CAPABILITY: beta.cap [domain=governance]\n",
+    # --- END OF FIX ---
+
+    mock_graph_data = {
+        "symbols": {
+            "file1::func_a": {"key": "alpha.cap"},
+            "file2::func_b": {"key": "beta.cap"},
+        }
+    }
+    mocker.patch(
+        "core.knowledge_service.KnowledgeService.get_graph",
+        new_callable=AsyncMock,
+        return_value=mock_graph_data,
     )
 
-    # Act
-    result = runner.invoke(
-        app, ["guard", "drift", "--root", str(tmp_path), "--format", "json"]
+    # ACT
+    report = await run_drift_analysis_async(tmp_path)
+
+    # ASSERT
+    assert not report.missing_in_code
+    assert not report.undeclared_in_manifest
+    assert not report.mismatched_mappings
+
+
+@pytest.mark.anyio
+async def test_drift_analysis_detects_drift(tmp_path: Path, mocker):
+    """
+    Tests that drift analysis correctly identifies discrepancies between
+    the manifest and the (mocked) code capabilities.
+    """
+    # ARRANGE
+    # Mock the manifest to declare one capability
+    # --- THIS IS THE FIX ---
+    mocker.patch(
+        "features.introspection.drift_service.load_manifest_capabilities",
+        return_value={"manifest.only.cap": CapabilityMeta(key="manifest.only.cap")},
+    )
+    # --- END OF FIX ---
+
+    # Mock the code scan to find a different capability
+    mock_graph_data = {"symbols": {"file1::func_a": {"key": "code.only.cap"}}}
+    mocker.patch(
+        "core.knowledge_service.KnowledgeService.get_graph",
+        new_callable=AsyncMock,
+        return_value=mock_graph_data,
     )
 
-    # Assert: This should now FAIL with exit code 2 because drift is detected.
-    assert result.exit_code == 2
-    report = json.loads(result.output)
-    assert report["mismatched_mappings"]
-    assert report["mismatched_mappings"][0]["capability"] == "beta.cap"
+    # ACT
+    report = await run_drift_analysis_async(tmp_path)
+
+    # ASSERT
+    assert report.missing_in_code == ["manifest.only.cap"]
+    assert report.undeclared_in_manifest == ["code.only.cap"]

@@ -1,0 +1,30 @@
+id: code_style_policy
+version: "1.0.0"
+title: "Code Style Policy"
+status: active
+purpose: >
+  To ensure consistent, readable code across the repository by standardizing
+  tooling and expectations for contributors and agents.
+scope:
+  applies_to: [code, agents, cli]
+owners:
+  accountable: "Core Maintainer"
+review:
+  frequency: "annual"
+
+rules:
+  - id: style.linter_required
+    statement: All changes MUST pass ruff (lint) before merge.
+    enforcement: error
+  - id: style.formatter_required
+    statement: All changes MUST be formatted by black; CI runs black --check.
+    enforcement: error
+  - id: style.docstrings_public_apis
+    statement: Public APIs MUST have docstrings summarizing intent and parameters; private/dunder excluded.
+    enforcement: warn
+  - id: style.import_order
+    statement: Imports MUST follow grouping/order and avoid unused imports (enforced by linter).
+    enforcement: warn
+  - id: style.fail_on_style_in_ci
+    statement: CI MUST fail on style or lint violations (no auto-fixing in CI).
+    enforcement: error

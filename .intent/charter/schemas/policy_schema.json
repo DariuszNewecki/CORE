@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://core.local/schemas/policy_schema.json",
+  "title": "CORE Policy",
+  "description": "The canonical schema for all constitutional policy files in .intent/charter/policies/.",
+  "type": "object",
+  "required": ["id", "version", "title", "purpose", "status", "owners", "review"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "The unique, snake_case identifier for the policy, matching the file name (e.g., 'agent_policy').",
+      "pattern": "^[a-z0-9_]+_policy$"
+    },
+    "version": {
+      "type": "string",
+      "description": "The semantic version of the policy document.",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "title": {
+      "type": "string",
+      "description": "A human-readable, Title Case name for the policy."
+    },
+    "purpose": {
+      "type": "string",
+      "description": "A concise, one or two-sentence explanation of why this policy exists."
+    },
+    "status": {
+      "type": "string",
+      "description": "The current lifecycle status of the policy.",
+      "enum": ["active", "draft", "deprecated"]
+    },
+    "owners": {
+      "type": "object",
+      "description": "Defines the roles responsible for maintaining this policy.",
+      "properties": {
+        "primary": { "type": "string" },
+        "reviewers": { "type": "array", "items": { "type": "string" } }
+      },
+      "required": ["primary"]
+    },
+    "review": {
+      "type": "object",
+      "description": "Specifies the review cadence for this policy.",
+      "properties": {
+        "frequency": { "type": "string", "description": "e.g., '12 months', 'quarterly'" },
+        "last_reviewed": { "type": "string", "format": "date" }
+      },
+      "required": ["frequency"]
+    }
+  },
+  "additionalProperties": true
+}

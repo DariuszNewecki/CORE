@@ -5,10 +5,10 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from agents.models import ExecutionTask
-from agents.planner_agent import PlanExecutionError, PlannerAgent
+from core.agents.planner_agent import PlannerAgent
 from core.cognitive_service import CognitiveService
 from shared.config import settings
+from shared.models import ExecutionTask, PlanExecutionError
 
 
 @pytest.fixture
@@ -23,13 +23,14 @@ def mock_cognitive_service():
 def setup_test_environment(tmp_path: Path):
     """Helper to create necessary constitutional files in a temp directory."""
     intent_dir = tmp_path / ".intent"
-    (intent_dir / "prompts").mkdir(parents=True)
-    (intent_dir / "config").mkdir(parents=True)
+    # --- FIX: Create the correct directory structure ---
+    (intent_dir / "mind" / "prompts").mkdir(parents=True)
+    (intent_dir / "mind" / "config").mkdir(parents=True)
 
-    prompt_file = intent_dir / "prompts" / "planner_agent.prompt"
+    prompt_file = intent_dir / "mind" / "prompts" / "planner_agent.prompt"
     prompt_file.write_text("Goal: {goal}\nActions:\n{action_descriptions}")
 
-    actions_file = intent_dir / "config" / "actions.yaml"
+    actions_file = intent_dir / "mind" / "config" / "actions.yaml"
     actions_file.write_text(
         "actions:\n  - name: create_file\n    description: Creates a file.\n    required_parameters: ['file_path']"
     )
@@ -81,9 +82,5 @@ def test_create_execution_plan_fails_on_invalid_action(
         f"```json\n{invalid_plan_json}\n```"
     )
 
-    # --- THIS IS THE FIX ---
-    # The Pydantic ValidationError is the root cause, which is wrapped in our custom exception.
-    # We assert that the final exception is raised, without being overly specific on the message.
     with pytest.raises(PlanExecutionError):
         agent.create_execution_plan(goal)
-    # --- END OF FIX ---

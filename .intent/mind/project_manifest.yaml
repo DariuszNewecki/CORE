@@ -1,0 +1,4 @@
+name: CORE
+version: 0.5.0
+intent: A self-governing system that can safely and autonomously evolve its own codebase.
+capabilities: []
