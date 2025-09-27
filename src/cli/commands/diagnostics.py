@@ -30,6 +30,50 @@ yaml_loader = YAML(typ="safe")
 diagnostics_app = typer.Typer(help="Deep diagnostic and integrity checks.")
 
 
+async def _async_find_clusters(n_clusters: int):
+    """Async helper that contains the core logic for the command."""
+    console.print(
+        f"🚀 Finding semantic clusters with [bold cyan]n_clusters={n_clusters}[/bold cyan]..."
+    )
+    clusters = await find_semantic_clusters(n_clusters=n_clusters)
+
+    if not clusters:
+        console.print("⚠️  No clusters found.")
+        return
+
+    console.print(f"✅ Found {len(clusters)} clusters. Displaying all, sorted by size.")
+
+    for i, cluster in enumerate(clusters):
+        if not cluster:
+            continue
+
+        table = Table(
+            title=f"Semantic Cluster #{i + 1} ({len(cluster)} symbols)",
+            show_header=True,
+            header_style="bold magenta",
+        )
+        table.add_column("Symbol Key", style="cyan", no_wrap=True)
+
+        for symbol_key in sorted(cluster):
+            table.add_row(symbol_key)
+
+        console.print(table)
+
+
+@diagnostics_app.command(
+    "find-clusters",
+    help="Finds and displays all semantic capability clusters, sorted by size.",
+)
+# ID: 1a9f1430-801c-42e7-9d7a-11586a117711
+def find_clusters_command_sync(
+    n_clusters: int = typer.Option(
+        25, "--n-clusters", "-n", help="The number of clusters to find."
+    )
+):
+    """Synchronous Typer wrapper for the async clustering logic."""
+    asyncio.run(_async_find_clusters(n_clusters))
+
+
 def _add_cli_nodes(tree_node: Tree, cli_app: typer.Typer):
     for cmd_info in sorted(cli_app.registered_commands, key=lambda c: c.name or ""):
         if not cmd_info.name:
@@ -121,7 +165,7 @@ def debug_meta_paths():
         "[bold yellow]--- Auditor's Interpretation of meta.yaml ---[/bold yellow]"
     )
     intent_dir = settings.REPO_PATH / ".intent"
-    required_paths = get_all_constitutional_paths(intent_dir)
+    required_paths = get_all_constitutional_paths(settings._meta_config, intent_dir)
 
     for path in sorted(list(required_paths)):
         console.print(path)
@@ -246,6 +290,7 @@ def check_legacy_tags():
         )
 
         context = AuditorContext(settings.REPO_PATH)
+        await context.load_knowledge_graph()
 
         check = LegacyTagCheck(context)
         findings = check.execute()
@@ -258,11 +303,8 @@ def check_legacy_tags():
             f"\n[bold red]❌ Found {len(findings)} instance(s) of legacy tags:[/bold red]"
         )
 
-        # --- THIS IS THE FIX ---
-        # Instantiate the Table object before using it.
+        # --- START OF FIX: The table logic is now restored ---
         table = Table(title="Obsolete Tag Violations")
-        # --- END OF FIX ---
-
         table.add_column("File Path", style="cyan", no_wrap=True)
         table.add_column("Line", style="magenta")
         table.add_column("Message", style="red")
@@ -271,50 +313,7 @@ def check_legacy_tags():
             table.add_row(finding.file_path, str(finding.line_number), finding.message)
 
         console.print(table)
+        # --- END OF FIX ---
         raise typer.Exit(code=1)
 
     asyncio.run(_async_check_legacy_tags())
-
-
-@diagnostics_app.command(
-    "find-clusters", help="Finds clusters of semantically similar code."
-)
-# ID: 3a8b7c9d-2e4f-4a1b-8c3d-5f6e7a8b9c0d
-def find_clusters(similarity_threshold: float = 0.85):
-    """Finds and displays the largest cluster of semantically similar symbols."""
-
-    async def _async_find_clusters():
-        console.print(
-            f"[bold cyan]🚀 Finding semantic clusters with threshold {similarity_threshold}...[/bold cyan]"
-        )
-
-        clusters = await find_semantic_clusters(similarity_threshold)
-
-        if not clusters:
-            console.print("[bold yellow]⚠️  No clusters found.[/bold yellow]")
-            return
-
-        # Find the largest cluster
-        largest_cluster = max(clusters, key=len)
-        console.print(
-            f"[bold green]✅ Found {len(clusters)} clusters. Largest cluster has {len(largest_cluster)} symbols.[/bold green]"
-        )
-
-        # Create a table for the largest cluster
-        table = Table(
-            title=f"Largest Semantic Cluster ({len(largest_cluster)} symbols)"
-        )
-        table.add_column("Symbol Key", style="cyan", no_wrap=True)
-        table.add_column("Cluster Size", style="magenta")
-
-        for symbol_key in sorted(largest_cluster):
-            table.add_row(symbol_key, str(len(largest_cluster)))
-
-        console.print(table)
-
-    asyncio.run(_async_find_clusters())
-
-
-def register(app: typer.Typer):
-    """Register the diagnostics commands with the main CLI app."""
-    app.add_typer(diagnostics_app, name="diagnostics")
