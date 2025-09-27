@@ -9,17 +9,18 @@ from typing import TYPE_CHECKING, Any, Dict
 from shared.logger import getLogger
 
 from .file_classifier import get_file_classification
-from .python_validator import validate_python_code
+from .python_validator import validate_python_code_async
 from .yaml_validator import validate_yaml_code
 
 if TYPE_CHECKING:
-    from system.governance.audit_context import AuditorContext
+    from features.governance.audit_context import AuditorContext
+
 
 log = getLogger(__name__)
 
 
 # ID: 50694eab-72fa-4e20-8f95-3b9f3d7bcb5e
-def validate_code(
+async def validate_code_async(
     file_path: str,
     code: str,
     quiet: bool = False,
@@ -36,7 +37,9 @@ def validate_code(
     if classification == "python":
         if not auditor_context:
             raise ValueError("AuditorContext is required for validating Python code.")
-        final_code, violations = validate_python_code(file_path, code, auditor_context)
+        final_code, violations = await validate_python_code_async(
+            file_path, code, auditor_context
+        )
     elif classification == "yaml":
         final_code, violations = validate_yaml_code(code)
 

@@ -8,15 +8,11 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, List
 
 from core.agents.plan_executor import PlanExecutor
-
-# --- START OF FIX: Added the missing import ---
 from core.agents.utils import PlanExecutionContext
-
-# --- END OF FIX ---
 from core.cognitive_service import CognitiveService
 from core.prompt_pipeline import PromptPipeline
 from core.self_correction_engine import attempt_correction
-from core.validation_pipeline import validate_code
+from core.validation_pipeline import validate_code_async
 from features.governance.micro_proposal_validator import MicroProposalValidator
 from shared.config import settings
 from shared.logger import getLogger
@@ -145,7 +141,7 @@ class ExecutionAgent:
         current_code = initial_code
         for attempt in range(self.max_correction_attempts + 1):
             log.info(f"  -> Validation attempt {attempt + 1}...")
-            validation_result = validate_code(
+            validation_result = await validate_code_async(
                 task.params.file_path,
                 current_code,
                 auditor_context=self.auditor_context,
@@ -186,7 +182,7 @@ class ExecutionAgent:
         }
         log.info("  -> 🧬 Invoking self-correction engine...")
         correction_result = await attempt_correction(
-            correction_context, self.cognitive_service
+            correction_context, self.cognitive_service, self.auditor_context
         )
         if correction_result.get("status") == "retry_staged":
             pending_id = correction_result.get("pending_id")
@@ -252,6 +248,10 @@ class ExecutionAgent:
             for path, content in self.executor.file_context.items():
                 context_str += f"\n--- Contents of {path} ---\n{content}\n"
             context_str += "--- END CONTEXT ---\n"
+
+        if task.action in ["edit_file", "edit_function"]:
+            original_code = self._read_existing_file(task.params.file_path)
+            context_str += f"\n\n--- ORIGINAL CODE for {task.params.file_path} (for refactoring) ---\n{original_code}\n--- END ORIGINAL CODE ---\n"
 
         final_prompt = prompt_template.format(
             goal=goal,

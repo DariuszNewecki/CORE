@@ -16,7 +16,11 @@ from core.agents.code_editor import CodeEditor
 from core.agents.utils import SymbolLocator
 from core.file_handler import FileHandler
 from core.git_service import GitService
-from core.validation_pipeline import validate_code
+
+# --- START OF AMENDMENT: Import the new async validator ---
+from core.validation_pipeline import validate_code_async
+
+# --- END OF AMENDMENT ---
 from features.governance.audit_context import AuditorContext
 from shared.logger import getLogger
 from shared.models import ExecutionTask, PlanExecutionError, PlannerConfig, TaskParams
@@ -41,6 +45,10 @@ class PlanExecutor:
         self._executor = asyncio.get_event_loop().run_in_executor
         self.file_context: dict[str, str] = {}  # To store content from read_file
         self.auditor_context = AuditorContext(self.repo_path)
+        # --- START OF AMENDMENT: Pre-load the auditor's knowledge graph ---
+        # This is a performance optimization and ensures the context is ready for async calls.
+        asyncio.create_task(self.auditor_context.load_knowledge_graph())
+        # --- END OF AMENDMENT ---
 
     # ID: 65f105d2-27e4-4fca-8f96-27decc90bca5
     async def execute_plan(self, plan: List[ExecutionTask]):
@@ -84,21 +92,16 @@ class PlanExecutor:
         if not full_path.exists():
             raise PlanExecutionError(f"File to be read does not exist: {file_path_str}")
 
-        # --- START OF FIX ---
-        # Prevent IsADirectoryError by checking if the path is a directory
         if full_path.is_dir():
             raise PlanExecutionError(
                 f"Cannot read '{file_path_str}' because it is a directory. Use 'list_files' instead."
             )
-        # --- END OF FIX ---
 
         self.file_context[file_path_str] = full_path.read_text(encoding="utf-8")
         log.info(f"📖 Read file '{file_path_str}' into context.")
 
-    # --- START OF AMENDMENT: New capability implementation ---
     async def _execute_list_files(self, params: TaskParams):
         """Executes the 'list_files' action and stores the result in context."""
-        # Note: The planner now uses 'file_path' for directories as well for consistency.
         dir_path_str = params.file_path
         if not dir_path_str:
             raise PlanExecutionError("Missing 'file_path' for list_files action.")
@@ -113,17 +116,14 @@ class PlanExecutor:
         for item in full_path.iterdir():
             contents.append(item.name)
 
-        # Store the result in the context for the next steps of the plan
         self.file_context[dir_path_str] = "\n".join(sorted(contents))
         log.info(f"📁 Listed contents of '{dir_path_str}' into context.")
-
-    # --- END OF AMENDMENT ---
 
     async def _execute_edit_file(self, params: TaskParams):
         """Executes the 'edit_file' action using the context from 'read_file'."""
         file_path_str = params.file_path
-        new_content = params.code  # The planner should now provide the full new content
-        if not all([file_path_str, new_content]):
+        new_content = params.code
+        if not all([file_path_str, new_content is not None]):
             raise PlanExecutionError(
                 "Missing 'file_path' or 'code' for edit_file action."
             )
@@ -134,9 +134,11 @@ class PlanExecutor:
                 f"File to be edited does not exist: {file_path_str}"
             )
 
-        validation_result = validate_code(
+        # --- START OF AMENDMENT: Use the async validator ---
+        validation_result = await validate_code_async(
             file_path_str, new_content, auditor_context=self.auditor_context
         )
+        # --- END OF AMENDMENT ---
         if validation_result["status"] == "dirty":
             raise PlanExecutionError(
                 f"Generated code for '{file_path_str}' failed validation.",
@@ -240,9 +242,11 @@ class PlanExecutor:
 
         modified_code = "\n".join(lines)
 
-        validation_result = validate_code(
+        # --- START OF AMENDMENT: Use the async validator ---
+        validation_result = await validate_code_async(
             file_path, modified_code, auditor_context=self.auditor_context
         )
+        # --- END OF AMENDMENT ---
         if validation_result["status"] == "dirty":
             raise PlanExecutionError(
                 f"Surgical modification for '{file_path}' failed validation.",
@@ -265,15 +269,22 @@ class PlanExecutor:
     async def _execute_create_file(self, params: TaskParams):
         """Executes the 'create_file' action."""
         file_path, code = params.file_path, params.code
+        if not all([file_path, code is not None]):
+            raise PlanExecutionError(
+                "Missing 'file_path' or 'code' for create_file action."
+            )
+
         full_path = self.repo_path / file_path
         if full_path.exists():
             raise FileExistsError(
                 f"File '{file_path}' already exists. Use 'edit_function' instead."
             )
 
-        validation_result = validate_code(
+        # --- START OF AMENDMENT: Use the async validator ---
+        validation_result = await validate_code_async(
             file_path, code, auditor_context=self.auditor_context
         )
+        # --- END OF AMENDMENT ---
         if validation_result["status"] == "dirty":
             raise PlanExecutionError(
                 f"Generated code for '{file_path}' failed validation.",
@@ -298,6 +309,11 @@ class PlanExecutor:
             params.symbol_name,
             params.code,
         )
+        if not all([file_path, symbol_name, new_code is not None]):
+            raise PlanExecutionError(
+                "Missing required parameters for edit_function action."
+            )
+
         full_path = self.repo_path / file_path
 
         if not full_path.exists():
@@ -307,9 +323,11 @@ class PlanExecutor:
 
         original_code = await self._executor(None, full_path.read_text, "utf-8")
 
-        validation_result = validate_code(
+        # --- START OF AMENDMENT: Use the async validator ---
+        validation_result = await validate_code_async(
             file_path, new_code, auditor_context=self.auditor_context
         )
+        # --- END OF AMENDMENT ---
         if validation_result["status"] == "dirty":
             raise PlanExecutionError(
                 f"Generated code for '{symbol_name}' failed validation.",

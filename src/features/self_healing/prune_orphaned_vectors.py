@@ -10,7 +10,11 @@ import asyncio
 
 import typer
 from qdrant_client import AsyncQdrantClient
-from qdrant_client.http.models import PointsSelector
+
+# --- START OF AMENDMENT: Import the correct model ---
+from qdrant_client.http.models import PointIdsList
+
+# --- END OF AMENDMENT ---
 from rich.console import Console
 
 from core.knowledge_service import KnowledgeService
@@ -88,10 +92,12 @@ async def _async_main_sync(dry_run: bool):
 
         console.print("\n[bold]Pruning orphaned vectors from Qdrant...[/bold]")
 
+        # --- START OF AMENDMENT: Use the correct class for the selector ---
         await client.delete(
             collection_name=settings.QDRANT_COLLECTION_NAME,
-            points_selector=PointsSelector(points=point_ids_to_delete),
+            points_selector=PointIdsList(points=point_ids_to_delete),
         )
+        # --- END OF AMENDMENT ---
 
         console.print(
             f"[bold green]✅ Successfully pruned {len(point_ids_to_delete)} orphaned vectors.[/bold green]"

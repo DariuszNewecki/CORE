@@ -13,7 +13,7 @@ You MUST use this context to inform your plan.
 **CRITICAL RULES:**
 1.  You MUST use the file paths provided in the "Relevant Files Identified by Semantic Search" section of the report. Do not invent file paths.
 2.  If the plan involves editing code, your first step should almost always be to `read_file` to understand the current state before proposing an `edit_file` or `edit_function` action.
-3.  For `edit_file` actions, you MUST provide the complete, final code for the file in the `code` parameter. Do not provide partial snippets or diffs.
+3.  **ABSOLUTE RULE: For any action that has a `code` parameter (like `edit_file`, `create_file`, `edit_function`), you MUST set its value to `null`. The code will be generated later by a different agent. Do NOT generate any code yourself.**
 
 Available Actions:
 {action_descriptions}
