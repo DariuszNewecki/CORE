@@ -1,6 +1,4 @@
-# src/cli/admin_cli.py
-"""
-The single, canonical entry point for the core-admin CLI.
+"""The single, canonical entry point for the core-admin CLI.
 This module assembles all command groups into a single Typer application.
 """
 
@@ -10,7 +8,6 @@ import typer
 from rich.console import Console
 
 # --- Command Group Imports ---
-# These imports bring in the modules that contain the 'register' functions.
 from cli.commands import (
     agent,
     build,
@@ -48,27 +45,40 @@ app = typer.Typer(
 )
 
 
+# --- Centralized Registration Helper ---
+def register_all_commands(app_instance: typer.Typer) -> None:
+    """
+    Register all command groups in the correct order.
+
+    The order here determines the order in the --help output.
+    """
+    command_modules = [
+        system,
+        check,
+        fixer,
+        db,
+        knowledge,
+        knowledge_sync,
+        run,
+        build,
+        tools,
+        agent,
+        proposal_service,
+        key_management_service,
+        new,
+        bootstrap_service,
+        byor,
+        guard,
+        capability,
+        chat,
+    ]
+
+    for module in command_modules:
+        module.register(app_instance)
+
+
 # --- Command Registration ---
-# <-- RESTORED STATIC REGISTRATION TO FIX BOOTSTRAPPING PARADOX
-# The order here determines the order in the --help output.
-system.register(app)
-check.register(app)
-fixer.register(app)
-db.register(app)
-knowledge.register(app)
-knowledge_sync.register(app)
-run.register(app)
-build.register(app)
-tools.register(app)
-agent.register(app)
-proposal_service.register(app)
-key_management_service.register(app)
-new.register(app)
-bootstrap_service.register(app)
-byor.register(app)
-guard.register(app)
-capability.register(app)
-chat.register(app)
+register_all_commands(app)
 
 
 @app.callback(invoke_without_command=True)
