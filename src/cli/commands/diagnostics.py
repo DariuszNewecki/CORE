@@ -20,6 +20,7 @@ from features.governance.checks.domain_placement import DomainPlacementCheck
 from features.governance.checks.legacy_tag_check import LegacyTagCheck
 from features.governance.policy_coverage_service import PolicyCoverageService
 from features.introspection.audit_unassigned_capabilities import get_unassigned_symbols
+from features.introspection.graph_analysis_service import find_semantic_clusters
 from shared.config import settings
 from shared.models import AuditSeverity
 from shared.utils.constitutional_parser import get_all_constitutional_paths
@@ -273,3 +274,47 @@ def check_legacy_tags():
         raise typer.Exit(code=1)
 
     asyncio.run(_async_check_legacy_tags())
+
+
+@diagnostics_app.command(
+    "find-clusters", help="Finds clusters of semantically similar code."
+)
+# ID: 3a8b7c9d-2e4f-4a1b-8c3d-5f6e7a8b9c0d
+def find_clusters(similarity_threshold: float = 0.85):
+    """Finds and displays the largest cluster of semantically similar symbols."""
+
+    async def _async_find_clusters():
+        console.print(
+            f"[bold cyan]🚀 Finding semantic clusters with threshold {similarity_threshold}...[/bold cyan]"
+        )
+
+        clusters = await find_semantic_clusters(similarity_threshold)
+
+        if not clusters:
+            console.print("[bold yellow]⚠️  No clusters found.[/bold yellow]")
+            return
+
+        # Find the largest cluster
+        largest_cluster = max(clusters, key=len)
+        console.print(
+            f"[bold green]✅ Found {len(clusters)} clusters. Largest cluster has {len(largest_cluster)} symbols.[/bold green]"
+        )
+
+        # Create a table for the largest cluster
+        table = Table(
+            title=f"Largest Semantic Cluster ({len(largest_cluster)} symbols)"
+        )
+        table.add_column("Symbol Key", style="cyan", no_wrap=True)
+        table.add_column("Cluster Size", style="magenta")
+
+        for symbol_key in sorted(largest_cluster):
+            table.add_row(symbol_key, str(len(largest_cluster)))
+
+        console.print(table)
+
+    asyncio.run(_async_find_clusters())
+
+
+def register(app: typer.Typer):
+    """Register the diagnostics commands with the main CLI app."""
+    app.add_typer(diagnostics_app, name="diagnostics")
