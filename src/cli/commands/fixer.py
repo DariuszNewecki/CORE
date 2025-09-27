@@ -264,9 +264,3 @@ def fix_policy_ids_command(
 
 
 # --- END OF NEW COMMAND ---
-
-
-# ID: a119b740-e2ef-4386-9ef1-ac607e4128e2
-def register(app: typer.Typer):
-    """Register the consolidated 'fix' command group with the main CLI app."""
-    app.add_typer(fix_app, name="fix")
