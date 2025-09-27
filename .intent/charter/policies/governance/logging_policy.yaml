@@ -1,0 +1,31 @@
+policy_id: a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6e
+id: logging_policy
+version: "1.0.0"
+title: "Unified Logging Policy"
+status: active
+purpose: >
+  To ensure all system output is standardized, structured, and auditable by mandating
+  the use of the shared logger and forbidding unsanctioned output channels like print().
+
+scope:
+  applies_to: [code, auditor]
+
+owners:
+  primary: "Core Maintainer"
+
+review:
+  frequency: "annual"
+
+rules:
+  - id: log.no_print_statements
+    statement: "The use of print() is forbidden in application code (core, features, services). It is only permitted in the CLI layer for direct user output."
+    enforcement: error
+    allowed_paths:
+      - "src/cli/**"
+      - "tests/**" # Allow print in tests for debugging
+
+  - id: log.no_direct_logging_import
+    statement: "Direct import and configuration of the standard 'logging' module is forbidden. All loggers must be acquired via 'from shared.logger import getLogger'."
+    enforcement: error
+    allowed_paths:
+      - "src/shared/logger.py" # The module itself is exempt.

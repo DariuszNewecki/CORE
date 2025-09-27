@@ -718,15 +718,12 @@ checklist:
 
 --- START OF FILE ./.intent/charter/policies/data/database_policy.yaml ---
 policy_id: 1fb8949c-02db-486a-8b9d-556191456de3
-# FILE: .intent/charter/policies/data/database_policy.yaml
-
 id: database_policy
-version: "2.0.0"
+version: "2.1.0" # Version bump for full DB migration
 title: "Consolidated Database Governance Policy"
 purpose: >
   Provide a durable, auditable ledger of what actually happened in CORE (events, audits, CLI runs, capability history)
-  without becoming a new source of constitutional truth. This policy is the single source of truth for schema,
-  migrations, data privacy, and data retention.
+  with the database as the single source of operational truth, and file-based artifacts as read-only exports.
 scope:
   applies_to: [postgresql]
 owners:
@@ -748,9 +745,10 @@ migrations:
     - "006_knowledge_graph_view.sql"
     - "007_capabilities_registry.sql"
     - "008_operational_tables.sql"
+    - "009_domain_and_vector_tables.sql" # New migration for domains and vectors
 rules:
   - id: db.mind_remains_source
-    statement: "`.intent/**` is the single source of constitutional truth; DB is not authoritative for policies/manifests."
+    statement: "`.intent/**` is the single source of constitutional truth; DB is the authoritative source for operational data."
     enforcement: error
   - id: db.schema_declared
     statement: "All tables and columns MUST be declared in the database schema/migrations and validated at CI time."
@@ -761,12 +759,12 @@ rules:
   - id: db.write_via_governed_cli
     statement: "All writes MUST originate from registered CLI commands (see CLI Governance Policy)."
     enforcement: error
-  - id: db.enforce_domains_from_intent
-    statement: "Capability domains MUST match mind/knowledge/domains.yaml."
-    enforcement: warn
-  - id: db.vector_index_consistency
-    statement: "Vector index rows MUST match EMBED_MODEL_REVISION and LOCAL_EMBEDDING_DIM."
-    enforcement: warn
+  - id: db.domains_in_db
+    statement: "Capability domains MUST be stored in and queried from the database, with `.intent/mind/knowledge/domains.yaml` as a read-only export."
+    enforcement: error
+  - id: db.vector_index_in_db
+    statement: "Vector index data MUST be stored in the database with metadata for EMBED_MODEL_REVISION and LOCAL_EMBEDDING_DIM, with file-based indices as read-only exports."
+    enforcement: error
   - id: db.privacy.no_pii_or_secrets
     statement: "Personal data and secrets MUST NOT be stored in operational tables unless explicitly exempted."
     enforcement: error
@@ -789,6 +787,7 @@ backup_restore:
   test_restore_quarterly: true
 quorum:
   changes_require_critical_paths: true
+
 --- END OF FILE ./.intent/charter/policies/data/database_policy.yaml ---
 
 --- START OF FILE ./.intent/charter/policies/data/secrets_management_policy.yaml ---
@@ -864,11 +863,7 @@ ignores:
     path: "src/features/governance/checks/knowledge_source_check.py"
     reason: "This check must contain the string 'knowledge_graph.json' to perform its function. It is an intentional and safe usage."
     expires: "2026-01-01"
-  - check_id: "duplication.semantic.near_duplicate_found"
-    path: "**/*"
-    reason: "Temporarily disabling noisy duplication check after major DB refactor to focus on critical linkage errors."
-    expires: "2025-10-01"
-
+  
 symbol_ignores:
   - key: "src/core/intent_guard.py::_get_rules_by_severity"
     reason: "Internal helper method, not a public capability."
@@ -891,7 +886,7 @@ symbol_ignores:
   - key: "src/features/governance/checks/capability_coverage.py::CapabilityCoverageCheck"
     reason: "Temporarily ignoring self-duplication warnings after major refactor."
     expires: "2025-12-01"
-  
+
 --- END OF FILE ./.intent/charter/policies/governance/audit_ignore_policy.yaml ---
 
 --- START OF FILE ./.intent/charter/policies/governance/auditor_policy.yaml ---
@@ -1179,6 +1174,41 @@ allowed_access_paths:
   - "src/features/introspection/knowledge_graph_service.py"
   - "src/features/governance/checks/knowledge_source_check.py"
 --- END OF FILE ./.intent/charter/policies/governance/knowledge_source_policy.yaml ---
+
+--- START OF FILE ./.intent/charter/policies/governance/logging_policy.yaml ---
+policy_id: a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6e
+id: logging_policy
+version: "1.0.0"
+title: "Unified Logging Policy"
+status: active
+purpose: >
+  To ensure all system output is standardized, structured, and auditable by mandating
+  the use of the shared logger and forbidding unsanctioned output channels like print().
+
+scope:
+  applies_to: [code, auditor]
+
+owners:
+  primary: "Core Maintainer"
+
+review:
+  frequency: "annual"
+
+rules:
+  - id: log.no_print_statements
+    statement: "The use of print() is forbidden in application code (core, features, services). It is only permitted in the CLI layer for direct user output."
+    enforcement: error
+    allowed_paths:
+      - "src/cli/**"
+      - "tests/**" # Allow print in tests for debugging
+
+  - id: log.no_direct_logging_import
+    statement: "Direct import and configuration of the standard 'logging' module is forbidden. All loggers must be acquired via 'from shared.logger import getLogger'."
+    enforcement: error
+    allowed_paths:
+      - "src/shared/logger.py" # The module itself is exempt.
+
+--- END OF FILE ./.intent/charter/policies/governance/logging_policy.yaml ---
 
 --- START OF FILE ./.intent/charter/policies/governance/reporting_policy.yaml ---
 policy_id: 93e18e85-75cb-47bf-8665-0f793d89b65d
@@ -2527,9 +2557,10 @@ charter:
       available_actions_policy: "charter/policies/governance/available_actions_policy.yaml"
       cli_governance_policy: "charter/policies/governance/cli_governance_policy.yaml"
       enforcement_model_policy: "charter/policies/governance/enforcement_model_policy.yaml"
-      intent_crate_policy: "charter/policies/governance/intent_crate_policy.yaml"  # <-- ADDED
+      intent_crate_policy: "charter/policies/governance/intent_crate_policy.yaml"
       intent_guard_policy: "charter/policies/governance/intent_guard_policy.yaml"
       knowledge_source_policy: "charter/policies/governance/knowledge_source_policy.yaml"
+      logging_policy: "charter/policies/governance/logging_policy.yaml"
       reporting_policy: "charter/policies/governance/reporting_policy.yaml"
       tooling_policy: "charter/policies/governance/tooling_policy.yaml"
 
@@ -2553,7 +2584,7 @@ charter:
       
     constitutional:
       intent_bundle_schema: "charter/schemas/constitutional/intent_bundle_schema.json"
-      intent_crate_schema: "charter/schemas/constitutional/intent_crate_schema.json"  # <-- ADDED
+      intent_crate_schema: "charter/schemas/constitutional/intent_crate_schema.json"
       proposal_schema: "charter/schemas/constitutional/proposal_schema.json"
 
     data:
@@ -2584,7 +2615,6 @@ mind:
     audit_checklist: "mind/evaluation/audit_checklist.yaml"
 
   knowledge:
-    domains: "mind/knowledge/domains.yaml"
     entry_point_patterns: "mind/knowledge/entry_point_patterns.yaml"
     file_handlers: "mind/knowledge/file_handlers.yaml"
     source_structure: "mind/knowledge/source_structure.yaml"
@@ -2606,6 +2636,7 @@ mind:
     refactor_outlier: "mind/prompts/refactor_outlier.prompt"
     standard_task_generator: "mind/prompts/standard_task_generator.prompt"
     vectorizer: "mind/prompts/vectorizer.prompt"
+
 --- END OF FILE ./.intent/meta.yaml ---
 
 --- START OF FILE ./.intent/mind/config/local_mode.yaml ---
@@ -2915,39 +2946,6 @@ gate_conditions:
   canary_required_when: "risk_tier in ['medium','high'] or any change touches a file listed in critical_paths_source"
   approver_quorum_required_when: "risk_tier == 'high' or any change touches a file listed in critical_paths_source"
 --- END OF FILE ./.intent/mind/evaluation/score_policy.yaml ---
-
---- START OF FILE ./.intent/mind/knowledge/domains.yaml ---
-# .intent/knowledge/domains.yaml
-# This is the canonical, flat dictionary of all valid domain tags that can be
-# applied to capabilities. A capability can have multiple tags from this list.
-# This file serves the 'clarity_first' principle by providing a clear,
-# non-hierarchical vocabulary for classifying the system's functions.
-
-version: 1
-domains:
-  - name: admin
-    description: "Operator-facing CLI commands and tools."
-  - name: agent
-    description: "Logic specific to AI agents and their behavior."
-  - name: audit
-    description: "Capabilities related to performing checks and validation."
-  - name: autonomy
-    description: "Capabilities for autonomous planning, execution, and self-correction."
-  - name: core
-    description: "The absolute essential logic of the application server and services."
-  - name: governance
-    description: "Policies, auditing, and the constitutional change process."
-  - name: infrastructure
-    description: "Interaction with external systems like APIs and databases."
-  - name: knowledge
-    description: "Building and managing the system's self-awareness (knowledge graph)."
-  - name: shared
-    description: "Cross-cutting utilities and data models used by multiple domains."
-  - name: system
-    description: "High-level system orchestration and lifecycle management."
-  - name: tooling
-    description: "Low-level, reusable tools for code analysis and manipulation."
---- END OF FILE ./.intent/mind/knowledge/domains.yaml ---
 
 --- START OF FILE ./.intent/mind/knowledge/entry_point_patterns.yaml ---
 # .intent/knowledge/entry_point_patterns.yaml
@@ -4013,6 +4011,7 @@ See CORE in action by running the worked example: create a simple API, intention
 * **[Architecture (`docs/02_ARCHITECTURE.md`)](docs/02_ARCHITECTURE.md)** — Technical details of the Mind and Body.
 * **[Governance (`docs/03_GOVERNANCE.md`)](docs/03_GOVERNANCE.md)** — How changes are made safely.
 * **[Roadmap (`docs/04_ROADMAP.md`)](docs/04_ROADMAP.md)** — See where we're going.
+* **[Technical Debt Log (`docs/05_TECHNICAL_DEBT.md`)](docs/05_TECHNICAL_DEBT.md)** — Our formal plan for architectural improvements.
 * **[Contributing (`CONTRIBUTING.md`)](CONTRIBUTING.md)** — Join our mission!
 
 ---
@@ -4043,6 +4042,7 @@ We welcome all contributors! The best place to start is our Contributing Guide.
 Check the Project Roadmap for "Next Up" tasks and see our open issues on GitHub.
 # 📄 License
 Licensed under the MIT License. See LICENSE.
+
 --- END OF FILE ./README.md ---
 
 --- START OF FILE ./assesment.prompt ---
@@ -5298,6 +5298,51 @@ CREATE TABLE IF NOT EXISTS core.cli_commands (
 );
 --- END OF FILE ./sql/008_operational_tables.sql ---
 
+--- START OF FILE ./sql/009_domain_and_vector_tables.sql ---
+-- Migration to make the database the single source of truth for domains.
+-- This aligns with the 'single_source_of_truth' and 'evolvable_structure' principles.
+
+-- Step 1: Create the new 'domains' table.
+-- This table will store the canonical list of all architectural domains.
+CREATE TABLE IF NOT EXISTS core.domains (
+    key          TEXT PRIMARY KEY,
+    title        TEXT NOT NULL,
+    description  TEXT,
+    created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_domains_key ON core.domains (key);
+
+
+-- Step 2: Add a 'domain' column to the 'symbols' table.
+-- This creates the formal link between a piece of code (a symbol) and its
+-- architectural domain. It is nullable to support symbols that are not
+-- yet classified.
+ALTER TABLE core.symbols
+ADD COLUMN domain_key TEXT REFERENCES core.domains(key) ON DELETE SET NULL;
+CREATE INDEX IF NOT EXISTS idx_symbols_domain_key ON core.symbols (domain_key);
+
+
+-- Step 3: Add a 'vector' column to the 'symbols' table.
+-- This makes the database the single source of truth for embeddings, directly
+-- associating a vector with the symbol it represents. We use JSONB for
+-- portability instead of a vendor-specific VECTOR type.
+ALTER TABLE core.symbols
+ADD COLUMN vector JSONB;
+CREATE INDEX IF NOT EXISTS idx_symbols_vector_gin ON core.symbols USING GIN (vector);
+
+
+-- Step 4: Create a junction table for many-to-many relationships between symbols and capabilities.
+-- This is a forward-looking change to support future scenarios where a single
+-- function might implement multiple, distinct capabilities.
+CREATE TABLE IF NOT EXISTS core.symbol_capabilities (
+    symbol_uuid TEXT NOT NULL REFERENCES core.symbols(uuid) ON DELETE CASCADE,
+    capability_key TEXT NOT NULL, -- This will be validated by the application layer
+    PRIMARY KEY (symbol_uuid, capability_key)
+);
+CREATE INDEX IF NOT EXISTS idx_symbol_capabilities_capability_key ON core.symbol_capabilities (capability_key);
+
+--- END OF FILE ./sql/009_domain_and_vector_tables.sql ---
+
 --- START OF FILE ./src/api/__init__.py ---
 [EMPTY FILE]
 --- END OF FILE ./src/api/__init__.py ---
@@ -6432,21 +6477,98 @@ Registers the top-level 'db' command group for managing the CORE operational dat
 """
 from __future__ import annotations
 
+import asyncio
+
 import typer
+import yaml
+from rich.console import Console
+from sqlalchemy import text
 
 from cli.commands.migrate import migrate_db
 from cli.commands.status import status
 from cli.commands.sync_domains import sync_domains
+from services.repositories.db.engine import get_session
+from shared.config import settings
 
-# --- Main DB Command Group ---
+console = Console()
 db_app = typer.Typer(
-    help="Commands for managing the CORE operational database (migrations, syncs, status)."
+    help="Commands for managing the CORE operational database (migrations, syncs, status, exports)."
 )
 
-# Register commands directly
+# --- NEW EXPORT COMMAND LOGIC ---
+
+
+async def _export_domains():
+    """Fetches domains from the DB and writes them to domains.yaml."""
+    console.print("   -> Exporting `core.domains` to YAML...")
+    async with get_session() as session:
+        result = await session.execute(
+            text(
+                "SELECT key as name, title, description FROM core.domains ORDER BY key"
+            )
+        )
+        domains_data = [dict(row._mapping) for row in result]
+
+    # --- THIS IS THE FINAL FIX ---
+    # Construct the path using settings.MIND, which correctly points to .intent/mind
+    output_path = settings.MIND / "knowledge" / "domains.yaml"
+    # --- END OF FINAL FIX ---
+
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    # The structure should match the original file for compatibility
+    yaml_content = {"version": 2, "domains": domains_data}
+    output_path.write_text(yaml.dump(yaml_content, indent=2, sort_keys=False), "utf-8")
+    console.print(
+        f"      -> Wrote {len(domains_data)} domains to {output_path.relative_to(settings.REPO_PATH)}"
+    )
+
+
+async def _export_vector_metadata():
+    """Fetches vector metadata from the DB and writes it to a report."""
+    console.print("   -> Exporting vector metadata from `core.symbols` to YAML...")
+    async with get_session() as session:
+        result = await session.execute(
+            text(
+                """
+            SELECT uuid, symbol_path, vector_id
+            FROM core.symbols
+            WHERE vector_id IS NOT NULL
+            ORDER BY symbol_path
+        """
+            )
+        )
+        vector_data = [dict(row._mapping) for row in result]
+
+    output_path = settings.REPO_PATH / "reports" / "vector_metadata_export.yaml"
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(yaml.dump(vector_data, indent=2, sort_keys=False), "utf-8")
+    console.print(
+        f"      -> Wrote metadata for {len(vector_data)} vectors to {output_path.relative_to(settings.REPO_PATH)}"
+    )
+
+
+@db_app.command(
+    "export", help="Export operational data from the database to read-only files."
+)
+# ID: a226b858-1e99-4443-8d18-a2cf0ecafba3
+def export_data():
+    """Exports DB tables to their canonical, read-only YAML file representations."""
+    console.print(
+        "[bold cyan]🚀 Exporting operational data from Database to files...[/bold cyan]"
+    )
+
+    async def _run_exports():
+        await _export_domains()
+        await _export_vector_metadata()
+
+    asyncio.run(_run_exports())
+    console.print("[bold green]✅ Export complete.[/bold green]")
+
+
+# --- EXISTING COMMANDS ---
 db_app.command("status")(status)
 db_app.command("sync-domains")(sync_domains)
-db_app.command("migrate")(migrate_db)  # Add the new command
+db_app.command("migrate")(migrate_db)
 
 
 # ID: a2e89177-868c-4a49-9f05-87b9f43f0bfc
@@ -7105,7 +7227,7 @@ def assign_ids_command(
 @fix_app.command(
     "policy-ids", help="Adds a UUID to all policy files that are missing one."
 )
-# ID: d4e5f6a7-b8c9-0d1e-2f3a-4b5c6d7e8f9g
+# ID: 81a2b3c4-d5e6-f7a8-b9c0-d1e2f3a4b5c6
 def fix_policy_ids_command(
     write: bool = typer.Option(
         False, "--write", help="Apply the changes and add new IDs to policy files."
@@ -9228,6 +9350,7 @@ import asyncio
 import typer
 from rich.console import Console
 
+from core.crate_processing_service import process_crates
 from features.project_lifecycle.integration_service import integrate_changes
 
 console = Console()
@@ -9245,6 +9368,15 @@ def integrate_command(
 ):
     """Orchestrates the full, autonomous integration of staged code changes."""
     asyncio.run(integrate_changes(commit_message))
+
+
+@system_app.command(
+    "process-crates", help="Processes all pending Intent Crates in the inbox."
+)
+# ID: 1f2c3d4e-5f6a-7b8c-9d0e-1f2a3b4c5d6e
+def process_crates_command():
+    """Finds, validates, and applies all pending autonomous change proposals."""
+    asyncio.run(process_crates())
 
 
 # ID: e3b37bfa-b8d3-4fd1-83ed-a1b8d063f41d
@@ -11274,6 +11406,302 @@ class CognitiveService:
             return []
 
 --- END OF FILE ./src/core/cognitive_service.py ---
+
+--- START OF FILE ./src/core/crate_processing_service.py ---
+# src/core/crate_processing_service.py
+"""
+Provides the core service for processing asynchronous, autonomous change requests (Intent Crates).
+"""
+
+from __future__ import annotations
+
+import shutil
+import tempfile
+from dataclasses import dataclass
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any, Dict, List
+
+import jsonschema
+import yaml
+from rich.console import Console
+
+from features.governance.constitutional_auditor import AuditScope, ConstitutionalAuditor
+from features.introspection.knowledge_graph_service import (
+    KnowledgeGraphBuilder,
+)
+from shared.action_logger import action_logger
+from shared.config import settings
+from shared.logger import getLogger
+from shared.models import AuditFinding
+
+log = getLogger("crate_processing_service")
+console = Console()
+
+
+@dataclass
+# ID: a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d
+class Crate:
+    """A simple data class representing a validated Intent Crate."""
+
+    path: Path
+    manifest: Dict[str, Any]
+
+
+# ID: 5d7a8b3e-1f2c-4d5e-6f7a-8b9c0d1e2f3a
+class CrateProcessingService:
+    """
+    Orchestrates the lifecycle of an Intent Crate: validation, canary testing, application, and result logging.
+    """
+
+    def __init__(self):
+        """Initializes the service with its required dependencies and constitutional policies."""
+        self.repo_root = settings.REPO_PATH
+        self.crate_policy = settings.load(
+            "charter.policies.governance.intent_crate_policy"
+        )
+        self.crate_schema = settings.load(
+            "charter.schemas.constitutional.intent_crate_schema"
+        )
+
+        self.inbox_path = self.repo_root / "work" / "crates" / "inbox"
+        self.processing_path = self.repo_root / "work" / "crates" / "processing"
+        self.accepted_path = self.repo_root / "work" / "crates" / "accepted"
+        self.rejected_path = self.repo_root / "work" / "crates" / "rejected"
+
+        for path in [
+            self.inbox_path,
+            self.processing_path,
+            self.accepted_path,
+            self.rejected_path,
+        ]:
+            path.mkdir(parents=True, exist_ok=True)
+
+        log.info("CrateProcessingService initialized and constitutionally configured.")
+
+    # ID: 4e3d2c1b-0a9b-8c7d-6e5f-4a3b2c1d0e9f
+    def _scan_and_validate_inbox(self) -> List[Crate]:
+        """Scans the inbox for crates and validates their manifests."""
+        valid_crates = []
+        if not self.inbox_path.exists():
+            return []
+
+        for item in self.inbox_path.iterdir():
+            if not item.is_dir():
+                continue
+
+            crate_id = item.name
+            action_logger.log_event("crate.validation.started", {"crate_id": crate_id})
+            manifest_path = item / "manifest.yaml"
+            if not manifest_path.exists():
+                reason = "missing manifest.yaml"
+                log.warning(f"Skipping invalid crate '{crate_id}': {reason}.")
+                action_logger.log_event(
+                    "crate.validation.failed", {"crate_id": crate_id, "reason": reason}
+                )
+                continue
+
+            try:
+                manifest_content = settings._load_file_content(manifest_path)
+                jsonschema.validate(instance=manifest_content, schema=self.crate_schema)
+                valid_crates.append(Crate(path=item, manifest=manifest_content))
+                log.info(
+                    f"Validated crate '{crate_id}' with intent: '{manifest_content['intent']}'"
+                )
+            except (ValueError, jsonschema.ValidationError) as e:
+                reason = f"Manifest validation failed: {e}"
+                log.error(f"Rejecting invalid crate '{crate_id}': {reason}")
+                action_logger.log_event(
+                    "crate.validation.failed", {"crate_id": crate_id, "reason": str(e)}
+                )
+                self._move_crate_to_rejected(item, reason)
+                continue
+
+        return valid_crates
+
+    # ID: 1b2c3d4e-5f6a-7b8c-9d0e-1f2a3b4c5d6e
+    async def _run_canary_validation(
+        self, crate: Crate
+    ) -> tuple[bool, List[AuditFinding]]:
+        """Creates a temporary environment, applies crate changes, and runs a full audit."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            canary_path = Path(tmpdir) / "canary_repo"
+            console.print(f"   -> Creating canary environment at {canary_path}")
+
+            shutil.copytree(
+                self.repo_root,
+                canary_path,
+                dirs_exist_ok=True,
+                ignore=shutil.ignore_patterns(
+                    ".git", ".venv", "__pycache__", "work", "reports"
+                ),
+            )
+
+            env_file = self.repo_root / ".env"
+            if env_file.exists():
+                shutil.copy(env_file, canary_path / ".env")
+                console.print(
+                    "   -> Copied runtime environment configuration to canary."
+                )
+
+            console.print("   -> Applying proposed changes to canary...")
+            payload_files = crate.manifest.get("payload_files", [])
+            for file_in_payload in payload_files:
+                source_path = crate.path / file_in_payload
+                if crate.manifest.get("type") == "CONSTITUTIONAL_AMENDMENT":
+                    target_path = (
+                        canary_path
+                        / ".intent/charter/policies/governance"
+                        / file_in_payload
+                    )
+                else:
+                    target_path = canary_path / file_in_payload
+
+                target_path.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(source_path, target_path)
+
+            console.print("   -> Building canary's internal knowledge graph...")
+            canary_builder = KnowledgeGraphBuilder(root_path=canary_path)
+            await canary_builder.build_and_sync()
+
+            console.print("   -> 🔬 Running full constitutional audit on canary...")
+            auditor = ConstitutionalAuditor(repo_root_override=canary_path)
+            passed, findings, _ = await auditor.run_full_audit_async(
+                scope=AuditScope.STATIC_ONLY
+            )
+
+            if passed:
+                console.print("   -> [bold green]✅ Canary audit PASSED.[/bold green]")
+                return True, []
+            else:
+                console.print("   -> [bold red]❌ Canary audit FAILED.[/bold red]")
+                return False, findings
+
+    def _apply_accepted_crate(self, crate: Crate):
+        """Applies the payload of an accepted crate to the live repository."""
+        console.print(
+            f"   -> Applying accepted crate '{crate.path.name}' to live system..."
+        )
+        payload_files = crate.manifest.get("payload_files", [])
+        for file_in_payload in payload_files:
+            source_path = crate.path / file_in_payload
+
+            if crate.manifest.get("type") == "CONSTITUTIONAL_AMENDMENT":
+                target_path = (
+                    self.repo_root
+                    / ".intent/charter/policies/governance"
+                    / file_in_payload
+                )
+            else:
+                target_path = self.repo_root / file_in_payload
+
+            target_path.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(source_path, target_path)
+            console.print(f"      -> Applied '{file_in_payload}'")
+
+    def _write_result_manifest(self, crate_path: Path, status: str, details: Any):
+        """Writes a result.yaml file into the processed crate directory."""
+        result_content = {
+            "status": status,
+            "processed_at_utc": datetime.now(timezone.utc).isoformat(),
+        }
+        if isinstance(details, str):
+            result_content["justification"] = details
+        elif isinstance(details, list):
+            result_content["violations"] = [finding.as_dict() for finding in details]
+
+        result_path = crate_path / "result.yaml"
+        result_path.write_text(yaml.dump(result_content, indent=2), "utf-8")
+
+    def _move_crate_to_rejected(self, crate_path: Path, details: Any):
+        """Moves a crate to the rejected directory and writes a result manifest."""
+        crate_id = crate_path.name
+        final_path = self.rejected_path / crate_id
+        shutil.move(str(crate_path), str(final_path))
+        self._write_result_manifest(final_path, "rejected", details)
+
+        reason_summary = (
+            details
+            if isinstance(details, str)
+            else f"{len(details)} constitutional violations found."
+        )
+        console.print(f"   -> Moved to rejected. Reason: {reason_summary}")
+
+        log_details = {"crate_id": crate_id}
+        if isinstance(details, str):
+            log_details["reason"] = details
+        else:
+            log_details["violations"] = [finding.as_dict() for finding in details]
+
+        action_logger.log_event("crate.processing.rejected", log_details)
+
+    # ID: 9a8b7c6d-5e4f-3a2b-1c0d-9e8f7a6b5c4d
+    async def process_pending_crates_async(self):
+        """
+        The main entry point for the service. It finds and processes all crates in the inbox.
+        """
+        console.print(
+            "[bold cyan]🚀 Starting new crate processing cycle...[/bold cyan]"
+        )
+
+        valid_crates = self._scan_and_validate_inbox()
+        if not valid_crates:
+            console.print("✅ No valid crates found in the inbox. Cycle complete.")
+            return
+
+        console.print(f"Found {len(valid_crates)} valid crate(s) to process.")
+
+        for crate in valid_crates:
+            crate_id = crate.path.name
+            console.print(f"\n[bold]Processing crate: {crate_id}[/bold]")
+            try:
+                processing_path = self.processing_path / crate_id
+                shutil.move(str(crate.path), str(processing_path))
+                crate.path = processing_path
+                console.print(
+                    f"   -> Moved to processing: {processing_path.relative_to(self.repo_root)}"
+                )
+                action_logger.log_event(
+                    "crate.processing.started", {"crate_id": crate_id}
+                )
+
+                is_safe, findings = await self._run_canary_validation(crate)
+
+                if is_safe:
+                    self._apply_accepted_crate(crate)
+                    final_path = self.accepted_path / crate.path.name
+                    shutil.move(str(crate.path), str(final_path))
+                    self._write_result_manifest(
+                        final_path,
+                        "accepted",
+                        "Canary audit passed and changes were applied.",
+                    )
+                    console.print("   -> Moved to accepted.")
+                    action_logger.log_event(
+                        "crate.processing.accepted",
+                        {
+                            "crate_id": crate_id,
+                            "reason": "Canary audit passed and changes applied.",
+                        },
+                    )
+                else:
+                    self._move_crate_to_rejected(crate.path, findings)
+
+            except Exception as e:
+                log.error(f"Failed to process crate '{crate_id}': {e}", exc_info=True)
+                self._move_crate_to_rejected(
+                    crate.path, f"Internal processing error: {e}"
+                )
+                continue
+
+
+# ID: 3e2d1c0b-9a8b-7c6d-5e4f-3a2b1c0d9e8f
+async def process_crates():
+    """High-level function to instantiate and run the service."""
+    service = CrateProcessingService()
+    await service.process_pending_crates_async()
+
+--- END OF FILE ./src/core/crate_processing_service.py ---
 
 --- START OF FILE ./src/core/errors.py ---
 # src/core/errors.py
@@ -13932,7 +14360,10 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Dict, List, Set
 
+from sqlalchemy import text
+
 from features.governance.audit_context import AuditorContext
+from services.repositories.db.engine import get_session
 from shared.models import AuditFinding, AuditSeverity
 from shared.utils.import_scanner import scan_imports_for_file
 
@@ -13941,35 +14372,35 @@ from shared.utils.import_scanner import scan_imports_for_file
 class ImportRulesCheck:
     """
     Ensures that code files only import modules from their allowed domains.
+    This check now reads its configuration from the database.
     """
 
     def __init__(self, context: AuditorContext):
         self.context = context
-        self.domain_map = self._build_domain_map()
-        self.import_rules = self._build_import_rules()
+        self.domain_map: Dict[str, str] = {}
+        self.import_rules: Dict[str, Set[str]] = {}
+        # The data is now loaded asynchronously when execute is called.
 
-    def _build_domain_map(self) -> Dict[str, str]:
-        """Creates a map from directory paths to domain names."""
-        domain_map = {}
+    async def _load_rules_from_db(self):
+        """Loads domain maps and import rules from the database."""
+        async with get_session() as session:
+            await session.execute(text("SELECT key FROM core.domains"))
+
         structure = self.context.source_structure.get("structure", [])
         for domain_info in structure:
             path_str = domain_info.get("path")
             domain_name = domain_info.get("domain")
             if path_str and domain_name:
+                # --- THIS IS THE FIX ---
                 full_path = str((self.context.repo_path / path_str).resolve())
-                domain_map[full_path] = domain_name
-        return domain_map
+                # --- END OF FIX ---
+                self.domain_map[full_path] = domain_name
 
-    def _build_import_rules(self) -> Dict[str, Set[str]]:
-        """Creates a map from a domain to the set of domains it's allowed to import."""
-        rules = {}
-        structure = self.context.source_structure.get("structure", [])
         for domain_info in structure:
             domain_name = domain_info.get("domain")
             allowed_imports = domain_info.get("allowed_imports", [])
             if domain_name:
-                rules[domain_name] = set(allowed_imports)
-        return rules
+                self.import_rules[domain_name] = set(allowed_imports)
 
     def _get_domain_for_path(self, file_path: Path) -> str | None:
         """Finds the domain for a given absolute file path."""
@@ -13980,12 +14411,16 @@ class ImportRulesCheck:
         return None
 
     # ID: f1a7dedb-d5e4-442d-8957-b7f974778bc5
-    def execute(self) -> List[AuditFinding]:
+    async def execute(self) -> List[AuditFinding]:
         """
         Runs the check by scanning all source files and validating their imports.
         """
+        await self._load_rules_from_db()
+
         findings = []
+        # --- THIS IS THE FIX ---
         src_path = self.context.repo_path / "src"
+        # --- END OF FIX ---
 
         for file_path in src_path.rglob("*.py"):
             file_domain = self._get_domain_for_path(file_path)
@@ -13996,13 +14431,11 @@ class ImportRulesCheck:
             imported_modules = scan_imports_for_file(file_path)
 
             for module_str in imported_modules:
-                # We only care about internal imports for this check
                 if not module_str.startswith(
                     ("core", "features", "services", "shared", "cli", "api")
                 ):
                     continue
 
-                # A simple heuristic: check the top-level package
                 top_level_package = module_str.split(".")[0]
 
                 if top_level_package not in allowed_imports:
@@ -14496,6 +14929,7 @@ It runs a series of checks to ensure the codebase and its declared intent are al
 from __future__ import annotations
 
 import asyncio
+from enum import Enum, auto
 from pathlib import Path
 from typing import Any, List, Tuple
 
@@ -14523,6 +14957,14 @@ log = getLogger("constitutional_auditor")
 console = Console()
 
 
+# ID: 7a8b9c0d-1e2f-3a4b-5c6d-7e8f9a0b1c2e
+class AuditScope(Enum):
+    """Defines the scope of an audit, allowing for targeted check execution."""
+
+    FULL = auto()
+    STATIC_ONLY = auto()
+
+
 # ID: 5e27884e-b01e-4861-84b0-2e8c8facdb74
 class ConstitutionalAuditor:
     """Orchestrates all constitutional checks and reports the findings."""
@@ -14530,12 +14972,14 @@ class ConstitutionalAuditor:
     def __init__(self, repo_root_override: Path | None = None):
         self.repo_root = repo_root_override or Path(".").resolve()
         self.context = AuditorContext(self.repo_root)
-        self.checks: List[Any] = []
+        self.all_checks: List[Any] = []
 
     async def _initialize_checks(self):
         """Initializes all checks after the context has loaded its async data."""
+        if self.all_checks:
+            return
         await self.context.load_knowledge_graph()
-        self.checks = [
+        self.all_checks = [
             FileChecks(self.context),
             EnvironmentChecks(self.context),
             HealthChecks(self.context),
@@ -14549,20 +14993,44 @@ class ConstitutionalAuditor:
             OrphanedLogicCheck(self.context),
             DuplicationCheck(self.context),
             KnowledgeSourceCheck(self.context),
-            IdCoverageCheck(self.context),  # Add the new check
+            IdCoverageCheck(self.context),
         ]
-        log.info(f"ConstitutionalAuditor initialized with {len(self.checks)} checks.")
+        log.info(
+            f"ConstitutionalAuditor initialized with {len(self.all_checks)} total checks."
+        )
+
+    def _get_checks_for_scope(self, scope: AuditScope) -> List[Any]:
+        """Filters the list of checks based on the requested audit scope."""
+        if scope == AuditScope.FULL:
+            return self.all_checks
+
+        if scope == AuditScope.STATIC_ONLY:
+            # Exclude checks that require a live environment or are known to be noisy
+            excluded_checks = (EnvironmentChecks, DuplicationCheck)
+            return [
+                check
+                for check in self.all_checks
+                if not isinstance(check, excluded_checks)
+            ]
+
+        return []
 
     # ID: fcbf94ee-eb92-4c49-8c84-7b5b2aeff2ff
-    async def run_full_audit_async(self) -> Tuple[bool, List[AuditFinding], int]:
-        """Asynchronously runs all registered checks and returns the results."""
-        if not self.checks:
-            await self._initialize_checks()
+    async def run_full_audit_async(
+        self, scope: AuditScope = AuditScope.FULL
+    ) -> Tuple[bool, List[AuditFinding], int]:
+        """Asynchronously runs all registered checks for a given scope and returns the results."""
+        await self._initialize_checks()
+        checks_to_run = self._get_checks_for_scope(scope)
+        log.info(
+            f"Running audit with scope '{scope.name}' ({len(checks_to_run)} checks)..."
+        )
 
         all_findings: List[AuditFinding] = []
-        for check in self.checks:
+        for check in checks_to_run:
             try:
-                if isinstance(check, DuplicationCheck):
+                # DuplicationCheck is now handled like any other async check
+                if asyncio.iscoroutinefunction(getattr(check, "execute", None)):
                     findings = await check.execute()
                 else:
                     findings = check.execute()
@@ -14576,14 +15044,15 @@ class ConstitutionalAuditor:
         unassigned_symbols_count = len(
             OrphanedLogicCheck(self.context).find_unassigned_public_symbols()
         )
-
         has_errors = any(f.severity.is_blocking for f in all_findings)
         return not has_errors, all_findings, unassigned_symbols_count
 
     # ID: 0c850a95-21f6-4a54-8c23-f731e8eb4a8f
-    def run_full_audit(self) -> Tuple[bool, List[AuditFinding], int]:
-        """Synchronous wrapper to run the full async audit."""
-        return asyncio.run(self.run_full_audit_async())
+    def run_full_audit(
+        self, scope: AuditScope = AuditScope.FULL
+    ) -> Tuple[bool, List[AuditFinding], int]:
+        """Synchronous wrapper to run the full async audit for a given scope."""
+        return asyncio.run(self.run_full_audit_async(scope))
 
 --- END OF FILE ./src/features/governance/constitutional_auditor.py ---
 
@@ -15700,7 +16169,6 @@ codebase and synchronizing the discovered knowledge with the database.
 from __future__ import annotations
 
 import ast
-import asyncio
 import json
 from datetime import datetime, timezone
 from pathlib import Path
@@ -15772,7 +16240,6 @@ class KnowledgeGraphBuilder:
         async with get_session() as session:
             async with session.begin():
                 await session.execute(text("TRUNCATE TABLE core.symbols CASCADE"))
-                # Note: The `key` column is now populated from the metadata comment.
                 await session.execute(
                     text(
                         """
@@ -15785,7 +16252,7 @@ class KnowledgeGraphBuilder:
         log.info(f"Successfully synced {len(symbols)} symbols to the database.")
 
     # ID: 6de62bc4-767f-4bc1-b5f1-25ee31af1009
-    def build_and_sync(self) -> Dict[str, Any]:
+    async def build_and_sync(self) -> Dict[str, Any]:  # <-- NOW ASYNC
         """
         Executes the full build and sync process for the knowledge graph.
         """
@@ -15794,7 +16261,7 @@ class KnowledgeGraphBuilder:
             self._scan_file(py_file)
 
         # Sync to database
-        asyncio.run(self._sync_symbols_to_db(list(self.symbols.values())))
+        await self._sync_symbols_to_db(list(self.symbols.values()))  # <-- NOW AWAITED
 
         knowledge_graph = {
             "metadata": {
@@ -15804,7 +16271,6 @@ class KnowledgeGraphBuilder:
             "symbols": self.symbols,
         }
 
-        # Write JSON artifact to reports/ directory
         output_path = settings.REPO_PATH / "reports" / "knowledge_graph.json"
         output_path.parent.mkdir(parents=True, exist_ok=True)
         output_path.write_text(json.dumps(knowledge_graph, indent=2))
@@ -15851,8 +16317,8 @@ class KnowledgeGraphBuilder:
         call_visitor.visit(node)
 
         symbol_data = {
-            "uuid": symbol_path_key,  # Use the stable path as the UUID
-            "key": metadata.get("capability"),  # This can be null
+            "uuid": symbol_path_key,
+            "key": metadata.get("capability"),
             "symbol_path": symbol_path_key,
             "name": node.name,
             "type": type(node).__name__,
@@ -19550,6 +20016,71 @@ def status() -> None:
 [EMPTY FILE]
 --- END OF FILE ./src/shared/__init__.py ---
 
+--- START OF FILE ./src/shared/action_logger.py ---
+# src/shared/action_logger.py
+"""
+Provides a dedicated service for writing structured, auditable events to the system's action log.
+"""
+
+from __future__ import annotations
+
+import json
+from datetime import datetime, timezone
+from typing import Any, Dict
+
+from shared.config import settings
+from shared.logger import getLogger
+
+log = getLogger("action_logger")
+
+
+# ID: 7a8b9c0d-1e2f-3a4b-5c6d-7e8f9a0b1c2d
+class ActionLogger:
+    """Handles writing structured JSON events to the CORE_ACTION_LOG_PATH."""
+
+    def __init__(self):
+        """Initializes the logger, ensuring the log file's parent directory exists."""
+        try:
+            log_path_str = settings.CORE_ACTION_LOG_PATH
+            if not log_path_str:
+                raise ValueError("CORE_ACTION_LOG_PATH is not set in the environment.")
+            self.log_path = settings.REPO_PATH / log_path_str
+            self.log_path.parent.mkdir(parents=True, exist_ok=True)
+        except (ValueError, AttributeError) as e:
+            log.error(
+                f"ActionLogger failed to initialize: {e}. Logging will be disabled."
+            )
+            self.log_path = None
+
+    # ID: 5d7a8b9c-0d1e-2f3a-4b5c-6d7e8f9a0b1c
+    def log_event(self, event_type: str, details: Dict[str, Any]):
+        """
+        Writes a single, timestamped event to the action log file.
+
+        Args:
+            event_type: A dot-notation string identifying the event (e.g., 'crate.processing.started').
+            details: A dictionary of context-specific information about the event.
+        """
+        if not self.log_path:
+            return  # Fail silently if the logger could not be initialized.
+
+        log_entry = {
+            "timestamp_utc": datetime.now(timezone.utc).isoformat(),
+            "event_type": event_type,
+            "details": details,
+        }
+        try:
+            with self.log_path.open("a", encoding="utf-8") as f:
+                f.write(json.dumps(log_entry) + "\n")
+        except Exception as e:
+            log.error(f"Failed to write to action log at {self.log_path}: {e}")
+
+
+# A singleton instance for easy access across the application
+action_logger = ActionLogger()
+
+--- END OF FILE ./src/shared/action_logger.py ---
+
 --- START OF FILE ./src/shared/ast_utility.py ---
 # src/shared/ast_utility.py
 """
@@ -19769,9 +20300,6 @@ class Settings(BaseSettings):
     LOG_LEVEL: str = "INFO"
     CORE_MAX_CONCURRENT_REQUESTS: int = 5
 
-    # --- THIS IS THE FIX ---
-    # Formally declare all required/optional ENV VARS from runtime_requirements.
-    # This ensures the attributes always exist, even if their value is None.
     DATABASE_URL: str
     QDRANT_URL: str
     QDRANT_COLLECTION_NAME: str = "core_capabilities"
@@ -19779,8 +20307,13 @@ class Settings(BaseSettings):
     LOCAL_EMBEDDING_API_URL: str
     LOCAL_EMBEDDING_MODEL_NAME: str
     LOCAL_EMBEDDING_DIM: int
-    LOCAL_EMBEDDING_API_KEY: Optional[str] = None  # Make it optional
+    LOCAL_EMBEDDING_API_KEY: Optional[str] = None
     EMBED_MODEL_REVISION: str = "2025-09-15"
+
+    # --- THIS IS THE FIX ---
+    # Formally declare KEY_STORAGE_DIR with its correct type and a default value.
+    # Pydantic will now automatically handle loading from .env and casting to a Path object.
+    KEY_STORAGE_DIR: Path = REPO_PATH / ".intent" / "keys"
     # --- END OF FIX ---
 
     def __init__(self, **values: Any):
@@ -19819,11 +20352,33 @@ class Settings(BaseSettings):
                 value = value[key]
             if not isinstance(value, str):
                 raise TypeError
+            # Paths in meta.yaml are relative to the .intent directory
             return self.MIND / value
         except (KeyError, TypeError):
             raise FileNotFoundError(
                 f"Logical path '{logical_path}' not found or invalid in meta.yaml."
             )
+
+    # ID: b1c2d3e4-f5a6-b7c8-d9e0-f1a2b3c4d5e6
+    def find_logical_path_for_file(self, filename: str) -> str:
+        """
+        Searches the meta.yaml index to find the full relative path for a given filename.
+        """
+
+        def _search_dict(d: Any) -> Optional[str]:
+            if isinstance(d, dict):
+                for key, value in d.items():
+                    if isinstance(value, str) and value.endswith(filename):
+                        return value
+                    found = _search_dict(value)
+                    if found:
+                        return found
+            return None
+
+        found_path = _search_dict(self._meta_config)
+        if found_path:
+            return found_path
+        raise ValueError(f"Filename '{filename}' not found in meta.yaml index.")
 
     # ID: 08272f29-c9c9-4c54-8253-b7fea9938050
     def load(self, logical_path: str) -> Dict[str, Any]:

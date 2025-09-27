@@ -61,6 +61,7 @@ class PlanExecutor:
         """Dispatcher that executes a single task from a plan based on its action type."""
         action_map = {
             "read_file": self._execute_read_file,
+            "list_files": self._execute_list_files,
             "edit_file": self._execute_edit_file,
             "add_capability_tag": self._execute_add_tag,
             "create_file": self._execute_create_file,
@@ -83,8 +84,40 @@ class PlanExecutor:
         if not full_path.exists():
             raise PlanExecutionError(f"File to be read does not exist: {file_path_str}")
 
+        # --- START OF FIX ---
+        # Prevent IsADirectoryError by checking if the path is a directory
+        if full_path.is_dir():
+            raise PlanExecutionError(
+                f"Cannot read '{file_path_str}' because it is a directory. Use 'list_files' instead."
+            )
+        # --- END OF FIX ---
+
         self.file_context[file_path_str] = full_path.read_text(encoding="utf-8")
         log.info(f"📖 Read file '{file_path_str}' into context.")
+
+    # --- START OF AMENDMENT: New capability implementation ---
+    async def _execute_list_files(self, params: TaskParams):
+        """Executes the 'list_files' action and stores the result in context."""
+        # Note: The planner now uses 'file_path' for directories as well for consistency.
+        dir_path_str = params.file_path
+        if not dir_path_str:
+            raise PlanExecutionError("Missing 'file_path' for list_files action.")
+
+        full_path = self.repo_path / dir_path_str
+        if not full_path.is_dir():
+            raise PlanExecutionError(
+                f"Directory to be listed does not exist or is not a directory: {dir_path_str}"
+            )
+
+        contents = []
+        for item in full_path.iterdir():
+            contents.append(item.name)
+
+        # Store the result in the context for the next steps of the plan
+        self.file_context[dir_path_str] = "\n".join(sorted(contents))
+        log.info(f"📁 Listed contents of '{dir_path_str}' into context.")
+
+    # --- END OF AMENDMENT ---
 
     async def _execute_edit_file(self, params: TaskParams):
         """Executes the 'edit_file' action using the context from 'read_file'."""

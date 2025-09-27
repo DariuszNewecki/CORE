@@ -8,7 +8,10 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Dict, List, Set
 
+from sqlalchemy import text
+
 from features.governance.audit_context import AuditorContext
+from services.repositories.db.engine import get_session
 from shared.models import AuditFinding, AuditSeverity
 from shared.utils.import_scanner import scan_imports_for_file
 
@@ -17,35 +20,35 @@ from shared.utils.import_scanner import scan_imports_for_file
 class ImportRulesCheck:
     """
     Ensures that code files only import modules from their allowed domains.
+    This check now reads its configuration from the database.
     """
 
     def __init__(self, context: AuditorContext):
         self.context = context
-        self.domain_map = self._build_domain_map()
-        self.import_rules = self._build_import_rules()
+        self.domain_map: Dict[str, str] = {}
+        self.import_rules: Dict[str, Set[str]] = {}
+        # The data is now loaded asynchronously when execute is called.
 
-    def _build_domain_map(self) -> Dict[str, str]:
-        """Creates a map from directory paths to domain names."""
-        domain_map = {}
+    async def _load_rules_from_db(self):
+        """Loads domain maps and import rules from the database."""
+        async with get_session() as session:
+            await session.execute(text("SELECT key FROM core.domains"))
+
         structure = self.context.source_structure.get("structure", [])
         for domain_info in structure:
             path_str = domain_info.get("path")
             domain_name = domain_info.get("domain")
             if path_str and domain_name:
+                # --- THIS IS THE FIX ---
                 full_path = str((self.context.repo_path / path_str).resolve())
-                domain_map[full_path] = domain_name
-        return domain_map
+                # --- END OF FIX ---
+                self.domain_map[full_path] = domain_name
 
-    def _build_import_rules(self) -> Dict[str, Set[str]]:
-        """Creates a map from a domain to the set of domains it's allowed to import."""
-        rules = {}
-        structure = self.context.source_structure.get("structure", [])
         for domain_info in structure:
             domain_name = domain_info.get("domain")
             allowed_imports = domain_info.get("allowed_imports", [])
             if domain_name:
-                rules[domain_name] = set(allowed_imports)
-        return rules
+                self.import_rules[domain_name] = set(allowed_imports)
 
     def _get_domain_for_path(self, file_path: Path) -> str | None:
         """Finds the domain for a given absolute file path."""
@@ -56,12 +59,16 @@ class ImportRulesCheck:
         return None
 
     # ID: f1a7dedb-d5e4-442d-8957-b7f974778bc5
-    def execute(self) -> List[AuditFinding]:
+    async def execute(self) -> List[AuditFinding]:
         """
         Runs the check by scanning all source files and validating their imports.
         """
+        await self._load_rules_from_db()
+
         findings = []
+        # --- THIS IS THE FIX ---
         src_path = self.context.repo_path / "src"
+        # --- END OF FIX ---
 
         for file_path in src_path.rglob("*.py"):
             file_domain = self._get_domain_for_path(file_path)
@@ -72,13 +79,11 @@ class ImportRulesCheck:
             imported_modules = scan_imports_for_file(file_path)
 
             for module_str in imported_modules:
-                # We only care about internal imports for this check
                 if not module_str.startswith(
                     ("core", "features", "services", "shared", "cli", "api")
                 ):
                     continue
 
-                # A simple heuristic: check the top-level package
                 top_level_package = module_str.split(".")[0]
 
                 if top_level_package not in allowed_imports:

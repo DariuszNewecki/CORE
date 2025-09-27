@@ -39,21 +39,36 @@ class PlannerAgent:
         )
         self.prompt_pipeline = PromptPipeline(settings.REPO_PATH)
 
+    # --- START OF AMENDMENT ---
     def _build_planning_prompt(self, goal: str, reconnaissance_report: str) -> str:
         """Builds the detailed prompt for the planning LLM."""
         available_actions = self.actions_policy.get("actions", [])
-        action_descriptions = "\n".join(
-            [
-                f"- `{action['name']}`: {action['description']}"
-                for action in available_actions
-            ]
-        )
+
+        action_descriptions = []
+        for action in available_actions:
+            desc = f"### Action: `{action['name']}`\n"
+            desc += f"**Description:** {action['description']}\n"
+
+            params = action.get("parameters", [])
+            if params:
+                desc += "**Parameters:**\n"
+                for param in params:
+                    req_str = (
+                        "(required)" if param.get("required", False) else "(optional)"
+                    )
+                    desc += f"- `{param['name']}` ({param.get('type', 'any')} {req_str}): {param.get('description', '')}\n"
+            action_descriptions.append(desc)
+
+        action_descriptions_str = "\n".join(action_descriptions)
+
         base_prompt = self.prompt_template.format(
             goal=goal,
-            action_descriptions=action_descriptions,
+            action_descriptions=action_descriptions_str,
             reconnaissance_report=reconnaissance_report,
         )
         return self.prompt_pipeline.process(base_prompt)
+
+    # --- END OF AMENDMENT ---
 
     def _log_plan_summary(self, plan: List[ExecutionTask]):
         """Logs a human-readable summary of the execution plan."""
