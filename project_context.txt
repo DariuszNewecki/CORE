@@ -939,7 +939,7 @@ rules:
 --- START OF FILE ./.intent/charter/policies/governance/available_actions_policy.yaml ---
 policy_id: 47eab093-749a-444f-bc97-3d816c2d631c
 id: available_actions_policy
-version: "1.0.0"
+version: "1.1.0" # Version bump for new parameter schema
 title: "Available Actions Policy"
 status: active
 purpose: >
@@ -953,35 +953,111 @@ review:
   frequency: "annual"
 
 actions:
-  # --- THIS IS THE FIX ---
+  # --- START OF AMENDMENT ---
   - name: "read_file"
-    description: "Reads the entire content of a specified file to provide context for subsequent steps."
-    required_parameters: ["file_path"]
+    description: "Reads the entire content of a specified file to provide context for subsequent steps. Fails if the path is a directory."
+    parameters:
+      - name: "file_path"
+        type: "string"
+        description: "The repository-relative path to the file to be read."
+        required: true
+
+  - name: "list_files"
+    description: "Lists all files and subdirectories within a specified directory to understand its contents. Fails if the path is not a directory."
+    parameters:
+      - name: "file_path" # Use a consistent parameter name for all path-based operations
+        type: "string"
+        description: "The repository-relative path to the directory to be listed."
+        required: true
 
   - name: "edit_file"
     description: "Performs a surgical replacement of a block of code within an existing file."
-    required_parameters: ["file_path", "start_line", "end_line", "new_content"]
-  # --- END OF FIX ---
+    parameters:
+      - name: "file_path"
+        type: "string"
+        description: "The repository-relative path to the file to be edited."
+        required: true
+      - name: "new_content"
+        type: "string"
+        description: "The complete new content for the specified block of code."
+        required: true
+      - name: "start_line"
+        type: "integer"
+        description: "The starting line number of the block to be replaced (1-based)."
+        required: true
+      - name: "end_line"
+        type: "integer"
+        description: "The ending line number of the block to be replaced (1-based)."
+        required: true
 
   - name: "create_file"
     description: "Creates a new source code or documentation file at a specified path with the given content."
-    required_parameters: ["file_path", "code"]
-  
+    parameters:
+      - name: "file_path"
+        type: "string"
+        description: "The repository-relative path where the new file will be created."
+        required: true
+      - name: "code"
+        type: "string"
+        description: "The full source code or content for the new file."
+        required: true
+
   - name: "edit_function"
     description: "Surgically replaces the code of an existing function or class within a file."
-    required_parameters: ["file_path", "symbol_name", "code"]
+    parameters:
+      - name: "file_path"
+        type: "string"
+        description: "The path to the file containing the symbol to be edited."
+        required: true
+      - name: "symbol_name"
+        type: "string"
+        description: "The name of the function or class to be replaced."
+        required: true
+      - name: "code"
+        type: "string"
+        description: "The new, complete source code for the function or class."
+        required: true
 
   - name: "delete_file"
     description: "Deletes an existing file from the repository."
-    required_parameters: ["file_path"]
+    parameters:
+      - name: "file_path"
+        type: "string"
+        description: "The path of the file to be deleted."
+        required: true
 
   - name: "create_proposal"
     description: "Creates a formal, human-in-the-loop constitutional amendment proposal (a cr-*.yaml file)."
-    required_parameters: ["file_path", "justification", "code"]
-    
+    parameters:
+      - name: "file_path"
+        type: "string"
+        description: "The repository-relative path of the file the proposal will target."
+        required: true
+      - name: "justification"
+        type: "string"
+        description: "A clear, human-readable rationale for the proposed change."
+        required: true
+      - name: "code"
+        type: "string"
+        description: "The full new content for the target file."
+        required: true
+
   - name: "add_capability_tag"
     description: "Adds a new # ID tag to a specific function or class. (Note: This is a legacy action, prefer 'fix assign-ids')."
-    required_parameters: ["file_path", "symbol_name", "tag"]
+    parameters:
+      - name: "file_path"
+        type: "string"
+        description: "The path to the file containing the symbol."
+        required: true
+      - name: "symbol_name"
+        type: "string"
+        description: "The name of the function or class to tag."
+        required: true
+      - name: "tag"
+        type: "string"
+        description: "The UUID tag to add."
+        required: true
+  
 --- END OF FILE ./.intent/charter/policies/governance/available_actions_policy.yaml ---
 
 --- START OF FILE ./.intent/charter/policies/governance/cli_governance_policy.yaml ---
@@ -9978,7 +10054,11 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, List
 
 from core.agents.plan_executor import PlanExecutor
+
+# --- START OF FIX: Added the missing import ---
 from core.agents.utils import PlanExecutionContext
+
+# --- END OF FIX ---
 from core.cognitive_service import CognitiveService
 from core.prompt_pipeline import PromptPipeline
 from core.self_correction_engine import attempt_correction
@@ -10016,9 +10096,8 @@ class ExecutionAgent:
         self.validator = MicroProposalValidator()
 
         agent_policy = settings.load("charter.policies.agent.agent_policy")
-        self.max_correction_attempts = agent_policy.get("execution_agent", {}).get(
-            "max_correction_attempts", 2
-        )
+        agent_behavior = agent_policy.get("execution_agent", {})
+        self.max_correction_attempts = agent_behavior.get("max_correction_attempts", 2)
 
     def _verify_plan(self, plan: List[ExecutionTask]) -> None:
         """
@@ -10053,46 +10132,58 @@ class ExecutionAgent:
             return False, str(e)
 
         log.info("--- Starting Governed Code Generation Phase ---")
-        success, error_message = await self._generate_and_validate_all_tasks(
-            high_level_goal, plan
-        )
+        success, error_message = await self._prepare_all_tasks(high_level_goal, plan)
         if not success:
             return False, error_message
+
         log.info("--- Handing off fully validated plan to Executor ---")
         return await self._execute_validated_plan(plan)
 
-    async def _generate_and_validate_all_tasks(
+    async def _prepare_all_tasks(
         self, high_level_goal: str, plan: List[ExecutionTask]
     ) -> tuple[bool, str]:
+        """Iterates through the plan, generating and validating code where needed."""
         for task in plan:
-            log.info(f"Processing task: '{task.step}'")
-            success, error_message = await self._process_single_task(
-                task, high_level_goal
-            )
-            if not success:
-                return False, error_message
+            log.info(f"Preparing task: '{task.step}'")
+            if (
+                task.action
+                in ["create_file", "edit_file", "edit_function", "create_proposal"]
+                and not task.params.code
+            ):
+                log.info("  -> Task requires code generation. Invoking Coder agent...")
+                success, message_or_code = (
+                    await self._generate_and_validate_code_for_task(
+                        task, high_level_goal
+                    )
+                )
+                if not success:
+                    return False, message_or_code
+                task.params.code = message_or_code
+                log.info("  -> ✅ Code generated and validated successfully.")
+            elif task.params.code:
+                log.info("  -> Task has pre-defined code. Validating...")
+                success, message = await self._validate_with_corrections(
+                    task, task.params.code, high_level_goal
+                )
+                if not success:
+                    return False, message
         return True, ""
 
-    async def _process_single_task(
+    async def _generate_and_validate_code_for_task(
         self, task: ExecutionTask, high_level_goal: str
     ) -> tuple[bool, str]:
-        generated_code = await self._generate_code_for_task_type(task, high_level_goal)
-        if not generated_code:
-            if task.action not in ["create_file", "edit_function", "create_proposal"]:
-                return True, ""
+        """Generates, validates, and self-corrects code for a single task."""
+        initial_code = await self._generate_code_for_task_type(task, high_level_goal)
+        if not initial_code:
             return False, f"Initial code generation failed for step: '{task.step}'"
-        return await self._validate_with_corrections(
-            task,
-            generated_code,
-            high_level_goal,
-        )
 
-    async def _generate_code_for_task_type(self, task: ExecutionTask, goal: str) -> str:
-        if task.action in ["create_file", "edit_function"]:
-            return await self._generate_code_for_standard_task(task, goal)
-        if task.action == "create_proposal":
-            return await self._generate_code_for_proposal(task, goal)
-        return ""
+        success, message = await self._validate_with_corrections(
+            task, initial_code, high_level_goal
+        )
+        if not success:
+            return False, message
+
+        return True, task.params.code
 
     async def _validate_with_corrections(
         self, task: ExecutionTask, initial_code: str, goal: str
@@ -10185,22 +10276,39 @@ class ExecutionAgent:
             final_prompt, user_id="execution_agent_proposer"
         )
 
+    async def _generate_code_for_task_type(self, task: ExecutionTask, goal: str) -> str:
+        """Helper to dispatch to the correct code generation logic."""
+        if task.action in ["create_file", "edit_file", "edit_function"]:
+            return await self._generate_code_for_standard_task(task, goal)
+        if task.action == "create_proposal":
+            return await self._generate_code_for_proposal(task, goal)
+        return ""
+
     async def _generate_code_for_standard_task(
         self, task: ExecutionTask, goal: str
     ) -> str:
         log.info(f"✍️  Generating code for task: '{task.step}'...")
-        if task.action not in ["create_file", "edit_function"]:
-            return ""
         prompt_template = settings.get_path(
             "mind.prompts.standard_task_generator"
         ).read_text()
+
+        context_str = ""
+        if self.executor.file_context:
+            context_str += "\n\n--- CONTEXT FROM PREVIOUS STEPS ---\n"
+            for path, content in self.executor.file_context.items():
+                context_str += f"\n--- Contents of {path} ---\n{content}\n"
+            context_str += "--- END CONTEXT ---\n"
+
         final_prompt = prompt_template.format(
             goal=goal,
             step=task.step,
             file_path=task.params.file_path,
             symbol_name=task.params.symbol_name or "",
         )
-        enriched_prompt = self.prompt_pipeline.process(final_prompt)
+
+        final_prompt_with_context = final_prompt + context_str
+
+        enriched_prompt = self.prompt_pipeline.process(final_prompt_with_context)
         generator = await self.cognitive_service.get_client_for_role("Coder")
         return await generator.make_request_async(
             enriched_prompt, user_id="execution_agent_coder"
@@ -10394,6 +10502,7 @@ class PlanExecutor:
         """Dispatcher that executes a single task from a plan based on its action type."""
         action_map = {
             "read_file": self._execute_read_file,
+            "list_files": self._execute_list_files,
             "edit_file": self._execute_edit_file,
             "add_capability_tag": self._execute_add_tag,
             "create_file": self._execute_create_file,
@@ -10416,8 +10525,40 @@ class PlanExecutor:
         if not full_path.exists():
             raise PlanExecutionError(f"File to be read does not exist: {file_path_str}")
 
+        # --- START OF FIX ---
+        # Prevent IsADirectoryError by checking if the path is a directory
+        if full_path.is_dir():
+            raise PlanExecutionError(
+                f"Cannot read '{file_path_str}' because it is a directory. Use 'list_files' instead."
+            )
+        # --- END OF FIX ---
+
         self.file_context[file_path_str] = full_path.read_text(encoding="utf-8")
         log.info(f"📖 Read file '{file_path_str}' into context.")
+
+    # --- START OF AMENDMENT: New capability implementation ---
+    async def _execute_list_files(self, params: TaskParams):
+        """Executes the 'list_files' action and stores the result in context."""
+        # Note: The planner now uses 'file_path' for directories as well for consistency.
+        dir_path_str = params.file_path
+        if not dir_path_str:
+            raise PlanExecutionError("Missing 'file_path' for list_files action.")
+
+        full_path = self.repo_path / dir_path_str
+        if not full_path.is_dir():
+            raise PlanExecutionError(
+                f"Directory to be listed does not exist or is not a directory: {dir_path_str}"
+            )
+
+        contents = []
+        for item in full_path.iterdir():
+            contents.append(item.name)
+
+        # Store the result in the context for the next steps of the plan
+        self.file_context[dir_path_str] = "\n".join(sorted(contents))
+        log.info(f"📁 Listed contents of '{dir_path_str}' into context.")
+
+    # --- END OF AMENDMENT ---
 
     async def _execute_edit_file(self, params: TaskParams):
         """Executes the 'edit_file' action using the context from 'read_file'."""
@@ -10681,21 +10822,36 @@ class PlannerAgent:
         )
         self.prompt_pipeline = PromptPipeline(settings.REPO_PATH)
 
+    # --- START OF AMENDMENT ---
     def _build_planning_prompt(self, goal: str, reconnaissance_report: str) -> str:
         """Builds the detailed prompt for the planning LLM."""
         available_actions = self.actions_policy.get("actions", [])
-        action_descriptions = "\n".join(
-            [
-                f"- `{action['name']}`: {action['description']}"
-                for action in available_actions
-            ]
-        )
+
+        action_descriptions = []
+        for action in available_actions:
+            desc = f"### Action: `{action['name']}`\n"
+            desc += f"**Description:** {action['description']}\n"
+
+            params = action.get("parameters", [])
+            if params:
+                desc += "**Parameters:**\n"
+                for param in params:
+                    req_str = (
+                        "(required)" if param.get("required", False) else "(optional)"
+                    )
+                    desc += f"- `{param['name']}` ({param.get('type', 'any')} {req_str}): {param.get('description', '')}\n"
+            action_descriptions.append(desc)
+
+        action_descriptions_str = "\n".join(action_descriptions)
+
         base_prompt = self.prompt_template.format(
             goal=goal,
-            action_descriptions=action_descriptions,
+            action_descriptions=action_descriptions_str,
             reconnaissance_report=reconnaissance_report,
         )
         return self.prompt_pipeline.process(base_prompt)
+
+    # --- END OF AMENDMENT ---
 
     def _log_plan_summary(self, plan: List[ExecutionTask]):
         """Logs a human-readable summary of the execution plan."""

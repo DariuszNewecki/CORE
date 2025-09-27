@@ -8,7 +8,11 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, List
 
 from core.agents.plan_executor import PlanExecutor
+
+# --- START OF FIX: Added the missing import ---
 from core.agents.utils import PlanExecutionContext
+
+# --- END OF FIX ---
 from core.cognitive_service import CognitiveService
 from core.prompt_pipeline import PromptPipeline
 from core.self_correction_engine import attempt_correction
@@ -46,9 +50,8 @@ class ExecutionAgent:
         self.validator = MicroProposalValidator()
 
         agent_policy = settings.load("charter.policies.agent.agent_policy")
-        self.max_correction_attempts = agent_policy.get("execution_agent", {}).get(
-            "max_correction_attempts", 2
-        )
+        agent_behavior = agent_policy.get("execution_agent", {})
+        self.max_correction_attempts = agent_behavior.get("max_correction_attempts", 2)
 
     def _verify_plan(self, plan: List[ExecutionTask]) -> None:
         """
@@ -83,46 +86,58 @@ class ExecutionAgent:
             return False, str(e)
 
         log.info("--- Starting Governed Code Generation Phase ---")
-        success, error_message = await self._generate_and_validate_all_tasks(
-            high_level_goal, plan
-        )
+        success, error_message = await self._prepare_all_tasks(high_level_goal, plan)
         if not success:
             return False, error_message
+
         log.info("--- Handing off fully validated plan to Executor ---")
         return await self._execute_validated_plan(plan)
 
-    async def _generate_and_validate_all_tasks(
+    async def _prepare_all_tasks(
         self, high_level_goal: str, plan: List[ExecutionTask]
     ) -> tuple[bool, str]:
+        """Iterates through the plan, generating and validating code where needed."""
         for task in plan:
-            log.info(f"Processing task: '{task.step}'")
-            success, error_message = await self._process_single_task(
-                task, high_level_goal
-            )
-            if not success:
-                return False, error_message
+            log.info(f"Preparing task: '{task.step}'")
+            if (
+                task.action
+                in ["create_file", "edit_file", "edit_function", "create_proposal"]
+                and not task.params.code
+            ):
+                log.info("  -> Task requires code generation. Invoking Coder agent...")
+                success, message_or_code = (
+                    await self._generate_and_validate_code_for_task(
+                        task, high_level_goal
+                    )
+                )
+                if not success:
+                    return False, message_or_code
+                task.params.code = message_or_code
+                log.info("  -> ✅ Code generated and validated successfully.")
+            elif task.params.code:
+                log.info("  -> Task has pre-defined code. Validating...")
+                success, message = await self._validate_with_corrections(
+                    task, task.params.code, high_level_goal
+                )
+                if not success:
+                    return False, message
         return True, ""
 
-    async def _process_single_task(
+    async def _generate_and_validate_code_for_task(
         self, task: ExecutionTask, high_level_goal: str
     ) -> tuple[bool, str]:
-        generated_code = await self._generate_code_for_task_type(task, high_level_goal)
-        if not generated_code:
-            if task.action not in ["create_file", "edit_function", "create_proposal"]:
-                return True, ""
+        """Generates, validates, and self-corrects code for a single task."""
+        initial_code = await self._generate_code_for_task_type(task, high_level_goal)
+        if not initial_code:
             return False, f"Initial code generation failed for step: '{task.step}'"
-        return await self._validate_with_corrections(
-            task,
-            generated_code,
-            high_level_goal,
-        )
 
-    async def _generate_code_for_task_type(self, task: ExecutionTask, goal: str) -> str:
-        if task.action in ["create_file", "edit_function"]:
-            return await self._generate_code_for_standard_task(task, goal)
-        if task.action == "create_proposal":
-            return await self._generate_code_for_proposal(task, goal)
-        return ""
+        success, message = await self._validate_with_corrections(
+            task, initial_code, high_level_goal
+        )
+        if not success:
+            return False, message
+
+        return True, task.params.code
 
     async def _validate_with_corrections(
         self, task: ExecutionTask, initial_code: str, goal: str
@@ -215,22 +230,39 @@ class ExecutionAgent:
             final_prompt, user_id="execution_agent_proposer"
         )
 
+    async def _generate_code_for_task_type(self, task: ExecutionTask, goal: str) -> str:
+        """Helper to dispatch to the correct code generation logic."""
+        if task.action in ["create_file", "edit_file", "edit_function"]:
+            return await self._generate_code_for_standard_task(task, goal)
+        if task.action == "create_proposal":
+            return await self._generate_code_for_proposal(task, goal)
+        return ""
+
     async def _generate_code_for_standard_task(
         self, task: ExecutionTask, goal: str
     ) -> str:
         log.info(f"✍️  Generating code for task: '{task.step}'...")
-        if task.action not in ["create_file", "edit_function"]:
-            return ""
         prompt_template = settings.get_path(
             "mind.prompts.standard_task_generator"
         ).read_text()
+
+        context_str = ""
+        if self.executor.file_context:
+            context_str += "\n\n--- CONTEXT FROM PREVIOUS STEPS ---\n"
+            for path, content in self.executor.file_context.items():
+                context_str += f"\n--- Contents of {path} ---\n{content}\n"
+            context_str += "--- END CONTEXT ---\n"
+
         final_prompt = prompt_template.format(
             goal=goal,
             step=task.step,
             file_path=task.params.file_path,
             symbol_name=task.params.symbol_name or "",
         )
-        enriched_prompt = self.prompt_pipeline.process(final_prompt)
+
+        final_prompt_with_context = final_prompt + context_str
+
+        enriched_prompt = self.prompt_pipeline.process(final_prompt_with_context)
         generator = await self.cognitive_service.get_client_for_role("Coder")
         return await generator.make_request_async(
             enriched_prompt, user_id="execution_agent_coder"
