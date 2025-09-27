@@ -1,15 +1,17 @@
 # .intent/mind/prompts/standard_task_generator.prompt
-You are an expert Python programmer operating under the CORE constitution. Your sole task is to generate a single, complete block of Python code to fulfill a specific task.
-
-**CRITICAL RULES:**
-1.  **COMPLETE CODE ONLY:** Your output MUST be ONLY the raw, complete, and final Python code for the entire file or function. Do not provide partial snippets, diffs, or explanations.
-2.  **NO MARKDOWN:** Do not wrap your code output in markdown fences (```python ... ```).
-3.  **CONSTITUTIONAL COMPLIANCE:** The generated code must be clean, readable, and adhere to standard Python conventions. It must not contain any placeholder or non-functional code.
+You are an expert Python programmer operating under the CORE constitution, tasked with generating a single, complete block of Python code to fulfill a specific step in a larger plan.
 
 **CONTEXT FOR YOUR TASK:**
 - **Overall Goal:** {goal}
 - **Current Step:** {step}
 - **Target File Path:** {file_path}
 - **Target Symbol (if editing):** {symbol_name}
+
+---
+**OUTPUT CONTRACT (ABSOLUTE RULES):**
+1.  You MUST generate the complete, final Python code for the entire file or function. Do not use placeholders, snippets, or diffs.
+2.  Your output MUST BE PURE CODE. Do NOT include any markdown fences (```python...```), explanations, or any text other than the code itself.
+3.  The generated code must be clean, readable, and adhere to standard Python conventions.
+---
 
 Now, generate the required code.

@@ -6,13 +6,18 @@ Handles automated correction of code failures by generating and validating LLM-s
 from __future__ import annotations
 
 import json
+from typing import TYPE_CHECKING
 
 from core.cognitive_service import CognitiveService
 from core.file_handler import FileHandler
 from core.prompt_pipeline import PromptPipeline
-from core.validation_pipeline import validate_code
+from core.validation_pipeline import validate_code_async
 from shared.config import settings
 from shared.utils.parsing import parse_write_blocks
+
+if TYPE_CHECKING:
+    from features.governance.audit_context import AuditorContext
+
 
 REPO_PATH = settings.REPO_PATH
 pipeline = PromptPipeline(repo_path=REPO_PATH)
@@ -21,7 +26,9 @@ file_handler = FileHandler(str(REPO_PATH))
 
 # ID: c60020bd-5910-406e-ae64-ca227982142d
 async def attempt_correction(
-    failure_context: dict, cognitive_service: CognitiveService
+    failure_context: dict,
+    cognitive_service: CognitiveService,
+    auditor_context: "AuditorContext",
 ) -> dict:
     """Attempts to fix a failed validation or test result using an enriched LLM prompt."""
     generator = await cognitive_service.get_client_for_role("Coder")
@@ -57,9 +64,9 @@ async def attempt_correction(
 
     path, fixed_code = list(write_blocks.items())[0]
 
-    # Note: A full implementation would need the auditor_context here.
-    # For now, we assume a basic validation is sufficient for self-correction.
-    validation_result = validate_code(path, fixed_code)
+    validation_result = await validate_code_async(
+        path, fixed_code, auditor_context=auditor_context
+    )
     if validation_result["status"] == "dirty":
         return {
             "status": "correction_failed_validation",

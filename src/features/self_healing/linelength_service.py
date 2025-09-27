@@ -13,7 +13,11 @@ import typer
 from rich.progress import track
 
 from core.cognitive_service import CognitiveService
-from core.validation_pipeline import validate_code
+
+# --- START OF AMENDMENT: Import the new async validator ---
+from core.validation_pipeline import validate_code_async
+
+# --- END OF AMENDMENT ---
 from features.governance.audit_context import AuditorContext
 from shared.config import settings
 from shared.logger import getLogger
@@ -37,6 +41,7 @@ async def _async_fix_line_lengths(files_to_process: List[Path], dry_run: bool):
     fixer_client = cognitive_service.get_client_for_role("CodeStyleFixer")
 
     auditor_context = AuditorContext(REPO_ROOT)
+    await auditor_context.load_knowledge_graph()  # Pre-load the graph for the validator
 
     files_with_long_lines = []
     for file_path in files_to_process:
@@ -68,12 +73,14 @@ async def _async_fix_line_lengths(files_to_process: List[Path], dry_run: bool):
             )
 
             if corrected_code and corrected_code.strip() != original_content.strip():
-                validation_result = validate_code(
+                # --- START OF AMENDMENT: Call the async validator and await it ---
+                validation_result = await validate_code_async(
                     str(file_path),
                     corrected_code,
                     quiet=True,
                     auditor_context=auditor_context,
                 )
+                # --- END OF AMENDMENT ---
                 if validation_result["status"] == "clean":
                     modification_plan[file_path] = validation_result["code"]
                 else:

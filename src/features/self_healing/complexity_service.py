@@ -21,7 +21,11 @@ from rich.console import Console
 from rich.panel import Panel
 
 from core.cognitive_service import CognitiveService
-from core.validation_pipeline import validate_code
+
+# --- START OF AMENDMENT: Import the new async validator ---
+from core.validation_pipeline import validate_code_async
+
+# --- END OF AMENDMENT ---
 from features.governance.audit_context import AuditorContext
 from shared.config import settings
 from shared.logger import getLogger
@@ -123,13 +127,11 @@ async def _async_complexity_outliers(
         return
 
     cognitive_service = CognitiveService(REPO_ROOT)
-    # The knowledge_summary is no longer needed for the simplified prompt.
 
     for file_rel_path in outlier_files:
         try:
             log.info(f"--- Processing: {file_rel_path} ---")
             source_code = (REPO_ROOT / file_rel_path).read_text(encoding="utf-8")
-            # original_capabilities = _get_capabilities_from_code(source_code)
 
             log.info("🧠 Asking RefactoringArchitect for a plan...")
             prompt_template = (
@@ -154,15 +156,16 @@ async def _async_complexity_outliers(
             auditor_context = AuditorContext(REPO_ROOT)
             validated_code_plan = {}
             for path, code in refactoring_plan.items():
-                result = validate_code(path, str(code), auditor_context=auditor_context)
+                # --- START OF AMENDMENT: Call the async validator and await it ---
+                result = await validate_code_async(
+                    path, str(code), auditor_context=auditor_context
+                )
+                # --- END OF AMENDMENT ---
                 if result["status"] == "dirty":
                     raise Exception(f"Validation FAILED for proposed file '{path}'")
                 validated_code_plan[path] = result["code"]
             log.info("   -> ✅ Plan is valid and formatted.")
 
-            # The complex reconciliation step is removed for robustness.
-            # The human operator will run 'make check' to find and fix any
-            # manifest issues manually, which is a safer workflow for now.
             final_code_to_write = validated_code_plan
 
             if dry_run:
@@ -180,7 +183,6 @@ async def _async_complexity_outliers(
                 continue
 
             log.info("💾 Applying validated and formatted refactoring...")
-            # Delete the original large file before writing the new ones
             (REPO_ROOT / file_rel_path).unlink()
             for path, code in final_code_to_write.items():
                 (REPO_ROOT / path).write_text(code, encoding="utf-8")
@@ -210,5 +212,4 @@ def complexity_outliers(
     ),
 ):
     """Identifies and refactors complexity outliers to improve separation of concerns."""
-    # This is a synchronous wrapper around the async core logic.
     asyncio.run(_async_complexity_outliers(file_path, dry_run))
