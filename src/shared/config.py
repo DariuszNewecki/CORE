@@ -37,9 +37,6 @@ class Settings(BaseSettings):
     LOG_LEVEL: str = "INFO"
     CORE_MAX_CONCURRENT_REQUESTS: int = 5
 
-    # --- THIS IS THE FIX ---
-    # Formally declare all required/optional ENV VARS from runtime_requirements.
-    # This ensures the attributes always exist, even if their value is None.
     DATABASE_URL: str
     QDRANT_URL: str
     QDRANT_COLLECTION_NAME: str = "core_capabilities"
@@ -47,8 +44,13 @@ class Settings(BaseSettings):
     LOCAL_EMBEDDING_API_URL: str
     LOCAL_EMBEDDING_MODEL_NAME: str
     LOCAL_EMBEDDING_DIM: int
-    LOCAL_EMBEDDING_API_KEY: Optional[str] = None  # Make it optional
+    LOCAL_EMBEDDING_API_KEY: Optional[str] = None
     EMBED_MODEL_REVISION: str = "2025-09-15"
+
+    # --- THIS IS THE FIX ---
+    # Formally declare KEY_STORAGE_DIR with its correct type and a default value.
+    # Pydantic will now automatically handle loading from .env and casting to a Path object.
+    KEY_STORAGE_DIR: Path = REPO_PATH / ".intent" / "keys"
     # --- END OF FIX ---
 
     def __init__(self, **values: Any):
@@ -87,11 +89,33 @@ class Settings(BaseSettings):
                 value = value[key]
             if not isinstance(value, str):
                 raise TypeError
+            # Paths in meta.yaml are relative to the .intent directory
             return self.MIND / value
         except (KeyError, TypeError):
             raise FileNotFoundError(
                 f"Logical path '{logical_path}' not found or invalid in meta.yaml."
             )
+
+    # ID: b1c2d3e4-f5a6-b7c8-d9e0-f1a2b3c4d5e6
+    def find_logical_path_for_file(self, filename: str) -> str:
+        """
+        Searches the meta.yaml index to find the full relative path for a given filename.
+        """
+
+        def _search_dict(d: Any) -> Optional[str]:
+            if isinstance(d, dict):
+                for key, value in d.items():
+                    if isinstance(value, str) and value.endswith(filename):
+                        return value
+                    found = _search_dict(value)
+                    if found:
+                        return found
+            return None
+
+        found_path = _search_dict(self._meta_config)
+        if found_path:
+            return found_path
+        raise ValueError(f"Filename '{filename}' not found in meta.yaml index.")
 
     # ID: 08272f29-c9c9-4c54-8253-b7fea9938050
     def load(self, logical_path: str) -> Dict[str, Any]:

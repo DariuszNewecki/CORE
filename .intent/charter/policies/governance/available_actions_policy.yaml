@@ -1,6 +1,6 @@
 policy_id: 47eab093-749a-444f-bc97-3d816c2d631c
 id: available_actions_policy
-version: "1.0.0"
+version: "1.1.0" # Version bump for new parameter schema
 title: "Available Actions Policy"
 status: active
 purpose: >
@@ -14,32 +14,108 @@ review:
   frequency: "annual"
 
 actions:
-  # --- THIS IS THE FIX ---
+  # --- START OF AMENDMENT ---
   - name: "read_file"
-    description: "Reads the entire content of a specified file to provide context for subsequent steps."
-    required_parameters: ["file_path"]
+    description: "Reads the entire content of a specified file to provide context for subsequent steps. Fails if the path is a directory."
+    parameters:
+      - name: "file_path"
+        type: "string"
+        description: "The repository-relative path to the file to be read."
+        required: true
+
+  - name: "list_files"
+    description: "Lists all files and subdirectories within a specified directory to understand its contents. Fails if the path is not a directory."
+    parameters:
+      - name: "file_path" # Use a consistent parameter name for all path-based operations
+        type: "string"
+        description: "The repository-relative path to the directory to be listed."
+        required: true
 
   - name: "edit_file"
     description: "Performs a surgical replacement of a block of code within an existing file."
-    required_parameters: ["file_path", "start_line", "end_line", "new_content"]
-  # --- END OF FIX ---
+    parameters:
+      - name: "file_path"
+        type: "string"
+        description: "The repository-relative path to the file to be edited."
+        required: true
+      - name: "new_content"
+        type: "string"
+        description: "The complete new content for the specified block of code."
+        required: true
+      - name: "start_line"
+        type: "integer"
+        description: "The starting line number of the block to be replaced (1-based)."
+        required: true
+      - name: "end_line"
+        type: "integer"
+        description: "The ending line number of the block to be replaced (1-based)."
+        required: true
 
   - name: "create_file"
     description: "Creates a new source code or documentation file at a specified path with the given content."
-    required_parameters: ["file_path", "code"]
-  
+    parameters:
+      - name: "file_path"
+        type: "string"
+        description: "The repository-relative path where the new file will be created."
+        required: true
+      - name: "code"
+        type: "string"
+        description: "The full source code or content for the new file."
+        required: true
+
   - name: "edit_function"
     description: "Surgically replaces the code of an existing function or class within a file."
-    required_parameters: ["file_path", "symbol_name", "code"]
+    parameters:
+      - name: "file_path"
+        type: "string"
+        description: "The path to the file containing the symbol to be edited."
+        required: true
+      - name: "symbol_name"
+        type: "string"
+        description: "The name of the function or class to be replaced."
+        required: true
+      - name: "code"
+        type: "string"
+        description: "The new, complete source code for the function or class."
+        required: true
 
   - name: "delete_file"
     description: "Deletes an existing file from the repository."
-    required_parameters: ["file_path"]
+    parameters:
+      - name: "file_path"
+        type: "string"
+        description: "The path of the file to be deleted."
+        required: true
 
   - name: "create_proposal"
     description: "Creates a formal, human-in-the-loop constitutional amendment proposal (a cr-*.yaml file)."
-    required_parameters: ["file_path", "justification", "code"]
-    
+    parameters:
+      - name: "file_path"
+        type: "string"
+        description: "The repository-relative path of the file the proposal will target."
+        required: true
+      - name: "justification"
+        type: "string"
+        description: "A clear, human-readable rationale for the proposed change."
+        required: true
+      - name: "code"
+        type: "string"
+        description: "The full new content for the target file."
+        required: true
+
   - name: "add_capability_tag"
     description: "Adds a new # ID tag to a specific function or class. (Note: This is a legacy action, prefer 'fix assign-ids')."
-    required_parameters: ["file_path", "symbol_name", "tag"]
+    parameters:
+      - name: "file_path"
+        type: "string"
+        description: "The path to the file containing the symbol."
+        required: true
+      - name: "symbol_name"
+        type: "string"
+        description: "The name of the function or class to tag."
+        required: true
+      - name: "tag"
+        type: "string"
+        description: "The UUID tag to add."
+        required: true
+  

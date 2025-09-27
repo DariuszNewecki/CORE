@@ -5,7 +5,6 @@ Provides the core service for processing asynchronous, autonomous change request
 
 from __future__ import annotations
 
-import asyncio
 import shutil
 import tempfile
 from dataclasses import dataclass
@@ -18,6 +17,9 @@ import yaml
 from rich.console import Console
 
 from features.governance.constitutional_auditor import AuditScope, ConstitutionalAuditor
+from features.introspection.knowledge_graph_service import (
+    KnowledgeGraphBuilder,
+)
 from shared.action_logger import action_logger
 from shared.config import settings
 from shared.logger import getLogger
@@ -45,15 +47,24 @@ class CrateProcessingService:
     def __init__(self):
         """Initializes the service with its required dependencies and constitutional policies."""
         self.repo_root = settings.REPO_PATH
-        self.crate_policy = settings.load("charter.policies.governance.intent_crate_policy")
-        self.crate_schema = settings.load("charter.schemas.constitutional.intent_crate_schema")
+        self.crate_policy = settings.load(
+            "charter.policies.governance.intent_crate_policy"
+        )
+        self.crate_schema = settings.load(
+            "charter.schemas.constitutional.intent_crate_schema"
+        )
 
         self.inbox_path = self.repo_root / "work" / "crates" / "inbox"
         self.processing_path = self.repo_root / "work" / "crates" / "processing"
         self.accepted_path = self.repo_root / "work" / "crates" / "accepted"
         self.rejected_path = self.repo_root / "work" / "crates" / "rejected"
 
-        for path in [self.inbox_path, self.processing_path, self.accepted_path, self.rejected_path]:
+        for path in [
+            self.inbox_path,
+            self.processing_path,
+            self.accepted_path,
+            self.rejected_path,
+        ]:
             path.mkdir(parents=True, exist_ok=True)
 
         log.info("CrateProcessingService initialized and constitutionally configured.")
@@ -75,25 +86,33 @@ class CrateProcessingService:
             if not manifest_path.exists():
                 reason = "missing manifest.yaml"
                 log.warning(f"Skipping invalid crate '{crate_id}': {reason}.")
-                action_logger.log_event("crate.validation.failed", {"crate_id": crate_id, "reason": reason})
+                action_logger.log_event(
+                    "crate.validation.failed", {"crate_id": crate_id, "reason": reason}
+                )
                 continue
 
             try:
                 manifest_content = settings._load_file_content(manifest_path)
                 jsonschema.validate(instance=manifest_content, schema=self.crate_schema)
                 valid_crates.append(Crate(path=item, manifest=manifest_content))
-                log.info(f"Validated crate '{crate_id}' with intent: '{manifest_content['intent']}'")
+                log.info(
+                    f"Validated crate '{crate_id}' with intent: '{manifest_content['intent']}'"
+                )
             except (ValueError, jsonschema.ValidationError) as e:
                 reason = f"Manifest validation failed: {e}"
                 log.error(f"Rejecting invalid crate '{crate_id}': {reason}")
-                action_logger.log_event("crate.validation.failed", {"crate_id": crate_id, "reason": str(e)})
+                action_logger.log_event(
+                    "crate.validation.failed", {"crate_id": crate_id, "reason": str(e)}
+                )
                 self._move_crate_to_rejected(item, reason)
                 continue
 
         return valid_crates
 
     # ID: 1b2c3d4e-5f6a-7b8c-9d0e-1f2a3b4c5d6e
-    async def _run_canary_validation(self, crate: Crate) -> tuple[bool, List[AuditFinding]]:
+    async def _run_canary_validation(
+        self, crate: Crate
+    ) -> tuple[bool, List[AuditFinding]]:
         """Creates a temporary environment, applies crate changes, and runs a full audit."""
         with tempfile.TemporaryDirectory() as tmpdir:
             canary_path = Path(tmpdir) / "canary_repo"
@@ -103,35 +122,43 @@ class CrateProcessingService:
                 self.repo_root,
                 canary_path,
                 dirs_exist_ok=True,
-                ignore=shutil.ignore_patterns(".git", ".venv", "__pycache__", "work", "reports"),
+                ignore=shutil.ignore_patterns(
+                    ".git", ".venv", "__pycache__", "work", "reports"
+                ),
             )
 
             env_file = self.repo_root / ".env"
             if env_file.exists():
                 shutil.copy(env_file, canary_path / ".env")
-                console.print("   -> Copied runtime environment configuration to canary.")
+                console.print(
+                    "   -> Copied runtime environment configuration to canary."
+                )
 
             console.print("   -> Applying proposed changes to canary...")
             payload_files = crate.manifest.get("payload_files", [])
-            for file_rel_path in payload_files:
-                source_path = crate.path / file_rel_path
-                target_path = None
+            for file_in_payload in payload_files:
+                source_path = crate.path / file_in_payload
                 if crate.manifest.get("type") == "CONSTITUTIONAL_AMENDMENT":
-                    charter_dir = canary_path / ".intent" / "charter"
-                    matches = list(charter_dir.rglob(file_rel_path))
-                    if matches:
-                        target_path = matches[0]
-                    else:
-                        return False, [AuditFinding(check_id="crate.payload.missing_target", severity="error", message=f"Constitutional target '{file_rel_path}' not found in canary.")]
+                    target_path = (
+                        canary_path
+                        / ".intent/charter/policies/governance"
+                        / file_in_payload
+                    )
                 else:
-                    target_path = canary_path / file_rel_path
+                    target_path = canary_path / file_in_payload
 
                 target_path.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(source_path, target_path)
 
+            console.print("   -> Building canary's internal knowledge graph...")
+            canary_builder = KnowledgeGraphBuilder(root_path=canary_path)
+            await canary_builder.build_and_sync()
+
             console.print("   -> 🔬 Running full constitutional audit on canary...")
             auditor = ConstitutionalAuditor(repo_root_override=canary_path)
-            passed, findings, _ = await auditor.run_full_audit_async(scope=AuditScope.STATIC_ONLY)
+            passed, findings, _ = await auditor.run_full_audit_async(
+                scope=AuditScope.STATIC_ONLY
+            )
 
             if passed:
                 console.print("   -> [bold green]✅ Canary audit PASSED.[/bold green]")
@@ -139,6 +166,28 @@ class CrateProcessingService:
             else:
                 console.print("   -> [bold red]❌ Canary audit FAILED.[/bold red]")
                 return False, findings
+
+    def _apply_accepted_crate(self, crate: Crate):
+        """Applies the payload of an accepted crate to the live repository."""
+        console.print(
+            f"   -> Applying accepted crate '{crate.path.name}' to live system..."
+        )
+        payload_files = crate.manifest.get("payload_files", [])
+        for file_in_payload in payload_files:
+            source_path = crate.path / file_in_payload
+
+            if crate.manifest.get("type") == "CONSTITUTIONAL_AMENDMENT":
+                target_path = (
+                    self.repo_root
+                    / ".intent/charter/policies/governance"
+                    / file_in_payload
+                )
+            else:
+                target_path = self.repo_root / file_in_payload
+
+            target_path.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(source_path, target_path)
+            console.print(f"      -> Applied '{file_in_payload}'")
 
     def _write_result_manifest(self, crate_path: Path, status: str, details: Any):
         """Writes a result.yaml file into the processed crate directory."""
@@ -150,7 +199,7 @@ class CrateProcessingService:
             result_content["justification"] = details
         elif isinstance(details, list):
             result_content["violations"] = [finding.as_dict() for finding in details]
-        
+
         result_path = crate_path / "result.yaml"
         result_path.write_text(yaml.dump(result_content, indent=2), "utf-8")
 
@@ -160,10 +209,14 @@ class CrateProcessingService:
         final_path = self.rejected_path / crate_id
         shutil.move(str(crate_path), str(final_path))
         self._write_result_manifest(final_path, "rejected", details)
-        
-        reason_summary = details if isinstance(details, str) else f"{len(details)} constitutional violations found."
+
+        reason_summary = (
+            details
+            if isinstance(details, str)
+            else f"{len(details)} constitutional violations found."
+        )
         console.print(f"   -> Moved to rejected. Reason: {reason_summary}")
-        
+
         log_details = {"crate_id": crate_id}
         if isinstance(details, str):
             log_details["reason"] = details
@@ -177,7 +230,9 @@ class CrateProcessingService:
         """
         The main entry point for the service. It finds and processes all crates in the inbox.
         """
-        console.print("[bold cyan]🚀 Starting new crate processing cycle...[/bold cyan]")
+        console.print(
+            "[bold cyan]🚀 Starting new crate processing cycle...[/bold cyan]"
+        )
 
         valid_crates = self._scan_and_validate_inbox()
         if not valid_crates:
@@ -193,23 +248,40 @@ class CrateProcessingService:
                 processing_path = self.processing_path / crate_id
                 shutil.move(str(crate.path), str(processing_path))
                 crate.path = processing_path
-                console.print(f"   -> Moved to processing: {processing_path.relative_to(self.repo_root)}")
-                action_logger.log_event("crate.processing.started", {"crate_id": crate_id})
+                console.print(
+                    f"   -> Moved to processing: {processing_path.relative_to(self.repo_root)}"
+                )
+                action_logger.log_event(
+                    "crate.processing.started", {"crate_id": crate_id}
+                )
 
                 is_safe, findings = await self._run_canary_validation(crate)
 
                 if is_safe:
+                    self._apply_accepted_crate(crate)
                     final_path = self.accepted_path / crate.path.name
                     shutil.move(str(crate.path), str(final_path))
-                    self._write_result_manifest(final_path, "accepted", "Canary audit passed successfully.")
-                    console.print(f"   -> Moved to accepted.")
-                    action_logger.log_event("crate.processing.accepted", {"crate_id": crate_id, "reason": "Canary audit passed."})
+                    self._write_result_manifest(
+                        final_path,
+                        "accepted",
+                        "Canary audit passed and changes were applied.",
+                    )
+                    console.print("   -> Moved to accepted.")
+                    action_logger.log_event(
+                        "crate.processing.accepted",
+                        {
+                            "crate_id": crate_id,
+                            "reason": "Canary audit passed and changes applied.",
+                        },
+                    )
                 else:
                     self._move_crate_to_rejected(crate.path, findings)
 
             except Exception as e:
                 log.error(f"Failed to process crate '{crate_id}': {e}", exc_info=True)
-                self._move_crate_to_rejected(crate.path, f"Internal processing error: {e}")
+                self._move_crate_to_rejected(
+                    crate.path, f"Internal processing error: {e}"
+                )
                 continue
 
 

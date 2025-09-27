@@ -40,9 +40,10 @@ charter:
       available_actions_policy: "charter/policies/governance/available_actions_policy.yaml"
       cli_governance_policy: "charter/policies/governance/cli_governance_policy.yaml"
       enforcement_model_policy: "charter/policies/governance/enforcement_model_policy.yaml"
-      intent_crate_policy: "charter/policies/governance/intent_crate_policy.yaml"  # <-- ADDED
+      intent_crate_policy: "charter/policies/governance/intent_crate_policy.yaml"
       intent_guard_policy: "charter/policies/governance/intent_guard_policy.yaml"
       knowledge_source_policy: "charter/policies/governance/knowledge_source_policy.yaml"
+      logging_policy: "charter/policies/governance/logging_policy.yaml"
       reporting_policy: "charter/policies/governance/reporting_policy.yaml"
       tooling_policy: "charter/policies/governance/tooling_policy.yaml"
 
@@ -66,7 +67,7 @@ charter:
       
     constitutional:
       intent_bundle_schema: "charter/schemas/constitutional/intent_bundle_schema.json"
-      intent_crate_schema: "charter/schemas/constitutional/intent_crate_schema.json"  # <-- ADDED
+      intent_crate_schema: "charter/schemas/constitutional/intent_crate_schema.json"
       proposal_schema: "charter/schemas/constitutional/proposal_schema.json"
 
     data:
@@ -97,7 +98,6 @@ mind:
     audit_checklist: "mind/evaluation/audit_checklist.yaml"
 
   knowledge:
-    domains: "mind/knowledge/domains.yaml"
     entry_point_patterns: "mind/knowledge/entry_point_patterns.yaml"
     file_handlers: "mind/knowledge/file_handlers.yaml"
     source_structure: "mind/knowledge/source_structure.yaml"

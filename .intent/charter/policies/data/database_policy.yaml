@@ -1,13 +1,10 @@
 policy_id: 1fb8949c-02db-486a-8b9d-556191456de3
-# FILE: .intent/charter/policies/data/database_policy.yaml
-
 id: database_policy
-version: "2.0.0"
+version: "2.1.0" # Version bump for full DB migration
 title: "Consolidated Database Governance Policy"
 purpose: >
   Provide a durable, auditable ledger of what actually happened in CORE (events, audits, CLI runs, capability history)
-  without becoming a new source of constitutional truth. This policy is the single source of truth for schema,
-  migrations, data privacy, and data retention.
+  with the database as the single source of operational truth, and file-based artifacts as read-only exports.
 scope:
   applies_to: [postgresql]
 owners:
@@ -29,9 +26,10 @@ migrations:
     - "006_knowledge_graph_view.sql"
     - "007_capabilities_registry.sql"
     - "008_operational_tables.sql"
+    - "009_domain_and_vector_tables.sql" # New migration for domains and vectors
 rules:
   - id: db.mind_remains_source
-    statement: "`.intent/**` is the single source of constitutional truth; DB is not authoritative for policies/manifests."
+    statement: "`.intent/**` is the single source of constitutional truth; DB is the authoritative source for operational data."
     enforcement: error
   - id: db.schema_declared
     statement: "All tables and columns MUST be declared in the database schema/migrations and validated at CI time."
@@ -42,12 +40,12 @@ rules:
   - id: db.write_via_governed_cli
     statement: "All writes MUST originate from registered CLI commands (see CLI Governance Policy)."
     enforcement: error
-  - id: db.enforce_domains_from_intent
-    statement: "Capability domains MUST match mind/knowledge/domains.yaml."
-    enforcement: warn
-  - id: db.vector_index_consistency
-    statement: "Vector index rows MUST match EMBED_MODEL_REVISION and LOCAL_EMBEDDING_DIM."
-    enforcement: warn
+  - id: db.domains_in_db
+    statement: "Capability domains MUST be stored in and queried from the database, with `.intent/mind/knowledge/domains.yaml` as a read-only export."
+    enforcement: error
+  - id: db.vector_index_in_db
+    statement: "Vector index data MUST be stored in the database with metadata for EMBED_MODEL_REVISION and LOCAL_EMBEDDING_DIM, with file-based indices as read-only exports."
+    enforcement: error
   - id: db.privacy.no_pii_or_secrets
     statement: "Personal data and secrets MUST NOT be stored in operational tables unless explicitly exempted."
     enforcement: error

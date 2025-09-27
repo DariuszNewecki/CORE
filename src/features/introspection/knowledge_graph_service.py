@@ -6,7 +6,6 @@ codebase and synchronizing the discovered knowledge with the database.
 from __future__ import annotations
 
 import ast
-import asyncio
 import json
 from datetime import datetime, timezone
 from pathlib import Path
@@ -78,7 +77,6 @@ class KnowledgeGraphBuilder:
         async with get_session() as session:
             async with session.begin():
                 await session.execute(text("TRUNCATE TABLE core.symbols CASCADE"))
-                # Note: The `key` column is now populated from the metadata comment.
                 await session.execute(
                     text(
                         """
@@ -91,7 +89,7 @@ class KnowledgeGraphBuilder:
         log.info(f"Successfully synced {len(symbols)} symbols to the database.")
 
     # ID: 6de62bc4-767f-4bc1-b5f1-25ee31af1009
-    def build_and_sync(self) -> Dict[str, Any]:
+    async def build_and_sync(self) -> Dict[str, Any]:  # <-- NOW ASYNC
         """
         Executes the full build and sync process for the knowledge graph.
         """
@@ -100,7 +98,7 @@ class KnowledgeGraphBuilder:
             self._scan_file(py_file)
 
         # Sync to database
-        asyncio.run(self._sync_symbols_to_db(list(self.symbols.values())))
+        await self._sync_symbols_to_db(list(self.symbols.values()))  # <-- NOW AWAITED
 
         knowledge_graph = {
             "metadata": {
@@ -110,7 +108,6 @@ class KnowledgeGraphBuilder:
             "symbols": self.symbols,
         }
 
-        # Write JSON artifact to reports/ directory
         output_path = settings.REPO_PATH / "reports" / "knowledge_graph.json"
         output_path.parent.mkdir(parents=True, exist_ok=True)
         output_path.write_text(json.dumps(knowledge_graph, indent=2))
@@ -157,8 +154,8 @@ class KnowledgeGraphBuilder:
         call_visitor.visit(node)
 
         symbol_data = {
-            "uuid": symbol_path_key,  # Use the stable path as the UUID
-            "key": metadata.get("capability"),  # This can be null
+            "uuid": symbol_path_key,
+            "key": metadata.get("capability"),
             "symbol_path": symbol_path_key,
             "name": node.name,
             "type": type(node).__name__,

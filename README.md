@@ -46,6 +46,7 @@ See CORE in action by running the worked example: create a simple API, intention
 * **[Architecture (`docs/02_ARCHITECTURE.md`)](docs/02_ARCHITECTURE.md)** — Technical details of the Mind and Body.
 * **[Governance (`docs/03_GOVERNANCE.md`)](docs/03_GOVERNANCE.md)** — How changes are made safely.
 * **[Roadmap (`docs/04_ROADMAP.md`)](docs/04_ROADMAP.md)** — See where we're going.
+* **[Technical Debt Log (`docs/05_TECHNICAL_DEBT.md`)](docs/05_TECHNICAL_DEBT.md)** — Our formal plan for architectural improvements.
 * **[Contributing (`CONTRIBUTING.md`)](CONTRIBUTING.md)** — Join our mission!
 
 ---
