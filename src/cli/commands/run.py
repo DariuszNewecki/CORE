@@ -7,6 +7,11 @@ from __future__ import annotations
 
 import asyncio
 
+# --- START OF AMENDMENT: Add Path and Optional ---
+from pathlib import Path
+from typing import Optional
+
+# --- END OF AMENDMENT ---
 import typer
 from dotenv import load_dotenv
 
@@ -55,15 +60,11 @@ async def run_development_cycle(
 
         knowledge_graph = await knowledge_service.get_graph()
 
-        # --- THIS IS THE FIX ---
-        # The Recon Agent now requires the cognitive_service to do its own search
         recon_agent = ReconnaissanceAgent(knowledge_graph, cognitive_service)
         context_report = await recon_agent.generate_report(goal)
 
         planner = PlannerAgent(cognitive_service)
-        # The planner now requires the report to generate an informed plan
         plan = await planner.create_execution_plan(goal, context_report)
-        # --- END OF FIX ---
 
         executor = ExecutionAgent(
             cognitive_service, prompt_pipeline, plan_executor, auditor_context
@@ -77,7 +78,9 @@ async def run_development_cycle(
         )
 
         if success and auto_commit:
-            commit_message = f"feat(AI): execute plan for goal - {goal}"
+            # Use a truncated goal for the commit message
+            commit_goal = (goal[:72] + "...") if len(goal) > 75 else goal
+            commit_message = f"feat(AI): execute plan for goal - {commit_goal}"
             git_service.commit(commit_message)
             log.info(f"   -> Committed changes with message: '{commit_message}'")
         return success, message
@@ -88,26 +91,61 @@ async def run_development_cycle(
         return False, f"An unexpected error occurred: {e}"
 
 
+# --- START OF AMENDMENT: Refactor the 'develop' command ---
 @run_app.command(
     "develop",
     help="Orchestrates the autonomous development process from a high-level goal.",
 )
 # ID: b6963057-2c08-4699-94ea-a7f74fe532ff
 def develop(
-    goal: str = typer.Argument(
-        ..., help="The high-level development goal for CORE to achieve."
-    )
+    goal: Optional[str] = typer.Argument(
+        None,
+        help="The high-level development goal for CORE to achieve.",
+        show_default=False,
+    ),
+    from_file: Optional[Path] = typer.Option(
+        None,
+        "--from-file",
+        "-f",
+        help="Path to a file containing the development goal.",
+        exists=True,
+        dir_okay=False,
+        resolve_path=True,
+        show_default=False,
+    ),
 ):
+    """Orchestrates the autonomous development process from a high-level goal, which can be provided directly or from a file."""
+    if not goal and not from_file:
+        log.error(
+            "❌ You must provide a goal either as an argument or with --from-file."
+        )
+        raise typer.Exit(code=1)
+
+    if goal and from_file:
+        log.error("❌ You cannot provide a goal as both an argument and from a file.")
+        raise typer.Exit(code=1)
+
+    if from_file:
+        log.info(f"📄 Loading development goal from file: {from_file.name}")
+        goal_content = from_file.read_text(encoding="utf-8")
+    else:
+        goal_content = goal
+
     load_dotenv()
     if not settings.LLM_ENABLED:
         log.error("❌ The 'develop' command requires LLMs to be enabled.")
         raise typer.Exit(code=1)
-    success, message = asyncio.run(run_development_cycle(goal))
+
+    success, message = asyncio.run(run_development_cycle(goal_content))
+
     if success:
         typer.secho("\n✅ Goal achieved successfully.", fg=typer.colors.GREEN)
     else:
         typer.secho(f"\n❌ Goal execution failed: {message}", fg=typer.colors.RED)
         raise typer.Exit(code=1)
+
+
+# --- END OF AMENDMENT ---
 
 
 @run_app.command(
