@@ -5,6 +5,7 @@ view of the project's constitution and state for all audit checks.
 """
 from __future__ import annotations
 
+import os
 from pathlib import Path
 from typing import Any, Dict
 
@@ -71,7 +72,7 @@ class AuditorContext:
             log.warning(f"Policies directory not found: {policies_dir}")
             return {}
 
-        for policy_file in policies_dir.glob("*_policy.yaml"):
+        for policy_file in policies_dir.glob("**/*_policy.yaml"):
             policy_id = policy_file.stem
             policy_content = self._load_yaml(policy_file)
             if policy_content:
@@ -79,3 +80,21 @@ class AuditorContext:
 
         log.debug(f"Loaded {len(loaded_policies)} policies.")
         return loaded_policies
+    
+    @property
+    # ID: c8dcf271-f3ef-4c75-bea5-775b8c3461a1
+    def python_files(self) -> list[Path]:
+        """Get all Python files in the repository."""
+        python_files = []
+        # --- START OF FIX ---
+        # Corrected the typo from self.repo_root to self.repo_path
+        for root, dirs, files in os.walk(self.repo_path):
+        # --- END OF FIX ---
+            # Skip common directories that shouldn't contain source code
+            dirs[:] = [d for d in dirs if d not in {'.git', '__pycache__', '.pytest_cache', 'node_modules', '.venv'}]
+            
+            for file in files:
+                if file.endswith('.py'):
+                    python_files.append(Path(root) / file)
+        
+        return python_files

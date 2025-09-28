@@ -212,6 +212,19 @@ class CognitiveService:
 
     # ---------- public API expected by tests ----------
 
+    # ID: 775b9cb7-48fd-4bcd-96fa-758b74191a70
+    async def get_embedding_for_code(self, source_code: str) -> list[float]:
+        """Generate embeddings for source code using the embedding service."""
+        # You'll need to implement this based on your embedding service
+        # This is a placeholder that should be replaced with actual embedding logic
+        try:
+            # Example implementation - replace with your actual embedding service call
+            from services.embedding_service import EmbeddingService
+            embedding_service = EmbeddingService()
+            return await embedding_service.get_embedding(source_code)
+        except Exception as e:
+            raise RuntimeError(f"Failed to generate embedding: {e}")
+
     # ID: 9494786d-4335-4ac3-97cc-4242798171cc
     def get_client_for_role(self, role_name: str) -> _SimpleLLMClient:
         """

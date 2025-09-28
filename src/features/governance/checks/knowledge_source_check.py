@@ -1,14 +1,11 @@
 # src/features/governance/checks/knowledge_source_check.py
 """
 Auditor check to enforce the single source of truth for knowledge.
-Verifies that no code directly accesses legacy knowledge artifacts like
-knowledge_graph.json, forcing them to use the governed KnowledgeService instead.
 """
 # ID: 672e382f-870d-4054-9549-74d436531393
 from __future__ import annotations
 
 import ast
-from pathlib import Path
 
 from features.governance.checks.base_check import BaseCheck
 from services.mind_service import get_mind_service
@@ -32,21 +29,18 @@ class KnowledgeSourceCheck(BaseCheck):
         )
         allowed_paths = policy.get("allowed_access_paths", [])
 
-        # --- START OF DEFINITIVE FIX ---
-        # The context object pre-scans all files. We access the result via a property.
         for file_path in self.context.python_files:
-        # --- END OF DEFINITIVE FIX ---
-            relative_path = str(file_path.relative_to(self.context.repo_root))
+            # --- START OF FINAL FIX ---
+            # Corrected the typo from self.context.repo_root to self.context.repo_path
+            relative_path = str(file_path.relative_to(self.context.repo_path))
+            # --- END OF FINAL FIX ---
 
-            # This check is allowed to access the file, so we skip it.
             if relative_path in allowed_paths:
                 continue
 
             try:
                 content = file_path.read_text("utf-8")
                 if forbidden_string in content:
-                    # Basic string search passed, now do a more precise AST check
-                    # to avoid flagging comments or documentation.
                     tree = ast.parse(content)
                     for node in ast.walk(tree):
                         if (
@@ -63,8 +57,7 @@ class KnowledgeSourceCheck(BaseCheck):
                                     line_number=node.lineno,
                                 )
                             )
-                            break  # Only report once per file
+                            break
             except Exception:
-                # Ignore files that can't be parsed; other checks will handle syntax errors.
                 continue
         return findings
