@@ -26,17 +26,17 @@ class KnowledgeSourceCheck(BaseCheck):
         findings = []
         forbidden_string = "knowledge_graph.json"
 
-        # --- START OF FIX ---
-        # Instead of reading the policy from the filesystem, we now use the MindService.
-        # This makes our check compliant with its own principles.
         mind_service = get_mind_service()
         policy = mind_service.load_policy(
             "charter.policies.governance.knowledge_source_policy"
         )
         allowed_paths = policy.get("allowed_access_paths", [])
-        # --- END OF FIX ---
 
-        for file_path in self.context.get_python_files():
+        # --- START OF FIX ---
+        # The method was renamed. This uses the correct, current method on AuditorContext.
+        python_files = self.context.get_files_by_extension(".py")
+        for file_path in python_files:
+        # --- END OF FIX ---
             relative_path = str(file_path.relative_to(self.context.repo_root))
 
             # This check is allowed to access the file, so we skip it.
