@@ -1,6 +1,6 @@
 policy_id: b7c95ae3-05be-4138-8b27-12cd5670f4e9
 id: tooling_policy
-version: "1.0.0"
+version: "1.1.0" # Version bump for SSOT alignment
 title: "Tooling Policy"
 status: active
 purpose: >
@@ -15,7 +15,7 @@ review:
 
 rules:
   - id: tools.registered_only
-    statement: "Only tools/commands registered in '.intent/mind/knowledge/cli_registry.yaml' may be invoked by agents/services."
+    statement: "Only tools/commands registered in the `core.cli_commands` database table may be invoked by agents/services."
     enforcement: error
   - id: tools.version_pinned
     statement: "Critical tools (linters, formatters, test runners) MUST be version-pinned in pyproject or lockfiles."

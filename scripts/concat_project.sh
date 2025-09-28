@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# scripts/create_project_bundle.py
+# scripts/concat_project.sh
 """
 A constitutionally-aware script to bundle the CORE project's essence for AI review.
 It includes the Mind, Body, and operational tooling while excluding transient state,
@@ -8,42 +8,25 @@ sensitive data, and generated artifacts. It produces a structured output for cla
 from __future__ import annotations
 
 import argparse
+import sys
 from pathlib import Path
 
-# --- Configuration ---
-# The final output file for the bundle.
-OUTPUT_FILE = "project_context.txt"
-# The marker for the project root.
-ROOT_MARKER = "pyproject.toml"
+# Use `tomllib` for modern TOML parsing, available in Python 3.11+
+# For older versions, this would require `pip install tomli`
+if sys.version_info >= (3, 11):
+    import tomllib
+else:
+    import tomli as tomllib
 
-# --- CHANGE: Simplified and corrected include lists ---
-# All directories to be included are now in a single list.
-INCLUDE_DIRS = [
-    ".intent",
-    "src",
-    "tests",
-    "scripts",
-    ".github",
-    "sql",  # <-- CRITICAL FIX: Added the sql directory
-]
-# All individual files at the root level are in this list.
-INCLUDE_ROOT_FILES = [
-    "pyproject.toml", "README.md", "CONTRIBUTING.md", "LICENSE", "Makefile",
-    ".gitignore", "assesment.prompt", "docker-compose.yml"
-]
-# --- END CHANGE ---
+# --- Configuration ---
+OUTPUT_FILE = "project_context.txt"
+ROOT_MARKER = "pyproject.toml"
 
 # Define what to exclude, based on our architectural principles.
 EXCLUDE_PATTERNS = [
-    # General exclusions
     ".git", ".venv", "__pycache__", ".pytest_cache", ".ruff_cache",
     "logs", "sandbox", "pending_writes", "demo", "work", "dist", "build",
-    # Sensitive files
-    ".env", ".intent/keys",
-    # Generated or large artifacts
-    "poetry.lock",
-    # --- CHANGE: Removed 'reports/' as we only need to exclude the output file ---
-    # Binary file extensions
+    ".env", ".intent/keys", "poetry.lock",
     "*.png", "*.jpg", "*.jpeg", "*.gif", "*.webp", "*.ico", "*.pyc", "*.so",
     "*.DS_Store", "Thumbs.db",
 ]
@@ -58,7 +41,6 @@ def is_excluded(path: Path, root: Path, exclude_patterns: list[str]) -> bool:
             return True
     return False
 
-
 def is_likely_binary(path: Path) -> bool:
     """Heuristic to check if a file is binary by looking for null bytes."""
     try:
@@ -67,6 +49,17 @@ def is_likely_binary(path: Path) -> bool:
     except Exception:
         return True
 
+def get_include_dirs_from_pyproject(root: Path) -> list[str]:
+    """Reads pyproject.toml to get the list of source directories."""
+    pyproject_path = root / ROOT_MARKER
+    config = tomllib.loads(pyproject_path.read_text("utf-8"))
+    packages = config.get("tool", {}).get("poetry", {}).get("packages", [])
+    
+    # Extract the 'include' value from each package dictionary
+    source_dirs = {pkg["include"] for pkg in packages if "include" in pkg}
+    
+    # Add other key directories that are not formal packages
+    return sorted(list(source_dirs | {".intent", "tests", "scripts", "sql"}))
 
 def main():
     """Main execution function."""
@@ -77,39 +70,42 @@ def main():
     args = parser.parse_args()
     output_path = Path(args.output).resolve()
 
-    # 1. Ensure the script is run from the project root.
     root_path = Path.cwd()
     if not (root_path / ROOT_MARKER).exists():
         print(f"❌ Error: This script must be run from the CORE project root directory.")
         return 1
 
     print(f"🚀 Generating Project Context Bundle for AI review...")
-    print(f"   -> Output will be saved to: {output_path}")
 
-    # Exclude the output file itself
-    final_exclude_patterns = EXCLUDE_PATTERNS + [str(output_path)]
+    # --- START OF AMENDMENT: Declarative directory discovery ---
+    include_dirs = get_include_dirs_from_pyproject(root_path)
+    print(f"   -> Including source directories from pyproject.toml: {include_dirs}")
+    
+    include_root_files = [
+        "pyproject.toml", "README.md", "CONTRIBUTING.md", "LICENSE", "Makefile",
+        ".gitignore", "assesment.prompt", "docker-compose.yml"
+    ]
+    # --- END OF AMENDMENT ---
+    
+    final_exclude_patterns = EXCLUDE_PATTERNS + [str(output_path.relative_to(root_path))]
 
     files_to_bundle = []
-    # Gather all files from included directories
-    for dir_name in INCLUDE_DIRS:
+    for dir_name in include_dirs:
         dir_path = root_path / dir_name
         if dir_path.is_dir():
             files_to_bundle.extend(dir_path.rglob("*"))
 
-    # Add root files
-    for file_name in INCLUDE_ROOT_FILES:
+    for file_name in include_root_files:
         file_path = root_path / file_name
         if file_path.is_file():
             files_to_bundle.append(file_path)
 
-    # 2. Filter, sort, and process files
     output_path.parent.mkdir(parents=True, exist_ok=True)
     file_count = 0
     with output_path.open("w", encoding="utf-8") as outfile:
         outfile.write("--- START OF FILE project_context.txt ---\n\n")
         outfile.write("--- START OF PROJECT CONTEXT BUNDLE ---\n\n")
 
-        # Use a set for efficient deduplication, then sort for deterministic order
         unique_files = sorted(list(set(files_to_bundle)))
 
         for file in unique_files:
@@ -122,7 +118,7 @@ def main():
 
             file_count += 1
             relative_path = file.relative_to(root_path)
-            outfile.write(f"--- START OF FILE ./{relative_path} ---\n") # <-- Added './' for clarity
+            outfile.write(f"--- START OF FILE ./{relative_path} ---\n")
             try:
                 content = file.read_text("utf-8")
                 if content:
@@ -131,7 +127,7 @@ def main():
                     outfile.write("[EMPTY FILE]")
             except Exception as e:
                 outfile.write(f"[ERROR READING FILE: {e}]")
-            outfile.write(f"\n--- END OF FILE ./{relative_path} ---\n\n") # <-- Added './' for clarity
+            outfile.write(f"\n--- END OF FILE ./{relative_path} ---\n\n")
 
         outfile.write("--- END OF PROJECT CONTEXT BUNDLE ---\n")
 
@@ -139,4 +135,4 @@ def main():
     return 0
 
 if __name__ == "__main__":
-    exit(main())
+    sys.exit(main())

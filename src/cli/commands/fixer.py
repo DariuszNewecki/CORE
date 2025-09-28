@@ -91,7 +91,7 @@ def fix_headers_cmd(
     if not dry_run:
         log.info("🧠 Rebuilding knowledge graph to reflect all changes...")
         builder = KnowledgeGraphBuilder(REPO_ROOT)
-        builder.build_and_sync()
+        asyncio.run(builder.build_and_sync())
         log.info("✅ Knowledge graph successfully updated.")
 
 
@@ -160,7 +160,7 @@ def fix_tags_cmd_wrapper(
 
         log.info("🧠 Rebuilding knowledge graph to reflect changes...")
         builder = KnowledgeGraphBuilder(REPO_ROOT)
-        builder.build_and_sync()
+        await builder.build_and_sync()
         log.info("✅ Knowledge graph successfully updated.")
 
     asyncio.run(_async_fix_tags())
@@ -238,7 +238,6 @@ def assign_ids_command(
         )
 
 
-# --- THIS IS THE NEW COMMAND ---
 @fix_app.command(
     "policy-ids", help="Adds a UUID to all policy files that are missing one."
 )
@@ -263,4 +262,7 @@ def fix_policy_ids_command(
         )
 
 
-# --- END OF NEW COMMAND ---
+# ID: a119b740-e2ef-4386-9ef1-ac607e4128e2
+def register(app: typer.Typer):
+    """Register the consolidated 'fix' command group with the main CLI app."""
+    app.add_typer(fix_app, name="fix")

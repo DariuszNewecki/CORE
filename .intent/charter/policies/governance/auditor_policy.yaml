@@ -1,7 +1,6 @@
 policy_id: ee4d8b52-0b76-41c5-bdd5-41de41126974
-# .intent/charter/policies/auditor_policy.yaml
 id: auditor_policy
-version: "1.0.1"
+version: "1.1.0" # Version bump for SSOT alignment
 title: "Constitutional Auditor Policy"
 status: active
 purpose: >
@@ -38,6 +37,6 @@ rules:
     statement: "Exactly one active constitution version MUST be referenced by '.intent/charter/constitution/ACTIVE'."
     enforcement: error
 
-  - id: auditor.cli_registry_source_of_truth
-    statement: "All operator actions MUST be backed by entries in '.intent/mind/knowledge/cli_registry.yaml'."
-    enforcement: error
+# The rule 'auditor.cli_registry_source_of_truth' has been removed as it is now
+# redundant. The canonical source for CLI commands is governed by 'cli_governance_policy.yaml'
+# and 'database_policy.yaml', which this auditor is mandated to enforce.

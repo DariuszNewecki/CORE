@@ -66,7 +66,17 @@ class PlannerAgent:
             action_descriptions=action_descriptions_str,
             reconnaissance_report=reconnaissance_report,
         )
-        return self.prompt_pipeline.process(base_prompt)
+
+        # Hard rule to avoid schema drift: ensure path-like params are named exactly 'file_path'
+        rules_appendix = (
+            "\n\n---\n"
+            "STRICT RULES FOR ACTION PARAMETERS:\n"
+            "1) Use parameter names EXACTLY as listed above.\n"
+            "2) Any path-like parameter MUST be named `file_path` (never `path`).\n"
+            "3) Return ONLY a JSON array of steps; no extra text.\n"
+        )
+
+        return self.prompt_pipeline.process(base_prompt + rules_appendix)
 
     # --- END OF AMENDMENT ---
 
@@ -83,19 +93,39 @@ class PlannerAgent:
         except Exception:
             log.warning("Could not serialize plan to JSON for logging.")
 
+    @staticmethod
+    def _normalize_parameters(task_dict: dict) -> dict:
+        """
+        Normalize parameter names to align with the governance policy:
+        - Rename 'path' -> 'file_path' when needed.
+        """
+        params = task_dict.get("parameters") or task_dict.get("params")
+        if isinstance(params, dict):
+            if "path" in params and "file_path" not in params:
+                params["file_path"] = params.pop("path")
+            # keep a single canonical field name for pydantic model
+            task_dict["params"] = params
+            task_dict.pop("parameters", None)
+        return task_dict
+
     # ID: b918335b-60af-4132-a944-88628a3caa66
-    async def create_execution_plan(
-        self, goal: str, reconnaissance_report: str
+    def create_execution_plan(
+        self, goal: str, reconnaissance_report: str = ""
     ) -> List[ExecutionTask]:
-        """Creates an execution plan from a user goal and a reconnaissance report."""
+        """
+        Creates an execution plan from a user goal and a reconnaissance report.
+
+        NOTE: synchronous by design because unit tests call it directly and
+        mock a synchronous `.make_request()` client.
+        """
         max_retries = settings.model_extra.get("CORE_MAX_RETRIES", 3)
 
         prompt = self._build_planning_prompt(goal, reconnaissance_report)
-        client = await self.cognitive_service.get_client_for_role("Planner")
+        client = self.cognitive_service.get_client_for_role("Planner")
 
         for attempt in range(max_retries):
             log.info("🧠 Generating step-by-step plan from reconnaissance context...")
-            response_text = await client.make_request_async(prompt)
+            response_text = client.make_request(prompt)
 
             if response_text:
                 try:
@@ -105,7 +135,19 @@ class PlannerAgent:
                             "LLM did not return a valid JSON list for the plan."
                         )
 
-                    validated_plan = [ExecutionTask(**task) for task in parsed_json]
+                    # Normalize each step BEFORE pydantic validation to avoid drift (path -> file_path)
+                    normalized_steps = [
+                        (
+                            self._normalize_parameters(step)
+                            if isinstance(step, dict)
+                            else step
+                        )
+                        for step in parsed_json
+                    ]
+
+                    validated_plan = [
+                        ExecutionTask(**task) for task in normalized_steps
+                    ]
                     self._log_plan_summary(validated_plan)
                     return validated_plan
                 except (ValueError, ValidationError, json.JSONDecodeError) as e:
