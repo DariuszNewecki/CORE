@@ -1,6 +1,6 @@
 policy_id: 18f048cb-b084-4faa-ac62-17fca55fed77
 id: agent_policy
-version: "1.1.0" # Version bump due to consolidation
+version: "1.2.0" # Version bump for SSOT alignment
 title: "Agent Governance Policy"
 status: active
 purpose: >
@@ -23,7 +23,7 @@ rules:
     enforcement: error
 
   - id: agent.compliance.respect_cli_registry
-    statement: "All tool invocations and system actions MUST be routed through commands registered in '.intent/mind/knowledge/cli_registry.yaml'."
+    statement: "All tool invocations and system actions MUST be routed through commands registered in the `core.cli_commands` database table."
     enforcement: error
 
   # --- Reasoning & Auditing Rules ---

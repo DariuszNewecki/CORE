@@ -1,6 +1,6 @@
 policy_id: cd37bddd-52c8-445a-b842-e229b29e6980
 id: cli_governance_policy
-version: "1.0.0"
+version: "1.1.0" # Version bump for SSOT alignment
 title: "CLI Governance Policy"
 status: active
 purpose: >
@@ -15,7 +15,7 @@ review:
 
 rules:
   - id: cli.must_be_registered
-    statement: "All CLI commands MUST be declaratively registered in '.intent/mind/knowledge/cli_registry.yaml'."
+    statement: "All CLI commands MUST be declaratively registered in the `core.cli_commands` database table, which serves as the single source of truth."
     enforcement: error
   - id: cli.must_have_summary
     statement: "Every registered CLI command MUST have a concise summary for help text."

@@ -1,4 +1,6 @@
-"""The single, canonical entry point for the core-admin CLI.
+# src/cli/admin_cli.py
+"""
+The single, canonical entry point for the core-admin CLI.
 This module assembles all command groups into a single Typer application.
 """
 
@@ -7,6 +9,7 @@ from __future__ import annotations
 import typer
 from rich.console import Console
 
+# --- END OF AMENDMENT ---
 # --- Command Group Imports ---
 from cli.commands import (
     agent,
@@ -30,7 +33,13 @@ from cli.commands import (
 from features.governance import key_management_service
 from features.project_lifecycle import bootstrap_service
 
+# --- START OF AMENDMENT: Added the missing import ---
+from shared.logger import getLogger
+
 console = Console()
+# --- START OF AMENDMENT: Initialize the logger ---
+log = getLogger("admin_cli")
+# --- END OF AMENDMENT ---
 
 # --- Main Application ---
 app = typer.Typer(
@@ -46,10 +55,10 @@ app = typer.Typer(
 
 
 # --- Centralized Registration Helper ---
+# ID: 2aa27939-042e-4bdf-937a-eb2bc8d6e22e
 def register_all_commands(app_instance: typer.Typer) -> None:
     """
     Register all command groups in the correct order.
-
     The order here determines the order in the --help output.
     """
     command_modules = [
@@ -71,10 +80,14 @@ def register_all_commands(app_instance: typer.Typer) -> None:
         guard,
         capability,
         chat,
+        # interactive is special and doesn't need to be registered here
     ]
 
     for module in command_modules:
-        module.register(app_instance)
+        if hasattr(module, "register") and callable(module.register):
+            module.register(app_instance)
+        else:
+            log.warning(f"Module {module.__name__} has no register function.")
 
 
 # --- Command Registration ---

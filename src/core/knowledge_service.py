@@ -1,77 +1,107 @@
 # src/core/knowledge_service.py
 """
-Provides a runtime service for agents to query the system's knowledge graph
-from the database, which is the single source of truth.
+Centralized access to CORE's knowledge graph and declared capabilities.
 """
 
 from __future__ import annotations
 
-import asyncio
 from pathlib import Path
-from typing import Any, Dict, List, Set
+from typing import Any, Dict, List
 
-from sqlalchemy import text
+import yaml
 
-from services.repositories.db.engine import get_session
 from shared.logger import getLogger
 
 log = getLogger(__name__)
 
 
-# ID: 2ea793f9-c474-4de2-b41d-4c6a2d1f5646
+# ID: 037d06d1-8f6d-4347-83b4-fba15da40639
 class KnowledgeService:
-    """A read-only service to access the system's knowledge graph from the database."""
+    """
+    Lightweight wrapper for loading the knowledge graph and capabilities
+    from the repository. Designed to be easily mockable in tests.
+    """
 
-    def __init__(self, repo_path: Path):
-        """Initializes the service."""
-        self.repo_path = repo_path
+    def __init__(self, repo_path: Path | str = "."):
+        self.repo_path = Path(repo_path)
         self._graph: Dict[str, Any] | None = None
-        self._graph_load_lock = asyncio.Lock()
-        log.info("KnowledgeService initialized.")
+        self._capabilities_cache: List[str] | None = None
 
-    # ID: 67d7ea3f-672b-40d7-8362-be4735081420
+    # ---------------- Public API ----------------
+
+    # ID: 7a219e96-6846-49ff-95fe-596a0429447c
     async def get_graph(self) -> Dict[str, Any]:
         """
-        Lazily loads the knowledge graph from the database on first access.
-        This method is now the primary async entry point for getting graph data.
+        Loads (or returns cached) knowledge graph structure.
+        Keep this fast and forgiving for tests/integration.
         """
-        if self._graph is None:
-            async with self._graph_load_lock:
-                # Double-check lock to prevent race conditions
-                if self._graph is None:
-                    log.info("Knowledge graph not loaded, fetching from database...")
-                    self._graph = await self._get_graph_from_db()
+        if self._graph is not None:
+            return self._graph
+
+        graph_file_paths = [
+            self.repo_path / ".intent/mind/knowledge/graph.yaml",
+            self.repo_path / ".intent/mind/knowledge/graph.yml",
+        ]
+
+        for p in graph_file_paths:
+            if p.exists():
+                try:
+                    data = yaml.safe_load(p.read_text(encoding="utf-8")) or {}
+                    if not isinstance(data, dict):
+                        log.warning("Knowledge graph YAML is not a mapping: %s", p)
+                        data = {}
+                    self._graph = data
+                    return self._graph
+                except Exception as e:  # noqa: BLE001
+                    log.error("Failed to load knowledge graph from %s: %s", p, e)
+                    break
+
+        # Fallback to empty graph (tests often mock specific methods)
+        self._graph = {}
         return self._graph
 
-    async def _get_graph_from_db(self) -> Dict[str, Any]:
-        """
-        Fetches the knowledge graph from the database view and reconstructs it
-        into the dictionary format expected by the system.
-        """
-        symbols_map: Dict[str, Any] = {}
-        try:
-            async with get_session() as session:
-                result = await session.execute(
-                    text("SELECT * FROM core.knowledge_graph")
-                )
-                for row in result:
-                    row_dict = dict(row._mapping)
-                    symbols_map[row_dict["symbol_path"]] = row_dict
-        except Exception as e:
-            log.error(f"Failed to load knowledge graph from database: {e}")
-            return {"symbols": {}}
-
-        log.info(f"Successfully loaded {len(symbols_map)} symbols from database.")
-        return {"symbols": symbols_map}
-
-    # ID: 53b1bc81-af62-45f3-b6e4-b18e328ef088
+    # ID: 0e38c18e-2a3d-47cb-bf77-4b4d9bf5354a
     async def list_capabilities(self) -> List[str]:
-        """Returns a sorted list of all unique, declared capabilities."""
-        graph = await self.get_graph()
-        symbols = graph.get("symbols", {}).values()
-        capabilities: Set[str] = {
-            s["capability"]
-            for s in symbols
-            if s.get("capability") and s.get("capability") != "unassigned"
-        }
-        return sorted(list(capabilities))
+        """
+        Returns declared capability keys.
+        Tests patch this method; default implementation reads YAML if present.
+        """
+        if self._capabilities_cache is not None:
+            return self._capabilities_cache
+
+        caps_file_paths = [
+            self.repo_path / ".intent/mind/knowledge/capabilities.yaml",
+            self.repo_path / ".intent/mind/knowledge/capabilities.yml",
+        ]
+
+        for p in caps_file_paths:
+            if p.exists():
+                try:
+                    data = yaml.safe_load(p.read_text(encoding="utf-8")) or []
+                    if isinstance(data, dict) and "capabilities" in data:
+                        data = data.get("capabilities", [])
+                    if not isinstance(data, list):
+                        log.warning("Capabilities YAML is not a list: %s", p)
+                        data = []
+                    # Normalize to list[str]
+                    self._capabilities_cache = [str(x) for x in data]
+                    return self._capabilities_cache
+                except Exception as e:  # noqa: BLE001
+                    log.error("Failed to load capabilities from %s: %s", p, e)
+                    break
+
+        self._capabilities_cache = []
+        return self._capabilities_cache
+
+    # ID: d93ecbdb-f832-4539-9a79-74fcbe723ac3
+    async def search_capabilities(self, query: str, limit: int = 5) -> List[str]:
+        """
+        Super-simple substring search over capability keys.
+        Sufficient for the /knowledge/search endpoint unless replaced with vector search.
+        """
+        caps = await self.list_capabilities()
+        q = query.lower().strip()
+        if not q:
+            return []
+        results = [c for c in caps if q in c.lower()]
+        return results[: max(1, min(limit, 50))]

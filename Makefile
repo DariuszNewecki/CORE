@@ -16,7 +16,7 @@ ENV_FILE ?= .env
 
 OUTPUT_PATH ?= docs/10_CAPABILITY_REFERENCE.md
 
-.PHONY: help install lock run stop audit lint format test check fast-check clean distclean nuke docs check-docs cli-tree
+.PHONY: help install lock run stop audit lint format test check fast-check clean distclean nuke docs check-docs cli-tree integrate
 
 help:
 	@echo "CORE Development Makefile"
@@ -26,8 +26,9 @@ help:
 	@echo ""
 	@echo "Common Shortcuts:"
 	@echo "make install       - Install dependencies"
-	@echo "make fast-check    - Run linting and tests (RECOMMENDED FOR LOCAL DEV)"
+	@echo "make integrate     - Run the full, canonical integration sequence"
 	@echo "make check         - Run all checks including vectorization (for CI)"
+	@echo "make fast-check    - Run linting and tests (RECOMMENDED FOR LOCAL DEV)"
 	@echo "make lint          - Check code format and quality (read-only)"
 	@echo "make format        - Fix code format and quality issues"
 	@echo "make test          - Run tests via 'core-admin check ci test'"
@@ -53,7 +54,6 @@ stop:
 	@lsof -t -i:$(PORT) | xargs kill -9 2>/dev/null || true
 
 
-# --- START: CORRECTED COMMANDS ---
 audit:
 	$(POETRY) run core-admin check ci audit
 
@@ -73,7 +73,6 @@ cli-tree:
 fast-check:
 	$(POETRY) run core-admin check ci lint
 	$(POETRY) run core-admin check ci test
-# --- END: CORRECTED COMMANDS ---
 	
 fix-lines:
 	@echo "📏 Fixing long lines with AI assistant..."
@@ -97,6 +96,16 @@ check:
 	$(MAKE) test
 	$(MAKE) audit
 	@$(MAKE) check-docs
+
+integrate:
+	@echo "🤝 Running Canonical Integration Sequence..."
+	@$(MAKE) format
+	@poetry run core-admin fix assign-ids --write
+	@poetry run core-admin knowledge sync --write
+	@poetry run core-admin run vectorize --write
+	@poetry run core-admin fix orphaned-vectors --write
+	@poetry run core-admin check ci audit
+	@echo "✅ Integration sequence complete. Please commit your changes."
 
 docs:
 	@echo "📚 Generating capability documentation..."
