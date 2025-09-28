@@ -32,11 +32,10 @@ class KnowledgeSourceCheck(BaseCheck):
         )
         allowed_paths = policy.get("allowed_access_paths", [])
 
-        # --- START OF FIX ---
-        # The method was renamed. This uses the correct, current method on AuditorContext.
-        python_files = self.context.get_files_by_extension(".py")
-        for file_path in python_files:
-        # --- END OF FIX ---
+        # --- START OF DEFINITIVE FIX ---
+        # The context object pre-scans all files. We access the result via a property.
+        for file_path in self.context.python_files:
+        # --- END OF DEFINITIVE FIX ---
             relative_path = str(file_path.relative_to(self.context.repo_root))
 
             # This check is allowed to access the file, so we skip it.
