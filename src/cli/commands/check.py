@@ -1,27 +1,26 @@
 # src/cli/commands/check.py
-"""
-Registers and implements the 'check' command group by composing
-sub-groups for CI and diagnostic commands.
-"""
+"""Registers and implements the verb-based 'check' command group."""
 from __future__ import annotations
 
 import typer
 
-from cli.commands.ci import ci_app
-from cli.commands.diagnostics import diagnostics_app
+from cli.logic.ci import audit, lint, test_system
+from cli.logic.diagnostics import policy_coverage
 
 check_app = typer.Typer(
-    help="Read-only checks to validate constitutional and code health."
+    help="Read-only validation and health checks.",
+    no_args_is_help=True,
 )
 
-# Add the sub-groups
-check_app.add_typer(ci_app, name="ci", help="High-level CI and system health checks.")
-check_app.add_typer(
-    diagnostics_app, name="diagnostics", help="Deep diagnostic and integrity checks."
+check_app.command("audit", help="Run the full constitutional self-audit.")(audit)
+check_app.command("lint", help="Check code formatting and quality.")(lint)
+check_app.command("tests", help="Run the pytest suite.")(test_system)
+check_app.command("diagnostics", help="Audit the constitution for policy coverage.")(
+    policy_coverage
 )
 
 
-# ID: 937c0f11-414e-46f3-b658-1c3debdae051
-def register(app: typer.Typer) -> None:
-    """Register the 'check' command group with the main CLI app."""
+# ID: 3c4d5e6f-7a8b-9c0d-1e2f-3a4b5c6d7e8f
+def register(app: typer.Typer):
+    """Register the 'check' command group to the main CLI app."""
     app.add_typer(check_app, name="check")

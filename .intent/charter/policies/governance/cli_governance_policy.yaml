@@ -1,6 +1,6 @@
 policy_id: cd37bddd-52c8-445a-b842-e229b29e6980
 id: cli_governance_policy
-version: "1.1.0" # Version bump for SSOT alignment
+version: "2.0.0" # Major version bump for new grammar rule
 title: "CLI Governance Policy"
 status: active
 purpose: >
@@ -23,3 +23,8 @@ rules:
   - id: cli.must_implement_capability
     statement: "Every CLI command SHOULD implement at least one semantic capability."
     enforcement: warn
+  # --- START OF NEW RULE ---
+  - id: cli.must_use_verb_noun_grammar
+    statement: "All top-level command groups MUST be verbs describing the action (e.g., 'check', 'fix', 'manage'). Subgroups should be nouns representing the target (e.g., 'manage database')."
+    enforcement: error
+  # --- END OF NEW RULE ---

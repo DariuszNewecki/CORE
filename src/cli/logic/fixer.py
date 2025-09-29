@@ -1,4 +1,4 @@
-# src/cli/commands/fixer.py
+# src/cli/logic/fixer.py
 """
 Registers all self-healing and code quality improvement commands that WRITE changes
 to the codebase or constitution. This is the single entry point for all 'fix' commands.
@@ -12,7 +12,6 @@ from typing import Optional
 import typer
 from rich.console import Console
 
-from cli.commands.cli_utils import _run_poetry_command
 from core.agents.tagger_agent import CapabilityTaggerAgent
 from core.cognitive_service import CognitiveService
 from core.knowledge_service import KnowledgeService
@@ -22,7 +21,11 @@ from features.self_healing.complexity_service import complexity_outliers
 from features.self_healing.docstring_service import fix_docstrings
 from features.self_healing.header_service import _run_header_fix_cycle
 from features.self_healing.id_tagging_service import assign_missing_ids
+
+# --- THIS IS THE FIX ---
 from features.self_healing.linelength_service import fix_line_lengths
+
+# --- END OF FIX ---
 from features.self_healing.policy_id_service import add_missing_policy_ids
 from features.self_healing.prune_orphaned_vectors import (
     main_sync as prune_orphaned_vectors,
@@ -34,6 +37,8 @@ from features.self_healing.purge_legacy_tags_service import purge_legacy_tags
 from services.repositories.db.engine import get_session
 from shared.config import settings
 from shared.logger import getLogger
+
+from .cli_utils import _run_poetry_command
 
 log = getLogger("core_admin.fix")
 console = Console()

@@ -1,4 +1,4 @@
-# src/cli/commands/guard_cli.py
+# src/cli/logic/guard_cli.py
 """
 CLI-facing guard registration helpers.
 """
@@ -11,7 +11,12 @@ from typing import Any, Dict, Optional
 
 import typer
 
+from features.introspection.drift_detector import write_report
 from features.introspection.drift_service import run_drift_analysis_async
+
+# --- CORRECTED IMPORTS ---
+from .cli_utils import should_fail
+from .guard import _print_pretty, _ux_defaults
 
 __all__ = ["register_guard"]
 
@@ -21,10 +26,6 @@ def register_guard(app: typer.Typer) -> None:
     """
     Registers the 'guard' command group with the CLI.
     """
-    from cli.commands.cli_utils import should_fail
-    from cli.commands.guard import _print_pretty, _ux_defaults
-    from features.introspection.drift_detector import write_report
-
     guard = typer.Typer(help="Governance/validation guards")
     app.add_typer(guard, name="guard")
 
@@ -66,6 +67,3 @@ def register_guard(app: typer.Typer) -> None:
                 fg=typer.colors.RED,
             )
             raise typer.Exit(code=1)
-
-    # Note: The kg-export command is removed as it's now obsolete. The drift
-    # command provides the core functionality in a more robust way.

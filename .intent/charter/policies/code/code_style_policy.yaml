@@ -1,6 +1,6 @@
 policy_id: aaa0a228-125d-4013-bfed-c1b58cec0f66
 id: code_style_policy
-version: "1.0.0"
+version: "1.1.0" # Version bump for new rule
 title: "Code Style Policy"
 status: active
 purpose: >
@@ -29,3 +29,6 @@ rules:
   - id: style.fail_on_style_in_ci
     statement: CI MUST fail on style or lint violations (no auto-fixing in CI).
     enforcement: error
+  - id: style.capability_id_placement
+    statement: "Only primary public symbols (top-level functions and classes) that represent a distinct, governable capability require an '# ID:' tag. Internal methods, properties, and private symbols SHOULD NOT be tagged."
+    enforcement: warn

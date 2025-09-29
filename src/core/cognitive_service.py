@@ -2,269 +2,162 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import os
-import threading
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 
 from sqlalchemy import select
 
-from features.governance.micro_proposal_validator import MicroProposalValidator
+from services.clients.llm_api_client import BaseLLMClient
 from services.database.models import CognitiveRole, LlmResource
 from services.database.session_manager import get_session
+from services.llm.resource_selector import ResourceSelector
 from shared.logger import getLogger
 
 log = getLogger(__name__)
 
 
-class _SimpleLLMClient:
-    """
-    Minimal async client stub used in tests/integration.
-    """
-
-    def __init__(self, name: str, api_url: str, api_key: str, model_name: str):
-        self.name = name
-        self.api_url = api_url
-        self.api_key = api_key
-        self.model_name = model_name
-
-    # ID: 4191e50f-d3c2-42d3-8484-d8153d7f2cb3
-    async def make_request_async(self, prompt: str) -> str:
-        # Real impl would call the model; tests don't require it.
-        return ""
-
-
 # ID: b58a9a64-f3a8-4385-aede-9a91b75cf327
 class CognitiveService:
     """
-    Role → LLM selection from DB-declared resources/roles.
-
-    Test expectations:
-    - Has `async initialize()` that prepares state (used by FastAPI lifespan sometimes).
-    - Has **sync** `get_client_for_role(role)` (unit tests call it without await).
-    - Must be safe to call inside an already-running event loop (pytest-anyio).
-      In that case we avoid DB round-trips and fall back to environment-only discovery.
+    Manages LLM client lifecycle and provides clients for specific cognitive roles.
+    Delegates resource selection to a dedicated ResourceSelector service.
     """
 
     def __init__(self, repo_path: Path):
         self._repo_path = Path(repo_path)
         self._loaded: bool = False
-        self._resources: List[LlmResource] = []
-        self._roles: List[CognitiveRole] = []
-        self._clients_by_resource: Dict[str, _SimpleLLMClient] = {}
-        self._selected_by_role: Dict[str, _SimpleLLMClient] = {}
-        self._validator = MicroProposalValidator()
-        self._init_lock = threading.Lock()
-
-    # ---------- lifecycle ----------
+        self._clients_by_resource_name: Dict[str, BaseLLMClient] = {}
+        self._selected_client_by_role: Dict[str, BaseLLMClient] = {}
+        self._resource_selector: Optional[ResourceSelector] = None
+        self._init_lock = asyncio.Lock()
 
     # ID: 4a3d361d-fc92-4b51-8a4a-622d91c36c04
     async def initialize(self) -> None:
-        """Public async initializer (used by FastAPI lifespan)."""
-        try:
-            await self._initialize_db_path()
-        except Exception as e:  # noqa: BLE001
-            # In API/integration tests the DB session may be in use by a fixture.
-            # Fall back to environment-only discovery so the app can start.
-            log.warning(
-                "CognitiveService DB init failed (%s); using env-only fallback.", e
-            )
-            self._initialize_env_only()
+        """Initializes the service by loading data from the DB and creating the selector."""
+        async with self._init_lock:
+            if self._loaded:
+                return
 
-    async def _initialize_db_path(self) -> None:
-        if self._loaded:
-            return
+            try:
+                log.info("CognitiveService initializing from database...")
+                async with get_session() as session:
+                    res_result = await session.execute(select(LlmResource))
+                    role_result = await session.execute(select(CognitiveRole))
 
-        async with get_session() as session:
-            res_result = await session.execute(select(LlmResource))
-            role_result = await session.execute(select(CognitiveRole))
-            self._resources = list(res_result.scalars().all())
-            self._roles = list(role_result.scalars().all())
+                    resources = []
+                    for r in res_result.scalars().all():
+                        if isinstance(r.performance_metadata, str):
+                            r.performance_metadata = json.loads(r.performance_metadata)
+                        if isinstance(r.provided_capabilities, str):
+                            r.provided_capabilities = json.loads(
+                                r.provided_capabilities
+                            )
+                        resources.append(r)
 
-        log.info(
-            "Loaded %d resources and %d roles from DB.",
-            len(self._resources),
-            len(self._roles),
-        )
+                    roles = []
+                    for role in role_result.scalars().all():
+                        if isinstance(role.required_capabilities, str):
+                            role.required_capabilities = json.loads(
+                                role.required_capabilities
+                            )
+                        roles.append(role)
 
-        # Build clients for resources that have env configured
-        for r in self._resources:
+                self._resource_selector = ResourceSelector(resources, roles)
+                self._initialize_clients(resources)
+                self._loaded = True
+
+            except Exception as e:
+                log.warning(
+                    f"CognitiveService DB init failed ({e}); services may be limited."
+                )
+                self._resource_selector = ResourceSelector([], [])
+
+    def _initialize_clients(self, resources: List[LlmResource]):
+        """Creates LLM clients for all resources that have valid environment configuration."""
+        for r in resources:
             prefix = (r.env_prefix or "").strip().upper()
             if not prefix:
                 continue
 
             api_url = os.getenv(f"{prefix}_API_URL")
-            api_key = os.getenv(f"{prefix}_API_KEY", "")
+            api_key = os.getenv(f"{prefix}_API_KEY")
             model_name = os.getenv(f"{prefix}_MODEL_NAME")
 
             if not api_url or not model_name:
                 log.warning(
-                    "Skipping client for resource '%s'. Missing one or more required environment variables with prefix '%s_'.",
-                    r.name,
-                    prefix,
+                    f"Skipping client for resource '{r.name}'. Missing required env vars with prefix '{prefix}_'."
                 )
                 continue
 
-            self._clients_by_resource[r.name] = _SimpleLLMClient(
-                name=r.name, api_url=api_url, api_key=api_key, model_name=model_name
+            self._clients_by_resource_name[r.name] = BaseLLMClient(
+                api_url=api_url, api_key=api_key, model_name=model_name
             )
-
-        log.info("Initialized %d LLM clients.", len(self._clients_by_resource))
-        self._loaded = True
-
-    def _initialize_env_only(self) -> None:
-        """
-        Build clients purely from environment variables (no DB). This is used:
-        - when running inside an already-running event loop (pytest-anyio), or
-        - when DB is busy/unavailable at app startup tests.
-        """
-        if self._loaded:
-            return
-
-        # Detect prefixes like CHEAP_, EXPENSIVE_, OPENAI_, etc.
-        prefixes = set()
-        for key in os.environ:
-            if key.endswith("_API_URL") or key.endswith("_MODEL_NAME"):
-                parts = key.split("_")[:-2]  # strip trailing key suffix
-                if parts:
-                    prefixes.add("_".join(parts))
-
-        for prefix in sorted(prefixes):
-            api_url = os.getenv(f"{prefix}_API_URL")
-            model_name = os.getenv(f"{prefix}_MODEL_NAME")
-            api_key = os.getenv(f"{prefix}_API_KEY", "")
-            if not api_url or not model_name:
-                continue
-            resource_name = prefix  # simple label
-            self._clients_by_resource[resource_name] = _SimpleLLMClient(
-                name=resource_name,
-                api_url=api_url,
-                api_key=api_key,
-                model_name=model_name,
-            )
-
-        # No roles in this mode; selection is heuristic.
-        self._resources = []
-        self._roles = []
-        self._loaded = True
-        log.info("Initialized %d env-only LLM clients.", len(self._clients_by_resource))
-
-    # ---------- selection helpers ----------
-
-    def _score_resource_for_role(
-        self, resource: LlmResource, role: CognitiveRole
-    ) -> Optional[Tuple[int, LlmResource]]:
-        res_caps = set(resource.provided_capabilities or [])
-        req_caps = set(role.required_capabilities or [])
-        if not req_caps.issubset(res_caps):
-            return None
-        md = resource.performance_metadata or {}
-        cost = md.get("cost_rating")
-        if not isinstance(cost, int):
-            cost = 3
-        return cost, resource
-
-    def _select_client_for_role(self, role_name: str) -> _SimpleLLMClient:
-        # If we have roles/resources (DB path), do capability/cost selection.
-        if self._roles and self._resources:
-            role: Optional[CognitiveRole] = next(
-                (r for r in self._roles if r.role == role_name), None
-            )
-            if role is None:
-                raise RuntimeError(f"Unknown role '{role_name}'")
-
-            scored: List[Tuple[int, LlmResource]] = []
-            for r in self._resources:
-                s = self._score_resource_for_role(r, role)
-                if s:
-                    scored.append(s)
-
-            if not scored:
-                raise RuntimeError(f"No compatible resources for role '{role_name}'")
-
-            scored.sort(key=lambda t: t[0])  # cheapest first
-            best = scored[0][1]
-            client = self._clients_by_resource.get(best.name)
-            if client is None:
-                raise RuntimeError(
-                    f"Selected resource '{best.name}' has no configured client (missing env?)"
-                )
-            return client
-
-        # Env-only heuristic: prefer any client whose name/model contains 'cheap'.
-        all_clients = list(self._clients_by_resource.values())
-        if not all_clients:
-            # Final safety: a stub client so planner can proceed in tests.
-            log.warning("No LLM clients discovered; using a stub client.")
-            return _SimpleLLMClient("stub", "http://stub", "", "mock")
-
-        # ID: 3bd3562f-519f-4140-9e9a-7c48d12fea79
-        def rank(c: _SimpleLLMClient) -> int:
-            name = f"{c.name} {c.model_name}".lower()
-            if "cheap" in name or "low" in name:
-                return 0
-            if "expensive" in name or "premium" in name:
-                return 2
-            return 1
-
-        all_clients.sort(key=rank)
-        return all_clients[0]
-
-    # ---------- public API expected by tests ----------
-
-    # ID: 775b9cb7-48fd-4bcd-96fa-758b74191a70
-    async def get_embedding_for_code(self, source_code: str) -> list[float]:
-        """Generate embeddings for source code using the embedding service."""
-        # You'll need to implement this based on your embedding service
-        # This is a placeholder that should be replaced with actual embedding logic
-        try:
-            # Example implementation - replace with your actual embedding service call
-            from services.embedding_service import EmbeddingService
-            embedding_service = EmbeddingService()
-            return await embedding_service.get_embedding(source_code)
-        except Exception as e:
-            raise RuntimeError(f"Failed to generate embedding: {e}")
+        log.info(f"Initialized {len(self._clients_by_resource_name)} LLM clients.")
 
     # ID: 9494786d-4335-4ac3-97cc-4242798171cc
-    def get_client_for_role(self, role_name: str) -> _SimpleLLMClient:
+    def get_client_for_role(self, role_name: str) -> BaseLLMClient:
         """
-        Synchronous accessor (unit tests call this without await).
-
-        Behavior:
-        - If no event loop is running, we do a blocking DB init.
-        - If an event loop *is* running (pytest-anyio), we avoid DB entirely
-          and build clients from environment variables (thread-safe).
+        Synchronously gets the best client for a given role.
         """
         if not self._loaded:
-            with self._init_lock:
-                if not self._loaded:
-                    try:
-                        asyncio.get_running_loop()
-                        # Running loop -> do env-only init (no DB calls in-loop).
-                        self._initialize_env_only()
-                    except RuntimeError:
-                        # No loop -> safe to do blocking async DB init.
-                        asyncio.run(self._initialize_db_path())
+            try:
+                if asyncio.get_running_loop().is_running():
+                    log.warning(
+                        "CognitiveService accessed synchronously from event loop. Initialization may be incomplete."
+                    )
+                else:
+                    raise RuntimeError()
+            except RuntimeError:
+                asyncio.run(self.initialize())
 
-        if role_name in self._selected_by_role:
-            return self._selected_by_role[role_name]
+        if role_name in self._selected_client_by_role:
+            return self._selected_client_by_role[role_name]
 
-        client = self._select_client_for_role(role_name)
-        self._selected_by_role[role_name] = client
+        if not self._resource_selector:
+            raise RuntimeError(
+                "ResourceSelector not available. Service may not have initialized correctly."
+            )
+
+        selected_resource = self._resource_selector.select_resource_for_role(role_name)
+        if not selected_resource:
+            raise RuntimeError(f"No compatible resource found for role '{role_name}'")
+
+        client = self._clients_by_resource_name.get(selected_resource.name)
+        if not client:
+            raise RuntimeError(
+                f"Resource '{selected_resource.name}' was selected but has no configured client."
+            )
+
+        self._selected_client_by_role[role_name] = client
         return client
 
     # ID: 4364b032-174d-4799-9797-06f0e01e30d0
-    async def aget_client_for_role(self, role_name: str) -> _SimpleLLMClient:
-        """Async variant (not used by the unit test, but handy elsewhere)."""
+    async def aget_client_for_role(self, role_name: str) -> BaseLLMClient:
+        """Asynchronously gets the best client for a given role."""
         if not self._loaded:
             await self.initialize()
-        if role_name in self._selected_by_role:
-            return self._selected_by_role[role_name]
-        client = self._select_client_for_role(role_name)
-        self._selected_by_role[role_name] = client
-        return client
+        return self.get_client_for_role(role_name)
 
-    # ReconnaissanceAgent calls this; keep a harmless stub for tests.
+    # ID: 775b9cb7-48fd-4bcd-96fa-758b74191a70
+    async def get_embedding_for_code(self, source_code: str) -> list[float] | None:
+        """Generate embeddings using the correct, role-based client."""
+        if not source_code:
+            return None
+        try:
+            # --- THE DEFINITIVE FIX ---
+            # Use the role-based system to get a dedicated, correctly configured vectorizer client.
+            client = self.get_client_for_role("Vectorizer")
+            return await client.get_embedding(source_code)
+            # --- END OF FIX ---
+        except Exception as e:
+            raise RuntimeError(f"Failed to generate embedding: {e}") from e
+
     # ID: 17bcea8d-726a-482e-aa98-b6a24b43a6a0
     async def search_capabilities(self, query: str, limit: int = 5):
+        """Placeholder for semantic search capability."""
+        log.warning(
+            "CognitiveService.search_capabilities is a placeholder and will return no results."
+        )
         return []

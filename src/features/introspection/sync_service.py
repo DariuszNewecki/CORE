@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import ast
 import uuid
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Set
 
 from rich.console import Console
 from sqlalchemy import text
@@ -15,87 +15,115 @@ from shared.config import settings
 console = Console()
 
 
+# ID: 9b343ade-594e-4bd8-9580-3d32c84d4f2b
+class SymbolVisitor(ast.NodeVisitor):
+    """An AST visitor that discovers symbols and their hierarchical paths."""
+
+    def __init__(self, file_path: str, source_lines: List[str], seen_uuids: Set[str]):
+        self.file_path = file_path
+        self.source_lines = source_lines
+        self.symbols: List[Dict[str, Any]] = []
+        self.class_stack: List[str] = []
+        self.seen_uuids = seen_uuids
+
+    # ID: 89431690-9e7a-40e1-bb4c-d2ad247a5277
+    def visit_ClassDef(self, node: ast.ClassDef):
+        """Process a class definition and its children (methods)."""
+        self.class_stack.append(node.name)
+        self._process_symbol(node)  # Process the class itself
+        self.generic_visit(node)  # IMPORTANT: Visit children (methods)
+        self.class_stack.pop()
+
+    # ID: 0bfa9ab7-a83a-4d58-aa5d-6c6769af4e4f
+    def visit_FunctionDef(self, node: ast.FunctionDef):
+        """Process a function or method definition."""
+        self._process_symbol(node)  # Process all functions/methods
+
+    # ID: 8e860945-daec-4ffa-a5ac-3c669082ff8a
+    def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef):
+        """Process an async function or method definition."""
+        self._process_symbol(node)  # Process all async functions/methods
+
+    def _process_symbol(
+        self, node: ast.ClassDef | ast.FunctionDef | ast.AsyncFunctionDef
+    ):
+        """Extracts metadata for a single symbol, respecting its context."""
+        is_public = not node.name.startswith("_")
+        is_dunder = node.name.startswith("__") and node.name.endswith("__")
+        if not (is_public and not is_dunder):
+            return
+
+        tag_line_index = node.lineno - 2
+        symbol_id = None
+        if 0 <= tag_line_index < len(self.source_lines):
+            line_above = self.source_lines[tag_line_index].strip()
+            if line_above.startswith("# ID:"):
+                try:
+                    symbol_id = str(uuid.UUID(line_above.split(":", 1)[1].strip()))
+                except ValueError:
+                    return
+
+        if symbol_id:
+            if symbol_id in self.seen_uuids:
+                console.print(
+                    f"[bold red]CRITICAL WARNING: Duplicate UUID '{symbol_id}' found in '{self.file_path}' for symbol '{node.name}'. Skipping.[/bold red]"
+                )
+                return
+            self.seen_uuids.add(symbol_id)
+
+            if self.class_stack:
+                class_path = ".".join(self.class_stack)
+                symbol_path = (
+                    f"{self.file_path}::{class_path}.{node.name}"
+                    if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+                    else f"{self.file_path}::{class_path}"
+                )
+            else:
+                symbol_path = f"{self.file_path}::{node.name}"
+
+            self.symbols.append(
+                {
+                    "uuid": symbol_id,
+                    "symbol_path": symbol_path,
+                    "file_path": self.file_path,
+                    "structural_hash": calculate_structural_hash(node),
+                }
+            )
+
+
 # ID: b1bfdf4e-f1d6-4ad8-b2ad-f8e65589b618
 class SymbolScanner:
-    """Scans the codebase to extract symbol information."""
+    """Scans the codebase to extract symbol information using a hierarchical visitor."""
 
     # ID: b7f12001-466a-43fe-98ab-f6d6053c5d40
     def scan(self) -> List[Dict[str, Any]]:
         """Scans all Python files in src/ and extracts ID'd symbols."""
         src_dir = settings.REPO_PATH / "src"
         all_symbols = []
-        # --- FIX: Use a set to track seen symbol_paths to prevent duplicates ---
-        seen_symbol_paths = set()
+        seen_uuids: Set[str] = set()
 
         for file_path in src_dir.rglob("*.py"):
             try:
                 content = file_path.read_text("utf-8")
                 source_lines = content.splitlines()
-                tree = ast.parse(content)
-                for node in ast.walk(tree):
-                    if isinstance(
-                        node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)
-                    ):
-                        # --- FIX: Stricter filtering for what constitutes a governable symbol ---
-                        is_public = not node.name.startswith("_")
-                        is_dunder = node.name.startswith("__") and node.name.endswith(
-                            "__"
-                        )
-                        if is_public and not is_dunder:
-                            self._process_symbol(
-                                node,
-                                file_path,
-                                source_lines,
-                                all_symbols,
-                                seen_symbol_paths,
-                            )
+                tree = ast.parse(content, filename=str(file_path))
+
+                rel_path_str = str(file_path.relative_to(settings.REPO_PATH))
+                visitor = SymbolVisitor(rel_path_str, source_lines, seen_uuids)
+                visitor.visit(tree)
+                all_symbols.extend(visitor.symbols)
+
             except Exception as e:
                 console.print(f"[bold red]Error scanning {file_path}: {e}[/bold red]")
-        return all_symbols
 
-    def _process_symbol(
-        self, node, file_path, source_lines, all_symbols, seen_symbol_paths
-    ):
-        """Extracts metadata for a single symbol, avoiding duplicates."""
-        tag_line_index = node.lineno - 2
-        symbol_id = None
-        if 0 <= tag_line_index < len(source_lines):
-            line_above = source_lines[tag_line_index].strip()
-            if line_above.startswith("# ID:"):
-                try:
-                    symbol_id = str(uuid.UUID(line_above.split(":", 1)[1].strip()))
-                except ValueError:
-                    console.print(
-                        f"[yellow]Warning: Invalid UUID format in {file_path} at line {node.lineno-1}[/yellow]"
-                    )
-                    return
-
-        if symbol_id:
-            rel_path_str = str(file_path.relative_to(settings.REPO_PATH))
-            symbol_path = f"{rel_path_str}::{node.name}"
-
-            # --- FIX: Prevent adding symbols with duplicate paths ---
-            if symbol_path in seen_symbol_paths:
-                console.print(
-                    f"[yellow]Warning: Duplicate symbol path detected and skipped: {symbol_path}[/yellow]"
-                )
-                return
-            seen_symbol_paths.add(symbol_path)
-
-            all_symbols.append(
-                {
-                    "uuid": symbol_id,
-                    "symbol_path": symbol_path,
-                    "file_path": rel_path_str,
-                    "structural_hash": calculate_structural_hash(node),
-                }
-            )
+        unique_symbols = {s["symbol_path"]: s for s in all_symbols}
+        return list(unique_symbols.values())
 
 
 # ID: 1673589c-8198-494c-9bac-d40fd7d60322
 async def run_sync_with_db() -> Dict[str, int]:
     """
-    Executes the full, database-centric sync logic using a temporary table.
+    Executes the full, database-centric sync logic using a clean slate approach.
     """
     scanner = SymbolScanner()
     code_state = scanner.scan()
@@ -103,7 +131,11 @@ async def run_sync_with_db() -> Dict[str, int]:
 
     async with get_session() as session:
         async with session.begin():
-            # Step 1: Create and populate the staging table
+            pre_sync_result = await session.execute(
+                text("SELECT uuid FROM core.symbols")
+            )
+            pre_sync_uuids = {row[0] for row in pre_sync_result}
+
             await session.execute(
                 text(
                     "CREATE TEMPORARY TABLE core_symbols_staging (LIKE core.symbols INCLUDING DEFAULTS) ON COMMIT DROP;"
@@ -120,40 +152,28 @@ async def run_sync_with_db() -> Dict[str, int]:
                     code_state,
                 )
 
-            # Step 2: Delete symbols that are no longer in the codebase
-            delete_stmt = text(
-                "DELETE FROM core.symbols WHERE uuid NOT IN (SELECT uuid FROM core_symbols_staging);"
-            )
-            result = await session.execute(delete_stmt)
-            stats["deleted"] = result.rowcount
-
-            # Step 3: Update symbols where the structural hash has changed
-            update_stmt = text(
-                """
-                UPDATE core.symbols s
-                SET
-                    symbol_path = st.symbol_path,
-                    file_path = st.file_path,
-                    structural_hash = st.structural_hash,
-                    updated_at = NOW()
-                FROM core_symbols_staging st
-                WHERE s.uuid = st.uuid
-                  AND (s.structural_hash IS NULL OR s.structural_hash != st.structural_hash OR s.symbol_path != st.symbol_path);
+            await session.execute(
+                text(
+                    """
+                UPDATE core_symbols_staging st
+                SET vector_id = s.vector_id
+                FROM core.symbols s
+                WHERE st.uuid = s.uuid AND st.structural_hash = s.structural_hash;
             """
+                )
             )
-            result = await session.execute(update_stmt)
-            stats["updated"] = result.rowcount
 
-            # --- FIX: Make the INSERT statement robust to conflicts on both uuid and symbol_path ---
-            insert_stmt = text(
-                """
-                INSERT INTO core.symbols (uuid, symbol_path, file_path, structural_hash, is_public)
-                SELECT uuid, symbol_path, file_path, structural_hash, TRUE
-                FROM core_symbols_staging
-                ON CONFLICT (uuid) DO NOTHING;
-            """
+            await session.execute(
+                text("TRUNCATE TABLE core.symbols RESTART IDENTITY CASCADE")
             )
-            result = await session.execute(insert_stmt)
-            stats["inserted"] = result.rowcount
+
+            await session.execute(
+                text("INSERT INTO core.symbols SELECT * FROM core_symbols_staging;")
+            )
+
+            post_sync_uuids = {s["uuid"] for s in code_state}
+            stats["inserted"] = len(post_sync_uuids - pre_sync_uuids)
+            stats["deleted"] = len(pre_sync_uuids - post_sync_uuids)
+            stats["updated"] = len(pre_sync_uuids.intersection(post_sync_uuids))
 
     return stats

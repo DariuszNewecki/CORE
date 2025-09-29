@@ -1,4 +1,4 @@
-# src/core/clients.py
+# src/services/clients/llm_api_client.py
 """
 Provides a base client for asynchronous communication with Chat Completions
 and Embedding APIs for LLM interactions.
@@ -12,6 +12,7 @@ from typing import Any, List
 
 import httpx
 
+from shared.config import settings
 from shared.logger import getLogger
 
 log = getLogger(__name__)
@@ -35,17 +36,29 @@ class BaseLLMClient:
         self.model_name = model_name
         self.api_type = self._determine_api_type(self.base_url)
         self.headers = self._get_headers()
-        self.async_client = httpx.AsyncClient(timeout=180.0)
+
+        # --- START: THE DEFINITIVE FIX ---
+        # Explicitly cast settings from env vars to the correct type (int).
+        try:
+            connect_timeout = int(settings.model_extra.get("LLM_CONNECT_TIMEOUT", 10))
+            request_timeout = int(settings.model_extra.get("LLM_REQUEST_TIMEOUT", 180))
+        except (ValueError, TypeError):
+            connect_timeout = 10
+            request_timeout = 180
+
+        self.timeout_config = httpx.Timeout(
+            connect=connect_timeout, read=request_timeout, write=30.0, pool=None
+        )
+        self.async_client = httpx.AsyncClient(timeout=self.timeout_config, http2=True)
+        # --- END: THE DEFINITIVE FIX ---
 
     def _determine_api_type(self, base_url: str) -> str:
         """Determines the API type based on the URL."""
         if "anthropic" in base_url:
             return "anthropic"
-        if "localhost" in base_url or "127.0.0.1" in base_url:
+        if "localhost" in base_url or "127.0.0.1" in base_url or "192.168" in base_url:
             return "ollama_compatible"
-        if "192.168.20.24" in base_url:
-            return "ollama_compatible"
-        return "openai"  # Default for DeepSeek and OpenAI
+        return "openai"
 
     def _get_headers(self) -> dict:
         """Determines the correct headers based on the API type."""
@@ -79,16 +92,14 @@ class BaseLLMClient:
         if task_type == "embedding":
             if self.api_type == "ollama_compatible":
                 return {"model": self.model_name, "prompt": prompt}
-            # OpenAI/DeepSeek use "input"
             return {"model": self.model_name, "input": [prompt]}
-
         if self.api_type == "anthropic":
             return {
                 "model": self.model_name,
                 "max_tokens": 4096,
                 "messages": [{"role": "user", "content": prompt}],
             }
-        else:  # openai chat
+        else:
             return {
                 "model": self.model_name,
                 "messages": [{"role": "user", "content": prompt}],
@@ -105,10 +116,9 @@ class BaseLLMClient:
                 if not embedding:
                     raise ValueError("Invalid embedding format in API response.")
                 return embedding
-
             if self.api_type == "anthropic":
                 return response_data.get("content", [{}])[0].get("text", "")
-            else:  # openai chat
+            else:
                 return response_data["choices"][0]["message"]["content"]
         except (KeyError, IndexError, ValueError) as e:
             log.error(
@@ -123,33 +133,25 @@ class BaseLLMClient:
         """Sends a prompt asynchronously to the configured API."""
         api_url = self._get_api_url(task_type)
         payload = self._prepare_payload(prompt, user_id, task_type)
-
-        backoff_delays = [0.8, 1.6, 3.2]
-        timeout_config = httpx.Timeout(connect=10.0, read=120.0, write=30.0, pool=30.0)
+        backoff_delays = [1.0, 2.0, 4.0]
 
         for attempt in range(len(backoff_delays) + 1):
             try:
                 response = await self.async_client.post(
-                    api_url, headers=self.headers, json=payload, timeout=timeout_config
+                    api_url, headers=self.headers, json=payload
                 )
                 response.raise_for_status()
                 return self._parse_response(response.json(), task_type)
-            except (
-                httpx.HTTPStatusError,
-                httpx.ReadTimeout,
-                httpx.ConnectTimeout,
-                httpx.TransportError,
-            ) as e:
+            except Exception as e:
+                # --- FIX: Log the actual exception, not a generic message ---
+                error_message = f"Request failed (attempt {attempt + 1}/{len(backoff_delays) + 1}) for {api_url}: {type(e).__name__} - {e}"
                 if attempt < len(backoff_delays):
                     wait_time = backoff_delays[attempt] + random.uniform(0, 0.5)
-                    log.warning(
-                        f"Request failed (attempt {attempt + 1}/"
-                        f"{len(backoff_delays) + 1}), retrying in "
-                        f"{wait_time:.1f}s... Error: {e}"
-                    )
+                    log.warning(f"{error_message}. Retrying in {wait_time:.1f}s...")
                     await asyncio.sleep(wait_time)
                     continue
-                log.error(f"Final attempt failed for {api_url}: {e}", exc_info=True)
+                log.error(f"Final attempt failed: {error_message}", exc_info=True)
+                # Re-raise the original exception after the last attempt
                 raise
 
     # ID: 08f4f3a4-ac7c-4817-ad31-2d2bc72f0d93

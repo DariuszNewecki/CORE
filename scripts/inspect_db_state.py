@@ -13,67 +13,54 @@ from pathlib import Path
 # Add src to path so we can import CORE modules
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from services.database.session_manager import get_async_session
+# --- FIX: Use the correct function name 'get_session' ---
+from services.database.session_manager import get_session
 from sqlalchemy import text
 
 
 async def inspect_database():
     """Check the state of all CORE database tables."""
     
-    # List of tables we expect to exist based on the migrations
+    # List of tables that correspond to the deleted YAML files
     tables_to_check = [
-        'proposals',
-        'proposal_signatures', 
-        'audit_runs',
-        'symbols',
-        'capabilities',
-        'symbol_capabilities',
-        'domains',
+        'cli_commands',
         'llm_resources',
         'cognitive_roles',
-        'cli_commands',
-        'runtime_services'
     ]
     
-    async with get_async_session() as session:
-        print("CORE Database State Inspection")
+    # --- FIX: Use the correct function name 'get_session' ---
+    async with get_session() as session:
+        print("CORE Operational Knowledge Inspection")
         print("=" * 50)
+        print("Verifying that legacy YAML data now lives in the database...")
         
+        all_found = True
         for table in tables_to_check:
             try:
                 # Get row count
                 result = await session.execute(text(f"SELECT COUNT(*) FROM core.{table}"))
-                count = result.scalar()
+                count = result.scalar_one_or_none() or 0
                 
-                # Get a sample row if data exists
                 if count > 0:
-                    sample_result = await session.execute(text(f"SELECT * FROM core.{table} LIMIT 1"))
-                    sample_row = sample_result.fetchone()
-                    columns = list(sample_row._mapping.keys()) if sample_row else []
-                    status = f"{count} rows - Columns: {', '.join(columns[:5])}{'...' if len(columns) > 5 else ''}"
+                    status = f"✅ POPULATED ({count} rows)"
                 else:
-                    status = "EMPTY"
+                    status = "❌ EMPTY"
+                    all_found = False
                     
             except Exception as e:
                 status = f"ERROR: {e}"
+                all_found = False
             
-            print(f"  {table:20} {status}")
+            print(f"  - Table `core.{table}`: {status}")
         
-        print("\n" + "=" * 50)
-        
-        # Also check if there are any views
-        try:
-            views_result = await session.execute(text("""
-                SELECT table_name FROM information_schema.views 
-                WHERE table_schema = 'core'
-            """))
-            views = [row[0] for row in views_result.fetchall()]
-            if views:
-                print(f"Database Views: {', '.join(views)}")
-            else:
-                print("No views found")
-        except Exception as e:
-            print(f"Could not check views: {e}")
+        print("-" * 50)
+        if all_found:
+            print("✅ Success: All operational knowledge tables are populated.")
+            print("You can safely proceed with the removal of the legacy YAML files.")
+        else:
+            print("❌ Warning: One or more operational tables are empty.")
+            print("It may be necessary to run the migration or sync commands.")
+        print("=" * 50)
 
 
 if __name__ == "__main__":

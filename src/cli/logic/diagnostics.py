@@ -1,4 +1,4 @@
-# src/cli/commands/diagnostics.py
+# src/cli/logic/diagnostics.py
 """
 Implements deep diagnostic checks for system integrity and constitutional alignment.
 """
@@ -101,6 +101,7 @@ def _add_cli_nodes(tree_node: Tree, cli_app: typer.Typer):
 )
 # ID: f4d5a5e3-1b9c-4e8a-9f7b-6c0d2e1a3b4c
 def cli_tree():
+    """Builds and displays the CLI command tree."""
     from cli.admin_cli import app as main_app
 
     console.print("[bold cyan]🚀 Building CLI Command Tree...[/bold cyan]")
@@ -176,7 +177,6 @@ def debug_meta_paths():
 )
 # ID: 41fdbad2-2bc4-4a4d-85c8-5f30461a4af0
 def unassigned_symbols():
-    # This now correctly uses the new ID-based terminology
     unassigned = get_unassigned_symbols()
     if not unassigned:
         console.print(
@@ -229,18 +229,14 @@ def manifest_hygiene():
 def cli_registry():
     meta_content = (settings.REPO_PATH / ".intent" / "meta.yaml").read_text("utf-8")
     meta = yaml.safe_load(meta_content) or {}
-
     knowledge = meta.get("mind", {}).get("knowledge", {})
     schemas = meta.get("charter", {}).get("schemas", {})
-
     registry_rel = knowledge.get("cli_registry", "mind/knowledge/cli_registry.yaml")
     schema_rel = schemas.get(
         "cli_registry_schema", "charter/schemas/cli_registry_schema.json"
     )
-
     registry_path = (settings.REPO_PATH / registry_rel).resolve()
     schema_path = (settings.REPO_PATH / schema_rel).resolve()
-
     if not registry_path.exists():
         typer.secho(
             f"ERROR: CLI registry not found: {registry_path}",
@@ -255,13 +251,10 @@ def cli_registry():
             fg=typer.colors.RED,
         )
         raise typer.Exit(1)
-
     registry_content = registry_path.read_text("utf-8")
     registry = yaml.safe_load(registry_content) or {}
-
     schema_content = schema_path.read_text(encoding="utf-8")
     schema = json.loads(schema_content)
-
     validator = jsonschema.Draft202012Validator(schema)
     errors = sorted(validator.iter_errors(registry), key=lambda e: e.path)
     if errors:
@@ -288,13 +281,10 @@ def check_legacy_tags():
         console.print(
             "[bold cyan]🚀 Running standalone legacy tag check...[/bold cyan]"
         )
-
         context = AuditorContext(settings.REPO_PATH)
         await context.load_knowledge_graph()
-
         check = LegacyTagCheck(context)
         findings = check.execute()
-
         if not findings:
             console.print("[bold green]✅ Success! No legacy tags found.[/bold green]")
             return
@@ -302,18 +292,18 @@ def check_legacy_tags():
         console.print(
             f"\n[bold red]❌ Found {len(findings)} instance(s) of legacy tags:[/bold red]"
         )
-
-        # --- START OF FIX: The table logic is now restored ---
         table = Table(title="Obsolete Tag Violations")
         table.add_column("File Path", style="cyan", no_wrap=True)
         table.add_column("Line", style="magenta")
         table.add_column("Message", style="red")
-
         for finding in findings:
             table.add_row(finding.file_path, str(finding.line_number), finding.message)
 
+        # --- THIS IS THE FIX ---
+        # The table was being created but never printed.
         console.print(table)
         # --- END OF FIX ---
+
         raise typer.Exit(code=1)
 
     asyncio.run(_async_check_legacy_tags())

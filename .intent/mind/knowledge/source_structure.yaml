@@ -20,7 +20,7 @@ structure:
   - domain: features
     path: src/features
     description: "Self-contained business capabilities, mapped to the DB capabilities table."
-    allowed_imports: [features, services, shared, core] # <-- FIX: Added 'core'
+    allowed_imports: [features, services, shared, core]
 
   - domain: services
     path: src/services

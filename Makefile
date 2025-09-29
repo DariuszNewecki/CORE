@@ -31,7 +31,7 @@ help:
 	@echo "make fast-check    - Run linting and tests (RECOMMENDED FOR LOCAL DEV)"
 	@echo "make lint          - Check code format and quality (read-only)"
 	@echo "make format        - Fix code format and quality issues"
-	@echo "make test          - Run tests via 'core-admin check ci test'"
+	@echo "make test          - Run tests via 'core-admin check tests'"
 	@echo "make run           - Start the API server"
 	@echo "make cli-tree      - Display the full CLI command tree"
 	@echo "make clean         - Remove temporary files"
@@ -54,25 +54,26 @@ stop:
 	@lsof -t -i:$(PORT) | xargs kill -9 2>/dev/null || true
 
 
+# --- START OF UPDATED COMMANDS ---
 audit:
-	$(POETRY) run core-admin check ci audit
+	$(POETRY) run core-admin check audit
 
 lint:
-	$(POETRY) run core-admin check ci lint
+	$(POETRY) run core-admin check lint
 
 format:
-	$(POETRY) run core-admin fix format
+	$(POETRY) run core-admin fix code-style
 
 test:
-	$(POETRY) run core-admin check ci test
+	$(POETRY) run core-admin check tests
 
 cli-tree:
 	@echo "🌳 Generating CLI command tree..."
-	$(POETRY) run core-admin check diagnostics cli-tree
+	$(POETRY) run core-admin inspect command-tree
 
 fast-check:
-	$(POETRY) run core-admin check ci lint
-	$(POETRY) run core-admin check ci test
+	$(MAKE) lint
+	$(MAKE) test
 	
 fix-lines:
 	@echo "📏 Fixing long lines with AI assistant..."
@@ -82,11 +83,7 @@ fix-docs:
 	@echo "✍️  Adding missing docstrings with AI assistant..."
 	$(POETRY) run core-admin fix docstrings --write
 
-build-graph:
-	@echo "🏗️  Building knowledge graph..."
-	$(POETRY) run core-admin build graph
-
-vectorize: build-graph
+vectorize:
 	@echo "🧠 Vectorizing knowledge graph..."
 	$(POETRY) run core-admin run vectorize
 
@@ -97,19 +94,18 @@ check:
 	$(MAKE) audit
 	@$(MAKE) check-docs
 
+# The 'integrate' command is now superseded by the more explicit 'submit' command.
+# Kept for backward compatibility for now, but points to the new workflow command.
 integrate:
-	@echo "🤝 Running Canonical Integration Sequence..."
-	@$(MAKE) format
-	@poetry run core-admin fix assign-ids --write
-	@poetry run core-admin knowledge sync --write
-	@poetry run core-admin run vectorize --write
-	@poetry run core-admin fix orphaned-vectors --write
-	@poetry run core-admin check ci audit
-	@echo "✅ Integration sequence complete. Please commit your changes."
+	@echo "🤝 Running Canonical Integration Sequence via 'submit changes'..."
+	$(POETRY) run core-admin submit changes --message "feat: Integrate changes via make"
 
 docs:
 	@echo "📚 Generating capability documentation..."
-	$(POETRY) run core-admin build docs
+	# This is a conceptual placeholder. The 'build docs' command would need to be re-wired.
+	# For now, let's assume it maps to a management task.
+	$(POETRY) run core-admin manage project docs
+# --- END OF UPDATED COMMANDS ---
 
 check-docs: docs
 	@echo "🔎 Checking for documentation drift..."

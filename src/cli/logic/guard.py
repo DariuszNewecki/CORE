@@ -1,4 +1,4 @@
-# src/cli/commands/guard.py
+# src/cli/logic/guard.py
 """
 Intent: Governance/validation guard commands exposed to the operator.
 """
@@ -117,8 +117,9 @@ def register(app: typer.Typer) -> None:
     """
     Legacy entry point kept for backward compatibility.
 
-    Delegates to the canonical implementation in `cli.commands.guard_cli.register_guard`.
+    Delegates to the canonical implementation in `cli.logic.guard_cli.register_guard`.
     """
-    from cli.commands.guard_cli import register_guard  # lazy import (no cycle)
+    # --- CORRECTED IMPORT ---
+    from .guard_cli import register_guard
 
     return register_guard(app)
