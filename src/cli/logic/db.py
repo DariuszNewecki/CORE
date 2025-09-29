@@ -1,4 +1,4 @@
-# src/cli/commands/db.py
+# src/cli/logic/db.py
 """
 Registers the top-level 'db' command group for managing the CORE operational database.
 """
@@ -11,11 +11,13 @@ import yaml
 from rich.console import Console
 from sqlalchemy import text
 
-from cli.commands.migrate import migrate_db
-from cli.commands.status import status
-from cli.commands.sync_domains import sync_domains
 from services.repositories.db.engine import get_session
 from shared.config import settings
+
+# --- CORRECTED IMPORTS ---
+from .migrate import migrate_db
+from .status import status
+from .sync_domains import sync_domains
 
 console = Console()
 db_app = typer.Typer(
@@ -36,13 +38,9 @@ async def _export_domains():
         )
         domains_data = [dict(row._mapping) for row in result]
 
-    # --- THIS IS THE FINAL FIX ---
-    # Construct the path using settings.MIND, which correctly points to .intent/mind
     output_path = settings.MIND / "knowledge" / "domains.yaml"
-    # --- END OF FINAL FIX ---
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    # The structure should match the original file for compatibility
     yaml_content = {"version": 2, "domains": domains_data}
     output_path.write_text(yaml.dump(yaml_content, indent=2, sort_keys=False), "utf-8")
     console.print(

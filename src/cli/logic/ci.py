@@ -1,4 +1,4 @@
-# src/cli/commands/ci.py
+# src/cli/logic/ci.py
 """
 Implements high-level CI and system health checks.
 """
@@ -14,12 +14,14 @@ from rich.json import JSON
 from rich.panel import Panel
 from rich.table import Table
 
-from cli.commands.cli_utils import (
+from core.service_registry import service_registry
+from shared.models.audit_models import AuditSeverity
+
+# --- CORRECTED IMPORT ---
+from .cli_utils import (
     _run_poetry_command,
     find_test_file_for_capability_async,
 )
-from core.service_registry import service_registry
-from shared.models.audit_models import AuditSeverity
 
 console = Console()
 ci_app = typer.Typer(help="High-level CI and system health checks.")
@@ -78,7 +80,6 @@ def test_system(
     "audit",
     help="Run the full constitutional self-audit and print a summary of findings.",
 )
-# --- THIS IS THE FIX ---
 # ID: f7bc6512-03d2-4bf9-b718-6fb9323e38ea
 def audit(
     severity: str = typer.Option(
@@ -148,9 +149,6 @@ def audit(
             raise typer.Exit(1)
 
     asyncio.run(_async_audit())
-
-
-# --- END OF FIX ---
 
 
 @ci_app.command(

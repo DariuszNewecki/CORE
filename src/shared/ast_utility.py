@@ -13,6 +13,9 @@ from __future__ import annotations
 import ast
 import hashlib
 import logging
+import re
+import uuid
+from dataclasses import dataclass
 from typing import Dict, List, Optional
 
 log = logging.getLogger(__name__)
@@ -36,7 +39,7 @@ def find_definition_line(
     )
 
     # Search for "def" or "class" from the last decorator onwards
-    for i in range(last_decorator_line, len(source_lines)):
+    for i in range(last_decorator_line - 1, len(source_lines)):
         line = source_lines[i].strip()
         if (
             line.startswith(f"def {node.name}")
@@ -46,6 +49,49 @@ def find_definition_line(
             return i + 1  # Return 1-based line number
 
     return node.lineno  # Fallback
+
+
+@dataclass
+# ID: aae372c1-f0db-43e3-a048-89940a5fd108
+class SymbolIdResult:
+    """Holds the result of finding a symbol's ID and definition line."""
+
+    has_id: bool
+    uuid: Optional[str] = None
+    id_tag_line_num: Optional[int] = None
+    definition_line_num: int = 0
+
+
+# ID: 6a3b9d5c-1f8e-4b2a-9c7d-8e5f4a3b2c1d
+def find_symbol_id_and_def_line(
+    node: ast.FunctionDef | ast.AsyncFunctionDef | ast.ClassDef, source_lines: List[str]
+) -> SymbolIdResult:
+    """
+    Finds the actual definition line and ID tag for a symbol, correctly skipping decorators.
+    """
+    definition_line = find_definition_line(node, source_lines)
+
+    # The ID tag should be on the line immediately preceding the definition line
+    tag_line_index = definition_line - 2
+
+    if 0 <= tag_line_index < len(source_lines):
+        line_above = source_lines[tag_line_index].strip()
+        match = re.search(r"#\s*ID:\s*([0-9a-fA-F\-]+)", line_above)
+        if match:
+            found_uuid = match.group(1)
+            try:
+                # Validate it's a proper UUID
+                uuid.UUID(found_uuid)
+                return SymbolIdResult(
+                    has_id=True,
+                    uuid=found_uuid,
+                    id_tag_line_num=tag_line_index + 1,
+                    definition_line_num=definition_line,
+                )
+            except ValueError:
+                pass  # Invalid UUID format, treat as no ID
+
+    return SymbolIdResult(has_id=False, definition_line_num=definition_line)
 
 
 # --- END OF NEW HELPER FUNCTION ---

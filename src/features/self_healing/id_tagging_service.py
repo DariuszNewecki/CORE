@@ -7,14 +7,16 @@ from collections import defaultdict
 
 from rich.console import Console
 
+from shared.ast_utility import find_symbol_id_and_def_line
 from shared.config import settings
 
 console = Console()
 
 
 def _is_public(node: ast.FunctionDef | ast.AsyncFunctionDef | ast.ClassDef) -> bool:
-    """Determines if a symbol is public (not starting with an underscore)."""
-    return not node.name.startswith("_")
+    """Determines if a symbol is public (not starting with _ or a dunder)."""
+    is_dunder = node.name.startswith("__") and node.name.endswith("__")
+    return not node.name.startswith("_") and not is_dunder
 
 
 # ID: 38f29597-95bb-4e6c-aabb-72baaf841522
@@ -22,24 +24,17 @@ def assign_missing_ids(dry_run: bool = True) -> int:
     """
     Scans all Python files in the 'src/' directory, finds public symbols
     missing an '# ID:' tag, and adds a new UUID tag to them.
-
-    Args:
-        dry_run: If True, only reports on the changes that would be made.
-
-    Returns:
-        The total number of new IDs that were (or would be) assigned.
     """
     src_dir = settings.REPO_PATH / "src"
     files_to_process = list(src_dir.rglob("*.py"))
     total_ids_assigned = 0
-
     files_to_fix = defaultdict(list)
 
     for file_path in files_to_process:
         try:
             content = file_path.read_text("utf-8")
             source_lines = content.splitlines()
-            tree = ast.parse(content)
+            tree = ast.parse(content, filename=str(file_path))
 
             for node in ast.walk(tree):
                 if isinstance(
@@ -48,21 +43,15 @@ def assign_missing_ids(dry_run: bool = True) -> int:
                     if not _is_public(node):
                         continue
 
-                    # Check the line above the symbol definition for an existing ID tag
-                    tag_line_index = node.lineno - 2
-                    has_id = False
-                    if 0 <= tag_line_index < len(source_lines):
-                        line_above = source_lines[tag_line_index]
-                        # --- THIS IS THE FIX ---
-                        # Use .strip() to correctly find indented ID tags.
-                        if line_above.strip().startswith("# ID:"):
-                            has_id = True
-                        # --- END OF FIX ---
+                    # Use the new, robust utility to find the ID and definition line
+                    id_result = find_symbol_id_and_def_line(node, source_lines)
 
-                    if not has_id:
-                        # Found a public symbol that needs an ID
+                    if not id_result.has_id:
                         files_to_fix[file_path].append(
-                            {"line_number": node.lineno, "name": node.name}
+                            {
+                                "line_number": id_result.definition_line_num,
+                                "name": node.name,
+                            }
                         )
         except Exception as e:
             console.print(
@@ -71,7 +60,7 @@ def assign_missing_ids(dry_run: bool = True) -> int:
 
     if not files_to_fix:
         console.print(
-            "[bold green]✅ All public symbols already have IDs.[/bold green]"
+            "[bold green]✅ All governable public symbols already have IDs.[/bold green]"
         )
         return 0
 
@@ -79,8 +68,6 @@ def assign_missing_ids(dry_run: bool = True) -> int:
         console.print(
             f"🔧 Processing file: [cyan]{file_path.relative_to(settings.REPO_PATH)}[/cyan]"
         )
-
-        # Sort fixes by line number in reverse to safely insert new lines
         fixes.sort(key=lambda x: x["line_number"], reverse=True)
 
         if dry_run:
@@ -94,16 +81,15 @@ def assign_missing_ids(dry_run: bool = True) -> int:
         try:
             lines = file_path.read_text("utf-8").splitlines()
             for fix in fixes:
-                # Get indentation from the function definition line
+                # The line number from our utility is the 'def' or 'class' line
                 line_index = fix["line_number"] - 1
                 original_line = lines[line_index]
                 indentation = len(original_line) - len(original_line.lstrip(" "))
 
-                # Generate new ID and format the tag line
                 new_id = str(uuid.uuid4())
                 tag_line = f"{' ' * indentation}# ID: {new_id}"
 
-                # Insert the new tag line
+                # Insert the tag immediately before the definition line
                 lines.insert(line_index, tag_line)
                 total_ids_assigned += 1
 

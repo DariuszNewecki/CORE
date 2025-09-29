@@ -30,7 +30,7 @@ console = Console()
 
 
 @dataclass
-# ID: a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d
+# ID: 32eaf90d-656b-4ef0-a87b-e22a7818b9b0
 class Crate:
     """A simple data class representing a validated Intent Crate."""
 

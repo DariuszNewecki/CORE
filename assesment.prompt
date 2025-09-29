@@ -12,7 +12,8 @@ Your entire assessment must be grounded in this philosophy.
 1.  **The Architectural Trinity:** The system is strictly divided into three parts:
     *   🏛️ **The Mind (`.intent/`):** The Constitution. This is the single source of truth, divided into two parts:
         *   **The Charter (`.intent/charter/`):** The immutable, human-governed laws, principles, and schemas.
-        *   **The Working Mind (`.intent/mind/`):**  The dynamic, system-maintained knowledge, with the database as the primary source of truth and .intent/mind/ files acting as human-readable sources for that truth.
+        *   <!-- CHANGE: More precise definition of the Working Mind -->
+        **The Working Mind (`.intent/mind/`):** The dynamic, system-maintained knowledge. The **database is the single source of operational truth**, and files in this directory are the human-readable, version-controlled sources for that truth.
     *   🦾 **The Body (`src/`):** The Machinery. The complete, implemented source code and tools that perform actions but do not make decisions.
     *   🧠 **The Will (AI Agents):** The Reasoning Layer. AI agents that read the Mind and use the Body's tools to achieve goals. Their actions are policed by the `ConstitutionalAuditor`.
 
@@ -23,7 +24,7 @@ Your entire assessment must be grounded in this philosophy.
     *   **`dry_by_design`**: Is there duplicated logic or configuration that should be centralized?
     *   **`evolvable_structure`**: Can the system's constitution and code be changed safely and formally?
 
-3.  **Project Goal: The Autonomy Ladder:** CORE's goal is to climb a ladder of self-governance, from observing code (A0) to autonomously generating new applications (A4). The project has recently completed a major constitutional refactoring ("The Great Simplification") and is stabilizing its foundation for the A1/A2 autonomy levels.
+3.  **Project Goal: The Autonomy Ladder:** CORE's goal is to climb a ladder of self-governance, from observing code (A0) to autonomously generating new applications (A4). <!-- CHANGE: Updated project status to reflect our recent work --> The project has recently completed a major refactoring of its CLI to a clean, verb-based grammar and is now focused on **operationalizing its A1 autonomy** (executing simple, safe, self-healing tasks) and preparing for A2 (safe, autonomous code modification).
 
 ### Your Task
 
@@ -64,9 +65,9 @@ This is the most critical section. Provide a prioritized, actionable roadmap of 
 
 | Priority | Task Description | Constitutional Principle Served | Suggested First Step |
 | :--- | :--- | :--- | :--- |
-| **High** | *e.g., Consolidate all tooling into the `src/system/` domain.* | `separation_of_concerns` | *e.g., Create a migration plan in `docs/migrations/` for the `tools/` directory.* |
-| **Medium** | *e.g., Implement a formal Dependency Injection container for core services.* | `clarity_first`, `evolvable_structure` | *e.g., Refactor `src/system/admin/__init__.py` to create a single context object.* |
-| **Low** | *e.g., Create a self-healing agent to fix documentation drift.* | `reason_with_purpose` | *e.g., Draft a new prompt in `.intent/mind/prompts/` for a `docs_linter_agent`.* |
+| **High** | *e.g., Decompose the monolithic `CognitiveService` into single-purpose services.* | `separation_of_concerns` | *e.g., Create a new `src/services/llm/` directory and refactor the resource selection logic into a `ResourceSelector` class.* |
+| **Medium** | *e.g., Implement explicit Dependency Injection to eliminate the global `service_registry`.* | `clarity_first`, `evolvable_structure` | *e.g., Create a `CoreContext` object in `src/cli/admin_cli.py` and pass it explicitly to the command functions that need services.* |
+| **Low** | *e.g., Implement the full `micro_proposal` executor service.* | `safe_by_default`, `reason_with_purpose`| *e.g., Scaffold `src/features/autonomy/micro_proposal_executor.py` that validates and applies proposals according to the policy.* |
 
 ---
 

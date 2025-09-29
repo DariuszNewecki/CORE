@@ -1,4 +1,4 @@
-# src/cli/commands/proposal_service.py
+# src/cli/logic/proposal_service.py
 """
 Registers and implements the command-line interface for proposal lifecycle management.
 This module now serves as the main entry point for ALL proposal types.
@@ -14,20 +14,27 @@ from pathlib import Path
 
 import typer
 from cryptography.hazmat.primitives import serialization
+from dotenv import load_dotenv
+from rich.console import Console
+from rich.table import Table
 
-from cli.commands.cli_utils import (
-    archive_rollback_plan,
-    load_private_key,
-    load_yaml_file,
-    save_yaml_file,
-)
-from cli.commands.proposals_micro import micro_app
 from features.governance.constitutional_auditor import ConstitutionalAuditor
 from shared.config import settings
 from shared.logger import getLogger
 from shared.utils.crypto import generate_approval_token
 
+from .cli_utils import (
+    archive_rollback_plan,
+    load_private_key,
+    load_yaml_file,
+    save_yaml_file,
+)
+from .proposals_micro import micro_app
+
 log = getLogger("core_admin.proposals")
+# --- ADDED A CONSOLE FOR RICH PRINTING ---
+console = Console()
+
 
 proposals_app = typer.Typer(
     help="Work with constitutional proposals for governed changes."
@@ -206,14 +213,19 @@ def proposals_approve(
             ignore=shutil.ignore_patterns(".git", ".venv", "venv", "__pycache__"),
         )
 
+        canary_env_path = tmp_path / ".env"
         env_file = settings.REPO_PATH / ".env"
         if env_file.exists():
-            shutil.copy(env_file, tmp_path / ".env")
+            shutil.copy(env_file, canary_env_path)
             log.info("   -> Copied environment configuration to canary.")
 
         canary_target_path = tmp_path / target_rel_path
         canary_target_path.parent.mkdir(parents=True, exist_ok=True)
         canary_target_path.write_text(proposal.get("content", ""), encoding="utf-8")
+
+        if canary_env_path.exists():
+            log.info(f"   -> Loading canary environment from {canary_env_path}...")
+            load_dotenv(dotenv_path=canary_env_path, override=True)
 
         log.info("🔬 Commanding canary to perform a self-audit...")
         auditor = ConstitutionalAuditor(repo_root_override=tmp_path)
@@ -231,6 +243,24 @@ def proposals_approve(
             log.error(
                 "❌ Canary audit FAILED. Proposal rejected; live system untouched."
             )
+            # --- THIS IS THE FIX ---
+            # Print the detailed findings so the user knows exactly why it failed.
+            if findings:
+                console.print("\n[bold red]Canary Audit Findings:[/bold red]")
+                table = Table()
+                table.add_column("Severity")
+                table.add_column("Check ID")
+                table.add_column("Message")
+                table.add_column("File:Line")
+                for f in findings:
+                    loc = (
+                        f"{f.file_path}:{f.line_number}"
+                        if f.line_number
+                        else f.file_path
+                    )
+                    table.add_row(str(f.severity), f.check_id, f.message, loc)
+                console.print(table)
+            # --- END OF FIX ---
             raise typer.Exit(code=1)
 
 

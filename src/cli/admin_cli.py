@@ -3,91 +3,45 @@
 The single, canonical entry point for the core-admin CLI.
 This module assembles all command groups into a single Typer application.
 """
-
 from __future__ import annotations
 
 import typer
 from rich.console import Console
 
-# --- END OF AMENDMENT ---
-# --- Command Group Imports ---
+# Final, clean imports from the new canonical command structure
 from cli.commands import (
-    agent,
-    build,
-    byor,
-    capability,
-    chat,
     check,
-    db,
-    fixer,
-    guard,
-    interactive,
-    knowledge,
-    knowledge_sync,
-    new,
-    proposal_service,
+    fix,
+    inspect,
+    manage,
     run,
-    system,
-    tools,
+    search,
+    submit,
 )
-from features.governance import key_management_service
-from features.project_lifecycle import bootstrap_service
-
-# --- START OF AMENDMENT: Added the missing import ---
+from cli.interactive import launch_interactive_menu
 from shared.logger import getLogger
 
 console = Console()
-# --- START OF AMENDMENT: Initialize the logger ---
 log = getLogger("admin_cli")
-# --- END OF AMENDMENT ---
 
 # --- Main Application ---
 app = typer.Typer(
     name="core-admin",
     help="""
     CORE: The Self-Improving System Architect's Toolkit.
-
     This CLI is the primary interface for operating and governing the CORE system.
-    Run with no arguments to enter the interactive menu.
     """,
-    no_args_is_help=False,  # We want to launch the interactive menu by default
+    no_args_is_help=False,
 )
 
 
 # --- Centralized Registration Helper ---
-# ID: 2aa27939-042e-4bdf-937a-eb2bc8d6e22e
+# ID: 1a9e8b4c-3d5f-4e6a-8b7c-0d1e2f3a4b5c
 def register_all_commands(app_instance: typer.Typer) -> None:
-    """
-    Register all command groups in the correct order.
-    The order here determines the order in the --help output.
-    """
-    command_modules = [
-        system,
-        check,
-        fixer,
-        db,
-        knowledge,
-        knowledge_sync,
-        run,
-        build,
-        tools,
-        agent,
-        proposal_service,
-        key_management_service,
-        new,
-        bootstrap_service,
-        byor,
-        guard,
-        capability,
-        chat,
-        # interactive is special and doesn't need to be registered here
-    ]
-
-    for module in command_modules:
-        if hasattr(module, "register") and callable(module.register):
-            module.register(app_instance)
-        else:
-            log.warning(f"Module {module.__name__} has no register function.")
+    """Register all command groups in the correct order."""
+    modules = [check, fix, inspect, manage, run, search, submit]
+    for module in modules:
+        module.register(app_instance)
 
 
 # --- Command Registration ---
@@ -95,16 +49,14 @@ register_all_commands(app)
 
 
 @app.callback(invoke_without_command=True)
-# ID: 25555fd8-2556-4a77-b222-a68988ef2b01
+# ID: 2b8c9d0e-1f2a-3b4c-5d6e-7f8a9b0c1d2e
 def main(ctx: typer.Context):
-    """
-    If no command is specified, launch the interactive menu.
-    """
+    """If no command is specified, launch the interactive menu."""
     if ctx.invoked_subcommand is None:
         console.print(
             "[bold green]No command specified. Launching interactive menu...[/bold green]"
         )
-        interactive.launch_interactive_menu()
+        launch_interactive_menu()
 
 
 if __name__ == "__main__":

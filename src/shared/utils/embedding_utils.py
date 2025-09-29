@@ -7,9 +7,11 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
+import os
 import re
-from typing import List, Protocol
+from typing import List, Optional, Protocol
 
+import httpx
 import numpy as np
 
 from shared.logger import getLogger
@@ -50,7 +52,7 @@ def _chunk_text(text: str, chunk_size: int, chunk_overlap: int) -> List[str]:
     while start < len(text):
         end = start + chunk_size
         chunks.append(text[start:end])
-        start += chunk_size - chunk_overlap
+        start += max(1, chunk_size - chunk_overlap)
     return chunks
 
 
@@ -74,6 +76,111 @@ def sha256_hex(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
+# =========================
+# Provider-aware embedder
+# =========================
+
+
+# ID: 9b4a4f28-1e0a-4a2e-9c3f-9a1a5e3b3c1a
+class EmbeddingService:
+    """
+    Provider-aware embedding client that conforms to the Embeddable protocol.
+
+    - Ollama:   POST {base}/api/embeddings with {model, prompt}
+    - OpenAI/DeepSeek: POST {base}/v1/embeddings with {model, input} (+ Authorization)
+    """
+
+    def __init__(
+        self,
+        provider: Optional[str] = None,
+        base_url: Optional[str] = None,
+        model: Optional[str] = None,
+        timeout: float = 30.0,
+        api_key: Optional[str] = None,
+    ) -> None:
+        # Resolve provider + base/model from env with sensible defaults
+        self.provider = (
+            provider or os.getenv("EMBEDDINGS_PROVIDER") or "ollama"
+        ).lower()
+
+        if self.provider == "ollama":
+            self.base = (
+                base_url
+                or os.getenv("EMBEDDINGS_API_BASE")
+                or os.getenv("LOCAL_EMBEDDING_API_URL")
+                or "http://localhost:11434"
+            ).rstrip("/")
+            self.model = (
+                model
+                or os.getenv("EMBEDDINGS_MODEL")
+                or os.getenv("LOCAL_EMBEDDING_MODEL_NAME")
+                or "nomic-embed-text"
+            )
+            self.endpoint = "/api/embeddings"
+            self.headers = {"Content-Type": "application/json"}
+            self._payload = lambda text: {"model": self.model, "prompt": text}
+            self._extract = lambda data: data.get("embedding")
+        else:
+            # Treat anything else as OpenAI-compatible (DeepSeek/API keys supported)
+            self.base = (
+                base_url
+                or os.getenv("DEEPSEEK_EMBEDDING_API_URL")
+                or os.getenv("OPENAI_API_BASE")
+                or "https://api.openai.com"
+            ).rstrip("/")
+            self.model = (
+                model
+                or os.getenv("DEEPSEEK_EMBEDDING_MODEL_NAME")
+                or os.getenv("OPENAI_EMBEDDING_MODEL", "text-embedding-3-small")
+            )
+            key = (
+                api_key
+                or os.getenv("DEEPSEEK_EMBEDDING_API_KEY")
+                or os.getenv("OPENAI_API_KEY")
+            )
+            self.endpoint = "/v1/embeddings"
+            self.headers = {"Content-Type": "application/json"}
+            if key:
+                self.headers["Authorization"] = f"Bearer {key}"
+            self._payload = lambda text: {"model": self.model, "input": text}
+            self._extract = lambda data: (data.get("data") or [{}])[0].get("embedding")
+
+        self.timeout = timeout
+        log.info(f"EmbeddingService initialized for API at {self.base}")
+
+    # ID: 8f5d2d61-1a1a-4e21-9c69-7a9e1d0ec0ab
+    async def get_embedding(self, text: str) -> List[float]:
+        """Return a single embedding vector for the given text."""
+        url = f"{self.base}{self.endpoint}"
+        payload = self._payload(text)
+
+        async with httpx.AsyncClient(timeout=self.timeout) as client:
+            resp = await client.post(url, json=payload, headers=self.headers)
+
+        if resp.status_code != 200:
+            # Keep this error text shape (it matches what you saw in logs)
+            log.error(
+                f"HTTP error from embedding API: {resp.status_code} - {resp.text}"
+            )
+            raise RuntimeError(f"Embedding API HTTP {resp.status_code}")
+
+        data = resp.json()
+        vec = self._extract(data)
+        if not vec:
+            log.error("Embedding service returned no vector.")
+            raise RuntimeError("No vector returned from embedding service")
+        return vec  # type: ignore[return-value]
+
+
+# ID: 6a1b6cde-0d0a-4e7c-8c4d-4f9a4fe0d6d1
+def build_embedder_from_env() -> Embeddable:
+    """
+    Factory: builds an Embeddable using environment variables.
+    This avoids a module-level `get_embedding` symbol (which caused duplication warnings).
+    """
+    return _Adapter(EmbeddingService())
+
+
 # ID: 95c51c61-f288-483c-b76e-2915765004da
 async def chunk_and_embed(
     embedder: Embeddable,
@@ -85,6 +192,7 @@ async def chunk_and_embed(
     Chunks text, gets embeddings for each chunk in parallel, and returns the
     averaged embedding vector for the entire text.
     """
+    text = normalize_text(text)
     chunks = _chunk_text(text, chunk_size, chunk_overlap)
     if not chunks:
         # Should not happen with valid text, but as a safeguard

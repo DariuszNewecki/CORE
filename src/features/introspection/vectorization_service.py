@@ -88,6 +88,9 @@ async def _process_vectorization_task(
     """Processes a single symbol: gets embedding and upserts to Qdrant. Returns Qdrant point ID on success."""
     try:
         vector = await cognitive_service.get_embedding_for_code(task["source_code"])
+        if not vector:
+            raise ValueError("Embedding service returned None")
+
         payload_data = {
             "source_path": task["file_path"],
             "source_type": "code",
@@ -130,7 +133,9 @@ async def _update_symbols_in_db(updates: List[Dict]):
 
 
 # ID: 1171223d-a43d-4c61-a493-f29f8e75218b
-async def run_vectorize(dry_run: bool = False, force: bool = False):
+async def run_vectorize(
+    cognitive_service: CognitiveService, dry_run: bool = False, force: bool = False
+):
     """
     The main orchestration logic for vectorizing capabilities based on the database.
     """
@@ -174,7 +179,6 @@ async def run_vectorize(dry_run: bool = False, force: bool = False):
         )
         return
 
-    cognitive_service = CognitiveService(settings.REPO_PATH)
     updates_to_db = []
 
     for task in track(tasks, description="Vectorizing symbols..."):

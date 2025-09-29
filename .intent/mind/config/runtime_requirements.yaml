@@ -10,6 +10,37 @@ review:
   frequency: "6 months"
 
 variables:
+  LLM_CONNECT_TIMEOUT:
+    description: "Timeout in seconds for establishing a connection to an LLM API."
+    source: env
+    required: false
+    type: integer
+    default: 10
+    used_by: ["agents"]
+  LLM_REQUEST_TIMEOUT:
+    description: "Timeout in seconds for waiting for a full response from an LLM API. Increase this on slower hardware."
+    source: env
+    required: false
+    type: integer
+    default: 180
+    used_by: ["agents"]
+  CORE_MAX_CONCURRENT_REQUESTS:
+    description: "The maximum number of simultaneous outbound LLM requests to prevent rate-limiting or overwhelming local models."
+    source: env
+    required: false
+    type: integer
+    default: 5
+    used_by: ["system", "agents"]
+  # --- START OF AMENDMENT ---
+  LLM_SECONDS_BETWEEN_REQUESTS:
+    description: "A small delay to insert between LLM API calls to respect rate limits."
+    source: env
+    required: false
+    type: integer
+    default: 1
+    used_by: ["agents"]
+  # --- END OF AMENDMENT ---
+
   MIND:
     description: "The relative path to the system's declarative 'mind' (.intent directory)."
     source: env
@@ -69,13 +100,6 @@ variables:
     type: bool
     used_by: ["system"]
     required_when: "CORE_ENV == 'development'"
-  CORE_MAX_CONCURRENT_REQUESTS:
-    description: "The maximum number of simultaneous outbound LLM requests to prevent rate-limiting."
-    source: env
-    required: false
-    type: integer
-    default: 5
-    used_by: ["system"]
   DEEPSEEK_CHAT_API_URL:
     description: "API URL for the 'deepseek_chat' resource."
     source: env
@@ -139,8 +163,6 @@ variables:
     type: string
     used_by: ["agents"]
     required_when: "LLM_ENABLED == true"
-
-  # --- START: Governed Embedding & Vector Store Configuration ---
   LOCAL_EMBEDDING_API_URL:
     description: "API URL for the local embedding resource."
     source: env
@@ -183,9 +205,8 @@ variables:
     source: env
     required: false
     type: integer
-    default: 4 # A safer default for local models
+    default: 4
     used_by: ["system"]
-
   QDRANT_URL:
     description: "URL for the Qdrant vector database instance."
     source: env

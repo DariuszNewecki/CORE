@@ -16,8 +16,6 @@ from services.repositories.db.engine import get_session
 from shared.models import AuditFinding, AuditSeverity
 
 
-# --- START OF AMENDMENT: Moved from a separate utility to here ---
-# This is now the single source of truth for import scanning.
 def _scan_imports(file_path: Path, content: str | None = None) -> List[str]:
     """
     Parse a Python file or its content and extract all imported module paths.
@@ -34,17 +32,21 @@ def _scan_imports(file_path: Path, content: str | None = None) -> List[str]:
                 for alias in node.names:
                     imports.append(alias.name)
             elif isinstance(node, ast.ImportFrom):
+                # For relative imports like 'from . import foo', module is None
                 if node.module:
-                    imports.append(node.module)
+                    # Construct full path for relative imports
+                    if node.level > 0:
+                        base = ".".join(file_path.parts[1:-1])  # from src/ onwards
+                        if node.level > 1:
+                            base = ".".join(base.split(".")[: -(node.level - 1)])
+                        imports.append(f"{base}.{node.module}")
+                    else:
+                        imports.append(node.module)
 
     except Exception:
-        # Fail silently; syntax errors will be caught by other checks.
         pass
 
     return imports
-
-
-# --- END OF AMENDMENT ---
 
 
 # ID: 0690cf39-3739-449e-9228-2c7c8526209b
@@ -58,11 +60,9 @@ class ImportRulesCheck:
         self.context = context
         self.domain_map: Dict[str, str] = {}
         self.import_rules: Dict[str, Set[str]] = {}
-        # The data is now loaded asynchronously when execute is called.
 
     async def _load_rules_from_db(self):
         """Loads domain maps and import rules from the database."""
-        # Avoid reloading if already populated
         if self.domain_map:
             return
 
@@ -74,8 +74,8 @@ class ImportRulesCheck:
             path_str = domain_info.get("path")
             domain_name = domain_info.get("domain")
             if path_str and domain_name:
-                full_path = str((self.context.repo_path / path_str).resolve())
-                self.domain_map[full_path] = domain_name
+                # Use relative path from repo root for matching
+                self.domain_map[path_str] = domain_name
 
         for domain_info in structure:
             domain_name = domain_info.get("domain")
@@ -83,11 +83,10 @@ class ImportRulesCheck:
             if domain_name:
                 self.import_rules[domain_name] = set(allowed_imports)
 
-    def _get_domain_for_path(self, file_path: Path) -> str | None:
-        """Finds the domain for a given absolute file path."""
-        abs_path_str = str(file_path.resolve())
-        for domain_path, domain_name in self.domain_map.items():
-            if abs_path_str.startswith(domain_path):
+    def _get_domain_for_path_str(self, file_path_str: str) -> str | None:
+        """Finds the domain for a given relative file path string."""
+        for domain_path_prefix, domain_name in self.domain_map.items():
+            if file_path_str.startswith(domain_path_prefix):
                 return domain_name
         return None
 
@@ -104,7 +103,6 @@ class ImportRulesCheck:
             findings.extend(self._check_file_imports(file_path, file_content=None))
         return findings
 
-    # --- START OF AMENDMENT: New method for validation pipeline ---
     # ID: 31287af5-d942-4a1d-b06d-d0570026d035
     async def execute_on_content(
         self, file_path_str: str, file_content: str
@@ -116,35 +114,47 @@ class ImportRulesCheck:
         file_path = self.context.repo_path / file_path_str
         return self._check_file_imports(file_path, file_content)
 
-    # --- END OF AMENDMENT ---
-
     def _check_file_imports(
         self, file_path: Path, file_content: str | None
     ) -> List[AuditFinding]:
         """Core logic to check imports for a given file path and optional content."""
         findings = []
-        file_domain = self._get_domain_for_path(file_path)
+        file_rel_path_str = str(file_path.relative_to(self.context.repo_path))
+        file_domain = self._get_domain_for_path_str(file_rel_path_str)
         if not file_domain:
             return []
 
-        allowed_imports = self.import_rules.get(file_domain, set())
+        allowed_imports_for_domain = self.import_rules.get(file_domain, set())
         imported_modules = _scan_imports(file_path, content=file_content)
 
         for module_str in imported_modules:
-            if not module_str.startswith(
-                ("core", "features", "services", "shared", "cli", "api")
+            # --- THIS IS THE NEW, CORRECT LOGIC ---
+            imported_package = module_str.split(".")[0]
+
+            # Rule 1: Is it an external or standard library? (Allow)
+            if not any(
+                imported_package.startswith(p)
+                for p in ["src", "cli", "core", "features", "services", "shared"]
             ):
                 continue
 
-            top_level_package = module_str.split(".")[0]
+            # Rule 2: Does the import's top-level package match an allowed domain? (Allow)
+            if imported_package in allowed_imports_for_domain:
+                continue
 
-            if top_level_package not in allowed_imports:
-                findings.append(
-                    AuditFinding(
-                        check_id="architecture.import_violation",
-                        severity=AuditSeverity.ERROR,
-                        message=f"Illegal import of '{module_str}' in domain '{file_domain}'. Allowed: {sorted(list(allowed_imports))}",
-                        file_path=str(file_path.relative_to(self.context.repo_path)),
-                    )
+            # Rule 3: If not explicitly allowed, is it an intra-domain import? (Allow)
+            # This handles the case where cli imports from cli.logic
+            if imported_package == file_domain:
+                continue
+            # --- END OF NEW LOGIC ---
+
+            # If none of the above rules passed, it's a violation.
+            findings.append(
+                AuditFinding(
+                    check_id="architecture.import_violation",
+                    severity=AuditSeverity.ERROR,
+                    message=f"Illegal import of '{module_str}' in domain '{file_domain}'. Allowed: {sorted(list(allowed_imports_for_domain))}",
+                    file_path=file_rel_path_str,
                 )
+            )
         return findings

@@ -6,9 +6,12 @@ multi-step processes and autonomous cycles.
 from __future__ import annotations
 
 import asyncio
+
+# --- START OF AMENDMENT: Add Path and Optional ---
 from pathlib import Path
 from typing import Optional
 
+# --- END OF AMENDMENT ---
 import typer
 from dotenv import load_dotenv
 
@@ -35,7 +38,7 @@ run_app = typer.Typer(
 )
 
 
-# ID: 404982f6-59cd-40a3-862c-282c14225d3e
+# ID: fcf5a556-dba1-466e-9dc0-99f618648dda
 async def run_development_cycle(
     goal: str, auto_commit: bool = True
 ) -> tuple[bool, str]:
@@ -61,7 +64,7 @@ async def run_development_cycle(
         context_report = await recon_agent.generate_report(goal)
 
         planner = PlannerAgent(cognitive_service)
-        plan = planner.create_execution_plan(goal, context_report)
+        plan = await planner.create_execution_plan(goal, context_report)
 
         executor = ExecutionAgent(
             cognitive_service, prompt_pipeline, plan_executor, auditor_context
@@ -75,6 +78,7 @@ async def run_development_cycle(
         )
 
         if success and auto_commit:
+            # Use a truncated goal for the commit message
             commit_goal = (goal[:72] + "...") if len(goal) > 75 else goal
             commit_message = f"feat(AI): execute plan for goal - {commit_goal}"
             git_service.commit(commit_message)
@@ -87,11 +91,12 @@ async def run_development_cycle(
         return False, f"An unexpected error occurred: {e}"
 
 
+# --- START OF AMENDMENT: Refactor the 'develop' command ---
 @run_app.command(
     "develop",
     help="Orchestrates the autonomous development process from a high-level goal.",
 )
-# ID: b6963057-2c08-4699-94ea-a7f74fe532ff
+# ID: 1ddfca35-8fcd-4f5e-925d-f0659f34e2a4
 def develop(
     goal: Optional[str] = typer.Argument(
         None,
@@ -140,11 +145,14 @@ def develop(
         raise typer.Exit(code=1)
 
 
+# --- END OF AMENDMENT ---
+
+
 @run_app.command(
     "vectorize",
     help="Scan capabilities from the DB, generate embeddings, and upsert to Qdrant.",
 )
-# ID: f82043e9-6402-4cfd-8550-12b5feba09de
+# ID: b6ca020c-68ea-4280-b189-e2e7d453f391
 def vectorize_capabilities(
     dry_run: bool = typer.Option(
         True, "--dry-run/--write", help="Show changes without writing to Qdrant."
@@ -159,18 +167,15 @@ def vectorize_capabilities(
         log.error("❌ LLMs must be enabled to generate embeddings.")
         raise typer.Exit(code=1)
     try:
-        cognitive_service = CognitiveService(settings.REPO_PATH)
-        asyncio.run(
-            run_vectorize(
-                cognitive_service=cognitive_service, dry_run=dry_run, force=force
-            )
-        )
+        # --- FIX: pass CognitiveService explicitly to run_vectorize ---
+        cog = CognitiveService(settings.REPO_PATH)
+        asyncio.run(run_vectorize(cognitive_service=cog, dry_run=dry_run, force=force))
     except Exception as e:
         log.error(f"❌ Orchestration failed: {e}", exc_info=True)
         raise typer.Exit(code=1)
 
 
-# ID: 1d2e3f4a-5b6c-7d8e-9f0a-1b2c3d4e5f6a
+# ID: ec7405ee-fb7c-424c-8d41-239a77a7a24d
 def register(app: typer.Typer):
     """Register the 'run' command group with the main CLI app."""
     app.add_typer(run_app, name="run")

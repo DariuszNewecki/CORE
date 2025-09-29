@@ -80,7 +80,7 @@ class AuditorContext:
 
         log.debug(f"Loaded {len(loaded_policies)} policies.")
         return loaded_policies
-    
+
     @property
     # ID: c8dcf271-f3ef-4c75-bea5-775b8c3461a1
     def python_files(self) -> list[Path]:
@@ -89,12 +89,17 @@ class AuditorContext:
         # --- START OF FIX ---
         # Corrected the typo from self.repo_root to self.repo_path
         for root, dirs, files in os.walk(self.repo_path):
-        # --- END OF FIX ---
+            # --- END OF FIX ---
             # Skip common directories that shouldn't contain source code
-            dirs[:] = [d for d in dirs if d not in {'.git', '__pycache__', '.pytest_cache', 'node_modules', '.venv'}]
-            
+            dirs[:] = [
+                d
+                for d in dirs
+                if d
+                not in {".git", "__pycache__", ".pytest_cache", "node_modules", ".venv"}
+            ]
+
             for file in files:
-                if file.endswith('.py'):
+                if file.endswith(".py"):
                     python_files.append(Path(root) / file)
-        
+
         return python_files

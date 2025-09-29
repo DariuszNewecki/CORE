@@ -1,6 +1,3 @@
-# src/cli/commands/__init__.py
-"""
-This file marks the 'commands' directory as a Python package,
-allowing command modules to be imported from here.
-"""
+# src/cli/commands_v2/__init__.py
+"""Package marker for the V2 CLI command structure."""
 from __future__ import annotations

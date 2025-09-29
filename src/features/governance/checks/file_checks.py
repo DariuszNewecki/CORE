@@ -7,7 +7,7 @@ from __future__ import annotations
 from typing import List, Set
 
 from features.governance.checks.base_check import BaseCheck
-from shared.config import settings  # <-- NEW IMPORT
+from shared.config import settings
 from shared.models import AuditFinding, AuditSeverity
 from shared.utils.constitutional_parser import get_all_constitutional_paths
 
@@ -18,6 +18,15 @@ KNOWN_UNINDEXED_FILES = {
     ".intent/keys/private.key",
 }
 
+# --- START OF AMENDMENT: Define Deprecated Files ---
+# These files are now constitutionally forbidden as the database is the SSOT.
+DEPRECATED_KNOWLEDGE_FILES = [
+    ".intent/knowledge/cli_registry.yaml",
+    ".intent/knowledge/resource_manifest.yaml",
+    ".intent/knowledge/cognitive_roles.yaml",
+]
+# --- END OF AMENDMENT ---
+
 
 # ID: 37b5ae2f-c3c2-4db4-9677-f16fd788c908
 class FileChecks(BaseCheck):
@@ -26,17 +35,35 @@ class FileChecks(BaseCheck):
     # ID: 56481071-3a0c-437d-ba57-533bc03d9ed6
     def execute(self) -> List[AuditFinding]:
         """Runs all file-related checks."""
-        # --- THIS IS THE REFACTOR ---
-        # 1. Load the meta.yaml content using the settings object.
-        meta_content = settings._meta_config  # Access the pre-loaded dictionary
+        meta_content = settings._meta_config
 
-        # 2. Pass the content to the pure parser function.
         required_files = get_all_constitutional_paths(meta_content, self.intent_path)
-        # --- END OF REFACTOR ---
 
         findings = self._check_required_files(required_files)
         findings.extend(self._check_for_orphaned_intent_files(required_files))
+        # --- START OF AMENDMENT: Add the new check to the execution flow ---
+        findings.extend(self._check_for_deprecated_files())
+        # --- END OF AMENDMENT ---
         return findings
+
+    # --- START OF AMENDMENT: Add the new check method ---
+    def _check_for_deprecated_files(self) -> List[AuditFinding]:
+        """Verify that files constitutionally replaced by the database do not exist."""
+        findings: List[AuditFinding] = []
+        for file_rel_path in DEPRECATED_KNOWLEDGE_FILES:
+            full_path = self.repo_root / file_rel_path
+            if full_path.exists():
+                findings.append(
+                    AuditFinding(
+                        check_id="file.ssot.deprecated_exists",
+                        severity=AuditSeverity.ERROR,
+                        message=f"Deprecated knowledge file '{file_rel_path}' exists. The database is now the single source of truth.",
+                        file_path=file_rel_path,
+                    )
+                )
+        return findings
+
+    # --- END OF AMENDMENT ---
 
     def _check_required_files(self, required_files: Set[str]) -> List[AuditFinding]:
         """Verify that all files declared in meta.yaml exist on disk."""
@@ -75,7 +102,6 @@ class FileChecks(BaseCheck):
         orphaned_files = sorted(physical_files - all_known_files)
 
         for orphan in orphaned_files:
-            # We can be more lenient with prompts and reports, as they may not all be indexed
             if "prompts" in orphan or "reports" in orphan:
                 continue
             findings.append(
