@@ -123,9 +123,14 @@ async def _build_knowledge_source_check(context) -> Any | None:
 class ConstitutionalAuditor:
     """Orchestrates all constitutional checks and reports the findings."""
 
-    def __init__(self, repo_root_override: Path | None = None):
-        self.repo_root = repo_root_override or Path(".").resolve()
-        self.context = AuditorContext(self.repo_root)
+    def __init__(self, repo_root_override: Path | AuditorContext | None = None):
+        # FIX: accept either a repo Path or an already-built AuditorContext
+        if isinstance(repo_root_override, AuditorContext):
+            self.context = repo_root_override
+            self.repo_root = self.context.repo_path
+        else:
+            self.repo_root = repo_root_override or Path(".").resolve()
+            self.context = AuditorContext(self.repo_root)
         self.all_checks: List[Any] = []
         self.CheckResultType = None  # To hold the CheckResult class
 

@@ -47,7 +47,6 @@ class ExecutionAgent:
         self,
         high_level_goal: str,
         plan: List[ExecutionTask],
-        **kwargs,
     ) -> tuple[bool, str]:
         if not plan:
             return False, "Plan is empty or invalid."

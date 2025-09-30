@@ -16,6 +16,7 @@ from cli.logic.fixer import (
 )
 from features.maintenance.command_sync_service import sync_commands_to_db
 from features.self_healing.duplicate_id_service import resolve_duplicate_ids
+from shared.context import CoreContext
 
 fix_app = typer.Typer(
     help="Self-healing tools that write changes to the codebase.",
@@ -61,6 +62,6 @@ def fix_duplicate_ids_command(
 
 
 # ID: 4d5e6f7a-8b9c-0d1e-2f3a-4b5c6d7e8f9a
-def register(app: typer.Typer):
+def register(app: typer.Typer, context: CoreContext):
     """Register the 'fix' command group to the main CLI app."""
     app.add_typer(fix_app, name="fix")
