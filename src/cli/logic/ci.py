@@ -5,32 +5,36 @@ Implements high-level CI and system health checks.
 from __future__ import annotations
 
 import asyncio
-import json
 from pathlib import Path
+from typing import Optional
 
 import typer
 from rich.console import Console
-from rich.json import JSON
 from rich.panel import Panel
 from rich.table import Table
 
-from core.service_registry import service_registry
-from shared.models.audit_models import AuditSeverity
+from features.governance.constitutional_auditor import ConstitutionalAuditor
+from shared.context import CoreContext
+from shared.models import AuditSeverity
 
-# --- CORRECTED IMPORT ---
 from .cli_utils import (
     _run_poetry_command,
     find_test_file_for_capability_async,
 )
 
 console = Console()
-ci_app = typer.Typer(help="High-level CI and system health checks.")
+
+# Global variable to store context, set by the registration layer.
+_context: Optional[CoreContext] = None
 
 
-@ci_app.command(
-    "lint",
-    help="Check code formatting and quality with Black and Ruff without changing files.",
-)
+# ID: e4f21b13-0ea9-4b62-b50e-70219caeb198
+def set_context(context: CoreContext):
+    """Sets the shared context for all commands in this module."""
+    global _context
+    _context = context
+
+
 # ID: 8afdeab9-fc81-4d7c-b05f-dd27f936b3e6
 def lint():
     """Checks code formatting and quality using Black and Ruff."""
@@ -42,7 +46,6 @@ def lint():
     )
 
 
-@ci_app.command("test", help="Run the pytest suite.")
 # ID: f4d514f7-e277-446e-98ff-06e881710a99
 def test_system(
     target: str | None = typer.Argument(
@@ -76,10 +79,6 @@ def test_system(
     asyncio.run(_async_test_system())
 
 
-@ci_app.command(
-    "audit",
-    help="Run the full constitutional self-audit and print a summary of findings.",
-)
 # ID: f7bc6512-03d2-4bf9-b718-6fb9323e38ea
 def audit(
     severity: str = typer.Option(
@@ -88,12 +87,18 @@ def audit(
         "-s",
         help="Filter findings by minimum severity level (info, warning, error).",
         case_sensitive=False,
-    )
+    ),
 ):
     """Run a full constitutional self-audit and print a summary of findings."""
+    if _context is None:
+        console.print("[bold red]Error: Context not initialized for audit[/bold red]")
+        raise typer.Exit(code=1)
 
     async def _async_audit():
-        auditor = await service_registry.get_service("auditor")
+        # --- THIS IS THE FIX ---
+        # Initialize the auditor and pass it the pre-built context object.
+        auditor = ConstitutionalAuditor(_context.auditor_context)
+        # --- END OF FIX ---
         passed, all_findings, unassigned_count = await auditor.run_full_audit_async()
 
         try:
@@ -149,64 +154,3 @@ def audit(
             raise typer.Exit(1)
 
     asyncio.run(_async_audit())
-
-
-@ci_app.command(
-    "report", help="Run a full audit and save the detailed findings to a JSON file."
-)
-# ID: 745c70cf-6fc7-4b31-aaa0-ef27bcacc695
-def audit_report(
-    output_path: Path = typer.Option(
-        "reports/audit_report.json",
-        "--output",
-        "-o",
-        help="Path to save the JSON report file.",
-    ),
-    severity: str = typer.Option(
-        "info",
-        "--severity",
-        "-s",
-        help="Filter findings by minimum severity level (info, warning, error).",
-        case_sensitive=False,
-    ),
-):
-    """Runs a full constitutional audit and saves the detailed findings to a JSON file."""
-    console.print(
-        f"[bold cyan]🚀 Running full audit and generating report (min-severity: {severity})...[/bold cyan]"
-    )
-
-    async def _async_audit_report():
-        auditor = await service_registry.get_service("auditor")
-        passed, all_findings, unassigned_count = await auditor.run_full_audit_async()
-
-        try:
-            min_severity = AuditSeverity[severity.upper()]
-        except KeyError:
-            console.print(
-                f"[bold red]Invalid severity level '{severity}'. Must be 'info', 'warning', or 'error'.[/bold red]"
-            )
-            raise typer.Exit(code=1)
-
-        filtered_findings = [f for f in all_findings if f.severity >= min_severity]
-
-        report = {
-            "passed": passed,
-            "summary": {
-                "errors": len([f for f in all_findings if f.severity.is_blocking]),
-                "warnings": len(
-                    [f for f in all_findings if f.severity == AuditSeverity.WARNING]
-                ),
-                "unassigned_symbols": unassigned_count,
-            },
-            "findings": [f.as_dict() for f in filtered_findings],
-        }
-
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-        output_path.write_text(json.dumps(report, indent=2))
-
-        console.print(
-            f"[bold green]✅ Audit report saved to: {output_path}[/bold green]"
-        )
-        console.print(JSON(json.dumps(report["summary"])))
-
-    asyncio.run(_async_audit_report())

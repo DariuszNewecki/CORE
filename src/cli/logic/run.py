@@ -175,7 +175,7 @@ def vectorize_capabilities(
         raise typer.Exit(code=1)
 
 
-# ID: ec7405ee-fb7c-424c-8d41-239a77a7a24d
+# ID: 3cc70058-843f-456b-bd16-a578fe85f518
 def register(app: typer.Typer):
     """Register the 'run' command group with the main CLI app."""
     app.add_typer(run_app, name="run")

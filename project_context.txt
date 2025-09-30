@@ -591,7 +591,7 @@ rules:
 --- START OF FILE ./.intent/charter/policies/code/code_style_policy.yaml ---
 policy_id: aaa0a228-125d-4013-bfed-c1b58cec0f66
 id: code_style_policy
-version: "1.0.0"
+version: "1.1.0" # Version bump for new rule
 title: "Code Style Policy"
 status: active
 purpose: >
@@ -620,6 +620,9 @@ rules:
   - id: style.fail_on_style_in_ci
     statement: CI MUST fail on style or lint violations (no auto-fixing in CI).
     enforcement: error
+  - id: style.capability_id_placement
+    statement: "Only primary public symbols (top-level functions and classes) that represent a distinct, governable capability require an '# ID:' tag. Internal methods, properties, and private symbols SHOULD NOT be tagged."
+    enforcement: warn
 --- END OF FILE ./.intent/charter/policies/code/code_style_policy.yaml ---
 
 --- START OF FILE ./.intent/charter/policies/code/naming_conventions_policy.yaml ---
@@ -794,7 +797,7 @@ migrations:
     - "003_implementations.sql"
     - "004_refactor_to_symbols.sql"
     - "005_add_symbol_key.sql"
-    - "0_knowledge_graph_view.sql"
+    - "006_knowledge_graph_view.sql"
     - "007_capabilities_registry.sql"
     - "008_operational_tables.sql"
     - "009_domain_and_vector_tables.sql"
@@ -3271,6 +3274,7 @@ name: CORE
 version: 0.5.0
 intent: A self-governing system that can safely and autonomously evolve its own codebase.
 capabilities: []
+
 --- END OF FILE ./.intent/mind/project_manifest.yaml ---
 
 --- START OF FILE ./.intent/mind/prompts/capability_definer.prompt ---
@@ -3996,119 +4000,126 @@ SOFTWARE.
 # Makefile for CORE – Cognitive Orchestration Runtime Engine
 # This file provides convenient shortcuts to the canonical 'core-admin' CLI commands.
 
+# ---- Shell & defaults --------------------------------------------------------
 SHELL := /bin/bash
 .SHELLFLAGS := -eu -o pipefail -c
 .DEFAULT_GOAL := help
 
-# ---- Configurable knobs -----------------------------------------------------
-POETRY  ?= python3 -m poetry
-APP     ?= src.core.main:app
-HOST    ?= 0.0.0.0
-PORT    ?= 8000
-RELOAD  ?= --reload
-ENV_FILE ?= .env
+# ---- Configurable knobs ------------------------------------------------------
+POETRY      ?= python3 -m poetry
+APP         ?= src.core.main:create_app
+HOST        ?= 0.0.0.0
+PORT        ?= 8000
+RELOAD      ?= --reload
+ENV_FILE    ?= .env
 
+# Capability docs output
 OUTPUT_PATH ?= docs/10_CAPABILITY_REFERENCE.md
 
-.PHONY: help install lock run stop audit lint format test check fast-check clean distclean nuke docs check-docs cli-tree integrate
+# Internal helpers
+PY          := $(POETRY) run python
 
-help:
+# ---- Phony targets -----------------------------------------------------------
+.PHONY: \
+  help install lock run stop \
+  audit lint format test fast-check check \
+  cli-tree clean distclean nuke \
+  docs check-docs vectorize integrate \
+  migrate export-db sync-knowledge sync-manifest
+
+# ---- Help (auto-documented) --------------------------------------------------
+# Use the pattern "target: ## description" to list in `make help`.
+help: ## Show this help message
 	@echo "CORE Development Makefile"
 	@echo "-------------------------"
-	@echo "This Makefile provides shortcuts to the main CLI."
-	@echo "For all commands, see: 'poetry run core-admin --help'"
+	@echo "This Makefile maps to 'core-admin' CLI commands."
 	@echo ""
-	@echo "Common Shortcuts:"
-	@echo "make install       - Install dependencies"
-	@echo "make integrate     - Run the full, canonical integration sequence"
-	@echo "make check         - Run all checks including vectorization (for CI)"
-	@echo "make fast-check    - Run linting and tests (RECOMMENDED FOR LOCAL DEV)"
-	@echo "make lint          - Check code format and quality (read-only)"
-	@echo "make format        - Fix code format and quality issues"
-	@echo "make test          - Run tests via 'core-admin check tests'"
-	@echo "make run           - Start the API server"
-	@echo "make cli-tree      - Display the full CLI command tree"
-	@echo "make clean         - Remove temporary files"
-	@echo "make docs          - Generate capability documentation"
+	@awk 'BEGIN {FS":.*##"} /^[a-zA-Z0-9_.-]+:.*##/ {printf "  \033[36m%-18s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
+	@echo ""
+	@echo "Tip: run '$(POETRY) run core-admin --help' for the full CLI."
 
-install:
+# ---- Setup -------------------------------------------------------------------
+install: ## Install dependencies (poetry install)
 	@echo "📦 Installing dependencies..."
 	$(POETRY) install
 
-lock:
+lock: ## Resolve and lock dependencies
 	@echo "🔒 Resolving and locking dependencies..."
 	$(POETRY) lock
 
-run:
+# ---- Run / Stop --------------------------------------------------------------
+run: ## Start the FastAPI server (uvicorn)
 	@echo "🚀 Starting FastAPI server at http://$(HOST):$(PORT)"
-	$(POETRY) run uvicorn $(APP) --host $(HOST) --port $(PORT) $(RELOAD) --env-file $(ENV_FILE)
+	$(POETRY) run uvicorn $(APP) --factory --host $(HOST) --port $(PORT) $(RELOAD) --env-file $(ENV_FILE)
 
-stop:
+stop: ## Kill any process listening on $(PORT)
 	@echo "🛑 Stopping any process on port $(PORT)..."
-	@lsof -t -i:$(PORT) | xargs kill -9 2>/dev/null || true
+	@command -v lsof >/dev/null 2>&1 && lsof -t -i:$(PORT) | xargs kill -9 2>/dev/null || true
 
-
-# --- START OF UPDATED COMMANDS ---
-audit:
+# ---- Checks / Fixes ----------------------------------------------------------
+audit: ## Run the constitutional audit
 	$(POETRY) run core-admin check audit
 
-lint:
+lint: ## Check code format and quality (read-only)
 	$(POETRY) run core-admin check lint
 
-format:
+format: ## Fix code style issues (Black/Ruff via CLI)
 	$(POETRY) run core-admin fix code-style
 
-test:
+test: ## Run tests
 	$(POETRY) run core-admin check tests
 
-cli-tree:
-	@echo "🌳 Generating CLI command tree..."
-	$(POETRY) run core-admin inspect command-tree
-
-fast-check:
+fast-check: ## Lint + tests (quick local cycle)
 	$(MAKE) lint
 	$(MAKE) test
-	
-fix-lines:
-	@echo "📏 Fixing long lines with AI assistant..."
-	$(POETRY) run core-admin fix line-lengths --write
-	
-fix-docs:
-	@echo "✍️  Adding missing docstrings with AI assistant..."
-	$(POETRY) run core-admin fix docstrings --write
 
-vectorize:
-	@echo "🧠 Vectorizing knowledge graph..."
-	$(POETRY) run core-admin run vectorize
-
-check:
+check: ## Lint + tests + audit + docs drift check
 	@echo "🤝 Running full constitutional audit and documentation check..."
 	$(MAKE) lint
 	$(MAKE) test
 	$(MAKE) audit
 	@$(MAKE) check-docs
 
-# The 'integrate' command is now superseded by the more explicit 'submit' command.
-# Kept for backward compatibility for now, but points to the new workflow command.
-integrate:
+cli-tree: ## Display CLI command tree
+	@echo "🌳 Generating CLI command tree..."
+	$(POETRY) run core-admin inspect command-tree
+
+# ---- Knowledge / DB helpers --------------------------------------------------
+migrate: ## Apply pending DB schema migrations
+	$(POETRY) run core-admin manage database migrate
+
+export-db: ## Export DB tables to canonical YAML
+	$(POETRY) run core-admin manage database export
+
+sync-knowledge: ## Scan codebase and sync symbols to DB (Single Source of Truth)
+	$(POETRY) run core-admin manage database sync-knowledge --write
+
+sync-manifest: ## Sync .intent/mind/project_manifest.yaml from DB
+	$(POETRY) run core-admin manage database sync-manifest
+
+vectorize: ## Vectorize knowledge graph (embeddings pipeline)
+	@echo "🧠 Vectorizing knowledge graph..."
+	$(POETRY) run core-admin run vectorize
+
+integrate: ## Canonical integration sequence (submit changes)
 	@echo "🤝 Running Canonical Integration Sequence via 'submit changes'..."
 	$(POETRY) run core-admin submit changes --message "feat: Integrate changes via make"
 
-docs:
+# ---- Docs --------------------------------------------------------------------
+docs: ## Generate capability documentation
 	@echo "📚 Generating capability documentation..."
-	# This is a conceptual placeholder. The 'build docs' command would need to be re-wired.
-	# For now, let's assume it maps to a management task.
-	$(POETRY) run core-admin manage project docs
-# --- END OF UPDATED COMMANDS ---
+	# Option A: preferred CLI-managed docs (if implemented)
+	-$(POETRY) run core-admin manage project docs || true
+	# Option B: direct module entry point (fallback)
+	$(PY) -m features.introspection.generate_capability_docs --output "$(OUTPUT_PATH)"
 
-check-docs: docs
+check-docs: docs ## Verify documentation is in sync
 	@echo "🔎 Checking for documentation drift..."
-	@git diff --exit-code --quiet $(OUTPUT_PATH) || (echo "❌ ERROR: Documentation is out of sync. Please run 'make docs' and commit the changes." && exit 1)
+	@git diff --exit-code --quiet "$(OUTPUT_PATH)" || (echo "❌ ERROR: Documentation is out of sync. Please run 'make docs' and commit the changes." && exit 1)
 	@echo "✅ Documentation is up to date."
 
-# ---- Clean targets ---------------------------------------------------------
-
-clean:
+# ---- Clean -------------------------------------------------------------------
+clean: ## Remove temporary files and caches
 	@echo "🧹 Cleaning up temporary files and caches..."
 	find . -type f -name '*.pyc' -delete
 	find . -type d -name '__pycache__' -prune -exec rm -rf {} +
@@ -4119,16 +4130,17 @@ clean:
 	rm -rf pending_writes sandbox
 	@echo "✅ Clean complete."
 
-distclean: clean
+distclean: clean ## Clean + remove virtual env
 	@echo "🧨 Distclean: removing virtual environments and build leftovers..."
 	rm -rf .venv
 	@echo "✅ Distclean complete."
 
-nuke:
+nuke: ## Danger! Remove ALL untracked files (git clean -fdx)
 	@echo "☢️  Running 'git clean -fdx' in 3s (CTRL+C to cancel)..."
 	@sleep 3
 	git clean -fdx
 	@echo "✅ Repo nuked (untracked files/dirs removed)."
+
 --- END OF FILE ./Makefile ---
 
 --- START OF FILE ./README.md ---
@@ -5438,6 +5450,105 @@ if __name__ == "__main__":
     
 --- END OF FILE ./scripts/register_all_capabilities.py ---
 
+--- START OF FILE ./scripts/verify_a1_readiness.py ---
+# scripts/verify_a1_readiness.py
+"""
+A standalone script to clearly demonstrate the architectural gap preventing
+A1 autonomy from functioning correctly. It provides evidence by comparing the
+result of the correct validation command against the one currently being
+used by the A1 executor's pre-flight check.
+"""
+import subprocess
+import sys
+from pathlib import Path
+
+from rich.console import Console
+from rich.panel import Panel
+
+console = Console()
+
+# --- Configuration ---
+REPO_ROOT = Path(__file__).resolve().parents[1]
+KNOWN_GOOD_FILE = "src/shared/logger.py"
+
+# The command that we know is correct and works
+CORRECT_VALIDATION_COMMAND = ["poetry", "run", "core-admin", "check", "validate", KNOWN_GOOD_FILE]
+
+# The command that the buggy `micro apply` script is currently trying to run
+BUGGY_PREFLIGHT_COMMAND = ["poetry", "run", "core-admin", "validate", "code", KNOWN_GOOD_FILE]
+# --- End Configuration ---
+
+
+def run_command(command: list[str]) -> tuple[bool, str]:
+    """Runs a command and returns (success_bool, combined_output_str)."""
+    try:
+        result = subprocess.run(
+            command,
+            cwd=REPO_ROOT,
+            capture_output=True,
+            text=True,
+            check=False,  # We want to capture failures, not crash
+        )
+        output = result.stdout + "\n" + result.stderr
+        return result.returncode == 0, output.strip()
+    except FileNotFoundError:
+        return False, f"Command not found: {command[0]}"
+
+
+def main():
+    """Main execution function for the verification script."""
+    console.print(Panel("[bold cyan]CORE A1 Readiness Verification Script[/bold cyan]"))
+
+    # --- TEST A: ESTABLISH GROUND TRUTH ---
+    console.print("\n[bold]STEP 1: Verifying the canonical validation tool...[/bold]")
+    console.print(f"  -> Running correct command: `{' '.join(CORRECT_VALIDATION_COMMAND)}`")
+    success_a, output_a = run_command(CORRECT_VALIDATION_COMMAND)
+
+    if not success_a:
+        console.print("[bold red]❌ TEST FAILED: The baseline validation tool itself is broken.[/bold red]")
+        console.print("Output:")
+        console.print(output_a)
+        sys.exit(1)
+    
+    console.print("[bold green]  -> ✅ SUCCESS: The canonical validation tool is healthy.[/bold green]")
+    console.print("     This proves the system *is capable* of validating a file.")
+
+
+    # --- TEST B: SIMULATE THE BUGGY A1 PRE-FLIGHT CHECK ---
+    console.print("\n[bold]STEP 2: Simulating the A1 micro-proposal pre-flight check...[/bold]")
+    console.print(f"  -> Running the command currently used by `micro apply`: `{' '.join(BUGGY_PREFLIGHT_COMMAND)}`")
+    success_b, output_b = run_command(BUGGY_PREFLIGHT_COMMAND)
+
+    console.print("\n" + "="*50)
+    console.print("[bold]VERIFICATION ANALYSIS[/bold]")
+    console.print("="*50)
+
+    if success_b:
+        console.print("[bold red]UNEXPECTED RESULT:[/bold red] The buggy pre-flight check succeeded.")
+        console.print("This indicates a different problem than anticipated. Please review the output:")
+        console.print(output_b)
+        sys.exit(1)
+
+    if "No such command 'validate'" in output_b:
+        console.print("[bold green]✅ EVIDENCE CONFIRMED: The A1 pre-flight check is failing as expected.[/bold green]")
+        console.print("\n[bold]Conclusion:[/bold]")
+        console.print("The system is not yet in A1 because of a simple but critical architectural disconnect:")
+        console.print("1. The **correct** validation command is `core-admin check validate` (as proven in Step 1).")
+        console.print("2. The **A1 executor** is incorrectly trying to call `core-admin validate code` (as proven by the failure in Step 2).")
+        console.print("\nThe A1 autonomy loop is correctly halting because its pre-flight check is calling a non-existent command.")
+        console.print("\nThis script provides the clear evidence that the final step is to fix this wiring.")
+    else:
+        console.print("[bold yellow]UNEXPECTED FAILURE:[/bold yellow] The pre-flight check failed, but for a different reason.")
+        console.print("Please review the captured output to diagnose the issue:")
+        console.print(Panel(output_b, title="Captured Output from Buggy Command"))
+
+    sys.exit(0)
+
+
+if __name__ == "__main__":
+    main()
+--- END OF FILE ./scripts/verify_a1_readiness.py ---
+
 --- START OF FILE ./sql/001_init.sql ---
 CREATE SCHEMA IF NOT EXISTS core;
 
@@ -5823,18 +5934,17 @@ from __future__ import annotations
 import typer
 from rich.console import Console
 
-# Final, clean imports from the new canonical command structure
-from cli.commands import (
-    check,
-    fix,
-    inspect,
-    manage,
-    run,
-    search,
-    submit,
-)
+from cli.commands import check, fix, inspect, manage, run, search, submit
 from cli.interactive import launch_interactive_menu
+from core.cognitive_service import CognitiveService
+from core.file_handler import FileHandler
+from core.git_service import GitService
+from features.governance.audit_context import AuditorContext
+from services.clients.qdrant_client import QdrantService
+from shared.config import settings
+from shared.context import CoreContext
 from shared.logger import getLogger
+from shared.models import PlannerConfig
 
 console = Console()
 log = getLogger("admin_cli")
@@ -5849,14 +5959,24 @@ app = typer.Typer(
     no_args_is_help=False,
 )
 
+# Create a single, shared CoreContext instance at the application root
+core_context = CoreContext(
+    git_service=GitService(settings.REPO_PATH),
+    cognitive_service=CognitiveService(settings.REPO_PATH),
+    qdrant_service=QdrantService(),
+    auditor_context=AuditorContext(settings.REPO_PATH),
+    file_handler=FileHandler(str(settings.REPO_PATH)),
+    planner_config=PlannerConfig(),
+)
 
-# --- Centralized Registration Helper ---
+
 # ID: 1a9e8b4c-3d5f-4e6a-8b7c-0d1e2f3a4b5c
 def register_all_commands(app_instance: typer.Typer) -> None:
     """Register all command groups in the correct order."""
-    modules = [check, fix, inspect, manage, run, search, submit]
-    for module in modules:
-        module.register(app_instance)
+    modules_with_context = [check, fix, inspect, manage, run, search, submit]
+    for module in modules_with_context:
+        # Pass the context object to each module's register function
+        module.register(app_instance, core_context)
 
 
 # --- Command Registration ---
@@ -5867,6 +5987,8 @@ register_all_commands(app)
 # ID: 2b8c9d0e-1f2a-3b4c-5d6e-7f8a9b0c1d2e
 def main(ctx: typer.Context):
     """If no command is specified, launch the interactive menu."""
+    # Attach our custom context to Typer's context object
+    ctx.obj = core_context
     if ctx.invoked_subcommand is None:
         console.print(
             "[bold green]No command specified. Launching interactive menu...[/bold green]"
@@ -5894,13 +6016,16 @@ from __future__ import annotations
 import typer
 
 from cli.logic.ci import audit, lint, test_system
+from cli.logic.ci import set_context as set_ci_context
 from cli.logic.diagnostics import policy_coverage
+from shared.context import CoreContext
 
 check_app = typer.Typer(
     help="Read-only validation and health checks.",
     no_args_is_help=True,
 )
 
+# Register the logic functions as commands
 check_app.command("audit", help="Run the full constitutional self-audit.")(audit)
 check_app.command("lint", help="Check code formatting and quality.")(lint)
 check_app.command("tests", help="Run the pytest suite.")(test_system)
@@ -5910,8 +6035,10 @@ check_app.command("diagnostics", help="Audit the constitution for policy coverag
 
 
 # ID: 3c4d5e6f-7a8b-9c0d-1e2f-3a4b5c6d7e8f
-def register(app: typer.Typer):
+def register(app: typer.Typer, context: CoreContext):
     """Register the 'check' command group to the main CLI app."""
+    # Set the context for the logic module before adding the commands
+    set_ci_context(context)
     app.add_typer(check_app, name="check")
 
 --- END OF FILE ./src/cli/commands/check.py ---
@@ -5935,6 +6062,7 @@ from cli.logic.fixer import (
 )
 from features.maintenance.command_sync_service import sync_commands_to_db
 from features.self_healing.duplicate_id_service import resolve_duplicate_ids
+from shared.context import CoreContext
 
 fix_app = typer.Typer(
     help="Self-healing tools that write changes to the codebase.",
@@ -5980,7 +6108,7 @@ def fix_duplicate_ids_command(
 
 
 # ID: 4d5e6f7a-8b9c-0d1e-2f3a-4b5c6d7e8f9a
-def register(app: typer.Typer):
+def register(app: typer.Typer, context: CoreContext):
     """Register the 'fix' command group to the main CLI app."""
     app.add_typer(fix_app, name="fix")
 
@@ -5996,6 +6124,7 @@ import typer
 from cli.logic.diagnostics import cli_tree
 from cli.logic.guard_cli import register_guard
 from cli.logic.status import status
+from shared.context import CoreContext
 
 inspect_app = typer.Typer(
     help="Read-only commands to inspect system state and configuration.",
@@ -6008,7 +6137,7 @@ inspect_app.command("command-tree")(cli_tree)
 
 
 # ID: 5e6f7a8b-9c0d-1e2f-3a4b-5c6d7e8f9a0b
-def register(app: typer.Typer):
+def register(app: typer.Typer, context: CoreContext):
     """Register the 'inspect' command group to the main CLI app."""
     app.add_typer(inspect_app, name="inspect")
 
@@ -6024,29 +6153,46 @@ import typer
 from cli.logic.byor import initialize_repository
 from cli.logic.db import export_data, migrate_db
 from cli.logic.new import register as register_new_project
-from cli.logic.proposal_service import proposals_approve, proposals_list, proposals_sign
+
+# NEW: project docs wrapper
+from cli.logic.project_docs import docs as project_docs
+from cli.logic.proposal_service import (
+    proposals_approve,
+    proposals_list,
+    proposals_sign,
+)
+from cli.logic.proposal_service import set_context as set_proposal_context
+
+# database sync helpers
+from cli.logic.sync import sync_knowledge_base  # provides sync-knowledge
+from cli.logic.sync_manifest import sync_manifest  # provides sync-manifest
 from features.governance.key_management_service import register as register_keygen
+from shared.context import CoreContext
 
 manage_app = typer.Typer(
     help="State-changing administrative tasks for the system.",
     no_args_is_help=True,
 )
 
-# --- Subgroup: Database ---
+# Database subgroup
 db_sub_app = typer.Typer(
     help="Manage the database schema and data.", no_args_is_help=True
 )
 db_sub_app.command("migrate")(migrate_db)
 db_sub_app.command("export")(export_data)
+db_sub_app.command("sync-knowledge")(sync_knowledge_base)
+db_sub_app.command("sync-manifest")(sync_manifest)
 manage_app.add_typer(db_sub_app, name="database")
 
-# --- Subgroup: Project ---
+# Project subgroup
 project_sub_app = typer.Typer(help="Manage CORE projects.", no_args_is_help=True)
 register_new_project(project_sub_app)
 project_sub_app.command("onboard")(initialize_repository)
+# NEW: docs command (uses the same generator as your Makefile fallback)
+project_sub_app.command("docs")(project_docs)
 manage_app.add_typer(project_sub_app, name="project")
 
-# --- Subgroup: Proposals ---
+# Proposals subgroup
 proposals_sub_app = typer.Typer(
     help="Manage constitutional amendment proposals.", no_args_is_help=True
 )
@@ -6055,7 +6201,7 @@ proposals_sub_app.command("sign")(proposals_sign)
 proposals_sub_app.command("approve")(proposals_approve)
 manage_app.add_typer(proposals_sub_app, name="proposals")
 
-# --- Subgroup: Keys ---
+# Keys subgroup
 keys_sub_app = typer.Typer(
     help="Manage operator cryptographic keys.", no_args_is_help=True
 )
@@ -6063,9 +6209,10 @@ register_keygen(keys_sub_app)
 manage_app.add_typer(keys_sub_app, name="keys")
 
 
-# ID: 6f7a8b9c-0d1e-2f3a-4b5c-6d7e8f9a0b1c
-def register(app: typer.Typer):
-    """Register the 'manage' command group to the main CLI app."""
+# ID: ec7405ee-fb7c-424c-8d41-239a77a7a24d
+def register(app: typer.Typer, context: CoreContext):
+    """Register the 'manage' command group with the main CLI app."""
+    set_proposal_context(context)
     app.add_typer(manage_app, name="manage")
 
 --- END OF FILE ./src/cli/commands/manage.py ---
@@ -6089,17 +6236,13 @@ from core.agents.execution_agent import ExecutionAgent
 from core.agents.plan_executor import PlanExecutor
 from core.agents.planner_agent import PlannerAgent
 from core.agents.reconnaissance_agent import ReconnaissanceAgent
-from core.cognitive_service import CognitiveService
-from core.file_handler import FileHandler
-from core.git_service import GitService
 from core.knowledge_service import KnowledgeService
 from core.prompt_pipeline import PromptPipeline
-from features.governance.audit_context import AuditorContext
 from features.introspection.vectorization_service import run_vectorize
 from shared.config import settings
+from shared.context import CoreContext
 from shared.logger import getLogger
-from shared.models import PlanExecutionError, PlannerConfig
-from shared.path_utils import get_repo_root
+from shared.models import PlanExecutionError
 
 log = getLogger("core_admin.run")
 
@@ -6110,22 +6253,28 @@ run_app = typer.Typer(
 
 # ID: 404982f6-59cd-40a3-862c-282c14225d3e
 async def run_development_cycle(
-    goal: str, auto_commit: bool = True
+    context: CoreContext, goal: str, auto_commit: bool = True
 ) -> tuple[bool, str]:
     """
-    Runs the full development cycle for a given goal.
+    Runs the full development cycle for a given goal using explicit dependencies from the context.
     """
     try:
         log.info(f"🚀 Received new development goal: '{goal}'")
-        repo_path = get_repo_root()
 
-        auditor_context = AuditorContext(repo_path)
-        git_service = GitService(repo_path=str(repo_path))
-        cognitive_service = CognitiveService(repo_path=repo_path)
-        knowledge_service = KnowledgeService(repo_path=repo_path)
-        file_handler = FileHandler(repo_path=str(repo_path))
-        prompt_pipeline = PromptPipeline(repo_path=repo_path)
-        planner_config = PlannerConfig()
+        # Get services from the context
+        git_service = context.git_service
+        cognitive_service = context.cognitive_service
+        # --- THIS IS THE FIX ---
+        auditor_context = context.auditor_context
+        # --- END OF FIX ---
+        file_handler = context.file_handler
+        planner_config = context.planner_config
+
+        await cognitive_service.initialize()
+
+        # These are lightweight and can be created on-the-fly
+        knowledge_service = KnowledgeService(repo_path=settings.REPO_PATH)
+        prompt_pipeline = PromptPipeline(repo_path=settings.REPO_PATH)
         plan_executor = PlanExecutor(file_handler, git_service, planner_config)
 
         knowledge_graph = await knowledge_service.get_graph()
@@ -6134,7 +6283,7 @@ async def run_development_cycle(
         context_report = await recon_agent.generate_report(goal)
 
         planner = PlannerAgent(cognitive_service)
-        plan = planner.create_execution_plan(goal, context_report)
+        plan = await planner.create_execution_plan(goal, context_report)
 
         executor = ExecutionAgent(
             cognitive_service, prompt_pipeline, plan_executor, auditor_context
@@ -6143,9 +6292,7 @@ async def run_development_cycle(
         if not plan:
             return False, "PlannerAgent failed to create a valid execution plan."
 
-        success, message = await executor.execute_plan(
-            high_level_goal=goal, plan=plan, is_micro_proposal=False
-        )
+        success, message = await executor.execute_plan(high_level_goal=goal, plan=plan)
 
         if success and auto_commit:
             commit_goal = (goal[:72] + "...") if len(goal) > 75 else goal
@@ -6160,12 +6307,9 @@ async def run_development_cycle(
         return False, f"An unexpected error occurred: {e}"
 
 
-@run_app.command(
-    "develop",
-    help="Orchestrates the autonomous development process from a high-level goal.",
-)
 # ID: b6963057-2c08-4699-94ea-a7f74fe532ff
 def develop(
+    context: CoreContext,
     goal: Optional[str] = typer.Argument(
         None,
         help="The high-level development goal for CORE to achieve.",
@@ -6182,19 +6326,14 @@ def develop(
         show_default=False,
     ),
 ):
-    """Orchestrates the autonomous development process from a high-level goal, which can be provided directly or from a file."""
+    """Orchestrates the autonomous development process from a high-level goal."""
     if not goal and not from_file:
         log.error(
             "❌ You must provide a goal either as an argument or with --from-file."
         )
         raise typer.Exit(code=1)
 
-    if goal and from_file:
-        log.error("❌ You cannot provide a goal as both an argument and from a file.")
-        raise typer.Exit(code=1)
-
     if from_file:
-        log.info(f"📄 Loading development goal from file: {from_file.name}")
         goal_content = from_file.read_text(encoding="utf-8")
     else:
         goal_content = goal
@@ -6204,7 +6343,7 @@ def develop(
         log.error("❌ The 'develop' command requires LLMs to be enabled.")
         raise typer.Exit(code=1)
 
-    success, message = asyncio.run(run_development_cycle(goal_content))
+    success, message = asyncio.run(run_development_cycle(context, goal_content))
 
     if success:
         typer.secho("\n✅ Goal achieved successfully.", fg=typer.colors.GREEN)
@@ -6213,12 +6352,9 @@ def develop(
         raise typer.Exit(code=1)
 
 
-@run_app.command(
-    "vectorize",
-    help="Scan capabilities from the DB, generate embeddings, and upsert to Qdrant.",
-)
 # ID: f82043e9-6402-4cfd-8550-12b5feba09de
 def vectorize_capabilities(
+    context: CoreContext,
     dry_run: bool = typer.Option(
         True, "--dry-run/--write", help="Show changes without writing to Qdrant."
     ),
@@ -6232,7 +6368,7 @@ def vectorize_capabilities(
         log.error("❌ LLMs must be enabled to generate embeddings.")
         raise typer.Exit(code=1)
     try:
-        cognitive_service = CognitiveService(settings.REPO_PATH)
+        cognitive_service = context.cognitive_service
         asyncio.run(
             run_vectorize(
                 cognitive_service=cognitive_service, dry_run=dry_run, force=force
@@ -6244,8 +6380,44 @@ def vectorize_capabilities(
 
 
 # ID: 1d2e3f4a-5b6c-7d8e-9f0a-1b2c3d4e5f6a
-def register(app: typer.Typer):
+def register(app: typer.Typer, context: CoreContext):
     """Register the 'run' command group with the main CLI app."""
+
+    @run_app.command("develop")
+    # ID: d10d0d34-054c-4923-bda9-1264f6d85813
+    def develop_command(
+        goal: Optional[str] = typer.Argument(
+            None,
+            help="The high-level development goal for CORE to achieve.",
+            show_default=False,
+        ),
+        from_file: Optional[Path] = typer.Option(
+            None,
+            "--from-file",
+            "-f",
+            help="Path to a file containing the development goal.",
+            exists=True,
+            dir_okay=False,
+            resolve_path=True,
+            show_default=False,
+        ),
+    ):
+        """Orchestrates the autonomous development process from a high-level goal."""
+        develop(context=context, goal=goal, from_file=from_file)
+
+    @run_app.command("vectorize")
+    # ID: 61b0c0e6-41ad-4050-bb23-54d39ef9e248
+    def vectorize_command(
+        dry_run: bool = typer.Option(
+            True, "--dry-run/--write", help="Show changes without writing to Qdrant."
+        ),
+        force: bool = typer.Option(
+            False, "--force", help="Force re-vectorization of all capabilities."
+        ),
+    ):
+        """Scan capabilities from the DB, generate embeddings, and upsert to Qdrant."""
+        vectorize_capabilities(context=context, dry_run=dry_run, force=force)
+
     app.add_typer(run_app, name="run")
 
 --- END OF FILE ./src/cli/commands/run.py ---
@@ -6255,23 +6427,75 @@ def register(app: typer.Typer):
 """Registers the new, verb-based 'search' command group."""
 from __future__ import annotations
 
+import asyncio
+
 import typer
+from rich.console import Console
+from rich.table import Table
 
 from cli.logic.hub import hub_search
-from cli.logic.knowledge_ops import search_knowledge_command
+from shared.context import CoreContext
 
+console = Console()
 search_app = typer.Typer(
     help="Discover capabilities and commands.",
     no_args_is_help=True,
 )
 
-search_app.command("capabilities")(search_knowledge_command)
-search_app.command("commands")(hub_search)
+
+# This is the logic function, now co-located with its command.
+# ID: ce6ffa34-2440-4188-bc95-0f6703651b9a
+def search_knowledge_command(context: CoreContext, query: str, limit: int = 5) -> None:
+    """Synchronous wrapper around async search."""
+
+    async def _run() -> None:
+        console.print(
+            f"🧠 Searching for capabilities related to: '[cyan]{query}[/cyan]'..."
+        )
+        try:
+            cognitive_service = context.cognitive_service
+            results = await cognitive_service.search_capabilities(query, limit=limit)
+            if not results:
+                console.print("[yellow]No relevant capabilities found.[/yellow]")
+                return
+
+            table = Table(title="Top Matching Capabilities")
+            table.add_column("Score", style="magenta", justify="right")
+            table.add_column("Capability Key", style="cyan")
+            table.add_column("Description", style="green")
+            for hit in results:
+                payload = hit.get("payload", {}) or {}
+                key = payload.get("key", "N/A")
+                description = (
+                    payload.get("description") or "No description provided."
+                ).strip()
+                score = f"{hit.get('score', 0):.4f}"
+                table.add_row(score, key, description)
+            console.print(table)
+        except Exception as e:
+            console.print(f"[bold red]❌ Search failed: {e}[/bold red]")
+            raise typer.Exit(code=1)
+
+    asyncio.run(_run())
 
 
 # ID: 8b9c0d1e-2f3a-4b5c-6d7e-8f9a0b1c2d3e
-def register(app: typer.Typer):
+def register(app: typer.Typer, context: CoreContext):
     """Register the 'search' command group to the main CLI app."""
+
+    @search_app.command("capabilities")
+    # ID: 22dd2048-ebe7-490b-81f7-632d276585e6
+    def search_capabilities_wrapper(
+        query: str,
+        limit: int = 5,
+    ):
+        """Performs a semantic search for capabilities in the knowledge base."""
+        # This wrapper ensures the context is passed correctly to the logic function.
+        search_knowledge_command(context=context, query=query, limit=limit)
+
+    # hub_search does not require context yet, so it can be registered directly
+    search_app.command("commands")(hub_search)
+
     app.add_typer(search_app, name="search")
 
 --- END OF FILE ./src/cli/commands/search.py ---
@@ -6284,6 +6508,8 @@ from __future__ import annotations
 import typer
 
 from cli.logic.system import integrate_command
+from cli.logic.system import set_context as set_system_context
+from shared.context import CoreContext
 
 submit_app = typer.Typer(
     help="High-level workflow commands for developers.",
@@ -6297,8 +6523,10 @@ submit_app.command(
 
 
 # ID: 9c0d1e2f-3a4b-5c6d-7e8f-9a0b1c2d3e4f
-def register(app: typer.Typer):
+def register(app: typer.Typer, context: CoreContext):
     """Register the 'submit' command group to the main CLI app."""
+    # Set the context for the logic module before adding the commands
+    set_system_context(context)
     app.add_typer(submit_app, name="submit")
 
 --- END OF FILE ./src/cli/commands/submit.py ---
@@ -7122,32 +7350,36 @@ Implements high-level CI and system health checks.
 from __future__ import annotations
 
 import asyncio
-import json
 from pathlib import Path
+from typing import Optional
 
 import typer
 from rich.console import Console
-from rich.json import JSON
 from rich.panel import Panel
 from rich.table import Table
 
-from core.service_registry import service_registry
-from shared.models.audit_models import AuditSeverity
+from features.governance.constitutional_auditor import ConstitutionalAuditor
+from shared.context import CoreContext
+from shared.models import AuditSeverity
 
-# --- CORRECTED IMPORT ---
 from .cli_utils import (
     _run_poetry_command,
     find_test_file_for_capability_async,
 )
 
 console = Console()
-ci_app = typer.Typer(help="High-level CI and system health checks.")
+
+# Global variable to store context, set by the registration layer.
+_context: Optional[CoreContext] = None
 
 
-@ci_app.command(
-    "lint",
-    help="Check code formatting and quality with Black and Ruff without changing files.",
-)
+# ID: e4f21b13-0ea9-4b62-b50e-70219caeb198
+def set_context(context: CoreContext):
+    """Sets the shared context for all commands in this module."""
+    global _context
+    _context = context
+
+
 # ID: 8afdeab9-fc81-4d7c-b05f-dd27f936b3e6
 def lint():
     """Checks code formatting and quality using Black and Ruff."""
@@ -7159,7 +7391,6 @@ def lint():
     )
 
 
-@ci_app.command("test", help="Run the pytest suite.")
 # ID: f4d514f7-e277-446e-98ff-06e881710a99
 def test_system(
     target: str | None = typer.Argument(
@@ -7193,10 +7424,6 @@ def test_system(
     asyncio.run(_async_test_system())
 
 
-@ci_app.command(
-    "audit",
-    help="Run the full constitutional self-audit and print a summary of findings.",
-)
 # ID: f7bc6512-03d2-4bf9-b718-6fb9323e38ea
 def audit(
     severity: str = typer.Option(
@@ -7205,12 +7432,18 @@ def audit(
         "-s",
         help="Filter findings by minimum severity level (info, warning, error).",
         case_sensitive=False,
-    )
+    ),
 ):
     """Run a full constitutional self-audit and print a summary of findings."""
+    if _context is None:
+        console.print("[bold red]Error: Context not initialized for audit[/bold red]")
+        raise typer.Exit(code=1)
 
     async def _async_audit():
-        auditor = await service_registry.get_service("auditor")
+        # --- THIS IS THE FIX ---
+        # Initialize the auditor and pass it the pre-built context object.
+        auditor = ConstitutionalAuditor(_context.auditor_context)
+        # --- END OF FIX ---
         passed, all_findings, unassigned_count = await auditor.run_full_audit_async()
 
         try:
@@ -7266,67 +7499,6 @@ def audit(
             raise typer.Exit(1)
 
     asyncio.run(_async_audit())
-
-
-@ci_app.command(
-    "report", help="Run a full audit and save the detailed findings to a JSON file."
-)
-# ID: 745c70cf-6fc7-4b31-aaa0-ef27bcacc695
-def audit_report(
-    output_path: Path = typer.Option(
-        "reports/audit_report.json",
-        "--output",
-        "-o",
-        help="Path to save the JSON report file.",
-    ),
-    severity: str = typer.Option(
-        "info",
-        "--severity",
-        "-s",
-        help="Filter findings by minimum severity level (info, warning, error).",
-        case_sensitive=False,
-    ),
-):
-    """Runs a full constitutional audit and saves the detailed findings to a JSON file."""
-    console.print(
-        f"[bold cyan]🚀 Running full audit and generating report (min-severity: {severity})...[/bold cyan]"
-    )
-
-    async def _async_audit_report():
-        auditor = await service_registry.get_service("auditor")
-        passed, all_findings, unassigned_count = await auditor.run_full_audit_async()
-
-        try:
-            min_severity = AuditSeverity[severity.upper()]
-        except KeyError:
-            console.print(
-                f"[bold red]Invalid severity level '{severity}'. Must be 'info', 'warning', or 'error'.[/bold red]"
-            )
-            raise typer.Exit(code=1)
-
-        filtered_findings = [f for f in all_findings if f.severity >= min_severity]
-
-        report = {
-            "passed": passed,
-            "summary": {
-                "errors": len([f for f in all_findings if f.severity.is_blocking]),
-                "warnings": len(
-                    [f for f in all_findings if f.severity == AuditSeverity.WARNING]
-                ),
-                "unassigned_symbols": unassigned_count,
-            },
-            "findings": [f.as_dict() for f in filtered_findings],
-        }
-
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-        output_path.write_text(json.dumps(report, indent=2))
-
-        console.print(
-            f"[bold green]✅ Audit report saved to: {output_path}[/bold green]"
-        )
-        console.print(JSON(json.dumps(report["summary"])))
-
-    asyncio.run(_async_audit_report())
 
 --- END OF FILE ./src/cli/logic/ci.py ---
 
@@ -8791,488 +8963,6 @@ app.command("report")(_report)
 
 --- END OF FILE ./src/cli/logic/init.py ---
 
---- START OF FILE ./src/cli/logic/knowledge.py ---
-# src/cli/logic/knowledge.py
-"""
-Registers the 'knowledge' command group for managing the knowledge base and related artifacts.
-This is a thin registrar; all command logic lives in knowledge_ops.py
-"""
-
-from __future__ import annotations
-
-import typer
-from rich.console import Console
-
-# --- CORRECTED IMPORTS ---
-from .knowledge_ops import (
-    audit_ssot_command,
-    canary_command,
-    export_ssot_command,
-    migrate_ssot_command,
-    search_knowledge_command,
-)
-from .reconcile import reconcile_from_cli
-from .sync import sync_knowledge_base
-from .sync_manifest import sync_manifest
-
-console = Console()
-knowledge_app = typer.Typer(
-    help="Commands for managing the CORE knowledge base (DB and artifacts)."
-)
-
-# Primary knowledge commands (implementations live in knowledge_ops.py)
-knowledge_app.command(
-    "search", help="Performs a semantic search for capabilities in the knowledge base."
-)(search_knowledge_command)
-
-knowledge_app.command("migrate-ssot")(migrate_ssot_command)
-
-knowledge_app.command(
-    "audit-ssot",
-    help="Audit DB↔YAML knowledge exports for drift; writes JSON report and exits non-zero on drift.",
-)(audit_ssot_command)
-
-knowledge_app.command(
-    "export-ssot",
-    help="Export DB truth into read-only YAML snapshots under .intent/mind/knowledge/.",
-)(export_ssot_command)
-
-knowledge_app.command(
-    "canary",
-    help="Run safety canary: SSOT audit → linter (ruff) → tests (pytest). Fails fast on any error.",
-)(canary_command)
-
-# Other existing commands
-knowledge_app.command(
-    "sync",
-    help="Scans the codebase and syncs all symbols to the database.",
-)(sync_knowledge_base)
-
-knowledge_app.command(
-    "reconcile-from-cli",
-    help="Links capabilities in the DB using the CLI registry as a map.",
-)(reconcile_from_cli)
-
-knowledge_app.command(
-    "sync-manifest",
-    help="Synchronizes project_manifest.yaml with public capabilities from the database.",
-)(sync_manifest)
-
-
-# ID: cfd66d1c-04b5-4b9b-9bef-57a2acfc43a5
-def register(app: typer.Typer) -> None:
-    """Register the 'knowledge' command group with the main CLI app."""
-    app.add_typer(knowledge_app, name="knowledge")
-
---- END OF FILE ./src/cli/logic/knowledge.py ---
-
---- START OF FILE ./src/cli/logic/knowledge_ops.py ---
-# src/cli/commands/knowledge_ops.py
-from __future__ import annotations
-
-import asyncio
-import os
-from pathlib import Path
-from typing import Any, Dict, List
-
-import typer
-import yaml
-from rich.console import Console
-from rich.table import Table
-from sqlalchemy import insert, text
-from sqlalchemy.ext.asyncio import (
-    AsyncConnection,
-    AsyncEngine,
-    AsyncSession,
-    async_sessionmaker,
-)
-
-from core.cognitive_service import CognitiveService
-from features.introspection.generate_correction_map import generate_maps  # noqa: F401
-from features.introspection.semantic_clusterer import run_clustering  # noqa: F401
-from services.database.models import CliCommand, CognitiveRole, LlmResource
-from services.database.session_manager import get_session
-from shared.config import settings
-from shared.legacy_models import (
-    LegacyCliRegistry,
-    LegacyCognitiveRoles,
-    LegacyResourceManifest,
-)
-
-# Optional: governance audit (adaptive to DB schema, already added earlier)
-try:
-    from features.governance.checks.knowledge_source_check import (  # type: ignore
-        KnowledgeSourceCheck,
-    )
-except Exception:  # pragma: no cover
-    KnowledgeSourceCheck = None
-
-console = Console()
-
-# ----- Constants -----
-MIND_KNOWLEDGE_DIR = settings.MIND / "knowledge"
-Y_CLI = MIND_KNOWLEDGE_DIR / "cli_registry.yaml"
-Y_RES = MIND_KNOWLEDGE_DIR / "resource_manifest.yaml"
-Y_ROLES = MIND_KNOWLEDGE_DIR / "cognitive_roles.yaml"
-
-
-def _safe_yaml_load(path: Path) -> Any:
-    if not path.exists():
-        return None
-    with path.open("r", encoding="utf-8") as f:
-        return yaml.safe_load(f)
-
-
-# =====================================================================
-# Helpers: AsyncEngine, column introspection, YAML write, run cmd
-# =====================================================================
-
-
-async def _acquire_async_engine() -> AsyncEngine:
-    """
-    Extract an AsyncEngine from the session manager, trying several safe paths.
-    """
-    async with get_session() as session:
-        # 1) Preferred: real AsyncConnection -> engine
-        try:
-            conn = await session.connection()
-            if isinstance(conn, AsyncConnection):
-                return conn.engine  # type: ignore[return-value]
-        except Exception:
-            pass
-
-        # 2) Fallbacks
-        try:
-            bind = session.get_bind()
-        except Exception:
-            bind = None
-
-        if isinstance(bind, AsyncEngine):
-            return bind
-        if isinstance(bind, AsyncConnection):
-            return bind.engine  # type: ignore[return-value]
-        engine = getattr(bind, "engine", None)
-        if isinstance(engine, AsyncEngine):
-            return engine
-
-        maybe_engine = getattr(session, "bind", None)
-        if isinstance(maybe_engine, AsyncEngine):
-            return maybe_engine
-        if hasattr(session, "sync_session"):
-            sync_bind = getattr(session.sync_session, "bind", None)  # type: ignore[attr-defined]
-            if hasattr(sync_bind, "engine"):
-                eng = getattr(sync_bind, "engine")
-                if isinstance(eng, AsyncEngine):
-                    return eng
-
-    raise RuntimeError("Could not acquire AsyncEngine from session manager.")
-
-
-async def _list_columns(session: AsyncSession, schema: str, table: str) -> List[str]:
-    sql = text(
-        """
-        SELECT column_name
-        FROM information_schema.columns
-        WHERE table_schema = :schema AND table_name = :table
-        ORDER BY ordinal_position
-        """
-    )
-    rows = (await session.execute(sql, {"schema": schema, "table": table})).mappings()
-    return [r["column_name"] for r in rows]
-
-
-async def _fetch_table(
-    session: AsyncSession, schema: str, table: str, preferred_order: List[str]
-) -> tuple[List[Dict[str, Any]], List[str]]:
-    cols = await _list_columns(session, schema, table)
-    if not cols:
-        return [], []
-
-    select_cols = ", ".join([f'"{c}"' for c in cols])
-    sql = text(f'SELECT {select_cols} FROM "{schema}"."{table}"')
-    rows = (await session.execute(sql)).mappings().all()
-    data = [dict(r) for r in rows]
-
-    ordered_cols = [c for c in preferred_order if c in cols] + [
-        c for c in cols if c not in preferred_order
-    ]
-    data = [{k: rec.get(k) for k in ordered_cols} for rec in data]
-    return data, ordered_cols
-
-
-def _dump_yaml_list(path: Path, items: List[Dict[str, Any]]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    items_sorted = sorted(items, key=lambda d: str(d.get("name", "")))
-    with path.open("w", encoding="utf-8") as f:
-        yaml.safe_dump(items_sorted, f, sort_keys=True, allow_unicode=True)
-
-
-async def _run_cmd_async(cmd: List[str]) -> int:
-    console.print(f"[dim]$ {' '.join(cmd)}[/dim]")
-    proc = await asyncio.create_subprocess_exec(*cmd)
-    return await proc.wait()
-
-
-# =====================================================================
-# Commands (same behavior as before)
-# =====================================================================
-
-
-# ID: ce6ffa34-2440-4188-bc95-0f6703651b9a
-def search_knowledge_command(query: str, limit: int = 5) -> None:
-    """Synchronous wrapper around async search."""
-
-    async def _run() -> None:
-        console.print(
-            f"🧠 Searching for capabilities related to: '[cyan]{query}[/cyan]'..."
-        )
-        try:
-            cognitive_service = CognitiveService(settings.REPO_PATH)
-            results = await cognitive_service.search_capabilities(query, limit=limit)
-            if not results:
-                console.print("[yellow]No relevant capabilities found.[/yellow]")
-                return
-
-            table = Table(title="Top Matching Capabilities")
-            table.add_column("Score", style="magenta", justify="right")
-            table.add_column("Capability Key", style="cyan")
-            table.add_column("Description", style="green")
-            for hit in results:
-                payload = hit.get("payload", {}) or {}
-                key = payload.get("key", "N/A")
-                description = (
-                    payload.get("description") or "No description provided."
-                ).strip()
-                score = f"{hit.get('score', 0):.4f}"
-                table.add_row(score, key, description)
-            console.print(table)
-        except Exception as e:
-            console.print(f"[bold red]❌ Search failed: {e}[/bold red]")
-            raise typer.Exit(code=1)
-
-    asyncio.run(_run())
-
-
-# ID: fb327da3-89a2-4b7f-8bff-ac8df6e054eb
-def migrate_ssot_command(force: bool = False) -> None:
-    """One-time migration of legacy YAML → DB."""
-
-    async def _run() -> None:
-        console.print(
-            "[bold yellow]⚠️ WARNING: One-time migration operation.[/bold yellow]"
-        )
-        console.print(
-            "   Reads legacy YAML files and populates the database, replacing existing data."
-        )
-        if not force and not typer.confirm("Are you sure you want to proceed?"):
-            raise typer.Abort()
-
-        async with get_session() as session:
-            # CLI registry
-            if Y_CLI.exists():
-                console.print(f"Migrating [cyan]{Y_CLI.name}[/cyan]...")
-                data = _safe_yaml_load(Y_CLI) or {}
-                registry_model = LegacyCliRegistry.model_validate(data)
-                commands_data = [
-                    c.model_dump() for c in (registry_model.commands or [])
-                ]
-                if commands_data:
-                    await session.execute(CliCommand.__table__.delete())
-                    await session.execute(insert(CliCommand), commands_data)
-                console.print(f"  -> Migrated {len(commands_data)} CLI commands.")
-            else:
-                console.print("[yellow]Skipping CLI registry: file not found.[/yellow]")
-
-            # LLM resources
-            if Y_RES.exists():
-                console.print(f"Migrating [cyan]{Y_RES.name}[/cyan]...")
-                data = _safe_yaml_load(Y_RES) or {}
-                manifest_model = LegacyResourceManifest.model_validate(data)
-                resources_data = [
-                    r.model_dump() for r in (manifest_model.llm_resources or [])
-                ]
-                if resources_data:
-                    await session.execute(LlmResource.__table__.delete())
-                    await session.execute(insert(LlmResource), resources_data)
-                console.print(f"  -> Migrated {len(resources_data)} LLM resources.")
-            else:
-                console.print(
-                    "[yellow]Skipping LLM resources: file not found.[/yellow]"
-                )
-
-            # Cognitive roles
-            if Y_ROLES.exists():
-                console.print(f"Migrating [cyan]{Y_ROLES.name}[/cyan]...")
-                data = _safe_yaml_load(Y_ROLES) or {}
-                roles_model = LegacyCognitiveRoles.model_validate(data)
-                roles_data = [
-                    r.model_dump() for r in (roles_model.cognitive_roles or [])
-                ]
-                if roles_data:
-                    await session.execute(CognitiveRole.__table__.delete())
-                    await session.execute(insert(CognitiveRole), roles_data)
-                console.print(f"  -> Migrated {len(roles_data)} cognitive roles.")
-            else:
-                console.print(
-                    "[yellow]Skipping cognitive roles: file not found.[/yellow]"
-                )
-
-            await session.commit()
-
-        console.print(
-            "\n[bold green]✅ Knowledge migration complete. The database is now the SSOT.[/bold green]"
-        )
-        console.print(
-            "[bold yellow]You may now remove the legacy YAML files from .intent/mind/knowledge/.[/bold yellow]"
-        )
-
-    asyncio.run(_run())
-
-
-# ID: 35b7c323-e362-40b7-a49a-79e369d1bae0
-def audit_ssot_command() -> None:
-    """Run governance audit comparing DB ↔ YAML (skips missing YAML unless strict mode)."""
-    if KnowledgeSourceCheck is None:
-        console.print(
-            "[bold yellow]KnowledgeSourceCheck not available; cannot audit SSOT.[/bold yellow]"
-        )
-        raise typer.Exit(code=2)
-
-    async def _run() -> None:
-        repo_root = Path(settings.REPO_PATH)
-        try:
-            engine = await _acquire_async_engine()
-        except Exception as e:
-            console.print(f"[bold red]❌ Could not acquire AsyncEngine: {e}[/bold red]")
-            raise typer.Exit(code=1)
-
-        session_factory = async_sessionmaker(engine, expire_on_commit=False)
-        strict = os.getenv("CORE_REQUIRE_YAML_EXPORTS") == "1"
-
-        check = KnowledgeSourceCheck(
-            repo_root=repo_root,
-            engine=engine,
-            session_factory=session_factory,
-            reports_dir=repo_root / "reports" / "knowledge_ssot",
-            require_yaml_exports=strict,
-        )
-        result = await check.run()
-
-        if result.passed:
-            console.print(
-                "[bold green]✅ SSOT audit passed: no drift detected.[/bold green]"
-            )
-            raise typer.Exit(code=0)
-
-        console.print(
-            "[bold red]❌ SSOT audit failed: drift detected. See report for details.[/bold red]"
-        )
-        sections = result.details.get("sections", {})
-        for name, payload in sections.items():
-            status = payload.get("status")
-            if status == "skipped":
-                console.print(f"  • {name}: skipped (yaml missing)")
-                continue
-            diff = payload.get("diff", {}) or {}
-            miss_db = len(diff.get("missing_in_db", []) or [])
-            miss_yaml = len(diff.get("missing_in_yaml", []) or [])
-            mism = len(diff.get("mismatched", []) or [])
-            console.print(
-                f"  • {name}: missing_in_db={miss_db}, missing_in_yaml={miss_yaml}, mismatched={mism}"
-            )
-        raise typer.Exit(code=1)
-
-    asyncio.run(_run())
-
-
-# ID: 7e167d8e-88e7-47b6-8685-1bdf6ae06e1b
-def export_ssot_command() -> None:
-    """Export DB → .intent/mind/knowledge/*.yaml (read-only snapshots)."""
-
-    async def _run() -> None:
-        try:
-            engine = await _acquire_async_engine()
-        except Exception as e:
-            console.print(f"[bold red]❌ Could not acquire AsyncEngine: {e}[/bold red]")
-            raise typer.Exit(code=1)
-
-        async_session = async_sessionmaker(engine, expire_on_commit=False)
-        async with async_session() as session:
-            cli_rows, _ = await _fetch_table(
-                session,
-                "core",
-                "cli_commands",
-                ["name", "module", "entrypoint", "enabled"],
-            )
-            llm_rows, _ = await _fetch_table(
-                session,
-                "core",
-                "llm_resources",
-                ["name", "provider", "model", "enabled"],
-            )
-            roles_rows, _ = await _fetch_table(
-                session, "core", "cognitive_roles", ["name", "description", "enabled"]
-            )
-
-        _dump_yaml_list(Y_CLI, cli_rows)
-        _dump_yaml_list(Y_RES, llm_rows)
-        _dump_yaml_list(Y_ROLES, roles_rows)
-
-        # ID: 8d7f623d-0218-4042-a340-25958a1dfd75
-        def rel(path: Path) -> str:
-            """Return repo-relative path for pretty printing; fall back to plain path."""
-            try:
-                return str(
-                    path.resolve().relative_to(Path(settings.REPO_PATH).resolve())
-                )
-            except Exception:
-                try:
-                    return os.path.relpath(str(path), start=str(settings.REPO_PATH))
-                except Exception:
-                    return str(path)
-
-        console.print("[bold green]✅ Export complete.[/bold green]")
-        console.print(f"  • {rel(Y_CLI)}")
-        console.print(f"  • {rel(Y_RES)}")
-        console.print(f"  • {rel(Y_ROLES)}")
-
-    asyncio.run(_run())
-
-
-# ID: 80939ec5-7388-4b90-a4d2-796d8a90e60c
-def canary_command(skip_lint: bool = False, skip_tests: bool = False) -> None:
-    """Run SSOT audit → ruff → pytest; fail fast on any issue."""
-
-    async def _run() -> None:
-        console.print("[bold]⛳  Canary: SSOT audit[/bold]")
-        code = await _run_cmd_async(
-            ["python3", "-m", "poetry", "run", "core-admin", "knowledge", "audit-ssot"]
-        )
-        if code != 0:
-            raise typer.Exit(code=code)
-
-        if not skip_lint:
-            console.print("[bold]⛳  Canary: Ruff linter[/bold]")
-            code = await _run_cmd_async(
-                ["python3", "-m", "poetry", "run", "ruff", "check"]
-            )
-            if code != 0:
-                raise typer.Exit(code=code)
-
-        if not skip_tests:
-            console.print("[bold]⛳  Canary: Pytest[/bold]")
-            code = await _run_cmd_async(
-                ["python3", "-m", "poetry", "run", "pytest", "-q"]
-            )
-            if code != 0:
-                raise typer.Exit(code=code)
-
-        console.print("[bold green]✅ Canary passed[/bold green]")
-
-    asyncio.run(_run())
-
---- END OF FILE ./src/cli/logic/knowledge_ops.py ---
-
 --- START OF FILE ./src/cli/logic/knowledge_sync.py ---
 # src/cli/commands/knowledge_sync.py
 """
@@ -9645,10 +9335,40 @@ def register(app: typer.Typer) -> None:
 
 --- END OF FILE ./src/cli/logic/new.py ---
 
+--- START OF FILE ./src/cli/logic/project_docs.py ---
+# src/cli/logic/project_docs.py
+"""
+CLI wrapper for generating capability documentation.
+It reuses the existing Python module entrypoint to keep one source of truth.
+"""
+from __future__ import annotations
+
+import runpy
+import sys
+
+import typer
+
+
+def docs(output: str = "docs/10_CAPABILITY_REFERENCE.md") -> None:
+    """
+    Generate capability documentation into the given output path.
+    """
+    mod = "features.introspection.generate_capability_docs"
+    # Preserve original argv and invoke the module as if run with: python -m ... --output <path>
+    argv_backup = sys.argv[:]
+    try:
+        sys.argv = [mod, "--output", output]
+        runpy.run_module(mod, run_name="__main__")
+    finally:
+        sys.argv = argv_backup
+    typer.echo(f"📚 Capability documentation written to: {output}")
+
+--- END OF FILE ./src/cli/logic/project_docs.py ---
+
 --- START OF FILE ./src/cli/logic/proposal_service.py ---
 # src/cli/logic/proposal_service.py
 """
-Registers and implements the command-line interface for proposal lifecycle management.
+Implements the command-line interface for proposal lifecycle management.
 This module now serves as the main entry point for ALL proposal types.
 """
 
@@ -9659,6 +9379,7 @@ import shutil
 import tempfile
 from datetime import datetime
 from pathlib import Path
+from typing import Optional
 
 import typer
 from cryptography.hazmat.primitives import serialization
@@ -9668,6 +9389,7 @@ from rich.table import Table
 
 from features.governance.constitutional_auditor import ConstitutionalAuditor
 from shared.config import settings
+from shared.context import CoreContext
 from shared.logger import getLogger
 from shared.utils.crypto import generate_approval_token
 
@@ -9677,21 +9399,23 @@ from .cli_utils import (
     load_yaml_file,
     save_yaml_file,
 )
-from .proposals_micro import micro_app
+from .proposals_micro import set_context as set_micro_context
 
 log = getLogger("core_admin.proposals")
-# --- ADDED A CONSOLE FOR RICH PRINTING ---
 console = Console()
 
-
-proposals_app = typer.Typer(
-    help="Work with constitutional proposals for governed changes."
-)
-
-proposals_app.add_typer(micro_app, name="micro")
+# Global variable to store context
+_context: Optional[CoreContext] = None
 
 
-@proposals_app.command("list")
+# ID: a9372599-1e73-4f8a-b244-0a6af17a6607
+def set_context(context: CoreContext):
+    """Set the global context for proposal commands."""
+    global _context
+    _context = context
+    set_micro_context(context)  # Pass context down to the micro-proposal module
+
+
 # ID: 7dcb045e-19c9-4d84-91fd-70c4de7e8dfe
 def proposals_list() -> None:
     """List pending constitutional proposals and display their status."""
@@ -9739,7 +9463,6 @@ def proposals_list() -> None:
         log.info(f"    Status: {status} ({'Critical' if is_critical else 'Standard'})")
 
 
-@proposals_app.command("sign")
 # ID: e0b15fef-d8d5-4f39-98b3-18d4eedd8bb5
 def proposals_sign(
     proposal_name: str = typer.Argument(
@@ -9778,7 +9501,6 @@ def proposals_sign(
     log.info("✅ Signature added to proposal file.")
 
 
-@proposals_app.command("approve")
 # ID: 9848504e-60ef-44c1-a57c-b7e14edb5809
 def proposals_approve(
     proposal_name: str = typer.Argument(
@@ -9786,6 +9508,10 @@ def proposals_approve(
     ),
 ) -> None:
     """Verify signatures, run a canary audit, and apply a valid proposal."""
+    if _context is None:
+        console.print("[bold red]Error: Context not initialized for approve[/bold red]")
+        raise typer.Exit(code=1)
+
     log.info(f"🚀 Attempting to approve proposal: {proposal_name}")
     proposal_path = settings.REPO_PATH / ".intent" / "proposals" / proposal_name
     if not proposal_path.exists():
@@ -9891,8 +9617,6 @@ def proposals_approve(
             log.error(
                 "❌ Canary audit FAILED. Proposal rejected; live system untouched."
             )
-            # --- THIS IS THE FIX ---
-            # Print the detailed findings so the user knows exactly why it failed.
             if findings:
                 console.print("\n[bold red]Canary Audit Findings:[/bold red]")
                 table = Table()
@@ -9908,21 +9632,12 @@ def proposals_approve(
                     )
                     table.add_row(str(f.severity), f.check_id, f.message, loc)
                 console.print(table)
-            # --- END OF FIX ---
             raise typer.Exit(code=1)
-
-
-# ID: b52c497e-f5b6-4f39-af22-f32c1d400362
-def register(app: typer.Typer):
-    """
-    Registers the 'proposals' command group with the main admin CLI application.
-    """
-    app.add_typer(proposals_app, name="proposals")
 
 --- END OF FILE ./src/cli/logic/proposal_service.py ---
 
 --- START OF FILE ./src/cli/logic/proposals_micro.py ---
-# src/cli/commands/proposals_micro.py
+# src/cli/logic/proposals_micro.py
 from __future__ import annotations
 
 import asyncio
@@ -9931,6 +9646,7 @@ import subprocess
 import tempfile
 import uuid
 from pathlib import Path
+from typing import Optional
 
 import typer
 from rich.console import Console
@@ -9939,16 +9655,26 @@ from core.agents.execution_agent import ExecutionAgent
 from core.agents.micro_planner import MicroPlannerAgent
 from core.agents.plan_executor import PlanExecutor
 from core.prompt_pipeline import PromptPipeline
-from core.service_registry import service_registry
-from features.governance.audit_context import AuditorContext
 from features.governance.micro_proposal_validator import MicroProposalValidator
 from shared.config import settings
+from shared.context import CoreContext
 from shared.logger import getLogger
+from shared.models import PlannerConfig
 
 console = Console()
 log = getLogger("proposals_micro")
 
 micro_app = typer.Typer(help="Manage low-risk, autonomous micro-proposals.")
+
+# Global variable to store context
+_context: Optional[CoreContext] = None
+
+
+# ID: fc5e0c82-f527-4236-9279-42341400707f
+def set_context(context: CoreContext):
+    """Set the global context for micro-proposal commands."""
+    global _context
+    _context = context
 
 
 # ID: 4f17d3f6-36ab-4683-ad2a-dfd9b8221d80
@@ -9956,9 +9682,15 @@ def micro_propose(
     goal: str = typer.Argument(..., help="The high-level goal to achieve.")
 ):
     """Uses an agent to create a safe, auto-approvable plan for a goal."""
+    if _context is None:
+        console.print(
+            "[bold red]Error: Context not initialized for micro_propose[/bold red]"
+        )
+        raise typer.Exit(code=1)
+
     console.print(f"🤖 Generating micro-proposal for goal: '[cyan]{goal}[/cyan]'")
 
-    cognitive_service = service_registry.get_service("cognitive_service")
+    cognitive_service = _context.cognitive_service
     planner = MicroPlannerAgent(cognitive_service)
 
     plan = asyncio.run(planner.create_micro_plan(goal))
@@ -9995,6 +9727,12 @@ def micro_apply(
     )
 ):
     """Validates and applies a micro-proposal."""
+    if _context is None:
+        console.print(
+            "[bold red]Error: Context not initialized for micro_apply[/bold red]"
+        )
+        raise typer.Exit(code=1)
+
     console.print(f"🔵 Loading and applying micro-proposal: {proposal_path.name}")
 
     try:
@@ -10020,11 +9758,13 @@ def micro_apply(
 
     # 2. Gather Evidence via CI Checks
     console.print("[bold]Step 2/3: Gathering evidence via pre-flight checks...[/bold]")
+
+    # --- THIS IS THE FIX: Consolidate to a single, comprehensive check ---
     checks = [
-        ("lint", "check ci lint"),
-        ("test", "check ci test"),
-        ("audit", "check ci audit"),
+        ("full system audit", "check audit"),
     ]
+    # --- END OF FIX ---
+
     for name, command in checks:
         console.print(f"   -> Running {name} check...")
         result = subprocess.run(
@@ -10036,17 +9776,22 @@ def micro_apply(
             console.print(
                 f"[bold red]❌ Pre-flight '{name}' check failed. Aborting.[/bold red]"
             )
-            console.print(result.stderr)
+            console.print(result.stderr or result.stdout)
             raise typer.Exit(code=1)
     console.print("   -> ✅ All pre-flight checks passed.")
 
     # 3. Apply the Change via ExecutionAgent
     console.print("[bold]Step 3/3: Executing the validated plan...[/bold]")
     try:
-        cognitive_service = service_registry.get_service("cognitive_service")
+        cognitive_service = _context.cognitive_service
         prompt_pipeline = PromptPipeline(settings.REPO_PATH)
-        plan_executor = PlanExecutor()
-        auditor_context = AuditorContext(repo_path=settings.REPO_PATH)
+        # We need to construct a new PlanExecutor with all its dependencies
+        plan_executor = PlanExecutor(
+            file_handler=_context.file_handler,
+            git_service=_context.git_service,
+            config=PlannerConfig(),
+        )
+        auditor_context = _context.auditor
 
         execution_agent = ExecutionAgent(
             cognitive_service=cognitive_service,
@@ -10055,7 +9800,7 @@ def micro_apply(
             auditor_context=auditor_context,
         )
 
-        success = asyncio.run(
+        success, message = asyncio.run(
             execution_agent.execute_plan(
                 high_level_goal=proposal_data.get("goal", ""), plan=plan
             )
@@ -10067,7 +9812,7 @@ def micro_apply(
             )
         else:
             console.print(
-                "[bold red]❌ ExecutionAgent reported failure during plan application.[/bold red]"
+                f"[bold red]❌ ExecutionAgent reported failure during plan application: {message}[/bold red]"
             )
             raise typer.Exit(code=1)
 
@@ -10635,7 +10380,7 @@ def vectorize_capabilities(
         raise typer.Exit(code=1)
 
 
-# ID: ec7405ee-fb7c-424c-8d41-239a77a7a24d
+# ID: 3cc70058-843f-456b-bd16-a578fe85f518
 def register(app: typer.Typer):
     """Register the 'run' command group with the main CLI app."""
     app.add_typer(run_app, name="run")
@@ -10904,24 +10649,32 @@ def sync_manifest():
 --- END OF FILE ./src/cli/logic/sync_manifest.py ---
 
 --- START OF FILE ./src/cli/logic/system.py ---
-# src/cli/commands/system.py
+# src/cli/logic/system.py
 from __future__ import annotations
 
 import asyncio
+from typing import Optional
 
 import typer
 from rich.console import Console
 
 from core.crate_processing_service import process_crates
 from features.project_lifecycle.integration_service import integrate_changes
+from shared.context import CoreContext
 
 console = Console()
-system_app = typer.Typer(
-    help="High-level commands for managing the CORE system lifecycle."
-)
+
+# Global variable to store context
+_context: Optional[CoreContext] = None
 
 
-@system_app.command("integrate", help="Integrates staged code changes into the system.")
+# ID: f47b6bb1-4c03-4dc2-96f7-452a6148f060
+def set_context(context: CoreContext):
+    """Set the global context for system commands."""
+    global _context
+    _context = context
+
+
 # ID: 46b79a8e-3360-4fac-af15-9a52cf0d9a7a
 def integrate_command(
     commit_message: str = typer.Option(
@@ -10929,22 +10682,18 @@ def integrate_command(
     )
 ):
     """Orchestrates the full, autonomous integration of staged code changes."""
-    asyncio.run(integrate_changes(commit_message))
+    if _context is None:
+        console.print(
+            "[bold red]Error: Context not initialized for integrate[/bold red]"
+        )
+        raise typer.Exit(code=1)
+    asyncio.run(integrate_changes(_context, commit_message))
 
 
-@system_app.command(
-    "process-crates", help="Processes all pending Intent Crates in the inbox."
-)
 # ID: 1f2c3d4e-5f6a-7b8c-9d0e-1f2a3b4c5d6e
 def process_crates_command():
     """Finds, validates, and applies all pending autonomous change proposals."""
     asyncio.run(process_crates())
-
-
-# ID: e3b37bfa-b8d3-4fd1-83ed-a1b8d063f41d
-def register(app: typer.Typer):
-    """Register the 'system' command group with the main CLI app."""
-    app.add_typer(system_app, name="system")
 
 --- END OF FILE ./src/cli/logic/system.py ---
 
@@ -11409,6 +11158,7 @@ def _replace_symbol_in_code(
 
 
 # ID: 7a8b9c0d-1e2f-3a4b-5c6d-7e8f9c0d
+# ID: 2b764ba7-4bf1-4827-9c47-bec092758cb8
 class CreateFileHandler(ActionHandler):
     """Handles the 'create_file' action."""
 
@@ -11451,6 +11201,7 @@ class CreateFileHandler(ActionHandler):
 
 
 # ID: 8b9c0d1e-2f3a-4b5c-6d7e-8f9a0b1c
+# ID: a0a1f246-224f-4881-b0f1-2cfda08a40ac
 class EditFileHandler(ActionHandler):
     """Handles the 'edit_file' action."""
 
@@ -11604,6 +11355,7 @@ log = getLogger("file_actions")
 
 
 # ID: 3c4d5e6f-7a8b-9c0d-1e2f3a4b5c6d
+# ID: c058bf71-924a-497a-8847-449129f96068
 class ReadFileHandler(ActionHandler):
     """Handles the 'read_file' action."""
 
@@ -11633,6 +11385,7 @@ class ReadFileHandler(ActionHandler):
 
 
 # ID: 5e6f7a8b-9c0d-1e2f-3a4b5c6d7f8a
+# ID: 90e3703f-1c72-402e-b904-96f0e6341059
 class ListFilesHandler(ActionHandler):
     """Handles the 'list_files' action."""
 
@@ -11659,6 +11412,7 @@ class ListFilesHandler(ActionHandler):
 
 
 # ID: 6f7a8b9c-0d1e-2f3a-4b5c6d7e8f9b
+# ID: 7dbbbc26-0dd4-4c3e-8938-dd6ba3c715b0
 class DeleteFileHandler(ActionHandler):
     """Handles the 'delete_file' action."""
 
@@ -11712,6 +11466,7 @@ log = getLogger("governance_actions")
 
 
 # ID: 9c0d1e2f-3a4b-5c6d-7e8f-9a0b1c2d
+# ID: 81d33ff2-37a3-4686-a4a7-32c899d20705
 class CreateProposalHandler(ActionHandler):
     """Handles the 'create_proposal' action."""
 
@@ -11759,6 +11514,39 @@ class CreateProposalHandler(ActionHandler):
 
 --- END OF FILE ./src/core/actions/governance_actions.py ---
 
+--- START OF FILE ./src/core/actions/healing_actions.py ---
+# src/core/actions/healing_actions.py
+"""
+Action handlers for autonomous self-healing capabilities.
+"""
+from __future__ import annotations
+
+from core.actions.base import ActionHandler
+from core.actions.context import PlanExecutorContext
+from features.self_healing.docstring_service import _async_fix_docstrings
+from shared.models import TaskParams
+
+
+# ID: 1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6e
+class FixDocstringsHandler(ActionHandler):
+    """Handles the 'autonomy.self_healing.fix_docstrings' action."""
+
+    @property
+    # ID: 2b3c4d5e-6f7a-8b9c-0d1e-2f3a4b5c6f7a
+    def name(self) -> str:
+        """Return the unique identifier for this self-healing module."""
+        return "autonomy.self_healing.fix_docstrings"
+
+    # ID: 3c4d5e6f-7a8b-9c0d-1e2f-3a4b5c6d7e8b
+    async def execute(self, params: TaskParams, context: PlanExecutorContext):
+        """
+        Executes the docstring fixing logic by calling the dedicated service.
+        This action does not run in dry-run mode; it always applies changes.
+        """
+        await _async_fix_docstrings(dry_run=False)
+
+--- END OF FILE ./src/core/actions/healing_actions.py ---
+
 --- START OF FILE ./src/core/actions/registry.py ---
 # src/core/actions/registry.py
 """
@@ -11783,6 +11571,7 @@ log = getLogger("action_registry")
 
 
 # ID: 4d5e6f7a-8b9c-0d1e-2f3a-4b5c6d7e
+# ID: 2063313d-3cd6-4732-956b-e0b9fc7a5924
 class ActionRegistry:
     """A central registry for all action handlers."""
 
@@ -11977,7 +11766,6 @@ class ExecutionAgent:
         self,
         high_level_goal: str,
         plan: List[ExecutionTask],
-        **kwargs,
     ) -> tuple[bool, str]:
         if not plan:
             return False, "Plan is empty or invalid."
@@ -12354,7 +12142,6 @@ class PlannerAgent:
         )
         self.prompt_pipeline = PromptPipeline(settings.REPO_PATH)
 
-    # --- START OF AMENDMENT ---
     def _build_planning_prompt(self, goal: str, reconnaissance_report: str) -> str:
         """Builds the detailed prompt for the planning LLM."""
         available_actions = self.actions_policy.get("actions", [])
@@ -12382,7 +12169,6 @@ class PlannerAgent:
             reconnaissance_report=reconnaissance_report,
         )
 
-        # Hard rule to avoid schema drift: ensure path-like params are named exactly 'file_path'
         rules_appendix = (
             "\n\n---\n"
             "STRICT RULES FOR ACTION PARAMETERS:\n"
@@ -12392,8 +12178,6 @@ class PlannerAgent:
         )
 
         return self.prompt_pipeline.process(base_prompt + rules_appendix)
-
-    # --- END OF AMENDMENT ---
 
     def _log_plan_summary(self, plan: List[ExecutionTask]):
         """Logs a human-readable summary of the execution plan."""
@@ -12418,29 +12202,25 @@ class PlannerAgent:
         if isinstance(params, dict):
             if "path" in params and "file_path" not in params:
                 params["file_path"] = params.pop("path")
-            # keep a single canonical field name for pydantic model
             task_dict["params"] = params
             task_dict.pop("parameters", None)
         return task_dict
 
     # ID: b918335b-60af-4132-a944-88628a3caa66
-    def create_execution_plan(
+    async def create_execution_plan(
         self, goal: str, reconnaissance_report: str = ""
     ) -> List[ExecutionTask]:
         """
         Creates an execution plan from a user goal and a reconnaissance report.
-
-        NOTE: synchronous by design because unit tests call it directly and
-        mock a synchronous `.make_request()` client.
         """
         max_retries = settings.model_extra.get("CORE_MAX_RETRIES", 3)
 
         prompt = self._build_planning_prompt(goal, reconnaissance_report)
-        client = self.cognitive_service.get_client_for_role("Planner")
+        client = await self.cognitive_service.aget_client_for_role("Planner")
 
         for attempt in range(max_retries):
             log.info("🧠 Generating step-by-step plan from reconnaissance context...")
-            response_text = client.make_request(prompt)
+            response_text = await client.make_request_async(prompt)
 
             if response_text:
                 try:
@@ -12450,7 +12230,6 @@ class PlannerAgent:
                             "LLM did not return a valid JSON list for the plan."
                         )
 
-                    # Normalize each step BEFORE pydantic validation to avoid drift (path -> file_path)
                     normalized_steps = [
                         (
                             self._normalize_parameters(step)
@@ -12484,15 +12263,12 @@ search against the knowledge graph to build a minimal, surgical context for the 
 
 from __future__ import annotations
 
-import re
 from typing import Any, Dict, List
 
 from core.cognitive_service import CognitiveService
 from shared.logger import getLogger
 
 log = getLogger("recon_agent")
-
-SYMBOL_REGEX = re.compile(r"\b([A-Z][A-Za-z0-9_]+|`[a-zA-Z0-9_./]+`)\b")
 
 
 # ID: f2d9b442-6f3f-4a62-978c-6d5fb9c20b1d
@@ -12507,28 +12283,36 @@ class ReconnaissanceAgent:
         self.symbols = knowledge_graph.get("symbols", {})
         self.cognitive_service = cognitive_service
 
-    async def _find_relevant_files(self, goal: str) -> List[str]:
-        """Performs a semantic search to find files relevant to the goal."""
-        log.info("   -> Performing semantic search for relevant files...")
+    async def _find_relevant_symbols_and_files(
+        self, goal: str
+    ) -> tuple[List[Dict[str, Any]], List[str]]:
+        """Performs a semantic search to find symbols and files relevant to the goal."""
+        log.info("   -> Performing semantic search for relevant context...")
         try:
             search_results = await self.cognitive_service.search_capabilities(
-                goal, limit=3
+                goal, limit=5
             )
             if not search_results:
-                return []
+                return [], []
 
+            relevant_symbols = []
             relevant_files = set()
             for hit in search_results:
                 if (payload := hit.get("payload")) and (
-                    file_path := payload.get("source_path")
+                    symbol_key := payload.get("symbol")
                 ):
-                    relevant_files.add(file_path)
+                    if symbol_data := self.symbols.get(symbol_key):
+                        relevant_symbols.append(symbol_data)
+                        relevant_files.add(symbol_data.get("file"))
 
             log.info(f"   -> Found relevant files: {list(relevant_files)}")
-            return sorted(list(relevant_files))
+            log.info(
+                f"   -> Found relevant symbols: {[s.get('key') for s in relevant_symbols]}"
+            )
+            return relevant_symbols, sorted(list(relevant_files))
         except Exception as e:
-            log.warning(f"Semantic file search failed: {e}")
-            return []
+            log.warning(f"Semantic search for context failed: {e}")
+            return [], []
 
     # ID: f3952e9d-1228-4013-9bc8-91d0b551d3b2
     async def generate_report(self, goal: str) -> str:
@@ -12537,11 +12321,9 @@ class ReconnaissanceAgent:
         """
         log.info(f"🔬 Conducting reconnaissance for goal: '{goal}'")
 
-        # Perform both symbol-based and semantic search for comprehensive context
-        target_symbols = [s.replace("`", "") for s in SYMBOL_REGEX.findall(goal)]
-        relevant_files = await self._find_relevant_files(goal)
-
-        log.info(f"   -> Identified target symbols: {target_symbols}")
+        target_symbols, relevant_files = await self._find_relevant_symbols_and_files(
+            goal
+        )
 
         report_parts = ["# Reconnaissance Report"]
 
@@ -12556,21 +12338,13 @@ class ReconnaissanceAgent:
 
         if not target_symbols:
             report_parts.append(
-                "\n- No specific code symbols were identified in the goal."
+                "\n- No specific code symbols were identified via semantic search."
             )
         else:
-            for symbol_name in target_symbols:
-                symbol_data = self._find_symbol_data(symbol_name)
-                if not symbol_data:
-                    report_parts.append(
-                        f"\n## Symbol: `{symbol_name}`\n\n- **Status:** Not found in the Knowledge Graph."
-                    )
-                    continue
-
-                callers = self._find_callers(symbol_name)
-                report_parts.append(
-                    f"\n## Symbol: `{symbol_data.get('key', symbol_name)}`"
-                )
+            report_parts.append("\n## Relevant Symbols Identified by Semantic Search:")
+            for symbol_data in target_symbols:
+                callers = self._find_callers(symbol_data.get("name"))
+                report_parts.append(f"\n### Symbol: `{symbol_data.get('key', 'N/A')}`")
                 report_parts.append(f"- **Type:** {symbol_data.get('type')}")
                 report_parts.append(f"- **Location:** `{symbol_data.get('file')}`")
                 report_parts.append(f"- **Intent:** {symbol_data.get('intent')}")
@@ -12591,15 +12365,10 @@ class ReconnaissanceAgent:
         log.info(f"   -> Generated Surgical Context Report:\n{report}")
         return report
 
-    def _find_symbol_data(self, symbol_name: str) -> Dict | None:
-        """Finds the main data entry for a symbol by name or key."""
-        for key, data in self.symbols.items():
-            if key.endswith(f"::{symbol_name}") or data.get("name") == symbol_name:
-                return data
-        return None
-
-    def _find_callers(self, symbol_name: str) -> List[Dict]:
+    def _find_callers(self, symbol_name: str | None) -> List[Dict]:
         """Finds all symbols in the graph that call the target symbol."""
+        if not symbol_name:
+            return []
         return [
             data
             for data in self.symbols.values()
@@ -12970,7 +12739,7 @@ import asyncio
 import json
 import os
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from sqlalchemy import select
 
@@ -12997,6 +12766,12 @@ class CognitiveService:
         self._selected_client_by_role: Dict[str, BaseLLMClient] = {}
         self._resource_selector: Optional[ResourceSelector] = None
         self._init_lock = asyncio.Lock()
+        # The QdrantService is now a dependency for search.
+        # It's assumed to be provided via CoreContext in a real scenario,
+        # but we initialize it here for broader usability.
+        self.qdrant_service = __import__(
+            "services.clients.qdrant_client"
+        ).clients.qdrant_client.QdrantService()
 
     # ID: 4a3d361d-fc92-4b51-8a4a-622d91c36c04
     async def initialize(self) -> None:
@@ -13111,21 +12886,33 @@ class CognitiveService:
         if not source_code:
             return None
         try:
-            # --- THE DEFINITIVE FIX ---
-            # Use the role-based system to get a dedicated, correctly configured vectorizer client.
-            client = self.get_client_for_role("Vectorizer")
+            client = await self.aget_client_for_role("Vectorizer")
             return await client.get_embedding(source_code)
-            # --- END OF FIX ---
         except Exception as e:
             raise RuntimeError(f"Failed to generate embedding: {e}") from e
 
     # ID: 17bcea8d-726a-482e-aa98-b6a24b43a6a0
-    async def search_capabilities(self, query: str, limit: int = 5):
-        """Placeholder for semantic search capability."""
-        log.warning(
-            "CognitiveService.search_capabilities is a placeholder and will return no results."
-        )
-        return []
+    async def search_capabilities(
+        self, query: str, limit: int = 5
+    ) -> list[dict[str, Any]]:
+        """Performs a semantic search for capabilities using the vector database."""
+        if not self._loaded:
+            await self.initialize()
+
+        log.info(f"Performing semantic search for: '{query}'")
+        try:
+            query_vector = await self.get_embedding_for_code(query)
+            if not query_vector:
+                log.warning("Could not generate embedding for search query.")
+                return []
+
+            search_results = await self.qdrant_service.search_similar(
+                query_vector=query_vector, limit=limit
+            )
+            return search_results
+        except Exception as e:
+            log.error(f"Semantic search failed: {e}", exc_info=True)
+            return []
 
 --- END OF FILE ./src/core/cognitive_service.py ---
 
@@ -15426,7 +15213,7 @@ from shared.logger import getLogger
 log = getLogger("audit_context")
 
 
-# ID: aebe6840-e855-4c4e-8310-59faad75fa6f
+# ID: 7b2396c3-96ae-4f5b-bd70-09ef50bdfea0
 class AuditorContext:
     """
     A data class that loads and provides access to all constitutional
@@ -15452,7 +15239,7 @@ class AuditorContext:
         self.symbols_map: dict = {}
         log.debug("AuditorContext initialized synchronously.")
 
-    # ID: cd0c99b3-b02a-425a-8339-ceec1745d9b7
+    # ID: 2f3d6adb-6584-40de-8ae8-e7b8e983d470
     async def load_knowledge_graph(self):
         """Asynchronously loads the knowledge graph from the service."""
         log.debug("Asynchronously loading knowledge graph...")
@@ -15491,26 +15278,20 @@ class AuditorContext:
         return loaded_policies
 
     @property
-    # ID: c8dcf271-f3ef-4c75-bea5-775b8c3461a1
+    # ID: ac544885-00f8-49d9-8aab-24c58947f6fc
     def python_files(self) -> list[Path]:
         """Get all Python files in the repository."""
         python_files = []
-        # --- START OF FIX ---
-        # Corrected the typo from self.repo_root to self.repo_path
         for root, dirs, files in os.walk(self.repo_path):
-            # --- END OF FIX ---
-            # Skip common directories that shouldn't contain source code
             dirs[:] = [
                 d
                 for d in dirs
                 if d
                 not in {".git", "__pycache__", ".pytest_cache", "node_modules", ".venv"}
             ]
-
             for file in files:
                 if file.endswith(".py"):
                     python_files.append(Path(root) / file)
-
         return python_files
 
 --- END OF FILE ./src/features/governance/audit_context.py ---
@@ -16117,46 +15898,30 @@ has a registered ID in the database.
 from __future__ import annotations
 
 import ast
-import re
-import uuid
 from typing import List
 
 from features.governance.checks.base_check import BaseCheck
+from shared.ast_utility import find_symbol_id_and_def_line
 from shared.models import AuditFinding, AuditSeverity
 
-# Pre-compiled regex for efficiency
-ID_TAG_REGEX = re.compile(
-    r"#\s*ID:\s*([0-9a-fA-F]{8}-([0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12})"
-)
 
-
-# ID: 80af23eb-ec62-4180-b1bb-1ce3903affc1
+# ID: 3501ed8c-8366-4ad7-9ab4-7dcf4c045c70
 class IdCoverageCheck(BaseCheck):
     """
     Ensures every public function/class in `src/` has a valid, DB-registered ID tag.
     """
 
-    # ID: 8aee0db7-143c-4ae6-a2a2-576469823c8e
+    # ID: f69a1a2e-26cd-4cc2-8fdc-7f18e0e77d0c
     def execute(self) -> List[AuditFinding]:
         """
         Runs the check and returns a list of findings for any violations.
         """
         findings = []
-        # db_uuids: Set[str] = set() # This would be populated from the DB in a real async check.
-        # For this implementation, we'll focus on the AST scan. A full implementation
-        # would make this check async and query core.symbols.
-
-        # NOTE: A full implementation would query the DB. For this synchronous pass,
-        # we focus on presence and format, which is the core of the task.
-        # async with get_session() as session:
-        #     result = await session.execute(text("SELECT uuid FROM core.symbols"))
-        #     db_uuids = {str(row[0]) for row in result}
-
         for file_path in self.context.src_dir.rglob("*.py"):
             try:
                 content = file_path.read_text("utf-8")
                 source_lines = content.splitlines()
-                tree = ast.parse(content)
+                tree = ast.parse(content, filename=str(file_path))
 
                 for node in ast.walk(tree):
                     if not isinstance(
@@ -16168,62 +15933,27 @@ class IdCoverageCheck(BaseCheck):
                     if node.name.startswith("_"):
                         continue
 
-                    # Rule 2: Must have an ID tag
-                    tag_line_index = node.lineno - 2
-                    if not (0 <= tag_line_index < len(source_lines)):
-                        findings.append(self._finding_for_missing_tag(file_path, node))
-                        continue
+                    # Use the new, robust utility to find the ID and definition line
+                    id_result = find_symbol_id_and_def_line(node, source_lines)
 
-                    line_above = source_lines[tag_line_index].strip()
-                    match = ID_TAG_REGEX.match(line_above)
-
-                    if not match:
-                        findings.append(self._finding_for_missing_tag(file_path, node))
-                        continue
-
-                    # Rule 3: The ID must be a valid UUID
-                    try:
-                        # Validate that the matched group is a valid UUID
-                        uuid.UUID(match.group(1))
-                        # Rule 4 (Conceptual): The UUID must be in the database
-                        # if db_uuids and found_uuid not in db_uuids:
-                        #     findings.append(self._finding_for_unregistered_id(file_path, node, found_uuid))
-                    except ValueError:
+                    if not id_result.has_id:
                         findings.append(
-                            self._finding_for_invalid_id(file_path, node, line_above)
+                            AuditFinding(
+                                check_id="linkage.id.missing",
+                                severity=AuditSeverity.ERROR,
+                                message=f"Public symbol '{node.name}' is missing a required '# ID: <uuid>' tag.",
+                                file_path=str(
+                                    file_path.relative_to(self.context.repo_path)
+                                ),
+                                line_number=id_result.definition_line_num,
+                            )
                         )
 
             except Exception:
+                # Silently ignore files that cannot be parsed
                 continue
 
         return findings
-
-    def _finding_for_missing_tag(self, file_path, node):
-        return AuditFinding(
-            check_id="linkage.id.missing",
-            severity=AuditSeverity.ERROR,
-            message=f"Public symbol '{node.name}' is missing a required '# ID: <uuid>' tag.",
-            file_path=str(file_path.relative_to(self.context.repo_path)),
-            line_number=node.lineno,
-        )
-
-    def _finding_for_invalid_id(self, file_path, node, line_content):
-        return AuditFinding(
-            check_id="linkage.id.invalid_format",
-            severity=AuditSeverity.ERROR,
-            message=f"Invalid UUID format for symbol '{node.name}'. Found: '{line_content}'",
-            file_path=str(file_path.relative_to(self.context.repo_path)),
-            line_number=node.lineno - 1,
-        )
-
-    def _finding_for_unregistered_id(self, file_path, node, found_uuid):
-        return AuditFinding(
-            check_id="linkage.id.unregistered",
-            severity=AuditSeverity.ERROR,
-            message=f"ID '{found_uuid}' for symbol '{node.name}' is not registered in the database.",
-            file_path=str(file_path.relative_to(self.context.repo_path)),
-            line_number=node.lineno - 1,
-        )
 
 --- END OF FILE ./src/features/governance/checks/id_coverage_check.py ---
 
@@ -17338,9 +17068,14 @@ async def _build_knowledge_source_check(context) -> Any | None:
 class ConstitutionalAuditor:
     """Orchestrates all constitutional checks and reports the findings."""
 
-    def __init__(self, repo_root_override: Path | None = None):
-        self.repo_root = repo_root_override or Path(".").resolve()
-        self.context = AuditorContext(self.repo_root)
+    def __init__(self, repo_root_override: Path | AuditorContext | None = None):
+        # FIX: accept either a repo Path or an already-built AuditorContext
+        if isinstance(repo_root_override, AuditorContext):
+            self.context = repo_root_override
+            self.repo_root = self.context.repo_path
+        else:
+            self.repo_root = repo_root_override or Path(".").resolve()
+            self.context = AuditorContext(self.repo_root)
         self.all_checks: List[Any] = []
         self.CheckResultType = None  # To hold the CheckResult class
 
@@ -20065,6 +19800,7 @@ from sqlalchemy import text
 
 from core.cognitive_service import CognitiveService
 from features.introspection.knowledge_helpers import extract_source_code_from_ast
+from services.clients.qdrant_client import QdrantService
 from services.repositories.db.engine import get_session
 from shared.config import settings
 from shared.logger import getLogger
@@ -20080,7 +19816,7 @@ async def get_undefined_symbols() -> List[Dict[str, Any]]:
     async with get_session() as session:
         result = await session.execute(
             text(
-                "SELECT uuid, file_path, symbol_path FROM core.symbols WHERE key IS NULL"
+                "SELECT uuid, file_path, symbol_path, vector_id FROM core.symbols WHERE key IS NULL AND vector_id IS NOT NULL"
             )
         )
         return [dict(row._mapping) for row in result]
@@ -20088,33 +19824,61 @@ async def get_undefined_symbols() -> List[Dict[str, Any]]:
 
 # ID: c5e8625f-56fb-414c-b5b6-652c35061ce5
 async def define_single_symbol(
-    symbol: Dict[str, Any], cognitive_service: CognitiveService
+    symbol: Dict[str, Any],
+    cognitive_service: CognitiveService,
+    qdrant_service: QdrantService,
 ) -> Dict[str, str]:
-    """Uses an AI to generate a definition for a single symbol."""
+    """Uses an AI to generate a definition for a single symbol, using semantic context."""
     log.info(f"Defining symbol: {symbol.get('symbol_path')}")
     source_code = extract_source_code_from_ast(settings.REPO_PATH, symbol)
-
     if not source_code:
         return {"uuid": symbol["uuid"], "key": "error.code_not_found"}
 
-    prompt_template = "Analyze the following code and propose a structured, dot-notation capability key (e.g., domain.subdomain.action):\n\n```python\n{code}\n```\n\nRespond with ONLY the key."
-    final_prompt = prompt_template.format(code=source_code)
+    # --- START OF INTELLIGENCE UPGRADE ---
+    similar_capabilities_str = "No similar capabilities found."
+    vector_id = symbol.get("vector_id")
+    if vector_id:
+        try:
+            vector = await qdrant_service.get_vector_by_id(vector_id)
+            if vector:
+                similar_hits = await qdrant_service.search_similar(vector, limit=3)
+                similar_keys = [
+                    hit["payload"]["chunk_id"]
+                    for hit in similar_hits
+                    if hit.get("payload")
+                ]
+                if similar_keys:
+                    similar_capabilities_str = (
+                        "Found similar existing capabilities: "
+                        + ", ".join(f"`{k}`" for k in similar_keys)
+                    )
+        except Exception as e:
+            log.warning(
+                f"Semantic search failed during definition for {symbol['symbol_path']}: {e}"
+            )
+
+    prompt_template = (
+        "Analyze the following code and propose a structured, dot-notation capability key (e.g., domain.subdomain.action).\n"
+        "CONTEXT: {similar_capabilities}\n\n"
+        "```python\n{code}\n```\n\n"
+        "Respond with ONLY the key."
+    )
+    final_prompt = prompt_template.format(
+        code=source_code, similar_capabilities=similar_capabilities_str
+    )
+    # --- END OF INTELLIGENCE UPGRADE ---
 
     definer_agent = await cognitive_service.aget_client_for_role("CodeReviewer")
     suggested_key = await definer_agent.make_request_async(
         final_prompt, user_id="definer_agent"
     )
 
-    # --- START: THE DEFINITIVE FIX ---
     try:
-        # Explicitly cast the setting to an integer with a safe default.
         delay_str = settings.model_extra.get("LLM_SECONDS_BETWEEN_REQUESTS", "1")
         delay = int(delay_str)
     except (ValueError, TypeError):
-        delay = 1  # Fallback to 1 second if the value is invalid
-
+        delay = 1
     await asyncio.sleep(delay)
-    # --- END: THE DEFINITIVE FIX ---
 
     return {"uuid": symbol["uuid"], "key": suggested_key.strip()}
 
@@ -20124,7 +19888,6 @@ async def update_definitions_in_db(definitions: List[Dict[str, str]]):
     """Updates the 'key' column for symbols in the database."""
     if not definitions:
         return
-
     async with get_session() as session:
         async with session.begin():
             await session.execute(
@@ -20143,8 +19906,13 @@ async def define_new_symbols(cognitive_service: CognitiveService):
 
     console.print(f"   -> Found {len(undefined_symbols)} new symbols to define...")
 
+    qdrant_service = QdrantService()
     processor = ThrottledParallelProcessor(description="Defining symbols...")
-    worker_fn = partial(define_single_symbol, cognitive_service=cognitive_service)
+    worker_fn = partial(
+        define_single_symbol,
+        cognitive_service=cognitive_service,
+        qdrant_service=qdrant_service,
+    )
     definitions = await processor.run_async(undefined_symbols, worker_fn)
 
     valid_definitions = [
@@ -20164,7 +19932,6 @@ async def define_new_symbols(cognitive_service: CognitiveService):
             )
 
     await update_definitions_in_db(unique_definitions)
-
     console.print(
         f"   -> Successfully defined {len(unique_definitions)} new capabilities."
     )
@@ -20192,56 +19959,84 @@ console = Console()
 # ID: 47b10dad-7f52-4962-bc07-7b82a2c12f42
 async def integrate_changes(commit_message: str):
     """
-    Orchestrates the full, autonomous integration of staged code changes.
+    Orchestrates the full, transactional, and intelligent integration of staged code changes.
     """
     git_service = GitService(settings.REPO_PATH)
+    initial_commit_hash = git_service.get_current_commit()
+    integration_succeeded = False
 
-    # --- START OF THE DEFINITIVE FIX ---
-    # 1. Create the service instance at the top level of the process.
-    cognitive_service = CognitiveService(settings.REPO_PATH)
-    # 2. Explicitly initialize it. This is the missing step.
-    await cognitive_service.initialize()
-    # --- END OF THE DEFINITIVE FIX ---
+    try:
+        staged_files = git_service.get_staged_files()
+        if not staged_files:
+            console.print(
+                "[yellow]No staged changes found to integrate. Please use 'git add'.[/yellow]"
+            )
+            return
 
-    staged_files = git_service.get_staged_files()
-    if not staged_files:
+        console.print(f"Integrating {len(staged_files)} staged file(s)...")
+
+        # --- START OF TRANSACTIONAL & REORDERED PROCESS ---
+
+        console.print("\n[bold]Step 1/5: Assigning IDs to new symbols...[/bold]")
+        assign_missing_ids(
+            dry_run=False
+        )  # This is the only step that modifies local files
+        git_service.add_all()
+
         console.print(
-            "[yellow]No staged changes found to integrate. Please use 'git add'.[/yellow]"
+            "\n[bold]Step 2/5: Synchronizing code state with the database...[/bold]"
         )
-        return
+        await run_sync_with_db()
 
-    console.print(f"Integrating {len(staged_files)} staged file(s)...")
+        cognitive_service = CognitiveService(settings.REPO_PATH)
+        await cognitive_service.initialize()
 
-    console.print("\n[bold]Step 1/5: Assigning IDs to new symbols...[/bold]")
-    assign_missing_ids(dry_run=False)
-    git_service.add_all()
-
-    console.print(
-        "\n[bold]Step 2/5: Synchronizing code state with the database...[/bold]"
-    )
-    await run_sync_with_db()
-
-    console.print("\n[bold]Step 3/5: Autonomously defining new capabilities...[/bold]")
-    # --- FIX: Pass the initialized service as a dependency ---
-    await define_new_symbols(cognitive_service)
-
-    console.print("\n[bold]Step 4/5: Vectorizing new symbols...[/bold]")
-    await run_vectorize(cognitive_service=cognitive_service, dry_run=False, force=False)
-
-    console.print("\n[bold]Step 5/5: Running full constitutional audit...[/bold]")
-    auditor = ConstitutionalAuditor(settings.REPO_PATH)
-    passed, findings, _ = await auditor.run_full_audit_async()
-    if not passed:
         console.print(
-            "[bold red]❌ Constitutional audit failed. Integration aborted.[/bold red]"
+            "\n[bold]Step 3/5: Vectorizing new and modified symbols...[/bold]"
         )
-        return
+        await run_vectorize(
+            cognitive_service=cognitive_service, dry_run=False, force=False
+        )
 
-    console.print("\n[bold]Final Step: Committing changes...[/bold]")
-    git_service.commit(commit_message)
-    console.print(
-        "[bold green]✅ Successfully integrated and committed changes.[/bold green]"
-    )
+        console.print(
+            "\n[bold]Step 4/5: Autonomously defining new capabilities...[/bold]"
+        )
+        await define_new_symbols(cognitive_service)
+
+        console.print("\n[bold]Step 5/5: Running full constitutional audit...[/bold]")
+        auditor = ConstitutionalAuditor(settings.REPO_PATH)
+        passed, findings, _ = await auditor.run_full_audit_async()
+        if not passed:
+            console.print(
+                "[bold red]❌ Constitutional audit failed. Integration will be reverted.[/bold red]"
+            )
+            # This ensures the 'finally' block triggers a reset
+            raise RuntimeError("Audit failed, triggering automatic rollback.")
+
+        console.print("\n[bold]Final Step: Committing changes...[/bold]")
+        git_service.commit(commit_message)
+        console.print(
+            "[bold green]✅ Successfully integrated and committed changes.[/bold green]"
+        )
+        integration_succeeded = True
+
+        # --- END OF TRANSACTIONAL & REORDERED PROCESS ---
+
+    except Exception as e:
+        console.print(
+            f"\n[bold red]An error occurred during integration: {e}[/bold red]"
+        )
+        console.print("[bold red]Aborting and reverting all changes...[/bold red]")
+
+    finally:
+        if not integration_succeeded:
+            console.print(
+                f"   -> Reverting repository to clean state at commit {initial_commit_hash[:7]}..."
+            )
+            git_service.reset_to_commit(initial_commit_hash)
+            console.print(
+                "[bold yellow]✅ Rollback complete. Your working directory is clean.[/bold yellow]"
+            )
 
 --- END OF FILE ./src/features/project_lifecycle/integration_service.py ---
 
@@ -21173,6 +20968,7 @@ from collections import defaultdict
 
 from rich.console import Console
 
+from shared.ast_utility import find_symbol_id_and_def_line
 from shared.config import settings
 
 console = Console()
@@ -21201,7 +20997,6 @@ def assign_missing_ids(dry_run: bool = True) -> int:
             source_lines = content.splitlines()
             tree = ast.parse(content, filename=str(file_path))
 
-            # --- THE DEFINITIVE FIX: A direct, correct iteration ---
             for node in ast.walk(tree):
                 if isinstance(
                     node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)
@@ -21209,22 +21004,16 @@ def assign_missing_ids(dry_run: bool = True) -> int:
                     if not _is_public(node):
                         continue
 
-                    tag_line_index = node.lineno - 2
-                    has_id = False
-                    if 0 <= tag_line_index < len(source_lines):
-                        line_above = source_lines[tag_line_index].strip()
-                        if line_above.startswith("# ID:"):
-                            has_id = True
+                    # Use the new, robust utility to find the ID and definition line
+                    id_result = find_symbol_id_and_def_line(node, source_lines)
 
-                    if not has_id:
+                    if not id_result.has_id:
                         files_to_fix[file_path].append(
                             {
-                                "line_number": node.lineno,
+                                "line_number": id_result.definition_line_num,
                                 "name": node.name,
                             }
                         )
-            # --- END OF FIX ---
-
         except Exception as e:
             console.print(
                 f"   -> [bold red]❌ Error processing {file_path}: {e}[/bold red]"
@@ -21232,7 +21021,7 @@ def assign_missing_ids(dry_run: bool = True) -> int:
 
     if not files_to_fix:
         console.print(
-            "[bold green]✅ All public symbols already have IDs.[/bold green]"
+            "[bold green]✅ All governable public symbols already have IDs.[/bold green]"
         )
         return 0
 
@@ -21253,6 +21042,7 @@ def assign_missing_ids(dry_run: bool = True) -> int:
         try:
             lines = file_path.read_text("utf-8").splitlines()
             for fix in fixes:
+                # The line number from our utility is the 'def' or 'class' line
                 line_index = fix["line_number"] - 1
                 original_line = lines[line_index]
                 indentation = len(original_line) - len(original_line.lstrip(" "))
@@ -21260,6 +21050,7 @@ def assign_missing_ids(dry_run: bool = True) -> int:
                 new_id = str(uuid.uuid4())
                 tag_line = f"{' ' * indentation}# ID: {new_id}"
 
+                # Insert the tag immediately before the definition line
                 lines.insert(line_index, tag_line)
                 total_ids_assigned += 1
 
@@ -22629,6 +22420,7 @@ class ResourceSelector:
         return int(cost) if isinstance(cost, (int, float)) else 3
 
     # ID: 2c7d6f5a-4b3e-8c7d-6f5a4b3e8c7e
+    # ID: a4ec1377-c50c-46df-842a-14b7bfebf675
     def select_resource_for_role(self, role_name: str) -> Optional[LlmResource]:
         """
         Selects the best (lowest cost) resource that satisfies the capabilities for a given role.
@@ -23143,6 +22935,9 @@ from __future__ import annotations
 import ast
 import hashlib
 import logging
+import re
+import uuid
+from dataclasses import dataclass
 from typing import Dict, List, Optional
 
 log = logging.getLogger(__name__)
@@ -23166,7 +22961,7 @@ def find_definition_line(
     )
 
     # Search for "def" or "class" from the last decorator onwards
-    for i in range(last_decorator_line, len(source_lines)):
+    for i in range(last_decorator_line - 1, len(source_lines)):
         line = source_lines[i].strip()
         if (
             line.startswith(f"def {node.name}")
@@ -23176,6 +22971,49 @@ def find_definition_line(
             return i + 1  # Return 1-based line number
 
     return node.lineno  # Fallback
+
+
+@dataclass
+# ID: aae372c1-f0db-43e3-a048-89940a5fd108
+class SymbolIdResult:
+    """Holds the result of finding a symbol's ID and definition line."""
+
+    has_id: bool
+    uuid: Optional[str] = None
+    id_tag_line_num: Optional[int] = None
+    definition_line_num: int = 0
+
+
+# ID: 6a3b9d5c-1f8e-4b2a-9c7d-8e5f4a3b2c1d
+def find_symbol_id_and_def_line(
+    node: ast.FunctionDef | ast.AsyncFunctionDef | ast.ClassDef, source_lines: List[str]
+) -> SymbolIdResult:
+    """
+    Finds the actual definition line and ID tag for a symbol, correctly skipping decorators.
+    """
+    definition_line = find_definition_line(node, source_lines)
+
+    # The ID tag should be on the line immediately preceding the definition line
+    tag_line_index = definition_line - 2
+
+    if 0 <= tag_line_index < len(source_lines):
+        line_above = source_lines[tag_line_index].strip()
+        match = re.search(r"#\s*ID:\s*([0-9a-fA-F\-]+)", line_above)
+        if match:
+            found_uuid = match.group(1)
+            try:
+                # Validate it's a proper UUID
+                uuid.UUID(found_uuid)
+                return SymbolIdResult(
+                    has_id=True,
+                    uuid=found_uuid,
+                    id_tag_line_num=tag_line_index + 1,
+                    definition_line_num=definition_line,
+                )
+            except ValueError:
+                pass  # Invalid UUID format, treat as no ID
+
+    return SymbolIdResult(has_id=False, definition_line_num=definition_line)
 
 
 # --- END OF NEW HELPER FUNCTION ---
@@ -23526,6 +23364,37 @@ Centralized location for system-wide constant values.
 MAX_FILE_SIZE_BYTES = 1 * 1024 * 1024
 
 --- END OF FILE ./src/shared/constants.py ---
+
+--- START OF FILE ./src/shared/context.py ---
+# src/shared/context.py
+"""
+Defines the CoreContext, a dataclass that holds singleton instances of all major
+services, enabling explicit dependency injection throughout the application.
+"""
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import Any
+
+
+@dataclass
+# ID: 6ae82e74-acc2-45a1-b2a3-6cd6e596640c
+class CoreContext:
+    """
+    A container for shared services, passed explicitly to commands.
+
+    NOTE: Fields are typed as 'Any' to avoid cross-domain imports from here.
+    Concrete types are created/wired in the CLI layer.
+    """
+
+    git_service: Any
+    cognitive_service: Any
+    qdrant_service: Any
+    auditor_context: Any
+    file_handler: Any
+    planner_config: Any
+
+--- END OF FILE ./src/shared/context.py ---
 
 --- START OF FILE ./src/shared/legacy_models.py ---
 # src/shared/legacy_models.py

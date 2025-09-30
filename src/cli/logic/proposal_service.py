@@ -1,6 +1,6 @@
 # src/cli/logic/proposal_service.py
 """
-Registers and implements the command-line interface for proposal lifecycle management.
+Implements the command-line interface for proposal lifecycle management.
 This module now serves as the main entry point for ALL proposal types.
 """
 
@@ -11,6 +11,7 @@ import shutil
 import tempfile
 from datetime import datetime
 from pathlib import Path
+from typing import Optional
 
 import typer
 from cryptography.hazmat.primitives import serialization
@@ -20,6 +21,7 @@ from rich.table import Table
 
 from features.governance.constitutional_auditor import ConstitutionalAuditor
 from shared.config import settings
+from shared.context import CoreContext
 from shared.logger import getLogger
 from shared.utils.crypto import generate_approval_token
 
@@ -29,21 +31,23 @@ from .cli_utils import (
     load_yaml_file,
     save_yaml_file,
 )
-from .proposals_micro import micro_app
+from .proposals_micro import set_context as set_micro_context
 
 log = getLogger("core_admin.proposals")
-# --- ADDED A CONSOLE FOR RICH PRINTING ---
 console = Console()
 
-
-proposals_app = typer.Typer(
-    help="Work with constitutional proposals for governed changes."
-)
-
-proposals_app.add_typer(micro_app, name="micro")
+# Global variable to store context
+_context: Optional[CoreContext] = None
 
 
-@proposals_app.command("list")
+# ID: a9372599-1e73-4f8a-b244-0a6af17a6607
+def set_context(context: CoreContext):
+    """Set the global context for proposal commands."""
+    global _context
+    _context = context
+    set_micro_context(context)  # Pass context down to the micro-proposal module
+
+
 # ID: 7dcb045e-19c9-4d84-91fd-70c4de7e8dfe
 def proposals_list() -> None:
     """List pending constitutional proposals and display their status."""
@@ -91,7 +95,6 @@ def proposals_list() -> None:
         log.info(f"    Status: {status} ({'Critical' if is_critical else 'Standard'})")
 
 
-@proposals_app.command("sign")
 # ID: e0b15fef-d8d5-4f39-98b3-18d4eedd8bb5
 def proposals_sign(
     proposal_name: str = typer.Argument(
@@ -130,7 +133,6 @@ def proposals_sign(
     log.info("✅ Signature added to proposal file.")
 
 
-@proposals_app.command("approve")
 # ID: 9848504e-60ef-44c1-a57c-b7e14edb5809
 def proposals_approve(
     proposal_name: str = typer.Argument(
@@ -138,6 +140,10 @@ def proposals_approve(
     ),
 ) -> None:
     """Verify signatures, run a canary audit, and apply a valid proposal."""
+    if _context is None:
+        console.print("[bold red]Error: Context not initialized for approve[/bold red]")
+        raise typer.Exit(code=1)
+
     log.info(f"🚀 Attempting to approve proposal: {proposal_name}")
     proposal_path = settings.REPO_PATH / ".intent" / "proposals" / proposal_name
     if not proposal_path.exists():
@@ -243,8 +249,6 @@ def proposals_approve(
             log.error(
                 "❌ Canary audit FAILED. Proposal rejected; live system untouched."
             )
-            # --- THIS IS THE FIX ---
-            # Print the detailed findings so the user knows exactly why it failed.
             if findings:
                 console.print("\n[bold red]Canary Audit Findings:[/bold red]")
                 table = Table()
@@ -260,13 +264,4 @@ def proposals_approve(
                     )
                     table.add_row(str(f.severity), f.check_id, f.message, loc)
                 console.print(table)
-            # --- END OF FIX ---
             raise typer.Exit(code=1)
-
-
-# ID: b52c497e-f5b6-4f39-af22-f32c1d400362
-def register(app: typer.Typer):
-    """
-    Registers the 'proposals' command group with the main admin CLI application.
-    """
-    app.add_typer(proposals_app, name="proposals")

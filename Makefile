@@ -2,119 +2,126 @@
 # Makefile for CORE – Cognitive Orchestration Runtime Engine
 # This file provides convenient shortcuts to the canonical 'core-admin' CLI commands.
 
+# ---- Shell & defaults --------------------------------------------------------
 SHELL := /bin/bash
 .SHELLFLAGS := -eu -o pipefail -c
 .DEFAULT_GOAL := help
 
-# ---- Configurable knobs -----------------------------------------------------
-POETRY  ?= python3 -m poetry
-APP     ?= src.core.main:app
-HOST    ?= 0.0.0.0
-PORT    ?= 8000
-RELOAD  ?= --reload
-ENV_FILE ?= .env
+# ---- Configurable knobs ------------------------------------------------------
+POETRY      ?= python3 -m poetry
+APP         ?= src.core.main:create_app
+HOST        ?= 0.0.0.0
+PORT        ?= 8000
+RELOAD      ?= --reload
+ENV_FILE    ?= .env
 
+# Capability docs output
 OUTPUT_PATH ?= docs/10_CAPABILITY_REFERENCE.md
 
-.PHONY: help install lock run stop audit lint format test check fast-check clean distclean nuke docs check-docs cli-tree integrate
+# Internal helpers
+PY          := $(POETRY) run python
 
-help:
+# ---- Phony targets -----------------------------------------------------------
+.PHONY: \
+  help install lock run stop \
+  audit lint format test fast-check check \
+  cli-tree clean distclean nuke \
+  docs check-docs vectorize integrate \
+  migrate export-db sync-knowledge sync-manifest
+
+# ---- Help (auto-documented) --------------------------------------------------
+# Use the pattern "target: ## description" to list in `make help`.
+help: ## Show this help message
 	@echo "CORE Development Makefile"
 	@echo "-------------------------"
-	@echo "This Makefile provides shortcuts to the main CLI."
-	@echo "For all commands, see: 'poetry run core-admin --help'"
+	@echo "This Makefile maps to 'core-admin' CLI commands."
 	@echo ""
-	@echo "Common Shortcuts:"
-	@echo "make install       - Install dependencies"
-	@echo "make integrate     - Run the full, canonical integration sequence"
-	@echo "make check         - Run all checks including vectorization (for CI)"
-	@echo "make fast-check    - Run linting and tests (RECOMMENDED FOR LOCAL DEV)"
-	@echo "make lint          - Check code format and quality (read-only)"
-	@echo "make format        - Fix code format and quality issues"
-	@echo "make test          - Run tests via 'core-admin check tests'"
-	@echo "make run           - Start the API server"
-	@echo "make cli-tree      - Display the full CLI command tree"
-	@echo "make clean         - Remove temporary files"
-	@echo "make docs          - Generate capability documentation"
+	@awk 'BEGIN {FS":.*##"} /^[a-zA-Z0-9_.-]+:.*##/ {printf "  \033[36m%-18s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
+	@echo ""
+	@echo "Tip: run '$(POETRY) run core-admin --help' for the full CLI."
 
-install:
+# ---- Setup -------------------------------------------------------------------
+install: ## Install dependencies (poetry install)
 	@echo "📦 Installing dependencies..."
 	$(POETRY) install
 
-lock:
+lock: ## Resolve and lock dependencies
 	@echo "🔒 Resolving and locking dependencies..."
 	$(POETRY) lock
 
-run:
+# ---- Run / Stop --------------------------------------------------------------
+run: ## Start the FastAPI server (uvicorn)
 	@echo "🚀 Starting FastAPI server at http://$(HOST):$(PORT)"
-	$(POETRY) run uvicorn $(APP) --host $(HOST) --port $(PORT) $(RELOAD) --env-file $(ENV_FILE)
+	$(POETRY) run uvicorn $(APP) --factory --host $(HOST) --port $(PORT) $(RELOAD) --env-file $(ENV_FILE)
 
-stop:
+stop: ## Kill any process listening on $(PORT)
 	@echo "🛑 Stopping any process on port $(PORT)..."
-	@lsof -t -i:$(PORT) | xargs kill -9 2>/dev/null || true
+	@command -v lsof >/dev/null 2>&1 && lsof -t -i:$(PORT) | xargs kill -9 2>/dev/null || true
 
-
-# --- START OF UPDATED COMMANDS ---
-audit:
+# ---- Checks / Fixes ----------------------------------------------------------
+audit: ## Run the constitutional audit
 	$(POETRY) run core-admin check audit
 
-lint:
+lint: ## Check code format and quality (read-only)
 	$(POETRY) run core-admin check lint
 
-format:
+format: ## Fix code style issues (Black/Ruff via CLI)
 	$(POETRY) run core-admin fix code-style
 
-test:
+test: ## Run tests
 	$(POETRY) run core-admin check tests
 
-cli-tree:
-	@echo "🌳 Generating CLI command tree..."
-	$(POETRY) run core-admin inspect command-tree
-
-fast-check:
+fast-check: ## Lint + tests (quick local cycle)
 	$(MAKE) lint
 	$(MAKE) test
-	
-fix-lines:
-	@echo "📏 Fixing long lines with AI assistant..."
-	$(POETRY) run core-admin fix line-lengths --write
-	
-fix-docs:
-	@echo "✍️  Adding missing docstrings with AI assistant..."
-	$(POETRY) run core-admin fix docstrings --write
 
-vectorize:
-	@echo "🧠 Vectorizing knowledge graph..."
-	$(POETRY) run core-admin run vectorize
-
-check:
+check: ## Lint + tests + audit + docs drift check
 	@echo "🤝 Running full constitutional audit and documentation check..."
 	$(MAKE) lint
 	$(MAKE) test
 	$(MAKE) audit
 	@$(MAKE) check-docs
 
-# The 'integrate' command is now superseded by the more explicit 'submit' command.
-# Kept for backward compatibility for now, but points to the new workflow command.
-integrate:
+cli-tree: ## Display CLI command tree
+	@echo "🌳 Generating CLI command tree..."
+	$(POETRY) run core-admin inspect command-tree
+
+# ---- Knowledge / DB helpers --------------------------------------------------
+migrate: ## Apply pending DB schema migrations
+	$(POETRY) run core-admin manage database migrate
+
+export-db: ## Export DB tables to canonical YAML
+	$(POETRY) run core-admin manage database export
+
+sync-knowledge: ## Scan codebase and sync symbols to DB (Single Source of Truth)
+	$(POETRY) run core-admin manage database sync-knowledge --write
+
+sync-manifest: ## Sync .intent/mind/project_manifest.yaml from DB
+	$(POETRY) run core-admin manage database sync-manifest
+
+vectorize: ## Vectorize knowledge graph (embeddings pipeline)
+	@echo "🧠 Vectorizing knowledge graph..."
+	$(POETRY) run core-admin run vectorize
+
+integrate: ## Canonical integration sequence (submit changes)
 	@echo "🤝 Running Canonical Integration Sequence via 'submit changes'..."
 	$(POETRY) run core-admin submit changes --message "feat: Integrate changes via make"
 
-docs:
+# ---- Docs --------------------------------------------------------------------
+docs: ## Generate capability documentation
 	@echo "📚 Generating capability documentation..."
-	# This is a conceptual placeholder. The 'build docs' command would need to be re-wired.
-	# For now, let's assume it maps to a management task.
-	$(POETRY) run core-admin manage project docs
-# --- END OF UPDATED COMMANDS ---
+	# Option A: preferred CLI-managed docs (if implemented)
+	-$(POETRY) run core-admin manage project docs || true
+	# Option B: direct module entry point (fallback)
+	$(PY) -m features.introspection.generate_capability_docs --output "$(OUTPUT_PATH)"
 
-check-docs: docs
+check-docs: docs ## Verify documentation is in sync
 	@echo "🔎 Checking for documentation drift..."
-	@git diff --exit-code --quiet $(OUTPUT_PATH) || (echo "❌ ERROR: Documentation is out of sync. Please run 'make docs' and commit the changes." && exit 1)
+	@git diff --exit-code --quiet "$(OUTPUT_PATH)" || (echo "❌ ERROR: Documentation is out of sync. Please run 'make docs' and commit the changes." && exit 1)
 	@echo "✅ Documentation is up to date."
 
-# ---- Clean targets ---------------------------------------------------------
-
-clean:
+# ---- Clean -------------------------------------------------------------------
+clean: ## Remove temporary files and caches
 	@echo "🧹 Cleaning up temporary files and caches..."
 	find . -type f -name '*.pyc' -delete
 	find . -type d -name '__pycache__' -prune -exec rm -rf {} +
@@ -125,12 +132,12 @@ clean:
 	rm -rf pending_writes sandbox
 	@echo "✅ Clean complete."
 
-distclean: clean
+distclean: clean ## Clean + remove virtual env
 	@echo "🧨 Distclean: removing virtual environments and build leftovers..."
 	rm -rf .venv
 	@echo "✅ Distclean complete."
 
-nuke:
+nuke: ## Danger! Remove ALL untracked files (git clean -fdx)
 	@echo "☢️  Running 'git clean -fdx' in 3s (CTRL+C to cancel)..."
 	@sleep 3
 	git clean -fdx

@@ -39,7 +39,6 @@ class PlannerAgent:
         )
         self.prompt_pipeline = PromptPipeline(settings.REPO_PATH)
 
-    # --- START OF AMENDMENT ---
     def _build_planning_prompt(self, goal: str, reconnaissance_report: str) -> str:
         """Builds the detailed prompt for the planning LLM."""
         available_actions = self.actions_policy.get("actions", [])
@@ -67,7 +66,6 @@ class PlannerAgent:
             reconnaissance_report=reconnaissance_report,
         )
 
-        # Hard rule to avoid schema drift: ensure path-like params are named exactly 'file_path'
         rules_appendix = (
             "\n\n---\n"
             "STRICT RULES FOR ACTION PARAMETERS:\n"
@@ -77,8 +75,6 @@ class PlannerAgent:
         )
 
         return self.prompt_pipeline.process(base_prompt + rules_appendix)
-
-    # --- END OF AMENDMENT ---
 
     def _log_plan_summary(self, plan: List[ExecutionTask]):
         """Logs a human-readable summary of the execution plan."""
@@ -103,29 +99,25 @@ class PlannerAgent:
         if isinstance(params, dict):
             if "path" in params and "file_path" not in params:
                 params["file_path"] = params.pop("path")
-            # keep a single canonical field name for pydantic model
             task_dict["params"] = params
             task_dict.pop("parameters", None)
         return task_dict
 
     # ID: b918335b-60af-4132-a944-88628a3caa66
-    def create_execution_plan(
+    async def create_execution_plan(
         self, goal: str, reconnaissance_report: str = ""
     ) -> List[ExecutionTask]:
         """
         Creates an execution plan from a user goal and a reconnaissance report.
-
-        NOTE: synchronous by design because unit tests call it directly and
-        mock a synchronous `.make_request()` client.
         """
         max_retries = settings.model_extra.get("CORE_MAX_RETRIES", 3)
 
         prompt = self._build_planning_prompt(goal, reconnaissance_report)
-        client = self.cognitive_service.get_client_for_role("Planner")
+        client = await self.cognitive_service.aget_client_for_role("Planner")
 
         for attempt in range(max_retries):
             log.info("🧠 Generating step-by-step plan from reconnaissance context...")
-            response_text = client.make_request(prompt)
+            response_text = await client.make_request_async(prompt)
 
             if response_text:
                 try:
@@ -135,7 +127,6 @@ class PlannerAgent:
                             "LLM did not return a valid JSON list for the plan."
                         )
 
-                    # Normalize each step BEFORE pydantic validation to avoid drift (path -> file_path)
                     normalized_steps = [
                         (
                             self._normalize_parameters(step)

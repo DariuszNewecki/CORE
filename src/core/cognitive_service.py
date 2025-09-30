@@ -5,7 +5,7 @@ import asyncio
 import json
 import os
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from sqlalchemy import select
 
@@ -32,6 +32,12 @@ class CognitiveService:
         self._selected_client_by_role: Dict[str, BaseLLMClient] = {}
         self._resource_selector: Optional[ResourceSelector] = None
         self._init_lock = asyncio.Lock()
+        # The QdrantService is now a dependency for search.
+        # It's assumed to be provided via CoreContext in a real scenario,
+        # but we initialize it here for broader usability.
+        self.qdrant_service = __import__(
+            "services.clients.qdrant_client"
+        ).clients.qdrant_client.QdrantService()
 
     # ID: 4a3d361d-fc92-4b51-8a4a-622d91c36c04
     async def initialize(self) -> None:
@@ -146,18 +152,30 @@ class CognitiveService:
         if not source_code:
             return None
         try:
-            # --- THE DEFINITIVE FIX ---
-            # Use the role-based system to get a dedicated, correctly configured vectorizer client.
-            client = self.get_client_for_role("Vectorizer")
+            client = await self.aget_client_for_role("Vectorizer")
             return await client.get_embedding(source_code)
-            # --- END OF FIX ---
         except Exception as e:
             raise RuntimeError(f"Failed to generate embedding: {e}") from e
 
     # ID: 17bcea8d-726a-482e-aa98-b6a24b43a6a0
-    async def search_capabilities(self, query: str, limit: int = 5):
-        """Placeholder for semantic search capability."""
-        log.warning(
-            "CognitiveService.search_capabilities is a placeholder and will return no results."
-        )
-        return []
+    async def search_capabilities(
+        self, query: str, limit: int = 5
+    ) -> list[dict[str, Any]]:
+        """Performs a semantic search for capabilities using the vector database."""
+        if not self._loaded:
+            await self.initialize()
+
+        log.info(f"Performing semantic search for: '{query}'")
+        try:
+            query_vector = await self.get_embedding_for_code(query)
+            if not query_vector:
+                log.warning("Could not generate embedding for search query.")
+                return []
+
+            search_results = await self.qdrant_service.search_similar(
+                query_vector=query_vector, limit=limit
+            )
+            return search_results
+        except Exception as e:
+            log.error(f"Semantic search failed: {e}", exc_info=True)
+            return []

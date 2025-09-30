@@ -20,10 +20,12 @@ migrations:
   order:
     - "001_init.sql"
     - "002_catalog.sql"
+    - "002_capability_domains.sql"
     - "003_implementations.sql"
+    - "003_capability_domains_idx.sql"
     - "004_refactor_to_symbols.sql"
     - "005_add_symbol_key.sql"
-    - "0_knowledge_graph_view.sql"
+    - "006_knowledge_graph_view.sql"
     - "007_capabilities_registry.sql"
     - "008_operational_tables.sql"
     - "009_domain_and_vector_tables.sql"

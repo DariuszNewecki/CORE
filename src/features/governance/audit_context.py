@@ -17,7 +17,7 @@ from shared.logger import getLogger
 log = getLogger("audit_context")
 
 
-# ID: aebe6840-e855-4c4e-8310-59faad75fa6f
+# ID: 7b2396c3-96ae-4f5b-bd70-09ef50bdfea0
 class AuditorContext:
     """
     A data class that loads and provides access to all constitutional
@@ -43,7 +43,7 @@ class AuditorContext:
         self.symbols_map: dict = {}
         log.debug("AuditorContext initialized synchronously.")
 
-    # ID: cd0c99b3-b02a-425a-8339-ceec1745d9b7
+    # ID: 2f3d6adb-6584-40de-8ae8-e7b8e983d470
     async def load_knowledge_graph(self):
         """Asynchronously loads the knowledge graph from the service."""
         log.debug("Asynchronously loading knowledge graph...")
@@ -82,24 +82,18 @@ class AuditorContext:
         return loaded_policies
 
     @property
-    # ID: c8dcf271-f3ef-4c75-bea5-775b8c3461a1
+    # ID: ac544885-00f8-49d9-8aab-24c58947f6fc
     def python_files(self) -> list[Path]:
         """Get all Python files in the repository."""
         python_files = []
-        # --- START OF FIX ---
-        # Corrected the typo from self.repo_root to self.repo_path
         for root, dirs, files in os.walk(self.repo_path):
-            # --- END OF FIX ---
-            # Skip common directories that shouldn't contain source code
             dirs[:] = [
                 d
                 for d in dirs
                 if d
                 not in {".git", "__pycache__", ".pytest_cache", "node_modules", ".venv"}
             ]
-
             for file in files:
                 if file.endswith(".py"):
                     python_files.append(Path(root) / file)
-
         return python_files
