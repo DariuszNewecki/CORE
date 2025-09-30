@@ -794,7 +794,9 @@ migrations:
   order:
     - "001_init.sql"
     - "002_catalog.sql"
+    - "002_capability_domains.sql"
     - "003_implementations.sql"
+    - "003_capability_domains_idx.sql"
     - "004_refactor_to_symbols.sql"
     - "005_add_symbol_key.sql"
     - "006_knowledge_graph_view.sql"
@@ -4401,6 +4403,107 @@ env_files = [
     ".env"
 ]
 --- END OF FILE ./pyproject.toml ---
+
+--- START OF FILE ./scripts/11_ACADEMIC_PAPER.md ---
+Paper outline (v1.0, conference-ready)
+
+Title (working):
+Constitutional Software Engineering: Mind–Body–Will Governance for AI-Driven Systems
+
+Abstract (draft):
+Large Language Models (LLMs) accelerate code generation but amplify architectural drift and erode trust in software evolution. We present Constitutional Software Engineering (CSE), a framework that treats a project’s intent and rules as a first-class, machine-readable Constitution (“Mind”), executed by a constrained Body (code + tools), and governed by a deliberate Will (AI agents) under an independent Constitutional Auditor. We instantiate CSE in CORE, which implements cryptographically signed proposals, quorum rules, and canary self-audits before constitutional changes apply. A staged Autonomy Ladder demonstrates governed progression from self-awareness to self-healing. In a case study, CORE detects capability gaps, proposes compliant fixes, and ratifies them under human-in-the-loop signatures, integrating CI to continuously enforce the Constitution. We find that CSE maintains architectural integrity while enabling safe AI-assisted evolution at scale.
+
+1. Introduction
+
+Problem: AI speeds code, not governance; drift & spaghetti persist.
+
+Thesis: Treat intent & rules as executable artifacts to bound AI agency.
+
+Contributions:
+
+CSE model (Mind–Body–Will + Auditor),
+
+Signed-proposal governance protocol with canary validation,
+
+Autonomy Ladder for governed AI agency,
+
+CORE implementation + evaluable CI pipeline.
+
+(Grounding: architecture & flows)
+
+2. Background & Related Models
+
+Code assistants vs. governed systems; CI/CD vs. constitutional audits.
+
+Why “machine-readable governance” differs from linting/policies.
+
+3. Constitutional Software Engineering (CSE)
+
+Mind: the Constitution (.intent/): principles, policies, schemas, knowledge graph. Define invariants (e.g., every change has declared intent; knowledge graph is current).
+
+Body: deterministic machinery (src/, CLI), audited by rules.
+
+Will: agents bound by policies (reason_from_reality; pre_write_validation).
+
+Auditor: parses code (AST) → builds knowledge graph → enforces.
+
+4. Governance Protocol
+
+Lifecycle: Proposal → Sign → Quorum → Canary → Ratify.
+
+Cryptographic approvals & quorum: approvers.yaml, critical paths.
+
+Canary validation: ephemeral clone + full constitutional audit before apply (algorithm/pseudocode from CLI).
+
+Operational procedures: onboarding, revocation, emergency key compromise.
+
+5. The Autonomy Ladder (Governed Agency)
+
+A0–A? levels mapped to CORE:
+A0 Self-awareness (auditor + knowledge graph) →
+A1 Governed action (develop under policies) →
+A2 Proposal discipline (signed + quorum) →
+A3 Self-healing (auto-propose tag/refactor; human ratifies) →
+A4 Architect’s cockpit (capability consolidation / abstraction).
+
+Formal properties: each level adds constraints, not unconstrained agency.
+
+6. Implementation: CORE
+
+Directory anatomy & allowed imports; visual pipeline to knowledge graph.
+
+Policies that bind agents; regeneration preconditions.
+
+CI integration (PR comments, nightly fail surfacing).
+
+7. Case Study: From Drift to Ratified Fix
+
+Scenario: knowledge graph shows unassigned capabilities (e.g., parsing helpers). Auditor flags; propose capability tags/refactor; collect signatures; run canary; ratify. Metrics to report: time-to-ratify, audit pass rate, drift delta.
+
+8. Security & Safety Analysis
+
+Key management & signatures (procedures + emergency revocation).
+
+Risk: private key in repo—lessons & hardening (rotate, history purge, enforce secrets scanning; verify .gitignore + CI secret checks).
+
+Dev vs Prod quorum modes; critical paths.
+
+9. Evaluation Plan
+
+Benchmarks: architectural drift incidents/month, MTTR for governance fixes, % of PRs blocked by constitutional audit, ratio of auto-proposed vs. human-drafted proposals, reproducibility via CI artifacts.
+
+10. Limitations & Threats to Validity
+
+Model hallucinations vs. policy enforcement; governance overhead; false positives in audits; portability to non-Python codebases.
+
+11. Future Work
+
+Multi-repo federated constitutions; cross-service policy propagation; formal verification hooks; richer provenance logs.
+
+12. Conclusion
+
+CSE makes AI-accelerated development governable, auditable, and evolvable.
+--- END OF FILE ./scripts/11_ACADEMIC_PAPER.md ---
 
 --- START OF FILE ./scripts/build_llm_context.py ---
 #!/usr/-bin/env python3
@@ -9349,6 +9452,7 @@ import sys
 import typer
 
 
+# ID: 752ead32-df2a-48c5-bb30-3530397e2cd2
 def docs(output: str = "docs/10_CAPABILITY_REFERENCE.md") -> None:
     """
     Generate capability documentation into the given output path.
@@ -10686,8 +10790,8 @@ def integrate_command(
         console.print(
             "[bold red]Error: Context not initialized for integrate[/bold red]"
         )
-        raise typer.Exit(code=1)
-    asyncio.run(integrate_changes(_context, commit_message))
+        # exit disabled: integrate_changes no longer needs context
+    asyncio.run(integrate_changes(commit_message))
 
 
 # ID: 1f2c3d4e-5f6a-7b8c-9d0e-1f2a3b4c5d6e
@@ -19271,10 +19375,11 @@ from rich.console import Console
 from rich.progress import track
 from sqlalchemy import text
 
-from core.cognitive_service import CognitiveService
-from features.introspection.knowledge_helpers import log_failure
 from services.clients.qdrant_client import QdrantService
-from services.repositories.db.engine import get_session
+from services.database.session_manager import get_session
+# --- THIS IS THE FIX ---
+from services.knowledge.vector_service import VectorKnowledgeService
+# --- END OF FIX ---
 from shared.config import settings
 from shared.logger import getLogger
 from shared.utils.embedding_utils import normalize_text
@@ -19337,13 +19442,12 @@ def _get_source_code(file_path: Path, symbol_path: str) -> Optional[str]:
 # ID: e06caaf0-1af4-421a-ad5c-e468c8d41f36
 async def _process_vectorization_task(
     task: Dict,
-    cognitive_service: CognitiveService,
-    qdrant_service: QdrantService,
+    vector_knowledge_service: VectorKnowledgeService,
     failure_log_path: Path,
 ) -> Optional[str]:
     """Processes a single symbol: gets embedding and upserts to Qdrant. Returns Qdrant point ID on success."""
     try:
-        vector = await cognitive_service.get_embedding_for_code(task["source_code"])
+        vector = await vector_knowledge_service.get_embedding_for_code(task["source_code"])
         if not vector:
             raise ValueError("Embedding service returned None")
 
@@ -19354,17 +19458,17 @@ async def _process_vectorization_task(
             "content_sha256": task["code_hash"],
             "language": "python",
             "symbol": task["symbol_path"],
-            "capability_tags": [task["uuid"]],  # Use the UUID as the tag
+            "capability_tags": [task["uuid"]],
         }
-        point_id = await qdrant_service.upsert_capability_vector(
+        point_id = await vector_knowledge_service.qdrant_service.upsert_capability_vector(
             vector=vector, payload_data=payload_data
         )
         return point_id
     except Exception as e:
         log.error(f"Failed to process symbol '{task['symbol_path']}': {e}")
-        log_failure(
-            failure_log_path, task["symbol_path"], str(e), "vectorization_error"
-        )
+        failure_log_path.parent.mkdir(parents=True, exist_ok=True)
+        with failure_log_path.open("a", encoding="utf-8") as f:
+            f.write(f"vectorization_error\t{task['symbol_path']}\t{e}\n")
         return None
 
 
@@ -19390,19 +19494,17 @@ async def _update_symbols_in_db(updates: List[Dict]):
 
 # ID: 1171223d-a43d-4c61-a493-f29f8e75218b
 async def run_vectorize(
-    cognitive_service: CognitiveService, dry_run: bool = False, force: bool = False
+    vector_knowledge_service: VectorKnowledgeService, dry_run: bool = False, force: bool = False
 ):
     """
     The main orchestration logic for vectorizing capabilities based on the database.
     """
     console.print("[bold cyan]🚀 Starting Database-Driven Vectorization...[/bold cyan]")
     failure_log_path = settings.REPO_PATH / "logs" / "vectorization_failures.log"
-    failure_log_path.parent.mkdir(parents=True, exist_ok=True)
-
     symbols_in_db = await _fetch_symbols_from_db()
     console.print(f"   -> Found {len(symbols_in_db)} active symbols in the database.")
 
-    qdrant_service = QdrantService()
+    qdrant_service = vector_knowledge_service.qdrant_service
     existing_vectors = await _fetch_existing_vectors(qdrant_service)
     console.print(f"   -> Found {len(existing_vectors)} existing vectors in Qdrant.")
 
@@ -19439,7 +19541,7 @@ async def run_vectorize(
 
     for task in track(tasks, description="Vectorizing symbols..."):
         point_id = await _process_vectorization_task(
-            task, cognitive_service, qdrant_service, failure_log_path
+            task, vector_knowledge_service, failure_log_path
         )
         if point_id:
             updates_to_db.append({"uuid": task["uuid"], "vector_id": point_id})
@@ -19451,9 +19553,8 @@ async def run_vectorize(
     )
     if len(updates_to_db) < len(tasks):
         console.print(
-            f"[bold red]   -> {len(tasks) - len(updates_to_db)} failures were logged to {failure_log_path}[/bold red]"
+            f"[bold red]   -> {len(tasks) - len(updates_to_db)} failures logged to {failure_log_path}[/bold red]"
         )
-
 --- END OF FILE ./src/features/introspection/vectorization_service.py ---
 
 --- START OF FILE ./src/features/maintenance/command_sync_service.py ---
