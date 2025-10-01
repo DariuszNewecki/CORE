@@ -11,7 +11,7 @@ It is generated from the `core.knowledge_graph` database view and should not be 
 
 ## Domain: `admin.key_management`
 
-- **`admin.key_management.generate`**
+- **`admin.key_management.keygen`**
   - **Description:** No description provided.
   - **Source:** [src/features/governance/key_management_service.py](https://github.com/DariuszNewecki/CORE/blob/main/src/features/governance/key_management_service.py#L1)
 
@@ -21,15 +21,15 @@ It is generated from the `core.knowledge_graph` database view and should not be 
   - **Description:** No description provided.
   - **Source:** [src/shared/utils/alias_resolver.py](https://github.com/DariuszNewecki/CORE/blob/main/src/shared/utils/alias_resolver.py#L1)
 
-## Domain: `ast.node.definition_line`
+## Domain: `ast.definition.line`
 
-- **`ast.node.definition_line.find`**
+- **`ast.definition.line.find`**
   - **Description:** No description provided.
   - **Source:** [src/shared/ast_utility.py](https://github.com/DariuszNewecki/CORE/blob/main/src/shared/ast_utility.py#L1)
 
 ## Domain: `ast.symbol`
 
-- **`ast.symbol.locate`**
+- **`ast.symbol.resolve`**
   - **Description:** No description provided.
   - **Source:** [src/shared/ast_utility.py](https://github.com/DariuszNewecki/CORE/blob/main/src/shared/ast_utility.py#L1)
 
@@ -38,12 +38,6 @@ It is generated from the `core.knowledge_graph` database view and should not be 
 - **`ast.symbol.definition.resolve`**
   - **Description:** No description provided.
   - **Source:** [src/shared/ast_utility.py](https://github.com/DariuszNewecki/CORE/blob/main/src/shared/ast_utility.py#L1)
-
-## Domain: `async.execution`
-
-- **`async.execution.throttled_parallel`**
-  - **Description:** No description provided.
-  - **Source:** [src/shared/utils/parallel_processor.py](https://github.com/DariuszNewecki/CORE/blob/main/src/shared/utils/parallel_processor.py#L1)
 
 ## Domain: `audit`
 
@@ -57,9 +51,9 @@ It is generated from the `core.knowledge_graph` database view and should not be 
   - **Description:** No description provided.
   - **Source:** [src/shared/models/audit_models.py](https://github.com/DariuszNewecki/CORE/blob/main/src/shared/models/audit_models.py#L1)
 
-## Domain: `audit.log`
+## Domain: `audit.runs`
 
-- **`audit.log.create`**
+- **`audit.runs.log`**
   - **Description:** No description provided.
   - **Source:** [src/cli/logic/log_audit.py](https://github.com/DariuszNewecki/CORE/blob/main/src/cli/logic/log_audit.py#L1)
 
@@ -69,9 +63,9 @@ It is generated from the `core.knowledge_graph` database view and should not be 
   - **Description:** No description provided.
   - **Source:** [src/shared/models/audit_models.py](https://github.com/DariuszNewecki/CORE/blob/main/src/shared/models/audit_models.py#L1)
 
-## Domain: `capability.meta`
+## Domain: `capability`
 
-- **`capability.meta.key`**
+- **`capability.meta`**
   - **Description:** No description provided.
   - **Source:** [src/shared/models/capability_models.py](https://github.com/DariuszNewecki/CORE/blob/main/src/shared/models/capability_models.py#L1)
 
@@ -86,12 +80,6 @@ It is generated from the `core.knowledge_graph` database view and should not be 
 - **`cli.admin.tree`**
   - **Description:** No description provided.
   - **Source:** [src/cli/logic/diagnostics.py](https://github.com/DariuszNewecki/CORE/blob/main/src/cli/logic/diagnostics.py#L1)
-
-## Domain: `cli.code`
-
-- **`cli.code.review`**
-  - **Description:** No description provided.
-  - **Source:** [src/cli/logic/reviewer.py](https://github.com/DariuszNewecki/CORE/blob/main/src/cli/logic/reviewer.py#L1)
 
 ## Domain: `cli.commands`
 
@@ -132,18 +120,6 @@ It is generated from the `core.knowledge_graph` database view and should not be 
   - **Description:** No description provided.
   - **Source:** [src/core/actions/code_actions.py](https://github.com/DariuszNewecki/CORE/blob/main/src/core/actions/code_actions.py#L1)
 
-## Domain: `code.intelligence`
-
-- **`code.intelligence.define_symbol`**
-  - **Description:** No description provided.
-  - **Source:** [src/features/project_lifecycle/definition_service.py](https://github.com/DariuszNewecki/CORE/blob/main/src/features/project_lifecycle/definition_service.py#L1)
-
-## Domain: `code.refactoring`
-
-- **`code.refactoring.rewire_imports`**
-  - **Description:** No description provided.
-  - **Source:** [src/features/maintenance/maintenance_service.py](https://github.com/DariuszNewecki/CORE/blob/main/src/features/maintenance/maintenance_service.py#L1)
-
 ## Domain: `code.validation`
 
 - **`code.validation.execute`**
@@ -155,19 +131,13 @@ It is generated from the `core.knowledge_graph` database view and should not be 
 
 ## Domain: `constitution.audit`
 
-- **`constitution.audit.peer_review`**
+- **`constitution.audit.clarity`**
   - **Description:** No description provided.
   - **Source:** [src/cli/logic/reviewer.py](https://github.com/DariuszNewecki/CORE/blob/main/src/cli/logic/reviewer.py#L1)
 
-## Domain: `context.executor`
+## Domain: `core.actions`
 
-- **`context.executor.services`**
-  - **Description:** No description provided.
-  - **Source:** [src/core/actions/context.py](https://github.com/DariuszNewecki/CORE/blob/main/src/core/actions/context.py#L1)
-
-## Domain: `core.actions.handler`
-
-- **`core.actions.handler.execute`**
+- **`core.actions.execute`**
   - **Description:** No description provided.
   - **Source:** [src/core/actions/base.py](https://github.com/DariuszNewecki/CORE/blob/main/src/core/actions/base.py#L1)
 
@@ -183,17 +153,32 @@ It is generated from the `core.knowledge_graph` database view and should not be 
   - **Description:** No description provided.
   - **Source:** [src/core/agents/execution_agent.py](https://github.com/DariuszNewecki/CORE/blob/main/src/core/agents/execution_agent.py#L1)
 
-## Domain: `core.greeting`
+## Domain: `core.context`
 
-- **`core.greeting.print`**
+- **`core.context.planexecutor`**
   - **Description:** No description provided.
-  - **Source:** [src/features/demo/hello_world.py](https://github.com/DariuszNewecki/CORE/blob/main/src/features/demo/hello_world.py#L1)
+  - **Source:** [src/core/actions/context.py](https://github.com/DariuszNewecki/CORE/blob/main/src/core/actions/context.py#L1)
+- **`core.context.set`**
+  - **Description:** No description provided.
+  - **Source:** [src/cli/logic/proposals_micro.py](https://github.com/DariuszNewecki/CORE/blob/main/src/cli/logic/proposals_micro.py#L1)
+
+## Domain: `core.proposal`
+
+- **`core.proposal.approve`**
+  - **Description:** No description provided.
+  - **Source:** [src/shared/utils/crypto.py](https://github.com/DariuszNewecki/CORE/blob/main/src/shared/utils/crypto.py#L1)
 
 ## Domain: `core.self_correction`
 
 - **`core.self_correction.attempt`**
   - **Description:** No description provided.
   - **Source:** [src/core/self_correction_engine.py](https://github.com/DariuszNewecki/CORE/blob/main/src/core/self_correction_engine.py#L1)
+
+## Domain: `core.system`
+
+- **`core.system.greeting`**
+  - **Description:** No description provided.
+  - **Source:** [src/features/demo/hello_world.py](https://github.com/DariuszNewecki/CORE/blob/main/src/features/demo/hello_world.py#L1)
 
 ## Domain: `crate.processing`
 
@@ -215,7 +200,7 @@ It is generated from the `core.knowledge_graph` database view and should not be 
 
 ## Domain: `db.sql`
 
-- **`db.sql.execute_file`**
+- **`db.sql.apply`**
   - **Description:** No description provided.
   - **Source:** [src/services/repositories/db/common.py](https://github.com/DariuszNewecki/CORE/blob/main/src/services/repositories/db/common.py#L1)
 
@@ -243,15 +228,15 @@ It is generated from the `core.knowledge_graph` database view and should not be 
   - **Description:** No description provided.
   - **Source:** [src/shared/models/drift_models.py](https://github.com/DariuszNewecki/CORE/blob/main/src/shared/models/drift_models.py#L1)
 
-## Domain: `embedding.factory`
+## Domain: `embedding.chunk`
 
-- **`embedding.factory.build`**
+- **`embedding.chunk.average`**
   - **Description:** No description provided.
   - **Source:** [src/shared/utils/embedding_utils.py](https://github.com/DariuszNewecki/CORE/blob/main/src/shared/utils/embedding_utils.py#L1)
 
-## Domain: `embedding.processing`
+## Domain: `embedding.service`
 
-- **`embedding.processing.average`**
+- **`embedding.service.build`**
   - **Description:** No description provided.
   - **Source:** [src/shared/utils/embedding_utils.py](https://github.com/DariuszNewecki/CORE/blob/main/src/shared/utils/embedding_utils.py#L1)
 
@@ -272,22 +257,25 @@ It is generated from the `core.knowledge_graph` database view and should not be 
 - **`file.create`**
   - **Description:** No description provided.
   - **Source:** [src/core/actions/code_actions.py](https://github.com/DariuszNewecki/CORE/blob/main/src/core/actions/code_actions.py#L1)
+- **`file.delete`**
+  - **Description:** No description provided.
+  - **Source:** [src/core/actions/file_actions.py](https://github.com/DariuszNewecki/CORE/blob/main/src/core/actions/file_actions.py#L1)
 - **`file.edit`**
   - **Description:** No description provided.
   - **Source:** [src/core/actions/code_actions.py](https://github.com/DariuszNewecki/CORE/blob/main/src/core/actions/code_actions.py#L1)
 
-## Domain: `file.constitutional`
+## Domain: `file.directory`
 
-- **`file.constitutional.discover`**
+- **`file.directory.list`**
   - **Description:** No description provided.
-  - **Source:** [src/shared/utils/constitutional_parser.py](https://github.com/DariuszNewecki/CORE/blob/main/src/shared/utils/constitutional_parser.py#L1)
+  - **Source:** [src/core/actions/file_actions.py](https://github.com/DariuszNewecki/CORE/blob/main/src/core/actions/file_actions.py#L1)
 
 ## Domain: `file.header`
 
 - **`file.header.components`**
   - **Description:** No description provided.
   - **Source:** [src/shared/utils/header_tools.py](https://github.com/DariuszNewecki/CORE/blob/main/src/shared/utils/header_tools.py#L1)
-- **`file.header.parse_reconstruct`**
+- **`file.header.process`**
   - **Description:** No description provided.
   - **Source:** [src/shared/utils/header_tools.py](https://github.com/DariuszNewecki/CORE/blob/main/src/shared/utils/header_tools.py#L1)
 
@@ -297,21 +285,9 @@ It is generated from the `core.knowledge_graph` database view and should not be 
   - **Description:** No description provided.
   - **Source:** [src/shared/utils/import_scanner.py](https://github.com/DariuszNewecki/CORE/blob/main/src/shared/utils/import_scanner.py#L1)
 
-## Domain: `file.list`
-
-- **`file.list.read`**
-  - **Description:** No description provided.
-  - **Source:** [src/core/actions/file_actions.py](https://github.com/DariuszNewecki/CORE/blob/main/src/core/actions/file_actions.py#L1)
-
 ## Domain: `file.operations`
 
-- **`file.operations.delete`**
-  - **Description:** No description provided.
-  - **Source:** [src/core/actions/file_actions.py](https://github.com/DariuszNewecki/CORE/blob/main/src/core/actions/file_actions.py#L1)
-
-## Domain: `file.parsing`
-
-- **`file.parsing.extract_write_blocks`**
+- **`file.operations.write`**
   - **Description:** No description provided.
   - **Source:** [src/shared/utils/parsing.py](https://github.com/DariuszNewecki/CORE/blob/main/src/shared/utils/parsing.py#L1)
 
@@ -321,9 +297,9 @@ It is generated from the `core.knowledge_graph` database view and should not be 
   - **Description:** No description provided.
   - **Source:** [src/core/actions/file_actions.py](https://github.com/DariuszNewecki/CORE/blob/main/src/core/actions/file_actions.py#L1)
 
-## Domain: `git.service.commit`
+## Domain: `git.system.info`
 
-- **`git.service.commit.sha`**
+- **`git.system.info.commit`**
   - **Description:** No description provided.
   - **Source:** [src/services/repositories/db/common.py](https://github.com/DariuszNewecki/CORE/blob/main/src/services/repositories/db/common.py#L1)
 
@@ -338,6 +314,9 @@ It is generated from the `core.knowledge_graph` database view and should not be 
 - **`governance.audit.scope`**
   - **Description:** No description provided.
   - **Source:** [src/features/governance/constitutional_auditor.py](https://github.com/DariuszNewecki/CORE/blob/main/src/features/governance/constitutional_auditor.py#L1)
+- **`governance.audit.unassigned_symbols`**
+  - **Description:** No description provided.
+  - **Source:** [src/features/introspection/audit_unassigned_capabilities.py](https://github.com/DariuszNewecki/CORE/blob/main/src/features/introspection/audit_unassigned_capabilities.py#L1)
 
 ## Domain: `governance.auditor`
 
@@ -361,22 +340,19 @@ It is generated from the `core.knowledge_graph` database view and should not be 
 
 - **`governance.checks.domain_placement`**
   - **Description:** No description provided.
-  - **Source:** [src/features/governance/checks/domain_placement.py](https://github.com/DariuszNewecki/CORE/blob/main/src/features/governance/checks/domain_placement.py#L1)
+  - **Source:** [src/cli/logic/diagnostics.py](https://github.com/DariuszNewecki/CORE/blob/main/src/cli/logic/diagnostics.py#L1)
 - **`governance.checks.duplication`**
   - **Description:** No description provided.
   - **Source:** [src/features/governance/checks/duplication_check.py](https://github.com/DariuszNewecki/CORE/blob/main/src/features/governance/checks/duplication_check.py#L1)
-- **`governance.checks.id_coverage`**
-  - **Description:** No description provided.
-  - **Source:** [src/features/governance/checks/id_coverage_check.py](https://github.com/DariuszNewecki/CORE/blob/main/src/features/governance/checks/id_coverage_check.py#L1)
 - **`governance.checks.manifest_lint`**
   - **Description:** No description provided.
   - **Source:** [src/features/governance/checks/manifest_lint.py](https://github.com/DariuszNewecki/CORE/blob/main/src/features/governance/checks/manifest_lint.py#L1)
+- **`governance.checks.orphaned_logic`**
+  - **Description:** No description provided.
+  - **Source:** [src/cli/logic/diagnostics.py](https://github.com/DariuszNewecki/CORE/blob/main/src/cli/logic/diagnostics.py#L1)
 - **`governance.checks.style`**
   - **Description:** No description provided.
   - **Source:** [src/features/governance/checks/style_checks.py](https://github.com/DariuszNewecki/CORE/blob/main/src/features/governance/checks/style_checks.py#L1)
-- **`governance.checks.unassigned_symbols`**
-  - **Description:** No description provided.
-  - **Source:** [src/cli/logic/diagnostics.py](https://github.com/DariuszNewecki/CORE/blob/main/src/cli/logic/diagnostics.py#L1)
 
 ## Domain: `governance.checks.naming_conventions`
 
@@ -384,15 +360,9 @@ It is generated from the `core.knowledge_graph` database view and should not be 
   - **Description:** No description provided.
   - **Source:** [src/features/governance/checks/naming_conventions.py](https://github.com/DariuszNewecki/CORE/blob/main/src/features/governance/checks/naming_conventions.py#L1)
 
-## Domain: `governance.diagnostics`
-
-- **`governance.diagnostics.unassigned_symbols`**
-  - **Description:** No description provided.
-  - **Source:** [src/features/introspection/audit_unassigned_capabilities.py](https://github.com/DariuszNewecki/CORE/blob/main/src/features/introspection/audit_unassigned_capabilities.py#L1)
-
 ## Domain: `governance.environment`
 
-- **`governance.environment.verify`**
+- **`governance.environment.check`**
   - **Description:** No description provided.
   - **Source:** [src/features/governance/checks/environment_checks.py](https://github.com/DariuszNewecki/CORE/blob/main/src/features/governance/checks/environment_checks.py#L1)
 
@@ -402,11 +372,11 @@ It is generated from the `core.knowledge_graph` database view and should not be 
   - **Description:** No description provided.
   - **Source:** [src/features/governance/checks/health_checks.py](https://github.com/DariuszNewecki/CORE/blob/main/src/features/governance/checks/health_checks.py#L1)
 
-## Domain: `governance.manifest`
+## Domain: `governance.linkage`
 
-- **`governance.manifest.domain_placement`**
+- **`governance.linkage.id_coverage`**
   - **Description:** No description provided.
-  - **Source:** [src/cli/logic/diagnostics.py](https://github.com/DariuszNewecki/CORE/blob/main/src/cli/logic/diagnostics.py#L1)
+  - **Source:** [src/features/governance/checks/id_coverage_check.py](https://github.com/DariuszNewecki/CORE/blob/main/src/features/governance/checks/id_coverage_check.py#L1)
 
 ## Domain: `governance.policy`
 
@@ -429,47 +399,17 @@ It is generated from the `core.knowledge_graph` database view and should not be 
   - **Description:** No description provided.
   - **Source:** [src/core/actions/governance_actions.py](https://github.com/DariuszNewecki/CORE/blob/main/src/core/actions/governance_actions.py#L1)
 
-## Domain: `governance.security.secrets`
-
-- **`governance.security.secrets.detect`**
-  - **Description:** No description provided.
-  - **Source:** [src/features/governance/checks/security_checks.py](https://github.com/DariuszNewecki/CORE/blob/main/src/features/governance/checks/security_checks.py#L1)
-
 ## Domain: `governance.tags`
 
 - **`governance.tags.check_legacy`**
   - **Description:** No description provided.
   - **Source:** [src/cli/logic/diagnostics.py](https://github.com/DariuszNewecki/CORE/blob/main/src/cli/logic/diagnostics.py#L1)
 
-## Domain: `introspection.alias_generation`
-
-- **`introspection.alias_generation.generate_maps`**
-  - **Description:** No description provided.
-  - **Source:** [src/features/introspection/generate_correction_map.py](https://github.com/DariuszNewecki/CORE/blob/main/src/features/introspection/generate_correction_map.py#L1)
-
-## Domain: `introspection.analysis`
-
-- **`introspection.analysis.cluster_symbols`**
-  - **Description:** No description provided.
-  - **Source:** [src/features/introspection/graph_analysis_service.py](https://github.com/DariuszNewecki/CORE/blob/main/src/features/introspection/graph_analysis_service.py#L1)
-
-## Domain: `introspection.ast`
-
-- **`introspection.ast.symbol_discovery`**
-  - **Description:** No description provided.
-  - **Source:** [src/features/introspection/sync_service.py](https://github.com/DariuszNewecki/CORE/blob/main/src/features/introspection/sync_service.py#L1)
-
-## Domain: `introspection.capability`
-
-- **`introspection.capability.load`**
-  - **Description:** No description provided.
-  - **Source:** [src/features/introspection/capability_discovery_service.py](https://github.com/DariuszNewecki/CORE/blob/main/src/features/introspection/capability_discovery_service.py#L1)
-- **`introspection.capability.resolve`**
-  - **Description:** No description provided.
-  - **Source:** [src/features/introspection/capability_discovery_service.py](https://github.com/DariuszNewecki/CORE/blob/main/src/features/introspection/capability_discovery_service.py#L1)
-
 ## Domain: `introspection.clustering`
 
+- **`introspection.clustering.find_semantic_clusters`**
+  - **Description:** No description provided.
+  - **Source:** [src/features/introspection/graph_analysis_service.py](https://github.com/DariuszNewecki/CORE/blob/main/src/features/introspection/graph_analysis_service.py#L1)
 - **`introspection.clustering.run`**
   - **Description:** No description provided.
   - **Source:** [src/features/introspection/semantic_clusterer.py](https://github.com/DariuszNewecki/CORE/blob/main/src/features/introspection/semantic_clusterer.py#L1)
@@ -492,6 +432,12 @@ It is generated from the `core.knowledge_graph` database view and should not be 
   - **Description:** No description provided.
   - **Source:** [src/cli/logic/project_docs.py](https://github.com/DariuszNewecki/CORE/blob/main/src/cli/logic/project_docs.py#L1)
 
+## Domain: `introspection.documentation`
+
+- **`introspection.documentation.generate`**
+  - **Description:** No description provided.
+  - **Source:** [src/features/introspection/generate_capability_docs.py](https://github.com/DariuszNewecki/CORE/blob/main/src/features/introspection/generate_capability_docs.py#L1)
+
 ## Domain: `introspection.drift`
 
 - **`introspection.drift.analyze`**
@@ -500,13 +446,13 @@ It is generated from the `core.knowledge_graph` database view and should not be 
 - **`introspection.drift.detect`**
   - **Description:** No description provided.
   - **Source:** [src/features/introspection/drift_detector.py](https://github.com/DariuszNewecki/CORE/blob/main/src/features/introspection/drift_detector.py#L1)
-- **`introspection.drift.write_report`**
+- **`introspection.drift.write`**
   - **Description:** No description provided.
   - **Source:** [src/features/introspection/drift_detector.py](https://github.com/DariuszNewecki/CORE/blob/main/src/features/introspection/drift_detector.py#L1)
 
-## Domain: `introspection.knowledge_graph`
+## Domain: `introspection.knowledge`
 
-- **`introspection.knowledge_graph.build_sync`**
+- **`introspection.knowledge.build_sync`**
   - **Description:** No description provided.
   - **Source:** [src/features/introspection/knowledge_graph_service.py](https://github.com/DariuszNewecki/CORE/blob/main/src/features/introspection/knowledge_graph_service.py#L1)
 
@@ -516,23 +462,38 @@ It is generated from the `core.knowledge_graph` database view and should not be 
   - **Description:** No description provided.
   - **Source:** [src/features/introspection/discovery/from_manifest.py](https://github.com/DariuszNewecki/CORE/blob/main/src/features/introspection/discovery/from_manifest.py#L1)
 
+## Domain: `introspection.mapping`
+
+- **`introspection.mapping.generate`**
+  - **Description:** No description provided.
+  - **Source:** [src/features/introspection/generate_correction_map.py](https://github.com/DariuszNewecki/CORE/blob/main/src/features/introspection/generate_correction_map.py#L1)
+
+## Domain: `introspection.registry`
+
+- **`introspection.registry.resolve`**
+  - **Description:** No description provided.
+  - **Source:** [src/features/introspection/capability_discovery_service.py](https://github.com/DariuszNewecki/CORE/blob/main/src/features/introspection/capability_discovery_service.py#L1)
+
 ## Domain: `introspection.roles`
 
 - **`introspection.roles.validate`**
   - **Description:** No description provided.
   - **Source:** [src/features/introspection/capability_discovery_service.py](https://github.com/DariuszNewecki/CORE/blob/main/src/features/introspection/capability_discovery_service.py#L1)
 
-## Domain: `introspection.source`
+## Domain: `introspection.source_code`
 
-- **`introspection.source.extract`**
+- **`introspection.source_code.extract`**
   - **Description:** No description provided.
   - **Source:** [src/features/introspection/knowledge_helpers.py](https://github.com/DariuszNewecki/CORE/blob/main/src/features/introspection/knowledge_helpers.py#L1)
 
+## Domain: `introspection.symbol`
+
+- **`introspection.symbol.discovery`**
+  - **Description:** No description provided.
+  - **Source:** [src/features/introspection/sync_service.py](https://github.com/DariuszNewecki/CORE/blob/main/src/features/introspection/sync_service.py#L1)
+
 ## Domain: `introspection.vector_store`
 
-- **`introspection.vector_store.retrieve_chunks`**
-  - **Description:** No description provided.
-  - **Source:** [src/features/introspection/knowledge_vectorizer.py](https://github.com/DariuszNewecki/CORE/blob/main/src/features/introspection/knowledge_vectorizer.py#L1)
 - **`introspection.vector_store.sync_existing_ids`**
   - **Description:** No description provided.
   - **Source:** [src/features/introspection/knowledge_vectorizer.py](https://github.com/DariuszNewecki/CORE/blob/main/src/features/introspection/knowledge_vectorizer.py#L1)
@@ -542,33 +503,51 @@ It is generated from the `core.knowledge_graph` database view and should not be 
 - **`introspection.vectorization.collect`**
   - **Description:** No description provided.
   - **Source:** [src/features/introspection/knowledge_helpers.py](https://github.com/DariuszNewecki/CORE/blob/main/src/features/introspection/knowledge_helpers.py#L1)
+- **`introspection.vectorization.retrieve_stored_chunks`**
+  - **Description:** No description provided.
+  - **Source:** [src/features/introspection/knowledge_vectorizer.py](https://github.com/DariuszNewecki/CORE/blob/main/src/features/introspection/knowledge_vectorizer.py#L1)
 - **`introspection.vectorization.run`**
   - **Description:** No description provided.
   - **Source:** [src/features/introspection/vectorization_service.py](https://github.com/DariuszNewecki/CORE/blob/main/src/features/introspection/vectorization_service.py#L1)
 
-## Domain: `knowledge.base`
+## Domain: `knowledge.capability`
 
-- **`knowledge.base.sync`**
+- **`knowledge.capability.validate`**
   - **Description:** No description provided.
-  - **Source:** [src/cli/logic/sync.py](https://github.com/DariuszNewecki/CORE/blob/main/src/cli/logic/sync.py#L1)
+  - **Source:** [src/features/introspection/capability_discovery_service.py](https://github.com/DariuszNewecki/CORE/blob/main/src/features/introspection/capability_discovery_service.py#L1)
 
-## Domain: `knowledge.vector`
+## Domain: `knowledge.embedding`
 
-- **`knowledge.vector.embedding_payload`**
+- **`knowledge.embedding.schema`**
   - **Description:** No description provided.
   - **Source:** [src/shared/models/embedding_payload.py](https://github.com/DariuszNewecki/CORE/blob/main/src/shared/models/embedding_payload.py#L1)
 
-## Domain: `knowledge.vector_cleanup`
+## Domain: `knowledge.sync`
 
-- **`knowledge.vector_cleanup.prune_orphaned`**
+- **`knowledge.sync.execute`**
   - **Description:** No description provided.
-  - **Source:** [src/features/self_healing/prune_orphaned_vectors.py](https://github.com/DariuszNewecki/CORE/blob/main/src/features/self_healing/prune_orphaned_vectors.py#L1)
+  - **Source:** [src/cli/logic/sync.py](https://github.com/DariuszNewecki/CORE/blob/main/src/cli/logic/sync.py#L1)
 
 ## Domain: `knowledge.vectorization`
 
+- **`knowledge.vectorization.execute`**
+  - **Description:** No description provided.
+  - **Source:** [src/cli/logic/embeddings_cli.py](https://github.com/DariuszNewecki/CORE/blob/main/src/cli/logic/embeddings_cli.py#L1)
 - **`knowledge.vectorization.process_task`**
   - **Description:** No description provided.
   - **Source:** [src/features/introspection/knowledge_vectorizer.py](https://github.com/DariuszNewecki/CORE/blob/main/src/features/introspection/knowledge_vectorizer.py#L1)
+
+## Domain: `knowledge_management.vector_store`
+
+- **`knowledge_management.vector_store.prune_orphaned`**
+  - **Description:** No description provided.
+  - **Source:** [src/features/self_healing/prune_orphaned_vectors.py](https://github.com/DariuszNewecki/CORE/blob/main/src/features/self_healing/prune_orphaned_vectors.py#L1)
+
+## Domain: `ledger.migrations`
+
+- **`ledger.migrations.ensure`**
+  - **Description:** No description provided.
+  - **Source:** [src/services/repositories/db/common.py](https://github.com/DariuszNewecki/CORE/blob/main/src/services/repositories/db/common.py#L1)
 
 ## Domain: `llm.client.request`
 
@@ -576,9 +555,9 @@ It is generated from the `core.knowledge_graph` database view and should not be 
   - **Description:** No description provided.
   - **Source:** [src/services/clients/llm_api_client.py](https://github.com/DariuszNewecki/CORE/blob/main/src/services/clients/llm_api_client.py#L1)
 
-## Domain: `logging.logger`
+## Domain: `logging.provider`
 
-- **`logging.logger.create`**
+- **`logging.provider.get_logger`**
   - **Description:** No description provided.
   - **Source:** [src/features/governance/policy_loader.py](https://github.com/DariuszNewecki/CORE/blob/main/src/features/governance/policy_loader.py#L1)
 
@@ -590,25 +569,19 @@ It is generated from the `core.knowledge_graph` database view and should not be 
 
 ## Domain: `manifest.hygiene`
 
-- **`manifest.hygiene.fix`**
+- **`manifest.hygiene.fix_misplaced_capabilities`**
   - **Description:** No description provided.
   - **Source:** [src/features/self_healing/fix_manifest_hygiene.py](https://github.com/DariuszNewecki/CORE/blob/main/src/features/self_healing/fix_manifest_hygiene.py#L1)
 
-## Domain: `manifest.validation`
+## Domain: `meta.constitutional`
 
-- **`manifest.validation.entry`**
+- **`meta.constitutional.discover`**
   - **Description:** No description provided.
-  - **Source:** [src/shared/schemas/manifest_validator.py](https://github.com/DariuszNewecki/CORE/blob/main/src/shared/schemas/manifest_validator.py#L1)
-
-## Domain: `micro.proposal`
-
-- **`micro.proposal.set_context`**
-  - **Description:** No description provided.
-  - **Source:** [src/cli/logic/proposals_micro.py](https://github.com/DariuszNewecki/CORE/blob/main/src/cli/logic/proposals_micro.py#L1)
+  - **Source:** [src/shared/utils/constitutional_parser.py](https://github.com/DariuszNewecki/CORE/blob/main/src/shared/utils/constitutional_parser.py#L1)
 
 ## Domain: `migration.ledger`
 
-- **`migration.ledger.record`**
+- **`migration.ledger.record_applied`**
   - **Description:** No description provided.
   - **Source:** [src/services/repositories/db/common.py](https://github.com/DariuszNewecki/CORE/blob/main/src/services/repositories/db/common.py#L1)
 
@@ -620,6 +593,18 @@ It is generated from the `core.knowledge_graph` database view and should not be 
 - **`migration.plan.update_capability_tag`**
   - **Description:** No description provided.
   - **Source:** [src/cli/logic/utils_migration.py](https://github.com/DariuszNewecki/CORE/blob/main/src/cli/logic/utils_migration.py#L1)
+
+## Domain: `mind.code`
+
+- **`mind.code.review`**
+  - **Description:** No description provided.
+  - **Source:** [src/cli/logic/reviewer.py](https://github.com/DariuszNewecki/CORE/blob/main/src/cli/logic/reviewer.py#L1)
+
+## Domain: `parallel.processor`
+
+- **`parallel.processor.execute`**
+  - **Description:** No description provided.
+  - **Source:** [src/shared/utils/parallel_processor.py](https://github.com/DariuszNewecki/CORE/blob/main/src/shared/utils/parallel_processor.py#L1)
 
 ## Domain: `parsing.json`
 
@@ -645,12 +630,6 @@ It is generated from the `core.knowledge_graph` database view and should not be 
   - **Description:** No description provided.
   - **Source:** [src/features/project_lifecycle/bootstrap_service.py](https://github.com/DariuszNewecki/CORE/blob/main/src/features/project_lifecycle/bootstrap_service.py#L1)
 
-## Domain: `project.scaffolding`
-
-- **`project.scaffolding.create`**
-  - **Description:** No description provided.
-  - **Source:** [src/features/project_lifecycle/scaffolding_service.py](https://github.com/DariuszNewecki/CORE/blob/main/src/features/project_lifecycle/scaffolding_service.py#L1)
-
 ## Domain: `project_lifecycle.bootstrap`
 
 - **`project_lifecycle.bootstrap.register`**
@@ -659,34 +638,43 @@ It is generated from the `core.knowledge_graph` database view and should not be 
 
 ## Domain: `project_lifecycle.definition`
 
-- **`project_lifecycle.definition.define_autonomous`**
+- **`project_lifecycle.definition.orchestrate`**
   - **Description:** No description provided.
   - **Source:** [src/features/project_lifecycle/definition_service.py](https://github.com/DariuszNewecki/CORE/blob/main/src/features/project_lifecycle/definition_service.py#L1)
 - **`project_lifecycle.definition.update`**
   - **Description:** No description provided.
   - **Source:** [src/features/project_lifecycle/definition_service.py](https://github.com/DariuszNewecki/CORE/blob/main/src/features/project_lifecycle/definition_service.py#L1)
 
+## Domain: `project_lifecycle.definition_service`
+
+- **`project_lifecycle.definition_service.define_single_symbol`**
+  - **Description:** No description provided.
+  - **Source:** [src/features/project_lifecycle/definition_service.py](https://github.com/DariuszNewecki/CORE/blob/main/src/features/project_lifecycle/definition_service.py#L1)
+
 ## Domain: `project_lifecycle.scaffolding`
 
+- **`project_lifecycle.scaffolding.new`**
+  - **Description:** No description provided.
+  - **Source:** [src/features/project_lifecycle/scaffolding_service.py](https://github.com/DariuszNewecki/CORE/blob/main/src/features/project_lifecycle/scaffolding_service.py#L1)
 - **`project_lifecycle.scaffolding.write_file`**
   - **Description:** No description provided.
   - **Source:** [src/features/project_lifecycle/scaffolding_service.py](https://github.com/DariuszNewecki/CORE/blob/main/src/features/project_lifecycle/scaffolding_service.py#L1)
 
 ## Domain: `project_lifecycle.symbols`
 
-- **`project_lifecycle.symbols.read_undefined`**
+- **`project_lifecycle.symbols.get_undefined`**
   - **Description:** No description provided.
   - **Source:** [src/features/project_lifecycle/definition_service.py](https://github.com/DariuszNewecki/CORE/blob/main/src/features/project_lifecycle/definition_service.py#L1)
 
-## Domain: `proposal.approval`
+## Domain: `refactoring.imports`
 
-- **`proposal.approval.generate`**
+- **`refactoring.imports.rewire`**
   - **Description:** No description provided.
-  - **Source:** [src/shared/utils/crypto.py](https://github.com/DariuszNewecki/CORE/blob/main/src/shared/utils/crypto.py#L1)
+  - **Source:** [src/features/maintenance/maintenance_service.py](https://github.com/DariuszNewecki/CORE/blob/main/src/features/maintenance/maintenance_service.py#L1)
 
-## Domain: `repository.constitution`
+## Domain: `repository.analysis`
 
-- **`repository.constitution.initialize`**
+- **`repository.analysis.initialize`**
   - **Description:** No description provided.
   - **Source:** [src/cli/logic/byor.py](https://github.com/DariuszNewecki/CORE/blob/main/src/cli/logic/byor.py#L1)
 
@@ -696,11 +684,11 @@ It is generated from the `core.knowledge_graph` database view and should not be 
   - **Description:** No description provided.
   - **Source:** [src/cli/logic/reviewer.py](https://github.com/DariuszNewecki/CORE/blob/main/src/cli/logic/reviewer.py#L1)
 
-## Domain: `schema.migration`
+## Domain: `schema.validation`
 
-- **`schema.migration.ensure`**
+- **`schema.validation.manifest_entry`**
   - **Description:** No description provided.
-  - **Source:** [src/services/repositories/db/common.py](https://github.com/DariuszNewecki/CORE/blob/main/src/services/repositories/db/common.py#L1)
+  - **Source:** [src/shared/schemas/manifest_validator.py](https://github.com/DariuszNewecki/CORE/blob/main/src/shared/schemas/manifest_validator.py#L1)
 
 ## Domain: `schemas.json`
 
@@ -708,9 +696,21 @@ It is generated from the `core.knowledge_graph` database view and should not be 
   - **Description:** No description provided.
   - **Source:** [src/shared/schemas/manifest_validator.py](https://github.com/DariuszNewecki/CORE/blob/main/src/shared/schemas/manifest_validator.py#L1)
 
-## Domain: `self_healing.compliance`
+## Domain: `security.checks.secrets`
 
-- **`self_healing.compliance.prune_private_capabilities`**
+- **`security.checks.secrets.hardcoded`**
+  - **Description:** No description provided.
+  - **Source:** [src/features/governance/checks/security_checks.py](https://github.com/DariuszNewecki/CORE/blob/main/src/features/governance/checks/security_checks.py#L1)
+
+## Domain: `self_correction.correction`
+
+- **`self_correction.correction.attempt`**
+  - **Description:** No description provided.
+  - **Source:** [src/core/agents/self_correction_engine.py](https://github.com/DariuszNewecki/CORE/blob/main/src/core/agents/self_correction_engine.py#L1)
+
+## Domain: `self_healing.capability_tags`
+
+- **`self_healing.capability_tags.prune_private`**
   - **Description:** No description provided.
   - **Source:** [src/features/self_healing/prune_private_capabilities.py](https://github.com/DariuszNewecki/CORE/blob/main/src/features/self_healing/prune_private_capabilities.py#L1)
 
@@ -720,9 +720,9 @@ It is generated from the `core.knowledge_graph` database view and should not be 
   - **Description:** No description provided.
   - **Source:** [src/features/self_healing/id_tagging_service.py](https://github.com/DariuszNewecki/CORE/blob/main/src/features/self_healing/id_tagging_service.py#L1)
 
-## Domain: `self_healing.tags`
+## Domain: `self_healing.legacy_tags`
 
-- **`self_healing.tags.purge`**
+- **`self_healing.legacy_tags.purge`**
   - **Description:** No description provided.
   - **Source:** [src/features/self_healing/purge_legacy_tags_service.py](https://github.com/DariuszNewecki/CORE/blob/main/src/features/self_healing/purge_legacy_tags_service.py#L1)
 
@@ -740,13 +740,13 @@ It is generated from the `core.knowledge_graph` database view and should not be 
 
 ## Domain: `system.logging`
 
-- **`system.logging.failure`**
+- **`system.logging.log_failure`**
   - **Description:** No description provided.
   - **Source:** [src/features/introspection/knowledge_helpers.py](https://github.com/DariuszNewecki/CORE/blob/main/src/features/introspection/knowledge_helpers.py#L1)
 
 ## Domain: `text.normalization`
 
-- **`text.normalization.process`**
+- **`text.normalization.apply`**
   - **Description:** No description provided.
   - **Source:** [src/shared/utils/embedding_utils.py](https://github.com/DariuszNewecki/CORE/blob/main/src/shared/utils/embedding_utils.py#L1)
 
@@ -756,17 +756,11 @@ It is generated from the `core.knowledge_graph` database view and should not be 
   - **Description:** No description provided.
   - **Source:** [src/shared/utils/embedding_utils.py](https://github.com/DariuszNewecki/CORE/blob/main/src/shared/utils/embedding_utils.py#L1)
 
-## Domain: `vectordb.export`
+## Domain: `vectordb.vectors`
 
-- **`vectordb.export.vectors`**
+- **`vectordb.vectors.export`**
   - **Description:** No description provided.
   - **Source:** [src/features/introspection/export_vectors.py](https://github.com/DariuszNewecki/CORE/blob/main/src/features/introspection/export_vectors.py#L1)
-
-## Domain: `vectorize.capabilities`
-
-- **`vectorize.capabilities.execute`**
-  - **Description:** No description provided.
-  - **Source:** [src/cli/logic/embeddings_cli.py](https://github.com/DariuszNewecki/CORE/blob/main/src/cli/logic/embeddings_cli.py#L1)
 
 ## Domain: `yaml.constitutional`
 
