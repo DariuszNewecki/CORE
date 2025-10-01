@@ -4,7 +4,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "core"
-version = "0.1.0"
+version = "1.0.0"
 description = "CORE: A self-governing, intent-driven software development system."
 authors = ["Dariusz Newecki <d.newecki@gmail.com>"]
 license = "MIT"
