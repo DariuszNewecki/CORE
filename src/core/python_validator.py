@@ -13,6 +13,12 @@ from core.ruff_linter import fix_and_lint_code_with_ruff
 from core.syntax_checker import check_syntax
 from features.governance.checks.import_rules import ImportRulesCheck
 
+# --- START: IMPORT THE NEW SERVICE ---
+from features.governance.runtime_validator import RuntimeValidatorService
+
+# --- END: IMPORT THE NEW SERVICE ---
+from shared.models import AuditFinding
+
 from .validation_policies import PolicyValidator
 from .validation_quality import QualityChecker
 
@@ -26,9 +32,10 @@ Violation = Dict[str, Any]
 async def validate_python_code_async(
     path_hint: str, code: str, auditor_context: "AuditorContext"
 ) -> Tuple[str, List[Violation]]:
-    """Comprehensive validation pipeline for Python code."""
+    """Comprehensive validation pipeline for Python code, now including runtime checks."""
     all_violations: List[Violation] = []
 
+    # --- Step 1: Static Analysis (unchanged) ---
     safety_policy = auditor_context.policies.get("safety_policy", {})
     policy_validator = PolicyValidator(safety_policy.get("rules", []))
     quality_checker = QualityChecker()
@@ -72,5 +79,22 @@ async def validate_python_code_async(
                 "severity": "error",
             }
         )
+
+    # --- Step 2: Runtime Validation (NEW) ---
+    # Only proceed to runtime tests if all static analysis passed.
+    if not any(v.get("severity") == "error" for v in all_violations):
+        runtime_validator = RuntimeValidatorService(auditor_context.repo_path)
+        passed, details = await runtime_validator.run_tests_in_canary(
+            path_hint, fixed_code
+        )
+        if not passed:
+            all_violations.append(
+                AuditFinding(
+                    check_id="runtime.tests.failed",
+                    severity="error",
+                    message="Code failed to pass the test suite in an isolated environment.",
+                    context={"details": details},
+                ).as_dict()
+            )
 
     return fixed_code, all_violations
