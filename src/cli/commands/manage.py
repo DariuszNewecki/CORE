@@ -75,6 +75,7 @@ manage_app.add_typer(keys_sub_app, name="keys")
     "define-symbols",
     help="[Temporary] Re-run the autonomous symbol definition process.",
 )
+# ID: 5cca59b5-0d54-40fd-a914-325761fa9b39
 def define_symbols_command():
     """A temporary command to fix the missing DB commit."""
     console.print("[bold yellow]Running standalone symbol definition...[/bold yellow]")
