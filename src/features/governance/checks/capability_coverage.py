@@ -45,10 +45,11 @@ class CapabilityCoverageCheck:
 
         # --- THIS IS THE CORRECT LOGIC ---
         # The source of truth for implementation is the database, not code comments.
+        # The view aliases 'key' to 'capability', so we must use that name here.
         implemented_capabilities: Set[str] = {
-            s["key"]
+            s["capability"]
             for s in self.context.knowledge_graph.get("symbols", {}).values()
-            if s.get("key")  # A symbol has a capability if its 'key' is not null
+            if s.get("capability")
         }
         # --- END OF CORRECT LOGIC ---
 

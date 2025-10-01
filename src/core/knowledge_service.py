@@ -10,6 +10,12 @@ from typing import Any, Dict, List
 
 import yaml
 
+# <-- ADD THESE IMPORTS
+from sqlalchemy import text
+
+from services.database.session_manager import get_session
+
+# --- END IMPORTS ---
 from shared.logger import getLogger
 
 log = getLogger(__name__)
@@ -32,33 +38,38 @@ class KnowledgeService:
     # ID: 7a219e96-6846-49ff-95fe-596a0429447c
     async def get_graph(self) -> Dict[str, Any]:
         """
-        Loads (or returns cached) knowledge graph structure.
-        Keep this fast and forgiving for tests/integration.
+        Loads the knowledge graph directly from the database, treating it as the
+        single source of truth.
         """
         if self._graph is not None:
             return self._graph
 
-        graph_file_paths = [
-            self.repo_path / ".intent/mind/knowledge/graph.yaml",
-            self.repo_path / ".intent/mind/knowledge/graph.yml",
-        ]
+        log.info("Loading knowledge graph from database view...")
+        symbols_map = {}
+        try:
+            async with get_session() as session:
+                result = await session.execute(
+                    text("SELECT * FROM core.knowledge_graph")
+                )
+                for row in result:
+                    row_dict = dict(row._mapping)
+                    symbol_path = row_dict.get("symbol_path")
+                    if symbol_path:
+                        symbols_map[symbol_path] = row_dict
 
-        for p in graph_file_paths:
-            if p.exists():
-                try:
-                    data = yaml.safe_load(p.read_text(encoding="utf-8")) or {}
-                    if not isinstance(data, dict):
-                        log.warning("Knowledge graph YAML is not a mapping: %s", p)
-                        data = {}
-                    self._graph = data
-                    return self._graph
-                except Exception as e:  # noqa: BLE001
-                    log.error("Failed to load knowledge graph from %s: %s", p, e)
-                    break
+            self._graph = {"symbols": symbols_map}
+            log.info(
+                f"Successfully loaded {len(symbols_map)} symbols from the database."
+            )
+            return self._graph
 
-        # Fallback to empty graph (tests often mock specific methods)
-        self._graph = {}
-        return self._graph
+        except Exception as e:
+            log.error(
+                f"Failed to load knowledge graph from database: {e}", exc_info=True
+            )
+            # Fallback to an empty graph to prevent crashing the auditor
+            self._graph = {"symbols": {}}
+            return self._graph
 
     # ID: 0e38c18e-2a3d-47cb-bf77-4b4d9bf5354a
     async def list_capabilities(self) -> List[str]:

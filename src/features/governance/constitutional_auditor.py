@@ -207,7 +207,7 @@ class ConstitutionalAuditor:
                                 file_path=".intent/mind/knowledge/",
                             )
                         )
-                else:
+                elif findings:  # Ensure findings is not None and is a list
                     all_findings.extend(findings)
 
             except Exception as e:
@@ -215,11 +215,43 @@ class ConstitutionalAuditor:
                     f"Error executing check '{type(check).__name__}': {e}",
                     exc_info=True,
                 )
+
+        # --- START OF THE FIX: Apply the ignore policy ---
+        ignore_policy = self.context.policies.get("audit_ignore_policy", {})
+        path_ignores = [
+            p.get("path") for p in ignore_policy.get("ignores", []) if p.get("path")
+        ]
+        symbol_ignores = {
+            s.get("key")
+            for s in ignore_policy.get("symbol_ignores", [])
+            if s.get("key")
+        }
+
+        final_findings = []
+        for finding in all_findings:
+            is_ignored = False
+            # Check for path-based ignores
+            if finding.file_path and any(
+                Path(finding.file_path).match(p) for p in path_ignores
+            ):
+                is_ignored = True
+
+            # Check for symbol-based ignores (often used for duplication)
+            # This is a bit heuristic, as the finding message contains the symbol keys.
+            if any(key in finding.message for key in symbol_ignores):
+                is_ignored = True
+
+            if not is_ignored:
+                final_findings.append(finding)
+        # --- END OF THE FIX ---
+
         unassigned_symbols_count = len(
             OrphanedLogicCheck(self.context).find_unassigned_public_symbols()
         )
-        has_errors = any(f.severity.is_blocking for f in all_findings)
-        return not has_errors, all_findings, unassigned_symbols_count
+        has_errors = any(f.severity.is_blocking for f in final_findings)
+
+        # Return the FILTERED findings
+        return not has_errors, final_findings, unassigned_symbols_count
 
     # ID: 0c850a95-21f6-4a54-8c23-f731e8eb4a8f
     def run_full_audit(
