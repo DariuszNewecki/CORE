@@ -6,6 +6,7 @@ This module now serves as the main entry point for ALL proposal types.
 
 from __future__ import annotations
 
+import asyncio
 import base64
 import shutil
 import tempfile
@@ -235,7 +236,9 @@ def proposals_approve(
 
         log.info("🔬 Commanding canary to perform a self-audit...")
         auditor = ConstitutionalAuditor(repo_root_override=tmp_path)
-        success, findings, unassigned_count = auditor.run_full_audit()
+        success, findings, unassigned_count = asyncio.run(
+            auditor.run_full_audit_async()
+        )
 
         if success:
             log.info("✅ Canary audit PASSED. Change is constitutionally valid.")
