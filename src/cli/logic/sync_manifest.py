@@ -1,4 +1,4 @@
-# src/cli/commands/sync_manifest.py
+# src/cli/logic/sync_manifest.py
 """
 Implements the 'knowledge sync-manifest' command to synchronize the project
 manifest with the public symbols stored in the database.
@@ -8,8 +8,8 @@ from __future__ import annotations
 import asyncio
 
 import typer
-import yaml
 from rich.console import Console
+from ruamel.yaml import YAML  # Use ruamel.yaml for safer writing
 from sqlalchemy import text
 
 from services.repositories.db.engine import get_session
@@ -41,7 +41,8 @@ async def _async_sync_manifest():
         async with get_session() as session:
             result = await session.execute(
                 text(
-                    "SELECT key FROM core.symbols WHERE is_public = TRUE AND key IS NOT NULL ORDER BY key"
+                    # Fetch keys from symbols that have a non-null key
+                    "SELECT key FROM core.symbols WHERE key IS NOT NULL ORDER BY key"
                 )
             )
             public_symbol_keys = [row[0] for row in result]
@@ -56,13 +57,22 @@ async def _async_sync_manifest():
         f"   -> Found {len(public_symbol_keys)} public capabilities to declare."
     )
 
-    console.print(f"   -> Updating {MANIFEST_PATH.relative_to(settings.REPO_PATH)}...")
-    manifest_data = yaml.safe_load(MANIFEST_PATH.read_text("utf-8"))
+    # --- THIS IS THE FIX ---
+    # Use ruamel.yaml for safe and structured YAML manipulation.
+    yaml_handler = YAML()
+    yaml_handler.indent(mapping=2, sequence=4, offset=2)
+
+    with MANIFEST_PATH.open("r", encoding="utf-8") as f:
+        manifest_data = yaml_handler.load(f)
+
+    # Replace the capabilities list with the new, sorted list from the DB
     manifest_data["capabilities"] = public_symbol_keys
 
-    MANIFEST_PATH.write_text(
-        yaml.dump(manifest_data, indent=2, sort_keys=False), "utf-8"
-    )
+    console.print(f"   -> Updating {MANIFEST_PATH.relative_to(settings.REPO_PATH)}...")
+
+    with MANIFEST_PATH.open("w", encoding="utf-8") as f:
+        yaml_handler.dump(manifest_data, f)
+    # --- END OF FIX ---
 
     console.print("[bold green]✅ Manifest synchronization complete.[/bold green]")
 

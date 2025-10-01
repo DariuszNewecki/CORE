@@ -78,9 +78,9 @@ async def define_single_symbol(
     )
 
     definer_agent = await cognitive_service.aget_client_for_role("CodeReviewer")
-    suggested_key = (await definer_agent.make_request_async(
-        final_prompt, user_id="definer_agent"
-    )).strip()
+    suggested_key = (
+        await definer_agent.make_request_async(final_prompt, user_id="definer_agent")
+    ).strip()
 
     # --- THIS IS THE FIX ---
     # Check if the AI's suggestion is already in use before returning it.
@@ -126,7 +126,9 @@ async def define_new_symbols(cognitive_service: CognitiveService):
     # --- THIS IS THE FIX ---
     # 1. Fetch all keys that are already in use in the database.
     async with get_session() as session:
-        result = await session.execute(text("SELECT key FROM core.symbols WHERE key IS NOT NULL"))
+        result = await session.execute(
+            text("SELECT key FROM core.symbols WHERE key IS NOT NULL")
+        )
         existing_keys = {row[0] for row in result}
     # --- END OF FIX ---
 
