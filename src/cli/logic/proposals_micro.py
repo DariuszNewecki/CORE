@@ -132,6 +132,7 @@ def micro_apply(
             ["poetry", "run", "core-admin", *command.split()],
             capture_output=True,
             text=True,
+            check=False,
         )
         if result.returncode != 0:
             console.print(
@@ -152,7 +153,7 @@ def micro_apply(
             git_service=_context.git_service,
             config=PlannerConfig(),
         )
-        auditor_context = _context.auditor
+        auditor_context = _context.auditor_context
 
         execution_agent = ExecutionAgent(
             cognitive_service=cognitive_service,

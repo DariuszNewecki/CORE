@@ -49,7 +49,7 @@ def register_all_commands(app_instance: typer.Typer) -> None:
     """Register all command groups in the correct order."""
     modules_with_context = [check, fix, inspect, manage, run, search, submit]
     for module in modules_with_context:
-        # Pass the context object to each module's register function
+        # --- THIS IS THE FIX: Pass the context object to each module's register function ---
         module.register(app_instance, core_context)
 
 
