@@ -14,6 +14,7 @@ from pydantic import ValidationError
 from rich.console import Console
 from rich.syntax import Syntax
 
+from core.agents.base_planning_agent import BasePlanningAgent
 from core.cognitive_service import CognitiveService
 from core.prompt_pipeline import PromptPipeline
 from shared.config import settings
@@ -25,12 +26,12 @@ log = getLogger(__name__)
 
 
 # ID: 8a33ab90-80db-4455-b1b8-636405897ced
-class PlannerAgent:
+class PlannerAgent(BasePlanningAgent):
     """Decomposes goals into executable plans."""
 
     def __init__(self, cognitive_service: CognitiveService):
         """Initializes the PlannerAgent."""
-        self.cognitive_service = cognitive_service
+        super().__init__(cognitive_service)
         self.prompt_template = settings.get_path(
             "mind.prompts.planner_agent"
         ).read_text(encoding="utf-8")
@@ -88,20 +89,6 @@ class PlannerAgent:
             console.print(Syntax(plan_json, "json", theme="solarized-dark"))
         except Exception:
             log.warning("Could not serialize plan to JSON for logging.")
-
-    @staticmethod
-    def _normalize_parameters(task_dict: dict) -> dict:
-        """
-        Normalize parameter names to align with the governance policy:
-        - Rename 'path' -> 'file_path' when needed.
-        """
-        params = task_dict.get("parameters") or task_dict.get("params")
-        if isinstance(params, dict):
-            if "path" in params and "file_path" not in params:
-                params["file_path"] = params.pop("path")
-            task_dict["params"] = params
-            task_dict.pop("parameters", None)
-        return task_dict
 
     # ID: b918335b-60af-4132-a944-88628a3caa66
     async def create_execution_plan(
