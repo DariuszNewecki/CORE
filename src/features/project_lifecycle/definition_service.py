@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import asyncio
 from functools import partial
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Set
 
 from rich.console import Console
 from sqlalchemy import text
@@ -37,6 +37,7 @@ async def define_single_symbol(
     symbol: Dict[str, Any],
     cognitive_service: CognitiveService,
     qdrant_service: QdrantService,
+    existing_keys: Set[str],  # <-- ADDED ARGUMENT
 ) -> Dict[str, str]:
     """Uses an AI to generate a definition for a single symbol, using semantic context."""
     log.info(f"Defining symbol: {symbol.get('symbol_path')}")
@@ -44,7 +45,6 @@ async def define_single_symbol(
     if not source_code:
         return {"uuid": symbol["uuid"], "key": "error.code_not_found"}
 
-    # --- START OF INTELLIGENCE UPGRADE ---
     similar_capabilities_str = "No similar capabilities found."
     vector_id = symbol.get("vector_id")
     if vector_id:
@@ -76,12 +76,20 @@ async def define_single_symbol(
     final_prompt = prompt_template.format(
         code=source_code, similar_capabilities=similar_capabilities_str
     )
-    # --- END OF INTELLIGENCE UPGRADE ---
 
     definer_agent = await cognitive_service.aget_client_for_role("CodeReviewer")
-    suggested_key = await definer_agent.make_request_async(
+    suggested_key = (await definer_agent.make_request_async(
         final_prompt, user_id="definer_agent"
-    )
+    )).strip()
+
+    # --- THIS IS THE FIX ---
+    # Check if the AI's suggestion is already in use before returning it.
+    if suggested_key in existing_keys:
+        console.print(
+            f"[yellow]Warning: AI suggested existing key '{suggested_key}' for a new symbol. Skipping to avoid conflict.[/yellow]"
+        )
+        return {"uuid": symbol["uuid"], "key": "error.duplicate_key"}
+    # --- END OF FIX ---
 
     try:
         delay_str = settings.model_extra.get("LLM_SECONDS_BETWEEN_REQUESTS", "1")
@@ -90,7 +98,7 @@ async def define_single_symbol(
         delay = 1
     await asyncio.sleep(delay)
 
-    return {"uuid": symbol["uuid"], "key": suggested_key.strip()}
+    return {"uuid": symbol["uuid"], "key": suggested_key}
 
 
 # ID: d1d22715-6f9f-4742-9a8e-9fdeef776af6
@@ -104,6 +112,7 @@ async def update_definitions_in_db(definitions: List[Dict[str, str]]):
                 text("UPDATE core.symbols SET key = :key WHERE uuid = :uuid"),
                 definitions,
             )
+        await session.commit()
 
 
 # ID: 0d859072-4aa5-49b6-9cf5-cd26405892f6
@@ -114,6 +123,13 @@ async def define_new_symbols(cognitive_service: CognitiveService):
         console.print("   -> No new symbols to define.")
         return
 
+    # --- THIS IS THE FIX ---
+    # 1. Fetch all keys that are already in use in the database.
+    async with get_session() as session:
+        result = await session.execute(text("SELECT key FROM core.symbols WHERE key IS NOT NULL"))
+        existing_keys = {row[0] for row in result}
+    # --- END OF FIX ---
+
     console.print(f"   -> Found {len(undefined_symbols)} new symbols to define...")
 
     qdrant_service = QdrantService()
@@ -122,6 +138,7 @@ async def define_new_symbols(cognitive_service: CognitiveService):
         define_single_symbol,
         cognitive_service=cognitive_service,
         qdrant_service=qdrant_service,
+        existing_keys=existing_keys,  # 2. Pass the set of existing keys to the worker.
     )
     definitions = await processor.run_async(undefined_symbols, worker_fn)
 
