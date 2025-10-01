@@ -1,6 +1,6 @@
 policy_id: 18f048cb-b084-4faa-ac62-17fca55fed77
 id: agent_policy
-version: "1.2.0" # Version bump for SSOT alignment
+version: "1.3.0" # Version bump for new runtime validation rule
 title: "Agent Governance Policy"
 status: active
 purpose: >
@@ -39,6 +39,12 @@ rules:
   - id: agent.execution.no_unverified_code
     statement: "Agents MUST NOT execute or commit any generated or refactored code without first passing it through the full validation pipeline (lint, test, constitutional audit)."
     enforcement: error
+
+  # --- START OF NEW RULE ---
+  - id: agent.execution.require_runtime_validation
+    statement: "All autonomously generated or refactored code MUST pass the project's test suite in an isolated environment before being committed."
+    enforcement: error
+  # --- END OF NEW RULE ---
 
   - id: agent.execution.fail_closed
     statement: "If an agent encounters ambiguous instructions or a high-risk uncertainty, it MUST halt its current task and escalate for human clarification rather than proceeding."
