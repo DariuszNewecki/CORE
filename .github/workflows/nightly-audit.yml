@@ -39,7 +39,7 @@ jobs:
       # --- This block runs ONLY for scheduled nightly builds ---
       - name: Open/Update issue on failure (for Nightly run)
         if: github.event_name == 'schedule' && steps.audit.outputs.exit_code != '0'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             const title = "❌ Nightly Constitutional Audit failed";
@@ -60,7 +60,7 @@ jobs:
       # --- This block runs ONLY for scheduled nightly builds ---
       - name: Close issue on success (for Nightly run)
         if: github.event_name == 'schedule' && steps.audit.outputs.exit_code == '0'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             const title = "❌ Nightly Constitutional Audit failed";
@@ -78,7 +78,7 @@ jobs:
       # --- This NEW block runs ONLY for Pull Requests ---
       - name: Post PR comment on failure (for PR run)
         if: github.event_name == 'pull_request' && steps.audit.outputs.exit_code != '0'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
