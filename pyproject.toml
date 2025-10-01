@@ -29,7 +29,7 @@ pydantic = ">=2.11"
 pydantic-settings = "^2.10.1"
 cryptography = ">=42.0.0"
 rich = "^13"
-black = "^24"
+black = "^25"
 jsonschema = "^4"
 typer = {extras = ["rich"], version = "^0.16.1"}
 radon = ">=5.1.0"
