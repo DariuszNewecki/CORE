@@ -9,7 +9,6 @@ import json
 from typing import TYPE_CHECKING
 
 from core.cognitive_service import CognitiveService
-from core.file_handler import FileHandler
 from core.prompt_pipeline import PromptPipeline
 from core.validation_pipeline import validate_code_async
 from shared.config import settings
@@ -21,7 +20,6 @@ if TYPE_CHECKING:
 
 REPO_PATH = settings.REPO_PATH
 pipeline = PromptPipeline(repo_path=REPO_PATH)
-file_handler = FileHandler(str(REPO_PATH))
 
 
 # ID: c60020bd-5910-406e-ae64-ca227982142d
@@ -31,7 +29,10 @@ async def attempt_correction(
     auditor_context: "AuditorContext",
 ) -> dict:
     """Attempts to fix a failed validation or test result using an enriched LLM prompt."""
-    generator = await cognitive_service.get_client_for_role("Coder")
+    # --- THIS IS THE REAL FIX ---
+    # Call the asynchronous version of the method: aget_client_for_role
+    generator = await cognitive_service.aget_client_for_role("Coder")
+    # --- END OF REAL FIX ---
 
     file_path = failure_context.get("file_path")
     code = failure_context.get("code")
@@ -74,12 +75,9 @@ async def attempt_correction(
             "violations": validation_result["violations"],
         }
 
-    pending_id = file_handler.add_pending_write(
-        prompt=final_prompt, suggested_path=path, code=validation_result["code"]
-    )
+    # This is the simplified return value that the ExecutionAgent now expects.
     return {
-        "status": "retry_staged",
-        "pending_id": pending_id,
-        "file_path": path,
-        "message": "Corrected code staged for approval.",
+        "status": "success",
+        "code": validation_result["code"],
+        "message": "Corrected code generated and validated successfully.",
     }
