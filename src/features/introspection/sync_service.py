@@ -8,7 +8,7 @@ from typing import Any, Dict, List, Set
 from rich.console import Console
 from sqlalchemy import text
 
-from services.repositories.db.engine import get_session
+from services.database.session_manager import get_session
 from shared.ast_utility import calculate_structural_hash
 from shared.config import settings
 
@@ -30,19 +30,19 @@ class SymbolVisitor(ast.NodeVisitor):
     def visit_ClassDef(self, node: ast.ClassDef):
         """Process a class definition and its children (methods)."""
         self.class_stack.append(node.name)
-        self._process_symbol(node)  # Process the class itself
-        self.generic_visit(node)  # IMPORTANT: Visit children (methods)
+        self._process_symbol(node)
+        self.generic_visit(node)
         self.class_stack.pop()
 
     # ID: 0bfa9ab7-a83a-4d58-aa5d-6c6769af4e4f
     def visit_FunctionDef(self, node: ast.FunctionDef):
         """Process a function or method definition."""
-        self._process_symbol(node)  # Process all functions/methods
+        self._process_symbol(node)
 
     # ID: 8e860945-daec-4ffa-a5ac-3c669082ff8a
     def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef):
         """Process an async function or method definition."""
-        self._process_symbol(node)  # Process all async functions/methods
+        self._process_symbol(node)
 
     def _process_symbol(
         self, node: ast.ClassDef | ast.FunctionDef | ast.AsyncFunctionDef
@@ -112,7 +112,6 @@ class SymbolScanner:
                 visitor = SymbolVisitor(rel_path_str, source_lines, seen_uuids)
                 visitor.visit(tree)
                 all_symbols.extend(visitor.symbols)
-
             except Exception as e:
                 console.print(f"[bold red]Error scanning {file_path}: {e}[/bold red]")
 
@@ -123,7 +122,7 @@ class SymbolScanner:
 # ID: 1673589c-8198-494c-9bac-d40fd7d60322
 async def run_sync_with_db() -> Dict[str, int]:
     """
-    Executes the full, database-centric sync logic using a clean slate approach.
+    Executes the full, database-centric sync logic using the "smart merge" strategy.
     """
     scanner = SymbolScanner()
     code_state = scanner.scan()
@@ -131,11 +130,7 @@ async def run_sync_with_db() -> Dict[str, int]:
 
     async with get_session() as session:
         async with session.begin():
-            pre_sync_result = await session.execute(
-                text("SELECT uuid FROM core.symbols")
-            )
-            pre_sync_uuids = {row[0] for row in pre_sync_result}
-
+            # 1. Create and populate the staging table with the full code state
             await session.execute(
                 text(
                     "CREATE TEMPORARY TABLE core_symbols_staging (LIKE core.symbols INCLUDING DEFAULTS) ON COMMIT DROP;"
@@ -152,28 +147,67 @@ async def run_sync_with_db() -> Dict[str, int]:
                     code_state,
                 )
 
-            await session.execute(
+            # 2. Get stats for reporting
+            deleted_result = await session.execute(
+                text(
+                    "SELECT COUNT(*) FROM core.symbols WHERE uuid NOT IN (SELECT uuid FROM core_symbols_staging)"
+                )
+            )
+            stats["deleted"] = deleted_result.scalar_one()
+
+            inserted_result = await session.execute(
+                text(
+                    "SELECT COUNT(*) FROM core_symbols_staging WHERE uuid NOT IN (SELECT uuid FROM core.symbols)"
+                )
+            )
+            stats["inserted"] = inserted_result.scalar_one()
+
+            updated_result = await session.execute(
                 text(
                     """
-                UPDATE core_symbols_staging st
-                SET vector_id = s.vector_id
-                FROM core.symbols s
-                WHERE st.uuid = s.uuid AND st.structural_hash = s.structural_hash;
-            """
+                    SELECT COUNT(*) FROM core.symbols s
+                    JOIN core_symbols_staging st ON s.uuid = st.uuid
+                    WHERE s.structural_hash != st.structural_hash
+                """
+                )
+            )
+            stats["updated"] = updated_result.scalar_one()
+
+            # 3. Apply the "smart merge" logic
+            # 3a. Delete symbols that no longer exist in the code
+            await session.execute(
+                text(
+                    "DELETE FROM core.symbols WHERE uuid NOT IN (SELECT uuid FROM core_symbols_staging)"
                 )
             )
 
+            # 3b. Nullify key and vector_id for symbols whose structure has changed
             await session.execute(
-                text("TRUNCATE TABLE core.symbols RESTART IDENTITY CASCADE")
+                text(
+                    """
+                    UPDATE core.symbols
+                    SET
+                        key = NULL,
+                        vector_id = NULL,
+                        structural_hash = st.structural_hash,
+                        updated_at = NOW()
+                    FROM core_symbols_staging st
+                    WHERE core.symbols.uuid = st.uuid
+                    AND core.symbols.structural_hash != st.structural_hash;
+                """
+                )
             )
 
+            # 3c. Insert brand new symbols
             await session.execute(
-                text("INSERT INTO core.symbols SELECT * FROM core_symbols_staging;")
+                text(
+                    """
+                    INSERT INTO core.symbols (uuid, symbol_path, file_path, structural_hash, is_public, created_at, updated_at)
+                    SELECT uuid, symbol_path, file_path, structural_hash, is_public, NOW(), NOW()
+                    FROM core_symbols_staging
+                    WHERE uuid NOT IN (SELECT uuid FROM core.symbols);
+                """
+                )
             )
-
-            post_sync_uuids = {s["uuid"] for s in code_state}
-            stats["inserted"] = len(post_sync_uuids - pre_sync_uuids)
-            stats["deleted"] = len(pre_sync_uuids - post_sync_uuids)
-            stats["updated"] = len(pre_sync_uuids.intersection(post_sync_uuids))
 
     return stats
