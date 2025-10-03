@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import asyncio
-import re  # <-- ADD THIS IMPORT
+import re
 from functools import partial
 from typing import Any, Dict, List, Set
 
@@ -10,7 +10,7 @@ from rich.console import Console
 from sqlalchemy import text
 
 from core.cognitive_service import CognitiveService
-from features.introspection.knowledge_helpers import extract_source_code_from_ast
+from features.introspection.knowledge_helpers import extract_source_code
 from services.clients.qdrant_client import QdrantService
 from services.database.session_manager import get_session
 from shared.config import settings
@@ -46,7 +46,7 @@ async def define_single_symbol(
 ) -> Dict[str, str]:
     """Uses an AI to generate a definition for a single symbol, using semantic context."""
     log.info(f"Defining symbol: {symbol.get('symbol_path')}")
-    source_code = extract_source_code_from_ast(settings.REPO_PATH, symbol)
+    source_code = extract_source_code(settings.REPO_PATH, symbol)
     if not source_code:
         return {"uuid": symbol["uuid"], "key": "error.code_not_found"}
 
@@ -87,13 +87,10 @@ async def define_single_symbol(
         final_prompt, user_id="definer_agent"
     )
 
-    # --- THIS IS THE FIX ---
     # Sanitize the LLM output to remove markdown and extra whitespace.
-    # This regex finds the content inside backticks or just cleans the string.
     match = re.search(r"`(.*?)`", raw_suggested_key)
     suggested_key = match.group(1) if match else raw_suggested_key
     suggested_key = suggested_key.strip()
-    # --- END OF FIX ---
 
     if suggested_key in existing_keys:
         console.print(
@@ -118,12 +115,10 @@ async def update_definitions_in_db(definitions: List[Dict[str, str]]):
         return
 
     log.info(f"Attempting to update {len(definitions)} definitions in the database...")
-    # For debugging, log the first few definitions we're trying to save.
     log.debug(f"Sample definitions to update: {definitions[:5]}")
 
     async with get_session() as session:
         async with session.begin():
-            # The .begin() context manager handles commits automatically.
             await session.execute(
                 text("UPDATE core.symbols SET key = :key WHERE uuid = :uuid"),
                 definitions,

@@ -120,13 +120,14 @@ async def process_vectorization_task(
 
     try:
         source_code = extract_source_code(repo_root, symbols_map[symbol_key])
+        if source_code is None:
+            raise ValueError("Source code could not be extracted.")
+
         normalized_code = normalize_text(source_code)
         content_hash = sha256_hex(normalized_code)
 
-        # --- START: THE FINAL, CORRECT FIX ---
         # The redundant skipping logic has been REMOVED.
         # This function now unconditionally processes the task it is given.
-        # --- END: THE FINAL, CORRECT FIX ---
 
         log.debug(f"Processing chunk '{symbol_key}' (cap: {cap_key})")
         vector = await cognitive_service.get_embedding_for_code(normalized_code)
