@@ -11,19 +11,10 @@ from core.crate_processing_service import process_crates
 from features.project_lifecycle.integration_service import integrate_changes
 from shared.context import CoreContext
 
-from .cli_utils import set_context as set_shared_context
-
 console = Console()
 
 # Global variable to store context
 _context: Optional[CoreContext] = None
-
-
-# ID: f47b6bb1-4c03-4dc2-96f7-452a6148f060
-def set_context(context: CoreContext):
-    """Set the global context for system commands."""
-    # Use the shared utility to set the context for this module
-    set_shared_context(context, __name__)
 
 
 # ID: 46b79a8e-3360-4fac-af15-9a52cf0d9a7a

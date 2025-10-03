@@ -1,6 +1,6 @@
-# src/cli/logic/ci.py
+# src/cli/logic/audit.py
 """
-Implements high-level CI and system health checks.
+Implements high-level CI and system health checks, including the main constitutional audit.
 """
 from __future__ import annotations
 
@@ -26,13 +26,6 @@ console = Console()
 
 # Global variable to store context, set by the registration layer.
 _context: Optional[CoreContext] = None
-
-
-# ID: e4f21b13-0ea9-4b62-b50e-70219caeb198
-def set_context(context: CoreContext):
-    """Sets the shared context for all commands in this module."""
-    global _context
-    _context = context
 
 
 # ID: 8afdeab9-fc81-4d7c-b05f-dd27f936b3e6
@@ -95,10 +88,7 @@ def audit(
         raise typer.Exit(code=1)
 
     async def _async_audit():
-        # --- THIS IS THE FIX ---
-        # Initialize the auditor and pass it the pre-built context object.
         auditor = ConstitutionalAuditor(_context.auditor_context)
-        # --- END OF FIX ---
         passed, all_findings, unassigned_count = await auditor.run_full_audit_async()
 
         try:
