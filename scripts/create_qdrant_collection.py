@@ -1,17 +1,41 @@
+# scripts/create_qdrant_collection.py
+"""
+Connects to Qdrant and idempotently creates the vector collection
+using configuration from the project's .env file.
+"""
 import asyncio
+import os
+
+from dotenv import load_dotenv
 from qdrant_client import AsyncQdrantClient, models
 
-# --- Your Configuration ---
-# These should match your .env file
-QDRANT_URL = "http://192.168.20.22:6333"
-COLLECTION_NAME = "core_capabilities"
-VECTOR_DIMENSION = 768  # This must match your embedding model's output size
+# Load environment variables from the .env file in the project root
+load_dotenv()
+
+# --- Configuration from .env ---
+# These variables MUST be in your .env file for this script to work.
+QDRANT_URL = os.getenv("QDRANT_URL")
+COLLECTION_NAME = os.getenv("QDRANT_COLLECTION_NAME")
+VECTOR_DIMENSION_STR = os.getenv("LOCAL_EMBEDDING_DIM")
 # --- End Configuration ---
+
 
 async def create_collection():
     """
     Connects to Qdrant and idempotently creates the specified collection.
     """
+    # --- Input Validation ---
+    if not all([QDRANT_URL, COLLECTION_NAME, VECTOR_DIMENSION_STR]):
+        print("❌ Error: QDRANT_URL, QDRANT_COLLECTION_NAME, and LOCAL_EMBEDDING_DIM must be set in your .env file.")
+        return
+
+    try:
+        vector_dimension = int(VECTOR_DIMENSION_STR)
+    except (ValueError, TypeError):
+        print(f"❌ Error: Invalid LOCAL_EMBEDDING_DIM '{VECTOR_DIMENSION_STR}'. Must be an integer.")
+        return
+    # --- End Validation ---
+
     print(f"Connecting to Qdrant at {QDRANT_URL}...")
     client = AsyncQdrantClient(url=QDRANT_URL)
 
@@ -29,7 +53,7 @@ async def create_collection():
         await client.recreate_collection(
             collection_name=COLLECTION_NAME,
             vectors_config=models.VectorParams(
-                size=VECTOR_DIMENSION,
+                size=vector_dimension,
                 distance=models.Distance.COSINE,
             ),
         )
@@ -37,7 +61,7 @@ async def create_collection():
 
     except Exception as e:
         print(f"❌ An error occurred: {e}")
-        print("\nPlease ensure your Qdrant Docker container is running and accessible.")
+        print("\nPlease ensure your Qdrant Docker container is running and accessible at the URL specified in your .env file.")
     finally:
         await client.close()
 

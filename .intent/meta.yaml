@@ -101,6 +101,8 @@ mind:
     entry_point_patterns: "mind/knowledge/entry_point_patterns.yaml"
     file_handlers: "mind/knowledge/file_handlers.yaml"
     source_structure: "mind/knowledge/source_structure.yaml"
+    cognitive_roles: "mind/knowledge/cognitive_roles.yaml"
+    resource_manifest: "mind/knowledge/resource_manifest.yaml"
 
   prompts:
     capability_definer: "mind/prompts/capability_definer.prompt"

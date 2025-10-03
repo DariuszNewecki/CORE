@@ -8,8 +8,12 @@ from __future__ import annotations
 import typer
 from rich.console import Console
 
+# --- START OF FIX ---
 from cli.commands import check, fix, inspect, manage, run, search, submit
+
+# --- END OF FIX ---
 from cli.interactive import launch_interactive_menu
+from cli.logic import knowledge_sync  # <-- ADD THIS IMPORT
 from core.cognitive_service import CognitiveService
 from core.file_handler import FileHandler
 from core.git_service import GitService
@@ -49,8 +53,12 @@ def register_all_commands(app_instance: typer.Typer) -> None:
     """Register all command groups in the correct order."""
     modules_with_context = [check, fix, inspect, manage, run, search, submit]
     for module in modules_with_context:
-        # --- THIS IS THE FIX: Pass the context object to each module's register function ---
         module.register(app_instance, core_context)
+
+    # --- START OF FIX ---
+    # Register the new command, which wires it into the main app
+    knowledge_sync.register(app_instance)
+    # --- END OF FIX ---
 
 
 # --- Command Registration ---

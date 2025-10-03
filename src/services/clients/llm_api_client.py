@@ -1,13 +1,13 @@
 # src/services/clients/llm_api_client.py
 """
-Provides a base client for asynchronous communication with Chat Completions
-and Embedding APIs for LLM interactions.
+Provides a base client for asynchronous and synchronous communication with
+Chat Completions and Embedding APIs for LLM interactions.
 """
-
 from __future__ import annotations
 
 import asyncio
 import random
+import time
 from typing import Any, List
 
 import httpx
@@ -37,8 +37,6 @@ class BaseLLMClient:
         self.api_type = self._determine_api_type(self.base_url)
         self.headers = self._get_headers()
 
-        # --- START: THE DEFINITIVE FIX ---
-        # Explicitly cast settings from env vars to the correct type (int).
         try:
             connect_timeout = int(settings.model_extra.get("LLM_CONNECT_TIMEOUT", 10))
             request_timeout = int(settings.model_extra.get("LLM_REQUEST_TIMEOUT", 180))
@@ -50,7 +48,7 @@ class BaseLLMClient:
             connect=connect_timeout, read=request_timeout, write=30.0, pool=None
         )
         self.async_client = httpx.AsyncClient(timeout=self.timeout_config, http2=True)
-        # --- END: THE DEFINITIVE FIX ---
+        self.sync_client = httpx.Client(timeout=self.timeout_config, http2=True)
 
     def _determine_api_type(self, base_url: str) -> str:
         """Determines the API type based on the URL."""
@@ -143,7 +141,6 @@ class BaseLLMClient:
                 response.raise_for_status()
                 return self._parse_response(response.json(), task_type)
             except Exception as e:
-                # --- FIX: Log the actual exception, not a generic message ---
                 error_message = f"Request failed (attempt {attempt + 1}/{len(backoff_delays) + 1}) for {api_url}: {type(e).__name__} - {e}"
                 if attempt < len(backoff_delays):
                     wait_time = backoff_delays[attempt] + random.uniform(0, 0.5)
@@ -151,7 +148,6 @@ class BaseLLMClient:
                     await asyncio.sleep(wait_time)
                     continue
                 log.error(f"Final attempt failed: {error_message}", exc_info=True)
-                # Re-raise the original exception after the last attempt
                 raise
 
     # ID: 08f4f3a4-ac7c-4817-ad31-2d2bc72f0d93
@@ -160,3 +156,32 @@ class BaseLLMClient:
         return await self.make_request_async(
             prompt=text, user_id="embedding_service", task_type="embedding"
         )
+
+    # --- START: NEW SYNCHRONOUS METHOD ---
+    # ID: 1682e4ca-50b2-40c9-8c22-5c082ce59081
+    def make_request_sync(
+        self, prompt: str, user_id: str = "core_system", task_type: str = "chat"
+    ) -> Any:
+        """Sends a prompt synchronously to the configured API with retries."""
+        api_url = self._get_api_url(task_type)
+        payload = self._prepare_payload(prompt, user_id, task_type)
+        backoff_delays = [1.0, 2.0, 4.0]
+
+        for attempt in range(len(backoff_delays) + 1):
+            try:
+                response = self.sync_client.post(
+                    api_url, headers=self.headers, json=payload
+                )
+                response.raise_for_status()
+                return self._parse_response(response.json(), task_type)
+            except Exception as e:
+                error_message = f"Sync request failed (attempt {attempt + 1}/{len(backoff_delays) + 1}) for {api_url}: {type(e).__name__} - {e}"
+                if attempt < len(backoff_delays):
+                    wait_time = backoff_delays[attempt] + random.uniform(0, 0.5)
+                    log.warning(f"{error_message}. Retrying in {wait_time:.1f}s...")
+                    time.sleep(wait_time)
+                    continue
+                log.error(f"Final sync attempt failed: {error_message}", exc_info=True)
+                raise
+
+    # --- END: NEW SYNCHRONOUS METHOD ---

@@ -29,20 +29,34 @@ class SymbolVisitor(ast.NodeVisitor):
     # ID: 89431690-9e7a-40e1-bb4c-d2ad247a5277
     def visit_ClassDef(self, node: ast.ClassDef):
         """Process a class definition and its children (methods)."""
+        # --- THIS IS THE FIX (Part 1 of 3) ---
+        # Only process top-level classes. We still visit children to find nested classes
+        # but their methods will be correctly ignored by the updated visit_FunctionDef.
+        if not self.class_stack:
+            self._process_symbol(node)
+        # --- END OF FIX ---
+
         self.class_stack.append(node.name)
-        self._process_symbol(node)
         self.generic_visit(node)
         self.class_stack.pop()
 
     # ID: 0bfa9ab7-a83a-4d58-aa5d-6c6769af4e4f
     def visit_FunctionDef(self, node: ast.FunctionDef):
         """Process a function or method definition."""
-        self._process_symbol(node)
+        # --- THIS IS THE FIX (Part 2 of 3) ---
+        # Only process top-level functions, not methods inside classes.
+        if not self.class_stack:
+            self._process_symbol(node)
+        # --- END OF FIX ---
 
     # ID: 8e860945-daec-4ffa-a5ac-3c669082ff8a
     def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef):
         """Process an async function or method definition."""
-        self._process_symbol(node)
+        # --- THIS IS THE FIX (Part 3 of 3) ---
+        # Only process top-level async functions, not methods inside classes.
+        if not self.class_stack:
+            self._process_symbol(node)
+        # --- END OF FIX ---
 
     def _process_symbol(
         self, node: ast.ClassDef | ast.FunctionDef | ast.AsyncFunctionDef
@@ -71,13 +85,10 @@ class SymbolVisitor(ast.NodeVisitor):
                 return
             self.seen_uuids.add(symbol_id)
 
+            # This logic now correctly handles only top-level symbols because of the guards above.
             if self.class_stack:
                 class_path = ".".join(self.class_stack)
-                symbol_path = (
-                    f"{self.file_path}::{class_path}.{node.name}"
-                    if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
-                    else f"{self.file_path}::{class_path}"
-                )
+                symbol_path = f"{self.file_path}::{class_path}"
             else:
                 symbol_path = f"{self.file_path}::{node.name}"
 

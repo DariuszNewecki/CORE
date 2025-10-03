@@ -54,7 +54,7 @@ class KnowledgeSourceCheck:
     # ID: b846d3ab-5762-4bc8-9dfc-f3fa060da29c
     async def execute(
         self,
-    ) -> CheckResult:  # <-- THIS METHOD WAS RENAMED FROM run() TO execute()
+    ) -> CheckResult:
         yaml_paths = {
             "cli_registry": self._resolve_yaml(
                 ".intent/mind/knowledge/cli_registry.yaml",
@@ -70,18 +70,16 @@ class KnowledgeSourceCheck:
             ),
         }
 
-        # prepare structure for per-section outcomes
         section_results: Dict[str, Dict[str, Any]] = {}
 
         async with self.session_factory() as session:
-            # Fetch rows + available columns for each table
             cli_rows, cli_cols = await self._fetch_table(
                 session,
                 "core",
                 "cli_commands",
                 preferred_order=["name", "module", "entrypoint", "enabled"],
             )
-            llm_rows, llm_cols = await self._fetch_table(
+            llm_rows, ll_cols = await self._fetch_table(
                 session,
                 "core",
                 "llm_resources",
@@ -94,33 +92,30 @@ class KnowledgeSourceCheck:
                 preferred_order=["name", "description", "enabled"],
             )
 
-        # --- CLI registry
         section_results["cli_registry"] = await self._compare_section(
             label="cli_registry",
             yaml_path=yaml_paths["cli_registry"],
             db_rows=cli_rows,
             db_cols=cli_cols,
+            yaml_key="commands",
         )
 
-        # --- LLM resources
         section_results["resource_manifest"] = await self._compare_section(
             label="resource_manifest",
             yaml_path=yaml_paths["resource_manifest"],
             db_rows=llm_rows,
-            db_cols=llm_cols,
+            db_cols=ll_cols,
+            yaml_key="llm_resources",
         )
 
-        # --- Cognitive roles
         section_results["cognitive_roles"] = await self._compare_section(
             label="cognitive_roles",
             yaml_path=yaml_paths["cognitive_roles"],
             db_rows=roles_rows,
             db_cols=roles_cols,
+            yaml_key="cognitive_roles",
         )
 
-        # Determine pass/fail:
-        # - If any section explicitly failed (has 'status' == 'failed'), overall fails.
-        # - If require_yaml_exports=True and any section is 'skipped' due to missing YAML, overall fails.
         any_failed = any(v.get("status") == "failed" for v in section_results.values())
         if self.require_yaml_exports:
             any_skipped = any(
@@ -164,8 +159,8 @@ class KnowledgeSourceCheck:
         yaml_path: Path | None,
         db_rows: List[Dict[str, Any]],
         db_cols: List[str],
+        yaml_key: str,
     ) -> Dict[str, Any]:
-        # Missing YAML
         if yaml_path is None:
             if self.require_yaml_exports:
                 return {
@@ -180,11 +175,15 @@ class KnowledgeSourceCheck:
             else:
                 return {"status": "skipped", "reason": "yaml_missing", "diff": None}
 
-        # YAML present → load and compare
-        yaml_items = self._read_yaml(yaml_path)
+        yaml_items = self._read_yaml(yaml_path, yaml_key)
         fields = self._fields_for_compare(yaml_items, db_cols)
+
+        primary_key = "name"
+        if label == "cognitive_roles":
+            primary_key = "role"
+
         diff = self._diff_named_records(
-            yaml_items, db_rows, key="name", compare_fields=fields
+            yaml_items, db_rows, key=primary_key, compare_fields=fields
         )
 
         status = "passed" if self._diff_is_clean(diff) else "failed"
@@ -203,21 +202,20 @@ class KnowledgeSourceCheck:
                 return p
         return None
 
-    def _read_yaml(self, path: Path) -> List[Dict[str, Any]]:
-        import yaml  # local import to avoid hard dep if unused
+    def _read_yaml(self, path: Path, key: str) -> List[Dict[str, Any]]:
+        import yaml
 
-        data = yaml.safe_load(path.read_text(encoding="utf-8")) or []
-        # Normalize to list-of-dicts
-        if isinstance(data, dict):
-            items = []
-            for k, v in data.items():
-                if isinstance(v, dict) and "name" not in v:
-                    v["name"] = k
-                items.append(v)
-            return items
-        if isinstance(data, list):
-            return data
-        return []
+        try:
+            data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+            if not isinstance(data, dict):
+                return []
+
+            items = data.get(key, [])
+            if isinstance(items, list):
+                return items
+            return []
+        except Exception:
+            return []
 
     async def _fetch_table(
         self,
@@ -265,9 +263,11 @@ class KnowledgeSourceCheck:
             if isinstance(item, dict):
                 yaml_keys.update(item.keys())
 
-        keys = (yaml_keys & set(db_cols)) | {"name"}
+        # Use a more flexible primary key name for comparison
+        keys = (yaml_keys & set(db_cols)) | {"name", "role"}
         preferred = [
             "name",
+            "role",
             "module",
             "entrypoint",
             "provider",
@@ -290,10 +290,14 @@ class KnowledgeSourceCheck:
         compare_fields = compare_fields or self._union_keys(yaml_items, db_items)
 
         y_index = {
-            str(i.get(key)).strip(): i for i in yaml_items if i.get(key) is not None
+            str(i.get(key)).strip(): i
+            for i in yaml_items
+            if isinstance(i, dict) and i.get(key) is not None
         }
         d_index = {
-            str(i.get(key)).strip(): i for i in db_items if i.get(key) is not None
+            str(i.get(key)).strip(): i
+            for i in db_items
+            if isinstance(i, dict) and i.get(key) is not None
         }
 
         missing_in_db = sorted([k for k in y_index.keys() if k not in d_index])
@@ -307,8 +311,17 @@ class KnowledgeSourceCheck:
             for f in compare_fields:
                 if f not in y and f not in d:
                     continue
-                if y.get(f) != d.get(f):
-                    fields[f] = {"yaml": y.get(f), "db": d.get(f)}
+
+                # Normalize values for comparison
+                y_val = y.get(f)
+                d_val = d.get(f)
+
+                # Treat empty strings and None as equivalent
+                if (y_val is None or y_val == "") and (d_val is None or d_val == ""):
+                    continue
+
+                if y_val != d_val:
+                    fields[f] = {"yaml": y_val, "db": d_val}
             if fields:
                 mismatched.append({"name": k, "fields": fields})
 
@@ -327,6 +340,7 @@ class KnowledgeSourceCheck:
                 keys.update(i.keys())
         preferred = [
             "name",
+            "role",
             "module",
             "entrypoint",
             "provider",

@@ -1,4 +1,4 @@
-# src/system/admin/interactive.py
+# src/cli/interactive.py
 """
 Implements the interactive, menu-driven TUI for the CORE Admin CLI.
 This provides a user-friendly way to discover and run commands.
@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import subprocess
 import sys
+from typing import Callable, Dict
 
 from rich.console import Console
 from rich.panel import Panel
@@ -30,116 +31,145 @@ def run_command(command: list[str]):
     input()
 
 
+# --- START OF REFACTOR ---
+
+
+def _show_menu(title: str, options: Dict[str, str], actions: Dict[str, Callable]):
+    """Generic helper to display a menu, get input, and execute an action."""
+    while True:
+        console.clear()
+        console.print(Panel(f"[bold cyan]{title}[/bold cyan]"))
+        for key, text in options.items():
+            console.print(f"  [{key}] {text}")
+
+        console.print("\n  [b] Back to main menu")
+        console.print("  [q] Quit")
+        choice = console.input("\nEnter your choice: ").lower()
+
+        if choice == "b":
+            return
+        if choice == "q":
+            sys.exit(0)
+
+        action = actions.get(choice)
+        if action:
+            action()
+        else:
+            console.print(
+                f"[bold red]Invalid choice '{choice}'. Please try again.[/bold red]"
+            )
+            input("Press Enter to continue...")
+
+
 # ID: e4f81e87-71c1-41c1-bfed-fdba926db71f
 def show_development_menu():
     """Displays the AI Development & Self-Healing submenu."""
-    while True:
-        console.clear()
-        console.print(Panel("[bold cyan]AI Development & Self-Healing[/bold cyan]"))
-        console.print("  [1] Chat with CORE (Translate idea to command)")
-        console.print("  [2] Develop (Execute a high-level goal)")
-        console.print("  [3] Fix Headers (Run AI-powered style fixer)")
-        console.print("\n  [b] Back to main menu")
-        console.print("  [q] Quit")
-        choice = console.input("\nEnter your choice: ")
-
-        if choice == "1":
-            goal = console.input("Enter your goal in natural language: ")
-            if goal:
-                run_command(["core-admin", "chat", goal])
-        elif choice == "2":
-            goal = console.input("Enter the full development goal: ")
-            if goal:
-                run_command(["core-admin", "develop", goal])
-        elif choice == "3":
-            run_command(["core-admin", "fix", "headers", "--write"])
-        elif choice.lower() == "b":
-            return
-        elif choice.lower() == "q":
-            sys.exit(0)
+    _show_menu(
+        title="AI Development & Self-Healing",
+        options={
+            "1": "Chat with CORE (Translate idea to command)",
+            "2": "Develop (Execute a high-level goal)",
+            "3": "Fix Headers (Run AI-powered style fixer)",
+        },
+        actions={
+            "1": lambda: run_command(
+                ["core-admin", "chat", console.input("Enter your goal: ")]
+            ),
+            "2": lambda: run_command(
+                [
+                    "core-admin",
+                    "develop",
+                    console.input("Enter the full development goal: "),
+                ]
+            ),
+            "3": lambda: run_command(["core-admin", "fix", "headers", "--write"]),
+        },
+    )
 
 
 # ID: 91af5862-021e-4c3b-ba18-51deb032382c
 def show_governance_menu():
     """Displays the Constitutional Governance submenu."""
-    while True:
-        console.clear()
-        console.print(Panel("[bold cyan]Constitutional Governance[/bold cyan]"))
-        console.print("  [1] List Proposals")
-        console.print("  [2] Sign a Proposal")
-        console.print("  [3] Approve a Proposal")
-        console.print("  [4] Review Constitution (AI Peer Review)")
-        console.print("\n  [b] Back to main menu")
-        console.print("  [q] Quit")
-        choice = console.input("\nEnter your choice: ")
-
-        if choice == "1":
-            run_command(["core-admin", "proposals", "list"])
-        elif choice == "2":
-            name = console.input("Enter the proposal filename to sign: ")
-            if name:
-                run_command(["core-admin", "proposals", "sign", name])
-        elif choice == "3":
-            name = console.input("Enter the proposal filename to approve: ")
-            if name:
-                run_command(["core-admin", "proposals", "approve", name])
-        elif choice == "4":
-            run_command(["core-admin", "review", "constitution"])
-        elif choice.lower() == "b":
-            return
-        elif choice.lower() == "q":
-            sys.exit(0)
+    _show_menu(
+        title="Constitutional Governance",
+        options={
+            "1": "List Proposals",
+            "2": "Sign a Proposal",
+            "3": "Approve a Proposal",
+            "4": "Review Constitution (AI Peer Review)",
+        },
+        actions={
+            "1": lambda: run_command(["core-admin", "proposals", "list"]),
+            "2": lambda: run_command(
+                [
+                    "core-admin",
+                    "proposals",
+                    "sign",
+                    console.input("Enter proposal filename to sign: "),
+                ]
+            ),
+            "3": lambda: run_command(
+                [
+                    "core-admin",
+                    "proposals",
+                    "approve",
+                    console.input("Enter proposal filename to approve: "),
+                ]
+            ),
+            "4": lambda: run_command(["core-admin", "review", "constitution"]),
+        },
+    )
 
 
 # ID: 38f63e99-7a3d-4734-9aaa-188e99e44846
 def show_system_menu():
     """Displays the System Health & CI submenu."""
-    while True:
-        console.clear()
-        console.print(Panel("[bold cyan]System Health & CI[/bold cyan]"))
-        console.print("  [1] Run Full Check (lint, test, audit)")
-        console.print("  [2] Run Only Tests")
-        console.print("  [3] Format All Code")
-        console.print("\n  [b] Back to main menu")
-        console.print("  [q] Quit")
-        choice = console.input("\nEnter your choice: ")
-
-        if choice == "1":
-            run_command(["core-admin", "system", "check"])
-        elif choice == "2":
-            run_command(["core-admin", "system", "test"])
-        elif choice == "3":
-            run_command(["core-admin", "system", "format"])
-        elif choice.lower() == "b":
-            return
-        elif choice.lower() == "q":
-            sys.exit(0)
+    _show_menu(
+        title="System Health & CI",
+        options={
+            "1": "Run Full Check (lint, test, audit)",
+            "2": "Run Only Tests",
+            "3": "Format All Code",
+        },
+        actions={
+            "1": lambda: run_command(["core-admin", "system", "check"]),
+            "2": lambda: run_command(["core-admin", "system", "test"]),
+            "3": lambda: run_command(["core-admin", "system", "format"]),
+        },
+    )
 
 
 # ID: b13f7aa2-3d3a-4442-af86-19bfb95ccfb9
 def show_project_lifecycle_menu():
     """Displays the Project Lifecycle submenu."""
-    while True:
-        console.clear()
-        console.print(Panel("[bold cyan]Project Lifecycle[/bold cyan]"))
-        console.print("  [1] Create New Governed Application")
-        console.print("  [2] Onboard Existing Repository (BYOR)")
-        console.print("\n  [b] Back to main menu")
-        console.print("  [q] Quit")
-        choice = console.input("\nEnter your choice: ")
+    _show_menu(
+        title="Project Lifecycle",
+        options={
+            "1": "Create New Governed Application",
+            "2": "Onboard Existing Repository (BYOR)",
+        },
+        actions={
+            "1": lambda: run_command(
+                [
+                    "core-admin",
+                    "new",
+                    console.input("Enter the name for the new application: "),
+                    "--write",
+                ]
+            ),
+            "2": lambda: run_command(
+                [
+                    "core-admin",
+                    "byor-init",
+                    console.input("Enter the path to the existing repository: "),
+                    "--write",
+                ]
+            ),
+        },
+    )
 
-        if choice == "1":
-            name = console.input("Enter the name for the new application: ")
-            if name:
-                run_command(["core-admin", "new", name, "--write"])
-        elif choice == "2":
-            path = console.input("Enter the path to the existing repository: ")
-            if path:
-                run_command(["core-admin", "byor-init", path, "--write"])
-        elif choice.lower() == "b":
-            return
-        elif choice.lower() == "q":
-            sys.exit(0)
+
+# --- END OF REFACTOR ---
 
 
 # ID: 0493a7e1-3b54-478c-b22f-490a36be8b61

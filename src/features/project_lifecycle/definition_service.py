@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import asyncio
+import re  # <-- ADD THIS IMPORT
 from functools import partial
 from typing import Any, Dict, List, Set
 
@@ -20,7 +21,6 @@ console = Console()
 log = getLogger("definition_service")
 
 
-# --- START OF THE DEFINITIVE FIX ---
 # ID: 4fe1a3d1-a3a9-428b-9e6a-7282fe7ffe36
 async def get_undefined_symbols() -> List[Dict[str, Any]]:
     """
@@ -35,9 +35,6 @@ async def get_undefined_symbols() -> List[Dict[str, Any]]:
             )
         )
         return [dict(row._mapping) for row in result]
-
-
-# --- END OF THE DEFINITIVE FIX ---
 
 
 # ID: c5e8625f-56fb-414c-b5b6-652c35061ce5
@@ -86,9 +83,17 @@ async def define_single_symbol(
     )
 
     definer_agent = await cognitive_service.aget_client_for_role("CodeReviewer")
-    suggested_key = (
-        await definer_agent.make_request_async(final_prompt, user_id="definer_agent")
-    ).strip()
+    raw_suggested_key = await definer_agent.make_request_async(
+        final_prompt, user_id="definer_agent"
+    )
+
+    # --- THIS IS THE FIX ---
+    # Sanitize the LLM output to remove markdown and extra whitespace.
+    # This regex finds the content inside backticks or just cleans the string.
+    match = re.search(r"`(.*?)`", raw_suggested_key)
+    suggested_key = match.group(1) if match else raw_suggested_key
+    suggested_key = suggested_key.strip()
+    # --- END OF FIX ---
 
     if suggested_key in existing_keys:
         console.print(
@@ -108,15 +113,22 @@ async def define_single_symbol(
 
 # ID: d1d22715-6f9f-4742-9a8e-9fdeef776af6
 async def update_definitions_in_db(definitions: List[Dict[str, str]]):
-    """Updates the 'key' column for symbols in the database."""
+    """Updates the 'key' column for symbols in the database with explicit logging and commit."""
     if not definitions:
         return
+
+    log.info(f"Attempting to update {len(definitions)} definitions in the database...")
+    # For debugging, log the first few definitions we're trying to save.
+    log.debug(f"Sample definitions to update: {definitions[:5]}")
+
     async with get_session() as session:
         async with session.begin():
+            # The .begin() context manager handles commits automatically.
             await session.execute(
                 text("UPDATE core.symbols SET key = :key WHERE uuid = :uuid"),
                 definitions,
             )
+    log.info("Database update transaction completed.")
 
 
 # ID: 0d859072-4aa5-49b6-9cf5-cd26405892f6

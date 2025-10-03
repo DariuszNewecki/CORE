@@ -1,0 +1,31 @@
+# .intent/mind/knowledge/resource_manifest.yaml
+# The canonical list of available LLM resources for the system.
+
+llm_resources:
+  - name: "deepseek_chat"
+    provided_capabilities: ["chat", "reasoning", "planning"]
+    env_prefix: "DEEPSEEK_CHAT"
+    performance_metadata:
+      cost_rating: 2
+      quality_rating: 4
+
+  - name: "deepseek_coder"
+    provided_capabilities: ["code_generation", "refactoring"]
+    env_prefix: "DEEPSEEK_CODER"
+    performance_metadata:
+      cost_rating: 3
+      quality_rating: 5
+
+  - name: "anthropic_claude_sonnet"
+    provided_capabilities: ["chat", "reasoning", "planning", "code_generation"]
+    env_prefix: "ANTHROPIC_CLAUDE_SONNET"
+    performance_metadata:
+      cost_rating: 4
+      quality_rating: 4
+
+  - name: "local_embedding"
+    provided_capabilities: ["embedding"]
+    env_prefix: "LOCAL_EMBEDDING"
+    performance_metadata:
+      cost_rating: 1
+      quality_rating: 3
