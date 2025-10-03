@@ -12,10 +12,9 @@ from rich.console import Console
 from sqlalchemy import text
 
 from services.repositories.db.engine import get_session
+from services.repositories.db.migration_service import migrate_db
 from shared.config import settings
 
-# --- CORRECTED IMPORTS ---
-from .migrate import migrate_db
 from .status import status
 from .sync_domains import sync_domains
 
@@ -23,8 +22,6 @@ console = Console()
 db_app = typer.Typer(
     help="Commands for managing the CORE operational database (migrations, syncs, status, exports)."
 )
-
-# --- NEW EXPORT COMMAND LOGIC ---
 
 
 async def _export_domains():
@@ -90,7 +87,7 @@ def export_data():
     console.print("[bold green]✅ Export complete.[/bold green]")
 
 
-# --- EXISTING COMMANDS ---
+# --- COMMAND REGISTRATION ---
 db_app.command("status")(status)
 db_app.command("sync-domains")(sync_domains)
 db_app.command("migrate")(migrate_db)
