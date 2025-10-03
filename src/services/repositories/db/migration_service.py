@@ -1,6 +1,6 @@
-# src/system/admin/commands/db/init_db.py
+# src/services/repositories/db/migration_service.py
 """
-Provides functionality for the init_db module.
+Provides the canonical, single-source-of-truth service for applying database schema migrations.
 """
 
 from __future__ import annotations
@@ -26,8 +26,9 @@ async def _run_migrations(apply: bool):
     """The core async logic for running migrations."""
     try:
         pol = load_policy()
-        order = pol.get("migrations", {}).get("order", [])
-        migration_dir = pol.get("migrations", {}).get("directory", "sql")
+        migrations_config = pol.get("migrations", {})
+        order = migrations_config.get("order", [])
+        migration_dir = migrations_config.get("directory", "sql")
     except Exception as e:
         console.print(f"[bold red]❌ Error loading database policy: {e}[/bold red]")
         raise typer.Exit(code=1)
@@ -61,7 +62,7 @@ async def _run_migrations(apply: bool):
 
 
 # ID: 7bb0c5ee-480b-4d14-9147-853c9f9b25c5
-def init_db(
+def migrate_db(
     apply: bool = typer.Option(False, "--apply", help="Apply pending migrations.")
 ):
     """Initialize DB schema and apply pending migrations."""
