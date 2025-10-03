@@ -17,10 +17,6 @@ from shared.models import AuditFinding, AuditSeverity
 
 log = getLogger("duplication_check")
 
-# The similarity score above which two symbols are considered near-duplicates.
-# TODO: This should be moved to a constitutional policy file.
-SIMILARITY_THRESHOLD = 0.80
-
 
 # ID: 16e4e42b-3f70-444f-933e-ec1679cd8992
 class DuplicationCheck:
@@ -32,14 +28,23 @@ class DuplicationCheck:
         self.context = context
         self.symbols = self.context.knowledge_graph.get("symbols", {})
         self.qdrant_service = QdrantService()
+        # Load the ignore policy to be used by this check.
+        ignore_policy = self.context.policies.get("audit_ignore_policy", {})
+        self.ignored_symbol_keys = {
+            item["key"]
+            for item in ignore_policy.get("symbol_ignores", [])
+            if "key" in item
+        }
 
-    async def _check_single_symbol(self, symbol: Dict[str, Any]) -> List[AuditFinding]:
+    async def _check_single_symbol(
+        self, symbol: Dict[str, Any], threshold: float
+    ) -> List[AuditFinding]:
         """Checks a single symbol for duplicates against the Qdrant index."""
         findings = []
-        symbol_key = symbol.get("symbol_path")  # Use symbol_path for consistency
+        symbol_key = symbol.get("symbol_path")
         vector_id = symbol.get("vector_id")
 
-        if not vector_id:
+        if not vector_id or symbol_key in self.ignored_symbol_keys:
             return []
 
         try:
@@ -55,10 +60,11 @@ class DuplicationCheck:
 
             for hit in similar_hits:
                 hit_symbol_key = hit["payload"]["chunk_id"]
-                if hit_symbol_key == symbol_key:
+                if hit_symbol_key == symbol_key or hit_symbol_key in self.ignored_symbol_keys:
                     continue
 
-                if hit["score"] > SIMILARITY_THRESHOLD:
+                if hit["score"] > threshold:
+                    # Ensure we only report each pair once by ordering them alphabetically
                     if symbol_key < hit_symbol_key:
                         findings.append(
                             AuditFinding(
@@ -77,7 +83,7 @@ class DuplicationCheck:
         return findings
 
     # ID: 614e5982-8163-49f9-8762-689960b9851a
-    async def execute(self) -> List[AuditFinding]:
+    async def execute(self, threshold: float = 0.80) -> List[AuditFinding]:
         """
         Asynchronously runs the duplication check across all vectorized symbols.
         """
@@ -86,7 +92,9 @@ class DuplicationCheck:
         if not vectorized_symbols:
             return []
 
-        tasks = [self._check_single_symbol(symbol) for symbol in vectorized_symbols]
+        tasks = [
+            self._check_single_symbol(symbol, threshold) for symbol in vectorized_symbols
+        ]
 
         results = []
         for future in track(
