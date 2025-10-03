@@ -27,7 +27,7 @@ from cli.logic.sync_manifest import sync_manifest
 from core.cognitive_service import CognitiveService
 from core.prompt_pipeline import PromptPipeline
 from features.governance.key_management_service import register as register_keygen
-from features.introspection.knowledge_helpers import extract_source_code_from_ast
+from features.introspection.knowledge_helpers import extract_source_code
 from services.clients.qdrant_client import QdrantService
 from shared.config import settings
 from shared.context import CoreContext
@@ -74,7 +74,7 @@ def _define_single_symbol_sync(
 ):
     """Synchronous version of the symbol definition logic."""
     log.info(f"Defining symbol: {symbol.get('symbol_path')}")
-    source_code = extract_source_code_from_ast(settings.REPO_PATH, symbol)
+    source_code = extract_source_code(settings.REPO_PATH, symbol)
     if not source_code:
         return {"uuid": symbol["uuid"], "key": "error.code_not_found"}
 

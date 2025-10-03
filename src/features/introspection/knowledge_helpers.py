@@ -8,7 +8,7 @@ Helper utilities for knowledge graph vectorization:
 
 from __future__ import annotations
 
-import ast  # <-- Add this import
+import ast
 import fnmatch
 from pathlib import Path
 from typing import Dict, Optional
@@ -19,15 +19,14 @@ from shared.utils.embedding_utils import normalize_text, sha256_hex
 log = getLogger("core_admin.knowledge.helpers")
 
 
-# --- START: NEW ROBUST FUNCTION ---
 # ID: 8eedaa86-01be-461c-a3b1-a3a61716fefc
-def extract_source_code_from_ast(repo_root: Path, symbol_data: dict) -> str | None:
+def extract_source_code(repo_root: Path, symbol_data: dict) -> str | None:
     """
     Extracts the source code for a symbol using AST, which is more reliable
-    than line numbers when they are not available.
+    than line numbers. This is the single, canonical implementation.
     """
-    file_path_str = symbol_data.get("file_path")
-    symbol_path_str = symbol_data.get("symbol_path")
+    file_path_str = symbol_data.get("file_path") or symbol_data.get("file")
+    symbol_path_str = symbol_data.get("symbol_path") or symbol_data.get("key")
 
     if not file_path_str or not symbol_path_str:
         return None
@@ -52,44 +51,6 @@ def extract_source_code_from_ast(repo_root: Path, symbol_data: dict) -> str | No
         return None
 
     return None
-
-
-# --- END: NEW ROBUST FUNCTION ---
-
-
-# ID: 23ae9ecc-4809-4146-9655-bcf3a9f75736
-def extract_source_code(repo_root: Path, symbol_data: dict) -> str:
-    """
-    Extracts the source code for a symbol (legacy, uses line numbers).
-    """
-    if "source_code" in symbol_data and symbol_data["source_code"]:
-        return symbol_data["source_code"]
-
-    log.warning(
-        f"Symbol '{symbol_data.get('key')}' is missing pre-extracted source code. "
-        "Falling back to line numbers. Consider rebuilding the knowledge graph."
-    )
-    file_path_str = symbol_data.get("file")
-    start = symbol_data.get("line_number")
-    end = symbol_data.get("end_line_number")
-
-    if not all([file_path_str, isinstance(start, int), isinstance(end, int)]):
-        raise ValueError(
-            f"Invalid or missing line numbers for symbol '{symbol_data.get('key')}'. "
-            "Cannot extract source code."
-        )
-
-    file_path = (repo_root / file_path_str).resolve()
-    if not file_path.exists():
-        raise FileNotFoundError(f"Source file not found for symbol: {file_path}")
-
-    lines = file_path.read_text(encoding="utf-8", errors="ignore").splitlines()
-    if not (1 <= start <= end <= len(lines)):
-        raise ValueError(
-            f"Line numbers for symbol '{symbol_data.get('key')}' are out of bounds."
-        )
-
-    return "\n".join(lines[start - 1 : end])
 
 
 # ID: 538af724-9c5b-4720-b3bf-964be836b2de
