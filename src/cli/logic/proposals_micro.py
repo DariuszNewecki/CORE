@@ -22,8 +22,6 @@ from shared.context import CoreContext
 from shared.logger import getLogger
 from shared.models import PlannerConfig
 
-from .cli_utils import set_context as set_shared_context
-
 console = Console()
 log = getLogger("proposals_micro")
 
@@ -31,13 +29,6 @@ micro_app = typer.Typer(help="Manage low-risk, autonomous micro-proposals.")
 
 # Global variable to store context
 _context: Optional[CoreContext] = None
-
-
-# ID: fc5e0c82-f527-4236-9279-42341400707f
-def set_context(context: CoreContext):
-    """Set the global context for micro-proposal commands."""
-    # Use the shared utility to set the context for this module
-    set_shared_context(context, __name__)
 
 
 # ID: 4f17d3f6-36ab-4683-ad2a-dfd9b8221d80

@@ -32,24 +32,12 @@ from .cli_utils import (
     load_yaml_file,
     save_yaml_file,
 )
-from .cli_utils import (
-    set_context as set_shared_context,
-)
-from .proposals_micro import set_context as set_micro_context
 
 log = getLogger("core_admin.proposals")
 console = Console()
 
 # Global variable to store context
 _context: Optional[CoreContext] = None
-
-
-# ID: a9372599-1e73-4f8a-b244-0a6af17a6607
-def set_context(context: CoreContext):
-    """Set the global context for proposal commands."""
-    # Use the shared utility to set the context for this module
-    set_shared_context(context, __name__)
-    set_micro_context(context)  # Pass context down to the micro-proposal module
 
 
 # ID: 7dcb045e-19c9-4d84-91fd-70c4de7e8dfe

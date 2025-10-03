@@ -13,6 +13,7 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 
 from cli.logic.byor import initialize_repository
+from cli.logic.cli_utils import set_context as set_shared_context
 from cli.logic.db import export_data, migrate_db
 from cli.logic.new import register as register_new_project
 from cli.logic.project_docs import docs as project_docs
@@ -21,7 +22,6 @@ from cli.logic.proposal_service import (
     proposals_list,
     proposals_sign,
 )
-from cli.logic.proposal_service import set_context as set_proposal_context
 from cli.logic.sync import sync_knowledge_base
 from cli.logic.sync_manifest import sync_manifest
 from core.cognitive_service import CognitiveService
@@ -219,5 +219,5 @@ def define_symbols_command():
 # ID: ec7405ee-fb7c-424c-8d41-239a77a7a24d
 def register(app: typer.Typer, context: CoreContext):
     """Register the 'manage' command group with the main CLI app."""
-    set_proposal_context(context)
+    set_shared_context(context, "cli.logic.proposal_service")
     app.add_typer(manage_app, name="manage")
