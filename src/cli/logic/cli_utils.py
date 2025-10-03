@@ -1,4 +1,4 @@
-# src/cli/commands/cli_utils.py
+# src/cli/logic/cli_utils.py
 """
 Provides centralized, reusable utilities for standardizing the console output
 and execution of all `core-admin` commands.
@@ -6,6 +6,7 @@ and execution of all `core-admin` commands.
 
 from __future__ import annotations
 
+import importlib
 import json
 import shutil
 import subprocess
@@ -21,10 +22,25 @@ from rich.console import Console
 
 from core.knowledge_service import KnowledgeService
 from shared.config import settings
+from shared.context import CoreContext
 from shared.logger import getLogger
 
 log = getLogger("core_admin.cli_utils")
 console = Console()
+
+
+# ID: 5f1f9d5c-1f8e-4b2a-9c7d-8e5f4a3b2c1d
+def set_context(context: CoreContext, module_name: str):
+    """
+    A generic function to set the global _context in a target CLI logic module.
+    """
+    try:
+        module = importlib.import_module(module_name)
+        module._context = context
+    except (ImportError, AttributeError) as e:
+        console.print(
+            f"[bold red]Error setting context for module {module_name}: {e}[/bold red]"
+        )
 
 
 def _run_poetry_command(description: str, command: list[str]):

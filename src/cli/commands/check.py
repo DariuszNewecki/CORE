@@ -5,7 +5,7 @@ from __future__ import annotations
 import typer
 
 from cli.logic.ci import audit, lint, test_system
-from cli.logic.ci import set_context as set_ci_context
+from cli.logic.cli_utils import set_context as set_shared_context
 from cli.logic.diagnostics import policy_coverage
 from shared.context import CoreContext
 
@@ -26,6 +26,6 @@ check_app.command("diagnostics", help="Audit the constitution for policy coverag
 # ID: 3c4d5e6f-7a8b-9c0d-1e2f-3a4b5c6d7e8f
 def register(app: typer.Typer, context: CoreContext):
     """Register the 'check' command group to the main CLI app."""
-    # Set the context for the logic module before adding the commands
-    set_ci_context(context)
+    # Pass the context to the logic module.
+    set_shared_context(context, "cli.logic.ci")
     app.add_typer(check_app, name="check")

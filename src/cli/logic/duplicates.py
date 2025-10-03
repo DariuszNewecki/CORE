@@ -6,8 +6,7 @@ to run only the semantic duplication check with clustering.
 from __future__ import annotations
 
 import asyncio
-from collections import defaultdict
-from typing import Dict, List, Optional, Set
+from typing import List
 
 import networkx as nx
 import typer
@@ -41,7 +40,7 @@ def _group_findings(findings: list[AuditFinding]) -> List[List[AuditFinding]]:
         (frozenset([p.message.split("'")[1], p.message.split("'")[3]])): p
         for p in findings
     }
-    
+
     grouped_findings = []
     for cluster in clusters:
         cluster_findings = []
@@ -49,12 +48,12 @@ def _group_findings(findings: list[AuditFinding]) -> List[List[AuditFinding]]:
         edges = nx.Graph()
         edges.add_nodes_from(cluster)
         edges.add_edges_from(nx.complete_graph(cluster).edges())
-        
+
         for u, v in edges.edges():
             pair = frozenset([u, v])
             if pair in finding_map:
                 cluster_findings.append(finding_map[pair])
-        
+
         if cluster_findings:
             # Sort by similarity score, descending
             cluster_findings.sort(
@@ -62,7 +61,7 @@ def _group_findings(findings: list[AuditFinding]) -> List[List[AuditFinding]]:
                 reverse=True,
             )
             grouped_findings.append(cluster_findings)
-            
+
     return grouped_findings
 
 
@@ -114,7 +113,7 @@ async def _async_inspect_duplicates(context: CoreContext, threshold: float):
             symbol2 = parts[3]
             similarity = finding.message.split(":")[-1].strip()
             table.add_row(symbol1, symbol2, similarity)
-        
+
         console.print(table)
 
 

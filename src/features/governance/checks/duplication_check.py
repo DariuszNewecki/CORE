@@ -60,7 +60,10 @@ class DuplicationCheck:
 
             for hit in similar_hits:
                 hit_symbol_key = hit["payload"]["chunk_id"]
-                if hit_symbol_key == symbol_key or hit_symbol_key in self.ignored_symbol_keys:
+                if (
+                    hit_symbol_key == symbol_key
+                    or hit_symbol_key in self.ignored_symbol_keys
+                ):
                     continue
 
                 if hit["score"] > threshold:
@@ -93,7 +96,8 @@ class DuplicationCheck:
             return []
 
         tasks = [
-            self._check_single_symbol(symbol, threshold) for symbol in vectorized_symbols
+            self._check_single_symbol(symbol, threshold)
+            for symbol in vectorized_symbols
         ]
 
         results = []
