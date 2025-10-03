@@ -15,21 +15,39 @@ from shared.models import AuditFinding, AuditSeverity
 class OrphanedLogicCheck:
     """
     Ensures that all public symbols are assigned a capability, preventing
-    undocumented or untracked functionality.
+    undocumented or untracked functionality. This check respects the
+    `audit_ignore_policy.yaml`.
     """
 
     def __init__(self, context: AuditorContext):
         self.context = context
-        self.symbols = self.context.knowledge_graph.get("symbols", {})
+        self.symbols = self.context.symbols_map
+
+        # --- THIS IS THE FIX ---
+        # Load the ignore policy to be used by this check.
+        ignore_policy = self.context.policies.get("audit_ignore_policy", {})
+        self.ignored_symbol_keys = {
+            item["key"]
+            for item in ignore_policy.get("symbol_ignores", [])
+            if "key" in item
+        }
+        # --- END OF FIX ---
 
     # ID: 92129e3b-c392-41a2-a836-d3e2af32e011
     def find_unassigned_public_symbols(self) -> List[Dict[str, Any]]:
-        """Finds all public symbols with a capability of 'unassigned'."""
+        """Finds all public symbols with a null capability key that are not ignored."""
         unassigned = []
-        for symbol_data in self.symbols.values():
-            is_public = not symbol_data.get("name", "").startswith("_")
-            is_unassigned = symbol_data.get("capability") == "unassigned"
-            if is_public and is_unassigned:
+        for symbol_key, symbol_data in self.symbols.items():
+            is_public = symbol_data.get("is_public", False)
+            is_unassigned = symbol_data.get("capability") is None
+
+            # --- THIS IS THE FIX ---
+            # Also check if the symbol is in the constitutionally ignored list.
+            is_ignored = symbol_key in self.ignored_symbol_keys
+            # --- END OF FIX ---
+
+            if is_public and is_unassigned and not is_ignored:
+                symbol_data["key"] = symbol_key
                 unassigned.append(symbol_data)
         return unassigned
 
@@ -42,11 +60,16 @@ class OrphanedLogicCheck:
         orphaned_symbols = self.find_unassigned_public_symbols()
 
         for symbol in orphaned_symbols:
+            try:
+                short_name = symbol["symbol_path"].split("::")[-1]
+            except (KeyError, IndexError):
+                short_name = "unknown"
+
             findings.append(
                 AuditFinding(
                     check_id="capability.assignment.orphaned_logic",
                     severity=AuditSeverity.WARNING,
-                    message=f"Public symbol '{symbol['name']}' is not assigned to a capability.",
+                    message=f"Public symbol '{short_name}' is not assigned to a capability and is not ignored.",
                     file_path=symbol.get("file"),
                     line_number=symbol.get("line_number"),
                 )

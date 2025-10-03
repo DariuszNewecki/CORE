@@ -15,12 +15,8 @@ from rich.console import Console
 from rich.progress import track
 from sqlalchemy import text
 
-# --- START OF FIX ---
-# 1. Import the services that actually exist in the new architecture.
 from core.cognitive_service import CognitiveService
 from services.clients.qdrant_client import QdrantService
-
-# --- END OF FIX ---
 from services.database.session_manager import get_session
 from shared.config import settings
 from shared.logger import getLogger
@@ -38,27 +34,11 @@ async def _fetch_symbols_from_db() -> List[Dict]:
             """
             SELECT uuid, symbol_path, file_path, structural_hash, vector_id
             FROM core.symbols
-            WHERE status = 'active'
+            WHERE status = 'active' AND is_public = TRUE
         """
         )
         result = await session.execute(stmt)
         return [dict(row._mapping) for row in result]
-
-
-# ID: 11c635ed-9d61-4d04-b7c8-5a55a210e64b
-async def _fetch_existing_vectors(qdrant_service: QdrantService) -> Dict[str, str]:
-    """Fetches existing vectors from Qdrant and returns a map of content_hash -> point_id."""
-    existing_vectors = {}
-    records, _ = await qdrant_service.client.scroll(
-        collection_name=qdrant_service.collection_name,
-        limit=10000,
-        with_payload=["content_sha256"],
-        with_vectors=False,
-    )
-    for record in records:
-        if record.payload and "content_sha256" in record.payload:
-            existing_vectors[record.payload["content_sha256"]] = record.id
-    return existing_vectors
 
 
 # ID: 9d0b75e7-f064-49a3-b743-92bb3cc8e9a9
@@ -70,14 +50,11 @@ def _get_source_code(file_path: Path, symbol_path: str) -> Optional[str]:
     content = file_path.read_text("utf-8", errors="ignore")
     try:
         tree = ast.parse(content)
-        symbol_name_parts = symbol_path.split("::")
-        # Handle methods inside classes like file.py::MyClass.my_method
-        target_name = symbol_name_parts[-1].split(".")[-1]
+        target_name = symbol_path.split("::")[-1]
 
         for node in ast.walk(tree):
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
                 if hasattr(node, "name") and node.name == target_name:
-                    # A more complex check would be needed for overloaded methods, but this is a good start.
                     return ast.get_source_segment(content, node)
     except Exception:
         return None
@@ -87,15 +64,13 @@ def _get_source_code(file_path: Path, symbol_path: str) -> Optional[str]:
 # ID: e06caaf0-1af4-421a-ad5c-e468c8d41f36
 async def _process_vectorization_task(
     task: Dict,
-    cognitive_service: CognitiveService,  # <-- 2. Use CognitiveService
-    qdrant_service: QdrantService,  # <-- 2. Use QdrantService
+    cognitive_service: CognitiveService,
+    qdrant_service: QdrantService,
     failure_log_path: Path,
 ) -> Optional[str]:
     """Processes a single symbol: gets embedding and upserts to Qdrant. Returns Qdrant point ID on success."""
     try:
-        vector = await cognitive_service.get_embedding_for_code(
-            task["source_code"]
-        )  # <-- 3. Use it
+        vector = await cognitive_service.get_embedding_for_code(task["source_code"])
         if not vector:
             raise ValueError("Embedding service returned None")
 
@@ -108,10 +83,10 @@ async def _process_vectorization_task(
             "symbol": task["symbol_path"],
             "capability_tags": [task["uuid"]],
         }
-        point_id = await qdrant_service.upsert_capability_vector(  # <-- 3. Use it
+        point_id = await qdrant_service.upsert_capability_vector(
             vector=vector, payload_data=payload_data
         )
-        return point_id
+        return str(point_id)  # Ensure point_id is a string
     except Exception as e:
         log.error(f"Failed to process symbol '{task['symbol_path']}': {e}")
         failure_log_path.parent.mkdir(parents=True, exist_ok=True)
@@ -144,7 +119,7 @@ async def _update_symbols_in_db(updates: List[Dict]):
 async def run_vectorize(
     cognitive_service: CognitiveService,
     dry_run: bool = False,
-    force: bool = False,  # <-- 4. Update signature
+    force: bool = False,
 ):
     """
     The main orchestration logic for vectorizing capabilities based on the database.
@@ -152,25 +127,20 @@ async def run_vectorize(
     console.print("[bold cyan]🚀 Starting Database-Driven Vectorization...[/bold cyan]")
     failure_log_path = settings.REPO_PATH / "logs" / "vectorization_failures.log"
     symbols_in_db = await _fetch_symbols_from_db()
-    console.print(f"   -> Found {len(symbols_in_db)} active symbols in the database.")
-
-    qdrant_service = QdrantService()  # <-- 5. Instantiate the QdrantService
-    existing_vectors_by_hash = await _fetch_existing_vectors(qdrant_service)
     console.print(
-        f"   -> Found {len(existing_vectors_by_hash)} existing vectors in Qdrant."
+        f"   -> Found {len(symbols_in_db)} active public symbols in the database."
     )
 
-    existing_vectors_by_uuid = {
-        symbol["uuid"]: symbol["vector_id"]
-        for symbol in symbols_in_db
-        if symbol.get("vector_id")
-    }
+    qdrant_service = QdrantService()
+    await qdrant_service.ensure_collection()
 
     tasks = []
     for symbol in symbols_in_db:
-        # If the symbol already has a vector_id and we are not forcing, skip it
-        if not force and symbol.get("uuid") in existing_vectors_by_uuid:
+        # --- THIS IS THE FINAL, CORRECT LOGIC ---
+        # A symbol needs vectorization if we are forcing it OR if its vector_id is missing.
+        if not force and symbol.get("vector_id"):
             continue
+        # --- END OF FINAL, CORRECT LOGIC ---
 
         file_path = settings.REPO_PATH / symbol["file_path"]
         source_code = _get_source_code(file_path, symbol["symbol_path"])
@@ -179,10 +149,6 @@ async def run_vectorize(
 
         normalized_code = normalize_text(source_code)
         code_hash = hashlib.sha256(normalized_code.encode("utf-8")).hexdigest()
-
-        # If hash exists and we're not forcing, skip.
-        if not force and code_hash in existing_vectors_by_hash:
-            continue
 
         tasks.append({**symbol, "source_code": normalized_code, "code_hash": code_hash})
 
@@ -198,15 +164,17 @@ async def run_vectorize(
         console.print(
             "\n[bold yellow]💧 Dry Run: No embeddings will be generated or stored.[/bold yellow]"
         )
+        for task in tasks[:5]:
+            console.print(f"   -> Would vectorize: {task['symbol_path']}")
+        if len(tasks) > 5:
+            console.print(f"   -> ... and {len(tasks) - 5} more.")
         return
 
     updates_to_db = []
 
     for task in track(tasks, description="Vectorizing symbols..."):
-        point_id = (
-            await _process_vectorization_task(  # <-- 6. Pass the correct services
-                task, cognitive_service, qdrant_service, failure_log_path
-            )
+        point_id = await _process_vectorization_task(
+            task, cognitive_service, qdrant_service, failure_log_path
         )
         if point_id:
             updates_to_db.append({"uuid": task["uuid"], "vector_id": point_id})
