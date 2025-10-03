@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import typer
 
+from cli.logic.cli_utils import set_context as set_shared_context
 from cli.logic.system import integrate_command
-from cli.logic.system import set_context as set_system_context
 from shared.context import CoreContext
 
 submit_app = typer.Typer(
@@ -22,6 +22,6 @@ submit_app.command(
 # ID: 9c0d1e2f-3a4b-5c6d-7e8f-9a0b1c2d3e4f
 def register(app: typer.Typer, context: CoreContext):
     """Register the 'submit' command group to the main CLI app."""
-    # Set the context for the logic module before adding the commands
-    set_system_context(context)
+    # Pass the context to the logic module.
+    set_shared_context(context, "cli.logic.system")
     app.add_typer(submit_app, name="submit")
