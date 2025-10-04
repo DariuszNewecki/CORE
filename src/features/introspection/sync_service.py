@@ -29,12 +29,8 @@ class SymbolVisitor(ast.NodeVisitor):
     # ID: 89431690-9e7a-40e1-bb4c-d2ad247a5277
     def visit_ClassDef(self, node: ast.ClassDef):
         """Process a class definition and its children (methods)."""
-        # --- THIS IS THE FIX (Part 1 of 3) ---
-        # Only process top-level classes. We still visit children to find nested classes
-        # but their methods will be correctly ignored by the updated visit_FunctionDef.
         if not self.class_stack:
             self._process_symbol(node)
-        # --- END OF FIX ---
 
         self.class_stack.append(node.name)
         self.generic_visit(node)
@@ -43,20 +39,14 @@ class SymbolVisitor(ast.NodeVisitor):
     # ID: 0bfa9ab7-a83a-4d58-aa5d-6c6769af4e4f
     def visit_FunctionDef(self, node: ast.FunctionDef):
         """Process a function or method definition."""
-        # --- THIS IS THE FIX (Part 2 of 3) ---
-        # Only process top-level functions, not methods inside classes.
         if not self.class_stack:
             self._process_symbol(node)
-        # --- END OF FIX ---
 
     # ID: 8e860945-daec-4ffa-a5ac-3c669082ff8a
     def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef):
         """Process an async function or method definition."""
-        # --- THIS IS THE FIX (Part 3 of 3) ---
-        # Only process top-level async functions, not methods inside classes.
         if not self.class_stack:
             self._process_symbol(node)
-        # --- END OF FIX ---
 
     def _process_symbol(
         self, node: ast.ClassDef | ast.FunctionDef | ast.AsyncFunctionDef
@@ -85,21 +75,33 @@ class SymbolVisitor(ast.NodeVisitor):
                 return
             self.seen_uuids.add(symbol_id)
 
-            # This logic now correctly handles only top-level symbols because of the guards above.
             if self.class_stack:
                 class_path = ".".join(self.class_stack)
                 symbol_path = f"{self.file_path}::{class_path}"
             else:
                 symbol_path = f"{self.file_path}::{node.name}"
 
+            # --- START OF FIX ---
+            # Generate the data structure that matches the new 'core.symbols' table schema.
+            # We derive 'module', 'qualname', 'kind', etc.
+            module_name = self.file_path.replace("src/", "").replace(".py", "").replace("/", ".")
+            kind_map = {"ClassDef": "class", "FunctionDef": "function", "AsyncFunctionDef": "function"}
+            
             self.symbols.append(
                 {
+                    "id": uuid.uuid5(uuid.NAMESPACE_DNS, symbol_path), # Use deterministic UUID for primary key
                     "uuid": symbol_id,
                     "symbol_path": symbol_path,
-                    "file_path": self.file_path,
-                    "structural_hash": calculate_structural_hash(node),
+                    "module": module_name,
+                    "qualname": node.name,
+                    "kind": kind_map.get(type(node).__name__, "function"),
+                    "ast_signature": "TBD", # Placeholder for now
+                    "fingerprint": calculate_structural_hash(node),
+                    "state": "discovered",
+                    "is_public": True,
                 }
             )
+            # --- END OF FIX ---
 
 
 # ID: b1bfdf4e-f1d6-4ad8-b2ad-f8e65589b618
@@ -148,15 +150,19 @@ async def run_sync_with_db() -> Dict[str, int]:
                 )
             )
             if code_state:
+                # --- START OF FIX ---
+                # The INSERT statement now matches the new schema and the data generated
+                # by the updated SymbolVisitor.
                 await session.execute(
                     text(
                         """
-                        INSERT INTO core_symbols_staging (uuid, symbol_path, file_path, structural_hash, is_public)
-                        VALUES (:uuid, :symbol_path, :file_path, :structural_hash, TRUE)
+                        INSERT INTO core_symbols_staging (id, uuid, symbol_path, module, qualname, kind, ast_signature, fingerprint, state, is_public)
+                        VALUES (:id, :uuid, :symbol_path, :module, :qualname, :kind, :ast_signature, :fingerprint, :state, :is_public)
                     """
                     ),
                     code_state,
                 )
+                # --- END OF FIX ---
 
             # 2. Get stats for reporting
             deleted_result = await session.execute(
@@ -178,7 +184,7 @@ async def run_sync_with_db() -> Dict[str, int]:
                     """
                     SELECT COUNT(*) FROM core.symbols s
                     JOIN core_symbols_staging st ON s.uuid = st.uuid
-                    WHERE s.structural_hash != st.structural_hash
+                    WHERE s.fingerprint != st.fingerprint
                 """
                 )
             )
@@ -192,7 +198,7 @@ async def run_sync_with_db() -> Dict[str, int]:
                 )
             )
 
-            # 3b. Nullify key and vector_id for symbols whose structure has changed
+            # 3b. Nullify key and vector_id for symbols whose structure has changed (using fingerprint)
             await session.execute(
                 text(
                     """
@@ -200,11 +206,11 @@ async def run_sync_with_db() -> Dict[str, int]:
                     SET
                         key = NULL,
                         vector_id = NULL,
-                        structural_hash = st.structural_hash,
+                        fingerprint = st.fingerprint,
                         updated_at = NOW()
                     FROM core_symbols_staging st
                     WHERE core.symbols.uuid = st.uuid
-                    AND core.symbols.structural_hash != st.structural_hash;
+                    AND core.symbols.fingerprint != st.fingerprint;
                 """
                 )
             )
@@ -213,8 +219,8 @@ async def run_sync_with_db() -> Dict[str, int]:
             await session.execute(
                 text(
                     """
-                    INSERT INTO core.symbols (uuid, symbol_path, file_path, structural_hash, is_public, created_at, updated_at)
-                    SELECT uuid, symbol_path, file_path, structural_hash, is_public, NOW(), NOW()
+                    INSERT INTO core.symbols (id, uuid, symbol_path, module, qualname, kind, ast_signature, fingerprint, state, is_public, created_at, updated_at)
+                    SELECT id, uuid, symbol_path, module, qualname, kind, ast_signature, fingerprint, state, is_public, NOW(), NOW()
                     FROM core_symbols_staging
                     WHERE uuid NOT IN (SELECT uuid FROM core.symbols);
                 """
