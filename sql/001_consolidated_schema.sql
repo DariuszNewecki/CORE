@@ -68,7 +68,7 @@ CREATE TABLE IF NOT EXISTS core.symbols (
     qualname text NOT NULL,
     kind text NOT NULL,
     ast_signature text NOT NULL,
-    fingerprint text NOT NULL,
+    fingerprint text NOT NULL, -- <<< THIS IS THE FIX: No longer UNIQUE
     state text DEFAULT 'discovered'::text NOT NULL,
     first_seen timestamp with time zone DEFAULT now() NOT NULL,
     last_seen timestamp with time zone DEFAULT now() NOT NULL,
@@ -77,8 +77,8 @@ CREATE TABLE IF NOT EXISTS core.symbols (
     uuid text UNIQUE,
     symbol_path text UNIQUE,
     is_public boolean NOT NULL DEFAULT true,
-    key text, -- <<< THIS IS THE FIX: Re-added the missing column
-    vector_id text, -- <<< THIS IS THE FIX: Added vector_id for vectorization status
+    key text,
+    vector_id text,
     CONSTRAINT symbols_kind_chk CHECK ((kind = ANY (ARRAY['function'::text, 'class'::text, 'method'::text, 'module'::text]))),
     CONSTRAINT symbols_state_chk CHECK ((state = ANY (ARRAY['discovered'::text, 'classified'::text, 'bound'::text, 'verified'::text, 'deprecated'::text])))
 );
@@ -239,7 +239,7 @@ CREATE INDEX IF NOT EXISTS idx_symbol_capabilities_capability_key ON core.symbol
 CREATE INDEX IF NOT EXISTS links_capability_idx ON core.symbol_capability_links USING btree (capability_id);
 CREATE INDEX IF NOT EXISTS links_symbol_idx ON core.symbol_capability_links USING btree (symbol_id);
 CREATE INDEX IF NOT EXISTS links_verified_idx ON core.symbol_capability_links USING btree (verified);
-CREATE UNIQUE INDEX IF NOT EXISTS symbols_fingerprint_uidx ON core.symbols USING btree (fingerprint);
+-- NO LONGER UNIQUE: CREATE UNIQUE INDEX IF NOT EXISTS symbols_fingerprint_uidx ON core.symbols USING btree (fingerprint);
 CREATE INDEX IF NOT EXISTS symbols_qualname_idx ON core.symbols USING btree (qualname);
 CREATE INDEX IF NOT EXISTS symbols_state_idx ON core.symbols USING btree (state);
 
