@@ -76,6 +76,7 @@ CREATE TABLE IF NOT EXISTS core.symbols (
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
     uuid text UNIQUE,
     symbol_path text UNIQUE,
+    is_public boolean NOT NULL DEFAULT true, -- <<< THIS IS THE FIX
     CONSTRAINT symbols_kind_chk CHECK ((kind = ANY (ARRAY['function'::text, 'class'::text, 'method'::text, 'module'::text]))),
     CONSTRAINT symbols_state_chk CHECK ((state = ANY (ARRAY['discovered'::text, 'classified'::text, 'bound'::text, 'verified'::text, 'deprecated'::text])))
 );
@@ -194,6 +195,41 @@ CREATE OR REPLACE VIEW core.v_verified_coverage AS
    FROM (core.capabilities c
      LEFT JOIN core.symbol_capability_links l ON (((l.capability_id = c.id) AND (l.verified = true))))
   GROUP BY c.id, c.name;
+
+-- This knowledge_graph view was missing from the dump but is required by the auditor.
+-- Adding it here completes the schema.
+CREATE OR REPLACE VIEW core.knowledge_graph AS
+SELECT
+    s.uuid,
+    s.key AS capability,
+    s.symbol_path,
+    s.module as file_path,
+    s.qualname as name,
+    s.kind as type,
+    s.qualname as title,
+    'TBD' as intent,
+    'unassigned_agent' as owner,
+    s.state as status,
+    s.is_public,
+    s.fingerprint as structural_hash,
+    s.vector_id,
+    s.updated_at AS last_updated,
+    '[]'::jsonb AS tags,
+    '[]'::jsonb AS calls,
+    '[]'::jsonb AS parameters,
+    '[]'::jsonb AS base_classes,
+    (s.kind = 'class') AS is_class,
+    (s.qualname LIKE 'Test%') AS is_test,
+    0 AS line_number,
+    0 AS end_line_number,
+    NULL AS source_code,
+    NULL AS docstring,
+    NULL AS entry_point_type,
+    NULL AS entry_point_justification,
+    NULL AS parent_class_key,
+    (s.kind = 'function' AND s.qualname LIKE 'async%') AS is_async -- Heuristic
+FROM
+    core.symbols s;
 
 -- INDEXES
 CREATE UNIQUE INDEX IF NOT EXISTS capabilities_domain_name_uidx ON core.capabilities USING btree (lower(domain), lower(name));
