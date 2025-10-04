@@ -25,14 +25,24 @@ def extract_source_code(repo_root: Path, symbol_data: dict) -> str | None:
     Extracts the source code for a symbol using AST, which is more reliable
     than line numbers. This is the single, canonical implementation.
     """
-    file_path_str = symbol_data.get("file_path") or symbol_data.get("file")
-    symbol_path_str = symbol_data.get("symbol_path") or symbol_data.get("key")
-
-    if not file_path_str or not symbol_path_str:
+    # --- THIS IS THE FIX ---
+    # The database stores a 'module' path (e.g., 'api.v1.knowledge_routes').
+    # We must convert this back into a file system path.
+    file_path_from_module = symbol_data.get("file_path")
+    if not file_path_from_module:
         return None
 
-    file_path = repo_root / file_path_str
+    # Convert module path to file system path
+    file_system_path_str = "src/" + file_path_from_module.replace(".", "/") + ".py"
+    file_path = repo_root / file_system_path_str
+    # --- END OF FIX ---
+
+    symbol_path_str = symbol_data.get("symbol_path")
+
     if not file_path.exists():
+        log.warning(
+            f"Source file not found for symbol {symbol_path_str} at expected path {file_path}"
+        )
         return None
 
     symbol_name = symbol_path_str.split("::")[-1]
@@ -42,11 +52,14 @@ def extract_source_code(repo_root: Path, symbol_data: dict) -> str | None:
         tree = ast.parse(content, filename=str(file_path))
         for node in ast.walk(tree):
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
-                if hasattr(node, "name") and node.name == symbol_name:
+                # This needs to handle nested classes/functions if symbol_path includes them
+                # For now, we assume simple names.
+                current_symbol_name = getattr(node, "name", None)
+                if current_symbol_name == symbol_name:
                     return ast.get_source_segment(content, node)
     except Exception as e:
         log.warning(
-            f"AST parsing failed for {file_path_str} while seeking {symbol_name}: {e}"
+            f"AST parsing failed for {file_path} while seeking {symbol_name}: {e}"
         )
         return None
 

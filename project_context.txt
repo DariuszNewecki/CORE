@@ -800,10 +800,7 @@ migrations:
   directory: sql
   order:
     - "001_consolidated_schema.sql"
-    - "002_ssot_schema.sql"
-    - "003_fix_capabilities_title.sql"
-    - "004_fix_symbols_uuid.sql"
-    - "006_fix_symbols_path_constraint.sql"
+
 rules:
   - id: db.ssot_for_operational_data
     statement: "The database is the authoritative source for all operational data (capabilities, symbols, links, audits, etc.). Files in `.intent/mind_export/` are read-only mirrors."
@@ -3527,259 +3524,7 @@ name: CORE
 version: 0.5.0
 intent: A self-governing system that can safely and autonomously evolve its own 
   codebase.
-capabilities:
-  - "```\naction.handler.abstract.define\n```"
-  - "```\naction.handler.registry.initialize\n```"
-  - "```\nagent.scaffold.application.create\n```"
-  - "```\napi.capabilities.list\n```"
-  - "```\napi.endpoint.knowledge.capabilities.list\n```"
-  - "```\napi.exception.handler.register\n```"
-  - "```\napplication.scaffolding.generate\n```"
-  - "```\nautonomy.self_healing.fix_docstrings.execute\n```"
-  - "```\ncapability.assignment.suggest\n```"
-  - "```\nclustering.analysis.find_clusters\n```"
-  - "```\ncode.format.line_length.fix\n```"
-  - "```\ncode.format.python.execute\n```"
-  - "```\ncode.function.edit\n```"
-  - "```\ncode.quality.fix_and_lint\n```"
-  - "```\ncode.validation.file.execute\n```"
-  - "```\ncognition.client.provision\n```"
-  - "```\ncore.cli.commands.register\n```"
-  - "```\ncore.cli.interactive.launch\n```"
-  - "```\ncore.context.global.set\n```"
-  - "```\ncore.context.set\n```"
-  - "```\ndatabase.sql.apply\n```"
-  - "```\ndevelopment.cycle.execute\n```"
-  - "```\ndevelopment.cycle.orchestrate\n```"
-  - "```\nembedding.service.build\n```"
-  - "```\nembedding.service.define\n```"
-  - "```\nembedding.service.get\n```"
-  - "```\nexecution.plan.error.define\n```"
-  - "```\nexecution.plan.execute\n```"
-  - "```\nexecution.plan.orchestrate\n```"
-  - "```\nfile.config.load\n```"
-  - "```\nfile.content.read\n```"
-  - "```\nfile.header.parse\n```"
-  - "```\nfile.operations.create\n```"
-  - "```\nfile.operations.delete\n```"
-  - "```\nfile.operations.list\n```"
-  - "```\nfile.operations.parse_write_blocks\n```"
-  - "```\nfile.operations.write\n```"
-  - "```\nfile.yaml.load\n```"
-  - "```\nfile.yaml.process\n```"
-  - "```\ngit.repository.operations.execute\n```"
-  - "```\ngovernance.agent_roles.validate\n```"
-  - "```\ngovernance.audit.capability_domains.execute\n```"
-  - "```\ngovernance.audit.drift.detect\n```"
-  - "```\ngovernance.audit.drift.execute\n```"
-  - "```\ngovernance.audit.environment.verify\n```"
-  - "```\ngovernance.audit.execute\n```"
-  - "```\ngovernance.audit.failure.log\n```"
-  - "```\ngovernance.audit.finding.serialize\n```"
-  - "```\ngovernance.audit.manifest_hygiene.execute\n```"
-  - "```\ngovernance.audit.policy_coverage.execute\n```"
-  - "```\ngovernance.audit.policy_coverage.report.generate\n```"
-  - "```\ngovernance.audit.run.log\n```"
-  - "```\ngovernance.audit.severity.evaluate\n```"
-  - "```\ngovernance.capability_tags.apply\n```"
-  - "```\ngovernance.capability_tags.prune\n```"
-  - "```\ngovernance.capability_tags.rename\n```"
-  - "```\ngovernance.check.result.define\n```"
-  - "```\ngovernance.checks.code_validation.execute\n```"
-  - "```\ngovernance.checks.domain_placement.execute\n```"
-  - "```\ngovernance.checks.duplication.execute\n```"
-  - "```\ngovernance.checks.id_uniqueness.execute\n```"
-  - "```\ngovernance.checks.import_rules.validate\n```"
-  - "```\ngovernance.checks.legacy_tags.execute\n```"
-  - "```\ngovernance.checks.naming_conventions.execute\n```"
-  - "```\ngovernance.checks.syntax.validate\n```"
-  - "```\ngovernance.checks.todo_comments.validate\n```"
-  - "```\ngovernance.checks.yaml_syntax.validate\n```"
-  - "```\ngovernance.code.review\n```"
-  - "```\ngovernance.correction.attempt\n```"
-  - "```\ngovernance.crate.process\n```"
-  - "```\ngovernance.crates.process\n```"
-  - "```\ngovernance.duplicate_ids.resolve\n```"
-  - "```\ngovernance.headers.fix\n```"
-  - "```\ngovernance.integration.execute\n```"
-  - "```\ngovernance.legacy_tags.purge\n```"
-  - "```\ngovernance.manifest.entry.validate\n```"
-  - "```\ngovernance.manifest.hygiene.fix\n```"
-  - "```\ngovernance.policies.ids.repair\n```"
-  - "```\ngovernance.policy.database.load\n```"
-  - "```\ngovernance.policy.enforce\n```"
-  - "```\ngovernance.policy.ids.fix\n```"
-  - "```\ngovernance.policy.micro_proposal.load\n```"
-  - "```\ngovernance.proposal.micro.generate\n```"
-  - "```\ngovernance.proposal.micro_apply\n```"
-  - "```\ngovernance.proposals.approve\n```"
-  - "```\ngovernance.reconcile.from_cli\n```"
-  - "```\ngovernance.risk_gates.validate\n```"
-  - "```\ngovernance.rollback.archive\n```"
-  - "```\ngovernance.symbols.ids.assign\n```"
-  - "```\ninfrastructure.database.status.check\n```"
-  - "```\ninfrastructure.di.service.get\n```"
-  - "```\ninfrastructure.di.service_registry.get\n```"
-  - "```\ninfrastructure.execution.context.create\n```"
-  - "```\nintegration.changes.execute\n```"
-  - "```\nintent.translation.execute\n```"
-  - "```\nintrospection.aliases.resolve\n```"
-  - "```\nintrospection.ast.base_classes.extract\n```"
-  - "```\nintrospection.ast.definition_line.find\n```"
-  - "```\nintrospection.ast.function_calls.collect\n```"
-  - "```\nintrospection.ast.structural_hash.calculate\n```"
-  - "```\nintrospection.audit.base_check.initialize\n```"
-  - "```\nintrospection.audit.context.initialize\n```"
-  - "```\nintrospection.audit.docs_clarity.execute\n```"
-  - "```\nintrospection.audit.history.list\n```"
-  - "```\nintrospection.audit.report.generate\n```"
-  - "```\nintrospection.capability.load_and_validate\n```"
-  - "```\nintrospection.capability.metadata.define\n```"
-  - "```\nintrospection.capability.resolve\n```"
-  - "```\nintrospection.cli.commands.list\n```"
-  - "```\nintrospection.cli.commands.search\n```"
-  - "```\nintrospection.cli.commands.sync\n```"
-  - "```\nintrospection.cli.registry.validate\n```"
-  - "```\nintrospection.cli.tree.display\n```"
-  - "```\nintrospection.clustering.semantic_clusters.find\n```"
-  - "```\nintrospection.clustering.semantic_clusters.generate\n```"
-  - "```\nintrospection.command.locate\n```"
-  - "```\nintrospection.commands.sync\n```"
-  - "```\nintrospection.constitutional.paths.discover\n```"
-  - "```\nintrospection.context.container.define\n```"
-  - "```\nintrospection.crate.define\n```"
-  - "```\nintrospection.cycle.execute\n```"
-  - "```\nintrospection.debug.meta_paths.list\n```"
-  - "```\nintrospection.discovery.capabilities.collect\n```"
-  - "```\nintrospection.discovery.file_classify\n```"
-  - "```\nintrospection.discovery.from_kgb\n```"
-  - "```\nintrospection.discovery.from_source_scan\n```"
-  - "```\nintrospection.discovery.imports.scan\n```"
-  - "```\nintrospection.discovery.symbols.scan\n```"
-  - "```\nintrospection.discovery.unassigned_symbols.get\n```"
-  - "```\nintrospection.docstring.extract\n```"
-  - "```\nintrospection.environment.repo_root.get\n```"
-  - "```\nintrospection.execution.task.define\n```"
-  - "```\nintrospection.llm_resource.model.define\n```"
-  - "```\nintrospection.manifest.aggregate\n```"
-  - "```\nintrospection.manifest.capabilities.load\n```"
-  - "```\nintrospection.manifest.legacy_cli_registry.define\n```"
-  - "```\nintrospection.manifest.sync\n```"
-  - "```\nintrospection.mapping.alias_generate\n```"
-  - "```\nintrospection.metadata.parse\n```"
-  - "```\nintrospection.migrations.get_applied\n```"
-  - "```\nintrospection.path.resolve\n```"
-  - "```\nintrospection.policy.actions.load\n```"
-  - "```\nintrospection.policy.load\n```"
-  - "```\nintrospection.reconnaissance.report.generate\n```"
-  - "```\nintrospection.repository.scaffold\n```"
-  - "```\nintrospection.schema.base.define\n```"
-  - "```\nintrospection.schema.cli_command.define\n```"
-  - "```\nintrospection.schema.cognitive_role.define\n```"
-  - "```\nintrospection.schema.legacy_cli_command.define\n```"
-  - "```\nintrospection.schema.llm_resource.define\n```"
-  - "```\nintrospection.schema.load\n```"
-  - "```\nintrospection.source.extract\n```"
-  - "```\nintrospection.source.extract_from_ast\n```"
-  - "```\nintrospection.symbol.definition.generate\n```"
-  - "```\nintrospection.symbol.id_locate\n```"
-  - "```\nintrospection.symbols.define\n```"
-  - "```\nintrospection.symbols.undefined.get\n```"
-  - "```\nintrospection.test_file.find\n```"
-  - "```\nknowledge.embedding.payload.define\n```"
-  - "```\nknowledge.graph.build_and_sync\n```"
-  - "```\nknowledge.search.capabilities.execute\n```"
-  - "```\nknowledge.service.get\n```"
-  - "```\nknowledge.symbols.define\n```"
-  - "```\nknowledge.sync.database\n```"
-  - "```\nknowledge.vectorization.execute\n```"
-  - "```\nknowledge.vectorization.task.process\n```"
-  - "```\nllm.client.request.execute\n```"
-  - "```\nllm.resource.select\n```"
-  - "```\nlogging.action.write\n```"
-  - "```\nlogging.nop.provide\n```"
-  - "```\nmigration.plan.parse\n```"
-  - "```\nparsing.json.extract\n```"
-  - "```\nplan.execution.parse_and_validate\n```"
-  - "```\nplanning.execution.create\n```"
-  - "```\nplanning.micro_plan.create\n```"
-  - "```\nproject.scaffolding.create\n```"
-  - "```\nrefactoring.imports.rewire\n```"
-  - "```\nruntime.validation.canary.execute\n```"
-  - "```\nsystem.cli.chat.translate\n```"
-  - "```\nsystem.command.execute\n```"
-  - "```\nsystem.concurrency.throttled_execution.run\n```"
-  - "```\nsystem.greeting.print\n```"
-  - "```\nsystem.health.diagnostic.run\n```"
-  - "```\ntesting.suite.run\n```"
-  - "```\ntext.normalization.apply\n```"
-  - "```\nui.menu.system_health.display\n```"
-  - "```\nui.shell.interactive.launch\n```"
-  - "```\nvector.storage.chunks.retrieve\n```"
-  - "```\nvector.storage.manage\n```"
-  - autonomy.self_healing.fix_docstrings.execute
-  - capability.deprecation.notify
-  - code.format.all.apply
-  - code.quality.lint
-  - context.global.set
-  - core.task.params.define
-  - cryptography.hash.sha256_hex
-  - data.export.database.execute
-  - database.migration.run
-  - database.schema.migrations.ensure
-  - database.schema.migrations.run
-  - database.session.provide
-  - documentation.capability.reference.generate
-  - embedding.text.chunk_and_average
-  - file.operations.edit
-  - file.yaml.save
-  - github.issues.bootstrap
-  - governance.audit.constitutional.execute
-  - governance.audit.drift_analyze
-  - governance.audit.violation_report.create
-  - governance.checks.drift.fail_condition.evaluate
-  - governance.checks.goal_alignment.validate
-  - governance.checks.id_coverage.execute
-  - governance.checks.id_uniqueness.fix
-  - governance.checks.safety_policy.validate
-  - governance.drift.report.write
-  - governance.menu.show
-  - governance.policy.rule.create
-  - governance.policy.schema.validate
-  - governance.proposal.create
-  - governance.proposal.micro.validate
-  - governance.proposal.token.generate
-  - governance.proposals.list
-  - governance.proposals.sign
-  - governance.review.context.define
-  - introspection.ast.parameters.extract
-  - introspection.audit.scope.define
-  - introspection.complexity.outliers.refactor
-  - introspection.environment.git_commit_sha.get
-  - introspection.legacy.resource.define
-  - introspection.parsing.header_components.define
-  - introspection.schema.cognitive_role.define
-  - introspection.symbol.id_result.define
-  - knowledge.domains.sync
-  - knowledge.service.get
-  - knowledge.symbols.update
-  - knowledge.sync.database
-  - knowledge.sync.vector_ids
-  - knowledge.vectorization.tasks.collect
-  - logging.service.provide
-  - migration.record.applied
-  - planning.prompt.build
-  - prompt.directives.process
-  - refactoring.clarity.fix
-  - security.key.private.load
-  - system.health.db.connectivity_check
-  - system.health.status.get
-  - system.planning.config.define
-  - testing.suite.run
-  - time.utc.now.get
-  - ui.menu.development.show
-  - ui.navigation.project_lifecycle.show
-  - vector.storage.export
+capabilities: []
 
 --- END OF FILE ./.intent/mind/project_manifest.yaml ---
 
@@ -6616,39 +6361,20 @@ if __name__ == "__main__":
     main()
 --- END OF FILE ./scripts/verify_a1_readiness.py ---
 
---- START OF FILE ./sql/000_squashed_baseline.sql ---
+--- START OF FILE ./sql/001_consolidated_schema.sql ---
+-- FILE: sql/001_consolidated_schema.sql
 --
--- PostgreSQL database dump
---
-
--- Dumped from database version 16.8 (Ubuntu 16.8-0ubuntu0.24.04.1)
--- Dumped by pg_dump version 16.8 (Ubuntu 16.8-0ubuntu0.24.04.1)
-
-SET statement_timeout = 0;
-SET lock_timeout = 0;
-SET idle_in_transaction_session_timeout = 0;
-SET client_encoding = 'SQL_ASCII';
-SET standard_conforming_strings = on;
-SELECT pg_catalog.set_config('search_path', '', false);
-SET check_function_bodies = false;
-SET xmloption = content;
-SET client_min_messages = warning;
-SET row_security = off;
-
---
--- Name: core; Type: SCHEMA; Schema: -; Owner: core
+-- This is the single, canonical source of truth for the CORE operational database schema.
+-- It is generated from a clean snapshot of the working database and is designed to be
+-- IDEMPOTENT. It can be run safely on a new or existing database.
 --
 
-CREATE SCHEMA core;
+-- =============================================================================
+-- SECTION 1: CORE SCHEMA & HELPERS
+-- =============================================================================
+CREATE SCHEMA IF NOT EXISTS core;
 
-
-ALTER SCHEMA core OWNER TO core;
-
---
--- Name: set_updated_at(); Type: FUNCTION; Schema: core; Owner: core
---
-
-CREATE FUNCTION core.set_updated_at() RETURNS trigger
+CREATE OR REPLACE FUNCTION core.set_updated_at() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
 BEGIN
@@ -6657,31 +6383,16 @@ BEGIN
 END;
 $$;
 
-
-ALTER FUNCTION core.set_updated_at() OWNER TO core;
-
-SET default_tablespace = '';
-
-SET default_table_access_method = heap;
-
---
--- Name: _migrations; Type: TABLE; Schema: core; Owner: core
---
-
-CREATE TABLE core._migrations (
-    id text NOT NULL,
+-- =============================================================================
+-- SECTION 2: MIGRATION & AUDIT TABLES
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS core._migrations (
+    id text NOT NULL PRIMARY KEY,
     applied_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
-
-ALTER TABLE core._migrations OWNER TO core;
-
---
--- Name: audit_runs; Type: TABLE; Schema: core; Owner: core
---
-
-CREATE TABLE core.audit_runs (
-    id bigint NOT NULL,
+CREATE TABLE IF NOT EXISTS core.audit_runs (
+    id bigserial PRIMARY KEY,
     source text NOT NULL,
     commit_sha character(40),
     score numeric(4,3),
@@ -6690,36 +6401,18 @@ CREATE TABLE core.audit_runs (
     finished_at timestamp with time zone
 );
 
+-- =============================================================================
+-- SECTION 3: KNOWLEDGE & SYMBOL CATALOG
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS core.domains (
+    key text NOT NULL PRIMARY KEY,
+    title text NOT NULL,
+    description text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
 
-ALTER TABLE core.audit_runs OWNER TO core;
-
---
--- Name: audit_runs_id_seq; Type: SEQUENCE; Schema: core; Owner: core
---
-
-CREATE SEQUENCE core.audit_runs_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
-ALTER SEQUENCE core.audit_runs_id_seq OWNER TO core;
-
---
--- Name: audit_runs_id_seq; Type: SEQUENCE OWNED BY; Schema: core; Owner: core
---
-
-ALTER SEQUENCE core.audit_runs_id_seq OWNED BY core.audit_runs.id;
-
-
---
--- Name: capabilities; Type: TABLE; Schema: core; Owner: core
---
-
-CREATE TABLE core.capabilities (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
+CREATE TABLE IF NOT EXISTS core.capabilities (
+    id uuid DEFAULT gen_random_uuid() NOT NULL PRIMARY KEY,
     title text NOT NULL,
     owner text NOT NULL,
     implementing_files jsonb,
@@ -6733,129 +6426,80 @@ CREATE TABLE core.capabilities (
     CONSTRAINT capabilities_status_chk_new CHECK ((status = ANY (ARRAY['Active'::text, 'Draft'::text, 'Deprecated'::text])))
 );
 
+CREATE TABLE IF NOT EXISTS core.symbols (
+    id uuid DEFAULT gen_random_uuid() NOT NULL PRIMARY KEY,
+    module text NOT NULL,
+    qualname text NOT NULL,
+    kind text NOT NULL,
+    ast_signature text NOT NULL,
+    fingerprint text NOT NULL, -- <<< THIS IS THE FIX: No longer UNIQUE
+    state text DEFAULT 'discovered'::text NOT NULL,
+    first_seen timestamp with time zone DEFAULT now() NOT NULL,
+    last_seen timestamp with time zone DEFAULT now() NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    uuid text UNIQUE,
+    symbol_path text UNIQUE,
+    is_public boolean NOT NULL DEFAULT true,
+    key text,
+    vector_id text,
+    CONSTRAINT symbols_kind_chk CHECK ((kind = ANY (ARRAY['function'::text, 'class'::text, 'method'::text, 'module'::text]))),
+    CONSTRAINT symbols_state_chk CHECK ((state = ANY (ARRAY['discovered'::text, 'classified'::text, 'bound'::text, 'verified'::text, 'deprecated'::text])))
+);
 
-ALTER TABLE core.capabilities OWNER TO core;
+CREATE TABLE IF NOT EXISTS core.symbol_capabilities (
+    symbol_uuid text NOT NULL,
+    capability_key text NOT NULL,
+    PRIMARY KEY (symbol_uuid, capability_key)
+);
 
---
--- Name: cli_commands; Type: TABLE; Schema: core; Owner: core
---
+CREATE TABLE IF NOT EXISTS core.symbol_capability_links (
+    symbol_id uuid NOT NULL REFERENCES core.symbols(id) ON DELETE CASCADE,
+    capability_id uuid NOT NULL REFERENCES core.capabilities(id) ON DELETE CASCADE,
+    confidence numeric NOT NULL,
+    source text NOT NULL,
+    verified boolean DEFAULT false NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    PRIMARY KEY (symbol_id, capability_id, source),
+    CONSTRAINT symbol_capability_links_confidence_check CHECK (((confidence >= (0)::numeric) AND (confidence <= (1)::numeric))),
+    CONSTRAINT symbol_capability_links_source_check CHECK ((source = ANY (ARRAY['auditor-infer'::text, 'manual'::text, 'rule'::text])))
+);
 
-CREATE TABLE core.cli_commands (
-    name text NOT NULL,
+-- =============================================================================
+-- SECTION 4: OPERATIONAL & RUNTIME TABLES
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS core.llm_resources (
+    name text NOT NULL PRIMARY KEY,
+    provided_capabilities jsonb DEFAULT '[]'::jsonb NOT NULL,
+    env_prefix text NOT NULL UNIQUE,
+    performance_metadata jsonb
+);
+
+CREATE TABLE IF NOT EXISTS core.cognitive_roles (
+    role text NOT NULL PRIMARY KEY,
+    description text,
+    assigned_resource text REFERENCES core.llm_resources(name),
+    required_capabilities jsonb DEFAULT '[]'::jsonb NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS core.cli_commands (
+    name text NOT NULL PRIMARY KEY,
     module text NOT NULL,
     entrypoint text NOT NULL,
     summary text,
     category text
 );
 
-
-ALTER TABLE core.cli_commands OWNER TO core;
-
---
--- Name: cognitive_roles; Type: TABLE; Schema: core; Owner: core
---
-
-CREATE TABLE core.cognitive_roles (
-    role text NOT NULL,
-    description text,
-    assigned_resource text,
-    required_capabilities jsonb DEFAULT '[]'::jsonb NOT NULL
+CREATE TABLE IF NOT EXISTS core.runtime_services (
+    name text NOT NULL PRIMARY KEY,
+    implementation text NOT NULL UNIQUE
 );
 
-
-ALTER TABLE core.cognitive_roles OWNER TO core;
-
---
--- Name: domains; Type: TABLE; Schema: core; Owner: core
---
-
-CREATE TABLE core.domains (
-    key text NOT NULL,
-    title text NOT NULL,
-    description text,
-    created_at timestamp with time zone DEFAULT now() NOT NULL
-);
-
-
-ALTER TABLE core.domains OWNER TO core;
-
---
--- Name: export_digests; Type: TABLE; Schema: core; Owner: core
---
-
-CREATE TABLE core.export_digests (
-    path text NOT NULL,
-    sha256 text NOT NULL,
-    manifest_id uuid NOT NULL,
-    exported_at timestamp with time zone DEFAULT now() NOT NULL
-);
-
-
-ALTER TABLE core.export_digests OWNER TO core;
-
---
--- Name: export_manifests; Type: TABLE; Schema: core; Owner: core
---
-
-CREATE TABLE core.export_manifests (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    exported_at timestamp with time zone DEFAULT now() NOT NULL,
-    who text,
-    environment text,
-    notes text
-);
-
-
-ALTER TABLE core.export_manifests OWNER TO core;
-
---
--- Name: llm_resources; Type: TABLE; Schema: core; Owner: core
---
-
-CREATE TABLE core.llm_resources (
-    name text NOT NULL,
-    provided_capabilities jsonb DEFAULT '[]'::jsonb NOT NULL,
-    env_prefix text NOT NULL,
-    performance_metadata jsonb
-);
-
-
-ALTER TABLE core.llm_resources OWNER TO core;
-
---
--- Name: northstar; Type: TABLE; Schema: core; Owner: core
---
-
-CREATE TABLE core.northstar (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    mission text NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
-);
-
-
-ALTER TABLE core.northstar OWNER TO core;
-
---
--- Name: proposal_signatures; Type: TABLE; Schema: core; Owner: core
---
-
-CREATE TABLE core.proposal_signatures (
-    proposal_id bigint NOT NULL,
-    approver_identity text NOT NULL,
-    signature_base64 text NOT NULL,
-    signed_at timestamp with time zone DEFAULT now() NOT NULL,
-    is_valid boolean DEFAULT true NOT NULL
-);
-
-
-ALTER TABLE core.proposal_signatures OWNER TO core;
-
---
--- Name: proposals; Type: TABLE; Schema: core; Owner: core
---
-
-CREATE TABLE core.proposals (
-    id bigint NOT NULL,
+-- =============================================================================
+-- SECTION 5: GOVERNANCE & PROPOSAL TABLES
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS core.proposals (
+    id bigserial PRIMARY KEY,
     target_path text NOT NULL,
     content_sha256 character(64) NOT NULL,
     justification text NOT NULL,
@@ -6868,755 +6512,78 @@ CREATE TABLE core.proposals (
     CONSTRAINT proposals_status_check CHECK ((status = ANY (ARRAY['open'::text, 'approved'::text, 'rejected'::text, 'superseded'::text])))
 );
 
-
-ALTER TABLE core.proposals OWNER TO core;
-
---
--- Name: proposals_id_seq; Type: SEQUENCE; Schema: core; Owner: core
---
-
-CREATE SEQUENCE core.proposals_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
-ALTER SEQUENCE core.proposals_id_seq OWNER TO core;
-
---
--- Name: proposals_id_seq; Type: SEQUENCE OWNED BY; Schema: core; Owner: core
---
-
-ALTER SEQUENCE core.proposals_id_seq OWNED BY core.proposals.id;
-
-
---
--- Name: runtime_services; Type: TABLE; Schema: core; Owner: core
---
-
-CREATE TABLE core.runtime_services (
-    name text NOT NULL,
-    implementation text NOT NULL
+CREATE TABLE IF NOT EXISTS core.proposal_signatures (
+    proposal_id bigint NOT NULL REFERENCES core.proposals(id) ON DELETE CASCADE,
+    approver_identity text NOT NULL,
+    signature_base64 text NOT NULL,
+    signed_at timestamp with time zone DEFAULT now() NOT NULL,
+    is_valid boolean DEFAULT true NOT NULL,
+    PRIMARY KEY (proposal_id, approver_identity)
 );
 
-
-ALTER TABLE core.runtime_services OWNER TO core;
-
---
--- Name: symbol_capabilities; Type: TABLE; Schema: core; Owner: core
---
-
-CREATE TABLE core.symbol_capabilities (
-    symbol_uuid text NOT NULL,
-    capability_key text NOT NULL
+-- =============================================================================
+-- SECTION 6: EXPORT & MANIFEST TABLES
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS core.export_manifests (
+    id uuid DEFAULT gen_random_uuid() NOT NULL PRIMARY KEY,
+    exported_at timestamp with time zone DEFAULT now() NOT NULL,
+    who text,
+    environment text,
+    notes text
 );
 
-
-ALTER TABLE core.symbol_capabilities OWNER TO core;
-
---
--- Name: symbol_capability_links; Type: TABLE; Schema: core; Owner: core
---
-
-CREATE TABLE core.symbol_capability_links (
-    symbol_id uuid NOT NULL,
-    capability_id uuid NOT NULL,
-    confidence numeric NOT NULL,
-    source text NOT NULL,
-    verified boolean DEFAULT false NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    CONSTRAINT symbol_capability_links_confidence_check CHECK (((confidence >= (0)::numeric) AND (confidence <= (1)::numeric))),
-    CONSTRAINT symbol_capability_links_source_check CHECK ((source = ANY (ARRAY['auditor-infer'::text, 'manual'::text, 'rule'::text])))
+CREATE TABLE IF NOT EXISTS core.export_digests (
+    path text NOT NULL PRIMARY KEY,
+    sha256 text NOT NULL,
+    manifest_id uuid NOT NULL REFERENCES core.export_manifests(id) ON DELETE CASCADE,
+    exported_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
-
-ALTER TABLE core.symbol_capability_links OWNER TO core;
-
---
--- Name: symbols; Type: TABLE; Schema: core; Owner: core
---
-
-CREATE TABLE core.symbols (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    module text NOT NULL,
-    qualname text NOT NULL,
-    kind text NOT NULL,
-    ast_signature text NOT NULL,
-    fingerprint text NOT NULL,
-    state text DEFAULT 'discovered'::text NOT NULL,
-    first_seen timestamp with time zone DEFAULT now() NOT NULL,
-    last_seen timestamp with time zone DEFAULT now() NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL,
-    uuid text,
-    symbol_path text,
-    CONSTRAINT symbols_kind_chk CHECK ((kind = ANY (ARRAY['function'::text, 'class'::text, 'method'::text, 'module'::text]))),
-    CONSTRAINT symbols_state_chk CHECK ((state = ANY (ARRAY['discovered'::text, 'classified'::text, 'bound'::text, 'verified'::text, 'deprecated'::text])))
+CREATE TABLE IF NOT EXISTS core.northstar (
+    id uuid DEFAULT gen_random_uuid() NOT NULL PRIMARY KEY,
+    mission text NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
+-- =============================================================================
+-- SECTION 7: VIEWS, INDEXES & TRIGGERS
+-- =============================================================================
 
-ALTER TABLE core.symbols OWNER TO core;
-
---
--- Name: v_orphan_symbols; Type: VIEW; Schema: core; Owner: core
---
-
-CREATE VIEW core.v_orphan_symbols AS
- SELECT s.id,
-    s.module,
-    s.qualname,
-    s.kind,
-    s.ast_signature,
-    s.fingerprint,
-    s.state,
-    s.first_seen,
-    s.last_seen,
-    s.created_at,
-    s.updated_at
+-- VIEWS
+CREATE OR REPLACE VIEW core.v_orphan_symbols AS
+ SELECT s.id, s.module, s.qualname, s.kind, s.ast_signature, s.fingerprint, s.state, s.first_seen, s.last_seen, s.created_at, s.updated_at
    FROM (core.symbols s
      LEFT JOIN core.symbol_capability_links l ON ((l.symbol_id = s.id)))
   WHERE ((l.symbol_id IS NULL) AND (s.state <> 'deprecated'::text));
 
-
-ALTER VIEW core.v_orphan_symbols OWNER TO core;
-
---
--- Name: v_verified_coverage; Type: VIEW; Schema: core; Owner: core
---
-
-CREATE VIEW core.v_verified_coverage AS
- SELECT c.id AS capability_id,
-    c.name,
-    count(l.symbol_id) AS verified_symbols
+CREATE OR REPLACE VIEW core.v_verified_coverage AS
+ SELECT c.id AS capability_id, c.name, count(l.symbol_id) AS verified_symbols
    FROM (core.capabilities c
      LEFT JOIN core.symbol_capability_links l ON (((l.capability_id = c.id) AND (l.verified = true))))
   GROUP BY c.id, c.name;
 
-
-ALTER VIEW core.v_verified_coverage OWNER TO core;
-
---
--- Name: audit_runs id; Type: DEFAULT; Schema: core; Owner: core
---
-
-ALTER TABLE ONLY core.audit_runs ALTER COLUMN id SET DEFAULT nextval('core.audit_runs_id_seq'::regclass);
-
-
---
--- Name: proposals id; Type: DEFAULT; Schema: core; Owner: core
---
-
-ALTER TABLE ONLY core.proposals ALTER COLUMN id SET DEFAULT nextval('core.proposals_id_seq'::regclass);
-
-
---
--- Data for Name: _migrations; Type: TABLE DATA; Schema: core; Owner: core
---
-
-COPY core._migrations (id, applied_at) FROM stdin;
-001_consolidated_schema.sql	2025-10-03 14:14:50.44047+00
-001_core_ssot.sql	2025-10-04 06:45:32.192968+00
-002_ssot_schema.sql	2025-10-04 07:47:13.355263+00
-003_fix_capabilities_title.sql	2025-10-04 08:31:15.820879+00
-004_fix_symbols_uuid.sql	2025-10-04 08:37:22.104726+00
-006_fix_symbols_path_constraint.sql	2025-10-04 08:50:02.216576+00
-\.
-
-
---
--- Data for Name: audit_runs; Type: TABLE DATA; Schema: core; Owner: core
---
-
-COPY core.audit_runs (id, source, commit_sha, score, passed, started_at, finished_at) FROM stdin;
-\.
-
-
---
--- Data for Name: capabilities; Type: TABLE DATA; Schema: core; Owner: core
---
-
-COPY core.capabilities (id, title, owner, implementing_files, created_at, updated_at, name, objective, domain, tags, status) FROM stdin;
-\.
-
-
---
--- Data for Name: cli_commands; Type: TABLE DATA; Schema: core; Owner: core
---
-
-COPY core.cli_commands (name, module, entrypoint, summary, category) FROM stdin;
-\.
-
-
---
--- Data for Name: cognitive_roles; Type: TABLE DATA; Schema: core; Owner: core
---
-
-COPY core.cognitive_roles (role, description, assigned_resource, required_capabilities) FROM stdin;
-Planner	Decomposes high-level goals into step-by-step plans.	deepseek_chat	["planning"]
-Coder	Generates and refactors source code.	deepseek_coder	["code_generation"]
-Vectorizer	Creates semantic vector embeddings from text.	local_embedding	["embedding"]
-CodeReviewer	Reviews code for clarity, style, and correctness.	deepseek_coder	["code_generation"]
-\.
-
-
---
--- Data for Name: domains; Type: TABLE DATA; Schema: core; Owner: core
---
-
-COPY core.domains (key, title, description, created_at) FROM stdin;
-\.
-
-
---
--- Data for Name: export_digests; Type: TABLE DATA; Schema: core; Owner: core
---
-
-COPY core.export_digests (path, sha256, manifest_id, exported_at) FROM stdin;
-\.
-
-
---
--- Data for Name: export_manifests; Type: TABLE DATA; Schema: core; Owner: core
---
-
-COPY core.export_manifests (id, exported_at, who, environment, notes) FROM stdin;
-\.
-
-
---
--- Data for Name: llm_resources; Type: TABLE DATA; Schema: core; Owner: core
---
-
-COPY core.llm_resources (name, provided_capabilities, env_prefix, performance_metadata) FROM stdin;
-deepseek_chat	["chat", "reasoning", "planning"]	DEEPSEEK_CHAT	{"cost_rating": 2, "quality_rating": 4}
-deepseek_coder	["code_generation", "refactoring"]	DEEPSEEK_CODER	{"cost_rating": 3, "quality_rating": 5}
-anthropic_claude_sonnet	["chat", "reasoning", "planning", "code_generation"]	ANTHROPIC_CLAUDE_SONNET	{"cost_rating": 4, "quality_rating": 4}
-local_embedding	["embedding"]	LOCAL_EMBEDDING	{"cost_rating": 1, "quality_rating": 3}
-\.
-
-
---
--- Data for Name: northstar; Type: TABLE DATA; Schema: core; Owner: core
---
-
-COPY core.northstar (id, mission, updated_at) FROM stdin;
-\.
-
-
---
--- Data for Name: proposal_signatures; Type: TABLE DATA; Schema: core; Owner: core
---
-
-COPY core.proposal_signatures (proposal_id, approver_identity, signature_base64, signed_at, is_valid) FROM stdin;
-\.
-
-
---
--- Data for Name: proposals; Type: TABLE DATA; Schema: core; Owner: core
---
-
-COPY core.proposals (id, target_path, content_sha256, justification, risk_tier, is_critical, status, created_at, created_by) FROM stdin;
-\.
-
-
---
--- Data for Name: runtime_services; Type: TABLE DATA; Schema: core; Owner: core
---
-
-COPY core.runtime_services (name, implementation) FROM stdin;
-\.
-
-
---
--- Data for Name: symbol_capabilities; Type: TABLE DATA; Schema: core; Owner: core
---
-
-COPY core.symbol_capabilities (symbol_uuid, capability_key) FROM stdin;
-\.
-
-
---
--- Data for Name: symbol_capability_links; Type: TABLE DATA; Schema: core; Owner: core
---
-
-COPY core.symbol_capability_links (symbol_id, capability_id, confidence, source, verified, created_at) FROM stdin;
-\.
-
-
---
--- Data for Name: symbols; Type: TABLE DATA; Schema: core; Owner: core
---
-
-COPY core.symbols (id, module, qualname, kind, ast_signature, fingerprint, state, first_seen, last_seen, created_at, updated_at, uuid, symbol_path) FROM stdin;
-\.
-
-
---
--- Name: audit_runs_id_seq; Type: SEQUENCE SET; Schema: core; Owner: core
---
-
-SELECT pg_catalog.setval('core.audit_runs_id_seq', 1, false);
-
-
---
--- Name: proposals_id_seq; Type: SEQUENCE SET; Schema: core; Owner: core
---
-
-SELECT pg_catalog.setval('core.proposals_id_seq', 1, false);
-
-
---
--- Name: _migrations _migrations_pkey; Type: CONSTRAINT; Schema: core; Owner: core
---
-
-ALTER TABLE ONLY core._migrations
-    ADD CONSTRAINT _migrations_pkey PRIMARY KEY (id);
-
-
---
--- Name: audit_runs audit_runs_pkey; Type: CONSTRAINT; Schema: core; Owner: core
---
-
-ALTER TABLE ONLY core.audit_runs
-    ADD CONSTRAINT audit_runs_pkey PRIMARY KEY (id);
-
-
---
--- Name: capabilities capabilities_pkey; Type: CONSTRAINT; Schema: core; Owner: core
---
-
-ALTER TABLE ONLY core.capabilities
-    ADD CONSTRAINT capabilities_pkey PRIMARY KEY (id);
-
-
---
--- Name: cli_commands cli_commands_pkey; Type: CONSTRAINT; Schema: core; Owner: core
---
-
-ALTER TABLE ONLY core.cli_commands
-    ADD CONSTRAINT cli_commands_pkey PRIMARY KEY (name);
-
-
---
--- Name: cognitive_roles cognitive_roles_pkey; Type: CONSTRAINT; Schema: core; Owner: core
---
-
-ALTER TABLE ONLY core.cognitive_roles
-    ADD CONSTRAINT cognitive_roles_pkey PRIMARY KEY (role);
-
-
---
--- Name: domains domains_pkey; Type: CONSTRAINT; Schema: core; Owner: core
---
-
-ALTER TABLE ONLY core.domains
-    ADD CONSTRAINT domains_pkey PRIMARY KEY (key);
-
-
---
--- Name: export_digests export_digests_pkey; Type: CONSTRAINT; Schema: core; Owner: core
---
-
-ALTER TABLE ONLY core.export_digests
-    ADD CONSTRAINT export_digests_pkey PRIMARY KEY (path);
-
-
---
--- Name: export_manifests export_manifests_pkey; Type: CONSTRAINT; Schema: core; Owner: core
---
-
-ALTER TABLE ONLY core.export_manifests
-    ADD CONSTRAINT export_manifests_pkey PRIMARY KEY (id);
-
-
---
--- Name: llm_resources llm_resources_env_prefix_key; Type: CONSTRAINT; Schema: core; Owner: core
---
-
-ALTER TABLE ONLY core.llm_resources
-    ADD CONSTRAINT llm_resources_env_prefix_key UNIQUE (env_prefix);
-
-
---
--- Name: llm_resources llm_resources_pkey; Type: CONSTRAINT; Schema: core; Owner: core
---
-
-ALTER TABLE ONLY core.llm_resources
-    ADD CONSTRAINT llm_resources_pkey PRIMARY KEY (name);
-
-
---
--- Name: northstar northstar_pkey; Type: CONSTRAINT; Schema: core; Owner: core
---
-
-ALTER TABLE ONLY core.northstar
-    ADD CONSTRAINT northstar_pkey PRIMARY KEY (id);
-
-
---
--- Name: proposal_signatures proposal_signatures_pkey; Type: CONSTRAINT; Schema: core; Owner: core
---
-
-ALTER TABLE ONLY core.proposal_signatures
-    ADD CONSTRAINT proposal_signatures_pkey PRIMARY KEY (proposal_id, approver_identity);
-
-
---
--- Name: proposals proposals_pkey; Type: CONSTRAINT; Schema: core; Owner: core
---
-
-ALTER TABLE ONLY core.proposals
-    ADD CONSTRAINT proposals_pkey PRIMARY KEY (id);
-
-
---
--- Name: runtime_services runtime_services_implementation_key; Type: CONSTRAINT; Schema: core; Owner: core
---
-
-ALTER TABLE ONLY core.runtime_services
-    ADD CONSTRAINT runtime_services_implementation_key UNIQUE (implementation);
-
-
---
--- Name: runtime_services runtime_services_pkey; Type: CONSTRAINT; Schema: core; Owner: core
---
-
-ALTER TABLE ONLY core.runtime_services
-    ADD CONSTRAINT runtime_services_pkey PRIMARY KEY (name);
-
-
---
--- Name: symbol_capabilities symbol_capabilities_pkey; Type: CONSTRAINT; Schema: core; Owner: core
---
-
-ALTER TABLE ONLY core.symbol_capabilities
-    ADD CONSTRAINT symbol_capabilities_pkey PRIMARY KEY (symbol_uuid, capability_key);
-
-
---
--- Name: symbol_capability_links symbol_capability_links_pkey; Type: CONSTRAINT; Schema: core; Owner: core
---
-
-ALTER TABLE ONLY core.symbol_capability_links
-    ADD CONSTRAINT symbol_capability_links_pkey PRIMARY KEY (symbol_id, capability_id, source);
-
-
---
--- Name: symbols symbols_pkey; Type: CONSTRAINT; Schema: core; Owner: core
---
-
-ALTER TABLE ONLY core.symbols
-    ADD CONSTRAINT symbols_pkey PRIMARY KEY (id);
-
-
---
--- Name: symbols symbols_symbol_path_uidx; Type: CONSTRAINT; Schema: core; Owner: core
---
-
-ALTER TABLE ONLY core.symbols
-    ADD CONSTRAINT symbols_symbol_path_uidx UNIQUE (symbol_path);
-
-
---
--- Name: symbols symbols_uuid_key; Type: CONSTRAINT; Schema: core; Owner: core
---
-
-ALTER TABLE ONLY core.symbols
-    ADD CONSTRAINT symbols_uuid_key UNIQUE (uuid);
-
-
---
--- Name: capabilities_domain_name_uidx; Type: INDEX; Schema: core; Owner: core
---
-
-CREATE UNIQUE INDEX capabilities_domain_name_uidx ON core.capabilities USING btree (lower(domain), lower(name));
-
-
---
--- Name: idx_domains_key; Type: INDEX; Schema: core; Owner: core
---
-
-CREATE INDEX idx_domains_key ON core.domains USING btree (key);
-
-
---
--- Name: idx_symbol_capabilities_capability_key; Type: INDEX; Schema: core; Owner: core
---
-
-CREATE INDEX idx_symbol_capabilities_capability_key ON core.symbol_capabilities USING btree (capability_key);
-
-
---
--- Name: links_capability_idx; Type: INDEX; Schema: core; Owner: core
---
-
-CREATE INDEX links_capability_idx ON core.symbol_capability_links USING btree (capability_id);
-
-
---
--- Name: links_symbol_idx; Type: INDEX; Schema: core; Owner: core
---
-
-CREATE INDEX links_symbol_idx ON core.symbol_capability_links USING btree (symbol_id);
-
-
---
--- Name: links_verified_idx; Type: INDEX; Schema: core; Owner: core
---
-
-CREATE INDEX links_verified_idx ON core.symbol_capability_links USING btree (verified);
-
-
---
--- Name: symbols_fingerprint_uidx; Type: INDEX; Schema: core; Owner: core
---
-
-CREATE UNIQUE INDEX symbols_fingerprint_uidx ON core.symbols USING btree (fingerprint);
-
-
---
--- Name: symbols_qualname_idx; Type: INDEX; Schema: core; Owner: core
---
-
-CREATE INDEX symbols_qualname_idx ON core.symbols USING btree (qualname);
-
-
---
--- Name: symbols_state_idx; Type: INDEX; Schema: core; Owner: core
---
-
-CREATE INDEX symbols_state_idx ON core.symbols USING btree (state);
-
-
---
--- Name: capabilities trg_capabilities_updated_at; Type: TRIGGER; Schema: core; Owner: core
---
-
-CREATE TRIGGER trg_capabilities_updated_at BEFORE UPDATE ON core.capabilities FOR EACH ROW EXECUTE FUNCTION core.set_updated_at();
-
-
---
--- Name: symbols trg_symbols_updated_at; Type: TRIGGER; Schema: core; Owner: core
---
-
-CREATE TRIGGER trg_symbols_updated_at BEFORE UPDATE ON core.symbols FOR EACH ROW EXECUTE FUNCTION core.set_updated_at();
-
-
---
--- Name: cognitive_roles cognitive_roles_assigned_resource_fkey; Type: FK CONSTRAINT; Schema: core; Owner: core
---
-
-ALTER TABLE ONLY core.cognitive_roles
-    ADD CONSTRAINT cognitive_roles_assigned_resource_fkey FOREIGN KEY (assigned_resource) REFERENCES core.llm_resources(name);
-
-
---
--- Name: export_digests export_digests_manifest_id_fkey; Type: FK CONSTRAINT; Schema: core; Owner: core
---
-
-ALTER TABLE ONLY core.export_digests
-    ADD CONSTRAINT export_digests_manifest_id_fkey FOREIGN KEY (manifest_id) REFERENCES core.export_manifests(id) ON DELETE CASCADE;
-
-
---
--- Name: symbol_capability_links fk_capability; Type: FK CONSTRAINT; Schema: core; Owner: core
---
-
-ALTER TABLE ONLY core.symbol_capability_links
-    ADD CONSTRAINT fk_capability FOREIGN KEY (capability_id) REFERENCES core.capabilities(id) ON DELETE CASCADE;
-
-
---
--- Name: proposal_signatures proposal_signatures_proposal_id_fkey; Type: FK CONSTRAINT; Schema: core; Owner: core
---
-
-ALTER TABLE ONLY core.proposal_signatures
-    ADD CONSTRAINT proposal_signatures_proposal_id_fkey FOREIGN KEY (proposal_id) REFERENCES core.proposals(id) ON DELETE CASCADE;
-
-
---
--- Name: symbol_capability_links symbol_capability_links_symbol_id_fkey; Type: FK CONSTRAINT; Schema: core; Owner: core
---
-
-ALTER TABLE ONLY core.symbol_capability_links
-    ADD CONSTRAINT symbol_capability_links_symbol_id_fkey FOREIGN KEY (symbol_id) REFERENCES core.symbols(id) ON DELETE CASCADE;
-
-
---
--- PostgreSQL database dump complete
---
-
-
---- END OF FILE ./sql/000_squashed_baseline.sql ---
-
---- START OF FILE ./sql/001_consolidated_schema.sql ---
--- FILE: sql/001_consolidated_schema.sql
---
--- This is the single, canonical source of truth for the CORE operational database schema.
--- It is a consolidation of all previous migration files (001-009).
---
--- This script is designed to be IDEMPOTENT. It can be run safely on a new or existing
--- database, as all object creation statements use `IF NOT EXISTS` or `OR REPLACE`.
---
-
--- =============================================================================
--- SECTION 1: CORE SCHEMA
--- =============================================================================
-CREATE SCHEMA IF NOT EXISTS core;
-
-
--- =============================================================================
--- SECTION 2: KNOWLEDGE & SYMBOL CATALOG (The Mind's Database)
--- =============================================================================
-
--- Domains for architectural classification
-CREATE TABLE IF NOT EXISTS core.domains (
-    key          TEXT PRIMARY KEY,
-    title        TEXT NOT NULL,
-    description  TEXT,
-    created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
--- The central table for all discovered code symbols (functions, classes, etc.)
-CREATE TABLE IF NOT EXISTS core.symbols (
-    uuid            TEXT PRIMARY KEY,
-    symbol_path     TEXT NOT NULL UNIQUE,
-    file_path       TEXT NOT NULL,
-    is_public       BOOLEAN NOT NULL DEFAULT FALSE,
-    title           TEXT,
-    description     TEXT,
-    owner           TEXT NOT NULL DEFAULT 'unassigned_agent',
-    status          TEXT NOT NULL DEFAULT 'active',
-    structural_hash CHAR(64),
-    created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    -- Merged from later migrations
-    key             TEXT,
-    domain_key      TEXT REFERENCES core.domains(key) ON DELETE SET NULL,
-    vector          JSONB,
-    vector_id       TEXT -- Storing the Qdrant point ID for cross-reference
-);
-
--- A new capabilities table, distinct from the old one, for high-level tracking.
-CREATE TABLE IF NOT EXISTS core.capabilities (
-  id TEXT PRIMARY KEY,          -- The canonical key, e.g., 'introspection.vectorize'
-  title TEXT NOT NULL,
-  owner TEXT NOT NULL,
-  implementing_files JSONB,     -- A JSON array of file paths like ["src/features/introspection/service.py"]
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
--- Junction table for many-to-many relationship between symbols and capabilities
-CREATE TABLE IF NOT EXISTS core.symbol_capabilities (
-    symbol_uuid TEXT NOT NULL REFERENCES core.symbols(uuid) ON DELETE CASCADE,
-    capability_key TEXT NOT NULL, -- This will be validated by the application layer
-    PRIMARY KEY (symbol_uuid, capability_key)
-);
-
-
--- =============================================================================
--- SECTION 3: OPERATIONAL KNOWLEDGE (Runtime Configuration)
--- =============================================================================
-
--- Table for LLM Resources, replacing resource_manifest.yaml
-CREATE TABLE IF NOT EXISTS core.llm_resources (
-    name TEXT PRIMARY KEY,
-    provided_capabilities JSONB NOT NULL DEFAULT '[]'::jsonb,
-    env_prefix TEXT NOT NULL UNIQUE,
-    performance_metadata JSONB
-);
-
--- Table for Cognitive Roles, replacing cognitive_roles.yaml
-CREATE TABLE IF NOT EXISTS core.cognitive_roles (
-    "role" TEXT PRIMARY KEY,
-    description TEXT,
-    assigned_resource TEXT REFERENCES core.llm_resources(name),
-    required_capabilities JSONB NOT NULL DEFAULT '[]'::jsonb
-);
-
--- Table for Runtime Services, replacing runtime_services.yaml
-CREATE TABLE IF NOT EXISTS core.runtime_services (
-    name TEXT PRIMARY KEY,
-    implementation TEXT NOT NULL UNIQUE
-);
-
--- Table for CLI Commands, replacing cli_registry.yaml
-CREATE TABLE IF NOT EXISTS core.cli_commands (
-    name TEXT PRIMARY KEY,
-    module TEXT NOT NULL,
-    entrypoint TEXT NOT NULL,
-    summary TEXT,
-    category TEXT
-);
-
-
--- =============================================================================
--- SECTION 4: GOVERNANCE & AUDIT TRAIL
--- =============================================================================
-
--- Evidence of constitutional change attempts
-CREATE TABLE IF NOT EXISTS core.proposals (
-  id               BIGSERIAL PRIMARY KEY,
-  target_path      TEXT NOT NULL,
-  content_sha256   CHAR(64) NOT NULL,
-  justification    TEXT NOT NULL,
-  risk_tier        TEXT CHECK (risk_tier IN ('low','medium','high')) DEFAULT 'low',
-  is_critical      BOOLEAN NOT NULL DEFAULT FALSE,
-  status           TEXT CHECK (status IN ('open','approved','rejected','superseded')) NOT NULL DEFAULT 'open',
-  created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  created_by       TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS core.proposal_signatures (
-  proposal_id       BIGINT NOT NULL REFERENCES core.proposals(id) ON DELETE CASCADE,
-  approver_identity TEXT NOT NULL,
-  signature_base64  TEXT NOT NULL,
-  signed_at         TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  is_valid          BOOLEAN NOT NULL DEFAULT TRUE,
-  PRIMARY KEY (proposal_id, approver_identity)
-);
-
--- Scores and pass/fail history over time
-CREATE TABLE IF NOT EXISTS core.audit_runs (
-  id         BIGSERIAL PRIMARY KEY,
-  source     TEXT NOT NULL,           -- 'nightly' | 'pr' | 'manual'
-  commit_sha CHAR(40),
-  score      NUMERIC(4,3),
-  passed     BOOLEAN NOT NULL,
-  started_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  finished_at TIMESTAMPTZ
-);
-
-
--- =============================================================================
--- SECTION 5: VIEWS
--- =============================================================================
-
--- A stable, queryable interface to the system's knowledge graph.
 CREATE OR REPLACE VIEW core.knowledge_graph AS
 SELECT
     s.uuid,
-    s.key AS capability, -- Alias 'key' to 'capability' for backward compatibility
+    s.key AS capability,
     s.symbol_path,
-    s.file_path AS file,
-    s.title,
-    s.description AS intent,
-    s.owner,
-    s.status,
+    s.module as file_path,
+    s.qualname as name,
+    s.kind as type,
+    s.qualname as title,
+    'TBD' as intent,
+    'unassigned_agent' as owner,
+    s.state as status,
     s.is_public,
-    s.structural_hash,
+    s.fingerprint as structural_hash,
     s.vector_id,
     s.updated_at AS last_updated,
-    -- Placeholders to match the old schema for now.
     '[]'::jsonb AS tags,
     '[]'::jsonb AS calls,
     '[]'::jsonb AS parameters,
     '[]'::jsonb AS base_classes,
-    (s.symbol_path LIKE '%__init__') AS is_class,
-    (s.symbol_path LIKE '%Test%') AS is_test,
+    (s.kind = 'class') AS is_class,
+    (s.qualname LIKE 'Test%') AS is_test,
     0 AS line_number,
     0 AS end_line_number,
     NULL AS source_code,
@@ -7624,399 +6591,33 @@ SELECT
     NULL AS entry_point_type,
     NULL AS entry_point_justification,
     NULL AS parent_class_key,
-    FALSE AS is_async
+    (s.kind = 'function' AND s.qualname LIKE 'async%') AS is_async
 FROM
     core.symbols s;
 
-
--- =============================================================================
--- SECTION 6: INDEXES
--- =============================================================================
-
+-- INDEXES
+CREATE UNIQUE INDEX IF NOT EXISTS capabilities_domain_name_uidx ON core.capabilities USING btree (lower(domain), lower(name));
 CREATE UNIQUE INDEX IF NOT EXISTS uq_symbols_key ON core.symbols (key) WHERE key IS NOT NULL;
-CREATE INDEX IF NOT EXISTS idx_symbols_filepath ON core.symbols (file_path);
-CREATE INDEX IF NOT EXISTS idx_symbols_is_public ON core.symbols (is_public);
-CREATE INDEX IF NOT EXISTS idx_domains_key ON core.domains (key);
-CREATE INDEX IF NOT EXISTS idx_symbols_domain_key ON core.symbols (domain_key);
-CREATE INDEX IF NOT EXISTS idx_symbols_vector_gin ON core.symbols USING GIN (vector);
-CREATE INDEX IF NOT EXISTS idx_symbol_capabilities_capability_key ON core.symbol_capabilities (capability_key);
+CREATE INDEX IF NOT EXISTS idx_domains_key ON core.domains USING btree (key);
+CREATE INDEX IF NOT EXISTS idx_symbol_capabilities_capability_key ON core.symbol_capabilities USING btree (capability_key);
+CREATE INDEX IF NOT EXISTS links_capability_idx ON core.symbol_capability_links USING btree (capability_id);
+CREATE INDEX IF NOT EXISTS links_symbol_idx ON core.symbol_capability_links USING btree (symbol_id);
+CREATE INDEX IF NOT EXISTS links_verified_idx ON core.symbol_capability_links USING btree (verified);
+-- NO LONGER UNIQUE: CREATE UNIQUE INDEX IF NOT EXISTS symbols_fingerprint_uidx ON core.symbols USING btree (fingerprint);
+CREATE INDEX IF NOT EXISTS symbols_qualname_idx ON core.symbols USING btree (qualname);
+CREATE INDEX IF NOT EXISTS symbols_state_idx ON core.symbols USING btree (state);
 
-
--- =============================================================================
--- END OF CONSOLIDATED SCHEMA
--- =============================================================================
+-- TRIGGERS
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'trg_capabilities_updated_at') THEN
+    CREATE TRIGGER trg_capabilities_updated_at BEFORE UPDATE ON core.capabilities FOR EACH ROW EXECUTE FUNCTION core.set_updated_at();
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'trg_symbols_updated_at') THEN
+    CREATE TRIGGER trg_symbols_updated_at BEFORE UPDATE ON core.symbols FOR EACH ROW EXECUTE FUNCTION core.set_updated_at();
+  END IF;
+END$$;
 --- END OF FILE ./sql/001_consolidated_schema.sql ---
-
---- START OF FILE ./sql/002_ssot_schema.sql ---
--- FILE: sql/002_ssot_schema.sql
--- Core SSOT: minimal schema for Working Mind (capabilities, symbols, links, northstar, exports)
--- Safe to run multiple times.
-
--- =========================
--- 1) Capabilities (reference master data)
--- =========================
-CREATE TABLE IF NOT EXISTS core.capabilities (
-  id          UUID PRIMARY KEY,
-  name        TEXT NOT NULL,
-  objective   TEXT,
-  owner       TEXT,
-  domain      TEXT NOT NULL DEFAULT 'general',
-  tags        JSONB NOT NULL DEFAULT '[]'::jsonb,
-  status      TEXT NOT NULL DEFAULT 'Active' CHECK (status IN ('Active','Draft','Deprecated')),
-  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
-CREATE UNIQUE INDEX IF NOT EXISTS capabilities_domain_name_uidx ON core.capabilities (lower(domain), lower(name));
-DROP TRIGGER IF EXISTS trg_capabilities_updated_at ON core.capabilities;
-CREATE TRIGGER trg_capabilities_updated_at BEFORE UPDATE ON core.capabilities FOR EACH ROW EXECUTE FUNCTION core.set_updated_at();
-
--- =========================
--- 2) Symbols (code knowledge, AST-based identity)
--- =========================
-ALTER TABLE core.symbols
-  ADD COLUMN IF NOT EXISTS id UUID PRIMARY KEY,
-  ADD COLUMN IF NOT EXISTS module TEXT,
-  ADD COLUMN IF NOT EXISTS qualname TEXT,
-  ADD COLUMN IF NOT EXISTS kind TEXT CHECK (kind IN ('function','class','method','module')),
-  ADD COLUMN IF NOT EXISTS ast_signature TEXT,
-  ADD COLUMN IF NOT EXISTS fingerprint TEXT UNIQUE,
-  ADD COLUMN IF NOT EXISTS state TEXT NOT NULL DEFAULT 'discovered' CHECK (state IN ('discovered','classified','bound','verified','deprecated')),
-  ADD COLUMN IF NOT EXISTS first_seen TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  ADD COLUMN IF NOT EXISTS last_seen TIMESTAMPTZ NOT NULL DEFAULT NOW();
-
-DROP TRIGGER IF EXISTS trg_symbols_updated_at ON core.symbols;
-CREATE TRIGGER trg_symbols_updated_at BEFORE UPDATE ON core.symbols FOR EACH ROW EXECUTE FUNCTION core.set_updated_at();
-
--- =========================
--- 3) Symbol ↔ Capability links (with confidence & provenance)
--- =========================
-CREATE TABLE IF NOT EXISTS core.symbol_capability_links (
-  symbol_id     UUID NOT NULL REFERENCES core.symbols(id) ON DELETE CASCADE,
-  capability_id UUID NOT NULL REFERENCES core.capabilities(id) ON DELETE CASCADE,
-  confidence    NUMERIC NOT NULL CHECK (confidence >= 0 AND confidence <= 1),
-  source        TEXT NOT NULL CHECK (source IN ('auditor-infer','manual','rule')),
-  verified      BOOLEAN NOT NULL DEFAULT FALSE,
-  created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  PRIMARY KEY (symbol_id, capability_id, source)
-);
-
-CREATE INDEX IF NOT EXISTS links_capability_idx ON core.symbol_capability_links (capability_id);
-CREATE INDEX IF NOT EXISTS links_symbol_idx     ON core.symbol_capability_links (symbol_id);
-
--- =========================
--- 4) NorthStar (current + history optional later)
--- =========================
-CREATE TABLE IF NOT EXISTS core.northstar (
-  id         UUID PRIMARY KEY,
-  mission    TEXT NOT NULL,
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
--- =========================
--- 5) Export manifests & file digests (for reproducible snapshots)
--- =========================
-CREATE TABLE IF NOT EXISTS core.export_manifests (
-  id           UUID PRIMARY KEY,
-  exported_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  who          TEXT,
-  environment  TEXT,
-  notes        TEXT
-);
-
-CREATE TABLE IF NOT EXISTS core.export_digests (
-  path         TEXT PRIMARY KEY,
-  sha256       TEXT NOT NULL,
-  manifest_id  UUID NOT NULL REFERENCES core.export_manifests(id) ON DELETE CASCADE,
-  exported_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
--- =========================
--- 6) Helpful views (optional)
--- =========================
-CREATE OR REPLACE VIEW core.v_orphan_symbols AS
-SELECT s.*
-FROM core.symbols s
-LEFT JOIN core.symbol_capability_links l
-  ON l.symbol_id = s.id
-WHERE l.symbol_id IS NULL AND s.state <> 'deprecated';
-
-CREATE OR REPLACE VIEW core.v_verified_coverage AS
-SELECT c.id AS capability_id, c.name, COUNT(l.symbol_id) AS verified_symbols
-FROM core.capabilities c
-LEFT JOIN core.symbol_capability_links l
-  ON l.capability_id = c.id AND l.verified = TRUE
-GROUP BY c.id, c.name;
---- END OF FILE ./sql/002_ssot_schema.sql ---
-
---- START OF FILE ./sql/003_fix_capabilities_title.sql ---
--- FILE: sql/003_fix_capabilities_title.sql
--- Fixes the core.capabilities table by adding the missing 'title' column
--- which is required to be not-null.
-
-ALTER TABLE core.capabilities
-ADD COLUMN IF NOT EXISTS title TEXT NOT NULL DEFAULT 'Untitled';
---- END OF FILE ./sql/003_fix_capabilities_title.sql ---
-
---- START OF FILE ./sql/004_fix_symbols_uuid.sql ---
--- FILE: sql/004_fix_symbols_uuid.sql
--- Fixes the core.symbols table by adding the missing 'uuid' column, which is
--- needed to store the legacy '# ID:' tags during migration.
-
-ALTER TABLE core.symbols
-ADD COLUMN IF NOT EXISTS uuid TEXT UNIQUE;
---- END OF FILE ./sql/004_fix_symbols_uuid.sql ---
-
---- START OF FILE ./sql/005_reconcile_baseline.sql ---
--- 005_reconcile_baseline.sql
--- Purpose: Reconcile environments that applied different 001 baselines
---          and ensure the SSOT schema is canonical and idempotent.
--- Notes:
--- - Safe to run multiple times.
--- - Works whether host applied 001_consolidated_schema.sql only,
---   or 001_core_ssot.sql + 002/003/004/006 chain.
---
--- Transaction boundaries are deliberately explicit to avoid partial state.
-
-BEGIN;
-
--- 0) Ensure schema and helpers
-CREATE SCHEMA IF NOT EXISTS core;
-
--- gen_random_uuid() lives in pgcrypto in modern PG installs
-DO $$
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_extension WHERE extname = 'pgcrypto'
-  ) THEN
-    CREATE EXTENSION pgcrypto;
-  END IF;
-END$$;
-
-----------------------------------------------------------------------
--- 1) SYMBOLS: ensure SSOT columns + constraints
-----------------------------------------------------------------------
-
--- 1.1) Ensure table exists (either baseline may have created it)
-CREATE TABLE IF NOT EXISTS core.symbols (
-  -- SSOT canonical PK; if not present yet, we'll add in 1.2
-  id UUID,
-  -- Legacy carryover (TEXT) kept for traceability/compat
-  uuid TEXT,
-  -- Canonical identity key at SSOT level
-  symbol_path TEXT,
-  -- SSOT detail columns
-  module TEXT,
-  qualname TEXT,
-  ast_signature TEXT,
-  state TEXT,
-  -- Timestamps (optional; added if missing later)
-  created_at TIMESTAMP WITH TIME ZONE,
-  updated_at TIMESTAMP WITH TIME ZONE
-);
-
--- 1.2) Add missing columns for hosts that started on consolidated baseline
-ALTER TABLE core.symbols
-  ADD COLUMN IF NOT EXISTS id UUID,
-  ADD COLUMN IF NOT EXISTS symbol_path TEXT,
-  ADD COLUMN IF NOT EXISTS module TEXT,
-  ADD COLUMN IF NOT EXISTS qualname TEXT,
-  ADD COLUMN IF NOT EXISTS ast_signature TEXT,
-  ADD COLUMN IF NOT EXISTS state TEXT,
-  ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ,
-  ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ;
-
--- 1.3) Populate id when null (prefer casting uuid TEXT if it looks like a UUID)
-DO $$
-BEGIN
-  IF EXISTS (SELECT 1 FROM core.symbols WHERE id IS NULL) THEN
-    UPDATE core.symbols
-    SET id = CASE
-      WHEN uuid ~ '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$'
-        THEN uuid::uuid
-      ELSE gen_random_uuid()
-    END
-    WHERE id IS NULL;
-  END IF;
-END$$;
-
--- 1.4) Ensure PK on id (drop any non-id PK first)
-DO $$
-DECLARE
-  pk_name TEXT;
-  collist TEXT;
-BEGIN
-  SELECT conname, string_agg(att.attname, ',')
-  INTO pk_name, collist
-  FROM pg_constraint con
-  JOIN pg_class rel ON rel.oid = con.conrelid
-  JOIN pg_attribute att ON att.attrelid = con.conrelid AND att.attnum = ANY(con.conkey)
-  JOIN pg_namespace nsp ON nsp.oid = rel.relnamespace
-  WHERE con.contype = 'p'
-    AND nsp.nspname = 'core'
-    AND rel.relname = 'symbols'
-  GROUP BY conname;
-
-  IF pk_name IS NOT NULL AND collist IS DISTINCT FROM 'id' THEN
-    EXECUTE format('ALTER TABLE core.symbols DROP CONSTRAINT %I', pk_name);
-  END IF;
-
-  -- Add PK if not present or was dropped above
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_constraint
-    WHERE conrelid = 'core.symbols'::regclass
-      AND contype = 'p'
-  ) THEN
-    ALTER TABLE core.symbols
-      ADD CONSTRAINT symbols_pkey PRIMARY KEY (id);
-  END IF;
-END$$;
-
--- 1.5) Ensure unique constraints on symbol_path and uuid (uuid may not exist on some hosts)
-DO $$
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_indexes
-    WHERE schemaname='core' AND tablename='symbols' AND indexname='symbols_symbol_path_uidx'
-  ) THEN
-    CREATE UNIQUE INDEX symbols_symbol_path_uidx ON core.symbols(symbol_path);
-  END IF;
-
-  -- Only if column exists
-  IF EXISTS (
-    SELECT 1 FROM information_schema.columns
-    WHERE table_schema='core' AND table_name='symbols' AND column_name='uuid'
-  ) THEN
-    IF NOT EXISTS (
-      SELECT 1 FROM pg_indexes
-      WHERE schemaname='core' AND tablename='symbols' AND indexname='symbols_uuid_key'
-    ) THEN
-      CREATE UNIQUE INDEX symbols_uuid_key ON core.symbols(uuid);
-    END IF;
-  END IF;
-END$$;
-
--- 1.6) Optional: state/kind checks (skip if they already exist; keep values as-is if present)
--- We won't recreate to avoid conflicting with existing allowed sets.
--- If you want to enforce/refresh these, we can add a controlled patch later.
-
-----------------------------------------------------------------------
--- 2) CAPABILITIES: ensure SSOT columns + constraints
-----------------------------------------------------------------------
-
-CREATE TABLE IF NOT EXISTS core.capabilities (
-  id UUID,
-  name TEXT,
-  objective TEXT,
-  status TEXT,
-  owner TEXT,
-  implementing_files JSONB,
-  -- Legacy carr
-
---- END OF FILE ./sql/005_reconcile_baseline.sql ---
-
---- START OF FILE ./sql/006_fix_symbols_path_constraint.sql ---
--- FILE: sql/006_fix_symbols_path_constraint.sql
--- Corrects the core.symbols table by re-adding the symbol_path column
--- and applying the unique constraint, making it the true identifier for a symbol.
-
--- 1. Add the symbol_path column back if it doesn't exist.
-ALTER TABLE core.symbols
-ADD COLUMN IF NOT EXISTS symbol_path TEXT;
-
--- 2. Now, apply the unique constraint.
-ALTER TABLE core.symbols
-ADD CONSTRAINT symbols_symbol_path_uidx UNIQUE (symbol_path);
---- END OF FILE ./sql/006_fix_symbols_path_constraint.sql ---
-
---- START OF FILE ./sql/007_sync_compat_shims.sql ---
--- 007_sync_compat_shims.sql
--- Purpose: Provide legacy-compatible staging surface so older sync code
---          can INSERT (uuid, symbol_path, file_path, structural_hash, is_public)
---          while we map that to the SSOT symbols table later.
-
-BEGIN;
-
-CREATE SCHEMA IF NOT EXISTS core;
-
--- 1) Legacy-compatible staging table expected by the old sync code
---    (Idempotent: create if missing; add columns if they’re missing)
-CREATE TABLE IF NOT EXISTS core.core_symbols_staging (
-  uuid            TEXT,
-  symbol_path     TEXT,
-  file_path       TEXT,
-  structural_hash TEXT,
-  is_public       BOOLEAN DEFAULT TRUE
-);
-
-ALTER TABLE core.core_symbols_staging
-  ADD COLUMN IF NOT EXISTS uuid            TEXT,
-  ADD COLUMN IF NOT EXISTS symbol_path     TEXT,
-  ADD COLUMN IF NOT EXISTS file_path       TEXT,
-  ADD COLUMN IF NOT EXISTS structural_hash TEXT,
-  ADD COLUMN IF NOT EXISTS is_public       BOOLEAN;
-
--- Helpful index if large batches come in
-DO $$
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_indexes
-    WHERE schemaname='core' AND tablename='core_symbols_staging'
-      AND indexname='core_symbols_staging_symbol_path_idx'
-  ) THEN
-    CREATE INDEX core_symbols_staging_symbol_path_idx
-      ON core.core_symbols_staging(symbol_path);
-  END IF;
-END$$;
-
--- 2) Optional: a compact “apply” function to upsert from staging -> SSOT.
---    If your sync tool already has its own apply/merge, you can ignore this.
-CREATE OR REPLACE FUNCTION core.apply_symbols_staging()
-RETURNS void
-LANGUAGE plpgsql
-AS $$
-DECLARE
-  v_now TIMESTAMPTZ := now();
-BEGIN
-  -- Map legacy fields to SSOT (best-effort):
-  -- - module: file_path without .py, path separators -> dots (fallback to 'unknown')
-  -- - qualname: use symbol_path (the sync usually encodes qualname there)
-  -- - kind: default 'module' if unknown
-  -- - ast_signature: empty when unknown (old pipeline didn’t provide it)
-  -- - fingerprint: structural_hash
-  -- - state: 'discovered'
-  INSERT INTO core.symbols (
-    id, uuid, symbol_path, module, qualname, kind, ast_signature,
-    fingerprint, state, first_seen, last_seen, created_at, updated_at
-  )
-  SELECT
-    gen_random_uuid(),
-    s.uuid,
-    s.symbol_path,
-    COALESCE(
-      NULLIF(regexp_replace(regexp_replace(s.file_path, '\.py$', '', 'g'), '[/\\]', '.', 'g'),''),
-      'unknown'
-    ) AS module,
-    s.symbol_path AS qualname,
-    'module'      AS kind,
-    ''            AS ast_signature,
-    s.structural_hash AS fingerprint,
-    'discovered'  AS state,
-    v_now, v_now, v_now, v_now
-  FROM core.core_symbols_staging s
-  ON CONFLICT (symbol_path) DO UPDATE
-    SET fingerprint = EXCLUDED.fingerprint,
-        last_seen   = v_now,
-        updated_at  = v_now;
-
-  -- Clear staging after successful apply
-  TRUNCATE TABLE core.core_symbols_staging;
-END;
-$$;
-
-COMMIT;
-
---- END OF FILE ./sql/007_sync_compat_shims.sql ---
 
 --- START OF FILE ./src/api/__init__.py ---
 [EMPTY FILE]
@@ -8101,6 +6702,7 @@ core_context = CoreContext(
 )
 
 
+# ID: 2cefad7a-83b8-4263-b882-5a62eae5b092
 def register_all_commands(app_instance: typer.Typer) -> None:
     """Register all command groups in the correct order."""
     modules_with_context = [check, fix, inspect, manage, mind, run, search, submit]
@@ -8113,6 +6715,7 @@ register_all_commands(app)
 
 
 @app.callback(invoke_without_command=True)
+# ID: 74b366e2-d1fc-44c6-a9bc-e8fe222d1ad8
 def main(ctx: typer.Context):
     """If no command is specified, launch the interactive menu."""
     # Attach our custom context to Typer's context object
@@ -8296,6 +6899,7 @@ def register(app: typer.Typer, context: CoreContext):
 from __future__ import annotations
 
 import asyncio
+import re
 from typing import Set
 
 import typer
@@ -8308,6 +6912,7 @@ from sqlalchemy.orm import sessionmaker
 from cli.logic.byor import initialize_repository
 from cli.logic.cli_utils import set_context as set_shared_context
 from cli.logic.db import export_data, migrate_db
+from cli.logic.knowledge_sync import sync_operational
 from cli.logic.new import register as register_new_project
 from cli.logic.project_docs import docs as project_docs
 from cli.logic.proposal_service import (
@@ -8318,11 +6923,9 @@ from cli.logic.proposal_service import (
 from cli.logic.sync import sync_knowledge_base
 from cli.logic.sync_manifest import sync_manifest
 from core.cognitive_service import CognitiveService
-from core.prompt_pipeline import PromptPipeline
 from features.governance.key_management_service import register as register_keygen
 from features.introspection.knowledge_helpers import extract_source_code
 from features.maintenance.migration_service import run_ssot_migration
-from services.clients.qdrant_client import QdrantService
 from shared.config import settings
 from shared.context import CoreContext
 from shared.logger import getLogger
@@ -8342,6 +6945,7 @@ db_sub_app.command("migrate")(migrate_db)
 db_sub_app.command("export")(export_data)
 db_sub_app.command("sync-knowledge")(sync_knowledge_base)
 db_sub_app.command("sync-manifest")(sync_manifest)
+db_sub_app.command("sync-operational")(sync_operational)
 
 
 @db_sub_app.command(
@@ -8377,30 +6981,43 @@ register_keygen(keys_sub_app)
 manage_app.add_typer(keys_sub_app, name="keys")
 
 
-def _define_single_symbol_sync(
-    symbol, cognitive_service, qdrant_service, existing_keys: Set[str]
-):
+def _define_single_symbol_sync(symbol, definer_agent, existing_keys: Set[str]):
     """Synchronous version of the symbol definition logic."""
-    log.info(f"Defining symbol: {symbol.get('symbol_path')}")
     source_code = extract_source_code(settings.REPO_PATH, symbol)
     if not source_code:
         return {"uuid": symbol["uuid"], "key": "error.code_not_found"}
 
-    prompt_pipeline = PromptPipeline(settings.REPO_PATH)
-    prompt_template = settings.get_path("mind.prompts.capability_definer").read_text(
-        "utf-8"
+    prompt_template = (
+        "Analyze the following Python code and propose a single, canonical, "
+        "dot-notation capability key that follows a `domain.subdomain.action` pattern. "
+        "The final part MUST be a verb.\n\n"
+        "```python\n{code}\n```\n\n"
+        "Respond with ONLY the key and nothing else."
     )
-    final_prompt = prompt_pipeline.process(prompt_template.format(code=source_code))
+    final_prompt = prompt_template.format(code=source_code)
 
-    definer_agent = cognitive_service.get_client_for_role("CodeReviewer")
-    suggested_key = definer_agent.make_request_sync(
-        final_prompt, user_id="definer_agent"
-    ).strip()
+    # --- THIS IS THE FIX: Wrap the AI call in a try/except block ---
+    try:
+        raw_response = definer_agent.make_request_sync(
+            final_prompt, user_id="definer_agent"
+        ).strip()
+    except Exception as e:
+        # This will now print the error even if 'track' is running.
+        console.print(
+            f"\n[bold red]FATAL ERROR during AI call for '{symbol.get('symbol_path')}':[/]"
+        )
+        console.print(f"[red]{e}[/red]")
+        # Return an error so the loop can continue to the next item if desired.
+        return {"uuid": symbol["uuid"], "key": "error.ai_request_failed"}
+    # --- END OF FIX ---
+
+    match = re.search(r"([a-z0-9_]+\.[a-z0.9_.]+[a-z0-9_]+)", raw_response)
+    if not match:
+        return {"uuid": symbol["uuid"], "key": "error.parsing_failed"}
+
+    suggested_key = match.group(1).strip()
 
     if suggested_key in existing_keys:
-        console.print(
-            f"[yellow]Warning: AI suggested existing key '{suggested_key}'. Skipping.[/yellow]"
-        )
         return {"uuid": symbol["uuid"], "key": "error.duplicate_key"}
 
     return {"uuid": symbol["uuid"], "key": suggested_key}
@@ -8416,6 +7033,26 @@ def define_symbols_command():
         "[bold yellow]Running simple, synchronous symbol definition...[/bold yellow]"
     )
 
+    console.print("   -> Performing pre-flight check for AI services...")
+    cognitive_service = CognitiveService(settings.REPO_PATH)
+    try:
+        asyncio.run(cognitive_service.initialize())
+        definer_agent = cognitive_service.get_client_for_role("CodeReviewer")
+        console.print("   -> ✅ AI service for 'CodeReviewer' is configured correctly.")
+    except Exception as e:
+        console.print("[bold red]❌ PRE-FLIGHT CHECK FAILED.[/bold red]")
+        console.print("   -> Could not create the AI client needed for this command.")
+        console.print(f"   -> Error: {e}")
+        console.print("\n[bold]Next Steps:[/bold]")
+        console.print("   1. Check your `.env` file.")
+        console.print(
+            "   2. Ensure `DEEPSEEK_CODER_API_URL` and `DEEPSEEK_CODER_MODEL_NAME` are set."
+        )
+        console.print(
+            "   3. Ensure the `cognitive_roles` table in your database correctly maps 'CodeReviewer' to 'deepseek_coder'."
+        )
+        raise typer.Exit(code=1)
+
     try:
         engine = create_engine(
             settings.DATABASE_URL.replace("postgresql+asyncpg", "postgresql+psycopg2")
@@ -8427,9 +7064,6 @@ def define_symbols_command():
             "[bold red]Error: psycopg2-binary is required. Please run 'poetry add psycopg2-binary'[/bold red]"
         )
         raise typer.Exit(1)
-
-    cognitive_service = CognitiveService(settings.REPO_PATH)
-    qdrant_service = QdrantService()
 
     try:
         ignore_policy_path = (
@@ -8449,7 +7083,7 @@ def define_symbols_command():
 
         undefined_symbols_result = session.execute(
             text(
-                "SELECT uuid, file_path, symbol_path, vector_id FROM core.symbols WHERE key IS NULL AND vector_id IS NOT NULL"
+                "SELECT uuid, module AS file_path, symbol_path, qualname, vector_id FROM core.symbols WHERE key IS NULL"
             )
         )
         all_undefined_symbols = [dict(row._mapping) for row in undefined_symbols_result]
@@ -8479,17 +7113,18 @@ def define_symbols_command():
         existing_keys = {row[0] for row in existing_keys_res}
 
         definitions_to_commit = []
-        for symbol in track(undefined_symbols, description="Defining symbols..."):
-            definition = _define_single_symbol_sync(
-                symbol, cognitive_service, qdrant_service, existing_keys
-            )
-            if (
-                definition
-                and definition.get("key")
-                and not definition["key"].startswith("error.")
-            ):
-                definitions_to_commit.append(definition)
-                existing_keys.add(definition["key"])
+        if undefined_symbols:
+            for symbol in track(undefined_symbols, description="Defining symbols..."):
+                definition = _define_single_symbol_sync(
+                    symbol, definer_agent, existing_keys
+                )
+                if (
+                    definition
+                    and definition.get("key")
+                    and not definition["key"].startswith("error.")
+                ):
+                    definitions_to_commit.append(definition)
+                    existing_keys.add(definition["key"])
 
         if definitions_to_commit:
             console.print(
@@ -8549,6 +7184,7 @@ mind_app = typer.Typer(
     "snapshot",
     help="Export the database to canonical YAML files in .intent/mind_export/.",
 )
+# ID: 6b07ed06-3e0b-4203-b436-589e9768ac37
 def snapshot_command(
     env: Optional[str] = typer.Option(
         None, "--env", help="Environment tag (e.g., 'dev', 'prod')."
@@ -8564,6 +7200,7 @@ def snapshot_command(
 @mind_app.command(
     "diff", help="Compare the live database with the exported YAML files."
 )
+# ID: c61dd781-8248-4538-9432-63a1e8e4e6c5
 def diff_command(
     as_json: bool = typer.Option(
         False, "--json", help="Output the diff in machine-readable JSON format."
@@ -8576,6 +7213,7 @@ def diff_command(
 @mind_app.command(
     "import", help="Import the exported YAML files into the database (idempotent)."
 )
+# ID: 12dbe850-1a05-4d24-8f89-cf685df849c9
 def import_command(
     write: bool = typer.Option(
         False, "--write", help="Apply the import to the database."
@@ -8589,12 +7227,14 @@ def import_command(
 @mind_app.command(
     "verify", help="Recomputes digests for exported files and fails on mismatch."
 )
+# ID: 14a816b5-deb8-4476-805b-4c8bbe895a0b
 def verify_command():
     """CLI wrapper for the verification logic."""
     if not run_verify():
         raise typer.Exit(code=1)
 
 
+# ID: 0aaed618-2e91-4767-bcaf-58f3f56cecc5
 def register(app: typer.Typer, context: CoreContext):
     """Register the 'mind' command group to the main CLI app."""
     app.add_typer(mind_app, name="mind")
@@ -9289,6 +7929,7 @@ Implements high-level CI and system health checks, including the main constituti
 from __future__ import annotations
 
 import asyncio
+from collections import defaultdict
 from pathlib import Path
 from typing import Optional
 
@@ -9299,7 +7940,7 @@ from rich.table import Table
 
 from features.governance.constitutional_auditor import ConstitutionalAuditor
 from shared.context import CoreContext
-from shared.models import AuditSeverity
+from shared.models import AuditFinding, AuditSeverity
 
 from .cli_utils import (
     _run_poetry_command,
@@ -9365,6 +8006,12 @@ def audit(
         help="Filter findings by minimum severity level (info, warning, error).",
         case_sensitive=False,
     ),
+    verbose: bool = typer.Option(
+        False,
+        "--verbose",
+        "-v",
+        help="Show all individual findings instead of a summary.",
+    ),
 ):
     """Run a full constitutional self-audit and print a summary of findings."""
     if _context is None:
@@ -9399,35 +8046,81 @@ def audit(
         console.print(Panel(summary_table, title=title, style=style, expand=False))
 
         if filtered_findings:
-            console.print("\n[bold]Audit Findings:[/bold]")
-            findings_table = Table()
-            findings_table.add_column("Severity", style="bold")
-            findings_table.add_column("Check ID")
-            findings_table.add_column("Message")
-            findings_table.add_column("File:Line")
-
-            for f in sorted(filtered_findings, key=lambda x: x.severity, reverse=True):
-                color = {"error": "red", "warning": "yellow", "info": "cyan"}.get(
-                    str(f.severity), "white"
-                )
-                loc = (
-                    f"{f.file_path}:{f.line_number}"
-                    if f.file_path and f.line_number
-                    else f.file_path or ""
-                )
-                findings_table.add_row(
-                    f"[{color}]{str(f.severity).upper()}[/{color}]",
-                    f.check_id,
-                    f.message,
-                    loc,
-                )
-
-            console.print(findings_table)
+            if verbose:
+                _print_verbose_findings(filtered_findings)
+            else:
+                _print_summary_findings(filtered_findings)
 
         if not passed:
             raise typer.Exit(1)
 
     asyncio.run(_async_audit())
+
+
+def _print_verbose_findings(findings: list[AuditFinding]):
+    """Prints every single finding in a detailed table."""
+    console.print("\n[bold]Audit Findings (Verbose):[/bold]")
+    table = Table()
+    table.add_column("Severity", style="bold")
+    table.add_column("Check ID")
+    table.add_column("Message")
+    table.add_column("File:Line")
+
+    for f in sorted(findings, key=lambda x: x.severity, reverse=True):
+        color = {"error": "red", "warning": "yellow", "info": "cyan"}.get(
+            str(f.severity), "white"
+        )
+        loc = (
+            f"{f.file_path}:{f.line_number}"
+            if f.file_path and f.line_number
+            else f.file_path or ""
+        )
+        table.add_row(
+            f"[{color}]{str(f.severity).upper()}[/{color}]",
+            f.check_id,
+            f.message,
+            loc,
+        )
+    console.print(table)
+
+
+def _print_summary_findings(findings: list[AuditFinding]):
+    """Groups findings by check ID and prints a summary table."""
+    console.print("\n[bold]Audit Findings (Summary):[/bold]")
+    grouped = defaultdict(list)
+    for f in findings:
+        grouped[f.check_id].append(f)
+
+    table = Table()
+    table.add_column("Severity", style="bold")
+    table.add_column("Count", justify="right")
+    table.add_column("Check ID")
+    table.add_column("Sample Message")
+
+    # Sort by severity (errors first), then by count
+    sorted_check_ids = sorted(
+        grouped.keys(),
+        key=lambda k: (max(f.severity for f in grouped[k]), len(grouped[k])),
+        reverse=True,
+    )
+
+    for check_id in sorted_check_ids:
+        items = grouped[check_id]
+        sample = items[0]
+        count = len(items)
+        severity = sample.severity
+
+        color = {"error": "red", "warning": "yellow", "info": "cyan"}.get(
+            str(severity), "white"
+        )
+        table.add_row(
+            f"[{color}]{str(severity).upper()}[/{color}]",
+            str(count),
+            check_id,
+            sample.message,
+        )
+    console.print(table)
+    console.print("\nRun with '--verbose' to see all individual findings.")
 
 --- END OF FILE ./src/cli/logic/audit.py ---
 
@@ -11516,7 +10209,6 @@ from __future__ import annotations
 
 import asyncio
 
-import typer
 import yaml
 from rich.console import Console
 from sqlalchemy import JSON, Column, MetaData, String, Table
@@ -11546,7 +10238,6 @@ async def _upsert_data(session, table_name: str, data: list[dict], primary_key: 
         table_name.split(".")[-1], meta, *columns, schema=table_name.split(".")[0]
     )
 
-    # --- THIS IS THE FIX: Removed manual json.dumps() ---
     # The database driver handles JSON serialization automatically.
 
     stmt = pg_insert(table_obj).values(data)
@@ -11570,7 +10261,6 @@ async def _sync_operational_knowledge():
         "[bold cyan]🚀 Syncing operational knowledge from constitution YAMLs to Database...[/bold cyan]"
     )
 
-    # --- THIS IS THE FIX: Use settings to get the correct, indexed paths ---
     sync_map = {
         "core.llm_resources": (
             settings.get_path("mind.knowledge.resource_manifest"),
@@ -11585,7 +10275,6 @@ async def _sync_operational_knowledge():
             "role",
         ),
     }
-    # --- END OF FIX ---
 
     total_upserted = 0
     async with get_session() as session:
@@ -11626,25 +10315,6 @@ async def _sync_operational_knowledge():
 def sync_operational():
     """One-way sync of operational knowledge (Roles, Resources) from YAML to DB."""
     asyncio.run(_sync_operational_knowledge())
-
-
-# ID: 26dbe871-7cb8-4c92-bc52-1bc14f9f7597
-def register(app: typer.Typer):
-    """Mounts the 'sync-operational' command under 'manage database'."""
-    # --- THIS IS THE FIX: Simplified and more robust registration logic ---
-    manage_group = next((g for g in app.registered_groups if g.name == "manage"), None)
-    if manage_group:
-        db_subgroup = next(
-            (
-                g
-                for g in manage_group.typer_instance.registered_groups
-                if g.name == "database"
-            ),
-            None,
-        )
-        if db_subgroup:
-            db_subgroup.typer_instance.command("sync-operational")(sync_operational)
-    # --- END OF FIX ---
 
 --- END OF FILE ./src/cli/logic/knowledge_sync.py ---
 
@@ -11792,11 +10462,13 @@ EXPORT_DIR = settings.REPO_PATH / ".intent" / "mind_export"
 # --- Helper Functions from your plan ---
 
 
+# ID: bca8d420-49c6-4f18-aa43-6b4dd7f0f850
 def iso_now() -> str:
     """Returns the current UTC time in a standard format."""
     return datetime.now(timezone.utc).isoformat()
 
 
+# ID: dec9deb3-1e13-4d2a-a0cd-dcae4b248ac1
 def canonicalize(obj: Any) -> Any:
     """Recursively sorts dictionary keys to ensure a stable, consistent order for hashing."""
     if isinstance(obj, dict):
@@ -11813,6 +10485,7 @@ def canonicalize(obj: Any) -> Any:
     return obj
 
 
+# ID: 5e482eda-feb8-46d8-b4fd-d4c80bb23372
 def compute_digest(items: List[Dict[str, Any]]) -> str:
     """Creates a unique fingerprint (SHA256) for a list of items."""
     canon = canonicalize(items)
@@ -11822,6 +10495,7 @@ def compute_digest(items: List[Dict[str, Any]]) -> str:
     return "sha256:" + hashlib.sha256(payload).hexdigest()
 
 
+# ID: 868c75af-85f7-4f90-9f3b-87806b2b4ee9
 def write_yaml(path: Path, items: List[Dict[str, Any]], exported_at: str) -> str:
     """Writes a list of items to a YAML file, including version, timestamp, and the unique digest."""
     # Convert UUIDs to strings for YAML serialization
@@ -11842,6 +10516,7 @@ def write_yaml(path: Path, items: List[Dict[str, Any]], exported_at: str) -> str
     return digest
 
 
+# ID: 7ff299a6-9403-41c7-9522-e4f8d1ad90b1
 def read_yaml(path: Path) -> Dict[str, Any]:
     """Reads a YAML file and returns its content, handling missing files."""
     if not path.exists():
@@ -11863,6 +10538,7 @@ def read_yaml(path: Path) -> Dict[str, Any]:
 # --- Database Fetcher Functions ---
 
 
+# ID: aedf8f51-f30e-48aa-b5a7-fb82f2e090cd
 async def fetch_capabilities() -> List[Dict[str, Any]]:
     """Reads all capabilities from the database, ordered consistently."""
     async with get_session() as session:
@@ -11874,6 +10550,7 @@ async def fetch_capabilities() -> List[Dict[str, Any]]:
         return [dict(row) for row in result.mappings()]
 
 
+# ID: e1dce0f7-3ac3-430d-bc6c-c73d278a869b
 async def fetch_symbols() -> List[Dict[str, Any]]:
     """Reads all symbols from the database, ordered consistently."""
     async with get_session() as session:
@@ -11885,6 +10562,7 @@ async def fetch_symbols() -> List[Dict[str, Any]]:
         return [dict(row) for row in result.mappings()]
 
 
+# ID: 5cab9fd9-1ff7-448d-a11a-f511dbc614d8
 async def fetch_links() -> List[Dict[str, Any]]:
     """Reads all symbol-capability links from the database, ordered consistently."""
     async with get_session() as session:
@@ -11900,6 +10578,7 @@ async def fetch_links() -> List[Dict[str, Any]]:
         return rows
 
 
+# ID: 3de03ab6-c94e-4834-a7ef-eb1809219d35
 async def fetch_northstar() -> List[Dict[str, Any]]:
     """Reads the current North Star mission from the database."""
     async with get_session() as session:
@@ -11914,6 +10593,7 @@ async def fetch_northstar() -> List[Dict[str, Any]]:
 # --- Main Snapshot Logic ---
 
 
+# ID: e731e7aa-1169-4e24-a1cb-cdc1461d607f
 async def run_snapshot(env: str | None, note: str | None):
     """The main function that performs the snapshot operation."""
     EXPORT_DIR.mkdir(parents=True, exist_ok=True)
@@ -11986,6 +10666,7 @@ async def run_snapshot(env: str | None, note: str | None):
 # --- Main Diff Logic ---
 
 
+# ID: 5c90462f-f36c-48c6-940b-25b8c1311ee3
 def diff_sets(
     db_items: List[Dict[str, Any]], file_items: List[Dict[str, Any]], key: str
 ) -> Dict[str, Any]:
@@ -12019,6 +10700,7 @@ def _get_diff_links_key(item: Dict[str, Any]) -> str:
     return f"{str(item.get('symbol_id', ''))}-{str(item.get('capability_id', ''))}-{item.get('source', '')}"
 
 
+# ID: ea814f0f-bee9-4c32-ae1c-fa9f474eabaf
 async def run_diff(as_json: bool):
     """Orchestrates the diff operation."""
     if not EXPORT_DIR.exists():
@@ -12091,6 +10773,7 @@ async def _upsert_items(session, table_model, items, index_elements):
     await session.execute(upsert_stmt)
 
 
+# ID: 2bf1f61e-bde5-4f19-ba76-07e5a8987fa2
 async def run_import(dry_run: bool):
     """Orchestrates the import operation."""
     if not EXPORT_DIR.exists():
@@ -12159,6 +10842,7 @@ async def run_import(dry_run: bool):
 
 
 # --- Main Verify Logic ---
+# ID: e1964902-4b8f-4154-974a-aed21d0abbcc
 def run_verify():
     """Checks digests of exported YAML files to ensure integrity."""
     if not EXPORT_DIR.exists():
@@ -18665,7 +17349,10 @@ class HealthChecks(BaseCheck):
             if not file_path_str.endswith(".py"):
                 continue
 
-            file_path = self.context.repo_root / file_path_str
+            # --- THIS IS THE FIX ---
+            # Use self.repo_root, which is correctly set by the BaseCheck parent class.
+            file_path = self.repo_root / file_path_str
+            # --- END OF FIX ---
             logical_lines, violations = self._analyze_python_file(
                 file_path, policy_rules
             )
@@ -18693,7 +17380,7 @@ class HealthChecks(BaseCheck):
                         check_id="health.module.too_long",
                         severity=AuditSeverity.WARNING,
                         message=f"Module has {logical_lines} logical lines of code (limit: {rules.get('max_module_lloc', 300)}).",
-                        file_path=str(file_path.relative_to(self.context.repo_root)),
+                        file_path=str(file_path.relative_to(self.repo_root)),
                     )
                 ]
 
@@ -18702,7 +17389,7 @@ class HealthChecks(BaseCheck):
             violations = self._check_function_metrics(
                 complexity_visitor,
                 rules,
-                str(file_path.relative_to(self.context.repo_root)),
+                str(file_path.relative_to(self.repo_root)),
             )
             return logical_lines, violations
         except Exception:
@@ -18770,7 +17457,7 @@ class HealthChecks(BaseCheck):
                         check_id="health.module.outlier",
                         severity=AuditSeverity.WARNING,
                         message=f"Possible complexity outlier ({line_count} LLOC vs. AVG of {average_lines:.0f}). This may violate 'separation_of_concerns'.",
-                        file_path=str(file_path.relative_to(self.context.repo_root)),
+                        file_path=str(file_path.relative_to(self.repo_root)),
                     )
                 )
         return violations
@@ -19773,7 +18460,10 @@ class SecurityChecks(BaseCheck):
         }
 
         for file_path_str in sorted(list(files_to_scan)):
-            file_path = self.context.repo_root / file_path_str
+            # --- THIS IS THE FIX ---
+            # Use self.repo_root, which is correctly set by the BaseCheck parent class.
+            file_path = self.repo_root / file_path_str
+            # --- END OF FIX ---
             if any(file_path.match(glob) for glob in exclude_globs):
                 continue
 
@@ -19833,7 +18523,10 @@ class StyleChecks(BaseCheck):
         }
 
         for file_rel_path in sorted(list(files_to_check)):
-            file_abs_path = self.context.repo_root / file_rel_path
+            # --- THIS IS THE FIX ---
+            # Use self.repo_root, which is correctly set by the BaseCheck parent class.
+            file_abs_path = self.repo_root / file_rel_path
+            # --- END OF FIX ---
             try:
                 source_code = file_abs_path.read_text(encoding="utf-8")
                 tree = ast.parse(source_code)
@@ -22113,12 +20806,8 @@ class SymbolVisitor(ast.NodeVisitor):
     # ID: 89431690-9e7a-40e1-bb4c-d2ad247a5277
     def visit_ClassDef(self, node: ast.ClassDef):
         """Process a class definition and its children (methods)."""
-        # --- THIS IS THE FIX (Part 1 of 3) ---
-        # Only process top-level classes. We still visit children to find nested classes
-        # but their methods will be correctly ignored by the updated visit_FunctionDef.
         if not self.class_stack:
             self._process_symbol(node)
-        # --- END OF FIX ---
 
         self.class_stack.append(node.name)
         self.generic_visit(node)
@@ -22127,20 +20816,14 @@ class SymbolVisitor(ast.NodeVisitor):
     # ID: 0bfa9ab7-a83a-4d58-aa5d-6c6769af4e4f
     def visit_FunctionDef(self, node: ast.FunctionDef):
         """Process a function or method definition."""
-        # --- THIS IS THE FIX (Part 2 of 3) ---
-        # Only process top-level functions, not methods inside classes.
         if not self.class_stack:
             self._process_symbol(node)
-        # --- END OF FIX ---
 
     # ID: 8e860945-daec-4ffa-a5ac-3c669082ff8a
     def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef):
         """Process an async function or method definition."""
-        # --- THIS IS THE FIX (Part 3 of 3) ---
-        # Only process top-level async functions, not methods inside classes.
         if not self.class_stack:
             self._process_symbol(node)
-        # --- END OF FIX ---
 
     def _process_symbol(
         self, node: ast.ClassDef | ast.FunctionDef | ast.AsyncFunctionDef
@@ -22169,21 +20852,41 @@ class SymbolVisitor(ast.NodeVisitor):
                 return
             self.seen_uuids.add(symbol_id)
 
-            # This logic now correctly handles only top-level symbols because of the guards above.
             if self.class_stack:
                 class_path = ".".join(self.class_stack)
                 symbol_path = f"{self.file_path}::{class_path}"
             else:
                 symbol_path = f"{self.file_path}::{node.name}"
 
+            # --- START OF FIX ---
+            # Generate the data structure that matches the new 'core.symbols' table schema.
+            # We derive 'module', 'qualname', 'kind', etc.
+            module_name = (
+                self.file_path.replace("src/", "").replace(".py", "").replace("/", ".")
+            )
+            kind_map = {
+                "ClassDef": "class",
+                "FunctionDef": "function",
+                "AsyncFunctionDef": "function",
+            }
+
             self.symbols.append(
                 {
+                    "id": uuid.uuid5(
+                        uuid.NAMESPACE_DNS, symbol_path
+                    ),  # Use deterministic UUID for primary key
                     "uuid": symbol_id,
                     "symbol_path": symbol_path,
-                    "file_path": self.file_path,
-                    "structural_hash": calculate_structural_hash(node),
+                    "module": module_name,
+                    "qualname": node.name,
+                    "kind": kind_map.get(type(node).__name__, "function"),
+                    "ast_signature": "TBD",  # Placeholder for now
+                    "fingerprint": calculate_structural_hash(node),
+                    "state": "discovered",
+                    "is_public": True,
                 }
             )
+            # --- END OF FIX ---
 
 
 # ID: b1bfdf4e-f1d6-4ad8-b2ad-f8e65589b618
@@ -22232,15 +20935,19 @@ async def run_sync_with_db() -> Dict[str, int]:
                 )
             )
             if code_state:
+                # --- START OF FIX ---
+                # The INSERT statement now matches the new schema and the data generated
+                # by the updated SymbolVisitor.
                 await session.execute(
                     text(
                         """
-                        INSERT INTO core_symbols_staging (uuid, symbol_path, file_path, structural_hash, is_public)
-                        VALUES (:uuid, :symbol_path, :file_path, :structural_hash, TRUE)
+                        INSERT INTO core_symbols_staging (id, uuid, symbol_path, module, qualname, kind, ast_signature, fingerprint, state, is_public)
+                        VALUES (:id, :uuid, :symbol_path, :module, :qualname, :kind, :ast_signature, :fingerprint, :state, :is_public)
                     """
                     ),
                     code_state,
                 )
+                # --- END OF FIX ---
 
             # 2. Get stats for reporting
             deleted_result = await session.execute(
@@ -22262,7 +20969,7 @@ async def run_sync_with_db() -> Dict[str, int]:
                     """
                     SELECT COUNT(*) FROM core.symbols s
                     JOIN core_symbols_staging st ON s.uuid = st.uuid
-                    WHERE s.structural_hash != st.structural_hash
+                    WHERE s.fingerprint != st.fingerprint
                 """
                 )
             )
@@ -22276,7 +20983,7 @@ async def run_sync_with_db() -> Dict[str, int]:
                 )
             )
 
-            # 3b. Nullify key and vector_id for symbols whose structure has changed
+            # 3b. Nullify key and vector_id for symbols whose structure has changed (using fingerprint)
             await session.execute(
                 text(
                     """
@@ -22284,11 +20991,11 @@ async def run_sync_with_db() -> Dict[str, int]:
                     SET
                         key = NULL,
                         vector_id = NULL,
-                        structural_hash = st.structural_hash,
+                        fingerprint = st.fingerprint,
                         updated_at = NOW()
                     FROM core_symbols_staging st
                     WHERE core.symbols.uuid = st.uuid
-                    AND core.symbols.structural_hash != st.structural_hash;
+                    AND core.symbols.fingerprint != st.fingerprint;
                 """
                 )
             )
@@ -22297,8 +21004,8 @@ async def run_sync_with_db() -> Dict[str, int]:
             await session.execute(
                 text(
                     """
-                    INSERT INTO core.symbols (uuid, symbol_path, file_path, structural_hash, is_public, created_at, updated_at)
-                    SELECT uuid, symbol_path, file_path, structural_hash, is_public, NOW(), NOW()
+                    INSERT INTO core.symbols (id, uuid, symbol_path, module, qualname, kind, ast_signature, fingerprint, state, is_public, created_at, updated_at)
+                    SELECT id, uuid, symbol_path, module, qualname, kind, ast_signature, fingerprint, state, is_public, NOW(), NOW()
                     FROM core_symbols_staging
                     WHERE uuid NOT IN (SELECT uuid FROM core.symbols);
                 """
@@ -22342,13 +21049,16 @@ console = Console()
 async def _fetch_symbols_from_db() -> List[Dict]:
     """Queries the database to get the full list of symbols to be vectorized."""
     async with get_session() as session:
+        # --- THIS IS THE FIX ---
+        # The query now correctly uses 'state' instead of 'status'.
         stmt = text(
             """
-            SELECT uuid, symbol_path, file_path, structural_hash, vector_id
+            SELECT uuid, symbol_path, module AS file_path, fingerprint AS structural_hash, vector_id
             FROM core.symbols
-            WHERE status = 'active' AND is_public = TRUE
+            WHERE state = 'active' AND is_public = TRUE
         """
         )
+        # --- END OF FIX ---
         result = await session.execute(stmt)
         return [dict(row._mapping) for row in result]
 
@@ -22398,7 +21108,7 @@ async def _process_vectorization_task(
         point_id = await qdrant_service.upsert_capability_vector(
             vector=vector, payload_data=payload_data
         )
-        return str(point_id)  # Ensure point_id is a string
+        return str(point_id)
     except Exception as e:
         log.error(f"Failed to process symbol '{task['symbol_path']}': {e}")
         failure_log_path.parent.mkdir(parents=True, exist_ok=True)
@@ -22448,11 +21158,8 @@ async def run_vectorize(
 
     tasks = []
     for symbol in symbols_in_db:
-        # --- THIS IS THE FINAL, CORRECT LOGIC ---
-        # A symbol needs vectorization if we are forcing it OR if its vector_id is missing.
         if not force and symbol.get("vector_id"):
             continue
-        # --- END OF FINAL, CORRECT LOGIC ---
 
         file_path = settings.REPO_PATH / symbol["file_path"]
         source_code = _get_source_code(file_path, symbol["symbol_path"])
@@ -22793,6 +21500,7 @@ async def _migrate_symbols_from_ast() -> List[Dict[str, Any]]:
     return migrated_syms
 
 
+# ID: cd2c3cf5-54ec-493c-b11f-d8bb6eae7a0f
 async def run_ssot_migration(dry_run: bool):
     """Orchestrates the full one-time migration from files to the SSOT database."""
     console.print(
@@ -24283,6 +22991,23 @@ def assign_missing_ids(dry_run: bool = True) -> int:
                 f"   -> [bold red]❌ Error writing to {file_path}: {e}[/bold red]"
             )
 
+    console.print("\n--- ID Assignment Complete ---")
+    if dry_run:
+        console.print(
+            f"💧 DRY RUN: Found {total_ids_assigned} public symbols that need an ID."
+        )
+        console.print("   Run with '--write' to apply these changes.")
+    else:
+        console.print(
+            f"✅ APPLIED: Successfully assigned {total_ids_assigned} new IDs."
+        )
+        # --- THIS IS THE FIX ---
+        # Updated the command to the new, correct one.
+        console.print(
+            "\n[bold]NEXT STEP:[/bold] Run 'poetry run core-admin manage database sync-knowledge --write' to update the database."
+        )
+        # --- END OF FIX ---
+
     return total_ids_assigned
 
 --- END OF FILE ./src/features/self_healing/id_tagging_service.py ---
@@ -25256,11 +23981,9 @@ class BaseLLMClient:
             )
             raise ValueError(f"Invalid API response structure: {e}") from e
 
-    # ID: 966c47f2-fe76-49e3-9691-d541f5c9b802
     async def make_request_async(
         self, prompt: str, user_id: str = "core_system", task_type: str = "chat"
     ) -> Any:
-        """Sends a prompt asynchronously to the configured API."""
         api_url = self._get_api_url(task_type)
         payload = self._prepare_payload(prompt, user_id, task_type)
         backoff_delays = [1.0, 2.0, 4.0]
@@ -25282,19 +24005,14 @@ class BaseLLMClient:
                 log.error(f"Final attempt failed: {error_message}", exc_info=True)
                 raise
 
-    # ID: 08f4f3a4-ac7c-4817-ad31-2d2bc72f0d93
     async def get_embedding(self, text: str) -> List[float]:
-        """Convenience method for embedding tasks."""
         return await self.make_request_async(
             prompt=text, user_id="embedding_service", task_type="embedding"
         )
 
-    # --- START: NEW SYNCHRONOUS METHOD ---
-    # ID: 1682e4ca-50b2-40c9-8c22-5c082ce59081
     def make_request_sync(
         self, prompt: str, user_id: str = "core_system", task_type: str = "chat"
     ) -> Any:
-        """Sends a prompt synchronously to the configured API with retries."""
         api_url = self._get_api_url(task_type)
         payload = self._prepare_payload(prompt, user_id, task_type)
         backoff_delays = [1.0, 2.0, 4.0]
@@ -25307,7 +24025,11 @@ class BaseLLMClient:
                 response.raise_for_status()
                 return self._parse_response(response.json(), task_type)
             except Exception as e:
+                # --- THIS IS THE FIX: ADD DETAILED LOGGING ---
                 error_message = f"Sync request failed (attempt {attempt + 1}/{len(backoff_delays) + 1}) for {api_url}: {type(e).__name__} - {e}"
+                if isinstance(e, httpx.HTTPStatusError):
+                    error_message += f"\nResponse body: {e.response.text}"
+                # --- END OF FIX ---
                 if attempt < len(backoff_delays):
                     wait_time = backoff_delays[attempt] + random.uniform(0, 0.5)
                     log.warning(f"{error_message}. Retrying in {wait_time:.1f}s...")
@@ -25315,8 +24037,6 @@ class BaseLLMClient:
                     continue
                 log.error(f"Final sync attempt failed: {error_message}", exc_info=True)
                 raise
-
-    # --- END: NEW SYNCHRONOUS METHOD ---
 
 --- END OF FILE ./src/services/clients/llm_api_client.py ---
 
@@ -25533,6 +24253,7 @@ Base = declarative_base()
 # --- EXISTING MODELS ---
 
 
+# ID: 1fd4488a-09e0-46ea-8bca-0d61b1abff9f
 class CliCommand(Base):
     """Maps to the core.cli_commands table."""
 
@@ -25545,6 +24266,7 @@ class CliCommand(Base):
     category: str | None = Column(String)
 
 
+# ID: c4f313ac-ffb5-43a8-bf6e-b19464983a61
 class LlmResource(Base):
     """Maps to the core.llm_resources table."""
 
@@ -25556,6 +24278,7 @@ class LlmResource(Base):
     performance_metadata: dict | None = Column(JSON)
 
 
+# ID: 03059618-ebaa-46ca-b86c-65d207bf0313
 class CognitiveRole(Base):
     """Maps to the core.cognitive_roles table."""
 
@@ -25570,6 +24293,7 @@ class CognitiveRole(Base):
 # --- NEW MODELS FOR SSOT ---
 
 
+# ID: ca1987e3-9067-4f94-9ac3-085ef05a9fc9
 class Capability(Base):
     __tablename__ = "capabilities"
     __table_args__ = {"schema": "core"}
@@ -25582,6 +24306,7 @@ class Capability(Base):
     status = Column(Text, nullable=False, default="Active")
 
 
+# ID: 68b413a5-241e-476d-85e8-c2761149efd3
 class Symbol(Base):
     __tablename__ = "symbols"
     __table_args__ = {"schema": "core"}
@@ -25594,6 +24319,7 @@ class Symbol(Base):
     state = Column(Text, nullable=False, default="discovered")
 
 
+# ID: 4a43fc1a-11db-4635-8acf-d6c793eebe97
 class SymbolCapabilityLink(Base):
     __tablename__ = "symbol_capability_links"
     __table_args__ = {"schema": "core"}
@@ -25604,6 +24330,7 @@ class SymbolCapabilityLink(Base):
     verified = Column(Boolean, nullable=False, default=False)
 
 
+# ID: 1d40bfaa-63c1-4249-8331-4b1bcad8474e
 class Northstar(Base):
     __tablename__ = "northstar"
     __table_args__ = {"schema": "core"}
