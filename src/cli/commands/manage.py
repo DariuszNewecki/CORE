@@ -2,7 +2,7 @@
 """Registers the new, verb-based 'manage' command group with subgroups."""
 from __future__ import annotations
 
-import time
+import asyncio
 from typing import Set
 
 import typer
@@ -28,6 +28,7 @@ from core.cognitive_service import CognitiveService
 from core.prompt_pipeline import PromptPipeline
 from features.governance.key_management_service import register as register_keygen
 from features.introspection.knowledge_helpers import extract_source_code
+from features.maintenance.migration_service import run_ssot_migration
 from services.clients.qdrant_client import QdrantService
 from shared.config import settings
 from shared.context import CoreContext
@@ -41,7 +42,6 @@ manage_app = typer.Typer(
     no_args_is_help=True,
 )
 
-# (Subgroup registration code remains the same)
 db_sub_app = typer.Typer(
     help="Manage the database schema and data.", no_args_is_help=True
 )
@@ -49,6 +49,21 @@ db_sub_app.command("migrate")(migrate_db)
 db_sub_app.command("export")(export_data)
 db_sub_app.command("sync-knowledge")(sync_knowledge_base)
 db_sub_app.command("sync-manifest")(sync_manifest)
+
+
+@db_sub_app.command(
+    "migrate-ssot",
+    help="One-time data migration from legacy files to the SSOT database.",
+)
+def migrate_ssot_command(
+    write: bool = typer.Option(
+        False, "--write", help="Apply the migration to the database."
+    )
+):
+    """CLI wrapper for the SSOT migration service."""
+    asyncio.run(run_ssot_migration(dry_run=not write))
+
+
 manage_app.add_typer(db_sub_app, name="database")
 project_sub_app = typer.Typer(help="Manage CORE projects.", no_args_is_help=True)
 register_new_project(project_sub_app)
@@ -95,8 +110,6 @@ def _define_single_symbol_sync(
         )
         return {"uuid": symbol["uuid"], "key": "error.duplicate_key"}
 
-    time.sleep(1)  # Simple rate limiting
-
     return {"uuid": symbol["uuid"], "key": suggested_key}
 
 
@@ -104,7 +117,6 @@ def _define_single_symbol_sync(
     "define-symbols",
     help="[Synchronous] Defines all undefined capabilities one by one.",
 )
-# ID: 5cca59b5-0d54-40fd-a914-325761fa9b39
 def define_symbols_command():
     """A robust, synchronous command to reliably define all symbols."""
     console.print(
@@ -127,7 +139,6 @@ def define_symbols_command():
     qdrant_service = QdrantService()
 
     try:
-        # --- START OF FIX: Load the ignore policy ---
         ignore_policy_path = (
             settings.REPO_PATH
             / ".intent"
@@ -142,7 +153,6 @@ def define_symbols_command():
             for item in ignore_policy.get("symbol_ignores", [])
             if "key" in item
         }
-        # --- END OF FIX ---
 
         undefined_symbols_result = session.execute(
             text(
@@ -151,7 +161,6 @@ def define_symbols_command():
         )
         all_undefined_symbols = [dict(row._mapping) for row in undefined_symbols_result]
 
-        # --- START OF FIX: Filter out the ignored symbols ---
         undefined_symbols = [
             s
             for s in all_undefined_symbols
@@ -162,7 +171,6 @@ def define_symbols_command():
             console.print(
                 f"   -> Ignoring {ignored_count} symbols based on audit_ignore_policy.yaml."
             )
-        # --- END OF FIX ---
 
         if not undefined_symbols:
             console.print("[green]✅ No symbols to define.[/green]")
@@ -216,7 +224,6 @@ def define_symbols_command():
         session.close()
 
 
-# ID: ec7405ee-fb7c-424c-8d41-239a77a7a24d
 def register(app: typer.Typer, context: CoreContext):
     """Register the 'manage' command group with the main CLI app."""
     set_shared_context(context, "cli.logic.proposal_service")
