@@ -15,6 +15,7 @@ from sqlalchemy.orm import sessionmaker
 from cli.logic.byor import initialize_repository
 from cli.logic.cli_utils import set_context as set_shared_context
 from cli.logic.db import export_data, migrate_db
+from cli.logic.knowledge_sync import sync_operational
 from cli.logic.new import register as register_new_project
 from cli.logic.project_docs import docs as project_docs
 from cli.logic.proposal_service import (
@@ -49,6 +50,7 @@ db_sub_app.command("migrate")(migrate_db)
 db_sub_app.command("export")(export_data)
 db_sub_app.command("sync-knowledge")(sync_knowledge_base)
 db_sub_app.command("sync-manifest")(sync_manifest)
+db_sub_app.command("sync-operational")(sync_operational)
 
 
 @db_sub_app.command(
