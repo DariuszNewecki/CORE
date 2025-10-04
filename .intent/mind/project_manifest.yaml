@@ -40,7 +40,6 @@ capabilities:
   - clarity.comment.scan
   - cli.chat.translate
   - cli.command.execute
-  - cli.commands.define_symbols
   - cli.commands.list
   - cli.output.format
   - cli.reconcile.run
@@ -59,6 +58,7 @@ capabilities:
   - code.introspection.discover
   - code.location.identify
   - code.quality.lint
+  - code.quality.ruff.fix
   - code.review.submit
   - code.runtime.validate
   - code.semantic.cluster
@@ -77,6 +77,7 @@ capabilities:
   - core.action.log
   - core.admin.deprecate
   - core.admin.execute
+  - core.admin.ids.assign
   - core.capability.read
   - core.cli.command
   - core.cli.display
@@ -114,6 +115,7 @@ capabilities:
   - embedding.service.generate
   - exception.handler.register
   - execution.agent.execute
+  - execution.plan.error.define
   - execution.plan.execute
   - executor.context.provide
   - export.integrity.verify
@@ -122,6 +124,7 @@ capabilities:
   - file.edit.execute
   - file.function.edit
   - file.header.parse
+  - file.header.tools.define
   - file.headers.fix
   - file.id.fix
   - file.management.create
@@ -161,6 +164,7 @@ capabilities:
   - intent.proposals.sign
   - intent.schema.validate
   - introspection.documentation.generate
+  - introspection.symbols.undefined.get
   - json.canonicalize.execute
   - key.storage.load
   - knowledge.capabilities.list
@@ -201,6 +205,7 @@ capabilities:
   - mind.tool.register
   - northstar.mission.read
   - parallel.execution.process
+  - parsing.blocks.extract
   - planner.configuration.manage
   - planner.plan.create
   - policy.constitutional.repair
@@ -229,21 +234,23 @@ capabilities:
   - schema.migration.ensure
   - service.registry.retrieve
   - settings.path.get
-  - ssot.migration.execute
   - ssot.migration.run
   - symbol.capability.verify
   - symbol.definition.process
   - symbol.definition.retrieve
-  - symbol.id.assign
   - symbol.id.find
   - symbol.storage.read
+  - symbols.definition.define
   - system.access.manage
   - system.analysis.introspect
   - system.audit.execute
   - system.commands.locate
   - system.health.check
+  - system.health.db.connectivity_check
   - system.health.display
   - system.interface.launch
+  - system.migration.ssot
+  - system.planning.agent.define
   - system.proposal.apply
   - system.snapshot.create
   - system.state.compare
@@ -254,6 +261,7 @@ capabilities:
   - text.embedding.compute
   - text.normalization.normalize
   - time.utc.get
+  - time.utc.iso.get
   - vector.cleanup.delete
   - vector.management.export
   - vector.qdrant.manage
