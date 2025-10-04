@@ -101,8 +101,17 @@ mind:
     entry_point_patterns: "mind/knowledge/entry_point_patterns.yaml"
     file_handlers: "mind/knowledge/file_handlers.yaml"
     source_structure: "mind/knowledge/source_structure.yaml"
-    cognitive_roles: "mind/knowledge/cognitive_roles.yaml"
-    resource_manifest: "mind/knowledge/resource_manifest.yaml"
+    cognitive_roles: "mind_export/cognitive_roles.yaml"
+    resource_manifest: "mind_export/resource_manifest.yaml"
+
+  # --- THIS IS THE FIX ---
+  # Add the new export files to the index so they are no longer "orphaned"
+  mind_export:
+    capabilities: "mind_export/capabilities.yaml"
+    symbols: "mind_export/symbols.yaml"
+    links: "mind_export/links.yaml"
+    northstar: "mind_export/northstar.yaml"
+  # --- END OF FIX ---
 
   prompts:
     capability_definer: "mind/prompts/capability_definer.prompt"
