@@ -1,10 +1,11 @@
 policy_id: 1fb8949c-02db-486a-8b9d-556191456de3
 id: database_policy
-version: "3.0.0" # Major version bump for SSOT mandate
+version: "4.0.0" # Major version bump for SSOT mandate
 title: "Consolidated Database Governance Policy"
 purpose: >
-  Provide a durable, auditable ledger of what actually happened in CORE (events, audits, CLI runs, capability history)
-  with the database as the single source of operational truth for all runtime configuration and knowledge.
+  To declare the database as the Single Source of Truth (SSOT) for all
+  operational data and the Working Mind. The repository contains deterministic,
+  read-only exports of this data for review and replication.
 scope:
   applies_to: [postgresql]
 owners:
@@ -19,9 +20,10 @@ migrations:
   directory: sql
   order:
     - "001_consolidated_schema.sql"
+
 rules:
-  - id: db.mind_remains_source
-    statement: "`.intent/**` is the single source of constitutional truth; DB is the authoritative source for operational data."
+  - id: db.ssot_for_operational_data
+    statement: "The database is the authoritative source for all operational data (capabilities, symbols, links, audits, etc.). Files in `.intent/mind_export/` are read-only mirrors."
     enforcement: error
   - id: db.schema_declared
     statement: "All tables and columns MUST be declared in the database schema/migrations and validated at CI time."
@@ -47,8 +49,6 @@ rules:
   - id: db.privacy.access_least_privilege
     statement: "Access to operational data MUST follow least-privilege via roles/groups."
     enforcement: warn
-
-  # --- START OF NEW SSOT MANDATES ---
   - id: db.cli_registry_in_db
     statement: "The canonical list of CLI commands MUST be stored in and queried from the database. `.intent/mind/knowledge/cli_registry.yaml` is deprecated and considered a read-only export."
     enforcement: error
@@ -58,7 +58,6 @@ rules:
   - id: db.cognitive_roles_in_db
     statement: "The definition of cognitive roles MUST be stored in and queried from the database. `.intent/mind/knowledge/cognitive_roles.yaml` is deprecated and considered a read-only export."
     enforcement: error
-  # --- END OF NEW SSOT MANDATES ---
 
 retention:
   audit_runs_days: 180
