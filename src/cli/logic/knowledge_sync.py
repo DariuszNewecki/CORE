@@ -6,7 +6,6 @@ from __future__ import annotations
 
 import asyncio
 
-import typer
 import yaml
 from rich.console import Console
 from sqlalchemy import JSON, Column, MetaData, String, Table
@@ -36,7 +35,6 @@ async def _upsert_data(session, table_name: str, data: list[dict], primary_key: 
         table_name.split(".")[-1], meta, *columns, schema=table_name.split(".")[0]
     )
 
-    # --- THIS IS THE FIX: Removed manual json.dumps() ---
     # The database driver handles JSON serialization automatically.
 
     stmt = pg_insert(table_obj).values(data)
@@ -60,7 +58,6 @@ async def _sync_operational_knowledge():
         "[bold cyan]🚀 Syncing operational knowledge from constitution YAMLs to Database...[/bold cyan]"
     )
 
-    # --- THIS IS THE FIX: Use settings to get the correct, indexed paths ---
     sync_map = {
         "core.llm_resources": (
             settings.get_path("mind.knowledge.resource_manifest"),
@@ -75,7 +72,6 @@ async def _sync_operational_knowledge():
             "role",
         ),
     }
-    # --- END OF FIX ---
 
     total_upserted = 0
     async with get_session() as session:
@@ -116,22 +112,3 @@ async def _sync_operational_knowledge():
 def sync_operational():
     """One-way sync of operational knowledge (Roles, Resources) from YAML to DB."""
     asyncio.run(_sync_operational_knowledge())
-
-
-# ID: 26dbe871-7cb8-4c92-bc52-1bc14f9f7597
-def register(app: typer.Typer):
-    """Mounts the 'sync-operational' command under 'manage database'."""
-    # --- THIS IS THE FIX: Simplified and more robust registration logic ---
-    manage_group = next((g for g in app.registered_groups if g.name == "manage"), None)
-    if manage_group:
-        db_subgroup = next(
-            (
-                g
-                for g in manage_group.typer_instance.registered_groups
-                if g.name == "database"
-            ),
-            None,
-        )
-        if db_subgroup:
-            db_subgroup.typer_instance.command("sync-operational")(sync_operational)
-    # --- END OF FIX ---
