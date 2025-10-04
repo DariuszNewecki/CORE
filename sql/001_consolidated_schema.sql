@@ -76,7 +76,9 @@ CREATE TABLE IF NOT EXISTS core.symbols (
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
     uuid text UNIQUE,
     symbol_path text UNIQUE,
-    is_public boolean NOT NULL DEFAULT true, -- <<< THIS IS THE FIX
+    is_public boolean NOT NULL DEFAULT true,
+    key text, -- <<< THIS IS THE FIX: Re-added the missing column
+    vector_id text, -- <<< THIS IS THE FIX: Added vector_id for vectorization status
     CONSTRAINT symbols_kind_chk CHECK ((kind = ANY (ARRAY['function'::text, 'class'::text, 'method'::text, 'module'::text]))),
     CONSTRAINT symbols_state_chk CHECK ((state = ANY (ARRAY['discovered'::text, 'classified'::text, 'bound'::text, 'verified'::text, 'deprecated'::text])))
 );
@@ -196,8 +198,6 @@ CREATE OR REPLACE VIEW core.v_verified_coverage AS
      LEFT JOIN core.symbol_capability_links l ON (((l.capability_id = c.id) AND (l.verified = true))))
   GROUP BY c.id, c.name;
 
--- This knowledge_graph view was missing from the dump but is required by the auditor.
--- Adding it here completes the schema.
 CREATE OR REPLACE VIEW core.knowledge_graph AS
 SELECT
     s.uuid,
@@ -227,12 +227,13 @@ SELECT
     NULL AS entry_point_type,
     NULL AS entry_point_justification,
     NULL AS parent_class_key,
-    (s.kind = 'function' AND s.qualname LIKE 'async%') AS is_async -- Heuristic
+    (s.kind = 'function' AND s.qualname LIKE 'async%') AS is_async
 FROM
     core.symbols s;
 
 -- INDEXES
 CREATE UNIQUE INDEX IF NOT EXISTS capabilities_domain_name_uidx ON core.capabilities USING btree (lower(domain), lower(name));
+CREATE UNIQUE INDEX IF NOT EXISTS uq_symbols_key ON core.symbols (key) WHERE key IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_domains_key ON core.domains USING btree (key);
 CREATE INDEX IF NOT EXISTS idx_symbol_capabilities_capability_key ON core.symbol_capabilities USING btree (capability_key);
 CREATE INDEX IF NOT EXISTS links_capability_idx ON core.symbol_capability_links USING btree (capability_id);
