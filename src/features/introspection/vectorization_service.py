@@ -31,13 +31,12 @@ async def _fetch_symbols_from_db() -> List[Dict]:
     """Queries the database to get the full list of symbols to be vectorized."""
     async with get_session() as session:
         # --- THIS IS THE FIX ---
-        # The query now selects the 'module' column but aliases it as 'file_path'
-        # so the rest of the code in this file works without modification.
+        # The query now correctly uses 'state' instead of 'status'.
         stmt = text(
             """
             SELECT uuid, symbol_path, module AS file_path, fingerprint AS structural_hash, vector_id
             FROM core.symbols
-            WHERE status = 'active' AND is_public = TRUE
+            WHERE state = 'active' AND is_public = TRUE
         """
         )
         # --- END OF FIX ---
@@ -143,7 +142,6 @@ async def run_vectorize(
         if not force and symbol.get("vector_id"):
             continue
 
-        # NOTE: The key here is 'file_path' because we aliased it in the SQL query
         file_path = settings.REPO_PATH / symbol["file_path"]
         source_code = _get_source_code(file_path, symbol["symbol_path"])
         if not source_code:
