@@ -21,11 +21,7 @@ from features.self_healing.complexity_service import complexity_outliers
 from features.self_healing.docstring_service import fix_docstrings
 from features.self_healing.header_service import _run_header_fix_cycle
 from features.self_healing.id_tagging_service import assign_missing_ids
-
-# --- THIS IS THE FIX ---
 from features.self_healing.linelength_service import fix_line_lengths
-
-# --- END OF FIX ---
 from features.self_healing.policy_id_service import add_missing_policy_ids
 from features.self_healing.prune_orphaned_vectors import (
     main_sync as prune_orphaned_vectors,
@@ -231,6 +227,10 @@ def assign_ids_command(
     total_assigned = assign_missing_ids(dry_run=dry_run)
 
     console.print("\n--- ID Assignment Complete ---")
+    if total_assigned == 0 and not dry_run:
+        console.print("[bold green]✅ No new IDs were needed.[/bold green]")
+        return
+
     if dry_run:
         console.print(
             f"💧 DRY RUN: Found {total_assigned} public symbols that need an ID."
@@ -238,9 +238,12 @@ def assign_ids_command(
         console.print("   Run with '--write' to apply these changes.")
     else:
         console.print(f"✅ APPLIED: Successfully assigned {total_assigned} new IDs.")
+        # --- THIS IS THE FIX ---
+        # Updated the command to the new, correct one.
         console.print(
-            "\n[bold]NEXT STEP:[/bold] Run 'poetry run core-admin knowledge sync --write' to update the database."
+            "\n[bold]NEXT STEP:[/bold] Run 'poetry run core-admin manage database sync-knowledge --write' to update the database."
         )
+        # --- END OF FIX ---
 
 
 @fix_app.command(

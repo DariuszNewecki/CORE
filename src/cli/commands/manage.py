@@ -58,6 +58,7 @@ db_sub_app.command("sync-operational")(sync_operational)
     "migrate-ssot",
     help="One-time data migration from legacy files to the SSOT database.",
 )
+# ID: 395d05c5-d450-41f0-8260-8398a576f266
 def migrate_ssot_command(
     write: bool = typer.Option(
         False, "--write", help="Apply the migration to the database."
@@ -236,6 +237,7 @@ async def _async_define_symbols():
     "define-symbols",
     help="Defines all undefined capabilities one by one using an AI agent.",
 )
+# ID: 5e140818-46a4-4856-a93e-64115a93f924
 def define_symbols_command():
     """Synchronous wrapper for the async symbol definition logic."""
     try:
@@ -247,6 +249,7 @@ def define_symbols_command():
         raise typer.Exit(code=1)
 
 
+# ID: b20cccd7-2508-4b13-9c93-ec20d031635e
 def register(app: typer.Typer, context: CoreContext):
     """Register the 'manage' command group with the main CLI app."""
     set_shared_context(context, "cli.logic.proposal_service")
