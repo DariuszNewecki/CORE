@@ -87,6 +87,7 @@ async def _migrate_symbols_from_ast() -> List[Dict[str, Any]]:
     return migrated_syms
 
 
+# ID: cd2c3cf5-54ec-493c-b11f-d8bb6eae7a0f
 async def run_ssot_migration(dry_run: bool):
     """Orchestrates the full one-time migration from files to the SSOT database."""
     console.print(

@@ -5,6 +5,7 @@ Implements high-level CI and system health checks, including the main constituti
 from __future__ import annotations
 
 import asyncio
+from collections import defaultdict
 from pathlib import Path
 from typing import Optional
 
@@ -15,7 +16,7 @@ from rich.table import Table
 
 from features.governance.constitutional_auditor import ConstitutionalAuditor
 from shared.context import CoreContext
-from shared.models import AuditSeverity
+from shared.models import AuditFinding, AuditSeverity
 
 from .cli_utils import (
     _run_poetry_command,
@@ -81,6 +82,12 @@ def audit(
         help="Filter findings by minimum severity level (info, warning, error).",
         case_sensitive=False,
     ),
+    verbose: bool = typer.Option(
+        False,
+        "--verbose",
+        "-v",
+        help="Show all individual findings instead of a summary.",
+    ),
 ):
     """Run a full constitutional self-audit and print a summary of findings."""
     if _context is None:
@@ -115,32 +122,78 @@ def audit(
         console.print(Panel(summary_table, title=title, style=style, expand=False))
 
         if filtered_findings:
-            console.print("\n[bold]Audit Findings:[/bold]")
-            findings_table = Table()
-            findings_table.add_column("Severity", style="bold")
-            findings_table.add_column("Check ID")
-            findings_table.add_column("Message")
-            findings_table.add_column("File:Line")
-
-            for f in sorted(filtered_findings, key=lambda x: x.severity, reverse=True):
-                color = {"error": "red", "warning": "yellow", "info": "cyan"}.get(
-                    str(f.severity), "white"
-                )
-                loc = (
-                    f"{f.file_path}:{f.line_number}"
-                    if f.file_path and f.line_number
-                    else f.file_path or ""
-                )
-                findings_table.add_row(
-                    f"[{color}]{str(f.severity).upper()}[/{color}]",
-                    f.check_id,
-                    f.message,
-                    loc,
-                )
-
-            console.print(findings_table)
+            if verbose:
+                _print_verbose_findings(filtered_findings)
+            else:
+                _print_summary_findings(filtered_findings)
 
         if not passed:
             raise typer.Exit(1)
 
     asyncio.run(_async_audit())
+
+
+def _print_verbose_findings(findings: list[AuditFinding]):
+    """Prints every single finding in a detailed table."""
+    console.print("\n[bold]Audit Findings (Verbose):[/bold]")
+    table = Table()
+    table.add_column("Severity", style="bold")
+    table.add_column("Check ID")
+    table.add_column("Message")
+    table.add_column("File:Line")
+
+    for f in sorted(findings, key=lambda x: x.severity, reverse=True):
+        color = {"error": "red", "warning": "yellow", "info": "cyan"}.get(
+            str(f.severity), "white"
+        )
+        loc = (
+            f"{f.file_path}:{f.line_number}"
+            if f.file_path and f.line_number
+            else f.file_path or ""
+        )
+        table.add_row(
+            f"[{color}]{str(f.severity).upper()}[/{color}]",
+            f.check_id,
+            f.message,
+            loc,
+        )
+    console.print(table)
+
+
+def _print_summary_findings(findings: list[AuditFinding]):
+    """Groups findings by check ID and prints a summary table."""
+    console.print("\n[bold]Audit Findings (Summary):[/bold]")
+    grouped = defaultdict(list)
+    for f in findings:
+        grouped[f.check_id].append(f)
+
+    table = Table()
+    table.add_column("Severity", style="bold")
+    table.add_column("Count", justify="right")
+    table.add_column("Check ID")
+    table.add_column("Sample Message")
+
+    # Sort by severity (errors first), then by count
+    sorted_check_ids = sorted(
+        grouped.keys(),
+        key=lambda k: (max(f.severity for f in grouped[k]), len(grouped[k])),
+        reverse=True,
+    )
+
+    for check_id in sorted_check_ids:
+        items = grouped[check_id]
+        sample = items[0]
+        count = len(items)
+        severity = sample.severity
+
+        color = {"error": "red", "warning": "yellow", "info": "cyan"}.get(
+            str(severity), "white"
+        )
+        table.add_row(
+            f"[{color}]{str(severity).upper()}[/{color}]",
+            str(count),
+            check_id,
+            sample.message,
+        )
+    console.print(table)
+    console.print("\nRun with '--verbose' to see all individual findings.")
