@@ -4,6 +4,7 @@
 A diagnostic script to find and list all symbols in the database that
 have not been vectorized (i.e., their `vector_id` is NULL).
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -15,9 +16,8 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from rich.console import Console
 from rich.table import Table
-from sqlalchemy import text
-
 from services.database.session_manager import get_session
+from sqlalchemy import text
 
 console = Console()
 
@@ -42,10 +42,14 @@ async def find_unvectorized():
             unvectorized_symbols = [dict(row._mapping) for row in result]
 
             if not unvectorized_symbols:
-                console.print("\n[bold green]✅ Success! All symbols have been vectorized.[/bold green]")
+                console.print(
+                    "\n[bold green]✅ Success! All symbols have been vectorized.[/bold green]"
+                )
                 return
 
-            console.print(f"\n[bold red]Found {len(unvectorized_symbols)} symbols that are NOT vectorized:[/bold red]")
+            console.print(
+                f"\n[bold red]Found {len(unvectorized_symbols)} symbols that are NOT vectorized:[/bold red]"
+            )
 
             table = Table(show_header=True, header_style="bold magenta")
             table.add_column("File Path", style="cyan")
@@ -55,14 +59,19 @@ async def find_unvectorized():
                 table.add_row(symbol["file_path"], symbol["symbol_path"])
 
             console.print(table)
-            
-            console.print("\n[bold]Next Steps:[/bold]")
-            console.print("1. Review the list above for any patterns (e.g., specific directories, complex symbols).")
-            console.print("2. Run `poetry run core-admin run vectorize --force --write` to attempt to fix them.")
 
+            console.print("\n[bold]Next Steps:[/bold]")
+            console.print(
+                "1. Review the list above for any patterns (e.g., specific directories, complex symbols)."
+            )
+            console.print(
+                "2. Run `poetry run core-admin run vectorize --force --write` to attempt to fix them."
+            )
 
     except Exception as e:
-        console.print(f"\n[bold red]❌ An error occurred while connecting to the database:[/bold red]")
+        console.print(
+            "\n[bold red]❌ An error occurred while connecting to the database:[/bold red]"
+        )
         console.print(str(e))
 
 

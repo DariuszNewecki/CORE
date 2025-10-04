@@ -3,14 +3,16 @@
 A constitutional audit check to enforce that every public symbol in the codebase
 has a registered ID in the database.
 """
+
 from __future__ import annotations
 
 import ast
 from typing import List
 
-from features.governance.checks.base_check import BaseCheck
 from shared.ast_utility import find_symbol_id_and_def_line
 from shared.models import AuditFinding, AuditSeverity
+
+from features.governance.checks.base_check import BaseCheck
 
 
 # ID: 3501ed8c-8366-4ad7-9ab4-7dcf4c045c70

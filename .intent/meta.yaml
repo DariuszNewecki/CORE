@@ -54,7 +54,7 @@ charter:
 
   schemas:
     policy_schema: "charter/schemas/policy_schema.json"
-    
+
     agent:
       agent_policy_schema: "charter/schemas/agent/agent_policy_schema.json"
       cognitive_roles_schema: "charter/schemas/agent/cognitive_roles_schema.json"
@@ -64,7 +64,7 @@ charter:
     code:
       capability_tag_schema: "charter/schemas/code/capability_tag_schema.json"
       knowledge_graph_entry_schema: "charter/schemas/code/knowledge_graph_entry_schema.json"
-      
+
     constitutional:
       intent_bundle_schema: "charter/schemas/constitutional/intent_bundle_schema.json"
       intent_crate_schema: "charter/schemas/constitutional/intent_crate_schema.json"
@@ -73,7 +73,7 @@ charter:
     data:
       database_policy_schema: "charter/schemas/data/database_policy_schema.json"
       database_schema: "charter/schemas/data/database_schema.yaml"
-      
+
     governance:
       available_actions_policy_schema: "charter/schemas/governance/available_actions_policy_schema.json"
       cli_registry_schema: "charter/schemas/governance/cli_registry_schema.json"
@@ -117,6 +117,7 @@ mind:
     capability_definer: "mind/prompts/capability_definer.prompt"
     code_peer_review: "mind/prompts/code_peer_review.prompt"
     constitutional_review: "mind/prompts/constitutional_review.prompt"
+    enrich_symbol: "mind/prompts/enrich_symbol.prompt"
     fix_capability_manifest: "mind/prompts/fix_capability_manifest.prompt"
     fix_function_docstring: "mind/prompts/fix_function_docstring.prompt"
     fix_header: "mind/prompts/fix_header.prompt"

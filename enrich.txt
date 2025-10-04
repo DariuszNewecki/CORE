@@ -1,0 +1,4 @@
+[18:09:46] INFO     GitService initialized for repo at /opt/dev/CORE
+   -> Found 334 symbols to enrich...
+           INFO     ThrottledParallelProcessor initialized with concurrency limit: 1
+Enriching symbols...                                            0% -:--:--

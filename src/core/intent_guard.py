@@ -5,6 +5,7 @@ Enforces safety, structure, and intent alignment for all file changes.
 Loads governance rules from .intent/policies/*.yaml and prevents unauthorized
 self-modifications of the CORE constitution.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass

@@ -3,13 +3,13 @@ from __future__ import annotations
 
 import re
 
-from features.governance.checks.base_check import BaseCheck
 from shared.models import AuditFinding, AuditSeverity
+
+from features.governance.checks.base_check import BaseCheck
 
 
 # ID: 0649c22b-9336-490b-9ffd-25e202924301
 class LegacyTagCheck(BaseCheck):
-
     # ID: 94e602d4-47da-455d-be69-fe7a037bcb2b
     def execute(self) -> list[AuditFinding]:
         findings = []

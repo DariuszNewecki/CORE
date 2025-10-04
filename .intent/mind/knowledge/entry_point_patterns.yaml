@@ -25,7 +25,7 @@ patterns:
     match:
       has_capability_tag: true
     entry_point_type: "capability"
-    
+
   - name: "typer_cli_command"
     description: "Functions registered as Typer CLI commands are valid entry points called by the user."
     match:

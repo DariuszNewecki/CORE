@@ -3,17 +3,18 @@
 A constitutional audit check to enforce architectural import rules as
 defined in the source_structure.yaml manifest.
 """
+
 from __future__ import annotations
 
 import ast
 from pathlib import Path
 from typing import Dict, List, Set
 
+from services.repositories.db.engine import get_session
+from shared.models import AuditFinding, AuditSeverity
 from sqlalchemy import text
 
 from features.governance.audit_context import AuditorContext
-from services.repositories.db.engine import get_session
-from shared.models import AuditFinding, AuditSeverity
 
 
 def _scan_imports(file_path: Path, content: str | None = None) -> List[str]:

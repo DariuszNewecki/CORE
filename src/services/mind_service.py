@@ -5,6 +5,7 @@ This service is the single, authoritative broker for accessing constitutional
 knowledge, ensuring that the Body does not have arbitrary access to the filesystem
 of the Mind, thus upholding the `separation_of_concerns` principle.
 """
+
 from __future__ import annotations
 
 from typing import Any

@@ -2,6 +2,7 @@
 """
 Defines the Pydantic models for representing the results of a constitutional audit.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field

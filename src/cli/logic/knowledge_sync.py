@@ -2,18 +2,18 @@
 """
 CLI command for synchronizing operational knowledge from YAML files to the database.
 """
+
 from __future__ import annotations
 
 import asyncio
 
 import yaml
 from rich.console import Console
-from sqlalchemy import JSON, Column, MetaData, String, Table
-from sqlalchemy.dialects.postgresql import insert as pg_insert
-
 from services.database.session_manager import get_session
 from shared.config import settings
 from shared.legacy_models import LegacyCognitiveRoles, LegacyResourceManifest
+from sqlalchemy import JSON, Column, MetaData, String, Table
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 console = Console()
 

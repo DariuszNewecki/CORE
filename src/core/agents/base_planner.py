@@ -3,6 +3,7 @@
 Provides shared, stateless utility functions for planner agents to reduce code duplication.
 This serves the 'dry_by_design' constitutional principle.
 """
+
 from __future__ import annotations
 
 import json
@@ -11,12 +12,12 @@ from typing import List
 from pydantic import ValidationError
 from rich.console import Console
 from rich.syntax import Syntax
-
-from core.prompt_pipeline import PromptPipeline
 from shared.config import settings
 from shared.logger import getLogger
 from shared.models import ExecutionTask, PlanExecutionError
 from shared.utils.parsing import extract_json_from_response
+
+from core.prompt_pipeline import PromptPipeline
 
 log = getLogger(__name__)
 

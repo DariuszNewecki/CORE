@@ -3,13 +3,15 @@
 A constitutional audit check to enforce file and symbol naming conventions
 as defined in the naming_conventions_policy.yaml.
 """
+
 from __future__ import annotations
 
 import re
 from typing import List
 
-from features.governance.audit_context import AuditorContext
 from shared.models import AuditFinding, AuditSeverity
+
+from features.governance.audit_context import AuditorContext
 
 
 # ID: 48100636-3970-4d7b-835a-1a4279ef3717

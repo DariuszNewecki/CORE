@@ -2,6 +2,7 @@
 """
 Defines the Pydantic models for representing autonomous execution plans and tasks.
 """
+
 from __future__ import annotations
 
 from typing import List, Optional

@@ -3,6 +3,7 @@
 Implements the CapabilityTaggerAgent, which finds unassigned capabilities
 and uses an LLM to suggest constitutionally-valid names for them.
 """
+
 from __future__ import annotations
 
 import json
@@ -11,12 +12,12 @@ from typing import Any, Dict, Optional
 
 from rich.console import Console
 from rich.table import Table
-
-from core.cognitive_service import CognitiveService
-from core.knowledge_service import KnowledgeService
 from shared.config import settings
 from shared.logger import getLogger
 from shared.utils.parallel_processor import ThrottledParallelProcessor
+
+from core.cognitive_service import CognitiveService
+from core.knowledge_service import KnowledgeService
 
 log = getLogger("tagger_agent")
 

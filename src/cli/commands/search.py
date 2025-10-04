@@ -1,14 +1,14 @@
 # src/cli/commands/search.py
 """Registers the new, verb-based 'search' command group."""
+
 from __future__ import annotations
 
 import asyncio
 
 import typer
+from cli.logic.hub import hub_search
 from rich.console import Console
 from rich.table import Table
-
-from cli.logic.hub import hub_search
 from shared.context import CoreContext
 
 console = Console()

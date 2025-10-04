@@ -3,12 +3,14 @@
 A constitutional audit check to find "orphaned logic" - public symbols
 that have not been assigned a capability ID.
 """
+
 from __future__ import annotations
 
 from typing import Any, Dict, List
 
-from features.governance.audit_context import AuditorContext
 from shared.models import AuditFinding, AuditSeverity
+
+from features.governance.audit_context import AuditorContext
 
 
 # ID: f7064ae9-8396-4e53-b550-f85b482fb2a5

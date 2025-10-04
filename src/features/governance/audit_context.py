@@ -3,6 +3,7 @@
 Defines the AuditorContext, a central data object that provides a consistent
 view of the project's constitution and state for all audit checks.
 """
+
 from __future__ import annotations
 
 import os
@@ -10,7 +11,6 @@ from pathlib import Path
 from typing import Any, Dict
 
 import yaml
-
 from core.knowledge_service import KnowledgeService
 from shared.logger import getLogger
 

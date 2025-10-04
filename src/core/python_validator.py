@@ -2,15 +2,12 @@
 """
 Python code validation pipeline.
 """
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Dict, List, Tuple
 
 import black
-
-from core.black_formatter import format_code_with_black
-from core.ruff_linter import fix_and_lint_code_with_ruff
-from core.syntax_checker import check_syntax
 from features.governance.checks.import_rules import ImportRulesCheck
 
 # --- START: IMPORT THE NEW SERVICE ---
@@ -18,6 +15,10 @@ from features.governance.runtime_validator import RuntimeValidatorService
 
 # --- END: IMPORT THE NEW SERVICE ---
 from shared.models import AuditFinding
+
+from core.black_formatter import format_code_with_black
+from core.ruff_linter import fix_and_lint_code_with_ruff
+from core.syntax_checker import check_syntax
 
 from .validation_policies import PolicyValidator
 from .validation_quality import QualityChecker

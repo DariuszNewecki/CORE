@@ -1,0 +1,33 @@
+# FILE: .pre-commit-config.yaml
+# See https://pre-commit.com for more information
+# See https://pre-commit.com/hooks.html for more hooks
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: check-yaml
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+
+  - repo: https://github.com/psf/black
+    rev: 24.4.2
+    hooks:
+      - id: black
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.4.8
+    hooks:
+      - id: ruff
+        args: [ --fix ]
+      - id: ruff-format
+
+  - repo: local
+    hooks:
+      - id: core-mind-snapshot
+        name: CORE - Mind Snapshot
+        entry: poetry run core-admin mind snapshot
+        language: system
+        types: [ file ] # Run on any changed file
+        files: ^(\.intent/mind_export/|src/) # Only run if exports or src change
+        pass_filenames: false
+        stages: [ commit ]

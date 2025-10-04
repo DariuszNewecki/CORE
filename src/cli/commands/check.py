@@ -1,9 +1,9 @@
 # src/cli/commands/check.py
 """Registers and implements the verb-based 'check' command group."""
+
 from __future__ import annotations
 
 import typer
-
 from cli.logic.audit import audit, lint, test_system
 from cli.logic.cli_utils import set_context as set_shared_context
 from cli.logic.diagnostics import policy_coverage

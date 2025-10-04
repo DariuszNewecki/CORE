@@ -2,6 +2,7 @@
 """
 Defines the base interface for all executable actions in the CORE system.
 """
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod

@@ -3,12 +3,12 @@
 Registers a 'tools' command group for powerful, operator-focused maintenance tasks.
 This is the new, governed home for logic from standalone scripts.
 """
+
 from __future__ import annotations
 
 import typer
-from rich.console import Console
-
 from features.maintenance.maintenance_service import rewire_imports
+from rich.console import Console
 
 console = Console()
 tools_app = typer.Typer(
@@ -22,7 +22,9 @@ tools_app = typer.Typer(
 )
 # ID: 4d6a0245-20c9-425e-a0cd-a390c8dd063c
 def rewire_imports_cli(
-    write: bool = typer.Option(False, "--write", help="Apply the changes to the files.")
+    write: bool = typer.Option(
+        False, "--write", help="Apply the changes to the files."
+    ),
 ):
     """
     CLI wrapper for the import rewiring service.

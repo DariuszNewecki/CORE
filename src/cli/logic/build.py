@@ -3,6 +3,7 @@
 Registers and implements the 'build' command group for generating
 artifacts from the database or constitution.
 """
+
 from __future__ import annotations
 
 import typer

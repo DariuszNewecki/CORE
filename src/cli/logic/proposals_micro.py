@@ -10,13 +10,12 @@ from pathlib import Path
 from typing import Optional
 
 import typer
-from rich.console import Console
-
 from core.agents.execution_agent import ExecutionAgent
 from core.agents.micro_planner import MicroPlannerAgent
 from core.agents.plan_executor import PlanExecutor
 from core.prompt_pipeline import PromptPipeline
 from features.governance.micro_proposal_validator import MicroProposalValidator
+from rich.console import Console
 from shared.config import settings
 from shared.context import CoreContext
 from shared.logger import getLogger
@@ -33,7 +32,7 @@ _context: Optional[CoreContext] = None
 
 # ID: 4f17d3f6-36ab-4683-ad2a-dfd9b8221d80
 def micro_propose(
-    goal: str = typer.Argument(..., help="The high-level goal to achieve.")
+    goal: str = typer.Argument(..., help="The high-level goal to achieve."),
 ):
     """Uses an agent to create a safe, auto-approvable plan for a goal."""
     if _context is None:
@@ -78,7 +77,7 @@ def micro_propose(
 def micro_apply(
     proposal_path: Path = typer.Argument(
         ..., help="Path to the micro-proposal JSON file.", exists=True
-    )
+    ),
 ):
     """Validates and applies a micro-proposal."""
     if _context is None:

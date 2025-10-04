@@ -2,6 +2,7 @@
 """
 CLI command to check database connectivity and migration status.
 """
+
 from __future__ import annotations
 
 import asyncio

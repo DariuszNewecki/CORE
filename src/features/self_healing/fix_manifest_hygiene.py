@@ -3,6 +3,7 @@
 A self-healing tool that scans domain manifests for misplaced capability
 declarations and moves them to the correct manifest file.
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -11,7 +12,6 @@ from typing import Any, Dict
 import typer
 import yaml
 from rich.console import Console
-
 from shared.config import settings
 from shared.logger import getLogger
 
@@ -25,7 +25,7 @@ DOMAINS_DIR = REPO_ROOT / ".intent" / "mind" / "knowledge" / "domains"
 def run_fix_manifest_hygiene(
     write: bool = typer.Option(
         False, "--write", help="Apply fixes to the manifest files."
-    )
+    ),
 ):
     """
     Scans for and corrects misplaced capability declarations in domain manifests.

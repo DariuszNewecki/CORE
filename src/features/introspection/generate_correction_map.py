@@ -4,6 +4,7 @@ A utility to generate alias maps from semantic clustering results.
 It takes the proposed domain mappings and creates a YAML file that can be used
 by the AliasResolver to standardize capability keys.
 """
+
 from __future__ import annotations
 
 import json
@@ -12,7 +13,6 @@ from pathlib import Path
 import typer
 import yaml
 from rich.console import Console
-
 from shared.logger import getLogger
 
 log = getLogger("generate_correction_map")

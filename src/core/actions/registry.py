@@ -2,6 +2,7 @@
 """
 A registry for discovering and accessing all available ActionHandlers.
 """
+
 from __future__ import annotations
 
 from typing import Dict, List, Optional, Type

@@ -3,28 +3,29 @@
 A one-off migration script to update the core.cli_commands table to the
 new verb-noun command structure. THIS SCRIPT IS DESTRUCTIVE.
 """
+
 import asyncio
 
-from sqlalchemy import text
 from services.database.session_manager import get_session
+from sqlalchemy import text
 
 # This is the canonical mapping from OLD command name to NEW command name.
 # It is the single source of truth for this migration.
 RENAME_MAP = {
-    "agent.scaffold": "manage.project.onboard", # Conceptually onboarding
+    "agent.scaffold": "manage.project.onboard",  # Conceptually onboarding
     "bootstrap.issues": "manage.project.bootstrap",
-    "build.capability-docs": "manage.project.docs", # Conceptual mapping
+    "build.capability-docs": "manage.project.docs",  # Conceptual mapping
     "byor-init": "manage.project.onboard",
-    "capability.new": "fix.ids", # Conceptually replaced by fix ids
-    "chat": "run.agent", # Conceptually replaced by the agent runner
+    "capability.new": "fix.ids",  # Conceptually replaced by fix ids
+    "chat": "run.agent",  # Conceptually replaced by the agent runner
     "check.ci.audit": "check.audit",
     "check.ci.lint": "check.lint",
     "check.ci.report": "check.report",
     "check.ci.test": "check.tests",
     "check.diagnostics.cli-registry": "check.diagnostics",
     "check.diagnostics.cli-tree": "inspect.command-tree",
-    "check.diagnostics.debug-meta": "inspect.meta", # Simplified
-    "check.diagnostics.find-clusters": "inspect.clusters", # Simplified
+    "check.diagnostics.debug-meta": "inspect.meta",  # Simplified
+    "check.diagnostics.find-clusters": "inspect.clusters",  # Simplified
     "check.diagnostics.legacy-tags": "check.legacy-tags",
     "check.diagnostics.manifest-hygiene": "check.manifest-hygiene",
     "check.diagnostics.policy-coverage": "check.diagnostics",
@@ -73,6 +74,7 @@ RENAME_MAP = {
     "tools.rewire-imports": "fix.imports",
 }
 
+
 async def main():
     """Connects to the DB and applies the renames."""
     print("🚀 Starting CLI V2 registry migration...")
@@ -89,21 +91,25 @@ async def main():
                     stmt = text(
                         "UPDATE core.cli_commands SET name = :new WHERE name = :old"
                     )
-                    result = await session.execute(stmt, {"new": new_name, "old": old_name})
+                    result = await session.execute(
+                        stmt, {"new": new_name, "old": old_name}
+                    )
                     if result.rowcount > 0:
                         print(f"  -> Renamed '{old_name}' to '{new_name}'")
                         updated_count += 1
-            
+
             # Delete commands that are now conceptually obsolete
-            obsolete_commands = [cmd for cmd in all_db_commands if cmd not in RENAME_MAP.keys()]
+            obsolete_commands = [
+                cmd for cmd in all_db_commands if cmd not in RENAME_MAP.keys()
+            ]
             if obsolete_commands:
                 print(f"  -> Deleting {len(obsolete_commands)} obsolete command(s)...")
                 delete_stmt = text("DELETE FROM core.cli_commands WHERE name = :name")
                 for cmd in obsolete_commands:
                     await session.execute(delete_stmt, {"name": cmd})
 
-
     print(f"\n✅ Migration complete. Updated/processed {updated_count} records.")
+
 
 if __name__ == "__main__":
     asyncio.run(main())

@@ -4,6 +4,7 @@ Centralized loaders for constitution-backed policies used by agents and services
 - Avoids hardcoding actions/params in code.
 - Keeps a single source of truth for Planner/ExecutionAgent validation.
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -15,7 +16,6 @@ try:
     # Use shared logger per logging policy (no direct logging import/print)
     from shared.logger import getLogger  # type: ignore
 except Exception:  # Fallback if logger import path changes during refactors
-
     # ID: c9da80fe-4c0b-4e9b-aaa0-b8acfa2dec86
     def getLogger(name: str):  # type: ignore
         class _Nop:

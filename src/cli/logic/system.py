@@ -5,10 +5,9 @@ import asyncio
 from typing import Optional
 
 import typer
-from rich.console import Console
-
 from core.crate_processing_service import process_crates
 from features.project_lifecycle.integration_service import integrate_changes
+from rich.console import Console
 from shared.context import CoreContext
 
 console = Console()
@@ -21,7 +20,7 @@ _context: Optional[CoreContext] = None
 def integrate_command(
     commit_message: str = typer.Option(
         ..., "-m", "--message", help="The git commit message for this integration."
-    )
+    ),
 ):
     """Orchestrates the full, autonomous integration of staged code changes."""
     if _context is None:

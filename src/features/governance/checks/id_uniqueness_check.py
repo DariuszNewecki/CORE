@@ -2,14 +2,16 @@
 """
 A constitutional audit check to enforce that every # ID tag is unique across the codebase.
 """
+
 from __future__ import annotations
 
 import re
 from collections import defaultdict
 from typing import Dict, List
 
-from features.governance.checks.base_check import BaseCheck
 from shared.models import AuditFinding, AuditSeverity
+
+from features.governance.checks.base_check import BaseCheck
 
 # Pre-compiled regex for efficiency to find '# ID: <uuid>'
 ID_TAG_REGEX = re.compile(

@@ -2,6 +2,7 @@
 """
 Provides a shared base class for all constitutional audit checks to inherit from.
 """
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING

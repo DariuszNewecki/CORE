@@ -3,6 +3,7 @@
 Implements the 'knowledge sync-manifest' command to synchronize the project
 manifest with the public symbols stored in the database.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -10,11 +11,10 @@ import asyncio
 import typer
 from rich.console import Console
 from ruamel.yaml import YAML  # Use ruamel.yaml for safer writing
-from sqlalchemy import text
-
 from services.repositories.db.engine import get_session
 from shared.config import settings
 from shared.logger import getLogger
+from sqlalchemy import text
 
 log = getLogger("core_admin.sync_manifest")
 console = Console()

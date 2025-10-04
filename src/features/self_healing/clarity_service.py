@@ -3,15 +3,15 @@
 Implements the 'fix clarity' command, using an AI agent to perform
 principled refactoring of Python code for improved readability and simplicity.
 """
+
 from __future__ import annotations
 
 import asyncio
 from pathlib import Path
 
 import typer
-from rich.console import Console
-
 from core.cognitive_service import CognitiveService
+from rich.console import Console
 from shared.config import settings
 from shared.logger import getLogger
 

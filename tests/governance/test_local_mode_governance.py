@@ -3,6 +3,7 @@
 Tests to ensure that CORE's governance principles are correctly
 reflected in its configuration files.
 """
+
 from shared.config_loader import load_yaml_file
 from shared.path_utils import get_repo_root
 

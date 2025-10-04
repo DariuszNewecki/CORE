@@ -744,4 +744,3 @@ ALTER TABLE ONLY core.symbol_capability_links
 --
 
 \unrestrict rpnmaqgPqCoFD00V5NkH19WZqL8KsPiaYo7hxwmzoGus2lvY0HKmArP9Q7SisTz
-

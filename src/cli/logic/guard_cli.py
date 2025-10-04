@@ -2,6 +2,7 @@
 """
 CLI-facing guard registration helpers.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -10,7 +11,6 @@ from pathlib import Path
 from typing import Any, Dict, Optional
 
 import typer
-
 from features.introspection.drift_detector import write_report
 from features.introspection.drift_service import run_drift_analysis_async
 

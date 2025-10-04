@@ -2,14 +2,16 @@
 """
 Audits file existence and orphan detection for constitutional governance files.
 """
+
 from __future__ import annotations
 
 from typing import List, Set
 
-from features.governance.checks.base_check import BaseCheck
 from shared.config import settings
 from shared.models import AuditFinding, AuditSeverity
 from shared.utils.constitutional_parser import get_all_constitutional_paths
+
+from features.governance.checks.base_check import BaseCheck
 
 # Files that are allowed to exist but are not indexed in meta.yaml
 KNOWN_UNINDEXED_FILES = {

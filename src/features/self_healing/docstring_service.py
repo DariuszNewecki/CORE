@@ -3,18 +3,19 @@
 Implements the 'fix docstrings' command, an AI-powered tool to add
 missing docstrings to functions and methods.
 """
+
 from __future__ import annotations
 
 import asyncio
 
 import typer
-from rich.progress import track
-
 from core.cognitive_service import CognitiveService
 from core.knowledge_service import KnowledgeService
-from features.introspection.knowledge_helpers import extract_source_code
+from rich.progress import track
 from shared.config import settings
 from shared.logger import getLogger
+
+from features.introspection.knowledge_helpers import extract_source_code
 
 log = getLogger("core_admin.fixer_docstrings")
 REPO_ROOT = settings.REPO_PATH

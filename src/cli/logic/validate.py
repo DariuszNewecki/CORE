@@ -3,6 +3,7 @@
 Provides CLI commands for validating constitutional and governance integrity.
 This module consolidates and houses the logic from the old src/core/cli tools.
 """
+
 from __future__ import annotations
 
 import ast
@@ -13,7 +14,6 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import typer
 from jsonschema import ValidationError, validate
-
 from shared.config_loader import load_yaml_file
 from shared.logger import getLogger
 

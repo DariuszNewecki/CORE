@@ -3,6 +3,7 @@
 Phase 2, 3, & 4: Deterministic DB <-> YAML mirror for the Working Mind.
 This file contains the core logic for the 'snapshot', 'diff', 'import', and 'verify' commands.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -16,12 +17,11 @@ from typing import Any, Dict, List
 
 import yaml
 from rich.console import Console
-from sqlalchemy import text
-from sqlalchemy.dialects.postgresql import insert as pg_insert
-
 from services.database.models import Capability, Northstar, Symbol, SymbolCapabilityLink
 from services.database.session_manager import get_session
 from shared.config import settings
+from sqlalchemy import text
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 console = Console()
 EXPORT_DIR = settings.REPO_PATH / ".intent" / "mind_export"

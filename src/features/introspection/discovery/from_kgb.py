@@ -2,6 +2,7 @@
 """
 Discovers implemented capabilities by leveraging the KnowledgeGraphBuilder.
 """
+
 from __future__ import annotations
 
 from pathlib import Path

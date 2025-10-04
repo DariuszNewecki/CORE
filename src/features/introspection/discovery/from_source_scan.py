@@ -3,6 +3,7 @@
 Discovers implemented capabilities by performing a direct source code scan.
 This is a fallback for when the knowledge graph is not available.
 """
+
 from __future__ import annotations
 
 import re

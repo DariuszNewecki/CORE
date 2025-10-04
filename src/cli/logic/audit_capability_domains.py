@@ -6,10 +6,10 @@ Provides functionality for the audit_capability_domains module.
 from __future__ import annotations
 
 import typer
-from sqlalchemy import text
 
 # --- CORRECTED IMPORT ---
 from core.db.engine import get_session
+from sqlalchemy import text
 
 
 async def _audit_queries(limit: int):
@@ -92,7 +92,7 @@ async def _audit_queries(limit: int):
 def audit_capability_domains(
     limit: int = typer.Option(
         20, "--limit", help="Max sample keys to show for each finding"
-    )
+    ),
 ):
     total, zero_tags, multi_primary, legacy_mismatch, inactive_tags = typer.run(
         _audit_queries, limit

@@ -21,7 +21,7 @@ rules:
   - id: crate.location.inbox
     statement: "All new, unprocessed Intent Crates MUST reside in 'work/crates/inbox/'."
     enforcement: error
-  
+
   - id: crate.state.must_move
     statement: "A crate MUST be moved from the inbox to 'processing', and then to 'accepted' or 'rejected'. It MUST NOT be modified in place."
     enforcement: error
@@ -33,7 +33,7 @@ rules:
   - id: crate.acceptance.meta_sync
     statement: "Upon accepting a CONSTITUTIONAL_AMENDMENT crate that adds a new policy or schema, the system MUST autonomously update and commit '.intent/meta.yaml'."
     enforcement: error
-  
+
   - id: crate.acceptance.scaffold_work
     statement: "If a new policy is accepted and requires new auditor checks, the system SHOULD scaffold the necessary check files or methods."
     enforcement: warn

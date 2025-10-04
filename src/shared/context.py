@@ -3,6 +3,7 @@
 Defines the CoreContext, a dataclass that holds singleton instances of all major
 services, enabling explicit dependency injection throughout the application.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass

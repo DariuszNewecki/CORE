@@ -3,13 +3,13 @@
 Handles the discovery and validation of capability definitions from various
 constitutional sources, including domain-specific manifests and alias maps.
 """
+
 from __future__ import annotations
 
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Set
 
 import yaml
-
 from shared.logger import getLogger
 from shared.models import CapabilityMeta
 

@@ -3,6 +3,7 @@
 Defines the Pydantic/dataclass models for representing capabilities and
 their metadata throughout the system.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass

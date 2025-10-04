@@ -4,15 +4,15 @@ A self-healing tool that scans the codebase and removes # CAPABILITY tags
 from private symbols (those starting with an underscore), enforcing the
 'caps.ignore_private' constitutional policy.
 """
+
 from __future__ import annotations
 
 import asyncio
 import re
 
 import typer
-from rich.console import Console
-
 from core.knowledge_service import KnowledgeService
+from rich.console import Console
 from shared.config import settings
 from shared.logger import getLogger
 
@@ -25,7 +25,7 @@ REPO_ROOT = settings.REPO_PATH
 def main(
     write: bool = typer.Option(
         False, "--write", help="Apply fixes and remove tags from source files."
-    )
+    ),
 ):
     """
     Finds and removes capability tags from private symbols (_ or __).

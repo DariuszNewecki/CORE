@@ -3,6 +3,7 @@
 Provides shared, constitutionally-governed cryptographic utilities for
 tasks like signing and token generation.
 """
+
 from __future__ import annotations
 
 import json

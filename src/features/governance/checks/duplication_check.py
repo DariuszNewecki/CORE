@@ -3,17 +3,18 @@
 A constitutional audit check to find semantically duplicate or near-duplicate
 symbols (functions/classes) using the Qdrant vector database.
 """
+
 from __future__ import annotations
 
 import asyncio
 from typing import Any, Dict, List
 
 from rich.progress import track
-
-from features.governance.audit_context import AuditorContext
 from services.clients.qdrant_client import QdrantService
 from shared.logger import getLogger
 from shared.models import AuditFinding, AuditSeverity
+
+from features.governance.audit_context import AuditorContext
 
 log = getLogger("duplication_check")
 

@@ -3,6 +3,7 @@
 Detects drift between declared capabilities in manifests and implemented
 capabilities in the source code.
 """
+
 from __future__ import annotations
 
 import json

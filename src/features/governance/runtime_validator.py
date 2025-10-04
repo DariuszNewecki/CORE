@@ -3,6 +3,7 @@
 Provides a service to run the project's test suite against proposed code changes
 in a safe, isolated "canary" environment.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -11,7 +12,6 @@ import tempfile
 from pathlib import Path
 
 from rich.console import Console
-
 from shared.logger import getLogger
 
 log = getLogger("runtime_validator")

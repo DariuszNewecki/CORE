@@ -2,6 +2,7 @@
 """
 Makes all Pydantic models in this directory available for easy import.
 """
+
 from __future__ import annotations
 
 from .audit_models import AuditFinding, AuditSeverity

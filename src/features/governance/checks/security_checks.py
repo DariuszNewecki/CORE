@@ -3,12 +3,14 @@
 Scans source code for hardcoded secrets based on configurable detection patterns
 and exclusion rules.
 """
+
 from __future__ import annotations
 
 import re
 
-from features.governance.checks.base_check import BaseCheck
 from shared.models import AuditFinding, AuditSeverity
+
+from features.governance.checks.base_check import BaseCheck
 
 
 # ID: e5596ce5-1529-4670-864a-5bd8adfc160d

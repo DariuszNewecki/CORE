@@ -3,6 +3,7 @@
 Shared utilities for constitutional migration and domain rationalization.
 This is the canonical location for logic used by migration-related tools.
 """
+
 from __future__ import annotations
 
 import re

@@ -3,6 +3,7 @@
 Implements the 'fix line-lengths' command, an AI-powered tool to
 refactor code for better readability by adhering to line length policies.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -10,17 +11,16 @@ from pathlib import Path
 from typing import List, Optional
 
 import typer
-from rich.progress import track
-
 from core.cognitive_service import CognitiveService
 
 # --- START OF AMENDMENT: Import the new async validator ---
 from core.validation_pipeline import validate_code_async
+from rich.progress import track
+from shared.config import settings
+from shared.logger import getLogger
 
 # --- END OF AMENDMENT ---
 from features.governance.audit_context import AuditorContext
-from shared.config import settings
-from shared.logger import getLogger
 
 log = getLogger("core_admin.fixer_linelength")
 REPO_ROOT = settings.REPO_PATH

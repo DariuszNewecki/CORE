@@ -2,6 +2,7 @@
 """
 CLI command to synchronize the canonical list of domains to the database.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -9,10 +10,9 @@ import asyncio
 import typer
 import yaml
 from rich.console import Console
-from sqlalchemy import text
-
 from services.repositories.db.engine import get_session
 from shared.config import settings
+from sqlalchemy import text
 
 console = Console()
 

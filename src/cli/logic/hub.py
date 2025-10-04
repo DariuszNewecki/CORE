@@ -17,12 +17,11 @@ from typing import List, Optional
 import typer
 from rich.console import Console
 from rich.table import Table
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from services.database.models import CliCommand
 from services.database.session_manager import get_session
 from shared.config import settings
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 console = Console()
 hub_app = typer.Typer(help="Central hub for discovering and locating CORE tools.")
@@ -161,7 +160,7 @@ def hub_whereis(
     command: str = typer.Argument(
         ...,
         help="Exact command name as stored (e.g., 'proposals.micro.apply' or 'knowledge.sync')",
-    )
+    ),
 ):
     """Show module, entrypoint, and file path for a command."""
 

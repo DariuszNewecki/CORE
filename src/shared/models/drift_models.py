@@ -2,6 +2,7 @@
 """
 Defines the Pydantic/dataclass models for representing capability drift.
 """
+
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass

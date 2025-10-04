@@ -73,4 +73,3 @@ migrations:
     description: Initial schema creation for capabilities, capability_history, cli_runs, audits.
     created_at: "2025-09-18"
     approved_by: TBD
-

@@ -3,17 +3,17 @@
 The single, canonical entry point for the core-admin CLI.
 This module assembles all command groups into a single Typer application.
 """
+
 from __future__ import annotations
 
 import typer
-from rich.console import Console
-
-from cli.commands import check, fix, inspect, manage, mind, run, search, submit
+from cli.commands import check, enrich, fix, inspect, manage, mind, run, search, submit
 from cli.interactive import launch_interactive_menu
 from core.cognitive_service import CognitiveService
 from core.file_handler import FileHandler
 from core.git_service import GitService
 from features.governance.audit_context import AuditorContext
+from rich.console import Console
 from services.clients.qdrant_client import QdrantService
 from shared.config import settings
 from shared.context import CoreContext
@@ -47,7 +47,17 @@ core_context = CoreContext(
 # ID: 2cefad7a-83b8-4263-b882-5a62eae5b092
 def register_all_commands(app_instance: typer.Typer) -> None:
     """Register all command groups in the correct order."""
-    modules_with_context = [check, fix, inspect, manage, mind, run, search, submit]
+    modules_with_context = [
+        check,
+        enrich,
+        fix,
+        inspect,
+        manage,
+        mind,
+        run,
+        search,
+        submit,
+    ]
     for module in modules_with_context:
         module.register(app_instance, core_context)
 

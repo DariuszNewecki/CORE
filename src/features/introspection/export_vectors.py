@@ -3,6 +3,7 @@
 A utility to export all vectors and their payloads from the Qdrant database
 to a local JSONL file for analysis, clustering, or backup.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -12,7 +13,6 @@ from pathlib import Path
 import typer
 from rich.console import Console
 from rich.progress import track
-
 from services.clients.qdrant_client import QdrantService
 from shared.logger import getLogger
 
@@ -66,7 +66,7 @@ def export_vectors(
         "--output",
         "-o",
         help="The path to save the exported JSONL file.",
-    )
+    ),
 ):
     """Exports all vectors from Qdrant to a JSONL file."""
     asyncio.run(_async_export(output))

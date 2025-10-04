@@ -32,7 +32,7 @@ ignores:
     path: "src/features/governance/checks/knowledge_source_check.py"
     reason: "This check must contain the string 'knowledge_graph.json' to perform its function. It is an intentional and safe usage."
     expires: "2026-01-01"
-  
+
 symbol_ignores:
   - key: "src/core/intent_guard.py::_get_rules_by_severity"
     reason: "Internal helper method, not a public capability."
