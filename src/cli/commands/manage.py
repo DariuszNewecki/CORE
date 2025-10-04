@@ -57,6 +57,7 @@ db_sub_app.command("sync-operational")(sync_operational)
     "migrate-ssot",
     help="One-time data migration from legacy files to the SSOT database.",
 )
+# ID: 30a7ee08-0d58-432c-8227-770e5db359fb
 def migrate_ssot_command(
     write: bool = typer.Option(
         False, "--write", help="Apply the migration to the database."
@@ -119,6 +120,7 @@ def _define_single_symbol_sync(
     "define-symbols",
     help="[Synchronous] Defines all undefined capabilities one by one.",
 )
+# ID: f1df972a-eda1-41ca-9b2b-1950c32553ba
 def define_symbols_command():
     """A robust, synchronous command to reliably define all symbols."""
     console.print(
@@ -230,6 +232,7 @@ def define_symbols_command():
         session.close()
 
 
+# ID: 3c6fb9ba-fd79-4ad3-9610-18eb29b55140
 def register(app: typer.Typer, context: CoreContext):
     """Register the 'manage' command group with the main CLI app."""
     set_shared_context(context, "cli.logic.proposal_service")

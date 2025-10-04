@@ -100,4 +100,21 @@ def assign_missing_ids(dry_run: bool = True) -> int:
                 f"   -> [bold red]❌ Error writing to {file_path}: {e}[/bold red]"
             )
 
+    console.print("\n--- ID Assignment Complete ---")
+    if dry_run:
+        console.print(
+            f"💧 DRY RUN: Found {total_ids_assigned} public symbols that need an ID."
+        )
+        console.print("   Run with '--write' to apply these changes.")
+    else:
+        console.print(
+            f"✅ APPLIED: Successfully assigned {total_ids_assigned} new IDs."
+        )
+        # --- THIS IS THE FIX ---
+        # Updated the command to the new, correct one.
+        console.print(
+            "\n[bold]NEXT STEP:[/bold] Run 'poetry run core-admin manage database sync-knowledge --write' to update the database."
+        )
+        # --- END OF FIX ---
+
     return total_ids_assigned

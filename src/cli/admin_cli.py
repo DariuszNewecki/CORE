@@ -44,6 +44,7 @@ core_context = CoreContext(
 )
 
 
+# ID: 2cefad7a-83b8-4263-b882-5a62eae5b092
 def register_all_commands(app_instance: typer.Typer) -> None:
     """Register all command groups in the correct order."""
     modules_with_context = [check, fix, inspect, manage, mind, run, search, submit]
@@ -56,6 +57,7 @@ register_all_commands(app)
 
 
 @app.callback(invoke_without_command=True)
+# ID: 74b366e2-d1fc-44c6-a9bc-e8fe222d1ad8
 def main(ctx: typer.Context):
     """If no command is specified, launch the interactive menu."""
     # Attach our custom context to Typer's context object

@@ -30,11 +30,13 @@ EXPORT_DIR = settings.REPO_PATH / ".intent" / "mind_export"
 # --- Helper Functions from your plan ---
 
 
+# ID: bca8d420-49c6-4f18-aa43-6b4dd7f0f850
 def iso_now() -> str:
     """Returns the current UTC time in a standard format."""
     return datetime.now(timezone.utc).isoformat()
 
 
+# ID: dec9deb3-1e13-4d2a-a0cd-dcae4b248ac1
 def canonicalize(obj: Any) -> Any:
     """Recursively sorts dictionary keys to ensure a stable, consistent order for hashing."""
     if isinstance(obj, dict):
@@ -51,6 +53,7 @@ def canonicalize(obj: Any) -> Any:
     return obj
 
 
+# ID: 5e482eda-feb8-46d8-b4fd-d4c80bb23372
 def compute_digest(items: List[Dict[str, Any]]) -> str:
     """Creates a unique fingerprint (SHA256) for a list of items."""
     canon = canonicalize(items)
@@ -60,6 +63,7 @@ def compute_digest(items: List[Dict[str, Any]]) -> str:
     return "sha256:" + hashlib.sha256(payload).hexdigest()
 
 
+# ID: 868c75af-85f7-4f90-9f3b-87806b2b4ee9
 def write_yaml(path: Path, items: List[Dict[str, Any]], exported_at: str) -> str:
     """Writes a list of items to a YAML file, including version, timestamp, and the unique digest."""
     # Convert UUIDs to strings for YAML serialization
@@ -80,6 +84,7 @@ def write_yaml(path: Path, items: List[Dict[str, Any]], exported_at: str) -> str
     return digest
 
 
+# ID: 7ff299a6-9403-41c7-9522-e4f8d1ad90b1
 def read_yaml(path: Path) -> Dict[str, Any]:
     """Reads a YAML file and returns its content, handling missing files."""
     if not path.exists():
@@ -101,6 +106,7 @@ def read_yaml(path: Path) -> Dict[str, Any]:
 # --- Database Fetcher Functions ---
 
 
+# ID: aedf8f51-f30e-48aa-b5a7-fb82f2e090cd
 async def fetch_capabilities() -> List[Dict[str, Any]]:
     """Reads all capabilities from the database, ordered consistently."""
     async with get_session() as session:
@@ -112,6 +118,7 @@ async def fetch_capabilities() -> List[Dict[str, Any]]:
         return [dict(row) for row in result.mappings()]
 
 
+# ID: e1dce0f7-3ac3-430d-bc6c-c73d278a869b
 async def fetch_symbols() -> List[Dict[str, Any]]:
     """Reads all symbols from the database, ordered consistently."""
     async with get_session() as session:
@@ -123,6 +130,7 @@ async def fetch_symbols() -> List[Dict[str, Any]]:
         return [dict(row) for row in result.mappings()]
 
 
+# ID: 5cab9fd9-1ff7-448d-a11a-f511dbc614d8
 async def fetch_links() -> List[Dict[str, Any]]:
     """Reads all symbol-capability links from the database, ordered consistently."""
     async with get_session() as session:
@@ -138,6 +146,7 @@ async def fetch_links() -> List[Dict[str, Any]]:
         return rows
 
 
+# ID: 3de03ab6-c94e-4834-a7ef-eb1809219d35
 async def fetch_northstar() -> List[Dict[str, Any]]:
     """Reads the current North Star mission from the database."""
     async with get_session() as session:
@@ -152,6 +161,7 @@ async def fetch_northstar() -> List[Dict[str, Any]]:
 # --- Main Snapshot Logic ---
 
 
+# ID: e731e7aa-1169-4e24-a1cb-cdc1461d607f
 async def run_snapshot(env: str | None, note: str | None):
     """The main function that performs the snapshot operation."""
     EXPORT_DIR.mkdir(parents=True, exist_ok=True)
@@ -224,6 +234,7 @@ async def run_snapshot(env: str | None, note: str | None):
 # --- Main Diff Logic ---
 
 
+# ID: 5c90462f-f36c-48c6-940b-25b8c1311ee3
 def diff_sets(
     db_items: List[Dict[str, Any]], file_items: List[Dict[str, Any]], key: str
 ) -> Dict[str, Any]:
@@ -257,6 +268,7 @@ def _get_diff_links_key(item: Dict[str, Any]) -> str:
     return f"{str(item.get('symbol_id', ''))}-{str(item.get('capability_id', ''))}-{item.get('source', '')}"
 
 
+# ID: ea814f0f-bee9-4c32-ae1c-fa9f474eabaf
 async def run_diff(as_json: bool):
     """Orchestrates the diff operation."""
     if not EXPORT_DIR.exists():
@@ -329,6 +341,7 @@ async def _upsert_items(session, table_model, items, index_elements):
     await session.execute(upsert_stmt)
 
 
+# ID: 2bf1f61e-bde5-4f19-ba76-07e5a8987fa2
 async def run_import(dry_run: bool):
     """Orchestrates the import operation."""
     if not EXPORT_DIR.exists():
@@ -397,6 +410,7 @@ async def run_import(dry_run: bool):
 
 
 # --- Main Verify Logic ---
+# ID: e1964902-4b8f-4154-974a-aed21d0abbcc
 def run_verify():
     """Checks digests of exported YAML files to ensure integrity."""
     if not EXPORT_DIR.exists():

@@ -13,6 +13,7 @@ Base = declarative_base()
 # --- EXISTING MODELS ---
 
 
+# ID: 1fd4488a-09e0-46ea-8bca-0d61b1abff9f
 class CliCommand(Base):
     """Maps to the core.cli_commands table."""
 
@@ -25,6 +26,7 @@ class CliCommand(Base):
     category: str | None = Column(String)
 
 
+# ID: c4f313ac-ffb5-43a8-bf6e-b19464983a61
 class LlmResource(Base):
     """Maps to the core.llm_resources table."""
 
@@ -36,6 +38,7 @@ class LlmResource(Base):
     performance_metadata: dict | None = Column(JSON)
 
 
+# ID: 03059618-ebaa-46ca-b86c-65d207bf0313
 class CognitiveRole(Base):
     """Maps to the core.cognitive_roles table."""
 
@@ -50,6 +53,7 @@ class CognitiveRole(Base):
 # --- NEW MODELS FOR SSOT ---
 
 
+# ID: ca1987e3-9067-4f94-9ac3-085ef05a9fc9
 class Capability(Base):
     __tablename__ = "capabilities"
     __table_args__ = {"schema": "core"}
@@ -62,6 +66,7 @@ class Capability(Base):
     status = Column(Text, nullable=False, default="Active")
 
 
+# ID: 68b413a5-241e-476d-85e8-c2761149efd3
 class Symbol(Base):
     __tablename__ = "symbols"
     __table_args__ = {"schema": "core"}
@@ -74,6 +79,7 @@ class Symbol(Base):
     state = Column(Text, nullable=False, default="discovered")
 
 
+# ID: 4a43fc1a-11db-4635-8acf-d6c793eebe97
 class SymbolCapabilityLink(Base):
     __tablename__ = "symbol_capability_links"
     __table_args__ = {"schema": "core"}
@@ -84,6 +90,7 @@ class SymbolCapabilityLink(Base):
     verified = Column(Boolean, nullable=False, default=False)
 
 
+# ID: 1d40bfaa-63c1-4249-8331-4b1bcad8474e
 class Northstar(Base):
     __tablename__ = "northstar"
     __table_args__ = {"schema": "core"}
