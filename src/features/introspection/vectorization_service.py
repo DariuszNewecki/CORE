@@ -4,6 +4,7 @@ High-performance orchestrator for capability vectorization.
 This version reads its work queue directly from the database, treating it as the
 single source of truth for the symbol catalog.
 """
+
 from __future__ import annotations
 
 import ast
@@ -11,16 +12,15 @@ import hashlib
 from pathlib import Path
 from typing import Dict, List, Optional
 
+from core.cognitive_service import CognitiveService
 from rich.console import Console
 from rich.progress import track
-from sqlalchemy import text
-
-from core.cognitive_service import CognitiveService
 from services.clients.qdrant_client import QdrantService
 from services.database.session_manager import get_session
 from shared.config import settings
 from shared.logger import getLogger
 from shared.utils.embedding_utils import normalize_text
+from sqlalchemy import text
 
 log = getLogger("core_admin.knowledge.orchestrator")
 console = Console()

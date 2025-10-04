@@ -3,6 +3,7 @@
 Provides a deterministic tool for parsing and reconstructing Python file headers
 according to CORE's constitutional style guide.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field

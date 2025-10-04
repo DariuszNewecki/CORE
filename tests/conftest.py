@@ -2,6 +2,7 @@
 """
 Central pytest configuration and fixtures for the CORE project.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -9,14 +10,13 @@ from pathlib import Path
 
 import pytest
 import yaml
+from services.database.models import Base
+from shared.config import settings
 from sqlalchemy.ext.asyncio import (
     AsyncSession,
     async_sessionmaker,
     create_async_engine,
 )
-
-from services.database.models import Base
-from shared.config import settings
 
 
 @pytest.fixture(scope="session")

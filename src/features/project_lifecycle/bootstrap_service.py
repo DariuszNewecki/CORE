@@ -3,6 +3,7 @@
 Provides CLI commands for bootstrapping the project with initial setup tasks,
 such as creating a default set of GitHub issues for a new repository.
 """
+
 from __future__ import annotations
 
 import shutil
@@ -11,7 +12,6 @@ from typing import Optional
 
 import typer
 from rich.console import Console
-
 from shared.logger import getLogger
 
 log = getLogger("core_admin.bootstrap")

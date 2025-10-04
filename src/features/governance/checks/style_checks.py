@@ -3,12 +3,14 @@
 Auditor checks for code style and convention compliance, as defined in
 .intent/charter/policies/code_style_policy.yaml.
 """
+
 from __future__ import annotations
 
 import ast
 
-from features.governance.checks.base_check import BaseCheck
 from shared.models import AuditFinding, AuditSeverity
+
+from features.governance.checks.base_check import BaseCheck
 
 
 # ID: fd4ffac0-217f-4b9c-9a70-3a0106779421

@@ -29,4 +29,3 @@ Analyze the user's request and determine the single best command to achieve thei
   "error": "Your request is a bit ambiguous. Could you clarify if you want to 'review the documentation' or 'run a constitutional audit'?"
 }
 ```
-

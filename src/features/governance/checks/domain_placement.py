@@ -3,13 +3,15 @@
 A constitutional audit check to ensure capabilities are declared in the
 correct domain manifest file.
 """
+
 from __future__ import annotations
 
 from typing import List
 
-from features.governance.audit_context import AuditorContext
 from shared.models import AuditFinding, AuditSeverity
 from shared.utils.yaml_processor import yaml_processor
+
+from features.governance.audit_context import AuditorContext
 
 
 # ID: 0cd8ad5a-ed46-4f18-8335-f95b747d6164

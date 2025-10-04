@@ -3,6 +3,7 @@
 Provides a service to perform a meta-audit on the constitution itself,
 checking for policy coverage and structural integrity.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -13,7 +14,6 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 from pydantic import BaseModel
-
 from shared.config import settings
 from shared.logger import getLogger
 

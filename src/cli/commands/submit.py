@@ -1,9 +1,9 @@
 # src/cli/commands/submit.py
 """Registers the new, high-level 'submit' workflow command."""
+
 from __future__ import annotations
 
 import typer
-
 from cli.logic.cli_utils import set_context as set_shared_context
 from cli.logic.system import integrate_command
 from shared.context import CoreContext

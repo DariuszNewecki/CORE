@@ -3,6 +3,7 @@
 Provides a centralized, lazily-initialized service registry for CORE.
 This acts as a simple dependency injection container.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -10,11 +11,10 @@ import importlib
 from pathlib import Path
 from typing import Any, Dict
 
-from sqlalchemy import text
-
 from services.repositories.db.engine import get_session
 from shared.config import settings
 from shared.logger import getLogger
+from sqlalchemy import text
 
 log = getLogger("service_registry")
 

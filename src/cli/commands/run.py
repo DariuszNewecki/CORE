@@ -3,6 +3,7 @@
 Registers and implements the 'run' command group for executing complex,
 multi-step processes and autonomous cycles.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -10,14 +11,13 @@ from pathlib import Path
 from typing import Optional
 
 import typer
-from dotenv import load_dotenv
-
 from core.agents.execution_agent import ExecutionAgent
 from core.agents.plan_executor import PlanExecutor
 from core.agents.planner_agent import PlannerAgent
 from core.agents.reconnaissance_agent import ReconnaissanceAgent
 from core.knowledge_service import KnowledgeService
 from core.prompt_pipeline import PromptPipeline
+from dotenv import load_dotenv
 from features.introspection.vectorization_service import run_vectorize
 from shared.config import settings
 from shared.context import CoreContext

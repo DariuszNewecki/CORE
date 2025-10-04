@@ -2,13 +2,13 @@
 """
 Discovers capability definitions by parsing constitutional manifest files.
 """
+
 from __future__ import annotations
 
 from pathlib import Path
 from typing import Dict
 
 import yaml
-
 from shared.logger import getLogger
 from shared.models import CapabilityMeta
 

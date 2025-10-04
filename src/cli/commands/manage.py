@@ -1,5 +1,6 @@
 # src/cli/commands/manage.py
 """Registers the new, verb-based 'manage' command group with subgroups."""
+
 from __future__ import annotations
 
 import asyncio
@@ -9,9 +10,6 @@ from typing import Set
 
 import typer
 import yaml
-from rich.console import Console
-from sqlalchemy import text
-
 from cli.logic.byor import initialize_repository
 from cli.logic.cli_utils import set_context as set_shared_context
 from cli.logic.db import export_data, migrate_db
@@ -29,12 +27,14 @@ from core.cognitive_service import CognitiveService
 from features.governance.key_management_service import register as register_keygen
 from features.introspection.knowledge_helpers import extract_source_code
 from features.maintenance.migration_service import run_ssot_migration
+from rich.console import Console
 from services.clients.llm_api_client import BaseLLMClient
 from services.database.session_manager import get_session
 from shared.config import settings
 from shared.context import CoreContext
 from shared.logger import getLogger
 from shared.utils.parallel_processor import ThrottledParallelProcessor
+from sqlalchemy import text
 
 console = Console()
 log = getLogger("manage_command")
@@ -62,7 +62,7 @@ db_sub_app.command("sync-operational")(sync_operational)
 def migrate_ssot_command(
     write: bool = typer.Option(
         False, "--write", help="Apply the migration to the database."
-    )
+    ),
 ):
     """CLI wrapper for the SSOT migration service."""
     asyncio.run(run_ssot_migration(dry_run=not write))

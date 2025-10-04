@@ -67,9 +67,7 @@ def main():
     success_count = 0
     fail_count = 0
 
-    for symbol in track(
-        unassigned_symbols, description="Registering capabilities..."
-    ):
+    for symbol in track(unassigned_symbols, description="Registering capabilities..."):
         symbol_key = symbol.get("key")
         if not symbol_key:
             continue
@@ -105,8 +103,10 @@ def main():
     )
     if fail_count > 0:
         console.print(f"[bold red]❌ Failed to register: {fail_count}[/bold red]")
-    
-    console.print("\n[bold cyan]🧠 Rebuilding knowledge graph to reflect all changes...[/bold cyan]")
+
+    console.print(
+        "\n[bold cyan]🧠 Rebuilding knowledge graph to reflect all changes...[/bold cyan]"
+    )
     try:
         subprocess.run(
             ["poetry", "run", "core-admin", "knowledge", "build-graph"],
@@ -115,16 +115,17 @@ def main():
             text=True,
             cwd=REPO_ROOT,
         )
-        console.print("[bold green]✅ Knowledge graph successfully updated.[/bold green]")
+        console.print(
+            "[bold green]✅ Knowledge graph successfully updated.[/bold green]"
+        )
     except subprocess.CalledProcessError as e:
         console.print("[bold red]❌ Failed to rebuild knowledge graph:[/bold red]")
         console.print(e.stderr)
         sys.exit(1)
-    
+
     if fail_count > 0:
         sys.exit(1)
 
 
 if __name__ == "__main__":
     main()
-    

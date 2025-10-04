@@ -16,7 +16,7 @@ cognitive_roles:
     description: "Creates semantic vector embeddings from text."
     assigned_resource: "local_embedding"
     required_capabilities: ["embedding"]
-    
+
   - role: "CodeReviewer"
     description: "Reviews code for clarity, style, and correctness."
     assigned_resource: "deepseek_coder"

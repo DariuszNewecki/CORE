@@ -3,6 +3,7 @@
 Provides a utility to find and report on symbols in the knowledge graph
 that have not been assigned a capability ID.
 """
+
 from __future__ import annotations
 
 import asyncio

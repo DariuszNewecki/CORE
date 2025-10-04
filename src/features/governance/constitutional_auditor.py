@@ -3,6 +3,7 @@
 The Constitutional Auditor is the primary enforcement mechanism for the CORE constitution.
 It runs a series of checks to ensure the codebase and its declared intent are aligned.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -12,6 +13,10 @@ from pathlib import Path
 from typing import Any, List, Tuple
 
 from rich.console import Console
+from services.database.session_manager import get_session
+from shared.config import settings
+from shared.logger import getLogger
+from shared.models import AuditFinding, AuditSeverity
 from sqlalchemy.ext.asyncio import (
     AsyncConnection,
     AsyncEngine,
@@ -33,10 +38,6 @@ from features.governance.checks.naming_conventions import NamingConventionsCheck
 from features.governance.checks.orphaned_logic import OrphanedLogicCheck
 from features.governance.checks.security_checks import SecurityChecks
 from features.governance.checks.style_checks import StyleChecks
-from services.database.session_manager import get_session
-from shared.config import settings
-from shared.logger import getLogger
-from shared.models import AuditFinding, AuditSeverity
 
 log = getLogger("constitutional_auditor")
 console = Console()

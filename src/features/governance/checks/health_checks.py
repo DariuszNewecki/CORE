@@ -2,6 +2,7 @@
 """
 Audits codebase health for complexity, atomicity, and line length violations.
 """
+
 from __future__ import annotations
 
 import ast
@@ -10,9 +11,9 @@ from pathlib import Path
 from typing import List
 
 from radon.visitors import ComplexityVisitor
+from shared.models import AuditFinding, AuditSeverity
 
 from features.governance.checks.base_check import BaseCheck
-from shared.models import AuditFinding, AuditSeverity
 
 
 # ID: 64e34c49-4bad-4d35-8de7-df4f67b51adc

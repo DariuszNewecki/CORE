@@ -118,4 +118,3 @@ actions:
         type: "string"
         description: "The UUID tag to add."
         required: true
-  

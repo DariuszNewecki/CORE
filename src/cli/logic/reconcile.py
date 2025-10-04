@@ -3,6 +3,7 @@
 Implements the 'knowledge reconcile-from-cli' command to link declared
 capabilities to their implementations in the database using the CLI registry as the map.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -10,10 +11,9 @@ import asyncio
 import typer
 import yaml
 from rich.console import Console
-from sqlalchemy import text
-
 from services.repositories.db.engine import get_session
 from shared.config import settings
+from sqlalchemy import text
 
 console = Console()
 CLI_REGISTRY_PATH = (

@@ -3,6 +3,7 @@
 Provides utilities for handling text embeddings, including chunking and aggregation.
 This module ensures that large documents can be processed reliably by embedding models.
 """
+
 from __future__ import annotations
 
 import asyncio

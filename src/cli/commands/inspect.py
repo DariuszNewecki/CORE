@@ -1,9 +1,9 @@
 # src/cli/commands/inspect.py
 """Registers the new, verb-based 'inspect' command group."""
+
 from __future__ import annotations
 
 import typer
-
 from cli.logic.diagnostics import cli_tree
 from cli.logic.duplicates import inspect_duplicates
 from cli.logic.guard_cli import register_guard
@@ -36,7 +36,7 @@ def register(app: typer.Typer, context: CoreContext):
             help="The minimum similarity score to consider a duplicate.",
             min=0.5,
             max=1.0,
-        )
+        ),
     ):
         """Wrapper to pass context and threshold to the inspect_duplicates logic."""
         inspect_duplicates(context=context, threshold=threshold)

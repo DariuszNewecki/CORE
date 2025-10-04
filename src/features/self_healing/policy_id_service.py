@@ -3,13 +3,13 @@
 Provides the service logic for the one-time constitutional migration to add
 UUIDs to all policy files, bringing them into compliance with the updated policy_schema.
 """
+
 from __future__ import annotations
 
 import uuid
 
 import yaml
 from rich.console import Console
-
 from shared.config import settings
 
 console = Console()

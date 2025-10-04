@@ -3,6 +3,7 @@
 Provides a one-time migration service to populate the SSOT database from legacy
 file-based sources (.intent/mind/project_manifest.yaml and AST scan).
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -12,10 +13,9 @@ from typing import Any, Dict, List
 
 import yaml
 from rich.console import Console
-from sqlalchemy import text
-
 from services.database.session_manager import get_session
 from shared.config import settings
+from sqlalchemy import text
 
 console = Console()
 

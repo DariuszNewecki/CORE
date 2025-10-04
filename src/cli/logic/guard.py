@@ -2,6 +2,7 @@
 """
 Intent: Governance/validation guard commands exposed to the operator.
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -12,7 +13,6 @@ import yaml
 from rich import print as rprint
 from rich.panel import Panel
 from rich.table import Table
-
 from shared.logger import getLogger
 
 log = getLogger("core_admin")

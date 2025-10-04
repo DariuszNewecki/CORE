@@ -3,17 +3,17 @@
 Provides a service to introspect the live Typer CLI application and synchronize
 the discovered commands with the `core.cli_commands` database table.
 """
+
 from __future__ import annotations
 
 from typing import Any, Dict, List
 
 import typer
 from rich.console import Console
-from sqlalchemy import delete
-from sqlalchemy.dialects.postgresql import insert as pg_insert
-
 from services.database.models import CliCommand
 from services.database.session_manager import get_session
+from sqlalchemy import delete
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 console = Console()
 

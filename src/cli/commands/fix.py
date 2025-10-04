@@ -1,11 +1,11 @@
 # src/cli/commands/fix.py
 """Registers the new, verb-based 'fix' command group."""
+
 from __future__ import annotations
 
 import asyncio
 
 import typer
-
 from cli.logic.fixer import (
     assign_ids_command,
     fix_clarity,
@@ -55,7 +55,7 @@ def sync_db_registry_command():
 )
 # ID: e2683c72-5884-491b-b334-824a9b88e1d3
 def fix_duplicate_ids_command(
-    write: bool = typer.Option(False, "--write", help="Apply fixes to source files.")
+    write: bool = typer.Option(False, "--write", help="Apply fixes to source files."),
 ):
     """CLI wrapper for the duplicate ID resolution service."""
     asyncio.run(resolve_duplicate_ids(dry_run=not write))

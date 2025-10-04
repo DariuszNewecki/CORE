@@ -2,6 +2,7 @@
 """
 Implements high-level CI and system health checks, including the main constitutional audit.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -10,11 +11,10 @@ from pathlib import Path
 from typing import Optional
 
 import typer
+from features.governance.constitutional_auditor import ConstitutionalAuditor
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
-
-from features.governance.constitutional_auditor import ConstitutionalAuditor
 from shared.context import CoreContext
 from shared.models import AuditFinding, AuditSeverity
 
@@ -44,7 +44,7 @@ def lint():
 def test_system(
     target: str | None = typer.Argument(
         None, help="Optional: A specific test file path or a capability ID."
-    )
+    ),
 ):
     """Run the pytest suite, optionally targeting a specific test file or capability."""
 

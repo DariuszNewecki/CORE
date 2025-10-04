@@ -14,8 +14,8 @@ Assign deterministic '# ID: <uuid>' tags to top-level public symbols.
 - Dry-run by default; use --write to modify files.
 """
 
-import ast
 import argparse
+import ast
 import re
 import uuid
 from pathlib import Path
@@ -36,12 +36,14 @@ DEF_PATTERN = re.compile(r"^(class|def)\s+([A-Za-z_][A-Za-z0-9_]*)\s*[\(:]")
 # Stable namespace for capability IDs (do NOT change once chosen)
 CAP_NAMESPACE = uuid.uuid5(uuid.NAMESPACE_URL, "https://core.local/capability")
 
+
 def is_forbidden(path: Path) -> bool:
     rp = path.as_posix()
     for glob in FORBIDDEN_GLOBS:
         if path.match(glob) or rp.startswith(glob.rstrip("/**")):
             return True
     return False
+
 
 def has_id_tag(lines, start_idx) -> bool:
     """
@@ -52,8 +54,10 @@ def has_id_tag(lines, start_idx) -> bool:
             return True
     return False
 
+
 def compute_id(repo_rel: str, symbol: str) -> str:
     return str(uuid.uuid5(CAP_NAMESPACE, f"{repo_rel}::{symbol}"))
+
 
 def find_top_level_symbols(py_path: Path):
     """
@@ -77,6 +81,7 @@ def find_top_level_symbols(py_path: Path):
                 symbols.append((name, node.lineno))
     return symbols
 
+
 def should_skip_file(path: Path) -> bool:
     if not path.name.endswith(".py"):
         return True
@@ -88,6 +93,7 @@ def should_skip_file(path: Path) -> bool:
     if is_forbidden(path):
         return True
     return False
+
 
 def process_file(py_path: Path, write: bool):
     repo_rel = py_path.relative_to(REPO_ROOT).as_posix()
@@ -121,7 +127,9 @@ def process_file(py_path: Path, write: bool):
                 lines.insert(i, tag_line)
                 inserted += 1
                 i += 1  # skip over the inserted line
-                changes.append((symbol_name, cap_id, i + 1))  # approx position after insert
+                changes.append(
+                    (symbol_name, cap_id, i + 1)
+                )  # approx position after insert
         i += 1
 
     if inserted and write:
@@ -129,10 +137,16 @@ def process_file(py_path: Path, write: bool):
 
     return inserted, changes
 
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--write", action="store_true", help="Apply changes to files.")
-    ap.add_argument("--limit", type=int, default=0, help="Stop after assigning this many IDs (0 = no limit).")
+    ap.add_argument(
+        "--limit",
+        type=int,
+        default=0,
+        help="Stop after assigning this many IDs (0 = no limit).",
+    )
     args = ap.parse_args()
 
     total_inserted = 0
@@ -145,7 +159,9 @@ def main():
         inserted, changes = process_file(path, write=args.write)
         if inserted:
             total_inserted += inserted
-            change_log.extend([(path.relative_to(REPO_ROOT).as_posix(),) + c for c in changes])
+            change_log.extend(
+                [(path.relative_to(REPO_ROOT).as_posix(),) + c for c in changes]
+            )
             if args.limit and total_inserted >= args.limit:
                 break
 
@@ -155,6 +171,7 @@ def main():
         print("Changed symbols:")
         for file_path, sym, cap_id, line_no in change_log:
             print(f"  - {file_path}:{line_no}  {sym}  ->  # ID: {cap_id}")
+
 
 if __name__ == "__main__":
     main()

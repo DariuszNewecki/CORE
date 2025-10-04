@@ -3,6 +3,7 @@
 Provides a base client for asynchronous and synchronous communication with
 Chat Completions and Embedding APIs for LLM interactions.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -11,7 +12,6 @@ import time
 from typing import Any, List
 
 import httpx
-
 from shared.config import settings
 from shared.logger import getLogger
 

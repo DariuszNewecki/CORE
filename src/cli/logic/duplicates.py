@@ -3,6 +3,7 @@
 Implements the dedicated 'inspect duplicates' command, providing a focused tool
 to run only the semantic duplication check with clustering.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -10,11 +11,10 @@ from typing import List
 
 import networkx as nx
 import typer
-from rich.console import Console
-from rich.table import Table
-
 from features.governance.audit_context import AuditorContext
 from features.governance.checks.duplication_check import DuplicationCheck
+from rich.console import Console
+from rich.table import Table
 from shared.context import CoreContext
 from shared.models import AuditFinding
 

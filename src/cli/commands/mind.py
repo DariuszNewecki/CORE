@@ -2,13 +2,13 @@
 """
 Registers the new 'mind' command group for managing the Working Mind's SSOT.
 """
+
 from __future__ import annotations
 
 import asyncio
 from typing import Optional
 
 import typer
-
 from cli.logic.mind_ssot import run_diff, run_import, run_snapshot, run_verify
 from shared.context import CoreContext
 

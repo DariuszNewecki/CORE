@@ -46,4 +46,3 @@ The following tasks are formally scheduled to be addressed after the completion 
 | **2**    | **Tune the `DuplicationCheck`:** Modify the check to ignore high-cohesion (Category 1) false positives. | `clarity_first`                 | **Pending** |
 | **3**    | **Codify Architectural Patterns:** Add specific `symbol_ignores` for acceptable (Category 2) patterns. | `separation_of_concerns`        | **Pending** |
 | **4**    | **Remove Global Ignore:** Delete the temporary global ignore for `duplication.semantic.near_duplicate_found` from the policy. | `safe_by_default`               | **Pending** |
-

@@ -3,6 +3,7 @@
 Connects to Qdrant and idempotently creates the vector collection
 using configuration from the project's .env file.
 """
+
 import asyncio
 import os
 
@@ -26,13 +27,17 @@ async def create_collection():
     """
     # --- Input Validation ---
     if not all([QDRANT_URL, COLLECTION_NAME, VECTOR_DIMENSION_STR]):
-        print("❌ Error: QDRANT_URL, QDRANT_COLLECTION_NAME, and LOCAL_EMBEDDING_DIM must be set in your .env file.")
+        print(
+            "❌ Error: QDRANT_URL, QDRANT_COLLECTION_NAME, and LOCAL_EMBEDDING_DIM must be set in your .env file."
+        )
         return
 
     try:
         vector_dimension = int(VECTOR_DIMENSION_STR)
     except (ValueError, TypeError):
-        print(f"❌ Error: Invalid LOCAL_EMBEDDING_DIM '{VECTOR_DIMENSION_STR}'. Must be an integer.")
+        print(
+            f"❌ Error: Invalid LOCAL_EMBEDDING_DIM '{VECTOR_DIMENSION_STR}'. Must be an integer."
+        )
         return
     # --- End Validation ---
 
@@ -43,7 +48,7 @@ async def create_collection():
         # Check if the collection already exists
         collections_response = await client.get_collections()
         existing_collections = [c.name for c in collections_response.collections]
-        
+
         if COLLECTION_NAME in existing_collections:
             print(f"✅ Collection '{COLLECTION_NAME}' already exists. Nothing to do.")
             return
@@ -61,7 +66,9 @@ async def create_collection():
 
     except Exception as e:
         print(f"❌ An error occurred: {e}")
-        print("\nPlease ensure your Qdrant Docker container is running and accessible at the URL specified in your .env file.")
+        print(
+            "\nPlease ensure your Qdrant Docker container is running and accessible at the URL specified in your .env file."
+        )
     finally:
         await client.close()
 

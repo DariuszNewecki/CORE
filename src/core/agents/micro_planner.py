@@ -3,16 +3,18 @@
 Implements the MicroPlannerAgent, a specialized agent for generating safe,
 low-risk plans that can be auto-approved under the micro_proposal_policy.
 """
+
 from __future__ import annotations
 
 import json
 from typing import Any, Dict, List
 
-from core.agents.base_planner import parse_and_validate_plan
-from core.cognitive_service import CognitiveService
 from shared.config import settings
 from shared.logger import getLogger
 from shared.models import PlanExecutionError
+
+from core.agents.base_planner import parse_and_validate_plan
+from core.cognitive_service import CognitiveService
 
 log = getLogger("micro_planner_agent")
 

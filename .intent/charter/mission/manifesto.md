@@ -1,6 +1,6 @@
 # CORE Manifesto
 
-CORE is not a framework. It is not a plugin system.  
+CORE is not a framework. It is not a plugin system.
 CORE is a system that evolves itself — governed by explicit declarations of purpose, constraints, and structure.
 
 ---
@@ -24,5 +24,5 @@ CORE is a system that evolves itself — governed by explicit declarations of pu
 
 ---
 
-CORE does not pretend to be perfect.  
+CORE does not pretend to be perfect.
 But it refuses to be mindless.

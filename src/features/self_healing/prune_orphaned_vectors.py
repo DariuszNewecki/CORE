@@ -4,11 +4,13 @@ A self-healing tool to find and delete orphaned vectors from the Qdrant database
 An orphan is a vector whose corresponding symbol no longer exists in the
 knowledge graph.
 """
+
 from __future__ import annotations
 
 import asyncio
 
 import typer
+from core.knowledge_service import KnowledgeService
 from qdrant_client import AsyncQdrantClient
 
 # --- START OF AMENDMENT: Import the correct model ---
@@ -16,8 +18,6 @@ from qdrant_client.http.models import PointIdsList
 
 # --- END OF AMENDMENT ---
 from rich.console import Console
-
-from core.knowledge_service import KnowledgeService
 from shared.config import settings
 from shared.logger import getLogger
 
@@ -112,7 +112,7 @@ async def _async_main_sync(dry_run: bool):
 def main_sync(
     write: bool = typer.Option(
         False, "--write", help="Permanently delete orphaned vectors from Qdrant."
-    )
+    ),
 ):
     """Entry point for the Typer command."""
     asyncio.run(_async_main_sync(dry_run=not write))

@@ -3,6 +3,7 @@
 Defines the Pydantic model for the data payload associated with each
 vector stored in the Qdrant database.
 """
+
 from __future__ import annotations
 
 from typing import List, Optional

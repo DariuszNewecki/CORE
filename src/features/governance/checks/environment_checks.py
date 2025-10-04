@@ -2,12 +2,14 @@
 """
 Audits the system's runtime environment for required configuration.
 """
+
 from __future__ import annotations
 
 import os
 
-from features.governance.checks.base_check import BaseCheck
 from shared.models import AuditFinding, AuditSeverity
+
+from features.governance.checks.base_check import BaseCheck
 
 
 # ID: 0c3965b7-b3f3-4fb6-bbbb-c94a1ffae3fe

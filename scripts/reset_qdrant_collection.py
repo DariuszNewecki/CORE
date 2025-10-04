@@ -3,6 +3,7 @@
 """
 Connects to Qdrant and completely resets the collection by deleting and recreating it.
 """
+
 import asyncio
 import os
 
@@ -24,7 +25,9 @@ VECTOR_DIMENSION = int(os.getenv("LOCAL_EMBEDDING_DIM", "768"))
 async def reset_collection():
     """Connects to Qdrant and idempotently recreates the collection."""
     if not all([QDRANT_URL, COLLECTION_NAME]):
-        console.print("❌ Error: QDRANT_URL and QDRANT_COLLECTION_NAME must be set in your .env file.")
+        console.print(
+            "❌ Error: QDRANT_URL and QDRANT_COLLECTION_NAME must be set in your .env file."
+        )
         return
 
     console.print(f"Connecting to Qdrant at {QDRANT_URL}...")

@@ -3,6 +3,7 @@
 Lightweight time utilities shared across services.
 Implements the canonical capability for a UTC ISO timestamp function.
 """
+
 from __future__ import annotations
 
 from datetime import datetime, timezone

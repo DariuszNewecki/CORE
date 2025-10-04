@@ -3,12 +3,14 @@
 A constitutional audit check to ensure that all capabilities declared in the
 project manifest are implemented in the database.
 """
+
 from __future__ import annotations
 
 from typing import List, Set
 
-from features.governance.audit_context import AuditorContext
 from shared.models import AuditFinding, AuditSeverity
+
+from features.governance.audit_context import AuditorContext
 
 
 # ID: 979ce56f-7f3c-40e7-8736-ce219bab6ad8

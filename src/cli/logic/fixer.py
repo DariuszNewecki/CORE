@@ -3,6 +3,7 @@
 Registers all self-healing and code quality improvement commands that WRITE changes
 to the codebase or constitution. This is the single entry point for all 'fix' commands.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -10,8 +11,6 @@ from pathlib import Path
 from typing import Optional
 
 import typer
-from rich.console import Console
-
 from core.agents.tagger_agent import CapabilityTaggerAgent
 from core.cognitive_service import CognitiveService
 from core.knowledge_service import KnowledgeService
@@ -30,6 +29,7 @@ from features.self_healing.prune_private_capabilities import (
     main as prune_private_capabilities,
 )
 from features.self_healing.purge_legacy_tags_service import purge_legacy_tags
+from rich.console import Console
 from services.repositories.db.engine import get_session
 from shared.config import settings
 from shared.logger import getLogger

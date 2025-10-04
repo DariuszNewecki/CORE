@@ -3,6 +3,7 @@
 CLI wrapper for generating capability documentation.
 It reuses the existing Python module entrypoint to keep one source of truth.
 """
+
 from __future__ import annotations
 
 import runpy

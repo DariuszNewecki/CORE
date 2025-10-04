@@ -16,19 +16,26 @@ from shared.config import settings
 
 console = Console()
 
+
 async def list_unassigned_symbols():
     """Connects to the DB and lists all symbols with a NULL key, respecting the ignore policy."""
-    console.print("[bold cyan]--- Unassigned Symbol Report (Ignoring Boilerplate) ---[/bold cyan]")
+    console.print(
+        "[bold cyan]--- Unassigned Symbol Report (Ignoring Boilerplate) ---[/bold cyan]"
+    )
     try:
         # --- THIS IS THE FIX: Load the ignore policy ---
-        ignore_policy_path = settings.get_path("charter.policies.governance.audit_ignore_policy")
+        ignore_policy_path = settings.get_path(
+            "charter.policies.governance.audit_ignore_policy"
+        )
         ignore_policy = yaml.safe_load(ignore_policy_path.read_text("utf-8"))
         ignored_symbol_keys = {
             item["key"]
             for item in ignore_policy.get("symbol_ignores", [])
             if "key" in item
         }
-        console.print(f"   -> Applying {len(ignored_symbol_keys)} ignore rules from the constitution.")
+        console.print(
+            f"   -> Applying {len(ignored_symbol_keys)} ignore rules from the constitution."
+        )
         # --- END OF FIX ---
 
         async with get_session() as session:
@@ -50,10 +57,14 @@ async def list_unassigned_symbols():
             # --- END OF FIX ---
 
             if not unassigned:
-                console.print("\n[bold green]✅ Success! No unassigned public symbols found.[/bold green]")
+                console.print(
+                    "\n[bold green]✅ Success! No unassigned public symbols found.[/bold green]"
+                )
                 return
 
-            console.print(f"\n[bold yellow]Found {len(unassigned)} unassigned public symbols that require definition:[/bold yellow]")
+            console.print(
+                f"\n[bold yellow]Found {len(unassigned)} unassigned public symbols that require definition:[/bold yellow]"
+            )
             table = Table(show_header=True, header_style="bold magenta")
             table.add_column("File Path (Module)", style="cyan")
             table.add_column("Symbol Path", style="green")
@@ -63,6 +74,7 @@ async def list_unassigned_symbols():
             console.print(table)
     except Exception as e:
         console.print(f"\n[bold red]❌ An error occurred: {e}[/bold red]")
+
 
 if __name__ == "__main__":
     asyncio.run(list_unassigned_symbols())

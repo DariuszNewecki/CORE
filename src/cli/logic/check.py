@@ -3,10 +3,10 @@
 Registers and implements the 'check' command group by composing
 sub-groups for CI and diagnostic commands.
 """
+
 from __future__ import annotations
 
 import typer
-
 from cli.commands.ci import ci_app
 from cli.commands.diagnostics import diagnostics_app
 

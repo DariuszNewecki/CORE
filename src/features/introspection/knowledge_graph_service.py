@@ -3,6 +3,7 @@
 Provides the KnowledgeGraphBuilder, the primary tool for introspecting the
 codebase and synchronizing the discovered knowledge with the database.
 """
+
 from __future__ import annotations
 
 import ast
@@ -12,8 +13,6 @@ from pathlib import Path
 from typing import Any, Dict, List
 
 import yaml
-from sqlalchemy import text
-
 from services.repositories.db.engine import get_session
 from shared.ast_utility import (
     FunctionCallVisitor,
@@ -25,6 +24,7 @@ from shared.ast_utility import (
 )
 from shared.config import settings
 from shared.logger import getLogger
+from sqlalchemy import text
 
 log = getLogger("knowledge_graph_builder")
 

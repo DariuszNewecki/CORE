@@ -7,6 +7,7 @@ If the alias file is missing or unreadable, this resolver degrades gracefully:
 - it logs at DEBUG (not WARNING/ERROR), and
 - it returns the identity (no aliasing).
 """
+
 from __future__ import annotations
 
 from pathlib import Path

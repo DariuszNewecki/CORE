@@ -3,6 +3,7 @@
 Provides a service for finding semantic clusters of symbols in the codebase
 using K-Means clustering on their vector embeddings.
 """
+
 from __future__ import annotations
 
 from typing import List
