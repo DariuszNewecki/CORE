@@ -124,6 +124,7 @@ class BaseLLMClient:
             )
             raise ValueError(f"Invalid API response structure: {e}") from e
 
+    # ID: aded16ca-2a27-4690-a69a-7c5aec0153e9
     async def make_request_async(
         self, prompt: str, user_id: str = "core_system", task_type: str = "chat"
     ) -> Any:
@@ -148,11 +149,13 @@ class BaseLLMClient:
                 log.error(f"Final attempt failed: {error_message}", exc_info=True)
                 raise
 
+    # ID: 6f1354ee-09ee-49d1-8eeb-a4fcc7c1bc58
     async def get_embedding(self, text: str) -> List[float]:
         return await self.make_request_async(
             prompt=text, user_id="embedding_service", task_type="embedding"
         )
 
+    # ID: cfe08d4d-f3d5-475f-87ab-849846e97886
     def make_request_sync(
         self, prompt: str, user_id: str = "core_system", task_type: str = "chat"
     ) -> Any:
