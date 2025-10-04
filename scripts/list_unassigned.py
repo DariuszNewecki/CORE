@@ -19,14 +19,18 @@ async def list_unassigned_symbols():
     console.print("[bold cyan]--- Unassigned Symbol Report ---[/bold cyan]")
     try:
         async with get_session() as session:
+            # --- THIS IS THE FIX ---
+            # The query now correctly selects 'module' and aliases it as 'file_path'
+            # for the rest of the script to use.
             stmt = text(
                 """
-                SELECT symbol_path, file_path
+                SELECT symbol_path, module AS file_path
                 FROM core.symbols
                 WHERE key IS NULL AND is_public = TRUE
-                ORDER BY file_path, symbol_path;
+                ORDER BY module, symbol_path;
                 """
             )
+            # --- END OF FIX ---
             result = await session.execute(stmt)
             unassigned = [dict(row._mapping) for row in result]
 
@@ -34,9 +38,9 @@ async def list_unassigned_symbols():
                 console.print("\n[bold green]✅ Success! No unassigned public symbols found.[/bold green]")
                 return
 
-            console.print(f"\n[bold red]Found {len(unassigned)} unassigned public symbols:[/bold red]")
+            console.print(f"\n[bold yellow]Found {len(unassigned)} unassigned public symbols:[/bold yellow]")
             table = Table(show_header=True, header_style="bold magenta")
-            table.add_column("File Path", style="cyan")
+            table.add_column("File Path (Module)", style="cyan")
             table.add_column("Symbol Path", style="green")
 
             for symbol in unassigned:

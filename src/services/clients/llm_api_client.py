@@ -124,11 +124,9 @@ class BaseLLMClient:
             )
             raise ValueError(f"Invalid API response structure: {e}") from e
 
-    # ID: 966c47f2-fe76-49e3-9691-d541f5c9b802
     async def make_request_async(
         self, prompt: str, user_id: str = "core_system", task_type: str = "chat"
     ) -> Any:
-        """Sends a prompt asynchronously to the configured API."""
         api_url = self._get_api_url(task_type)
         payload = self._prepare_payload(prompt, user_id, task_type)
         backoff_delays = [1.0, 2.0, 4.0]
@@ -150,19 +148,14 @@ class BaseLLMClient:
                 log.error(f"Final attempt failed: {error_message}", exc_info=True)
                 raise
 
-    # ID: 08f4f3a4-ac7c-4817-ad31-2d2bc72f0d93
     async def get_embedding(self, text: str) -> List[float]:
-        """Convenience method for embedding tasks."""
         return await self.make_request_async(
             prompt=text, user_id="embedding_service", task_type="embedding"
         )
 
-    # --- START: NEW SYNCHRONOUS METHOD ---
-    # ID: 1682e4ca-50b2-40c9-8c22-5c082ce59081
     def make_request_sync(
         self, prompt: str, user_id: str = "core_system", task_type: str = "chat"
     ) -> Any:
-        """Sends a prompt synchronously to the configured API with retries."""
         api_url = self._get_api_url(task_type)
         payload = self._prepare_payload(prompt, user_id, task_type)
         backoff_delays = [1.0, 2.0, 4.0]
@@ -175,7 +168,11 @@ class BaseLLMClient:
                 response.raise_for_status()
                 return self._parse_response(response.json(), task_type)
             except Exception as e:
+                # --- THIS IS THE FIX: ADD DETAILED LOGGING ---
                 error_message = f"Sync request failed (attempt {attempt + 1}/{len(backoff_delays) + 1}) for {api_url}: {type(e).__name__} - {e}"
+                if isinstance(e, httpx.HTTPStatusError):
+                    error_message += f"\nResponse body: {e.response.text}"
+                # --- END OF FIX ---
                 if attempt < len(backoff_delays):
                     wait_time = backoff_delays[attempt] + random.uniform(0, 0.5)
                     log.warning(f"{error_message}. Retrying in {wait_time:.1f}s...")
@@ -183,5 +180,3 @@ class BaseLLMClient:
                     continue
                 log.error(f"Final sync attempt failed: {error_message}", exc_info=True)
                 raise
-
-    # --- END: NEW SYNCHRONOUS METHOD ---
