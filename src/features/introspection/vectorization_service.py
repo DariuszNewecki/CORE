@@ -30,13 +30,17 @@ console = Console()
 async def _fetch_symbols_from_db() -> List[Dict]:
     """Queries the database to get the full list of symbols to be vectorized."""
     async with get_session() as session:
+        # --- THIS IS THE FIX ---
+        # The query now selects the 'module' column but aliases it as 'file_path'
+        # so the rest of the code in this file works without modification.
         stmt = text(
             """
-            SELECT uuid, symbol_path, file_path, structural_hash, vector_id
+            SELECT uuid, symbol_path, module AS file_path, fingerprint AS structural_hash, vector_id
             FROM core.symbols
             WHERE status = 'active' AND is_public = TRUE
         """
         )
+        # --- END OF FIX ---
         result = await session.execute(stmt)
         return [dict(row._mapping) for row in result]
 
@@ -86,7 +90,7 @@ async def _process_vectorization_task(
         point_id = await qdrant_service.upsert_capability_vector(
             vector=vector, payload_data=payload_data
         )
-        return str(point_id)  # Ensure point_id is a string
+        return str(point_id)
     except Exception as e:
         log.error(f"Failed to process symbol '{task['symbol_path']}': {e}")
         failure_log_path.parent.mkdir(parents=True, exist_ok=True)
@@ -136,12 +140,10 @@ async def run_vectorize(
 
     tasks = []
     for symbol in symbols_in_db:
-        # --- THIS IS THE FINAL, CORRECT LOGIC ---
-        # A symbol needs vectorization if we are forcing it OR if its vector_id is missing.
         if not force and symbol.get("vector_id"):
             continue
-        # --- END OF FINAL, CORRECT LOGIC ---
 
+        # NOTE: The key here is 'file_path' because we aliased it in the SQL query
         file_path = settings.REPO_PATH / symbol["file_path"]
         source_code = _get_source_code(file_path, symbol["symbol_path"])
         if not source_code:
