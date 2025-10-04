@@ -164,7 +164,7 @@ def define_symbols_command():
             )
         )
         # --- END OF FIX ---
-        
+
         all_undefined_symbols = [dict(row._mapping) for row in undefined_symbols_result]
 
         undefined_symbols = [

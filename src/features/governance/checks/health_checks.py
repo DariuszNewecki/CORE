@@ -42,7 +42,10 @@ class HealthChecks(BaseCheck):
             if not file_path_str.endswith(".py"):
                 continue
 
-            file_path = self.context.repo_root / file_path_str
+            # --- THIS IS THE FIX ---
+            # Use self.repo_root, which is correctly set by the BaseCheck parent class.
+            file_path = self.repo_root / file_path_str
+            # --- END OF FIX ---
             logical_lines, violations = self._analyze_python_file(
                 file_path, policy_rules
             )
@@ -70,7 +73,7 @@ class HealthChecks(BaseCheck):
                         check_id="health.module.too_long",
                         severity=AuditSeverity.WARNING,
                         message=f"Module has {logical_lines} logical lines of code (limit: {rules.get('max_module_lloc', 300)}).",
-                        file_path=str(file_path.relative_to(self.context.repo_root)),
+                        file_path=str(file_path.relative_to(self.repo_root)),
                     )
                 ]
 
@@ -79,7 +82,7 @@ class HealthChecks(BaseCheck):
             violations = self._check_function_metrics(
                 complexity_visitor,
                 rules,
-                str(file_path.relative_to(self.context.repo_root)),
+                str(file_path.relative_to(self.repo_root)),
             )
             return logical_lines, violations
         except Exception:
@@ -147,7 +150,7 @@ class HealthChecks(BaseCheck):
                         check_id="health.module.outlier",
                         severity=AuditSeverity.WARNING,
                         message=f"Possible complexity outlier ({line_count} LLOC vs. AVG of {average_lines:.0f}). This may violate 'separation_of_concerns'.",
-                        file_path=str(file_path.relative_to(self.context.repo_root)),
+                        file_path=str(file_path.relative_to(self.repo_root)),
                     )
                 )
         return violations

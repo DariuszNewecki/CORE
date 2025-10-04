@@ -84,18 +84,26 @@ class SymbolVisitor(ast.NodeVisitor):
             # --- START OF FIX ---
             # Generate the data structure that matches the new 'core.symbols' table schema.
             # We derive 'module', 'qualname', 'kind', etc.
-            module_name = self.file_path.replace("src/", "").replace(".py", "").replace("/", ".")
-            kind_map = {"ClassDef": "class", "FunctionDef": "function", "AsyncFunctionDef": "function"}
-            
+            module_name = (
+                self.file_path.replace("src/", "").replace(".py", "").replace("/", ".")
+            )
+            kind_map = {
+                "ClassDef": "class",
+                "FunctionDef": "function",
+                "AsyncFunctionDef": "function",
+            }
+
             self.symbols.append(
                 {
-                    "id": uuid.uuid5(uuid.NAMESPACE_DNS, symbol_path), # Use deterministic UUID for primary key
+                    "id": uuid.uuid5(
+                        uuid.NAMESPACE_DNS, symbol_path
+                    ),  # Use deterministic UUID for primary key
                     "uuid": symbol_id,
                     "symbol_path": symbol_path,
                     "module": module_name,
                     "qualname": node.name,
                     "kind": kind_map.get(type(node).__name__, "function"),
-                    "ast_signature": "TBD", # Placeholder for now
+                    "ast_signature": "TBD",  # Placeholder for now
                     "fingerprint": calculate_structural_hash(node),
                     "state": "discovered",
                     "is_public": True,

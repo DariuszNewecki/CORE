@@ -45,7 +45,10 @@ class SecurityChecks(BaseCheck):
         }
 
         for file_path_str in sorted(list(files_to_scan)):
-            file_path = self.context.repo_root / file_path_str
+            # --- THIS IS THE FIX ---
+            # Use self.repo_root, which is correctly set by the BaseCheck parent class.
+            file_path = self.repo_root / file_path_str
+            # --- END OF FIX ---
             if any(file_path.match(glob) for glob in exclude_globs):
                 continue
 
