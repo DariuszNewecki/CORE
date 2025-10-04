@@ -32,7 +32,10 @@ class StyleChecks(BaseCheck):
         }
 
         for file_rel_path in sorted(list(files_to_check)):
-            file_abs_path = self.context.repo_root / file_rel_path
+            # --- THIS IS THE FIX ---
+            # Use self.repo_root, which is correctly set by the BaseCheck parent class.
+            file_abs_path = self.repo_root / file_rel_path
+            # --- END OF FIX ---
             try:
                 source_code = file_abs_path.read_text(encoding="utf-8")
                 tree = ast.parse(source_code)
