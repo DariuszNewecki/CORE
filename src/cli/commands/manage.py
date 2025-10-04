@@ -156,11 +156,15 @@ def define_symbols_command():
             if "key" in item
         }
 
+        # --- THIS IS THE FIX ---
+        # The query now correctly selects 'module' but aliases it as 'file_path'.
         undefined_symbols_result = session.execute(
             text(
-                "SELECT uuid, file_path, symbol_path, vector_id FROM core.symbols WHERE key IS NULL AND vector_id IS NOT NULL"
+                "SELECT uuid, module AS file_path, symbol_path, vector_id FROM core.symbols WHERE key IS NULL AND vector_id IS NOT NULL"
             )
         )
+        # --- END OF FIX ---
+        
         all_undefined_symbols = [dict(row._mapping) for row in undefined_symbols_result]
 
         undefined_symbols = [
