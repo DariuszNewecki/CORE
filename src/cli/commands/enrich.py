@@ -13,6 +13,7 @@ enrich_app = typer.Typer(help="Autonomous tools to enrich the system's knowledge
 
 
 @enrich_app.command("symbols")
+# ID: 7ecf56f5-c723-45f1-b1a8-4dbb19868968
 def enrich_symbols_command(
     ctx: typer.Context,
     write: bool = typer.Option(
@@ -24,6 +25,7 @@ def enrich_symbols_command(
     asyncio.run(enrich_symbols(core_context.cognitive_service, dry_run=not write))
 
 
+# ID: 05372cbf-1f9b-45cb-b892-7bf0e6a8ba41
 def register(app: typer.Typer, context: CoreContext):
     """Register the 'enrich' command group to the main CLI app."""
     app.add_typer(enrich_app, name="enrich")

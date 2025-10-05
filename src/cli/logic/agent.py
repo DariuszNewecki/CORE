@@ -1,4 +1,4 @@
-# src/cli/commands/agent.py
+# src/cli/logic/agent.py
 """
 Provides a CLI interface for human operators to directly invoke autonomous agent capabilities like application scaffolding.
 """
@@ -8,21 +8,18 @@ from __future__ import annotations
 import json
 import subprocess
 import textwrap
+from typing import Any
 
 import typer
-
-# --- START OF FIX ---
-from core.service_registry import service_registry
-
-# --- END OF FIX ---
 from features.project_lifecycle.scaffolding_service import Scaffolder
+from shared.context import CoreContext
 from shared.logger import getLogger
 
 log = getLogger("core_admin.agent")
 agent_app = typer.Typer(help="Directly invoke autonomous agent capabilities.")
 
 
-def _extract_json_from_response(text: str):
+def _extract_json_from_response(text: str) -> Any:
     """Helper to extract JSON from LLM responses for scaffolding."""
     import re
 
@@ -34,13 +31,15 @@ def _extract_json_from_response(text: str):
 
 # ID: 610428b9-0edd-43be-ae98-8077f1444ad9
 async def scaffold_new_application(
+    context: CoreContext,
     project_name: str,
     goal: str,
     initialize_git: bool = False,
 ) -> tuple[bool, str]:
     """Uses an LLM to plan and generate a new, multi-file application."""
     log.info(f"🌱 Starting to scaffold new application '{project_name}'...")
-    cognitive_service = await service_registry.get_service("cognitive_service")
+    cognitive_service = context.cognitive_service
+    await cognitive_service.initialize()  # Ensure service is ready
 
     prompt_template = textwrap.dedent(
         """
@@ -58,7 +57,7 @@ async def scaffold_new_application(
 
     final_prompt = prompt_template.format(goal=goal)
     try:
-        planner_client = await cognitive_service.get_client_for_role("Planner")
+        planner_client = await cognitive_service.aget_client_for_role("Planner")
         response_text = await planner_client.make_request_async(
             final_prompt, user_id="scaffolding_agent"
         )
@@ -90,7 +89,7 @@ async def scaffold_new_application(
             scaffolder.write_file(".github/workflows/ci.yml", ci_content)
 
         if initialize_git:
-            git_service = await service_registry.get_service("git_service")
+            git_service = context.git_service
             log.info(
                 f"   -> Initializing new Git repository in {scaffolder.project_root}..."
             )
@@ -116,6 +115,7 @@ async def scaffold_new_application(
 @agent_app.command("scaffold")
 # ID: 4c4f91d1-2327-4551-b2e5-578150dac337
 async def agent_scaffold(
+    ctx: typer.Context,
     name: str = typer.Argument(..., help="The directory name for the new application."),
     goal: str = typer.Argument(..., help="A high-level goal for the application."),
     git_init: bool = typer.Option(
@@ -126,7 +126,9 @@ async def agent_scaffold(
     log.info(f"🤖 Invoking Agent to scaffold application '{name}'...")
     log.info(f"   -> Goal: '{goal}'")
 
+    core_context: CoreContext = ctx.obj
     success, message = await scaffold_new_application(
+        context=core_context,
         project_name=name,
         goal=goal,
         initialize_git=git_init,

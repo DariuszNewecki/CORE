@@ -24,7 +24,10 @@ from sqlalchemy.ext.asyncio import (
 )
 
 from features.governance.audit_context import AuditorContext
-from features.governance.checks.capability_coverage import CapabilityCoverageCheck
+
+# --- START OF FIX: Remove the import for the obsolete check ---
+# from features.governance.checks.capability_coverage import CapabilityCoverageCheck
+# --- END OF FIX ---
 from features.governance.checks.domain_placement import DomainPlacementCheck
 from features.governance.checks.duplication_check import DuplicationCheck
 from features.governance.checks.environment_checks import EnvironmentChecks
@@ -43,7 +46,7 @@ log = getLogger("constitutional_auditor")
 console = Console()
 
 
-# ID: 7a8b9c0d-1e2f-3a4b-5c6d-7e8f9a0b1c2e
+# ID: 792c49ce-1ca9-407a-948a-f355d0b4d75e
 class AuditScope(Enum):
     """Defines the scope of an audit, allowing for targeted check execution."""
 
@@ -87,18 +90,18 @@ async def _get_async_engine() -> AsyncEngine:
 async def _build_knowledge_source_check(context) -> Any | None:
     try:
         from features.governance.checks.knowledge_source_check import (
-            CheckResult,  # Import CheckResult for type checking
+            CheckResult,
             KnowledgeSourceCheck,
         )
     except Exception:
         log.warning("KnowledgeSourceCheck not available; skipping this audit.")
-        return None, None  # Return tuple
+        return None, None
 
     try:
         engine = await _get_async_engine()
     except Exception as e:
         log.warning(f"KnowledgeSourceCheck disabled (no DB engine): {e}")
-        return None, None  # Return tuple
+        return None, None
 
     session_factory = async_sessionmaker(engine, expire_on_commit=False)
     repo_root = Path(settings.REPO_PATH)
@@ -117,15 +120,14 @@ async def _build_knowledge_source_check(context) -> Any | None:
         )
     except Exception as e:
         log.warning(f"KnowledgeSourceCheck initialization failed; skipping: {e}")
-        return None, None  # Return tuple
+        return None, None
 
 
-# ID: 5e27884e-b01e-4861-84b0-2e8c8facdb74
+# ID: d12f0883-6304-432a-b778-e7c86c42dbd9
 class ConstitutionalAuditor:
     """Orchestrates all constitutional checks and reports the findings."""
 
     def __init__(self, repo_root_override: Path | AuditorContext | None = None):
-        # FIX: accept either a repo Path or an already-built AuditorContext
         if isinstance(repo_root_override, AuditorContext):
             self.context = repo_root_override
             self.repo_root = self.context.repo_path
@@ -133,7 +135,7 @@ class ConstitutionalAuditor:
             self.repo_root = repo_root_override or Path(".").resolve()
             self.context = AuditorContext(self.repo_root)
         self.all_checks: List[Any] = []
-        self.CheckResultType = None  # To hold the CheckResult class
+        self.CheckResultType = None
 
     async def _initialize_checks(self):
         """Initializes all checks after the context has loaded its async data."""
@@ -151,7 +153,9 @@ class ConstitutionalAuditor:
             HealthChecks(self.context),
             StyleChecks(self.context),
             SecurityChecks(self.context),
-            CapabilityCoverageCheck(self.context),
+            # --- START OF FIX: Remove the obsolete check ---
+            # CapabilityCoverageCheck(self.context),
+            # --- END OF FIX ---
             DomainPlacementCheck(self.context),
             ManifestLintCheck(self.context),
             ImportRulesCheck(self.context),
@@ -180,7 +184,7 @@ class ConstitutionalAuditor:
             ]
         return []
 
-    # ID: fcbf94ee-eb92-4c49-8c84-7b5b2aeff2ff
+    # ID: 56da0f34-e75a-46d5-aeb2-e6d42fe978a6
     async def run_full_audit_async(
         self, scope: AuditScope = AuditScope.FULL
     ) -> Tuple[bool, List[AuditFinding], int]:
@@ -208,7 +212,7 @@ class ConstitutionalAuditor:
                                 file_path=".intent/mind/knowledge/",
                             )
                         )
-                elif findings:  # Ensure findings is not None and is a list
+                elif findings:
                     all_findings.extend(findings)
 
             except Exception as e:
@@ -217,7 +221,6 @@ class ConstitutionalAuditor:
                     exc_info=True,
                 )
 
-        # --- START OF THE FIX: Apply the ignore policy ---
         ignore_policy = self.context.policies.get("audit_ignore_policy", {})
         path_ignores = [
             p.get("path") for p in ignore_policy.get("ignores", []) if p.get("path")
@@ -231,30 +234,25 @@ class ConstitutionalAuditor:
         final_findings = []
         for finding in all_findings:
             is_ignored = False
-            # Check for path-based ignores
             if finding.file_path and any(
                 Path(finding.file_path).match(p) for p in path_ignores
             ):
                 is_ignored = True
 
-            # Check for symbol-based ignores (often used for duplication)
-            # This is a bit heuristic, as the finding message contains the symbol keys.
             if any(key in finding.message for key in symbol_ignores):
                 is_ignored = True
 
             if not is_ignored:
                 final_findings.append(finding)
-        # --- END OF THE FIX ---
 
         unassigned_symbols_count = len(
             OrphanedLogicCheck(self.context).find_unassigned_public_symbols()
         )
         has_errors = any(f.severity.is_blocking for f in final_findings)
 
-        # Return the FILTERED findings
         return not has_errors, final_findings, unassigned_symbols_count
 
-    # ID: 0c850a95-21f6-4a54-8c23-f731e8eb4a8f
+    # ID: 08c9ab81-398d-4571-9220-328569adc293
     def run_full_audit(
         self, scope: AuditScope = AuditScope.FULL
     ) -> Tuple[bool, List[AuditFinding], int]:

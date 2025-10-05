@@ -1,7 +1,7 @@
 # src/cli/logic/fixer.py
 """
-Registers all self-healing and code quality improvement commands that WRITE changes
-to the codebase or constitution. This is the single entry point for all 'fix' commands.
+Contains the business logic for all self-healing and code quality improvement commands.
+This is a pure logic module, with no CLI definitions.
 """
 
 from __future__ import annotations
@@ -10,17 +10,20 @@ import asyncio
 from pathlib import Path
 from typing import Optional
 
-import typer
 from core.agents.tagger_agent import CapabilityTaggerAgent
 from core.cognitive_service import CognitiveService
 from core.knowledge_service import KnowledgeService
 from features.introspection.knowledge_graph_service import KnowledgeGraphBuilder
-from features.self_healing.clarity_service import fix_clarity
-from features.self_healing.complexity_service import complexity_outliers
-from features.self_healing.docstring_service import fix_docstrings
+from features.self_healing.clarity_service import fix_clarity as clarity_logic
+from features.self_healing.complexity_service import (
+    complexity_outliers as complexity_logic,
+)
+from features.self_healing.docstring_service import fix_docstrings as docstrings_logic
 from features.self_healing.header_service import _run_header_fix_cycle
 from features.self_healing.id_tagging_service import assign_missing_ids
-from features.self_healing.linelength_service import fix_line_lengths
+from features.self_healing.linelength_service import (
+    fix_line_lengths as linelength_logic,
+)
 from features.self_healing.policy_id_service import add_missing_policy_ids
 from features.self_healing.prune_orphaned_vectors import (
     main_sync as prune_orphaned_vectors,
@@ -41,14 +44,6 @@ console = Console()
 REPO_ROOT = settings.REPO_PATH
 
 
-fix_app = typer.Typer(
-    help="Self-healing tools that write changes to fix constitutional violations."
-)
-
-
-@fix_app.command(
-    "format", help="Auto-format all code to be constitutionally compliant."
-)
 # ID: ac0d6bc3-83d5-44c4-8755-222205b77f15
 def format_code_wrapper():
     """Format all code in the `src` and `tests` directories using Black and Ruff with automatic fixes."""
@@ -58,22 +53,10 @@ def format_code_wrapper():
     )
 
 
-@fix_app.command(
-    "headers",
-    help="Enforces constitutional header conventions on Python files.",
-)
 # ID: 51be431e-c7b4-4b76-8c32-bd6ce9acad9f
 def fix_headers_cmd(
-    file_path: Optional[Path] = typer.Argument(
-        None,
-        help="Optional: A specific file to fix. If omitted, all project files are scanned.",
-        exists=True,
-        dir_okay=False,
-        resolve_path=True,
-    ),
-    write: bool = typer.Option(
-        False, "--write", help="Apply the changes to the files."
-    ),
+    file_path: Optional[Path] = None,
+    write: bool = False,
 ):
     """User-friendly wrapper for the header fixing logic."""
     dry_run = not write
@@ -96,18 +79,10 @@ def fix_headers_cmd(
         log.info("✅ Knowledge graph successfully updated.")
 
 
-@fix_app.command(
-    "tags",
-    help="Finds unassigned capabilities and registers them in the database.",
-)
 # ID: 05d13ed4-367f-4ac8-a611-730798157b8c
 def fix_tags_cmd_wrapper(
-    file_path: Optional[Path] = typer.Argument(
-        None, help="Optional: Path to a specific file."
-    ),
-    write: bool = typer.Option(
-        False, "--write", help="Apply the suggested tags to files and DB."
-    ),
+    file_path: Optional[Path] = None,
+    write: bool = False,
 ):
     """Wrapper for the CapabilityTaggerAgent that writes to the database."""
 
@@ -167,32 +142,18 @@ def fix_tags_cmd_wrapper(
     asyncio.run(_async_fix_tags())
 
 
-fix_app.command(
-    "orphaned-vectors", help="Finds and deletes orphaned vectors from Qdrant."
-)(prune_orphaned_vectors)
-fix_app.command(
-    "private-capabilities", help="Removes #CAPABILITY tags from private symbols."
-)(prune_private_capabilities)
-fix_app.command("complexity", help="Identifies and refactors complexity outliers.")(
-    complexity_outliers
-)
-fix_app.command("line-lengths", help="Refactors files with long lines.")(
-    fix_line_lengths
-)
-fix_app.command("docstrings", help="Adds missing docstrings.")(fix_docstrings)
-fix_app.command("clarity", help="Refactors a file for clarity.")(fix_clarity)
+# Logic functions are aliased or defined for clarity.
+fix_orphaned_vectors = prune_orphaned_vectors
+fix_private_capabilities = prune_private_capabilities
+fix_complexity = complexity_logic
+fix_line_lengths = linelength_logic
+fix_docstrings = docstrings_logic
+fix_clarity = clarity_logic
 
 
-@fix_app.command(
-    "purge-legacy-tags", help="Finds and removes all obsolete '# CAPABILITY:' tags."
-)
 # ID: 14aa94ca-ab55-4a91-9507-ca959a894a18
 def purge_legacy_tags_command(
-    write: bool = typer.Option(
-        False,
-        "--write",
-        help="Apply the changes and permanently delete the legacy tags.",
-    ),
+    write: bool = False,
 ):
     """
     CLI wrapper for the legacy tag purging service.
@@ -207,18 +168,13 @@ def purge_legacy_tags_command(
     else:
         console.print(f"✅ APPLIED: Successfully removed {total_removed} legacy tags.")
         console.print(
-            "\n[bold]NEXT STEP:[/bold] Run 'poetry run core-admin knowledge sync --write' to update the database."
+            "\n[bold]NEXT STEP:[/bold] Run 'poetry run core-admin manage database sync-knowledge --write' to update the database."
         )
 
 
-@fix_app.command(
-    "assign-ids", help="Assigns a stable '# ID: <uuid>' to all untagged public symbols."
-)
 # ID: 103780db-c852-4026-a296-3e1c68e19246
 def assign_ids_command(
-    write: bool = typer.Option(
-        False, "--write", help="Apply the changes and add new ID tags to source files."
-    ),
+    write: bool = False,
 ):
     """
     CLI wrapper for the symbol ID tagging service.
@@ -238,22 +194,14 @@ def assign_ids_command(
         console.print("   Run with '--write' to apply these changes.")
     else:
         console.print(f"✅ APPLIED: Successfully assigned {total_assigned} new IDs.")
-        # --- THIS IS THE FIX ---
-        # Updated the command to the new, correct one.
         console.print(
             "\n[bold]NEXT STEP:[/bold] Run 'poetry run core-admin manage database sync-knowledge --write' to update the database."
         )
-        # --- END OF FIX ---
 
 
-@fix_app.command(
-    "policy-ids", help="Adds a UUID to all policy files that are missing one."
-)
 # ID: 81a2b3c4-d5e6-f7a8-b9c0-d1e2f3a4b5c6
 def fix_policy_ids_command(
-    write: bool = typer.Option(
-        False, "--write", help="Apply the changes and add new IDs to policy files."
-    ),
+    write: bool = False,
 ):
     """CLI wrapper for the policy ID migration service."""
     dry_run = not write
@@ -266,11 +214,5 @@ def fix_policy_ids_command(
     else:
         console.print(f"✅ APPLIED: Successfully updated {total_updated} policies.")
         console.print(
-            "\n[bold]NEXT STEP:[/bold] Run 'poetry run core-admin check ci audit' to verify constitutional compliance."
+            "\n[bold]NEXT STEP:[/bold] Run 'poetry run core-admin check audit' to verify constitutional compliance."
         )
-
-
-# ID: a119b740-e2ef-4386-9ef1-ac607e4128e2
-def register(app: typer.Typer):
-    """Register the consolidated 'fix' command group with the main CLI app."""
-    app.add_typer(fix_app, name="fix")

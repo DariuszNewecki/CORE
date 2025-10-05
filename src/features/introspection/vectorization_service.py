@@ -2,7 +2,8 @@
 """
 High-performance orchestrator for capability vectorization.
 This version reads its work queue directly from the database, treating it as the
-single source of truth for the symbol catalog.
+single source of truth for the symbol catalog. It intelligently re-vectorizes
+symbols when their source code has been modified.
 """
 
 from __future__ import annotations
@@ -26,28 +27,26 @@ log = getLogger("core_admin.knowledge.orchestrator")
 console = Console()
 
 
-# ID: 65f3e8b5-35c7-4138-b177-f1a5faceee4d
 async def _fetch_symbols_from_db() -> List[Dict]:
-    """Queries the database to get the full list of symbols to be vectorized."""
+    """Queries the database for symbols needing vectorization using the v_symbols_needing_embedding view."""
     async with get_session() as session:
-        # --- THIS IS THE FIX ---
-        # The query now correctly uses 'state' instead of 'status'.
         stmt = text(
             """
-            SELECT uuid, symbol_path, module AS file_path, fingerprint AS structural_hash, vector_id
-            FROM core.symbols
-            WHERE state = 'active' AND is_public = TRUE
-        """
+            SELECT id, symbol_path, module, fingerprint AS structural_hash, vector_id
+            FROM core.v_symbols_needing_embedding
+            """
         )
-        # --- END OF FIX ---
         result = await session.execute(stmt)
+        # We now return the raw module path from the DB
         return [dict(row._mapping) for row in result]
 
 
-# ID: 9d0b75e7-f064-49a3-b743-92bb3cc8e9a9
 def _get_source_code(file_path: Path, symbol_path: str) -> Optional[str]:
     """Extracts the source code of a specific symbol from a file using AST."""
     if not file_path.exists():
+        log.warning(
+            f"Source file not found for symbol {symbol_path} at path {file_path}"
+        )
         return None
 
     content = file_path.read_text("utf-8", errors="ignore")
@@ -64,7 +63,6 @@ def _get_source_code(file_path: Path, symbol_path: str) -> Optional[str]:
     return None
 
 
-# ID: e06caaf0-1af4-421a-ad5c-e468c8d41f36
 async def _process_vectorization_task(
     task: Dict,
     cognitive_service: CognitiveService,
@@ -77,17 +75,22 @@ async def _process_vectorization_task(
         if not vector:
             raise ValueError("Embedding service returned None")
 
+        vector_id = str(task["id"])
+
         payload_data = {
-            "source_path": task["file_path"],
+            "source_path": task[
+                "file_path_str"
+            ],  # Use the string representation of the file path
             "source_type": "code",
             "chunk_id": task["symbol_path"],
             "content_sha256": task["code_hash"],
             "language": "python",
             "symbol": task["symbol_path"],
-            "capability_tags": [task["uuid"]],
+            "capability_tags": [vector_id],
         }
         point_id = await qdrant_service.upsert_capability_vector(
-            vector=vector, payload_data=payload_data
+            vector=vector,
+            payload_data=payload_data,
         )
         return str(point_id)
     except Exception as e:
@@ -98,9 +101,8 @@ async def _process_vectorization_task(
         return None
 
 
-# ID: 10de89a4-bc4a-42cc-adc6-d276de8be7c3
 async def _update_symbols_in_db(updates: List[Dict]):
-    """Bulk updates the vector_id for symbols in the database."""
+    """Bulk updates the vector_id and embedding metadata for symbols in the database."""
     if not updates:
         return
     async with get_session() as session:
@@ -108,8 +110,13 @@ async def _update_symbols_in_db(updates: List[Dict]):
             await session.execute(
                 text(
                     """
-                    UPDATE core.symbols SET vector_id = :vector_id, updated_at = NOW()
-                    WHERE uuid = :uuid
+                    UPDATE core.symbols SET
+                        vector_id = :vector_id,
+                        last_embedded = NOW(),
+                        embedding_model = :embedding_model,
+                        embedding_version = :embedding_version,
+                        updated_at = NOW()
+                    WHERE id = :id
                 """
                 ),
                 updates,
@@ -118,7 +125,7 @@ async def _update_symbols_in_db(updates: List[Dict]):
     console.print(f"   -> Updated {len(updates)} vector IDs in the database.")
 
 
-# ID: 1171223d-a43d-4c61-a493-f29f8e75218b
+# ID: 6639c6f1-9d90-4a30-a35f-c183637879e4
 async def run_vectorize(
     cognitive_service: CognitiveService,
     dry_run: bool = False,
@@ -129,20 +136,42 @@ async def run_vectorize(
     """
     console.print("[bold cyan]🚀 Starting Database-Driven Vectorization...[/bold cyan]")
     failure_log_path = settings.REPO_PATH / "logs" / "vectorization_failures.log"
-    symbols_in_db = await _fetch_symbols_from_db()
+    symbols_to_process = await _fetch_symbols_from_db()
+
+    if force:
+        console.print(
+            "[bold yellow]--force flag detected: Re-vectorizing ALL symbols.[/bold yellow]"
+        )
+        async with get_session() as session:
+            result = await session.execute(
+                text(
+                    "SELECT id, symbol_path, module, fingerprint AS structural_hash, vector_id FROM core.symbols WHERE is_public = TRUE"
+                )
+            )
+            symbols_to_process = [dict(row._mapping) for row in result]
+
+    if not symbols_to_process:
+        console.print(
+            "[bold green]✅ Vector knowledge base is already up-to-date.[/bold green]"
+        )
+        return
+
     console.print(
-        f"   -> Found {len(symbols_in_db)} active public symbols in the database."
+        f"   -> Found {len(symbols_to_process)} symbols needing vectorization."
     )
 
     qdrant_service = QdrantService()
     await qdrant_service.ensure_collection()
 
     tasks = []
-    for symbol in symbols_in_db:
-        if not force and symbol.get("vector_id"):
-            continue
+    for symbol in symbols_to_process:
+        # --- START OF THE DEFINITIVE FIX ---
+        # Translate the module path from the database back into a file system path.
+        module_path = symbol["module"]
+        file_path_str = "src/" + module_path.replace(".", "/") + ".py"
+        file_path = settings.REPO_PATH / file_path_str
+        # --- END OF THE DEFINITIVE FIX ---
 
-        file_path = settings.REPO_PATH / symbol["file_path"]
         source_code = _get_source_code(file_path, symbol["symbol_path"])
         if not source_code:
             continue
@@ -150,15 +179,22 @@ async def run_vectorize(
         normalized_code = normalize_text(source_code)
         code_hash = hashlib.sha256(normalized_code.encode("utf-8")).hexdigest()
 
-        tasks.append({**symbol, "source_code": normalized_code, "code_hash": code_hash})
+        # Add both path representations to the task for later use
+        task_data = {
+            **symbol,
+            "source_code": normalized_code,
+            "code_hash": code_hash,
+            "file_path_str": str(file_path.relative_to(settings.REPO_PATH)),
+        }
+        tasks.append(task_data)
 
     if not tasks:
         console.print(
-            "[bold green]✅ Vector knowledge base is already up-to-date.[/bold green]"
+            "[bold yellow]⚠️  No source code found for symbols needing vectorization. Check file paths.[/bold yellow]"
         )
         return
 
-    console.print(f"   -> Preparing to vectorize {len(tasks)} new or modified symbols.")
+    console.print(f"   -> Preparing to vectorize {len(tasks)} symbols.")
 
     if dry_run:
         console.print(
@@ -177,7 +213,14 @@ async def run_vectorize(
             task, cognitive_service, qdrant_service, failure_log_path
         )
         if point_id:
-            updates_to_db.append({"uuid": task["uuid"], "vector_id": point_id})
+            updates_to_db.append(
+                {
+                    "id": task["id"],
+                    "vector_id": point_id,
+                    "embedding_model": settings.LOCAL_EMBEDDING_MODEL_NAME,
+                    "embedding_version": 1,
+                }
+            )
 
     await _update_symbols_in_db(updates_to_db)
 

@@ -14,6 +14,7 @@ from sqlalchemy import text
 console = Console()
 
 
+# ID: 500e20ca-d84f-444e-bbf9-2d38852d9f39
 class SymbolVisitor(ast.NodeVisitor):
     """An AST visitor that discovers symbols and their hierarchical paths."""
 
@@ -22,6 +23,7 @@ class SymbolVisitor(ast.NodeVisitor):
         self.symbols: List[Dict[str, Any]] = []
         self.class_stack: List[str] = []
 
+    # ID: 7381c654-320e-43fc-977a-c5f1820e4a82
     def visit_ClassDef(self, node: ast.ClassDef):
         """Process a class definition and its children (methods)."""
         if not self.class_stack:
@@ -31,11 +33,13 @@ class SymbolVisitor(ast.NodeVisitor):
         self.generic_visit(node)
         self.class_stack.pop()
 
+    # ID: b0d3b9d4-cc0a-4720-a7ec-44ede92cd32f
     def visit_FunctionDef(self, node: ast.FunctionDef):
         """Process a function or method definition."""
         if not self.class_stack:
             self._process_symbol(node)
 
+    # ID: f492e6d6-1676-462c-8504-5802aaf193c0
     def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef):
         """Process an async function or method definition."""
         if not self.class_stack:
@@ -80,9 +84,11 @@ class SymbolVisitor(ast.NodeVisitor):
         )
 
 
+# ID: f75289ff-c951-4422-bd77-6c2bdba77167
 class SymbolScanner:
     """Scans the codebase to extract symbol information using a hierarchical visitor."""
 
+    # ID: 0a858df6-6619-4bc5-9031-713110c4b065
     def scan(self) -> List[Dict[str, Any]]:
         """Scans all Python files in src/ and extracts ID'd symbols."""
         src_dir = settings.REPO_PATH / "src"
@@ -104,6 +110,7 @@ class SymbolScanner:
         return list(unique_symbols.values())
 
 
+# ID: ba9e8c6f-920b-45d1-9444-b8930e74f5c5
 async def run_sync_with_db() -> Dict[str, int]:
     """
     Executes the full, database-centric sync logic using the "smart merge" strategy.

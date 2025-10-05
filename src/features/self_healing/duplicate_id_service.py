@@ -22,11 +22,10 @@ console = Console()
 async def _get_symbol_creation_dates() -> Dict[str, str]:
     """Queries the database to get the creation timestamp for each symbol UUID."""
     async with get_session() as session:
-        result = await session.execute(
-            text("SELECT uuid, created_at FROM core.symbols")
-        )
-        # Return a dictionary mapping uuid to its ISO timestamp string
-        return {str(row.uuid): row.created_at.isoformat() for row in result}
+        # --- MODIFIED: Select the correct 'id' column instead of 'uuid' ---
+        result = await session.execute(text("SELECT id, created_at FROM core.symbols"))
+        # --- MODIFIED: Access the result using 'row.id' instead of 'row.uuid' ---
+        return {str(row.id): row.created_at.isoformat() for row in result}
 
 
 # ID: 5891cbbe-ae62-4743-92fa-2e204ca5fa13
@@ -63,8 +62,8 @@ async def resolve_duplicate_ids(dry_run: bool = True) -> int:
 
     for finding in duplicates:
         locations_str = finding.context.get("locations", "")
-        # The UUID is in the message: "Duplicate UUID '{uuid}' found..."
-        duplicate_uuid = finding.message.split("'")[1]
+        # The UUID is in the message: "Duplicate ID tag found: {uuid}"
+        duplicate_uuid = finding.message.split(": ")[-1]
 
         locations = []
         for loc in locations_str.split(", "):

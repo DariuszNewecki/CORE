@@ -6,49 +6,51 @@ import re
 from functools import partial
 from typing import Any, Dict, List, Set
 
-from rich.console import Console
-from sqlalchemy import text
-
 from core.cognitive_service import CognitiveService
-from features.introspection.knowledge_helpers import extract_source_code
+from rich.console import Console
 from services.clients.qdrant_client import QdrantService
 from services.database.session_manager import get_session
 from shared.config import settings
 from shared.logger import getLogger
 from shared.utils.parallel_processor import ThrottledParallelProcessor
+from sqlalchemy import text
+
+from features.introspection.knowledge_helpers import extract_source_code
 
 console = Console()
 log = getLogger("definition_service")
 
 
-# ID: 4fe1a3d1-a3a9-428b-9e6a-7282fe7ffe36
+# ID: e8474497-40b5-47df-8480-602bfa03aaf8
 async def get_undefined_symbols() -> List[Dict[str, Any]]:
     """
-    Fetches symbols that are ready for definition. A symbol is "ready" if it
-    has a UUID and has been successfully vectorized (has a vector_id), but
-    does not yet have a capability key.
+    Fetches symbols that are ready for definition (have a vector_id but no key).
     """
     async with get_session() as session:
         result = await session.execute(
             text(
-                "SELECT uuid, file_path, symbol_path, vector_id FROM core.symbols WHERE key IS NULL AND vector_id IS NOT NULL"
+                """
+                SELECT id, symbol_path, module AS file_path, vector_id
+                FROM core.symbols
+                WHERE key IS NULL AND vector_id IS NOT NULL
+                """
             )
         )
         return [dict(row._mapping) for row in result]
 
 
-# ID: c5e8625f-56fb-414c-b5b6-652c35061ce5
+# ID: f30f4ec0-3ed3-4775-b018-28be18692ebf
 async def define_single_symbol(
     symbol: Dict[str, Any],
     cognitive_service: CognitiveService,
     qdrant_service: QdrantService,
     existing_keys: Set[str],
-) -> Dict[str, str]:
+) -> Dict[str, Any]:
     """Uses an AI to generate a definition for a single symbol, using semantic context."""
     log.info(f"Defining symbol: {symbol.get('symbol_path')}")
     source_code = extract_source_code(settings.REPO_PATH, symbol)
     if not source_code:
-        return {"uuid": symbol["uuid"], "key": "error.code_not_found"}
+        return {"id": symbol["id"], "key": "error.code_not_found"}
 
     similar_capabilities_str = "No similar capabilities found."
     vector_id = symbol.get("vector_id")
@@ -87,7 +89,6 @@ async def define_single_symbol(
         final_prompt, user_id="definer_agent"
     )
 
-    # Sanitize the LLM output to remove markdown and extra whitespace.
     match = re.search(r"`(.*?)`", raw_suggested_key)
     suggested_key = match.group(1) if match else raw_suggested_key
     suggested_key = suggested_key.strip()
@@ -96,7 +97,7 @@ async def define_single_symbol(
         console.print(
             f"[yellow]Warning: AI suggested existing key '{suggested_key}' for a new symbol. Skipping to avoid conflict.[/yellow]"
         )
-        return {"uuid": symbol["uuid"], "key": "error.duplicate_key"}
+        return {"id": symbol["id"], "key": "error.duplicate_key"}
 
     try:
         delay_str = settings.model_extra.get("LLM_SECONDS_BETWEEN_REQUESTS", "1")
@@ -105,28 +106,26 @@ async def define_single_symbol(
         delay = 1
     await asyncio.sleep(delay)
 
-    return {"uuid": symbol["uuid"], "key": suggested_key}
+    return {"id": symbol["id"], "key": suggested_key}
 
 
-# ID: d1d22715-6f9f-4742-9a8e-9fdeef776af6
-async def update_definitions_in_db(definitions: List[Dict[str, str]]):
-    """Updates the 'key' column for symbols in the database with explicit logging and commit."""
+# ID: 1c642222-6e05-4e31-a9f6-68502a054947
+async def update_definitions_in_db(definitions: List[Dict[str, Any]]):
+    """Updates the 'key' column for symbols in the database."""
     if not definitions:
         return
 
     log.info(f"Attempting to update {len(definitions)} definitions in the database...")
-    log.debug(f"Sample definitions to update: {definitions[:5]}")
-
     async with get_session() as session:
         async with session.begin():
             await session.execute(
-                text("UPDATE core.symbols SET key = :key WHERE uuid = :uuid"),
+                text("UPDATE core.symbols SET key = :key WHERE id = :id"),
                 definitions,
             )
     log.info("Database update transaction completed.")
 
 
-# ID: 0d859072-4aa5-49b6-9cf5-cd26405892f6
+# ID: 073b8012-385d-4c2b-972e-0e6914fe0d30
 async def define_new_symbols(cognitive_service: CognitiveService):
     """The main orchestrator for the autonomous definition process."""
     undefined_symbols = await get_undefined_symbols()

@@ -29,7 +29,6 @@ class DuplicationCheck:
         self.context = context
         self.symbols = self.context.knowledge_graph.get("symbols", {})
         self.qdrant_service = QdrantService()
-        # Load the ignore policy to be used by this check.
         ignore_policy = self.context.policies.get("audit_ignore_policy", {})
         self.ignored_symbol_keys = {
             item["key"]
@@ -68,17 +67,18 @@ class DuplicationCheck:
                     continue
 
                 if hit["score"] > threshold:
-                    # Ensure we only report each pair once by ordering them alphabetically
                     if symbol_key < hit_symbol_key:
                         findings.append(
                             AuditFinding(
-                                check_id="duplication.semantic.near_duplicate_found",
+                                check_id="code.style.semantic-duplication",
                                 severity=AuditSeverity.WARNING,
-                                message=(
-                                    f"Potential duplicate logic found between '{symbol_key}' and "
-                                    f"'{hit_symbol_key}' (Similarity: {hit['score']:.2f})"
-                                ),
-                                file_path=symbol.get("file"),
+                                message=f"Potential duplicate logic found between '{symbol_key.split('::')[-1]}' and '{hit_symbol_key.split('::')[-1]}'.",
+                                file_path=symbol.get("file_path"),
+                                context={
+                                    "symbol_a": symbol_key,
+                                    "symbol_b": hit_symbol_key,
+                                    "similarity": f"{hit['score']:.2f}",
+                                },
                             )
                         )
         except Exception as e:
@@ -96,6 +96,7 @@ class DuplicationCheck:
         if not vectorized_symbols:
             return []
 
+        # This check is computationally intensive, so we process asynchronously.
         tasks = [
             self._check_single_symbol(symbol, threshold)
             for symbol in vectorized_symbols
@@ -108,4 +109,14 @@ class DuplicationCheck:
             total=len(tasks),
         ):
             results.extend(await future)
-        return results
+
+        # Post-process to remove mirrored duplicates (A-B vs B-A)
+        unique_findings = {}
+        for finding in results:
+            key_tuple = tuple(
+                sorted((finding.context["symbol_a"], finding.context["symbol_b"]))
+            )
+            if key_tuple not in unique_findings:
+                unique_findings[key_tuple] = finding
+
+        return list(unique_findings.values())

@@ -7,7 +7,6 @@ import subprocess
 import tempfile
 import uuid
 from pathlib import Path
-from typing import Optional
 
 import typer
 from core.agents.execution_agent import ExecutionAgent
@@ -26,24 +25,16 @@ log = getLogger("proposals_micro")
 
 micro_app = typer.Typer(help="Manage low-risk, autonomous micro-proposals.")
 
-# Global variable to store context
-_context: Optional[CoreContext] = None
-
 
 # ID: 4f17d3f6-36ab-4683-ad2a-dfd9b8221d80
 def micro_propose(
-    goal: str = typer.Argument(..., help="The high-level goal to achieve."),
+    context: CoreContext,
+    goal: str,
 ):
     """Uses an agent to create a safe, auto-approvable plan for a goal."""
-    if _context is None:
-        console.print(
-            "[bold red]Error: Context not initialized for micro_propose[/bold red]"
-        )
-        raise typer.Exit(code=1)
-
     console.print(f"🤖 Generating micro-proposal for goal: '[cyan]{goal}[/cyan]'")
 
-    cognitive_service = _context.cognitive_service
+    cognitive_service = context.cognitive_service
     planner = MicroPlannerAgent(cognitive_service)
 
     plan = asyncio.run(planner.create_micro_plan(goal))
@@ -72,20 +63,12 @@ def micro_propose(
     )
 
 
-@micro_app.command("apply")
 # ID: 96a9659e-613a-4403-8cbe-623fa793a19f
 def micro_apply(
-    proposal_path: Path = typer.Argument(
-        ..., help="Path to the micro-proposal JSON file.", exists=True
-    ),
+    context: CoreContext,
+    proposal_path: Path,
 ):
     """Validates and applies a micro-proposal."""
-    if _context is None:
-        console.print(
-            "[bold red]Error: Context not initialized for micro_apply[/bold red]"
-        )
-        raise typer.Exit(code=1)
-
     console.print(f"🔵 Loading and applying micro-proposal: {proposal_path.name}")
 
     try:
@@ -112,40 +95,33 @@ def micro_apply(
     # 2. Gather Evidence via CI Checks
     console.print("[bold]Step 2/3: Gathering evidence via pre-flight checks...[/bold]")
 
-    # --- THIS IS THE FIX: Consolidate to a single, comprehensive check ---
-    checks = [
-        ("full system audit", "check audit"),
-    ]
-    # --- END OF FIX ---
-
-    for name, command in checks:
-        console.print(f"   -> Running {name} check...")
-        result = subprocess.run(
-            ["poetry", "run", "core-admin", *command.split()],
-            capture_output=True,
-            text=True,
-            check=False,
+    command_to_run = "check audit"
+    console.print("   -> Running full system audit check...")
+    result = subprocess.run(
+        ["poetry", "run", "core-admin", *command_to_run.split()],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        console.print(
+            "[bold red]❌ Pre-flight audit check failed. Aborting.[/bold red]"
         )
-        if result.returncode != 0:
-            console.print(
-                f"[bold red]❌ Pre-flight '{name}' check failed. Aborting.[/bold red]"
-            )
-            console.print(result.stderr or result.stdout)
-            raise typer.Exit(code=1)
+        console.print(result.stderr or result.stdout)
+        raise typer.Exit(code=1)
     console.print("   -> ✅ All pre-flight checks passed.")
 
     # 3. Apply the Change via ExecutionAgent
     console.print("[bold]Step 3/3: Executing the validated plan...[/bold]")
     try:
-        cognitive_service = _context.cognitive_service
+        cognitive_service = context.cognitive_service
         prompt_pipeline = PromptPipeline(settings.REPO_PATH)
-        # We need to construct a new PlanExecutor with all its dependencies
         plan_executor = PlanExecutor(
-            file_handler=_context.file_handler,
-            git_service=_context.git_service,
+            file_handler=context.file_handler,
+            git_service=context.git_service,
             config=PlannerConfig(),
         )
-        auditor_context = _context.auditor_context
+        auditor_context = context.auditor_context
 
         execution_agent = ExecutionAgent(
             cognitive_service=cognitive_service,
@@ -175,7 +151,30 @@ def micro_apply(
         raise typer.Exit(code=1)
 
 
-micro_app.command("propose")(micro_propose)
+# ID: c78fb5e2-23f3-47b5-8a20-675b581fe516
+def register(app: typer.Typer, context: CoreContext):
+    """Register the 'micro' command group with a parent Typer app."""
 
-if __name__ == "__main__":
-    micro_app()
+    @micro_app.command("apply")
+    # ID: 8e7e88cd-fbf6-46a1-aecb-a66de1ec2046
+    def apply_command_wrapper(
+        ctx: typer.Context,
+        proposal_path: Path = typer.Argument(
+            ..., help="Path to the micro-proposal JSON file.", exists=True
+        ),
+    ):
+        """Wrapper to pass CoreContext to the micro_apply logic."""
+        core_context: CoreContext = ctx.obj
+        micro_apply(context=core_context, proposal_path=proposal_path)
+
+    @micro_app.command("propose")
+    # ID: 327e580b-283d-4b76-8980-f3dd6b14bfb1
+    def propose_command_wrapper(
+        ctx: typer.Context,
+        goal: str = typer.Argument(..., help="The high-level goal to achieve."),
+    ):
+        """Wrapper to pass CoreContext to the micro_propose logic."""
+        core_context: CoreContext = ctx.obj
+        micro_propose(context=core_context, goal=goal)
+
+    app.add_typer(micro_app, name="micro")

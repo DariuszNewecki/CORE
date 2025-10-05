@@ -2,25 +2,27 @@
 from __future__ import annotations
 
 from rich.console import Console
+from shared.config import settings
+from shared.context import CoreContext
 
-from core.cognitive_service import CognitiveService
-from core.git_service import GitService
 from features.governance.constitutional_auditor import ConstitutionalAuditor
 from features.introspection.sync_service import run_sync_with_db
 from features.introspection.vectorization_service import run_vectorize
 from features.project_lifecycle.definition_service import define_new_symbols
 from features.self_healing.id_tagging_service import assign_missing_ids
-from shared.config import settings
 
 console = Console()
 
 
 # ID: 47b10dad-7f52-4962-bc07-7b82a2c12f42
-async def integrate_changes(commit_message: str):
+async def integrate_changes(context: CoreContext, commit_message: str):
     """
     Orchestrates the full, transactional, and intelligent integration of staged code changes.
     """
-    git_service = GitService(settings.REPO_PATH)
+    # Get services from the explicitly passed context object
+    git_service = context.git_service
+    cognitive_service = context.cognitive_service
+
     initial_commit_hash = git_service.get_current_commit()
     integration_succeeded = False
 
@@ -47,7 +49,6 @@ async def integrate_changes(commit_message: str):
         )
         await run_sync_with_db()
 
-        cognitive_service = CognitiveService(settings.REPO_PATH)
         await cognitive_service.initialize()
 
         console.print(

@@ -1,4 +1,3 @@
-# src/cli/logic/mind_ssot.py
 """
 Phase 2, 3, & 4: Deterministic DB <-> YAML mirror for the Working Mind.
 This file contains the core logic for the 'snapshot', 'diff', 'import', and 'verify' commands.
@@ -11,32 +10,45 @@ import getpass
 import hashlib
 import json
 import uuid
-from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple
 
 import yaml
 from rich.console import Console
-from services.database.models import Capability, Northstar, Symbol, SymbolCapabilityLink
+from services.database.models import (
+    Capability,
+    CognitiveRole,
+    LlmResource,
+    Northstar,
+    Symbol,
+    SymbolCapabilityLink,
+)
 from services.database.session_manager import get_session
 from shared.config import settings
+from shared.time import now_iso
 from sqlalchemy import text
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 console = Console()
 EXPORT_DIR = settings.REPO_PATH / ".intent" / "mind_export"
 
+# Configuration
+YAML_FILES = {
+    "capabilities": "capabilities.yaml",
+    "symbols": "symbols.yaml",
+    "links": "links.yaml",
+    "northstar": "northstar.yaml",
+    "cognitive_roles": "cognitive_roles.yaml",
+    "resource_manifest": "resource_manifest.yaml",
+}
 
-# --- Helper Functions from your plan ---
+SNAPSHOT_FILES = ["capabilities", "symbols", "links", "northstar"]
 
 
-# ID: bca8d420-49c6-4f18-aa43-6b4dd7f0f850
-def iso_now() -> str:
-    """Returns the current UTC time in a standard format."""
-    return datetime.now(timezone.utc).isoformat()
+# --- Helper Functions ---
 
 
-# ID: dec9deb3-1e13-4d2a-a0cd-dcae4b248ac1
+# ID: f8fbb8f3-eda9-4104-8bc3-a15f0dfa5e50
 def canonicalize(obj: Any) -> Any:
     """Recursively sorts dictionary keys to ensure a stable, consistent order for hashing."""
     if isinstance(obj, dict):
@@ -44,8 +56,12 @@ def canonicalize(obj: Any) -> Any:
     if isinstance(obj, list):
         if all(isinstance(i, dict) for i in obj):
             try:
-                return sorted(obj, key=lambda x: str(x.get("id", "")))
-            except TypeError:
+                sort_key = next(
+                    (k for k in ("id", "name", "key", "role") if k in obj[0]), None
+                )
+                if sort_key:
+                    return sorted(obj, key=lambda x: str(x.get(sort_key, "")))
+            except (TypeError, IndexError):
                 pass
         return [canonicalize(x) for x in obj]
     if isinstance(obj, uuid.UUID):
@@ -53,7 +69,7 @@ def canonicalize(obj: Any) -> Any:
     return obj
 
 
-# ID: 5e482eda-feb8-46d8-b4fd-d4c80bb23372
+# ID: c93917a5-b94c-4b96-9eae-60fae47985d7
 def compute_digest(items: List[Dict[str, Any]]) -> str:
     """Creates a unique fingerprint (SHA256) for a list of items."""
     canon = canonicalize(items)
@@ -63,10 +79,9 @@ def compute_digest(items: List[Dict[str, Any]]) -> str:
     return "sha256:" + hashlib.sha256(payload).hexdigest()
 
 
-# ID: 868c75af-85f7-4f90-9f3b-87806b2b4ee9
+# ID: 96700d48-c9d8-4ebd-ae3f-8a6fdd157f52
 def write_yaml(path: Path, items: List[Dict[str, Any]], exported_at: str) -> str:
     """Writes a list of items to a YAML file, including version, timestamp, and the unique digest."""
-    # Convert UUIDs to strings for YAML serialization
     stringified_items = [
         {k: (str(v) if isinstance(v, uuid.UUID) else v) for k, v in item.items()}
         for item in items
@@ -84,122 +99,126 @@ def write_yaml(path: Path, items: List[Dict[str, Any]], exported_at: str) -> str
     return digest
 
 
-# ID: 7ff299a6-9403-41c7-9522-e4f8d1ad90b1
+def _convert_uuids_in_items(items: List[Dict[str, Any]]) -> None:
+    """Convert string UUIDs back to UUID objects in-place."""
+    for item in items:
+        for key in ["id", "symbol_id", "capability_id"]:
+            if key in item and isinstance(item[key], str):
+                try:
+                    item[key] = uuid.UUID(item[key])
+                except (ValueError, TypeError):
+                    pass
+
+
+# ID: b38101f8-4d92-4a95-82f5-da010176ab8a
 def read_yaml(path: Path) -> Dict[str, Any]:
     """Reads a YAML file and returns its content, handling missing files."""
     if not path.exists():
-        return {"items": [], "digest": None}
+        return {}
+
     with path.open("r", encoding="utf-8") as f:
         data = yaml.safe_load(f) or {}
-        # Convert string IDs back to UUID objects for database operations
-        if "items" in data and isinstance(data["items"], list):
-            for item in data["items"]:
-                if "id" in item:
-                    item["id"] = uuid.UUID(item["id"])
-                if "symbol_id" in item:
-                    item["symbol_id"] = uuid.UUID(item["symbol_id"])
-                if "capability_id" in item:
-                    item["capability_id"] = uuid.UUID(item["capability_id"])
-        return data
+
+    # Find the items key and convert UUIDs
+    items_key = next(
+        (k for k in ["items", "llm_resources", "cognitive_roles"] if k in data),
+        None,
+    )
+
+    if items_key and isinstance(data.get(items_key), list):
+        _convert_uuids_in_items(data[items_key])
+
+    return data
+
+
+def _get_diff_links_key(item: Dict[str, Any]) -> str:
+    """Creates a stable composite key for a link dictionary."""
+    return f"{str(item.get('symbol_id', ''))}-{str(item.get('capability_id', ''))}-{item.get('source', '')}"
+
+
+def _get_items_from_doc(doc: Dict[str, Any], doc_name: str) -> List[Dict[str, Any]]:
+    """Extract items from a document using the appropriate key."""
+    possible_keys = [doc_name, "items", "llm_resources", "cognitive_roles"]
+    items_key = next((k for k in possible_keys if k in doc), None)
+    return doc.get(items_key, []) if items_key else []
 
 
 # --- Database Fetcher Functions ---
 
 
-# ID: aedf8f51-f30e-48aa-b5a7-fb82f2e090cd
+# ID: 530dff8c-42fa-4211-99f1-e0f7421c6c1f
 async def fetch_capabilities() -> List[Dict[str, Any]]:
     """Reads all capabilities from the database, ordered consistently."""
     async with get_session() as session:
         result = await session.execute(
             text(
-                "SELECT id, name, objective, owner, domain, tags, status FROM core.capabilities ORDER BY lower(domain), lower(name), id"
+                "SELECT id, name, objective, owner, domain, tags, status "
+                "FROM core.capabilities ORDER BY lower(domain), lower(name), id"
             )
         )
-        return [dict(row) for row in result.mappings()]
+        return [dict(row._mapping) for row in result]
 
 
-# ID: e1dce0f7-3ac3-430d-bc6c-c73d278a869b
+# ID: 59794634-4778-4fff-8be1-cad2ea0297f5
 async def fetch_symbols() -> List[Dict[str, Any]]:
     """Reads all symbols from the database, ordered consistently."""
     async with get_session() as session:
         result = await session.execute(
             text(
-                "SELECT id, module, qualname, kind, ast_signature, fingerprint, state FROM core.symbols ORDER BY fingerprint, id"
+                "SELECT id, module, qualname, kind, ast_signature, fingerprint, state "
+                "FROM core.symbols ORDER BY fingerprint, id"
             )
         )
-        return [dict(row) for row in result.mappings()]
+        return [dict(row._mapping) for row in result]
 
 
-# ID: 5cab9fd9-1ff7-448d-a11a-f511dbc614d8
+# ID: 755c8426-0a13-4cb0-8057-aaf57f45072b
 async def fetch_links() -> List[Dict[str, Any]]:
     """Reads all symbol-capability links from the database, ordered consistently."""
     async with get_session() as session:
         result = await session.execute(
             text(
-                "SELECT symbol_id, capability_id, confidence, source, verified FROM core.symbol_capability_links ORDER BY capability_id, symbol_id, source"
+                "SELECT symbol_id, capability_id, confidence, source, verified "
+                "FROM core.symbol_capability_links "
+                "ORDER BY capability_id, symbol_id, source"
             )
         )
-        rows = [dict(row) for row in result.mappings()]
+        rows = [dict(row._mapping) for row in result]
         for r in rows:
             if "confidence" in r and r["confidence"] is not None:
                 r["confidence"] = float(r["confidence"])
         return rows
 
 
-# ID: 3de03ab6-c94e-4834-a7ef-eb1809219d35
+# ID: 3eb9d6e7-2bcf-46b1-81c6-f8ed64f83ade
 async def fetch_northstar() -> List[Dict[str, Any]]:
     """Reads the current North Star mission from the database."""
     async with get_session() as session:
         result = await session.execute(
             text(
-                "SELECT id, mission FROM core.northstar ORDER BY updated_at DESC LIMIT 1"
+                "SELECT id, mission FROM core.northstar "
+                "ORDER BY updated_at DESC LIMIT 1"
             )
         )
-        return [dict(row) for row in result.mappings()]
+        return [dict(row._mapping) for row in result]
 
 
-# --- Main Snapshot Logic ---
+# --- Snapshot Logic ---
 
 
-# ID: e731e7aa-1169-4e24-a1cb-cdc1461d607f
-async def run_snapshot(env: str | None, note: str | None):
-    """The main function that performs the snapshot operation."""
-    EXPORT_DIR.mkdir(parents=True, exist_ok=True)
-    exported_at = iso_now()
-    who = getpass.getuser()
-    env = env or "dev"
-
-    console.print(f"📸 Creating a new snapshot of the database in '{EXPORT_DIR}'...")
-
-    caps, syms, links, north = await asyncio.gather(
-        fetch_capabilities(), fetch_symbols(), fetch_links(), fetch_northstar()
-    )
-
-    digests = []
-    digests.append(
-        (
-            "capabilities.yaml",
-            write_yaml(EXPORT_DIR / "capabilities.yaml", caps, exported_at),
-        )
-    )
-    digests.append(
-        ("symbols.yaml", write_yaml(EXPORT_DIR / "symbols.yaml", syms, exported_at))
-    )
-    digests.append(
-        ("links.yaml", write_yaml(EXPORT_DIR / "links.yaml", links, exported_at))
-    )
-    digests.append(
-        (
-            "northstar.yaml",
-            write_yaml(EXPORT_DIR / "northstar.yaml", north, exported_at),
-        )
-    )
-
+async def _record_snapshot_manifest(
+    digests: List[Tuple[str, str]],
+    who: str,
+    env: str,
+    note: str | None,
+) -> None:
+    """Record the snapshot manifest in the database."""
     async with get_session() as session:
         async with session.begin():
             result = await session.execute(
                 text(
-                    "INSERT INTO core.export_manifests (who, environment, notes) VALUES (:who, :env, :note) RETURNING id"
+                    "INSERT INTO core.export_manifests (who, environment, notes) "
+                    "VALUES (:who, :env, :note) RETURNING id"
                 ),
                 {"who": who, "env": env, "note": note},
             )
@@ -215,7 +234,7 @@ async def run_snapshot(env: str | None, note: str | None):
                           sha256 = EXCLUDED.sha256,
                           manifest_id = EXCLUDED.manifest_id,
                           exported_at = NOW()
-                    """
+                        """
                     ),
                     {
                         "path": str(
@@ -226,21 +245,53 @@ async def run_snapshot(env: str | None, note: str | None):
                     },
                 )
 
+
+# ID: f9711c2e-e01d-4872-aa1b-3e46916bdd7f
+async def run_snapshot(env: str | None, note: str | None):
+    """The main function that performs the snapshot operation."""
+    EXPORT_DIR.mkdir(parents=True, exist_ok=True)
+    exported_at = now_iso()
+    who = getpass.getuser()
+    env = env or "dev"
+
+    console.print(f"📸 Creating a new snapshot of the database in '{EXPORT_DIR}'...")
+
+    # Fetch all data
+    caps, syms, links, north = await asyncio.gather(
+        fetch_capabilities(), fetch_symbols(), fetch_links(), fetch_northstar()
+    )
+
+    # Write YAML files and collect digests
+    snapshots = [
+        ("capabilities.yaml", caps),
+        ("symbols.yaml", syms),
+        ("links.yaml", links),
+        ("northstar.yaml", north),
+    ]
+
+    digests = [
+        (filename, write_yaml(EXPORT_DIR / filename, data, exported_at))
+        for filename, data in snapshots
+    ]
+
+    # Record in database
+    await _record_snapshot_manifest(digests, who, env, note)
+
     console.print("[bold green]✅ Snapshot complete.[/bold green]")
-    for rel, sha in digests:
-        console.print(f"  - Wrote '{rel}' with digest: {sha}")
+    for filename, sha in digests:
+        console.print(f"  - Wrote '{filename}' with digest: {sha}")
 
 
-# --- Main Diff Logic ---
+# --- Diff Logic ---
 
 
-# ID: 5c90462f-f36c-48c6-940b-25b8c1311ee3
+# ID: 4bba60c1-0edc-40e9-9b63-db1b8260232b
 def diff_sets(
     db_items: List[Dict[str, Any]], file_items: List[Dict[str, Any]], key: str
 ) -> Dict[str, Any]:
     """Compares two lists of dictionaries based on a key and returns the differences."""
-    db_map = {str(it[key]): it for it in db_items}
-    file_map = {str(it[key]): it for it in file_items}
+    db_map = {str(it.get(key)): it for it in db_items if it.get(key)}
+    file_map = {str(it.get(key)): it for it in file_items if it.get(key)}
 
     only_db = sorted([k for k in db_map if k not in file_map])
     only_file = sorted([k for k in file_map if k not in db_map])
@@ -263,17 +314,13 @@ def diff_sets(
     return {"only_db": only_db, "only_file": only_file, "changed": changed}
 
 
-def _get_diff_links_key(item: Dict[str, Any]) -> str:
-    """Creates a stable composite key for a link dictionary."""
-    return f"{str(item.get('symbol_id', ''))}-{str(item.get('capability_id', ''))}-{item.get('source', '')}"
-
-
-# ID: ea814f0f-bee9-4c32-ae1c-fa9f474eabaf
+# ID: 927db8f4-84c3-419f-b949-7dec1c001729
 async def run_diff(as_json: bool):
     """Orchestrates the diff operation."""
     if not EXPORT_DIR.exists():
         console.print(
-            f"[bold red]Export directory not found: {EXPORT_DIR}. Please run 'snapshot' first.[/bold red]"
+            f"[bold red]Export directory not found: {EXPORT_DIR}. "
+            "Please run 'snapshot' first.[/bold red]"
         )
         return
 
@@ -311,7 +358,11 @@ async def run_diff(as_json: bool):
                 console.print(f"  - [cyan]{k.capitalize()}[/cyan]: {status}")
                 continue
 
-            counts = f"DB-only: {len(v['only_db'])}, File-only: {len(v['only_file'])}, Changed: {len(v['changed'])}"
+            counts = (
+                f"DB-only: {len(v['only_db'])}, "
+                f"File-only: {len(v['only_file'])}, "
+                f"Changed: {len(v['changed'])}"
+            )
             is_clean = not any(v.values())
             status = (
                 "[green]Clean[/green]"
@@ -321,7 +372,7 @@ async def run_diff(as_json: bool):
             console.print(f"  - [cyan]{k.capitalize()}[/cyan]: {status} ({counts})")
 
 
-# --- Main Import Logic ---
+# --- Import Logic ---
 
 
 async def _upsert_items(session, table_model, items, index_elements):
@@ -341,7 +392,88 @@ async def _upsert_items(session, table_model, items, index_elements):
     await session.execute(upsert_stmt)
 
 
-# ID: 2bf1f61e-bde5-4f19-ba76-07e5a8987fa2
+async def _import_capabilities(session, doc: Dict[str, Any]) -> None:
+    """Import capabilities into the database."""
+    console.print("  -> Importing capabilities...")
+    await _upsert_items(session, Capability, doc.get("items", []), ["id"])
+
+
+async def _import_symbols(session, doc: Dict[str, Any]) -> None:
+    """Import symbols into the database."""
+    console.print("  -> Importing symbols...")
+    await _upsert_items(session, Symbol, doc.get("items", []), ["id"])
+
+
+async def _import_links(session, doc: Dict[str, Any]) -> None:
+    """Import symbol-capability links into the database."""
+    console.print("  -> Importing links...")
+    links_items = doc.get("items", [])
+    if links_items:
+        await session.execute(text("DELETE FROM core.symbol_capability_links;"))
+        await _upsert_items(
+            session,
+            SymbolCapabilityLink,
+            links_items,
+            ["symbol_id", "capability_id", "source"],
+        )
+
+
+async def _import_northstar(session, doc: Dict[str, Any]) -> None:
+    """Import North Star mission into the database."""
+    console.print("  -> Importing North Star...")
+    await _upsert_items(session, Northstar, doc.get("items", []), ["id"])
+
+
+async def _import_llm_resources(session, doc: Dict[str, Any]) -> None:
+    """Import LLM resources into the database."""
+    console.print("  -> Importing LLM resources...")
+    await _upsert_items(session, LlmResource, doc.get("llm_resources", []), ["name"])
+
+
+async def _import_cognitive_roles(session, doc: Dict[str, Any]) -> None:
+    """Import cognitive roles into the database."""
+    console.print("  -> Importing cognitive roles...")
+    await _upsert_items(
+        session, CognitiveRole, doc.get("cognitive_roles", []), ["role"]
+    )
+
+
+async def _perform_import(docs: Dict[str, Dict[str, Any]]) -> None:
+    """Perform the actual database import."""
+    async with get_session() as session:
+        async with session.begin():
+            await _import_capabilities(session, docs["capabilities"])
+            await _import_symbols(session, docs["symbols"])
+            await _import_links(session, docs["links"])
+            await _import_northstar(session, docs["northstar"])
+            await _import_llm_resources(session, docs["resource_manifest"])
+            await _import_cognitive_roles(session, docs["cognitive_roles"])
+
+
+def _verify_digests(docs: Dict[str, Dict[str, Any]]) -> bool:
+    """Verify digests for documents that contain them."""
+    for name, doc in docs.items():
+        if "digest" in doc and "items" in doc:
+            if doc["digest"] != compute_digest(doc["items"]):
+                console.print(
+                    f"[bold red]Digest mismatch in {name}.yaml! "
+                    "Aborting import. Run 'snapshot' to regenerate.[/bold red]"
+                )
+                return False
+    return True
+
+
+def _print_dry_run_summary(docs: Dict[str, Dict[str, Any]]) -> None:
+    """Print what would happen in a dry run."""
+    console.print(
+        "[bold yellow]-- DRY RUN: The following actions would be taken --[/bold yellow]"
+    )
+    for name, doc in docs.items():
+        count = len(_get_items_from_doc(doc, name))
+        console.print(f"  - Upsert {count} {name}.")
+
+
+# ID: 63b88848-dccb-45a9-88bc-b5151b4d4767
 async def run_import(dry_run: bool):
     """Orchestrates the import operation."""
     if not EXPORT_DIR.exists():
@@ -350,67 +482,29 @@ async def run_import(dry_run: bool):
         )
         return
 
-    docs_to_check = {
-        "capabilities": EXPORT_DIR / "capabilities.yaml",
-        "symbols": EXPORT_DIR / "symbols.yaml",
-        "links": EXPORT_DIR / "links.yaml",
-        "northstar": EXPORT_DIR / "northstar.yaml",
+    # Load all YAML documents
+    docs = {
+        name: read_yaml(EXPORT_DIR / filename) for name, filename in YAML_FILES.items()
     }
 
-    docs = {name: read_yaml(path) for name, path in docs_to_check.items()}
-
-    for name, doc in docs.items():
-        if doc.get("digest") and doc.get("digest") != compute_digest(
-            doc.get("items", [])
-        ):
-            console.print(
-                f"[bold red]Digest mismatch in {name}.yaml! Aborting import. Run 'snapshot' to regenerate.[/bold red]"
-            )
-            return
-
-    if dry_run:
-        console.print(
-            "[bold yellow]-- DRY RUN: The following actions would be taken --[/bold yellow]"
-        )
-        for name, doc in docs.items():
-            console.print(f"  - Upsert {len(doc.get('items', []))} {name}.")
+    # Verify digests for files that have them
+    if not _verify_digests(docs):
         return
 
-    async with get_session() as session:
-        async with session.begin():
-            console.print("  -> Importing capabilities...")
-            await _upsert_items(
-                session, Capability, docs["capabilities"].get("items", []), ["id"]
-            )
+    if dry_run:
+        _print_dry_run_summary(docs)
+        return
 
-            console.print("  -> Importing symbols...")
-            await _upsert_items(
-                session, Symbol, docs["symbols"].get("items", []), ["id"]
-            )
-
-            console.print("  -> Importing links...")
-            links_items = docs["links"].get("items", [])
-            if links_items:
-                await session.execute(text("DELETE FROM core.symbol_capability_links;"))
-                await _upsert_items(
-                    session,
-                    SymbolCapabilityLink,
-                    links_items,
-                    ["symbol_id", "capability_id", "source"],
-                )
-
-            console.print("  -> Importing North Star...")
-            await _upsert_items(
-                session, Northstar, docs["northstar"].get("items", []), ["id"]
-            )
-
+    await _perform_import(docs)
     console.print(
         "[bold green]✅ Import complete. Database is synchronized with YAML files.[/bold green]"
     )
 
 
-# --- Main Verify Logic ---
-# ID: e1964902-4b8f-4154-974a-aed21d0abbcc
+# --- Verify Logic ---
+
+
+# ID: da45c167-d04b-458d-8776-e144d55b01ad
 def run_verify():
     """Checks digests of exported YAML files to ensure integrity."""
     if not EXPORT_DIR.exists():
