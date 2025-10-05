@@ -4,63 +4,21 @@ You are an **expert software architect** specializing in the **CORE** system. Yo
 
 ## Constitutional Rules for Naming
 
-1. **Use the Domain Pyramid**
-   The key **MUST** follow a hierarchical `domain.subdomain.action` pattern.
+1.  **Use the Domain Pyramid**: The key MUST follow a hierarchical `domain.subdomain.action` pattern.
+2.  **Be Specific**: Avoid vague terms. ✅ `auth.user.create` is good; ❌ `utils.do_stuff` is bad.
+3.  **Use Verbs for Actions**: The final part of the key MUST be an action verb (e.g., `create`, `validate`, `sync`).
+4.  **Stay Consistent**: Use the existing capabilities as a guide.
 
-2. **Be Specific**
-   Avoid vague terms. ✅ `auth.user.create` is good; ❌ `utils.do_stuff` is bad.
+## Good Example:
+For a function that synchronizes a database, a good key is `database.sync.all`.
 
-3. **Use Verbs for Actions**
-   The final part of the key **must** be an **action verb** (e.g., `create`, `validate`, `sync`, `get`, `delete`).
+## Bad Examples (DO NOT DO THIS):
+- `domain.subdomain.action` (This is a generic placeholder, not a real key).
+- `capability` (This is too generic).
 
-4. **Stay Consistent**
-   Use the existing domains and patterns as a guide. Here is a list of existing, valid capability keys for reference:
+## Context From Similar Code:
+{similar_capabilities}
 
-   ```yaml
-   [[context:.intent/mind/project_manifest.yaml]]
-   ```
-
-## Source Code to Analyze
-
+## Code to Analyze:
 ```python
 {code}
-```
-
-## Your Task
-
-Respond with **ONLY** the single, most appropriate capability key and **nothing else**.
-
-### Example of a PERFECT Response
-
-```
-auth.user.create
-```
-
----
-
-## Developer Workflow
-
-With this prompt file in place, the entire **`system integrate`** workflow is complete and ready for its first run.
-
-### Steps to Use
-
-1. **Write your code**
-   Make your desired changes to one or more files in the `src/` directory. For example, create a new file:
-
-   ```bash
-   src/features/greetings/service.py
-   ```
-
-   with a `say_hello` function.
-
-2. **Stage your changes**
-
-   ```bash
-   git add src/features/greetings/service.py
-   ```
-
-3. **Run the integration command**
-
-   ```bash
-   poetry run core-admin system integrate -m "feat: Add new greeting service"
-   ```
