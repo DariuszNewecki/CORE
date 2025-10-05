@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import asyncio
-import re
 from functools import partial
 from typing import Any, Dict, List, Set
 
@@ -74,12 +73,12 @@ async def define_single_symbol(
                 f"Semantic search failed during definition for {symbol['symbol_path']}: {e}"
             )
 
-    prompt_template = (
-        "Analyze the following code and propose a structured, dot-notation capability key (e.g., domain.subdomain.action).\n"
-        "CONTEXT: {similar_capabilities}\n\n"
-        "```python\n{code}\n```\n\n"
-        "Respond with ONLY the key."
-    )
+    # --- THIS IS THE FIX ---
+    # Load the correct, existing prompt from the constitution.
+    prompt_template_path = settings.get_path("mind.prompts.capability_definer")
+    prompt_template = prompt_template_path.read_text(encoding="utf-8")
+    # --- END OF FIX ---
+
     final_prompt = prompt_template.format(
         code=source_code, similar_capabilities=similar_capabilities_str
     )
@@ -89,13 +88,14 @@ async def define_single_symbol(
         final_prompt, user_id="definer_agent"
     )
 
-    match = re.search(r"`(.*?)`", raw_suggested_key)
-    suggested_key = match.group(1) if match else raw_suggested_key
-    suggested_key = suggested_key.strip()
+    # Be more robust in extracting the key
+    cleaned_key = (
+        raw_suggested_key.strip().replace("`", "").replace("'", "").replace('"', "")
+    )
 
-    if suggested_key in existing_keys:
+    if cleaned_key in existing_keys:
         console.print(
-            f"[yellow]Warning: AI suggested existing key '{suggested_key}' for a new symbol. Skipping to avoid conflict.[/yellow]"
+            f"[yellow]Warning: AI suggested existing key '{cleaned_key}' for a new symbol. Skipping to avoid conflict.[/yellow]"
         )
         return {"id": symbol["id"], "key": "error.duplicate_key"}
 
@@ -106,7 +106,7 @@ async def define_single_symbol(
         delay = 1
     await asyncio.sleep(delay)
 
-    return {"id": symbol["id"], "key": suggested_key}
+    return {"id": symbol["id"], "key": cleaned_key}
 
 
 # ID: 1c642222-6e05-4e31-a9f6-68502a054947
