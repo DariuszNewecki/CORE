@@ -44,9 +44,7 @@ async def run_development_cycle(
         # Get services from the context
         git_service = context.git_service
         cognitive_service = context.cognitive_service
-        # --- THIS IS THE FIX ---
         auditor_context = context.auditor_context
-        # --- END OF FIX ---
         file_handler = context.file_handler
         planner_config = context.planner_config
 
@@ -166,6 +164,7 @@ def register(app: typer.Typer, context: CoreContext):
     @run_app.command("develop")
     # ID: d10d0d34-054c-4923-bda9-1264f6d85813
     def develop_command(
+        ctx: typer.Context,
         goal: Optional[str] = typer.Argument(
             None,
             help="The high-level development goal for CORE to achieve.",
@@ -183,11 +182,14 @@ def register(app: typer.Typer, context: CoreContext):
         ),
     ):
         """Orchestrates the autonomous development process from a high-level goal."""
-        develop(context=context, goal=goal, from_file=from_file)
+        # Get the CoreContext from the Typer context object
+        core_context: CoreContext = ctx.obj
+        develop(context=core_context, goal=goal, from_file=from_file)
 
     @run_app.command("vectorize")
     # ID: 61b0c0e6-41ad-4050-bb23-54d39ef9e248
     def vectorize_command(
+        ctx: typer.Context,
         dry_run: bool = typer.Option(
             True, "--dry-run/--write", help="Show changes without writing to Qdrant."
         ),
@@ -196,6 +198,7 @@ def register(app: typer.Typer, context: CoreContext):
         ),
     ):
         """Scan capabilities from the DB, generate embeddings, and upsert to Qdrant."""
-        vectorize_capabilities(context=context, dry_run=dry_run, force=force)
+        core_context: CoreContext = ctx.obj
+        vectorize_capabilities(context=core_context, dry_run=dry_run, force=force)
 
     app.add_typer(run_app, name="run")

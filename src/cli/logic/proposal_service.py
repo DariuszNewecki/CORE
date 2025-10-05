@@ -12,15 +12,13 @@ import shutil
 import tempfile
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
 
 import typer
 from cryptography.hazmat.primitives import serialization
 from dotenv import load_dotenv
+from features.governance.constitutional_auditor import ConstitutionalAuditor
 from rich.console import Console
 from rich.table import Table
-
-from features.governance.constitutional_auditor import ConstitutionalAuditor
 from shared.config import settings
 from shared.context import CoreContext
 from shared.logger import getLogger
@@ -35,9 +33,6 @@ from .cli_utils import (
 
 log = getLogger("core_admin.proposals")
 console = Console()
-
-# Global variable to store context
-_context: Optional[CoreContext] = None
 
 
 # ID: 7dcb045e-19c9-4d84-91fd-70c4de7e8dfe
@@ -127,15 +122,12 @@ def proposals_sign(
 
 # ID: 9848504e-60ef-44c1-a57c-b7e14edb5809
 def proposals_approve(
+    context: CoreContext,
     proposal_name: str = typer.Argument(
         ..., help="Filename of the proposal to approve."
     ),
 ) -> None:
     """Verify signatures, run a canary audit, and apply a valid proposal."""
-    if _context is None:
-        console.print("[bold red]Error: Context not initialized for approve[/bold red]")
-        raise typer.Exit(code=1)
-
     log.info(f"🚀 Attempting to approve proposal: {proposal_name}")
     proposal_path = settings.REPO_PATH / ".intent" / "proposals" / proposal_name
     if not proposal_path.exists():

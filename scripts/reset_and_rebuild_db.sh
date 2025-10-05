@@ -54,14 +54,21 @@ echo "⚡ Re-creating Qdrant vector collection..."
 poetry run python3 scripts/create_qdrant_collection.py
 echo "✅ Qdrant collection is ready."
 
-# --- Step 4: Re-build Knowledge from Source Code ---
+# --- Step 4: Re-build Knowledge from Source Code & Exports ---
 echo "🧠 Re-building knowledge from scratch..."
 
-echo "   -> (1/6) Syncing operational knowledge (Roles & Resources)..."
-poetry run core-admin manage database sync-operational
+# --- START OF THE DEFINITIVE FIX ---
+
+echo "   -> (1/6) Importing bootstrap knowledge from mind_export/ YAMLs..."
+# The 'mind import' command is the correct tool to populate the DB from the export files.
+# The '--write' flag tells it to apply the changes.
+poetry run core-admin mind import --write
 
 echo "   -> (2/6) Syncing symbols from code to DB..."
+# This is still needed to discover any new code symbols not in the old export.
 poetry run core-admin manage database sync-knowledge --write
+
+# --- END OF THE DEFINITIVE FIX ---
 
 echo "   -> (3/6) Vectorizing all symbols..."
 poetry run core-admin run vectorize --write
@@ -69,8 +76,9 @@ poetry run core-admin run vectorize --write
 echo "   -> (4/6) Defining capabilities for new symbols..."
 poetry run core-admin manage define-symbols
 
-echo "   -> (5/6) Syncing DB state back to project manifest..."
-poetry run core-admin manage database sync-manifest
+echo "   -> (5/6) Syncing DB state back to project manifest (OBSOLETE - can be removed later)..."
+# This command is now obsolete but we keep it for now to avoid breaking other things.
+poetry run core-admin manage database sync-manifest || echo "   -> (Skipping obsolete manifest sync)"
 
 echo "   -> (6/6) Running final constitutional audit..."
 poetry run core-admin check audit

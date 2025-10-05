@@ -53,6 +53,10 @@ CREATE TABLE IF NOT EXISTS core.symbols (
     -- History tracking for autonomous refactoring
     previous_paths text[],                   -- Track symbol renames/moves
 
+    -- Capability key and AI-generated description
+    key text,
+    intent text,
+
     -- Vector integration (Qdrant stores UUIDs as text: id::text)
     vector_id text,                          -- ID in Qdrant collection (= id::text)
     embedding_model text DEFAULT 'text-embedding-3-small',
@@ -519,7 +523,7 @@ COMMENT ON FUNCTION core.refresh_materialized_view IS
 
 -- Symbols needing embedding/re-embedding
 CREATE OR REPLACE VIEW core.v_symbols_needing_embedding AS
-SELECT id, module, qualname, symbol_path, ast_signature, fingerprint
+SELECT id, module, qualname, symbol_path, ast_signature, fingerprint, vector_id
 FROM core.symbols
 WHERE vector_id IS NULL
    OR last_embedded < last_modified
@@ -628,6 +632,8 @@ SELECT
     s.fingerprint as structural_hash,
     s.vector_id,
     s.updated_at AS last_updated,
+    s.key as capability,
+    s.intent,
 
     -- Linked capabilities (real data from joins)
     COALESCE(
@@ -636,7 +642,7 @@ SELECT
          JOIN core.capabilities c ON c.id = l.capability_id
          WHERE l.symbol_id = s.id),
         '[]'::json
-    ) as capabilities,
+    ) as capabilities_array,
 
     -- Computed flags
     (s.kind = 'class') AS is_class,

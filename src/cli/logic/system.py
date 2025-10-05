@@ -12,7 +12,7 @@ from shared.context import CoreContext
 
 console = Console()
 
-# Global variable to store context
+# Global variable to store context, set by the registration layer.
 _context: Optional[CoreContext] = None
 
 
@@ -27,8 +27,10 @@ def integrate_command(
         console.print(
             "[bold red]Error: Context not initialized for integrate[/bold red]"
         )
-        # exit disabled: integrate_changes no longer needs context
-    asyncio.run(integrate_changes(commit_message))
+        raise typer.Exit(code=1)
+
+    # Pass the context to the underlying service
+    asyncio.run(integrate_changes(context=_context, commit_message=commit_message))
 
 
 # ID: 1f2c3d4e-5f6a-7b8c-9d0e-1f2a3b4c5d6e

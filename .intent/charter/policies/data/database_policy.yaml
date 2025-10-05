@@ -20,6 +20,7 @@ migrations:
   directory: sql
   order:
     - "001_consolidated_schema.sql"
+    - "002_runtime_configuration.sql"
 
 rules:
   - id: db.ssot_for_operational_data

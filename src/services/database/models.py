@@ -29,6 +29,7 @@ Base = declarative_base()
 # =============================================================================
 
 
+# ID: 8dc9179c-3299-46c1-9e76-54fe54a258f2
 class Symbol(Base):
     __tablename__ = "symbols"
     __table_args__ = {"schema": "core"}
@@ -66,6 +67,7 @@ class Symbol(Base):
     )
 
 
+# ID: 8e4d0a49-1232-4b47-9201-c08b6bef2054
 class Capability(Base):
     __tablename__ = "capabilities"
     __table_args__ = {"schema": "core"}
@@ -90,6 +92,7 @@ class Capability(Base):
     )
 
 
+# ID: 290fc31a-5c81-4a82-b4f5-317ffb24fdb1
 class SymbolCapabilityLink(Base):
     __tablename__ = "symbol_capability_links"
     __table_args__ = {"schema": "core"}
@@ -107,6 +110,7 @@ class SymbolCapabilityLink(Base):
     )
 
 
+# ID: c6e5249a-8b31-462a-9026-0622b205a643
 class Domain(Base):
     __tablename__ = "domains"
     __table_args__ = {"schema": "core"}
@@ -123,6 +127,7 @@ class Domain(Base):
 # =============================================================================
 
 
+# ID: 35180ec0-b61f-40a3-aba6-7f4f36ffe25c
 class LlmResource(Base):
     __tablename__ = "llm_resources"
     __table_args__ = {"schema": "core"}
@@ -136,6 +141,7 @@ class LlmResource(Base):
     )
 
 
+# ID: 6ee37301-74cc-437a-8a39-08265d5d06be
 class CognitiveRole(Base):
     __tablename__ = "cognitive_roles"
     __table_args__ = {"schema": "core"}
@@ -151,6 +157,7 @@ class CognitiveRole(Base):
     )
 
 
+# ID: d944c52d-caa5-4d6b-9bd9-5f3b4eba5ea4
 class Task(Base):
     __tablename__ = "tasks"
     __table_args__ = {"schema": "core"}
@@ -179,6 +186,7 @@ class Task(Base):
     completed_at = Column(DateTime(timezone=True))
 
 
+# ID: 816b5265-5573-4b40-98eb-ee4fb7f5d5b5
 class Action(Base):
     __tablename__ = "actions"
     __table_args__ = {"schema": "core"}
@@ -204,6 +212,7 @@ class Action(Base):
 # =============================================================================
 
 
+# ID: a2b67e7e-b643-4528-8512-5746037bb82e
 class CliCommand(Base):
     __tablename__ = "cli_commands"
     __table_args__ = {"schema": "core"}
@@ -214,6 +223,7 @@ class CliCommand(Base):
     category = Column(Text)
 
 
+# ID: 233d67ab-fcb4-480f-985f-3d38578626ef
 class RuntimeService(Base):
     __tablename__ = "runtime_services"
     __table_args__ = {"schema": "core"}
@@ -222,6 +232,7 @@ class RuntimeService(Base):
     is_active = Column(Boolean, server_default="true")
 
 
+# ID: 747038d9-da9f-43ea-8034-f5d50c7cf88a
 class Migration(Base):
     __tablename__ = "_migrations"
     __table_args__ = {"schema": "core"}
@@ -231,6 +242,7 @@ class Migration(Base):
     )
 
 
+# ID: e75fd92f-0065-4915-ac39-0a0b297b51bb
 class Northstar(Base):
     __tablename__ = "northstar"
     __table_args__ = {"schema": "core"}

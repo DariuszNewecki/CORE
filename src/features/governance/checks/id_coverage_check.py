@@ -43,15 +43,15 @@ class IdCoverageCheck(BaseCheck):
                     if node.name.startswith("_"):
                         continue
 
-                    # Use the new, robust utility to find the ID and definition line
+                    # Use the robust utility to find the ID and definition line
                     id_result = find_symbol_id_and_def_line(node, source_lines)
 
                     if not id_result.has_id:
                         findings.append(
                             AuditFinding(
-                                check_id="linkage.id.missing",
+                                check_id="linkage.id.missing-tag",
                                 severity=AuditSeverity.ERROR,
-                                message=f"Public symbol '{node.name}' is missing a required '# ID: <uuid>' tag.",
+                                message=f"Public symbol '{node.name}' is missing its required '# ID:' tag.",
                                 file_path=str(
                                     file_path.relative_to(self.context.repo_path)
                                 ),

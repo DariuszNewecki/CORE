@@ -59,7 +59,7 @@ class IdUniquenessCheck(BaseCheck):
                     AuditFinding(
                         check_id="linkage.id.duplicate",
                         severity=AuditSeverity.ERROR,
-                        message=f"Duplicate UUID '{found_uuid}' found in multiple locations.",
+                        message=f"Duplicate ID tag found: {found_uuid}",
                         context={"locations": locations_str},
                     )
                 )

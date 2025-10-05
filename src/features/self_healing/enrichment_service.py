@@ -111,6 +111,7 @@ async def _update_descriptions_in_db(descriptions: List[Dict[str, str]]):
     log.info("Database update transaction completed.")
 
 
+# ID: cfbe1b7c-18cc-4d71-8910-0acb6696f119
 async def enrich_symbols(cognitive_service: CognitiveService, dry_run: bool):
     """The main orchestrator for the autonomous symbol enrichment process."""
     symbols_to_enrich = await _get_symbols_to_enrich()

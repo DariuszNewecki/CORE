@@ -1,4 +1,4 @@
-version: "1.0.0" # Ratification of the Final Constitutional Alignment
+version: "2.0.0" # Version bump for v2.1 Schema Migration
 # PURPOSE: This is the master index for the entire CORE constitution. It maps
 # abstract concepts to their concrete file paths, fully embracing the new
 # hierarchical policy structure for maximum clarity and governance.
@@ -87,7 +87,8 @@ charter:
       runtime_requirements_schema: "charter/schemas/operations/runtime_requirements_schema.json"
 
 mind:
-  project_manifest: "mind/project_manifest.yaml"
+  # The project_manifest is now obsolete as the database is the source of truth for capabilities.
+  # project_manifest: "mind/project_manifest.yaml"
 
   config:
     local_mode: "mind/config/local_mode.yaml"
@@ -101,17 +102,16 @@ mind:
     entry_point_patterns: "mind/knowledge/entry_point_patterns.yaml"
     file_handlers: "mind/knowledge/file_handlers.yaml"
     source_structure: "mind/knowledge/source_structure.yaml"
+
+  # The mind_export directory contains the canonical YAML sources for populating
+  # the operational database tables.
+  mind_export:
     cognitive_roles: "mind_export/cognitive_roles.yaml"
     resource_manifest: "mind_export/resource_manifest.yaml"
-
-  # --- THIS IS THE FIX ---
-  # Add the new export files to the index so they are no longer "orphaned"
-  mind_export:
     capabilities: "mind_export/capabilities.yaml"
     symbols: "mind_export/symbols.yaml"
     links: "mind_export/links.yaml"
     northstar: "mind_export/northstar.yaml"
-  # --- END OF FIX ---
 
   prompts:
     capability_definer: "mind/prompts/capability_definer.prompt"

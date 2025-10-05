@@ -18,11 +18,10 @@ class StyleChecks(BaseCheck):
     """Container for code style and convention constitutional checks."""
 
     def __init__(self, context):
-        """Initializes the check with a shared auditor context."""
         super().__init__(context)
         self.style_policy = self.context.policies.get("code_style_policy", {})
 
-    # ID: 221505d0-4c6d-4e24-b68c-b8475765a984
+    # ID: 017a0a53-b5c2-4c50-adf9-5c407fa6eb55
     def execute(self) -> list[AuditFinding]:
         """Verifies that Python modules adhere to documented style conventions."""
         findings = []
@@ -32,16 +31,11 @@ class StyleChecks(BaseCheck):
             for s in self.context.symbols_list
             if s.get("file_path", "").endswith(".py")
         }
-
         for file_rel_path in sorted(list(files_to_check)):
-            # --- THIS IS THE FIX ---
-            # Use self.repo_root, which is correctly set by the BaseCheck parent class.
             file_abs_path = self.repo_root / file_rel_path
-            # --- END OF FIX ---
             try:
                 source_code = file_abs_path.read_text(encoding="utf-8")
                 tree = ast.parse(source_code)
-
                 if "style.docstrings_public_apis" in rules:
                     has_docstring = (
                         tree.body
@@ -51,19 +45,18 @@ class StyleChecks(BaseCheck):
                     if not has_docstring:
                         findings.append(
                             AuditFinding(
-                                check_id="style.docstring.missing_module",
+                                check_id="code.style.missing-module-docstring",
                                 severity=AuditSeverity.WARNING,
                                 message="Missing required module-level docstring.",
                                 file_path=file_rel_path,
                             )
                         )
-
             except Exception as e:
                 findings.append(
                     AuditFinding(
-                        check_id="style.parser.error",
+                        check_id="code.parser.error",
                         severity=AuditSeverity.ERROR,
-                        message=f"Could not parse or check file: {e}",
+                        message=f"Could not parse file: {e}",
                         file_path=file_rel_path,
                     )
                 )
