@@ -6,11 +6,14 @@ tool to enforce constitutional style rules on Python file headers.
 
 from __future__ import annotations
 
-from rich.progress import track
+import asyncio
 
+from rich.progress import track
 from shared.config import settings
 from shared.logger import getLogger
 from shared.utils.header_tools import HeaderTools
+
+from features.introspection.knowledge_graph_service import KnowledgeGraphBuilder
 
 log = getLogger("core_admin.fixer")
 REPO_ROOT = settings.REPO_PATH
@@ -25,8 +28,6 @@ def _run_header_fix_cycle(dry_run: bool, all_py_files: list[str]):
         file_path = REPO_ROOT / file_path_str
         try:
             original_content = file_path.read_text(encoding="utf-8")
-            # --- THIS IS THE FIX ---
-            # The HeaderTools class is now correctly used to parse the content.
             header = HeaderTools.parse(original_content)
 
             # Check for violations that need fixing
@@ -67,3 +68,9 @@ def _run_header_fix_cycle(dry_run: bool, all_py_files: list[str]):
         for file_path_str, new_code in files_to_fix.items():
             (REPO_ROOT / file_path_str).write_text(new_code, "utf-8")
         log.info("   -> ✅ All header fixes have been applied.")
+
+        # Rebuild the knowledge graph after making changes
+        log.info("🧠 Rebuilding knowledge graph to reflect all changes...")
+        builder = KnowledgeGraphBuilder(REPO_ROOT)
+        asyncio.run(builder.build_and_sync())
+        log.info("✅ Knowledge graph successfully updated.")

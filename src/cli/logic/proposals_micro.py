@@ -95,6 +95,8 @@ def micro_apply(
     # 2. Gather Evidence via CI Checks
     console.print("[bold]Step 2/3: Gathering evidence via pre-flight checks...[/bold]")
 
+    # --- THIS IS THE FIX ---
+    # The command was changed from "validate code" to the correct "check audit".
     command_to_run = "check audit"
     console.print("   -> Running full system audit check...")
     result = subprocess.run(
@@ -103,6 +105,8 @@ def micro_apply(
         text=True,
         check=False,
     )
+    # --- END OF FIX ---
+
     if result.returncode != 0:
         console.print(
             "[bold red]❌ Pre-flight audit check failed. Aborting.[/bold red]"

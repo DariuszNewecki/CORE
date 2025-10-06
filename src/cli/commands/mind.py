@@ -9,7 +9,7 @@ import asyncio
 from typing import Optional
 
 import typer
-from cli.logic.mind_ssot import run_diff, run_import, run_snapshot, run_verify
+from cli.logic.knowledge_sync import run_diff, run_import, run_snapshot, run_verify
 from shared.context import CoreContext
 
 mind_app = typer.Typer(
