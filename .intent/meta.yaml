@@ -124,6 +124,7 @@ mind:
     fix_line_length: "mind/prompts/fix_line_length.prompt"
     goal_assessor: "mind/prompts/goal_assessor.prompt"
     intent_translator: "mind/prompts/intent_translator.prompt"
+    micro_planner: "mind/prompts/micro_planner.prompt" # <-- THIS LINE IS THE FIX
     module_docstring_writer: "mind/prompts/module_docstring_writer.prompt"
     new_capability_generator: "mind/prompts/new_capability_generator.prompt"
     planner_agent: "mind/prompts/planner_agent.prompt"
