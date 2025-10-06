@@ -17,11 +17,9 @@ from rich.panel import Panel
 from rich.table import Table
 from shared.context import CoreContext
 from shared.models import AuditFinding, AuditSeverity
+from shared.utils.subprocess_utils import run_poetry_command
 
-from .cli_utils import (
-    _run_poetry_command,
-    find_test_file_for_capability_async,
-)
+from .cli_utils import find_test_file_for_capability_async
 
 console = Console()
 
@@ -32,10 +30,10 @@ _context: Optional[CoreContext] = None
 # ID: 8afdeab9-fc81-4d7c-b05f-dd27f936b3e6
 def lint():
     """Checks code formatting and quality using Black and Ruff."""
-    _run_poetry_command(
+    run_poetry_command(
         "🔎 Checking code format with Black...", ["black", "--check", "src", "tests"]
     )
-    _run_poetry_command(
+    run_poetry_command(
         "🔎 Checking code quality with Ruff...", ["ruff", "check", "src", "tests"]
     )
 
@@ -68,7 +66,7 @@ def test_system(
                         f"❌ Could not find a test file for target: '{target}'."
                     )
                     raise typer.Exit(code=1)
-        _run_poetry_command(description, command)
+        run_poetry_command(description, command)
 
     asyncio.run(_async_test_system())
 

@@ -10,13 +10,15 @@ from typing import Dict, List, Optional, Type
 from shared.logger import getLogger
 
 from .base import ActionHandler
-
-# --- START: Import the new handler ---
 from .code_actions import CreateFileHandler, EditFileHandler, EditFunctionHandler
 from .file_actions import DeleteFileHandler, ListFilesHandler, ReadFileHandler
-
-# --- END: Import the new handler ---
 from .governance_actions import CreateProposalHandler
+from .healing_actions import (
+    FixDocstringsHandler,
+    FixHeadersHandler,
+    FormatCodeHandler,
+)
+from .validation_actions import ValidateCodeHandler
 
 log = getLogger("action_registry")
 
@@ -39,9 +41,12 @@ class ActionRegistry:
             CreateFileHandler,
             EditFileHandler,
             CreateProposalHandler,
-            # --- START: Register the new handler ---
             EditFunctionHandler,
-            # --- END: Register the new handler ---
+            # Add our new handlers to the list
+            FixHeadersHandler,
+            FixDocstringsHandler,
+            FormatCodeHandler,
+            ValidateCodeHandler,
         ]
 
         for handler_class in handlers_to_register:

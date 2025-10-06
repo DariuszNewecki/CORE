@@ -78,6 +78,7 @@ async def _async_tag_capabilities(
     log.info("✅ Knowledge graph successfully updated.")
 
 
+# ID: 1651d1d3-f58c-4fce-8662-c9591c70edf7
 def tag_unassigned_capabilities(
     cognitive_service: CognitiveService,
     knowledge_service: KnowledgeService,

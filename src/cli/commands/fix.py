@@ -38,6 +38,7 @@ fix_app = typer.Typer(
 @fix_app.command(
     "code-style", help="Auto-format all code to be constitutionally compliant."
 )
+# ID: 1f39978e-21a3-466c-970b-de9e65b79baa
 def format_code_wrapper():
     """Wrapper that calls the dedicated code style service."""
     format_code()
@@ -46,6 +47,7 @@ def format_code_wrapper():
 @fix_app.command(
     "headers", help="Enforces constitutional header conventions on Python files."
 )
+# ID: 6006321c-b0aa-4516-a431-7fab8b489f97
 def fix_headers_cmd(
     file_path: Optional[Path] = None,
     write: bool = False,
@@ -74,6 +76,7 @@ fix_app.command("clarity", help="Refactors a file for clarity.")(fix_clarity)
 
 
 @fix_app.command("complexity")
+# ID: dda2ec4c-eaf3-4371-9988-52b4db881524
 def complexity_command(
     file_path: Path = typer.Argument(
         ...,
@@ -93,6 +96,7 @@ def complexity_command(
 @fix_app.command(
     "ids", help="Assigns a stable '# ID: <uuid>' to all untagged public symbols."
 )
+# ID: 75b9bf9f-9409-4bb7-8293-6438644c189a
 def assign_ids_command(
     write: bool = typer.Option(
         False, "--write", help="Apply the changes to the files."
@@ -122,6 +126,7 @@ def assign_ids_command(
 @fix_app.command(
     "purge-legacy-tags", help="Removes obsolete '# CAPABILITY:' tags from source code."
 )
+# ID: 3bc40647-e3f1-4ec9-a768-51055c0effda
 def purge_legacy_tags_command(
     write: bool = typer.Option(
         False, "--write", help="Apply the changes to the files."
@@ -145,6 +150,7 @@ def purge_legacy_tags_command(
 @fix_app.command(
     "policy-ids", help="Adds a unique `policy_id` UUID to any policy file missing one."
 )
+# ID: a25e26b9-bd42-4316-bf39-a416914484a4
 def fix_policy_ids_command(
     write: bool = typer.Option(
         False, "--write", help="Apply the changes to the files."
@@ -169,6 +175,7 @@ def fix_policy_ids_command(
     "tags",
     help="Use an AI agent to suggest and apply capability tags to untagged symbols.",
 )
+# ID: 9d974db5-a456-43b1-90f2-561bf45c21dd
 def fix_tags_command(
     ctx: typer.Context,
     file_path: Optional[Path] = typer.Argument(

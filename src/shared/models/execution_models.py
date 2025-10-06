@@ -14,7 +14,11 @@ from pydantic import BaseModel, Field
 class TaskParams(BaseModel):
     """Parameters for a single task in an execution plan."""
 
-    file_path: str
+    # --- THIS IS THE FIX ---
+    # The file_path is now optional to allow for tasks that don't operate on a single file.
+    file_path: Optional[str] = None
+    # --- END OF FIX ---
+
     code: Optional[str] = None
     symbol_name: Optional[str] = None
     justification: Optional[str] = None
