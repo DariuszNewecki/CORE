@@ -10,11 +10,23 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["name", "description"],
+        "required": ["name", "description", "parameters"],
         "properties": {
           "name": { "type": "string" },
           "description": { "type": "string" },
-          "required_parameters": { "type": "array", "items": { "type": "string" } }
+          "parameters": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["name", "type", "description", "required"],
+              "properties": {
+                "name": { "type": "string" },
+                "type": { "type": "string" },
+                "description": { "type": "string" },
+                "required": { "type": "boolean" }
+              }
+            }
+          }
         }
       }
     }

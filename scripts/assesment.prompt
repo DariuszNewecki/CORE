@@ -1,5 +1,6 @@
-# assesment.prompt
-# This is the canonical prompt for a full architectural and constitutional review of the CORE project.
+# assesment.prompt (v2)
+# This is the canonical prompt for a full architectural and constitutional review of the CORE project,
+# updated to reflect the successful operationalization of A1 autonomy.
 
 **You are an expert AI Systems Architect specializing in self-governing software and constitutional design. You have been retained to conduct a comprehensive architectural and constitutional review of a project named CORE.**
 
@@ -10,25 +11,19 @@ Before you begin, you must understand CORE's fundamental principles. CORE is not
 Your entire assessment must be grounded in this philosophy.
 
 1.  **The Architectural Trinity:** The system is strictly divided into three parts:
-    *   🏛️ **The Mind (`.intent/`):** The Constitution. This is the single source of truth, divided into two parts:
-        *   **The Charter (`.intent/charter/`):** The immutable, human-governed laws, principles, and schemas.
-        *   <!-- CHANGE: More precise definition of the Working Mind -->
-        **The Working Mind (`.intent/mind/`):** The dynamic, system-maintained knowledge. The **database is the single source of operational truth**, and files in this directory are the human-readable, version-controlled sources for that truth.
+    *   🏛️ **The Mind (`.intent/`):** The Constitution. The **database is the single source of operational truth**, and files in the `.intent/` directory are the human-readable, version-controlled sources for that truth.
     *   🦾 **The Body (`src/`):** The Machinery. The complete, implemented source code and tools that perform actions but do not make decisions.
     *   🧠 **The Will (AI Agents):** The Reasoning Layer. AI agents that read the Mind and use the Body's tools to achieve goals. Their actions are policed by the `ConstitutionalAuditor`.
 
-2.  **Key Constitutional Principles:** Your review must be based on these values:
-    *   **`clarity_first`**: Is the system's purpose and structure easy to understand?
-    *   **`safe_by_default`**: Are changes validated and reversible? Is the system resilient?
-    *   **`separation_of_concerns`**: Does the code respect the Mind-Body architecture? Is logic in the correct domain?
-    *   **`dry_by_design`**: Is there duplicated logic or configuration that should be centralized?
-    *   **`evolvable_structure`**: Can the system's constitution and code be changed safely and formally?
+2.  **Key Constitutional Principles:** Your review must be based on these values: `clarity_first`, `safe_by_default`, `separation_of_concerns`, `dry_by_design`, and `evolvable_structure`.
 
-3.  **Project Goal: The Autonomy Ladder:** CORE's goal is to climb a ladder of self-governance, from observing code (A0) to autonomously generating new applications (A4). <!-- CHANGE: Updated project status to reflect our recent work --> The project has recently completed a major refactoring of its CLI to a clean, verb-based grammar and is now focused on **operationalizing its A1 autonomy** (executing simple, safe, self-healing tasks) and preparing for A2 (safe, autonomous code modification).
+3.  **Project Goal: The Autonomy Ladder:** CORE's goal is to climb a ladder of self-governance.
+    <!-- CHANGE: Updated project status to reflect successful A1 operationalization -->
+    The project has successfully **operationalized its A1 autonomy loop**. It can now autonomously propose, validate, and execute simple, safe, self-healing tasks (like fixing file headers) under full constitutional governance. The architecture has been refactored to support this, with a clean CLI and service-oriented logic. The project is now ready to **expand the scope of its A1 capabilities** and lay the groundwork for A2 (safe, autonomous code modification).
 
 ### Your Task
 
-You will be provided with a complete snapshot of the CORE project. Your task is to perform a deep analysis and provide a strategic report to **identify the highest-leverage next steps to accelerate its progress toward greater autonomy.**
+You will be provided with a complete snapshot of the CORE project *after* its successful A1 refactoring. Your task is to perform a deep analysis and provide a strategic report to **identify the key blockers and opportunities to expand the scope of A1 autonomy** and begin laying the groundwork for A2.
 
 Your report must follow this exact structure:
 
@@ -36,11 +31,11 @@ Your report must follow this exact structure:
 
 ### 1. Executive Summary
 
-Provide a brief, high-level assessment of the project's current state post-refactoring. What is its greatest strength and its most significant remaining architectural weakness?
+Provide a brief, high-level assessment of the project's current state post-A1 operationalization. What is its greatest strength, and what is the next most significant architectural challenge to achieving more complex autonomy?
 
 ### 2. Architectural Scorecard (1-5)
 
-Score each of the following dimensions on a scale of 1 (poor) to 5 (excellent). For each score, provide a concise one-sentence justification.
+Score each of the following dimensions on a scale of 1 (poor) to 5 (excellent). For each score, provide a concise one-sentence justification reflecting the *current* state.
 
 *   **Constitutional Integrity:** [Score] - Justification:
 *   **Clarity & Simplicity:** [Score] - Justification:
@@ -50,27 +45,27 @@ Score each of the following dimensions on a scale of 1 (poor) to 5 (excellent). 
 
 ### 3. Strategic Gaps & Misalignments
 
-Identify the top 3 high-level gaps or architectural misalignments that are holding the project back. **Focus on issues that prevent the system from becoming more autonomous.**
+Identify the top 2-3 high-level gaps or architectural misalignments that are now the primary blockers to achieving more advanced autonomy (broader A1 tasks and initial A2 capabilities).
 
-*   **Gap/Misalignment 1:** (e.g., Stale Operational Tooling)
+*   **Gap/Misalignment 1:** (e.g., Limited Scope of Action Handlers)
     *   **Problem:** ...
     *   **Risk:** ...
-*   **Gap/Misalignment 2:** (e.g., Implicit Service Dependencies)
+*   **Gap/Misalignment 2:** (e.g., Overly Complex Execution Agent)
     *   **Problem:** ...
     *   **Risk:** ...
 
-### 4. Actionable Roadmap to A1 Autonomy
+### 4. Actionable Roadmap to Broader Autonomy
 
-This is the most critical section. Provide a prioritized, actionable roadmap of tasks to address the issues you've identified. The goal is to make CORE capable of proposing and executing simple, safe changes to its own codebase (A1).
+This is the most critical section. Provide a prioritized, actionable roadmap. The goal is to make CORE capable of performing a wider range of self-healing tasks and preparing for generative code modification.
 
 | Priority | Task Description | Constitutional Principle Served | Suggested First Step |
 | :--- | :--- | :--- | :--- |
-| **High** | *e.g., Decompose the monolithic `CognitiveService` into single-purpose services.* | `separation_of_concerns` | *e.g., Create a new `src/services/llm/` directory and refactor the resource selection logic into a `ResourceSelector` class.* |
-| **Medium** | *e.g., Implement explicit Dependency Injection to eliminate the global `service_registry`.* | `clarity_first`, `evolvable_structure` | *e.g., Create a `CoreContext` object in `src/cli/admin_cli.py` and pass it explicitly to the command functions that need services.* |
-| **Low** | *e.g., Implement the full `micro_proposal` executor service.* | `safe_by_default`, `reason_with_purpose`| *e.g., Scaffold `src/features/autonomy/micro_proposal_executor.py` that validates and applies proposals according to the policy.* |
+| **High** | *e.g., Expand A1 capabilities to include all self-healing actions defined in the `micro_proposal_policy`.* | `evolvable_structure` | *e.g., Implement and register Action Handlers for `fix_docstrings` and `format_code` in `src/core/actions/healing_actions.py`.* |
+| **Medium** | *e.g., Introduce a dedicated `CoderAgent` to handle all code generation, simplifying the `ExecutionAgent`.* | `separation_of_concerns` | *e.g., Create `src/core/agents/coder_agent.py`. Move the code generation logic from `ExecutionAgent` into this new, specialized agent.* |
+| **Low** | *e.g., Develop an autonomous capability to prune expired or invalid entries from `audit_ignore_policy.yaml`.* | `clarity_first`, `safe_by_default`| *e.g., Create a new `self_healing` service that reads the ignore policy, checks expiry dates, and generates a micro-proposal to remove stale entries.* |
 
 ---
 
-**Final Instruction:** Ground all your feedback in CORE's established principles. Your goal is not to suggest generic best practices, but to help this unique system become a better version of itself.
+**Final Instruction:** Ground all your feedback in CORE's established principles. Your goal is to identify the next set of architectural improvements that will most effectively and safely advance the system's autonomy.
 
 **The codebase bundle to review is provided below:**

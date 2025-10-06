@@ -8,19 +8,16 @@ from __future__ import annotations
 
 import importlib
 import json
-import shutil
-import subprocess
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, Optional
 
 import typer
 import yaml
+from core.knowledge_service import KnowledgeService
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ed25519
 from rich.console import Console
-
-from core.knowledge_service import KnowledgeService
 from shared.config import settings
 from shared.context import CoreContext
 from shared.logger import getLogger
@@ -41,32 +38,6 @@ def set_context(context: CoreContext, module_name: str):
         console.print(
             f"[bold red]Error setting context for module {module_name}: {e}[/bold red]"
         )
-
-
-def _run_poetry_command(description: str, command: list[str]):
-    """Helper to run a command via Poetry, log it, and handle errors."""
-    POETRY_EXECUTABLE = shutil.which("poetry")
-    if not POETRY_EXECUTABLE:
-        log.error("❌ Could not find 'poetry' executable in your PATH.")
-        raise typer.Exit(code=1)
-
-    typer.secho(f"\n{description}", bold=True)
-    full_command = [POETRY_EXECUTABLE, "run", *command]
-    try:
-        result = subprocess.run(
-            full_command, check=True, text=True, capture_output=True
-        )
-        if result.stdout:
-            console.print(result.stdout)
-        if result.stderr:
-            console.print(f"[yellow]{result.stderr}[/yellow]")
-    except subprocess.CalledProcessError as e:
-        log.error(f"\n❌ Command failed: {' '.join(full_command)}")
-        if e.stdout:
-            console.print(e.stdout)
-        if e.stderr:
-            console.print(f"[bold red]{e.stderr}[/bold red]")
-        raise typer.Exit(code=1)
 
 
 # ID: 76d0313a-1d12-4ea2-9c98-e1d44283bb86

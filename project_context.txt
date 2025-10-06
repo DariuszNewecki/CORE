@@ -923,7 +923,7 @@ scope:
 owners:
   accountable: "Core Maintainer"
 review:
-  semiannual"
+  frequency: "semiannual"
 
 rules:
   - id: ignore.must_expire
@@ -1296,53 +1296,51 @@ symbol_ignores:
     reason: "Service provider class, not a capability."
     expires: "2026-01-01"
   # --- END: NEWLY ADDED IGNORES ---
-
 --- END OF FILE ./.intent/charter/policies/governance/audit_ignore_policy.yaml ---
 
 --- START OF FILE ./.intent/charter/policies/governance/auditor_policy.yaml ---
-policy_id: ee4d8b52-0b76-41c5-bdd5-41de41126974
-id: auditor_policy
-version: "1.1.0" # Version bump for SSOT alignment
-title: "Constitutional Auditor Policy"
-status: active
+policy_id: 1d311fd2-97db-462a-bacc-862e8f3c3777
+version: "2.1.0" # Version bump for SSOT alignment
+title: "Intent Guard Policy"
 purpose: >
-  Define the identity, responsibilities, and operational mandate of the Constitutional Auditor.
-  The Auditor enforces all Charter policies and fails CI when error-level violations are present.
+  Ensure that all actions remain aligned with the Constitution. This policy
+  protects the immutable Charter from unauthorized modification and governs the
+  process for safe, dynamic updates to the working Mind.
 
 scope:
-  applies_to: ["governance", "ci", "system"]
+  applies_to:
+    - agents
+    - cli
+    - governance
+    - services
 
 owners:
-  accountable: "Core Maintainer"
+  primary: ["Governance Lead"]
+  reviewers: ["Core Maintainer"]
 
 review:
-  frequency: "annual"
+  frequency: "6 months"
 
 rules:
-  - id: auditor.must_enforce_error_level
-    statement: "If any guard rule with enforcement=error is violated, the audit MUST fail."
+  - id: charter.write_block
+    statement: "The Charter (.intent/charter/**) is immutable. Runtime systems, agents, and tools MUST NOT write to it. Changes require a formal amendment."
     enforcement: error
 
-  - id: auditor.must_report_policy_and_path
-    statement: "Findings MUST include policy id, rule id, severity, message, and a concrete file path or symbol key."
+  - id: charter.change_requires_proposal
+    statement: "Any change to the Charter (.intent/charter/**) MUST be executed via a ratified proposal with the required approver quorum."
     enforcement: error
 
-  - id: auditor.must_respect_ignores
-    statement: "The Auditor MUST respect scoped ignores defined in '.intent/charter/policies/audit_ignore_policy.yaml'."
+  - id: mind.writes_must_be_governed
+    statement: "Writes to the Mind (.intent/mind/**) are permitted but MUST be governed. They must originate from a registered capability and pass all relevant safety and validation checks."
     enforcement: warn
 
-  - id: auditor.output_location
-    statement: "When a report file is requested, it MUST be written under 'reports/' and use a stable JSON structure."
-    enforcement: warn
-
-  - id: auditor.single_active_constitution
-    statement: "Exactly one active constitution version MUST be referenced by '.intent/charter/constitution/ACTIVE'."
+  - id: auditor.block_on_violation
+    statement: "If any guard rule with enforcement=error is violated, the constitutional auditor MUST fail."
     enforcement: error
 
-# The rule 'auditor.cli_registry_source_of_truth' has been removed as it is now
-# redundant. The canonical source for CLI commands is governed by 'cli_governance_policy.yaml'
-# and 'database_policy.yaml', which this auditor is mandated to enforce.
-
+# The rule 'cli.registry_source_of_truth' has been removed as it is now redundant.
+# The rule 'single_active_constitution' has been removed as it is now centrally
+# managed and enforced by 'auditor_policy.yaml'.
 --- END OF FILE ./.intent/charter/policies/governance/auditor_policy.yaml ---
 
 --- START OF FILE ./.intent/charter/policies/governance/available_actions_policy.yaml ---
@@ -2668,18 +2666,29 @@ migrations:
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["name", "description"],
+        "required": ["name", "description", "parameters"],
         "properties": {
           "name": { "type": "string" },
           "description": { "type": "string" },
-          "required_parameters": { "type": "array", "items": { "type": "string" } }
+          "parameters": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["name", "type", "description", "required"],
+              "properties": {
+                "name": { "type": "string" },
+                "type": { "type": "string" },
+                "description": { "type": "string" },
+                "required": { "type": "boolean" }
+              }
+            }
+          }
         }
       }
     }
   },
   "required": ["actions"]
 }
-
 --- END OF FILE ./.intent/charter/schemas/governance/available_actions_policy_schema.json ---
 
 --- START OF FILE ./.intent/charter/schemas/governance/cli_registry_schema.json ---
@@ -3155,6 +3164,7 @@ mind:
     fix_line_length: "mind/prompts/fix_line_length.prompt"
     goal_assessor: "mind/prompts/goal_assessor.prompt"
     intent_translator: "mind/prompts/intent_translator.prompt"
+    micro_planner: "mind/prompts/micro_planner.prompt" # <-- THIS LINE IS THE FIX
     module_docstring_writer: "mind/prompts/module_docstring_writer.prompt"
     new_capability_generator: "mind/prompts/new_capability_generator.prompt"
     planner_agent: "mind/prompts/planner_agent.prompt"
@@ -4004,25 +4014,85 @@ Analyze the user's request and determine the single best command to achieve thei
 --- END OF FILE ./.intent/mind/prompts/intent_translator.prompt ---
 
 --- START OF FILE ./.intent/mind/prompts/micro_planner.prompt ---
-You are the Micro-Planner Agent for the CORE system. Your sole purpose is to decompose a high-level goal into a series of small, safe, and independently verifiable actions that comply with the `micro_proposal_policy.yaml`.
+You are the **Micro-Planner Agent** for the **CORE** system.
+Your sole purpose is to **decompose a high-level goal** into a sequence of **small, safe, and independently verifiable actions** that comply fully with the `micro_proposal_policy.yaml`.
 
-You will be given a user's goal and the contents of the `micro_proposal_policy.yaml`.
+You will be provided with:
 
-Your task is to generate a valid JSON array of action steps. Each step must be an object with the keys "action" and "params".
+1. The user’s **goal**.
+2. The full contents of `micro_proposal_policy.yaml`.
 
-**CONSTITUTIONAL CONSTRAINTS (`micro_proposal_policy.yaml`):**
+Your task is to generate a **valid JSON array** of planned action steps.
+Each step **MUST** be an object containing the following keys:
+
+* `"step"` – a brief, human-readable description of the action.
+* `"action"` – the exact name of an allowed action from the `safe_actions` list.
+* `"params"` – an object **that MUST include** a `"file_path"` (for file-based operations).
+
+---
+
+### ✅ OUTPUT FORMAT (STRICTLY ENFORCED)
+
+```json
+[
+  {{
+    "step": "A brief, human-readable description of this action.",
+    "action": "name_of_the_action_from_safe_actions",
+    "params": {{
+      "file_path": "the/target/file.py"
+    }}
+  }},
+  {{
+    "step": "Validate the changes.",
+    "action": "core.validation.validate_code",
+    "params": {{
+      "file_path": null
+    }}
+  }}
+]
+```
+
+---
+
+### ⚖️ CONSTITUTIONAL CONSTRAINTS
+
+`micro_proposal_policy.yaml` contents:
+
+```
 {policy_content}
+```
 
-**CRITICAL RULES:**
-1.  You MUST ONLY use actions listed in `safe_actions`.
-2.  All file paths in `params` MUST conform to the `safe_paths` rules. You MUST NOT target a forbidden path.
-3.  Your final step MUST ALWAYS be `core.validation.validate_code` to ensure the change is safe.
-4.  If the user's goal cannot be achieved within these strict constraints, you MUST respond with an empty JSON array `[]`.
+---
 
-**User Goal:**
-"{user_goal}"
+### 🧠 CRITICAL RULES
 
-Respond with ONLY the JSON array of tasks. Do not include any other text, explanations, or markdown formatting.
+You **MUST ONLY** use actions explicitly listed in `safe_actions`.
+All `"file_path"` values in `"params"` **MUST** comply with the `safe_paths` rules.
+You **MUST NOT** target any forbidden path.
+The **final step MUST ALWAYS** be:
+
+```json
+{{
+  "step": "Validate the changes.",
+  "action": "core.validation.validate_code",
+  "params": {{ "file_path": null }}
+}}
+```
+
+If the goal **cannot** be safely achieved under these constraints, respond with an **empty JSON array** `[]`.
+
+---
+
+### 🎯 USER GOAL
+
+```
+{user_goal}
+```
+
+---
+
+**Respond with ONLY the JSON array of tasks.**
+Do **not** include explanations, text, or markdown formatting.
 
 --- END OF FILE ./.intent/mind/prompts/micro_planner.prompt ---
 
@@ -4252,7 +4322,7 @@ Source Code:
 
 --- START OF FILE ./.intent/mind_export/capabilities.yaml ---
 version: 1
-exported_at: '2025-10-05T21:23:40.046937+00:00'
+exported_at: '2025-10-06T17:50:53.097053+00:00'
 items: []
 digest: sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945
 
@@ -4287,7 +4357,7 @@ cognitive_roles:
 
 --- START OF FILE ./.intent/mind_export/links.yaml ---
 version: 1
-exported_at: '2025-10-05T21:23:40.046937+00:00'
+exported_at: '2025-10-06T17:50:53.097053+00:00'
 items: []
 digest: sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945
 
@@ -4295,7 +4365,7 @@ digest: sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945
 
 --- START OF FILE ./.intent/mind_export/northstar.yaml ---
 version: 1
-exported_at: '2025-10-05T21:23:40.046937+00:00'
+exported_at: '2025-10-06T17:50:53.097053+00:00'
 items: []
 digest: sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945
 
@@ -4338,7 +4408,7 @@ llm_resources:
 
 --- START OF FILE ./.intent/mind_export/symbols.yaml ---
 version: 1
-exported_at: '2025-10-05T21:23:40.046937+00:00'
+exported_at: '2025-10-06T17:50:53.097053+00:00'
 items:
 - id: db8bbe12-9fc2-521e-9d3d-42508b0655dc
   module: services.mind_service
@@ -7458,9 +7528,74 @@ CSE makes AI-accelerated development governable, auditable, and evolvable.
 
 --- END OF FILE ./scripts/11_ACADEMIC_PAPER.md ---
 
+--- START OF FILE ./scripts/AcademicPeerReview.prompt ---
+**You are a tenured professor of Software Engineering and a lead reviewer for a top-tier academic journal (like ICSE or FSE). You are known for your rigorous, critical, but ultimately constructive feedback. You are skeptical of hype and demand empirical evidence.**
+
+I am preparing a formal academic paper on a new software engineering paradigm I call **Constitutional Software Engineering (CSE)**, implemented in a system named **CORE**. I need you to perform a pre-submission peer review of the entire project to identify weaknesses that would prevent it from being published.
+
+---
+
+### **Project Context & Core Concepts**
+
+Before you begin, you must understand the project's foundational claims:
+
+1.  **Constitutional Software Engineering (CSE):** The core thesis is that an AI-driven software system can evolve safely if its architecture, rules, and goals are encoded in a machine-readable "Constitution." An automated `ConstitutionalAuditor` constantly verifies that the system's code (the "Body") complies with its declared intent (the "Mind").
+
+2.  **The Mind-Body-Will Architecture:**
+    *   **Mind (`.intent/`):** The single source of truth for all rules, policies, and knowledge. The database is the operational SSOT, and version-controlled files are its human-readable source.
+    *   **Body (`src/`):** The implemented code and tools. It performs actions but does not make decisions.
+    *   **Will (AI Agents):** The reasoning layer. AI agents use the Body's tools to achieve goals, governed by the rules in the Mind.
+
+3.  **The Autonomy Ladder:** The project's goal is to progress up a ladder of governed autonomy:
+    *   **A0: Self-Awareness:** The system can introspect its own code and build a knowledge graph.
+    *   **A1: Governed Self-Healing:** The system can autonomously propose, validate, and execute simple, safe changes to its own codebase (e.g., fixing docstrings, headers, formatting).
+    *   **A2: Governed Code Generation:** The system can generate new code that is guaranteed to comply with the constitution.
+
+4.  **Current Status:** The project has successfully implemented and demonstrated a working **A1 Autonomy Loop**. It can autonomously identify a self-healing task, generate a plan, validate it against its constitution (including a full pre-flight audit), and execute the file modifications.
+
+---
+
+### **Your Task**
+
+You will be provided with a complete snapshot of the CORE project's codebase and constitution. Your task is to act as a skeptical peer reviewer and produce a report that will help me strengthen my academic paper.
+
+Your report **MUST** follow this exact structure:
+
+### 1. Assessment of Novelty and Contribution
+
+*   Based on your knowledge of the field (Automated Software Engineering, SE for AI, Self-Adaptive Systems), is the core idea of "Constitutional Software Engineering" novel?
+*   What is the single most significant scientific or engineering contribution you see in this work?
+*   What related work or existing paradigms (e.g., Models at Runtime, Architecture Description Languages, Policy-as-Code) does this project need to compare itself against to prove its novelty?
+
+### 2. "Red Team" Analysis: Top 3 Weaknesses for a Peer Review
+
+Identify the top 3 arguments a critical reviewer would use to recommend **rejecting** this paper. Be harsh but fair. For each weakness, explain *why* it undermines the academic claims.
+
+*   **Weakness 1 (e.g., Lack of Rigorous Evaluation):**
+*   **Weakness 2 (e.g., Brittle System Integration):**
+*   **Weakness 3 (e.g., Limited Generalizability):**
+
+### 3. Action Plan for a Tier-1 Publication
+
+Provide a prioritized list of concrete actions I should take to address the weaknesses you identified. The goal is to make the paper "bulletproof" for a top-tier conference submission.
+
+| Priority | Action Item | Justification (Why this strengthens the paper) |
+| :--- | :--- | :--- |
+| **High** | *e.g., Implement and measure two additional A1 self-healing tasks.* | *e.g., "Demonstrates that the A1 framework is generalizable and not a one-off solution for a single task."* |
+| **Medium** | *e.g., Refactor the pre-flight check to use direct service calls instead of subprocesses.* | *e.g., "Elevates the implementation from a 'scripted prototype' to a 'robustly engineered system', addressing concerns about architectural maturity."* |
+| **Low** | *e.g., Formalize the Autonomy Ladder with precise entry/exit criteria for each level.* | *e.g., "Adds theoretical rigor and provides a clear, measurable model for future work."* |
+
+---
+
+**Final Instruction:** Do not give generic praise. Your goal is to find the flaws and provide a concrete path to fixing them. The academic credibility of this work depends on your critical eye.
+
+**The codebase bundle to review is provided below:**
+--- END OF FILE ./scripts/AcademicPeerReview.prompt ---
+
 --- START OF FILE ./scripts/assesment.prompt ---
-# assesment.prompt
-# This is the canonical prompt for a full architectural and constitutional review of the CORE project.
+# assesment.prompt (v2)
+# This is the canonical prompt for a full architectural and constitutional review of the CORE project,
+# updated to reflect the successful operationalization of A1 autonomy.
 
 **You are an expert AI Systems Architect specializing in self-governing software and constitutional design. You have been retained to conduct a comprehensive architectural and constitutional review of a project named CORE.**
 
@@ -7471,25 +7606,19 @@ Before you begin, you must understand CORE's fundamental principles. CORE is not
 Your entire assessment must be grounded in this philosophy.
 
 1.  **The Architectural Trinity:** The system is strictly divided into three parts:
-    *   🏛️ **The Mind (`.intent/`):** The Constitution. This is the single source of truth, divided into two parts:
-        *   **The Charter (`.intent/charter/`):** The immutable, human-governed laws, principles, and schemas.
-        *   <!-- CHANGE: More precise definition of the Working Mind -->
-        **The Working Mind (`.intent/mind/`):** The dynamic, system-maintained knowledge. The **database is the single source of operational truth**, and files in this directory are the human-readable, version-controlled sources for that truth.
+    *   🏛️ **The Mind (`.intent/`):** The Constitution. The **database is the single source of operational truth**, and files in the `.intent/` directory are the human-readable, version-controlled sources for that truth.
     *   🦾 **The Body (`src/`):** The Machinery. The complete, implemented source code and tools that perform actions but do not make decisions.
     *   🧠 **The Will (AI Agents):** The Reasoning Layer. AI agents that read the Mind and use the Body's tools to achieve goals. Their actions are policed by the `ConstitutionalAuditor`.
 
-2.  **Key Constitutional Principles:** Your review must be based on these values:
-    *   **`clarity_first`**: Is the system's purpose and structure easy to understand?
-    *   **`safe_by_default`**: Are changes validated and reversible? Is the system resilient?
-    *   **`separation_of_concerns`**: Does the code respect the Mind-Body architecture? Is logic in the correct domain?
-    *   **`dry_by_design`**: Is there duplicated logic or configuration that should be centralized?
-    *   **`evolvable_structure`**: Can the system's constitution and code be changed safely and formally?
+2.  **Key Constitutional Principles:** Your review must be based on these values: `clarity_first`, `safe_by_default`, `separation_of_concerns`, `dry_by_design`, and `evolvable_structure`.
 
-3.  **Project Goal: The Autonomy Ladder:** CORE's goal is to climb a ladder of self-governance, from observing code (A0) to autonomously generating new applications (A4). <!-- CHANGE: Updated project status to reflect our recent work --> The project has recently completed a major refactoring of its CLI to a clean, verb-based grammar and is now focused on **operationalizing its A1 autonomy** (executing simple, safe, self-healing tasks) and preparing for A2 (safe, autonomous code modification).
+3.  **Project Goal: The Autonomy Ladder:** CORE's goal is to climb a ladder of self-governance.
+    <!-- CHANGE: Updated project status to reflect successful A1 operationalization -->
+    The project has successfully **operationalized its A1 autonomy loop**. It can now autonomously propose, validate, and execute simple, safe, self-healing tasks (like fixing file headers) under full constitutional governance. The architecture has been refactored to support this, with a clean CLI and service-oriented logic. The project is now ready to **expand the scope of its A1 capabilities** and lay the groundwork for A2 (safe, autonomous code modification).
 
 ### Your Task
 
-You will be provided with a complete snapshot of the CORE project. Your task is to perform a deep analysis and provide a strategic report to **identify the highest-leverage next steps to accelerate its progress toward greater autonomy.**
+You will be provided with a complete snapshot of the CORE project *after* its successful A1 refactoring. Your task is to perform a deep analysis and provide a strategic report to **identify the key blockers and opportunities to expand the scope of A1 autonomy** and begin laying the groundwork for A2.
 
 Your report must follow this exact structure:
 
@@ -7497,11 +7626,11 @@ Your report must follow this exact structure:
 
 ### 1. Executive Summary
 
-Provide a brief, high-level assessment of the project's current state post-refactoring. What is its greatest strength and its most significant remaining architectural weakness?
+Provide a brief, high-level assessment of the project's current state post-A1 operationalization. What is its greatest strength, and what is the next most significant architectural challenge to achieving more complex autonomy?
 
 ### 2. Architectural Scorecard (1-5)
 
-Score each of the following dimensions on a scale of 1 (poor) to 5 (excellent). For each score, provide a concise one-sentence justification.
+Score each of the following dimensions on a scale of 1 (poor) to 5 (excellent). For each score, provide a concise one-sentence justification reflecting the *current* state.
 
 *   **Constitutional Integrity:** [Score] - Justification:
 *   **Clarity & Simplicity:** [Score] - Justification:
@@ -7511,31 +7640,30 @@ Score each of the following dimensions on a scale of 1 (poor) to 5 (excellent). 
 
 ### 3. Strategic Gaps & Misalignments
 
-Identify the top 3 high-level gaps or architectural misalignments that are holding the project back. **Focus on issues that prevent the system from becoming more autonomous.**
+Identify the top 2-3 high-level gaps or architectural misalignments that are now the primary blockers to achieving more advanced autonomy (broader A1 tasks and initial A2 capabilities).
 
-*   **Gap/Misalignment 1:** (e.g., Stale Operational Tooling)
+*   **Gap/Misalignment 1:** (e.g., Limited Scope of Action Handlers)
     *   **Problem:** ...
     *   **Risk:** ...
-*   **Gap/Misalignment 2:** (e.g., Implicit Service Dependencies)
+*   **Gap/Misalignment 2:** (e.g., Overly Complex Execution Agent)
     *   **Problem:** ...
     *   **Risk:** ...
 
-### 4. Actionable Roadmap to A1 Autonomy
+### 4. Actionable Roadmap to Broader Autonomy
 
-This is the most critical section. Provide a prioritized, actionable roadmap of tasks to address the issues you've identified. The goal is to make CORE capable of proposing and executing simple, safe changes to its own codebase (A1).
+This is the most critical section. Provide a prioritized, actionable roadmap. The goal is to make CORE capable of performing a wider range of self-healing tasks and preparing for generative code modification.
 
 | Priority | Task Description | Constitutional Principle Served | Suggested First Step |
 | :--- | :--- | :--- | :--- |
-| **High** | *e.g., Decompose the monolithic `CognitiveService` into single-purpose services.* | `separation_of_concerns` | *e.g., Create a new `src/services/llm/` directory and refactor the resource selection logic into a `ResourceSelector` class.* |
-| **Medium** | *e.g., Implement explicit Dependency Injection to eliminate the global `service_registry`.* | `clarity_first`, `evolvable_structure` | *e.g., Create a `CoreContext` object in `src/cli/admin_cli.py` and pass it explicitly to the command functions that need services.* |
-| **Low** | *e.g., Implement the full `micro_proposal` executor service.* | `safe_by_default`, `reason_with_purpose`| *e.g., Scaffold `src/features/autonomy/micro_proposal_executor.py` that validates and applies proposals according to the policy.* |
+| **High** | *e.g., Expand A1 capabilities to include all self-healing actions defined in the `micro_proposal_policy`.* | `evolvable_structure` | *e.g., Implement and register Action Handlers for `fix_docstrings` and `format_code` in `src/core/actions/healing_actions.py`.* |
+| **Medium** | *e.g., Introduce a dedicated `CoderAgent` to handle all code generation, simplifying the `ExecutionAgent`.* | `separation_of_concerns` | *e.g., Create `src/core/agents/coder_agent.py`. Move the code generation logic from `ExecutionAgent` into this new, specialized agent.* |
+| **Low** | *e.g., Develop an autonomous capability to prune expired or invalid entries from `audit_ignore_policy.yaml`.* | `clarity_first`, `safe_by_default`| *e.g., Create a new `self_healing` service that reads the ignore policy, checks expiry dates, and generates a micro-proposal to remove stale entries.* |
 
 ---
 
-**Final Instruction:** Ground all your feedback in CORE's established principles. Your goal is not to suggest generic best practices, but to help this unique system become a better version of itself.
+**Final Instruction:** Ground all your feedback in CORE's established principles. Your goal is to identify the next set of architectural improvements that will most effectively and safely advance the system's autonomy.
 
 **The codebase bundle to review is provided below:**
-
 --- END OF FILE ./scripts/assesment.prompt ---
 
 --- START OF FILE ./scripts/assign_capability_ids.py ---
@@ -10366,13 +10494,14 @@ This module assembles all command groups into a single Typer application.
 from __future__ import annotations
 
 import typer
+from rich.console import Console
+
 from cli.commands import check, enrich, fix, inspect, manage, mind, run, search, submit
 from cli.interactive import launch_interactive_menu
 from core.cognitive_service import CognitiveService
 from core.file_handler import FileHandler
 from core.git_service import GitService
 from features.governance.audit_context import AuditorContext
-from rich.console import Console
 from services.clients.qdrant_client import QdrantService
 from shared.config import settings
 from shared.context import CoreContext
@@ -10458,6 +10587,7 @@ from __future__ import annotations
 from __future__ import annotations
 
 import typer
+
 from cli.logic.audit import audit, lint, test_system
 from cli.logic.cli_utils import set_context as set_shared_context
 from cli.logic.diagnostics import policy_coverage
@@ -10493,8 +10623,9 @@ from __future__ import annotations
 import asyncio
 
 import typer
-from features.self_healing.enrichment_service import enrich_symbols
 from rich.console import Console
+
+from features.self_healing.enrichment_service import enrich_symbols
 from shared.context import CoreContext
 
 console = Console()
@@ -10528,39 +10659,200 @@ def register(app: typer.Typer, context: CoreContext):
 from __future__ import annotations
 
 import asyncio
+from pathlib import Path
+from typing import Optional
 
 import typer
-from cli.logic.fixer import (
-    assign_ids_command,
-    fix_clarity,
-    fix_docstrings,
-    fix_headers_cmd,
-    fix_line_lengths,
-    format_code_wrapper,
-)
-from features.maintenance.command_sync_service import sync_commands_to_db
-from features.self_healing.duplicate_id_service import resolve_duplicate_ids
-from shared.context import CoreContext
+from rich.console import Console
 
+from features.maintenance.command_sync_service import sync_commands_to_db
+from features.self_healing.capability_tagging_service import (
+    tag_unassigned_capabilities,
+)
+from features.self_healing.clarity_service import fix_clarity
+from features.self_healing.code_style_service import format_code
+from features.self_healing.complexity_service import complexity_outliers
+from features.self_healing.docstring_service import fix_docstrings
+from features.self_healing.duplicate_id_service import resolve_duplicate_ids
+from features.self_healing.header_service import _run_header_fix_cycle
+from features.self_healing.id_tagging_service import assign_missing_ids
+from features.self_healing.linelength_service import fix_line_lengths
+from features.self_healing.policy_id_service import add_missing_policy_ids
+from features.self_healing.purge_legacy_tags_service import purge_legacy_tags
+from shared.config import settings
+from shared.context import CoreContext
+from shared.logger import getLogger
+
+log = getLogger("core_admin.fix")
+console = Console()
 fix_app = typer.Typer(
     help="Self-healing tools that write changes to the codebase.",
     no_args_is_help=True,
 )
 
-fix_app.command(
+
+@fix_app.command(
     "code-style", help="Auto-format all code to be constitutionally compliant."
-)(format_code_wrapper)
-fix_app.command("docstrings", help="Adds missing docstrings.")(fix_docstrings)
-fix_app.command(
+)
+# ID: 1f39978e-21a3-466c-970b-de9e65b79baa
+def format_code_wrapper():
+    """Wrapper that calls the dedicated code style service."""
+    format_code()
+
+
+@fix_app.command(
     "headers", help="Enforces constitutional header conventions on Python files."
-)(fix_headers_cmd)
-fix_app.command(
-    "ids", help="Assigns a stable '# ID: <uuid>' to all untagged public symbols."
-)(assign_ids_command)
+)
+# ID: 6006321c-b0aa-4516-a431-7fab8b489f97
+def fix_headers_cmd(
+    file_path: Optional[Path] = None,
+    write: bool = False,
+):
+    """User-friendly wrapper for the header fixing logic."""
+    dry_run = not write
+    REPO_ROOT = settings.REPO_PATH
+    files_to_process = []
+    if file_path:
+        log.info(f"🎯 Targeting a single file for header fixing: {file_path}")
+        files_to_process.append(str(file_path.relative_to(REPO_ROOT)))
+    else:
+        log.info("Scanning all Python files in the 'src' directory...")
+        src_dir = REPO_ROOT / "src"
+        all_py_files = src_dir.rglob("*.py")
+        files_to_process = sorted([str(p.relative_to(REPO_ROOT)) for p in all_py_files])
+
+    _run_header_fix_cycle(dry_run, files_to_process)
+
+
+fix_app.command("docstrings", help="Adds missing docstrings.")(fix_docstrings)
 fix_app.command("line-lengths", help="Refactors files with long lines.")(
     fix_line_lengths
 )
 fix_app.command("clarity", help="Refactors a file for clarity.")(fix_clarity)
+
+
+@fix_app.command("complexity")
+# ID: dda2ec4c-eaf3-4371-9988-52b4db881524
+def complexity_command(
+    file_path: Path = typer.Argument(
+        ...,
+        help="The path to a specific file to refactor for complexity.",
+        exists=True,
+        dir_okay=False,
+        resolve_path=True,
+    ),
+    write: bool = typer.Option(
+        False, "--write", help="Apply the refactoring to the file."
+    ),
+):
+    """Identifies and refactors complexity outliers to improve separation of concerns."""
+    complexity_outliers(file_path=file_path, dry_run=not write)
+
+
+@fix_app.command(
+    "ids", help="Assigns a stable '# ID: <uuid>' to all untagged public symbols."
+)
+# ID: 75b9bf9f-9409-4bb7-8293-6438644c189a
+def assign_ids_command(
+    write: bool = typer.Option(
+        False, "--write", help="Apply the changes to the files."
+    ),
+):
+    """CLI wrapper for the symbol ID tagging service."""
+    dry_run = not write
+    total_assigned = assign_missing_ids(dry_run=dry_run)
+
+    console.print("\n--- ID Assignment Complete ---")
+    if total_assigned == 0 and not dry_run:
+        console.print("[bold green]✅ No new IDs were needed.[/bold green]")
+        return
+
+    if dry_run:
+        console.print(
+            f"💧 DRY RUN: Found {total_assigned} public symbols that need an ID."
+        )
+        console.print("   Run with '--write' to apply these changes.")
+    else:
+        console.print(f"✅ APPLIED: Successfully assigned {total_assigned} new IDs.")
+        console.print(
+            "\n[bold]NEXT STEP:[/bold] Run 'poetry run core-admin manage database sync-knowledge --write' to update the database."
+        )
+
+
+@fix_app.command(
+    "purge-legacy-tags", help="Removes obsolete '# CAPABILITY:' tags from source code."
+)
+# ID: 3bc40647-e3f1-4ec9-a768-51055c0effda
+def purge_legacy_tags_command(
+    write: bool = typer.Option(
+        False, "--write", help="Apply the changes to the files."
+    ),
+):
+    """CLI wrapper for the legacy tag purging service."""
+    dry_run = not write
+    total_removed = purge_legacy_tags(dry_run=dry_run)
+
+    console.print("\n--- Purge Complete ---")
+    if dry_run:
+        console.print(f"💧 DRY RUN: Found {total_removed} total legacy tags to remove.")
+        console.print("   Run with '--write' to apply these changes.")
+    else:
+        console.print(f"✅ APPLIED: Successfully removed {total_removed} legacy tags.")
+        console.print(
+            "\n[bold]NEXT STEP:[/bold] Run 'poetry run core-admin manage database sync-knowledge --write' to update the database."
+        )
+
+
+@fix_app.command(
+    "policy-ids", help="Adds a unique `policy_id` UUID to any policy file missing one."
+)
+# ID: a25e26b9-bd42-4316-bf39-a416914484a4
+def fix_policy_ids_command(
+    write: bool = typer.Option(
+        False, "--write", help="Apply the changes to the files."
+    ),
+):
+    """CLI wrapper for the policy ID migration service."""
+    dry_run = not write
+    total_updated = add_missing_policy_ids(dry_run=dry_run)
+
+    console.print("\n--- Policy ID Migration Complete ---")
+    if dry_run:
+        console.print(f"💧 DRY RUN: Found {total_updated} policies that need a UUID.")
+        console.print("   Run with '--write' to apply these changes.")
+    else:
+        console.print(f"✅ APPLIED: Successfully updated {total_updated} policies.")
+        console.print(
+            "\n[bold]NEXT STEP:[/bold] Run 'poetry run core-admin check audit' to verify constitutional compliance."
+        )
+
+
+@fix_app.command(
+    "tags",
+    help="Use an AI agent to suggest and apply capability tags to untagged symbols.",
+)
+# ID: 9d974db5-a456-43b1-90f2-561bf45c21dd
+def fix_tags_command(
+    ctx: typer.Context,
+    file_path: Optional[Path] = typer.Argument(
+        None,
+        help="Optional: A specific file to process. If omitted, all files are scanned.",
+        exists=True,
+        dir_okay=False,
+        resolve_path=True,
+    ),
+    write: bool = typer.Option(
+        False, "--write", help="Apply the suggested tags directly to the files."
+    ),
+):
+    """Wrapper for the CapabilityTaggerAgent that writes to the database."""
+    core_context: CoreContext = ctx.obj
+    tag_unassigned_capabilities(
+        cognitive_service=core_context.cognitive_service,
+        knowledge_service=core_context.knowledge_service,
+        file_path=file_path,
+        write=write,
+    )
 
 
 @fix_app.command(
@@ -10599,6 +10891,7 @@ def register(app: typer.Typer, context: CoreContext):
 from __future__ import annotations
 
 import typer
+
 from cli.logic.diagnostics import cli_tree
 from cli.logic.duplicates import inspect_duplicates
 from cli.logic.guard_cli import register_guard
@@ -10649,6 +10942,8 @@ from __future__ import annotations
 import asyncio
 
 import typer
+from rich.console import Console
+
 from cli.logic.byor import initialize_repository
 from cli.logic.db import export_data, migrate_db
 from cli.logic.new import register as register_new_project
@@ -10667,7 +10962,6 @@ from features.governance.key_management_service import register as register_keyg
 from features.maintenance.dotenv_sync_service import run_dotenv_sync
 from features.maintenance.migration_service import run_ssot_migration
 from features.project_lifecycle.definition_service import define_new_symbols
-from rich.console import Console
 from shared.context import CoreContext
 from shared.logger import getLogger
 
@@ -10805,7 +11099,8 @@ import asyncio
 from typing import Optional
 
 import typer
-from cli.logic.mind_ssot import run_diff, run_import, run_snapshot, run_verify
+
+from cli.logic.knowledge_sync import run_diff, run_import, run_snapshot, run_verify
 from shared.context import CoreContext
 
 mind_app = typer.Typer(
@@ -10889,13 +11184,14 @@ from pathlib import Path
 from typing import Optional
 
 import typer
+from dotenv import load_dotenv
+
 from core.agents.execution_agent import ExecutionAgent
 from core.agents.plan_executor import PlanExecutor
 from core.agents.planner_agent import PlannerAgent
 from core.agents.reconnaissance_agent import ReconnaissanceAgent
 from core.knowledge_service import KnowledgeService
 from core.prompt_pipeline import PromptPipeline
-from dotenv import load_dotenv
 from features.introspection.vectorization_service import run_vectorize
 from shared.config import settings
 from shared.context import CoreContext
@@ -11092,9 +11388,10 @@ from __future__ import annotations
 import asyncio
 
 import typer
-from cli.logic.hub import hub_search
 from rich.console import Console
 from rich.table import Table
+
+from cli.logic.hub import hub_search
 from shared.context import CoreContext
 
 console = Console()
@@ -11168,6 +11465,7 @@ def register(app: typer.Typer, context: CoreContext):
 from __future__ import annotations
 
 import typer
+
 from cli.logic.cli_utils import set_context as set_shared_context
 from cli.logic.system import integrate_command
 from shared.context import CoreContext
@@ -11424,6 +11722,7 @@ import textwrap
 from typing import Any
 
 import typer
+
 from features.project_lifecycle.scaffolding_service import Scaffolder
 from shared.context import CoreContext
 from shared.logger import getLogger
@@ -11575,17 +11874,16 @@ from pathlib import Path
 from typing import Optional
 
 import typer
-from features.governance.constitutional_auditor import ConstitutionalAuditor
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
+
+from features.governance.constitutional_auditor import ConstitutionalAuditor
 from shared.context import CoreContext
 from shared.models import AuditFinding, AuditSeverity
+from shared.utils.subprocess_utils import run_poetry_command
 
-from .cli_utils import (
-    _run_poetry_command,
-    find_test_file_for_capability_async,
-)
+from .cli_utils import find_test_file_for_capability_async
 
 console = Console()
 
@@ -11596,10 +11894,10 @@ _context: Optional[CoreContext] = None
 # ID: 8afdeab9-fc81-4d7c-b05f-dd27f936b3e6
 def lint():
     """Checks code formatting and quality using Black and Ruff."""
-    _run_poetry_command(
+    run_poetry_command(
         "🔎 Checking code format with Black...", ["black", "--check", "src", "tests"]
     )
-    _run_poetry_command(
+    run_poetry_command(
         "🔎 Checking code quality with Ruff...", ["ruff", "check", "src", "tests"]
     )
 
@@ -11632,7 +11930,7 @@ def test_system(
                         f"❌ Could not find a test file for target: '{target}'."
                     )
                     raise typer.Exit(code=1)
-        _run_poetry_command(description, command)
+        run_poetry_command(description, command)
 
     asyncio.run(_async_test_system())
 
@@ -11773,10 +12071,10 @@ Provides functionality for the audit_capability_domains module.
 from __future__ import annotations
 
 import typer
+from sqlalchemy import text
 
 # --- CORRECTED IMPORT ---
 from core.db.engine import get_session
-from sqlalchemy import text
 
 
 async def _audit_queries(limit: int):
@@ -12219,6 +12517,7 @@ sub-groups for CI and diagnostic commands.
 from __future__ import annotations
 
 import typer
+
 from cli.commands.ci import ci_app
 from cli.commands.diagnostics import diagnostics_app
 
@@ -12251,8 +12550,6 @@ from __future__ import annotations
 
 import importlib
 import json
-import shutil
-import subprocess
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, Optional
@@ -12284,32 +12581,6 @@ def set_context(context: CoreContext, module_name: str):
         console.print(
             f"[bold red]Error setting context for module {module_name}: {e}[/bold red]"
         )
-
-
-def _run_poetry_command(description: str, command: list[str]):
-    """Helper to run a command via Poetry, log it, and handle errors."""
-    POETRY_EXECUTABLE = shutil.which("poetry")
-    if not POETRY_EXECUTABLE:
-        log.error("❌ Could not find 'poetry' executable in your PATH.")
-        raise typer.Exit(code=1)
-
-    typer.secho(f"\n{description}", bold=True)
-    full_command = [POETRY_EXECUTABLE, "run", *command]
-    try:
-        result = subprocess.run(
-            full_command, check=True, text=True, capture_output=True
-        )
-        if result.stdout:
-            console.print(result.stdout)
-        if result.stderr:
-            console.print(f"[yellow]{result.stderr}[/yellow]")
-    except subprocess.CalledProcessError as e:
-        log.error(f"\n❌ Command failed: {' '.join(full_command)}")
-        if e.stdout:
-            console.print(e.stdout)
-        if e.stderr:
-            console.print(f"[bold red]{e.stderr}[/bold red]")
-        raise typer.Exit(code=1)
 
 
 # ID: 76d0313a-1d12-4ea2-9c98-e1d44283bb86
@@ -12431,10 +12702,11 @@ import asyncio
 import typer
 import yaml
 from rich.console import Console
+from sqlalchemy import text
+
 from services.repositories.db.engine import get_session
 from services.repositories.db.migration_service import migrate_db
 from shared.config import settings
-from sqlalchemy import text
 
 from .status import status
 from .sync_domains import sync_domains
@@ -12562,16 +12834,17 @@ import json
 import jsonschema
 import typer
 import yaml
+from rich.console import Console
+from rich.table import Table
+from rich.tree import Tree
+from ruamel.yaml import YAML
+
 from features.governance.audit_context import AuditorContext
 from features.governance.checks.domain_placement import DomainPlacementCheck
 from features.governance.checks.legacy_tag_check import LegacyTagCheck
 from features.governance.policy_coverage_service import PolicyCoverageService
 from features.introspection.audit_unassigned_capabilities import get_unassigned_symbols
 from features.introspection.graph_analysis_service import find_semantic_clusters
-from rich.console import Console
-from rich.table import Table
-from rich.tree import Tree
-from ruamel.yaml import YAML
 from shared.config import settings
 from shared.models import AuditSeverity
 from shared.utils.constitutional_parser import get_all_constitutional_paths
@@ -12875,10 +13148,11 @@ from typing import List
 
 import networkx as nx
 import typer
-from features.governance.audit_context import AuditorContext
-from features.governance.checks.duplication_check import DuplicationCheck
 from rich.console import Console
 from rich.table import Table
+
+from features.governance.audit_context import AuditorContext
+from features.governance.checks.duplication_check import DuplicationCheck
 from shared.context import CoreContext
 from shared.models import AuditFinding
 
@@ -13086,228 +13360,6 @@ def register(app_root):
 
 --- END OF FILE ./src/cli/logic/embeddings_cli.py ---
 
---- START OF FILE ./src/cli/logic/fixer.py ---
-# src/cli/logic/fixer.py
-"""
-Contains the business logic for all self-healing and code quality improvement commands.
-This is a pure logic module, with no CLI definitions.
-"""
-
-from __future__ import annotations
-
-import asyncio
-from pathlib import Path
-from typing import Optional
-
-from core.agents.tagger_agent import CapabilityTaggerAgent
-from core.cognitive_service import CognitiveService
-from core.knowledge_service import KnowledgeService
-from features.introspection.knowledge_graph_service import KnowledgeGraphBuilder
-from features.self_healing.clarity_service import fix_clarity as clarity_logic
-from features.self_healing.complexity_service import (
-    complexity_outliers as complexity_logic,
-)
-from features.self_healing.docstring_service import fix_docstrings as docstrings_logic
-from features.self_healing.header_service import _run_header_fix_cycle
-from features.self_healing.id_tagging_service import assign_missing_ids
-from features.self_healing.linelength_service import (
-    fix_line_lengths as linelength_logic,
-)
-from features.self_healing.policy_id_service import add_missing_policy_ids
-from features.self_healing.prune_orphaned_vectors import (
-    main_sync as prune_orphaned_vectors,
-)
-from features.self_healing.prune_private_capabilities import (
-    main as prune_private_capabilities,
-)
-from features.self_healing.purge_legacy_tags_service import purge_legacy_tags
-from rich.console import Console
-from services.repositories.db.engine import get_session
-from shared.config import settings
-from shared.logger import getLogger
-
-from .cli_utils import _run_poetry_command
-
-log = getLogger("core_admin.fix")
-console = Console()
-REPO_ROOT = settings.REPO_PATH
-
-
-# ID: ac0d6bc3-83d5-44c4-8755-222205b77f15
-def format_code_wrapper():
-    """Format all code in the `src` and `tests` directories using Black and Ruff with automatic fixes."""
-    _run_poetry_command("✨ Formatting code with Black...", ["black", "src", "tests"])
-    _run_poetry_command(
-        "✨ Fixing code with Ruff...", ["ruff", "check", "src", "tests", "--fix"]
-    )
-
-
-# ID: 51be431e-c7b4-4b76-8c32-bd6ce9acad9f
-def fix_headers_cmd(
-    file_path: Optional[Path] = None,
-    write: bool = False,
-):
-    """User-friendly wrapper for the header fixing logic."""
-    dry_run = not write
-    files_to_process = []
-    if file_path:
-        log.info(f"🎯 Targeting a single file for header fixing: {file_path}")
-        files_to_process.append(str(file_path.relative_to(REPO_ROOT)))
-    else:
-        log.info("Scanning all Python files in the 'src' directory...")
-        src_dir = REPO_ROOT / "src"
-        all_py_files = src_dir.rglob("*.py")
-        files_to_process = sorted([str(p.relative_to(REPO_ROOT)) for p in all_py_files])
-
-    _run_header_fix_cycle(dry_run, files_to_process)
-
-    if not dry_run:
-        log.info("🧠 Rebuilding knowledge graph to reflect all changes...")
-        builder = KnowledgeGraphBuilder(REPO_ROOT)
-        asyncio.run(builder.build_and_sync())
-        log.info("✅ Knowledge graph successfully updated.")
-
-
-# ID: 05d13ed4-367f-4ac8-a611-730798157b8c
-def fix_tags_cmd_wrapper(
-    file_path: Optional[Path] = None,
-    write: bool = False,
-):
-    """Wrapper for the CapabilityTaggerAgent that writes to the database."""
-
-    async def _async_fix_tags():
-        knowledge_service = KnowledgeService(settings.REPO_PATH)
-        cognitive_service = CognitiveService(settings.REPO_PATH)
-        agent = CapabilityTaggerAgent(cognitive_service, knowledge_service)
-
-        suggestions = await agent.suggest_and_apply_tags(
-            file_path=file_path.as_posix() if file_path else None
-        )
-
-        if not suggestions:
-            console.print(
-                "[bold green]✅ No new public capabilities to register.[/bold green]"
-            )
-            return
-
-        if not write:
-            console.print(
-                "[bold yellow]💧 Dry Run: Run with --write to register new capabilities.[/bold yellow]"
-            )
-            return
-
-        console.print(
-            f"\n[bold green]✅ Applying {len(suggestions)} new capability tags to source code...[/bold green]"
-        )
-
-        async with get_session() as session:
-            async with session.begin():
-                for key, new_info in suggestions.items():
-                    suggested_name = new_info["suggestion"]
-
-                    graph = await knowledge_service.get_graph()
-                    source_file_path = REPO_ROOT / new_info["file"]
-                    lines = source_file_path.read_text("utf-8").splitlines()
-                    symbol_data = graph["symbols"][new_info["key"]]
-                    line_to_tag = symbol_data["line_number"] - 1
-
-                    original_line = lines[line_to_tag]
-                    indentation = len(original_line) - len(original_line.lstrip(" "))
-                    tag_line = f"{' ' * indentation}# ID: {suggested_name}"
-
-                    lines.insert(line_to_tag, tag_line)
-                    source_file_path.write_text(
-                        "\n".join(lines) + "\n", encoding="utf-8"
-                    )
-                    console.print(
-                        f"   -> Tagged '{suggested_name}' in {new_info['file']}"
-                    )
-
-        log.info("🧠 Rebuilding knowledge graph to reflect changes...")
-        builder = KnowledgeGraphBuilder(REPO_ROOT)
-        await builder.build_and_sync()
-        log.info("✅ Knowledge graph successfully updated.")
-
-    asyncio.run(_async_fix_tags())
-
-
-# Logic functions are aliased or defined for clarity.
-fix_orphaned_vectors = prune_orphaned_vectors
-fix_private_capabilities = prune_private_capabilities
-fix_complexity = complexity_logic
-fix_line_lengths = linelength_logic
-fix_docstrings = docstrings_logic
-fix_clarity = clarity_logic
-
-
-# ID: 14aa94ca-ab55-4a91-9507-ca959a894a18
-def purge_legacy_tags_command(
-    write: bool = False,
-):
-    """
-    CLI wrapper for the legacy tag purging service.
-    """
-    dry_run = not write
-    total_removed = purge_legacy_tags(dry_run=dry_run)
-
-    console.print("\n--- Purge Complete ---")
-    if dry_run:
-        console.print(f"💧 DRY RUN: Found {total_removed} total legacy tags to remove.")
-        console.print("   Run with '--write' to apply these changes.")
-    else:
-        console.print(f"✅ APPLIED: Successfully removed {total_removed} legacy tags.")
-        console.print(
-            "\n[bold]NEXT STEP:[/bold] Run 'poetry run core-admin manage database sync-knowledge --write' to update the database."
-        )
-
-
-# ID: 103780db-c852-4026-a296-3e1c68e19246
-def assign_ids_command(
-    write: bool = False,
-):
-    """
-    CLI wrapper for the symbol ID tagging service.
-    """
-    dry_run = not write
-    total_assigned = assign_missing_ids(dry_run=dry_run)
-
-    console.print("\n--- ID Assignment Complete ---")
-    if total_assigned == 0 and not dry_run:
-        console.print("[bold green]✅ No new IDs were needed.[/bold green]")
-        return
-
-    if dry_run:
-        console.print(
-            f"💧 DRY RUN: Found {total_assigned} public symbols that need an ID."
-        )
-        console.print("   Run with '--write' to apply these changes.")
-    else:
-        console.print(f"✅ APPLIED: Successfully assigned {total_assigned} new IDs.")
-        console.print(
-            "\n[bold]NEXT STEP:[/bold] Run 'poetry run core-admin manage database sync-knowledge --write' to update the database."
-        )
-
-
-# ID: 81a2b3c4-d5e6-f7a8-b9c0-d1e2f3a4b5c6
-def fix_policy_ids_command(
-    write: bool = False,
-):
-    """CLI wrapper for the policy ID migration service."""
-    dry_run = not write
-    total_updated = add_missing_policy_ids(dry_run=dry_run)
-
-    console.print("\n--- Policy ID Migration Complete ---")
-    if dry_run:
-        console.print(f"💧 DRY RUN: Found {total_updated} policies that need a UUID.")
-        console.print("   Run with '--write' to apply these changes.")
-    else:
-        console.print(f"✅ APPLIED: Successfully updated {total_updated} policies.")
-        console.print(
-            "\n[bold]NEXT STEP:[/bold] Run 'poetry run core-admin check audit' to verify constitutional compliance."
-        )
-
---- END OF FILE ./src/cli/logic/fixer.py ---
-
 --- START OF FILE ./src/cli/logic/guard.py ---
 # src/cli/logic/guard.py
 """
@@ -13324,6 +13376,7 @@ import yaml
 from rich import print as rprint
 from rich.panel import Panel
 from rich.table import Table
+
 from shared.logger import getLogger
 
 log = getLogger("core_admin")
@@ -13451,6 +13504,7 @@ from pathlib import Path
 from typing import Any, Dict, Optional
 
 import typer
+
 from features.introspection.drift_detector import write_report
 from features.introspection.drift_service import run_drift_analysis_async
 
@@ -13530,11 +13584,12 @@ from typing import List, Optional
 import typer
 from rich.console import Console
 from rich.table import Table
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from services.database.models import CliCommand
 from services.database.session_manager import get_session
 from shared.config import settings
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 console = Console()
 hub_app = typer.Typer(help="Central hub for discovering and locating CORE tools.")
@@ -13813,6 +13868,7 @@ import json
 from typing import Any, Dict, List
 
 from rich.console import Console
+
 from shared.config import settings
 
 from .snapshot import fetch_capabilities, fetch_links, fetch_northstar, fetch_symbols
@@ -13923,7 +13979,7 @@ async def run_diff(as_json: bool) -> None:
 
 --- END OF FILE ./src/cli/logic/knowledge_sync/diff.py ---
 
---- START OF FILE ./src/cli/logic/knowledge_sync/import.py ---
+--- START OF FILE ./src/cli/logic/knowledge_sync/import_.py ---
 # src/cli/logic/knowledge_sync/import.py
 """
 Handles importing YAML files into the database for the CORE Working Mind.
@@ -13934,6 +13990,9 @@ from __future__ import annotations
 from typing import Any, Dict
 
 from rich.console import Console
+from sqlalchemy import text
+from sqlalchemy.dialects.postgresql import insert as pg_insert
+
 from services.database.models import (
     Capability,
     CognitiveRole,
@@ -13944,8 +14003,6 @@ from services.database.models import (
 )
 from services.database.session_manager import get_session
 from shared.config import settings
-from sqlalchemy import text
-from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 from .utils import _get_items_from_doc, compute_digest, read_yaml
 
@@ -14111,7 +14168,7 @@ async def run_import(dry_run: bool) -> None:
         "[bold green]✅ Import complete. Database is synchronized with YAML files.[/bold green]"
     )
 
---- END OF FILE ./src/cli/logic/knowledge_sync/import.py ---
+--- END OF FILE ./src/cli/logic/knowledge_sync/import_.py ---
 
 --- START OF FILE ./src/cli/logic/knowledge_sync/snapshot.py ---
 # src/cli/logic/knowledge_sync/snapshot.py
@@ -14126,10 +14183,11 @@ import getpass
 from typing import Any, List
 
 from rich.console import Console
+from sqlalchemy import text
+
 from services.database.session_manager import get_session
 from shared.config import settings
 from shared.time import now_iso
-from sqlalchemy import text
 
 from .utils import write_yaml
 
@@ -14444,6 +14502,7 @@ Verifies the integrity of exported YAML files by checking their digests.
 from __future__ import annotations
 
 from rich.console import Console
+
 from shared.config import settings
 
 from .utils import compute_digest, read_yaml
@@ -14628,574 +14687,6 @@ def log_audit(
 
 --- END OF FILE ./src/cli/logic/log_audit.py ---
 
---- START OF FILE ./src/cli/logic/mind_ssot.py ---
-"""
-Phase 2, 3, & 4: Deterministic DB <-> YAML mirror for the Working Mind.
-This file contains the core logic for the 'snapshot', 'diff', 'import', and 'verify' commands.
-"""
-
-from __future__ import annotations
-
-import asyncio
-import getpass
-import hashlib
-import json
-import uuid
-from pathlib import Path
-from typing import Any, Dict, List, Tuple
-
-import yaml
-from rich.console import Console
-from services.database.models import (
-    Capability,
-    CognitiveRole,
-    LlmResource,
-    Northstar,
-    Symbol,
-    SymbolCapabilityLink,
-)
-from services.database.session_manager import get_session
-from shared.config import settings
-from shared.time import now_iso
-from sqlalchemy import text
-from sqlalchemy.dialects.postgresql import insert as pg_insert
-
-console = Console()
-EXPORT_DIR = settings.REPO_PATH / ".intent" / "mind_export"
-
-# Configuration
-YAML_FILES = {
-    "capabilities": "capabilities.yaml",
-    "symbols": "symbols.yaml",
-    "links": "links.yaml",
-    "northstar": "northstar.yaml",
-    "cognitive_roles": "cognitive_roles.yaml",
-    "resource_manifest": "resource_manifest.yaml",
-}
-
-SNAPSHOT_FILES = ["capabilities", "symbols", "links", "northstar"]
-
-
-# --- Helper Functions ---
-
-
-# ID: f8fbb8f3-eda9-4104-8bc3-a15f0dfa5e50
-def canonicalize(obj: Any) -> Any:
-    """Recursively sorts dictionary keys to ensure a stable, consistent order for hashing."""
-    if isinstance(obj, dict):
-        return {k: canonicalize(obj[k]) for k in sorted(obj.keys())}
-    if isinstance(obj, list):
-        if all(isinstance(i, dict) for i in obj):
-            try:
-                sort_key = next(
-                    (k for k in ("id", "name", "key", "role") if k in obj[0]), None
-                )
-                if sort_key:
-                    return sorted(obj, key=lambda x: str(x.get(sort_key, "")))
-            except (TypeError, IndexError):
-                pass
-        return [canonicalize(x) for x in obj]
-    if isinstance(obj, uuid.UUID):
-        return str(obj)
-    return obj
-
-
-# ID: c93917a5-b94c-4b96-9eae-60fae47985d7
-def compute_digest(items: List[Dict[str, Any]]) -> str:
-    """Creates a unique fingerprint (SHA256) for a list of items."""
-    canon = canonicalize(items)
-    payload = json.dumps(
-        canon, ensure_ascii=False, sort_keys=True, separators=(",", ":")
-    ).encode("utf-8")
-    return "sha256:" + hashlib.sha256(payload).hexdigest()
-
-
-# ID: 96700d48-c9d8-4ebd-ae3f-8a6fdd157f52
-def write_yaml(path: Path, items: List[Dict[str, Any]], exported_at: str) -> str:
-    """Writes a list of items to a YAML file, including version, timestamp, and the unique digest."""
-    stringified_items = [
-        {k: (str(v) if isinstance(v, uuid.UUID) else v) for k, v in item.items()}
-        for item in items
-    ]
-    digest = compute_digest(stringified_items)
-    doc = {
-        "version": 1,
-        "exported_at": exported_at,
-        "items": stringified_items,
-        "digest": digest,
-    }
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w", encoding="utf-8") as f:
-        yaml.safe_dump(doc, f, allow_unicode=True, sort_keys=False, indent=2)
-    return digest
-
-
-def _convert_uuids_in_items(items: List[Dict[str, Any]]) -> None:
-    """Convert string UUIDs back to UUID objects in-place."""
-    for item in items:
-        for key in ["id", "symbol_id", "capability_id"]:
-            if key in item and isinstance(item[key], str):
-                try:
-                    item[key] = uuid.UUID(item[key])
-                except (ValueError, TypeError):
-                    pass
-
-
-# ID: b38101f8-4d92-4a95-82f5-da010176ab8a
-def read_yaml(path: Path) -> Dict[str, Any]:
-    """Reads a YAML file and returns its content, handling missing files."""
-    if not path.exists():
-        return {}
-
-    with path.open("r", encoding="utf-8") as f:
-        data = yaml.safe_load(f) or {}
-
-    # Find the items key and convert UUIDs
-    items_key = next(
-        (k for k in ["items", "llm_resources", "cognitive_roles"] if k in data),
-        None,
-    )
-
-    if items_key and isinstance(data.get(items_key), list):
-        _convert_uuids_in_items(data[items_key])
-
-    return data
-
-
-def _get_diff_links_key(item: Dict[str, Any]) -> str:
-    """Creates a stable composite key for a link dictionary."""
-    return f"{str(item.get('symbol_id', ''))}-{str(item.get('capability_id', ''))}-{item.get('source', '')}"
-
-
-def _get_items_from_doc(doc: Dict[str, Any], doc_name: str) -> List[Dict[str, Any]]:
-    """Extract items from a document using the appropriate key."""
-    possible_keys = [doc_name, "items", "llm_resources", "cognitive_roles"]
-    items_key = next((k for k in possible_keys if k in doc), None)
-    return doc.get(items_key, []) if items_key else []
-
-
-# --- Database Fetcher Functions ---
-
-
-# ID: 530dff8c-42fa-4211-99f1-e0f7421c6c1f
-async def fetch_capabilities() -> List[Dict[str, Any]]:
-    """Reads all capabilities from the database, ordered consistently."""
-    async with get_session() as session:
-        result = await session.execute(
-            text(
-                "SELECT id, name, objective, owner, domain, tags, status "
-                "FROM core.capabilities ORDER BY lower(domain), lower(name), id"
-            )
-        )
-        return [dict(row._mapping) for row in result]
-
-
-# ID: 59794634-4778-4fff-8be1-cad2ea0297f5
-async def fetch_symbols() -> List[Dict[str, Any]]:
-    """Reads all symbols from the database, ordered consistently."""
-    async with get_session() as session:
-        result = await session.execute(
-            text(
-                "SELECT id, module, qualname, kind, ast_signature, fingerprint, state "
-                "FROM core.symbols ORDER BY fingerprint, id"
-            )
-        )
-        return [dict(row._mapping) for row in result]
-
-
-# ID: 755c8426-0a13-4cb0-8057-aaf57f45072b
-async def fetch_links() -> List[Dict[str, Any]]:
-    """Reads all symbol-capability links from the database, ordered consistently."""
-    async with get_session() as session:
-        result = await session.execute(
-            text(
-                "SELECT symbol_id, capability_id, confidence, source, verified "
-                "FROM core.symbol_capability_links "
-                "ORDER BY capability_id, symbol_id, source"
-            )
-        )
-        rows = [dict(row._mapping) for row in result]
-        for r in rows:
-            if "confidence" in r and r["confidence"] is not None:
-                r["confidence"] = float(r["confidence"])
-        return rows
-
-
-# ID: 3eb9d6e7-2bcf-46b1-81c6-f8ed64f83ade
-async def fetch_northstar() -> List[Dict[str, Any]]:
-    """Reads the current North Star mission from the database."""
-    async with get_session() as session:
-        result = await session.execute(
-            text(
-                "SELECT id, mission FROM core.northstar "
-                "ORDER BY updated_at DESC LIMIT 1"
-            )
-        )
-        return [dict(row._mapping) for row in result]
-
-
-# --- Snapshot Logic ---
-
-
-async def _record_snapshot_manifest(
-    digests: List[Tuple[str, str]],
-    who: str,
-    env: str,
-    note: str | None,
-) -> None:
-    """Record the snapshot manifest in the database."""
-    async with get_session() as session:
-        async with session.begin():
-            result = await session.execute(
-                text(
-                    "INSERT INTO core.export_manifests (who, environment, notes) "
-                    "VALUES (:who, :env, :note) RETURNING id"
-                ),
-                {"who": who, "env": env, "note": note},
-            )
-            manifest_id = result.scalar_one()
-
-            for relpath, sha in digests:
-                await session.execute(
-                    text(
-                        """
-                        INSERT INTO core.export_digests (path, sha256, manifest_id)
-                        VALUES (:path, :sha, :manifest_id)
-                        ON CONFLICT (path) DO UPDATE SET
-                          sha256 = EXCLUDED.sha256,
-                          manifest_id = EXCLUDED.manifest_id,
-                          exported_at = NOW()
-                        """
-                    ),
-                    {
-                        "path": str(
-                            EXPORT_DIR.relative_to(settings.REPO_PATH) / relpath
-                        ),
-                        "sha": sha,
-                        "manifest_id": manifest_id,
-                    },
-                )
-
-
-# ID: f9711c2e-e01d-4872-aa1b-3e46916bdd7f
-async def run_snapshot(env: str | None, note: str | None):
-    """The main function that performs the snapshot operation."""
-    EXPORT_DIR.mkdir(parents=True, exist_ok=True)
-    exported_at = now_iso()
-    who = getpass.getuser()
-    env = env or "dev"
-
-    console.print(f"📸 Creating a new snapshot of the database in '{EXPORT_DIR}'...")
-
-    # Fetch all data
-    caps, syms, links, north = await asyncio.gather(
-        fetch_capabilities(), fetch_symbols(), fetch_links(), fetch_northstar()
-    )
-
-    # Write YAML files and collect digests
-    snapshots = [
-        ("capabilities.yaml", caps),
-        ("symbols.yaml", syms),
-        ("links.yaml", links),
-        ("northstar.yaml", north),
-    ]
-
-    digests = [
-        (filename, write_yaml(EXPORT_DIR / filename, data, exported_at))
-        for filename, data in snapshots
-    ]
-
-    # Record in database
-    await _record_snapshot_manifest(digests, who, env, note)
-
-    console.print("[bold green]✅ Snapshot complete.[/bold green]")
-    for filename, sha in digests:
-        console.print(f"  - Wrote '{filename}' with digest: {sha}")
-
-
-# --- Diff Logic ---
-
-
-# ID: 4bba60c1-0edc-40e9-9b63-db1b8260232b
-def diff_sets(
-    db_items: List[Dict[str, Any]], file_items: List[Dict[str, Any]], key: str
-) -> Dict[str, Any]:
-    """Compares two lists of dictionaries based on a key and returns the differences."""
-    db_map = {str(it.get(key)): it for it in db_items if it.get(key)}
-    file_map = {str(it.get(key)): it for it in file_items if it.get(key)}
-
-    only_db = sorted([k for k in db_map if k not in file_map])
-    only_file = sorted([k for k in file_map if k not in db_map])
-
-    changed = []
-    for k in sorted(db_map.keys() & file_map.keys()):
-        db_item = {
-            kk: vv
-            for kk, vv in db_map[k].items()
-            if kk not in ("created_at", "updated_at", "first_seen", "last_seen")
-        }
-        file_item = {
-            kk: vv
-            for kk, vv in file_map[k].items()
-            if kk not in ("created_at", "updated_at", "first_seen", "last_seen")
-        }
-        if canonicalize(db_item) != canonicalize(file_item):
-            changed.append(k)
-
-    return {"only_db": only_db, "only_file": only_file, "changed": changed}
-
-
-# ID: 927db8f4-84c3-419f-b949-7dec1c001729
-async def run_diff(as_json: bool):
-    """Orchestrates the diff operation."""
-    if not EXPORT_DIR.exists():
-        console.print(
-            f"[bold red]Export directory not found: {EXPORT_DIR}. "
-            "Please run 'snapshot' first.[/bold red]"
-        )
-        return
-
-    console.print("🔄 Comparing database state with exported YAML files...")
-
-    db_caps, db_syms, db_links, db_north = await asyncio.gather(
-        fetch_capabilities(), fetch_symbols(), fetch_links(), fetch_northstar()
-    )
-
-    file_caps = read_yaml(EXPORT_DIR / "capabilities.yaml").get("items", [])
-    file_syms = read_yaml(EXPORT_DIR / "symbols.yaml").get("items", [])
-    file_links = read_yaml(EXPORT_DIR / "links.yaml").get("items", [])
-    file_north = read_yaml(EXPORT_DIR / "northstar.yaml").get("items", [])
-
-    output = {
-        "capabilities": diff_sets(db_caps, file_caps, "id"),
-        "symbols": diff_sets(db_syms, file_syms, "id"),
-        "links": diff_sets(
-            [dict(it, key=_get_diff_links_key(it)) for it in db_links],
-            [dict(it, key=_get_diff_links_key(it)) for it in file_links],
-            "key",
-        ),
-        "northstar": {"changed": canonicalize(db_north) != canonicalize(file_north)},
-    }
-
-    if as_json:
-        console.print(json.dumps(output, indent=2))
-    else:
-        console.print("\n[bold]Diff Summary (Database <-> Files):[/bold]")
-        for k, v in output.items():
-            if k == "northstar":
-                status = (
-                    "[red]Changed[/red]" if v["changed"] else "[green]No change[/green]"
-                )
-                console.print(f"  - [cyan]{k.capitalize()}[/cyan]: {status}")
-                continue
-
-            counts = (
-                f"DB-only: {len(v['only_db'])}, "
-                f"File-only: {len(v['only_file'])}, "
-                f"Changed: {len(v['changed'])}"
-            )
-            is_clean = not any(v.values())
-            status = (
-                "[green]Clean[/green]"
-                if is_clean
-                else "[yellow]Drift detected[/yellow]"
-            )
-            console.print(f"  - [cyan]{k.capitalize()}[/cyan]: {status} ({counts})")
-
-
-# --- Import Logic ---
-
-
-async def _upsert_items(session, table_model, items, index_elements):
-    """Generic upsert function for our SSOT tables."""
-    if not items:
-        return
-    stmt = pg_insert(table_model).values(items)
-    update_dict = {
-        c.name: getattr(stmt.excluded, c.name)
-        for c in stmt.table.columns
-        if not c.primary_key
-    }
-    upsert_stmt = stmt.on_conflict_do_update(
-        index_elements=index_elements,
-        set_=update_dict,
-    )
-    await session.execute(upsert_stmt)
-
-
-async def _import_capabilities(session, doc: Dict[str, Any]) -> None:
-    """Import capabilities into the database."""
-    console.print("  -> Importing capabilities...")
-    await _upsert_items(session, Capability, doc.get("items", []), ["id"])
-
-
-async def _import_symbols(session, doc: Dict[str, Any]) -> None:
-    """Import symbols into the database."""
-    console.print("  -> Importing symbols...")
-    await _upsert_items(session, Symbol, doc.get("items", []), ["id"])
-
-
-async def _import_links(session, doc: Dict[str, Any]) -> None:
-    """Import symbol-capability links into the database."""
-    console.print("  -> Importing links...")
-    links_items = doc.get("items", [])
-    if links_items:
-        await session.execute(text("DELETE FROM core.symbol_capability_links;"))
-        await _upsert_items(
-            session,
-            SymbolCapabilityLink,
-            links_items,
-            ["symbol_id", "capability_id", "source"],
-        )
-
-
-async def _import_northstar(session, doc: Dict[str, Any]) -> None:
-    """Import North Star mission into the database."""
-    console.print("  -> Importing North Star...")
-    await _upsert_items(session, Northstar, doc.get("items", []), ["id"])
-
-
-async def _import_llm_resources(session, doc: Dict[str, Any]) -> None:
-    """Import LLM resources into the database."""
-    console.print("  -> Importing LLM resources...")
-    await _upsert_items(session, LlmResource, doc.get("llm_resources", []), ["name"])
-
-
-async def _import_cognitive_roles(session, doc: Dict[str, Any]) -> None:
-    """Import cognitive roles into the database."""
-    console.print("  -> Importing cognitive roles...")
-    await _upsert_items(
-        session, CognitiveRole, doc.get("cognitive_roles", []), ["role"]
-    )
-
-
-async def _perform_import(docs: Dict[str, Dict[str, Any]]) -> None:
-    """Perform the actual database import."""
-    async with get_session() as session:
-        async with session.begin():
-            await _import_capabilities(session, docs["capabilities"])
-            await _import_symbols(session, docs["symbols"])
-            await _import_links(session, docs["links"])
-            await _import_northstar(session, docs["northstar"])
-            await _import_llm_resources(session, docs["resource_manifest"])
-            await _import_cognitive_roles(session, docs["cognitive_roles"])
-
-
-def _verify_digests(docs: Dict[str, Dict[str, Any]]) -> bool:
-    """Verify digests for documents that contain them."""
-    for name, doc in docs.items():
-        if "digest" in doc and "items" in doc:
-            if doc["digest"] != compute_digest(doc["items"]):
-                console.print(
-                    f"[bold red]Digest mismatch in {name}.yaml! "
-                    "Aborting import. Run 'snapshot' to regenerate.[/bold red]"
-                )
-                return False
-    return True
-
-
-def _print_dry_run_summary(docs: Dict[str, Dict[str, Any]]) -> None:
-    """Print what would happen in a dry run."""
-    console.print(
-        "[bold yellow]-- DRY RUN: The following actions would be taken --[/bold yellow]"
-    )
-    for name, doc in docs.items():
-        count = len(_get_items_from_doc(doc, name))
-        console.print(f"  - Upsert {count} {name}.")
-
-
-# ID: 63b88848-dccb-45a9-88bc-b5151b4d4767
-async def run_import(dry_run: bool):
-    """Orchestrates the import operation."""
-    if not EXPORT_DIR.exists():
-        console.print(
-            f"[bold red]Export directory not found: {EXPORT_DIR}. Cannot import.[/bold red]"
-        )
-        return
-
-    # Load all YAML documents
-    docs = {
-        name: read_yaml(EXPORT_DIR / filename) for name, filename in YAML_FILES.items()
-    }
-
-    # Verify digests for files that have them
-    if not _verify_digests(docs):
-        return
-
-    if dry_run:
-        _print_dry_run_summary(docs)
-        return
-
-    await _perform_import(docs)
-    console.print(
-        "[bold green]✅ Import complete. Database is synchronized with YAML files.[/bold green]"
-    )
-
-
-# --- Verify Logic ---
-
-
-# ID: da45c167-d04b-458d-8776-e144d55b01ad
-def run_verify():
-    """Checks digests of exported YAML files to ensure integrity."""
-    if not EXPORT_DIR.exists():
-        console.print(
-            f"[bold red]Export directory not found: {EXPORT_DIR}. Cannot verify.[/bold red]"
-        )
-        return False
-
-    console.print("🔐 Verifying digests of exported YAML files...")
-
-    files_to_check = [
-        "capabilities.yaml",
-        "symbols.yaml",
-        "links.yaml",
-        "northstar.yaml",
-    ]
-    all_ok = True
-
-    for filename in files_to_check:
-        path = EXPORT_DIR / filename
-        if not path.exists():
-            console.print(
-                f"  - [yellow]SKIP[/yellow]: [cyan]{filename}[/cyan] does not exist."
-            )
-            continue
-
-        doc = read_yaml(path)
-        items = doc.get("items", [])
-        expected_digest = doc.get("digest")
-
-        if not expected_digest:
-            console.print(
-                f"  - [red]FAIL[/red]: [cyan]{filename}[/cyan] is missing a digest."
-            )
-            all_ok = False
-            continue
-
-        actual_digest = compute_digest(items)
-
-        if expected_digest == actual_digest:
-            console.print(
-                f"  - [green]PASS[/green]: [cyan]{filename}[/cyan] digest is valid."
-            )
-        else:
-            console.print(
-                f"  - [red]FAIL[/red]: [cyan]{filename}[/cyan] digest mismatch!"
-            )
-            all_ok = False
-
-    if all_ok:
-        console.print("[bold green]✅ All digests are valid.[/bold green]")
-    else:
-        console.print(
-            "[bold red]❌ One or more digests failed verification.[/bold red]"
-        )
-
-    return all_ok
-
---- END OF FILE ./src/cli/logic/mind_ssot.py ---
-
 --- START OF FILE ./src/cli/logic/new.py ---
 # src/system/admin/new.py
 """
@@ -15270,9 +14761,10 @@ from pathlib import Path
 import typer
 from cryptography.hazmat.primitives import serialization
 from dotenv import load_dotenv
-from features.governance.constitutional_auditor import ConstitutionalAuditor
 from rich.console import Console
 from rich.table import Table
+
+from features.governance.constitutional_auditor import ConstitutionalAuditor
 from shared.config import settings
 from shared.context import CoreContext
 from shared.logger import getLogger
@@ -15520,16 +15012,17 @@ import uuid
 from pathlib import Path
 
 import typer
+from rich.console import Console
+
 from core.agents.execution_agent import ExecutionAgent
 from core.agents.micro_planner import MicroPlannerAgent
 from core.agents.plan_executor import PlanExecutor
 from core.prompt_pipeline import PromptPipeline
 from features.governance.micro_proposal_validator import MicroProposalValidator
-from rich.console import Console
 from shared.config import settings
 from shared.context import CoreContext
 from shared.logger import getLogger
-from shared.models import PlannerConfig
+from shared.models import ExecutionTask, PlannerConfig
 
 console = Console()
 log = getLogger("proposals_micro")
@@ -15570,12 +15063,12 @@ def micro_propose(
     console.print(json.dumps(plan, indent=2))
     console.print("To apply this plan, run:")
     console.print(
-        f"[bold]poetry run core-admin proposals micro apply {proposal_file}[/bold]"
+        f"[bold]poetry run core-admin manage proposals micro apply {proposal_file}[/bold]"
     )
 
 
 # ID: 96a9659e-613a-4403-8cbe-623fa793a19f
-def micro_apply(
+async def micro_apply(
     context: CoreContext,
     proposal_path: Path,
 ):
@@ -15585,7 +15078,11 @@ def micro_apply(
     try:
         proposal_content = proposal_path.read_text(encoding="utf-8")
         proposal_data = json.loads(proposal_content)
-        plan = proposal_data.get("plan", [])
+        # --- THIS IS THE FIX ---
+        # We now explicitly convert the list of dictionaries into a list of ExecutionTask objects.
+        plan_dicts = proposal_data.get("plan", [])
+        plan = [ExecutionTask(**task) for task in plan_dicts]
+        # --- END OF FIX ---
     except Exception as e:
         console.print(f"[bold red]❌ Error loading proposal file: {e}[/bold red]")
         raise typer.Exit(code=1)
@@ -15614,6 +15111,7 @@ def micro_apply(
         text=True,
         check=False,
     )
+
     if result.returncode != 0:
         console.print(
             "[bold red]❌ Pre-flight audit check failed. Aborting.[/bold red]"
@@ -15640,11 +15138,8 @@ def micro_apply(
             plan_executor=plan_executor,
             auditor_context=auditor_context,
         )
-
-        success, message = asyncio.run(
-            execution_agent.execute_plan(
-                high_level_goal=proposal_data.get("goal", ""), plan=plan
-            )
+        success, message = await execution_agent.execute_plan(
+            high_level_goal=proposal_data.get("goal", ""), plan=plan
         )
 
         if success:
@@ -15676,7 +15171,7 @@ def register(app: typer.Typer, context: CoreContext):
     ):
         """Wrapper to pass CoreContext to the micro_apply logic."""
         core_context: CoreContext = ctx.obj
-        micro_apply(context=core_context, proposal_path=proposal_path)
+        asyncio.run(micro_apply(context=core_context, proposal_path=proposal_path))
 
     @micro_app.command("propose")
     # ID: 327e580b-283d-4b76-8980-f3dd6b14bfb1
@@ -15706,9 +15201,10 @@ import asyncio
 import typer
 import yaml
 from rich.console import Console
+from sqlalchemy import text
+
 from services.repositories.db.engine import get_session
 from shared.config import settings
-from sqlalchemy import text
 
 console = Console()
 CLI_REGISTRY_PATH = (
@@ -16083,6 +15579,8 @@ from typing import Optional
 
 # --- END OF AMENDMENT ---
 import typer
+from dotenv import load_dotenv
+
 from core.agents.execution_agent import ExecutionAgent
 from core.agents.plan_executor import PlanExecutor
 from core.agents.planner_agent import PlannerAgent
@@ -16092,7 +15590,6 @@ from core.file_handler import FileHandler
 from core.git_service import GitService
 from core.knowledge_service import KnowledgeService
 from core.prompt_pipeline import PromptPipeline
-from dotenv import load_dotenv
 from features.governance.audit_context import AuditorContext
 from features.introspection.vectorization_service import run_vectorize
 from shared.config import settings
@@ -16313,8 +15810,9 @@ from __future__ import annotations
 import asyncio
 
 import typer
-from features.introspection.sync_service import run_sync_with_db
 from rich.console import Console
+
+from features.introspection.sync_service import run_sync_with_db
 
 console = Console()
 
@@ -16368,9 +15866,10 @@ import asyncio
 import typer
 import yaml
 from rich.console import Console
+from sqlalchemy import text
+
 from services.repositories.db.engine import get_session
 from shared.config import settings
-from sqlalchemy import text
 
 console = Console()
 
@@ -16450,10 +15949,11 @@ import asyncio
 import typer
 from rich.console import Console
 from ruamel.yaml import YAML  # Use ruamel.yaml for safer writing
+from sqlalchemy import text
+
 from services.repositories.db.engine import get_session
 from shared.config import settings
 from shared.logger import getLogger
-from sqlalchemy import text
 
 log = getLogger("core_admin.sync_manifest")
 console = Console()
@@ -16531,9 +16031,10 @@ import asyncio
 from typing import Optional
 
 import typer
+from rich.console import Console
+
 from core.crate_processing_service import process_crates
 from features.project_lifecycle.integration_service import integrate_changes
-from rich.console import Console
 from shared.context import CoreContext
 
 console = Console()
@@ -16576,8 +16077,9 @@ This is the new, governed home for logic from standalone scripts.
 from __future__ import annotations
 
 import typer
-from features.maintenance.maintenance_service import rewire_imports
 from rich.console import Console
+
+from features.maintenance.maintenance_service import rewire_imports
 
 console = Console()
 tools_app = typer.Typer(
@@ -16697,6 +16199,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import typer
 from jsonschema import ValidationError, validate
+
 from shared.config_loader import load_yaml_file
 from shared.logger import getLogger
 
@@ -17332,6 +16835,7 @@ from __future__ import annotations
 import uuid
 
 import yaml
+
 from shared.logger import getLogger
 from shared.models import PlanExecutionError, TaskParams
 
@@ -17401,26 +16905,47 @@ from __future__ import annotations
 from core.actions.base import ActionHandler
 from core.actions.context import PlanExecutorContext
 from features.self_healing.docstring_service import _async_fix_docstrings
+from features.self_healing.header_service import _run_header_fix_cycle
+from shared.config import settings
 from shared.models import TaskParams
 
 
-# ID: 1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6e
+# ID: 8142a384-8b64-4a40-9ab2-900b8461f1ad
 class FixDocstringsHandler(ActionHandler):
     """Handles the 'autonomy.self_healing.fix_docstrings' action."""
 
     @property
-    # ID: 2b3c4d5e-6f7a-8b9c-0d1e-2f3a4b5c6f7a
+    # ID: cf7e0b6a-d647-4d8b-a514-6a15eda0e9d7
     def name(self) -> str:
         """Return the unique identifier for this self-healing module."""
         return "autonomy.self_healing.fix_docstrings"
 
-    # ID: 3c4d5e6f-7a8b-9c0d-1e2f-3a4b5c6d7e8b
+    # ID: 552bceca-5f87-4c7d-9b71-ced2830721e9
     async def execute(self, params: TaskParams, context: PlanExecutorContext):
         """
         Executes the docstring fixing logic by calling the dedicated service.
         This action does not run in dry-run mode; it always applies changes.
         """
         await _async_fix_docstrings(dry_run=False)
+
+
+# ID: 90dc8e4d-8cda-4b80-ac5d-c0663f4d305d
+class FixHeadersHandler(ActionHandler):
+    """Handles the 'autonomy.self_healing.fix_headers' action."""
+
+    @property
+    # ID: da56f842-5674-4bde-af83-bb4077ac8afa
+    def name(self) -> str:
+        return "autonomy.self_healing.fix_headers"
+
+    # ID: 06da4266-6087-41d7-a745-e9cce27aec94
+    async def execute(self, params: TaskParams, context: PlanExecutorContext):
+        """Executes the header fixing logic for all Python files."""
+        src_dir = settings.REPO_PATH / "src"
+        all_py_files = [
+            str(p.relative_to(settings.REPO_PATH)) for p in src_dir.rglob("*.py")
+        ]
+        _run_header_fix_cycle(dry_run=False, all_py_files=all_py_files)
 
 --- END OF FILE ./src/core/actions/healing_actions.py ---
 
@@ -17437,13 +16962,11 @@ from typing import Dict, List, Optional, Type
 from shared.logger import getLogger
 
 from .base import ActionHandler
-
-# --- START: Import the new handler ---
 from .code_actions import CreateFileHandler, EditFileHandler, EditFunctionHandler
 from .file_actions import DeleteFileHandler, ListFilesHandler, ReadFileHandler
-
-# --- END: Import the new handler ---
 from .governance_actions import CreateProposalHandler
+from .healing_actions import FixDocstringsHandler, FixHeadersHandler
+from .validation_actions import ValidateCodeHandler
 
 log = getLogger("action_registry")
 
@@ -17466,9 +16989,10 @@ class ActionRegistry:
             CreateFileHandler,
             EditFileHandler,
             CreateProposalHandler,
-            # --- START: Register the new handler ---
             EditFunctionHandler,
-            # --- END: Register the new handler ---
+            FixHeadersHandler,
+            FixDocstringsHandler,
+            ValidateCodeHandler,
         ]
 
         for handler_class in handlers_to_register:
@@ -17486,6 +17010,42 @@ class ActionRegistry:
         return self._handlers.get(action_name)
 
 --- END OF FILE ./src/core/actions/registry.py ---
+
+--- START OF FILE ./src/core/actions/validation_actions.py ---
+# src/core/actions/validation_actions.py
+"""
+Action handlers for validation and verification tasks.
+"""
+from __future__ import annotations
+
+from core.actions.base import ActionHandler
+from core.actions.context import PlanExecutorContext
+from shared.logger import getLogger
+from shared.models import TaskParams
+
+log = getLogger("validation_actions")
+
+
+# ID: a4e534f9-b6a0-4151-a3ee-9c2fcc0ec87f
+class ValidateCodeHandler(ActionHandler):
+    """A handler for the 'core.validation.validate_code' action."""
+
+    @property
+    # ID: 29a5f80d-3a24-4d06-a1ad-0403c376319b
+    def name(self) -> str:
+        return "core.validation.validate_code"
+
+    # ID: 38c34fa0-6443-46ee-a636-e18a28fb0a81
+    async def execute(self, params: TaskParams, context: PlanExecutorContext):
+        """This is a no-op as validation is performed before execution."""
+        log.info(
+            "Step 'core.validation.validate_code' acknowledged. Pre-flight validation already completed."
+        )
+        # This action does nothing because the real validation happens
+        # in the `micro_apply` command's pre-flight check.
+        pass
+
+--- END OF FILE ./src/core/actions/validation_actions.py ---
 
 --- START OF FILE ./src/core/agents/__init__.py ---
 # src/agents/__init__.py
@@ -17508,12 +17068,12 @@ from typing import List
 from pydantic import ValidationError
 from rich.console import Console
 from rich.syntax import Syntax
+
+from core.prompt_pipeline import PromptPipeline
 from shared.config import settings
 from shared.logger import getLogger
 from shared.models import ExecutionTask, PlanExecutionError
 from shared.utils.parsing import extract_json_from_response
-
-from core.prompt_pipeline import PromptPipeline
 
 log = getLogger(__name__)
 
@@ -17937,12 +17497,11 @@ from __future__ import annotations
 import json
 from typing import Any, Dict, List
 
+from core.agents.base_planner import parse_and_validate_plan
+from core.cognitive_service import CognitiveService
 from shared.config import settings
 from shared.logger import getLogger
 from shared.models import PlanExecutionError
-
-from core.agents.base_planner import parse_and_validate_plan
-from core.cognitive_service import CognitiveService
 
 log = getLogger("micro_planner_agent")
 
@@ -18347,12 +17906,12 @@ from typing import Any, Dict, Optional
 
 from rich.console import Console
 from rich.table import Table
-from shared.config import settings
-from shared.logger import getLogger
-from shared.utils.parallel_processor import ThrottledParallelProcessor
 
 from core.cognitive_service import CognitiveService
 from core.knowledge_service import KnowledgeService
+from shared.config import settings
+from shared.logger import getLogger
+from shared.utils.parallel_processor import ThrottledParallelProcessor
 
 log = getLogger("tagger_agent")
 
@@ -18614,6 +18173,8 @@ import asyncio
 from pathlib import Path
 from typing import Any, Dict, Optional
 
+from sqlalchemy import select
+
 # --- MODIFIED: Import the new configuration service ---
 from services.config_service import config_service
 from services.database.models import CognitiveRole, LlmResource
@@ -18624,7 +18185,6 @@ from services.llm.providers.ollama import OllamaProvider
 from services.llm.providers.openai import OpenAIProvider
 from services.llm.resource_selector import ResourceSelector
 from shared.logger import getLogger
-from sqlalchemy import select
 
 log = getLogger(__name__)
 
@@ -19803,6 +19363,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import httpx
+
 from shared.logger import getLogger
 
 logger = getLogger(Path(__file__).stem)
@@ -20188,6 +19749,10 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, Dict, List, Tuple
 
 import black
+
+from core.black_formatter import format_code_with_black
+from core.ruff_linter import fix_and_lint_code_with_ruff
+from core.syntax_checker import check_syntax
 from features.governance.checks.import_rules import ImportRulesCheck
 
 # --- START: IMPORT THE NEW SERVICE ---
@@ -20195,10 +19760,6 @@ from features.governance.runtime_validator import RuntimeValidatorService
 
 # --- END: IMPORT THE NEW SERVICE ---
 from shared.models import AuditFinding
-
-from core.black_formatter import format_code_with_black
-from core.ruff_linter import fix_and_lint_code_with_ruff
-from core.syntax_checker import check_syntax
 
 from .validation_policies import PolicyValidator
 from .validation_quality import QualityChecker
@@ -20488,10 +20049,11 @@ import importlib
 from pathlib import Path
 from typing import Any, Dict
 
+from sqlalchemy import text
+
 from services.repositories.db.engine import get_session
 from shared.config import settings
 from shared.logger import getLogger
-from sqlalchemy import text
 
 log = getLogger("service_registry")
 
@@ -21316,6 +20878,7 @@ from pathlib import Path
 from typing import Any, Dict
 
 import yaml
+
 from core.knowledge_service import KnowledgeService
 from shared.logger import getLogger
 
@@ -21450,9 +21013,8 @@ from __future__ import annotations
 
 from typing import List, Set
 
-from shared.models import AuditFinding, AuditSeverity
-
 from features.governance.audit_context import AuditorContext
+from shared.models import AuditFinding, AuditSeverity
 
 
 # ID: 979ce56f-7f3c-40e7-8736-ce219bab6ad8
@@ -21524,10 +21086,9 @@ from __future__ import annotations
 
 from typing import List
 
+from features.governance.audit_context import AuditorContext
 from shared.models import AuditFinding, AuditSeverity
 from shared.utils.yaml_processor import yaml_processor
-
-from features.governance.audit_context import AuditorContext
 
 
 # ID: 0cd8ad5a-ed46-4f18-8335-f95b747d6164
@@ -21591,11 +21152,11 @@ import asyncio
 from typing import Any, Dict, List
 
 from rich.progress import track
+
+from features.governance.audit_context import AuditorContext
 from services.clients.qdrant_client import QdrantService
 from shared.logger import getLogger
 from shared.models import AuditFinding, AuditSeverity
-
-from features.governance.audit_context import AuditorContext
 
 log = getLogger("duplication_check")
 
@@ -21714,9 +21275,8 @@ from __future__ import annotations
 
 import os
 
-from shared.models import AuditFinding, AuditSeverity
-
 from features.governance.checks.base_check import BaseCheck
+from shared.models import AuditFinding, AuditSeverity
 
 
 # ID: 0c3965b7-b3f3-4fb6-bbbb-c94a1ffae3fe
@@ -21764,11 +21324,10 @@ from __future__ import annotations
 
 from typing import List, Set
 
+from features.governance.checks.base_check import BaseCheck
 from shared.config import settings
 from shared.models import AuditFinding, AuditSeverity
 from shared.utils.constitutional_parser import get_all_constitutional_paths
-
-from features.governance.checks.base_check import BaseCheck
 
 KNOWN_UNINDEXED_FILES = {
     ".intent/charter/constitution/approvers.yaml.example",
@@ -21871,9 +21430,9 @@ from pathlib import Path
 from typing import List
 
 from radon.visitors import ComplexityVisitor
-from shared.models import AuditFinding, AuditSeverity
 
 from features.governance.checks.base_check import BaseCheck
+from shared.models import AuditFinding, AuditSeverity
 
 
 # ID: 64e34c49-4bad-4d35-8de7-df4f67b51adc
@@ -22012,10 +21571,9 @@ from __future__ import annotations
 import ast
 from typing import List
 
+from features.governance.checks.base_check import BaseCheck
 from shared.ast_utility import find_symbol_id_and_def_line
 from shared.models import AuditFinding, AuditSeverity
-
-from features.governance.checks.base_check import BaseCheck
 
 
 # ID: 3501ed8c-8366-4ad7-9ab4-7dcf4c045c70
@@ -22082,9 +21640,8 @@ import re
 from collections import defaultdict
 from typing import Dict, List
 
-from shared.models import AuditFinding, AuditSeverity
-
 from features.governance.checks.base_check import BaseCheck
+from shared.models import AuditFinding, AuditSeverity
 
 # Pre-compiled regex for efficiency to find '# ID: <uuid>'
 ID_TAG_REGEX = re.compile(
@@ -22154,11 +21711,11 @@ import ast
 from pathlib import Path
 from typing import Dict, List, Set
 
-from services.repositories.db.engine import get_session
-from shared.models import AuditFinding, AuditSeverity
 from sqlalchemy import text
 
 from features.governance.audit_context import AuditorContext
+from services.repositories.db.engine import get_session
+from shared.models import AuditFinding, AuditSeverity
 
 
 def _scan_imports(file_path: Path, content: str | None = None) -> List[str]:
@@ -22732,9 +22289,8 @@ from __future__ import annotations
 
 import re
 
-from shared.models import AuditFinding, AuditSeverity
-
 from features.governance.checks.base_check import BaseCheck
+from shared.models import AuditFinding, AuditSeverity
 
 
 # ID: 0649c22b-9336-490b-9ffd-25e202924301
@@ -22810,9 +22366,8 @@ from __future__ import annotations
 
 from typing import List
 
-from shared.models import AuditFinding, AuditSeverity
-
 from features.governance.checks.base_check import BaseCheck
+from shared.models import AuditFinding, AuditSeverity
 
 
 # ID: 3de1c035-00f6-4de2-b778-2b7baaf4594b
@@ -22868,9 +22423,8 @@ from __future__ import annotations
 import re
 from typing import List
 
-from shared.models import AuditFinding, AuditSeverity
-
 from features.governance.audit_context import AuditorContext
+from shared.models import AuditFinding, AuditSeverity
 
 
 # ID: 48100636-3970-4d7b-835a-1a4279ef3717
@@ -22941,9 +22495,8 @@ from __future__ import annotations
 
 from typing import Any, Dict, List
 
-from shared.models import AuditFinding, AuditSeverity
-
 from features.governance.audit_context import AuditorContext
+from shared.models import AuditFinding, AuditSeverity
 
 
 # ID: f7064ae9-8396-4e53-b550-f85b482fb2a5
@@ -23020,9 +22573,8 @@ from __future__ import annotations
 
 import re
 
-from shared.models import AuditFinding, AuditSeverity
-
 from features.governance.checks.base_check import BaseCheck
+from shared.models import AuditFinding, AuditSeverity
 
 
 # ID: e5596ce5-1529-4670-864a-5bd8adfc160d
@@ -23098,9 +22650,8 @@ from __future__ import annotations
 
 import ast
 
-from shared.models import AuditFinding, AuditSeverity
-
 from features.governance.checks.base_check import BaseCheck
+from shared.models import AuditFinding, AuditSeverity
 
 
 # ID: fd4ffac0-217f-4b9c-9a70-3a0106779421
@@ -23170,10 +22721,6 @@ from pathlib import Path
 from typing import Any, List, Tuple
 
 from rich.console import Console
-from services.database.session_manager import get_session
-from shared.config import settings
-from shared.logger import getLogger
-from shared.models import AuditFinding, AuditSeverity
 from sqlalchemy.ext.asyncio import (
     AsyncConnection,
     AsyncEngine,
@@ -23198,6 +22745,10 @@ from features.governance.checks.naming_conventions import NamingConventionsCheck
 from features.governance.checks.orphaned_logic import OrphanedLogicCheck
 from features.governance.checks.security_checks import SecurityChecks
 from features.governance.checks.style_checks import StyleChecks
+from services.database.session_manager import get_session
+from shared.config import settings
+from shared.logger import getLogger
+from shared.models import AuditFinding, AuditSeverity
 
 log = getLogger("constitutional_auditor")
 console = Console()
@@ -23608,6 +23159,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 from pydantic import BaseModel
+
 from shared.config import settings
 from shared.logger import getLogger
 
@@ -23873,6 +23425,7 @@ import tempfile
 from pathlib import Path
 
 from rich.console import Console
+
 from shared.logger import getLogger
 
 log = getLogger("runtime_validator")
@@ -24016,6 +23569,7 @@ from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Set
 
 import yaml
+
 from shared.logger import getLogger
 from shared.models import CapabilityMeta
 
@@ -24263,6 +23817,7 @@ from pathlib import Path
 from typing import Dict
 
 import yaml
+
 from shared.logger import getLogger
 from shared.models import CapabilityMeta
 
@@ -24417,12 +23972,11 @@ from pathlib import Path
 from typing import Dict
 
 from core.knowledge_service import KnowledgeService
-from shared.models import CapabilityMeta, DriftReport
-
 from features.introspection.discovery.from_manifest import (
     load_manifest_capabilities,
 )
 from features.introspection.drift_detector import detect_capability_drift
+from shared.models import CapabilityMeta, DriftReport
 
 
 # ID: 58d789bd-6dc5-440d-ad53-efb8a204b4d3
@@ -24466,6 +24020,7 @@ from pathlib import Path
 import typer
 from rich.console import Console
 from rich.progress import track
+
 from services.clients.qdrant_client import QdrantService
 from shared.logger import getLogger
 
@@ -24541,9 +24096,10 @@ from __future__ import annotations
 import asyncio
 
 from rich.console import Console
+from sqlalchemy import text
+
 from services.repositories.db.engine import get_session
 from shared.config import settings
-from sqlalchemy import text
 
 console = Console()
 
@@ -24656,6 +24212,7 @@ from pathlib import Path
 import typer
 import yaml
 from rich.console import Console
+
 from shared.logger import getLogger
 
 log = getLogger("generate_correction_map")
@@ -24816,6 +24373,8 @@ from pathlib import Path
 from typing import Any, Dict, List
 
 import yaml
+from sqlalchemy import text
+
 from services.repositories.db.engine import get_session
 from shared.ast_utility import (
     FunctionCallVisitor,
@@ -24827,7 +24386,6 @@ from shared.ast_utility import (
 )
 from shared.config import settings
 from shared.logger import getLogger
-from sqlalchemy import text
 
 log = getLogger("knowledge_graph_builder")
 
@@ -25314,6 +24872,7 @@ from pathlib import Path
 import numpy as np
 import typer
 from dotenv import load_dotenv
+
 from shared.logger import getLogger
 
 try:
@@ -25396,10 +24955,11 @@ import uuid
 from typing import Any, Dict, List
 
 from rich.console import Console
+from sqlalchemy import text
+
 from services.database.session_manager import get_session
 from shared.ast_utility import calculate_structural_hash
 from shared.config import settings
-from sqlalchemy import text
 
 console = Console()
 
@@ -25606,15 +25166,16 @@ import hashlib
 from pathlib import Path
 from typing import Dict, List, Optional
 
-from core.cognitive_service import CognitiveService
 from rich.console import Console
 from rich.progress import track
+from sqlalchemy import text
+
+from core.cognitive_service import CognitiveService
 from services.clients.qdrant_client import QdrantService
 from services.database.session_manager import get_session
 from shared.config import settings
 from shared.logger import getLogger
 from shared.utils.embedding_utils import normalize_text
-from sqlalchemy import text
 
 log = getLogger("core_admin.knowledge.orchestrator")
 console = Console()
@@ -25840,10 +25401,11 @@ from typing import Any, Dict, List
 
 import typer
 from rich.console import Console
-from services.database.models import CliCommand
-from services.database.session_manager import get_session
 from sqlalchemy import delete
 from sqlalchemy.dialects.postgresql import insert as pg_insert
+
+from services.database.models import CliCommand
+from services.database.session_manager import get_session
 
 console = Console()
 
@@ -25936,12 +25498,13 @@ from typing import Any, Dict, List
 
 from rich.console import Console
 from rich.table import Table
-from services.database.session_manager import get_session
-from shared.config import settings
-from shared.logger import getLogger
 from sqlalchemy import Boolean, Column, DateTime, Text, func
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import declarative_base
+
+from services.database.session_manager import get_session
+from shared.config import settings
+from shared.logger import getLogger
 
 log = getLogger("dotenv_sync_service")
 console = Console()
@@ -26062,6 +25625,7 @@ from __future__ import annotations
 import re
 
 from rich.console import Console
+
 from shared.config import settings
 
 console = Console()
@@ -26170,9 +25734,10 @@ from typing import Any, Dict, List
 
 import yaml
 from rich.console import Console
+from sqlalchemy import text
+
 from services.database.session_manager import get_session
 from shared.config import settings
-from sqlalchemy import text
 
 console = Console()
 
@@ -26322,6 +25887,7 @@ from typing import Optional
 
 import typer
 from rich.console import Console
+
 from shared.logger import getLogger
 
 log = getLogger("core_admin.bootstrap")
@@ -26442,16 +26008,16 @@ import asyncio
 from functools import partial
 from typing import Any, Dict, List, Set
 
-from core.cognitive_service import CognitiveService
 from rich.console import Console
+from sqlalchemy import text
+
+from core.cognitive_service import CognitiveService
+from features.introspection.knowledge_helpers import extract_source_code
 from services.clients.qdrant_client import QdrantService
 from services.database.session_manager import get_session
 from shared.config import settings
 from shared.logger import getLogger
 from shared.utils.parallel_processor import ThrottledParallelProcessor
-from sqlalchemy import text
-
-from features.introspection.knowledge_helpers import extract_source_code
 
 console = Console()
 log = getLogger("definition_service")
@@ -26616,14 +26182,14 @@ async def define_new_symbols(cognitive_service: CognitiveService):
 from __future__ import annotations
 
 from rich.console import Console
-from shared.config import settings
-from shared.context import CoreContext
 
 from features.governance.constitutional_auditor import ConstitutionalAuditor
 from features.introspection.sync_service import run_sync_with_db
 from features.introspection.vectorization_service import run_vectorize
 from features.project_lifecycle.definition_service import define_new_symbols
 from features.self_healing.id_tagging_service import assign_missing_ids
+from shared.config import settings
+from shared.context import CoreContext
 
 console = Console()
 
@@ -26885,6 +26451,101 @@ def new_project(
 [EMPTY FILE]
 --- END OF FILE ./src/features/self_healing/__init__.py ---
 
+--- START OF FILE ./src/features/self_healing/capability_tagging_service.py ---
+# src/features/self_healing/capability_tagging_service.py
+"""
+Provides the service logic for using an AI agent to suggest and apply
+capability tags to untagged public symbols in the codebase.
+"""
+
+from __future__ import annotations
+
+import asyncio
+from pathlib import Path
+from typing import Optional
+
+from rich.console import Console
+
+from core.agents.tagger_agent import CapabilityTaggerAgent
+from core.cognitive_service import CognitiveService
+from core.knowledge_service import KnowledgeService
+from features.introspection.knowledge_graph_service import KnowledgeGraphBuilder
+from services.database.session_manager import get_session
+from shared.config import settings
+from shared.logger import getLogger
+
+log = getLogger("capability_tagging_service")
+console = Console()
+REPO_ROOT = settings.REPO_PATH
+
+
+async def _async_tag_capabilities(
+    cognitive_service: CognitiveService,
+    knowledge_service: KnowledgeService,
+    file_path: Optional[Path],
+    write: bool,
+):
+    """The core async logic for the capability tagging process."""
+    agent = CapabilityTaggerAgent(cognitive_service, knowledge_service)
+
+    suggestions = await agent.suggest_and_apply_tags(
+        file_path=file_path.as_posix() if file_path else None
+    )
+
+    if not suggestions:
+        console.print(
+            "[bold green]✅ No new public capabilities to register.[/bold green]"
+        )
+        return
+
+    if not write:
+        console.print(
+            "[bold yellow]💧 Dry Run: Run with --write to apply suggested capability tags.[/bold yellow]"
+        )
+        return
+
+    console.print(
+        f"\n[bold green]✅ Applying {len(suggestions)} new capability tags to source code...[/bold green]"
+    )
+
+    async with get_session() as session:
+        async with session.begin():
+            for key, new_info in suggestions.items():
+                suggested_name = new_info["suggestion"]
+                graph = await knowledge_service.get_graph()
+                source_file_path = REPO_ROOT / new_info["file"]
+                lines = source_file_path.read_text("utf-8").splitlines()
+                symbol_data = graph["symbols"][new_info["key"]]
+                line_to_tag = symbol_data["line_number"] - 1
+
+                original_line = lines[line_to_tag]
+                indentation = len(original_line) - len(original_line.lstrip(" "))
+                tag_line = f"{' ' * indentation}# ID: {suggested_name}"
+
+                lines.insert(line_to_tag, tag_line)
+                source_file_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+                console.print(f"   -> Tagged '{suggested_name}' in {new_info['file']}")
+
+    log.info("🧠 Rebuilding knowledge graph to reflect changes...")
+    builder = KnowledgeGraphBuilder(REPO_ROOT)
+    await builder.build_and_sync()
+    log.info("✅ Knowledge graph successfully updated.")
+
+
+# ID: 1651d1d3-f58c-4fce-8662-c9591c70edf7
+def tag_unassigned_capabilities(
+    cognitive_service: CognitiveService,
+    knowledge_service: KnowledgeService,
+    file_path: Optional[Path],
+    write: bool,
+):
+    """Synchronous wrapper for the capability tagging service."""
+    asyncio.run(
+        _async_tag_capabilities(cognitive_service, knowledge_service, file_path, write)
+    )
+
+--- END OF FILE ./src/features/self_healing/capability_tagging_service.py ---
+
 --- START OF FILE ./src/features/self_healing/clarity_service.py ---
 # src/system/admin/fixer_clarity.py
 """
@@ -26898,8 +26559,9 @@ import asyncio
 from pathlib import Path
 
 import typer
-from core.cognitive_service import CognitiveService
 from rich.console import Console
+
+from core.cognitive_service import CognitiveService
 from shared.config import settings
 from shared.logger import getLogger
 
@@ -26959,6 +26621,27 @@ def fix_clarity(
     asyncio.run(_async_fix_clarity(file_path, dry_run=not write))
 
 --- END OF FILE ./src/features/self_healing/clarity_service.py ---
+
+--- START OF FILE ./src/features/self_healing/code_style_service.py ---
+# src/features/self_healing/code_style_service.py
+"""
+Provides the service logic for formatting code according to constitutional style rules.
+"""
+
+from __future__ import annotations
+
+from shared.utils.subprocess_utils import run_poetry_command
+
+
+# ID: 5c5890b0-8c2f-4d9a-a4e2-0f7b6a5c4e3b
+def format_code():
+    """Format all code in the `src` and `tests` directories using Black and Ruff with automatic fixes."""
+    run_poetry_command("✨ Formatting code with Black...", ["black", "src", "tests"])
+    run_poetry_command(
+        "✨ Fixing code with Ruff...", ["ruff", "check", "src", "tests", "--fix"]
+    )
+
+--- END OF FILE ./src/features/self_healing/code_style_service.py ---
 
 --- START OF FILE ./src/features/self_healing/complexity_service.py ---
 # src/features/self_healing/complexity_service.py
@@ -27191,13 +26874,13 @@ from __future__ import annotations
 import asyncio
 
 import typer
+from rich.progress import track
+
 from core.cognitive_service import CognitiveService
 from core.knowledge_service import KnowledgeService
-from rich.progress import track
+from features.introspection.knowledge_helpers import extract_source_code
 from shared.config import settings
 from shared.logger import getLogger
-
-from features.introspection.knowledge_helpers import extract_source_code
 
 log = getLogger("core_admin.fixer_docstrings")
 REPO_ROOT = settings.REPO_PATH
@@ -27311,11 +26994,11 @@ from collections import defaultdict
 from typing import Dict, List, Tuple
 
 from rich.console import Console
-from services.database.session_manager import get_session
-from shared.config import settings
 from sqlalchemy import text
 
 from features.governance.checks.id_uniqueness_check import IdUniquenessCheck
+from services.database.session_manager import get_session
+from shared.config import settings
 
 console = Console()
 
@@ -27441,17 +27124,17 @@ import asyncio
 from functools import partial
 from typing import Any, Dict, List
 
-from core.cognitive_service import CognitiveService
 from rich.console import Console
+from sqlalchemy import text
+
+from core.cognitive_service import CognitiveService
+from features.introspection.knowledge_helpers import extract_source_code
 from services.clients.qdrant_client import QdrantService
 from services.database.session_manager import get_session
 from shared.config import settings
 from shared.logger import getLogger
 from shared.utils.parallel_processor import ThrottledParallelProcessor
 from shared.utils.parsing import extract_json_from_response
-from sqlalchemy import text
-
-from features.introspection.knowledge_helpers import extract_source_code
 
 console = Console()
 log = getLogger("enrichment_service")
@@ -27608,6 +27291,7 @@ from typing import Any, Dict
 import typer
 import yaml
 from rich.console import Console
+
 from shared.config import settings
 from shared.logger import getLogger
 
@@ -27729,8 +27413,11 @@ tool to enforce constitutional style rules on Python file headers.
 
 from __future__ import annotations
 
+import asyncio
+
 from rich.progress import track
 
+from features.introspection.knowledge_graph_service import KnowledgeGraphBuilder
 from shared.config import settings
 from shared.logger import getLogger
 from shared.utils.header_tools import HeaderTools
@@ -27748,8 +27435,6 @@ def _run_header_fix_cycle(dry_run: bool, all_py_files: list[str]):
         file_path = REPO_ROOT / file_path_str
         try:
             original_content = file_path.read_text(encoding="utf-8")
-            # --- THIS IS THE FIX ---
-            # The HeaderTools class is now correctly used to parse the content.
             header = HeaderTools.parse(original_content)
 
             # Check for violations that need fixing
@@ -27791,6 +27476,12 @@ def _run_header_fix_cycle(dry_run: bool, all_py_files: list[str]):
             (REPO_ROOT / file_path_str).write_text(new_code, "utf-8")
         log.info("   -> ✅ All header fixes have been applied.")
 
+        # Rebuild the knowledge graph after making changes
+        log.info("🧠 Rebuilding knowledge graph to reflect all changes...")
+        builder = KnowledgeGraphBuilder(REPO_ROOT)
+        asyncio.run(builder.build_and_sync())
+        log.info("✅ Knowledge graph successfully updated.")
+
 --- END OF FILE ./src/features/self_healing/header_service.py ---
 
 --- START OF FILE ./src/features/self_healing/id_tagging_service.py ---
@@ -27802,6 +27493,7 @@ import uuid
 from collections import defaultdict
 
 from rich.console import Console
+
 from shared.ast_utility import find_symbol_id_and_def_line
 from shared.config import settings
 
@@ -27899,16 +27591,17 @@ from pathlib import Path
 from typing import List, Optional
 
 import typer
+from rich.progress import track
+
 from core.cognitive_service import CognitiveService
 
 # --- START OF AMENDMENT: Import the new async validator ---
 from core.validation_pipeline import validate_code_async
-from rich.progress import track
-from shared.config import settings
-from shared.logger import getLogger
 
 # --- END OF AMENDMENT ---
 from features.governance.audit_context import AuditorContext
+from shared.config import settings
+from shared.logger import getLogger
 
 log = getLogger("core_admin.fixer_linelength")
 REPO_ROOT = settings.REPO_PATH
@@ -28033,6 +27726,7 @@ import uuid
 
 import yaml
 from rich.console import Console
+
 from shared.config import settings
 
 console = Console()
@@ -28111,7 +27805,6 @@ from __future__ import annotations
 import asyncio
 
 import typer
-from core.knowledge_service import KnowledgeService
 from qdrant_client import AsyncQdrantClient
 
 # --- START OF AMENDMENT: Import the correct model ---
@@ -28119,6 +27812,8 @@ from qdrant_client.http.models import PointIdsList
 
 # --- END OF AMENDMENT ---
 from rich.console import Console
+
+from core.knowledge_service import KnowledgeService
 from shared.config import settings
 from shared.logger import getLogger
 
@@ -28238,8 +27933,9 @@ import asyncio
 import re
 
 import typer
-from core.knowledge_service import KnowledgeService
 from rich.console import Console
+
+from core.knowledge_service import KnowledgeService
 from shared.config import settings
 from shared.logger import getLogger
 
@@ -28742,6 +28438,7 @@ import time
 from typing import Any, List
 
 import httpx
+
 from shared.config import settings
 from shared.logger import getLogger
 
@@ -29128,11 +28825,11 @@ from __future__ import annotations
 import asyncio
 from typing import Any, Dict
 
-from shared.config import settings
-from shared.logger import getLogger
 from sqlalchemy import text
 
 from services.database.session_manager import get_session
+from shared.config import settings
+from shared.logger import getLogger
 
 log = getLogger("config_service")
 
@@ -31110,7 +30807,11 @@ from pydantic import BaseModel, Field
 class TaskParams(BaseModel):
     """Parameters for a single task in an execution plan."""
 
-    file_path: str
+    # --- THIS IS THE FIX ---
+    # The file_path is now optional to allow for tasks that don't operate on a single file.
+    file_path: Optional[str] = None
+    # --- END OF FIX ---
+
     code: Optional[str] = None
     symbol_name: Optional[str] = None
     justification: Optional[str] = None
@@ -32121,6 +31822,54 @@ def parse_write_blocks(text: str) -> Dict[str, str]:
 
 --- END OF FILE ./src/shared/utils/parsing.py ---
 
+--- START OF FILE ./src/shared/utils/subprocess_utils.py ---
+# src/shared/utils/subprocess_utils.py
+"""
+Provides shared utilities for running external commands as subprocesses.
+"""
+
+from __future__ import annotations
+
+import shutil
+import subprocess
+
+import typer
+from rich.console import Console
+
+from shared.logger import getLogger
+
+log = getLogger("subprocess_utils")
+console = Console()
+
+
+# ID: 71034daa-0b93-4c24-910b-d1413b470795
+def run_poetry_command(description: str, command: list[str]):
+    """Helper to run a command via Poetry, log it, and handle errors."""
+    POETRY_EXECUTABLE = shutil.which("poetry")
+    if not POETRY_EXECUTABLE:
+        log.error("❌ Could not find 'poetry' executable in your PATH.")
+        raise typer.Exit(code=1)
+
+    typer.secho(f"\n{description}", bold=True)
+    full_command = [POETRY_EXECUTABLE, "run", *command]
+    try:
+        result = subprocess.run(
+            full_command, check=True, text=True, capture_output=True
+        )
+        if result.stdout:
+            console.print(result.stdout)
+        if result.stderr:
+            console.print(f"[yellow]{result.stderr}[/yellow]")
+    except subprocess.CalledProcessError as e:
+        log.error(f"\n❌ Command failed: {' '.join(full_command)}")
+        if e.stdout:
+            console.print(e.stdout)
+        if e.stderr:
+            console.print(f"[bold red]{e.stderr}[/bold red]")
+        raise typer.Exit(code=1)
+
+--- END OF FILE ./src/shared/utils/subprocess_utils.py ---
+
 --- START OF FILE ./src/shared/utils/yaml_processor.py ---
 # src/shared/utils/yaml_processor.py
 """
@@ -32410,13 +32159,14 @@ from pathlib import Path
 
 import pytest
 import yaml
-from services.database.models import Base
-from shared.config import settings
 from sqlalchemy.ext.asyncio import (
     AsyncSession,
     async_sessionmaker,
     create_async_engine,
 )
+
+from services.database.models import Base
+from shared.config import settings
 
 
 @pytest.fixture(scope="session")

@@ -3,8 +3,8 @@ from __future__ import annotations
 
 import asyncio
 import json
-import subprocess
 import tempfile
+import time
 import uuid
 from pathlib import Path
 
@@ -13,12 +13,14 @@ from core.agents.execution_agent import ExecutionAgent
 from core.agents.micro_planner import MicroPlannerAgent
 from core.agents.plan_executor import PlanExecutor
 from core.prompt_pipeline import PromptPipeline
+from features.governance.constitutional_auditor import ConstitutionalAuditor
 from features.governance.micro_proposal_validator import MicroProposalValidator
 from rich.console import Console
+from shared.action_logger import action_logger
 from shared.config import settings
 from shared.context import CoreContext
 from shared.logger import getLogger
-from shared.models import PlannerConfig
+from shared.models import ExecutionTask, PlannerConfig
 
 console = Console()
 log = getLogger("proposals_micro")
@@ -59,65 +61,65 @@ def micro_propose(
     console.print(json.dumps(plan, indent=2))
     console.print("To apply this plan, run:")
     console.print(
-        f"[bold]poetry run core-admin proposals micro apply {proposal_file}[/bold]"
+        f"[bold]poetry run core-admin manage proposals micro apply {proposal_file}[/bold]"
     )
 
 
 # ID: 96a9659e-613a-4403-8cbe-623fa793a19f
-def micro_apply(
+async def micro_apply(
     context: CoreContext,
     proposal_path: Path,
 ):
     """Validates and applies a micro-proposal."""
     console.print(f"🔵 Loading and applying micro-proposal: {proposal_path.name}")
+    start_time = time.monotonic()
 
     try:
         proposal_content = proposal_path.read_text(encoding="utf-8")
         proposal_data = json.loads(proposal_content)
-        plan = proposal_data.get("plan", [])
+        plan_dicts = proposal_data.get("plan", [])
+        plan = [ExecutionTask(**task) for task in plan_dicts]
     except Exception as e:
         console.print(f"[bold red]❌ Error loading proposal file: {e}[/bold red]")
         raise typer.Exit(code=1)
 
-    # 1. Zero-Trust Validation
-    console.print(
-        "[bold]Step 1/3: Validating plan against constitutional policy...[/bold]"
+    action_logger.log_event(
+        "a1.apply.started",
+        {"proposal": proposal_path.name, "goal": proposal_data.get("goal")},
     )
-    validator = MicroProposalValidator()
-    is_valid, validation_error = validator.validate(plan)
-    if not is_valid:
-        console.print(
-            f"[bold red]❌ Plan is constitutionally invalid: {validation_error}[/bold red]"
-        )
-        raise typer.Exit(code=1)
-    console.print("   -> ✅ Plan is valid.")
 
-    # 2. Gather Evidence via CI Checks
-    console.print("[bold]Step 2/3: Gathering evidence via pre-flight checks...[/bold]")
-
-    # --- THIS IS THE FIX ---
-    # The command was changed from "validate code" to the correct "check audit".
-    command_to_run = "check audit"
-    console.print("   -> Running full system audit check...")
-    result = subprocess.run(
-        ["poetry", "run", "core-admin", *command_to_run.split()],
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-    # --- END OF FIX ---
-
-    if result.returncode != 0:
-        console.print(
-            "[bold red]❌ Pre-flight audit check failed. Aborting.[/bold red]"
-        )
-        console.print(result.stderr or result.stdout)
-        raise typer.Exit(code=1)
-    console.print("   -> ✅ All pre-flight checks passed.")
-
-    # 3. Apply the Change via ExecutionAgent
-    console.print("[bold]Step 3/3: Executing the validated plan...[/bold]")
     try:
+        # 1. Zero-Trust Validation
+        console.print(
+            "[bold]Step 1/3: Validating plan against constitutional policy...[/bold]"
+        )
+        validator = MicroProposalValidator()
+        is_valid, validation_error = validator.validate(plan)
+        if not is_valid:
+            raise RuntimeError(f"Plan is constitutionally invalid: {validation_error}")
+        console.print("   -> ✅ Plan is valid.")
+
+        # 2. Gather Evidence via CI Checks (IN-PROCESS)
+        console.print(
+            "[bold]Step 2/3: Gathering evidence via pre-flight checks...[/bold]"
+        )
+        console.print("   -> Running full system audit check (in-process)...")
+
+        # --- THIS IS THE FIX ---
+        auditor = ConstitutionalAuditor(context.auditor_context)
+        passed, findings, _ = await auditor.run_full_audit_async()
+
+        if not passed:
+            error_details = "\n".join(
+                [f.message for f in findings if f.severity.is_blocking]
+            )
+            raise RuntimeError(f"Pre-flight audit check failed:\n{error_details}")
+        # --- END OF FIX ---
+
+        console.print("   -> ✅ All pre-flight checks passed.")
+
+        # 3. Apply the Change via ExecutionAgent
+        console.print("[bold]Step 3/3: Executing the validated plan...[/bold]")
         cognitive_service = context.cognitive_service
         prompt_pipeline = PromptPipeline(settings.REPO_PATH)
         plan_executor = PlanExecutor(
@@ -126,31 +128,39 @@ def micro_apply(
             config=PlannerConfig(),
         )
         auditor_context = context.auditor_context
-
         execution_agent = ExecutionAgent(
             cognitive_service=cognitive_service,
             prompt_pipeline=prompt_pipeline,
             plan_executor=plan_executor,
             auditor_context=auditor_context,
         )
-
-        success, message = asyncio.run(
-            execution_agent.execute_plan(
-                high_level_goal=proposal_data.get("goal", ""), plan=plan
+        success, message = await execution_agent.execute_plan(
+            high_level_goal=proposal_data.get("goal", ""), plan=plan
+        )
+        if not success:
+            raise RuntimeError(
+                f"ExecutionAgent reported failure during plan application: {message}"
             )
+
+        duration = time.monotonic() - start_time
+        action_logger.log_event(
+            "a1.apply.succeeded",
+            {"proposal": proposal_path.name, "duration_sec": round(duration, 2)},
+        )
+        console.print(
+            "[bold green]✅ Micro-proposal applied successfully![/bold green]"
         )
 
-        if success:
-            console.print(
-                "[bold green]✅ Micro-proposal applied successfully![/bold green]"
-            )
-        else:
-            console.print(
-                f"[bold red]❌ ExecutionAgent reported failure during plan application: {message}[/bold red]"
-            )
-            raise typer.Exit(code=1)
-
     except Exception as e:
+        duration = time.monotonic() - start_time
+        action_logger.log_event(
+            "a1.apply.failed",
+            {
+                "proposal": proposal_path.name,
+                "error": str(e),
+                "duration_sec": round(duration, 2),
+            },
+        )
         console.print(f"[bold red]❌ Error during plan execution: {e}[/bold red]")
         raise typer.Exit(code=1)
 
@@ -169,7 +179,7 @@ def register(app: typer.Typer, context: CoreContext):
     ):
         """Wrapper to pass CoreContext to the micro_apply logic."""
         core_context: CoreContext = ctx.obj
-        micro_apply(context=core_context, proposal_path=proposal_path)
+        asyncio.run(micro_apply(context=core_context, proposal_path=proposal_path))
 
     @micro_app.command("propose")
     # ID: 327e580b-283d-4b76-8980-f3dd6b14bfb1
