@@ -643,6 +643,66 @@ rules:
 
 --- END OF FILE ./.intent/charter/policies/code/code_style_policy.yaml ---
 
+--- START OF FILE ./.intent/charter/policies/code/dependency_injection_policy.yaml ---
+policy_id: "a1b2c3d4-e5f6-7a8b-9c0d-e6f7a8b9c0d1"
+id: dependency_injection_policy
+version: "1.1.0" # Version bump for new category field
+title: "Dependency Injection Policy"
+status: active
+purpose: >
+  To enforce a strict Dependency Injection (DI) pattern across the service and
+  feature layers. This ensures loose coupling, high testability, and a clear
+  flow of dependencies from a single composition root.
+
+scope:
+  applies_to: [code, auditor]
+
+owners:
+  primary: "Core Maintainer"
+  reviewers: ["Governance Lead"]
+
+review:
+  frequency: "annual"
+
+rules:
+  - id: di.no_direct_instantiation
+    statement: "Services and features MUST NOT directly instantiate other major services. Dependencies MUST be injected via the constructor."
+    enforcement: error
+    category: architectural # <-- ADD THIS
+    scope:
+      - "src/features/**/*.py"
+      - "src/services/**/*.py"
+    exclusions:
+      - "src/cli/admin_cli.py"
+      - "src/features/governance/runtime_validator.py"
+    forbidden_instantiations:
+      - "CognitiveService"
+      - "GitService"
+      - "ConstitutionalAuditor"
+      - "QdrantService"
+      - "ActionRegistry"
+      - "PlanExecutor"
+      - "SelfHealingAdvisor"
+      - "CapabilityInvoker"
+      - "CoderAgent"
+
+  - id: di.no_global_session_import
+    statement: "Modules within 'features' and 'services' MUST NOT directly import `get_session`. The database session MUST be injected."
+    enforcement: error
+    category: architectural # <-- ADD THIS
+    scope:
+      - "src/features/**/*.py"
+      - "src/services/repositories/**/*.py"
+    forbidden_imports:
+      - "services.database.session_manager.get_session"
+      - "services.repositories.db.engine.get_session"
+
+  - id: di.constructor_injection_preferred
+    statement: "Services SHOULD receive their dependencies through the `__init__` constructor, with type hints."
+    enforcement: warn
+    category: architectural # <-- ADD THIS
+--- END OF FILE ./.intent/charter/policies/code/dependency_injection_policy.yaml ---
+
 --- START OF FILE ./.intent/charter/policies/code/naming_conventions_policy.yaml ---
 policy_id: fae5215d-a1ee-424f-b5e1-46b08cecc5b9
 # .intent/charter/policies/naming_conventions_policy.yaml
@@ -912,7 +972,7 @@ checklist:
 --- START OF FILE ./.intent/charter/policies/governance/audit_ignore_policy.yaml ---
 policy_id: 232934da-44d6-4ddc-9404-162382caddb7
 id: audit_ignore_policy
-version: "1.0.3" # Version bump for comprehensive symbol ignores
+version: "1.2.0" # Use correct symbol key format for ignores
 title: "Audit Ignore Policy"
 status: active
 purpose: >
@@ -923,379 +983,173 @@ scope:
 owners:
   accountable: "Core Maintainer"
 review:
-  frequency: "semiannual"
+  frequency: "semannual"
 
 rules:
   - id: ignore.must_expire
-    statement: Every ignore MUST include an 'expires' date to force review.
+    statement: "Every ignore MUST include an 'expires' date to force review."
     enforcement: warn
   - id: ignore.must_have_reason
-    statement: Every ignore MUST include a reason.
+    statement: "Every ignore MUST include a reason."
     enforcement: error
 
-ignores:
-  - path: "src/**/generated/**"
-    reason: "Generated code; excluded from style/health checks."
-    expires: "2026-01-01"
-  - path: "vendor/**"
-    reason: "Third-party code; owned externally."
-    expires: "2026-01-01"
-  - check_id: "knowledge.source.direct_access"
-    path: "src/features/governance/checks/knowledge_source_check.py"
-    reason: "This check must contain the string 'knowledge_graph.json' to perform its function. It is an intentional and safe usage."
-    expires: "2026-01-01"
+ignores: []
 
 symbol_ignores:
-  - key: "src/core/intent_guard.py::_get_rules_by_severity"
-    reason: "Internal helper method, not a public capability."
+  # --- UNASSIGNED BUT VALID (Internal Helpers) ---
+  - key: "cli.interactive.run_command"
+    reason: "Internal helper for the interactive menu, not a governable capability."
     expires: "2026-01-01"
-  - key: "src/features/governance/checks/health_checks.py::HealthChecks"
-    reason: "Temporarily ignoring self-duplication warnings after major refactor."
-    expires: "2025-12-01"
-  - key: "src/features/governance/checks/style_checks.py::StyleChecks"
-    reason: "Temporarily ignoring self-duplication warnings after major refactor."
-    expires: "2025-12-01"
-  - key: "src/features/governance/checks/security_checks.py::SecurityChecks"
-    reason: "Temporarily ignoring self-duplication warnings after major refactor."
-    expires: "2025-12-01"
-  - key: "src/features/governance/checks/file_checks.py::FileChecks"
-    reason: "Temporarily ignoring self-duplication warnings after major refactor."
-    expires: "2025-12-01"
-  - key: "src/features/governance/checks/manifest_lint.py::ManifestLintCheck"
-    reason: "Temporarily ignoring self-duplication warnings after major refactor."
-    expires: "2025-12-01"
-  - key: "src/features/governance/checks/capability_coverage.py::CapabilityCoverageCheck"
-    reason: "Temporarily ignoring self-duplication warnings after major refactor."
-    expires: "2025-12-01"
-  - key: "src/cli/commands/check.py::register"
-    reason: "Boilerplate CLI registration function."
+
+  # --- ACTION HANDLERS (Structurally Similar by Design Pattern) ---
+  - key: "core.actions.code_actions.CreateFileHandler"
+    reason: "Boilerplate Action Handler structure."
     expires: "2026-01-01"
-  - key: "src/cli/commands/fix.py::register"
-    reason: "Boilerplate CLI registration function."
+  - key: "core.actions.code_actions.EditFileHandler"
+    reason: "Boilerplate Action Handler structure."
     expires: "2026-01-01"
-  - key: "src/cli/commands/inspect.py::register"
-    reason: "Boilerplate CLI registration function."
+  - key: "core.actions.file_actions.DeleteFileHandler"
+    reason: "Boilerplate Action Handler structure."
     expires: "2026-01-01"
-  - key: "src/cli/commands/manage.py::register"
-    reason: "Boilerplate CLI registration function."
+  - key: "core.actions.file_actions.ListFilesHandler"
+    reason: "Boilerplate Action Handler structure."
     expires: "2026-01-01"
-  - key: "src/cli/commands/run.py::register"
-    reason: "Boilerplate CLI registration function."
+  - key: "core.actions.file_actions.ReadFileHandler"
+    reason: "Boilerplate Action Handler structure."
     expires: "2026-01-01"
-  - key: "src/cli/commands/search.py::register"
-    reason: "Boilerplate CLI registration function."
+  - key: "core.actions.healing_actions.FixDocstringsHandler"
+    reason: "Boilerplate Action Handler structure."
     expires: "2026-01-01"
-  - key: "src/cli/commands/submit.py::register"
-    reason: "Boilerplate CLI registration function."
+  - key: "core.actions.healing_actions.FixHeadersHandler"
+    reason: "Boilerplate Action Handler structure."
     expires: "2026-01-01"
-  - key: "src/cli/logic/agent.py::register"
-    reason: "Boilerplate CLI registration function."
+  - key: "core.actions.healing_actions.FormatCodeHandler"
+    reason: "Boilerplate Action Handler structure."
     expires: "2026-01-01"
-  - key: "src/cli/logic/audit_capability_domains.py::register"
-    reason: "Boilerplate CLI registration function."
+
+  # --- DATA MODELS (Structurally Similar by Declaration) ---
+  - key: "services.database.models.Action"
+    reason: "Database ORM model."
     expires: "2026-01-01"
-  - key: "src/cli/logic/build.py::register"
-    reason: "Boilerplate CLI registration function."
+  - key: "services.database.models.Capability"
+    reason: "Database ORM model."
     expires: "2026-01-01"
-  - key: "src/cli/logic/byor.py::register"
-    reason: "Boilerplate CLI registration function."
+  - key: "services.database.models.CliCommand"
+    reason: "Database ORM model."
     expires: "2026-01-01"
-  - key: "src/cli/logic/capability.py::register"
-    reason: "Boilerplate CLI registration function."
+  - key: "services.database.models.Domain"
+    reason: "Database ORM model."
     expires: "2026-01-01"
-  - key: "src/cli/logic/chat.py::register"
-    reason: "Boilerplate CLI registration function."
+  - key: "services.database.models.LlmResource"
+    reason: "Database ORM model."
     expires: "2026-01-01"
-  - key: "src/cli/logic/check.py::register"
-    reason: "Boilerplate CLI registration function."
+  - key: "services.database.models.Migration"
+    reason: "Database ORM model."
     expires: "2026-01-01"
-  - key: "src/cli/logic/db.py::register"
-    reason: "Boilerplate CLI registration function."
+  - key: "services.database.models.Northstar"
+    reason: "Database ORM model."
     expires: "2026-01-01"
-  - key: "src/cli/logic/embeddings_cli.py::register"
-    reason: "Boilerplate CLI registration function."
+  - key: "services.database.models.RuntimeService"
+    reason: "Database ORM model."
     expires: "2026-01-01"
-  - key: "src/cli/logic/fixer.py::register"
-    reason: "Boilerplate CLI registration function."
+  - key: "services.database.models.Symbol"
+    reason: "Database ORM model."
     expires: "2026-01-01"
-  - key: "src/cli/logic/guard.py::register"
-    reason: "Boilerplate CLI registration function."
+  - key: "services.database.models.SymbolCapabilityLink"
+    reason: "Database ORM model."
     expires: "2026-01-01"
-  - key: "src/cli/logic/hub.py::register"
-    reason: "Boilerplate CLI registration function."
+  - key: "services.database.models.Task"
+    reason: "Database ORM model."
     expires: "2026-01-01"
-  - key: "src/cli/logic/knowledge_sync.py::register"
-    reason: "Boilerplate CLI registration function."
+  - key: "features.maintenance.dotenv_sync_service.RuntimeSetting"
+    reason: "Database ORM model."
     expires: "2026-01-01"
-  - key: "src/cli/logic/new.py::register"
-    reason: "Boilerplate CLI registration function."
+  - key: "shared.legacy_models.LegacyCliCommand"
+    reason: "Legacy data model for migration."
     expires: "2026-01-01"
-  - key: "src/cli/logic/reviewer.py::register"
-    reason: "Boilerplate CLI registration function."
+  - key: "shared.legacy_models.LegacyCliRegistry"
+    reason: "Legacy data model for migration."
     expires: "2026-01-01"
-  - key: "src/cli/logic/run.py::register"
-    reason: "Boilerplate CLI registration function."
+  - key: "shared.legacy_models.LegacyCognitiveRole"
+    reason: "Legacy data model for migration."
     expires: "2026-01-01"
-  - key: "src/cli/logic/system.py::set_context"
-    reason: "Boilerplate CLI context setter."
+  - key: "shared.legacy_models.LegacyLlmResource"
+    reason: "Legacy data model for migration."
     expires: "2026-01-01"
-  - key: "src/cli/logic/tools.py::register"
-    reason: "Boilerplate CLI registration function."
+
+  # --- CLI WRAPPERS & UTILITIES (Structurally Similar by Function) ---
+  - key: "cli.commands.fix.fix_policy_ids_command"
+    reason: "Simple CLI wrapper around a service call."
     expires: "2026-01-01"
-  - key: "src/cli/logic/validate.py::register"
-    reason: "Boilerplate CLI registration function."
+  - key: "features.self_healing.policy_id_service.add_missing_policy_ids"
+    reason: "Simple CLI wrapper around a service call."
     expires: "2026-01-01"
-  - key: "src/features/governance/key_management_service.py::register"
-    reason: "Boilerplate CLI registration function."
+  - key: "cli.logic.audit.lint"
+    reason: "Simple CLI wrapper around a tool."
     expires: "2026-01-01"
-  - key: "src/features/project_lifecycle/bootstrap_service.py::register"
-    reason: "Boilerplate CLI registration function."
+  - key: "cli.logic.audit.test_system"
+    reason: "Simple CLI wrapper around a tool."
     expires: "2026-01-01"
-  - key: "src/features/governance/checks/base_check.py::BaseCheck"
-    reason: "Base class for auditors, not a capability."
+  - key: "cli.logic.list_audits.list_audits"
+    reason: "Simple DB query and print function."
     expires: "2026-01-01"
-  - key: "src/features/governance/checks/knowledge_source_check.py::CheckResult"
-    reason: "Data class for check results, not a capability."
+  - key: "cli.logic.log_audit.log_audit"
+    reason: "Simple DB write function."
     expires: "2026-01-01"
-  - key: "src/features/governance/checks/legacy_tag_check.py::LegacyTagCheck"
-    reason: "Auditor check class, not a standalone capability."
+  - key: "cli.logic.report.report"
+    reason: "Simple DB query and print function."
     expires: "2026-01-01"
-  - key: "src/features/governance/checks/id_uniqueness_check.py::IdUniquenessCheck"
-    reason: "Auditor check class, not a standalone capability."
+  - key: "shared.utils.subprocess_utils.run_poetry_command"
+    reason: "Simple utility function."
     expires: "2026-01-01"
-  - key: "src/features/governance/checks/import_rules.py::ImportRulesCheck"
-    reason: "Auditor check class, not a standalone capability."
+  - key: "cli.logic.reviewer.docs_clarity_audit"
+    reason: "High-level CLI orchestrator."
     expires: "2026-01-01"
-  - key: "src/features/governance/checks/environment_checks.py::EnvironmentChecks"
-    reason: "Auditor check class, not a standalone capability."
+  - key: "cli.logic.reviewer.peer_review"
+    reason: "High-level CLI orchestrator."
     expires: "2026-01-01"
-  - key: "src/features/governance/checks/knowledge_source_check.py::KnowledgeSourceCheck"
-    reason: "Auditor check class, not a standalone capability."
+  - key: "cli.interactive.show_development_menu"
+    reason: "UI function with boilerplate structure."
     expires: "2026-01-01"
-  - key: "src/features/governance/checks/orphaned_logic.py::OrphanedLogicCheck"
-    reason: "Auditor check class, not a standalone capability."
+  - key: "cli.interactive.show_governance_menu"
+    reason: "UI function with boilerplate structure."
     expires: "2026-01-01"
-  - key: "src/features/governance/constitutional_auditor.py::ConstitutionalAuditor"
-    reason: "Core service class, not a standalone capability."
+  - key: "cli.interactive.show_system_menu"
+    reason: "UI function with boilerplate structure."
     expires: "2026-01-01"
-  - key: "src/features/governance/policy_coverage_service.py::PolicyCoverageService"
-    reason: "Core service class, not a standalone capability."
+  - key: "cli.interactive.show_project_lifecycle_menu"
+    reason: "UI function with boilerplate structure."
     expires: "2026-01-01"
-  - key: "src/features/introspection/sync_service.py::SymbolVisitor"
-    reason: "Internal AST visitor, not a public capability."
+  - key: "cli.logic.hub.hub_list"
+    reason: "High-level CLI orchestrator."
     expires: "2026-01-01"
-  - key: "src/services/clients/llm_api_client.py::BaseLLMClient"
-    reason: "Base class, not a direct capability."
+  - key: "cli.logic.hub.hub_search"
+    reason: "High-level CLI orchestrator."
     expires: "2026-01-01"
-  - key: "src/services/llm/resource_selector.py::ResourceSelector"
-    reason: "Core service class, not a standalone capability."
+  - key: "cli.logic.hub.hub_whereis"
+    reason: "High-level CLI orchestrator."
     expires: "2026-01-01"
-  - key: "src/shared/config.py::Settings"
-    reason: "Configuration data model, not a capability."
+  - key: "cli.logic.hub.hub_doctor"
+    reason: "High-level CLI orchestrator."
     expires: "2026-01-01"
-  - key: "src/shared/utils/embedding_utils.py::EmbeddingService"
-    reason: "Utility class, not a primary capability."
+  - key: "features.introspection.discovery.from_kgb.collect_from_kgb"
+    reason: "High-level service orchestrator."
     expires: "2026-01-01"
-  - key: "src/services/database/models.py::CognitiveRole"
-    reason: "Database ORM model, not a capability."
+  - key: "features.introspection.discovery.from_source_scan.collect_from_source_scan"
+    reason: "High-level service orchestrator."
     expires: "2026-01-01"
-  - key: "src/shared/legacy_models.py::LegacyCognitiveRoles"
-    reason: "Legacy data model."
+  - key: "services.database.session_manager.get_session"
+    reason: "Simple factory function."
     expires: "2026-01-01"
-  - key: "src/shared/legacy_models.py::LegacyResourceManifest"
-    reason: "Legacy data model."
+  - key: "services.repositories.db.engine.get_session"
+    reason: "Simple factory function."
     expires: "2026-01-01"
-  - key: "src/shared/models/drift_models.py::DriftReport"
-    reason: "Data model, not an executable capability."
+  - key: "cli.logic.diagnostics.debug_meta_paths"
+    reason: "Simple diagnostic utility."
     expires: "2026-01-01"
-  - key: "src/cli/logic/run.py::run_development_cycle"
-    reason: "High-level orchestrator, not a single capability."
+  - key: "shared.utils.constitutional_parser.get_all_constitutional_paths"
+    reason: "Simple utility function."
     expires: "2026-01-01"
-  - key: "src/features/introspection/sync_service.py::run_sync_with_db"
-    reason: "High-level orchestrator, not a single capability."
-    expires: "2026-01-01"
-  - key: "src/features/introspection/vectorization_service.py::run_vectorize"
-    reason: "High-level orchestrator, not a single capability."
-    expires: "2026-01-01"
-  - key: "src/features/self_healing/id_tagging_service.py::assign_missing_ids"
-    reason: "Self-healing script."
-    expires: "2026-01-01"
-  - key: "src/features/self_healing/purge_legacy_tags_service.py::purge_legacy_tags"
-    reason: "Self-healing script."
-    expires: "2026-01-01"
-  - key: "src/features/project_lifecycle/scaffolding_service.py::new_project"
-    reason: "High-level CLI command orchestrator."
-    expires: "2026-01-01"
-  - key: "src/features/maintenance/maintenance_service.py::rewire_imports"
-    reason: "High-level maintenance script."
-    expires: "2026-01-01"
-  - key: "src/features/introspection/generate_capability_docs.py::main"
-    reason: "Script entrypoint, not a capability."
-    expires: "2026-01-01"
-  - key: "src/features/introspection/audit_unassigned_capabilities.py::get_unassigned_symbols"
-    reason: "Internal audit helper, not a capability."
-    expires: "2026-01-01"
-  - key: "src/core/crate_processing_service.py::process_crates"
-    reason: "High-level orchestrator, not a distinct capability."
-    expires: "2026-01-01"
-  - key: "src/core/agents/self_correction_engine.py::attempt_correction"
-    reason: "Internal agent logic, not a public capability."
-    expires: "2026-01-01"
-  - key: "src/services/repositories/db/engine.py::get_session"
-    reason: "Internal DB utility, not a public capability."
-    expires: "2026-01-01"
-  - key: "src/cli/commands/run.py::develop"
-    reason: "CLI command wrapper function."
-    expires: "2026-01-01"
-  - key: "src/cli/logic/knowledge_sync.py::sync_operational"
-    reason: "Internal CLI logic, not a public capability."
-    expires: "2026-01-01"
-  - key: "src/cli/logic/run.py::vectorize_capabilities"
-    reason: "CLI command wrapper function."
-    expires: "2026-01-01"
-  - key: "src/cli/logic/status.py::status"
-    reason: "CLI command wrapper function."
-    expires: "2026-01-01"
-  - key: "src/cli/logic/embeddings_cli.py::vectorize_cmd"
-    reason: "CLI command wrapper function."
-    expires: "2026-01-01"
-  # --- START: NEWLY ADDED IGNORES ---
-  - key: "src/cli/commands/manage.py::approve_command_wrapper"
-    reason: "CLI command wrapper function."
-    expires: "2026-01-01"
-  - key: "src/cli/commands/manage.py::dotenv_sync_command"
-    reason: "CLI command wrapper function."
-    expires: "2026-01-01"
-  - key: "src/cli/logic/agent.py::agent_scaffold"
-    reason: "CLI command wrapper function."
-    expires: "2026-01-01"
-  - key: "src/cli/logic/agent.py::scaffold_new_application"
-    reason: "High-level orchestrator, not a single capability."
-    expires: "2026-01-01"
-  - key: "src/cli/logic/fixer.py::assign_ids_command"
-    reason: "CLI command wrapper function."
-    expires: "2026-01-01"
-  - key: "src/cli/logic/fixer.py::fix_headers_cmd"
-    reason: "CLI command wrapper function."
-    expires: "2026-01-01"
-  - key: "src/cli/logic/fixer.py::fix_policy_ids_command"
-    reason: "CLI command wrapper function."
-    expires: "2026-01-01"
-  - key: "src/cli/logic/fixer.py::fix_tags_cmd_wrapper"
-    reason: "CLI command wrapper function."
-    expires: "2026-01-01"
-  - key: "src/cli/logic/fixer.py::format_code_wrapper"
-    reason: "CLI command wrapper function."
-    expires: "2026-01-01"
-  - key: "src/cli/logic/fixer.py::purge_legacy_tags_command"
-    reason: "CLI command wrapper function."
-    expires: "2026-01-01"
-  - key: "src/cli/logic/knowledge_sync/diff.py::diff_sets"
-    reason: "Internal helper, not a public capability."
-    expires: "2026-01-01"
-  - key: "src/cli/logic/knowledge_sync/diff.py::run_diff"
-    reason: "High-level orchestrator, not a single capability."
-    expires: "2026-01-01"
-  - key: "src/cli/logic/knowledge_sync/import.py::run_import"
-    reason: "High-level orchestrator, not a single capability."
-    expires: "2026-01-01"
-  - key: "src/cli/logic/knowledge_sync/snapshot.py::fetch_capabilities"
-    reason: "Internal helper, not a public capability."
-    expires: "2026-01-01"
-  - key: "src/cli/logic/knowledge_sync/snapshot.py::fetch_links"
-    reason: "Internal helper, not a public capability."
-    expires: "2026-01-01"
-  - key: "src/cli/logic/knowledge_sync/snapshot.py::fetch_northstar"
-    reason: "Internal helper, not a public capability."
-    expires: "2026-01-01"
-  - key: "src/cli/logic/knowledge_sync/snapshot.py::fetch_symbols"
-    reason: "Internal helper, not a public capability."
-    expires: "2026-01-01"
-  - key: "src/cli/logic/knowledge_sync/snapshot.py::run_snapshot"
-    reason: "High-level orchestrator, not a single capability."
-    expires: "2026-01-01"
-  - key: "src/cli/logic/knowledge_sync/utils.py::canonicalize"
-    reason: "Utility function."
-    expires: "2026-01-01"
-  - key: "src/cli/logic/knowledge_sync/utils.py::compute_digest"
-    reason: "Utility function."
-    expires: "2026-01-01"
-  - key: "src/cli/logic/knowledge_sync/utils.py::read_yaml"
-    reason: "Utility function."
-    expires: "2026-01-01"
-  - key: "src/cli/logic/knowledge_sync/utils.py::write_yaml"
-    reason: "Utility function."
-    expires: "2026-01-01"
-  - key: "src/cli/logic/knowledge_sync/verify.py::run_verify"
-    reason: "High-level orchestrator, not a single capability."
-    expires: "2026-01-01"
-  - key: "src/cli/logic/mind_ssot.py::read_yaml"
-    reason: "Utility function."
-    expires: "2026-01-01"
-  - key: "src/cli/logic/mind_ssot.py::run_import"
-    reason: "High-level orchestrator, not a single capability."
-    expires: "2026-01-01"
-  - key: "src/cli/logic/mind_ssot.py::run_snapshot"
-    reason: "High-level orchestrator, not a single capability."
-    expires: "2026-01-01"
-  - key: "src/cli/logic/proposal_service.py::proposals_approve"
-    reason: "High-level orchestrator, not a single capability."
-    expires: "2026-01-01"
-  - key: "src/cli/logic/proposals_micro.py::micro_apply"
-    reason: "High-level orchestrator, not a single capability."
-    expires: "2026-01-01"
-  - key: "src/cli/logic/proposals_micro.py::micro_propose"
-    reason: "High-level orchestrator, not a single capability."
-    expires: "2026-01-01"
-  - key: "src/cli/logic/proposals_micro.py::register"
-    reason: "Boilerplate CLI registration function."
-    expires: "2026-01-01"
-  - key: "src/cli/logic/system.py::integrate_command"
-    reason: "High-level orchestrator, not a single capability."
-    expires: "2026-01-01"
-  - key: "src/core/cognitive_service.py::CognitiveService"
-    reason: "Core service class, not a standalone capability."
-    expires: "2026-01-01"
-  - key: "src/features/autonomy/micro_proposal_executor.py::MicroProposal"
-    reason: "Data class, not a capability."
-    expires: "2026-01-01"
-  - key: "src/features/autonomy/micro_proposal_executor.py::MicroProposalExecutor"
-    reason: "Core service class, not a standalone capability."
-    expires: "2026-01-01"
-  - key: "src/features/governance/checks/duplication_check.py::DuplicationCheck"
-    reason: "Auditor check class, not a standalone capability."
-    expires: "2026-01-01"
-  - key: "src/features/governance/checks/id_coverage_check.py::IdCoverageCheck"
-    reason: "Auditor check class, not a standalone capability."
-    expires: "2026-01-01"
-  - key: "src/features/maintenance/dotenv_sync_service.py::RuntimeSetting"
-    reason: "Database ORM model, not a capability."
-    expires: "2026-01-01"
-  - key: "src/features/maintenance/dotenv_sync_service.py::run_dotenv_sync"
-    reason: "High-level orchestrator, not a single capability."
-    expires: "2026-01-01"
-  - key: "src/features/project_lifecycle/integration_service.py::integrate_changes"
-    reason: "High-level orchestrator, not a single capability."
-    expires: "2026-01-01"
-  - key: "src/services/config_service.py::ConfigurationService"
-    reason: "Core service class, not a standalone capability."
-    expires: "2026-01-01"
-  - key: "src/services/config_service.py::get_config_service"
-    reason: "Factory function, not a capability."
-    expires: "2026-01-01"
-  - key: "src/services/llm/client.py::LLMClient"
-    reason: "Core service class, not a standalone capability."
-    expires: "2026-01-01"
-  - key: "src/services/llm/providers/base.py::AIProvider"
-    reason: "Base class, not a capability."
-    expires: "2026-01-01"
-  - key: "src/services/llm/providers/ollama.py::OllamaProvider"
-    reason: "Service provider class, not a capability."
-    expires: "2026-01-01"
-  - key: "src/services/llm/providers/openai.py::OpenAIProvider"
-    reason: "Service provider class, not a capability."
-    expires: "2026-01-01"
-  # --- END: NEWLY ADDED IGNORES ---
 --- END OF FILE ./.intent/charter/policies/governance/audit_ignore_policy.yaml ---
 
 --- START OF FILE ./.intent/charter/policies/governance/auditor_policy.yaml ---
@@ -1341,6 +1195,7 @@ rules:
 # The rule 'cli.registry_source_of_truth' has been removed as it is now redundant.
 # The rule 'single_active_constitution' has been removed as it is now centrally
 # managed and enforced by 'auditor_policy.yaml'.
+
 --- END OF FILE ./.intent/charter/policies/governance/auditor_policy.yaml ---
 
 --- START OF FILE ./.intent/charter/policies/governance/available_actions_policy.yaml ---
@@ -1747,6 +1602,176 @@ definitions:
     # ==============================================================================
 
 --- END OF FILE ./.intent/charter/policies/governance/reporting_policy.yaml ---
+
+--- START OF FILE ./.intent/charter/policies/governance/risk_classification_policy.yaml ---
+# .intent/charter/policies/governance/risk_classification_policy.yaml
+policy_id: a7f3c891-4d2e-4c19-9b77-8e5f2a3d6c42
+id: risk_classification_policy
+version: "1.0.0"
+title: "Risk Tier Classification Policy"
+status: active
+purpose: >
+  Defines the deterministic logic for assigning risk tiers to proposed changes.
+  This is the authoritative source for risk assessment used by the auditor and
+  constitutional review processes.
+scope:
+  applies_to: [auditor, intent_guard, constitutional_review]
+owners:
+  primary: "Security Lead"
+  reviewers: ["Core Maintainer", "Platform SRE"]
+review:
+  frequency: "6 months"
+
+# ============================================================================
+# RISK TIER DEFINITIONS
+# ============================================================================
+tiers:
+  routine:
+    score: 1
+    description: "Low-impact changes with minimal blast radius"
+    examples: ["documentation updates", "test additions", "comment fixes"]
+
+  standard:
+    score: 2
+    description: "Normal feature work with localized impact"
+    examples: ["new feature", "bug fix in features/", "refactoring within domain"]
+
+  elevated:
+    score: 3
+    description: "Changes affecting core system behavior or cross-domain logic"
+    examples: ["agent modifications", "service layer changes", "DB schema updates"]
+
+  critical:
+    score: 4
+    description: "Changes to governance, safety, or system identity"
+    examples: ["constitution amendments", "safety policy changes", "approver modifications"]
+
+# ============================================================================
+# AUTOMATIC CLASSIFICATION RULES
+# ============================================================================
+# Rules are evaluated in order. First match wins.
+# The auditor MUST apply these rules before checking score_policy thresholds.
+
+classification_rules:
+  # CRITICAL TIER
+  - tier: critical
+    conditions:
+      any_of:
+        - path_matches_any:
+            source: "charter/constitution/critical_paths.yaml"
+            rationale: "Constitutional definition of criticality"
+        - path_pattern: "charter/policies/safety_policy.yaml"
+        - path_pattern: "charter/constitution/approvers.yaml"
+        - path_pattern: "charter/policies/governance/risk_classification_policy.yaml"
+          rationale: "This file itself is critical (meta-rule)"
+        - modifies_schema: true
+          rationale: "Schema changes affect validation across the system"
+
+  # ELEVATED TIER
+  - tier: elevated
+    conditions:
+      any_of:
+        - path_pattern: "src/core/**/*.py"
+          exclude: ["src/core/**/*_test.py"]
+          rationale: "Core orchestration layer"
+        - path_pattern: "src/services/**/*.py"
+          exclude: ["src/services/**/*_test.py"]
+          rationale: "Infrastructure services"
+        - path_pattern: "charter/policies/**/*.yaml"
+          rationale: "Any policy change requires elevated scrutiny"
+        - modifies_database_schema: true
+          rationale: "Schema migrations have wide impact"
+        - adds_new_capability: true
+          rationale: "New capabilities alter system behavior"
+        - touches_files_count: ">= 5"
+          rationale: "Multi-file changes increase coupling risk"
+
+  # STANDARD TIER
+  - tier: standard
+    conditions:
+      any_of:
+        - path_pattern: "src/features/**/*.py"
+          exclude: ["src/features/**/*_test.py"]
+        - path_pattern: "src/api/**/*.py"
+        - path_pattern: "src/cli/**/*.py"
+        - modifies_existing_capability: true
+        - adds_dependency: true
+          rationale: "New dependencies increase supply chain risk"
+
+  # ROUTINE TIER (default fallback)
+  - tier: routine
+    conditions:
+      any_of:
+        - path_pattern: "**/*.md"
+        - path_pattern: "**/*_test.py"
+        - path_pattern: "tests/**/*"
+        - path_pattern: "docs/**/*"
+        - changes_only_comments: true
+        - changes_only_whitespace: true
+
+# ============================================================================
+# RISK ESCALATION MODIFIERS
+# ============================================================================
+# These can bump a change up one tier if conditions are met.
+
+escalation_modifiers:
+  - condition: author_is_new_contributor
+    escalate_by: 1
+    rationale: "New contributors require additional review"
+
+  - condition: fails_automated_tests
+    escalate_by: 1
+    rationale: "Broken tests indicate unexpected behavior"
+
+  - condition: adds_network_call
+    escalate_by: 1
+    source_rule: "safety_policy.yaml#restrict_network_access"
+    rationale: "Network calls increase attack surface"
+
+  - condition: adds_execution_primitive
+    escalate_to: critical
+    source_rule: "safety_policy.yaml#no_dangerous_execution"
+    rationale: "Always critical, regardless of location"
+
+  - condition: no_tests_included
+    escalate_by: 1
+    applies_when: "tier >= standard"
+    rationale: "Untested code in production paths is risky"
+
+# ============================================================================
+# OVERRIDE MECHANISM
+# ============================================================================
+# Human operators can override the automatic classification, but must justify.
+
+override:
+  allowed_by: ["approvers"]
+  requires:
+    - field: "risk_override_justification"
+      min_length: 100
+    - field: "risk_override_approver"
+      must_match: "charter/constitution/approvers.yaml#approvers[].identity"
+  audit_trail: true
+  escalation_on_override:
+    # If you override DOWN, you need MORE approval, not less
+    downgrade_requires: "critical_quorum"
+    upgrade_requires: "standard_quorum"
+
+# ============================================================================
+# VALIDATION RULES
+# ============================================================================
+validation:
+  - id: risk_tier_must_be_assigned
+    enforcement: error
+    message: "Every proposal must have an assigned risk tier before review"
+
+  - id: risk_tier_must_match_rules
+    enforcement: error
+    message: "Risk tier must match automatic classification unless explicitly overridden"
+
+  - id: critical_tier_requires_critical_quorum
+    enforcement: error
+    links_to: "charter/constitution/approvers.yaml#quorum.critical"
+--- END OF FILE ./.intent/charter/policies/governance/risk_classification_policy.yaml ---
 
 --- START OF FILE ./.intent/charter/policies/governance/tooling_policy.yaml ---
 policy_id: b7c95ae3-05be-4138-8b27-12cd5670f4e9
@@ -2247,6 +2272,43 @@ rules:
 
 --- END OF FILE ./.intent/charter/schemas/code/capability_tag_schema.json ---
 
+--- START OF FILE ./.intent/charter/schemas/code/dependency_injection_policy_schema.json ---
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Dependency Injection Policy",
+  "description": "Constitutional schema for the Dependency Injection (DI) policy.",
+  "type": "object",
+  "allOf": [{ "$ref": "../policy_schema.json" }],
+  "properties": {
+    "id": { "const": "dependency_injection_policy" },
+    "rules": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "statement", "enforcement"],
+        "properties": {
+          "id": { "type": "string" },
+          "statement": { "type": "string" },
+          "enforcement": { "enum": ["info", "warn", "error"] },
+          "scope": { "type": "array", "items": { "type": "string" } },
+          "exclusions": { "type": "array", "items": { "type": "string" } },
+          "forbidden_instantiations": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "forbidden_imports": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": ["rules"]
+}
+--- END OF FILE ./.intent/charter/schemas/code/dependency_injection_policy_schema.json ---
+
 --- START OF FILE ./.intent/charter/schemas/code/knowledge_graph_entry_schema.json ---
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
@@ -2689,6 +2751,7 @@ migrations:
   },
   "required": ["actions"]
 }
+
 --- END OF FILE ./.intent/charter/schemas/governance/available_actions_policy_schema.json ---
 
 --- START OF FILE ./.intent/charter/schemas/governance/cli_registry_schema.json ---
@@ -2865,6 +2928,342 @@ migrations:
 }
 
 --- END OF FILE ./.intent/charter/schemas/governance/reporting_policy_schema.json ---
+
+--- START OF FILE ./.intent/charter/schemas/governance/risk_classification_policy_schema.json ---
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://core.local/schemas/governance/risk_classification_policy_schema.json",
+  "title": "Risk Classification Policy Schema",
+  "description": "Canonical schema for risk_classification_policy.yaml. Ensures risk tier assignment logic is well-formed and enforceable.",
+  "type": "object",
+  "required": ["policy_id", "id", "version", "title", "status", "purpose", "owners", "review", "tiers", "classification_rules"],
+  "properties": {
+    "policy_id": {
+      "type": "string",
+      "description": "Unique UUID for this policy document.",
+      "pattern": "^[0-9a-fA-F]{8}-([0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}$"
+    },
+    "id": {
+      "type": "string",
+      "const": "risk_classification_policy",
+      "description": "Must be exactly 'risk_classification_policy'."
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+      "description": "Semantic version of the policy."
+    },
+    "title": {
+      "type": "string",
+      "description": "Human-readable title."
+    },
+    "status": {
+      "type": "string",
+      "enum": ["active", "draft", "deprecated"]
+    },
+    "purpose": {
+      "type": "string",
+      "minLength": 20,
+      "description": "Clear explanation of why this policy exists."
+    },
+    "scope": {
+      "type": "object",
+      "properties": {
+        "applies_to": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 1
+        }
+      }
+    },
+    "owners": {
+      "type": "object",
+      "required": ["primary"],
+      "properties": {
+        "primary": { "type": "string" },
+        "reviewers": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "review": {
+      "type": "object",
+      "required": ["frequency"],
+      "properties": {
+        "frequency": {
+          "type": "string",
+          "description": "e.g., '6 months', 'quarterly'"
+        },
+        "last_reviewed": {
+          "type": "string",
+          "format": "date"
+        }
+      }
+    },
+    "tiers": {
+      "type": "object",
+      "description": "Definitions of each risk tier. Must include all four tiers.",
+      "required": ["routine", "standard", "elevated", "critical"],
+      "properties": {
+        "routine": { "$ref": "#/$defs/tier_definition" },
+        "standard": { "$ref": "#/$defs/tier_definition" },
+        "elevated": { "$ref": "#/$defs/tier_definition" },
+        "critical": { "$ref": "#/$defs/tier_definition" }
+      },
+      "additionalProperties": false
+    },
+    "classification_rules": {
+      "type": "array",
+      "description": "Ordered list of rules for automatic risk tier assignment. First match wins.",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/classification_rule" }
+    },
+    "escalation_modifiers": {
+      "type": "array",
+      "description": "Conditions that can bump a risk tier higher.",
+      "items": { "$ref": "#/$defs/escalation_modifier" }
+    },
+    "override": {
+      "type": "object",
+      "description": "Rules governing human override of automatic classification.",
+      "required": ["allowed_by", "requires"],
+      "properties": {
+        "allowed_by": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Roles permitted to override (e.g., 'approvers')."
+        },
+        "requires": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/override_requirement" },
+          "minItems": 1
+        },
+        "audit_trail": {
+          "type": "boolean",
+          "description": "Whether overrides must be logged."
+        },
+        "escalation_on_override": {
+          "type": "object",
+          "properties": {
+            "downgrade_requires": {
+              "type": "string",
+              "description": "Quorum type required to override DOWN (e.g., 'critical_quorum')."
+            },
+            "upgrade_requires": {
+              "type": "string",
+              "description": "Quorum type required to override UP."
+            }
+          }
+        }
+      }
+    },
+    "validation": {
+      "type": "array",
+      "description": "Meta-rules about risk tier assignment itself.",
+      "items": { "$ref": "#/$defs/validation_rule" }
+    }
+  },
+  "$defs": {
+    "tier_definition": {
+      "type": "object",
+      "required": ["score", "description"],
+      "properties": {
+        "score": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4,
+          "description": "Numeric risk score (1=lowest, 4=highest)."
+        },
+        "description": {
+          "type": "string",
+          "minLength": 10,
+          "description": "Clear explanation of what constitutes this tier."
+        },
+        "examples": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Concrete examples to guide classification."
+        }
+      }
+    },
+    "classification_rule": {
+      "type": "object",
+      "required": ["tier", "conditions"],
+      "properties": {
+        "tier": {
+          "type": "string",
+          "enum": ["routine", "standard", "elevated", "critical"],
+          "description": "The risk tier to assign if conditions match."
+        },
+        "conditions": {
+          "type": "object",
+          "description": "Logical conditions for this rule. Must have at least one condition group.",
+          "minProperties": 1,
+          "properties": {
+            "any_of": {
+              "type": "array",
+              "items": { "$ref": "#/$defs/condition" },
+              "description": "Match if ANY condition is true (OR logic)."
+            },
+            "all_of": {
+              "type": "array",
+              "items": { "$ref": "#/$defs/condition" },
+              "description": "Match if ALL conditions are true (AND logic)."
+            }
+          }
+        }
+      }
+    },
+    "condition": {
+      "type": "object",
+      "description": "A single testable condition for risk classification.",
+      "minProperties": 1,
+      "properties": {
+        "path_matches_any": {
+          "type": "object",
+          "required": ["source"],
+          "properties": {
+            "source": {
+              "type": "string",
+              "description": "YAML file containing a 'paths' array to check against."
+            },
+            "rationale": { "type": "string" }
+          }
+        },
+        "path_pattern": {
+          "type": "string",
+          "description": "Glob pattern to match file paths (e.g., 'src/core/**/*.py')."
+        },
+        "exclude": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Patterns to exclude from path_pattern matches."
+        },
+        "modifies_schema": {
+          "type": "boolean",
+          "description": "True if change affects schema files."
+        },
+        "modifies_database_schema": {
+          "type": "boolean",
+          "description": "True if change affects database schema."
+        },
+        "adds_new_capability": {
+          "type": "boolean",
+          "description": "True if change introduces a new capability tag."
+        },
+        "modifies_existing_capability": {
+          "type": "boolean",
+          "description": "True if change modifies existing capability."
+        },
+        "adds_dependency": {
+          "type": "boolean",
+          "description": "True if change adds external dependency."
+        },
+        "touches_files_count": {
+          "type": "string",
+          "pattern": "^(>|>=|<|<=|==)\\s*\\d+$",
+          "description": "Comparison operator and number (e.g., '>= 5')."
+        },
+        "changes_only_comments": {
+          "type": "boolean",
+          "description": "True if only comments were modified."
+        },
+        "changes_only_whitespace": {
+          "type": "boolean",
+          "description": "True if only whitespace was modified."
+        },
+        "rationale": {
+          "type": "string",
+          "description": "Human-readable explanation of why this condition matters."
+        }
+      }
+    },
+    "escalation_modifier": {
+      "type": "object",
+      "required": ["condition"],
+      "properties": {
+        "condition": {
+          "type": "string",
+          "description": "Named condition to check (e.g., 'author_is_new_contributor')."
+        },
+        "escalate_by": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3,
+          "description": "How many tiers to bump up (1 = one tier higher)."
+        },
+        "escalate_to": {
+          "type": "string",
+          "enum": ["routine", "standard", "elevated", "critical"],
+          "description": "Force escalation to this specific tier, ignoring current tier."
+        },
+        "applies_when": {
+          "type": "string",
+          "description": "Condition string for when this modifier applies (e.g., 'tier >= standard')."
+        },
+        "source_rule": {
+          "type": "string",
+          "description": "Reference to the safety policy rule this enforces (e.g., 'safety_policy.yaml#no_dangerous_execution')."
+        },
+        "rationale": {
+          "type": "string",
+          "minLength": 10,
+          "description": "Why this escalation is necessary."
+        }
+      },
+      "oneOf": [
+        { "required": ["escalate_by"] },
+        { "required": ["escalate_to"] }
+      ]
+    },
+    "override_requirement": {
+      "type": "object",
+      "required": ["field"],
+      "properties": {
+        "field": {
+          "type": "string",
+          "description": "The proposal field that must be present for override."
+        },
+        "min_length": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Minimum character length for text fields."
+        },
+        "must_match": {
+          "type": "string",
+          "description": "A reference to another config file for validation (e.g., 'approvers.yaml#approvers[].identity')."
+        }
+      }
+    },
+    "validation_rule": {
+      "type": "object",
+      "required": ["id", "enforcement", "message"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9_]+$",
+          "description": "Unique identifier for this validation rule."
+        },
+        "enforcement": {
+          "type": "string",
+          "enum": ["error", "warn", "info"],
+          "description": "Severity of validation failure."
+        },
+        "message": {
+          "type": "string",
+          "minLength": 10,
+          "description": "Error message shown when validation fails."
+        },
+        "links_to": {
+          "type": "string",
+          "description": "Reference to related policy (e.g., 'approvers.yaml#quorum.critical')."
+        }
+      }
+    }
+  }
+}
+--- END OF FILE ./.intent/charter/schemas/governance/risk_classification_policy_schema.json ---
 
 --- START OF FILE ./.intent/charter/schemas/operations/canary_policy_schema.json ---
 {
@@ -3067,6 +3466,7 @@ charter:
       capability_linter_policy: "charter/policies/code/capability_linter_policy.yaml"
       code_health_policy: "charter/policies/code/code_health_policy.yaml"
       code_style_policy: "charter/policies/code/code_style_policy.yaml"
+      dependency_injection_policy: "charter/policies/code/dependency_injection_policy.yaml"
       naming_conventions_policy: "charter/policies/code/naming_conventions_policy.yaml"
       refactoring_patterns_policy: "charter/policies/code/refactoring_patterns_policy.yaml"
 
@@ -3085,6 +3485,7 @@ charter:
       knowledge_source_policy: "charter/policies/governance/knowledge_source_policy.yaml"
       logging_policy: "charter/policies/governance/logging_policy.yaml"
       reporting_policy: "charter/policies/governance/reporting_policy.yaml"
+      risk_classification_policy: "charter/policies/governance/risk_classification_policy.yaml"
       tooling_policy: "charter/policies/governance/tooling_policy.yaml"
 
     operations:
@@ -3103,6 +3504,7 @@ charter:
 
     code:
       capability_tag_schema: "charter/schemas/code/capability_tag_schema.json"
+      dependency_injection_policy_schema: "charter/schemas/code/dependency_injection_policy_schema.json"
       knowledge_graph_entry_schema: "charter/schemas/code/knowledge_graph_entry_schema.json"
 
     constitutional:
@@ -3120,6 +3522,7 @@ charter:
       enforcement_model_schema: "charter/schemas/governance/enforcement_model_schema.json"
       intent_guard_schema: "charter/schemas/governance/intent_guard_schema.json"
       reporting_policy_schema: "charter/schemas/governance/reporting_policy_schema.json"
+      risk_classification_policy_schema: "charter/schemas/governance/risk_classification_policy_schema.json"
 
     operations:
       canary_policy_schema: "charter/schemas/operations/canary_policy_schema.json"
@@ -3172,7 +3575,6 @@ mind:
     refactor_outlier: "mind/prompts/refactor_outlier.prompt"
     standard_task_generator: "mind/prompts/standard_task_generator.prompt"
     vectorizer: "mind/prompts/vectorizer.prompt"
-
 --- END OF FILE ./.intent/meta.yaml ---
 
 --- START OF FILE ./.intent/mind/config/local_mode.yaml ---
@@ -4322,7 +4724,7 @@ Source Code:
 
 --- START OF FILE ./.intent/mind_export/capabilities.yaml ---
 version: 1
-exported_at: '2025-10-06T17:50:53.097053+00:00'
+exported_at: '2025-10-06T20:04:49.282327+00:00'
 items: []
 digest: sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945
 
@@ -4357,7 +4759,7 @@ cognitive_roles:
 
 --- START OF FILE ./.intent/mind_export/links.yaml ---
 version: 1
-exported_at: '2025-10-06T17:50:53.097053+00:00'
+exported_at: '2025-10-06T20:04:49.282327+00:00'
 items: []
 digest: sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945
 
@@ -4365,7 +4767,7 @@ digest: sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945
 
 --- START OF FILE ./.intent/mind_export/northstar.yaml ---
 version: 1
-exported_at: '2025-10-06T17:50:53.097053+00:00'
+exported_at: '2025-10-06T20:04:49.282327+00:00'
 items: []
 digest: sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945
 
@@ -4408,7 +4810,7 @@ llm_resources:
 
 --- START OF FILE ./.intent/mind_export/symbols.yaml ---
 version: 1
-exported_at: '2025-10-06T17:50:53.097053+00:00'
+exported_at: '2025-10-06T20:04:49.282327+00:00'
 items:
 - id: db8bbe12-9fc2-521e-9d3d-42508b0655dc
   module: services.mind_service
@@ -4473,13 +4875,6 @@ items:
   ast_signature: TBD
   fingerprint: 08d80979ee8e340e1e746f910562a87e3ebd72497b83b121966e823913cff2db
   state: discovered
-- id: 85e4e3db-7387-56b5-a098-aeb009e728c3
-  module: cli.logic.mind_ssot
-  qualname: run_import
-  kind: function
-  ast_signature: TBD
-  fingerprint: 0948eb6bf14ad702d4383b91bbe3dc44f8432abb8ece4184449b99d3fba2f8f9
-  state: discovered
 - id: 6a0f3ff0-d540-55e2-871b-0061e388773c
   module: features.governance.policy_coverage_service
   qualname: PolicyCoverageService
@@ -4507,6 +4902,13 @@ items:
   kind: function
   ast_signature: TBD
   fingerprint: 09cd512250c88ef547970b125756b788d1f08439850fdaf0a0bd39dcae395ec4
+  state: discovered
+- id: 79c021c1-707d-59c0-882a-f006044c8f20
+  module: cli.commands.fix
+  qualname: assign_ids_command
+  kind: function
+  ast_signature: TBD
+  fingerprint: 0a4cf12cbc242b0e7c5b6767d216d21ef7143f4901b4941664867733bf1fbeb8
   state: discovered
 - id: f992de16-b887-5a5c-8a58-f280ef16b8f4
   module: cli.interactive
@@ -4550,13 +4952,6 @@ items:
   ast_signature: TBD
   fingerprint: 0c840e193ae924b0a48e4270656259a5c82e03a943211b071b522e13cef4504b
   state: discovered
-- id: 59fde810-699b-5587-8f9c-6ccb659db9c2
-  module: cli.logic.mind_ssot
-  qualname: diff_sets
-  kind: function
-  ast_signature: TBD
-  fingerprint: 0c840e193ae924b0a48e4270656259a5c82e03a943211b071b522e13cef4504b
-  state: discovered
 - id: 51bef2a1-5bfb-54c0-b9b9-53e5f377b9dc
   module: cli.interactive
   qualname: run_command
@@ -4578,26 +4973,12 @@ items:
   ast_signature: TBD
   fingerprint: 0f2a20511c9569d03fe0173f5050cf1e19ee3b6da7cf6b1bc81891de135de4c4
   state: discovered
-- id: be24a112-dfe7-5b85-8458-00aa8f878d8c
-  module: cli.logic.audit
-  qualname: lint
-  kind: function
-  ast_signature: TBD
-  fingerprint: 0f3c3ec6441dbdb36b5d98d16f0bb206cedfc50b591677172f64420fd52a64a8
-  state: discovered
 - id: 6389a100-1bfa-5926-bc9c-03202f641fea
   module: services.clients.qdrant_client
   qualname: QdrantService
   kind: class
   ast_signature: TBD
   fingerprint: 101d7b32970de5aef5dfa5f0704de31650d3585441cf27708348443f59d6c26b
-  state: discovered
-- id: 206742dc-0a55-547a-9295-5bab5d1b0e19
-  module: cli.logic.mind_ssot
-  qualname: fetch_links
-  kind: function
-  ast_signature: TBD
-  fingerprint: 118cd12688b9b4b268539ccf3fd3effaf6ce80538671f8cc08390a0a3560cf26
   state: discovered
 - id: 223ff445-c201-5a62-add0-bb43a6f65305
   module: features.introspection.knowledge_graph_service
@@ -4661,13 +5042,6 @@ items:
   kind: function
   ast_signature: TBD
   fingerprint: 172f18710aee0cc40d91a8c728e67a1e3823a716f6793007c34f992627e8a67d
-  state: discovered
-- id: e5c2b762-d16f-55f4-a3d6-986648a02e5b
-  module: cli.logic.fixer
-  qualname: purge_legacy_tags_command
-  kind: function
-  ast_signature: TBD
-  fingerprint: 17d3ca7fe7eb54f59b4f2ac8fd9efb9a0078366d22a172c48be80337025dd253
   state: discovered
 - id: 4e8218b7-a9aa-5d0e-b0a2-c0a1839245d3
   module: features.governance.checks.security_checks
@@ -4760,13 +5134,6 @@ items:
   ast_signature: TBD
   fingerprint: 2195a035a263689e01a4e7e4bc4875c06339826e472c2bc8ac54aaddc3abd602
   state: discovered
-- id: a887c268-c898-5f34-aff0-6c8ca057f2db
-  module: cli.logic.mind_ssot
-  qualname: run_verify
-  kind: function
-  ast_signature: TBD
-  fingerprint: 21fb1647619bc7f0a5a865b8fe2e73795ce8347b43e6a09da143ceefdc1adef3
-  state: discovered
 - id: 153a9936-3b7d-5946-a565-8c4e0ff44858
   module: features.governance.constitutional_auditor
   qualname: ConstitutionalAuditor
@@ -4787,13 +5154,6 @@ items:
   kind: function
   ast_signature: TBD
   fingerprint: 246d9e8bebd775a4025c3081338065ee2c401141c797140f8a85f8729bf43de0
-  state: discovered
-- id: cffe2245-0211-5889-a94f-881b6d363c17
-  module: cli.logic.mind_ssot
-  qualname: compute_digest
-  kind: function
-  ast_signature: TBD
-  fingerprint: 24b06ba890a451599bffffeec581653e962f9a3f4f216788c3587897c1e02238
   state: discovered
 - id: eab5bc15-09c8-56ca-9103-a160e16f0bce
   module: cli.logic.knowledge_sync.utils
@@ -4816,13 +5176,6 @@ items:
   ast_signature: TBD
   fingerprint: 258339fb0159634c38d496ba58ef19be11a4a8802b1cc05cf543d221f05920d5
   state: discovered
-- id: 0c5ca8af-6e5b-5a9a-a5a4-997b39e581d7
-  module: cli.logic.fixer
-  qualname: fix_policy_ids_command
-  kind: function
-  ast_signature: TBD
-  fingerprint: 25df4442022932ab33346aa17ea216c8984e5c2bd2a93e26f4f6822bef499ca2
-  state: discovered
 - id: fa1a313a-ddbf-5557-b7ea-3133940d7e92
   module: cli.logic.knowledge_sync.snapshot
   qualname: fetch_capabilities
@@ -4836,13 +5189,6 @@ items:
   kind: function
   ast_signature: TBD
   fingerprint: 268acfbaccc2694b1b6b74b81b04a04bbe71a939ca13fbcc09608eabe5a2aed9
-  state: discovered
-- id: 20665dbf-149a-58e7-83b6-f1521167013e
-  module: cli.logic.audit
-  qualname: test_system
-  kind: function
-  ast_signature: TBD
-  fingerprint: 28112a507d451bb57ff17879e45db6f61bdfa4007ace39dbd433e50085aefedc
   state: discovered
 - id: 574b6ddd-0ae2-5b06-a8f6-ada805d4734c
   module: features.project_lifecycle.scaffolding_service
@@ -4942,13 +5288,6 @@ items:
   ast_signature: TBD
   fingerprint: 326ebe8aa418d22066b354782489d310c8f2818408b734aff6b3a87764cf088f
   state: discovered
-- id: b920d6a3-153b-5224-a3f2-1d0c9067a6d8
-  module: cli.logic.fixer
-  qualname: format_code_wrapper
-  kind: function
-  ast_signature: TBD
-  fingerprint: 327603613176e021f5854b7cd1f34be714f75e89620b4909ad2d6dd51b30893d
-  state: discovered
 - id: a54a79c5-55ad-5002-99e8-e834e468e129
   module: cli.commands.search
   qualname: register
@@ -4991,6 +5330,13 @@ items:
   ast_signature: TBD
   fingerprint: 34bb9eb07bb23e6382f9b88dd9602d2ef7b452db0dc0337f3503be2b593cfb82
   state: discovered
+- id: 872f3a6c-6991-5488-821a-b00b348429f2
+  module: features.self_healing.capability_tagging_service
+  qualname: tag_unassigned_capabilities
+  kind: function
+  ast_signature: TBD
+  fingerprint: 351295deff87751e516a92cbbdf265797ebbf51be9985094251dbde05ef66fe7
+  state: discovered
 - id: 6c45fdfc-80dd-5b4a-a3b3-b6c2a68c8465
   module: shared.context
   qualname: CoreContext
@@ -5004,6 +5350,13 @@ items:
   kind: function
   ast_signature: TBD
   fingerprint: 358ca9667b776207e550b217e6f9933316ae2f21c94becefe3425c018fd562b8
+  state: discovered
+- id: 9aa2a067-7f56-53d4-b654-ec2d19c888de
+  module: cli.logic.proposals_micro
+  qualname: register
+  kind: function
+  ast_signature: TBD
+  fingerprint: 369c6496e46ec634795d7b0571d6ac496ef3dc85af8e4381b9b8f14f2f2c1555
   state: discovered
 - id: f4f4a212-d20e-50b6-b01f-dfd68c814046
   module: cli.logic.sync
@@ -5075,6 +5428,13 @@ items:
   ast_signature: TBD
   fingerprint: 3f1d0b7213e0090da1037f7bd35c8953e0c2c0198eaff1b4fcb443755b94ed95
   state: discovered
+- id: ab13e8e8-b474-50fa-b04a-db7a192da9da
+  module: features.self_healing.duplicate_id_service
+  qualname: resolve_duplicate_ids
+  kind: function
+  ast_signature: TBD
+  fingerprint: 3f5a9c67401fadda3c508f86013839316b40bea54d46bd035c7de2c3c7f0b860
+  state: discovered
 - id: 89b7ca1a-cd41-5c9d-ba9d-6777546bf717
   module: cli.commands.run
   qualname: register
@@ -5088,6 +5448,13 @@ items:
   kind: function
   ast_signature: TBD
   fingerprint: 3fee477cc6e1a83e51d223a8844378614d3e379c846ae8b2b008ac59063dd680
+  state: discovered
+- id: 3157851a-66e2-59ec-bfba-12f72040e016
+  module: core.actions.validation_actions
+  qualname: ValidateCodeHandler
+  kind: class
+  ast_signature: TBD
+  fingerprint: 41a7fe94d03b6dccc525d0f0fc6a53a970f3158943160ce2a08248a49de5e934
   state: discovered
 - id: 25d89aac-0d8a-59a0-ac53-415873b1d5e7
   module: services.repositories.db.common
@@ -5145,13 +5512,6 @@ items:
   ast_signature: TBD
   fingerprint: 45e396411f636ef29e0416badeec46a7994fb70363dc81d077c1f0b1946154c1
   state: discovered
-- id: 393e51dc-7fc8-514d-a068-f1136f1af1b1
-  module: cli.logic.mind_ssot
-  qualname: fetch_symbols
-  kind: function
-  ast_signature: TBD
-  fingerprint: 4630851711838b910f6f19697f38fce6685eae085ba8d68cebb9315634a59912
-  state: discovered
 - id: 8e1631d0-2c8f-5ddc-9192-b71658b3343f
   module: features.governance.audit_context
   qualname: AuditorContext
@@ -5194,19 +5554,19 @@ items:
   ast_signature: TBD
   fingerprint: 4ad1f1da922d00e6497dd73241c33a9761825aa3c4a2af005e8fd658a630efbc
   state: discovered
-- id: 9430cfc4-c069-581d-9d75-d63794113119
-  module: cli.logic.mind_ssot
-  qualname: fetch_northstar
-  kind: function
-  ast_signature: TBD
-  fingerprint: 4b2420c572b57c5850108bc42684d4071b9ac4eb3e5a8c18e3c3c004aa7b5fad
-  state: discovered
 - id: 72020ffc-880a-5524-aa15-81a73f38ebb6
   module: core.service_registry
   qualname: ServiceRegistry
   kind: class
   ast_signature: TBD
   fingerprint: 4bc1024d72ef5d065a9f5b33887e9c189351f7a1ad13904fa5baad8b26f92100
+  state: discovered
+- id: 42b7d712-b457-5ff1-aa8d-649680c3105b
+  module: cli.logic.proposals_micro
+  qualname: micro_apply
+  kind: function
+  ast_signature: TBD
+  fingerprint: 4bc1f42f98d654d00fbba5c4d4bc4c04263531e36be2d9a639a817dbaec39446
   state: discovered
 - id: 7b1bc464-444a-5aa2-b9dc-20a19e5bf659
   module: services.database.models
@@ -5327,12 +5687,26 @@ items:
   ast_signature: TBD
   fingerprint: 56d81945c37e4358c5572d3b4454a0547656c6f3f2b58ba0c1dbb2f93f563536
   state: discovered
+- id: 1a5c85c1-00a4-53fa-a17e-528062eedd2b
+  module: shared.utils.subprocess_utils
+  qualname: run_poetry_command
+  kind: function
+  ast_signature: TBD
+  fingerprint: 5771851dc409ed4a82740162ab06f2ec3b28c7525d31f73fcc1349e94ce265d2
+  state: discovered
 - id: cdacfe8b-ee70-5671-b124-b52697364a94
   module: shared.ast_utility
   qualname: extract_docstring
   kind: function
   ast_signature: TBD
   fingerprint: 57ac35b293f2c60efbab4feda4f6bd03ced477b632d56e57dfcdc6a33c989d7f
+  state: discovered
+- id: 270b1a87-0e1f-5ac8-9dd9-c2a8ec743bee
+  module: shared.models.execution_models
+  qualname: TaskParams
+  kind: class
+  ast_signature: TBD
+  fingerprint: 58122310aa3d9d9f6699a668d4168707fdb54978e5c93a1b947fd2be63672b1f
   state: discovered
 - id: 90004b66-c4bf-5a49-8ce8-23e1a5d0fc6c
   module: core.intent_guard
@@ -5361,13 +5735,6 @@ items:
   kind: function
   ast_signature: TBD
   fingerprint: 5d52aadc6c4ccbe2afc9ab55fb3ac95c9afb8833a0ba0bbcac15864a4a9e1b9d
-  state: discovered
-- id: 71a505ab-7d4f-5890-9c7d-e9d33ee65c83
-  module: cli.logic.fixer
-  qualname: fix_tags_cmd_wrapper
-  kind: function
-  ast_signature: TBD
-  fingerprint: 5e08ff2d2c531a701d7c4b6f72fd7640e2c48752b7013e3c2b1612801c746c2c
   state: discovered
 - id: 479e6252-db7f-5f0b-b532-d673346e980f
   module: services.clients.llm_api_client
@@ -5410,13 +5777,6 @@ items:
   kind: function
   ast_signature: TBD
   fingerprint: 6309a05f79bab52272a3bfeee23625edc26149318f65ddd0040b5916ff24f3bb
-  state: discovered
-- id: ff9a31c9-90dd-5740-be61-9ed760b13baf
-  module: core.actions.registry
-  qualname: ActionRegistry
-  kind: class
-  ast_signature: TBD
-  fingerprint: 63dba34a047b7096ff99edc3ff8ac29140587c0aac44f64f45b2452432e57d2a
   state: discovered
 - id: 77a580dd-8577-5fc0-9bf3-6bff3bf6b675
   module: core.capabilities
@@ -5481,6 +5841,13 @@ items:
   ast_signature: TBD
   fingerprint: 69b592f71e77e12ea6ddc8e4ab53d4ca20073020ffa0bcb973be0a40313c836a
   state: discovered
+- id: 2f68d8c8-9e4f-5068-83cc-429f5a1d4a7f
+  module: cli.commands.fix
+  qualname: fix_tags_command
+  kind: function
+  ast_signature: TBD
+  fingerprint: 69d074923126a8ea2a44dea068f0629ab5d2bd3c47f6883471d3ff1462450d58
+  state: discovered
 - id: 4d1fff7a-7c72-54a1-b82e-8b0bc12a96de
   module: cli.logic.cli_utils
   qualname: set_context
@@ -5501,13 +5868,6 @@ items:
   kind: class
   ast_signature: TBD
   fingerprint: 6bfda9f7a9ae44ba76728c046d65f0129fc5b432832f6454547207540ee19256
-  state: discovered
-- id: 4eb47dd9-687e-5f45-b1f6-4335f1bbd97e
-  module: cli.logic.mind_ssot
-  qualname: read_yaml
-  kind: function
-  ast_signature: TBD
-  fingerprint: 6c525dd4af840327fb877f2ed772c6470bc4a6835221f76b78c6bc8e8fb8b1ab
   state: discovered
 - id: 2b271e67-94f0-5261-9856-179c38d78093
   module: core.actions.base
@@ -5578,6 +5938,13 @@ items:
   kind: function
   ast_signature: TBD
   fingerprint: 74ccb3839b6dd40b84f8cd48723c5fb0af10e1d792fe9f292301fdd86ef9d164
+  state: discovered
+- id: 1eb97196-1422-534d-aab1-2342d91e1abc
+  module: cli.logic.proposals_micro
+  qualname: micro_propose
+  kind: function
+  ast_signature: TBD
+  fingerprint: 76344c8e239b9a0b12278ad12b524a3176eeaa1f03176896ef316cf01703672b
   state: discovered
 - id: cd46cd49-e222-5134-88e2-8add08b55514
   module: cli.logic.system
@@ -5684,8 +6051,8 @@ items:
   ast_signature: TBD
   fingerprint: 848040af1c6c1ea676002d080b1259dfbb3156df5cdd901543d0731145fa35ff
   state: discovered
-- id: b9d8a161-cc4d-50d4-bc43-75c63a6a1f77
-  module: cli.logic.knowledge_sync.import
+- id: 1fb42b63-1e36-54df-a8e3-a9ccdf33a491
+  module: cli.logic.knowledge_sync.import_
   qualname: run_import
   kind: function
   ast_signature: TBD
@@ -5796,12 +6163,12 @@ items:
   ast_signature: TBD
   fingerprint: 8f48080919e7f95b644a09e26a433ba9b7fd6b1c62d87813721914384f78441d
   state: discovered
-- id: ae56c62c-6e0f-5d08-bd10-b8e24a34307a
-  module: cli.logic.mind_ssot
-  qualname: write_yaml
+- id: db2445c5-dcf3-5333-af13-123d2900f8f8
+  module: cli.commands.fix
+  qualname: fix_headers_cmd
   kind: function
   ast_signature: TBD
-  fingerprint: 915326c0141c83d4fe102e46ddae48f49813cce0001f0ea091b3c86d5595bf2f
+  fingerprint: 90943e7d882601173104b296303c3ce4219699c9807008d27afb640b7d8a5377
   state: discovered
 - id: b747bd7d-f271-50b4-8b51-2c187ae17658
   module: cli.logic.knowledge_sync.utils
@@ -5866,13 +6233,6 @@ items:
   ast_signature: TBD
   fingerprint: 93b1117f6d5e7e61fc08df24cd1b0dcf42b4f493ee447d75e88ecf8a502e7ce8
   state: discovered
-- id: 0b5cd165-45e0-5cbf-8d7f-d35aa95d71bd
-  module: cli.logic.fixer
-  qualname: fix_headers_cmd
-  kind: function
-  ast_signature: TBD
-  fingerprint: 9460f175c3b58bae111976938697dfd87c1dfadb384f50239ccfdacf956637b0
-  state: discovered
 - id: 1b821d0f-a8f7-532b-a056-5240b3312b56
   module: features.demo.hello_world
   qualname: print_greeting
@@ -5886,6 +6246,13 @@ items:
   kind: function
   ast_signature: TBD
   fingerprint: 94f4d30ddabd38e756d4822e5bd12c89cc10d1febaeae2717f0ced10f9cae846
+  state: discovered
+- id: 465cf630-eaa9-5003-816f-f99b06a6da09
+  module: features.project_lifecycle.definition_service
+  qualname: define_single_symbol
+  kind: function
+  ast_signature: TBD
+  fingerprint: 956fa2b24c81a700a12f6f866ea8e8090065caad6fcc388daeab7cefae13a3bd
   state: discovered
 - id: c2de50ff-6ca9-583e-bbb3-0898000d8dd7
   module: services.database.session_manager
@@ -5914,6 +6281,13 @@ items:
   kind: class
   ast_signature: TBD
   fingerprint: 9963ce2048819a48b579232bd8f5cc9d5724b3f92e673c60267c5e1683ad107e
+  state: discovered
+- id: 1b06ee1f-52e6-554f-a4cd-fabb7907dfda
+  module: features.self_healing.code_style_service
+  qualname: format_code
+  kind: function
+  ast_signature: TBD
+  fingerprint: 99fdc50909ba18a02b0e164e16980bca5cf909842fdaf07ecfe8e0b165c420ef
   state: discovered
 - id: 7c8d286a-2502-5acb-82ad-942868bc8408
   module: shared.config_loader
@@ -6027,26 +6401,12 @@ items:
   ast_signature: TBD
   fingerprint: a6f44580d089d42dae952114f2881177e4f367c2fe8ea8dfa9e47d3841bc302b
   state: discovered
-- id: 1eb97196-1422-534d-aab1-2342d91e1abc
-  module: cli.logic.proposals_micro
-  qualname: micro_propose
-  kind: function
-  ast_signature: TBD
-  fingerprint: a742e50123eaf8d5ca17a1f6851ddb4aca319fcca329963d5329f576b0399deb
-  state: discovered
 - id: fd5482e3-3662-5803-92e3-e44a1b3c2f16
   module: features.introspection.capability_discovery_service
   qualname: CapabilityRegistry
   kind: class
   ast_signature: TBD
   fingerprint: a7536ab5a5920b0d22cb751e269daa38dff1a30bab91eb81660e0e5fa0db13a4
-  state: discovered
-- id: 9aa2a067-7f56-53d4-b654-ec2d19c888de
-  module: cli.logic.proposals_micro
-  qualname: register
-  kind: function
-  ast_signature: TBD
-  fingerprint: a7a4b743eb08396e63e341f119f016e306bd18bd78fa4deb0e0084d14b0e5635
   state: discovered
 - id: c2111920-a102-52e0-b8f5-1278411d4bae
   module: cli.logic.capability
@@ -6125,12 +6485,26 @@ items:
   ast_signature: TBD
   fingerprint: b0ffe774d9d91009fe32f2f15c73757e17005b5c87569865bf0fabbadf52f33c
   state: discovered
+- id: 20665dbf-149a-58e7-83b6-f1521167013e
+  module: cli.logic.audit
+  qualname: test_system
+  kind: function
+  ast_signature: TBD
+  fingerprint: b2688ae0503435c928905b040fa119fad2d83f0f1cf17d4bbd7be0eadc6f19bd
+  state: discovered
 - id: a85ce098-664e-521a-8d0e-307f4e7a5b77
   module: core.actions.file_actions
   qualname: ReadFileHandler
   kind: class
   ast_signature: TBD
   fingerprint: b2722d177eb315898aab8e1e798075b4f347b2f243f7e2b28fe33f0e4ebd1f18
+  state: discovered
+- id: 3839918c-7b8d-5df6-a441-9e5d6338d094
+  module: core.actions.healing_actions
+  qualname: FixHeadersHandler
+  kind: class
+  ast_signature: TBD
+  fingerprint: b2b2b92c943047815dbd308b5b41abd1039c1117b8b1e8b0082ad350180f3588
   state: discovered
 - id: 9b1ed1e1-1877-5b6e-8267-d7374b0a3109
   module: services.adapters.embedding_provider
@@ -6215,13 +6589,6 @@ items:
   kind: function
   ast_signature: TBD
   fingerprint: b6e813a364e4ee39d4a727a689ea3f7718426301c8ff725dfaa9863b545339c6
-  state: discovered
-- id: 0729f23c-7836-50b0-a399-859038b95458
-  module: cli.logic.mind_ssot
-  qualname: run_snapshot
-  kind: function
-  ast_signature: TBD
-  fingerprint: b77eaab634592fd9dd7602c941eb9a2a337fb4b95d1373ce907b1f10fc5ba192
   state: discovered
 - id: 3e924bce-cf53-5913-8753-1b89256e7497
   module: cli.logic.validate
@@ -6342,13 +6709,6 @@ items:
   ast_signature: TBD
   fingerprint: c34544f09994279f12f111459fd60d72fd9781f04883ad8d3fc43794c15b84f6
   state: discovered
-- id: 61dedd16-592e-5a36-85ac-f267a3fbd537
-  module: cli.logic.fixer
-  qualname: assign_ids_command
-  kind: function
-  ast_signature: TBD
-  fingerprint: c3f47370efd4850cbf1aee1e94054e7dd9be0e0c5cd8cfdb51e0a41d0e499429
-  state: discovered
 - id: 4ce64d1c-af9b-5015-84f1-ba0c91d513c8
   module: api.v1.knowledge_routes
   qualname: get_knowledge_service
@@ -6391,13 +6751,6 @@ items:
   ast_signature: TBD
   fingerprint: c6df4bb529477d109302b48cbfce012b515e5669c461b6f9fb9abbc28f59190b
   state: discovered
-- id: 42b7d712-b457-5ff1-aa8d-649680c3105b
-  module: cli.logic.proposals_micro
-  qualname: micro_apply
-  kind: function
-  ast_signature: TBD
-  fingerprint: c7f88c0407d5bd36247da5e3b73539fe503ef4ddcb5c3d4275250f121aea3c63
-  state: discovered
 - id: e8d09fb8-e836-53c9-9a67-fc590d902a3c
   module: features.introspection.discovery.from_manifest
   qualname: load_manifest_capabilities
@@ -6412,19 +6765,19 @@ items:
   ast_signature: TBD
   fingerprint: c9b7eee705368da23b897689b968f1860947bf790c05710f8342ea4a4d457dac
   state: discovered
-- id: ab13e8e8-b474-50fa-b04a-db7a192da9da
-  module: features.self_healing.duplicate_id_service
-  qualname: resolve_duplicate_ids
-  kind: function
-  ast_signature: TBD
-  fingerprint: c9b94ab83da338155efd31eae72b8985dd8a4ae34cfada0917feafe3835d93f8
-  state: discovered
 - id: 36231b48-6f2b-5448-ada1-5830022ae33c
   module: cli.logic.diagnostics
   qualname: manifest_hygiene
   kind: function
   ast_signature: TBD
   fingerprint: cb9340e55a6506b68184b43d6ee70e1f9b41eec1d3d2316af4b4946f29e21fc9
+  state: discovered
+- id: e1a4f63c-eb7d-5396-b003-0924a9abb09f
+  module: cli.commands.fix
+  qualname: format_code_wrapper
+  kind: function
+  ast_signature: TBD
+  fingerprint: cb9b4eea4b0817a7d35257c2708353e97450686b433c840ba7bd8c34423745b9
   state: discovered
 - id: 5a5cc2ea-7574-5865-99e4-e3f743433a08
   module: features.introspection.sync_service
@@ -6439,6 +6792,13 @@ items:
   kind: function
   ast_signature: TBD
   fingerprint: cd13ee2a975067fd4ebf1224c3ef3c71c62dc6c687d2ab2cbecf5667b18a7685
+  state: discovered
+- id: fd8d7dca-57d0-5d10-8934-1744891d3f51
+  module: cli.commands.fix
+  qualname: purge_legacy_tags_command
+  kind: function
+  ast_signature: TBD
+  fingerprint: ce1f9c77359bf63e2e9b33a7195b9bba4b4cb3b4e49a6e206f3dcdc6b65f297a
   state: discovered
 - id: 7cce57d9-5882-5512-b02a-4299a1ad53a9
   module: cli.commands.run
@@ -6482,13 +6842,6 @@ items:
   ast_signature: TBD
   fingerprint: d322ddd99687ecc5b1ea67031b40d2d0aed94ef26436987d2c878864ca380258
   state: discovered
-- id: 465cf630-eaa9-5003-816f-f99b06a6da09
-  module: features.project_lifecycle.definition_service
-  qualname: define_single_symbol
-  kind: function
-  ast_signature: TBD
-  fingerprint: d4ec95b5f67c0cf49f3c14daea857e141324875082e307b8d4cf2d0c4f46ba16
-  state: discovered
 - id: db3991d2-b976-59d2-83da-77cc9fceaaf3
   module: cli.logic.sync_manifest
   qualname: sync_manifest
@@ -6523,6 +6876,13 @@ items:
   kind: function
   ast_signature: TBD
   fingerprint: d8031e7792bef246dfca2f620c8fc491d824ccc624c26401ec05baf31041ba84
+  state: discovered
+- id: be24a112-dfe7-5b85-8458-00aa8f878d8c
+  module: cli.logic.audit
+  qualname: lint
+  kind: function
+  ast_signature: TBD
+  fingerprint: d8613af044906bda8a143aa2d4ddeed7f96dbf1f6d9e706a40e49b553f285843
   state: discovered
 - id: 844404a8-15ae-5fa8-8d1f-e878aa151cba
   module: features.introspection.graph_analysis_service
@@ -6573,13 +6933,6 @@ items:
   ast_signature: TBD
   fingerprint: db4a67a495f288515198a9e45781f2cedf9eaef3e1ef46b980956b55f6065347
   state: discovered
-- id: b89e58ae-09cf-5de5-951a-f88415a917d0
-  module: cli.logic.mind_ssot
-  qualname: canonicalize
-  kind: function
-  ast_signature: TBD
-  fingerprint: db4a67a495f288515198a9e45781f2cedf9eaef3e1ef46b980956b55f6065347
-  state: discovered
 - id: f2dafb56-113a-5799-924e-4af44a3cfaef
   module: cli.commands.run
   qualname: vectorize_capabilities
@@ -6607,6 +6960,13 @@ items:
   kind: function
   ast_signature: TBD
   fingerprint: dd84d7c8e82acfb5d909d9b832c1bd7e5bee6c46b16678553b45b8d418a81001
+  state: discovered
+- id: d7f86476-b957-5ce2-b531-c5d001e5dd71
+  module: cli.commands.fix
+  qualname: complexity_command
+  kind: function
+  ast_signature: TBD
+  fingerprint: df16a2460b77e2f1fd7db106e9b2a7c1a5a11fc139b8838438a9d3bfdb6aea1e
   state: discovered
 - id: deacf968-edf2-5d50-959b-af6a6f90a334
   module: shared.schemas.manifest_validator
@@ -6649,6 +7009,13 @@ items:
   kind: class
   ast_signature: TBD
   fingerprint: e22340ac999fe7ec261be3979892cf3c593b1c718203077b888d14d411de9c77
+  state: discovered
+- id: ff9a31c9-90dd-5740-be61-9ed760b13baf
+  module: core.actions.registry
+  qualname: ActionRegistry
+  kind: class
+  ast_signature: TBD
+  fingerprint: e23b879d2586ad26578291c0b970f521b1025e382173d69265f98a5bbc5fdcae
   state: discovered
 - id: de84cf6f-c051-5c20-a1dd-ab1eeaa6359d
   module: cli.logic.diagnostics
@@ -6783,13 +7150,6 @@ items:
   ast_signature: TBD
   fingerprint: edc71d0c31594afdd9eea55c11cfb962e028462f15c08972f1a1d9cf1796ed79
   state: discovered
-- id: 9a506c02-af56-537e-9f74-71179099ffc7
-  module: cli.logic.mind_ssot
-  qualname: fetch_capabilities
-  kind: function
-  ast_signature: TBD
-  fingerprint: ee23fb810113ce6cf524f8349b4f268453ab27a1eb0e7c62cbe94ea0802f71ef
-  state: discovered
 - id: 1167bdce-e940-5acf-af55-0c84af8ac2e8
   module: shared.utils.embedding_utils
   qualname: EmbeddingService
@@ -6846,13 +7206,6 @@ items:
   ast_signature: TBD
   fingerprint: f24b9167ee6fa4a89b1ca7b8345be1b96a9743ced3755b1ae3174fadf05eef63
   state: discovered
-- id: 94f211b9-3735-5915-b315-7ff5baca00be
-  module: cli.logic.mind_ssot
-  qualname: run_diff
-  kind: function
-  ast_signature: TBD
-  fingerprint: f289df3817882510a0404e5ecc3807093910896324acb1ab94926cb908e8b91a
-  state: discovered
 - id: 1ed455da-17ff-5e2f-9670-b52cbbee5421
   module: core.actions.context
   qualname: PlanExecutorContext
@@ -6895,6 +7248,13 @@ items:
   ast_signature: TBD
   fingerprint: f640ea8a0cd1851dfe88ef32731b784925194aca34b9ae9797f7d5f7005262df
   state: discovered
+- id: 8cf60515-cdd9-5019-9d24-e31a755a47c9
+  module: cli.commands.fix
+  qualname: fix_policy_ids_command
+  kind: function
+  ast_signature: TBD
+  fingerprint: f76282b097ca295538c9e04f2980e5beaa96749a600529b4e79c3431c6dc7286
+  state: discovered
 - id: 0adb9fb7-bb27-5db9-ad87-a1f9f4238696
   module: cli.logic.reviewer
   qualname: docs_clarity_audit
@@ -6930,13 +7290,6 @@ items:
   ast_signature: TBD
   fingerprint: fbbf9dba153927612f77d607f5ceeea099a781c666da288fba900626d70612c5
   state: discovered
-- id: 270b1a87-0e1f-5ac8-9dd9-c2a8ec743bee
-  module: shared.models.execution_models
-  qualname: TaskParams
-  kind: class
-  ast_signature: TBD
-  fingerprint: fc0f5779c5b00acf9bc34c5adf6b936c6826df6b3da676efb7ee31caf8d62ad1
-  state: discovered
 - id: 94106f44-d1d5-59cc-adff-6fc11a2a288d
   module: shared.ast_utility
   qualname: extract_parameters
@@ -6965,7 +7318,7 @@ items:
   ast_signature: TBD
   fingerprint: fff6d7866a7639aafe546933cf97f61efdc11886f8f2df1d638c7c683a3a410e
   state: discovered
-digest: sha256:68c6ed4fa6b7d03236b08c8f32480eeaf04b48587bfb0dfe50afaf70aa29f954
+digest: sha256:2448db446d01664f88a0334d7c893e0e44ca99437652d83533ba155f773b69bf
 
 --- END OF FILE ./.intent/mind_export/symbols.yaml ---
 
@@ -7590,6 +7943,7 @@ Provide a prioritized list of concrete actions I should take to address the weak
 **Final Instruction:** Do not give generic praise. Your goal is to find the flaws and provide a concrete path to fixing them. The academic credibility of this work depends on your critical eye.
 
 **The codebase bundle to review is provided below:**
+
 --- END OF FILE ./scripts/AcademicPeerReview.prompt ---
 
 --- START OF FILE ./scripts/assesment.prompt ---
@@ -7664,6 +8018,7 @@ This is the most critical section. Provide a prioritized, actionable roadmap. Th
 **Final Instruction:** Ground all your feedback in CORE's established principles. Your goal is to identify the next set of architectural improvements that will most effectively and safely advance the system's autonomy.
 
 **The codebase bundle to review is provided below:**
+
 --- END OF FILE ./scripts/assesment.prompt ---
 
 --- START OF FILE ./scripts/assign_capability_ids.py ---
@@ -8714,85 +9069,164 @@ eval "find . -type f $exclusions -exec wc -l {} \; | awk '{print \$1 \" \" \$2}'
 --- END OF FILE ./scripts/find_longest_files.sh ---
 
 --- START OF FILE ./scripts/find_unvectorized_symbols.py ---
-#!/usr/bin/env python3
 # scripts/find_unvectorized_symbols.py
 """
-A diagnostic script to find and list all symbols in the database that
-have not been vectorized (i.e., their `vector_id` is NULL).
+Unvectorized Symbol Inspector (diagnostic-only)
+
+Lists symbols in `core.symbols` that do NOT have a vector assigned yet
+(i.e., rows where `vector_id IS NULL`), using your current database schema.
+
+Schema columns used:
+- symbol_path (TEXT)
+- module       (TEXT)  -> shown as file_path
+- fingerprint  (TEXT)  -> shown as structural_hash
+
+Usage examples:
+  poetry run python3 scripts/find_unvectorized_symbols.py
+  poetry run python3 scripts/find_unvectorized_symbols.py --limit 50
+  poetry run python3 scripts/find_unvectorized_symbols.py --count
+  poetry run python3 scripts/find_unvectorized_symbols.py --csv > unvectorized.csv
+
+Notes:
+- Reads the database URL from $DATABASE_URL (must be async, e.g. postgresql+asyncpg://…)
+- This script is *diagnostic only* and not part of CORE’s runtime.
 """
 
 from __future__ import annotations
 
-import asyncio
+import os
 import sys
-from pathlib import Path
+import csv
+import argparse
+import asyncio
+from typing import List, Tuple
 
-# Add the 'src' directory to the Python path
-sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
-
-from rich.console import Console
-from rich.table import Table
-from services.database.session_manager import get_session
 from sqlalchemy import text
+from sqlalchemy.ext.asyncio import create_async_engine
 
-console = Console()
+
+SQL_SELECT = text(
+    """
+    SELECT
+        symbol_path,
+        module AS file_path,
+        fingerprint AS structural_hash
+    FROM core.symbols
+    WHERE vector_id IS NULL
+    ORDER BY module, symbol_path
+    LIMIT :limit
+    """
+)
+
+SQL_COUNT = text(
+    """
+    SELECT COUNT(*) AS cnt
+    FROM core.symbols
+    WHERE vector_id IS NULL
+    """
+)
 
 
-async def find_unvectorized():
-    """Connects to the DB and lists all symbols where vector_id is NULL."""
-    console.print("[bold cyan]--- Unvectorized Symbol Inspector ---[/bold cyan]")
+def _fmt_row(row: Tuple[str, str, str], widths: Tuple[int, int, int]) -> str:
+    s, f, h = row
+    w1, w2, w3 = widths
+    s = (s[: w1 - 1] + "…") if len(s) > w1 else s
+    f = (f[: w2 - 1] + "…") if len(f) > w2 else f
+    h = (h[: w3 - 1] + "…") if len(h) > w3 else h
+    return f"{s:<{w1}}  {f:<{w2}}  {h:<{w3}}"
 
-    try:
-        async with get_session() as session:
-            console.print("✅ Successfully connected to the database.")
 
-            stmt = text(
-                """
-                SELECT symbol_path, file_path, structural_hash
-                FROM core.symbols
-                WHERE vector_id IS NULL
-                ORDER BY file_path, symbol_path;
-                """
-            )
-            result = await session.execute(stmt)
-            unvectorized_symbols = [dict(row._mapping) for row in result]
-
-            if not unvectorized_symbols:
-                console.print(
-                    "\n[bold green]✅ Success! All symbols have been vectorized.[/bold green]"
-                )
-                return
-
-            console.print(
-                f"\n[bold red]Found {len(unvectorized_symbols)} symbols that are NOT vectorized:[/bold red]"
-            )
-
-            table = Table(show_header=True, header_style="bold magenta")
-            table.add_column("File Path", style="cyan")
-            table.add_column("Symbol Path", style="green")
-
-            for symbol in unvectorized_symbols:
-                table.add_row(symbol["file_path"], symbol["symbol_path"])
-
-            console.print(table)
-
-            console.print("\n[bold]Next Steps:[/bold]")
-            console.print(
-                "1. Review the list above for any patterns (e.g., specific directories, complex symbols)."
-            )
-            console.print(
-                "2. Run `poetry run core-admin run vectorize --force --write` to attempt to fix them."
-            )
-
-    except Exception as e:
-        console.print(
-            "\n[bold red]❌ An error occurred while connecting to the database:[/bold red]"
+async def _run_async(limit: int, as_csv: bool, do_count: bool) -> int:
+    db_url = os.getenv("DATABASE_URL")
+    if not db_url:
+        print("❌ DATABASE_URL is not set.", file=sys.stderr)
+        return 2
+    if not db_url.startswith("postgresql+asyncpg://"):
+        print(
+            "❌ DATABASE_URL must be an async URL (e.g. postgresql+asyncpg://…)",
+            file=sys.stderr,
         )
-        console.print(str(e))
+        return 2
+
+    engine = create_async_engine(db_url, pool_pre_ping=True)
+    try:
+        async with engine.begin() as conn:
+            # Optional count-only mode
+            if do_count:
+                res = await conn.execute(SQL_COUNT)
+                count = res.scalar_one()
+                print(count)
+                return 0
+
+            res = await conn.execute(SQL_SELECT, {"limit": limit})
+            rows = [(r[0] or "", r[1] or "", r[2] or "") for r in res.fetchall()]
+
+            if as_csv:
+                writer = csv.writer(sys.stdout)
+                writer.writerow(["symbol_path", "file_path", "structural_hash"])
+                writer.writerows(rows)
+                return 0
+
+            if not rows:
+                print("--- Unvectorized Symbol Inspector ---")
+                print("✅ No unvectorized symbols found. (vector_id IS NULL = 0)")
+                return 0
+
+            # Pretty table
+            print("--- Unvectorized Symbol Inspector ---")
+            print(f"✅ Connected to DB: {db_url.split('@')[-1]}")
+            print(f"📦 Rows: {len(rows)} (showing up to {limit})\n")
+
+            # Choose friendly widths
+            w_symbol = 60
+            w_file = 48
+            w_hash = 40
+            widths = (w_symbol, w_file, w_hash)
+
+            header = _fmt_row(("symbol_path", "file_path", "structural_hash"), widths)
+            sep = "-" * len(header)
+            print(header)
+            print(sep)
+            for row in rows:
+                print(_fmt_row(row, widths))
+
+            print("\nℹ️ Tip: Use --csv to export, or --count to just get the number.")
+            return 0
+    except Exception as exc:  # pragma: no cover (diagnostic)
+        print("❌ Error while querying unvectorized symbols:\n", file=sys.stderr)
+        print(str(exc), file=sys.stderr)
+        return 1
+    finally:
+        await engine.dispose()
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(
+        description="List symbols without vectors (vector_id IS NULL) from core.symbols."
+    )
+    parser.add_argument(
+        "--limit",
+        type=int,
+        default=200,
+        help="Max rows to display (default: 200)",
+    )
+    parser.add_argument(
+        "--csv",
+        action="store_true",
+        help="Output CSV (columns: symbol_path,file_path,structural_hash)",
+    )
+    parser.add_argument(
+        "--count",
+        action="store_true",
+        help="Print only the count of unvectorized symbols and exit.",
+    )
+    args = parser.parse_args()
+
+    return asyncio.run(_run_async(args.limit, args.csv, args.count))
 
 
 if __name__ == "__main__":
-    asyncio.run(find_unvectorized())
+    raise SystemExit(main())
 
 --- END OF FILE ./scripts/find_unvectorized_symbols.py ---
 
@@ -9392,6 +9826,188 @@ if __name__ == "__main__":
     main()
 
 --- END OF FILE ./scripts/register_all_capabilities.py ---
+
+--- START OF FILE ./scripts/rehydrate_qdrant_from_db.py ---
+# scripts/rehydrate_qdrant_from_db.py
+from __future__ import annotations
+
+import os
+import sys
+import json
+import math
+import argparse
+import asyncio
+from typing import Any, Dict, List, Optional
+
+import requests
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import create_async_engine
+
+SQL_PAGE = text("""
+    SELECT
+        s.id              AS symbol_id,          -- may be int or uuid; we'll keep as text
+        s.symbol_path     AS symbol_path,
+        s.vector_id::text AS vector_id_text      -- force text so we can pass it as a param
+    FROM core.symbols AS s
+    WHERE s.vector_id IS NOT NULL
+    ORDER BY s.id
+    LIMIT :limit OFFSET :offset
+""")
+
+# Try a few common vector column names in your vectors table
+VECTOR_COL_CANDIDATES = ["vector", "values", "embedding", "data", "vec"]
+DIM_COL_CANDIDATES = ["dim", "size", "length", "ndim"]
+
+def make_vector_queries(vector_table: str) -> List[str]:
+    stmts: List[str] = []
+    for col in VECTOR_COL_CANDIDATES:
+        for dim_col in DIM_COL_CANDIDATES:
+            stmts.append(f"SELECT {col} AS v, {dim_col} AS d FROM {vector_table} WHERE id = :vid")
+        stmts.append(f"SELECT {col} AS v, NULL::INT AS d FROM {vector_table} WHERE id = :vid")
+    return stmts
+
+def qdrant_upsert_points(qdrant_url: str, collection: str, points: List[Dict[str, Any]], *, timeout: int = 30) -> None:
+    if not points:
+        return
+    url = f"{qdrant_url.rstrip('/')}/collections/{collection}/points?wait=true"
+    payload = {"points": points}
+    r = requests.put(url, headers={"Content-Type": "application/json"}, data=json.dumps(payload), timeout=timeout)
+    if r.status_code >= 300:
+        raise RuntimeError(f"Qdrant upsert failed [{r.status_code}]: {r.text}")
+
+async def main() -> int:
+    parser = argparse.ArgumentParser(description="Rehydrate Qdrant from DB-stored vectors.")
+    parser.add_argument("--batch", type=int, default=500, help="Batch size for upserts (default: 500)")
+    parser.add_argument("--dry-run", action="store_true", help="Do not write to Qdrant; just report.")
+    parser.add_argument("--vector-table", default="core.vectors", help="Table that stores vectors (default: core.vectors)")
+    args = parser.parse_args()
+
+    db_url = os.getenv("DATABASE_URL")
+    qdrant_url = os.getenv("QDRANT_URL")
+    collection = os.getenv("QDRANT_COLLECTION_NAME", "core_capabilities")
+    expected_dim_env = os.getenv("LOCAL_EMBEDDING_DIM")
+
+    if not db_url or not qdrant_url:
+        print("❌ DATABASE_URL or QDRANT_URL is not set.", file=sys.stderr)
+        return 2
+    if not db_url.startswith("postgresql+asyncpg://"):
+        print("❌ DATABASE_URL must be async (postgresql+asyncpg://...)", file=sys.stderr)
+        return 2
+
+    expected_dim = int(expected_dim_env) if (expected_dim_env or "").isdigit() else None
+
+    engine = create_async_engine(db_url, pool_pre_ping=True)
+    total = 0
+    written = 0
+
+    print(f"🔗 DB: {db_url.split('@')[-1]}")
+    print(f"📦 Qdrant: {qdrant_url}  collection={collection}")
+    if expected_dim:
+        print(f"📐 Expected vector dim: {expected_dim}")
+
+    try:
+        async with engine.begin() as conn:
+            res = await conn.execute(text("SELECT COUNT(*) FROM core.symbols WHERE vector_id IS NOT NULL"))
+            total = int(res.scalar_one())
+            if total == 0:
+                print("✅ Nothing to rehydrate (no symbols with vector_id).")
+                return 0
+
+            print(f"🧮 Found {total} symbols with vectors. Starting rehydrate...")
+
+            pages = math.ceil(total / args.batch)
+            offset = 0
+            vector_sqls = [text(s) for s in make_vector_queries(args.vector_table)]
+
+            for page in range(pages):
+                res = await conn.execute(SQL_PAGE, {"limit": args.batch, "offset": offset})
+                rows = res.fetchall()
+                offset += len(rows)
+
+                out_points: List[Dict[str, Any]] = []
+
+                for symbol_id, symbol_path, vector_id_text in rows:
+                    # Always treat IDs as strings (handles UUIDs).
+                    sid = str(symbol_id) if symbol_id is not None else None
+                    vid = str(vector_id_text) if vector_id_text is not None else None
+                    if not sid or not vid:
+                        continue
+
+                    vector: Optional[List[float]] = None
+                    dim: Optional[int] = None
+
+                    for stmt in vector_sqls:
+                        try:
+                            r = await conn.execute(stmt, {"vid": vid})
+                            rec = r.fetchone()
+                            if not rec:
+                                continue
+                            v, d = rec[0], (rec[1] if len(rec) > 1 else None)
+                            if v is None:
+                                continue
+
+                            # Normalize to list[float]
+                            try:
+                                vec_list = list(v) if not isinstance(v, list) else v
+                            except Exception:
+                                continue
+
+                            dim_val = int(d) if d is not None else len(vec_list)
+                            if expected_dim and dim_val != expected_dim:
+                                # dimension mismatch; skip this one
+                                continue
+
+                            vector = [float(x) for x in vec_list]
+                            dim = dim_val
+                            break
+                        except Exception:
+                            # Try next candidate
+                            continue
+
+                    if vector is None:
+                        continue
+
+                    # Unnamed vector collection: send a plain list
+                    out_points.append({
+                        "id": sid,  # Qdrant accepts string IDs
+                        "vector": vector,
+                        "payload": {
+                            "symbol_path": symbol_path,
+                            "vector_id": vid,
+                            "dim": dim,
+                        }
+                    })
+
+                    if len(out_points) >= args.batch:
+                        if not args.dry_run:
+                            qdrant_upsert_points(qdrant_url, collection, out_points)
+                            written += len(out_points)
+                        out_points.clear()
+
+                # flush remaining
+                if out_points:
+                    if not args.dry_run:
+                        qdrant_upsert_points(qdrant_url, collection, out_points)
+                        written += len(out_points)
+
+                print(f"✅ Page {page+1}/{pages} processed. Total written so far: {written}")
+
+        if args.dry_run:
+            print("🔎 Dry run complete. No writes were made.")
+        else:
+            print(f"🎉 Rehydrate finished. Wrote {written} vectors to Qdrant.")
+        return 0
+
+    except Exception as e:
+        print(f"❌ Rehydrate failed: {e}", file=sys.stderr)
+        return 1
+    finally:
+        await engine.dispose()
+
+if __name__ == "__main__":
+    raise SystemExit(asyncio.run(main()))
+
+--- END OF FILE ./scripts/rehydrate_qdrant_from_db.py ---
 
 --- START OF FILE ./scripts/reset_and_rebuild_db.sh ---
 #!/usr/bin/env bash
@@ -10663,8 +11279,6 @@ from pathlib import Path
 from typing import Optional
 
 import typer
-from rich.console import Console
-
 from features.maintenance.command_sync_service import sync_commands_to_db
 from features.self_healing.capability_tagging_service import (
     tag_unassigned_capabilities,
@@ -10678,7 +11292,11 @@ from features.self_healing.header_service import _run_header_fix_cycle
 from features.self_healing.id_tagging_service import assign_missing_ids
 from features.self_healing.linelength_service import fix_line_lengths
 from features.self_healing.policy_id_service import add_missing_policy_ids
+# --- START: IMPORT THE NEW COMMAND ---
+from features.self_healing.prune_orphaned_vectors import main_sync as prune_orphaned_vectors
+# --- END: IMPORT THE NEW COMMAND ---
 from features.self_healing.purge_legacy_tags_service import purge_legacy_tags
+from rich.console import Console
 from shared.config import settings
 from shared.context import CoreContext
 from shared.logger import getLogger
@@ -10877,11 +11495,18 @@ def fix_duplicate_ids_command(
     asyncio.run(resolve_duplicate_ids(dry_run=not write))
 
 
-# ID: 4d5e6f7a-8b9c-0d1e-2f3a-4b5c6d7e8f9a
+# --- START: REGISTER THE NEW COMMAND ---
+fix_app.command(
+    "orphaned-vectors",
+    help="Finds and deletes vectors in Qdrant that no longer exist in the main DB.",
+)(prune_orphaned_vectors)
+# --- END: REGISTER THE NEW COMMAND ---
+
+
+# ID: 4d5e6f7a-8b9c-0d1e-2f3a-4b5c6d7e
 def register(app: typer.Typer, context: CoreContext):
     """Register the 'fix' command group to the main CLI app."""
     app.add_typer(fix_app, name="fix")
-
 --- END OF FILE ./src/cli/commands/fix.py ---
 
 --- START OF FILE ./src/cli/commands/inspect.py ---
@@ -10896,6 +11521,11 @@ from cli.logic.diagnostics import cli_tree
 from cli.logic.duplicates import inspect_duplicates
 from cli.logic.guard_cli import register_guard
 from cli.logic.status import status
+
+# --- START: IMPORT THE NEW COMMAND ---
+from cli.logic.symbol_drift import inspect_symbol_drift
+
+# --- END: IMPORT THE NEW COMMAND ---
 from shared.context import CoreContext
 
 inspect_app = typer.Typer(
@@ -10906,6 +11536,12 @@ inspect_app = typer.Typer(
 register_guard(inspect_app)
 inspect_app.command("status")(status)
 inspect_app.command("command-tree")(cli_tree)
+# --- START: REGISTER THE NEW COMMAND ---
+inspect_app.command(
+    "symbol-drift",
+    help="Detects drift between symbols on the filesystem and in the database.",
+)(inspect_symbol_drift)
+# --- END: REGISTER THE NEW COMMAND ---
 
 
 # ID: 5e6f7a8b-9c0d-1e2f-3a4b-5c6d7e8f9a0b
@@ -12983,15 +13619,14 @@ def policy_coverage():
 @diagnostics_app.command(
     "debug-meta", help="Prints the auditor's view of all required constitutional files."
 )
-# ID: c4dba9d9-6c1a-4328-b473-2e3286e9d291
+# ID: 26b01b63-c743-4ac0-80a2-231a477bf3bb
 def debug_meta_paths():
-    """A diagnostic tool to debug the constitutional file parser."""
+    """A diagnostic tool that prints all file paths indexed in meta.yaml."""
     console.print(
         "[bold yellow]--- Auditor's Interpretation of meta.yaml ---[/bold yellow]"
     )
-    intent_dir = settings.REPO_PATH / ".intent"
-    required_paths = get_all_constitutional_paths(settings._meta_config, intent_dir)
-
+    # This now correctly uses the shared utility, removing duplication.
+    required_paths = get_all_constitutional_paths(settings._meta_config, settings.MIND)
     for path in sorted(list(required_paths)):
         console.print(path)
 
@@ -13123,10 +13758,7 @@ def check_legacy_tags():
         for finding in findings:
             table.add_row(finding.file_path, str(finding.line_number), finding.message)
 
-        # --- THIS IS THE FIX ---
-        # The table was being created but never printed.
         console.print(table)
-        # --- END OF FIX ---
 
         raise typer.Exit(code=1)
 
@@ -13162,42 +13794,34 @@ console = Console()
 def _group_findings(findings: list[AuditFinding]) -> List[List[AuditFinding]]:
     """Groups individual finding pairs into clusters of related duplicates."""
     graph = nx.Graph()
+    finding_map = {}
+
     for finding in findings:
-        # Extract the two symbols from the message
-        parts = finding.message.split("'")
-        if len(parts) >= 4:
-            symbol1 = parts[1]
-            symbol2 = parts[3]
-            graph.add_edge(symbol1, symbol2, finding=finding)
+        symbol1 = finding.context.get("symbol_a")
+        symbol2 = finding.context.get("symbol_b")
+        if symbol1 and symbol2:
+            graph.add_edge(symbol1, symbol2)
+            finding_map[tuple(sorted((symbol1, symbol2)))] = finding
 
-    # Find connected components (these are our clusters)
     clusters = list(nx.connected_components(graph))
-
-    # Map nodes back to findings
-    finding_map = {
-        (frozenset([p.message.split("'")[1], p.message.split("'")[3]])): p
-        for p in findings
-    }
-
     grouped_findings = []
+
     for cluster in clusters:
         cluster_findings = []
-        # Create all pairs within the cluster to find the original findings
-        edges = nx.Graph()
-        edges.add_nodes_from(cluster)
-        edges.add_edges_from(nx.complete_graph(cluster).edges())
-
-        for u, v in edges.edges():
-            pair = frozenset([u, v])
-            if pair in finding_map:
-                cluster_findings.append(finding_map[pair])
+        for i, node1 in enumerate(list(cluster)):
+            for node2 in list(cluster)[i + 1 :]:
+                key = tuple(sorted((node1, node2)))
+                if key in finding_map:
+                    cluster_findings.append(finding_map[key])
 
         if cluster_findings:
-            # Sort by similarity score, descending
+            # --- THIS IS THE FIX ---
+            # The sorting key now correctly and safely reads the similarity score
+            # from the finding's 'context' dictionary, preventing the ValueError.
             cluster_findings.sort(
-                key=lambda f: float(f.message.split(":")[-1].strip()[:-1]),
-                reverse=True,
+                key=lambda f: float(f.context.get("similarity", 0)), reverse=True
             )
+            # --- END OF FIX ---
             grouped_findings.append(cluster_findings)
 
     return grouped_findings
@@ -13232,12 +13856,10 @@ async def _async_inspect_duplicates(context: CoreContext, threshold: float):
     )
 
     for i, cluster in enumerate(grouped_findings, 1):
-        # All findings in a cluster share the same symbols, just different pairings
         all_symbols_in_cluster = set()
         for f in cluster:
-            parts = f.message.split("'")
-            all_symbols_in_cluster.add(parts[1])
-            all_symbols_in_cluster.add(parts[3])
+            all_symbols_in_cluster.add(f.context["symbol_a"])
+            all_symbols_in_cluster.add(f.context["symbol_b"])
 
         title = f"Cluster #{i} ({len(all_symbols_in_cluster)} related symbols)"
         table = Table(show_header=True, header_style="bold magenta", title=title)
@@ -13246,11 +13868,11 @@ async def _async_inspect_duplicates(context: CoreContext, threshold: float):
         table.add_column("Similarity", style="yellow")
 
         for finding in cluster:
-            parts = finding.message.split("'")
-            symbol1 = parts[1]
-            symbol2 = parts[3]
-            similarity = finding.message.split(":")[-1].strip()
-            table.add_row(symbol1, symbol2, similarity)
+            table.add_row(
+                finding.context["symbol_a"],
+                finding.context["symbol_b"],
+                finding.context["similarity"],
+            )
 
         console.print(table)
 
@@ -15006,8 +15628,8 @@ from __future__ import annotations
 
 import asyncio
 import json
-import subprocess
 import tempfile
+import time
 import uuid
 from pathlib import Path
 
@@ -15018,7 +15640,9 @@ from core.agents.execution_agent import ExecutionAgent
 from core.agents.micro_planner import MicroPlannerAgent
 from core.agents.plan_executor import PlanExecutor
 from core.prompt_pipeline import PromptPipeline
+from features.governance.constitutional_auditor import ConstitutionalAuditor
 from features.governance.micro_proposal_validator import MicroProposalValidator
+from shared.action_logger import action_logger
 from shared.config import settings
 from shared.context import CoreContext
 from shared.logger import getLogger
@@ -15074,55 +15698,54 @@ async def micro_apply(
 ):
     """Validates and applies a micro-proposal."""
     console.print(f"🔵 Loading and applying micro-proposal: {proposal_path.name}")
+    start_time = time.monotonic()
 
     try:
         proposal_content = proposal_path.read_text(encoding="utf-8")
         proposal_data = json.loads(proposal_content)
-        # --- THIS IS THE FIX ---
-        # We now explicitly convert the list of dictionaries into a list of ExecutionTask objects.
         plan_dicts = proposal_data.get("plan", [])
         plan = [ExecutionTask(**task) for task in plan_dicts]
-        # --- END OF FIX ---
     except Exception as e:
         console.print(f"[bold red]❌ Error loading proposal file: {e}[/bold red]")
         raise typer.Exit(code=1)
 
-    # 1. Zero-Trust Validation
-    console.print(
-        "[bold]Step 1/3: Validating plan against constitutional policy...[/bold]"
-    )
-    validator = MicroProposalValidator()
-    is_valid, validation_error = validator.validate(plan)
-    if not is_valid:
-        console.print(
-            f"[bold red]❌ Plan is constitutionally invalid: {validation_error}[/bold red]"
-        )
-        raise typer.Exit(code=1)
-    console.print("   -> ✅ Plan is valid.")
-
-    # 2. Gather Evidence via CI Checks
-    console.print("[bold]Step 2/3: Gathering evidence via pre-flight checks...[/bold]")
-
-    command_to_run = "check audit"
-    console.print("   -> Running full system audit check...")
-    result = subprocess.run(
-        ["poetry", "run", "core-admin", *command_to_run.split()],
-        capture_output=True,
-        text=True,
-        check=False,
+    action_logger.log_event(
+        "a1.apply.started",
+        {"proposal": proposal_path.name, "goal": proposal_data.get("goal")},
     )
 
-    if result.returncode != 0:
-        console.print(
-            "[bold red]❌ Pre-flight audit check failed. Aborting.[/bold red]"
-        )
-        console.print(result.stderr or result.stdout)
-        raise typer.Exit(code=1)
-    console.print("   -> ✅ All pre-flight checks passed.")
-
-    # 3. Apply the Change via ExecutionAgent
-    console.print("[bold]Step 3/3: Executing the validated plan...[/bold]")
     try:
+        # 1. Zero-Trust Validation
+        console.print(
+            "[bold]Step 1/3: Validating plan against constitutional policy...[/bold]"
+        )
+        validator = MicroProposalValidator()
+        is_valid, validation_error = validator.validate(plan)
+        if not is_valid:
+            raise RuntimeError(f"Plan is constitutionally invalid: {validation_error}")
+        console.print("   -> ✅ Plan is valid.")
+
+        # 2. Gather Evidence via CI Checks (IN-PROCESS)
+        console.print(
+            "[bold]Step 2/3: Gathering evidence via pre-flight checks...[/bold]"
+        )
+        console.print("   -> Running full system audit check (in-process)...")
+
+        # --- THIS IS THE FIX ---
+        auditor = ConstitutionalAuditor(context.auditor_context)
+        passed, findings, _ = await auditor.run_full_audit_async()
+
+        if not passed:
+            error_details = "\n".join(
+                [f.message for f in findings if f.severity.is_blocking]
+            )
+            raise RuntimeError(f"Pre-flight audit check failed:\n{error_details}")
+        # --- END OF FIX ---
+
+        console.print("   -> ✅ All pre-flight checks passed.")
+
+        # 3. Apply the Change via ExecutionAgent
+        console.print("[bold]Step 3/3: Executing the validated plan...[/bold]")
         cognitive_service = context.cognitive_service
         prompt_pipeline = PromptPipeline(settings.REPO_PATH)
         plan_executor = PlanExecutor(
@@ -15131,7 +15754,6 @@ async def micro_apply(
             config=PlannerConfig(),
         )
         auditor_context = context.auditor_context
-
         execution_agent = ExecutionAgent(
             cognitive_service=cognitive_service,
             prompt_pipeline=prompt_pipeline,
@@ -15141,18 +15763,30 @@ async def micro_apply(
         success, message = await execution_agent.execute_plan(
             high_level_goal=proposal_data.get("goal", ""), plan=plan
         )
+        if not success:
+            raise RuntimeError(
+                f"ExecutionAgent reported failure during plan application: {message}"
+            )
 
-        if success:
-            console.print(
-                "[bold green]✅ Micro-proposal applied successfully![/bold green]"
-            )
-        else:
-            console.print(
-                f"[bold red]❌ ExecutionAgent reported failure during plan application: {message}[/bold red]"
-            )
-            raise typer.Exit(code=1)
+        duration = time.monotonic() - start_time
+        action_logger.log_event(
+            "a1.apply.succeeded",
+            {"proposal": proposal_path.name, "duration_sec": round(duration, 2)},
+        )
+        console.print(
+            "[bold green]✅ Micro-proposal applied successfully![/bold green]"
+        )
 
     except Exception as e:
+        duration = time.monotonic() - start_time
+        action_logger.log_event(
+            "a1.apply.failed",
+            {
+                "proposal": proposal_path.name,
+                "error": str(e),
+                "duration_sec": round(duration, 2),
+            },
+        )
         console.print(f"[bold red]❌ Error during plan execution: {e}[/bold red]")
         raise typer.Exit(code=1)
 
@@ -15797,6 +16431,110 @@ def status() -> None:
     asyncio.run(_run())
 
 --- END OF FILE ./src/cli/logic/status.py ---
+
+--- START OF FILE ./src/cli/logic/symbol_drift.py ---
+# src/cli/logic/symbol_drift.py
+"""
+Implements the `inspect symbol-drift` command, a diagnostic tool to detect
+discrepancies between symbols on the filesystem and those in the database.
+"""
+
+from __future__ import annotations
+
+import asyncio
+
+from rich.console import Console
+from rich.panel import Panel
+from rich.table import Table
+from sqlalchemy import text
+
+from features.introspection.sync_service import SymbolScanner
+from services.database.session_manager import get_session
+
+console = Console()
+
+
+async def _run_drift_analysis():
+    """
+    The core logic that scans source, queries the DB, and compares the results.
+    """
+    console.print("[bold cyan]🚀 Running Symbol Drift Analysis...[/bold cyan]")
+
+    # 1. Scan the filesystem to get the ground truth
+    console.print("   -> Scanning 'src/' directory for all public symbols...")
+    scanner = SymbolScanner()
+    code_symbols = await asyncio.to_thread(scanner.scan)
+    code_symbol_paths = {s["symbol_path"] for s in code_symbols}
+    console.print(f"      - Found {len(code_symbol_paths)} symbols in source code.")
+
+    # 2. Query the database to get the current state
+    console.print("   -> Querying database for all registered symbols...")
+    db_symbol_paths = set()
+    try:
+        async with get_session() as session:
+            result = await session.execute(text("SELECT symbol_path FROM core.symbols"))
+            db_symbol_paths = {row[0] for row in result}
+        console.print(f"      - Found {len(db_symbol_paths)} symbols in the database.")
+    except Exception as e:
+        console.print(f"[bold red]❌ Database query failed: {e}[/bold red]")
+        console.print("   Please ensure your database is running and accessible.")
+        return
+
+    # 3. Compare the two sets to find the drift
+    ghost_symbols_in_db = sorted(list(db_symbol_paths - code_symbol_paths))
+    new_symbols_in_code = sorted(list(code_symbol_paths - db_symbol_paths))
+
+    console.print("\n--- Analysis Complete ---")
+
+    if not ghost_symbols_in_db and not new_symbols_in_code:
+        console.print(
+            Panel(
+                "[bold green]✅ No drift detected.[/bold green]\nThe database is perfectly synchronized with the source code.",
+                title="Result",
+                border_style="green",
+            )
+        )
+        return
+
+    # Display findings
+    if ghost_symbols_in_db:
+        table = Table(
+            title=f"👻 Found {len(ghost_symbols_in_db)} Ghost Symbols in Database",
+            caption="These symbols exist in the DB but NOT in the source code. They should be pruned.",
+            show_header=True,
+            header_style="bold red",
+        )
+        table.add_column("Obsolete Symbol Path", style="red")
+        for symbol in ghost_symbols_in_db:
+            table.add_row(symbol)
+        console.print(table)
+        console.print(
+            "\n[bold]Diagnosis:[/bold] The `sync-knowledge` command is failing to delete obsolete symbols from the database."
+        )
+
+    if new_symbols_in_code:
+        table = Table(
+            title=f"✨ Found {len(new_symbols_in_code)} New Symbols in Source Code",
+            caption="These symbols exist in the code but NOT in the DB. They need to be synchronized.",
+            show_header=True,
+            header_style="bold green",
+        )
+        table.add_column("New Symbol Path", style="green")
+        for symbol in new_symbols_in_code:
+            table.add_row(symbol)
+        console.print(table)
+
+    console.print(
+        "\n[bold]Next Step:[/bold] This report confirms a bug in the sync logic. Please proceed with fixing the `run_sync_with_db` function."
+    )
+
+
+# ID: 1342dd1f-2117-469d-b5a3-9e3379f68197
+def inspect_symbol_drift():
+    """Synchronous Typer wrapper for the async drift analysis logic."""
+    asyncio.run(_run_drift_analysis())
+
+--- END OF FILE ./src/cli/logic/symbol_drift.py ---
 
 --- START OF FILE ./src/cli/logic/sync.py ---
 # src/cli/commands/sync.py
@@ -16904,23 +17642,24 @@ from __future__ import annotations
 
 from core.actions.base import ActionHandler
 from core.actions.context import PlanExecutorContext
+from features.self_healing.code_style_service import format_code
 from features.self_healing.docstring_service import _async_fix_docstrings
 from features.self_healing.header_service import _run_header_fix_cycle
 from shared.config import settings
 from shared.models import TaskParams
 
 
-# ID: 8142a384-8b64-4a40-9ab2-900b8461f1ad
+# ID: 57591e08-9aab-478a-8f56-3a0c7d618064
 class FixDocstringsHandler(ActionHandler):
     """Handles the 'autonomy.self_healing.fix_docstrings' action."""
 
     @property
-    # ID: cf7e0b6a-d647-4d8b-a514-6a15eda0e9d7
+    # ID: d8fa2ec9-da57-40f0-b3e8-8832332f63c7
     def name(self) -> str:
         """Return the unique identifier for this self-healing module."""
         return "autonomy.self_healing.fix_docstrings"
 
-    # ID: 552bceca-5f87-4c7d-9b71-ced2830721e9
+    # ID: 83bfe85a-6373-4983-8fe1-62104fa1f1e5
     async def execute(self, params: TaskParams, context: PlanExecutorContext):
         """
         Executes the docstring fixing logic by calling the dedicated service.
@@ -16929,16 +17668,16 @@ class FixDocstringsHandler(ActionHandler):
         await _async_fix_docstrings(dry_run=False)
 
 
-# ID: 90dc8e4d-8cda-4b80-ac5d-c0663f4d305d
+# ID: 49d5aa15-85f9-4ca1-93c9-fb84c7bcfa37
 class FixHeadersHandler(ActionHandler):
     """Handles the 'autonomy.self_healing.fix_headers' action."""
 
     @property
-    # ID: da56f842-5674-4bde-af83-bb4077ac8afa
+    # ID: 86350ba5-ef05-4a15-8e4e-7a6dbe83c549
     def name(self) -> str:
         return "autonomy.self_healing.fix_headers"
 
-    # ID: 06da4266-6087-41d7-a745-e9cce27aec94
+    # ID: ea34f0f1-f8f6-4f58-934d-6f9512a023a6
     async def execute(self, params: TaskParams, context: PlanExecutorContext):
         """Executes the header fixing logic for all Python files."""
         src_dir = settings.REPO_PATH / "src"
@@ -16946,6 +17685,21 @@ class FixHeadersHandler(ActionHandler):
             str(p.relative_to(settings.REPO_PATH)) for p in src_dir.rglob("*.py")
         ]
         _run_header_fix_cycle(dry_run=False, all_py_files=all_py_files)
+
+
+# ID: 363fd253-58df-4603-877c-03cffdc626b1
+class FormatCodeHandler(ActionHandler):
+    """Handles the 'autonomy.self_healing.format_code' action."""
+
+    @property
+    # ID: b90e14b5-7741-4e86-8451-2682c10718f0
+    def name(self) -> str:
+        return "autonomy.self_healing.format_code"
+
+    # ID: 4f311df7-b97a-4a9c-ab54-1369ec41988e
+    async def execute(self, params: TaskParams, context: PlanExecutorContext):
+        """Executes the code formatting logic by calling the dedicated service."""
+        format_code()
 
 --- END OF FILE ./src/core/actions/healing_actions.py ---
 
@@ -16965,7 +17719,11 @@ from .base import ActionHandler
 from .code_actions import CreateFileHandler, EditFileHandler, EditFunctionHandler
 from .file_actions import DeleteFileHandler, ListFilesHandler, ReadFileHandler
 from .governance_actions import CreateProposalHandler
-from .healing_actions import FixDocstringsHandler, FixHeadersHandler
+from .healing_actions import (
+    FixDocstringsHandler,
+    FixHeadersHandler,
+    FormatCodeHandler,
+)
 from .validation_actions import ValidateCodeHandler
 
 log = getLogger("action_registry")
@@ -16990,8 +17748,10 @@ class ActionRegistry:
             EditFileHandler,
             CreateProposalHandler,
             EditFunctionHandler,
+            # Add our new handlers to the list
             FixHeadersHandler,
             FixDocstringsHandler,
+            FormatCodeHandler,
             ValidateCodeHandler,
         ]
 
@@ -17016,6 +17776,7 @@ class ActionRegistry:
 """
 Action handlers for validation and verification tasks.
 """
+
 from __future__ import annotations
 
 from core.actions.base import ActionHandler
@@ -21075,6 +21836,126 @@ class CapabilityCoverageCheck:
 
 --- END OF FILE ./src/features/governance/checks/capability_coverage.py ---
 
+--- START OF FILE ./src/features/governance/checks/dependency_injection_check.py ---
+# src/features/governance/checks/dependency_injection_check.py
+"""
+A constitutional audit check to enforce the Dependency Injection (DI) policy.
+"""
+
+from __future__ import annotations
+
+import ast
+from pathlib import Path
+from typing import List
+
+from features.governance.checks.base_check import BaseCheck
+from shared.models import AuditFinding, AuditSeverity
+
+
+# ID: 7cdf99c0-ebe2-4a36-9a6f-9d32dd6ee1db
+class DependencyInjectionCheck(BaseCheck):
+    """
+    Ensures that services and features do not directly instantiate their dependencies,
+    and do not use forbidden global imports like `get_session`.
+    """
+
+    def __init__(self, context):
+        super().__init__(context)
+        self.policy = self.context.policies.get("dependency_injection_policy", {})
+
+    # ID: b854f7a7-fe4f-4ec6-8b9d-04bd32c98102
+    def execute(self) -> List[AuditFinding]:
+        """Runs the DI check by scanning source files for policy violations."""
+        findings = []
+        rules = self.policy.get("rules", [])
+        if not rules:
+            return findings
+
+        for rule in rules:
+            if rule.get("id") == "di.no_direct_instantiation":
+                findings.extend(self._check_forbidden_instantiations(rule))
+            elif rule.get("id") == "di.no_global_session_import":
+                findings.extend(self._check_forbidden_imports(rule))
+
+        return findings
+
+    def _check_forbidden_instantiations(self, rule: dict) -> List[AuditFinding]:
+        """Finds direct instantiations of major services."""
+        findings = []
+        forbidden_calls = set(rule.get("forbidden_instantiations", []))
+        scope = rule.get("scope", [])
+        exclusions = rule.get("exclusions", [])
+
+        for file_path in self._get_files_in_scope(scope, exclusions):
+            try:
+                content = file_path.read_text("utf-8")
+                tree = ast.parse(content, filename=str(file_path))
+
+                for node in ast.walk(tree):
+                    if isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
+                        if node.func.id in forbidden_calls:
+                            findings.append(
+                                AuditFinding(
+                                    check_id=rule["id"],
+                                    severity=AuditSeverity.ERROR,
+                                    message=f"Direct instantiation of '{node.func.id}' is forbidden. Inject it via the constructor.",
+                                    file_path=str(
+                                        file_path.relative_to(self.repo_root)
+                                    ),
+                                    line_number=node.lineno,
+                                    category="architectural",  # <-- ADD THIS LINE
+                                )
+                            )
+            except Exception:
+                continue
+        return findings
+
+    def _check_forbidden_imports(self, rule: dict) -> List[AuditFinding]:
+        """Finds direct imports of forbidden functions like get_session."""
+        findings = []
+        forbidden_imports = set(rule.get("forbidden_imports", []))
+        scope = rule.get("scope", [])
+        exclusions = rule.get("exclusions", [])
+
+        for file_path in self._get_files_in_scope(scope, exclusions):
+            try:
+                content = file_path.read_text("utf-8")
+                tree = ast.parse(content, filename=str(file_path))
+
+                for node in ast.walk(tree):
+                    if (
+                        isinstance(node, ast.ImportFrom)
+                        and node.module in forbidden_imports
+                    ):
+                        findings.append(
+                            AuditFinding(
+                                check_id=rule["id"],
+                                severity=AuditSeverity.ERROR,
+                                message=f"Direct import of '{node.module}' is forbidden. Inject the dependency instead.",
+                                file_path=str(file_path.relative_to(self.repo_root)),
+                                line_number=node.lineno,
+                                category="architectural",  # <-- ADD THIS LINE
+                            )
+                        )
+            except Exception:
+                continue
+        return findings
+
+    def _get_files_in_scope(
+        self, scope: List[str], exclusions: List[str]
+    ) -> List[Path]:
+        """Helper to get all files matching the scope and exclusion globs."""
+        files = []
+        for glob_pattern in scope:
+            for file_path in self.repo_root.glob(glob_pattern):
+                if file_path.is_file() and not any(
+                    file_path.match(ex) for ex in exclusions
+                ):
+                    files.append(file_path)
+        return list(set(files))
+
+--- END OF FILE ./src/features/governance/checks/dependency_injection_check.py ---
+
 --- START OF FILE ./src/features/governance/checks/domain_placement.py ---
 # src/features/governance/checks/domain_placement.py
 """
@@ -21151,6 +22032,7 @@ from __future__ import annotations
 import asyncio
 from typing import Any, Dict, List
 
+import networkx as nx
 from rich.progress import track
 
 from features.governance.audit_context import AuditorContext
@@ -21159,6 +22041,43 @@ from shared.logger import getLogger
 from shared.models import AuditFinding, AuditSeverity
 
 log = getLogger("duplication_check")
+
+
+def _group_findings(findings: list[AuditFinding]) -> List[List[AuditFinding]]:
+    """Groups individual finding pairs into clusters of related duplicates."""
+    graph = nx.Graph()
+    finding_map = {}
+
+    for finding in findings:
+        # The context dictionary is the reliable source for symbol keys.
+        symbol1 = finding.context.get("symbol_a")
+        symbol2 = finding.context.get("symbol_b")
+        if symbol1 and symbol2:
+            graph.add_edge(symbol1, symbol2)
+            # Store the finding under a canonical key (sorted tuple).
+            finding_map[tuple(sorted((symbol1, symbol2)))] = finding
+
+    # Find connected components (these are our clusters).
+    clusters = list(nx.connected_components(graph))
+    grouped_findings = []
+
+    for cluster in clusters:
+        cluster_findings = []
+        # Reconstruct the findings that belong to this cluster.
+        for i, node1 in enumerate(list(cluster)):
+            for node2 in list(cluster)[i + 1 :]:
+                key = tuple(sorted((node1, node2)))
+                if key in finding_map:
+                    cluster_findings.append(finding_map[key])
+
+        if cluster_findings:
+            # Sort by similarity score (descending) for consistent reporting.
+            cluster_findings.sort(
+                key=lambda f: float(f.context.get("similarity", 0)), reverse=True
+            )
+            grouped_findings.append(cluster_findings)
+
+    return grouped_findings
 
 
 # ID: 16e4e42b-3f70-444f-933e-ec1679cd8992
@@ -21210,19 +22129,23 @@ class DuplicationCheck:
 
                 if hit["score"] > threshold:
                     if symbol_key < hit_symbol_key:
-                        findings.append(
-                            AuditFinding(
-                                check_id="code.style.semantic-duplication",
-                                severity=AuditSeverity.WARNING,
-                                message=f"Potential duplicate logic found between '{symbol_key.split('::')[-1]}' and '{hit_symbol_key.split('::')[-1]}'.",
-                                file_path=symbol.get("file_path"),
-                                context={
-                                    "symbol_a": symbol_key,
-                                    "symbol_b": hit_symbol_key,
-                                    "similarity": f"{hit['score']:.2f}",
-                                },
-                            )
+                        symbol_a, symbol_b = symbol_key, hit_symbol_key
+                    else:
+                        symbol_a, symbol_b = hit_symbol_key, symbol_key
+
+                    findings.append(
+                        AuditFinding(
+                            check_id="code.style.semantic-duplication",
+                            severity=AuditSeverity.WARNING,
+                            message=f"Potential duplicate logic found between '{symbol_a.split('::')[-1]}' and '{symbol_b.split('::')[-1]}'.",
+                            file_path=symbol.get("file_path"),
+                            context={
+                                "symbol_a": symbol_a,
+                                "symbol_b": symbol_b,
+                                "similarity": f"{hit['score']:.2f}",
+                            },
                         )
+                    )
         except Exception as e:
             log.warning(f"Could not perform duplication check for '{symbol_key}': {e}")
 
@@ -21238,7 +22161,6 @@ class DuplicationCheck:
         if not vectorized_symbols:
             return []
 
-        # This check is computationally intensive, so we process asynchronously.
         tasks = [
             self._check_single_symbol(symbol, threshold)
             for symbol in vectorized_symbols
@@ -21252,7 +22174,6 @@ class DuplicationCheck:
         ):
             results.extend(await future)
 
-        # Post-process to remove mirrored duplicates (A-B vs B-A)
         unique_findings = {}
         for finding in results:
             key_tuple = tuple(
@@ -23325,34 +24246,20 @@ from typing import Any, Dict
 
 import yaml
 
-try:
-    # Use shared logger per logging policy (no direct logging import/print)
-    from shared.logger import getLogger  # type: ignore
-except Exception:  # Fallback if logger import path changes during refactors
-    # ID: c9da80fe-4c0b-4e9b-aaa0-b8acfa2dec86
-    def getLogger(name: str):  # type: ignore
-        class _Nop:
-            def __getattr__(self, _):  # noqa: D401
-                def _noop(*__, **___):
-                    return None
-
-                return _noop
-
-        return _Nop()
-
+from shared.logger import getLogger
 
 log = getLogger(__name__)
 
-# Constitution paths (governance policies)
-GOVERNANCE_DIR = Path(".intent/charter/policies/governance")
+# Define base paths relative to the assumed .intent directory structure
+CONSTITUTION_DIR = Path(".intent/charter")
+GOVERNANCE_DIR = CONSTITUTION_DIR / "policies" / "governance"
+AGENT_DIR = CONSTITUTION_DIR / "policies" / "agent"
 
-_AVAILABLE_ACTIONS_FILE = GOVERNANCE_DIR / "available_actions_policy.yaml"
-_MICRO_PROPOSAL_FILE = GOVERNANCE_DIR / "micro_proposal_policy.yaml"
 
-
-def _load_yaml(path: Path) -> Dict[str, Any]:
+def _load_policy_yaml(path: Path) -> Dict[str, Any]:
     """
-    Load a YAML file and return a dict. Raises ValueError with a clear message on failure.
+    Loads and performs basic validation on a policy YAML file.
+    This is now the single source of truth for loading these policies.
     """
     if not path.exists():
         msg = f"Policy file not found: {path}"
@@ -23361,12 +24268,12 @@ def _load_yaml(path: Path) -> Dict[str, Any]:
     try:
         with path.open("r", encoding="utf-8") as f:
             data = yaml.safe_load(f) or {}
-            if not isinstance(data, dict):
-                msg = f"Policy file must deserialize to a mapping: {path}"
-                log.error(msg)
-                raise ValueError(msg)
-            return data
-    except Exception as e:  # noqa: BLE001
+        if not isinstance(data, dict):
+            msg = f"Policy file must be a dictionary: {path}"
+            log.error(msg)
+            raise ValueError(msg)
+        return data
+    except Exception as e:
         msg = f"Failed to load policy YAML: {path} ({e})"
         log.error(msg)
         raise ValueError(msg) from e
@@ -23376,30 +24283,23 @@ def _load_yaml(path: Path) -> Dict[str, Any]:
 def load_available_actions() -> Dict[str, Any]:
     """
     Load the canonical list of available actions for the PlannerAgent.
-    Source: .intent/charter/policies/governance/available_actions_policy.yaml
     """
-    policy = _load_yaml(_AVAILABLE_ACTIONS_FILE)
-    # Basic structure sanity checks (keep lightweight to avoid tight coupling)
+    policy = _load_policy_yaml(GOVERNANCE_DIR / "available_actions_policy.yaml")
     actions = policy.get("actions")
     if not isinstance(actions, list) or not actions:
-        msg = f"'actions' must be a non-empty list in {_AVAILABLE_ACTIONS_FILE}"
-        log.error(msg)
-        raise ValueError(msg)
+        raise ValueError("'actions' must be a non-empty list in the policy.")
     return policy
 
 
 # ID: 29d61bb4-8fdc-42e9-9d1c-30cae93a9e10
 def load_micro_proposal_policy() -> Dict[str, Any]:
     """
-    Load the Micro-Proposal Policy (Autonomous Fast Track) used for path guardrails.
-    Source: .intent/charter/policies/governance/micro_proposal_policy.yaml
+    Load the Micro-Proposal Policy for autonomous path guardrails.
     """
-    policy = _load_yaml(_MICRO_PROPOSAL_FILE)
+    policy = _load_policy_yaml(AGENT_DIR / "micro_proposal_policy.yaml")
     rules = policy.get("rules")
     if not isinstance(rules, list) or not rules:
-        msg = f"'rules' must be a non-empty list in {_MICRO_PROPOSAL_FILE}"
-        log.error(msg)
-        raise ValueError(msg)
+        raise ValueError("'rules' must be a non-empty list in the policy.")
     return policy
 
 
@@ -27796,8 +28696,7 @@ def add_missing_policy_ids(dry_run: bool = True) -> int:
 # src/features/self_healing/prune_orphaned_vectors.py
 """
 A self-healing tool to find and delete orphaned vectors from the Qdrant database.
-An orphan is a vector whose corresponding symbol no longer exists in the
-knowledge graph.
+An orphan is a vector whose corresponding symbol no longer exists in the main database.
 """
 
 from __future__ import annotations
@@ -27806,102 +28705,98 @@ import asyncio
 
 import typer
 from qdrant_client import AsyncQdrantClient
-
-# --- START OF AMENDMENT: Import the correct model ---
 from qdrant_client.http.models import PointIdsList
-
-# --- END OF AMENDMENT ---
 from rich.console import Console
-
-from core.knowledge_service import KnowledgeService
+from services.database.session_manager import get_session
 from shared.config import settings
 from shared.logger import getLogger
+from sqlalchemy import text
 
 log = getLogger("prune_orphaned_vectors")
 console = Console()
-REPO_ROOT = settings.REPO_PATH
 
 
-async def _async_main_sync(dry_run: bool):
-    """Main async orchestration for pruning orphaned vectors."""
-    log.info("🌿 Starting orphan vector pruning process...")
+async def _async_prune_orphans(dry_run: bool):
+    """The core async logic for finding and pruning orphaned vectors."""
+    console.print("[bold cyan]🌿 Starting orphan vector pruning process...[/bold cyan]")
 
-    knowledge_service = KnowledgeService(REPO_ROOT)
-    graph = await knowledge_service.get_graph()
-    known_symbol_keys = set(graph.get("symbols", {}).keys())
-    log.info(
-        f"   -> Found {len(known_symbol_keys)} known symbols in the knowledge graph."
-    )
-
-    client = AsyncQdrantClient(url=settings.QDRANT_URL)
-
+    valid_symbol_ids = set()
     try:
-        log.info("   -> Fetching all vector chunk IDs from Qdrant...")
-        all_points, _ = await client.scroll(
-            collection_name=settings.QDRANT_COLLECTION_NAME,
-            limit=10000,
-            with_payload=["chunk_id"],
-            with_vectors=False,
-        )
-
-        vector_points_map = {
-            p.payload["chunk_id"]: p.id
-            for p in all_points
-            if p.payload and "chunk_id" in p.payload
-        }
-        vector_chunk_keys = set(vector_points_map.keys())
-        log.info(f"   -> Found {len(vector_chunk_keys)} vectors in Qdrant.")
-
-        orphaned_chunk_keys = list(vector_chunk_keys - known_symbol_keys)
-
-        if not orphaned_chunk_keys:
-            console.print(
-                "[bold green]✅ No orphaned vectors found. The vector store is clean.[/bold green]"
+        # 1. Get the ground truth: all valid symbol IDs from the main database
+        console.print("   -> Fetching valid symbol IDs from PostgreSQL...")
+        async with get_session() as session:
+            # --- THIS IS THE FIX ---
+            # Explicitly cast the UUID to text in the SQL query to guarantee
+            # we get a string representation that matches Qdrant's IDs.
+            result = await session.execute(
+                text("SELECT id::text FROM core.symbols")
             )
-            return
-
+            valid_symbol_ids = {row[0] for row in result}
+            # --- END OF FIX ---
         console.print(
-            f"[yellow]Found {len(orphaned_chunk_keys)} orphaned vectors to prune.[/yellow]"
-        )
-
-        point_ids_to_delete = [
-            vector_points_map[key]
-            for key in orphaned_chunk_keys
-            if key in vector_points_map
-        ]
-
-        if dry_run:
-            console.print(
-                "\n[bold yellow]-- DRY RUN: The following vector point IDs would be deleted --[/bold yellow]"
-            )
-            for point_id in point_ids_to_delete[:20]:
-                console.print(f"  - {point_id}")
-            if len(point_ids_to_delete) > 20:
-                console.print(f"  - ... and {len(point_ids_to_delete) - 20} more.")
-            return
-
-        if not point_ids_to_delete:
-            console.print(
-                "[bold green]✅ No orphaned vectors to prune after filtering.[/bold green]"
-            )
-            return
-
-        console.print("\n[bold]Pruning orphaned vectors from Qdrant...[/bold]")
-
-        # --- START OF AMENDMENT: Use the correct class for the selector ---
-        await client.delete(
-            collection_name=settings.QDRANT_COLLECTION_NAME,
-            points_selector=PointIdsList(points=point_ids_to_delete),
-        )
-        # --- END OF AMENDMENT ---
-
-        console.print(
-            f"[bold green]✅ Successfully pruned {len(point_ids_to_delete)} orphaned vectors.[/bold green]"
+            f"      - Found {len(valid_symbol_ids)} valid symbols in the main database."
         )
 
     except Exception as e:
-        log.error(f"An error occurred during vector pruning: {e}", exc_info=True)
+        console.print(f"[bold red]❌ Database query failed: {e}[/bold red]")
         raise typer.Exit(code=1)
+
+    # 2. Get the current state: all vector IDs from the vector store
+    qdrant_service = AsyncQdrantClient(url=settings.QDRANT_URL)
+    vector_point_ids = set()
+    try:
+        console.print("   -> Fetching all vector point IDs from Qdrant...")
+        all_points, _ = await qdrant_service.scroll(
+            collection_name=settings.QDRANT_COLLECTION_NAME,
+            limit=10000,
+            with_payload=False,
+            with_vectors=False,
+        )
+        # Qdrant IDs can be UUIDs or integers, ensure they are strings for comparison
+        vector_point_ids = {str(point.id) for point in all_points}
+        console.print(
+            f"      - Found {len(vector_point_ids)} vectors in Qdrant."
+        )
+
+    except Exception as e:
+        console.print(
+            f"[bold red]❌ Failed to connect to or query Qdrant: {e}[/bold red]"
+        )
+        raise typer.Exit(code=1)
+
+    # 3. Compare the two sets to find the orphans
+    orphaned_ids = list(vector_point_ids - valid_symbol_ids)
+
+    if not orphaned_ids:
+        console.print(
+            "\n[bold green]✅ No orphaned vectors found. The vector store is clean.[/bold green]"
+        )
+        return
+
+    console.print(
+        f"\n[bold yellow]Found {len(orphaned_ids)} orphaned vectors to prune.[/bold yellow]"
+    )
+
+    if dry_run:
+        console.print(
+            "\n[bold yellow]-- DRY RUN: The following vector point IDs would be deleted --[/bold yellow]"
+        )
+        for point_id in orphaned_ids[:20]:
+            console.print(f"  - {point_id}")
+        if len(orphaned_ids) > 20:
+            console.print(f"  - ... and {len(orphaned_ids) - 20} more.")
+        return
+
+    # 4. Execute the deletion
+    console.print("\n[bold]Pruning orphaned vectors from Qdrant...[/bold]")
+    await qdrant_service.delete(
+        collection_name=settings.QDRANT_COLLECTION_NAME,
+        points_selector=PointIdsList(points=orphaned_ids),
+    )
+
+    console.print(
+        f"[bold green]✅ Successfully pruned {len(orphaned_ids)} orphaned vectors.[/bold green]"
+    )
 
 
 # ID: 9c0f083b-5653-4c1d-b4bb-f4f38528f062
@@ -27911,12 +28806,7 @@ def main_sync(
     ),
 ):
     """Entry point for the Typer command."""
-    asyncio.run(_async_main_sync(dry_run=not write))
-
-
-if __name__ == "__main__":
-    typer.run(main_sync)
-
+    asyncio.run(_async_prune_orphans(dry_run=not write))
 --- END OF FILE ./src/features/self_healing/prune_orphaned_vectors.py ---
 
 --- START OF FILE ./src/features/self_healing/prune_private_capabilities.py ---
@@ -28799,15 +29689,19 @@ class QdrantService:
     async def get_vector_by_id(self, point_id: str) -> Optional[List[float]]:
         """Retrieves a single vector by its point ID."""
         try:
+            # --- THIS IS THE FIX ---
+            # Ensure the point ID is always a string when passed to the client.
             records = await self.client.retrieve(
-                collection_name=self.collection_name, ids=[point_id], with_vectors=True
+                collection_name=self.collection_name,
+                ids=[str(point_id)],
+                with_vectors=True,
             )
+            # --- END OF FIX ---
             if records and records[0].vector:
                 return records[0].vector
         except Exception as e:
             log.warning(f"Could not retrieve vector for point ID {point_id}: {e}")
         return None
-
 --- END OF FILE ./src/services/clients/qdrant_client.py ---
 
 --- START OF FILE ./src/services/config_service.py ---
@@ -32465,6 +33359,29 @@ async def test_execute_goal_end_to_end(mock_core_env, get_test_session, mocker):
             assert response.json()["status"] == "success"
 
 --- END OF FILE ./tests/integration/test_full_run.py ---
+
+--- START OF FILE ./tests/test_env_loading.py ---
+# tests/test_env_loading.py
+"""
+A diagnostic test to isolate and verify that pytest-dotenv is working.
+This test has NO imports from the 'src' directory to avoid interference.
+"""
+import os
+
+
+def test_database_url_is_loaded_by_pytest_dotenv():
+    """
+    This test will only pass if the pytest-dotenv plugin is correctly
+    finding, parsing, and loading the .env.test file.
+    """
+    assert (
+        "DATABASE_URL" in os.environ
+    ), "pytest-dotenv failed to load DATABASE_URL from .env.test"
+    assert (
+        "testdb" in os.environ["DATABASE_URL"]
+    ), "The loaded DATABASE_URL does not seem to be the correct test URL."
+
+--- END OF FILE ./tests/test_env_loading.py ---
 
 --- START OF FILE ./tests/unit/test_config.py ---
 # tests/unit/test_config.py

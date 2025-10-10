@@ -75,7 +75,9 @@ async def _process_vectorization_task(
         if not vector:
             raise ValueError("Embedding service returned None")
 
-        vector_id = str(task["id"])
+        # The ID for Qdrant and Postgres MUST be the same string representation.
+        # The symbol's `id` from the database is a UUID object. We cast it to a string here.
+        vector_id_str = str(task["id"])
 
         payload_data = {
             "source_path": task[
@@ -86,13 +88,19 @@ async def _process_vectorization_task(
             "content_sha256": task["code_hash"],
             "language": "python",
             "symbol": task["symbol_path"],
-            "capability_tags": [vector_id],
+            # Use the stringified UUID in the payload for traceability
+            "capability_tags": [vector_id_str],
         }
-        point_id = await qdrant_service.upsert_capability_vector(
+        # The upsert function now internally uses this string ID to create the point.
+        # We don't need its return value because we already know the ID.
+        await qdrant_service.upsert_capability_vector(
+            point_id_str=vector_id_str,  # Pass the ID explicitly
             vector=vector,
             payload_data=payload_data,
         )
-        return str(point_id)
+
+        # Return the same string ID we used, ensuring consistency.
+        return vector_id_str
     except Exception as e:
         log.error(f"Failed to process symbol '{task['symbol_path']}': {e}")
         failure_log_path.parent.mkdir(parents=True, exist_ok=True)
@@ -125,7 +133,7 @@ async def _update_symbols_in_db(updates: List[Dict]):
     console.print(f"   -> Updated {len(updates)} vector IDs in the database.")
 
 
-# ID: 6639c6f1-9d90-4a30-a35f-c183637879e4
+# ID: 3bccc577-acce-4c72-81f4-ab48119d43c8
 async def run_vectorize(
     cognitive_service: CognitiveService,
     dry_run: bool = False,
@@ -165,12 +173,10 @@ async def run_vectorize(
 
     tasks = []
     for symbol in symbols_to_process:
-        # --- START OF THE DEFINITIVE FIX ---
         # Translate the module path from the database back into a file system path.
         module_path = symbol["module"]
         file_path_str = "src/" + module_path.replace(".", "/") + ".py"
         file_path = settings.REPO_PATH / file_path_str
-        # --- END OF THE DEFINITIVE FIX ---
 
         source_code = _get_source_code(file_path, symbol["symbol_path"])
         if not source_code:

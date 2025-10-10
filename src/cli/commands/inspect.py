@@ -3,11 +3,18 @@
 
 from __future__ import annotations
 
+import asyncio
+
 import typer
-from cli.logic.diagnostics import cli_tree
+
+# --- START: CORRECTED IMPORTS ---
+from cli.logic.diagnostics import cli_tree, inspect_vector_drift
 from cli.logic.duplicates import inspect_duplicates
 from cli.logic.guard_cli import register_guard
 from cli.logic.status import status
+from cli.logic.symbol_drift import inspect_symbol_drift
+
+# --- END: CORRECTED IMPORTS ---
 from shared.context import CoreContext
 
 inspect_app = typer.Typer(
@@ -18,16 +25,26 @@ inspect_app = typer.Typer(
 register_guard(inspect_app)
 inspect_app.command("status")(status)
 inspect_app.command("command-tree")(cli_tree)
+inspect_app.command(
+    "symbol-drift",
+    help="Detects drift between symbols on the filesystem and in the database.",
+)(inspect_symbol_drift)
+# --- START: REGISTER THE NEW COMMAND ---
+inspect_app.command(
+    "vector-drift",
+    help="Verifies perfect synchronization between PostgreSQL and Qdrant.",
+)(lambda: asyncio.run(inspect_vector_drift()))
+# --- END: REGISTER THE NEW COMMAND ---
 
 
-# ID: 5e6f7a8b-9c0d-1e2f-3a4b-5c6d7e8f9a0b
+# ID: 444e3d86-1b8c-4d61-af7a-2c42f1c97fa1
 def register(app: typer.Typer, context: CoreContext):
     """Register the 'inspect' command group to the main CLI app."""
 
     @inspect_app.command(
         "duplicates", help="Runs only the semantic code duplication check."
     )
-    # ID: 9320e199-118e-48b0-a287-3efb007fbced
+    # ID: ad11a02b-077d-4e17-b5bb-00ed77392bbd
     def duplicates_command(
         threshold: float = typer.Option(
             0.80,

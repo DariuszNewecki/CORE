@@ -1,5 +1,5 @@
 version: 1
-exported_at: '2025-10-06T20:04:49.282327+00:00'
+exported_at: '2025-10-10T17:32:25.623414+00:00'
 items:
 - id: db8bbe12-9fc2-521e-9d3d-42508b0655dc
   module: services.mind_service
@@ -162,13 +162,6 @@ items:
   ast_signature: TBD
   fingerprint: 0f2a20511c9569d03fe0173f5050cf1e19ee3b6da7cf6b1bc81891de135de4c4
   state: discovered
-- id: 6389a100-1bfa-5926-bc9c-03202f641fea
-  module: services.clients.qdrant_client
-  qualname: QdrantService
-  kind: class
-  ast_signature: TBD
-  fingerprint: 101d7b32970de5aef5dfa5f0704de31650d3585441cf27708348443f59d6c26b
-  state: discovered
 - id: 223ff445-c201-5a62-add0-bb43a6f65305
   module: features.introspection.knowledge_graph_service
   qualname: KnowledgeGraphBuilder
@@ -280,6 +273,13 @@ items:
   kind: function
   ast_signature: TBD
   fingerprint: 1cc7144a5c62e0bc1935eaedc438d2d2b146b2e0487afe1384eb863479d93e0b
+  state: discovered
+- id: e42a245c-15f4-5551-904b-6f65239a47b0
+  module: features.governance.policy_loader
+  qualname: load_available_actions
+  kind: function
+  ast_signature: TBD
+  fingerprint: 1d050bdf4e25405feb9f8dbf49bebce2a25b18cd392ca419ae06011aff7ae17e
   state: discovered
 - id: 7dfed392-047e-5ace-9482-e906d907751e
   module: features.governance.checks.file_checks
@@ -589,6 +589,13 @@ items:
   ast_signature: TBD
   fingerprint: 3ade1c798c1e85f29d5ec07a1988aa41c44ef49d0c01c3cb3266fff19b2745b7
   state: discovered
+- id: 42b7d712-b457-5ff1-aa8d-649680c3105b
+  module: cli.logic.proposals_micro
+  qualname: micro_apply
+  kind: function
+  ast_signature: TBD
+  fingerprint: 3b1226da9a50bb58d7a99a1863bbb921e1ce7231acce32c6d15cc08fe918a937
+  state: discovered
 - id: 5882c40e-a8f4-50c5-b602-e0399062cf94
   module: cli.logic.reconcile
   qualname: reconcile_from_cli
@@ -687,6 +694,13 @@ items:
   ast_signature: TBD
   fingerprint: 43ca55ae34afc29c10e967766b01252dae62b0efe0b5e8f024d0d5f07d1cc287
   state: discovered
+- id: 17139118-e075-57c4-9359-a82274f8a9c5
+  module: features.governance.checks.duplication_check
+  qualname: DuplicationCheck
+  kind: class
+  ast_signature: TBD
+  fingerprint: 4483668c4acb4073118d8f1d23fa5b610ede63fee28eccc4c9627c6a4a72e64d
+  state: discovered
 - id: 8186fff5-055c-513a-849c-ad2b25bae793
   module: shared.models.capability_models
   qualname: CapabilityMeta
@@ -749,13 +763,6 @@ items:
   kind: class
   ast_signature: TBD
   fingerprint: 4bc1024d72ef5d065a9f5b33887e9c189351f7a1ad13904fa5baad8b26f92100
-  state: discovered
-- id: 42b7d712-b457-5ff1-aa8d-649680c3105b
-  module: cli.logic.proposals_micro
-  qualname: micro_apply
-  kind: function
-  ast_signature: TBD
-  fingerprint: 4bc1f42f98d654d00fbba5c4d4bc4c04263531e36be2d9a639a817dbaec39446
   state: discovered
 - id: 7b1bc464-444a-5aa2-b9dc-20a19e5bf659
   module: services.database.models
@@ -1015,6 +1022,13 @@ items:
   kind: class
   ast_signature: TBD
   fingerprint: 68fa2df0d94fc62fae3f87ec669289ad7b48d1c21a8f36f2ce3191a81a0bcbc6
+  state: discovered
+- id: 3e865e92-b3e4-5c0e-8edc-686ecbb1892b
+  module: cli.logic.diagnostics
+  qualname: debug_meta_paths
+  kind: function
+  ast_signature: TBD
+  fingerprint: 691f0ee72835e478b034a259613c4db34553df5e930a6aa4881bf34ae36e232c
   state: discovered
 - id: fe59da83-5ccd-5982-9d80-2ff9f55bce3e
   module: core.self_correction_engine
@@ -1310,6 +1324,20 @@ items:
   ast_signature: TBD
   fingerprint: 8a444886463d6a4ac44ce6534a870e51450a352b150b236409437e72993ae8f7
   state: discovered
+- id: d272780b-5a62-5d1e-bb0d-5736a5773c4f
+  module: cli.logic.diagnostics
+  qualname: inspect_vector_drift
+  kind: function
+  ast_signature: TBD
+  fingerprint: 8b68d7bf8b2905f24485df8b10ff67723632e1fd8814af6b086f832a85bd59c9
+  state: discovered
+- id: e8139a34-02c7-5ffa-bbe9-1d11eacee9c5
+  module: cli.logic.vector_drift
+  qualname: inspect_vector_drift
+  kind: function
+  ast_signature: TBD
+  fingerprint: 8b68d7bf8b2905f24485df8b10ff67723632e1fd8814af6b086f832a85bd59c9
+  state: discovered
 - id: 84fc6521-1a52-50f9-bd43-fc50183f682f
   module: cli.commands.enrich
   qualname: enrich_symbols_command
@@ -1520,13 +1548,6 @@ items:
   ast_signature: TBD
   fingerprint: 9d8f25cf17e94788d61c0e10b3d325869ac55c15c69a722efe16aa3165890b05
   state: discovered
-- id: 3e865e92-b3e4-5c0e-8edc-686ecbb1892b
-  module: cli.logic.diagnostics
-  qualname: debug_meta_paths
-  kind: function
-  ast_signature: TBD
-  fingerprint: 9e362e115b0b0d22cc749f41afed6d0c73474806f249c7a70bf09c038e1c94ba
-  state: discovered
 - id: b207d920-9a07-5fc7-81a5-9f558e021129
   module: features.introspection.generate_correction_map
   qualname: generate_maps
@@ -1589,6 +1610,13 @@ items:
   kind: function
   ast_signature: TBD
   fingerprint: a6f44580d089d42dae952114f2881177e4f367c2fe8ea8dfa9e47d3841bc302b
+  state: discovered
+- id: 2cecefd5-6009-562a-9703-c25b73659986
+  module: features.self_healing.prune_orphaned_vectors
+  qualname: main_sync
+  kind: function
+  ast_signature: TBD
+  fingerprint: a719d93825df1c76852a7c2044456f3e586662407bcd692162616a563125b76f
   state: discovered
 - id: fd5482e3-3662-5803-92e3-e44a1b3c2f16
   module: features.introspection.capability_discovery_service
@@ -1814,6 +1842,13 @@ items:
   ast_signature: TBD
   fingerprint: bbb9b77f13092c13295a48be52575bfa9c46b419bf210a925125d09c0c3bb71a
   state: discovered
+- id: 6389a100-1bfa-5926-bc9c-03202f641fea
+  module: services.clients.qdrant_client
+  qualname: QdrantService
+  kind: class
+  ast_signature: TBD
+  fingerprint: bc86cac9c7a49460818ee759a088b6fc1ad0741f05687572a8f27ea666016ee6
+  state: discovered
 - id: f2ade2e5-5b27-513d-ae87-90aa3d3687a6
   module: cli.logic.agent
   qualname: agent_scaffold
@@ -1869,13 +1904,6 @@ items:
   kind: function
   ast_signature: TBD
   fingerprint: c1b966549ac447d15cfebb0e9af241007d72a1fb8cbe7aa2b65620f18b4a0660
-  state: discovered
-- id: 8cfae6dc-e186-53bc-8c4a-bfbd1d1d43d5
-  module: features.governance.policy_loader
-  qualname: load_micro_proposal_policy
-  kind: function
-  ast_signature: TBD
-  fingerprint: c202e4d5c453778f155cd4337f81e4a6439ba74677f639bfdb086d28b559048f
   state: discovered
 - id: e48e9bdd-7eff-512f-a329-8a698226f5bb
   module: cli.commands.mind
@@ -2003,13 +2031,6 @@ items:
   ast_signature: TBD
   fingerprint: cf22b57d0019b89065c46a812e22e93b4b7115c5a8708f14c806b9a1d98a402f
   state: discovered
-- id: 2cecefd5-6009-562a-9703-c25b73659986
-  module: features.self_healing.prune_orphaned_vectors
-  qualname: main_sync
-  kind: function
-  ast_signature: TBD
-  fingerprint: cf5277f5f89634220fa47b2066b767d802449634e7f97a069f379200ffe69cc3
-  state: discovered
 - id: e8b77dbd-cc22-5fb8-8d0a-5bedb516bf4d
   module: cli.admin_cli
   qualname: main
@@ -2044,6 +2065,13 @@ items:
   kind: function
   ast_signature: TBD
   fingerprint: d572a2c5e63189164b2a0664fb3fb9637127dba8351b01e4d38995dd3e765dc9
+  state: discovered
+- id: af71e1aa-fc0d-56e2-af2f-155ae9b0f09d
+  module: cli.logic.symbol_drift
+  qualname: inspect_symbol_drift
+  kind: function
+  ast_signature: TBD
+  fingerprint: d57aba0cb6bf860488cb9cab4ab1714a7ca274f661c7e9b15461f5f0e2eeaf20
   state: discovered
 - id: 25179fcd-fba3-5e7b-8af5-6f64d35678ae
   module: cli.logic.list_audits
@@ -2094,12 +2122,12 @@ items:
   ast_signature: TBD
   fingerprint: d9730a35b8e4d821e58f829a2047a6cc93214c754477cf21008e5ce933e0677a
   state: discovered
-- id: 17139118-e075-57c4-9359-a82274f8a9c5
-  module: features.governance.checks.duplication_check
-  qualname: DuplicationCheck
+- id: 70e7343c-bb16-5df8-a7ce-e451f3b6983c
+  module: features.governance.checks.dependency_injection_check
+  qualname: DependencyInjectionCheck
   kind: class
   ast_signature: TBD
-  fingerprint: d9adf60e784c9f3b41471bd5f684c2810e2fa2ea2b5938ab34045218488aab69
+  fingerprint: d98f59d61fa06b6f54e4bebc72d41ff625832b3648b4fa9c956650d1b681f3e7
   state: discovered
 - id: 3cd3e161-5291-53a2-888e-80adfdb825be
   module: core.actions.healing_actions
@@ -2135,6 +2163,13 @@ items:
   kind: class
   ast_signature: TBD
   fingerprint: dce5f11ef2cca1cba3e26577a6a2834d477cf37514a131137c4be96880165fd0
+  state: discovered
+- id: ff9a31c9-90dd-5740-be61-9ed760b13baf
+  module: core.actions.registry
+  qualname: ActionRegistry
+  kind: class
+  ast_signature: TBD
+  fingerprint: dd02fdf184ef223127d6e415e48b9dcae919251ed61622bd47e1ebd8ee78d5e5
   state: discovered
 - id: 7338000b-b21a-545f-9fca-3192cd2b72ef
   module: shared.utils.crypto
@@ -2178,19 +2213,12 @@ items:
   ast_signature: TBD
   fingerprint: e0337f7d9650a028b8e30d923b988b631b5f0689d6934becff3989c7bfcfbf6e
   state: discovered
-- id: e42a245c-15f4-5551-904b-6f65239a47b0
-  module: features.governance.policy_loader
-  qualname: load_available_actions
-  kind: function
+- id: 6d01b57c-c19e-5b31-8c10-e067f4f30f0f
+  module: core.actions.healing_actions
+  qualname: FormatCodeHandler
+  kind: class
   ast_signature: TBD
-  fingerprint: e03ce144ff211c24ccb8dd0262e9264216aba44eb2bcb1ebf598251f098d68d4
-  state: discovered
-- id: dcef10ac-42d5-5bf7-b07a-eac48e9afd08
-  module: features.governance.policy_loader
-  qualname: getLogger
-  kind: function
-  ast_signature: TBD
-  fingerprint: e14ce68d8c5d3b69c66893b9cab9355ca1fe065e915631c44e9c913f5be46bc3
+  fingerprint: e1d7942f206ef3a296e3da9f98422952dd3f430d021c63144adf5673278bc3b2
   state: discovered
 - id: 643c3a3b-491f-5c6d-9626-242bd31cddb3
   module: core.actions.governance_actions
@@ -2198,13 +2226,6 @@ items:
   kind: class
   ast_signature: TBD
   fingerprint: e22340ac999fe7ec261be3979892cf3c593b1c718203077b888d14d411de9c77
-  state: discovered
-- id: ff9a31c9-90dd-5740-be61-9ed760b13baf
-  module: core.actions.registry
-  qualname: ActionRegistry
-  kind: class
-  ast_signature: TBD
-  fingerprint: e23b879d2586ad26578291c0b970f521b1025e382173d69265f98a5bbc5fdcae
   state: discovered
 - id: de84cf6f-c051-5c20-a1dd-ab1eeaa6359d
   module: cli.logic.diagnostics
@@ -2289,6 +2310,13 @@ items:
   kind: class
   ast_signature: TBD
   fingerprint: e7f7d8388211b94f55caa5d793daf73b13f7f0995220228d051247e3791fc6d1
+  state: discovered
+- id: 8cfae6dc-e186-53bc-8c4a-bfbd1d1d43d5
+  module: features.governance.policy_loader
+  qualname: load_micro_proposal_policy
+  kind: function
+  ast_signature: TBD
+  fingerprint: e813dc32af2462fff1219fdb03d7eb156ef7e4c44fd7505e3507bccec1f6e671
   state: discovered
 - id: 308457e8-a235-525c-9058-503a93b7755e
   module: cli.logic.diagnostics
@@ -2507,4 +2535,4 @@ items:
   ast_signature: TBD
   fingerprint: fff6d7866a7639aafe546933cf97f61efdc11886f8f2df1d638c7c683a3a410e
   state: discovered
-digest: sha256:2448db446d01664f88a0334d7c893e0e44ca99437652d83533ba155f773b69bf
+digest: sha256:0bc9b3eadbe39ad78e40a1a42f0d690492732cc617043bbf5d7410dd4c0bc28b

@@ -18,12 +18,16 @@ from features.governance.policy_coverage_service import PolicyCoverageService
 from features.introspection.audit_unassigned_capabilities import get_unassigned_symbols
 from features.introspection.graph_analysis_service import find_semantic_clusters
 from rich.console import Console
+from rich.panel import Panel
 from rich.table import Table
 from rich.tree import Tree
 from ruamel.yaml import YAML
+from services.clients.qdrant_client import QdrantService
+from services.database.session_manager import get_session
 from shared.config import settings
 from shared.models import AuditSeverity
 from shared.utils.constitutional_parser import get_all_constitutional_paths
+from sqlalchemy import text
 
 console = Console()
 yaml_loader = YAML(typ="safe")
@@ -64,7 +68,7 @@ async def _async_find_clusters(n_clusters: int):
     "find-clusters",
     help="Finds and displays all semantic capability clusters, sorted by size.",
 )
-# ID: 1a9f1430-801c-42e7-9d7a-11586a117711
+# ID: 2f6ac90e-932a-4c01-9984-4aa9a17353fe
 def find_clusters_command_sync(
     n_clusters: int = typer.Option(
         25, "--n-clusters", "-n", help="The number of clusters to find."
@@ -99,7 +103,7 @@ def _add_cli_nodes(tree_node: Tree, cli_app: typer.Typer):
 @diagnostics_app.command(
     "cli-tree", help="Displays a hierarchical tree view of all available CLI commands."
 )
-# ID: f4d5a5e3-1b9c-4e8a-9f7b-6c0d2e1a3b4c
+# ID: 8369cd8d-d20a-4e60-9daf-c351adcb18eb
 def cli_tree():
     """Builds and displays the CLI command tree."""
     from cli.admin_cli import app as main_app
@@ -116,7 +120,7 @@ def cli_tree():
 @diagnostics_app.command(
     "policy-coverage", help="Audits the constitution for policy coverage and integrity."
 )
-# ID: 74d7e7fd-1f68-4c4c-9dfb-285d1d7ee853
+# ID: 1447df69-45f4-48da-ad0c-9e4460612829
 def policy_coverage():
     """
     Runs a meta-audit on all .intent/charter/policies/ to ensure they are
@@ -159,15 +163,14 @@ def policy_coverage():
 @diagnostics_app.command(
     "debug-meta", help="Prints the auditor's view of all required constitutional files."
 )
-# ID: c4dba9d9-6c1a-4328-b473-2e3286e9d291
+# ID: 0869f072-2b5e-4c1d-bd56-22489b1f07df
 def debug_meta_paths():
-    """A diagnostic tool to debug the constitutional file parser."""
+    """A diagnostic tool that prints all file paths indexed in meta.yaml."""
     console.print(
         "[bold yellow]--- Auditor's Interpretation of meta.yaml ---[/bold yellow]"
     )
-    intent_dir = settings.REPO_PATH / ".intent"
-    required_paths = get_all_constitutional_paths(settings._meta_config, intent_dir)
-
+    # This now correctly uses the shared utility, removing duplication.
+    required_paths = get_all_constitutional_paths(settings._meta_config, settings.MIND)
     for path in sorted(list(required_paths)):
         console.print(path)
 
@@ -175,7 +178,7 @@ def debug_meta_paths():
 @diagnostics_app.command(
     "unassigned-symbols", help="Finds symbols without a universal # ID tag."
 )
-# ID: 41fdbad2-2bc4-4a4d-85c8-5f30461a4af0
+# ID: 346f748a-70ae-44a1-b2f3-d19d565be70f
 def unassigned_symbols():
     unassigned = get_unassigned_symbols()
     if not unassigned:
@@ -200,7 +203,7 @@ def unassigned_symbols():
     "manifest-hygiene",
     help="Checks for capabilities declared in the wrong domain manifest file.",
 )
-# ID: a85348ac-fe9e-49d5-8b11-3a105a57a7e3
+# ID: 6764e249-b24d-4911-adc7-156e24424be4
 def manifest_hygiene():
     context = AuditorContext(settings.REPO_PATH)
     check = DomainPlacementCheck(context)
@@ -225,7 +228,7 @@ def manifest_hygiene():
 @diagnostics_app.command(
     "cli-registry", help="Validates the CLI registry against its constitutional schema."
 )
-# ID: 58a9d61e-9899-4a10-bee2-c5473b3a91ba
+# ID: c23e1ddc-bb53-49fc-8ba1-4e06ab3b8512
 def cli_registry():
     meta_content = (settings.REPO_PATH / ".intent" / "meta.yaml").read_text("utf-8")
     meta = yaml.safe_load(meta_content) or {}
@@ -273,7 +276,7 @@ def cli_registry():
 
 
 @diagnostics_app.command("legacy-tags", help="Scans the codebase for obsolete tags.")
-# ID: 2992fdb2-9b35-478d-a8df-28f23a7d605b
+# ID: 07fe87aa-4a24-4831-8466-78c580cc9172
 def check_legacy_tags():
     """Runs only the LegacyTagCheck to find obsolete capability tags."""
 
@@ -299,11 +302,96 @@ def check_legacy_tags():
         for finding in findings:
             table.add_row(finding.file_path, str(finding.line_number), finding.message)
 
-        # --- THIS IS THE FIX ---
-        # The table was being created but never printed.
         console.print(table)
-        # --- END OF FIX ---
 
         raise typer.Exit(code=1)
 
     asyncio.run(_async_check_legacy_tags())
+
+
+# --- START: NEW CODE TO ADD ---
+
+
+async def _fetch_postgres_vector_ids() -> set[str]:
+    """Fetches all symbol IDs that should have a vector from the main DB."""
+    async with get_session() as session:
+        result = await session.execute(
+            text("SELECT id::text FROM core.symbols WHERE vector_id IS NOT NULL")
+        )
+        return {row[0] for row in result}
+
+
+async def _fetch_qdrant_point_ids() -> set[str]:
+    """Fetches all point IDs from the Qdrant vector collection."""
+    qdrant_service = QdrantService()
+    all_points, _ = await qdrant_service.client.scroll(
+        collection_name=qdrant_service.collection_name,
+        limit=10000,
+        with_payload=False,
+        with_vectors=False,
+    )
+    return {str(point.id) for point in all_points}
+
+
+# ID: 0a07ce31-a2c2-47a5-a08f-22e2fd35c677
+async def inspect_vector_drift():
+    """Compares Postgres and Qdrant to find synchronization drift."""
+    console.print(
+        "[bold cyan]🚀 Verifying synchronization between PostgreSQL and Qdrant...[/bold cyan]"
+    )
+
+    try:
+        db_ids, qdrant_ids = await asyncio.gather(
+            _fetch_postgres_vector_ids(), _fetch_qdrant_point_ids()
+        )
+    except Exception as e:
+        console.print(f"[bold red]❌ Error connecting to a database: {e}[/bold red]")
+        return
+
+    console.print(f"   -> Found {len(db_ids)} vectorized symbols in PostgreSQL.")
+    console.print(f"   -> Found {len(qdrant_ids)} points in Qdrant.")
+
+    missing_in_qdrant = sorted(list(db_ids - qdrant_ids))
+    orphans_in_qdrant = sorted(list(qdrant_ids - db_ids))
+
+    console.print("\n--- Verification Result ---")
+    if not missing_in_qdrant and not orphans_in_qdrant:
+        console.print(
+            Panel(
+                "[bold green]✅ Perfect Synchronization.[/bold green]\nPostgreSQL and Qdrant are perfectly aligned.",
+                title="Status",
+                border_style="green",
+            )
+        )
+        return
+
+    if missing_in_qdrant:
+        table = Table(
+            title=f"⚠️ Missing in Qdrant ({len(missing_in_qdrant)})",
+            caption="These symbols exist in Postgres but are missing from the vector index.",
+            header_style="bold yellow",
+        )
+        table.add_column("PostgreSQL Symbol ID")
+        for symbol_id in missing_in_qdrant:
+            table.add_row(symbol_id)
+        console.print(table)
+        console.print(
+            "\n[bold]Next Step:[/bold] Run `core-admin run vectorize --write` to fix."
+        )
+
+    if orphans_in_qdrant:
+        table = Table(
+            title=f"👻 Orphans in Qdrant ({len(orphans_in_qdrant)})",
+            caption="These vectors exist in Qdrant but their symbols are gone from Postgres.",
+            header_style="bold red",
+        )
+        table.add_column("Orphaned Qdrant Point ID")
+        for point_id in orphans_in_qdrant:
+            table.add_row(point_id)
+        console.print(table)
+        console.print(
+            "\n[bold]Next Step:[/bold] Run `core-admin fix orphaned-vectors --write` to fix."
+        )
+
+
+# --- END: NEW CODE TO ADD ---
