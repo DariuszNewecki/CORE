@@ -21,6 +21,13 @@ from features.self_healing.header_service import _run_header_fix_cycle
 from features.self_healing.id_tagging_service import assign_missing_ids
 from features.self_healing.linelength_service import fix_line_lengths
 from features.self_healing.policy_id_service import add_missing_policy_ids
+
+# --- START: IMPORT THE NEW COMMAND ---
+from features.self_healing.prune_orphaned_vectors import (
+    main_sync as prune_orphaned_vectors,
+)
+
+# --- END: IMPORT THE NEW COMMAND ---
 from features.self_healing.purge_legacy_tags_service import purge_legacy_tags
 from rich.console import Console
 from shared.config import settings
@@ -221,7 +228,16 @@ def fix_duplicate_ids_command(
     asyncio.run(resolve_duplicate_ids(dry_run=not write))
 
 
-# ID: 4d5e6f7a-8b9c-0d1e-2f3a-4b5c6d7e8f9a
+# --- START: REGISTER THE NEW COMMAND ---
+fix_app.command(
+    "orphaned-vectors",
+    help="Finds and deletes vectors in Qdrant that no longer exist in the main DB.",
+)(prune_orphaned_vectors)
+# --- END: REGISTER THE NEW COMMAND ---
+
+
+# ID: 4d5e6f7a-8b9c-0d1e-2f3a-4b5c6d7e
+# ID: 9a89a92d-b9b7-4a26-bd9d-b4157947a624
 def register(app: typer.Typer, context: CoreContext):
     """Register the 'fix' command group to the main CLI app."""
     app.add_typer(fix_app, name="fix")

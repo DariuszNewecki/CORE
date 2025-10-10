@@ -27,6 +27,7 @@ charter:
       capability_linter_policy: "charter/policies/code/capability_linter_policy.yaml"
       code_health_policy: "charter/policies/code/code_health_policy.yaml"
       code_style_policy: "charter/policies/code/code_style_policy.yaml"
+      dependency_injection_policy: "charter/policies/code/dependency_injection_policy.yaml"
       naming_conventions_policy: "charter/policies/code/naming_conventions_policy.yaml"
       refactoring_patterns_policy: "charter/policies/code/refactoring_patterns_policy.yaml"
 
@@ -45,6 +46,7 @@ charter:
       knowledge_source_policy: "charter/policies/governance/knowledge_source_policy.yaml"
       logging_policy: "charter/policies/governance/logging_policy.yaml"
       reporting_policy: "charter/policies/governance/reporting_policy.yaml"
+      risk_classification_policy: "charter/policies/governance/risk_classification_policy.yaml"
       tooling_policy: "charter/policies/governance/tooling_policy.yaml"
 
     operations:
@@ -63,6 +65,7 @@ charter:
 
     code:
       capability_tag_schema: "charter/schemas/code/capability_tag_schema.json"
+      dependency_injection_policy_schema: "charter/schemas/code/dependency_injection_policy_schema.json"
       knowledge_graph_entry_schema: "charter/schemas/code/knowledge_graph_entry_schema.json"
 
     constitutional:
@@ -80,6 +83,7 @@ charter:
       enforcement_model_schema: "charter/schemas/governance/enforcement_model_schema.json"
       intent_guard_schema: "charter/schemas/governance/intent_guard_schema.json"
       reporting_policy_schema: "charter/schemas/governance/reporting_policy_schema.json"
+      risk_classification_policy_schema: "charter/schemas/governance/risk_classification_policy_schema.json"
 
     operations:
       canary_policy_schema: "charter/schemas/operations/canary_policy_schema.json"

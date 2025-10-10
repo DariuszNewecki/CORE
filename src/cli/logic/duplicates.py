@@ -24,42 +24,34 @@ console = Console()
 def _group_findings(findings: list[AuditFinding]) -> List[List[AuditFinding]]:
     """Groups individual finding pairs into clusters of related duplicates."""
     graph = nx.Graph()
+    finding_map = {}
+
     for finding in findings:
-        # Extract the two symbols from the message
-        parts = finding.message.split("'")
-        if len(parts) >= 4:
-            symbol1 = parts[1]
-            symbol2 = parts[3]
-            graph.add_edge(symbol1, symbol2, finding=finding)
+        symbol1 = finding.context.get("symbol_a")
+        symbol2 = finding.context.get("symbol_b")
+        if symbol1 and symbol2:
+            graph.add_edge(symbol1, symbol2)
+            finding_map[tuple(sorted((symbol1, symbol2)))] = finding
 
-    # Find connected components (these are our clusters)
     clusters = list(nx.connected_components(graph))
-
-    # Map nodes back to findings
-    finding_map = {
-        (frozenset([p.message.split("'")[1], p.message.split("'")[3]])): p
-        for p in findings
-    }
-
     grouped_findings = []
+
     for cluster in clusters:
         cluster_findings = []
-        # Create all pairs within the cluster to find the original findings
-        edges = nx.Graph()
-        edges.add_nodes_from(cluster)
-        edges.add_edges_from(nx.complete_graph(cluster).edges())
-
-        for u, v in edges.edges():
-            pair = frozenset([u, v])
-            if pair in finding_map:
-                cluster_findings.append(finding_map[pair])
+        for i, node1 in enumerate(list(cluster)):
+            for node2 in list(cluster)[i + 1 :]:
+                key = tuple(sorted((node1, node2)))
+                if key in finding_map:
+                    cluster_findings.append(finding_map[key])
 
         if cluster_findings:
-            # Sort by similarity score, descending
+            # --- THIS IS THE FIX ---
+            # The sorting key now correctly and safely reads the similarity score
+            # from the finding's 'context' dictionary, preventing the ValueError.
             cluster_findings.sort(
-                key=lambda f: float(f.message.split(":")[-1].strip()[:-1]),
-                reverse=True,
+                key=lambda f: float(f.context.get("similarity", 0)), reverse=True
             )
+            # --- END OF FIX ---
             grouped_findings.append(cluster_findings)
 
     return grouped_findings
@@ -94,12 +86,10 @@ async def _async_inspect_duplicates(context: CoreContext, threshold: float):
     )
 
     for i, cluster in enumerate(grouped_findings, 1):
-        # All findings in a cluster share the same symbols, just different pairings
         all_symbols_in_cluster = set()
         for f in cluster:
-            parts = f.message.split("'")
-            all_symbols_in_cluster.add(parts[1])
-            all_symbols_in_cluster.add(parts[3])
+            all_symbols_in_cluster.add(f.context["symbol_a"])
+            all_symbols_in_cluster.add(f.context["symbol_b"])
 
         title = f"Cluster #{i} ({len(all_symbols_in_cluster)} related symbols)"
         table = Table(show_header=True, header_style="bold magenta", title=title)
@@ -108,11 +98,11 @@ async def _async_inspect_duplicates(context: CoreContext, threshold: float):
         table.add_column("Similarity", style="yellow")
 
         for finding in cluster:
-            parts = finding.message.split("'")
-            symbol1 = parts[1]
-            symbol2 = parts[3]
-            similarity = finding.message.split(":")[-1].strip()
-            table.add_row(symbol1, symbol2, similarity)
+            table.add_row(
+                finding.context["symbol_a"],
+                finding.context["symbol_b"],
+                finding.context["similarity"],
+            )
 
         console.print(table)
 

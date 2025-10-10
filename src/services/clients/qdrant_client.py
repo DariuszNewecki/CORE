@@ -42,7 +42,7 @@ def _uuid5_from_text(text: str) -> str:
     return str(uuid.uuid5(uuid.NAMESPACE_URL, text))
 
 
-# ID: 3f5ec13f-ba90-4912-99fb-a040ac649db8
+# ID: 6389a100-1bfa-5926-bc9c-03202f641fea
 class QdrantService:
     """Handles all interactions with the Qdrant vector database."""
 
@@ -78,7 +78,7 @@ class QdrantService:
             self.vector_size,
         )
 
-    # ID: 5f745907-7aab-4426-a8ed-573607f3e6d4
+    # ID: 3fe7ca2b-12b6-4c13-bbb7-0c4288ac5152
     async def ensure_collection(self) -> None:
         """Idempotently create the collection if it is missing."""
         try:
@@ -104,15 +104,16 @@ class QdrantService:
             log.error(f"Failed to ensure Qdrant collection exists: {e}", exc_info=True)
             raise
 
-    # ID: 21ca9b0a-5f75-4707-bd86-c2289d954b25
+    # ID: 865a6015-1e72-42bc-b9fc-9c8e300851b4
     async def upsert_capability_vector(
         self,
+        point_id_str: str,
         vector: List[float],
         payload_data: dict,
     ) -> str:
         """
         Validates the payload against the EmbeddingPayload schema and upserts the vector.
-        Deterministic ID derived from the chunk_id. Returns the point ID.
+        Uses the provided point ID. Returns the point ID.
         """
         if len(vector) != self.vector_size:
             raise ValueError(f"Vector dim {len(vector)} != expected {self.vector_size}")
@@ -127,7 +128,8 @@ class QdrantService:
             log.error(f"Invalid embedding payload: {e}")
             raise ValueError(f"Invalid embedding payload: {e}") from e
 
-        pid = _uuid5_from_text(payload.chunk_id)
+        # Use the explicitly provided point ID
+        pid = point_id_str
 
         await self.client.upsert(
             collection_name=self.collection_name,
@@ -141,10 +143,10 @@ class QdrantService:
             wait=True,
         )
 
-        log.info(f"Upserted vector for chunk '{payload.chunk_id}' with ID: {pid}")
+        log.debug(f"Upserted vector for chunk '{payload.chunk_id}' with ID: {pid}")
         return pid
 
-    # ID: fba683c2-34d0-4feb-96ab-950c97abbb49
+    # ID: 3da21af2-4942-48bd-980f-2b5adc68e116
     async def get_all_vectors(self) -> List[qm.Record]:
         """Fetches all points with their vectors and payloads from the collection."""
         try:
@@ -159,7 +161,7 @@ class QdrantService:
             log.error(f"❌ Failed to retrieve all vectors from Qdrant: {e}")
             return []
 
-    # ID: 0e8ad7db-3561-4f97-9891-ca419e374dcf
+    # ID: d36f8768-8f11-4460-81c2-edb7bb5ec806
     async def search_similar(
         self,
         query_vector: Sequence[float],
@@ -179,12 +181,15 @@ class QdrantService:
         )
         return [{"score": hit.score, "payload": hit.payload} for hit in search_result]
 
-    # ID: 55effb86-fea5-4dc8-bdce-e9b464e9f243
+    # ID: e512f341-b8f5-438b-917d-3ef3b9b044cb
     async def get_vector_by_id(self, point_id: str) -> Optional[List[float]]:
         """Retrieves a single vector by its point ID."""
         try:
+            # Ensure the point ID is always a string when passed to the client.
             records = await self.client.retrieve(
-                collection_name=self.collection_name, ids=[point_id], with_vectors=True
+                collection_name=self.collection_name,
+                ids=[str(point_id)],
+                with_vectors=True,
             )
             if records and records[0].vector:
                 return records[0].vector
