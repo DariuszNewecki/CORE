@@ -14,7 +14,7 @@ from sqlalchemy import text
 console = Console()
 
 
-# ID: 500e20ca-d84f-444e-bbf9-2d38852d9f39
+# ID: 2fc08ba1-31ee-42cd-84cf-f68f81013acf
 class SymbolVisitor(ast.NodeVisitor):
     """An AST visitor that discovers symbols and their hierarchical paths."""
 
@@ -23,7 +23,7 @@ class SymbolVisitor(ast.NodeVisitor):
         self.symbols: List[Dict[str, Any]] = []
         self.class_stack: List[str] = []
 
-    # ID: 7381c654-320e-43fc-977a-c5f1820e4a82
+    # ID: 05ab6a68-f66e-4571-9372-47c17ad4b72f
     def visit_ClassDef(self, node: ast.ClassDef):
         """Process a class definition and its children (methods)."""
         if not self.class_stack:
@@ -33,13 +33,13 @@ class SymbolVisitor(ast.NodeVisitor):
         self.generic_visit(node)
         self.class_stack.pop()
 
-    # ID: b0d3b9d4-cc0a-4720-a7ec-44ede92cd32f
+    # ID: f69596a9-b1b5-4292-ab20-ef62c063b867
     def visit_FunctionDef(self, node: ast.FunctionDef):
         """Process a function or method definition."""
         if not self.class_stack:
             self._process_symbol(node)
 
-    # ID: f492e6d6-1676-462c-8504-5802aaf193c0
+    # ID: 4d6bf114-b4cd-466a-83ec-584202c69fcd
     def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef):
         """Process an async function or method definition."""
         if not self.class_stack:
@@ -54,11 +54,7 @@ class SymbolVisitor(ast.NodeVisitor):
         if not (is_public and not is_dunder):
             return
 
-        if self.class_stack:
-            class_path = ".".join(self.class_stack)
-            symbol_path = f"{self.file_path}::{class_path}"
-        else:
-            symbol_path = f"{self.file_path}::{node.name}"
+        symbol_path = f"{self.file_path}::{node.name}"
 
         module_name = (
             self.file_path.replace("src/", "").replace(".py", "").replace("/", ".")
@@ -84,11 +80,11 @@ class SymbolVisitor(ast.NodeVisitor):
         )
 
 
-# ID: f75289ff-c951-4422-bd77-6c2bdba77167
+# ID: da739a48-f3c2-4c27-b870-51ddb224bc32
 class SymbolScanner:
     """Scans the codebase to extract symbol information using a hierarchical visitor."""
 
-    # ID: 0a858df6-6619-4bc5-9031-713110c4b065
+    # ID: 1c60168e-3d83-4c72-b4be-390554f51b18
     def scan(self) -> List[Dict[str, Any]]:
         """Scans all Python files in src/ and extracts ID'd symbols."""
         src_dir = settings.REPO_PATH / "src"
@@ -110,10 +106,11 @@ class SymbolScanner:
         return list(unique_symbols.values())
 
 
-# ID: ba9e8c6f-920b-45d1-9444-b8930e74f5c5
+# ID: 5ca33e91-947b-435c-9756-c74a22f37a2b
 async def run_sync_with_db() -> Dict[str, int]:
     """
     Executes the full, database-centric sync logic using the "smart merge" strategy.
+    This is the single source of truth for updating the symbols table from the codebase.
     """
     scanner = SymbolScanner()
     code_state = scanner.scan()
@@ -121,13 +118,15 @@ async def run_sync_with_db() -> Dict[str, int]:
 
     async with get_session() as session:
         async with session.begin():
+            # 1. Create a temporary table to hold the current state from the code scan
             await session.execute(
                 text(
                     "CREATE TEMPORARY TABLE core_symbols_staging (LIKE core.symbols INCLUDING DEFAULTS) ON COMMIT DROP;"
                 )
             )
+
+            # 2. Populate the temporary table with the symbols found in the code
             if code_state:
-                # --- FIX: The INSERT statement now matches the v2.1 schema (no 'uuid' column) ---
                 await session.execute(
                     text(
                         """
@@ -138,6 +137,7 @@ async def run_sync_with_db() -> Dict[str, int]:
                     code_state,
                 )
 
+            # 3. Calculate stats before making changes
             deleted_result = await session.execute(
                 text(
                     "SELECT COUNT(*) FROM core.symbols WHERE symbol_path NOT IN (SELECT symbol_path FROM core_symbols_staging)"
@@ -163,20 +163,22 @@ async def run_sync_with_db() -> Dict[str, int]:
             )
             stats["updated"] = updated_result.scalar_one()
 
+            # 4. Delete symbols from the main table that no longer exist in the code
             await session.execute(
                 text(
                     "DELETE FROM core.symbols WHERE symbol_path NOT IN (SELECT symbol_path FROM core_symbols_staging)"
                 )
             )
 
+            # 5. Update symbols that have changed (and nullify their embedding status)
             await session.execute(
                 text(
                     """
                     UPDATE core.symbols
                     SET
-                        vector_id = NULL,
                         fingerprint = st.fingerprint,
                         last_modified = NOW(),
+                        last_embedded = NULL, -- This is the key change to trigger re-vectorization
                         updated_at = NOW()
                     FROM core_symbols_staging st
                     WHERE core.symbols.symbol_path = st.symbol_path
@@ -185,13 +187,14 @@ async def run_sync_with_db() -> Dict[str, int]:
                 )
             )
 
+            # 6. Insert brand new symbols
             await session.execute(
                 text(
                     """
                     INSERT INTO core.symbols (id, symbol_path, module, qualname, kind, ast_signature, fingerprint, state, is_public, created_at, updated_at, last_modified, first_seen, last_seen)
                     SELECT id, symbol_path, module, qualname, kind, ast_signature, fingerprint, state, is_public, NOW(), NOW(), NOW(), NOW(), NOW()
                     FROM core_symbols_staging
-                    WHERE symbol_path NOT IN (SELECT symbol_path FROM core.symbols);
+                    ON CONFLICT (symbol_path) DO NOTHING;
                 """
                 )
             )

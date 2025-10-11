@@ -8,11 +8,12 @@ import asyncio
 import typer
 
 # --- START: CORRECTED IMPORTS ---
-from cli.logic.diagnostics import cli_tree, inspect_vector_drift
+from cli.logic.diagnostics import cli_tree  # , inspect_vector_drift
 from cli.logic.duplicates import inspect_duplicates
 from cli.logic.guard_cli import register_guard
 from cli.logic.status import status
 from cli.logic.symbol_drift import inspect_symbol_drift
+from cli.logic.vector_drift import inspect_vector_drift
 
 # --- END: CORRECTED IMPORTS ---
 from shared.context import CoreContext

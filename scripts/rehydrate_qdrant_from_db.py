@@ -13,14 +13,15 @@ import requests
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
 
+# CORRECTED: This query now correctly JOINS the symbols and links table to get the vector_id.
 SQL_PAGE = text(
     """
     SELECT
-        s.id              AS symbol_id,          -- may be int or uuid; we'll keep as text
-        s.symbol_path     AS symbol_path,
-        s.vector_id::text AS vector_id_text      -- force text so we can pass it as a param
+        s.id          AS symbol_id,
+        s.symbol_path AS symbol_path,
+        l.vector_id   AS vector_id
     FROM core.symbols AS s
-    WHERE s.vector_id IS NOT NULL
+    JOIN core.symbol_vector_links AS l ON s.id = l.symbol_id
     ORDER BY s.id
     LIMIT :limit OFFSET :offset
 """
@@ -106,11 +107,11 @@ async def main() -> int:
     try:
         async with engine.begin() as conn:
             res = await conn.execute(
-                text("SELECT COUNT(*) FROM core.symbols WHERE vector_id IS NOT NULL")
+                text("SELECT COUNT(*) FROM core.symbol_vector_links")
             )
             total = int(res.scalar_one())
             if total == 0:
-                print("✅ Nothing to rehydrate (no symbols with vector_id).")
+                print("✅ Nothing to rehydrate (no symbols with vector links).")
                 return 0
 
             print(f"🧮 Found {total} symbols with vectors. Starting rehydrate...")
@@ -128,10 +129,11 @@ async def main() -> int:
 
                 out_points: List[Dict[str, Any]] = []
 
-                for symbol_id, symbol_path, vector_id_text in rows:
+                # CORRECTED: The loop variables now match the corrected SQL query.
+                for symbol_id, symbol_path, vector_id in rows:
                     # Always treat IDs as strings (handles UUIDs).
                     sid = str(symbol_id) if symbol_id is not None else None
-                    vid = str(vector_id_text) if vector_id_text is not None else None
+                    vid = str(vector_id) if vector_id is not None else None
                     if not sid or not vid:
                         continue
 

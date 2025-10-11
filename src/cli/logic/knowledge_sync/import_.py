@@ -1,4 +1,4 @@
-# src/cli/logic/knowledge_sync/import.py
+# src/cli/logic/knowledge_sync/import_.py
 """
 Handles importing YAML files into the database for the CORE Working Mind.
 """
@@ -71,14 +71,18 @@ async def _import_capabilities(session, doc: Dict[str, Any]) -> None:
 
 
 async def _import_symbols(session, doc: Dict[str, Any]) -> None:
-    """Import symbols into the database.
-
-    Args:
-        session: Database session.
-        doc: YAML document containing symbols.
-    """
+    """Import symbols into the database, fixing missing symbol_path if necessary."""
     console.print("  -> Importing symbols...")
-    await _upsert_items(session, Symbol, doc.get("items", []), ["id"])
+    items = doc.get("items", [])
+    for item in items:
+        if "symbol_path" not in item or not item["symbol_path"]:
+            module = item.get("module")
+            qualname = item.get("qualname")
+            if module and qualname:
+                file_path = "src/" + module.replace(".", "/") + ".py"
+                item["symbol_path"] = f"{file_path}::{qualname}"
+
+    await _upsert_items(session, Symbol, items, ["id"])
 
 
 async def _import_links(session, doc: Dict[str, Any]) -> None:
@@ -135,7 +139,7 @@ async def _import_cognitive_roles(session, doc: Dict[str, Any]) -> None:
     )
 
 
-# ID: 8ecf6b40-5d78-4595-a82d-c606d30f3dca
+# ID: a5c43fa1-1137-426d-a98f-a8f0e9265cf7
 async def run_import(dry_run: bool) -> None:
     """Imports YAML files into the database, with optional dry run.
 

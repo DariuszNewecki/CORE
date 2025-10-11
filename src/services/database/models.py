@@ -29,7 +29,7 @@ Base = declarative_base()
 # =============================================================================
 
 
-# ID: 8dc9179c-3299-46c1-9e76-54fe54a258f2
+# ID: 2cc67cc1-1eed-4bde-a5d0-718898c13e7d
 class Symbol(Base):
     __tablename__ = "symbols"
     __table_args__ = {"schema": "core"}
@@ -46,9 +46,9 @@ class Symbol(Base):
     health_status = Column(Text, server_default="unknown")
     is_public = Column(Boolean, nullable=False, server_default="true")
     previous_paths = Column(JSON)  # Using JSON for text[]
-    vector_id = Column(Text)
+    key = Column(Text)
+    intent = Column(Text)
     embedding_model = Column(Text, server_default="text-embedding-3-small")
-    embedding_version = Column(Integer, server_default="1")
     last_embedded = Column(DateTime(timezone=True))
     first_seen = Column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
@@ -67,7 +67,7 @@ class Symbol(Base):
     )
 
 
-# ID: 8e4d0a49-1232-4b47-9201-c08b6bef2054
+# ID: 4932bee2-69e1-4849-aa68-b8f99493da6f
 class Capability(Base):
     __tablename__ = "capabilities"
     __table_args__ = {"schema": "core"}
@@ -92,7 +92,7 @@ class Capability(Base):
     )
 
 
-# ID: 290fc31a-5c81-4a82-b4f5-317ffb24fdb1
+# ID: b1b4c985-b551-41f6-8f54-805c9baea7ef
 class SymbolCapabilityLink(Base):
     __tablename__ = "symbol_capability_links"
     __table_args__ = {"schema": "core"}
@@ -110,7 +110,7 @@ class SymbolCapabilityLink(Base):
     )
 
 
-# ID: c6e5249a-8b31-462a-9026-0622b205a643
+# ID: 7f6f266f-0134-4f49-96f0-74221fffb235
 class Domain(Base):
     __tablename__ = "domains"
     __table_args__ = {"schema": "core"}
@@ -127,7 +127,7 @@ class Domain(Base):
 # =============================================================================
 
 
-# ID: 35180ec0-b61f-40a3-aba6-7f4f36ffe25c
+# ID: b00a4201-294c-4fbf-8ae5-d6a5e42d7db7
 class LlmResource(Base):
     __tablename__ = "llm_resources"
     __table_args__ = {"schema": "core"}
@@ -141,7 +141,7 @@ class LlmResource(Base):
     )
 
 
-# ID: 6ee37301-74cc-437a-8a39-08265d5d06be
+# ID: 869fa796-6848-4e73-aa02-e9f1f16dd2b2
 class CognitiveRole(Base):
     __tablename__ = "cognitive_roles"
     __table_args__ = {"schema": "core"}
@@ -157,7 +157,7 @@ class CognitiveRole(Base):
     )
 
 
-# ID: d944c52d-caa5-4d6b-9bd9-5f3b4eba5ea4
+# ID: 30c36fed-1175-4352-b585-4822f68f9eb9
 class Task(Base):
     __tablename__ = "tasks"
     __table_args__ = {"schema": "core"}
@@ -186,7 +186,7 @@ class Task(Base):
     completed_at = Column(DateTime(timezone=True))
 
 
-# ID: 816b5265-5573-4b40-98eb-ee4fb7f5d5b5
+# ID: 0b4c145d-c20d-4a6e-ad90-0dd172ab9d1e
 class Action(Base):
     __tablename__ = "actions"
     __table_args__ = {"schema": "core"}
@@ -208,11 +208,31 @@ class Action(Base):
 
 
 # =============================================================================
-# SECTION 6: SYSTEM METADATA (FIX: Added missing models)
+# SECTION 4: VECTOR INTEGRATION LAYER
 # =============================================================================
 
 
-# ID: a2b67e7e-b643-4528-8512-5746037bb82e
+# ID: 200ed659-c322-4c49-b098-0ecc877d0276
+class SymbolVectorLink(Base):
+    __tablename__ = "symbol_vector_links"
+    __table_args__ = {"schema": "core"}
+    symbol_id = Column(
+        pgUUID(as_uuid=True), ForeignKey("core.symbols.id"), primary_key=True
+    )
+    vector_id = Column(Text, nullable=False)
+    embedding_model = Column(Text, nullable=False)
+    embedding_version = Column(Integer, nullable=False)
+    created_at = Column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+
+# =============================================================================
+# SECTION 6: SYSTEM METADATA
+# =============================================================================
+
+
+# ID: 7cb97df4-dc18-49e3-8ef1-6dcc752efebd
 class CliCommand(Base):
     __tablename__ = "cli_commands"
     __table_args__ = {"schema": "core"}
@@ -223,7 +243,7 @@ class CliCommand(Base):
     category = Column(Text)
 
 
-# ID: 233d67ab-fcb4-480f-985f-3d38578626ef
+# ID: c9d097a0-89dd-4769-97a5-4d213720d120
 class RuntimeService(Base):
     __tablename__ = "runtime_services"
     __table_args__ = {"schema": "core"}
@@ -232,7 +252,7 @@ class RuntimeService(Base):
     is_active = Column(Boolean, server_default="true")
 
 
-# ID: 747038d9-da9f-43ea-8034-f5d50c7cf88a
+# ID: 4b0d98d6-23a0-4c9f-8389-0d40e7ef2105
 class Migration(Base):
     __tablename__ = "_migrations"
     __table_args__ = {"schema": "core"}
@@ -242,7 +262,7 @@ class Migration(Base):
     )
 
 
-# ID: e75fd92f-0065-4915-ac39-0a0b297b51bb
+# ID: 15a8b3cf-3c2d-4504-9890-85a386700323
 class Northstar(Base):
     __tablename__ = "northstar"
     __table_args__ = {"schema": "core"}

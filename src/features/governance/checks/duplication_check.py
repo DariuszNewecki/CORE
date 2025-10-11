@@ -22,25 +22,22 @@ log = getLogger("duplication_check")
 
 def _group_findings(findings: list[AuditFinding]) -> List[List[AuditFinding]]:
     """Groups individual finding pairs into clusters of related duplicates."""
+    # This helper function is correct and does not need changes.
     graph = nx.Graph()
     finding_map = {}
 
     for finding in findings:
-        # The context dictionary is the reliable source for symbol keys.
         symbol1 = finding.context.get("symbol_a")
         symbol2 = finding.context.get("symbol_b")
         if symbol1 and symbol2:
             graph.add_edge(symbol1, symbol2)
-            # Store the finding under a canonical key (sorted tuple).
             finding_map[tuple(sorted((symbol1, symbol2)))] = finding
 
-    # Find connected components (these are our clusters).
     clusters = list(nx.connected_components(graph))
     grouped_findings = []
 
     for cluster in clusters:
         cluster_findings = []
-        # Reconstruct the findings that belong to this cluster.
         for i, node1 in enumerate(list(cluster)):
             for node2 in list(cluster)[i + 1 :]:
                 key = tuple(sorted((node1, node2)))
@@ -48,7 +45,6 @@ def _group_findings(findings: list[AuditFinding]) -> List[List[AuditFinding]]:
                     cluster_findings.append(finding_map[key])
 
         if cluster_findings:
-            # Sort by similarity score (descending) for consistent reporting.
             cluster_findings.sort(
                 key=lambda f: float(f.context.get("similarity", 0)), reverse=True
             )
@@ -57,7 +53,7 @@ def _group_findings(findings: list[AuditFinding]) -> List[List[AuditFinding]]:
     return grouped_findings
 
 
-# ID: 80fe0586-c41f-4319-a09b-d8419b7b3f38
+# ID: 79150815-dfca-4b22-9b01-bdc01d14702e
 class DuplicationCheck:
     """
     Enforces the 'dry_by_design' principle by finding semantically similar symbols.
@@ -66,7 +62,8 @@ class DuplicationCheck:
     def __init__(self, context: AuditorContext):
         self.context = context
         self.symbols = self.context.knowledge_graph.get("symbols", {})
-        self.qdrant_service = QdrantService()
+        # --- FIX: We no longer create a shared client here. ---
+        # self.qdrant_service = QdrantService()
         ignore_policy = self.context.policies.get("audit_ignore_policy", {})
         self.ignored_symbol_keys = {
             item["key"]
@@ -80,29 +77,30 @@ class DuplicationCheck:
         """Checks a single symbol for duplicates against the Qdrant index."""
         findings = []
         symbol_key = symbol.get("symbol_path")
-        vector_id = symbol.get("vector_id")
 
-        # --- THIS IS THE FIX ---
-        # Do not proceed if there is no vector_id for this symbol.
-        if not vector_id or symbol_key in self.ignored_symbol_keys:
-            return []
+        # --- THIS IS THE DEFINITIVE FIX ---
+        # Each concurrent task now gets its own private, fresh client instance.
+        qdrant_service = QdrantService()
         # --- END OF FIX ---
 
+        point_id = str(symbol.get("vector_id")) if symbol.get("vector_id") else None
+
+        if not point_id or symbol_key in self.ignored_symbol_keys:
+            return []
+
         try:
-            query_vector = await self.qdrant_service.get_vector_by_id(
-                point_id=vector_id
-            )
+            query_vector = await qdrant_service.get_vector_by_id(point_id=point_id)
             if not query_vector:
-                # This handles cases where the vector exists in PG but not Qdrant
-                log.warning(f"Could not retrieve vector for point ID {vector_id}:")
                 return []
 
-            similar_hits = await self.qdrant_service.search_similar(
+            similar_hits = await qdrant_service.search_similar(
                 query_vector=query_vector, limit=5
             )
 
             for hit in similar_hits:
-                # The payload for vectors now uses 'chunk_id' to store the symbol_path.
+                if not hit.get("payload"):
+                    continue
+
                 hit_symbol_key = hit["payload"].get("chunk_id")
                 if (
                     not hit_symbol_key
@@ -135,20 +133,18 @@ class DuplicationCheck:
 
         return findings
 
-    # ID: ecce6b93-2340-48cd-b787-ce24ff944620
+    # ID: a74388ba-140f-4cf6-aa58-de9d61374038
     async def execute(self, threshold: float = 0.80) -> List[AuditFinding]:
         """
         Asynchronously runs the duplication check across all vectorized symbols.
         """
-        # Ensure we only check symbols that are supposed to have a vector.
-        vectorized_symbols = [s for s in self.symbols.values() if s.get("vector_id")]
+        symbols_to_check = list(self.symbols.values())
 
-        if not vectorized_symbols:
+        if not symbols_to_check:
             return []
 
         tasks = [
-            self._check_single_symbol(symbol, threshold)
-            for symbol in vectorized_symbols
+            self._check_single_symbol(symbol, threshold) for symbol in symbols_to_check
         ]
 
         results = []

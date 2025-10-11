@@ -21,7 +21,7 @@ console = Console()
 EXPORT_DIR = settings.REPO_PATH / ".intent" / "mind_export"
 
 
-# ID: f5b271c7-012a-4ba6-b75c-27308e3056bb
+# ID: 0e4f98b0-6132-435f-b463-9f27c447302a
 async def fetch_capabilities() -> List[dict[str, Any]]:
     """Reads all capabilities from the database, ordered consistently.
 
@@ -38,7 +38,7 @@ async def fetch_capabilities() -> List[dict[str, Any]]:
         return [dict(row._mapping) for row in result]
 
 
-# ID: 7ac0e4a7-11b9-49c5-8d70-6f1a99749ee8
+# ID: 03445002-3060-4d3f-bc0b-27c6ccdc2fe9
 async def fetch_symbols() -> List[dict[str, Any]]:
     """Reads all symbols from the database, ordered consistently.
 
@@ -48,14 +48,14 @@ async def fetch_symbols() -> List[dict[str, Any]]:
     async with get_session() as session:
         result = await session.execute(
             text(
-                "SELECT id, module, qualname, kind, ast_signature, fingerprint, state "
+                "SELECT id, symbol_path, module, qualname, kind, ast_signature, fingerprint, state "
                 "FROM core.symbols ORDER BY fingerprint, id"
             )
         )
         return [dict(row._mapping) for row in result]
 
 
-# ID: b48a1aa4-1887-4cfe-8954-2ae4ce86f1a5
+# ID: 323d778b-4ed7-4d65-9d8d-9077fb880bb9
 async def fetch_links() -> List[dict[str, Any]]:
     """Reads all symbol-capability links from the database, ordered consistently.
 
@@ -77,7 +77,7 @@ async def fetch_links() -> List[dict[str, Any]]:
         return rows
 
 
-# ID: 1997db61-1fa0-4cef-b57d-c538fd3fa7c2
+# ID: 9f94dca6-1d04-41db-8970-b09fdc803222
 async def fetch_northstar() -> List[dict[str, Any]]:
     """Reads the current North Star mission from the database.
 
@@ -94,7 +94,7 @@ async def fetch_northstar() -> List[dict[str, Any]]:
         return [dict(row._mapping) for row in result]
 
 
-# ID: 4c9c59a9-0612-40f2-99ac-957e93be77e3
+# ID: dee34d49-638d-41ce-9f29-6941f5d90706
 async def run_snapshot(env: str | None, note: str | None) -> None:
     """Exports database state to YAML files in the mind_export directory.
 

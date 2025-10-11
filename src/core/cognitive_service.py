@@ -44,6 +44,12 @@ class CognitiveService:
             if self._loaded:
                 return
 
+            # --- START OF DIAGNOSTIC CODE ---
+            print("\n" + "=" * 50)
+            print("--- RUNNING DIAGNOSTIC: INSIDE CognitiveService.initialize ---")
+            print(f"--- Timestamp: {__import__('datetime').datetime.now()} ---")
+            # --- END OF DIAGNOSTIC CODE ---
+
             try:
                 log.info("CognitiveService initializing from database...")
                 async with get_session() as session:
@@ -51,6 +57,17 @@ class CognitiveService:
                     role_result = await session.execute(select(CognitiveRole))
                     resources = [r for r in res_result.scalars().all()]
                     roles = [r for r in role_result.scalars().all()]
+
+                # --- START OF DIAGNOSTIC CODE ---
+                print(
+                    "\n[DIAGNOSTIC] The following roles were just read from the database:"
+                )
+                for r in roles:
+                    print(
+                        f"  - Role: {r.role}, Assigned Resource: {r.assigned_resource}"
+                    )
+                print("=" * 50 + "\n")
+                # --- END OF DIAGNOSTIC CODE ---
 
                 self._resource_selector = ResourceSelector(resources, roles)
                 self._loaded = True

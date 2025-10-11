@@ -57,11 +57,9 @@ CREATE TABLE IF NOT EXISTS core.symbols (
     key text,
     intent text,
 
-    -- Vector integration (Qdrant stores UUIDs as text: id::text)
-    vector_id text,                          -- ID in Qdrant collection (= id::text)
+    -- Vectorization state tracking
     embedding_model text DEFAULT 'text-embedding-3-small',
-    embedding_version integer DEFAULT 1,
-    last_embedded timestamptz,
+    last_embedded timestamptz, -- Timestamp of the last successful vectorization
 
     -- Timestamps
     first_seen timestamptz DEFAULT now() NOT NULL,
@@ -75,7 +73,6 @@ CREATE INDEX idx_symbols_module ON core.symbols(module);
 CREATE INDEX idx_symbols_kind ON core.symbols(kind);
 CREATE INDEX idx_symbols_state ON core.symbols(state);
 CREATE INDEX idx_symbols_health ON core.symbols(health_status);
-CREATE INDEX idx_symbols_vector ON core.symbols(vector_id) WHERE vector_id IS NOT NULL;
 CREATE INDEX idx_symbols_qualname ON core.symbols(qualname);
 CREATE INDEX idx_symbols_fingerprint ON core.symbols(fingerprint);
 
@@ -142,7 +139,51 @@ CREATE TABLE IF NOT EXISTS core.domains (
 );
 
 -- =============================================================================
--- SECTION 2: OPERATIONAL LAYER (What's happening right now)
+-- SECTION 2: GOVERNANCE LAYER (Constitutional compliance)
+-- MOVED UP TO RESOLVE DEPENDENCY
+-- =============================================================================
+
+-- Change proposals requiring approval
+CREATE TABLE IF NOT EXISTS core.proposals (
+    id bigserial PRIMARY KEY,
+    target_path text NOT NULL,
+    content_sha256 char(64) NOT NULL,
+    justification text NOT NULL,
+    risk_tier text DEFAULT 'low' CHECK (risk_tier IN ('low', 'medium', 'high')),
+    is_critical boolean DEFAULT false NOT NULL,
+    status text DEFAULT 'open' NOT NULL CHECK (
+        status IN ('open', 'approved', 'rejected', 'superseded')
+    ),
+    created_at timestamptz DEFAULT now() NOT NULL,
+    created_by text NOT NULL
+);
+
+-- Cryptographic approval signatures
+CREATE TABLE IF NOT EXISTS core.proposal_signatures (
+    proposal_id bigint NOT NULL REFERENCES core.proposals(id) ON DELETE CASCADE,
+    approver_identity text NOT NULL,
+    signature_base64 text NOT NULL,
+    signed_at timestamptz DEFAULT now() NOT NULL,
+    is_valid boolean DEFAULT true NOT NULL,
+    PRIMARY KEY (proposal_id, approver_identity)
+);
+
+-- Audit runs tracking
+CREATE TABLE IF NOT EXISTS core.audit_runs (
+    id bigserial PRIMARY KEY,
+    source text NOT NULL,
+    commit_sha char(40),
+    score numeric(4,3),
+    passed boolean NOT NULL,
+    violations_found integer DEFAULT 0,
+    started_at timestamptz DEFAULT now() NOT NULL,
+    finished_at timestamptz
+);
+
+CREATE INDEX idx_audit_runs_passed ON core.audit_runs(passed, started_at DESC);
+
+-- =============================================================================
+-- SECTION 3: OPERATIONAL LAYER (What's happening right now)
 -- =============================================================================
 
 -- LLM resources available to cognitive roles
@@ -190,7 +231,7 @@ CREATE TABLE IF NOT EXISTS core.tasks (
 
     -- Constitutional compliance
     requires_approval boolean DEFAULT false,
-    proposal_id bigint,                      -- Links to governance
+    proposal_id bigint REFERENCES core.proposals(id), -- Links to governance
 
     -- Metrics
     estimated_complexity integer CHECK (estimated_complexity BETWEEN 1 AND 10),
@@ -210,6 +251,29 @@ CREATE INDEX idx_tasks_relevant_symbols ON core.tasks USING GIN(relevant_symbols
 
 COMMENT ON COLUMN core.tasks.relevant_symbols IS
     'Array of symbol UUIDs retrieved from Qdrant vector search for this task context';
+
+-- Link tasks to proposals they generated
+ALTER TABLE core.tasks
+    ADD CONSTRAINT fk_tasks_proposal
+    FOREIGN KEY (proposal_id) REFERENCES core.proposals(id);
+
+-- Constitutional violations detected by auditor
+CREATE TABLE IF NOT EXISTS core.constitutional_violations (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    rule_id text NOT NULL,
+    symbol_id uuid REFERENCES core.symbols(id),
+    task_id uuid REFERENCES core.tasks(id),
+    severity text NOT NULL CHECK (severity IN ('info', 'warning', 'error', 'critical')),
+    description text NOT NULL,
+    detected_at timestamptz DEFAULT now() NOT NULL,
+    resolved_at timestamptz,
+    resolution_notes text
+);
+
+CREATE INDEX idx_violations_unresolved ON core.constitutional_violations(severity, detected_at)
+    WHERE resolved_at IS NULL;
+CREATE INDEX idx_violations_symbol ON core.constitutional_violations(symbol_id);
+CREATE INDEX idx_violations_task ON core.constitutional_violations(task_id);
 
 -- Action log: everything agents do
 CREATE TABLE IF NOT EXISTS core.actions (
@@ -267,77 +331,20 @@ CREATE INDEX idx_memory_expires ON core.agent_memory(expires_at) WHERE expires_a
 CREATE INDEX idx_memory_relevance ON core.agent_memory(relevance_score DESC);
 
 -- =============================================================================
--- SECTION 3: GOVERNANCE LAYER (Constitutional compliance)
--- =============================================================================
-
--- Change proposals requiring approval
-CREATE TABLE IF NOT EXISTS core.proposals (
-    id bigserial PRIMARY KEY,
-    target_path text NOT NULL,
-    content_sha256 char(64) NOT NULL,
-    justification text NOT NULL,
-    risk_tier text DEFAULT 'low' CHECK (risk_tier IN ('low', 'medium', 'high')),
-    is_critical boolean DEFAULT false NOT NULL,
-    status text DEFAULT 'open' NOT NULL CHECK (
-        status IN ('open', 'approved', 'rejected', 'superseded')
-    ),
-    created_at timestamptz DEFAULT now() NOT NULL,
-    created_by text NOT NULL
-);
-
-CREATE INDEX idx_proposals_status ON core.proposals(status);
-CREATE INDEX idx_proposals_created ON core.proposals(created_at DESC);
-
--- Cryptographic approval signatures
-CREATE TABLE IF NOT EXISTS core.proposal_signatures (
-    proposal_id bigint NOT NULL REFERENCES core.proposals(id) ON DELETE CASCADE,
-    approver_identity text NOT NULL,
-    signature_base64 text NOT NULL,
-    signed_at timestamptz DEFAULT now() NOT NULL,
-    is_valid boolean DEFAULT true NOT NULL,
-    PRIMARY KEY (proposal_id, approver_identity)
-);
-
--- Link tasks to proposals they generated
-ALTER TABLE core.tasks
-    ADD CONSTRAINT fk_tasks_proposal
-    FOREIGN KEY (proposal_id) REFERENCES core.proposals(id);
-
--- Constitutional violations detected by auditor
-CREATE TABLE IF NOT EXISTS core.constitutional_violations (
-    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    rule_id text NOT NULL,
-    symbol_id uuid REFERENCES core.symbols(id),
-    task_id uuid REFERENCES core.tasks(id),
-    severity text NOT NULL CHECK (severity IN ('info', 'warning', 'error', 'critical')),
-    description text NOT NULL,
-    detected_at timestamptz DEFAULT now() NOT NULL,
-    resolved_at timestamptz,
-    resolution_notes text
-);
-
-CREATE INDEX idx_violations_unresolved ON core.constitutional_violations(severity, detected_at)
-    WHERE resolved_at IS NULL;
-CREATE INDEX idx_violations_symbol ON core.constitutional_violations(symbol_id);
-CREATE INDEX idx_violations_task ON core.constitutional_violations(task_id);
-
--- Audit runs tracking
-CREATE TABLE IF NOT EXISTS core.audit_runs (
-    id bigserial PRIMARY KEY,
-    source text NOT NULL,
-    commit_sha char(40),
-    score numeric(4,3),
-    passed boolean NOT NULL,
-    violations_found integer DEFAULT 0,
-    started_at timestamptz DEFAULT now() NOT NULL,
-    finished_at timestamptz
-);
-
-CREATE INDEX idx_audit_runs_passed ON core.audit_runs(passed, started_at DESC);
-
--- =============================================================================
 -- SECTION 4: VECTOR INTEGRATION LAYER (Qdrant sync)
 -- =============================================================================
+
+-- Link table between symbols and their vectors in Qdrant
+CREATE TABLE IF NOT EXISTS core.symbol_vector_links (
+    symbol_id uuid PRIMARY KEY NOT NULL REFERENCES core.symbols(id) ON DELETE CASCADE,
+    vector_id UUID NOT NULL, -- The UUID ID used in Qdrant
+    embedding_model text NOT NULL,
+    embedding_version integer NOT NULL,
+    created_at timestamptz DEFAULT now() NOT NULL
+);
+
+CREATE INDEX idx_symbol_vector_links_vector_id ON core.symbol_vector_links(vector_id);
+
 
 -- Track Qdrant synchronization
 CREATE TABLE IF NOT EXISTS core.vector_sync_log (
@@ -463,6 +470,19 @@ CREATE TABLE IF NOT EXISTS core.northstar (
     updated_at timestamptz DEFAULT now() NOT NULL
 );
 
+-- Runtime configuration
+CREATE TABLE IF NOT EXISTS core.runtime_settings (
+    key TEXT PRIMARY KEY,
+    value TEXT,
+    description TEXT,
+    is_secret BOOLEAN NOT NULL DEFAULT FALSE,
+    last_updated TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+COMMENT ON TABLE core.runtime_settings IS 'Single source of truth for runtime configuration, loaded from .env and managed by `core-admin manage dotenv sync`.';
+COMMENT ON COLUMN core.runtime_settings.is_secret IS 'If true, the value should be handled with care.';
+
+
 -- =============================================================================
 -- SECTION 7: MATERIALIZED VIEW MANAGEMENT (Production-Ready)
 -- =============================================================================
@@ -523,12 +543,10 @@ COMMENT ON FUNCTION core.refresh_materialized_view IS
 
 -- Symbols needing embedding/re-embedding
 CREATE OR REPLACE VIEW core.v_symbols_needing_embedding AS
-SELECT id, module, qualname, symbol_path, ast_signature, fingerprint, vector_id
-FROM core.symbols
-WHERE vector_id IS NULL
-   OR last_embedded < last_modified
-   OR embedding_version < 1
-ORDER BY last_modified DESC;
+SELECT s.id, s.module, s.qualname, s.symbol_path, s.ast_signature, s.fingerprint
+FROM core.symbols s
+WHERE s.last_embedded IS NULL OR s.last_modified > s.last_embedded
+ORDER BY s.last_modified DESC;
 
 -- Orphaned symbols (not linked to capabilities)
 CREATE OR REPLACE VIEW core.v_orphan_symbols AS
@@ -630,10 +648,10 @@ SELECT
     s.health_status,
     s.is_public,
     s.fingerprint as structural_hash,
-    s.vector_id,
     s.updated_at AS last_updated,
     s.key as capability,
     s.intent,
+    vl.vector_id,
 
     -- Linked capabilities (real data from joins)
     COALESCE(
@@ -652,6 +670,7 @@ SELECT
     (SELECT COUNT(*) FROM core.actions a WHERE a.target = s.symbol_path) as action_count
 
 FROM core.symbols s
+LEFT JOIN core.symbol_vector_links vl ON s.id = vl.symbol_id
 ORDER BY s.updated_at DESC;
 
 -- Stale materialized views monitoring
@@ -731,10 +750,10 @@ LEFT JOIN core.symbol_capability_links l ON l.symbol_id = s.id
 LEFT JOIN core.capabilities c ON c.id = l.capability_id
 GROUP BY s.id, s.symbol_path, s.module, s.kind, s.state, s.health_status;
 
-CREATE UNIQUE INDEX idx_mv_usage_id ON core.mv_symbol_usage_patterns(id);
-CREATE INDEX idx_mv_usage_precision ON core.mv_symbol_usage_patterns(retrieval_precision DESC);
-CREATE INDEX idx_mv_usage_modified ON core.mv_symbol_usage_patterns(times_modified DESC);
-CREATE INDEX idx_mv_usage_last_action ON core.mv_symbol_usage_patterns(last_action_at DESC NULLS LAST);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_mv_usage_id ON core.mv_symbol_usage_patterns(id);
+CREATE INDEX IF NOT EXISTS idx_mv_usage_precision ON core.mv_symbol_usage_patterns(retrieval_precision DESC);
+CREATE INDEX IF NOT EXISTS idx_mv_usage_modified ON core.mv_symbol_usage_patterns(times_modified DESC);
+CREATE INDEX IF NOT EXISTS idx_mv_usage_last_action ON core.mv_symbol_usage_patterns(last_action_at DESC NULLS LAST);
 
 COMMENT ON MATERIALIZED VIEW core.mv_symbol_usage_patterns IS
     'Analytics view for symbol usage patterns. Refresh with: SELECT * FROM core.refresh_materialized_view(''core.mv_symbol_usage_patterns'');';
