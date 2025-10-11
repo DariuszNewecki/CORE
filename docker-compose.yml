@@ -1,9 +1,9 @@
 # docker-compose.yml
-version: '3.8'
+version: "3.8"
 
 services:
   qdrant:
-    image: qdrant/qdrant:v1.15.1
+    image: qdrant/qdrant:v1.9.0
     container_name: core_qdrant_db
     ports:
       - "6333:6333"

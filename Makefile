@@ -24,7 +24,7 @@ PY          := $(POETRY) run python
 # ---- Phony targets -----------------------------------------------------------
 .PHONY: \
   help install lock run stop \
-  audit lint format test fast-check check \
+  audit lint format test fast-check check dev-sync \
   cli-tree clean distclean nuke \
   docs check-docs vectorize integrate \
   migrate export-db sync-knowledge sync-manifest
@@ -81,6 +81,9 @@ check: ## Lint + tests + audit + docs drift check
 	$(MAKE) test
 	$(MAKE) audit
 	@$(MAKE) check-docs
+
+dev-sync: ## Run the safe, non-destructive developer sync and audit workflow
+	$(POETRY) run core-admin check system
 
 cli-tree: ## Display CLI command tree
 	@echo "🌳 Generating CLI command tree..."

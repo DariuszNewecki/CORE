@@ -13,24 +13,28 @@ if [ ! -f "pyproject.toml" ] || [ ! -d ".intent" ]; then
     exit 1
 fi
 
-# --- Load environment variables from .env ---
-if [ -f .env ]; then
-    set -o allexport
-    source <(grep -v '^\s*#' .env | grep -v '^\s*$')
-    set +o allexport
-else
-    echo "❌ Error: .env file not found. Cannot connect to the database."
+# --- Check for a valid .env file BEFORE starting ---
+if [ ! -f ".env" ]; then
+    echo "❌ Error: .env file not found."
+    echo "   Please create one by running: cp .env.example .env"
+    echo "   Then, fill in the required values (especially LLM keys and DATABASE_URL)."
     exit 1
 fi
 
-if [ -z "${DATABASE_URL-}" ] || [ -z "${QDRANT_URL-}" ]; then
-    echo "❌ Error: DATABASE_URL and QDRANT_URL must be set in your .env file."
+# --- Load environment variables from .env ---
+set -o allexport
+source <(grep -v '^\s*#' .env | grep -v '^\s*$')
+set +o allexport
+
+if [ -z "${DATABASE_URL-}" ] || [ -z "${QDRANT_URL-}" ] || [ -z "${DEEPSEEK_CHAT_API_KEY-}" ]; then
+    echo "❌ Error: Your .env file is missing required values like DATABASE_URL, QDRANT_URL, or LLM API keys."
+    echo "   Please review .env.example and update your .env file."
     exit 1
 fi
 
 # --- Final Confirmation ---
 echo "☢️  WARNING: This will permanently delete all data in the 'core' schema of your database"
-echo "    and expects that your Qdrant volume has been cleared."
+echo "    and the Qdrant collection '${QDRANT_COLLECTION_NAME-}'."
 read -p "Are you sure you want to continue? (y/N): " -n 1 -r
 echo
 if [[ ! $REPLY =~ ^[Yy]$ ]]; then
@@ -51,36 +55,33 @@ echo "✅ PostgreSQL schema re-created."
 
 # --- Step 3: Re-create the Qdrant Collection ---
 echo "⚡ Re-creating Qdrant vector collection..."
-poetry run python3 scripts/create_qdrant_collection.py
+poetry run python3 scripts/reset_qdrant_collection.py
 echo "✅ Qdrant collection is ready."
 
 # --- Step 4: Re-build Knowledge from Source Code & Exports ---
 echo "🧠 Re-building knowledge from scratch..."
 
-# --- START OF THE DEFINITIVE FIX ---
+# --- THIS IS THE CORRECTED SEQUENCE ---
 
-echo "   -> (1/6) Importing bootstrap knowledge from mind_export/ YAMLs..."
-# The 'mind import' command is the correct tool to populate the DB from the export files.
-# The '--write' flag tells it to apply the changes.
+echo "   -> (1/5) Importing bootstrap knowledge from mind_export/ YAMLs..."
+# This is the crucial first step: SEED the database with AI config.
 poetry run core-admin mind import --write
 
-echo "   -> (2/6) Syncing symbols from code to DB..."
-# This is still needed to discover any new code symbols not in the old export.
+echo "   -> (2/5) Syncing symbols from code to DB..."
+# Now discover all symbols from the source code.
 poetry run core-admin manage database sync-knowledge --write
 
-# --- END OF THE DEFINITIVE FIX ---
-
-echo "   -> (3/6) Vectorizing all symbols..."
-poetry run core-admin run vectorize --write
-
-echo "   -> (4/6) Defining capabilities for new symbols..."
+echo "   -> (3/5) Defining capabilities for any new symbols..."
+# This step is now likely redundant if your exports are up to date, but it's safe to run.
 poetry run core-admin manage define-symbols
 
-echo "   -> (5/6) Syncing DB state back to project manifest (OBSOLETE - can be removed later)..."
-# This command is now obsolete but we keep it for now to avoid breaking other things.
-poetry run core-admin manage database sync-manifest || echo "   -> (Skipping obsolete manifest sync)"
+echo "   -> (4/5) Vectorizing all symbols..."
+# Now that AI config is in the DB, this will succeed.
+poetry run core-admin run vectorize --write --force
 
-echo "   -> (6/6) Running final constitutional audit..."
+echo "   -> (5/5) Running final constitutional audit..."
 poetry run core-admin check audit
+
+# --- END OF CORRECTED SEQUENCE ---
 
 echo "🎉 Database reset and rebuild complete!"

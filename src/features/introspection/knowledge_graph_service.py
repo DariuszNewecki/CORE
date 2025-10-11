@@ -1,7 +1,7 @@
 # src/features/introspection/knowledge_graph_service.py
 """
 Provides the KnowledgeGraphBuilder, the primary tool for introspecting the
-codebase and synchronizing the discovered knowledge with the database.
+codebase and creating an in-memory representation of its symbols.
 """
 
 from __future__ import annotations
@@ -13,7 +13,6 @@ from pathlib import Path
 from typing import Any, Dict, List
 
 import yaml
-from services.repositories.db.engine import get_session
 from shared.ast_utility import (
     FunctionCallVisitor,
     calculate_structural_hash,
@@ -24,16 +23,15 @@ from shared.ast_utility import (
 )
 from shared.config import settings
 from shared.logger import getLogger
-from sqlalchemy import text
 
 log = getLogger("knowledge_graph_builder")
 
 
-# ID: 64fe527b-e2ab-4232-9a54-1a24d17a6ff1
+# ID: efd11315-be84-44cd-ace1-f688d85a9d86
 class KnowledgeGraphBuilder:
     """
-    Scans the source code to build a comprehensive knowledge graph and syncs it
-    to the operational database.
+    Scans the source code to build a comprehensive in-memory knowledge graph.
+    It does not interact with the database; that is handled by the sync_service.
     """
 
     def __init__(self, root_path: Path):
@@ -69,36 +67,14 @@ class KnowledgeGraphBuilder:
         except (FileNotFoundError, yaml.YAMLError):
             return []
 
-    async def _sync_symbols_to_db(self, symbols: List[Dict]):
-        """Performs a TRUNCATE and INSERT to sync symbols to the database."""
-        if not symbols:
-            return
-
-        async with get_session() as session:
-            async with session.begin():
-                await session.execute(text("TRUNCATE TABLE core.symbols CASCADE"))
-                await session.execute(
-                    text(
-                        """
-                        INSERT INTO core.symbols (uuid, key, symbol_path, file_path, is_public, title, description, owner, status, structural_hash)
-                        VALUES (:uuid, :key, :symbol_path, :file_path, :is_public, :title, :description, 'unassigned_agent', 'active', :structural_hash)
-                    """
-                    ),
-                    symbols,
-                )
-        log.info(f"Successfully synced {len(symbols)} symbols to the database.")
-
-    # ID: 6de62bc4-767f-4bc1-b5f1-25ee31af1009
-    async def build_and_sync(self) -> Dict[str, Any]:  # <-- NOW ASYNC
+    # ID: f5689b89-8060-4328-a9f4-0d4e2ad77175
+    def build(self) -> Dict[str, Any]:
         """
-        Executes the full build and sync process for the knowledge graph.
+        Executes the full build process for the knowledge graph and returns it.
         """
         log.info(f"Building knowledge graph for repository at: {self.root_path}")
         for py_file in self.src_dir.rglob("*.py"):
             self._scan_file(py_file)
-
-        # Sync to database
-        await self._sync_symbols_to_db(list(self.symbols.values()))  # <-- NOW AWAITED
 
         knowledge_graph = {
             "metadata": {

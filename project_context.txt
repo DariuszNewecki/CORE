@@ -701,6 +701,7 @@ rules:
     statement: "Services SHOULD receive their dependencies through the `__init__` constructor, with type hints."
     enforcement: warn
     category: architectural # <-- ADD THIS
+
 --- END OF FILE ./.intent/charter/policies/code/dependency_injection_policy.yaml ---
 
 --- START OF FILE ./.intent/charter/policies/code/naming_conventions_policy.yaml ---
@@ -874,7 +875,6 @@ migrations:
   directory: sql
   order:
     - "001_consolidated_schema.sql"
-    - "002_runtime_configuration.sql"
 
 rules:
   - id: db.ssot_for_operational_data
@@ -1150,6 +1150,7 @@ symbol_ignores:
   - key: "shared.utils.constitutional_parser.get_all_constitutional_paths"
     reason: "Simple utility function."
     expires: "2026-01-01"
+
 --- END OF FILE ./.intent/charter/policies/governance/audit_ignore_policy.yaml ---
 
 --- START OF FILE ./.intent/charter/policies/governance/auditor_policy.yaml ---
@@ -1771,6 +1772,7 @@ validation:
   - id: critical_tier_requires_critical_quorum
     enforcement: error
     links_to: "charter/constitution/approvers.yaml#quorum.critical"
+
 --- END OF FILE ./.intent/charter/policies/governance/risk_classification_policy.yaml ---
 
 --- START OF FILE ./.intent/charter/policies/governance/tooling_policy.yaml ---
@@ -2307,6 +2309,7 @@ rules:
   },
   "required": ["rules"]
 }
+
 --- END OF FILE ./.intent/charter/schemas/code/dependency_injection_policy_schema.json ---
 
 --- START OF FILE ./.intent/charter/schemas/code/knowledge_graph_entry_schema.json ---
@@ -3263,6 +3266,7 @@ migrations:
     }
   }
 }
+
 --- END OF FILE ./.intent/charter/schemas/governance/risk_classification_policy_schema.json ---
 
 --- START OF FILE ./.intent/charter/schemas/operations/canary_policy_schema.json ---
@@ -3575,6 +3579,7 @@ mind:
     refactor_outlier: "mind/prompts/refactor_outlier.prompt"
     standard_task_generator: "mind/prompts/standard_task_generator.prompt"
     vectorizer: "mind/prompts/vectorizer.prompt"
+
 --- END OF FILE ./.intent/meta.yaml ---
 
 --- START OF FILE ./.intent/mind/config/local_mode.yaml ---
@@ -4724,7 +4729,7 @@ Source Code:
 
 --- START OF FILE ./.intent/mind_export/capabilities.yaml ---
 version: 1
-exported_at: '2025-10-06T20:04:49.282327+00:00'
+exported_at: '2025-10-10T19:19:36.762000+00:00'
 items: []
 digest: sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945
 
@@ -4759,7 +4764,7 @@ cognitive_roles:
 
 --- START OF FILE ./.intent/mind_export/links.yaml ---
 version: 1
-exported_at: '2025-10-06T20:04:49.282327+00:00'
+exported_at: '2025-10-10T19:19:36.762000+00:00'
 items: []
 digest: sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945
 
@@ -4767,7 +4772,7 @@ digest: sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945
 
 --- START OF FILE ./.intent/mind_export/northstar.yaml ---
 version: 1
-exported_at: '2025-10-06T20:04:49.282327+00:00'
+exported_at: '2025-10-10T19:19:36.762000+00:00'
 items: []
 digest: sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945
 
@@ -4810,7 +4815,7 @@ llm_resources:
 
 --- START OF FILE ./.intent/mind_export/symbols.yaml ---
 version: 1
-exported_at: '2025-10-06T20:04:49.282327+00:00'
+exported_at: '2025-10-10T19:19:36.762000+00:00'
 items:
 - id: db8bbe12-9fc2-521e-9d3d-42508b0655dc
   module: services.mind_service
@@ -4839,13 +4844,6 @@ items:
   kind: function
   ast_signature: TBD
   fingerprint: 05d63b971eadf995475f605bf5d5833e2cdba52341b55954910474f259c05f38
-  state: discovered
-- id: 1835434f-576c-5883-8423-f3c415688d2e
-  module: core.knowledge_service
-  qualname: KnowledgeService
-  kind: class
-  ast_signature: TBD
-  fingerprint: 06b464dcb9b344b01ae08b3549cfca8dd91b3a71e521353ec98e3efa5ec42891
   state: discovered
 - id: 9bd133b5-eed8-5e30-8fc4-33ac0e2d3355
   module: cli.logic.agent
@@ -4973,19 +4971,12 @@ items:
   ast_signature: TBD
   fingerprint: 0f2a20511c9569d03fe0173f5050cf1e19ee3b6da7cf6b1bc81891de135de4c4
   state: discovered
-- id: 6389a100-1bfa-5926-bc9c-03202f641fea
-  module: services.clients.qdrant_client
-  qualname: QdrantService
-  kind: class
-  ast_signature: TBD
-  fingerprint: 101d7b32970de5aef5dfa5f0704de31650d3585441cf27708348443f59d6c26b
-  state: discovered
 - id: 223ff445-c201-5a62-add0-bb43a6f65305
   module: features.introspection.knowledge_graph_service
   qualname: KnowledgeGraphBuilder
   kind: class
   ast_signature: TBD
-  fingerprint: 125c6f7ac666e7e964df4cf393f4691b30d4e21518d042259dc0ae0916f9483e
+  fingerprint: 1099001293ae8db4f04bfb6003833dd0f945a623c1e4b7c24bb27d1ee822a6eb
   state: discovered
 - id: 34f378f4-5287-5128-819f-5b7c8b4d96c0
   module: cli.logic.run
@@ -5092,6 +5083,13 @@ items:
   ast_signature: TBD
   fingerprint: 1cc7144a5c62e0bc1935eaedc438d2d2b146b2e0487afe1384eb863479d93e0b
   state: discovered
+- id: e42a245c-15f4-5551-904b-6f65239a47b0
+  module: features.governance.policy_loader
+  qualname: load_available_actions
+  kind: function
+  ast_signature: TBD
+  fingerprint: 1d050bdf4e25405feb9f8dbf49bebce2a25b18cd392ca419ae06011aff7ae17e
+  state: discovered
 - id: 7dfed392-047e-5ace-9482-e906d907751e
   module: features.governance.checks.file_checks
   qualname: FileChecks
@@ -5126,13 +5124,6 @@ items:
   kind: class
   ast_signature: TBD
   fingerprint: 209d997367d7af20dbf810470ec4e00fdf3dd6a305bef72aeef24efb8d4af1cb
-  state: discovered
-- id: 4e397589-8aeb-5795-b54d-81caf3e013e5
-  module: cli.logic.knowledge_sync.utils
-  qualname: read_yaml
-  kind: function
-  ast_signature: TBD
-  fingerprint: 2195a035a263689e01a4e7e4bc4875c06339826e472c2bc8ac54aaddc3abd602
   state: discovered
 - id: 153a9936-3b7d-5946-a565-8c4e0ff44858
   module: features.governance.constitutional_auditor
@@ -5189,6 +5180,13 @@ items:
   kind: function
   ast_signature: TBD
   fingerprint: 268acfbaccc2694b1b6b74b81b04a04bbe71a939ca13fbcc09608eabe5a2aed9
+  state: discovered
+- id: 1835434f-576c-5883-8423-f3c415688d2e
+  module: core.knowledge_service
+  qualname: KnowledgeService
+  kind: class
+  ast_signature: TBD
+  fingerprint: 26d49690011b7f8695303a4a938ba4d274abe50c0d3168b1cdd93df0122432fe
   state: discovered
 - id: 574b6ddd-0ae2-5b06-a8f6-ada805d4734c
   module: features.project_lifecycle.scaffolding_service
@@ -5280,6 +5278,13 @@ items:
   kind: function
   ast_signature: TBD
   fingerprint: 2ff1e08386fb8af8d0bfabcbfcef4001ba7ec5e0f1f416d1fa4076122e138e2f
+  state: discovered
+- id: eb78efe5-0d71-55b7-9fab-76fb837123ed
+  module: features.project_lifecycle.definition_service
+  qualname: update_definitions_in_db
+  kind: function
+  ast_signature: TBD
+  fingerprint: 31f2b4b11953f96fffd047e26aafa2d7571dc2aeab491f95837a3677c466981d
   state: discovered
 - id: 19edd552-a03b-5ada-92f7-ae0c45f58ebf
   module: features.governance.checks.knowledge_source_check
@@ -5379,13 +5384,6 @@ items:
   ast_signature: TBD
   fingerprint: 3a3549bfec1d94b10cb62bd8d9d8a2e9648e98aafcb302f2fbf4376fb9f60abc
   state: discovered
-- id: eb78efe5-0d71-55b7-9fab-76fb837123ed
-  module: features.project_lifecycle.definition_service
-  qualname: update_definitions_in_db
-  kind: function
-  ast_signature: TBD
-  fingerprint: 3a951a3486b351b1d2d811542440a359be74c3b57a4100773ce27fc264d1accb
-  state: discovered
 - id: c22524a7-c043-5bbe-bc59-ea4fa915b2e6
   module: cli.interactive
   qualname: launch_interactive_menu
@@ -5399,6 +5397,13 @@ items:
   kind: function
   ast_signature: TBD
   fingerprint: 3ade1c798c1e85f29d5ec07a1988aa41c44ef49d0c01c3cb3266fff19b2745b7
+  state: discovered
+- id: 42b7d712-b457-5ff1-aa8d-649680c3105b
+  module: cli.logic.proposals_micro
+  qualname: micro_apply
+  kind: function
+  ast_signature: TBD
+  fingerprint: 3b1226da9a50bb58d7a99a1863bbb921e1ce7231acce32c6d15cc08fe918a937
   state: discovered
 - id: 5882c40e-a8f4-50c5-b602-e0399062cf94
   module: cli.logic.reconcile
@@ -5560,13 +5565,6 @@ items:
   kind: class
   ast_signature: TBD
   fingerprint: 4bc1024d72ef5d065a9f5b33887e9c189351f7a1ad13904fa5baad8b26f92100
-  state: discovered
-- id: 42b7d712-b457-5ff1-aa8d-649680c3105b
-  module: cli.logic.proposals_micro
-  qualname: micro_apply
-  kind: function
-  ast_signature: TBD
-  fingerprint: 4bc1f42f98d654d00fbba5c4d4bc4c04263531e36be2d9a639a817dbaec39446
   state: discovered
 - id: 7b1bc464-444a-5aa2-b9dc-20a19e5bf659
   module: services.database.models
@@ -5743,6 +5741,13 @@ items:
   ast_signature: TBD
   fingerprint: 5e9b6c5fe4c10fc064e2a0470876b5f6615070a38e54b02d9f9ace8c3af192ac
   state: discovered
+- id: 4e397589-8aeb-5795-b54d-81caf3e013e5
+  module: cli.logic.knowledge_sync.utils
+  qualname: read_yaml
+  kind: function
+  ast_signature: TBD
+  fingerprint: 60c4f95b6d301656a7cd5babd1c0be81dcbc671787701f2ae8315a3e2b0bc613
+  state: discovered
 - id: 6108e420-3b8d-54ff-b263-a5ca9a0d9f20
   module: shared.utils.parallel_processor
   qualname: ThrottledParallelProcessor
@@ -5826,6 +5831,13 @@ items:
   kind: class
   ast_signature: TBD
   fingerprint: 68fa2df0d94fc62fae3f87ec669289ad7b48d1c21a8f36f2ce3191a81a0bcbc6
+  state: discovered
+- id: 3e865e92-b3e4-5c0e-8edc-686ecbb1892b
+  module: cli.logic.diagnostics
+  qualname: debug_meta_paths
+  kind: function
+  ast_signature: TBD
+  fingerprint: 691f0ee72835e478b034a259613c4db34553df5e930a6aa4881bf34ae36e232c
   state: discovered
 - id: fe59da83-5ccd-5982-9d80-2ff9f55bce3e
   module: core.self_correction_engine
@@ -6121,6 +6133,20 @@ items:
   ast_signature: TBD
   fingerprint: 8a444886463d6a4ac44ce6534a870e51450a352b150b236409437e72993ae8f7
   state: discovered
+- id: d272780b-5a62-5d1e-bb0d-5736a5773c4f
+  module: cli.logic.diagnostics
+  qualname: inspect_vector_drift
+  kind: function
+  ast_signature: TBD
+  fingerprint: 8b68d7bf8b2905f24485df8b10ff67723632e1fd8814af6b086f832a85bd59c9
+  state: discovered
+- id: e8139a34-02c7-5ffa-bbe9-1d11eacee9c5
+  module: cli.logic.vector_drift
+  qualname: inspect_vector_drift
+  kind: function
+  ast_signature: TBD
+  fingerprint: 8b68d7bf8b2905f24485df8b10ff67723632e1fd8814af6b086f832a85bd59c9
+  state: discovered
 - id: 84fc6521-1a52-50f9-bd43-fc50183f682f
   module: cli.commands.enrich
   qualname: enrich_symbols_command
@@ -6331,13 +6357,6 @@ items:
   ast_signature: TBD
   fingerprint: 9d8f25cf17e94788d61c0e10b3d325869ac55c15c69a722efe16aa3165890b05
   state: discovered
-- id: 3e865e92-b3e4-5c0e-8edc-686ecbb1892b
-  module: cli.logic.diagnostics
-  qualname: debug_meta_paths
-  kind: function
-  ast_signature: TBD
-  fingerprint: 9e362e115b0b0d22cc749f41afed6d0c73474806f249c7a70bf09c038e1c94ba
-  state: discovered
 - id: b207d920-9a07-5fc7-81a5-9f558e021129
   module: features.introspection.generate_correction_map
   qualname: generate_maps
@@ -6400,6 +6419,13 @@ items:
   kind: function
   ast_signature: TBD
   fingerprint: a6f44580d089d42dae952114f2881177e4f367c2fe8ea8dfa9e47d3841bc302b
+  state: discovered
+- id: 2cecefd5-6009-562a-9703-c25b73659986
+  module: features.self_healing.prune_orphaned_vectors
+  qualname: main_sync
+  kind: function
+  ast_signature: TBD
+  fingerprint: a719d93825df1c76852a7c2044456f3e586662407bcd692162616a563125b76f
   state: discovered
 - id: fd5482e3-3662-5803-92e3-e44a1b3c2f16
   module: features.introspection.capability_discovery_service
@@ -6625,6 +6651,13 @@ items:
   ast_signature: TBD
   fingerprint: bbb9b77f13092c13295a48be52575bfa9c46b419bf210a925125d09c0c3bb71a
   state: discovered
+- id: 6389a100-1bfa-5926-bc9c-03202f641fea
+  module: services.clients.qdrant_client
+  qualname: QdrantService
+  kind: class
+  ast_signature: TBD
+  fingerprint: bc86cac9c7a49460818ee759a088b6fc1ad0741f05687572a8f27ea666016ee6
+  state: discovered
 - id: f2ade2e5-5b27-513d-ae87-90aa3d3687a6
   module: cli.logic.agent
   qualname: agent_scaffold
@@ -6680,13 +6713,6 @@ items:
   kind: function
   ast_signature: TBD
   fingerprint: c1b966549ac447d15cfebb0e9af241007d72a1fb8cbe7aa2b65620f18b4a0660
-  state: discovered
-- id: 8cfae6dc-e186-53bc-8c4a-bfbd1d1d43d5
-  module: features.governance.policy_loader
-  qualname: load_micro_proposal_policy
-  kind: function
-  ast_signature: TBD
-  fingerprint: c202e4d5c453778f155cd4337f81e4a6439ba74677f639bfdb086d28b559048f
   state: discovered
 - id: e48e9bdd-7eff-512f-a329-8a698226f5bb
   module: cli.commands.mind
@@ -6814,13 +6840,6 @@ items:
   ast_signature: TBD
   fingerprint: cf22b57d0019b89065c46a812e22e93b4b7115c5a8708f14c806b9a1d98a402f
   state: discovered
-- id: 2cecefd5-6009-562a-9703-c25b73659986
-  module: features.self_healing.prune_orphaned_vectors
-  qualname: main_sync
-  kind: function
-  ast_signature: TBD
-  fingerprint: cf5277f5f89634220fa47b2066b767d802449634e7f97a069f379200ffe69cc3
-  state: discovered
 - id: e8b77dbd-cc22-5fb8-8d0a-5bedb516bf4d
   module: cli.admin_cli
   qualname: main
@@ -6855,6 +6874,13 @@ items:
   kind: function
   ast_signature: TBD
   fingerprint: d572a2c5e63189164b2a0664fb3fb9637127dba8351b01e4d38995dd3e765dc9
+  state: discovered
+- id: af71e1aa-fc0d-56e2-af2f-155ae9b0f09d
+  module: cli.logic.symbol_drift
+  qualname: inspect_symbol_drift
+  kind: function
+  ast_signature: TBD
+  fingerprint: d57aba0cb6bf860488cb9cab4ab1714a7ca274f661c7e9b15461f5f0e2eeaf20
   state: discovered
 - id: 25179fcd-fba3-5e7b-8af5-6f64d35678ae
   module: cli.logic.list_audits
@@ -6905,12 +6931,12 @@ items:
   ast_signature: TBD
   fingerprint: d9730a35b8e4d821e58f829a2047a6cc93214c754477cf21008e5ce933e0677a
   state: discovered
-- id: 17139118-e075-57c4-9359-a82274f8a9c5
-  module: features.governance.checks.duplication_check
-  qualname: DuplicationCheck
+- id: 70e7343c-bb16-5df8-a7ce-e451f3b6983c
+  module: features.governance.checks.dependency_injection_check
+  qualname: DependencyInjectionCheck
   kind: class
   ast_signature: TBD
-  fingerprint: d9adf60e784c9f3b41471bd5f684c2810e2fa2ea2b5938ab34045218488aab69
+  fingerprint: d98f59d61fa06b6f54e4bebc72d41ff625832b3648b4fa9c956650d1b681f3e7
   state: discovered
 - id: 3cd3e161-5291-53a2-888e-80adfdb825be
   module: core.actions.healing_actions
@@ -6926,13 +6952,6 @@ items:
   ast_signature: TBD
   fingerprint: da7bc8dc539a953d183819a23f6af89fbc6a8c89c4634722917252f3d2a22d25
   state: discovered
-- id: 0a055408-c1c4-54f2-b2d3-28bc47ace016
-  module: cli.logic.knowledge_sync.utils
-  qualname: canonicalize
-  kind: function
-  ast_signature: TBD
-  fingerprint: db4a67a495f288515198a9e45781f2cedf9eaef3e1ef46b980956b55f6065347
-  state: discovered
 - id: f2dafb56-113a-5799-924e-4af44a3cfaef
   module: cli.commands.run
   qualname: vectorize_capabilities
@@ -6946,6 +6965,13 @@ items:
   kind: class
   ast_signature: TBD
   fingerprint: dce5f11ef2cca1cba3e26577a6a2834d477cf37514a131137c4be96880165fd0
+  state: discovered
+- id: ff9a31c9-90dd-5740-be61-9ed760b13baf
+  module: core.actions.registry
+  qualname: ActionRegistry
+  kind: class
+  ast_signature: TBD
+  fingerprint: dd02fdf184ef223127d6e415e48b9dcae919251ed61622bd47e1ebd8ee78d5e5
   state: discovered
 - id: 7338000b-b21a-545f-9fca-3192cd2b72ef
   module: shared.utils.crypto
@@ -6989,19 +7015,12 @@ items:
   ast_signature: TBD
   fingerprint: e0337f7d9650a028b8e30d923b988b631b5f0689d6934becff3989c7bfcfbf6e
   state: discovered
-- id: e42a245c-15f4-5551-904b-6f65239a47b0
-  module: features.governance.policy_loader
-  qualname: load_available_actions
-  kind: function
+- id: 6d01b57c-c19e-5b31-8c10-e067f4f30f0f
+  module: core.actions.healing_actions
+  qualname: FormatCodeHandler
+  kind: class
   ast_signature: TBD
-  fingerprint: e03ce144ff211c24ccb8dd0262e9264216aba44eb2bcb1ebf598251f098d68d4
-  state: discovered
-- id: dcef10ac-42d5-5bf7-b07a-eac48e9afd08
-  module: features.governance.policy_loader
-  qualname: getLogger
-  kind: function
-  ast_signature: TBD
-  fingerprint: e14ce68d8c5d3b69c66893b9cab9355ca1fe065e915631c44e9c913f5be46bc3
+  fingerprint: e1d7942f206ef3a296e3da9f98422952dd3f430d021c63144adf5673278bc3b2
   state: discovered
 - id: 643c3a3b-491f-5c6d-9626-242bd31cddb3
   module: core.actions.governance_actions
@@ -7009,13 +7028,6 @@ items:
   kind: class
   ast_signature: TBD
   fingerprint: e22340ac999fe7ec261be3979892cf3c593b1c718203077b888d14d411de9c77
-  state: discovered
-- id: ff9a31c9-90dd-5740-be61-9ed760b13baf
-  module: core.actions.registry
-  qualname: ActionRegistry
-  kind: class
-  ast_signature: TBD
-  fingerprint: e23b879d2586ad26578291c0b970f521b1025e382173d69265f98a5bbc5fdcae
   state: discovered
 - id: de84cf6f-c051-5c20-a1dd-ab1eeaa6359d
   module: cli.logic.diagnostics
@@ -7100,6 +7112,13 @@ items:
   kind: class
   ast_signature: TBD
   fingerprint: e7f7d8388211b94f55caa5d793daf73b13f7f0995220228d051247e3791fc6d1
+  state: discovered
+- id: 8cfae6dc-e186-53bc-8c4a-bfbd1d1d43d5
+  module: features.governance.policy_loader
+  qualname: load_micro_proposal_policy
+  kind: function
+  ast_signature: TBD
+  fingerprint: e813dc32af2462fff1219fdb03d7eb156ef7e4c44fd7505e3507bccec1f6e671
   state: discovered
 - id: 308457e8-a235-525c-9058-503a93b7755e
   module: cli.logic.diagnostics
@@ -7213,6 +7232,13 @@ items:
   ast_signature: TBD
   fingerprint: f3ae66c634a1cbb9c8b968fb0cd6590d8b106bda1aefbac135d311410bc4b55c
   state: discovered
+- id: 17139118-e075-57c4-9359-a82274f8a9c5
+  module: features.governance.checks.duplication_check
+  qualname: DuplicationCheck
+  kind: class
+  ast_signature: TBD
+  fingerprint: f3c51dc68c56f94865376a6a768c4ad9d47a64f29ec2b83f69b43eecea99eb03
+  state: discovered
 - id: 0bd7653f-9de6-5115-98a4-919346ac21ce
   module: features.governance.checks.id_coverage_check
   qualname: IdCoverageCheck
@@ -7254,6 +7280,13 @@ items:
   kind: function
   ast_signature: TBD
   fingerprint: f76282b097ca295538c9e04f2980e5beaa96749a600529b4e79c3431c6dc7286
+  state: discovered
+- id: 0a055408-c1c4-54f2-b2d3-28bc47ace016
+  module: cli.logic.knowledge_sync.utils
+  qualname: canonicalize
+  kind: function
+  ast_signature: TBD
+  fingerprint: f768996b01acd653ac35248e8d4e2823546ce528ba696d897b01c36a0786fdd4
   state: discovered
 - id: 0adb9fb7-bb27-5db9-ad87-a1f9f4238696
   module: cli.logic.reviewer
@@ -7318,7 +7351,7 @@ items:
   ast_signature: TBD
   fingerprint: fff6d7866a7639aafe546933cf97f61efdc11886f8f2df1d638c7c683a3a410e
   state: discovered
-digest: sha256:2448db446d01664f88a0334d7c893e0e44ca99437652d83533ba155f773b69bf
+digest: sha256:808a50cdc8c864b5645954b267b5269d5a18897a26cbe03d8ff9a85dabc90a5f
 
 --- END OF FILE ./.intent/mind_export/symbols.yaml ---
 
@@ -7475,7 +7508,7 @@ PY          := $(POETRY) run python
 # ---- Phony targets -----------------------------------------------------------
 .PHONY: \
   help install lock run stop \
-  audit lint format test fast-check check \
+  audit lint format test fast-check check dev-sync \
   cli-tree clean distclean nuke \
   docs check-docs vectorize integrate \
   migrate export-db sync-knowledge sync-manifest
@@ -7532,6 +7565,9 @@ check: ## Lint + tests + audit + docs drift check
 	$(MAKE) test
 	$(MAKE) audit
 	@$(MAKE) check-docs
+
+dev-sync: ## Run the safe, non-destructive developer sync and audit workflow
+	$(POETRY) run core-admin check system
 
 cli-tree: ## Display CLI command tree
 	@echo "🌳 Generating CLI command tree..."
@@ -7593,7 +7629,6 @@ nuke: ## Danger! Remove ALL untracked files (git clean -fdx)
 	@sleep 3
 	git clean -fdx
 	@echo "✅ Repo nuked (untracked files/dirs removed)."
-
 --- END OF FILE ./Makefile ---
 
 --- START OF FILE ./README.md ---
@@ -9073,13 +9108,11 @@ eval "find . -type f $exclusions -exec wc -l {} \; | awk '{print \$1 \" \" \$2}'
 """
 Unvectorized Symbol Inspector (diagnostic-only)
 
-Lists symbols in `core.symbols` that do NOT have a vector assigned yet
-(i.e., rows where `vector_id IS NULL`), using your current database schema.
+Lists symbols in `core.symbols` that do NOT have a vector link yet.
+This version is updated for the link-table model:
 
-Schema columns used:
-- symbol_path (TEXT)
-- module       (TEXT)  -> shown as file_path
-- fingerprint  (TEXT)  -> shown as structural_hash
+  - core.symbols(id UUID, symbol_path TEXT, module TEXT, fingerprint TEXT, ...)
+  - core.symbol_vector_links(symbol_id UUID, vector_id TEXT, ...)
 
 Usage examples:
   poetry run python3 scripts/find_unvectorized_symbols.py
@@ -9088,32 +9121,35 @@ Usage examples:
   poetry run python3 scripts/find_unvectorized_symbols.py --csv > unvectorized.csv
 
 Notes:
-- Reads the database URL from $DATABASE_URL (must be async, e.g. postgresql+asyncpg://…)
-- This script is *diagnostic only* and not part of CORE’s runtime.
+- Reads the database URL from $DATABASE_URL (async URL: postgresql+asyncpg://…)
+- Diagnostic-only; not part of CORE’s runtime.
 """
 
 from __future__ import annotations
 
-import os
-import sys
-import csv
 import argparse
 import asyncio
-from typing import List, Tuple
+import csv
+import os
+import sys
+from typing import Tuple
 
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
 
-
 SQL_SELECT = text(
     """
     SELECT
-        symbol_path,
-        module AS file_path,
-        fingerprint AS structural_hash
-    FROM core.symbols
-    WHERE vector_id IS NULL
-    ORDER BY module, symbol_path
+        s.symbol_path,
+        s.module AS file_path,
+        s.fingerprint AS structural_hash
+    FROM core.symbols AS s
+    WHERE NOT EXISTS (
+        SELECT 1
+        FROM core.symbol_vector_links AS l
+        WHERE l.symbol_id = s.id
+    )
+    ORDER BY s.module, s.symbol_path
     LIMIT :limit
     """
 )
@@ -9121,8 +9157,12 @@ SQL_SELECT = text(
 SQL_COUNT = text(
     """
     SELECT COUNT(*) AS cnt
-    FROM core.symbols
-    WHERE vector_id IS NULL
+    FROM core.symbols AS s
+    WHERE NOT EXISTS (
+        SELECT 1
+        FROM core.symbol_vector_links AS l
+        WHERE l.symbol_id = s.id
+    )
     """
 )
 
@@ -9136,97 +9176,60 @@ def _fmt_row(row: Tuple[str, str, str], widths: Tuple[int, int, int]) -> str:
     return f"{s:<{w1}}  {f:<{w2}}  {h:<{w3}}"
 
 
-async def _run_async(limit: int, as_csv: bool, do_count: bool) -> int:
-    db_url = os.getenv("DATABASE_URL")
+async def _run(limit: int, want_count: bool, as_csv: bool) -> int:
+    db_url = os.environ.get("DATABASE_URL")
     if not db_url:
         print("❌ DATABASE_URL is not set.", file=sys.stderr)
         return 2
-    if not db_url.startswith("postgresql+asyncpg://"):
-        print(
-            "❌ DATABASE_URL must be an async URL (e.g. postgresql+asyncpg://…)",
-            file=sys.stderr,
-        )
-        return 2
+    engine = create_async_engine(db_url, future=True)
 
-    engine = create_async_engine(db_url, pool_pre_ping=True)
     try:
         async with engine.begin() as conn:
-            # Optional count-only mode
-            if do_count:
+            if want_count:
                 res = await conn.execute(SQL_COUNT)
-                count = res.scalar_one()
+                count = int(res.scalar() or 0)
                 print(count)
                 return 0
 
             res = await conn.execute(SQL_SELECT, {"limit": limit})
-            rows = [(r[0] or "", r[1] or "", r[2] or "") for r in res.fetchall()]
+            rows = [(r[0], r[1], r[2]) for r in res]
 
-            if as_csv:
-                writer = csv.writer(sys.stdout)
-                writer.writerow(["symbol_path", "file_path", "structural_hash"])
-                writer.writerows(rows)
-                return 0
-
-            if not rows:
-                print("--- Unvectorized Symbol Inspector ---")
-                print("✅ No unvectorized symbols found. (vector_id IS NULL = 0)")
-                return 0
-
-            # Pretty table
-            print("--- Unvectorized Symbol Inspector ---")
-            print(f"✅ Connected to DB: {db_url.split('@')[-1]}")
-            print(f"📦 Rows: {len(rows)} (showing up to {limit})\n")
-
-            # Choose friendly widths
-            w_symbol = 60
-            w_file = 48
-            w_hash = 40
-            widths = (w_symbol, w_file, w_hash)
-
-            header = _fmt_row(("symbol_path", "file_path", "structural_hash"), widths)
-            sep = "-" * len(header)
-            print(header)
-            print(sep)
-            for row in rows:
-                print(_fmt_row(row, widths))
-
-            print("\nℹ️ Tip: Use --csv to export, or --count to just get the number.")
+        if as_csv:
+            writer = csv.writer(sys.stdout)
+            writer.writerow(["symbol_path", "file_path", "structural_hash"])
+            writer.writerows(rows)
             return 0
-    except Exception as exc:  # pragma: no cover (diagnostic)
-        print("❌ Error while querying unvectorized symbols:\n", file=sys.stderr)
-        print(str(exc), file=sys.stderr)
+
+        # pretty print
+        widths = (68, 56, 16)
+        header = _fmt_row(("symbol_path", "file_path", "structural_hash"), widths)
+        print(header)
+        print("-" * len(header))
+        for row in rows:
+            print(_fmt_row(row, widths))
+
+        return 0
+
+    except Exception as e:
+        print(f"❌ Query failed: {e}", file=sys.stderr)
         return 1
+
     finally:
         await engine.dispose()
 
 
-def main() -> int:
-    parser = argparse.ArgumentParser(
-        description="List symbols without vectors (vector_id IS NULL) from core.symbols."
-    )
-    parser.add_argument(
-        "--limit",
-        type=int,
-        default=200,
-        help="Max rows to display (default: 200)",
-    )
-    parser.add_argument(
-        "--csv",
-        action="store_true",
-        help="Output CSV (columns: symbol_path,file_path,structural_hash)",
-    )
-    parser.add_argument(
-        "--count",
-        action="store_true",
-        help="Print only the count of unvectorized symbols and exit.",
-    )
-    args = parser.parse_args()
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--limit", type=int, default=100, help="Rows to list")
+    ap.add_argument("--count", action="store_true", help="Print only the count")
+    ap.add_argument("--csv", action="store_true", help="Emit CSV to stdout")
+    args = ap.parse_args()
 
-    return asyncio.run(_run_async(args.limit, args.csv, args.count))
+    raise SystemExit(asyncio.run(_run(args.limit, args.count, args.csv)))
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    main()
 
 --- END OF FILE ./scripts/find_unvectorized_symbols.py ---
 
@@ -9831,19 +9834,20 @@ if __name__ == "__main__":
 # scripts/rehydrate_qdrant_from_db.py
 from __future__ import annotations
 
-import os
-import sys
-import json
-import math
 import argparse
 import asyncio
+import json
+import math
+import os
+import sys
 from typing import Any, Dict, List, Optional
 
 import requests
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
 
-SQL_PAGE = text("""
+SQL_PAGE = text(
+    """
     SELECT
         s.id              AS symbol_id,          -- may be int or uuid; we'll keep as text
         s.symbol_path     AS symbol_path,
@@ -9852,34 +9856,59 @@ SQL_PAGE = text("""
     WHERE s.vector_id IS NOT NULL
     ORDER BY s.id
     LIMIT :limit OFFSET :offset
-""")
+"""
+)
 
 # Try a few common vector column names in your vectors table
 VECTOR_COL_CANDIDATES = ["vector", "values", "embedding", "data", "vec"]
 DIM_COL_CANDIDATES = ["dim", "size", "length", "ndim"]
 
+
 def make_vector_queries(vector_table: str) -> List[str]:
     stmts: List[str] = []
     for col in VECTOR_COL_CANDIDATES:
         for dim_col in DIM_COL_CANDIDATES:
-            stmts.append(f"SELECT {col} AS v, {dim_col} AS d FROM {vector_table} WHERE id = :vid")
-        stmts.append(f"SELECT {col} AS v, NULL::INT AS d FROM {vector_table} WHERE id = :vid")
+            stmts.append(
+                f"SELECT {col} AS v, {dim_col} AS d FROM {vector_table} WHERE id = :vid"
+            )
+        stmts.append(
+            f"SELECT {col} AS v, NULL::INT AS d FROM {vector_table} WHERE id = :vid"
+        )
     return stmts
 
-def qdrant_upsert_points(qdrant_url: str, collection: str, points: List[Dict[str, Any]], *, timeout: int = 30) -> None:
+
+def qdrant_upsert_points(
+    qdrant_url: str, collection: str, points: List[Dict[str, Any]], *, timeout: int = 30
+) -> None:
     if not points:
         return
     url = f"{qdrant_url.rstrip('/')}/collections/{collection}/points?wait=true"
     payload = {"points": points}
-    r = requests.put(url, headers={"Content-Type": "application/json"}, data=json.dumps(payload), timeout=timeout)
+    r = requests.put(
+        url,
+        headers={"Content-Type": "application/json"},
+        data=json.dumps(payload),
+        timeout=timeout,
+    )
     if r.status_code >= 300:
         raise RuntimeError(f"Qdrant upsert failed [{r.status_code}]: {r.text}")
 
+
 async def main() -> int:
-    parser = argparse.ArgumentParser(description="Rehydrate Qdrant from DB-stored vectors.")
-    parser.add_argument("--batch", type=int, default=500, help="Batch size for upserts (default: 500)")
-    parser.add_argument("--dry-run", action="store_true", help="Do not write to Qdrant; just report.")
-    parser.add_argument("--vector-table", default="core.vectors", help="Table that stores vectors (default: core.vectors)")
+    parser = argparse.ArgumentParser(
+        description="Rehydrate Qdrant from DB-stored vectors."
+    )
+    parser.add_argument(
+        "--batch", type=int, default=500, help="Batch size for upserts (default: 500)"
+    )
+    parser.add_argument(
+        "--dry-run", action="store_true", help="Do not write to Qdrant; just report."
+    )
+    parser.add_argument(
+        "--vector-table",
+        default="core.vectors",
+        help="Table that stores vectors (default: core.vectors)",
+    )
     args = parser.parse_args()
 
     db_url = os.getenv("DATABASE_URL")
@@ -9891,7 +9920,9 @@ async def main() -> int:
         print("❌ DATABASE_URL or QDRANT_URL is not set.", file=sys.stderr)
         return 2
     if not db_url.startswith("postgresql+asyncpg://"):
-        print("❌ DATABASE_URL must be async (postgresql+asyncpg://...)", file=sys.stderr)
+        print(
+            "❌ DATABASE_URL must be async (postgresql+asyncpg://...)", file=sys.stderr
+        )
         return 2
 
     expected_dim = int(expected_dim_env) if (expected_dim_env or "").isdigit() else None
@@ -9907,7 +9938,9 @@ async def main() -> int:
 
     try:
         async with engine.begin() as conn:
-            res = await conn.execute(text("SELECT COUNT(*) FROM core.symbols WHERE vector_id IS NOT NULL"))
+            res = await conn.execute(
+                text("SELECT COUNT(*) FROM core.symbols WHERE vector_id IS NOT NULL")
+            )
             total = int(res.scalar_one())
             if total == 0:
                 print("✅ Nothing to rehydrate (no symbols with vector_id).")
@@ -9920,7 +9953,9 @@ async def main() -> int:
             vector_sqls = [text(s) for s in make_vector_queries(args.vector_table)]
 
             for page in range(pages):
-                res = await conn.execute(SQL_PAGE, {"limit": args.batch, "offset": offset})
+                res = await conn.execute(
+                    SQL_PAGE, {"limit": args.batch, "offset": offset}
+                )
                 rows = res.fetchall()
                 offset += len(rows)
 
@@ -9968,15 +10003,17 @@ async def main() -> int:
                         continue
 
                     # Unnamed vector collection: send a plain list
-                    out_points.append({
-                        "id": sid,  # Qdrant accepts string IDs
-                        "vector": vector,
-                        "payload": {
-                            "symbol_path": symbol_path,
-                            "vector_id": vid,
-                            "dim": dim,
+                    out_points.append(
+                        {
+                            "id": sid,  # Qdrant accepts string IDs
+                            "vector": vector,
+                            "payload": {
+                                "symbol_path": symbol_path,
+                                "vector_id": vid,
+                                "dim": dim,
+                            },
                         }
-                    })
+                    )
 
                     if len(out_points) >= args.batch:
                         if not args.dry_run:
@@ -9990,7 +10027,9 @@ async def main() -> int:
                         qdrant_upsert_points(qdrant_url, collection, out_points)
                         written += len(out_points)
 
-                print(f"✅ Page {page+1}/{pages} processed. Total written so far: {written}")
+                print(
+                    f"✅ Page {page+1}/{pages} processed. Total written so far: {written}"
+                )
 
         if args.dry_run:
             print("🔎 Dry run complete. No writes were made.")
@@ -10003,6 +10042,7 @@ async def main() -> int:
         return 1
     finally:
         await engine.dispose()
+
 
 if __name__ == "__main__":
     raise SystemExit(asyncio.run(main()))
@@ -10025,24 +10065,28 @@ if [ ! -f "pyproject.toml" ] || [ ! -d ".intent" ]; then
     exit 1
 fi
 
-# --- Load environment variables from .env ---
-if [ -f .env ]; then
-    set -o allexport
-    source <(grep -v '^\s*#' .env | grep -v '^\s*$')
-    set +o allexport
-else
-    echo "❌ Error: .env file not found. Cannot connect to the database."
+# --- Check for a valid .env file BEFORE starting ---
+if [ ! -f ".env" ]; then
+    echo "❌ Error: .env file not found."
+    echo "   Please create one by running: cp .env.example .env"
+    echo "   Then, fill in the required values (especially LLM keys and DATABASE_URL)."
     exit 1
 fi
 
-if [ -z "${DATABASE_URL-}" ] || [ -z "${QDRANT_URL-}" ]; then
-    echo "❌ Error: DATABASE_URL and QDRANT_URL must be set in your .env file."
+# --- Load environment variables from .env ---
+set -o allexport
+source <(grep -v '^\s*#' .env | grep -v '^\s*$')
+set +o allexport
+
+if [ -z "${DATABASE_URL-}" ] || [ -z "${QDRANT_URL-}" ] || [ -z "${DEEPSEEK_CHAT_API_KEY-}" ]; then
+    echo "❌ Error: Your .env file is missing required values like DATABASE_URL, QDRANT_URL, or LLM API keys."
+    echo "   Please review .env.example and update your .env file."
     exit 1
 fi
 
 # --- Final Confirmation ---
 echo "☢️  WARNING: This will permanently delete all data in the 'core' schema of your database"
-echo "    and expects that your Qdrant volume has been cleared."
+echo "    and the Qdrant collection '${QDRANT_COLLECTION_NAME-}'."
 read -p "Are you sure you want to continue? (y/N): " -n 1 -r
 echo
 if [[ ! $REPLY =~ ^[Yy]$ ]]; then
@@ -10063,40 +10107,36 @@ echo "✅ PostgreSQL schema re-created."
 
 # --- Step 3: Re-create the Qdrant Collection ---
 echo "⚡ Re-creating Qdrant vector collection..."
-poetry run python3 scripts/create_qdrant_collection.py
+poetry run python3 scripts/reset_qdrant_collection.py
 echo "✅ Qdrant collection is ready."
 
 # --- Step 4: Re-build Knowledge from Source Code & Exports ---
 echo "🧠 Re-building knowledge from scratch..."
 
-# --- START OF THE DEFINITIVE FIX ---
+# --- THIS IS THE CORRECTED SEQUENCE ---
 
-echo "   -> (1/6) Importing bootstrap knowledge from mind_export/ YAMLs..."
-# The 'mind import' command is the correct tool to populate the DB from the export files.
-# The '--write' flag tells it to apply the changes.
+echo "   -> (1/5) Importing bootstrap knowledge from mind_export/ YAMLs..."
+# This is the crucial first step: SEED the database with AI config.
 poetry run core-admin mind import --write
 
-echo "   -> (2/6) Syncing symbols from code to DB..."
-# This is still needed to discover any new code symbols not in the old export.
+echo "   -> (2/5) Syncing symbols from code to DB..."
+# Now discover all symbols from the source code.
 poetry run core-admin manage database sync-knowledge --write
 
-# --- END OF THE DEFINITIVE FIX ---
-
-echo "   -> (3/6) Vectorizing all symbols..."
-poetry run core-admin run vectorize --write
-
-echo "   -> (4/6) Defining capabilities for new symbols..."
+echo "   -> (3/5) Defining capabilities for any new symbols..."
+# This step is now likely redundant if your exports are up to date, but it's safe to run.
 poetry run core-admin manage define-symbols
 
-echo "   -> (5/6) Syncing DB state back to project manifest (OBSOLETE - can be removed later)..."
-# This command is now obsolete but we keep it for now to avoid breaking other things.
-poetry run core-admin manage database sync-manifest || echo "   -> (Skipping obsolete manifest sync)"
+echo "   -> (4/5) Vectorizing all symbols..."
+# Now that AI config is in the DB, this will succeed.
+poetry run core-admin run vectorize --write --force
 
-echo "   -> (6/6) Running final constitutional audit..."
+echo "   -> (5/5) Running final constitutional audit..."
 poetry run core-admin check audit
 
-echo "🎉 Database reset and rebuild complete!"
+# --- END OF CORRECTED SEQUENCE ---
 
+echo "🎉 Database reset and rebuild complete!"
 --- END OF FILE ./scripts/reset_and_rebuild_db.sh ---
 
 --- START OF FILE ./scripts/reset_qdrant_collection.py ---
@@ -10360,11 +10400,9 @@ CREATE TABLE IF NOT EXISTS core.symbols (
     key text,
     intent text,
 
-    -- Vector integration (Qdrant stores UUIDs as text: id::text)
-    vector_id text,                          -- ID in Qdrant collection (= id::text)
+    -- Vectorization state tracking
     embedding_model text DEFAULT 'text-embedding-3-small',
-    embedding_version integer DEFAULT 1,
-    last_embedded timestamptz,
+    last_embedded timestamptz, -- Timestamp of the last successful vectorization
 
     -- Timestamps
     first_seen timestamptz DEFAULT now() NOT NULL,
@@ -10378,7 +10416,6 @@ CREATE INDEX idx_symbols_module ON core.symbols(module);
 CREATE INDEX idx_symbols_kind ON core.symbols(kind);
 CREATE INDEX idx_symbols_state ON core.symbols(state);
 CREATE INDEX idx_symbols_health ON core.symbols(health_status);
-CREATE INDEX idx_symbols_vector ON core.symbols(vector_id) WHERE vector_id IS NOT NULL;
 CREATE INDEX idx_symbols_qualname ON core.symbols(qualname);
 CREATE INDEX idx_symbols_fingerprint ON core.symbols(fingerprint);
 
@@ -10445,7 +10482,51 @@ CREATE TABLE IF NOT EXISTS core.domains (
 );
 
 -- =============================================================================
--- SECTION 2: OPERATIONAL LAYER (What's happening right now)
+-- SECTION 2: GOVERNANCE LAYER (Constitutional compliance)
+-- MOVED UP TO RESOLVE DEPENDENCY
+-- =============================================================================
+
+-- Change proposals requiring approval
+CREATE TABLE IF NOT EXISTS core.proposals (
+    id bigserial PRIMARY KEY,
+    target_path text NOT NULL,
+    content_sha256 char(64) NOT NULL,
+    justification text NOT NULL,
+    risk_tier text DEFAULT 'low' CHECK (risk_tier IN ('low', 'medium', 'high')),
+    is_critical boolean DEFAULT false NOT NULL,
+    status text DEFAULT 'open' NOT NULL CHECK (
+        status IN ('open', 'approved', 'rejected', 'superseded')
+    ),
+    created_at timestamptz DEFAULT now() NOT NULL,
+    created_by text NOT NULL
+);
+
+-- Cryptographic approval signatures
+CREATE TABLE IF NOT EXISTS core.proposal_signatures (
+    proposal_id bigint NOT NULL REFERENCES core.proposals(id) ON DELETE CASCADE,
+    approver_identity text NOT NULL,
+    signature_base64 text NOT NULL,
+    signed_at timestamptz DEFAULT now() NOT NULL,
+    is_valid boolean DEFAULT true NOT NULL,
+    PRIMARY KEY (proposal_id, approver_identity)
+);
+
+-- Audit runs tracking
+CREATE TABLE IF NOT EXISTS core.audit_runs (
+    id bigserial PRIMARY KEY,
+    source text NOT NULL,
+    commit_sha char(40),
+    score numeric(4,3),
+    passed boolean NOT NULL,
+    violations_found integer DEFAULT 0,
+    started_at timestamptz DEFAULT now() NOT NULL,
+    finished_at timestamptz
+);
+
+CREATE INDEX idx_audit_runs_passed ON core.audit_runs(passed, started_at DESC);
+
+-- =============================================================================
+-- SECTION 3: OPERATIONAL LAYER (What's happening right now)
 -- =============================================================================
 
 -- LLM resources available to cognitive roles
@@ -10493,7 +10574,7 @@ CREATE TABLE IF NOT EXISTS core.tasks (
 
     -- Constitutional compliance
     requires_approval boolean DEFAULT false,
-    proposal_id bigint,                      -- Links to governance
+    proposal_id bigint REFERENCES core.proposals(id), -- Links to governance
 
     -- Metrics
     estimated_complexity integer CHECK (estimated_complexity BETWEEN 1 AND 10),
@@ -10513,6 +10594,29 @@ CREATE INDEX idx_tasks_relevant_symbols ON core.tasks USING GIN(relevant_symbols
 
 COMMENT ON COLUMN core.tasks.relevant_symbols IS
     'Array of symbol UUIDs retrieved from Qdrant vector search for this task context';
+
+-- Link tasks to proposals they generated
+ALTER TABLE core.tasks
+    ADD CONSTRAINT fk_tasks_proposal
+    FOREIGN KEY (proposal_id) REFERENCES core.proposals(id);
+
+-- Constitutional violations detected by auditor
+CREATE TABLE IF NOT EXISTS core.constitutional_violations (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    rule_id text NOT NULL,
+    symbol_id uuid REFERENCES core.symbols(id),
+    task_id uuid REFERENCES core.tasks(id),
+    severity text NOT NULL CHECK (severity IN ('info', 'warning', 'error', 'critical')),
+    description text NOT NULL,
+    detected_at timestamptz DEFAULT now() NOT NULL,
+    resolved_at timestamptz,
+    resolution_notes text
+);
+
+CREATE INDEX idx_violations_unresolved ON core.constitutional_violations(severity, detected_at)
+    WHERE resolved_at IS NULL;
+CREATE INDEX idx_violations_symbol ON core.constitutional_violations(symbol_id);
+CREATE INDEX idx_violations_task ON core.constitutional_violations(task_id);
 
 -- Action log: everything agents do
 CREATE TABLE IF NOT EXISTS core.actions (
@@ -10570,77 +10674,20 @@ CREATE INDEX idx_memory_expires ON core.agent_memory(expires_at) WHERE expires_a
 CREATE INDEX idx_memory_relevance ON core.agent_memory(relevance_score DESC);
 
 -- =============================================================================
--- SECTION 3: GOVERNANCE LAYER (Constitutional compliance)
--- =============================================================================
-
--- Change proposals requiring approval
-CREATE TABLE IF NOT EXISTS core.proposals (
-    id bigserial PRIMARY KEY,
-    target_path text NOT NULL,
-    content_sha256 char(64) NOT NULL,
-    justification text NOT NULL,
-    risk_tier text DEFAULT 'low' CHECK (risk_tier IN ('low', 'medium', 'high')),
-    is_critical boolean DEFAULT false NOT NULL,
-    status text DEFAULT 'open' NOT NULL CHECK (
-        status IN ('open', 'approved', 'rejected', 'superseded')
-    ),
-    created_at timestamptz DEFAULT now() NOT NULL,
-    created_by text NOT NULL
-);
-
-CREATE INDEX idx_proposals_status ON core.proposals(status);
-CREATE INDEX idx_proposals_created ON core.proposals(created_at DESC);
-
--- Cryptographic approval signatures
-CREATE TABLE IF NOT EXISTS core.proposal_signatures (
-    proposal_id bigint NOT NULL REFERENCES core.proposals(id) ON DELETE CASCADE,
-    approver_identity text NOT NULL,
-    signature_base64 text NOT NULL,
-    signed_at timestamptz DEFAULT now() NOT NULL,
-    is_valid boolean DEFAULT true NOT NULL,
-    PRIMARY KEY (proposal_id, approver_identity)
-);
-
--- Link tasks to proposals they generated
-ALTER TABLE core.tasks
-    ADD CONSTRAINT fk_tasks_proposal
-    FOREIGN KEY (proposal_id) REFERENCES core.proposals(id);
-
--- Constitutional violations detected by auditor
-CREATE TABLE IF NOT EXISTS core.constitutional_violations (
-    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    rule_id text NOT NULL,
-    symbol_id uuid REFERENCES core.symbols(id),
-    task_id uuid REFERENCES core.tasks(id),
-    severity text NOT NULL CHECK (severity IN ('info', 'warning', 'error', 'critical')),
-    description text NOT NULL,
-    detected_at timestamptz DEFAULT now() NOT NULL,
-    resolved_at timestamptz,
-    resolution_notes text
-);
-
-CREATE INDEX idx_violations_unresolved ON core.constitutional_violations(severity, detected_at)
-    WHERE resolved_at IS NULL;
-CREATE INDEX idx_violations_symbol ON core.constitutional_violations(symbol_id);
-CREATE INDEX idx_violations_task ON core.constitutional_violations(task_id);
-
--- Audit runs tracking
-CREATE TABLE IF NOT EXISTS core.audit_runs (
-    id bigserial PRIMARY KEY,
-    source text NOT NULL,
-    commit_sha char(40),
-    score numeric(4,3),
-    passed boolean NOT NULL,
-    violations_found integer DEFAULT 0,
-    started_at timestamptz DEFAULT now() NOT NULL,
-    finished_at timestamptz
-);
-
-CREATE INDEX idx_audit_runs_passed ON core.audit_runs(passed, started_at DESC);
-
--- =============================================================================
 -- SECTION 4: VECTOR INTEGRATION LAYER (Qdrant sync)
 -- =============================================================================
+
+-- Link table between symbols and their vectors in Qdrant
+CREATE TABLE IF NOT EXISTS core.symbol_vector_links (
+    symbol_id uuid PRIMARY KEY NOT NULL REFERENCES core.symbols(id) ON DELETE CASCADE,
+    vector_id text NOT NULL, -- The string ID used in Qdrant
+    embedding_model text NOT NULL,
+    embedding_version integer NOT NULL,
+    created_at timestamptz DEFAULT now() NOT NULL
+);
+
+CREATE INDEX idx_symbol_vector_links_vector_id ON core.symbol_vector_links(vector_id);
+
 
 -- Track Qdrant synchronization
 CREATE TABLE IF NOT EXISTS core.vector_sync_log (
@@ -10766,6 +10813,19 @@ CREATE TABLE IF NOT EXISTS core.northstar (
     updated_at timestamptz DEFAULT now() NOT NULL
 );
 
+-- Runtime configuration
+CREATE TABLE IF NOT EXISTS core.runtime_settings (
+    key TEXT PRIMARY KEY,
+    value TEXT,
+    description TEXT,
+    is_secret BOOLEAN NOT NULL DEFAULT FALSE,
+    last_updated TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+COMMENT ON TABLE core.runtime_settings IS 'Single source of truth for runtime configuration, loaded from .env and managed by `core-admin manage dotenv sync`.';
+COMMENT ON COLUMN core.runtime_settings.is_secret IS 'If true, the value should be handled with care.';
+
+
 -- =============================================================================
 -- SECTION 7: MATERIALIZED VIEW MANAGEMENT (Production-Ready)
 -- =============================================================================
@@ -10826,12 +10886,10 @@ COMMENT ON FUNCTION core.refresh_materialized_view IS
 
 -- Symbols needing embedding/re-embedding
 CREATE OR REPLACE VIEW core.v_symbols_needing_embedding AS
-SELECT id, module, qualname, symbol_path, ast_signature, fingerprint, vector_id
-FROM core.symbols
-WHERE vector_id IS NULL
-   OR last_embedded < last_modified
-   OR embedding_version < 1
-ORDER BY last_modified DESC;
+SELECT s.id, s.module, s.qualname, s.symbol_path, s.ast_signature, s.fingerprint
+FROM core.symbols s
+WHERE s.last_embedded IS NULL OR s.last_modified > s.last_embedded
+ORDER BY s.last_modified DESC;
 
 -- Orphaned symbols (not linked to capabilities)
 CREATE OR REPLACE VIEW core.v_orphan_symbols AS
@@ -10933,10 +10991,10 @@ SELECT
     s.health_status,
     s.is_public,
     s.fingerprint as structural_hash,
-    s.vector_id,
     s.updated_at AS last_updated,
     s.key as capability,
     s.intent,
+    vl.vector_id,
 
     -- Linked capabilities (real data from joins)
     COALESCE(
@@ -10955,6 +11013,7 @@ SELECT
     (SELECT COUNT(*) FROM core.actions a WHERE a.target = s.symbol_path) as action_count
 
 FROM core.symbols s
+LEFT JOIN core.symbol_vector_links vl ON s.id = vl.symbol_id
 ORDER BY s.updated_at DESC;
 
 -- Stale materialized views monitoring
@@ -11034,10 +11093,10 @@ LEFT JOIN core.symbol_capability_links l ON l.symbol_id = s.id
 LEFT JOIN core.capabilities c ON c.id = l.capability_id
 GROUP BY s.id, s.symbol_path, s.module, s.kind, s.state, s.health_status;
 
-CREATE UNIQUE INDEX idx_mv_usage_id ON core.mv_symbol_usage_patterns(id);
-CREATE INDEX idx_mv_usage_precision ON core.mv_symbol_usage_patterns(retrieval_precision DESC);
-CREATE INDEX idx_mv_usage_modified ON core.mv_symbol_usage_patterns(times_modified DESC);
-CREATE INDEX idx_mv_usage_last_action ON core.mv_symbol_usage_patterns(last_action_at DESC NULLS LAST);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_mv_usage_id ON core.mv_symbol_usage_patterns(id);
+CREATE INDEX IF NOT EXISTS idx_mv_usage_precision ON core.mv_symbol_usage_patterns(retrieval_precision DESC);
+CREATE INDEX IF NOT EXISTS idx_mv_usage_modified ON core.mv_symbol_usage_patterns(times_modified DESC);
+CREATE INDEX IF NOT EXISTS idx_mv_usage_last_action ON core.mv_symbol_usage_patterns(last_action_at DESC NULLS LAST);
 
 COMMENT ON MATERIALIZED VIEW core.mv_symbol_usage_patterns IS
     'Analytics view for symbol usage patterns. Refresh with: SELECT * FROM core.refresh_materialized_view(''core.mv_symbol_usage_patterns'');';
@@ -11046,23 +11105,7 @@ COMMENT ON MATERIALIZED VIEW core.mv_symbol_usage_patterns IS
 INSERT INTO core.mv_refresh_log (view_name, triggered_by)
 VALUES ('core.mv_symbol_usage_patterns', 'schema_init')
 ON CONFLICT (view_name) DO NOTHING;
-
 --- END OF FILE ./sql/001_consolidated_schema.sql ---
-
---- START OF FILE ./sql/002_runtime_configuration.sql ---
--- Migration 002: Add table for runtime configuration
-CREATE TABLE IF NOT EXISTS core.runtime_settings (
-    key TEXT PRIMARY KEY,
-    value TEXT,
-    description TEXT,
-    is_secret BOOLEAN NOT NULL DEFAULT FALSE,
-    last_updated TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
-COMMENT ON TABLE core.runtime_settings IS 'Single source of truth for runtime configuration, loaded from .env and managed by `core-admin manage dotenv sync`.';
-COMMENT ON COLUMN core.runtime_settings.is_secret IS 'If true, the value should be handled with care.';
-
---- END OF FILE ./sql/002_runtime_configuration.sql ---
 
 --- START OF FILE ./src/api/__init__.py ---
 [EMPTY FILE]
@@ -11202,11 +11245,14 @@ from __future__ import annotations
 
 from __future__ import annotations
 
+import asyncio
+
 import typer
 
 from cli.logic.audit import audit, lint, test_system
 from cli.logic.cli_utils import set_context as set_shared_context
 from cli.logic.diagnostics import policy_coverage
+from features.project_lifecycle.integration_service import check_integration_health
 from shared.context import CoreContext
 
 check_app = typer.Typer(
@@ -11223,10 +11269,26 @@ check_app.command("diagnostics", help="Audit the constitution for policy coverag
 )
 
 
-# ID: 3c4d5e6f-7a8b-9c0d-1e2f-3a4b5c6d7e8f
+# ID: 412e2478-00ea-4d54-a051-90b9f826c120
 def register(app: typer.Typer, context: CoreContext):
     """Register the 'check' command group to the main CLI app."""
-    # Pass the context to the logic module that needs it.
+
+    @check_app.command(
+        "system",
+        help="Run the full developer sync & audit sequence (non-destructive).",
+    )
+    # ID: d455ad07-870d-442a-8f56-a9dadaecc441
+    def system_check_command(ctx: typer.Context):
+        """
+        Runs the full integration health check without committing or rolling back.
+        This is the primary developer command to check if work is ready to commit.
+        """
+        core_context: CoreContext = ctx.obj
+        success = asyncio.run(check_integration_health(context=core_context))
+        if not success:
+            raise typer.Exit(code=1)
+
+    # Pass the context to the other logic module that needs it.
     set_shared_context(context, "cli.logic.audit")
     app.add_typer(check_app, name="check")
 
@@ -11279,6 +11341,8 @@ from pathlib import Path
 from typing import Optional
 
 import typer
+from rich.console import Console
+
 from features.maintenance.command_sync_service import sync_commands_to_db
 from features.self_healing.capability_tagging_service import (
     tag_unassigned_capabilities,
@@ -11292,11 +11356,14 @@ from features.self_healing.header_service import _run_header_fix_cycle
 from features.self_healing.id_tagging_service import assign_missing_ids
 from features.self_healing.linelength_service import fix_line_lengths
 from features.self_healing.policy_id_service import add_missing_policy_ids
+
 # --- START: IMPORT THE NEW COMMAND ---
-from features.self_healing.prune_orphaned_vectors import main_sync as prune_orphaned_vectors
+from features.self_healing.prune_orphaned_vectors import (
+    main_sync as prune_orphaned_vectors,
+)
+
 # --- END: IMPORT THE NEW COMMAND ---
 from features.self_healing.purge_legacy_tags_service import purge_legacy_tags
-from rich.console import Console
 from shared.config import settings
 from shared.context import CoreContext
 from shared.logger import getLogger
@@ -11504,9 +11571,11 @@ fix_app.command(
 
 
 # ID: 4d5e6f7a-8b9c-0d1e-2f3a-4b5c6d7e
+# ID: 9a89a92d-b9b7-4a26-bd9d-b4157947a624
 def register(app: typer.Typer, context: CoreContext):
     """Register the 'fix' command group to the main CLI app."""
     app.add_typer(fix_app, name="fix")
+
 --- END OF FILE ./src/cli/commands/fix.py ---
 
 --- START OF FILE ./src/cli/commands/inspect.py ---
@@ -11515,17 +11584,19 @@ def register(app: typer.Typer, context: CoreContext):
 
 from __future__ import annotations
 
+import asyncio
+
 import typer
 
-from cli.logic.diagnostics import cli_tree
+# --- START: CORRECTED IMPORTS ---
+from cli.logic.diagnostics import cli_tree  # , inspect_vector_drift
 from cli.logic.duplicates import inspect_duplicates
 from cli.logic.guard_cli import register_guard
 from cli.logic.status import status
-
-# --- START: IMPORT THE NEW COMMAND ---
 from cli.logic.symbol_drift import inspect_symbol_drift
+from cli.logic.vector_drift import inspect_vector_drift
 
-# --- END: IMPORT THE NEW COMMAND ---
+# --- END: CORRECTED IMPORTS ---
 from shared.context import CoreContext
 
 inspect_app = typer.Typer(
@@ -11536,22 +11607,26 @@ inspect_app = typer.Typer(
 register_guard(inspect_app)
 inspect_app.command("status")(status)
 inspect_app.command("command-tree")(cli_tree)
-# --- START: REGISTER THE NEW COMMAND ---
 inspect_app.command(
     "symbol-drift",
     help="Detects drift between symbols on the filesystem and in the database.",
 )(inspect_symbol_drift)
+# --- START: REGISTER THE NEW COMMAND ---
+inspect_app.command(
+    "vector-drift",
+    help="Verifies perfect synchronization between PostgreSQL and Qdrant.",
+)(lambda: asyncio.run(inspect_vector_drift()))
 # --- END: REGISTER THE NEW COMMAND ---
 
 
-# ID: 5e6f7a8b-9c0d-1e2f-3a4b-5c6d7e8f9a0b
+# ID: 444e3d86-1b8c-4d61-af7a-2c42f1c97fa1
 def register(app: typer.Typer, context: CoreContext):
     """Register the 'inspect' command group to the main CLI app."""
 
     @inspect_app.command(
         "duplicates", help="Runs only the semantic code duplication check."
     )
-    # ID: 9320e199-118e-48b0-a287-3efb007fbced
+    # ID: ad11a02b-077d-4e17-b5bb-00ed77392bbd
     def duplicates_command(
         threshold: float = typer.Option(
             0.80,
@@ -13471,9 +13546,11 @@ import jsonschema
 import typer
 import yaml
 from rich.console import Console
+from rich.panel import Panel
 from rich.table import Table
 from rich.tree import Tree
 from ruamel.yaml import YAML
+from sqlalchemy import text
 
 from features.governance.audit_context import AuditorContext
 from features.governance.checks.domain_placement import DomainPlacementCheck
@@ -13481,6 +13558,8 @@ from features.governance.checks.legacy_tag_check import LegacyTagCheck
 from features.governance.policy_coverage_service import PolicyCoverageService
 from features.introspection.audit_unassigned_capabilities import get_unassigned_symbols
 from features.introspection.graph_analysis_service import find_semantic_clusters
+from services.clients.qdrant_client import QdrantService
+from services.database.session_manager import get_session
 from shared.config import settings
 from shared.models import AuditSeverity
 from shared.utils.constitutional_parser import get_all_constitutional_paths
@@ -13524,7 +13603,7 @@ async def _async_find_clusters(n_clusters: int):
     "find-clusters",
     help="Finds and displays all semantic capability clusters, sorted by size.",
 )
-# ID: 1a9f1430-801c-42e7-9d7a-11586a117711
+# ID: 2f6ac90e-932a-4c01-9984-4aa9a17353fe
 def find_clusters_command_sync(
     n_clusters: int = typer.Option(
         25, "--n-clusters", "-n", help="The number of clusters to find."
@@ -13559,7 +13638,7 @@ def _add_cli_nodes(tree_node: Tree, cli_app: typer.Typer):
 @diagnostics_app.command(
     "cli-tree", help="Displays a hierarchical tree view of all available CLI commands."
 )
-# ID: f4d5a5e3-1b9c-4e8a-9f7b-6c0d2e1a3b4c
+# ID: 8369cd8d-d20a-4e60-9daf-c351adcb18eb
 def cli_tree():
     """Builds and displays the CLI command tree."""
     from cli.admin_cli import app as main_app
@@ -13576,7 +13655,7 @@ def cli_tree():
 @diagnostics_app.command(
     "policy-coverage", help="Audits the constitution for policy coverage and integrity."
 )
-# ID: 74d7e7fd-1f68-4c4c-9dfb-285d1d7ee853
+# ID: 1447df69-45f4-48da-ad0c-9e4460612829
 def policy_coverage():
     """
     Runs a meta-audit on all .intent/charter/policies/ to ensure they are
@@ -13619,7 +13698,7 @@ def policy_coverage():
 @diagnostics_app.command(
     "debug-meta", help="Prints the auditor's view of all required constitutional files."
 )
-# ID: 26b01b63-c743-4ac0-80a2-231a477bf3bb
+# ID: 0869f072-2b5e-4c1d-bd56-22489b1f07df
 def debug_meta_paths():
     """A diagnostic tool that prints all file paths indexed in meta.yaml."""
     console.print(
@@ -13634,7 +13713,7 @@ def debug_meta_paths():
 @diagnostics_app.command(
     "unassigned-symbols", help="Finds symbols without a universal # ID tag."
 )
-# ID: 41fdbad2-2bc4-4a4d-85c8-5f30461a4af0
+# ID: 346f748a-70ae-44a1-b2f3-d19d565be70f
 def unassigned_symbols():
     unassigned = get_unassigned_symbols()
     if not unassigned:
@@ -13659,7 +13738,7 @@ def unassigned_symbols():
     "manifest-hygiene",
     help="Checks for capabilities declared in the wrong domain manifest file.",
 )
-# ID: a85348ac-fe9e-49d5-8b11-3a105a57a7e3
+# ID: 6764e249-b24d-4911-adc7-156e24424be4
 def manifest_hygiene():
     context = AuditorContext(settings.REPO_PATH)
     check = DomainPlacementCheck(context)
@@ -13684,7 +13763,7 @@ def manifest_hygiene():
 @diagnostics_app.command(
     "cli-registry", help="Validates the CLI registry against its constitutional schema."
 )
-# ID: 58a9d61e-9899-4a10-bee2-c5473b3a91ba
+# ID: c23e1ddc-bb53-49fc-8ba1-4e06ab3b8512
 def cli_registry():
     meta_content = (settings.REPO_PATH / ".intent" / "meta.yaml").read_text("utf-8")
     meta = yaml.safe_load(meta_content) or {}
@@ -13732,7 +13811,7 @@ def cli_registry():
 
 
 @diagnostics_app.command("legacy-tags", help="Scans the codebase for obsolete tags.")
-# ID: 2992fdb2-9b35-478d-a8df-28f23a7d605b
+# ID: 07fe87aa-4a24-4831-8466-78c580cc9172
 def check_legacy_tags():
     """Runs only the LegacyTagCheck to find obsolete capability tags."""
 
@@ -13763,6 +13842,94 @@ def check_legacy_tags():
         raise typer.Exit(code=1)
 
     asyncio.run(_async_check_legacy_tags())
+
+
+# --- START: NEW CODE TO ADD ---
+
+
+async def _fetch_postgres_vector_ids() -> set[str]:
+    """Fetches all symbol IDs that should have a vector from the main DB."""
+    async with get_session() as session:
+        result = await session.execute(
+            text("SELECT id::text FROM core.symbols WHERE vector_id IS NOT NULL")
+        )
+        return {row[0] for row in result}
+
+
+async def _fetch_qdrant_point_ids() -> set[str]:
+    """Fetches all point IDs from the Qdrant vector collection."""
+    qdrant_service = QdrantService()
+    all_points, _ = await qdrant_service.client.scroll(
+        collection_name=qdrant_service.collection_name,
+        limit=10000,
+        with_payload=False,
+        with_vectors=False,
+    )
+    return {str(point.id) for point in all_points}
+
+
+# ID: 0a07ce31-a2c2-47a5-a08f-22e2fd35c677
+async def inspect_vector_drift():
+    """Compares Postgres and Qdrant to find synchronization drift."""
+    console.print(
+        "[bold cyan]🚀 Verifying synchronization between PostgreSQL and Qdrant...[/bold cyan]"
+    )
+
+    try:
+        db_ids, qdrant_ids = await asyncio.gather(
+            _fetch_postgres_vector_ids(), _fetch_qdrant_point_ids()
+        )
+    except Exception as e:
+        console.print(f"[bold red]❌ Error connecting to a database: {e}[/bold red]")
+        return
+
+    console.print(f"   -> Found {len(db_ids)} vectorized symbols in PostgreSQL.")
+    console.print(f"   -> Found {len(qdrant_ids)} points in Qdrant.")
+
+    missing_in_qdrant = sorted(list(db_ids - qdrant_ids))
+    orphans_in_qdrant = sorted(list(qdrant_ids - db_ids))
+
+    console.print("\n--- Verification Result ---")
+    if not missing_in_qdrant and not orphans_in_qdrant:
+        console.print(
+            Panel(
+                "[bold green]✅ Perfect Synchronization.[/bold green]\nPostgreSQL and Qdrant are perfectly aligned.",
+                title="Status",
+                border_style="green",
+            )
+        )
+        return
+
+    if missing_in_qdrant:
+        table = Table(
+            title=f"⚠️ Missing in Qdrant ({len(missing_in_qdrant)})",
+            caption="These symbols exist in Postgres but are missing from the vector index.",
+            header_style="bold yellow",
+        )
+        table.add_column("PostgreSQL Symbol ID")
+        for symbol_id in missing_in_qdrant:
+            table.add_row(symbol_id)
+        console.print(table)
+        console.print(
+            "\n[bold]Next Step:[/bold] Run `core-admin run vectorize --write` to fix."
+        )
+
+    if orphans_in_qdrant:
+        table = Table(
+            title=f"👻 Orphans in Qdrant ({len(orphans_in_qdrant)})",
+            caption="These vectors exist in Qdrant but their symbols are gone from Postgres.",
+            header_style="bold red",
+        )
+        table.add_column("Orphaned Qdrant Point ID")
+        for point_id in orphans_in_qdrant:
+            table.add_row(point_id)
+        console.print(table)
+        console.print(
+            "\n[bold]Next Step:[/bold] Run `core-admin fix orphaned-vectors --write` to fix."
+        )
+
+
+# --- END: NEW CODE TO ADD ---
 
 --- END OF FILE ./src/cli/logic/diagnostics.py ---
 
@@ -14602,7 +14769,7 @@ async def run_diff(as_json: bool) -> None:
 --- END OF FILE ./src/cli/logic/knowledge_sync/diff.py ---
 
 --- START OF FILE ./src/cli/logic/knowledge_sync/import_.py ---
-# src/cli/logic/knowledge_sync/import.py
+# src/cli/logic/knowledge_sync/import_.py
 """
 Handles importing YAML files into the database for the CORE Working Mind.
 """
@@ -14676,14 +14843,18 @@ async def _import_capabilities(session, doc: Dict[str, Any]) -> None:
 
 
 async def _import_symbols(session, doc: Dict[str, Any]) -> None:
-    """Import symbols into the database.
-
-    Args:
-        session: Database session.
-        doc: YAML document containing symbols.
-    """
+    """Import symbols into the database, fixing missing symbol_path if necessary."""
     console.print("  -> Importing symbols...")
-    await _upsert_items(session, Symbol, doc.get("items", []), ["id"])
+    items = doc.get("items", [])
+    for item in items:
+        if "symbol_path" not in item or not item["symbol_path"]:
+            module = item.get("module")
+            qualname = item.get("qualname")
+            if module and qualname:
+                file_path = "src/" + module.replace(".", "/") + ".py"
+                item["symbol_path"] = f"{file_path}::{qualname}"
+
+    await _upsert_items(session, Symbol, items, ["id"])
 
 
 async def _import_links(session, doc: Dict[str, Any]) -> None:
@@ -14740,7 +14911,7 @@ async def _import_cognitive_roles(session, doc: Dict[str, Any]) -> None:
     )
 
 
-# ID: 8ecf6b40-5d78-4595-a82d-c606d30f3dca
+# ID: a5c43fa1-1137-426d-a98f-a8f0e9265cf7
 async def run_import(dry_run: bool) -> None:
     """Imports YAML files into the database, with optional dry run.
 
@@ -14817,7 +14988,7 @@ console = Console()
 EXPORT_DIR = settings.REPO_PATH / ".intent" / "mind_export"
 
 
-# ID: f5b271c7-012a-4ba6-b75c-27308e3056bb
+# ID: 0e4f98b0-6132-435f-b463-9f27c447302a
 async def fetch_capabilities() -> List[dict[str, Any]]:
     """Reads all capabilities from the database, ordered consistently.
 
@@ -14834,7 +15005,7 @@ async def fetch_capabilities() -> List[dict[str, Any]]:
         return [dict(row._mapping) for row in result]
 
 
-# ID: 7ac0e4a7-11b9-49c5-8d70-6f1a99749ee8
+# ID: 03445002-3060-4d3f-bc0b-27c6ccdc2fe9
 async def fetch_symbols() -> List[dict[str, Any]]:
     """Reads all symbols from the database, ordered consistently.
 
@@ -14844,14 +15015,14 @@ async def fetch_symbols() -> List[dict[str, Any]]:
     async with get_session() as session:
         result = await session.execute(
             text(
-                "SELECT id, module, qualname, kind, ast_signature, fingerprint, state "
+                "SELECT id, symbol_path, module, qualname, kind, ast_signature, fingerprint, state "
                 "FROM core.symbols ORDER BY fingerprint, id"
             )
         )
         return [dict(row._mapping) for row in result]
 
 
-# ID: b48a1aa4-1887-4cfe-8954-2ae4ce86f1a5
+# ID: 323d778b-4ed7-4d65-9d8d-9077fb880bb9
 async def fetch_links() -> List[dict[str, Any]]:
     """Reads all symbol-capability links from the database, ordered consistently.
 
@@ -14873,7 +15044,7 @@ async def fetch_links() -> List[dict[str, Any]]:
         return rows
 
 
-# ID: 1997db61-1fa0-4cef-b57d-c538fd3fa7c2
+# ID: 9f94dca6-1d04-41db-8970-b09fdc803222
 async def fetch_northstar() -> List[dict[str, Any]]:
     """Reads the current North Star mission from the database.
 
@@ -14890,7 +15061,7 @@ async def fetch_northstar() -> List[dict[str, Any]]:
         return [dict(row._mapping) for row in result]
 
 
-# ID: 4c9c59a9-0612-40f2-99ac-957e93be77e3
+# ID: dee34d49-638d-41ce-9f29-6941f5d90706
 async def run_snapshot(env: str | None, note: str | None) -> None:
     """Exports database state to YAML files in the mind_export directory.
 
@@ -14979,28 +15150,13 @@ from typing import Any, Dict, List
 import yaml
 
 
-# ID: 4b80a549-6189-4cbe-83e7-6200c9f2274b
+# ID: 0a055408-c1c4-54f2-b2d3-28bc47ace016
 def canonicalize(obj: Any) -> Any:
-    """Recursively sorts dictionary keys to ensure a stable, consistent order for hashing.
-
-    Args:
-        obj: The object to canonicalize.
-
-    Returns:
-        Canonicalized object with sorted keys and stringified UUIDs.
-    """
+    """Recursively sorts dictionary keys and handles UUIDs to ensure a stable, consistent order for hashing."""
     if isinstance(obj, dict):
         return {k: canonicalize(obj[k]) for k in sorted(obj.keys())}
     if isinstance(obj, list):
-        if all(isinstance(i, dict) for i in obj):
-            try:
-                sort_key = next(
-                    (k for k in ("id", "name", "key", "role") if k in obj[0]), None
-                )
-                if sort_key:
-                    return sorted(obj, key=lambda x: str(x.get(sort_key, "")))
-            except (TypeError, IndexError):
-                pass
+        # A simple recursive call is sufficient and safer than complex sorting here.
         return [canonicalize(x) for x in obj]
     if isinstance(obj, uuid.UUID):
         return str(obj)
@@ -15009,14 +15165,8 @@ def canonicalize(obj: Any) -> Any:
 
 # ID: 96c822f2-6aeb-49e1-866f-53d8d97953c4
 def compute_digest(items: List[Dict[str, Any]]) -> str:
-    """Creates a unique fingerprint (SHA256) for a list of items.
-
-    Args:
-        items: List of dictionaries to hash.
-
-    Returns:
-        SHA256 digest prefixed with 'sha256:'.
-    """
+    """Creates a unique fingerprint (SHA256) for a list of items."""
+    # This function now correctly receives data from a safe canonicalize function.
     canon = canonicalize(items)
     payload = json.dumps(
         canon, ensure_ascii=False, sort_keys=True, separators=(",", ":")
@@ -15024,23 +15174,18 @@ def compute_digest(items: List[Dict[str, Any]]) -> str:
     return "sha256:" + hashlib.sha256(payload).hexdigest()
 
 
-# ID: 8cf39820-7b79-4db4-90a5-0b5ddb837180
+# ID: 915326c0-141c-83d4-fe10-2e46-ddae48f4-9813cce0001f0ea091b3c86d5595bf2f
+# ID: 44193f0f-0c53-4916-92c5-952535404b9f
 def write_yaml(path: Path, items: List[Dict[str, Any]], exported_at: str) -> str:
-    """Writes a list of items to a YAML file, including version, timestamp, and digest.
-
-    Args:
-        path: Path to write the YAML file.
-        items: List of items to write.
-        exported_at: Timestamp of the export.
-
-    Returns:
-        The computed digest of the items.
-    """
+    """Writes a list of items to a YAML file, including version, timestamp, and digest."""
+    # This function relies on canonicalize to handle UUIDs before hashing.
     stringified_items = [
         {k: (str(v) if isinstance(v, uuid.UUID) else v) for k, v in item.items()}
         for item in items
     ]
+
     digest = compute_digest(stringified_items)
+
     doc = {
         "version": 1,
         "exported_at": exported_at,
@@ -15053,62 +15198,30 @@ def write_yaml(path: Path, items: List[Dict[str, Any]], exported_at: str) -> str
     return digest
 
 
-# ID: 6533b473-4017-48ee-94f7-9daa63e25f84
+# ID: 4e397589-8aeb-5795-b54d-81caf3e013e5
 def read_yaml(path: Path) -> Dict[str, Any]:
-    """Reads a YAML file and returns its content, handling missing files.
-
-    Args:
-        path: Path to the YAML file.
-
-    Returns:
-        Dictionary containing the YAML content, or empty dict if file doesn't exist.
+    """
+    Reads a YAML file and returns its content.
+    Crucially, it does NOT convert string UUIDs into UUID objects, preventing serialization errors downstream.
     """
     if not path.exists():
         return {}
 
     with path.open("r", encoding="utf-8") as f:
+        # Load the data as plain strings, numbers, etc. No special object conversion.
         data = yaml.safe_load(f) or {}
-
-    # Find the items key and convert UUIDs
-    items_key = next(
-        (k for k in ["items", "llm_resources", "cognitive_roles"] if k in data),
-        None,
-    )
-
-    if items_key and isinstance(data.get(items_key), list):
-        for item in data[items_key]:
-            for key in ["id", "symbol_id", "capability_id"]:
-                if key in item and isinstance(item[key], str):
-                    try:
-                        item[key] = uuid.UUID(item[key])
-                    except (ValueError, TypeError):
-                        pass
-
     return data
 
 
+# ID: 75d790d9-b2f7-5757-b2f7-6d790d9b2f7d
 def _get_diff_links_key(item: Dict[str, Any]) -> str:
-    """Creates a stable composite key for a link dictionary.
-
-    Args:
-        item: Link dictionary.
-
-    Returns:
-        Composite key as a string.
-    """
+    """Creates a stable composite key for a link dictionary."""
     return f"{str(item.get('symbol_id', ''))}-{str(item.get('capability_id', ''))}-{item.get('source', '')}"
 
 
+# ID: eab5bc15-09c8-56ca-9103-a160e16f0bce
 def _get_items_from_doc(doc: Dict[str, Any], doc_name: str) -> List[Dict[str, Any]]:
-    """Extract items from a document using the appropriate key.
-
-    Args:
-        doc: YAML document.
-        doc_name: Name of the document (e.g., 'capabilities').
-
-    Returns:
-        List of items from the document.
-    """
+    """Extract items from a document using the appropriate key."""
     possible_keys = [doc_name, "items", "llm_resources", "cognitive_roles"]
     items_key = next((k for k in possible_keys if k in doc), None)
     return doc.get(items_key, []) if items_key else []
@@ -17148,6 +17261,125 @@ def register(app: typer.Typer):
     app.add_typer(validate_app, name="validate")
 
 --- END OF FILE ./src/cli/logic/validate.py ---
+
+--- START OF FILE ./src/cli/logic/vector_drift.py ---
+# src/cli/logic/diagnostics/vector_drift.py
+from __future__ import annotations
+
+import asyncio
+from typing import Set
+
+from rich.console import Console
+from rich.panel import Panel
+from rich.table import Table
+from sqlalchemy import text
+
+from services.clients.qdrant_client import QdrantService
+from services.database.session_manager import get_session
+
+console = Console()
+
+
+async def _fetch_postgres_vector_ids() -> Set[str]:
+    """
+    Authoritative source of vector IDs is the link table:
+      core.symbol_vector_links(symbol_id UUID, vector_id TEXT, ...)
+    """
+    async with get_session() as session:
+        rows = await session.execute(
+            text("SELECT vector_id::text FROM core.symbol_vector_links")
+        )
+        return {r[0] for r in rows}
+
+
+async def _fetch_qdrant_point_ids() -> Set[str]:
+    """
+    Fetch all point IDs from Qdrant without payloads/vectors.
+    """
+    service = QdrantService()
+    all_ids: Set[str] = set()
+    offset = None
+
+    # Scroll through the whole collection to be robust with >10k points
+    while True:
+        points, offset = await service.client.scroll(
+            collection_name=service.collection_name,
+            limit=10_000,
+            with_payload=False,
+            with_vectors=False,
+            offset=offset,
+        )
+        all_ids.update(str(p.id) for p in points)
+        if offset is None:
+            break
+
+    return all_ids
+
+
+# ID: 87360a13-844e-4528-a444-5677e7c83841
+async def inspect_vector_drift() -> None:
+    console.print(
+        "[bold cyan]🚀 Verifying synchronization between PostgreSQL and Qdrant...[/bold cyan]"
+    )
+
+    try:
+        postgres_ids, qdrant_ids = await asyncio.gather(
+            _fetch_postgres_vector_ids(), _fetch_qdrant_point_ids()
+        )
+    except Exception as e:
+        console.print(f"[bold red]❌ Error connecting to a database: {e}[/bold red]")
+        return
+
+    console.print(f"   -> Found {len(postgres_ids)} linked vector IDs in PostgreSQL.")
+    console.print(f"   -> Found {len(qdrant_ids)} point IDs in Qdrant.")
+
+    missing_in_qdrant = sorted(postgres_ids - qdrant_ids)
+    orphans_in_qdrant = sorted(qdrant_ids - postgres_ids)
+
+    console.print("\n--- Verification Result ---")
+    if not missing_in_qdrant and not orphans_in_qdrant:
+        console.print(
+            Panel(
+                "[bold green]✅ Perfect Synchronization.[/bold green]\nPostgreSQL and Qdrant are perfectly aligned.",
+                title="Status",
+                border_style="green",
+            )
+        )
+        return
+
+    if missing_in_qdrant:
+        table = Table(
+            title=f"⚠️ Missing in Qdrant ({len(missing_in_qdrant)})",
+            caption="Exists in Postgres link table but missing from Qdrant.",
+            header_style="bold yellow",
+        )
+        table.add_column("Vector ID (expected in Qdrant)")
+        for vid in missing_in_qdrant[:200]:
+            table.add_row(vid)
+        if len(missing_in_qdrant) > 200:
+            table.add_row(f"... and {len(missing_in_qdrant) - 200} more")
+        console.print(table)
+        console.print(
+            "\n[bold]Next step:[/bold] Recreate with `poetry run core-admin knowledge vectorize --write`."
+        )
+
+    if orphans_in_qdrant:
+        table = Table(
+            title=f"🧹 Orphaned in Qdrant ({len(orphans_in_qdrant)})",
+            caption="Present in Qdrant but no link in Postgres.",
+            header_style="bold magenta",
+        )
+        table.add_column("Orphaned Point ID (Qdrant only)")
+        for pid in orphans_in_qdrant[:200]:
+            table.add_row(pid)
+        if len(orphans_in_qdrant) > 200:
+            table.add_row(f"... and {len(orphans_in_qdrant) - 200} more")
+        console.print(table)
+        console.print(
+            "\n[bold]Next step:[/bold] `poetry run core-admin fix orphaned-vectors --dry-run`, then without `--dry-run`."
+        )
+
+--- END OF FILE ./src/cli/logic/vector_drift.py ---
 
 --- START OF FILE ./src/core/__init__.py ---
 [EMPTY FILE]
@@ -19994,7 +20226,7 @@ class IntentGuard:
 --- START OF FILE ./src/core/knowledge_service.py ---
 # src/core/knowledge_service.py
 """
-Centralized access to CORE's knowledge graph and declared capabilities.
+Centralized access to CORE's knowledge graph and declared capabilities from the database SSOT.
 """
 
 from __future__ import annotations
@@ -20002,34 +20234,26 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Dict, List
 
-import yaml
-
-# <-- ADD THESE IMPORTS
 from sqlalchemy import text
 
 from services.database.session_manager import get_session
-
-# --- END IMPORTS ---
 from shared.logger import getLogger
 
-log = getLogger(__name__)
+log = getLogger("knowledge_service")
 
 
-# ID: 037d06d1-8f6d-4347-83b4-fba15da40639
+# ID: 936dd305-ecb0-4398-8fc6-93ba123891e6
 class KnowledgeService:
     """
-    Lightweight wrapper for loading the knowledge graph and capabilities
-    from the repository. Designed to be easily mockable in tests.
+    A read-only interface to the knowledge graph, which is sourced exclusively
+    from the operational database view `core.knowledge_graph`.
     """
 
     def __init__(self, repo_path: Path | str = "."):
         self.repo_path = Path(repo_path)
         self._graph: Dict[str, Any] | None = None
-        self._capabilities_cache: List[str] | None = None
 
-    # ---------------- Public API ----------------
-
-    # ID: 7a219e96-6846-49ff-95fe-596a0429447c
+    # ID: 7c7ba7ec-2487-43d5-8c15-19bbbcdc1c27
     async def get_graph(self) -> Dict[str, Any]:
         """
         Loads the knowledge graph directly from the database, treating it as the
@@ -20049,6 +20273,9 @@ class KnowledgeService:
                     row_dict = dict(row._mapping)
                     symbol_path = row_dict.get("symbol_path")
                     if symbol_path:
+                        # Ensure the primary UUID is a string for consistency
+                        if "uuid" in row_dict:
+                            row_dict["uuid"] = str(row_dict["uuid"])
                         symbols_map[symbol_path] = row_dict
 
             self._graph = {"symbols": symbols_map}
@@ -20065,51 +20292,23 @@ class KnowledgeService:
             self._graph = {"symbols": {}}
             return self._graph
 
-    # ID: 0e38c18e-2a3d-47cb-bf77-4b4d9bf5354a
+    # ID: 7c9767bf-7456-4c09-ad0d-41108c95e70b
     async def list_capabilities(self) -> List[str]:
-        """
-        Returns declared capability keys.
-        Tests patch this method; default implementation reads YAML if present.
-        """
-        if self._capabilities_cache is not None:
-            return self._capabilities_cache
+        """Returns all capability keys directly from the database."""
+        async with get_session() as session:
+            result = await session.execute(
+                text("SELECT name FROM core.capabilities ORDER BY name")
+            )
+            return [row[0] for row in result]
 
-        caps_file_paths = [
-            self.repo_path / ".intent/mind/knowledge/capabilities.yaml",
-            self.repo_path / ".intent/mind/knowledge/capabilities.yml",
-        ]
-
-        for p in caps_file_paths:
-            if p.exists():
-                try:
-                    data = yaml.safe_load(p.read_text(encoding="utf-8")) or []
-                    if isinstance(data, dict) and "capabilities" in data:
-                        data = data.get("capabilities", [])
-                    if not isinstance(data, list):
-                        log.warning("Capabilities YAML is not a list: %s", p)
-                        data = []
-                    # Normalize to list[str]
-                    self._capabilities_cache = [str(x) for x in data]
-                    return self._capabilities_cache
-                except Exception as e:  # noqa: BLE001
-                    log.error("Failed to load capabilities from %s: %s", p, e)
-                    break
-
-        self._capabilities_cache = []
-        return self._capabilities_cache
-
-    # ID: d93ecbdb-f832-4539-9a79-74fcbe723ac3
+    # ID: 9838b985-1363-48c7-856d-1983485c5112
     async def search_capabilities(self, query: str, limit: int = 5) -> List[str]:
         """
-        Super-simple substring search over capability keys.
-        Sufficient for the /knowledge/search endpoint unless replaced with vector search.
+        This is a placeholder. Real semantic search happens in CognitiveService.
         """
-        caps = await self.list_capabilities()
-        q = query.lower().strip()
-        if not q:
-            return []
-        results = [c for c in caps if q in c.lower()]
-        return results[: max(1, min(limit, 50))]
+        all_caps = await self.list_capabilities()
+        q_lower = query.lower()
+        return [c for c in all_caps if q_lower in c.lower()][:limit]
 
 --- END OF FILE ./src/core/knowledge_service.py ---
 
@@ -22049,21 +22248,17 @@ def _group_findings(findings: list[AuditFinding]) -> List[List[AuditFinding]]:
     finding_map = {}
 
     for finding in findings:
-        # The context dictionary is the reliable source for symbol keys.
         symbol1 = finding.context.get("symbol_a")
         symbol2 = finding.context.get("symbol_b")
         if symbol1 and symbol2:
             graph.add_edge(symbol1, symbol2)
-            # Store the finding under a canonical key (sorted tuple).
             finding_map[tuple(sorted((symbol1, symbol2)))] = finding
 
-    # Find connected components (these are our clusters).
     clusters = list(nx.connected_components(graph))
     grouped_findings = []
 
     for cluster in clusters:
         cluster_findings = []
-        # Reconstruct the findings that belong to this cluster.
         for i, node1 in enumerate(list(cluster)):
             for node2 in list(cluster)[i + 1 :]:
                 key = tuple(sorted((node1, node2)))
@@ -22071,7 +22266,6 @@ def _group_findings(findings: list[AuditFinding]) -> List[List[AuditFinding]]:
                     cluster_findings.append(finding_map[key])
 
         if cluster_findings:
-            # Sort by similarity score (descending) for consistent reporting.
             cluster_findings.sort(
                 key=lambda f: float(f.context.get("similarity", 0)), reverse=True
             )
@@ -22080,7 +22274,7 @@ def _group_findings(findings: list[AuditFinding]) -> List[List[AuditFinding]]:
     return grouped_findings
 
 
-# ID: 16e4e42b-3f70-444f-933e-ec1679cd8992
+# ID: e3676a9e-1bd3-486e-85b0-a65b11ffd060
 class DuplicationCheck:
     """
     Enforces the 'dry_by_design' principle by finding semantically similar symbols.
@@ -22103,16 +22297,19 @@ class DuplicationCheck:
         """Checks a single symbol for duplicates against the Qdrant index."""
         findings = []
         symbol_key = symbol.get("symbol_path")
-        vector_id = symbol.get("vector_id")
 
-        if not vector_id or symbol_key in self.ignored_symbol_keys:
+        # This is the definitive fix: Prioritize the explicit vector_id from the
+        # link table, as it's the canonical ID stored in Qdrant. Fall back to
+        # the symbol's main UUID only if the link is missing data.
+        point_id = str(symbol.get("vector_id") or symbol.get("uuid"))
+
+        if not point_id or symbol_key in self.ignored_symbol_keys:
             return []
 
         try:
-            query_vector = await self.qdrant_service.get_vector_by_id(
-                point_id=vector_id
-            )
+            query_vector = await self.qdrant_service.get_vector_by_id(point_id=point_id)
             if not query_vector:
+                log.warning(f"Could not retrieve vector for point ID {point_id}")
                 return []
 
             similar_hits = await self.qdrant_service.search_similar(
@@ -22120,9 +22317,13 @@ class DuplicationCheck:
             )
 
             for hit in similar_hits:
-                hit_symbol_key = hit["payload"]["chunk_id"]
+                if not hit.get("payload"):
+                    continue
+
+                hit_symbol_key = hit["payload"].get("chunk_id")
                 if (
-                    hit_symbol_key == symbol_key
+                    not hit_symbol_key
+                    or hit_symbol_key == symbol_key
                     or hit_symbol_key in self.ignored_symbol_keys
                 ):
                     continue
@@ -22151,7 +22352,7 @@ class DuplicationCheck:
 
         return findings
 
-    # ID: 614e5982-8163-49f9-8762-689960b9851a
+    # ID: 6a7c159c-e3f2-4295-8578-fb274627944f
     async def execute(self, threshold: float = 0.80) -> List[AuditFinding]:
         """
         Asynchronously runs the duplication check across all vectorized symbols.
@@ -25261,7 +25462,7 @@ async def find_semantic_clusters(
 # src/features/introspection/knowledge_graph_service.py
 """
 Provides the KnowledgeGraphBuilder, the primary tool for introspecting the
-codebase and synchronizing the discovered knowledge with the database.
+codebase and creating an in-memory representation of its symbols.
 """
 
 from __future__ import annotations
@@ -25273,9 +25474,7 @@ from pathlib import Path
 from typing import Any, Dict, List
 
 import yaml
-from sqlalchemy import text
 
-from services.repositories.db.engine import get_session
 from shared.ast_utility import (
     FunctionCallVisitor,
     calculate_structural_hash,
@@ -25290,11 +25489,11 @@ from shared.logger import getLogger
 log = getLogger("knowledge_graph_builder")
 
 
-# ID: 64fe527b-e2ab-4232-9a54-1a24d17a6ff1
+# ID: efd11315-be84-44cd-ace1-f688d85a9d86
 class KnowledgeGraphBuilder:
     """
-    Scans the source code to build a comprehensive knowledge graph and syncs it
-    to the operational database.
+    Scans the source code to build a comprehensive in-memory knowledge graph.
+    It does not interact with the database; that is handled by the sync_service.
     """
 
     def __init__(self, root_path: Path):
@@ -25330,36 +25529,14 @@ class KnowledgeGraphBuilder:
         except (FileNotFoundError, yaml.YAMLError):
             return []
 
-    async def _sync_symbols_to_db(self, symbols: List[Dict]):
-        """Performs a TRUNCATE and INSERT to sync symbols to the database."""
-        if not symbols:
-            return
-
-        async with get_session() as session:
-            async with session.begin():
-                await session.execute(text("TRUNCATE TABLE core.symbols CASCADE"))
-                await session.execute(
-                    text(
-                        """
-                        INSERT INTO core.symbols (uuid, key, symbol_path, file_path, is_public, title, description, owner, status, structural_hash)
-                        VALUES (:uuid, :key, :symbol_path, :file_path, :is_public, :title, :description, 'unassigned_agent', 'active', :structural_hash)
-                    """
-                    ),
-                    symbols,
-                )
-        log.info(f"Successfully synced {len(symbols)} symbols to the database.")
-
-    # ID: 6de62bc4-767f-4bc1-b5f1-25ee31af1009
-    async def build_and_sync(self) -> Dict[str, Any]:  # <-- NOW ASYNC
+    # ID: f5689b89-8060-4328-a9f4-0d4e2ad77175
+    def build(self) -> Dict[str, Any]:
         """
-        Executes the full build and sync process for the knowledge graph.
+        Executes the full build process for the knowledge graph and returns it.
         """
         log.info(f"Building knowledge graph for repository at: {self.root_path}")
         for py_file in self.src_dir.rglob("*.py"):
             self._scan_file(py_file)
-
-        # Sync to database
-        await self._sync_symbols_to_db(list(self.symbols.values()))  # <-- NOW AWAITED
 
         knowledge_graph = {
             "metadata": {
@@ -25445,42 +25622,38 @@ class KnowledgeGraphBuilder:
 """
 Helper utilities for knowledge graph vectorization:
 - extract_source_code
-- collect_vectorization_tasks (chunk-based diffing)
 - reporting helpers (log_failure)
 """
 
 from __future__ import annotations
 
 import ast
-import fnmatch
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Any, Dict
 
 from shared.logger import getLogger
-from shared.utils.embedding_utils import normalize_text, sha256_hex
 
 log = getLogger("core_admin.knowledge.helpers")
 
 
-# ID: 8eedaa86-01be-461c-a3b1-a3a61716fefc
-def extract_source_code(repo_root: Path, symbol_data: dict) -> str | None:
+# ID: 225abffb-ec3e-4798-a75d-1be1697b0e27
+def extract_source_code(repo_root: Path, symbol_data: Dict[str, Any]) -> str | None:
     """
-    Extracts the source code for a symbol using AST, which is more reliable
-    than line numbers. This is the single, canonical implementation.
+    Extracts the source code for a symbol using its database record.
+    This is the single, canonical implementation for reading symbol source.
     """
-    # --- THIS IS THE FIX ---
-    # The database stores a 'module' path (e.g., 'api.v1.knowledge_routes').
-    # We must convert this back into a file system path.
-    file_path_from_module = symbol_data.get("file_path")
-    if not file_path_from_module:
+    module_path = symbol_data.get("module")
+    symbol_path_str = symbol_data.get("symbol_path")
+
+    if not module_path or not symbol_path_str:
+        log.warning(
+            "Cannot extract source code: symbol data is missing 'module' or 'symbol_path'."
+        )
         return None
 
-    # Convert module path to file system path
-    file_system_path_str = "src/" + file_path_from_module.replace(".", "/") + ".py"
+    # Convert module path (e.g., 'core.agents.planner') to file system path
+    file_system_path_str = "src/" + module_path.replace(".", "/") + ".py"
     file_path = repo_root / file_system_path_str
-    # --- END OF FIX ---
-
-    symbol_path_str = symbol_data.get("symbol_path")
 
     if not file_path.exists():
         log.warning(
@@ -25495,8 +25668,6 @@ def extract_source_code(repo_root: Path, symbol_data: dict) -> str | None:
         tree = ast.parse(content, filename=str(file_path))
         for node in ast.walk(tree):
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
-                # This needs to handle nested classes/functions if symbol_path includes them
-                # For now, we assume simple names.
                 current_symbol_name = getattr(node, "name", None)
                 if current_symbol_name == symbol_name:
                     return ast.get_source_segment(content, node)
@@ -25509,73 +25680,12 @@ def extract_source_code(repo_root: Path, symbol_data: dict) -> str | None:
     return None
 
 
-# ID: 538af724-9c5b-4720-b3bf-964be836b2de
+# ID: a42a6659-2ee3-4400-815d-d60280165229
 def log_failure(failure_log_path: Path, key: str, message: str, category: str) -> None:
     """Append a failure line to the given log file path. Ensures parent exists."""
     failure_log_path.parent.mkdir(parents=True, exist_ok=True)
     with failure_log_path.open("a", encoding="utf-8") as f:
         f.write(f"{category}\t{key}\t{message}\n")
-
-
-# ID: d7880ea9-b988-4ba6-8358-b41636c0b43b
-def collect_vectorization_tasks(
-    symbols_map: dict,
-    stored_chunks: Dict[str, dict],
-    repo_root: Path,
-    target: Optional[str] = None,
-    force_recompute: bool = False,
-    respect_model_revision: bool = True,
-) -> list[dict]:
-    """
-    Build tasks for chunks. If `force_recompute` is True, it includes all targeted chunks
-    regardless of their hash.
-    """
-    tasks: list[dict] = []
-
-    for symbol_key, symbol_data in symbols_map.items():
-        cap_key = symbol_data.get("capability")
-        if not cap_key or cap_key == "unassigned":
-            continue
-
-        if target:
-            is_match = fnmatch.fnmatch(symbol_key, target) or fnmatch.fnmatch(
-                cap_key, target
-            )
-            if not is_match:
-                continue
-
-        if force_recompute:
-            tasks.append(
-                {"cap_key": cap_key, "symbol_key": symbol_key, "action": "vectorize"}
-            )
-            continue
-
-        try:
-            source_code = extract_source_code(repo_root, symbol_data)
-            normalized_code = normalize_text(source_code)
-            current_hash = sha256_hex(normalized_code)
-        except Exception as e:
-            log.warning(f"Could not compute hash for '{symbol_key}': {e}")
-            current_hash = None
-
-        stored = stored_chunks.get(symbol_key)
-        up_to_date = False
-        if stored and stored.get("hash") and current_hash:
-            if respect_model_revision:
-                up_to_date = stored["hash"] == current_hash and stored.get(
-                    "rev"
-                ) == symbol_data.get("model_revision")
-            else:
-                up_to_date = stored["hash"] == current_hash
-
-        if up_to_date:
-            continue
-
-        tasks.append(
-            {"cap_key": cap_key, "symbol_key": symbol_key, "action": "vectorize"}
-        )
-
-    return tasks
 
 --- END OF FILE ./src/features/introspection/knowledge_helpers.py ---
 
@@ -25864,7 +25974,7 @@ from shared.config import settings
 console = Console()
 
 
-# ID: 500e20ca-d84f-444e-bbf9-2d38852d9f39
+# ID: 2fc08ba1-31ee-42cd-84cf-f68f81013acf
 class SymbolVisitor(ast.NodeVisitor):
     """An AST visitor that discovers symbols and their hierarchical paths."""
 
@@ -25873,7 +25983,7 @@ class SymbolVisitor(ast.NodeVisitor):
         self.symbols: List[Dict[str, Any]] = []
         self.class_stack: List[str] = []
 
-    # ID: 7381c654-320e-43fc-977a-c5f1820e4a82
+    # ID: 05ab6a68-f66e-4571-9372-47c17ad4b72f
     def visit_ClassDef(self, node: ast.ClassDef):
         """Process a class definition and its children (methods)."""
         if not self.class_stack:
@@ -25883,13 +25993,13 @@ class SymbolVisitor(ast.NodeVisitor):
         self.generic_visit(node)
         self.class_stack.pop()
 
-    # ID: b0d3b9d4-cc0a-4720-a7ec-44ede92cd32f
+    # ID: f69596a9-b1b5-4292-ab20-ef62c063b867
     def visit_FunctionDef(self, node: ast.FunctionDef):
         """Process a function or method definition."""
         if not self.class_stack:
             self._process_symbol(node)
 
-    # ID: f492e6d6-1676-462c-8504-5802aaf193c0
+    # ID: 4d6bf114-b4cd-466a-83ec-584202c69fcd
     def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef):
         """Process an async function or method definition."""
         if not self.class_stack:
@@ -25904,11 +26014,7 @@ class SymbolVisitor(ast.NodeVisitor):
         if not (is_public and not is_dunder):
             return
 
-        if self.class_stack:
-            class_path = ".".join(self.class_stack)
-            symbol_path = f"{self.file_path}::{class_path}"
-        else:
-            symbol_path = f"{self.file_path}::{node.name}"
+        symbol_path = f"{self.file_path}::{node.name}"
 
         module_name = (
             self.file_path.replace("src/", "").replace(".py", "").replace("/", ".")
@@ -25934,11 +26040,11 @@ class SymbolVisitor(ast.NodeVisitor):
         )
 
 
-# ID: f75289ff-c951-4422-bd77-6c2bdba77167
+# ID: da739a48-f3c2-4c27-b870-51ddb224bc32
 class SymbolScanner:
     """Scans the codebase to extract symbol information using a hierarchical visitor."""
 
-    # ID: 0a858df6-6619-4bc5-9031-713110c4b065
+    # ID: 1c60168e-3d83-4c72-b4be-390554f51b18
     def scan(self) -> List[Dict[str, Any]]:
         """Scans all Python files in src/ and extracts ID'd symbols."""
         src_dir = settings.REPO_PATH / "src"
@@ -25960,10 +26066,11 @@ class SymbolScanner:
         return list(unique_symbols.values())
 
 
-# ID: ba9e8c6f-920b-45d1-9444-b8930e74f5c5
+# ID: 5ca33e91-947b-435c-9756-c74a22f37a2b
 async def run_sync_with_db() -> Dict[str, int]:
     """
     Executes the full, database-centric sync logic using the "smart merge" strategy.
+    This is the single source of truth for updating the symbols table from the codebase.
     """
     scanner = SymbolScanner()
     code_state = scanner.scan()
@@ -25971,13 +26078,15 @@ async def run_sync_with_db() -> Dict[str, int]:
 
     async with get_session() as session:
         async with session.begin():
+            # 1. Create a temporary table to hold the current state from the code scan
             await session.execute(
                 text(
                     "CREATE TEMPORARY TABLE core_symbols_staging (LIKE core.symbols INCLUDING DEFAULTS) ON COMMIT DROP;"
                 )
             )
+
+            # 2. Populate the temporary table with the symbols found in the code
             if code_state:
-                # --- FIX: The INSERT statement now matches the v2.1 schema (no 'uuid' column) ---
                 await session.execute(
                     text(
                         """
@@ -25988,6 +26097,7 @@ async def run_sync_with_db() -> Dict[str, int]:
                     code_state,
                 )
 
+            # 3. Calculate stats before making changes
             deleted_result = await session.execute(
                 text(
                     "SELECT COUNT(*) FROM core.symbols WHERE symbol_path NOT IN (SELECT symbol_path FROM core_symbols_staging)"
@@ -26013,20 +26123,22 @@ async def run_sync_with_db() -> Dict[str, int]:
             )
             stats["updated"] = updated_result.scalar_one()
 
+            # 4. Delete symbols from the main table that no longer exist in the code
             await session.execute(
                 text(
                     "DELETE FROM core.symbols WHERE symbol_path NOT IN (SELECT symbol_path FROM core_symbols_staging)"
                 )
             )
 
+            # 5. Update symbols that have changed (and nullify their embedding status)
             await session.execute(
                 text(
                     """
                     UPDATE core.symbols
                     SET
-                        vector_id = NULL,
                         fingerprint = st.fingerprint,
                         last_modified = NOW(),
+                        last_embedded = NULL, -- This is the key change to trigger re-vectorization
                         updated_at = NOW()
                     FROM core_symbols_staging st
                     WHERE core.symbols.symbol_path = st.symbol_path
@@ -26035,13 +26147,14 @@ async def run_sync_with_db() -> Dict[str, int]:
                 )
             )
 
+            # 6. Insert brand new symbols
             await session.execute(
                 text(
                     """
                     INSERT INTO core.symbols (id, symbol_path, module, qualname, kind, ast_signature, fingerprint, state, is_public, created_at, updated_at, last_modified, first_seen, last_seen)
                     SELECT id, symbol_path, module, qualname, kind, ast_signature, fingerprint, state, is_public, NOW(), NOW(), NOW(), NOW(), NOW()
                     FROM core_symbols_staging
-                    WHERE symbol_path NOT IN (SELECT symbol_path FROM core.symbols);
+                    ON CONFLICT (symbol_path) DO NOTHING;
                 """
                 )
             )
@@ -26086,12 +26199,11 @@ async def _fetch_symbols_from_db() -> List[Dict]:
     async with get_session() as session:
         stmt = text(
             """
-            SELECT id, symbol_path, module, fingerprint AS structural_hash, vector_id
+            SELECT id, symbol_path, module, fingerprint AS structural_hash
             FROM core.v_symbols_needing_embedding
             """
         )
         result = await session.execute(stmt)
-        # We now return the raw module path from the DB
         return [dict(row._mapping) for row in result]
 
 
@@ -26129,24 +26241,24 @@ async def _process_vectorization_task(
         if not vector:
             raise ValueError("Embedding service returned None")
 
-        vector_id = str(task["id"])
+        vector_id_str = str(task["id"])
 
         payload_data = {
-            "source_path": task[
-                "file_path_str"
-            ],  # Use the string representation of the file path
+            "source_path": task["file_path_str"],
             "source_type": "code",
             "chunk_id": task["symbol_path"],
             "content_sha256": task["code_hash"],
             "language": "python",
             "symbol": task["symbol_path"],
-            "capability_tags": [vector_id],
+            "capability_tags": [vector_id_str],
         }
-        point_id = await qdrant_service.upsert_capability_vector(
+        await qdrant_service.upsert_capability_vector(
+            point_id_str=vector_id_str,
             vector=vector,
             payload_data=payload_data,
         )
-        return str(point_id)
+
+        return vector_id_str
     except Exception as e:
         log.error(f"Failed to process symbol '{task['symbol_path']}': {e}")
         failure_log_path.parent.mkdir(parents=True, exist_ok=True)
@@ -26155,31 +26267,46 @@ async def _process_vectorization_task(
         return None
 
 
-async def _update_symbols_in_db(updates: List[Dict]):
-    """Bulk updates the vector_id and embedding metadata for symbols in the database."""
+async def _update_db_after_vectorization(updates: List[Dict]):
+    """
+    Creates links in symbol_vector_links and updates the last_embedded timestamp
+    on the symbols table.
+    """
     if not updates:
         return
     async with get_session() as session:
         async with session.begin():
+            # Upsert into the link table
             await session.execute(
                 text(
                     """
-                    UPDATE core.symbols SET
-                        vector_id = :vector_id,
-                        last_embedded = NOW(),
-                        embedding_model = :embedding_model,
-                        embedding_version = :embedding_version,
-                        updated_at = NOW()
-                    WHERE id = :id
+                    INSERT INTO core.symbol_vector_links (symbol_id, vector_id, embedding_model, embedding_version, created_at)
+                    VALUES (:symbol_id, :vector_id, :embedding_model, :embedding_version, NOW())
+                    ON CONFLICT (symbol_id) DO UPDATE SET
+                        vector_id = EXCLUDED.vector_id,
+                        embedding_model = EXCLUDED.embedding_model,
+                        embedding_version = EXCLUDED.embedding_version,
+                        created_at = NOW();
                 """
                 ),
                 updates,
             )
-        await session.commit()
-    console.print(f"   -> Updated {len(updates)} vector IDs in the database.")
+
+            # Update the timestamp on the main symbols table
+            await session.execute(
+                text(
+                    """
+                    UPDATE core.symbols SET last_embedded = NOW()
+                    WHERE id = ANY(:symbol_ids)
+                """
+                ),
+                {"symbol_ids": [u["symbol_id"] for u in updates]},
+            )
+
+    console.print(f"   -> Updated {len(updates)} records in the database.")
 
 
-# ID: 6639c6f1-9d90-4a30-a35f-c183637879e4
+# ID: 4bcad5fa-c30b-4c24-bf6c-5b692ecbbf67
 async def run_vectorize(
     cognitive_service: CognitiveService,
     dry_run: bool = False,
@@ -26190,19 +26317,20 @@ async def run_vectorize(
     """
     console.print("[bold cyan]🚀 Starting Database-Driven Vectorization...[/bold cyan]")
     failure_log_path = settings.REPO_PATH / "logs" / "vectorization_failures.log"
-    symbols_to_process = await _fetch_symbols_from_db()
 
     if force:
         console.print(
-            "[bold yellow]--force flag detected: Re-vectorizing ALL symbols.[/bold yellow]"
+            "[bold yellow]--force flag detected: Re-vectorizing ALL public symbols.[/bold yellow]"
         )
         async with get_session() as session:
             result = await session.execute(
                 text(
-                    "SELECT id, symbol_path, module, fingerprint AS structural_hash, vector_id FROM core.symbols WHERE is_public = TRUE"
+                    "SELECT id, symbol_path, module, fingerprint AS structural_hash FROM core.symbols WHERE is_public = TRUE"
                 )
             )
             symbols_to_process = [dict(row._mapping) for row in result]
+    else:
+        symbols_to_process = await _fetch_symbols_from_db()
 
     if not symbols_to_process:
         console.print(
@@ -26219,12 +26347,9 @@ async def run_vectorize(
 
     tasks = []
     for symbol in symbols_to_process:
-        # --- START OF THE DEFINITIVE FIX ---
-        # Translate the module path from the database back into a file system path.
         module_path = symbol["module"]
         file_path_str = "src/" + module_path.replace(".", "/") + ".py"
         file_path = settings.REPO_PATH / file_path_str
-        # --- END OF THE DEFINITIVE FIX ---
 
         source_code = _get_source_code(file_path, symbol["symbol_path"])
         if not source_code:
@@ -26233,7 +26358,6 @@ async def run_vectorize(
         normalized_code = normalize_text(source_code)
         code_hash = hashlib.sha256(normalized_code.encode("utf-8")).hexdigest()
 
-        # Add both path representations to the task for later use
         task_data = {
             **symbol,
             "source_code": normalized_code,
@@ -26261,7 +26385,6 @@ async def run_vectorize(
         return
 
     updates_to_db = []
-
     for task in track(tasks, description="Vectorizing symbols..."):
         point_id = await _process_vectorization_task(
             task, cognitive_service, qdrant_service, failure_log_path
@@ -26269,14 +26392,14 @@ async def run_vectorize(
         if point_id:
             updates_to_db.append(
                 {
-                    "id": task["id"],
+                    "symbol_id": task["id"],
                     "vector_id": point_id,
                     "embedding_model": settings.LOCAL_EMBEDDING_MODEL_NAME,
                     "embedding_version": 1,
                 }
             )
 
-    await _update_symbols_in_db(updates_to_db)
+    await _update_db_after_vectorization(updates_to_db)
 
     console.print(
         f"\n[bold green]✅ Vectorization complete. Processed {len(updates_to_db)}/{len(tasks)} symbols.[/bold green]"
@@ -26923,25 +27046,26 @@ console = Console()
 log = getLogger("definition_service")
 
 
-# ID: e8474497-40b5-47df-8480-602bfa03aaf8
+# ID: b095628d-b3d0-4fad-bfb6-483a217ea42c
 async def get_undefined_symbols() -> List[Dict[str, Any]]:
     """
-    Fetches symbols that are ready for definition (have a vector_id but no key).
+    Fetches symbols that are ready for definition (have a vector link but no key).
     """
     async with get_session() as session:
         result = await session.execute(
             text(
                 """
-                SELECT id, symbol_path, module AS file_path, vector_id
-                FROM core.symbols
-                WHERE key IS NULL AND vector_id IS NOT NULL
+                SELECT s.id, s.symbol_path, s.module, vl.vector_id
+                FROM core.symbols s
+                JOIN core.symbol_vector_links vl ON s.id = vl.symbol_id
+                WHERE s.key IS NULL
                 """
             )
         )
         return [dict(row._mapping) for row in result]
 
 
-# ID: f30f4ec0-3ed3-4775-b018-28be18692ebf
+# ID: ec330970-c4ad-4bfd-87de-9e43fdaffaf0
 async def define_single_symbol(
     symbol: Dict[str, Any],
     cognitive_service: CognitiveService,
@@ -26952,6 +27076,9 @@ async def define_single_symbol(
     log.info(f"Defining symbol: {symbol.get('symbol_path')}")
     source_code = extract_source_code(settings.REPO_PATH, symbol)
     if not source_code:
+        log.warning(
+            f"Cannot extract source code for {symbol.get('symbol_path')}: symbol data is likely missing 'module' or 'symbol_path'."
+        )
         return {"id": symbol["id"], "key": "error.code_not_found"}
 
     similar_capabilities_str = "No similar capabilities found."
@@ -26976,11 +27103,8 @@ async def define_single_symbol(
                 f"Semantic search failed during definition for {symbol['symbol_path']}: {e}"
             )
 
-    # --- THIS IS THE FIX ---
-    # Load the correct, existing prompt from the constitution.
     prompt_template_path = settings.get_path("mind.prompts.capability_definer")
     prompt_template = prompt_template_path.read_text(encoding="utf-8")
-    # --- END OF FIX ---
 
     final_prompt = prompt_template.format(
         code=source_code, similar_capabilities=similar_capabilities_str
@@ -26991,7 +27115,6 @@ async def define_single_symbol(
         final_prompt, user_id="definer_agent"
     )
 
-    # Be more robust in extracting the key
     cleaned_key = (
         raw_suggested_key.strip().replace("`", "").replace("'", "").replace('"', "")
     )
@@ -27012,23 +27135,28 @@ async def define_single_symbol(
     return {"id": symbol["id"], "key": cleaned_key}
 
 
-# ID: 1c642222-6e05-4e31-a9f6-68502a054947
+# ID: 2d5b3476-74be-46f5-b173-1a909327bb85
 async def update_definitions_in_db(definitions: List[Dict[str, Any]]):
     """Updates the 'key' column for symbols in the database."""
     if not definitions:
         return
 
     log.info(f"Attempting to update {len(definitions)} definitions in the database...")
+
+    serializable_definitions = [
+        {"id": str(d["id"]), "key": d["key"]} for d in definitions
+    ]
+
     async with get_session() as session:
         async with session.begin():
             await session.execute(
                 text("UPDATE core.symbols SET key = :key WHERE id = :id"),
-                definitions,
+                serializable_definitions,
             )
     log.info("Database update transaction completed.")
 
 
-# ID: 073b8012-385d-4c2b-972e-0e6914fe0d30
+# ID: 3409dc17-cc09-4564-bfa6-7e83c8a32468
 async def define_new_symbols(cognitive_service: CognitiveService):
     """The main orchestrator for the autonomous definition process."""
     undefined_symbols = await get_undefined_symbols()
@@ -27094,35 +27222,18 @@ from shared.context import CoreContext
 console = Console()
 
 
-# ID: 47b10dad-7f52-4962-bc07-7b82a2c12f42
-async def integrate_changes(context: CoreContext, commit_message: str):
+# ID: 79e03609-2875-4dfa-ab67-e8435f994a0c
+async def check_integration_health(context: CoreContext) -> bool:
     """
-    Orchestrates the full, transactional, and intelligent integration of staged code changes.
+    Runs the full integration and validation sequence without committing or rolling back.
+    This is the primary developer command to check if work is ready to be committed.
+    Returns True if all checks pass, False otherwise.
     """
-    # Get services from the explicitly passed context object
-    git_service = context.git_service
     cognitive_service = context.cognitive_service
 
-    initial_commit_hash = git_service.get_current_commit()
-    integration_succeeded = False
-
     try:
-        staged_files = git_service.get_staged_files()
-        if not staged_files:
-            console.print(
-                "[yellow]No staged changes found to integrate. Please use 'git add'.[/yellow]"
-            )
-            return
-
-        console.print(f"Integrating {len(staged_files)} staged file(s)...")
-
-        # --- START OF TRANSACTIONAL & REORDERED PROCESS ---
-
         console.print("\n[bold]Step 1/5: Assigning IDs to new symbols...[/bold]")
-        assign_missing_ids(
-            dry_run=False
-        )  # This is the only step that modifies local files
-        git_service.add_all()
+        assign_missing_ids(dry_run=False)
 
         console.print(
             "\n[bold]Step 2/5: Synchronizing code state with the database...[/bold]"
@@ -27148,19 +27259,53 @@ async def integrate_changes(context: CoreContext, commit_message: str):
         passed, findings, _ = await auditor.run_full_audit_async()
         if not passed:
             console.print(
-                "[bold red]❌ Constitutional audit failed. Integration will be reverted.[/bold red]"
+                "[bold red]❌ Constitutional audit failed. Please fix the errors above.[/bold red]"
             )
-            # This ensures the 'finally' block triggers a reset
-            raise RuntimeError("Audit failed, triggering automatic rollback.")
+            return False
 
-        console.print("\n[bold]Final Step: Committing changes...[/bold]")
-        git_service.commit(commit_message)
         console.print(
-            "[bold green]✅ Successfully integrated and committed changes.[/bold green]"
+            "\n[bold green]✅ All integration checks passed. Your changes are ready to be committed.[/bold green]"
         )
-        integration_succeeded = True
+        return True
 
-        # --- END OF TRANSACTIONAL & REORDERED PROCESS ---
+    except Exception as e:
+        console.print(f"\n[bold red]An error occurred during the check: {e}[/bold red]")
+        return False
+
+
+# ID: a6ace728-0c7f-48b8-b7a0-52ff9b24d99d
+async def integrate_changes(context: CoreContext, commit_message: str):
+    """
+    Orchestrates the full, transactional, and intelligent integration of staged code changes.
+    This version is DESTRUCTIVE and will roll back on failure. Use for CI/automation.
+    """
+    git_service = context.git_service
+    initial_commit_hash = git_service.get_current_commit()
+    integration_succeeded = False
+
+    try:
+        staged_files = git_service.get_staged_files()
+        if not staged_files:
+            console.print(
+                "[yellow]No staged changes found to integrate. Please use 'git add'.[/yellow]"
+            )
+            return
+
+        console.print(f"Integrating {len(staged_files)} staged file(s)...")
+
+        # Run the non-destructive health check first. If it passes, we commit.
+        if await check_integration_health(context):
+            console.print("\n[bold]Final Step: Committing changes...[/bold]")
+            git_service.add_all()  # Ensure any auto-generated ID changes are staged
+            git_service.commit(commit_message)
+            console.print(
+                "[bold green]✅ Successfully integrated and committed changes.[/bold green]"
+            )
+            integration_succeeded = True
+        else:
+            raise RuntimeError(
+                "Integration health check failed. Triggering automatic rollback."
+            )
 
     except Exception as e:
         console.print(
@@ -28707,10 +28852,11 @@ import typer
 from qdrant_client import AsyncQdrantClient
 from qdrant_client.http.models import PointIdsList
 from rich.console import Console
+from sqlalchemy import text
+
 from services.database.session_manager import get_session
 from shared.config import settings
 from shared.logger import getLogger
-from sqlalchemy import text
 
 log = getLogger("prune_orphaned_vectors")
 console = Console()
@@ -28720,21 +28866,17 @@ async def _async_prune_orphans(dry_run: bool):
     """The core async logic for finding and pruning orphaned vectors."""
     console.print("[bold cyan]🌿 Starting orphan vector pruning process...[/bold cyan]")
 
-    valid_symbol_ids = set()
+    valid_vector_ids = set()
     try:
-        # 1. Get the ground truth: all valid symbol IDs from the main database
-        console.print("   -> Fetching valid symbol IDs from PostgreSQL...")
+        # 1. Get the ground truth: all valid vector IDs from the link table.
+        console.print("   -> Fetching valid vector IDs from PostgreSQL link table...")
         async with get_session() as session:
-            # --- THIS IS THE FIX ---
-            # Explicitly cast the UUID to text in the SQL query to guarantee
-            # we get a string representation that matches Qdrant's IDs.
             result = await session.execute(
-                text("SELECT id::text FROM core.symbols")
+                text("SELECT vector_id FROM core.symbol_vector_links")
             )
-            valid_symbol_ids = {row[0] for row in result}
-            # --- END OF FIX ---
+            valid_vector_ids = {row[0] for row in result}
         console.print(
-            f"      - Found {len(valid_symbol_ids)} valid symbols in the main database."
+            f"      - Found {len(valid_vector_ids)} valid vector links in the main database."
         )
 
     except Exception as e:
@@ -28752,11 +28894,8 @@ async def _async_prune_orphans(dry_run: bool):
             with_payload=False,
             with_vectors=False,
         )
-        # Qdrant IDs can be UUIDs or integers, ensure they are strings for comparison
         vector_point_ids = {str(point.id) for point in all_points}
-        console.print(
-            f"      - Found {len(vector_point_ids)} vectors in Qdrant."
-        )
+        console.print(f"      - Found {len(vector_point_ids)} vectors in Qdrant.")
 
     except Exception as e:
         console.print(
@@ -28765,7 +28904,7 @@ async def _async_prune_orphans(dry_run: bool):
         raise typer.Exit(code=1)
 
     # 3. Compare the two sets to find the orphans
-    orphaned_ids = list(vector_point_ids - valid_symbol_ids)
+    orphaned_ids = list(vector_point_ids - valid_vector_ids)
 
     if not orphaned_ids:
         console.print(
@@ -28799,7 +28938,7 @@ async def _async_prune_orphans(dry_run: bool):
     )
 
 
-# ID: 9c0f083b-5653-4c1d-b4bb-f4f38528f062
+# ID: 47ae55f7-19bb-4bd9-9361-e33733a64ba9
 def main_sync(
     write: bool = typer.Option(
         False, "--write", help="Permanently delete orphaned vectors from Qdrant."
@@ -28807,6 +28946,7 @@ def main_sync(
 ):
     """Entry point for the Typer command."""
     asyncio.run(_async_prune_orphans(dry_run=not write))
+
 --- END OF FILE ./src/features/self_healing/prune_orphaned_vectors.py ---
 
 --- START OF FILE ./src/features/self_healing/prune_private_capabilities.py ---
@@ -29548,7 +29688,7 @@ def _uuid5_from_text(text: str) -> str:
     return str(uuid.uuid5(uuid.NAMESPACE_URL, text))
 
 
-# ID: 3f5ec13f-ba90-4912-99fb-a040ac649db8
+# ID: 53349105-1b11-4917-9e24-ce9dc6f9a128
 class QdrantService:
     """Handles all interactions with the Qdrant vector database."""
 
@@ -29569,6 +29709,10 @@ class QdrantService:
         self.collection_name = collection_name or settings.QDRANT_COLLECTION_NAME
         self.vector_size = int(vector_size or settings.LOCAL_EMBEDDING_DIM)
 
+        # Optional support for named vectors if your collection is later migrated.
+        # If set, we'll prefer this key inside record.vectors.
+        self.vector_name: Optional[str] = settings.model_extra.get("QDRANT_VECTOR_NAME")
+
         if not self.url:
             raise ValueError("QDRANT_URL is not configured.")
 
@@ -29584,7 +29728,7 @@ class QdrantService:
             self.vector_size,
         )
 
-    # ID: 5f745907-7aab-4426-a8ed-573607f3e6d4
+    # ID: 299a4be1-32fe-4c3f-aad4-f8d15065111e
     async def ensure_collection(self) -> None:
         """Idempotently create the collection if it is missing."""
         try:
@@ -29610,15 +29754,16 @@ class QdrantService:
             log.error(f"Failed to ensure Qdrant collection exists: {e}", exc_info=True)
             raise
 
-    # ID: 21ca9b0a-5f75-4707-bd86-c2289d954b25
+    # ID: 1aa3971e-527b-481a-8029-c8ad01b5e670
     async def upsert_capability_vector(
         self,
+        point_id_str: str,
         vector: List[float],
         payload_data: dict,
     ) -> str:
         """
         Validates the payload against the EmbeddingPayload schema and upserts the vector.
-        Deterministic ID derived from the chunk_id. Returns the point ID.
+        Uses the provided point ID. Returns the point ID.
         """
         if len(vector) != self.vector_size:
             raise ValueError(f"Vector dim {len(vector)} != expected {self.vector_size}")
@@ -29633,7 +29778,7 @@ class QdrantService:
             log.error(f"Invalid embedding payload: {e}")
             raise ValueError(f"Invalid embedding payload: {e}") from e
 
-        pid = _uuid5_from_text(payload.chunk_id)
+        pid = point_id_str
 
         await self.client.upsert(
             collection_name=self.collection_name,
@@ -29647,10 +29792,10 @@ class QdrantService:
             wait=True,
         )
 
-        log.info(f"Upserted vector for chunk '{payload.chunk_id}' with ID: {pid}")
+        log.debug(f"Upserted vector for chunk '{payload.chunk_id}' with ID: {pid}")
         return pid
 
-    # ID: fba683c2-34d0-4feb-96ab-950c97abbb49
+    # ID: 400e23e3-0911-4419-86be-9b06ba5b3fb5
     async def get_all_vectors(self) -> List[qm.Record]:
         """Fetches all points with their vectors and payloads from the collection."""
         try:
@@ -29665,7 +29810,94 @@ class QdrantService:
             log.error(f"❌ Failed to retrieve all vectors from Qdrant: {e}")
             return []
 
-    # ID: 0e8ad7db-3561-4f97-9891-ca419e374dcf
+    # ID: 19e184b6-3b4e-483f-902d-c8ac35d3e8d4 (updated)
+    async def get_vector_by_id(self, point_id: str) -> Optional[List[float]]:
+        """
+        Retrieves a single vector by its point ID.
+
+        Robust to both older and newer qdrant-client models:
+        - If the record exposes `.vector` (single, unnamed vector), we use it.
+        - If the record exposes `.vectors` (possibly a dict of named vectors), we pick:
+          * the key in settings.model_extra['QDRANT_VECTOR_NAME'] if set, else
+          * the first key in sorted order for stability.
+        Returns list[float] or None if not found.
+        """
+        try:
+            records = await self.client.retrieve(
+                collection_name=self.collection_name,
+                ids=[str(point_id)],  # ensure it's a string
+                with_vectors=True,  # ALWAYS request vectors
+                with_payload=False,
+            )
+        except Exception as e:
+            log.warning(
+                "Could not retrieve vector for point ID %s (collection=%s): %s",
+                point_id,
+                self.collection_name,
+                e,
+            )
+            return None
+
+        if not records:
+            log.warning(
+                "Could not retrieve vector for point ID %s (collection=%s): point not found",
+                point_id,
+                self.collection_name,
+            )
+            return None
+
+        rec = records[0]
+
+        # Case 1: classic single vector
+        vec = getattr(rec, "vector", None)
+        if isinstance(vec, (list, tuple)):
+            return list(map(float, vec))
+
+        # Case 2: newer clients / named vectors
+        vectors_obj = getattr(rec, "vectors", None)
+        if isinstance(vectors_obj, dict):
+            # Prefer configured name if provided
+            if self.vector_name and self.vector_name in vectors_obj:
+                chosen = vectors_obj[self.vector_name]
+                if isinstance(chosen, (list, tuple)):
+                    return list(map(float, chosen))
+                # fall through to error if unexpected type
+
+            # Fallback: pick first key deterministically
+            if vectors_obj:
+                first_key = sorted(vectors_obj.keys())[0]
+                chosen = vectors_obj[first_key]
+                if isinstance(chosen, (list, tuple)):
+                    log.debug(
+                        "Using named vector '%s' for point %s (collection=%s) "
+                        "because QDRANT_VECTOR_NAME is not set.",
+                        first_key,
+                        point_id,
+                        self.collection_name,
+                    )
+                    return list(map(float, chosen))
+
+            log.warning(
+                "Could not retrieve vector for point ID %s (collection=%s): vectors dict present but empty or invalid. keys=%s",
+                point_id,
+                self.collection_name,
+                list(vectors_obj.keys()) if isinstance(vectors_obj, dict) else None,
+            )
+            return None
+
+        # Unexpected shape — log what we actually got
+        log.warning(
+            "Could not retrieve vector for point ID %s (collection=%s): "
+            "no usable 'vector' or 'vectors' on record. attrs(vector=%s, vectors_type=%s)",
+            point_id,
+            self.collection_name,
+            type(getattr(rec, "vector", None)).__name__,
+            type(getattr(rec, "vectors", None)).__name__,
+        )
+        return None
+
+    # (unchanged) simple search helper
+    # ID: b969f68c-ab5b-473b-8a9c-c53cffd38199
     async def search_similar(
         self,
         query_vector: Sequence[float],
@@ -29685,23 +29917,6 @@ class QdrantService:
         )
         return [{"score": hit.score, "payload": hit.payload} for hit in search_result]
 
-    # ID: 55effb86-fea5-4dc8-bdce-e9b464e9f243
-    async def get_vector_by_id(self, point_id: str) -> Optional[List[float]]:
-        """Retrieves a single vector by its point ID."""
-        try:
-            # --- THIS IS THE FIX ---
-            # Ensure the point ID is always a string when passed to the client.
-            records = await self.client.retrieve(
-                collection_name=self.collection_name,
-                ids=[str(point_id)],
-                with_vectors=True,
-            )
-            # --- END OF FIX ---
-            if records and records[0].vector:
-                return records[0].vector
-        except Exception as e:
-            log.warning(f"Could not retrieve vector for point ID {point_id}: {e}")
-        return None
 --- END OF FILE ./src/services/clients/qdrant_client.py ---
 
 --- START OF FILE ./src/services/config_service.py ---
@@ -29832,7 +30047,7 @@ Base = declarative_base()
 # =============================================================================
 
 
-# ID: 8dc9179c-3299-46c1-9e76-54fe54a258f2
+# ID: 2cc67cc1-1eed-4bde-a5d0-718898c13e7d
 class Symbol(Base):
     __tablename__ = "symbols"
     __table_args__ = {"schema": "core"}
@@ -29849,9 +30064,9 @@ class Symbol(Base):
     health_status = Column(Text, server_default="unknown")
     is_public = Column(Boolean, nullable=False, server_default="true")
     previous_paths = Column(JSON)  # Using JSON for text[]
-    vector_id = Column(Text)
+    key = Column(Text)
+    intent = Column(Text)
     embedding_model = Column(Text, server_default="text-embedding-3-small")
-    embedding_version = Column(Integer, server_default="1")
     last_embedded = Column(DateTime(timezone=True))
     first_seen = Column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
@@ -29870,7 +30085,7 @@ class Symbol(Base):
     )
 
 
-# ID: 8e4d0a49-1232-4b47-9201-c08b6bef2054
+# ID: 4932bee2-69e1-4849-aa68-b8f99493da6f
 class Capability(Base):
     __tablename__ = "capabilities"
     __table_args__ = {"schema": "core"}
@@ -29895,7 +30110,7 @@ class Capability(Base):
     )
 
 
-# ID: 290fc31a-5c81-4a82-b4f5-317ffb24fdb1
+# ID: b1b4c985-b551-41f6-8f54-805c9baea7ef
 class SymbolCapabilityLink(Base):
     __tablename__ = "symbol_capability_links"
     __table_args__ = {"schema": "core"}
@@ -29913,7 +30128,7 @@ class SymbolCapabilityLink(Base):
     )
 
 
-# ID: c6e5249a-8b31-462a-9026-0622b205a643
+# ID: 7f6f266f-0134-4f49-96f0-74221fffb235
 class Domain(Base):
     __tablename__ = "domains"
     __table_args__ = {"schema": "core"}
@@ -29930,7 +30145,7 @@ class Domain(Base):
 # =============================================================================
 
 
-# ID: 35180ec0-b61f-40a3-aba6-7f4f36ffe25c
+# ID: b00a4201-294c-4fbf-8ae5-d6a5e42d7db7
 class LlmResource(Base):
     __tablename__ = "llm_resources"
     __table_args__ = {"schema": "core"}
@@ -29944,7 +30159,7 @@ class LlmResource(Base):
     )
 
 
-# ID: 6ee37301-74cc-437a-8a39-08265d5d06be
+# ID: 869fa796-6848-4e73-aa02-e9f1f16dd2b2
 class CognitiveRole(Base):
     __tablename__ = "cognitive_roles"
     __table_args__ = {"schema": "core"}
@@ -29960,7 +30175,7 @@ class CognitiveRole(Base):
     )
 
 
-# ID: d944c52d-caa5-4d6b-9bd9-5f3b4eba5ea4
+# ID: 30c36fed-1175-4352-b585-4822f68f9eb9
 class Task(Base):
     __tablename__ = "tasks"
     __table_args__ = {"schema": "core"}
@@ -29989,7 +30204,7 @@ class Task(Base):
     completed_at = Column(DateTime(timezone=True))
 
 
-# ID: 816b5265-5573-4b40-98eb-ee4fb7f5d5b5
+# ID: 0b4c145d-c20d-4a6e-ad90-0dd172ab9d1e
 class Action(Base):
     __tablename__ = "actions"
     __table_args__ = {"schema": "core"}
@@ -30011,11 +30226,31 @@ class Action(Base):
 
 
 # =============================================================================
-# SECTION 6: SYSTEM METADATA (FIX: Added missing models)
+# SECTION 4: VECTOR INTEGRATION LAYER
 # =============================================================================
 
 
-# ID: a2b67e7e-b643-4528-8512-5746037bb82e
+# ID: 200ed659-c322-4c49-b098-0ecc877d0276
+class SymbolVectorLink(Base):
+    __tablename__ = "symbol_vector_links"
+    __table_args__ = {"schema": "core"}
+    symbol_id = Column(
+        pgUUID(as_uuid=True), ForeignKey("core.symbols.id"), primary_key=True
+    )
+    vector_id = Column(Text, nullable=False)
+    embedding_model = Column(Text, nullable=False)
+    embedding_version = Column(Integer, nullable=False)
+    created_at = Column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+
+# =============================================================================
+# SECTION 6: SYSTEM METADATA
+# =============================================================================
+
+
+# ID: 7cb97df4-dc18-49e3-8ef1-6dcc752efebd
 class CliCommand(Base):
     __tablename__ = "cli_commands"
     __table_args__ = {"schema": "core"}
@@ -30026,7 +30261,7 @@ class CliCommand(Base):
     category = Column(Text)
 
 
-# ID: 233d67ab-fcb4-480f-985f-3d38578626ef
+# ID: c9d097a0-89dd-4769-97a5-4d213720d120
 class RuntimeService(Base):
     __tablename__ = "runtime_services"
     __table_args__ = {"schema": "core"}
@@ -30035,7 +30270,7 @@ class RuntimeService(Base):
     is_active = Column(Boolean, server_default="true")
 
 
-# ID: 747038d9-da9f-43ea-8034-f5d50c7cf88a
+# ID: 4b0d98d6-23a0-4c9f-8389-0d40e7ef2105
 class Migration(Base):
     __tablename__ = "_migrations"
     __table_args__ = {"schema": "core"}
@@ -30045,7 +30280,7 @@ class Migration(Base):
     )
 
 
-# ID: e75fd92f-0065-4915-ac39-0a0b297b51bb
+# ID: 15a8b3cf-3c2d-4504-9890-85a386700323
 class Northstar(Base):
     __tablename__ = "northstar"
     __table_args__ = {"schema": "core"}
@@ -33366,6 +33601,7 @@ async def test_execute_goal_end_to_end(mock_core_env, get_test_session, mocker):
 A diagnostic test to isolate and verify that pytest-dotenv is working.
 This test has NO imports from the 'src' directory to avoid interference.
 """
+
 import os
 
 

@@ -20,25 +20,26 @@ console = Console()
 log = getLogger("definition_service")
 
 
-# ID: e8474497-40b5-47df-8480-602bfa03aaf8
+# ID: b095628d-b3d0-4fad-bfb6-483a217ea42c
 async def get_undefined_symbols() -> List[Dict[str, Any]]:
     """
-    Fetches symbols that are ready for definition (have a vector_id but no key).
+    Fetches symbols that are ready for definition (have a vector link but no key).
     """
     async with get_session() as session:
         result = await session.execute(
             text(
                 """
-                SELECT id, symbol_path, module AS file_path, vector_id
-                FROM core.symbols
-                WHERE key IS NULL AND vector_id IS NOT NULL
+                SELECT s.id, s.symbol_path, s.module, vl.vector_id
+                FROM core.symbols s
+                JOIN core.symbol_vector_links vl ON s.id = vl.symbol_id
+                WHERE s.key IS NULL
                 """
             )
         )
         return [dict(row._mapping) for row in result]
 
 
-# ID: f30f4ec0-3ed3-4775-b018-28be18692ebf
+# ID: ec330970-c4ad-4bfd-87de-9e43fdaffaf0
 async def define_single_symbol(
     symbol: Dict[str, Any],
     cognitive_service: CognitiveService,
@@ -49,6 +50,9 @@ async def define_single_symbol(
     log.info(f"Defining symbol: {symbol.get('symbol_path')}")
     source_code = extract_source_code(settings.REPO_PATH, symbol)
     if not source_code:
+        log.warning(
+            f"Cannot extract source code for {symbol.get('symbol_path')}: symbol data is likely missing 'module' or 'symbol_path'."
+        )
         return {"id": symbol["id"], "key": "error.code_not_found"}
 
     similar_capabilities_str = "No similar capabilities found."
@@ -73,11 +77,8 @@ async def define_single_symbol(
                 f"Semantic search failed during definition for {symbol['symbol_path']}: {e}"
             )
 
-    # --- THIS IS THE FIX ---
-    # Load the correct, existing prompt from the constitution.
     prompt_template_path = settings.get_path("mind.prompts.capability_definer")
     prompt_template = prompt_template_path.read_text(encoding="utf-8")
-    # --- END OF FIX ---
 
     final_prompt = prompt_template.format(
         code=source_code, similar_capabilities=similar_capabilities_str
@@ -88,7 +89,6 @@ async def define_single_symbol(
         final_prompt, user_id="definer_agent"
     )
 
-    # Be more robust in extracting the key
     cleaned_key = (
         raw_suggested_key.strip().replace("`", "").replace("'", "").replace('"', "")
     )
@@ -109,23 +109,28 @@ async def define_single_symbol(
     return {"id": symbol["id"], "key": cleaned_key}
 
 
-# ID: 1c642222-6e05-4e31-a9f6-68502a054947
+# ID: 2d5b3476-74be-46f5-b173-1a909327bb85
 async def update_definitions_in_db(definitions: List[Dict[str, Any]]):
     """Updates the 'key' column for symbols in the database."""
     if not definitions:
         return
 
     log.info(f"Attempting to update {len(definitions)} definitions in the database...")
+
+    serializable_definitions = [
+        {"id": str(d["id"]), "key": d["key"]} for d in definitions
+    ]
+
     async with get_session() as session:
         async with session.begin():
             await session.execute(
                 text("UPDATE core.symbols SET key = :key WHERE id = :id"),
-                definitions,
+                serializable_definitions,
             )
     log.info("Database update transaction completed.")
 
 
-# ID: 073b8012-385d-4c2b-972e-0e6914fe0d30
+# ID: 3409dc17-cc09-4564-bfa6-7e83c8a32468
 async def define_new_symbols(cognitive_service: CognitiveService):
     """The main orchestrator for the autonomous definition process."""
     undefined_symbols = await get_undefined_symbols()

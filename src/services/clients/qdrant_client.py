@@ -42,7 +42,7 @@ def _uuid5_from_text(text: str) -> str:
     return str(uuid.uuid5(uuid.NAMESPACE_URL, text))
 
 
-# ID: 6389a100-1bfa-5926-bc9c-03202f641fea
+# ID: 53349105-1b11-4917-9e24-ce9dc6f9a128
 class QdrantService:
     """Handles all interactions with the Qdrant vector database."""
 
@@ -63,6 +63,10 @@ class QdrantService:
         self.collection_name = collection_name or settings.QDRANT_COLLECTION_NAME
         self.vector_size = int(vector_size or settings.LOCAL_EMBEDDING_DIM)
 
+        # Optional support for named vectors if your collection is later migrated.
+        # If set, we'll prefer this key inside record.vectors.
+        self.vector_name: Optional[str] = settings.model_extra.get("QDRANT_VECTOR_NAME")
+
         if not self.url:
             raise ValueError("QDRANT_URL is not configured.")
 
@@ -78,7 +82,7 @@ class QdrantService:
             self.vector_size,
         )
 
-    # ID: 3fe7ca2b-12b6-4c13-bbb7-0c4288ac5152
+    # ID: 299a4be1-32fe-4c3f-aad4-f8d15065111e
     async def ensure_collection(self) -> None:
         """Idempotently create the collection if it is missing."""
         try:
@@ -104,7 +108,7 @@ class QdrantService:
             log.error(f"Failed to ensure Qdrant collection exists: {e}", exc_info=True)
             raise
 
-    # ID: 865a6015-1e72-42bc-b9fc-9c8e300851b4
+    # ID: 1aa3971e-527b-481a-8029-c8ad01b5e670
     async def upsert_capability_vector(
         self,
         point_id_str: str,
@@ -128,7 +132,6 @@ class QdrantService:
             log.error(f"Invalid embedding payload: {e}")
             raise ValueError(f"Invalid embedding payload: {e}") from e
 
-        # Use the explicitly provided point ID
         pid = point_id_str
 
         await self.client.upsert(
@@ -146,7 +149,7 @@ class QdrantService:
         log.debug(f"Upserted vector for chunk '{payload.chunk_id}' with ID: {pid}")
         return pid
 
-    # ID: 3da21af2-4942-48bd-980f-2b5adc68e116
+    # ID: 400e23e3-0911-4419-86be-9b06ba5b3fb5
     async def get_all_vectors(self) -> List[qm.Record]:
         """Fetches all points with their vectors and payloads from the collection."""
         try:
@@ -161,7 +164,89 @@ class QdrantService:
             log.error(f"❌ Failed to retrieve all vectors from Qdrant: {e}")
             return []
 
-    # ID: d36f8768-8f11-4460-81c2-edb7bb5ec806
+    # ID: 19e184b6-3b4e-483f-902d-c8ac35d3e8d4 (updated)
+    async def get_vector_by_id(self, point_id: str) -> Optional[List[float]]:
+        """
+        Retrieves a single vector by its point ID.
+        """
+        try:
+            records = await self.client.retrieve(
+                collection_name=self.collection_name,
+                ids=[str(point_id)],  # ensure it's a string
+                with_vectors=True,
+                with_payload=False,
+            )
+        # --- THIS IS THE DIAGNOSTIC FIX ---
+        except Exception as e:
+            # This new, more specific logging will tell us the real error.
+            log.warning(
+                "Could not retrieve vector for point ID %s (collection=%s): An unexpected exception occurred during the API call. Type: %s, Error: %s",
+                point_id,
+                self.collection_name,
+                type(e).__name__,
+                e,
+            )
+            return None
+        # --- END OF FIX ---
+
+        if not records:
+            log.warning(
+                "Could not retrieve vector for point ID %s (collection=%s): point not found",
+                point_id,
+                self.collection_name,
+            )
+            return None
+
+        rec = records[0]
+
+        # Case 1: classic single vector
+        vec = getattr(rec, "vector", None)
+        if isinstance(vec, (list, tuple)):
+            return list(map(float, vec))
+
+        # Case 2: newer clients / named vectors
+        vectors_obj = getattr(rec, "vectors", None)
+        if isinstance(vectors_obj, dict):
+            # Prefer configured name if provided
+            if self.vector_name and self.vector_name in vectors_obj:
+                chosen = vectors_obj[self.vector_name]
+                if isinstance(chosen, (list, tuple)):
+                    return list(map(float, chosen))
+
+            # Fallback: pick first key deterministically
+            if vectors_obj:
+                first_key = sorted(vectors_obj.keys())[0]
+                chosen = vectors_obj[first_key]
+                if isinstance(chosen, (list, tuple)):
+                    log.debug(
+                        "Using named vector '%s' for point %s (collection=%s) "
+                        "because QDRANT_VECTOR_NAME is not set.",
+                        first_key,
+                        point_id,
+                        self.collection_name,
+                    )
+                    return list(map(float, chosen))
+
+            log.warning(
+                "Could not retrieve vector for point ID %s (collection=%s): vectors dict present but empty or invalid. keys=%s",
+                point_id,
+                self.collection_name,
+                list(vectors_obj.keys()) if isinstance(vectors_obj, dict) else None,
+            )
+            return None
+
+        log.warning(
+            "Could not retrieve vector for point ID %s (collection=%s): "
+            "no usable 'vector' or 'vectors' on record. attrs(vector=%s, vectors_type=%s)",
+            point_id,
+            self.collection_name,
+            type(getattr(rec, "vector", None)).__name__,
+            type(getattr(rec, "vectors", None)).__name__,
+        )
+        return None
+
+    # (unchanged) simple search helper
+    # ID: b969f68c-ab5b-473b-8a9c-c53cffd38199
     async def search_similar(
         self,
         query_vector: Sequence[float],
@@ -180,19 +265,3 @@ class QdrantService:
             query_filter=filter_,
         )
         return [{"score": hit.score, "payload": hit.payload} for hit in search_result]
-
-    # ID: e512f341-b8f5-438b-917d-3ef3b9b044cb
-    async def get_vector_by_id(self, point_id: str) -> Optional[List[float]]:
-        """Retrieves a single vector by its point ID."""
-        try:
-            # Ensure the point ID is always a string when passed to the client.
-            records = await self.client.retrieve(
-                collection_name=self.collection_name,
-                ids=[str(point_id)],
-                with_vectors=True,
-            )
-            if records and records[0].vector:
-                return records[0].vector
-        except Exception as e:
-            log.warning(f"Could not retrieve vector for point ID {point_id}: {e}")
-        return None

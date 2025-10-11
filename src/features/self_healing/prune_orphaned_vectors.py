@@ -25,19 +25,17 @@ async def _async_prune_orphans(dry_run: bool):
     """The core async logic for finding and pruning orphaned vectors."""
     console.print("[bold cyan]🌿 Starting orphan vector pruning process...[/bold cyan]")
 
-    valid_symbol_ids = set()
+    valid_vector_ids = set()
     try:
-        # 1. Get the ground truth: all valid symbol IDs from the main database
-        console.print("   -> Fetching valid symbol IDs from PostgreSQL...")
+        # 1. Get the ground truth: all valid vector IDs from the link table.
+        console.print("   -> Fetching valid vector IDs from PostgreSQL link table...")
         async with get_session() as session:
-            # --- THIS IS THE FIX ---
-            # Explicitly cast the UUID to text in the SQL query to guarantee
-            # we get a string representation that matches Qdrant's IDs.
-            result = await session.execute(text("SELECT id::text FROM core.symbols"))
-            valid_symbol_ids = {row[0] for row in result}
-            # --- END OF FIX ---
+            result = await session.execute(
+                text("SELECT vector_id FROM core.symbol_vector_links")
+            )
+            valid_vector_ids = {row[0] for row in result}
         console.print(
-            f"      - Found {len(valid_symbol_ids)} valid symbols in the main database."
+            f"      - Found {len(valid_vector_ids)} valid vector links in the main database."
         )
 
     except Exception as e:
@@ -55,7 +53,6 @@ async def _async_prune_orphans(dry_run: bool):
             with_payload=False,
             with_vectors=False,
         )
-        # Qdrant IDs can be UUIDs or integers, ensure they are strings for comparison
         vector_point_ids = {str(point.id) for point in all_points}
         console.print(f"      - Found {len(vector_point_ids)} vectors in Qdrant.")
 
@@ -66,7 +63,7 @@ async def _async_prune_orphans(dry_run: bool):
         raise typer.Exit(code=1)
 
     # 3. Compare the two sets to find the orphans
-    orphaned_ids = list(vector_point_ids - valid_symbol_ids)
+    orphaned_ids = list(vector_point_ids - valid_vector_ids)
 
     if not orphaned_ids:
         console.print(
@@ -100,7 +97,7 @@ async def _async_prune_orphans(dry_run: bool):
     )
 
 
-# ID: 9c0f083b-5653-4c1d-b4bb-f4f38528f062
+# ID: 47ae55f7-19bb-4bd9-9361-e33733a64ba9
 def main_sync(
     write: bool = typer.Option(
         False, "--write", help="Permanently delete orphaned vectors from Qdrant."

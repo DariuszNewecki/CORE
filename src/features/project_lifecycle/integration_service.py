@@ -14,35 +14,18 @@ from features.self_healing.id_tagging_service import assign_missing_ids
 console = Console()
 
 
-# ID: 47b10dad-7f52-4962-bc07-7b82a2c12f42
-async def integrate_changes(context: CoreContext, commit_message: str):
+# ID: 79e03609-2875-4dfa-ab67-e8435f994a0c
+async def check_integration_health(context: CoreContext) -> bool:
     """
-    Orchestrates the full, transactional, and intelligent integration of staged code changes.
+    Runs the full integration and validation sequence without committing or rolling back.
+    This is the primary developer command to check if work is ready to be committed.
+    Returns True if all checks pass, False otherwise.
     """
-    # Get services from the explicitly passed context object
-    git_service = context.git_service
     cognitive_service = context.cognitive_service
 
-    initial_commit_hash = git_service.get_current_commit()
-    integration_succeeded = False
-
     try:
-        staged_files = git_service.get_staged_files()
-        if not staged_files:
-            console.print(
-                "[yellow]No staged changes found to integrate. Please use 'git add'.[/yellow]"
-            )
-            return
-
-        console.print(f"Integrating {len(staged_files)} staged file(s)...")
-
-        # --- START OF TRANSACTIONAL & REORDERED PROCESS ---
-
         console.print("\n[bold]Step 1/5: Assigning IDs to new symbols...[/bold]")
-        assign_missing_ids(
-            dry_run=False
-        )  # This is the only step that modifies local files
-        git_service.add_all()
+        assign_missing_ids(dry_run=False)
 
         console.print(
             "\n[bold]Step 2/5: Synchronizing code state with the database...[/bold]"
@@ -68,19 +51,53 @@ async def integrate_changes(context: CoreContext, commit_message: str):
         passed, findings, _ = await auditor.run_full_audit_async()
         if not passed:
             console.print(
-                "[bold red]❌ Constitutional audit failed. Integration will be reverted.[/bold red]"
+                "[bold red]❌ Constitutional audit failed. Please fix the errors above.[/bold red]"
             )
-            # This ensures the 'finally' block triggers a reset
-            raise RuntimeError("Audit failed, triggering automatic rollback.")
+            return False
 
-        console.print("\n[bold]Final Step: Committing changes...[/bold]")
-        git_service.commit(commit_message)
         console.print(
-            "[bold green]✅ Successfully integrated and committed changes.[/bold green]"
+            "\n[bold green]✅ All integration checks passed. Your changes are ready to be committed.[/bold green]"
         )
-        integration_succeeded = True
+        return True
 
-        # --- END OF TRANSACTIONAL & REORDERED PROCESS ---
+    except Exception as e:
+        console.print(f"\n[bold red]An error occurred during the check: {e}[/bold red]")
+        return False
+
+
+# ID: a6ace728-0c7f-48b8-b7a0-52ff9b24d99d
+async def integrate_changes(context: CoreContext, commit_message: str):
+    """
+    Orchestrates the full, transactional, and intelligent integration of staged code changes.
+    This version is DESTRUCTIVE and will roll back on failure. Use for CI/automation.
+    """
+    git_service = context.git_service
+    initial_commit_hash = git_service.get_current_commit()
+    integration_succeeded = False
+
+    try:
+        staged_files = git_service.get_staged_files()
+        if not staged_files:
+            console.print(
+                "[yellow]No staged changes found to integrate. Please use 'git add'.[/yellow]"
+            )
+            return
+
+        console.print(f"Integrating {len(staged_files)} staged file(s)...")
+
+        # Run the non-destructive health check first. If it passes, we commit.
+        if await check_integration_health(context):
+            console.print("\n[bold]Final Step: Committing changes...[/bold]")
+            git_service.add_all()  # Ensure any auto-generated ID changes are staged
+            git_service.commit(commit_message)
+            console.print(
+                "[bold green]✅ Successfully integrated and committed changes.[/bold green]"
+            )
+            integration_succeeded = True
+        else:
+            raise RuntimeError(
+                "Integration health check failed. Triggering automatic rollback."
+            )
 
     except Exception as e:
         console.print(

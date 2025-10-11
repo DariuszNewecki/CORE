@@ -2,13 +2,11 @@
 """
 Unvectorized Symbol Inspector (diagnostic-only)
 
-Lists symbols in `core.symbols` that do NOT have a vector assigned yet
-(i.e., rows where `vector_id IS NULL`), using your current database schema.
+Lists symbols in `core.symbols` that do NOT have a vector link yet.
+This version is updated for the link-table model:
 
-Schema columns used:
-- symbol_path (TEXT)
-- module       (TEXT)  -> shown as file_path
-- fingerprint  (TEXT)  -> shown as structural_hash
+  - core.symbols(id UUID, symbol_path TEXT, module TEXT, fingerprint TEXT, ...)
+  - core.symbol_vector_links(symbol_id UUID, vector_id TEXT, ...)
 
 Usage examples:
   poetry run python3 scripts/find_unvectorized_symbols.py
@@ -17,8 +15,8 @@ Usage examples:
   poetry run python3 scripts/find_unvectorized_symbols.py --csv > unvectorized.csv
 
 Notes:
-- Reads the database URL from $DATABASE_URL (must be async, e.g. postgresql+asyncpg://…)
-- This script is *diagnostic only* and not part of CORE’s runtime.
+- Reads the database URL from $DATABASE_URL (async URL: postgresql+asyncpg://…)
+- Diagnostic-only; not part of CORE’s runtime.
 """
 
 from __future__ import annotations
@@ -36,12 +34,16 @@ from sqlalchemy.ext.asyncio import create_async_engine
 SQL_SELECT = text(
     """
     SELECT
-        symbol_path,
-        module AS file_path,
-        fingerprint AS structural_hash
-    FROM core.symbols
-    WHERE vector_id IS NULL
-    ORDER BY module, symbol_path
+        s.symbol_path,
+        s.module AS file_path,
+        s.fingerprint AS structural_hash
+    FROM core.symbols AS s
+    WHERE NOT EXISTS (
+        SELECT 1
+        FROM core.symbol_vector_links AS l
+        WHERE l.symbol_id = s.id
+    )
+    ORDER BY s.module, s.symbol_path
     LIMIT :limit
     """
 )
@@ -49,8 +51,12 @@ SQL_SELECT = text(
 SQL_COUNT = text(
     """
     SELECT COUNT(*) AS cnt
-    FROM core.symbols
-    WHERE vector_id IS NULL
+    FROM core.symbols AS s
+    WHERE NOT EXISTS (
+        SELECT 1
+        FROM core.symbol_vector_links AS l
+        WHERE l.symbol_id = s.id
+    )
     """
 )
 
@@ -64,94 +70,57 @@ def _fmt_row(row: Tuple[str, str, str], widths: Tuple[int, int, int]) -> str:
     return f"{s:<{w1}}  {f:<{w2}}  {h:<{w3}}"
 
 
-async def _run_async(limit: int, as_csv: bool, do_count: bool) -> int:
-    db_url = os.getenv("DATABASE_URL")
+async def _run(limit: int, want_count: bool, as_csv: bool) -> int:
+    db_url = os.environ.get("DATABASE_URL")
     if not db_url:
         print("❌ DATABASE_URL is not set.", file=sys.stderr)
         return 2
-    if not db_url.startswith("postgresql+asyncpg://"):
-        print(
-            "❌ DATABASE_URL must be an async URL (e.g. postgresql+asyncpg://…)",
-            file=sys.stderr,
-        )
-        return 2
+    engine = create_async_engine(db_url, future=True)
 
-    engine = create_async_engine(db_url, pool_pre_ping=True)
     try:
         async with engine.begin() as conn:
-            # Optional count-only mode
-            if do_count:
+            if want_count:
                 res = await conn.execute(SQL_COUNT)
-                count = res.scalar_one()
+                count = int(res.scalar() or 0)
                 print(count)
                 return 0
 
             res = await conn.execute(SQL_SELECT, {"limit": limit})
-            rows = [(r[0] or "", r[1] or "", r[2] or "") for r in res.fetchall()]
+            rows = [(r[0], r[1], r[2]) for r in res]
 
-            if as_csv:
-                writer = csv.writer(sys.stdout)
-                writer.writerow(["symbol_path", "file_path", "structural_hash"])
-                writer.writerows(rows)
-                return 0
-
-            if not rows:
-                print("--- Unvectorized Symbol Inspector ---")
-                print("✅ No unvectorized symbols found. (vector_id IS NULL = 0)")
-                return 0
-
-            # Pretty table
-            print("--- Unvectorized Symbol Inspector ---")
-            print(f"✅ Connected to DB: {db_url.split('@')[-1]}")
-            print(f"📦 Rows: {len(rows)} (showing up to {limit})\n")
-
-            # Choose friendly widths
-            w_symbol = 60
-            w_file = 48
-            w_hash = 40
-            widths = (w_symbol, w_file, w_hash)
-
-            header = _fmt_row(("symbol_path", "file_path", "structural_hash"), widths)
-            sep = "-" * len(header)
-            print(header)
-            print(sep)
-            for row in rows:
-                print(_fmt_row(row, widths))
-
-            print("\nℹ️ Tip: Use --csv to export, or --count to just get the number.")
+        if as_csv:
+            writer = csv.writer(sys.stdout)
+            writer.writerow(["symbol_path", "file_path", "structural_hash"])
+            writer.writerows(rows)
             return 0
-    except Exception as exc:  # pragma: no cover (diagnostic)
-        print("❌ Error while querying unvectorized symbols:\n", file=sys.stderr)
-        print(str(exc), file=sys.stderr)
+
+        # pretty print
+        widths = (68, 56, 16)
+        header = _fmt_row(("symbol_path", "file_path", "structural_hash"), widths)
+        print(header)
+        print("-" * len(header))
+        for row in rows:
+            print(_fmt_row(row, widths))
+
+        return 0
+
+    except Exception as e:
+        print(f"❌ Query failed: {e}", file=sys.stderr)
         return 1
+
     finally:
         await engine.dispose()
 
 
-def main() -> int:
-    parser = argparse.ArgumentParser(
-        description="List symbols without vectors (vector_id IS NULL) from core.symbols."
-    )
-    parser.add_argument(
-        "--limit",
-        type=int,
-        default=200,
-        help="Max rows to display (default: 200)",
-    )
-    parser.add_argument(
-        "--csv",
-        action="store_true",
-        help="Output CSV (columns: symbol_path,file_path,structural_hash)",
-    )
-    parser.add_argument(
-        "--count",
-        action="store_true",
-        help="Print only the count of unvectorized symbols and exit.",
-    )
-    args = parser.parse_args()
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--limit", type=int, default=100, help="Rows to list")
+    ap.add_argument("--count", action="store_true", help="Print only the count")
+    ap.add_argument("--csv", action="store_true", help="Emit CSV to stdout")
+    args = ap.parse_args()
 
-    return asyncio.run(_run_async(args.limit, args.csv, args.count))
+    raise SystemExit(asyncio.run(_run(args.limit, args.count, args.csv)))
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    main()

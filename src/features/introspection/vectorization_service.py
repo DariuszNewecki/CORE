@@ -32,12 +32,11 @@ async def _fetch_symbols_from_db() -> List[Dict]:
     async with get_session() as session:
         stmt = text(
             """
-            SELECT id, symbol_path, module, fingerprint AS structural_hash, vector_id
+            SELECT id, symbol_path, module, fingerprint AS structural_hash
             FROM core.v_symbols_needing_embedding
             """
         )
         result = await session.execute(stmt)
-        # We now return the raw module path from the DB
         return [dict(row._mapping) for row in result]
 
 
@@ -75,31 +74,23 @@ async def _process_vectorization_task(
         if not vector:
             raise ValueError("Embedding service returned None")
 
-        # The ID for Qdrant and Postgres MUST be the same string representation.
-        # The symbol's `id` from the database is a UUID object. We cast it to a string here.
         vector_id_str = str(task["id"])
 
         payload_data = {
-            "source_path": task[
-                "file_path_str"
-            ],  # Use the string representation of the file path
+            "source_path": task["file_path_str"],
             "source_type": "code",
             "chunk_id": task["symbol_path"],
             "content_sha256": task["code_hash"],
             "language": "python",
             "symbol": task["symbol_path"],
-            # Use the stringified UUID in the payload for traceability
             "capability_tags": [vector_id_str],
         }
-        # The upsert function now internally uses this string ID to create the point.
-        # We don't need its return value because we already know the ID.
         await qdrant_service.upsert_capability_vector(
-            point_id_str=vector_id_str,  # Pass the ID explicitly
+            point_id_str=vector_id_str,
             vector=vector,
             payload_data=payload_data,
         )
 
-        # Return the same string ID we used, ensuring consistency.
         return vector_id_str
     except Exception as e:
         log.error(f"Failed to process symbol '{task['symbol_path']}': {e}")
@@ -109,31 +100,46 @@ async def _process_vectorization_task(
         return None
 
 
-async def _update_symbols_in_db(updates: List[Dict]):
-    """Bulk updates the vector_id and embedding metadata for symbols in the database."""
+async def _update_db_after_vectorization(updates: List[Dict]):
+    """
+    Creates links in symbol_vector_links and updates the last_embedded timestamp
+    on the symbols table.
+    """
     if not updates:
         return
     async with get_session() as session:
         async with session.begin():
+            # Upsert into the link table
             await session.execute(
                 text(
                     """
-                    UPDATE core.symbols SET
-                        vector_id = :vector_id,
-                        last_embedded = NOW(),
-                        embedding_model = :embedding_model,
-                        embedding_version = :embedding_version,
-                        updated_at = NOW()
-                    WHERE id = :id
+                    INSERT INTO core.symbol_vector_links (symbol_id, vector_id, embedding_model, embedding_version, created_at)
+                    VALUES (:symbol_id, :vector_id, :embedding_model, :embedding_version, NOW())
+                    ON CONFLICT (symbol_id) DO UPDATE SET
+                        vector_id = EXCLUDED.vector_id,
+                        embedding_model = EXCLUDED.embedding_model,
+                        embedding_version = EXCLUDED.embedding_version,
+                        created_at = NOW();
                 """
                 ),
                 updates,
             )
-        await session.commit()
-    console.print(f"   -> Updated {len(updates)} vector IDs in the database.")
+
+            # Update the timestamp on the main symbols table
+            await session.execute(
+                text(
+                    """
+                    UPDATE core.symbols SET last_embedded = NOW()
+                    WHERE id = ANY(:symbol_ids)
+                """
+                ),
+                {"symbol_ids": [u["symbol_id"] for u in updates]},
+            )
+
+    console.print(f"   -> Updated {len(updates)} records in the database.")
 
 
-# ID: 3bccc577-acce-4c72-81f4-ab48119d43c8
+# ID: 4bcad5fa-c30b-4c24-bf6c-5b692ecbbf67
 async def run_vectorize(
     cognitive_service: CognitiveService,
     dry_run: bool = False,
@@ -144,19 +150,20 @@ async def run_vectorize(
     """
     console.print("[bold cyan]🚀 Starting Database-Driven Vectorization...[/bold cyan]")
     failure_log_path = settings.REPO_PATH / "logs" / "vectorization_failures.log"
-    symbols_to_process = await _fetch_symbols_from_db()
 
     if force:
         console.print(
-            "[bold yellow]--force flag detected: Re-vectorizing ALL symbols.[/bold yellow]"
+            "[bold yellow]--force flag detected: Re-vectorizing ALL public symbols.[/bold yellow]"
         )
         async with get_session() as session:
             result = await session.execute(
                 text(
-                    "SELECT id, symbol_path, module, fingerprint AS structural_hash, vector_id FROM core.symbols WHERE is_public = TRUE"
+                    "SELECT id, symbol_path, module, fingerprint AS structural_hash FROM core.symbols WHERE is_public = TRUE"
                 )
             )
             symbols_to_process = [dict(row._mapping) for row in result]
+    else:
+        symbols_to_process = await _fetch_symbols_from_db()
 
     if not symbols_to_process:
         console.print(
@@ -173,7 +180,6 @@ async def run_vectorize(
 
     tasks = []
     for symbol in symbols_to_process:
-        # Translate the module path from the database back into a file system path.
         module_path = symbol["module"]
         file_path_str = "src/" + module_path.replace(".", "/") + ".py"
         file_path = settings.REPO_PATH / file_path_str
@@ -185,7 +191,6 @@ async def run_vectorize(
         normalized_code = normalize_text(source_code)
         code_hash = hashlib.sha256(normalized_code.encode("utf-8")).hexdigest()
 
-        # Add both path representations to the task for later use
         task_data = {
             **symbol,
             "source_code": normalized_code,
@@ -213,7 +218,6 @@ async def run_vectorize(
         return
 
     updates_to_db = []
-
     for task in track(tasks, description="Vectorizing symbols..."):
         point_id = await _process_vectorization_task(
             task, cognitive_service, qdrant_service, failure_log_path
@@ -221,14 +225,14 @@ async def run_vectorize(
         if point_id:
             updates_to_db.append(
                 {
-                    "id": task["id"],
+                    "symbol_id": task["id"],
                     "vector_id": point_id,
                     "embedding_model": settings.LOCAL_EMBEDDING_MODEL_NAME,
                     "embedding_version": 1,
                 }
             )
 
-    await _update_symbols_in_db(updates_to_db)
+    await _update_db_after_vectorization(updates_to_db)
 
     console.print(
         f"\n[bold green]✅ Vectorization complete. Processed {len(updates_to_db)}/{len(tasks)} symbols.[/bold green]"
