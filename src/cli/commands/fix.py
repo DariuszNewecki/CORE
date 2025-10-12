@@ -1,7 +1,6 @@
 # src/cli/commands/fix.py
 """
 Registers the 'fix' command group.
-Refactored under dry_by_design to use the canonical context setter.
 """
 
 from __future__ import annotations
@@ -11,10 +10,11 @@ from pathlib import Path
 from typing import Optional
 
 import typer
-from cli.logic.proposals_micro import (
-    _create_micro_proposal,
-    propose_and_apply_autonomously,
-)
+
+# --- START MODIFICATION ---
+from cli.logic.proposals_micro import micro_propose, propose_and_apply_autonomously
+
+# --- END MODIFICATION ---
 from features.maintenance.command_sync_service import sync_commands_to_db
 from features.self_healing.capability_tagging_service import (
     tag_unassigned_capabilities,
@@ -44,7 +44,7 @@ fix_app = typer.Typer(
 _context: Optional[CoreContext] = None
 
 
-# ID: 41da04c5-cd61-4f2f-98af-3bf7b41ac043
+# ID: 72a4d691-f7c3-4752-bc6a-a08dad2df1dc
 def set_context(context: CoreContext) -> None:
     """Sets the shared context for commands in this group."""
     global _context
@@ -109,7 +109,9 @@ def fix_headers_cmd(
         console.print(
             "[bold yellow]-- DRY RUN: Generating autonomous plan for fixing headers... --[/bold yellow]"
         )
-        asyncio.run(_create_micro_proposal(context=ctx, goal=goal))
+        # --- START MODIFICATION ---
+        asyncio.run(micro_propose(context=ctx, goal=goal))
+        # --- END MODIFICATION ---
 
 
 @fix_app.command(
@@ -130,7 +132,9 @@ def fix_docstrings_command(
         console.print(
             "[bold yellow]-- DRY RUN: Generating autonomous plan without applying it. --[/bold yellow]"
         )
-        asyncio.run(_create_micro_proposal(context=ctx, goal=goal))
+        # --- START MODIFICATION ---
+        asyncio.run(micro_propose(context=ctx, goal=goal))
+        # --- END MODIFICATION ---
 
 
 fix_app.command("line-lengths", help="Refactors files with long lines.")(

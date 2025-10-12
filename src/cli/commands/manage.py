@@ -1,31 +1,35 @@
 # src/cli/commands/manage.py
 """
 Registers the new, verb-based 'manage' command group with subgroups.
-Refactored under dry_by_design to use the canonical context setter.
 """
 
 from __future__ import annotations
 
 import asyncio
+from pathlib import Path
 from typing import Optional
 
 import typer
 from cli.logic.byor import initialize_repository
 from cli.logic.db import export_data, migrate_db
-from cli.logic.new import register as register_new_project
 from cli.logic.project_docs import docs as project_docs
 from cli.logic.proposal_service import (
     proposals_approve,
     proposals_list,
     proposals_sign,
 )
-from cli.logic.proposals_micro import register as register_micro_proposals
+
+# --- START MODIFICATION ---
+from cli.logic.proposals_micro import micro_apply, micro_propose
+
+# --- END MODIFICATION ---
 from cli.logic.sync import sync_knowledge_base
 from cli.logic.sync_manifest import sync_manifest
 from features.governance.key_management_service import keygen
 from features.maintenance.dotenv_sync_service import run_dotenv_sync
 from features.maintenance.migration_service import run_ssot_migration
 from features.project_lifecycle.definition_service import define_new_symbols
+from features.project_lifecycle.scaffolding_service import new_project
 from rich.console import Console
 from shared.context import CoreContext
 from shared.logger import getLogger
@@ -39,6 +43,12 @@ manage_app = typer.Typer(
 )
 
 _context: Optional[CoreContext] = None
+
+
+# ID: b8bed536-f385-437d-ae68-5f5527674823
+def set_context(context: CoreContext):
+    """Sets the shared context for commands in this group."""
+    global _context
 
 
 db_sub_app = typer.Typer(
@@ -60,7 +70,6 @@ def migrate_ssot_command(
         False, "--write", help="Apply the migration to the database."
     ),
 ):
-    """CLI wrapper for the SSOT migration service."""
     asyncio.run(run_ssot_migration(dry_run=not write))
 
 
@@ -81,14 +90,13 @@ def dotenv_sync_command(
         False, "--write", help="Apply the sync to the database."
     ),
 ):
-    """CLI wrapper for the dotenv sync service."""
     asyncio.run(run_dotenv_sync(dry_run=not write))
 
 
 manage_app.add_typer(dotenv_sub_app, name="dotenv")
 
 project_sub_app = typer.Typer(help="Manage CORE projects.", no_args_is_help=True)
-register_new_project(project_sub_app)
+project_sub_app.command("new")(new_project)
 project_sub_app.command("onboard")(initialize_repository)
 project_sub_app.command("docs")(project_docs)
 manage_app.add_typer(project_sub_app, name="project")
@@ -107,13 +115,36 @@ def approve_command_wrapper(
         ..., help="Filename of the proposal to approve."
     ),
 ):
-    """Wrapper to pass CoreContext to the approve logic."""
     if not _context:
         raise typer.Exit("Context not set for approve command.")
     proposals_approve(context=_context, proposal_name=proposal_name)
 
 
-register_micro_proposals(proposals_sub_app, _context)
+# --- START MODIFICATION: Define commands and wrap async functions ---
+@proposals_sub_app.command("micro-apply")
+# ID: f5155458-dd76-4ab7-a646-92aa45b88dfb
+def micro_apply_command(
+    proposal_path: Path = typer.Argument(..., exists=True),
+):
+    """Validates and applies a micro-proposal JSON file."""
+    if not _context:
+        raise typer.Exit("Context not set for micro-apply.")
+    asyncio.run(micro_apply(context=_context, proposal_path=proposal_path))
+
+
+@proposals_sub_app.command("micro-propose")
+# ID: 8d3577df-6a3e-415e-b2f8-fe15e7f5a821
+def micro_propose_command(
+    goal: str = typer.Argument(...),
+):
+    """Generates a micro-proposal for a given goal without applying it."""
+    if not _context:
+        raise typer.Exit("Context not set for micro-propose.")
+    asyncio.run(micro_propose(context=_context, goal=goal))
+
+
+# --- END MODIFICATION ---
+
 manage_app.add_typer(proposals_sub_app, name="proposals")
 
 keys_sub_app = typer.Typer(
@@ -129,10 +160,6 @@ manage_app.add_typer(keys_sub_app, name="keys")
 )
 # ID: 63ef4a80-6f41-4700-8653-64a853a1f279
 def define_symbols_command():
-    """Synchronous wrapper that calls the refactored definition service."""
-    console.print(
-        "[bold yellow]Running asynchronous symbol definition...[/bold yellow]"
-    )
     if not _context:
         raise typer.Exit("Context not set for define-symbols command.")
     try:

@@ -1,4 +1,3 @@
-# src/cli/commands/mind.py
 """
 Registers the new 'mind' command group for managing the Working Mind's SSOT.
 """
@@ -10,11 +9,9 @@ from typing import Optional
 
 import typer
 from cli.logic.knowledge_sync import run_diff, run_import, run_snapshot, run_verify
-from shared.context import CoreContext
 
 mind_app = typer.Typer(
-    help="Commands to manage the Working Mind (DB-as-SSOT).",
-    no_args_is_help=True,
+    help="Commands to manage the Working Mind (DB-as-SSOT).", no_args_is_help=True
 )
 
 
@@ -22,7 +19,7 @@ mind_app = typer.Typer(
     "snapshot",
     help="Export the database to canonical YAML files in .intent/mind_export/.",
 )
-# ID: 6b07ed06-3e0b-4203-b436-589e9768ac37
+# ID: 92cdf207-d8c3-4665-a520-ddbd3714882b
 def snapshot_command(
     env: Optional[str] = typer.Option(
         None, "--env", help="Environment tag (e.g., 'dev', 'prod')."
@@ -38,7 +35,7 @@ def snapshot_command(
 @mind_app.command(
     "diff", help="Compare the live database with the exported YAML files."
 )
-# ID: c61dd781-8248-4538-9432-63a1e8e4e6c5
+# ID: 818e271e-8878-429a-ac31-156f8902893e
 def diff_command(
     as_json: bool = typer.Option(
         False, "--json", help="Output the diff in machine-readable JSON format."
@@ -51,28 +48,21 @@ def diff_command(
 @mind_app.command(
     "import", help="Import the exported YAML files into the database (idempotent)."
 )
-# ID: 12dbe850-1a05-4d24-8f89-cf685df849c9
+# ID: 661dded5-1fc8-4bff-a6b3-8912e937595d
 def import_command(
     write: bool = typer.Option(
         False, "--write", help="Apply the import to the database."
     ),
 ):
     """CLI wrapper for the import logic."""
-    # This now correctly passes the opposite of 'write' to the 'dry_run' parameter.
     asyncio.run(run_import(dry_run=not write))
 
 
 @mind_app.command(
     "verify", help="Recomputes digests for exported files and fails on mismatch."
 )
-# ID: 14a816b5-deb8-4476-805b-4c8bbe895a0b
+# ID: a1118547-c161-471f-9113-f15259a3be05
 def verify_command():
     """CLI wrapper for the verification logic."""
     if not run_verify():
         raise typer.Exit(code=1)
-
-
-# ID: 0aaed618-2e91-4767-bcaf-58f3f56cecc5
-def register(app: typer.Typer, context: CoreContext):
-    """Register the 'mind' command group to the main CLI app."""
-    app.add_typer(mind_app, name="mind")

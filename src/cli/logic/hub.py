@@ -1,4 +1,3 @@
-# src/cli/commands/hub.py
 """
 Central Hub: discover and locate CORE tools from a single place.
 
@@ -27,14 +26,12 @@ console = Console()
 hub_app = typer.Typer(help="Central hub for discovering and locating CORE tools.")
 
 
-# ------------ helpers ------------
 async def _fetch_commands(session: AsyncSession) -> list[CliCommand]:
     rows = (await session.execute(select(CliCommand))).scalars().all()
     return list(rows or [])
 
 
 def _format_command_name(cmd: CliCommand) -> str:
-    # Stored as e.g. "proposals.micro.apply"
     return getattr(cmd, "name", "") or ""
 
 
@@ -62,30 +59,25 @@ def _desc_for(c: CliCommand) -> str:
     return ""
 
 
-# ------------ commands ------------
 @hub_app.command("list")
-# ID: 6c5083d6-d9fb-416b-ba77-9855ed27d8f1
+# ID: 89be20b9-1d77-408f-9f59-3ac2ca169144
 def hub_list():
     """Show all registered CLI commands from the DB registry."""
 
     async def _run():
         async with get_session() as session:
             cmds = await _fetch_commands(session)
-
         if not cmds:
             console.print(
-                "[bold yellow]No CLI registry entries in DB.[/bold yellow] "
-                "Run: [bold]core-admin knowledge sync[/bold]"
+                "[bold yellow]No CLI registry entries in DB.[/bold yellow] Run: [bold]core-admin knowledge sync[/bold]"
             )
             raise typer.Exit(code=2)
-
         table = Table(title="All CLI commands in registry")
         table.add_column("#", justify="right", style="dim")
         table.add_column("Command", style="cyan")
         table.add_column("Module", style="magenta")
         table.add_column("Entrypoint", style="green")
         table.add_column("Description")
-
         for i, c in enumerate(cmds, 1):
             table.add_row(
                 str(i),
@@ -100,7 +92,7 @@ def hub_list():
 
 
 @hub_app.command("search")
-# ID: cc0c4cdb-a916-4ddf-9449-d3164e04cfb0
+# ID: 8ac36c7c-867c-4f17-9503-5b5199cb813e
 def hub_search(
     term: str = typer.Argument(
         ..., help="Term to search in command names/descriptions."
@@ -112,16 +104,11 @@ def hub_search(
     async def _run():
         async with get_session() as session:
             cmds = await _fetch_commands(session)
-
         if not cmds:
             console.print(
-                "[bold yellow]No CLI registry entries found in DB.[/bold yellow]\n"
-                "Try:\n"
-                "  • core-admin knowledge migrate-ssot    (if you still have legacy YAML)\n"
-                "  • core-admin knowledge sync            (introspect and populate)\n"
+                "[bold yellow]No CLI registry entries found in DB.[/bold yellow]\nTry:\n  • core-admin knowledge migrate-ssot    (if you still have legacy YAML)\n  • core-admin knowledge sync            (introspect and populate)\n"
             )
             raise typer.Exit(code=2)
-
         term_l = term.lower()
         hits: List[CliCommand] = []
         for c in cmds:
@@ -130,17 +117,14 @@ def hub_search(
             if term_l in name or (desc and term_l in desc):
                 hits.append(c)
         hits = hits[:limit]
-
         if not hits:
             console.print("[yellow]No matches.[/yellow]")
             raise typer.Exit(code=0)
-
         table = Table(title=f"Hub search: “{term}”")
         table.add_column("Command", style="cyan")
         table.add_column("Module", style="magenta")
         table.add_column("Entrypoint", style="green")
         table.add_column("Description", style="white")
-
         for c in hits:
             table.add_row(
                 _format_command_name(c),
@@ -148,14 +132,13 @@ def hub_search(
                 getattr(c, "entrypoint", "") or "",
                 _shorten(_desc_for(c), 100),
             )
-
         console.print(table)
 
     asyncio.run(_run())
 
 
 @hub_app.command("whereis")
-# ID: c8217c92-6b38-419e-b3e1-d17eab51d89a
+# ID: 263425b5-3e99-4e3b-a89f-0fc4b88d3fdd
 def hub_whereis(
     command: str = typer.Argument(
         ...,
@@ -167,41 +150,33 @@ def hub_whereis(
     async def _run():
         async with get_session() as session:
             cmds = await _fetch_commands(session)
-
         if not cmds:
             console.print(
-                "[bold yellow]No CLI registry in DB.[/bold yellow] Run "
-                "[bold]core-admin knowledge sync[/bold] first."
+                "[bold yellow]No CLI registry in DB.[/bold yellow] Run [bold]core-admin knowledge sync[/bold] first."
             )
             raise typer.Exit(code=2)
-
-        # exact match, then suffix fallback
-        matches = [c for c in cmds if (_format_command_name(c) == command)]
+        matches = [c for c in cmds if _format_command_name(c) == command]
         if not matches:
             matches = [c for c in cmds if _format_command_name(c).endswith(command)]
         if not matches:
             console.print("[yellow]No such command in registry.[/yellow]")
             raise typer.Exit(code=1)
-
         c = matches[0]
         path = (
             _module_file(getattr(c, "module", "") or "")
             if getattr(c, "module", None)
             else None
         )
-
-        console.print(f"[bold]Command:[/bold] { _format_command_name(c) }")
-        console.print(f"[bold]Module:[/bold]  { getattr(c, 'module', '') or '—' }")
-        console.print(
-            f"[bold]Entrypoint:[/bold] { getattr(c, 'entrypoint', '') or '—' }"
-        )
-        console.print(f"[bold]File:[/bold]    { path if path else '—' }")
+        console.print(f"[bold]Command:[/bold] {_format_command_name(c)}")
+        console.print(f"[bold]Module:[/bold]  {getattr(c, 'module', '') or '—'}")
+        console.print(f"[bold]Entrypoint:[/bold] {getattr(c, 'entrypoint', '') or '—'}")
+        console.print(f"[bold]File:[/bold]    {(path if path else '—')}")
 
     asyncio.run(_run())
 
 
 @hub_app.command("doctor")
-# ID: ba62fdb1-1feb-4c32-add3-e0a8f88d64f4
+# ID: a09b6ebe-6a2a-4030-b85c-e9f127e74171
 def hub_doctor():
     """Quick health checks for discoverability + SSOT surfaces."""
 
@@ -219,8 +194,6 @@ def hub_doctor():
             except Exception as e:
                 ok = False
                 console.print(f"❌ DB error while reading CLI registry: {e}")
-
-        # Check YAML snapshots exist (optional but nice)
         snapshots = [
             settings.MIND / "knowledge" / "cli_registry.yaml",
             settings.MIND / "knowledge" / "resource_manifest.yaml",
@@ -234,16 +207,9 @@ def hub_doctor():
             console.print("   → Run: core-admin knowledge export-ssot")
         else:
             console.print("✅ YAML exports present.")
-
         console.print(
             "\nTip: run [bold]core-admin knowledge canary --skip-tests[/bold] before big ops."
         )
         raise typer.Exit(code=0 if ok else 1)
 
     asyncio.run(_run())
-
-
-# ID: b2822cbf-a3f4-4f00-a3cd-5d5777de4e98
-def register(app: typer.Typer) -> None:
-    """Register the 'hub' command group with the main CLI app."""
-    app.add_typer(hub_app, name="hub")

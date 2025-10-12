@@ -1,4 +1,3 @@
-# src/cli/commands/reviewer.py
 """
 Provides commands for AI-powered review of the constitution, documentation, and source code files.
 """
@@ -10,18 +9,16 @@ from pathlib import Path
 from typing import List, Set
 
 import typer
+from core.cognitive_service import CognitiveService
 from rich.console import Console
 from rich.markdown import Markdown
 from rich.panel import Panel
-
-from core.cognitive_service import CognitiveService
 from shared.config import settings
 from shared.logger import getLogger
 from shared.utils.constitutional_parser import get_all_constitutional_paths
 
 log = getLogger("core_admin.review")
-console = Console()  # Define console once at the module level
-
+console = Console()
 DOCS_IGNORE_DIRS = {"assets", "archive", "migrations", "examples"}
 
 
@@ -53,15 +50,12 @@ def _get_constitutional_files() -> List[Path]:
 
 def _get_docs_files() -> List[Path]:
     root_dir = settings.REPO_PATH
-    scan_files = [
-        root_dir / "README.md",
-        root_dir / "CONTRIBUTING.md",
-    ]
+    scan_files = [root_dir / "README.md", root_dir / "CONTRIBUTING.md"]
     docs_dir = root_dir / "docs"
     found_files: Set[Path] = {f for f in scan_files if f.exists()}
     if docs_dir.is_dir():
         for md_file in docs_dir.rglob("*.md"):
-            if not any(ignored in md_file.parts for ignored in DOCS_IGNORE_DIRS):
+            if not any((ignored in md_file.parts for ignored in DOCS_IGNORE_DIRS)):
                 found_files.add(md_file)
     return list(found_files)
 
@@ -82,7 +76,6 @@ def _orchestrate_review(
             f"❌ Review prompt '{prompt_key}' not found in meta.yaml. Cannot proceed."
         )
         raise typer.Exit(code=1)
-
     log.info(f"   -> Loaded review prompt: {prompt_key}")
     log.info("   -> Bundling files for review...")
     files_to_bundle = file_gatherer_fn()
@@ -92,27 +85,23 @@ def _orchestrate_review(
     bundle_output_path.parent.mkdir(parents=True, exist_ok=True)
     bundle_output_path.write_text(bundle_content, encoding="utf-8")
     log.info(f"   -> Saved review bundle to: {bundle_output_path}")
-
     final_prompt = f"{review_prompt_template}\n\n{bundle_content}"
-
     if no_send:
         output_path.parent.mkdir(parents=True, exist_ok=True)
         output_path.write_text(final_prompt, encoding="utf-8")
         log.info(f"✅ Full prompt bundle for manual review saved to: {output_path}")
         raise typer.Exit()
-
     log.info("   -> Sending bundle to LLM for analysis. This may take a moment...")
     cognitive_service = CognitiveService(settings.REPO_PATH)
     reviewer = cognitive_service.get_client_for_role("SecurityAnalyst")
 
-    # ID: f666ec25-e399-4b50-a887-afc0b37f048f
+    # ID: 9320f90b-3fc5-4979-9c18-c8aa9b36bb7d
     async def run_async_review():
         return await reviewer.make_request_async(
             final_prompt, user_id=f"{bundle_name}_reviewer"
         )
 
     review_feedback = asyncio.run(run_async_review())
-
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(review_feedback, encoding="utf-8")
     log.info(f"✅ Successfully received feedback and saved to: {output_path}")
@@ -120,7 +109,7 @@ def _orchestrate_review(
     console.print(Markdown(review_feedback))
 
 
-# ID: 791a17b0-8edf-43f0-ab74-7218bc9a4830
+# ID: b7d07270-37b5-4ce6-8649-217117646d36
 def peer_review(
     output: Path = typer.Option(
         Path("reports/constitutional_review.md"), "--output", "-o"
@@ -137,7 +126,7 @@ def peer_review(
     )
 
 
-# ID: cf79cabf-12fc-49e9-8c15-0bfdaae8c301
+# ID: d6590bcd-fc97-4615-905f-6295787b4b53
 def docs_clarity_audit(
     output: Path = typer.Option(
         Path("reports/docs_clarity_review.md"), "--output", "-o"
@@ -146,15 +135,11 @@ def docs_clarity_audit(
 ):
     """Audits the human-readable documentation (.md files) for conceptual clarity."""
     _orchestrate_review(
-        "docs_clarity",
-        "docs_clarity_review",
-        _get_docs_files,
-        output,
-        no_send,
+        "docs_clarity", "docs_clarity_review", _get_docs_files, output, no_send
     )
 
 
-# ID: 7c2b8cf2-fecf-4ed9-97a7-72f102a5427d
+# ID: af4eed18-bc09-44ce-a41d-fa309820d3c8
 def code_review(
     file_path: Path = typer.Argument(
         ..., exists=True, dir_okay=False, resolve_path=True
@@ -171,7 +156,6 @@ def code_review(
             prompt_path = settings.get_path("mind.prompts.code_peer_review")
             review_prompt_template = prompt_path.read_text(encoding="utf-8")
             final_prompt = f"{review_prompt_template}\n\n```python\n{source_code}\n```"
-
             with console.status(
                 "[bold green]Asking AI expert for review...[/bold green]",
                 spinner="dots",
@@ -196,23 +180,3 @@ def code_review(
             raise typer.Exit(code=1)
 
     asyncio.run(_async_code_review())
-
-
-# ID: dcd2c2bc-4c65-436a-9646-22834c917f41
-def register(app: typer.Typer):
-    review_app = typer.Typer(help="Tools for constitutional and documentation review.")
-    app.add_typer(review_app, name="review")
-    review_app.command("constitution")(peer_review)
-    review_app.command("docs")(docs_clarity_audit)
-    review_app.command("code")(code_review)
-
-    @review_app.command("export")
-    # ID: 2e4cea1d-3aca-46ef-a0b9-9361bdb595b5
-    def export_bundle():
-        _orchestrate_review(
-            "constitutional",
-            "constitutional_review",
-            _get_constitutional_files,
-            settings.REPO_PATH / "reports/manual_review_package.txt",
-            no_send=True,
-        )
