@@ -1,4 +1,4 @@
-# src/system/admin/chat.py
+# src/cli/logic/chat.py
 """
 Implements the 'core-admin chat' command for conversational interaction.
 """
@@ -9,10 +9,9 @@ import json
 import subprocess
 
 import typer
-from dotenv import load_dotenv
-
 from core.agents.intent_translator import IntentTranslator
 from core.cognitive_service import CognitiveService
+from dotenv import load_dotenv
 from shared.config import settings
 from shared.logger import getLogger
 from shared.utils.parsing import extract_json_from_response
@@ -34,10 +33,7 @@ def chat(user_input: str = typer.Argument(..., help="Your goal in natural langua
 
     log.info(f"Translating user goal: '{user_input}'")
 
-    # --- This is the new, architecturally-aligned logic ---
-    # It generates the help text, injects it via the pipeline, and uses the agent.
     try:
-        # Generate the CLI help text to use as context
         help_text_result = subprocess.run(
             ["poetry", "run", "core-admin", "--help"],
             capture_output=True,
@@ -84,7 +80,4 @@ def chat(user_input: str = typer.Argument(..., help="Your goal in natural langua
         raise typer.Exit(code=1)
 
 
-# ID: 7989df2a-e653-4b38-afde-adaad2385482
-def register(app: typer.Typer):
-    """Register the 'chat' command with the main CLI app."""
-    app.command("chat")(chat)
+# The obsolete `register` function has been removed.

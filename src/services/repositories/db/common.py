@@ -15,12 +15,11 @@ import sqlparse
 import yaml
 from sqlalchemy import text
 
-from services.repositories.db.engine import get_session
+# CORRECTED IMPORT: Now points to the single source of truth for sessions.
+from services.database.session_manager import get_session
 
 
-# --- THIS IS THE DEFINITIVE FIX ---
-# This module must be self-sufficient. This robust function finds the project
-# root without relying on the global settings object, which may not be initialized yet.
+# This robust function finds the project root without relying on the global settings object.
 def _get_repo_root_for_migration() -> pathlib.Path:
     """Finds the repo root by searching upwards for a known marker file."""
     current_path = pathlib.Path(__file__).resolve()
@@ -32,23 +31,18 @@ def _get_repo_root_for_migration() -> pathlib.Path:
 
 REPO_ROOT = _get_repo_root_for_migration()
 META_YAML_PATH = REPO_ROOT / ".intent" / "meta.yaml"
-# --- END OF FIX ---
 
 
 # ID: 80ae5adf-d9cc-432e-b962-369b8992c700
 def load_policy() -> dict:
     """Load the database_policy.yaml using a minimal, self-contained pathfinder."""
     try:
-        # Manually parse meta.yaml to find the true path to the database policy.
-        # This makes the migration command robust and independent of the main app's
-        # initialization sequence.
         with META_YAML_PATH.open("r", encoding="utf-8") as f:
             meta_config = yaml.safe_load(f)
 
         db_policy_path_str = meta_config["charter"]["policies"]["data"][
             "database_policy"
         ]
-        # The path in meta.yaml is relative to the .intent directory
         db_policy_path = REPO_ROOT / ".intent" / db_policy_path_str
 
         with db_policy_path.open("r", encoding="utf-8") as f:

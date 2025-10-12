@@ -8,11 +8,12 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 import yaml
 from core.knowledge_service import KnowledgeService
 from shared.logger import getLogger
+from shared.models import AuditFinding
 
 log = getLogger("audit_context")
 
@@ -31,13 +32,16 @@ class AuditorContext:
         self.charter_path = self.intent_path / "charter"
         self.src_dir: Path = self.repo_path / "src"
 
-        # These can be loaded synchronously
+        # --- START MODIFICATION ---
+        # Add a field to hold the last set of findings.
+        self.last_findings: List[AuditFinding] = []
+        # --- END MODIFICATION ---
+
         self.meta: Dict[str, Any] = self._load_yaml(self.intent_path / "meta.yaml")
         self.policies: Dict[str, Any] = self._load_policies()
         self.source_structure: Dict[str, Any] = self._load_yaml(
             self.mind_path / "knowledge" / "source_structure.yaml"
         )
-        # Initialize knowledge graph components as empty; they will be loaded async
         self.knowledge_graph: Dict[str, Any] = {"symbols": {}}
         self.symbols_list: list = []
         self.symbols_map: dict = {}

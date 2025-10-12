@@ -10,31 +10,19 @@ from typing import Any, Dict, List
 
 from rich.console import Console
 from rich.table import Table
+from services.database.models import RuntimeService as RuntimeSetting
 from services.database.session_manager import get_session
 from shared.config import settings
 from shared.logger import getLogger
-from sqlalchemy import Boolean, Column, DateTime, Text, func
+from sqlalchemy import func
 from sqlalchemy.dialects.postgresql import insert as pg_insert
-from sqlalchemy.orm import declarative_base
 
 log = getLogger("dotenv_sync_service")
 console = Console()
 
-# Define an ORM model matching the new table for type safety and ease of use.
-Base = declarative_base()
 
-
-# ID: 1b903819-4d34-4bf8-98f9-34c322d29676
-class RuntimeSetting(Base):
-    __tablename__ = "runtime_settings"
-    __table_args__ = {"schema": "core"}
-    key = Column(Text, primary_key=True)
-    value = Column(Text)
-    description = Column(Text)
-    is_secret = Column(Boolean, nullable=False, default=False)
-    last_updated = Column(
-        DateTime(timezone=True), nullable=False, server_default=func.now()
-    )
+# The local, duplicated ORM model has been removed.
+# We now import the canonical model from `services.database.models` and alias it for compatibility.
 
 
 # ID: 46c39446-1163-4d8d-ad63-5956a248260f
@@ -60,7 +48,6 @@ async def run_dotenv_sync(dry_run: bool):
     for key, config in variables_to_sync.items():
         value = getattr(settings, key, None)
 
-        # Ensure value is a string for the database, handling bools etc.
         if value is None:
             value_str = None
         elif isinstance(value, bool):

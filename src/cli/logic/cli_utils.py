@@ -13,7 +13,6 @@ from pathlib import Path
 from typing import Any, Dict, Optional
 
 import typer
-import yaml
 from core.knowledge_service import KnowledgeService
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ed25519
@@ -77,19 +76,15 @@ async def find_test_file_for_capability_async(capability_key: str) -> Optional[P
         return None
 
 
-# ID: 2c1e24f9-42a8-4851-92da-c0276e902551
-def load_yaml_file(path: Path) -> Dict[str, Any]:
-    """Loads a YAML file safely."""
-    return yaml.safe_load(path.read_text(encoding="utf-8")) or {}
-
-
-# ID: 8400dcf6-6bea-4d10-9dd3-4d07416f0366
+# ID: 8143391a-d9a7-5015-9c47-63647ca9eaee
 def save_yaml_file(path: Path, data: Dict[str, Any]) -> None:
     """Saves data to a YAML file with consistent sorting."""
+    import yaml
+
     path.write_text(yaml.dump(data, sort_keys=True), encoding="utf-8")
 
 
-# ID: ae41777a-644b-4dc7-8f08-f577060af15b
+# ID: f4f2c106-6de1-57a7-8799-bc7b447de680
 def load_private_key() -> ed25519.Ed25519PrivateKey:
     """Loads the operator's private key."""
     key_path = settings.KEY_STORAGE_DIR / "private.key"
@@ -128,7 +123,7 @@ def archive_rollback_plan(proposal_name: str, proposal: Dict[str, Any]) -> None:
     log.info(f"📖 Rollback plan archived to {archive_path}")
 
 
-# ID: 3c3a57ba-7b53-42ab-b544-ffe0fb9f6f24
+# ID: d17feffd-94a1-5636-b502-ce58fc16b644
 def should_fail(report: dict, fail_on: str) -> bool:
     """
     Determines if the CLI should exit with an error code based on the drift

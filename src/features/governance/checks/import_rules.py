@@ -10,11 +10,12 @@ import ast
 from pathlib import Path
 from typing import Dict, List, Set
 
-from services.repositories.db.engine import get_session
+from services.database.session_manager import get_session
 from shared.models import AuditFinding, AuditSeverity
 from sqlalchemy import text
 
 from features.governance.audit_context import AuditorContext
+from features.governance.checks.base_check import BaseCheck
 
 
 def _scan_imports(file_path: Path, content: str | None = None) -> List[str]:
@@ -33,11 +34,9 @@ def _scan_imports(file_path: Path, content: str | None = None) -> List[str]:
                 for alias in node.names:
                     imports.append(alias.name)
             elif isinstance(node, ast.ImportFrom):
-                # For relative imports like 'from . import foo', module is None
                 if node.module:
-                    # Construct full path for relative imports
                     if node.level > 0:
-                        base = ".".join(file_path.parts[1:-1])  # from src/ onwards
+                        base = ".".join(file_path.parts[1:-1])
                         if node.level > 1:
                             base = ".".join(base.split(".")[: -(node.level - 1)])
                         imports.append(f"{base}.{node.module}")
@@ -51,14 +50,14 @@ def _scan_imports(file_path: Path, content: str | None = None) -> List[str]:
 
 
 # ID: 0690cf39-3739-449e-9228-2c7c8526209b
-class ImportRulesCheck:
+class ImportRulesCheck(BaseCheck):
     """
     Ensures that code files only import modules from their allowed domains.
     This check now reads its configuration from the database.
     """
 
     def __init__(self, context: AuditorContext):
-        self.context = context
+        super().__init__(context)
         self.domain_map: Dict[str, str] = {}
         self.import_rules: Dict[str, Set[str]] = {}
 
@@ -75,7 +74,6 @@ class ImportRulesCheck:
             path_str = domain_info.get("path")
             domain_name = domain_info.get("domain")
             if path_str and domain_name:
-                # Use relative path from repo root for matching
                 self.domain_map[path_str] = domain_name
 
         for domain_info in structure:
@@ -98,9 +96,8 @@ class ImportRulesCheck:
         """
         await self._load_rules_from_db()
         findings = []
-        src_path = self.context.repo_path / "src"
-
-        for file_path in src_path.rglob("*.py"):
+        # Use self.src_dir provided by the BaseCheck
+        for file_path in self.src_dir.rglob("*.py"):
             findings.extend(self._check_file_imports(file_path, file_content=None))
         return findings
 
@@ -112,7 +109,8 @@ class ImportRulesCheck:
         Runs the import check on a string of content instead of a file on disk.
         """
         await self._load_rules_from_db()
-        file_path = self.context.repo_path / file_path_str
+        # Use self.repo_root provided by the BaseCheck
+        file_path = self.repo_root / file_path_str
         return self._check_file_imports(file_path, file_content)
 
     def _check_file_imports(
@@ -120,7 +118,8 @@ class ImportRulesCheck:
     ) -> List[AuditFinding]:
         """Core logic to check imports for a given file path and optional content."""
         findings = []
-        file_rel_path_str = str(file_path.relative_to(self.context.repo_path))
+        # Use self.repo_root provided by the BaseCheck
+        file_rel_path_str = str(file_path.relative_to(self.repo_root))
         file_domain = self._get_domain_for_path_str(file_rel_path_str)
         if not file_domain:
             return []
@@ -129,27 +128,20 @@ class ImportRulesCheck:
         imported_modules = _scan_imports(file_path, content=file_content)
 
         for module_str in imported_modules:
-            # --- THIS IS THE NEW, CORRECT LOGIC ---
             imported_package = module_str.split(".")[0]
 
-            # Rule 1: Is it an external or standard library? (Allow)
             if not any(
                 imported_package.startswith(p)
                 for p in ["src", "cli", "core", "features", "services", "shared"]
             ):
                 continue
 
-            # Rule 2: Does the import's top-level package match an allowed domain? (Allow)
             if imported_package in allowed_imports_for_domain:
                 continue
 
-            # Rule 3: If not explicitly allowed, is it an intra-domain import? (Allow)
-            # This handles the case where cli imports from cli.logic
             if imported_package == file_domain:
                 continue
-            # --- END OF NEW LOGIC ---
 
-            # If none of the above rules passed, it's a violation.
             findings.append(
                 AuditFinding(
                     check_id="architecture.import_violation",

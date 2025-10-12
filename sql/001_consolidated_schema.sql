@@ -222,6 +222,7 @@ CREATE TABLE IF NOT EXISTS core.tasks (
     plan jsonb,                              -- Agent's execution plan
     context jsonb DEFAULT '{}'::jsonb,       -- Working memory for this task
     error_message text,
+    failure_reason text,
 
     -- Vector retrieval context (from Qdrant) - native UUID arrays
     relevant_symbols uuid[],                 -- Symbol UUIDs from vector search

@@ -6,32 +6,14 @@ This provides a user-friendly way to discover and run commands.
 
 from __future__ import annotations
 
-import subprocess
 import sys
 from typing import Callable, Dict
 
 from rich.console import Console
 from rich.panel import Panel
+from shared.utils.subprocess_utils import run_poetry_command
 
 console = Console()
-
-
-# ID: 1d651505-1905-41df-85e6-3891b24cca72
-def run_command(command: list[str]):
-    """Executes a core-admin command as a subprocess."""
-    try:
-        # We use sys.executable to ensure we're using the python from the correct venv
-        subprocess.run([sys.executable, "-m", "poetry", "run", *command], check=True)
-    except subprocess.CalledProcessError:
-        console.print("[bold red]Command failed. See error output above.[/bold red]")
-    except FileNotFoundError:
-        console.print("[bold red]Error: 'poetry' command not found.[/bold red]")
-
-    console.print("\n[bold green]Press Enter to return to the menu...[/bold green]")
-    input()
-
-
-# --- START OF REFACTOR ---
 
 
 def _show_menu(title: str, options: Dict[str, str], actions: Dict[str, Callable]):
@@ -53,7 +35,14 @@ def _show_menu(title: str, options: Dict[str, str], actions: Dict[str, Callable]
 
         action = actions.get(choice)
         if action:
-            action()
+            try:
+                action()
+            except Exception as e:
+                console.print(f"[bold red]Command failed: {e}[/bold red]")
+            console.print(
+                "\n[bold green]Press Enter to return to the menu...[/bold green]"
+            )
+            input()
         else:
             console.print(
                 f"[bold red]Invalid choice '{choice}'. Please try again.[/bold red]"
@@ -72,17 +61,22 @@ def show_development_menu():
             "3": "Fix Headers (Run AI-powered style fixer)",
         },
         actions={
-            "1": lambda: run_command(
-                ["core-admin", "chat", console.input("Enter your goal: ")]
+            "1": lambda: run_poetry_command(
+                "Translating goal...",
+                ["core-admin", "chat", console.input("Enter your goal: ")],
             ),
-            "2": lambda: run_command(
+            "2": lambda: run_poetry_command(
+                "Executing goal...",
                 [
                     "core-admin",
+                    "run",
                     "develop",
                     console.input("Enter the full development goal: "),
-                ]
+                ],
             ),
-            "3": lambda: run_command(["core-admin", "fix", "headers", "--write"]),
+            "3": lambda: run_poetry_command(
+                "Fixing headers...", ["core-admin", "fix", "headers", "--write"]
+            ),
         },
     )
 
@@ -96,27 +90,46 @@ def show_governance_menu():
             "1": "List Proposals",
             "2": "Sign a Proposal",
             "3": "Approve a Proposal",
-            "4": "Review Constitution (AI Peer Review)",
+            "4": "Generate a new Operator Key",
+            "5": "Review Constitution (AI Peer Review)",
         },
         actions={
-            "1": lambda: run_command(["core-admin", "proposals", "list"]),
-            "2": lambda: run_command(
+            "1": lambda: run_poetry_command(
+                "Listing proposals...", ["core-admin", "manage", "proposals", "list"]
+            ),
+            "2": lambda: run_poetry_command(
+                "Signing proposal...",
                 [
                     "core-admin",
+                    "manage",
                     "proposals",
                     "sign",
                     console.input("Enter proposal filename to sign: "),
-                ]
+                ],
             ),
-            "3": lambda: run_command(
+            "3": lambda: run_poetry_command(
+                "Approving proposal...",
                 [
                     "core-admin",
+                    "manage",
                     "proposals",
                     "approve",
                     console.input("Enter proposal filename to approve: "),
-                ]
+                ],
             ),
-            "4": lambda: run_command(["core-admin", "review", "constitution"]),
+            "4": lambda: run_poetry_command(
+                "Generating key...",
+                [
+                    "core-admin",
+                    "manage",
+                    "keys",
+                    "generate",
+                    console.input("Enter identity for key (e.g., email): "),
+                ],
+            ),
+            "5": lambda: run_poetry_command(
+                "Reviewing constitution...", ["core-admin", "review", "constitution"]
+            ),
         },
     )
 
@@ -132,9 +145,15 @@ def show_system_menu():
             "3": "Format All Code",
         },
         actions={
-            "1": lambda: run_command(["core-admin", "system", "check"]),
-            "2": lambda: run_command(["core-admin", "system", "test"]),
-            "3": lambda: run_command(["core-admin", "system", "format"]),
+            "1": lambda: run_poetry_command(
+                "Running system check...", ["core-admin", "check", "system"]
+            ),
+            "2": lambda: run_poetry_command(
+                "Running tests...", ["core-admin", "check", "tests"]
+            ),
+            "3": lambda: run_poetry_command(
+                "Formatting code...", ["core-admin", "fix", "code-style"]
+            ),
         },
     )
 
@@ -149,27 +168,30 @@ def show_project_lifecycle_menu():
             "2": "Onboard Existing Repository (BYOR)",
         },
         actions={
-            "1": lambda: run_command(
+            "1": lambda: run_poetry_command(
+                "Creating new application...",
                 [
                     "core-admin",
+                    "manage",
+                    "project",
                     "new",
                     console.input("Enter the name for the new application: "),
                     "--write",
-                ]
+                ],
             ),
-            "2": lambda: run_command(
+            "2": lambda: run_poetry_command(
+                "Onboarding repository...",
                 [
                     "core-admin",
-                    "byor-init",
+                    "manage",
+                    "project",
+                    "onboard",
                     console.input("Enter the path to the existing repository: "),
                     "--write",
-                ]
+                ],
             ),
         },
     )
-
-
-# --- END OF REFACTOR ---
 
 
 # ID: 0493a7e1-3b54-478c-b22f-490a36be8b61

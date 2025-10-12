@@ -1,7 +1,8 @@
 # src/features/introspection/capability_discovery_service.py
 """
-Handles the discovery and validation of capability definitions from various
-constitutional sources, including domain-specific manifests and alias maps.
+Refactored under dry_by_design.
+Pattern: move_function.
+Removed local _load_yaml in favor of the canonical implementation from shared.config_loader.
 """
 
 from __future__ import annotations
@@ -9,7 +10,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Set
 
-import yaml
+from shared.config_loader import load_yaml_file
 from shared.logger import getLogger
 from shared.models import CapabilityMeta
 
@@ -37,15 +38,6 @@ class CapabilityRegistry:
         if tag in self.canonical:
             return tag
         return self.aliases.get(tag)
-
-
-def _load_yaml(path: Path) -> dict:
-    """Loads a YAML file with basic error handling."""
-    with path.open("r", encoding="utf-8") as f:
-        data = yaml.safe_load(f) or {}
-        if not isinstance(data, dict):
-            raise ValueError(f"YAML root must be an object: {path}")
-        return data
 
 
 def _iter_capability_files(base: Path) -> Iterable[Path]:
@@ -142,7 +134,7 @@ def load_and_validate_capabilities(intent_dir: Path) -> CapabilityRegistry:
 
     for path in _iter_capability_files(base):
         try:
-            doc = _load_yaml(path)
+            doc = load_yaml_file(path)
         except Exception as e:
             raise ValueError(f"Failed to load capability YAML: {path} ({e})") from e
 

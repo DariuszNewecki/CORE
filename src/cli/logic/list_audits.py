@@ -1,4 +1,4 @@
-# src/system/admin/commands/db/list_audits.py
+# src/cli/logic/list_audits.py
 """
 Provides functionality for the list_audits module.
 """
@@ -8,10 +8,8 @@ from __future__ import annotations
 import asyncio
 
 import typer
+from services.database.session_manager import get_session
 from sqlalchemy import text
-
-# --- CORRECTED IMPORT ---
-from core.db.engine import get_session
 
 
 # ID: 09c55085-1d89-46c2-a663-b4e1f2c2c0b5
@@ -32,7 +30,6 @@ def list_audits(
             """
         ).bindparams(lim=limit)
 
-        # --- CORRECTED USAGE ---
         async with get_session() as session:
             result = await session.execute(stmt)
             rows = result.all()

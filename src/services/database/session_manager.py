@@ -1,17 +1,21 @@
 # src/services/database/session_manager.py
+"""
+Refactored under dry_by_design.
+Pattern: extract_module. This is the single source of truth for creating DB sessions.
+"""
+
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
+from shared.config import settings
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
     async_sessionmaker,
     create_async_engine,
 )
-
-from shared.config import settings
 
 # Create async engine from env URL (tests set this)
 _ENGINE: AsyncEngine = create_async_engine(

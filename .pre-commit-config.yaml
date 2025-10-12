@@ -21,13 +21,14 @@ repos:
         args: [ --fix ]
       - id: ruff-format
 
+  # --- THIS IS THE CORRECTED HOOK ---
   - repo: local
     hooks:
-      - id: core-mind-snapshot
-        name: CORE - Mind Snapshot
-        entry: poetry run core-admin mind snapshot
+      - id: core-mind-verify
+        name: CORE - Verify Mind Snapshot
+        entry: poetry run core-admin mind verify
         language: system
-        types: [ file ] # Run on any changed file
-        files: ^(\.intent/mind_export/|src/) # Only run if exports or src change
+        types: [ file ]
+        files: ^(\.intent/mind_export/|src/)
         pass_filenames: false
         stages: [ commit ]

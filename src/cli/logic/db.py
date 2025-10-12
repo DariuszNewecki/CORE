@@ -10,7 +10,7 @@ import asyncio
 import typer
 import yaml
 from rich.console import Console
-from services.repositories.db.engine import get_session
+from services.database.session_manager import get_session
 from services.repositories.db.migration_service import migrate_db
 from shared.config import settings
 from sqlalchemy import text
@@ -91,9 +91,3 @@ def export_data():
 db_app.command("status")(status)
 db_app.command("sync-domains")(sync_domains)
 db_app.command("migrate")(migrate_db)
-
-
-# ID: a2e89177-868c-4a49-9f05-87b9f43f0bfc
-def register(app: typer.Typer):
-    """Register the 'db' command group with the main CLI app."""
-    app.add_typer(db_app, name="db")

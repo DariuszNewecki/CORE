@@ -1,9 +1,13 @@
 # src/cli/commands/search.py
-"""Registers the new, verb-based 'search' command group."""
+"""
+Registers the new, verb-based 'search' command group.
+Refactored under dry_by_design to use the canonical context setter.
+"""
 
 from __future__ import annotations
 
 import asyncio
+from typing import Optional
 
 import typer
 from cli.logic.hub import hub_search
@@ -17,8 +21,9 @@ search_app = typer.Typer(
     no_args_is_help=True,
 )
 
+_context: Optional[CoreContext] = None
 
-# This is the logic function, now co-located with its command.
+
 # ID: ce6ffa34-2440-4188-bc95-0f6703651b9a
 def search_knowledge_command(context: CoreContext, query: str, limit: int = 5) -> None:
     """Synchronous wrapper around async search."""
@@ -54,21 +59,16 @@ def search_knowledge_command(context: CoreContext, query: str, limit: int = 5) -
     asyncio.run(_run())
 
 
-# ID: 8b9c0d1e-2f3a-4b5c-6d7e-8f9a0b1c2d3e
-def register(app: typer.Typer, context: CoreContext):
-    """Register the 'search' command group to the main CLI app."""
+@search_app.command("capabilities")
+# ID: 22dd2048-ebe7-490b-81f7-632d276585e6
+def search_capabilities_wrapper(
+    query: str,
+    limit: int = 5,
+):
+    """Performs a semantic search for capabilities in the knowledge base."""
+    if not _context:
+        raise typer.Exit("Context not set for search capabilities command.")
+    search_knowledge_command(context=_context, query=query, limit=limit)
 
-    @search_app.command("capabilities")
-    # ID: 22dd2048-ebe7-490b-81f7-632d276585e6
-    def search_capabilities_wrapper(
-        query: str,
-        limit: int = 5,
-    ):
-        """Performs a semantic search for capabilities in the knowledge base."""
-        # This wrapper ensures the context is passed correctly to the logic function.
-        search_knowledge_command(context=context, query=query, limit=limit)
 
-    # hub_search does not require context yet, so it can be registered directly
-    search_app.command("commands")(hub_search)
-
-    app.add_typer(search_app, name="search")
+search_app.command("commands")(hub_search)

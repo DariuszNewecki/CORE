@@ -7,8 +7,13 @@ This module assembles all command groups into a single Typer application.
 from __future__ import annotations
 
 import typer
-from cli.commands import check, enrich, fix, inspect, manage, mind, run, search, submit
+
+# --- START MODIFICATION: Import modules directly ---
+from cli.commands import check, fix, inspect, manage, mind, run, search, submit
 from cli.interactive import launch_interactive_menu
+from cli.logic import audit as audit_logic
+
+# --- END MODIFICATION ---
 from core.cognitive_service import CognitiveService
 from core.file_handler import FileHandler
 from core.git_service import GitService
@@ -23,7 +28,6 @@ from shared.models import PlannerConfig
 console = Console()
 log = getLogger("admin_cli")
 
-# --- Main Application ---
 app = typer.Typer(
     name="core-admin",
     help="""
@@ -33,7 +37,6 @@ app = typer.Typer(
     no_args_is_help=False,
 )
 
-# Create a single, shared CoreContext instance at the application root
 core_context = CoreContext(
     git_service=GitService(settings.REPO_PATH),
     cognitive_service=CognitiveService(settings.REPO_PATH),
@@ -46,23 +49,43 @@ core_context = CoreContext(
 
 # ID: 2cefad7a-83b8-4263-b882-5a62eae5b092
 def register_all_commands(app_instance: typer.Typer) -> None:
-    """Register all command groups in the correct order."""
-    modules_with_context = [
-        check,
-        enrich,
-        fix,
-        inspect,
-        manage,
-        mind,
-        run,
-        search,
-        submit,
-    ]
-    for module in modules_with_context:
-        module.register(app_instance, core_context)
+    """Register all command groups and inject context declaratively."""
+    # --- START MODIFICATION: Centralized and declarative registration ---
+
+    # 1. Add top-level command groups (verbs)
+    app_instance.add_typer(check.check_app, name="check")
+    app_instance.add_typer(fix.fix_app, name="fix")
+    app_instance.add_typer(inspect.inspect_app, name="inspect")
+    app_instance.add_typer(manage.manage_app, name="manage")
+    app_instance.add_typer(mind.mind_app, name="mind")
+    app_instance.add_typer(run.run_app, name="run")
+    app_instance.add_typer(search.search_app, name="search")
+    app_instance.add_typer(submit.submit_app, name="submit")
+
+    # 2. Inject context where needed
+    # This is now the single point of context injection.
+    if hasattr(check, "set_context"):
+        check.set_context(core_context)
+    if hasattr(fix, "set_context"):
+        fix.set_context(core_context)
+    if hasattr(inspect, "set_context"):
+        inspect.set_context(core_context)
+    if hasattr(manage, "set_context"):
+        manage.set_context(core_context)
+    if hasattr(run, "set_context"):
+        run.set_context(core_context)
+    if hasattr(search, "set_context"):
+        search.set_context(core_context)
+    if hasattr(submit, "set_context"):
+        submit.set_context(core_context)
+
+    # Inject context into logic modules that are direct callbacks
+    if hasattr(audit_logic, "set_context"):
+        audit_logic.set_context(core_context)
+
+    # --- END MODIFICATION ---
 
 
-# --- Command Registration ---
 register_all_commands(app)
 
 
@@ -70,7 +93,6 @@ register_all_commands(app)
 # ID: 74b366e2-d1fc-44c6-a9bc-e8fe222d1ad8
 def main(ctx: typer.Context):
     """If no command is specified, launch the interactive menu."""
-    # Attach our custom context to Typer's context object
     ctx.obj = core_context
     if ctx.invoked_subcommand is None:
         console.print(

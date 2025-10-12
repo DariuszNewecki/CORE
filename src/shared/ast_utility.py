@@ -11,6 +11,7 @@ insensitive to docstrings and whitespace.
 from __future__ import annotations
 
 import ast
+import copy
 import hashlib
 import logging
 import re
@@ -219,3 +220,40 @@ def calculate_structural_hash(node: ast.AST) -> str:
             fallback = repr(node)
         log.exception("Structural hash computation failed; using fallback hash.")
         return hashlib.sha256(fallback.encode("utf-8")).hexdigest()
+
+
+# ADD these lines
+# ID: 6ca3e58a-deda-4cd8-b9fa-d9909235e218
+def normalize_ast(node: ast.AST) -> str:
+    """
+    Return a deterministic string representation of an AST node.
+    Docstrings are erased, variable names replaced with v0, v1...
+    Used to detect structural duplicates.
+    """
+
+    # ID: 3b00bddc-d6d8-4e55-b2fa-aadb989ebcc1
+    class Normalizer(ast.NodeTransformer):
+        def __init__(self):
+            self._var_counter = 0
+            self._var_map = {}
+
+        # ID: ba8ec44b-1eb5-4e95-a44b-6d507f4f539d
+        def visit_Name(self, node: ast.Name) -> ast.Name:
+            if isinstance(node.ctx, ast.Store):
+                new_name = f"v{self._var_counter}"
+                self._var_map[node.id] = new_name
+                self._var_counter += 1
+                node.id = new_name
+            elif node.id in self._var_map:
+                node.id = self._var_map[node.id]
+            return self.generic_visit(node)
+
+        # ID: 86ecbe35-65c3-4338-bfbd-1c55c3ca53fb
+        def visit_Constant(self, node: ast.Constant) -> ast.Constant:
+            # erase string literals (docstrings)
+            if isinstance(node.value, str):
+                node.value = ""
+            return node
+
+    normalized = Normalizer().visit(copy.deepcopy(node))
+    return ast.dump(normalized, indent=0)

@@ -14,17 +14,17 @@ from shared.config import settings
 from shared.models import TaskParams
 
 
-# ID: 57591e08-9aab-478a-8f56-3a0c7d618064
+# ID: 79845741-cb28-483e-a017-1f962570f1fa
 class FixDocstringsHandler(ActionHandler):
     """Handles the 'autonomy.self_healing.fix_docstrings' action."""
 
     @property
-    # ID: d8fa2ec9-da57-40f0-b3e8-8832332f63c7
+    # ID: 36fd4346-26f4-4fce-97dd-8ff24ceb4bc3
     def name(self) -> str:
         """Return the unique identifier for this self-healing module."""
         return "autonomy.self_healing.fix_docstrings"
 
-    # ID: 83bfe85a-6373-4983-8fe1-62104fa1f1e5
+    # ID: 098a9dcb-dab9-40df-9ef7-150fd21c5770
     async def execute(self, params: TaskParams, context: PlanExecutorContext):
         """
         Executes the docstring fixing logic by calling the dedicated service.
@@ -33,16 +33,16 @@ class FixDocstringsHandler(ActionHandler):
         await _async_fix_docstrings(dry_run=False)
 
 
-# ID: 49d5aa15-85f9-4ca1-93c9-fb84c7bcfa37
+# ID: 229e24e4-67d0-4e63-a610-42858e150ac3
 class FixHeadersHandler(ActionHandler):
     """Handles the 'autonomy.self_healing.fix_headers' action."""
 
     @property
-    # ID: 86350ba5-ef05-4a15-8e4e-7a6dbe83c549
+    # ID: 4512e458-3548-4932-982c-71793d166c00
     def name(self) -> str:
         return "autonomy.self_healing.fix_headers"
 
-    # ID: ea34f0f1-f8f6-4f58-934d-6f9512a023a6
+    # ID: 4828affd-f7da-4995-9493-70372f11a144
     async def execute(self, params: TaskParams, context: PlanExecutorContext):
         """Executes the header fixing logic for all Python files."""
         src_dir = settings.REPO_PATH / "src"
@@ -64,4 +64,8 @@ class FormatCodeHandler(ActionHandler):
     # ID: 4f311df7-b97a-4a9c-ab54-1369ec41988e
     async def execute(self, params: TaskParams, context: PlanExecutorContext):
         """Executes the code formatting logic by calling the dedicated service."""
-        format_code()
+        # --- START MODIFICATION ---
+        # The handler now passes the file_path from the plan to the service.
+        # If no file_path is provided, it defaults to the old behavior.
+        format_code(path=params.file_path)
+        # --- END MODIFICATION ---

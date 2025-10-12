@@ -113,7 +113,7 @@ async def scaffold_new_application(
 
 
 @agent_app.command("scaffold")
-# ID: 4c4f91d1-2327-4551-b2e5-578150dac337
+# ID: f2ade2e5-5b27-513d-ae87-90aa3d3687a6
 async def agent_scaffold(
     ctx: typer.Context,
     name: str = typer.Argument(..., help="The directory name for the new application."),
@@ -139,9 +139,3 @@ async def agent_scaffold(
     else:
         typer.secho(f"\n{message}", fg=typer.colors.RED)
         raise typer.Exit(code=1)
-
-
-# ID: 66b13d7f-e392-4742-b59f-9f3be3e1f118
-def register(app: typer.Typer):
-    """Register the 'agent' command group with the main CLI app."""
-    app.add_typer(agent_app, name="agent")
