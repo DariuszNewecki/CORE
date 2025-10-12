@@ -1,4 +1,3 @@
-# src/cli/logic/guard.py
 """
 Intent: Governance/validation guard commands exposed to the operator.
 """
@@ -8,7 +7,6 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-import typer
 import yaml
 from rich import print as rprint
 from rich.panel import Panel
@@ -73,19 +71,18 @@ def _print_table(report_dict: dict, labels: Dict[str, str]) -> None:
     table.add_column("Section", style="bold")
     table.add_column("Values")
 
-    # ID: 184f626b-d8f7-4e85-94be-1ccf11fd1b07
+    # ID: 2b132e4d-1d2b-48e3-92bb-cbaea04dfd0d
     def row(title: str, items: List[str]):
         """Adds a row with a formatted list of items."""
         if not items:
             table.add_row(title, f"[bold green]{labels['none']}[/bold green]")
         else:
             table.add_row(
-                title, f"[yellow]{'\\n'.join(f'- {it}' for it in items)}[/yellow]"
+                title, f'[yellow]{'\\n'.join((f'- {it}' for it in items))}[/yellow]'
             )
 
     row("Missing in code", report_dict.get("missing_in_code", []))
     row("Undeclared in manifest", report_dict.get("undeclared_in_manifest", []))
-
     mismatches = report_dict.get("mismatched_mappings", [])
     if not mismatches:
         table.add_row(
@@ -98,7 +95,6 @@ def _print_table(report_dict: dict, labels: Dict[str, str]) -> None:
         table.add_row(
             "Mismatched mappings", "[yellow]" + "\n".join(lines) + "[/yellow]"
         )
-
     status = (
         f"[bold green]{labels['success']}[/bold green]"
         if _is_clean(report_dict)
@@ -110,16 +106,3 @@ def _print_table(report_dict: dict, labels: Dict[str, str]) -> None:
 def _print_pretty(report_dict: dict, labels: Dict[str, str]) -> None:
     """Prints a user-friendly summary of the drift report."""
     _print_table(report_dict, labels)
-
-
-# ID: b9fb9ddf-cf2f-4338-90c1-7db2b6629ddf
-def register(app: typer.Typer) -> None:
-    """
-    Legacy entry point kept for backward compatibility.
-
-    Delegates to the canonical implementation in `cli.logic.guard_cli.register_guard`.
-    """
-    # --- CORRECTED IMPORT ---
-    from .guard_cli import register_guard
-
-    return register_guard(app)

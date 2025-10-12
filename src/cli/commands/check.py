@@ -25,6 +25,7 @@ check_app = typer.Typer(
 _context: Optional[CoreContext] = None
 
 
+# ID: 7eb85868-3ff1-4696-89cc-3fb89e8a37c8
 def set_context(context: CoreContext):
     """Sets the shared context for the logic layer."""
     global _context

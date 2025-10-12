@@ -1,4 +1,3 @@
-# src/system/admin/validate.py
 """
 Provides CLI commands for validating constitutional and governance integrity.
 This module consolidates and houses the logic from the old src/core/cli tools.
@@ -18,7 +17,6 @@ from shared.config_loader import load_yaml_file
 from shared.logger import getLogger
 
 log = getLogger("core_admin.validate")
-
 validate_app = typer.Typer(help="Commands for validating constitutional integrity.")
 
 
@@ -47,7 +45,7 @@ def _validate_schema_pair(pair: Tuple[Path, Path]) -> str | None:
 
 
 @validate_app.command("intent-schema")
-# ID: 35d3d2a1-f012-4ce6-af61-86ace0f8f37d
+# ID: 5e99036c-21f6-452b-8698-d22830e205bf
 def validate_intent_schema(
     intent_path: Path = typer.Option(
         Path(".intent"), "--intent-path", help="Path to the .intent directory."
@@ -56,9 +54,6 @@ def validate_intent_schema(
     """Validate policy YAMLs under .intent/charter using their corresponding JSON Schemas."""
     log.info("Running intent schema validation via core-admin...")
     base = intent_path / "charter"
-
-    # --- THIS IS THE FIX ---
-    # The list now points to the correct, consolidated policies and schemas.
     checks: List[Tuple[Path, Path]] = [
         (
             base / "policies" / "agent_policy.yaml",
@@ -81,8 +76,6 @@ def validate_intent_schema(
             base / "schemas" / "reporting_policy_schema.json",
         ),
     ]
-    # --- END OF FIX ---
-
     errors = list(filter(None, (_validate_schema_pair(p) for p in checks)))
     if errors:
         typer.echo("\n".join(errors), err=True)
@@ -91,7 +84,7 @@ def validate_intent_schema(
 
 
 @dataclass
-# ID: cf80ad7c-42cd-4b45-8cf7-6f8d461707b6
+# ID: c9618bb6-3c14-40f6-b32b-16d50eedfb57
 class ReviewContext:
     risk_tier: str = "low"
     score: float = 0.0
@@ -145,7 +138,7 @@ def _merge_contexts(a: ReviewContext, b: ReviewContext) -> ReviewContext:
 
 
 @validate_app.command("risk-gates")
-# ID: 198e105d-51e8-4c3d-9129-e42c3898356e
+# ID: 77a7ca50-e088-4ffc-a168-5fa58f1471d4
 def validate_risk_gates(
     mind_path: Path = typer.Option(
         Path(".intent/mind"), "--mind-path", help="Path to the .intent/mind directory."
@@ -168,31 +161,25 @@ def validate_risk_gates(
     if not spath.exists():
         typer.echo(f"Missing score policy: {spath}", err=True)
         raise typer.Exit(code=2)
-
     policy = load_yaml_file(spath)
     gates: Dict[str, Any] = policy.get("risk_tier_gates", {})
     conds: Dict[str, str] = policy.get("gate_conditions", {})
-
     file_ctx = ReviewContext()
     if context and context.exists():
         raw = load_yaml_file(context)
         file_ctx = ReviewContext(**raw)
-
     cli_ctx = ReviewContext(
         risk_tier, score, touches_critical_paths, checkpoint, canary, approver_quorum
     )
     ctx = _merge_contexts(file_ctx, cli_ctx)
-
     violations: List[str] = []
     tier = gates.get(ctx.risk_tier, {})
     min_score = float(tier.get("min_score", 0.0))
     required_flags = set(tier.get("require", []))
-
     if ctx.score < min_score:
         violations.append(
             f"score {ctx.score:.2f} < min_score {min_score:.2f} for tier '{ctx.risk_tier}'"
         )
-
     cond_env = ctx.__dict__
     for cond_key, flag_name in [
         ("checkpoint_required_when", "checkpoint"),
@@ -202,23 +189,14 @@ def validate_risk_gates(
         expr = conds.get(cond_key)
         if expr and _safe_eval(expr, cond_env):
             required_flags.add(flag_name)
-
     for flag in sorted(required_flags):
         if not bool(getattr(ctx, flag, False)):
             violations.append(
                 f"required '{flag}' is missing/false for tier '{ctx.risk_tier}'"
             )
-
     if violations:
         typer.echo("Risk gate violations:", err=True)
         for v in violations:
             typer.echo(f" - {v}", err=True)
         raise typer.Exit(code=1)
-
     typer.echo("Risk gates satisfied ✓")
-
-
-# ID: 140e067e-54a1-437f-b02b-8a9f0f64a7f2
-def register(app: typer.Typer):
-    """Register the 'validate' command group with the main CLI app."""
-    app.add_typer(validate_app, name="validate")

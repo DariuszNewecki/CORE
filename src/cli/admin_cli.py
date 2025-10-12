@@ -50,8 +50,6 @@ core_context = CoreContext(
 # ID: 2cefad7a-83b8-4263-b882-5a62eae5b092
 def register_all_commands(app_instance: typer.Typer) -> None:
     """Register all command groups and inject context declaratively."""
-    # --- START MODIFICATION: Centralized and declarative registration ---
-
     # 1. Add top-level command groups (verbs)
     app_instance.add_typer(check.check_app, name="check")
     app_instance.add_typer(fix.fix_app, name="fix")
@@ -63,27 +61,13 @@ def register_all_commands(app_instance: typer.Typer) -> None:
     app_instance.add_typer(submit.submit_app, name="submit")
 
     # 2. Inject context where needed
-    # This is now the single point of context injection.
-    if hasattr(check, "set_context"):
-        check.set_context(core_context)
-    if hasattr(fix, "set_context"):
-        fix.set_context(core_context)
-    if hasattr(inspect, "set_context"):
-        inspect.set_context(core_context)
-    if hasattr(manage, "set_context"):
-        manage.set_context(core_context)
-    if hasattr(run, "set_context"):
-        run.set_context(core_context)
-    if hasattr(search, "set_context"):
-        search.set_context(core_context)
-    if hasattr(submit, "set_context"):
-        submit.set_context(core_context)
+    modules_with_context = [check, fix, inspect, manage, run, search, submit]
+    for module in modules_with_context:
+        if hasattr(module, "set_context"):
+            module.set_context(core_context)
 
-    # Inject context into logic modules that are direct callbacks
     if hasattr(audit_logic, "set_context"):
         audit_logic.set_context(core_context)
-
-    # --- END MODIFICATION ---
 
 
 register_all_commands(app)
