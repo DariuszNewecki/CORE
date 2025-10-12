@@ -7,6 +7,7 @@ import tempfile
 import time
 import uuid
 from pathlib import Path
+from typing import Optional
 
 import typer
 from core.agents.execution_agent import ExecutionAgent
@@ -28,24 +29,25 @@ log = getLogger("proposals_micro")
 micro_app = typer.Typer(help="Manage low-risk, autonomous micro-proposals.")
 
 
-# ID: 4f17d3f6-36ab-4683-ad2a-dfd9b8221d80
-def micro_propose(
+# --- MODIFICATION: This function is now async and renamed for clarity ---
+async def _create_micro_proposal(
     context: CoreContext,
     goal: str,
-):
+) -> Optional[Path]:
     """Uses an agent to create a safe, auto-approvable plan for a goal."""
     console.print(f"🤖 Generating micro-proposal for goal: '[cyan]{goal}[/cyan]'")
 
     cognitive_service = context.cognitive_service
     planner = MicroPlannerAgent(cognitive_service)
 
-    plan = asyncio.run(planner.create_micro_plan(goal))
+    # Use await instead of asyncio.run()
+    plan = await planner.create_micro_plan(goal)
 
     if not plan:
         console.print(
             "[bold red]❌ Agent could not generate a safe plan for this goal.[/bold red]"
         )
-        raise typer.Exit(code=1)
+        return None
 
     proposal = {"proposal_id": str(uuid.uuid4()), "goal": goal, "plan": plan}
     proposal_file = (
@@ -63,9 +65,39 @@ def micro_propose(
     console.print(
         f"[bold]poetry run core-admin manage proposals micro apply {proposal_file}[/bold]"
     )
+    return proposal_file
 
 
-# ID: 96a9659e-613a-4403-8cbe-623fa793a19f
+# --- NEW ORCHESTRATOR FUNCTION ---
+# ID: 1494aa0f-9e85-4675-8bc4-7c69529206c4
+async def propose_and_apply_autonomously(context: CoreContext, goal: str):
+    """
+    A single, unified async workflow that proposes a plan and immediately applies it.
+    This runs in a single event loop, avoiding concurrency errors.
+    """
+    console.print(
+        f"[bold cyan]🚀 Initiating A1 self-healing for: '{goal}'...[/bold cyan]"
+    )
+    proposal_path = await _create_micro_proposal(context, goal)
+
+    if proposal_path and proposal_path.exists():
+        console.print(
+            "\n[bold cyan]-> Plan generated. Proceeding with autonomous application...[/bold cyan]"
+        )
+        await micro_apply(context=context, proposal_path=proposal_path)
+    elif proposal_path:
+        console.print(
+            f"[bold red]❌ Proposal file was not created at {proposal_path}. Aborting.[/bold red]"
+        )
+        raise typer.Exit(code=1)
+    else:
+        console.print(
+            "[bold red]❌ Failed to generate a proposal. Aborting.[/bold red]"
+        )
+        raise typer.Exit(code=1)
+
+
+# ID: 580abe43-41ff-4f50-b734-177b2a547cc9
 async def micro_apply(
     context: CoreContext,
     proposal_path: Path,
@@ -105,7 +137,6 @@ async def micro_apply(
         )
         console.print("   -> Running full system audit check (in-process)...")
 
-        # --- THIS IS THE FIX ---
         auditor = ConstitutionalAuditor(context.auditor_context)
         passed, findings, _ = await auditor.run_full_audit_async()
 
@@ -114,13 +145,11 @@ async def micro_apply(
                 [f.message for f in findings if f.severity.is_blocking]
             )
             raise RuntimeError(f"Pre-flight audit check failed:\n{error_details}")
-        # --- END OF FIX ---
 
         console.print("   -> ✅ All pre-flight checks passed.")
 
         # 3. Apply the Change via ExecutionAgent
         console.print("[bold]Step 3/3: Executing the validated plan...[/bold]")
-        cognitive_service = context.cognitive_service
         prompt_pipeline = PromptPipeline(settings.REPO_PATH)
         plan_executor = PlanExecutor(
             file_handler=context.file_handler,
@@ -128,9 +157,15 @@ async def micro_apply(
             config=PlannerConfig(),
         )
         auditor_context = context.auditor_context
-        execution_agent = ExecutionAgent(
-            cognitive_service=cognitive_service,
+        coder_agent = __import__(
+            "core.agents.coder_agent"
+        ).agents.coder_agent.CoderAgent(
+            cognitive_service=context.cognitive_service,
             prompt_pipeline=prompt_pipeline,
+            auditor_context=auditor_context,
+        )
+        execution_agent = ExecutionAgent(
+            coder_agent=coder_agent,
             plan_executor=plan_executor,
             auditor_context=auditor_context,
         )
@@ -165,12 +200,12 @@ async def micro_apply(
         raise typer.Exit(code=1)
 
 
-# ID: c78fb5e2-23f3-47b5-8a20-675b581fe516
+# ID: 6af5f17c-1975-447c-9c2c-c90e2095ce34
 def register(app: typer.Typer, context: CoreContext):
     """Register the 'micro' command group with a parent Typer app."""
 
     @micro_app.command("apply")
-    # ID: 8e7e88cd-fbf6-46a1-aecb-a66de1ec2046
+    # ID: f84ebe0a-f814-4cb3-a54b-5c186d4733c9
     def apply_command_wrapper(
         ctx: typer.Context,
         proposal_path: Path = typer.Argument(
@@ -182,13 +217,14 @@ def register(app: typer.Typer, context: CoreContext):
         asyncio.run(micro_apply(context=core_context, proposal_path=proposal_path))
 
     @micro_app.command("propose")
-    # ID: 327e580b-283d-4b76-8980-f3dd6b14bfb1
+    # ID: 5336b8a6-6f19-46a1-b8d2-9d3d83e8e3d3
     def propose_command_wrapper(
         ctx: typer.Context,
         goal: str = typer.Argument(..., help="The high-level goal to achieve."),
     ):
         """Wrapper to pass CoreContext to the micro_propose logic."""
         core_context: CoreContext = ctx.obj
-        micro_propose(context=core_context, goal=goal)
+        # This remains synchronous for dry-run purposes
+        asyncio.run(_create_micro_proposal(context=core_context, goal=goal))
 
     app.add_typer(micro_app, name="micro")

@@ -18,10 +18,12 @@ log = getLogger(__name__)
 
 # ID: 85467d87-762e-461c-8c08-af2b982e2387
 def load_yaml_file(file_path: Path) -> Dict[str, Any]:
-    """Loads a YAML or JSON config file safely, with consistent error handling.
+    """
+    Loads a YAML or JSON config file safely, with consistent error handling.
+    This is the single source of truth for YAML loading.
 
     Args:
-        file_path: Path to the configuration file (must be .yaml, .yml, or .json).
+        file_path: Path to the configuration file.
 
     Returns:
         A dictionary containing the parsed configuration data.

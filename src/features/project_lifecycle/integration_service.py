@@ -49,10 +49,12 @@ async def check_integration_health(context: CoreContext) -> bool:
         console.print("\n[bold]Step 5/5: Running full constitutional audit...[/bold]")
         auditor = ConstitutionalAuditor(settings.REPO_PATH)
         passed, findings, _ = await auditor.run_full_audit_async()
+
+        # The service layer now only returns the result, it does not print it.
         if not passed:
-            console.print(
-                "[bold red]❌ Constitutional audit failed. Please fix the errors above.[/bold red]"
-            )
+            # Store findings in a temporary context for the CLI to pick up.
+            # This is a pragmatic way to pass data between service and CLI layer.
+            context.auditor_context.last_findings = findings
             return False
 
         console.print(
@@ -69,7 +71,6 @@ async def check_integration_health(context: CoreContext) -> bool:
 async def integrate_changes(context: CoreContext, commit_message: str):
     """
     Orchestrates the full, transactional, and intelligent integration of staged code changes.
-    This version is DESTRUCTIVE and will roll back on failure. Use for CI/automation.
     """
     git_service = context.git_service
     initial_commit_hash = git_service.get_current_commit()
@@ -85,10 +86,9 @@ async def integrate_changes(context: CoreContext, commit_message: str):
 
         console.print(f"Integrating {len(staged_files)} staged file(s)...")
 
-        # Run the non-destructive health check first. If it passes, we commit.
         if await check_integration_health(context):
             console.print("\n[bold]Final Step: Committing changes...[/bold]")
-            git_service.add_all()  # Ensure any auto-generated ID changes are staged
+            git_service.add_all()
             git_service.commit(commit_message)
             console.print(
                 "[bold green]✅ Successfully integrated and committed changes.[/bold green]"

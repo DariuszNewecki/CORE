@@ -1,4 +1,4 @@
-# src/system/admin/bootstrap.py
+# src/features/project_lifecycle/bootstrap_service.py
 """
 Provides CLI commands for bootstrapping the project with initial setup tasks,
 such as creating a default set of GitHub issues for a new repository.
@@ -117,7 +117,4 @@ def bootstrap_issues(
     )
 
 
-# ID: 86fe149d-06be-4cf8-a874-b03b28c1fe39
-def register(app: typer.Typer):
-    """Register the 'bootstrap' command group with the main CLI app."""
-    app.add_typer(bootstrap_app, name="bootstrap")
+# The obsolete `register` function has been removed.

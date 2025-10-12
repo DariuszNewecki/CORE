@@ -1,4 +1,4 @@
-# src/system/admin/byor.py
+# src/cli/logic/byor.py
 """
 Implements the 'byor-init' command to analyze external repositories and scaffold minimal CORE governance structures.
 """
@@ -9,18 +9,14 @@ from pathlib import Path
 
 import typer
 import yaml
-
 from features.introspection.knowledge_graph_service import KnowledgeGraphBuilder
 from shared.logger import getLogger
 
 log = getLogger("core_admin.byor")
-
-# --- THIS IS THE FIX ---
-# We now point to the 'starter_kits/default' directory as the single
-# source of truth for all project scaffolding templates.
 CORE_ROOT = Path(__file__).resolve().parents[2]
-TEMPLATES_DIR = CORE_ROOT / "system" / "starter_kits" / "default"
-# --- END OF FIX ---
+TEMPLATES_DIR = (
+    CORE_ROOT / "src" / "features" / "project_lifecycle" / "starter_kits" / "default"
+)
 
 
 # ID: 2c141c77-c07b-48a3-b001-d607d6ed9a39
@@ -44,7 +40,6 @@ def initialize_repository(
     """
     log.info(f"🚀 Starting analysis of repository at: {path}")
 
-    # Step 1: Build the Knowledge Graph.
     log.info("   -> Step 1: Building Knowledge Graph of the target repository...")
     try:
         builder = KnowledgeGraphBuilder(root_path=path)
@@ -57,10 +52,8 @@ def initialize_repository(
         log.error(f"   -> ❌ Failed to build Knowledge Graph: {e}", exc_info=True)
         raise typer.Exit(code=1)
 
-    # Step 2: Generate the content for the new constitutional files.
     log.info("   -> Step 2: Generating starter constitution from analysis...")
 
-    # File 1: source_structure.yaml
     domains = builder.domain_map
     source_structure_content = {
         "structure": [
@@ -74,7 +67,6 @@ def initialize_repository(
         ]
     }
 
-    # File 2: project_manifest.yaml
     discovered_capabilities = sorted(
         list(
             set(
@@ -91,8 +83,6 @@ def initialize_repository(
         "required_capabilities": discovered_capabilities,
     }
 
-    # File 3: capability_tags.yaml (dynamically populated)
-    # The content is read from the now-consolidated template file.
     (TEMPLATES_DIR / "capability_tags.yaml.template").read_text()
     capability_tags_content = {
         "tags": [
@@ -104,7 +94,6 @@ def initialize_repository(
         ]
     }
 
-    # The files we will create and their content.
     files_to_generate = {
         ".intent/knowledge/source_structure.yaml": source_structure_content,
         ".intent/project_manifest.yaml": project_manifest_content,
@@ -117,7 +106,6 @@ def initialize_repository(
         ).read_text(),
     }
 
-    # Step 3: Write the files or display the dry run.
     if dry_run:
         log.info("\n💧 Dry Run Mode: No files will be written.")
         for rel_path, content in files_to_generate.items():
@@ -142,7 +130,4 @@ def initialize_repository(
     log.info("\n🎉 BYOR initialization complete.")
 
 
-# ID: 906f56e6-46e0-4ff1-bd94-3c8dfe8afa10
-def register(app: typer.Typer) -> None:
-    """Register BYOR commands (e.g., `byor-init`) under the admin CLI."""
-    app.command("byor-init")(initialize_repository)
+# The obsolete `register` function has been removed.

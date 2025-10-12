@@ -1,4 +1,4 @@
-# src/system/admin/commands/db/audit_capability_domains.py
+# src/cli/logic/audit_capability_domains.py
 """
 Provides functionality for the audit_capability_domains module.
 """
@@ -7,8 +7,8 @@ from __future__ import annotations
 
 import typer
 
-# --- CORRECTED IMPORT ---
-from core.db.engine import get_session
+# CORRECTED IMPORT: Now points to the single source of truth for sessions.
+from services.database.session_manager import get_session
 from sqlalchemy import text
 
 
@@ -17,7 +17,6 @@ async def _audit_queries(limit: int):
     returning counts of total capabilities and lists of keys with
     zero tags, multiple primary domains, legacy domain mismatches,
     and inactive domain tags."""
-    # --- CORRECTED USAGE ---
     async with get_session() as session:
         total = (
             await session.execute(text("select count(*) as c from core.capabilities"))
@@ -85,8 +84,6 @@ async def _audit_queries(limit: int):
             inactive_tag_rows,
         )
 
-    """Audit capability domains for common tagging issues and display findings with sample keys."""
-
 
 # ID: a2d0d438-253f-49ba-82be-10eb2a2a7749
 def audit_capability_domains(
@@ -94,6 +91,7 @@ def audit_capability_domains(
         20, "--limit", help="Max sample keys to show for each finding"
     ),
 ):
+    """Audit capability domains for common tagging issues and display findings with sample keys."""
     total, zero_tags, multi_primary, legacy_mismatch, inactive_tags = typer.run(
         _audit_queries, limit
     )
@@ -102,12 +100,6 @@ def audit_capability_domains(
     typer.echo(f"Zero tags: {len(zero_tags)}  {zero_tags}")
     typer.echo(f"Multiple primary tags: {len(multi_primary)}  {multi_primary}")
     typer.echo(
-        """Register an 'audit-capability-domains' command with the Typer app."""
         f"Legacy domain not among tags: {len(legacy_mismatch)}  {legacy_mismatch}"
     )
     typer.echo(f"Tags on INACTIVE domains: {len(inactive_tags)}  {inactive_tags}")
-
-
-# ID: d5c37027-bdad-4c56-8c4b-ce4b8ff9467c
-def register(app: typer.Typer) -> None:
-    app.command("audit-capability-domains")(audit_capability_domains)

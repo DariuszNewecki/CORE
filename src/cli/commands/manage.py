@@ -1,9 +1,13 @@
 # src/cli/commands/manage.py
-"""Registers the new, verb-based 'manage' command group with subgroups."""
+"""
+Registers the new, verb-based 'manage' command group with subgroups.
+Refactored under dry_by_design to use the canonical context setter.
+"""
 
 from __future__ import annotations
 
 import asyncio
+from typing import Optional
 
 import typer
 from cli.logic.byor import initialize_repository
@@ -15,12 +19,10 @@ from cli.logic.proposal_service import (
     proposals_list,
     proposals_sign,
 )
-
-# --- ADD THIS IMPORT ---
 from cli.logic.proposals_micro import register as register_micro_proposals
 from cli.logic.sync import sync_knowledge_base
 from cli.logic.sync_manifest import sync_manifest
-from features.governance.key_management_service import register as register_keygen
+from features.governance.key_management_service import keygen
 from features.maintenance.dotenv_sync_service import run_dotenv_sync
 from features.maintenance.migration_service import run_ssot_migration
 from features.project_lifecycle.definition_service import define_new_symbols
@@ -35,6 +37,9 @@ manage_app = typer.Typer(
     help="State-changing administrative tasks for the system.",
     no_args_is_help=True,
 )
+
+_context: Optional[CoreContext] = None
+
 
 db_sub_app = typer.Typer(
     help="Manage the database schema and data.", no_args_is_help=True
@@ -98,22 +103,23 @@ proposals_sub_app.command("sign")(proposals_sign)
 @proposals_sub_app.command("approve")
 # ID: e50e9a6d-3efd-41e5-a472-1ce5d8ad2563
 def approve_command_wrapper(
-    ctx: typer.Context,
     proposal_name: str = typer.Argument(
         ..., help="Filename of the proposal to approve."
     ),
 ):
     """Wrapper to pass CoreContext to the approve logic."""
-    core_context: CoreContext = ctx.obj
-    proposals_approve(context=core_context, proposal_name=proposal_name)
+    if not _context:
+        raise typer.Exit("Context not set for approve command.")
+    proposals_approve(context=_context, proposal_name=proposal_name)
 
 
+register_micro_proposals(proposals_sub_app, _context)
 manage_app.add_typer(proposals_sub_app, name="proposals")
 
 keys_sub_app = typer.Typer(
     help="Manage operator cryptographic keys.", no_args_is_help=True
 )
-register_keygen(keys_sub_app)
+keys_sub_app.command("generate")(keygen)
 manage_app.add_typer(keys_sub_app, name="keys")
 
 
@@ -122,28 +128,18 @@ manage_app.add_typer(keys_sub_app, name="keys")
     help="Defines all undefined capabilities one by one using an AI agent.",
 )
 # ID: 63ef4a80-6f41-4700-8653-64a853a1f279
-def define_symbols_command(ctx: typer.Context):
+def define_symbols_command():
     """Synchronous wrapper that calls the refactored definition service."""
     console.print(
         "[bold yellow]Running asynchronous symbol definition...[/bold yellow]"
     )
+    if not _context:
+        raise typer.Exit("Context not set for define-symbols command.")
     try:
-        core_context: CoreContext = ctx.obj
-        cognitive_service = core_context.cognitive_service
+        cognitive_service = _context.cognitive_service
         asyncio.run(define_new_symbols(cognitive_service))
     except Exception as e:
         console.print(
             f"[bold red]An unexpected error occurred: {e}[/bold red]", highlight=False
         )
         raise typer.Exit(code=1)
-
-
-# ID: ce809f59-f964-4588-ae33-1abd6bcb9b6d
-def register(app: typer.Typer, context: CoreContext):
-    """Register the 'manage' command group with the main CLI app."""
-    # --- ADD THIS WIRING ---
-    # Register the 'micro' subgroup under the 'proposals' group
-    # and pass the main context to it.
-    register_micro_proposals(proposals_sub_app, context)
-
-    app.add_typer(manage_app, name="manage")

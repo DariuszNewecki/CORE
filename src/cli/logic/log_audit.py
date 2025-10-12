@@ -1,4 +1,4 @@
-# src/system/admin/commands/db/log_audit.py
+# src/cli/logic/log_audit.py
 """
 Provides functionality for the log_audit module.
 """
@@ -8,10 +8,8 @@ from __future__ import annotations
 import asyncio
 
 import typer
+from services.database.session_manager import get_session
 from sqlalchemy import text
-
-# --- CORRECTED IMPORT ---
-from core.db.engine import get_session
 
 from .common import git_commit_sha
 
@@ -40,7 +38,6 @@ def log_audit(
             returning id
             """
         )
-        # --- CORRECTED USAGE ---
         async with get_session() as session:
             async with session.begin():
                 result = await session.execute(

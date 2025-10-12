@@ -1,4 +1,4 @@
-# src/cli/commands/tools.py
+# src/cli/logic/tools.py
 """
 Registers a 'tools' command group for powerful, operator-focused maintenance tasks.
 This is the new, governed home for logic from standalone scripts.
@@ -53,7 +53,4 @@ def rewire_imports_cli(
     )
 
 
-# ID: 4a90a5ee-6b06-4387-be93-fdb39eee443e
-def register(app: typer.Typer):
-    """Register the 'tools' command group with the main CLI app."""
-    app.add_typer(tools_app, name="tools")
+# The obsolete register function has been removed.

@@ -35,6 +35,8 @@ class MicroPlannerAgent:
     async def create_micro_plan(self, goal: str) -> List[Dict[str, Any]]:
         """Creates a safe execution plan from a user goal."""
         policy_content = json.dumps(self.policy, indent=2)
+
+        # The prompt should only require these two variables.
         final_prompt = self.prompt_template.format(
             policy_content=policy_content, user_goal=goal
         )
@@ -46,7 +48,6 @@ class MicroPlannerAgent:
 
         try:
             plan = parse_and_validate_plan(response_text)
-            # Convert back to dicts for the caller, which expects a more primitive type
             return [task.model_dump() for task in plan]
         except PlanExecutionError:
             log.warning(

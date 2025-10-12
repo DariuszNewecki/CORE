@@ -1,7 +1,12 @@
 # src/cli/commands/enrich.py
+"""
+Registers the 'enrich' command group.
+"""
+
 from __future__ import annotations
 
 import asyncio
+from typing import Optional
 
 import typer
 from features.self_healing.enrichment_service import enrich_symbols
@@ -11,21 +16,23 @@ from shared.context import CoreContext
 console = Console()
 enrich_app = typer.Typer(help="Autonomous tools to enrich the system's knowledge base.")
 
+_context: Optional[CoreContext] = None
+
+
+def set_context(context: CoreContext):
+    """Sets the shared context for commands in this group."""
+    global _context
+    _context = context
+
 
 @enrich_app.command("symbols")
 # ID: 7ecf56f5-c723-45f1-b1a8-4dbb19868968
 def enrich_symbols_command(
-    ctx: typer.Context,
     write: bool = typer.Option(
         False, "--write", help="Apply the generated descriptions to the database."
     ),
 ):
     """Uses an AI agent to write descriptions for symbols that have placeholders."""
-    core_context: CoreContext = ctx.obj
-    asyncio.run(enrich_symbols(core_context.cognitive_service, dry_run=not write))
-
-
-# ID: 05372cbf-1f9b-45cb-b892-7bf0e6a8ba41
-def register(app: typer.Typer, context: CoreContext):
-    """Register the 'enrich' command group to the main CLI app."""
-    app.add_typer(enrich_app, name="enrich")
+    if not _context:
+        raise typer.Exit("Context not set for enrich symbols command.")
+    asyncio.run(enrich_symbols(_context.cognitive_service, dry_run=not write))

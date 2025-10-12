@@ -1,6 +1,7 @@
-# src/cli/commands/status.py
+# src/cli/logic/status.py
 """
 CLI command to check database connectivity and migration status.
+This is a thin wrapper around the status service.
 """
 
 from __future__ import annotations
@@ -9,38 +10,24 @@ import asyncio
 
 import typer
 
-# --- THIS IS THE FIX ---
-# It now imports from the correct 'services' layer, not the 'cli' layer.
-from services.repositories.db.common import (
-    ensure_ledger,
-    get_applied,
-    load_policy,
-)
-from services.repositories.db.engine import ping
+# This now correctly imports the business logic from the service layer.
+from services.repositories.db.status_service import status as get_status_report
 
 
 # ID: 10235f65-fae8-473a-8a60-f65711b87f43
 def status() -> None:
-    """Show DB connectivity and migration status."""
+    """Show DB connectivity and migration status by calling the status service."""
 
     async def _run():
-        # 1) connection/ping
-        try:
-            info = await ping()
-            typer.echo(f"✅ Connected: {info['version']}")
-        except Exception as e:
-            typer.echo(f"❌ Connection failed: {e}", err=True)
-            raise
+        report = await get_status_report()
 
-        # 2) policy & migrations
-        pol = load_policy()
-        order = pol.get("migrations", {}).get("order", [])
+        if report.is_connected and report.db_version:
+            typer.echo(f"✅ Connected: {report.db_version}")
+        else:
+            typer.echo("❌ Connection failed.", err=True)
+            raise typer.Exit(code=1)
 
-        await ensure_ledger()
-        applied = await get_applied()
-        pending = [m for m in order if m not in applied]
-
-        typer.echo(f"Applied: {sorted(list(applied)) or '—'}")
-        typer.echo(f"Pending: {pending or '—'}")
+        typer.echo(f"Applied: {sorted(list(report.applied_migrations)) or '—'}")
+        typer.echo(f"Pending: {report.pending_migrations or '—'}")
 
     asyncio.run(_run())

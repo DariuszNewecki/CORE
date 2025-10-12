@@ -23,8 +23,7 @@ from .validation_actions import ValidateCodeHandler
 log = getLogger("action_registry")
 
 
-# ID: 4d5e6f7a-8b9c-0d1e-2f3a-4b5c6d7e
-# ID: 2063313d-3cd6-4732-956b-e0b9fc7a5924
+# ID: b351ac04-4574-409e-a4ad-90a1e8225947
 class ActionRegistry:
     """A central registry for all action handlers."""
 
@@ -42,7 +41,6 @@ class ActionRegistry:
             EditFileHandler,
             CreateProposalHandler,
             EditFunctionHandler,
-            # Add our new handlers to the list
             FixHeadersHandler,
             FixDocstringsHandler,
             FormatCodeHandler,

@@ -11,7 +11,7 @@ import asyncio
 import typer
 from rich.console import Console
 from ruamel.yaml import YAML  # Use ruamel.yaml for safer writing
-from services.repositories.db.engine import get_session
+from services.database.session_manager import get_session
 from shared.config import settings
 from shared.logger import getLogger
 from sqlalchemy import text
@@ -57,22 +57,18 @@ async def _async_sync_manifest():
         f"   -> Found {len(public_symbol_keys)} public capabilities to declare."
     )
 
-    # --- THIS IS THE FIX ---
-    # Use ruamel.yaml for safe and structured YAML manipulation.
     yaml_handler = YAML()
     yaml_handler.indent(mapping=2, sequence=4, offset=2)
 
     with MANIFEST_PATH.open("r", encoding="utf-8") as f:
         manifest_data = yaml_handler.load(f)
 
-    # Replace the capabilities list with the new, sorted list from the DB
     manifest_data["capabilities"] = public_symbol_keys
 
     console.print(f"   -> Updating {MANIFEST_PATH.relative_to(settings.REPO_PATH)}...")
 
     with MANIFEST_PATH.open("w", encoding="utf-8") as f:
         yaml_handler.dump(manifest_data, f)
-    # --- END OF FIX ---
 
     console.print("[bold green]✅ Manifest synchronization complete.[/bold green]")
 

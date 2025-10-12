@@ -1,3 +1,4 @@
+# .intent/charter/policies/governance/audit_ignore_policy.yaml
 policy_id: 232934da-44d6-4ddc-9404-162382caddb7
 id: audit_ignore_policy
 version: "1.2.0" # Use correct symbol key format for ignores
@@ -11,7 +12,7 @@ scope:
 owners:
   accountable: "Core Maintainer"
 review:
-  frequency: "semannual"
+  semannual
 
 rules:
   - id: ignore.must_expire
@@ -24,6 +25,25 @@ rules:
 ignores: []
 
 symbol_ignores:
+  # --- START OF AMENDMENT ---
+  # The duplicated set_context functions have been removed, so their ignores are now obsolete.
+  - key: "cli.commands.run.py::develop_command"
+    reason: "Boilerplate CLI wrapper. Implementation is in logic/run.py."
+    expires: "2026-01-01"
+  - key: "cli.commands.run.py::vectorize_command"
+    reason: "Boilerplate CLI wrapper. Implementation is in logic/run.py."
+    expires: "2026-01-01"
+  - key: "cli.commands.fix.py::complexity_command"
+    reason: "Boilerplate CLI wrapper. Implementation is in self_healing/complexity_service.py."
+    expires: "2026-01-01"
+  - key: "cli.logic.system.py::integrate_command"
+    reason: "Boilerplate CLI wrapper. Implementation is in project_lifecycle/integration_service.py."
+    expires: "2026-01-01"
+  - key: "cli.logic.system.py::process_crates_command"
+    reason: "Boilerplate CLI wrapper. Implementation is in core/crate_processing_service.py."
+    expires: "2026-01-01"
+  # --- END OF AMENDMENT ---
+
   # --- UNASSIGNED BUT VALID (Internal Helpers) ---
   - key: "cli.interactive.run_command"
     reason: "Internal helper for the interactive menu, not a governable capability."

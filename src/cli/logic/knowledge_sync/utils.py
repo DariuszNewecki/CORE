@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any, Dict, List
 
 import yaml
+from shared.config_loader import load_yaml_file
 
 
 # ID: 0a055408-c1c4-54f2-b2d3-28bc47ace016
@@ -20,7 +21,6 @@ def canonicalize(obj: Any) -> Any:
     if isinstance(obj, dict):
         return {k: canonicalize(obj[k]) for k in sorted(obj.keys())}
     if isinstance(obj, list):
-        # A simple recursive call is sufficient and safer than complex sorting here.
         return [canonicalize(x) for x in obj]
     if isinstance(obj, uuid.UUID):
         return str(obj)
@@ -30,7 +30,6 @@ def canonicalize(obj: Any) -> Any:
 # ID: 96c822f2-6aeb-49e1-866f-53d8d97953c4
 def compute_digest(items: List[Dict[str, Any]]) -> str:
     """Creates a unique fingerprint (SHA256) for a list of items."""
-    # This function now correctly receives data from a safe canonicalize function.
     canon = canonicalize(items)
     payload = json.dumps(
         canon, ensure_ascii=False, sort_keys=True, separators=(",", ":")
@@ -39,10 +38,9 @@ def compute_digest(items: List[Dict[str, Any]]) -> str:
 
 
 # ID: 915326c0-141c-83d4-fe10-2e46-ddae48f4-9813cce0001f0ea091b3c86d5595bf2f
-# ID: 44193f0f-0c53-4916-92c5-952535404b9f
+# ID: b91d073b-f19b-42ce-b6a9-afe7594a10a5
 def write_yaml(path: Path, items: List[Dict[str, Any]], exported_at: str) -> str:
     """Writes a list of items to a YAML file, including version, timestamp, and digest."""
-    # This function relies on canonicalize to handle UUIDs before hashing.
     stringified_items = [
         {k: (str(v) if isinstance(v, uuid.UUID) else v) for k, v in item.items()}
         for item in items
@@ -62,19 +60,8 @@ def write_yaml(path: Path, items: List[Dict[str, Any]], exported_at: str) -> str
     return digest
 
 
-# ID: 4e397589-8aeb-5795-b54d-81caf3e013e5
-def read_yaml(path: Path) -> Dict[str, Any]:
-    """
-    Reads a YAML file and returns its content.
-    Crucially, it does NOT convert string UUIDs into UUID objects, preventing serialization errors downstream.
-    """
-    if not path.exists():
-        return {}
-
-    with path.open("r", encoding="utf-8") as f:
-        # Load the data as plain strings, numbers, etc. No special object conversion.
-        data = yaml.safe_load(f) or {}
-    return data
+# The local `read_yaml` function is now an alias for the canonical loader.
+read_yaml = load_yaml_file
 
 
 # ID: 75d790d9-b2f7-5757-b2f7-6d790d9b2f7d

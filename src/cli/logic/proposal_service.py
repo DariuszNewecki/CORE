@@ -20,16 +20,12 @@ from features.governance.constitutional_auditor import ConstitutionalAuditor
 from rich.console import Console
 from rich.table import Table
 from shared.config import settings
+from shared.config_loader import load_yaml_file
 from shared.context import CoreContext
 from shared.logger import getLogger
 from shared.utils.crypto import generate_approval_token
 
-from .cli_utils import (
-    archive_rollback_plan,
-    load_private_key,
-    load_yaml_file,
-    save_yaml_file,
-)
+from .cli_utils import archive_rollback_plan, load_private_key, save_yaml_file
 
 log = getLogger("core_admin.proposals")
 console = Console()
