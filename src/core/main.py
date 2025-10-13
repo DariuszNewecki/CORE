@@ -1,11 +1,7 @@
 # src/core/main.py
-"""
-The main entry point for the CORE FastAPI application.
-Initializes the application, sets up lifespan events, and includes all API routers.
-"""
-
 from __future__ import annotations
 
+import os
 from contextlib import asynccontextmanager
 
 from api.v1 import development_routes, knowledge_routes
@@ -21,20 +17,19 @@ from core.cognitive_service import CognitiveService
 from core.errors import register_exception_handlers
 from core.file_handler import FileHandler
 from core.git_service import GitService
+from core.knowledge_service import KnowledgeService
 
 log = getLogger("core.main")
 
 
 @asynccontextmanager
-# ID: 3a81d3db-83ee-4c34-ba20-c8cad6bda79c
+# ID: 955908bb-6979-42b9-95fb-67f61a75db12
 async def lifespan(app: FastAPI):
-    """Handles application startup and shutdown events."""
     log.info("🚀 Starting CORE system...")
-
-    # Create and attach the shared CoreContext to the application state
     core_context = CoreContext(
         git_service=GitService(settings.REPO_PATH),
         cognitive_service=CognitiveService(settings.REPO_PATH),
+        knowledge_service=KnowledgeService(settings.REPO_PATH),
         qdrant_service=QdrantService(),
         auditor_context=AuditorContext(settings.REPO_PATH),
         file_handler=FileHandler(str(settings.REPO_PATH)),
@@ -42,33 +37,32 @@ async def lifespan(app: FastAPI):
     )
     app.state.core_context = core_context
 
+    # If running under pytest, let tests control initialization order explicitly
+    if os.getenv("PYTEST_CURRENT_TEST"):
+        core_context._is_test_mode = True  # tests call init/load explicitly
+
     try:
-        # Initialize services that need async setup
-        await core_context.cognitive_service.initialize()
-        await core_context.auditor_context.load_knowledge_graph()
+        if not getattr(core_context, "_is_test_mode", False):
+            await core_context.cognitive_service.initialize()
+            await core_context.auditor_context.load_knowledge_graph()
         yield
     finally:
         log.info("🛑 CORE system shutting down.")
 
 
-# ID: 4fe42369-b346-44e8-8cb4-e6e298dffcb8
+# ID: ac2f33e7-4aed-4d32-b701-9bc50b622016
 def create_app() -> FastAPI:
-    """Creates and configures the main FastAPI application instance."""
     app = FastAPI(
         title="CORE - Self-Improving System Architect",
         version="1.0.0",
         lifespan=lifespan,
     )
-
-    # Register routers
     app.include_router(knowledge_routes.router, prefix="/v1", tags=["Knowledge"])
     app.include_router(development_routes.router, prefix="/v1", tags=["Development"])
-
-    # Register exception handlers for robust error responses
     register_exception_handlers(app)
 
     @app.get("/health")
-    # ID: 3ade1e85-161c-4b2c-bf1b-721774082d61
+    # ID: ee809a0b-21da-4169-a197-cf5df1d9ada8
     def health_check():
         return {"status": "ok"}
 

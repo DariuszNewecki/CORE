@@ -1,116 +1,92 @@
 # src/features/project_lifecycle/integration_service.py
 from __future__ import annotations
 
+import subprocess
+
 from rich.console import Console
 from shared.config import settings
 from shared.context import CoreContext
+from shared.logger import getLogger
 
-from features.governance.constitutional_auditor import ConstitutionalAuditor
-from features.introspection.sync_service import run_sync_with_db
-from features.introspection.vectorization_service import run_vectorize
-from features.project_lifecycle.definition_service import define_new_symbols
-from features.self_healing.id_tagging_service import assign_missing_ids
-
+log = getLogger("integration_service")
 console = Console()
-
-
-# ID: 79e03609-2875-4dfa-ab67-e8435f994a0c
-async def check_integration_health(context: CoreContext) -> bool:
-    """
-    Runs the full integration and validation sequence without committing or rolling back.
-    This is the primary developer command to check if work is ready to be committed.
-    Returns True if all checks pass, False otherwise.
-    """
-    cognitive_service = context.cognitive_service
-
-    try:
-        console.print("\n[bold]Step 1/5: Assigning IDs to new symbols...[/bold]")
-        assign_missing_ids(dry_run=False)
-
-        console.print(
-            "\n[bold]Step 2/5: Synchronizing code state with the database...[/bold]"
-        )
-        await run_sync_with_db()
-
-        await cognitive_service.initialize()
-
-        console.print(
-            "\n[bold]Step 3/5: Vectorizing new and modified symbols...[/bold]"
-        )
-        await run_vectorize(
-            cognitive_service=cognitive_service, dry_run=False, force=False
-        )
-
-        console.print(
-            "\n[bold]Step 4/5: Autonomously defining new capabilities...[/bold]"
-        )
-        await define_new_symbols(cognitive_service)
-
-        console.print("\n[bold]Step 5/5: Running full constitutional audit...[/bold]")
-        auditor = ConstitutionalAuditor(settings.REPO_PATH)
-        passed, findings, _ = await auditor.run_full_audit_async()
-
-        # The service layer now only returns the result, it does not print it.
-        if not passed:
-            # Store findings in a temporary context for the CLI to pick up.
-            # This is a pragmatic way to pass data between service and CLI layer.
-            context.auditor_context.last_findings = findings
-            return False
-
-        console.print(
-            "\n[bold green]✅ All integration checks passed. Your changes are ready to be committed.[/bold green]"
-        )
-        return True
-
-    except Exception as e:
-        console.print(f"\n[bold red]An error occurred during the check: {e}[/bold red]")
-        return False
 
 
 # ID: a6ace728-0c7f-48b8-b7a0-52ff9b24d99d
 async def integrate_changes(context: CoreContext, commit_message: str):
     """
-    Orchestrates the full, transactional, and intelligent integration of staged code changes.
+    Orchestrates the full, non-destructive, and intelligent integration of code changes
+    by executing the constitutionally-defined `integration_workflow`.
+
+    This workflow is designed to be safe and developer-friendly. If it fails,
+    it halts and leaves the working directory in its current state for the
+    developer to fix. It will never destroy uncommitted work.
     """
     git_service = context.git_service
-    initial_commit_hash = git_service.get_current_commit()
-    integration_succeeded = False
 
     try:
+        # Step 1: Stage all current work. This captures the developer's full intent.
+        console.print("[bold]Step 1: Staging all current changes...[/bold]")
+        git_service.add_all()
         staged_files = git_service.get_staged_files()
         if not staged_files:
             console.print(
-                "[yellow]No staged changes found to integrate. Please use 'git add'.[/yellow]"
+                "[yellow]No changes found to integrate. Working directory is clean.[/yellow]"
             )
             return
 
-        console.print(f"Integrating {len(staged_files)} staged file(s)...")
+        console.print(f"   -> Staged {len(staged_files)} file(s) for integration.")
 
-        if await check_integration_health(context):
-            console.print("\n[bold]Final Step: Committing changes...[/bold]")
-            git_service.add_all()
-            git_service.commit(commit_message)
+        # Step 2: Load and execute the constitutional workflow.
+        workflow_policy = settings.load("charter.policies.operations.workflows_policy")
+        integration_steps = workflow_policy.get("integration_workflow", [])
+
+        for i, step in enumerate(integration_steps, 1):
             console.print(
-                "[bold green]✅ Successfully integrated and committed changes.[/bold green]"
+                f"\n[bold]Step {i + 1}/{len(integration_steps) + 2}: {step['description']}[/bold]"
             )
-            integration_succeeded = True
-        else:
-            raise RuntimeError(
-                "Integration health check failed. Triggering automatic rollback."
-            )
+            command_parts = step["command"].split()
+            try:
+                process = subprocess.run(
+                    command_parts,
+                    check=True,
+                    capture_output=True,
+                    text=True,
+                    cwd=settings.REPO_PATH,
+                )
+                if process.stdout:
+                    console.print(process.stdout)
+                if process.stderr:
+                    console.print(f"[yellow]{process.stderr}[/yellow]")
+
+            except subprocess.CalledProcessError as e:
+                console.print(f"[bold red]❌ Step '{step['id']}' failed.[/bold red]")
+                if e.stdout:
+                    console.print(f"   -> STDOUT:\n{e.stdout}")
+                if e.stderr:
+                    console.print(f"   -> STDERR:\n{e.stderr}")
+
+                if not step.get("continues_on_failure", False):
+                    console.print(
+                        "\n[bold red]Integration halted. Please fix the error above, then re-run the command.[/bold red]"
+                    )
+                    # No rollback, just stop. The developer's work is safe.
+                    raise
+                else:
+                    console.print(
+                        "   -> [yellow]Continuing because step is marked as non-blocking.[/yellow]"
+                    )
+
+        # Step 3: All checks passed. Stage any new changes and commit.
+        console.print(
+            f"\n[bold]Step {len(integration_steps) + 2}/{len(integration_steps) + 2}: Committing all changes...[/bold]"
+        )
+        git_service.commit(commit_message)
+        console.print(
+            "[bold green]✅ Successfully integrated and committed changes.[/bold green]"
+        )
 
     except Exception as e:
-        console.print(
-            f"\n[bold red]An error occurred during integration: {e}[/bold red]"
-        )
-        console.print("[bold red]Aborting and reverting all changes...[/bold red]")
-
-    finally:
-        if not integration_succeeded:
-            console.print(
-                f"   -> Reverting repository to clean state at commit {initial_commit_hash[:7]}..."
-            )
-            git_service.reset_to_commit(initial_commit_hash)
-            console.print(
-                "[bold yellow]✅ Rollback complete. Your working directory is clean.[/bold yellow]"
-            )
+        # This block catches failures from the workflow execution.
+        log.error(f"Integration process failed: {e}", exc_info=True)
+        # We do not need a finally or rollback block. The state is preserved for the user.

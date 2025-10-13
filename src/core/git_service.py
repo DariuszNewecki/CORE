@@ -55,12 +55,6 @@ class GitService:
         """Returns the hash of the current HEAD commit."""
         return self._run_command(["rev-parse", "HEAD"])
 
-    # ID: 33b35c95-2d76-4729-9c16-32d7a877585b
-    def reset_to_commit(self, commit_hash: str):
-        """Resets the repository to a specific commit."""
-        self._run_command(["reset", "--hard", commit_hash])
-        log.info(f"Repository reset to commit {commit_hash}")
-
     # ID: eed906a4-ba54-4af9-94fe-9865d6906c96
     def get_staged_files(self) -> list[str]:
         """Returns a list of files that are currently staged for commit."""
@@ -84,11 +78,6 @@ class GitService:
         """Returns the porcelain status output."""
         return self._run_command(["status", "--porcelain"])
 
-    # ID: 5f740625-7aa7-4755-9fcd-f464ae852b2f
-    def add(self, file_path: str = ".") -> None:
-        """Stages a file (or path)."""
-        self._run_command(["add", file_path])
-
     # ID: 2874a643-2e40-44f0-917f-a928484b2c67
     def add_all(self) -> None:
         """Stages all changes, including untracked files."""
@@ -100,12 +89,13 @@ class GitService:
         Commits staged changes with the provided message.
         """
         try:
-            status_output = self.status_porcelain()
-            if not status_output.strip():
-                log.info("No changes to commit.")
+            # Stage everything one last time to be sure
+            self.add_all()
+            # Check if there is anything to commit after staging
+            if not self.get_staged_files():
+                log.info("No changes staged to commit.")
                 return
 
-            self.add_all()
             self._run_command(["commit", "-m", message])
             log.info(f"Committed changes with message: '{message}'")
         except RuntimeError as e:

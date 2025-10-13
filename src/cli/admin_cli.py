@@ -7,16 +7,13 @@ This module assembles all command groups into a single Typer application.
 from __future__ import annotations
 
 import typer
-
-# --- START MODIFICATION: Import modules directly ---
-from cli.commands import check, fix, inspect, manage, mind, run, search, submit
+from cli.commands import check, enrich, fix, inspect, manage, mind, run, search, submit
 from cli.interactive import launch_interactive_menu
 from cli.logic import audit as audit_logic
-
-# --- END MODIFICATION ---
 from core.cognitive_service import CognitiveService
 from core.file_handler import FileHandler
 from core.git_service import GitService
+from core.knowledge_service import KnowledgeService
 from features.governance.audit_context import AuditorContext
 from rich.console import Console
 from services.clients.qdrant_client import QdrantService
@@ -40,6 +37,7 @@ app = typer.Typer(
 core_context = CoreContext(
     git_service=GitService(settings.REPO_PATH),
     cognitive_service=CognitiveService(settings.REPO_PATH),
+    knowledge_service=KnowledgeService(settings.REPO_PATH),
     qdrant_service=QdrantService(),
     auditor_context=AuditorContext(settings.REPO_PATH),
     file_handler=FileHandler(str(settings.REPO_PATH)),
@@ -52,6 +50,7 @@ def register_all_commands(app_instance: typer.Typer) -> None:
     """Register all command groups and inject context declaratively."""
     # 1. Add top-level command groups (verbs)
     app_instance.add_typer(check.check_app, name="check")
+    app_instance.add_typer(enrich.enrich_app, name="enrich")
     app_instance.add_typer(fix.fix_app, name="fix")
     app_instance.add_typer(inspect.inspect_app, name="inspect")
     app_instance.add_typer(manage.manage_app, name="manage")
@@ -60,14 +59,21 @@ def register_all_commands(app_instance: typer.Typer) -> None:
     app_instance.add_typer(search.search_app, name="search")
     app_instance.add_typer(submit.submit_app, name="submit")
 
-    # 2. Inject context where needed
-    modules_with_context = [check, fix, inspect, manage, run, search, submit]
+    # 2. Inject context directly into the modules that need it.
+    modules_with_context = [
+        check,
+        enrich,
+        fix,
+        inspect,
+        manage,
+        run,
+        search,
+        submit,
+        audit_logic,
+    ]
     for module in modules_with_context:
-        if hasattr(module, "set_context"):
-            module.set_context(core_context)
-
-    if hasattr(audit_logic, "set_context"):
-        audit_logic.set_context(core_context)
+        # This is the corrected, direct way to set the context.
+        module._context = core_context
 
 
 register_all_commands(app)

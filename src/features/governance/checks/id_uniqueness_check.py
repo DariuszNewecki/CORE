@@ -19,7 +19,7 @@ ID_TAG_REGEX = re.compile(
 )
 
 
-# ID: e1f2a3b4-c5d6-7e8f-9a0b-1c2d3e4f5a6b
+# ID: ddaabb9e-5e9a-4574-b458-dbed610e64e5
 class IdUniquenessCheck(BaseCheck):
     """
     Scans the entire source code to ensure that every assigned symbol ID (UUID) is unique.

@@ -69,7 +69,8 @@ format: ## Fix code style issues (Black/Ruff via CLI)
 	$(POETRY) run core-admin fix code-style
 
 test: ## Run tests
-	$(POETRY) run core-admin check tests
+	@echo "🧪 Running tests with pytest..."
+	$(POETRY) run pytest
 
 fast-check: ## Lint + tests (quick local cycle)
 	$(MAKE) lint

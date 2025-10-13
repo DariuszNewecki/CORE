@@ -1,4 +1,4 @@
-# src/cli/commands/sync.py
+# src/cli/logic/sync.py
 """
 Implements the 'knowledge sync' command, the single source of truth for
 synchronizing the codebase state (IDs) with the database.

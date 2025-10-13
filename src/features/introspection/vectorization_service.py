@@ -3,7 +3,7 @@
 High-performance orchestrator for capability vectorization.
 This version reads its work queue directly from the database, treating it as the
 single source of truth for the symbol catalog. It intelligently re-vectorizes
-symbols when their source code has been modified.
+symbols when their source code has been modified by comparing structural hashes.
 """
 
 from __future__ import annotations
@@ -27,17 +27,44 @@ log = getLogger("core_admin.knowledge.orchestrator")
 console = Console()
 
 
-async def _fetch_symbols_from_db() -> List[Dict]:
-    """Queries the database for symbols needing vectorization using the v_symbols_needing_embedding view."""
+async def _fetch_all_public_symbols_from_db() -> List[Dict]:
+    """Queries the database for all public symbols."""
     async with get_session() as session:
         stmt = text(
             """
             SELECT id, symbol_path, module, fingerprint AS structural_hash
-            FROM core.v_symbols_needing_embedding
+            FROM core.symbols
+            WHERE is_public = TRUE
             """
         )
         result = await session.execute(stmt)
         return [dict(row._mapping) for row in result]
+
+
+async def _get_stored_vector_hashes(qdrant_service: QdrantService) -> Dict[str, str]:
+    """Fetches all point IDs and their content hashes from Qdrant."""
+    hashes = {}
+    offset = None
+    try:
+        while True:
+            points, next_offset = await qdrant_service.client.scroll(
+                collection_name=qdrant_service.collection_name,
+                limit=1000,
+                offset=offset,
+                with_payload=["content_sha256"],
+                with_vectors=False,
+            )
+            for point in points:
+                if point.payload and "content_sha256" in point.payload:
+                    hashes[str(point.id)] = point.payload.get("content_sha256")
+            if not next_offset:
+                break
+            offset = next_offset
+    except Exception as e:
+        log.warning(
+            f"Could not retrieve hashes from Qdrant, will re-vectorize all. Error: {e}"
+        )
+    return hashes
 
 
 def _get_source_code(file_path: Path, symbol_path: str) -> Optional[str]:
@@ -74,7 +101,7 @@ async def _process_vectorization_task(
         if not vector:
             raise ValueError("Embedding service returned None")
 
-        vector_id_str = str(task["id"])
+        point_id = str(task["id"])
 
         payload_data = {
             "source_path": task["file_path_str"],
@@ -83,15 +110,15 @@ async def _process_vectorization_task(
             "content_sha256": task["code_hash"],
             "language": "python",
             "symbol": task["symbol_path"],
-            "capability_tags": [vector_id_str],
+            "capability_tags": [point_id],
         }
         await qdrant_service.upsert_capability_vector(
-            point_id_str=vector_id_str,
+            point_id_str=point_id,
             vector=vector,
             payload_data=payload_data,
         )
 
-        return vector_id_str
+        return point_id
     except Exception as e:
         log.error(f"Failed to process symbol '{task['symbol_path']}': {e}")
         failure_log_path.parent.mkdir(parents=True, exist_ok=True)
@@ -101,15 +128,11 @@ async def _process_vectorization_task(
 
 
 async def _update_db_after_vectorization(updates: List[Dict]):
-    """
-    Creates links in symbol_vector_links and updates the last_embedded timestamp
-    on the symbols table.
-    """
+    """Creates links in symbol_vector_links and updates the last_embedded timestamp."""
     if not updates:
         return
     async with get_session() as session:
         async with session.begin():
-            # Upsert into the link table
             await session.execute(
                 text(
                     """
@@ -124,18 +147,12 @@ async def _update_db_after_vectorization(updates: List[Dict]):
                 ),
                 updates,
             )
-
-            # Update the timestamp on the main symbols table
             await session.execute(
                 text(
-                    """
-                    UPDATE core.symbols SET last_embedded = NOW()
-                    WHERE id = ANY(:symbol_ids)
-                """
+                    "UPDATE core.symbols SET last_embedded = NOW() WHERE id = ANY(:symbol_ids)"
                 ),
                 {"symbol_ids": [u["symbol_id"] for u in updates]},
             )
-
     console.print(f"   -> Updated {len(updates)} records in the database.")
 
 
@@ -151,35 +168,16 @@ async def run_vectorize(
     console.print("[bold cyan]🚀 Starting Database-Driven Vectorization...[/bold cyan]")
     failure_log_path = settings.REPO_PATH / "logs" / "vectorization_failures.log"
 
-    if force:
-        console.print(
-            "[bold yellow]--force flag detected: Re-vectorizing ALL public symbols.[/bold yellow]"
-        )
-        async with get_session() as session:
-            result = await session.execute(
-                text(
-                    "SELECT id, symbol_path, module, fingerprint AS structural_hash FROM core.symbols WHERE is_public = TRUE"
-                )
-            )
-            symbols_to_process = [dict(row._mapping) for row in result]
-    else:
-        symbols_to_process = await _fetch_symbols_from_db()
-
-    if not symbols_to_process:
-        console.print(
-            "[bold green]✅ Vector knowledge base is already up-to-date.[/bold green]"
-        )
-        return
-
-    console.print(
-        f"   -> Found {len(symbols_to_process)} symbols needing vectorization."
-    )
+    all_symbols = await _fetch_all_public_symbols_from_db()
 
     qdrant_service = QdrantService()
     await qdrant_service.ensure_collection()
+    stored_vector_hashes = await _get_stored_vector_hashes(qdrant_service)
 
     tasks = []
-    for symbol in symbols_to_process:
+    for symbol in all_symbols:
+        symbol_id_str = str(symbol["id"])
+
         module_path = symbol["module"]
         file_path_str = "src/" + module_path.replace(".", "/") + ".py"
         file_path = settings.REPO_PATH / file_path_str
@@ -189,23 +187,26 @@ async def run_vectorize(
             continue
 
         normalized_code = normalize_text(source_code)
-        code_hash = hashlib.sha256(normalized_code.encode("utf-8")).hexdigest()
+        current_code_hash = hashlib.sha256(normalized_code.encode("utf-8")).hexdigest()
 
-        task_data = {
-            **symbol,
-            "source_code": normalized_code,
-            "code_hash": code_hash,
-            "file_path_str": str(file_path.relative_to(settings.REPO_PATH)),
-        }
-        tasks.append(task_data)
+        stored_hash = stored_vector_hashes.get(symbol_id_str)
+
+        if force or current_code_hash != stored_hash:
+            task_data = {
+                **symbol,
+                "source_code": normalized_code,
+                "code_hash": current_code_hash,
+                "file_path_str": str(file_path.relative_to(settings.REPO_PATH)),
+            }
+            tasks.append(task_data)
 
     if not tasks:
         console.print(
-            "[bold yellow]⚠️  No source code found for symbols needing vectorization. Check file paths.[/bold yellow]"
+            "[bold green]✅ Vector knowledge base is already up-to-date.[/bold green]"
         )
         return
 
-    console.print(f"   -> Preparing to vectorize {len(tasks)} symbols.")
+    console.print(f"   -> Found {len(tasks)} symbols needing vectorization.")
 
     if dry_run:
         console.print(
@@ -228,7 +229,7 @@ async def run_vectorize(
                     "symbol_id": task["id"],
                     "vector_id": point_id,
                     "embedding_model": settings.LOCAL_EMBEDDING_MODEL_NAME,
-                    "embedding_version": 1,
+                    "embedding_version": 1,  # This should come from a constitutional setting eventually
                 }
             )
 

@@ -7,7 +7,6 @@ from __future__ import annotations
 
 import asyncio
 from pathlib import Path
-from typing import Optional
 
 import typer
 from cli.logic.byor import initialize_repository
@@ -18,11 +17,7 @@ from cli.logic.proposal_service import (
     proposals_list,
     proposals_sign,
 )
-
-# --- START MODIFICATION ---
 from cli.logic.proposals_micro import micro_apply, micro_propose
-
-# --- END MODIFICATION ---
 from cli.logic.sync import sync_knowledge_base
 from cli.logic.sync_manifest import sync_manifest
 from features.governance.key_management_service import keygen
@@ -32,24 +27,14 @@ from features.project_lifecycle.definition_service import define_new_symbols
 from features.project_lifecycle.scaffolding_service import new_project
 from rich.console import Console
 from shared.context import CoreContext
-from shared.logger import getLogger
 
-log = getLogger("manage_command")
 console = Console()
-
 manage_app = typer.Typer(
     help="State-changing administrative tasks for the system.",
     no_args_is_help=True,
 )
 
-_context: Optional[CoreContext] = None
-
-
-# ID: b8bed536-f385-437d-ae68-5f5527674823
-def set_context(context: CoreContext):
-    """Sets the shared context for commands in this group."""
-    global _context
-
+# NOTE: We are no longer using a module-level _context or set_context function.
 
 db_sub_app = typer.Typer(
     help="Manage the database schema and data.", no_args_is_help=True
@@ -111,39 +96,36 @@ proposals_sub_app.command("sign")(proposals_sign)
 @proposals_sub_app.command("approve")
 # ID: e50e9a6d-3efd-41e5-a472-1ce5d8ad2563
 def approve_command_wrapper(
+    ctx: typer.Context,  # <-- ADD THIS
     proposal_name: str = typer.Argument(
         ..., help="Filename of the proposal to approve."
     ),
 ):
-    if not _context:
-        raise typer.Exit("Context not set for approve command.")
-    proposals_approve(context=_context, proposal_name=proposal_name)
+    core_context: CoreContext = ctx.obj  # <-- ADD THIS
+    proposals_approve(context=core_context, proposal_name=proposal_name)
 
 
-# --- START MODIFICATION: Define commands and wrap async functions ---
 @proposals_sub_app.command("micro-apply")
-# ID: f5155458-dd76-4ab7-a646-92aa45b88dfb
+# ID: 486036d8-0553-4630-9f53-bc02fced4f73
 def micro_apply_command(
+    ctx: typer.Context,  # <-- ADD THIS
     proposal_path: Path = typer.Argument(..., exists=True),
 ):
     """Validates and applies a micro-proposal JSON file."""
-    if not _context:
-        raise typer.Exit("Context not set for micro-apply.")
-    asyncio.run(micro_apply(context=_context, proposal_path=proposal_path))
+    core_context: CoreContext = ctx.obj  # <-- ADD THIS
+    asyncio.run(micro_apply(context=core_context, proposal_path=proposal_path))
 
 
 @proposals_sub_app.command("micro-propose")
-# ID: 8d3577df-6a3e-415e-b2f8-fe15e7f5a821
+# ID: 45f5e69d-31f9-41ab-b019-1770136a06ea
 def micro_propose_command(
+    ctx: typer.Context,  # <-- ADD THIS
     goal: str = typer.Argument(...),
 ):
     """Generates a micro-proposal for a given goal without applying it."""
-    if not _context:
-        raise typer.Exit("Context not set for micro-propose.")
-    asyncio.run(micro_propose(context=_context, goal=goal))
+    core_context: CoreContext = ctx.obj  # <-- ADD THIS
+    asyncio.run(micro_propose(context=core_context, goal=goal))
 
-
-# --- END MODIFICATION ---
 
 manage_app.add_typer(proposals_sub_app, name="proposals")
 
@@ -159,11 +141,16 @@ manage_app.add_typer(keys_sub_app, name="keys")
     help="Defines all undefined capabilities one by one using an AI agent.",
 )
 # ID: 63ef4a80-6f41-4700-8653-64a853a1f279
-def define_symbols_command():
-    if not _context:
-        raise typer.Exit("Context not set for define-symbols command.")
+def define_symbols_command(
+    ctx: typer.Context,  # <-- ADD THIS
+):
+    """Synchronous wrapper that calls the refactored definition service."""
+    console.print(
+        "[bold yellow]Running asynchronous symbol definition...[/bold yellow]"
+    )
+    core_context: CoreContext = ctx.obj  # <-- ADD THIS
     try:
-        cognitive_service = _context.cognitive_service
+        cognitive_service = core_context.cognitive_service
         asyncio.run(define_new_symbols(cognitive_service))
     except Exception as e:
         console.print(

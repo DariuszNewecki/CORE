@@ -69,12 +69,12 @@ CREATE TABLE IF NOT EXISTS core.symbols (
     updated_at timestamptz DEFAULT now() NOT NULL
 );
 
-CREATE INDEX idx_symbols_module ON core.symbols(module);
-CREATE INDEX idx_symbols_kind ON core.symbols(kind);
-CREATE INDEX idx_symbols_state ON core.symbols(state);
-CREATE INDEX idx_symbols_health ON core.symbols(health_status);
-CREATE INDEX idx_symbols_qualname ON core.symbols(qualname);
-CREATE INDEX idx_symbols_fingerprint ON core.symbols(fingerprint);
+CREATE INDEX IF NOT EXISTS idx_symbols_module ON core.symbols(module);
+CREATE INDEX IF NOT EXISTS idx_symbols_kind ON core.symbols(kind);
+CREATE INDEX IF NOT EXISTS idx_symbols_state ON core.symbols(state);
+CREATE INDEX IF NOT EXISTS idx_symbols_health ON core.symbols(health_status);
+CREATE INDEX IF NOT EXISTS idx_symbols_qualname ON core.symbols(qualname);
+CREATE INDEX IF NOT EXISTS idx_symbols_fingerprint ON core.symbols(fingerprint);
 
 -- Lookup helper for natural key usage
 CREATE OR REPLACE FUNCTION core.get_symbol_id(path text)
@@ -109,9 +109,9 @@ CREATE TABLE IF NOT EXISTS core.capabilities (
     UNIQUE(domain, name)
 );
 
-CREATE INDEX idx_capabilities_domain ON core.capabilities(domain);
-CREATE INDEX idx_capabilities_status ON core.capabilities(status);
-CREATE INDEX idx_capabilities_entry_points ON core.capabilities USING GIN(entry_points);
+CREATE INDEX IF NOT EXISTS idx_capabilities_domain ON core.capabilities(domain);
+CREATE INDEX IF NOT EXISTS idx_capabilities_status ON core.capabilities(status);
+CREATE INDEX IF NOT EXISTS idx_capabilities_entry_points ON core.capabilities USING GIN(entry_points);
 
 COMMENT ON COLUMN core.capabilities.entry_points IS
     'Array of symbol UUIDs that serve as primary entry points for this capability';
@@ -127,8 +127,8 @@ CREATE TABLE IF NOT EXISTS core.symbol_capability_links (
     PRIMARY KEY (symbol_id, capability_id, source)
 );
 
-CREATE INDEX idx_links_capability ON core.symbol_capability_links(capability_id);
-CREATE INDEX idx_links_verified ON core.symbol_capability_links(verified);
+CREATE INDEX IF NOT EXISTS idx_links_capability ON core.symbol_capability_links(capability_id);
+CREATE INDEX IF NOT EXISTS idx_links_verified ON core.symbol_capability_links(verified);
 
 -- Domains for organizing capabilities
 CREATE TABLE IF NOT EXISTS core.domains (
@@ -140,7 +140,6 @@ CREATE TABLE IF NOT EXISTS core.domains (
 
 -- =============================================================================
 -- SECTION 2: GOVERNANCE LAYER (Constitutional compliance)
--- MOVED UP TO RESOLVE DEPENDENCY
 -- =============================================================================
 
 -- Change proposals requiring approval
@@ -180,7 +179,7 @@ CREATE TABLE IF NOT EXISTS core.audit_runs (
     finished_at timestamptz
 );
 
-CREATE INDEX idx_audit_runs_passed ON core.audit_runs(passed, started_at DESC);
+CREATE INDEX IF NOT EXISTS idx_audit_runs_passed ON core.audit_runs(passed, started_at DESC);
 
 -- =============================================================================
 -- SECTION 3: OPERATIONAL LAYER (What's happening right now)
@@ -244,19 +243,28 @@ CREATE TABLE IF NOT EXISTS core.tasks (
     completed_at timestamptz
 );
 
-CREATE INDEX idx_tasks_status ON core.tasks(status) WHERE status IN ('pending', 'executing', 'blocked');
-CREATE INDEX idx_tasks_role ON core.tasks(assigned_role);
-CREATE INDEX idx_tasks_parent ON core.tasks(parent_task_id);
-CREATE INDEX idx_tasks_created ON core.tasks(created_at DESC);
-CREATE INDEX idx_tasks_relevant_symbols ON core.tasks USING GIN(relevant_symbols);
+CREATE INDEX IF NOT EXISTS idx_tasks_status ON core.tasks(status) WHERE status IN ('pending', 'executing', 'blocked');
+CREATE INDEX IF NOT EXISTS idx_tasks_role ON core.tasks(assigned_role);
+CREATE INDEX IF NOT EXISTS idx_tasks_parent ON core.tasks(parent_task_id);
+CREATE INDEX IF NOT EXISTS idx_tasks_created ON core.tasks(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_tasks_relevant_symbols ON core.tasks USING GIN(relevant_symbols);
 
 COMMENT ON COLUMN core.tasks.relevant_symbols IS
     'Array of symbol UUIDs retrieved from Qdrant vector search for this task context';
 
 -- Link tasks to proposals they generated
-ALTER TABLE core.tasks
-    ADD CONSTRAINT fk_tasks_proposal
-    FOREIGN KEY (proposal_id) REFERENCES core.proposals(id);
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conname = 'fk_tasks_proposal' AND conrelid = 'core.tasks'::regclass
+    ) THEN
+        ALTER TABLE core.tasks
+        ADD CONSTRAINT fk_tasks_proposal
+        FOREIGN KEY (proposal_id) REFERENCES core.proposals(id);
+    END IF;
+END;
+$$;
 
 -- Constitutional violations detected by auditor
 CREATE TABLE IF NOT EXISTS core.constitutional_violations (
@@ -271,10 +279,10 @@ CREATE TABLE IF NOT EXISTS core.constitutional_violations (
     resolution_notes text
 );
 
-CREATE INDEX idx_violations_unresolved ON core.constitutional_violations(severity, detected_at)
+CREATE INDEX IF NOT EXISTS idx_violations_unresolved ON core.constitutional_violations(severity, detected_at)
     WHERE resolved_at IS NULL;
-CREATE INDEX idx_violations_symbol ON core.constitutional_violations(symbol_id);
-CREATE INDEX idx_violations_task ON core.constitutional_violations(task_id);
+CREATE INDEX IF NOT EXISTS idx_violations_symbol ON core.constitutional_violations(symbol_id);
+CREATE INDEX IF NOT EXISTS idx_violations_task ON core.constitutional_violations(task_id);
 
 -- Action log: everything agents do
 CREATE TABLE IF NOT EXISTS core.actions (
@@ -294,10 +302,10 @@ CREATE TABLE IF NOT EXISTS core.actions (
     created_at timestamptz DEFAULT now() NOT NULL
 );
 
-CREATE INDEX idx_actions_task ON core.actions(task_id);
-CREATE INDEX idx_actions_type ON core.actions(action_type);
-CREATE INDEX idx_actions_created ON core.actions(created_at DESC);
-CREATE INDEX idx_actions_success ON core.actions(success) WHERE success = false;
+CREATE INDEX IF NOT EXISTS idx_actions_task ON core.actions(task_id);
+CREATE INDEX IF NOT EXISTS idx_actions_type ON core.actions(action_type);
+CREATE INDEX IF NOT EXISTS idx_actions_created ON core.actions(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_actions_success ON core.actions(success) WHERE success = false;
 
 -- Agent decisions: choice points for debugging
 CREATE TABLE IF NOT EXISTS core.agent_decisions (
@@ -312,8 +320,8 @@ CREATE TABLE IF NOT EXISTS core.agent_decisions (
     decided_at timestamptz DEFAULT now() NOT NULL
 );
 
-CREATE INDEX idx_decisions_task ON core.agent_decisions(task_id);
-CREATE INDEX idx_decisions_confidence ON core.agent_decisions(confidence);
+CREATE INDEX IF NOT EXISTS idx_decisions_task ON core.agent_decisions(task_id);
+CREATE INDEX IF NOT EXISTS idx_decisions_confidence ON core.agent_decisions(confidence);
 
 -- Short-term agent memory (expires)
 CREATE TABLE IF NOT EXISTS core.agent_memory (
@@ -327,9 +335,9 @@ CREATE TABLE IF NOT EXISTS core.agent_memory (
     created_at timestamptz DEFAULT now() NOT NULL
 );
 
-CREATE INDEX idx_memory_role_type ON core.agent_memory(cognitive_role, memory_type);
-CREATE INDEX idx_memory_expires ON core.agent_memory(expires_at) WHERE expires_at IS NOT NULL;
-CREATE INDEX idx_memory_relevance ON core.agent_memory(relevance_score DESC);
+CREATE INDEX IF NOT EXISTS idx_memory_role_type ON core.agent_memory(cognitive_role, memory_type);
+CREATE INDEX IF NOT EXISTS idx_memory_expires ON core.agent_memory(expires_at) WHERE expires_at IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_memory_relevance ON core.agent_memory(relevance_score DESC);
 
 -- =============================================================================
 -- SECTION 4: VECTOR INTEGRATION LAYER (Qdrant sync)
@@ -344,7 +352,7 @@ CREATE TABLE IF NOT EXISTS core.symbol_vector_links (
     created_at timestamptz DEFAULT now() NOT NULL
 );
 
-CREATE INDEX idx_symbol_vector_links_vector_id ON core.symbol_vector_links(vector_id);
+CREATE INDEX IF NOT EXISTS idx_symbol_vector_links_vector_id ON core.symbol_vector_links(vector_id);
 
 
 -- Track Qdrant synchronization
@@ -360,9 +368,9 @@ CREATE TABLE IF NOT EXISTS core.vector_sync_log (
     synced_at timestamptz DEFAULT now() NOT NULL
 );
 
-CREATE INDEX idx_vector_sync_failed ON core.vector_sync_log(success, synced_at) WHERE success = false;
-CREATE INDEX idx_vector_sync_collection ON core.vector_sync_log(qdrant_collection);
-CREATE INDEX idx_vector_sync_symbols ON core.vector_sync_log USING GIN(symbol_ids);
+CREATE INDEX IF NOT EXISTS idx_vector_sync_failed ON core.vector_sync_log(success, synced_at) WHERE success = false;
+CREATE INDEX IF NOT EXISTS idx_vector_sync_collection ON core.vector_sync_log(qdrant_collection);
+CREATE INDEX IF NOT EXISTS idx_vector_sync_symbols ON core.vector_sync_log USING GIN(symbol_ids);
 
 -- Track retrieval quality for optimization
 CREATE TABLE IF NOT EXISTS core.retrieval_feedback (
@@ -376,10 +384,10 @@ CREATE TABLE IF NOT EXISTS core.retrieval_feedback (
     created_at timestamptz DEFAULT now() NOT NULL
 );
 
-CREATE INDEX idx_retrieval_task ON core.retrieval_feedback(task_id);
-CREATE INDEX idx_retrieval_quality ON core.retrieval_feedback(retrieval_quality);
-CREATE INDEX idx_retrieval_symbols ON core.retrieval_feedback USING GIN(retrieved_symbols);
-CREATE INDEX idx_retrieval_used ON core.retrieval_feedback USING GIN(actually_used_symbols);
+CREATE INDEX IF NOT EXISTS idx_retrieval_task ON core.retrieval_feedback(task_id);
+CREATE INDEX IF NOT EXISTS idx_retrieval_quality ON core.retrieval_feedback(retrieval_quality);
+CREATE INDEX IF NOT EXISTS idx_retrieval_symbols ON core.retrieval_feedback USING GIN(retrieved_symbols);
+CREATE INDEX IF NOT EXISTS idx_retrieval_used ON core.retrieval_feedback USING GIN(actually_used_symbols);
 
 -- Semantic cache for LLM responses
 CREATE TABLE IF NOT EXISTS core.semantic_cache (
@@ -397,9 +405,9 @@ CREATE TABLE IF NOT EXISTS core.semantic_cache (
     created_at timestamptz DEFAULT now() NOT NULL
 );
 
-CREATE INDEX idx_cache_hash ON core.semantic_cache(query_hash);
-CREATE INDEX idx_cache_expires ON core.semantic_cache(expires_at) WHERE expires_at IS NOT NULL;
-CREATE INDEX idx_cache_hits ON core.semantic_cache(hit_count DESC);
+CREATE INDEX IF NOT EXISTS idx_cache_hash ON core.semantic_cache(query_hash);
+CREATE INDEX IF NOT EXISTS idx_cache_expires ON core.semantic_cache(expires_at) WHERE expires_at IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_cache_hits ON core.semantic_cache(hit_count DESC);
 
 -- =============================================================================
 -- SECTION 5: LEARNING & FEEDBACK LAYER
@@ -419,8 +427,8 @@ CREATE TABLE IF NOT EXISTS core.feedback (
     created_at timestamptz DEFAULT now() NOT NULL
 );
 
-CREATE INDEX idx_feedback_task ON core.feedback(task_id);
-CREATE INDEX idx_feedback_applied ON core.feedback(applied) WHERE applied = false;
+CREATE INDEX IF NOT EXISTS idx_feedback_task ON core.feedback(task_id);
+CREATE INDEX IF NOT EXISTS idx_feedback_applied ON core.feedback(applied) WHERE applied = false;
 
 -- =============================================================================
 -- SECTION 6: SYSTEM METADATA
@@ -509,22 +517,17 @@ DECLARE
     rows_count integer;
     duration integer;
 BEGIN
-    -- Log start
     INSERT INTO core.mv_refresh_log (view_name, last_refresh_started, triggered_by)
     VALUES (view_name, start_time, current_user)
     ON CONFLICT (view_name)
     DO UPDATE SET last_refresh_started = start_time, triggered_by = current_user;
 
-    -- Perform refresh
     EXECUTE format('REFRESH MATERIALIZED VIEW CONCURRENTLY %I', view_name);
 
-    -- Get row count
     EXECUTE format('SELECT COUNT(*) FROM %I', view_name) INTO rows_count;
 
-    -- Calculate duration
     duration := EXTRACT(EPOCH FROM (now() - start_time)) * 1000;
 
-    -- Log completion
     UPDATE core.mv_refresh_log
     SET last_refresh_completed = now(),
         last_refresh_duration_ms = duration,
@@ -542,14 +545,12 @@ COMMENT ON FUNCTION core.refresh_materialized_view IS
 -- SECTION 8: OPERATIONAL VIEWS
 -- =============================================================================
 
--- Symbols needing embedding/re-embedding
 CREATE OR REPLACE VIEW core.v_symbols_needing_embedding AS
 SELECT s.id, s.module, s.qualname, s.symbol_path, s.ast_signature, s.fingerprint
 FROM core.symbols s
 WHERE s.last_embedded IS NULL OR s.last_modified > s.last_embedded
 ORDER BY s.last_modified DESC;
 
--- Orphaned symbols (not linked to capabilities)
 CREATE OR REPLACE VIEW core.v_orphan_symbols AS
 SELECT s.id, s.symbol_path, s.module, s.qualname, s.kind, s.state, s.health_status
 FROM core.symbols s
@@ -559,7 +560,6 @@ WHERE l.symbol_id IS NULL
   AND s.health_status != 'deprecated'
 ORDER BY s.last_modified DESC;
 
--- Capability coverage
 CREATE OR REPLACE VIEW core.v_verified_coverage AS
 SELECT
     c.id AS capability_id,
@@ -573,7 +573,6 @@ LEFT JOIN core.symbol_capability_links l ON l.capability_id = c.id AND l.verifie
 GROUP BY c.id, c.name, c.domain, c.test_coverage, c.status
 ORDER BY c.domain, c.name;
 
--- Agent workload
 CREATE OR REPLACE VIEW core.v_agent_workload AS
 SELECT
     cr.role,
@@ -590,7 +589,6 @@ LEFT JOIN core.tasks t ON t.assigned_role = cr.role
 GROUP BY cr.role, cr.is_active, cr.max_concurrent_tasks, cr.assigned_resource
 ORDER BY cr.role;
 
--- Active agent context (what each agent can see)
 CREATE OR REPLACE VIEW core.v_agent_context AS
 SELECT
     t.id as task_id,
@@ -599,8 +597,6 @@ SELECT
     t.status,
     t.relevant_symbols,
     array_length(t.relevant_symbols, 1) as context_symbol_count,
-
-    -- Recent actions for context
     (SELECT json_agg(json_build_object(
         'action', a.action_type,
         'success', a.success,
@@ -610,8 +606,6 @@ SELECT
     FROM core.actions a
     WHERE a.task_id = t.id
     LIMIT 10) as recent_actions,
-
-    -- Active memories
     (SELECT json_agg(json_build_object(
         'type', am.memory_type,
         'content', am.content,
@@ -621,8 +615,6 @@ SELECT
     WHERE am.cognitive_role = t.assigned_role
       AND (am.expires_at IS NULL OR am.expires_at > now())
     LIMIT 5) as active_memories,
-
-    -- Recent decisions
     (SELECT json_agg(json_build_object(
         'point', ad.decision_point,
         'chosen', ad.chosen_option,
@@ -632,12 +624,10 @@ SELECT
     FROM core.agent_decisions ad
     WHERE ad.task_id = t.id
     LIMIT 5) as recent_decisions
-
 FROM core.tasks t
 WHERE t.status IN ('pending', 'executing', 'planning')
 ORDER BY t.created_at;
 
--- Knowledge graph (simplified, real data only)
 CREATE OR REPLACE VIEW core.knowledge_graph AS
 SELECT
     s.id as uuid,
@@ -653,8 +643,6 @@ SELECT
     s.key as capability,
     s.intent,
     vl.vector_id,
-
-    -- Linked capabilities (real data from joins)
     COALESCE(
         (SELECT json_agg(DISTINCT c.name ORDER BY c.name)
          FROM core.symbol_capability_links l
@@ -662,19 +650,13 @@ SELECT
          WHERE l.symbol_id = s.id),
         '[]'::json
     ) as capabilities_array,
-
-    -- Computed flags
     (s.kind = 'class') AS is_class,
     (s.qualname LIKE 'Test%' OR s.qualname LIKE 'test_%') AS is_test,
-
-    -- Usage statistics (if available)
     (SELECT COUNT(*) FROM core.actions a WHERE a.target = s.symbol_path) as action_count
-
 FROM core.symbols s
 LEFT JOIN core.symbol_vector_links vl ON s.id = vl.symbol_id
 ORDER BY s.updated_at DESC;
 
--- Stale materialized views monitoring
 CREATE OR REPLACE VIEW core.v_stale_materialized_views AS
 SELECT
     view_name,
@@ -696,7 +678,6 @@ ORDER BY last_refresh_completed NULLS FIRST;
 
 DO $$
 BEGIN
-    -- Auto-update timestamps
     IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'trg_capabilities_updated_at') THEN
         CREATE TRIGGER trg_capabilities_updated_at
             BEFORE UPDATE ON core.capabilities
@@ -714,7 +695,6 @@ END$$;
 -- SECTION 10: MATERIALIZED VIEW FOR ANALYTICS
 -- =============================================================================
 
--- Symbol usage patterns (refresh periodically for optimization insights)
 CREATE MATERIALIZED VIEW IF NOT EXISTS core.mv_symbol_usage_patterns AS
 SELECT
     s.id,
@@ -723,12 +703,8 @@ SELECT
     s.kind,
     s.state,
     s.health_status,
-
-    -- Action statistics
     COUNT(DISTINCT a.task_id) FILTER (WHERE a.action_type = 'file_write') as times_modified,
     COUNT(DISTINCT a.task_id) FILTER (WHERE a.action_type = 'file_read') as times_read,
-
-    -- Retrieval statistics
     COUNT(DISTINCT rf.task_id) as times_retrieved,
     CASE
         WHEN COUNT(DISTINCT rf.task_id) > 0
@@ -736,14 +712,9 @@ SELECT
              / COUNT(DISTINCT rf.task_id)
         ELSE 0
     END as retrieval_precision,
-
-    -- Capability associations
     array_agg(DISTINCT c.name) FILTER (WHERE c.name IS NOT NULL) as associated_capabilities,
-
-    -- Timestamps
     MAX(a.created_at) as last_action_at,
     MAX(rf.created_at) as last_retrieved_at
-
 FROM core.symbols s
 LEFT JOIN core.actions a ON a.target = s.symbol_path
 LEFT JOIN core.retrieval_feedback rf ON s.id = ANY(rf.retrieved_symbols)
@@ -759,7 +730,6 @@ CREATE INDEX IF NOT EXISTS idx_mv_usage_last_action ON core.mv_symbol_usage_patt
 COMMENT ON MATERIALIZED VIEW core.mv_symbol_usage_patterns IS
     'Analytics view for symbol usage patterns. Refresh with: SELECT * FROM core.refresh_materialized_view(''core.mv_symbol_usage_patterns'');';
 
--- Initialize refresh log entry
 INSERT INTO core.mv_refresh_log (view_name, triggered_by)
 VALUES ('core.mv_symbol_usage_patterns', 'schema_init')
 ON CONFLICT (view_name) DO NOTHING;

@@ -2,7 +2,7 @@
 # scripts/inspect_db_state.py
 """
 A diagnostic script to directly inspect the state of the `core.symbols` table
-to verify if capability keys are being correctly written and committed.
+to verify if refactoring changes are being correctly written and committed.
 """
 
 from __future__ import annotations
@@ -22,7 +22,7 @@ console = Console()
 
 
 async def inspect_database_state():
-    """Connects to the DB and reports on the state of the symbols table."""
+    """Connects to the DB and reports on the state of key symbols."""
     console.print("[bold cyan]--- CORE Database State Inspector ---[/bold cyan]")
 
     try:
@@ -34,51 +34,68 @@ async def inspect_database_state():
                 text("SELECT COUNT(*) FROM core.symbols")
             )
             total_count = total_result.scalar_one()
-            console.print(f"\n[bold]1. Total Symbols Found:[/bold] {total_count}")
+            console.print(f"\n[bold]1. Total Symbols in Database:[/bold] {total_count}")
 
-            # Check 2: Count symbols WITH a defined key
-            defined_result = await session.execute(
-                text("SELECT COUNT(*) FROM core.symbols WHERE key IS NOT NULL")
+            # Check 2: Look for the specific symbol we deleted from the CLI layer
+            status_symbol_path = "src/cli/logic/status.py::status"
+            status_result = await session.execute(
+                text("SELECT COUNT(*) FROM core.symbols WHERE symbol_path = :path"),
+                {"path": status_symbol_path},
             )
-            defined_count = defined_result.scalar_one()
+            status_count = status_result.scalar_one()
+
             console.print(
-                f"[bold]2. Symbols WITH a capability key:[/bold] [bold green]{defined_count}[/bold green]"
+                f"\n[bold]2. Checking for deleted symbol '{status_symbol_path}':[/bold]"
             )
-
-            # Check 3: Count symbols WITHOUT a defined key
-            undefined_result = await session.execute(
-                text("SELECT COUNT(*) FROM core.symbols WHERE key IS NULL")
-            )
-            undefined_count = undefined_result.scalar_one()
-            console.print(
-                f"[bold]3. Symbols WITHOUT a capability key:[/bold] [bold red]{undefined_count}[/bold red]"
-            )
-
-            # Check 4: Show a sample of defined keys
-            if defined_count > 0:
-                console.print("\n[bold]Sample of defined capability keys:[/bold]")
-                sample_result = await session.execute(
-                    text(
-                        "SELECT symbol_path, key FROM core.symbols WHERE key IS NOT NULL LIMIT 5"
-                    )
+            if status_count > 0:
+                console.print(
+                    f"   -> [bold red]FOUND {status_count} entr(y/ies).[/bold red] This symbol should have been deleted."
                 )
-                for row in sample_result:
-                    console.print(f"  - [cyan]{row.key}[/cyan] -> {row.symbol_path}")
+            else:
+                console.print(
+                    "   -> [bold green]NOT FOUND.[/bold green] This is correct."
+                )
+
+            # Check 3: Look for the other duplicated symbol
+            normalize_symbol_path = (
+                "src/shared/utils/embedding_utils.py::normalize_text"
+            )
+            normalize_result = await session.execute(
+                text("SELECT COUNT(*) FROM core.symbols WHERE symbol_path = :path"),
+                {"path": normalize_symbol_path},
+            )
+            normalize_count = normalize_result.scalar_one()
+
+            console.print(
+                f"\n[bold]3. Checking for deleted symbol '{normalize_symbol_path}':[/bold]"
+            )
+            if normalize_count > 0:
+                console.print(
+                    f"   -> [bold red]FOUND {normalize_count} entr(y/ies).[/bold red] This symbol should have been deleted."
+                )
+            else:
+                console.print(
+                    "   -> [bold green]NOT FOUND.[/bold green] This is correct."
+                )
 
             console.print(
                 "\n[bold cyan]-------------------------------------[/bold cyan]"
             )
 
             # Final diagnosis
-            if defined_count > 0:
-                console.print("\n[bold green]Diagnosis: SUCCESS.[/bold green]")
+            if status_count > 0 or normalize_count > 0:
+                console.print("\n[bold red]Diagnosis: CONFIRMED.[/bold red]")
                 console.print(
-                    "The database IS being populated with capability keys. The problem likely lies within the 'sync-manifest' command."
+                    "The database the application is using still contains the old, stale data. "
+                    "This proves that the `sync-knowledge` command is updating a DIFFERENT database."
+                )
+                console.print(
+                    "\n[bold]Next Step:[/bold] Check your `.env` and `docker-compose.yml` files. Ensure the `DATABASE_URL` is identical and correct everywhere, and that you do not have multiple database containers running."
                 )
             else:
-                console.print("\n[bold red]Diagnosis: FAILURE.[/bold red]")
+                console.print("\n[bold green]Diagnosis: UNEXPECTED.[/bold green]")
                 console.print(
-                    "The database IS NOT being populated with capability keys. The problem lies within the 'define-symbols' command's database transaction."
+                    "The database appears to be correctly updated. The problem lies elsewhere, likely in the `inspect duplicates` command's logic itself."
                 )
 
     except Exception as e:

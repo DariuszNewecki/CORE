@@ -5,6 +5,7 @@ Provides a dedicated service for selecting the optimal LLM resource for a given 
 
 from __future__ import annotations
 
+import json  # <-- ADD THIS IMPORT
 from typing import List, Optional
 
 from services.database.models import CognitiveRole, LlmResource
@@ -37,13 +38,29 @@ class ResourceSelector:
         self, resource: LlmResource, role: CognitiveRole
     ) -> bool:
         """Checks if a resource has the capabilities required by a role."""
-        res_caps = set(resource.provided_capabilities or [])
-        req_caps = set(role.required_capabilities or [])
+        # --- THIS IS THE FIX: Handle string-encoded JSON ---
+        res_caps_raw = resource.provided_capabilities
+        req_caps_raw = role.required_capabilities
+
+        res_caps = set(
+            json.loads(res_caps_raw)
+            if isinstance(res_caps_raw, str)
+            else res_caps_raw or []
+        )
+        req_caps = set(
+            json.loads(req_caps_raw)
+            if isinstance(req_caps_raw, str)
+            else req_caps_raw or []
+        )
+        # --- END OF FIX ---
         return req_caps.issubset(res_caps)
 
     def _score_resource(self, resource: LlmResource) -> int:
         """Returns the cost rating of a resource, defaulting to a medium cost."""
-        md = resource.performance_metadata or {}
+        # --- THIS IS THE FIX: Handle string-encoded JSON ---
+        md_raw = resource.performance_metadata
+        md = json.loads(md_raw) if isinstance(md_raw, str) else md_raw or {}
+        # --- END OF FIX ---
         cost = md.get("cost_rating")
         return int(cost) if isinstance(cost, (int, float)) else 3
 
@@ -57,8 +74,6 @@ class ResourceSelector:
             log.error(f"Cannot select resource: Role '{role_name}' not found.")
             return None
 
-        # --- THIS IS THE DEFINITIVE FIX ---
-        # Step 1: Prioritize the explicitly assigned resource.
         assigned_resource_name = role.assigned_resource
         if assigned_resource_name:
             assigned_resource = self.resources_by_name.get(assigned_resource_name)
@@ -73,9 +88,7 @@ class ResourceSelector:
                 log.warning(
                     f"Assigned resource '{assigned_resource_name}' for role '{role_name}' is not available or not qualified. Searching for an alternative."
                 )
-        # --- END OF FIX ---
 
-        # Step 2: If the assigned one is invalid, find the best alternative.
         candidates = []
         for resource in self.resources:
             if self._is_resource_qualified(resource, role):
@@ -86,7 +99,6 @@ class ResourceSelector:
             log.warning(f"No suitable resource found for role '{role_name}'.")
             return None
 
-        # Sort by score (cost), lowest first
         candidates.sort(key=lambda x: x[0])
         best_alternative = candidates[0][1]
 

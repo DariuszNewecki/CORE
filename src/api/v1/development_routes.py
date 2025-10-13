@@ -9,25 +9,31 @@ from fastapi import APIRouter, BackgroundTasks, Depends, Request
 from features.autonomy.autonomous_developer import develop_from_goal
 from pydantic import BaseModel
 from services.database.models import Task
-from services.database.session_manager import get_session
+
+# --- THIS IS THE FIX: Correct the import path ---
+from services.database.session_manager import get_db_session
+
+# --- END OF FIX ---
 from shared.context import CoreContext
 from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter()
 
 
-# ID: 6e66ab0d-60fb-4393-b87c-2a65f0f1a8d3
+# ID: 7b83814d-b747-4c17-b054-9e8f2b8b8325
 class DevelopmentGoal(BaseModel):
     goal: str
 
 
 @router.post("/develop/goal", status_code=202)
-# ID: dac80f82-1aae-4dc1-9f6a-b9eb8e08686e
+# ID: de19ab6c-6bb6-4d9c-98bd-f1b3783b2188
 async def start_development_cycle(
     request: Request,
     payload: DevelopmentGoal,
     background_tasks: BackgroundTasks,
-    session: AsyncSession = Depends(get_session),
+    # --- THIS IS THE FIX: Use the imported dependency provider ---
+    session: AsyncSession = Depends(get_db_session),
+    # --- END OF FIX ---
 ):
     """
     Accepts a high-level goal, creates a task record, and starts the
@@ -42,7 +48,6 @@ async def start_development_cycle(
     await session.commit()
     await session.refresh(new_task)
 
-    # Pass the task_id to the background task for status updates
     background_tasks.add_task(
         develop_from_goal, core_context, payload.goal, task_id=new_task.id
     )

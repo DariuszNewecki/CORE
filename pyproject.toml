@@ -53,6 +53,7 @@ pytest-cov = "^6.2"
 pytest-dotenv = "^0.5.2"
 aiosqlite = "^0.21.0"
 pre-commit = "^3.7.1"
+httpx = "^0.28.1"
 
 [tool.poetry.scripts]
 core-admin = "cli.admin_cli:app"
@@ -73,7 +74,8 @@ asyncio_mode = "auto"
 # This line tells pytest to add the 'src' directory to the Python path
 # so that imports like 'from core.knowledge_service' work correctly.
 pythonpath = ["src"]
-addopts = ["-c", "pyproject.toml"]
+# addopts = ["-c", "pyproject.toml"]
 env_files = [
+    ".env.test",
     ".env"
 ]

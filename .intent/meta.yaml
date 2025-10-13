@@ -53,6 +53,7 @@ charter:
       canary_policy: "charter/policies/operations/canary_policy.yaml"
       dev_fastpath_policy: "charter/policies/operations/dev_fastpath_policy.yaml"
       incident_response_policy: "charter/policies/operations/incident_response_policy.yaml"
+      workflows_policy: "charter/policies/operations/workflows_policy.yaml" # <-- ADDED
 
   schemas:
     policy_schema: "charter/schemas/policy_schema.json"
@@ -89,6 +90,7 @@ charter:
       canary_policy_schema: "charter/schemas/operations/canary_policy_schema.json"
       config_schema: "charter/schemas/operations/config_schema.yaml"
       runtime_requirements_schema: "charter/schemas/operations/runtime_requirements_schema.json"
+      workflows_policy_schema: "charter/schemas/operations/workflows_policy_schema.json" # <-- ADDED
 
 mind:
   # The project_manifest is now obsolete as the database is the source of truth for capabilities.
@@ -121,6 +123,7 @@ mind:
     capability_definer: "mind/prompts/capability_definer.prompt"
     code_peer_review: "mind/prompts/code_peer_review.prompt"
     constitutional_review: "mind/prompts/constitutional_review.prompt"
+    create_file_planner: "mind/prompts/create_file_planner.prompt"
     enrich_symbol: "mind/prompts/enrich_symbol.prompt"
     fix_capability_manifest: "mind/prompts/fix_capability_manifest.prompt"
     fix_function_docstring: "mind/prompts/fix_function_docstring.prompt"

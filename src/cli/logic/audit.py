@@ -23,19 +23,8 @@ from .cli_utils import find_test_file_for_capability_async
 
 console = Console()
 
-# Global variable to store context, set by the registration layer.
+# Global variable to store context, set by the main admin_cli.py
 _context: Optional[CoreContext] = None
-
-
-# --- START MODIFICATION: ADD THIS FUNCTION ---
-# ID: 89937328-aa27-4852-af9d-ce185805ce22
-def set_context(context: CoreContext):
-    """Sets the shared context for the audit logic."""
-    global _context
-    _context = context
-
-
-# --- END MODIFICATION ---
 
 
 # ID: 8afdeab9-fc81-4d7c-b05f-dd27f936b3e6

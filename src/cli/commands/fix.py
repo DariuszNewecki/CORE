@@ -10,11 +10,7 @@ from pathlib import Path
 from typing import Optional
 
 import typer
-
-# --- START MODIFICATION ---
 from cli.logic.proposals_micro import micro_propose, propose_and_apply_autonomously
-
-# --- END MODIFICATION ---
 from features.maintenance.command_sync_service import sync_commands_to_db
 from features.self_healing.capability_tagging_service import (
     tag_unassigned_capabilities,
@@ -42,13 +38,6 @@ fix_app = typer.Typer(
 )
 
 _context: Optional[CoreContext] = None
-
-
-# ID: 72a4d691-f7c3-4752-bc6a-a08dad2df1dc
-def set_context(context: CoreContext) -> None:
-    """Sets the shared context for commands in this group."""
-    global _context
-    _context = context
 
 
 def _ensure_context() -> CoreContext:
@@ -109,9 +98,7 @@ def fix_headers_cmd(
         console.print(
             "[bold yellow]-- DRY RUN: Generating autonomous plan for fixing headers... --[/bold yellow]"
         )
-        # --- START MODIFICATION ---
         asyncio.run(micro_propose(context=ctx, goal=goal))
-        # --- END MODIFICATION ---
 
 
 @fix_app.command(
@@ -132,9 +119,7 @@ def fix_docstrings_command(
         console.print(
             "[bold yellow]-- DRY RUN: Generating autonomous plan without applying it. --[/bold yellow]"
         )
-        # --- START MODIFICATION ---
         asyncio.run(micro_propose(context=ctx, goal=goal))
-        # --- END MODIFICATION ---
 
 
 fix_app.command("line-lengths", help="Refactors files with long lines.")(
@@ -163,6 +148,7 @@ def complexity_command(
     complexity_outliers(file_path=file_path, dry_run=not write)
 
 
+# --- START: THIS COMMAND WAS ACCIDENTALLY DELETED AND IS NOW RESTORED ---
 @fix_app.command(
     "ids", help="Assigns a stable '# ID: <uuid>' to all untagged public symbols."
 )
@@ -180,6 +166,9 @@ def assign_ids_command(
         dry_run=not write,
         next_step="Run 'poetry run core-admin manage database sync-knowledge --write' to update the database.",
     )
+
+
+# --- END: RESTORED COMMAND ---
 
 
 @fix_app.command(

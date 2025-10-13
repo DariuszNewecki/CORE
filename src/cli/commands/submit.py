@@ -5,10 +5,11 @@ Registers the new, high-level 'submit' workflow command.
 
 from __future__ import annotations
 
+import asyncio
 from typing import Optional
 
 import typer
-from cli.logic.system import integrate_command
+from features.project_lifecycle.integration_service import integrate_changes
 from shared.context import CoreContext
 
 submit_app = typer.Typer(
@@ -19,17 +20,17 @@ submit_app = typer.Typer(
 _context: Optional[CoreContext] = None
 
 
-# ID: 41b7f91c-34ce-413b-9cc2-bd92252fddf9
-def set_context(context: CoreContext):
-    """Sets the shared context for commands in this group."""
-    global _context
-    # Forward the context to the logic module that needs it.
-    from cli.logic import system
-
-    system._context = context
-
-
-submit_app.command(
+@submit_app.command(
     "changes",
     help="The primary workflow to integrate staged code changes into the system.",
-)(integrate_command)
+)
+# ID: 2d1e8a9f-7b6c-4d5e-8f9a-0b1c2d3e4f5a
+def integrate_command(
+    ctx: typer.Context,
+    commit_message: str = typer.Option(
+        ..., "-m", "--message", help="The git commit message for this integration."
+    ),
+):
+    """Orchestrates the full, autonomous integration of staged code changes."""
+    core_context: CoreContext = ctx.obj
+    asyncio.run(integrate_changes(context=core_context, commit_message=commit_message))

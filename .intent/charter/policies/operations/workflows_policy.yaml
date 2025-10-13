@@ -1,0 +1,66 @@
+policy_id: a3e1b0c4-9f8d-4a7b-8c1d-6e5f4a3b2c1d
+id: workflows_policy
+version: "1.3.0" # Version bump for corrected workflow
+title: "System Workflows Policy"
+status: active
+purpose: >
+  Defines the sequences for both mandatory integration checks and optional
+  self-healing routines. This is the single source of truth for all
+  multi-step system operations.
+owners:
+  primary: "Governance Lead"
+review:
+  frequency: "12 months"
+
+# ==============================================================================
+# SECTION 1: MANDATORY INTEGRATION WORKFLOW
+# The `submit changes` command MUST execute these steps in order.
+# ==============================================================================
+integration_workflow:
+  - id: "linkage.assign_ids"
+    command: "core-admin fix ids --write"
+    description: "Assign stable UUIDs to any new public symbols."
+    continues_on_failure: false
+
+  - id: "linkage.duplicate_ids"
+    command: "core-admin fix duplicate-ids --write"
+    description: "Finds and resolves duplicate '# ID:' tags across the codebase."
+    continues_on_failure: false
+
+  - id: "ssot.sync_knowledge"
+    command: "core-admin manage database sync-knowledge --write"
+    description: "Synchronize the codebase state with the database SSOT."
+    continues_on_failure: false
+
+  - id: "knowledge.vectorize"
+    command: "core-admin run vectorize --write"
+    description: "Generate embeddings for new or modified symbols."
+    continues_on_failure: false
+
+  - id: "knowledge.define_symbols"
+    command: "core-admin manage define-symbols"
+    description: "Assign capability keys to vectorized symbols."
+    continues_on_failure: true # Acknowledges that AI might fail, but shouldn't block commit
+
+  - id: "governance.audit"
+    command: "core-admin check audit"
+    description: "Run the full constitutional audit on the new state."
+    continues_on_failure: false # This is a hard gate
+
+# ==============================================================================
+# SECTION 2: SELF-HEALING ROUTINES
+# These are standalone, on-demand commands for developers and autonomous agents.
+# They are NOT part of the blocking integration workflow.
+# ==============================================================================
+self_healing_routines:
+  - id: "style.headers"
+    command: "core-admin fix headers --write"
+    description: "Enforces constitutional header conventions on all Python files in `src/`."
+
+  - id: "docs.docstrings"
+    command: "core-admin fix docstrings --write"
+    description: "Uses an AI to add missing docstrings to public functions and methods."
+
+  - id: "style.formatting"
+    command: "core-admin fix code-style"
+    description: "Auto-formats all code using Black and Ruff."
