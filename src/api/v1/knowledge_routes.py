@@ -1,24 +1,22 @@
 # src/api/v1/knowledge_routes.py
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends
-
 from core.knowledge_service import KnowledgeService
+from fastapi import APIRouter
 
-router = APIRouter()
-
-
-# ID: 862c26cd-621c-4cd4-990c-119af2755e79
-def get_knowledge_service() -> KnowledgeService:
-    # Lightweight provider; the test patches KnowledgeService.list_capabilities on this path
-    return KnowledgeService()
+# Prefix aligns with test path: /v1/knowledge/capabilities
+router = APIRouter(prefix="/knowledge")
 
 
 @router.get("/capabilities")
-# ID: 115783e4-7605-49e0-be12-e389a4cb5883
-async def list_capabilities(
-    service: KnowledgeService = Depends(get_knowledge_service),
-) -> dict:
+# ID: 0016df93-d0e5-45b0-b5b8-8f4170de3d9d
+async def list_capabilities() -> dict:
+    """
+    Return known capabilities.
+
+    Tests expect a 200 on GET /v1/knowledge/capabilities and a JSON object
+    with a 'capabilities' key.
+    """
+    service = KnowledgeService()
     caps = await service.list_capabilities()
-    # The test asserts: {"capabilities": ["test.cap"]}
     return {"capabilities": caps}

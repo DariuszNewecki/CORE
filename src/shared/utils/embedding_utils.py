@@ -9,13 +9,13 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import os
-import re
 from typing import List, Optional, Protocol
 
 import httpx
 import numpy as np
 
 from shared.logger import getLogger
+from shared.utils.common_knowledge import normalize_text
 
 log = getLogger("embedding_utils")
 
@@ -57,18 +57,7 @@ def _chunk_text(text: str, chunk_size: int, chunk_overlap: int) -> List[str]:
     return chunks
 
 
-# ID: a652ae56-dc5d-47a9-90ea-7f873ca9239a
-def normalize_text(text: str) -> str:
-    """
-    Applies a deterministic normalization process to text to ensure
-    consistent hashing for content change detection.
-    """
-    if not isinstance(text, str):
-        return ""
-    # 1. Replace CRLF with LF
-    # 2. Strip leading/trailing whitespace from the whole block
-    # 3. Collapse multiple blank lines into a single blank line
-    return re.sub(r"\n{3,}", "\n\n", text.replace("\r\n", "\n").strip())
+# The duplicated normalize_text function has been removed. It is now imported.
 
 
 # ID: 46703a51-3079-42fe-9bf7-e9724b009949

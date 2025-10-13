@@ -11,7 +11,7 @@ from typing import Any
 
 
 @dataclass
-# ID: 6ae82e74-acc2-45a1-b2a3-6cd6e596640c
+# ID: 9f1dd7c7-1cb2-435d-bd07-b7d436c9459f
 class CoreContext:
     """
     A container for shared services, passed explicitly to commands.
@@ -22,7 +22,9 @@ class CoreContext:
 
     git_service: Any
     cognitive_service: Any
+    knowledge_service: Any
     qdrant_service: Any
     auditor_context: Any
     file_handler: Any
     planner_config: Any
+    _is_test_mode: bool = False  # <-- ADD THIS LINE

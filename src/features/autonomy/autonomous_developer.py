@@ -35,21 +35,42 @@ async def develop_from_goal(
     try:
         log.info(f"🚀 Initiating autonomous development cycle for goal: '{goal}'")
 
-        # 1. Reconnaissance
-        recon_agent = ReconnaissanceAgent(
-            await context.knowledge_service.get_graph(), context.cognitive_service
-        )
-        context_report = await recon_agent.generate_report(goal)
+        # --- START OF NEW ROUTER LOGIC ---
+        goal_lower = goal.lower()
+        if "create" in goal_lower and (
+            "new file" in goal_lower or "new function" in goal_lower
+        ):
+            log.info(
+                "   -> Intent classified as 'CREATE_FILE'. Using specialized planner."
+            )
+            # Use a dummy recon report since we know we're creating something new
+            context_report = "# Reconnaissance Report\n\n- No relevant files found. Proceeding with file creation."
+            # Use the specialized planner agent for creation
+            planner = PlannerAgent(context.cognitive_service)
+            # Temporarily override the prompt template for this specific task
+            planner.prompt_template = context.settings.get_path(
+                "mind.prompts.create_file_planner"
+            ).read_text(encoding="utf-8")
+        else:
+            log.info(
+                "   -> Intent classified as 'GENERAL'. Using standard reconnaissance and planning."
+            )
+            # 1. Reconnaissance (only for general tasks now)
+            recon_agent = ReconnaissanceAgent(
+                await context.knowledge_service.get_graph(), context.cognitive_service
+            )
+            context_report = await recon_agent.generate_report(goal)
+            # 2. Planning
+            planner = PlannerAgent(context.cognitive_service)
+        # --- END OF NEW ROUTER LOGIC ---
 
-        # 2. Planning
-        planner = PlannerAgent(context.cognitive_service)
         plan = await planner.create_execution_plan(goal, context_report)
         if not plan:
             raise PlanExecutionError(
                 "PlannerAgent failed to create a valid execution plan."
             )
 
-        # 3. Execution
+        # 3. Execution (this part remains the same)
         prompt_pipeline = PromptPipeline(context.git_service.repo_path)
         plan_executor = PlanExecutor(
             context.file_handler, context.git_service, context.planner_config

@@ -24,25 +24,20 @@ class KnowledgeService:
 
     def __init__(self, repo_path: Path | str = "."):
         self.repo_path = Path(repo_path)
-        # --- THIS IS THE FIX: The internal cache is removed. ---
-        # self._graph: Dict[str, Any] | None = None
+        # The internal cache (`self._graph`) has been removed to enforce SSOT.
 
     # ID: 49190ab5-945a-4aa8-9500-21b849f217f9
     async def get_graph(self) -> Dict[str, Any]:
         """
         Loads the knowledge graph directly from the database, treating it as the
-        single source of truth on every call.
+        single source of truth on every call. Caching is removed to ensure freshness.
         """
-        # --- THIS IS THE FIX: The caching logic is removed. ---
-        # if self._graph is not None:
-        #     return self._graph
-
         log.info("Loading knowledge graph from database view...")
         symbols_map = {}
         try:
             async with get_session() as session:
                 result = await session.execute(
-                    text("SELECT * FROM core.knowledge_graph")
+                    text("SELECT * FROM core.knowledge_graph ORDER BY symbol_path")
                 )
                 for row in result:
                     row_dict = dict(row._mapping)
@@ -58,7 +53,6 @@ class KnowledgeService:
                             row_dict["vector_id"] = str(row_dict["vector_id"])
                         symbols_map[symbol_path] = row_dict
 
-            # Do not store the result in self._graph anymore.
             knowledge_graph = {"symbols": symbols_map}
             log.info(
                 f"Successfully loaded {len(symbols_map)} symbols from the database."

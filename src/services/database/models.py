@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from sqlalchemy import (
     JSON,
+    BigInteger,
     Boolean,
     Column,
     DateTime,
@@ -123,7 +124,44 @@ class Domain(Base):
 
 
 # =============================================================================
-# SECTION 2: OPERATIONAL LAYER
+# SECTION 2: GOVERNANCE LAYER (Constitutional compliance)
+# =============================================================================
+
+
+# ID: 9467fb58-3f84-472a-9f59-ef5444bcebb9
+class Proposal(Base):
+    __tablename__ = "proposals"
+    __table_args__ = {"schema": "core"}
+
+    id = Column(BigInteger, primary_key=True)
+    target_path = Column(Text, nullable=False)
+    content_sha256 = Column(Text, nullable=False)
+    justification = Column(Text, nullable=False)
+    risk_tier = Column(Text, server_default="low")
+    is_critical = Column(Boolean, nullable=False, server_default="false")
+    status = Column(Text, nullable=False, server_default="open")
+    created_at = Column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    created_by = Column(Text, nullable=False)
+
+
+# ID: e8f6ca99-95a9-4097-b133-f1d9103dcc57
+class ProposalSignature(Base):
+    __tablename__ = "proposal_signatures"
+    __table_args__ = {"schema": "core"}
+
+    proposal_id = Column(BigInteger, ForeignKey("core.proposals.id"), primary_key=True)
+    approver_identity = Column(Text, primary_key=True)
+    signature_base64 = Column(Text, nullable=False)
+    signed_at = Column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    is_valid = Column(Boolean, nullable=False, server_default="true")
+
+
+# =============================================================================
+# SECTION 3: OPERATIONAL LAYER
 # =============================================================================
 
 
@@ -171,12 +209,13 @@ class Task(Base):
     plan = Column(JSON)
     context = Column(JSON, server_default="{}")
     error_message = Column(Text)
+    failure_reason = Column(Text)
     relevant_symbols = Column(JSON)
     context_retrieval_query = Column(Text)
     context_retrieved_at = Column(DateTime(timezone=True))
     context_tokens_used = Column(Integer)
     requires_approval = Column(Boolean, server_default="false")
-    proposal_id = Column(Integer, ForeignKey("core.proposals.id"))
+    proposal_id = Column(BigInteger, ForeignKey("core.proposals.id"))
     estimated_complexity = Column(Integer)
     actual_duration_seconds = Column(Integer)
     created_at = Column(

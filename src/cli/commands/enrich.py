@@ -19,13 +19,6 @@ enrich_app = typer.Typer(help="Autonomous tools to enrich the system's knowledge
 _context: Optional[CoreContext] = None
 
 
-# ID: f427f12f-f781-484d-b461-b5cf1a0ca831
-def set_context(context: CoreContext):
-    """Sets the shared context for commands in this group."""
-    global _context
-    _context = context
-
-
 @enrich_app.command("symbols")
 # ID: 7ecf56f5-c723-45f1-b1a8-4dbb19868968
 def enrich_symbols_command(

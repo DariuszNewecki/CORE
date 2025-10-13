@@ -1,7 +1,7 @@
 # src/features/governance/audit_context.py
 """
-Defines the AuditorContext, a central data object that provides a consistent
-view of the project's constitution and state for all audit checks.
+AuditorContext: central view of constitutional artifacts and the knowledge graph
+for governance checks and audits.
 """
 
 from __future__ import annotations
@@ -18,86 +18,86 @@ from shared.models import AuditFinding
 log = getLogger("audit_context")
 
 
-# ID: 7b2396c3-96ae-4f5b-bd70-09ef50bdfea0
+# ID: 245a7de6-5465-41d2-a588-2da4cc86d72f
 class AuditorContext:
     """
-    A data class that loads and provides access to all constitutional
-    artifacts needed by the auditor and its checks.
+    Provides access to '.intent' artifacts and the in-memory knowledge graph.
+    Tests import this symbol directly from features.governance.audit_context.
     """
 
     def __init__(self, repo_path: Path):
-        self.repo_path = repo_path.resolve()
+        self.repo_path = Path(repo_path).resolve()
         self.intent_path = self.repo_path / ".intent"
         self.mind_path = self.intent_path / "mind"
         self.charter_path = self.intent_path / "charter"
-        self.src_dir: Path = self.repo_path / "src"
+        self.src_dir = self.repo_path / "src"
 
-        # --- START MODIFICATION ---
-        # Add a field to hold the last set of findings.
+        # Optional: last audit results
         self.last_findings: List[AuditFinding] = []
-        # --- END MODIFICATION ---
 
+        # Load constitutional data
         self.meta: Dict[str, Any] = self._load_yaml(self.intent_path / "meta.yaml")
         self.policies: Dict[str, Any] = self._load_policies()
         self.source_structure: Dict[str, Any] = self._load_yaml(
             self.mind_path / "knowledge" / "source_structure.yaml"
         )
+
+        # Knowledge graph placeholders
         self.knowledge_graph: Dict[str, Any] = {"symbols": {}}
         self.symbols_list: list = []
         self.symbols_map: dict = {}
-        log.debug("AuditorContext initialized synchronously.")
 
-    # ID: 2f3d6adb-6584-40de-8ae8-e7b8e983d470
-    async def load_knowledge_graph(self):
-        """Asynchronously loads the knowledge graph from the service."""
-        log.debug("Asynchronously loading knowledge graph...")
-        knowledge_service = KnowledgeService(self.repo_path)
-        self.knowledge_graph = await knowledge_service.get_graph()
-        self.symbols_list = list(self.knowledge_graph.get("symbols", {}).values())
+        log.debug("AuditorContext initialized.")
+
+    # ID: d5feef3c-c5c7-4f3c-b940-46a154af4778
+    async def load_knowledge_graph(self) -> None:
+        """Load the knowledge graph from the service (async)."""
+        service = KnowledgeService(self.repo_path)
+        self.knowledge_graph = await service.get_graph()
         self.symbols_map = self.knowledge_graph.get("symbols", {})
-        log.debug("Knowledge graph loaded.")
+        self.symbols_list = list(self.symbols_map.values())
+        log.info(f"Loaded knowledge graph with {len(self.symbols_list)} symbols.")
+
+    # -------------------- helpers -------------------- #
 
     def _load_yaml(self, path: Path) -> Dict[str, Any]:
-        """Safely loads a single YAML file, returning an empty dict on failure."""
         if not path.exists():
-            log.warning(f"Constitutional file not found: {path}")
+            log.warning(f"YAML not found: {path}")
             return {}
         try:
             return yaml.safe_load(path.read_text("utf-8")) or {}
-        except (yaml.YAMLError, IOError) as e:
-            log.error(f"Failed to load or parse YAML at {path}: {e}")
+        except Exception as e:
+            log.error(f"Failed to parse YAML {path}: {e}")
             return {}
 
     def _load_policies(self) -> Dict[str, Any]:
-        """Loads all policy files from the charter into a dictionary."""
         policies_dir = self.charter_path / "policies"
-        loaded_policies: Dict[str, Any] = {}
         if not policies_dir.is_dir():
-            log.warning(f"Policies directory not found: {policies_dir}")
+            log.warning(f"Policies directory missing: {policies_dir}")
             return {}
-
-        for policy_file in policies_dir.glob("**/*_policy.yaml"):
-            policy_id = policy_file.stem
-            policy_content = self._load_yaml(policy_file)
-            if policy_content:
-                loaded_policies[policy_id] = policy_content
-
-        log.debug(f"Loaded {len(loaded_policies)} policies.")
-        return loaded_policies
+        out: Dict[str, Any] = {}
+        for f in policies_dir.glob("**/*_policy.yaml"):
+            content = self._load_yaml(f)
+            if content:
+                out[f.stem] = content
+        return out
 
     @property
-    # ID: ac544885-00f8-49d9-8aab-24c58947f6fc
+    # ID: 95118d68-5e7f-407c-9747-7cce100fe482
     def python_files(self) -> list[Path]:
-        """Get all Python files in the repository."""
-        python_files = []
+        paths: list[Path] = []
         for root, dirs, files in os.walk(self.repo_path):
             dirs[:] = [
                 d
                 for d in dirs
                 if d
-                not in {".git", "__pycache__", ".pytest_cache", "node_modules", ".venv"}
+                not in {".git", "__pycache__", ".pytest_cache", ".venv", "node_modules"}
             ]
-            for file in files:
-                if file.endswith(".py"):
-                    python_files.append(Path(root) / file)
-        return python_files
+            for name in files:
+                if name.endswith(".py"):
+                    paths.append(Path(root) / name)
+        return paths
+
+
+# Make the export explicit to avoid rare import edge cases in test boot
+__all__ = ["AuditorContext"]

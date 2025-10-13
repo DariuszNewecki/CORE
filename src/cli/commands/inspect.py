@@ -26,6 +26,14 @@ inspect_app = typer.Typer(
 
 _context: Optional[CoreContext] = None
 
+
+# ID: e1f2a3b4-c5d6-7e8f-9a0b-1c2d3e4f5a6b
+def set_context(context: CoreContext):
+    """Sets the shared context for the logic layer."""
+    global _context
+    _context = context
+
+
 register_guard(inspect_app)
 inspect_app.command("status")(status)
 inspect_app.command("command-tree")(cli_tree)
