@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import subprocess
 
+import typer
 from rich.console import Console
 from shared.config import settings
 from shared.context import CoreContext
@@ -23,6 +24,7 @@ async def integrate_changes(context: CoreContext, commit_message: str):
     developer to fix. It will never destroy uncommitted work.
     """
     git_service = context.git_service
+    workflow_failed = False
 
     try:
         # Step 1: Stage all current work. This captures the developer's full intent.
@@ -46,36 +48,40 @@ async def integrate_changes(context: CoreContext, commit_message: str):
                 f"\n[bold]Step {i + 1}/{len(integration_steps) + 2}: {step['description']}[/bold]"
             )
             command_parts = step["command"].split()
-            try:
-                process = subprocess.run(
-                    command_parts,
-                    check=True,
-                    capture_output=True,
-                    text=True,
-                    cwd=settings.REPO_PATH,
-                )
-                if process.stdout:
-                    console.print(process.stdout)
-                if process.stderr:
-                    console.print(f"[yellow]{process.stderr}[/yellow]")
 
-            except subprocess.CalledProcessError as e:
+            # --- THIS IS THE FIX ---
+            # Run the command without `check=True` so we can handle the failure gracefully.
+            process = subprocess.run(
+                command_parts,
+                capture_output=True,
+                text=True,
+                cwd=settings.REPO_PATH,
+            )
+
+            # Print output regardless of success
+            if process.stdout:
+                console.print(process.stdout)
+            if process.stderr:
+                console.print(f"[yellow]{process.stderr}[/yellow]")
+
+            # Now, manually check the return code.
+            if process.returncode != 0:
                 console.print(f"[bold red]❌ Step '{step['id']}' failed.[/bold red]")
-                if e.stdout:
-                    console.print(f"   -> STDOUT:\n{e.stdout}")
-                if e.stderr:
-                    console.print(f"   -> STDERR:\n{e.stderr}")
 
                 if not step.get("continues_on_failure", False):
                     console.print(
                         "\n[bold red]Integration halted. Please fix the error above, then re-run the command.[/bold red]"
                     )
-                    # No rollback, just stop. The developer's work is safe.
-                    raise
+                    workflow_failed = True
+                    break  # Exit the loop immediately
                 else:
                     console.print(
                         "   -> [yellow]Continuing because step is marked as non-blocking.[/yellow]"
                     )
+            # --- END OF FIX ---
+
+        if workflow_failed:
+            raise Exception("Workflow halted due to a failed step.")
 
         # Step 3: All checks passed. Stage any new changes and commit.
         console.print(
@@ -87,6 +93,7 @@ async def integrate_changes(context: CoreContext, commit_message: str):
         )
 
     except Exception as e:
-        # This block catches failures from the workflow execution.
-        log.error(f"Integration process failed: {e}", exc_info=True)
-        # We do not need a finally or rollback block. The state is preserved for the user.
+        log.error(f"Integration process failed: {e}")
+        # The user-friendly message is now printed inside the loop.
+        # We can exit gracefully here.
+        raise typer.Exit(code=1)

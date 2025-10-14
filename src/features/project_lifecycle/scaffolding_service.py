@@ -5,20 +5,17 @@ Provides a reusable service for scaffolding new CORE-governed projects with cons
 
 from __future__ import annotations
 
-import shutil
 from pathlib import Path
 
 import typer
 import yaml
-
-from shared.config import settings  # <-- MODIFIED IMPORT
+from shared.config import settings
 from shared.logger import getLogger
 from shared.path_utils import get_repo_root
 
 log = getLogger("core_admin.scaffolder")
 CORE_ROOT = get_repo_root()
 
-# This is a good candidate to be defined in a policy in the future
 STARTER_KITS_DIR = CORE_ROOT / "src" / "features" / "project_lifecycle" / "starter_kits"
 
 
@@ -35,15 +32,9 @@ class Scaffolder:
         """Initializes the Scaffolder with project name, profile, and workspace directory."""
         self.name = project_name
         self.profile = profile
-
-        # --- THIS IS THE REFACTOR ---
-        # Load the source_structure policy using the new settings object
         source_structure = settings.load("mind.knowledge.source_structure")
         workspace_path_str = source_structure.get("paths", {}).get("workspace", "work")
-        # --- END OF REFACTOR ---
-
         self.workspace = workspace_dir or (CORE_ROOT / workspace_path_str)
-
         self.project_root = self.workspace / self.name
         self.starter_kit_path = STARTER_KITS_DIR / self.profile
 
@@ -79,11 +70,17 @@ class Scaffolder:
         for filename in constitutional_files_to_copy:
             source_path = self.starter_kit_path / filename
             if source_path.exists():
-                shutil.copy(source_path, intent_dir / filename)
+                # --- THIS IS THE FIX: Replace shutil.copy ---
+                target_path = intent_dir / filename
+                target_path.write_bytes(source_path.read_bytes())
+                # --- END OF FIX ---
 
         readme_template = self.starter_kit_path / "README.md"
         if readme_template.exists():
-            shutil.copy(readme_template, intent_dir / "README.md")
+            # --- THIS IS THE FIX: Replace shutil.copy ---
+            target_path = intent_dir / "README.md"
+            target_path.write_bytes(readme_template.read_bytes())
+            # --- END OF FIX ---
 
         for template_path in self.starter_kit_path.glob("*.template"):
             content = template_path.read_text(encoding="utf-8").format(

@@ -1,6 +1,6 @@
 policy_id: 05ffbf34-2e0e-4069-b77e-473923537077
 id: safety_policy
-version: "1.0.0"
+version: "1.5.0" # Final version for this refactoring
 title: "System Safety & Security Policy"
 status: active
 purpose: >
@@ -22,7 +22,7 @@ rules:
     description: >
       The core mission files are immutable and can only be changed via the full,
       human-in-the-loop constitutional amendment process.
-    enforcement: warn # This is a meta-rule; its enforcement is the amendment process itself.
+    enforcement: warn
     applies_to:
       paths:
         - "charter/mission/principles.yaml"
@@ -36,7 +36,7 @@ rules:
     description: >
       CORE cannot modify its own core orchestration and governance engine
       without explicit human review via the formal amendment process.
-    enforcement: error # An automated change here is a critical violation.
+    enforcement: error
     applies_to:
       paths:
         - "src/core/main.py"
@@ -78,6 +78,47 @@ rules:
     action: reject
     feedback: |
       ❌ Dangerous execution detected: '{{pattern}}'. Use safe wrappers or avoid shell=True.
+
+  # ===================================================================
+  # RULE: Block dangerous imports
+  # ===================================================================
+  - id: no_unsafe_imports
+    description: >
+      Source code must not import modules that provide direct, unsafe access
+      to the filesystem or subprocesses. The 'os' module is permitted for safe
+      operations like 'os.getenv', as dangerous functions are blocked by the
+      'no_dangerous_execution' rule.
+    enforcement: error
+    scope:
+      exclude:
+        # CONSTITUTIONAL EXEMPTIONS: These are the *only* modules
+        # allowed to perform low-level system operations.
+        - path: "src/shared/utils/subprocess_utils.py"
+          rationale: "This is the sanctioned, safe wrapper for running subprocesses."
+        - path: "src/core/git_service.py"
+          rationale: "GitService is a sanctioned wrapper around the git subprocess."
+        - path: "src/features/governance/runtime_validator.py"
+          rationale: "Canary test runner requires subprocess to invoke pytest."
+        - path: "src/core/test_runner.py"
+          rationale: "The primary test runner needs subprocess to invoke pytest."
+        - path: "src/cli/logic/chat.py"
+          rationale: "Needs to run 'core-admin --help' to provide context to the LLM."
+        - path: "src/features/project_lifecycle/bootstrap_service.py"
+          rationale: "Needs to run 'gh' CLI for bootstrapping GitHub issues."
+        - path: "src/features/project_lifecycle/integration_service.py"
+          rationale: "The master workflow orchestrator needs to call other core-admin commands."
+        - path: "src/services/repositories/db/common.py"
+          rationale: "TECHNICAL DEBT: This low-level utility calls 'git' and should be refactored."
+        - path: "src/core/ruff_linter.py"
+          rationale: "The linter is a core tool that needs to run an external process."
+        - path: "scripts/**"
+          rationale: "Developer scripts are exempt for utility purposes."
+    detection:
+      type: import_scan
+      forbidden:
+        # - "os" # Allowed for safe operations like getenv; dangerous calls are blocked separately.
+        - "shutil"
+        - "subprocess"
 
   # ===================================================================
   # RULE: Restrict network access

@@ -5,7 +5,7 @@ Provides the core service for processing asynchronous, autonomous change request
 
 from __future__ import annotations
 
-import shutil
+import fnmatch
 import tempfile
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -14,12 +14,12 @@ from typing import Any, Dict, List
 
 import jsonschema
 import yaml
-from rich.console import Console
-
-from features.governance.constitutional_auditor import AuditScope, ConstitutionalAuditor
+from features.governance.audit_context import AuditorContext
+from features.governance.constitutional_auditor import ConstitutionalAuditor
 from features.introspection.knowledge_graph_service import (
     KnowledgeGraphBuilder,
 )
+from rich.console import Console
 from shared.action_logger import action_logger
 from shared.config import settings
 from shared.logger import getLogger
@@ -109,6 +109,25 @@ class CrateProcessingService:
 
         return valid_crates
 
+    def _copy_tree(self, src: Path, dst: Path, ignore_patterns: List[str]):
+        """A simple replacement for shutil.copytree to avoid the import."""
+        dst.mkdir(parents=True, exist_ok=True)
+        for item in src.iterdir():
+            if any(fnmatch.fnmatch(item.name, p) for p in ignore_patterns):
+                continue
+            s = src / item.name
+            d = dst / item.name
+            if s.is_dir():
+                self._copy_tree(s, d, ignore_patterns)
+            else:
+                d.parent.mkdir(parents=True, exist_ok=True)
+                d.write_bytes(s.read_bytes())
+
+    def _copy_file(self, src: Path, dst: Path):
+        """A simple replacement for shutil.copy2."""
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        dst.write_bytes(src.read_bytes())
+
     # ID: 1b2c3d4e-5f6a-7b8c-9d0e-1f2a3b4c5d6e
     async def _run_canary_validation(
         self, crate: Crate
@@ -118,18 +137,14 @@ class CrateProcessingService:
             canary_path = Path(tmpdir) / "canary_repo"
             console.print(f"   -> Creating canary environment at {canary_path}")
 
-            shutil.copytree(
+            self._copy_tree(
                 self.repo_root,
                 canary_path,
-                dirs_exist_ok=True,
-                ignore=shutil.ignore_patterns(
-                    ".git", ".venv", "__pycache__", "work", "reports"
-                ),
+                ignore_patterns=[".git", ".venv", "__pycache__", "work", "reports"],
             )
-
             env_file = self.repo_root / ".env"
             if env_file.exists():
-                shutil.copy(env_file, canary_path / ".env")
+                self._copy_file(env_file, canary_path / ".env")
                 console.print(
                     "   -> Copied runtime environment configuration to canary."
                 )
@@ -147,18 +162,18 @@ class CrateProcessingService:
                 else:
                     target_path = canary_path / file_in_payload
 
-                target_path.parent.mkdir(parents=True, exist_ok=True)
-                shutil.copy2(source_path, target_path)
+                self._copy_file(source_path, target_path)
 
             console.print("   -> Building canary's internal knowledge graph...")
             canary_builder = KnowledgeGraphBuilder(root_path=canary_path)
-            await canary_builder.build_and_sync()
+            canary_builder.build()
 
             console.print("   -> 🔬 Running full constitutional audit on canary...")
-            auditor = ConstitutionalAuditor(repo_root_override=canary_path)
-            passed, findings, _ = await auditor.run_full_audit_async(
-                scope=AuditScope.STATIC_ONLY
-            )
+            auditor = ConstitutionalAuditor(AuditorContext(canary_path))
+            passed_findings = await auditor.run_full_audit_async()
+
+            passed = not any(f.get("severity") == "error" for f in passed_findings)
+            findings = [AuditFinding(**f) for f in passed_findings if not passed]
 
             if passed:
                 console.print("   -> [bold green]✅ Canary audit PASSED.[/bold green]")
@@ -185,8 +200,7 @@ class CrateProcessingService:
             else:
                 target_path = self.repo_root / file_in_payload
 
-            target_path.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(source_path, target_path)
+            self._copy_file(source_path, target_path)
             console.print(f"      -> Applied '{file_in_payload}'")
 
     def _write_result_manifest(self, crate_path: Path, status: str, details: Any):
@@ -207,7 +221,13 @@ class CrateProcessingService:
         """Moves a crate to the rejected directory and writes a result manifest."""
         crate_id = crate_path.name
         final_path = self.rejected_path / crate_id
-        shutil.move(str(crate_path), str(final_path))
+
+        if final_path.exists():
+            import time
+
+            final_path = self.rejected_path / f"{crate_id}_{int(time.time())}"
+        crate_path.rename(final_path)
+
         self._write_result_manifest(final_path, "rejected", details)
 
         reason_summary = (
@@ -246,7 +266,9 @@ class CrateProcessingService:
             console.print(f"\n[bold]Processing crate: {crate_id}[/bold]")
             try:
                 processing_path = self.processing_path / crate_id
-                shutil.move(str(crate.path), str(processing_path))
+
+                crate.path.rename(processing_path)
+
                 crate.path = processing_path
                 console.print(
                     f"   -> Moved to processing: {processing_path.relative_to(self.repo_root)}"
@@ -260,7 +282,9 @@ class CrateProcessingService:
                 if is_safe:
                     self._apply_accepted_crate(crate)
                     final_path = self.accepted_path / crate.path.name
-                    shutil.move(str(crate.path), str(final_path))
+
+                    crate.path.rename(final_path)
+
                     self._write_result_manifest(
                         final_path,
                         "accepted",

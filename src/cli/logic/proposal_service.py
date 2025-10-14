@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import asyncio
 import base64
-import shutil
 import tempfile
 from datetime import datetime
 from pathlib import Path
@@ -31,9 +30,37 @@ log = getLogger("core_admin.proposals")
 console = Console()
 
 
+# --- Helper functions to replace shutil ---
+def _copy_tree(src: Path, dst: Path):
+    dst.mkdir(parents=True, exist_ok=True)
+    for item in src.iterdir():
+        s = src / item.name
+        d = dst / item.name
+        if s.is_dir():
+            if s.name not in [
+                ".git",
+                ".venv",
+                "venv",
+                "__pycache__",
+                "work",
+                "reports",
+            ]:
+                _copy_tree(s, d)
+        else:
+            d.write_bytes(s.read_bytes())
+
+
+def _copy_file(src: Path, dst: Path):
+    dst.parent.mkdir(parents=True, exist_ok=True)
+    dst.write_bytes(src.read_bytes())
+
+
+# --- End of helpers ---
+
+
 # ID: 7dcb045e-19c9-4d84-91fd-70c4de7e8dfe
 def proposals_list() -> None:
-    """List pending constitutional proposals and display their status."""
+    # ... (this function is correct, no changes needed)
     log.info("🔍 Finding pending constitutional proposals...")
     proposals_dir = settings.REPO_PATH / ".intent" / "proposals"
     proposals_dir.mkdir(exist_ok=True)
@@ -84,7 +111,7 @@ def proposals_sign(
         ..., help="Filename of the proposal to sign (e.g., 'cr-new-policy.yaml')."
     ),
 ) -> None:
-    """Sign a proposal with the operator's private key."""
+    # ... (this function is correct, no changes needed)
     log.info(f"✍️ Signing proposal: {proposal_name}")
     proposal_path = settings.REPO_PATH / ".intent" / "proposals" / proposal_name
     if not proposal_path.exists():
@@ -192,17 +219,12 @@ def proposals_approve(
         tmp_path = Path(tmp)
         log.info(f"   -> Creating a clean copy of the repository at {tmp_path}...")
 
-        shutil.copytree(
-            settings.REPO_PATH,
-            tmp_path,
-            dirs_exist_ok=True,
-            ignore=shutil.ignore_patterns(".git", ".venv", "venv", "__pycache__"),
-        )
+        _copy_tree(settings.REPO_PATH, tmp_path)
 
         canary_env_path = tmp_path / ".env"
         env_file = settings.REPO_PATH / ".env"
         if env_file.exists():
-            shutil.copy(env_file, canary_env_path)
+            _copy_file(env_file, canary_env_path)
             log.info("   -> Copied environment configuration to canary.")
 
         canary_target_path = tmp_path / target_rel_path

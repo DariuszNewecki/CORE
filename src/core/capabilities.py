@@ -5,13 +5,11 @@ Orchestrates the system's self-analysis cycle by executing introspection tools a
 
 from __future__ import annotations
 
-import subprocess
 import sys
-from pathlib import Path
 
 from dotenv import load_dotenv
-
 from shared.logger import getLogger
+from shared.utils.subprocess_utils import run_poetry_command
 
 log = getLogger(__name__)
 
@@ -25,49 +23,22 @@ def introspection():
     """
     log.info("🔍 Starting introspection cycle...")
 
-    project_root = Path(__file__).resolve().parents[2]
-    python_executable = sys.executable
-
     tools_to_run = [
-        ("Knowledge Graph Builder", "system.tools.codegraph_builder"),
-        ("Constitutional Auditor", "system.governance.constitutional_auditor"),
+        ("Knowledge Graph Builder", ["python", "-m", "system.tools.codegraph_builder"]),
+        (
+            "Constitutional Auditor",
+            ["python", "-m", "system.governance.constitutional_auditor"],
+        ),
     ]
 
     all_passed = True
-    for name, module in tools_to_run:
-        log.info(f"Running {name}...")
+    for name, command in tools_to_run:
         try:
-            result = subprocess.run(
-                [python_executable, "-m", module],
-                cwd=project_root,
-                capture_output=True,
-                text=True,
-                check=True,
-            )
-            # --- THIS IS THE FIX ---
-            # If the process was successful, print its standard output.
-            # This gives us the detailed report from the auditor.
-            if result.stdout:
-                # We use print() directly here so the rich formatting from the
-                # auditor's console is preserved perfectly.
-                print(result.stdout)
-
-            if result.stderr:
-                log.warning(f"{name} stderr:\n{result.stderr}")
+            # Use the sanctioned wrapper instead of direct subprocess call
+            run_poetry_command(f"Running {name}...", command)
             log.info(f"✅ {name} completed successfully.")
-        except subprocess.CalledProcessError as e:
-            log.error(f"❌ {name} failed with exit code {e.returncode}.")
-            # Print the output on failure so we can see the full error report.
-            if e.stdout:
-                print(e.stdout)
-            if e.stderr:
-                print(e.stderr)
-            all_passed = False
-        except Exception as e:
-            log.error(
-                f"💥 An unexpected error occurred while running {name}: {e}",
-                exc_info=True,
-            )
+        except Exception:
+            log.error(f"❌ {name} failed.")
             all_passed = False
 
     log.info("🧠 Introspection cycle completed.")
@@ -76,7 +47,6 @@ def introspection():
 
 if __name__ == "__main__":
     load_dotenv()
-    # Allows running the full introspection cycle directly from the CLI.
     if not introspection():
         sys.exit(1)
     sys.exit(0)
