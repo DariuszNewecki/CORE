@@ -39,7 +39,6 @@ sandbox/
 knowledge_graph.json
 *.jsonl
 *.lock
-*.copy
 reports/
 
 # Cache or checkpoints
