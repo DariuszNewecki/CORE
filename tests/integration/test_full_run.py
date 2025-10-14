@@ -4,8 +4,9 @@ from unittest.mock import AsyncMock
 
 import pytest
 from httpx import ASGITransport, AsyncClient
-from services.database.models import CognitiveRole, LlmResource
 from sqlalchemy import insert
+
+from services.database.models import CognitiveRole, LlmResource
 
 
 @pytest.mark.anyio

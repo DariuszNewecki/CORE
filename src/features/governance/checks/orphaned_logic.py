@@ -7,12 +7,11 @@ that have not been assigned a capability ID in the database.
 from __future__ import annotations
 
 import re
-from typing import Any, Dict, List
-
-from shared.config import settings
-from shared.models import AuditFinding, AuditSeverity
+from typing import Any
 
 from features.governance.audit_context import AuditorContext
+from shared.config import settings
+from shared.models import AuditFinding, AuditSeverity
 
 
 # ID: f7064ae9-8396-4e53-b550-f85b482fb2a5
@@ -37,7 +36,7 @@ class OrphanedLogicCheck:
             "mind.knowledge.entry_point_patterns"
         ).get("patterns", [])
 
-    def _is_entry_point(self, symbol_data: Dict[str, Any]) -> bool:
+    def _is_entry_point(self, symbol_data: dict[str, Any]) -> bool:
         """Checks if a symbol matches any of the defined entry point patterns."""
         for pattern in self.entry_point_patterns:
             match_rules = pattern.get("match", {})
@@ -81,7 +80,7 @@ class OrphanedLogicCheck:
         return False
 
     # ID: 92129e3b-c392-41a2-a836-d3e2af32e011
-    def find_unassigned_public_symbols(self) -> List[Dict[str, Any]]:
+    def find_unassigned_public_symbols(self) -> list[dict[str, Any]]:
         """Finds all public symbols with a null capability key that are not ignored."""
         unassigned = []
         for symbol_key, symbol_data in self.symbols.items():
@@ -96,7 +95,7 @@ class OrphanedLogicCheck:
         return unassigned
 
     # ID: f7903b52-27f9-44e2-b3b5-5d0d90c5e949
-    def execute(self) -> List[AuditFinding]:
+    def execute(self) -> list[AuditFinding]:
         """
         Runs the check and returns a list of findings for any orphaned symbols.
         """

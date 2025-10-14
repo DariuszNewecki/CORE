@@ -6,13 +6,13 @@ from __future__ import annotations
 
 import asyncio
 from pathlib import Path
-from typing import List, Set
 
 import typer
-from core.cognitive_service import CognitiveService
 from rich.console import Console
 from rich.markdown import Markdown
 from rich.panel import Panel
+
+from core.cognitive_service import CognitiveService
 from shared.config import settings
 from shared.logger import getLogger
 from shared.utils.constitutional_parser import get_all_constitutional_paths
@@ -22,7 +22,7 @@ console = Console()
 DOCS_IGNORE_DIRS = {"assets", "archive", "migrations", "examples"}
 
 
-def _get_bundle_content(files_to_bundle: List[Path], root_dir: Path) -> str:
+def _get_bundle_content(files_to_bundle: list[Path], root_dir: Path) -> str:
     bundle_parts = []
     for file_path in sorted(list(files_to_bundle)):
         if file_path.exists() and file_path.is_file():
@@ -39,7 +39,7 @@ def _get_bundle_content(files_to_bundle: List[Path], root_dir: Path) -> str:
     return "".join(bundle_parts)
 
 
-def _get_constitutional_files() -> List[Path]:
+def _get_constitutional_files() -> list[Path]:
     """
     Discovers all constitutional files by parsing meta.yaml via the settings object.
     """
@@ -48,14 +48,14 @@ def _get_constitutional_files() -> List[Path]:
     return [settings.REPO_PATH / p for p in relative_paths]
 
 
-def _get_docs_files() -> List[Path]:
+def _get_docs_files() -> list[Path]:
     root_dir = settings.REPO_PATH
     scan_files = [root_dir / "README.md", root_dir / "CONTRIBUTING.md"]
     docs_dir = root_dir / "docs"
-    found_files: Set[Path] = {f for f in scan_files if f.exists()}
+    found_files: set[Path] = {f for f in scan_files if f.exists()}
     if docs_dir.is_dir():
         for md_file in docs_dir.rglob("*.md"):
-            if not any((ignored in md_file.parts for ignored in DOCS_IGNORE_DIRS)):
+            if not any(ignored in md_file.parts for ignored in DOCS_IGNORE_DIRS):
                 found_files.add(md_file)
     return list(found_files)
 

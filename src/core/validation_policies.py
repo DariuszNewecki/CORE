@@ -8,16 +8,16 @@ from __future__ import annotations
 
 import ast
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
-Violation = Dict[str, Any]
+Violation = dict[str, Any]
 
 
 # ID: dcff1afd-963d-419c-8f66-31978115cfc9
 class PolicyValidator:
     """Handles policy-aware validation including safety checks and forbidden patterns."""
 
-    def __init__(self, safety_policy_rules: List[Dict]):
+    def __init__(self, safety_policy_rules: list[dict]):
         """
         Initialize the policy validator with pre-loaded safety policy rules.
         """
@@ -36,9 +36,9 @@ class PolicyValidator:
 
     def _find_dangerous_patterns(
         self, tree: ast.AST, file_path: str
-    ) -> List[Violation]:
+    ) -> list[Violation]:
         """Scans the AST for calls and imports forbidden by safety policies."""
-        violations: List[Violation] = []
+        violations: list[Violation] = []
         rules = self.safety_rules
 
         forbidden_calls = set()
@@ -109,7 +109,7 @@ class PolicyValidator:
         return violations
 
     # ID: d6059c1e-83ab-4c9a-8ebf-e596fa79494d
-    def check_semantics(self, code: str, file_path: str) -> List[Violation]:
+    def check_semantics(self, code: str, file_path: str) -> list[Violation]:
         """Runs all policy-aware semantic checks on a string of Python code."""
         try:
             tree = ast.parse(code)

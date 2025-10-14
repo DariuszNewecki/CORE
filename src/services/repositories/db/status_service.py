@@ -8,7 +8,6 @@ Merged from: src/cli/logic/status.py::status
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import List, Set
 
 from services.repositories.db.common import (
     ensure_ledger,
@@ -25,8 +24,8 @@ class StatusReport:
 
     is_connected: bool
     db_version: str | None
-    applied_migrations: Set[str]
-    pending_migrations: List[str]
+    applied_migrations: set[str]
+    pending_migrations: list[str]
 
 
 # ID: 75fac84c-5818-47c0-9d50-c0670d065c8c

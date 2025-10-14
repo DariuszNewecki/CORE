@@ -7,11 +7,12 @@ declarations and moves them to the correct manifest file.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 import typer
 import yaml
 from rich.console import Console
+
 from shared.config import settings
 from shared.logger import getLogger
 
@@ -37,7 +38,7 @@ def run_fix_manifest_hygiene(
         raise typer.Exit(code=1)
 
     all_domain_files = {p.stem: p for p in DOMAINS_DIR.glob("*.yaml")}
-    changes_to_make: Dict[str, Dict[str, Any]] = {}
+    changes_to_make: dict[str, dict[str, Any]] = {}
 
     for domain_name, file_path in all_domain_files.items():
         try:

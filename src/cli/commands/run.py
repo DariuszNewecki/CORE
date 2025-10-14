@@ -8,9 +8,9 @@ from __future__ import annotations
 
 import asyncio
 from pathlib import Path
-from typing import Optional
 
 import typer
+
 from cli.logic.run import develop
 from features.introspection.vectorization_service import run_vectorize
 from shared.context import CoreContext
@@ -26,12 +26,12 @@ run_app = typer.Typer(
 # ID: d10d0d34-054c-4923-bda9-1264f6d85813
 def develop_command(
     ctx: typer.Context,  # <-- ADD THIS ARGUMENT
-    goal: Optional[str] = typer.Argument(
+    goal: str | None = typer.Argument(
         None,
         help="The high-level development goal for CORE to achieve.",
         show_default=False,
     ),
-    from_file: Optional[Path] = typer.Option(
+    from_file: Path | None = typer.Option(
         None,
         "--from-file",
         "-f",

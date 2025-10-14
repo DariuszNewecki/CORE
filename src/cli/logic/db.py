@@ -10,10 +10,11 @@ import asyncio
 import typer
 import yaml
 from rich.console import Console
+from sqlalchemy import text
+
 from services.database.session_manager import get_session
 from services.repositories.db.migration_service import migrate_db
 from shared.config import settings
-from sqlalchemy import text
 
 from .status import status
 from .sync_domains import sync_domains

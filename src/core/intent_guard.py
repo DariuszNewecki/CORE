@@ -10,7 +10,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
 
 from shared.config_loader import load_yaml_file
 from shared.logger import getLogger
@@ -31,7 +30,7 @@ class PolicyRule:
 
     @classmethod
     # ID: db43791c-92bd-435e-8ade-85620f3cf4f6
-    def from_dict(cls, data: Dict) -> "PolicyRule":
+    def from_dict(cls, data: dict) -> PolicyRule:
         """Create PolicyRule from dictionary data."""
         return cls(
             name=data.get("name", "unnamed"),
@@ -51,7 +50,7 @@ class ViolationReport:
     path: str
     message: str
     severity: str
-    suggested_fix: Optional[str] = None
+    suggested_fix: str | None = None
 
 
 # ID: 1f189a22-8497-44f9-af8e-00888b0eca0e
@@ -67,7 +66,7 @@ class IntentGuard:
         self.proposals_path = self.intent_path / "proposals"
         self.policies_path = self.intent_path / "charter" / "policies"
 
-        self.rules: List[PolicyRule] = []
+        self.rules: list[PolicyRule] = []
         self._load_policies()
 
         log.info(f"IntentGuard initialized with {len(self.rules)} rules loaded.")
@@ -94,8 +93,8 @@ class IntentGuard:
 
     # ID: abd3b486-3aaa-4dee-8a99-2a0fbd8f1c28
     def check_transaction(
-        self, proposed_paths: List[str]
-    ) -> Tuple[bool, List[ViolationReport]]:
+        self, proposed_paths: list[str]
+    ) -> tuple[bool, list[ViolationReport]]:
         """
         Check if a proposed set of file changes complies with all active rules.
         """
@@ -105,7 +104,7 @@ class IntentGuard:
             violations.extend(self._check_single_path(path, path_str))
         return len(violations) == 0, violations
 
-    def _check_single_path(self, path: Path, path_str: str) -> List[ViolationReport]:
+    def _check_single_path(self, path: Path, path_str: str) -> list[ViolationReport]:
         """Check a single path against all rules."""
         violations = []
         constitutional_violation = self._check_constitutional_integrity(path, path_str)
@@ -116,7 +115,7 @@ class IntentGuard:
 
     def _check_constitutional_integrity(
         self, path: Path, path_str: str
-    ) -> Optional[ViolationReport]:
+    ) -> ViolationReport | None:
         """Check if the path violates constitutional immutability rules."""
         try:
             charter_path_resolved = (self.intent_path / "charter").resolve()
@@ -135,7 +134,7 @@ class IntentGuard:
             severity="error",
         )
 
-    def _check_policy_rules(self, path: Path, path_str: str) -> List[ViolationReport]:
+    def _check_policy_rules(self, path: Path, path_str: str) -> list[ViolationReport]:
         """Check path against all loaded policy rules."""
         violations = []
         for rule in self.rules:
@@ -148,7 +147,7 @@ class IntentGuard:
 
     def _apply_rule_action(
         self, rule: PolicyRule, path_str: str
-    ) -> List[ViolationReport]:
+    ) -> list[ViolationReport]:
         """Apply the action for a matched rule."""
         if rule.action == "deny":
             return [

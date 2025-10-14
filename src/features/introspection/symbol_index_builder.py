@@ -9,9 +9,10 @@ import ast
 import json
 import re
 import sys
+from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional
+from typing import Any
 
 # Optional dependency (PyYAML). If missing, we fall back to a tiny default set.
 try:
@@ -25,7 +26,7 @@ except Exception:  # pragma: no cover
 class Pattern:
     name: str
     description: str
-    match: Dict[str, Any]
+    match: dict[str, Any]
     entry_point_type: str
 
 
@@ -36,13 +37,13 @@ class SymbolMeta:
     filepath: str
     name: str
     type: str  # "function" | "class" | "method"
-    base_classes: List[str]
-    decorators: List[str]
+    base_classes: list[str]
+    decorators: list[str]
     is_public_function: bool
     module_path: str
 
 
-def _load_patterns(patterns_path: Path) -> List[Pattern]:
+def _load_patterns(patterns_path: Path) -> list[Pattern]:
     if yaml is None:
         # Minimal safe fallback if PyYAML is not present
         default_patterns = [
@@ -70,7 +71,7 @@ def _load_patterns(patterns_path: Path) -> List[Pattern]:
 
     data = yaml.safe_load(patterns_path.read_text(encoding="utf-8"))
     items = data.get("patterns", []) if isinstance(data, dict) else []
-    out: List[Pattern] = []
+    out: list[Pattern] = []
     for p in items:
         out.append(
             Pattern(
@@ -96,8 +97,8 @@ class _Visitor(ast.NodeVisitor):
     def __init__(self, filepath: Path) -> None:
         self.filepath = filepath
         self.module_path = filepath.as_posix()
-        self.symbols: List[SymbolMeta] = []
-        self._class_stack: List[ast.ClassDef] = []
+        self.symbols: list[SymbolMeta] = []
+        self._class_stack: list[ast.ClassDef] = []
 
     # ID: 88f6a80e-1874-4c28-8240-f80c53509d16
     def visit_ClassDef(self, node: ast.ClassDef) -> Any:
@@ -133,7 +134,7 @@ class _Visitor(ast.NodeVisitor):
     def _handle_function_like(self, node: ast.AST) -> None:
         name = getattr(node, "name", "<unknown>")
         decorators = [self._name_of(d) for d in getattr(node, "decorator_list", [])]
-        bases: List[str] = []
+        bases: list[str] = []
         sym_type = "method" if self._class_stack else "function"
         if self._class_stack:
             # include base classes of the owning class (helpful for ActionHandler match)
@@ -233,9 +234,9 @@ def _match_pattern(sym: SymbolMeta, pat: Pattern) -> bool:
 
 
 def _classify(
-    symbols: List[SymbolMeta], patterns: List[Pattern]
-) -> Dict[str, Dict[str, Any]]:
-    index: Dict[str, Dict[str, Any]] = {}
+    symbols: list[SymbolMeta], patterns: list[Pattern]
+) -> dict[str, dict[str, Any]]:
+    index: dict[str, dict[str, Any]] = {}
     for s in symbols:
         ep_type = None
         pat_name = None
@@ -260,7 +261,7 @@ def build_symbol_index(
     project_root: str | Path = ".",
     patterns_path: str | Path = ".intent/mind/knowledge/entry_point_patterns.yaml",
     src_dir: str | Path = "src",
-) -> Dict[str, Dict[str, Any]]:
+) -> dict[str, dict[str, Any]]:
     root = Path(project_root).resolve()
     src = (root / src_dir).resolve()
     patterns_file = (root / patterns_path).resolve()
@@ -269,7 +270,7 @@ def build_symbol_index(
         raise FileNotFoundError(f"Entry point patterns not found: {patterns_file}")
 
     patterns = _load_patterns(patterns_file)
-    all_symbols: List[SymbolMeta] = []
+    all_symbols: list[SymbolMeta] = []
 
     for py in _iter_py_files(src):
         try:
@@ -288,7 +289,7 @@ def build_symbol_index(
 
 
 # ID: 04b011a8-a32a-42b9-a42b-3f27b5226db0
-def main(argv: Optional[List[str]] = None) -> int:
+def main(argv: list[str] | None = None) -> int:
     import argparse
 
     parser = argparse.ArgumentParser(

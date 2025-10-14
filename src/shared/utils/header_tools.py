@@ -7,7 +7,6 @@ according to CORE's constitutional style guide.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import List, Optional
 
 
 @dataclass
@@ -15,11 +14,11 @@ from typing import List, Optional
 class HeaderComponents:
     """A data class to hold the parsed components of a Python file header."""
 
-    location: Optional[str] = None
-    module_description: Optional[str] = None
+    location: str | None = None
+    module_description: str | None = None
     has_future_import: bool = False
-    other_imports: List[str] = field(default_factory=list)
-    body: List[str] = field(default_factory=list)
+    other_imports: list[str] = field(default_factory=list)
+    body: list[str] = field(default_factory=list)
 
 
 # ID: 3f524d93-83cd-41bd-b5e2-38a7703d39d4

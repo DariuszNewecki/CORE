@@ -7,7 +7,6 @@ delegating all action-specific logic to dedicated, registered handlers.
 from __future__ import annotations
 
 import asyncio
-from typing import List
 
 from core.actions.context import PlanExecutorContext
 from core.actions.registry import ActionRegistry
@@ -45,7 +44,7 @@ class PlanExecutor:
         asyncio.create_task(self.context.auditor_context.load_knowledge_graph())
 
     # ID: 65f105d2-27e4-4fca-8f96-27decc90bca5
-    async def execute_plan(self, plan: List[ExecutionTask]):
+    async def execute_plan(self, plan: list[ExecutionTask]):
         """Executes the entire plan by dispatching each task to its handler."""
         for i, task in enumerate(plan, 1):
             log.info(f"--- Executing Step {i}/{len(plan)}: {task.step} ---")
@@ -66,7 +65,7 @@ class PlanExecutor:
             await asyncio.wait_for(
                 handler.execute(task.params, self.context), timeout=timeout
             )
-        except asyncio.TimeoutError:
+        except TimeoutError:
             raise PlanExecutionError(f"Task '{task.step}' timed out after {timeout}s")
         except Exception as e:
             log.error(

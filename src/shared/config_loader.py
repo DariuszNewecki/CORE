@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 import yaml
 
@@ -17,7 +17,7 @@ log = getLogger(__name__)
 
 
 # ID: 85467d87-762e-461c-8c08-af2b982e2387
-def load_yaml_file(file_path: Path) -> Dict[str, Any]:
+def load_yaml_file(file_path: Path) -> dict[str, Any]:
     """
     Loads a YAML or JSON config file safely, with consistent error handling.
     This is the single source of truth for YAML loading.

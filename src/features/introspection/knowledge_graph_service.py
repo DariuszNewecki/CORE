@@ -8,11 +8,12 @@ from __future__ import annotations
 
 import ast
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
 import yaml
+
 from shared.ast_utility import (
     FunctionCallVisitor,
     calculate_structural_hash,
@@ -38,11 +39,11 @@ class KnowledgeGraphBuilder:
         self.root_path = root_path
         self.intent_dir = self.root_path / ".intent"
         self.src_dir = self.root_path / "src"
-        self.symbols: Dict[str, Dict[str, Any]] = {}
+        self.symbols: dict[str, dict[str, Any]] = {}
         self.domain_map = self._load_domain_map()
         self.entry_point_patterns = self._load_entry_point_patterns()
 
-    def _load_domain_map(self) -> Dict[str, str]:
+    def _load_domain_map(self) -> dict[str, str]:
         """Loads the architectural domain map from the constitution."""
         try:
             structure_path = (
@@ -56,7 +57,7 @@ class KnowledgeGraphBuilder:
         except (FileNotFoundError, yaml.YAMLError, KeyError):
             return {}
 
-    def _load_entry_point_patterns(self) -> List[Dict[str, Any]]:
+    def _load_entry_point_patterns(self) -> list[dict[str, Any]]:
         """Loads the declarative patterns for identifying system entry points."""
         try:
             patterns_path = (
@@ -68,7 +69,7 @@ class KnowledgeGraphBuilder:
             return []
 
     # ID: f5689b89-8060-4328-a9f4-0d4e2ad77175
-    def build(self) -> Dict[str, Any]:
+    def build(self) -> dict[str, Any]:
         """
         Executes the full build process for the knowledge graph and returns it.
         """
@@ -78,7 +79,7 @@ class KnowledgeGraphBuilder:
 
         knowledge_graph = {
             "metadata": {
-                "generated_at": datetime.now(timezone.utc).isoformat(),
+                "generated_at": datetime.now(UTC).isoformat(),
                 "repo_root": str(self.root_path),
             },
             "symbols": self.symbols,
@@ -116,7 +117,7 @@ class KnowledgeGraphBuilder:
                 return domain_name
         return "unknown"
 
-    def _process_symbol(self, node: ast.AST, file_path: Path, source_lines: List[str]):
+    def _process_symbol(self, node: ast.AST, file_path: Path, source_lines: list[str]):
         """Extracts all relevant data from a symbol AST node."""
         if not hasattr(node, "name"):
             return

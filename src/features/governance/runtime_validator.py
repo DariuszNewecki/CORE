@@ -12,6 +12,7 @@ import tempfile
 from pathlib import Path
 
 from rich.console import Console
+
 from shared.logger import getLogger
 
 log = getLogger("runtime_validator")

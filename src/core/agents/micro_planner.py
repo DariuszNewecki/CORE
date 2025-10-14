@@ -7,14 +7,13 @@ low-risk plans that can be auto-approved under the micro_proposal_policy.
 from __future__ import annotations
 
 import json
-from typing import Any, Dict, List
-
-from shared.config import settings
-from shared.logger import getLogger
-from shared.models import PlanExecutionError
+from typing import Any
 
 from core.agents.base_planner import parse_and_validate_plan
 from core.cognitive_service import CognitiveService
+from shared.config import settings
+from shared.logger import getLogger
+from shared.models import PlanExecutionError
 
 log = getLogger("micro_planner_agent")
 
@@ -32,7 +31,7 @@ class MicroPlannerAgent:
         ).read_text(encoding="utf-8")
 
     # ID: f9c908ca-b681-4f2d-9009-ba1ad3c936b3
-    async def create_micro_plan(self, goal: str) -> List[Dict[str, Any]]:
+    async def create_micro_plan(self, goal: str) -> list[dict[str, Any]]:
         """Creates a safe execution plan from a user goal."""
         policy_content = json.dumps(self.policy, indent=2)
 

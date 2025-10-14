@@ -7,7 +7,20 @@ This module assembles all command groups into a single Typer application.
 from __future__ import annotations
 
 import typer
-from cli.commands import check, enrich, fix, inspect, manage, mind, run, search, submit
+from rich.console import Console
+
+from cli.commands import (
+    check,
+    enrich,
+    fix,
+    inspect,
+    manage,
+    mind,
+    run,
+    search,
+    secrets,
+    submit,
+)
 from cli.interactive import launch_interactive_menu
 from cli.logic import audit as audit_logic
 from core.cognitive_service import CognitiveService
@@ -15,7 +28,6 @@ from core.file_handler import FileHandler
 from core.git_service import GitService
 from core.knowledge_service import KnowledgeService
 from features.governance.audit_context import AuditorContext
-from rich.console import Console
 from services.clients.qdrant_client import QdrantService
 from shared.config import settings
 from shared.context import CoreContext
@@ -58,6 +70,7 @@ def register_all_commands(app_instance: typer.Typer) -> None:
     app_instance.add_typer(run.run_app, name="run")
     app_instance.add_typer(search.search_app, name="search")
     app_instance.add_typer(submit.submit_app, name="submit")
+    app_instance.add_typer(secrets.app, name="secrets")
 
     # 2. Inject context directly into the modules that need it.
     modules_with_context = [

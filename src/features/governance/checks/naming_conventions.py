@@ -7,11 +7,9 @@ as defined in the naming_conventions_policy.yaml.
 from __future__ import annotations
 
 import re
-from typing import List
-
-from shared.models import AuditFinding, AuditSeverity
 
 from features.governance.audit_context import AuditorContext
+from shared.models import AuditFinding, AuditSeverity
 
 
 # ID: 48100636-3970-4d7b-835a-1a4279ef3717
@@ -25,7 +23,7 @@ class NamingConventionsCheck:
         self.policy = self.context.policies.get("naming_conventions_policy", {})
 
     # ID: 3ceda015-448e-4745-9b09-573cc37edeb1
-    def execute(self) -> List[AuditFinding]:
+    def execute(self) -> list[AuditFinding]:
         """
         Runs the check by scanning all repository files against the policy rules.
         """

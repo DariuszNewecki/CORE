@@ -7,16 +7,17 @@ This provides a user-friendly way to discover and run commands.
 from __future__ import annotations
 
 import sys
-from typing import Callable, Dict
+from collections.abc import Callable
 
 from rich.console import Console
 from rich.panel import Panel
+
 from shared.utils.subprocess_utils import run_poetry_command
 
 console = Console()
 
 
-def _show_menu(title: str, options: Dict[str, str], actions: Dict[str, Callable]):
+def _show_menu(title: str, options: dict[str, str], actions: dict[str, Callable]):
     """Generic helper to display a menu, get input, and execute an action."""
     while True:
         console.clear()

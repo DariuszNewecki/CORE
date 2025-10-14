@@ -7,7 +7,8 @@ concurrently with a progress bar, governed by a constitutional limit.
 from __future__ import annotations
 
 import asyncio
-from typing import Awaitable, Callable, List, TypeVar
+from collections.abc import Awaitable, Callable
+from typing import TypeVar
 
 from rich.progress import track
 
@@ -38,8 +39,8 @@ class ThrottledParallelProcessor:
         )
 
     async def _process_items_async(
-        self, items: List[T], worker_fn: Callable[[T], Awaitable[R]]
-    ) -> List[R]:
+        self, items: list[T], worker_fn: Callable[[T], Awaitable[R]]
+    ) -> list[R]:
         """The core async logic for processing items in parallel."""
         semaphore = asyncio.Semaphore(self.concurrency_limit)
         results = []
@@ -61,8 +62,8 @@ class ThrottledParallelProcessor:
     # --- START: THE DEFINITIVE FIX ---
     # ID: dee1af19-41c8-49c6-ba11-a109746795b7
     async def run_async(
-        self, items: List[T], worker_fn: Callable[[T], Awaitable[R]]
-    ) -> List[R]:
+        self, items: list[T], worker_fn: Callable[[T], Awaitable[R]]
+    ) -> list[R]:
         """
         Asynchronous entry point to run the worker over all items.
         To be used when called from an already-running async function.
@@ -71,8 +72,8 @@ class ThrottledParallelProcessor:
 
     # ID: 466317ce-4caa-4c49-a466-5389d9c25874
     def run_sync(
-        self, items: List[T], worker_fn: Callable[[T], Awaitable[R]]
-    ) -> List[R]:
+        self, items: list[T], worker_fn: Callable[[T], Awaitable[R]]
+    ) -> list[R]:
         """
         Synchronous entry point to run the async worker over all items.
         This will start and manage its own asyncio event loop.

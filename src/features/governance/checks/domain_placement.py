@@ -6,12 +6,9 @@ correct domain manifest file.
 
 from __future__ import annotations
 
-from typing import List
-
+from features.governance.audit_context import AuditorContext
 from shared.models import AuditFinding, AuditSeverity
 from shared.utils.yaml_processor import yaml_processor
-
-from features.governance.audit_context import AuditorContext
 
 
 # ID: 0cd8ad5a-ed46-4f18-8335-f95b747d6164
@@ -26,7 +23,7 @@ class DomainPlacementCheck:
         self.domains_dir = self.context.mind_path / "knowledge" / "domains"
 
     # ID: 7eb75aef-6463-450d-8088-e9a64e3d85c8
-    def execute(self) -> List[AuditFinding]:
+    def execute(self) -> list[AuditFinding]:
         """
         Runs the check and returns a list of findings for any violations.
         """

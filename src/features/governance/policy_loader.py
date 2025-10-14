@@ -8,9 +8,10 @@ Centralized loaders for constitution-backed policies used by agents and services
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 import yaml
+
 from shared.logger import getLogger
 
 log = getLogger(__name__)
@@ -21,7 +22,7 @@ GOVERNANCE_DIR = CONSTITUTION_DIR / "policies" / "governance"
 AGENT_DIR = CONSTITUTION_DIR / "policies" / "agent"
 
 
-def _load_policy_yaml(path: Path) -> Dict[str, Any]:
+def _load_policy_yaml(path: Path) -> dict[str, Any]:
     """
     Loads and performs basic validation on a policy YAML file.
     This is now the single source of truth for loading these policies.
@@ -45,7 +46,7 @@ def _load_policy_yaml(path: Path) -> Dict[str, Any]:
 
 
 # ID: b843e5d2-401f-4271-8a47-6d722de9b8ce
-def load_available_actions() -> Dict[str, Any]:
+def load_available_actions() -> dict[str, Any]:
     """
     Load the canonical list of available actions for the PlannerAgent.
     """
@@ -57,7 +58,7 @@ def load_available_actions() -> Dict[str, Any]:
 
 
 # ID: 29d61bb4-8fdc-42e9-9d1c-30cae93a9e10
-def load_micro_proposal_policy() -> Dict[str, Any]:
+def load_micro_proposal_policy() -> dict[str, Any]:
     """
     Load the Micro-Proposal Policy for autonomous path guardrails.
     """

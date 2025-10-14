@@ -9,6 +9,8 @@ import asyncio
 from pathlib import Path
 
 import typer
+from rich.console import Console
+
 from cli.logic.byor import initialize_repository
 from cli.logic.db import export_data, migrate_db
 from cli.logic.project_docs import docs as project_docs
@@ -25,7 +27,6 @@ from features.maintenance.dotenv_sync_service import run_dotenv_sync
 from features.maintenance.migration_service import run_ssot_migration
 from features.project_lifecycle.definition_service import define_new_symbols
 from features.project_lifecycle.scaffolding_service import new_project
-from rich.console import Console
 from shared.context import CoreContext
 
 console = Console()

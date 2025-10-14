@@ -11,7 +11,7 @@ from __future__ import annotations
 import asyncio
 import os
 import random
-from typing import Any, Dict, List, Optional
+from typing import Any
 from urllib.parse import urlparse
 
 import requests
@@ -32,7 +32,7 @@ class EmbeddingService:
         self,
         model: str,
         base_url: str,
-        api_key: Optional[str],
+        api_key: str | None,
         expected_dim: int,
         request_timeout_sec: float = 120.0,
         connect_timeout_sec: float = 10.0,
@@ -129,7 +129,7 @@ class EmbeddingService:
             raise RuntimeError(f"Model {self.model} not available on server")
 
     # ID: 8543c877-b51c-4e97-bf5a-3e97f173be48
-    async def get_embedding(self, text: str) -> List[float]:
+    async def get_embedding(self, text: str) -> list[float]:
         """
         Return a single embedding vector for the given text.
         Raises:
@@ -149,14 +149,14 @@ class EmbeddingService:
 
         return embedding
 
-    def _build_request_payload(self, text: str) -> Dict[str, str]:
+    def _build_request_payload(self, text: str) -> dict[str, str]:
         """Builds the request payload based on API type."""
         if self.api_type == "ollama_compatible":
             return {"model": self.model, "prompt": text}
         else:
             return {"model": self.model, "input": text}
 
-    def _build_headers(self) -> Dict[str, str]:
+    def _build_headers(self) -> dict[str, str]:
         """Builds request headers, including Authorization if an API key is present."""
         headers = {"Content-Type": "application/json"}
         if self.api_key:
@@ -164,8 +164,8 @@ class EmbeddingService:
         return headers
 
     def _extract_embedding_from_response(
-        self, response_data: Dict[str, Any]
-    ) -> List[float]:
+        self, response_data: dict[str, Any]
+    ) -> list[float]:
         """Extracts the embedding vector from the API response."""
         try:
             embedding = response_data.get("embedding") or response_data.get(
@@ -180,7 +180,7 @@ class EmbeddingService:
 
         return embedding
 
-    def _validate_embedding_dimensions(self, embedding: List[float]) -> None:
+    def _validate_embedding_dimensions(self, embedding: list[float]) -> None:
         """Validates that the embedding has the expected dimensions."""
         if len(embedding) != self.expected_dim:
             raise ValueError(
@@ -189,14 +189,14 @@ class EmbeddingService:
             )
 
     async def _post_with_retries(
-        self, *, json: Dict[str, Any], headers: Dict[str, str]
-    ) -> Dict[str, Any]:
+        self, *, json: dict[str, Any], headers: dict[str, str]
+    ) -> dict[str, Any]:
         """
         Execute POST in a thread (to keep async),
         with exponential backoff and jitter for transient errors.
         """
         attempt = 0
-        last_error: Optional[Exception] = None
+        last_error: Exception | None = None
         backoff_base_sec = 0.6
         endpoint_url = f"{self.base_url.rstrip('/')}{self.endpoint_path}"
 
@@ -228,8 +228,8 @@ class EmbeddingService:
     async def _execute_http_request(
         self,
         endpoint_url: str,
-        headers: Dict[str, str],
-        json_data: Dict[str, Any],
+        headers: dict[str, str],
+        json_data: dict[str, Any],
     ) -> requests.Response:
         """Executes the HTTP request in a thread."""
         return await asyncio.to_thread(

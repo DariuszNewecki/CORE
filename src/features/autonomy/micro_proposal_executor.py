@@ -9,7 +9,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Optional
 
 from shared.logger import getLogger
 from shared.models import CheckResult
@@ -27,7 +26,7 @@ class MicroProposal:
     file_path: str
     action: str
     content: str
-    validation_report_id: Optional[str] = None
+    validation_report_id: str | None = None
 
 
 # ID: 9f3a2e7b-5c4d-4b9e-a2f0-8d7a9e3d6e2c
@@ -38,7 +37,7 @@ class MicroProposalExecutor:
     reason_with_purpose principles.
     """
 
-    def __init__(self, repo_root: Optional[Path] = None) -> None:
+    def __init__(self, repo_root: Path | None = None) -> None:
         """
         Initialize the executor with the repository root and load the policy.
 
@@ -52,7 +51,7 @@ class MicroProposalExecutor:
         self.policy = self._load_policy()
         log.debug("MicroProposalExecutor initialized")
 
-    def _load_policy(self) -> Dict:
+    def _load_policy(self) -> dict:
         """
         Load and validate the micro_proposal_policy.yaml.
 
@@ -168,7 +167,7 @@ class MicroProposalExecutor:
             path=file_path,
         )
 
-    def _check_validation_report(self, report_id: Optional[str]) -> CheckResult:
+    def _check_validation_report(self, report_id: str | None) -> CheckResult:
         """
         Verify if a validation report ID is provided and valid (placeholder).
 
@@ -196,7 +195,7 @@ class MicroProposalExecutor:
         )
 
     # ID: 7c2e8d9a-6f3e-4c7a-b3f1-9e8a7f4c5d3b
-    def validate_proposal(self, proposal: MicroProposal) -> List[CheckResult]:
+    def validate_proposal(self, proposal: MicroProposal) -> list[CheckResult]:
         """
         Validate a micro-proposal against safe_actions, safe_paths, and
         require_validation rules from micro_proposal_policy.yaml.

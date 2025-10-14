@@ -6,6 +6,7 @@ artifacts from the database or constitution.
 from __future__ import annotations
 
 import typer
+
 from features.introspection.generate_capability_docs import (
     main as generate_capability_docs,
 )

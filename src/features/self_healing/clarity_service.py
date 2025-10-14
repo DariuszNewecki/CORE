@@ -10,8 +10,9 @@ import asyncio
 from pathlib import Path
 
 import typer
-from core.cognitive_service import CognitiveService
 from rich.console import Console
+
+from core.cognitive_service import CognitiveService
 from shared.config import settings
 from shared.logger import getLogger
 

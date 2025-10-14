@@ -26,7 +26,7 @@ class ActionHandler(ABC):
 
     @abstractmethod
     # ID: 1780136a-31ee-4db1-bbf8-04c0110b4cca
-    async def execute(self, params: TaskParams, context: "PlanExecutorContext"):
+    async def execute(self, params: TaskParams, context: PlanExecutorContext):
         """
         Executes the action.
 

@@ -9,6 +9,7 @@ from __future__ import annotations
 import re
 
 from rich.console import Console
+
 from shared.config import settings
 
 console = Console()

@@ -2,19 +2,19 @@
 from __future__ import annotations
 
 import asyncio
-from typing import Set
 
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
+from sqlalchemy import text
+
 from services.clients.qdrant_client import QdrantService
 from services.database.session_manager import get_session
-from sqlalchemy import text
 
 console = Console()
 
 
-async def _fetch_postgres_vector_ids() -> Set[str]:
+async def _fetch_postgres_vector_ids() -> set[str]:
     """
     Authoritative source of vector IDs is the link table:
       core.symbol_vector_links(symbol_id UUID, vector_id TEXT, ...)
@@ -26,12 +26,12 @@ async def _fetch_postgres_vector_ids() -> Set[str]:
         return {r[0] for r in rows}
 
 
-async def _fetch_qdrant_point_ids() -> Set[str]:
+async def _fetch_qdrant_point_ids() -> set[str]:
     """
     Fetch all point IDs from Qdrant without payloads/vectors.
     """
     service = QdrantService()
-    all_ids: Set[str] = set()
+    all_ids: set[str] = set()
     offset = None
 
     # Scroll through the whole collection to be robust with >10k points

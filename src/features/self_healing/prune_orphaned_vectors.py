@@ -12,10 +12,11 @@ import typer
 from qdrant_client import AsyncQdrantClient
 from qdrant_client.http.models import PointIdsList
 from rich.console import Console
+from sqlalchemy import text
+
 from services.database.session_manager import get_session
 from shared.config import settings
 from shared.logger import getLogger
-from sqlalchemy import text
 
 log = getLogger("prune_orphaned_vectors")
 console = Console()

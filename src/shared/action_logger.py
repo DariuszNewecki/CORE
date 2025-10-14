@@ -6,8 +6,8 @@ Provides a dedicated service for writing structured, auditable events to the sys
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
-from typing import Any, Dict
+from datetime import UTC, datetime
+from typing import Any
 
 from shared.config import settings
 from shared.logger import getLogger
@@ -34,7 +34,7 @@ class ActionLogger:
             self.log_path = None
 
     # ID: 5d7a8b9c-0d1e-2f3a-4b5c-6d7e8f9a0b1c
-    def log_event(self, event_type: str, details: Dict[str, Any]):
+    def log_event(self, event_type: str, details: dict[str, Any]):
         """
         Writes a single, timestamped event to the action log file.
 
@@ -46,7 +46,7 @@ class ActionLogger:
             return  # Fail silently if the logger could not be initialized.
 
         log_entry = {
-            "timestamp_utc": datetime.now(timezone.utc).isoformat(),
+            "timestamp_utc": datetime.now(UTC).isoformat(),
             "event_type": event_type,
             "details": details,
         }

@@ -8,18 +8,19 @@ from __future__ import annotations
 import fnmatch
 import tempfile
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
 import jsonschema
 import yaml
+from rich.console import Console
+
 from features.governance.audit_context import AuditorContext
 from features.governance.constitutional_auditor import ConstitutionalAuditor
 from features.introspection.knowledge_graph_service import (
     KnowledgeGraphBuilder,
 )
-from rich.console import Console
 from shared.action_logger import action_logger
 from shared.config import settings
 from shared.logger import getLogger
@@ -35,7 +36,7 @@ class Crate:
     """A simple data class representing a validated Intent Crate."""
 
     path: Path
-    manifest: Dict[str, Any]
+    manifest: dict[str, Any]
 
 
 # ID: 5d7a8b3e-1f2c-4d5e-6f7a-8b9c0d1e2f3a
@@ -70,7 +71,7 @@ class CrateProcessingService:
         log.info("CrateProcessingService initialized and constitutionally configured.")
 
     # ID: 4e3d2c1b-0a9b-8c7d-6e5f-4a3b2c1d0e9f
-    def _scan_and_validate_inbox(self) -> List[Crate]:
+    def _scan_and_validate_inbox(self) -> list[Crate]:
         """Scans the inbox for crates and validates their manifests."""
         valid_crates = []
         if not self.inbox_path.exists():
@@ -109,7 +110,7 @@ class CrateProcessingService:
 
         return valid_crates
 
-    def _copy_tree(self, src: Path, dst: Path, ignore_patterns: List[str]):
+    def _copy_tree(self, src: Path, dst: Path, ignore_patterns: list[str]):
         """A simple replacement for shutil.copytree to avoid the import."""
         dst.mkdir(parents=True, exist_ok=True)
         for item in src.iterdir():
@@ -131,7 +132,7 @@ class CrateProcessingService:
     # ID: 1b2c3d4e-5f6a-7b8c-9d0e-1f2a3b4c5d6e
     async def _run_canary_validation(
         self, crate: Crate
-    ) -> tuple[bool, List[AuditFinding]]:
+    ) -> tuple[bool, list[AuditFinding]]:
         """Creates a temporary environment, applies crate changes, and runs a full audit."""
         with tempfile.TemporaryDirectory() as tmpdir:
             canary_path = Path(tmpdir) / "canary_repo"
@@ -207,7 +208,7 @@ class CrateProcessingService:
         """Writes a result.yaml file into the processed crate directory."""
         result_content = {
             "status": status,
-            "processed_at_utc": datetime.now(timezone.utc).isoformat(),
+            "processed_at_utc": datetime.now(UTC).isoformat(),
         }
         if isinstance(details, str):
             result_content["justification"] = details

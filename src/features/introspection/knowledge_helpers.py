@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import ast
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 from shared.logger import getLogger
 
@@ -17,7 +17,7 @@ log = getLogger("core_admin.knowledge.helpers")
 
 
 # ID: 225abffb-ec3e-4798-a75d-1be1697b0e27
-def extract_source_code(repo_root: Path, symbol_data: Dict[str, Any]) -> str | None:
+def extract_source_code(repo_root: Path, symbol_data: dict[str, Any]) -> str | None:
     """
     Extracts the source code for a symbol using its database record.
     This is the single, canonical implementation for reading symbol source.

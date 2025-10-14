@@ -9,9 +9,10 @@ from __future__ import annotations
 import asyncio
 import random
 import time
-from typing import Any, List
+from typing import Any
 
 import httpx
+
 from shared.config import settings
 from shared.logger import getLogger
 
@@ -150,7 +151,7 @@ class BaseLLMClient:
                 raise
 
     # ID: 6f1354ee-09ee-49d1-8eeb-a4fcc7c1bc58
-    async def get_embedding(self, text: str) -> List[float]:
+    async def get_embedding(self, text: str) -> list[float]:
         return await self.make_request_async(
             prompt=text, user_id="embedding_service", task_type="embedding"
         )

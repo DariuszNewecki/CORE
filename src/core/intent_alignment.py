@@ -12,11 +12,10 @@ from __future__ import annotations
 import logging
 import re
 from pathlib import Path
-from typing import Dict, List, Tuple
 
 log = logging.getLogger(__name__)
 
-_INTENT_PATH_CANDIDATES: List[Path] = [
+_INTENT_PATH_CANDIDATES: list[Path] = [
     Path(".intent/mission/northstar.md"),
     Path(".intent/mission/mission.md"),
     Path(".intent/mission/northstar.txt"),
@@ -26,7 +25,7 @@ _INTENT_PATH_CANDIDATES: List[Path] = [
 _BLOCKLIST_PATH = Path(".intent/policies/blocked_topics.txt")
 
 
-def _read_text_first(paths: List[Path]) -> str:
+def _read_text_first(paths: list[Path]) -> str:
     """Finds and reads the first existing file from a list of candidate paths."""
     for p in paths:
         try:
@@ -37,7 +36,7 @@ def _read_text_first(paths: List[Path]) -> str:
     return ""
 
 
-def _read_blocklist() -> List[str]:
+def _read_blocklist() -> list[str]:
     """Reads the blocklist file, returning a list of lowercased, stripped terms."""
     if _BLOCKLIST_PATH.exists():
         try:
@@ -53,7 +52,7 @@ def _read_blocklist() -> List[str]:
     return []
 
 
-def _tokenize(text: str) -> List[str]:
+def _tokenize(text: str) -> list[str]:
     """Converts a string into a list of lowercase alphanumeric tokens."""
     return re.findall(r"[a-zA-Z0-9]+", text.lower())
 
@@ -61,12 +60,12 @@ def _tokenize(text: str) -> List[str]:
 # ID: f1267ace-1e0a-47f8-8d81-36ce4262913a
 def check_goal_alignment(
     goal: str, project_root: Path = Path(".")
-) -> Tuple[bool, Dict]:
+) -> tuple[bool, dict]:
     """
     Returns (ok, details). details = { 'coverage': float|None, 'violations': [codes...] }
     Violations codes: 'blocked_topic', 'low_mission_overlap'
     """
-    violations: List[str] = []
+    violations: list[str] = []
     mission = _read_text_first(_INTENT_PATH_CANDIDATES)
     blocked = _read_blocklist()
 

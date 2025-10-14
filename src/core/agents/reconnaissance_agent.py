@@ -6,7 +6,7 @@ search against the knowledge graph to build a minimal, surgical context for the 
 
 from __future__ import annotations
 
-from typing import Any, Dict, List
+from typing import Any
 
 from core.cognitive_service import CognitiveService
 from shared.logger import getLogger
@@ -19,7 +19,7 @@ class ReconnaissanceAgent:
     """Queries the knowledge graph to build a focused context for a task."""
 
     def __init__(
-        self, knowledge_graph: Dict[str, Any], cognitive_service: CognitiveService
+        self, knowledge_graph: dict[str, Any], cognitive_service: CognitiveService
     ):
         """Initializes with the knowledge graph and cognitive service for search."""
         self.graph = knowledge_graph
@@ -28,7 +28,7 @@ class ReconnaissanceAgent:
 
     async def _find_relevant_symbols_and_files(
         self, goal: str
-    ) -> tuple[List[Dict[str, Any]], List[str]]:
+    ) -> tuple[list[dict[str, Any]], list[str]]:
         """Performs a semantic search to find symbols and files relevant to the goal."""
         log.info("   -> Performing semantic search for relevant context...")
         try:
@@ -108,7 +108,7 @@ class ReconnaissanceAgent:
         log.info(f"   -> Generated Surgical Context Report:\n{report}")
         return report
 
-    def _find_callers(self, symbol_name: str | None) -> List[Dict]:
+    def _find_callers(self, symbol_name: str | None) -> list[dict]:
         """Finds all symbols in the graph that call the target symbol."""
         if not symbol_name:
             return []

@@ -5,11 +5,8 @@ Audits capability manifests for quality issues like placeholder text.
 
 from __future__ import annotations
 
-from typing import List
-
-from shared.models import AuditFinding, AuditSeverity
-
 from features.governance.checks.base_check import BaseCheck
+from shared.models import AuditFinding, AuditSeverity
 
 
 # ID: 3de1c035-00f6-4de2-b778-2b7baaf4594b
@@ -21,7 +18,7 @@ class ManifestLintCheck(BaseCheck):
         self.linter_policy = self.context.policies.get("capability_linter_policy", {})
 
     # ID: 6831b833-92a9-4f37-adc9-c3eb7dd3b3d7
-    def execute(self) -> List[AuditFinding]:
+    def execute(self) -> list[AuditFinding]:
         """Finds capabilities with placeholder descriptions."""
         findings = []
         rule = next(

@@ -2,14 +2,14 @@
 from __future__ import annotations
 
 from fnmatch import fnmatch
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
 from shared.logger import getLogger
 
 log = getLogger(__name__)
 
 
-def _default_policy() -> Dict[str, Any]:
+def _default_policy() -> dict[str, Any]:
     """
     Safe defaults:
       - allow typical repo paths
@@ -42,14 +42,14 @@ class MicroProposalValidator:
     """
 
     def __init__(self):
-        self.policy: Dict[str, Any] = _default_policy()
+        self.policy: dict[str, Any] = _default_policy()
         rule = next(
             (r for r in self.policy.get("rules", []) if r.get("id") == "safe_paths"), {}
         )
-        self._allowed: List[str] = list(rule.get("allowed_paths", []) or [])
-        self._forbidden: List[str] = list(rule.get("forbidden_paths", []) or [])
+        self._allowed: list[str] = list(rule.get("allowed_paths", []) or [])
+        self._forbidden: list[str] = list(rule.get("forbidden_paths", []) or [])
 
-    def _path_ok(self, file_path: str) -> Tuple[bool, str]:
+    def _path_ok(self, file_path: str) -> tuple[bool, str]:
         # Forbid first
         for pat in self._forbidden:
             if fnmatch(file_path, pat):
@@ -61,7 +61,7 @@ class MicroProposalValidator:
         return True, "ok"
 
     # ID: cf03b817-ac77-43a3-a1b0-6826283885e0
-    def validate(self, plan: List[Any]) -> Tuple[bool, str]:
+    def validate(self, plan: list[Any]) -> tuple[bool, str]:
         """
         Lightweight validation used before execution.
         Accepts Pydantic objects (with .model_dump()) or plain dicts.

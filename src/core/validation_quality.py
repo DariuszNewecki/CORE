@@ -9,9 +9,9 @@ but impact maintainability.
 
 from __future__ import annotations
 
-from typing import Any, Dict, List
+from typing import Any
 
-Violation = Dict[str, Any]
+Violation = dict[str, Any]
 
 
 # ID: 0c6502f3-6d97-41e8-a618-6ae63a489e8b
@@ -19,7 +19,7 @@ class QualityChecker:
     """Handles code quality and clarity validation checks."""
 
     # ID: 972208ef-200e-4836-851d-f82f24e3b779
-    def check_for_todo_comments(self, code: str) -> List[Violation]:
+    def check_for_todo_comments(self, code: str) -> list[Violation]:
         """Scans source code for TODO/FIXME comments and returns them as violations.
 
         Args:
@@ -28,7 +28,7 @@ class QualityChecker:
         Returns:
             List of violations for each TODO/FIXME comment found
         """
-        violations: List[Violation] = []
+        violations: list[Violation] = []
         for i, line in enumerate(code.splitlines(), 1):
             if "#" in line:
                 comment = line.split("#", 1)[1]

@@ -1,8 +1,9 @@
 # tests/api/test_knowledge_api.py
 import pytest
 from httpx import ASGITransport, AsyncClient
-from services.database.models import Capability
 from sqlalchemy import insert
+
+from services.database.models import Capability
 
 
 @pytest.mark.anyio

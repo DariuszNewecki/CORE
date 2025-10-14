@@ -6,7 +6,7 @@ Provides utilities for validating manifest entries against JSON schemas using js
 from __future__ import annotations
 
 import json
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
 import jsonschema
 
@@ -19,7 +19,7 @@ SCHEMA_DIR = get_repo_root() / ".intent" / "charter" / "schemas"
 
 
 # ID: cfab52b8-8fed-4536-bc75-ed81a1161331
-def load_schema(schema_name: str) -> Dict[str, Any]:
+def load_schema(schema_name: str) -> dict[str, Any]:
     """
     Load a JSON schema from the .intent/schemas/ directory.
 
@@ -39,7 +39,7 @@ def load_schema(schema_name: str) -> Dict[str, Any]:
         raise FileNotFoundError(f"Schema file not found: {schema_path}")
 
     try:
-        with open(schema_path, "r", encoding="utf-8") as f:
+        with open(schema_path, encoding="utf-8") as f:
             return json.load(f)
     except json.JSONDecodeError as e:
         raise json.JSONDecodeError(
@@ -49,8 +49,8 @@ def load_schema(schema_name: str) -> Dict[str, Any]:
 
 # ID: 047e2cb8-1e18-4175-9be2-1017a2fba3d7
 def validate_manifest_entry(
-    entry: Dict[str, Any], schema_name: str = "knowledge_graph_entry.schema.json"
-) -> Tuple[bool, List[str]]:
+    entry: dict[str, Any], schema_name: str = "knowledge_graph_entry.schema.json"
+) -> tuple[bool, list[str]]:
     """
     Validate a single manifest entry against a schema.
 

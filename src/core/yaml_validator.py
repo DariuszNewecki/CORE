@@ -8,15 +8,15 @@ checking for syntax errors and structural issues.
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
 import yaml
 
-Violation = Dict[str, Any]
+Violation = dict[str, Any]
 
 
 # ID: f3bbf4e9-71b5-4dad-8ad8-ee93b90dd8c0
-def validate_yaml_code(code: str) -> Tuple[str, List[Violation]]:
+def validate_yaml_code(code: str) -> tuple[str, list[Violation]]:
     """Validation pipeline for YAML code.
 
     This function validates YAML syntax and structure, returning any violations

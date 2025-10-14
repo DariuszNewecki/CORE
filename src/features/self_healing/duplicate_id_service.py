@@ -7,19 +7,18 @@ from __future__ import annotations
 
 import uuid
 from collections import defaultdict
-from typing import Dict, List, Tuple
 
 from rich.console import Console
-from services.database.session_manager import get_session
-from shared.config import settings
 from sqlalchemy import text
 
 from features.governance.checks.id_uniqueness_check import IdUniquenessCheck
+from services.database.session_manager import get_session
+from shared.config import settings
 
 console = Console()
 
 
-async def _get_symbol_creation_dates() -> Dict[str, str]:
+async def _get_symbol_creation_dates() -> dict[str, str]:
     """Queries the database to get the creation timestamp for each symbol UUID."""
     async with get_session() as session:
         # --- MODIFIED: Select the correct 'id' column instead of 'uuid' ---
@@ -58,7 +57,7 @@ async def resolve_duplicate_ids(dry_run: bool = True) -> int:
     # 2. Get creation dates from the database to find the "original"
     symbol_creation_dates = await _get_symbol_creation_dates()
 
-    files_to_modify: Dict[str, List[Tuple[int, str]]] = defaultdict(list)
+    files_to_modify: dict[str, list[tuple[int, str]]] = defaultdict(list)
 
     for finding in duplicates:
         locations_str = finding.context.get("locations", "")

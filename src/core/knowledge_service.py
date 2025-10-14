@@ -6,11 +6,12 @@ Centralized access to CORE's knowledge graph and declared capabilities from the 
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
+
+from sqlalchemy import text
 
 from services.database.session_manager import get_session
 from shared.logger import getLogger
-from sqlalchemy import text
 
 log = getLogger("knowledge_service")
 
@@ -27,7 +28,7 @@ class KnowledgeService:
         # The internal cache (`self._graph`) has been removed to enforce SSOT.
 
     # ID: 49190ab5-945a-4aa8-9500-21b849f217f9
-    async def get_graph(self) -> Dict[str, Any]:
+    async def get_graph(self) -> dict[str, Any]:
         """
         Loads the knowledge graph directly from the database, treating it as the
         single source of truth on every call. Caching is removed to ensure freshness.
@@ -67,7 +68,7 @@ class KnowledgeService:
             return {"symbols": {}}
 
     # ID: 884e9a28-255c-478c-8af9-46865e45a029
-    async def list_capabilities(self) -> List[str]:
+    async def list_capabilities(self) -> list[str]:
         """Returns all capability keys directly from the database."""
         async with get_session() as session:
             result = await session.execute(
@@ -76,7 +77,7 @@ class KnowledgeService:
             return [row[0] for row in result]
 
     # ID: 9fa22aa4-5c09-46f7-a19c-c29851c92437
-    async def search_capabilities(self, query: str, limit: int = 5) -> List[str]:
+    async def search_capabilities(self, query: str, limit: int = 5) -> list[str]:
         """
         This is a placeholder. Real semantic search happens in CognitiveService.
         """

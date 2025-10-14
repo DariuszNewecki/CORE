@@ -8,9 +8,9 @@ from __future__ import annotations
 
 import json
 import threading
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 from uuid import uuid4
 
 from shared.logger import getLogger
@@ -46,7 +46,7 @@ class FileHandler:
         self.pending_dir.mkdir(exist_ok=True)
         # --- END OF FIX ---
 
-        self.pending_writes: Dict[str, Dict[str, Any]] = {}
+        self.pending_writes: dict[str, dict[str, Any]] = {}
         self._lock = threading.Lock()
 
     # ID: bf348511-75e7-442c-9aac-58ced078e564
@@ -61,7 +61,7 @@ class FileHandler:
             "prompt": prompt,
             "path": rel_path,
             "code": code,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }
 
         with self._lock:
@@ -72,7 +72,7 @@ class FileHandler:
         return pending_id
 
     # ID: 6238a0d8-0c8d-4c74-b792-7587dc13807a
-    def confirm_write(self, pending_id: str) -> Dict[str, str]:
+    def confirm_write(self, pending_id: str) -> dict[str, str]:
         """
         Confirms and applies a pending write to disk. Assumes content has been validated.
         """

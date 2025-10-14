@@ -7,21 +7,21 @@ to run only the semantic duplication check with clustering.
 from __future__ import annotations
 
 import asyncio
-from typing import List
 
 import networkx as nx
 import typer
-from features.governance.audit_context import AuditorContext
-from features.governance.checks.duplication_check import DuplicationCheck
 from rich.console import Console
 from rich.table import Table
+
+from features.governance.audit_context import AuditorContext
+from features.governance.checks.duplication_check import DuplicationCheck
 from shared.context import CoreContext
 from shared.models import AuditFinding
 
 console = Console()
 
 
-def _group_findings(findings: list[AuditFinding]) -> List[List[AuditFinding]]:
+def _group_findings(findings: list[AuditFinding]) -> list[list[AuditFinding]]:
     """Groups individual finding pairs into clusters of related duplicates."""
     graph = nx.Graph()
     finding_map = {}

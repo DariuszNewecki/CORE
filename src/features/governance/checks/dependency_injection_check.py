@@ -7,11 +7,9 @@ from __future__ import annotations
 
 import ast
 from pathlib import Path
-from typing import List
-
-from shared.models import AuditFinding, AuditSeverity
 
 from features.governance.checks.base_check import BaseCheck
+from shared.models import AuditFinding, AuditSeverity
 
 
 # ID: 7cdf99c0-ebe2-4a36-9a6f-9d32dd6ee1db
@@ -26,7 +24,7 @@ class DependencyInjectionCheck(BaseCheck):
         self.policy = self.context.policies.get("dependency_injection_policy", {})
 
     # ID: b854f7a7-fe4f-4ec6-8b9d-04bd32c98102
-    def execute(self) -> List[AuditFinding]:
+    def execute(self) -> list[AuditFinding]:
         """Runs the DI check by scanning source files for policy violations."""
         findings = []
         rules = self.policy.get("rules", [])
@@ -41,7 +39,7 @@ class DependencyInjectionCheck(BaseCheck):
 
         return findings
 
-    def _check_forbidden_instantiations(self, rule: dict) -> List[AuditFinding]:
+    def _check_forbidden_instantiations(self, rule: dict) -> list[AuditFinding]:
         """Finds direct instantiations of major services."""
         findings = []
         forbidden_calls = set(rule.get("forbidden_instantiations", []))
@@ -72,7 +70,7 @@ class DependencyInjectionCheck(BaseCheck):
                 continue
         return findings
 
-    def _check_forbidden_imports(self, rule: dict) -> List[AuditFinding]:
+    def _check_forbidden_imports(self, rule: dict) -> list[AuditFinding]:
         """Finds direct imports of forbidden functions like get_session."""
         findings = []
         forbidden_imports = set(rule.get("forbidden_imports", []))
@@ -104,8 +102,8 @@ class DependencyInjectionCheck(BaseCheck):
         return findings
 
     def _get_files_in_scope(
-        self, scope: List[str], exclusions: List[str]
-    ) -> List[Path]:
+        self, scope: list[str], exclusions: list[str]
+    ) -> list[Path]:
         """Helper to get all files matching the scope and exclusion globs."""
         files = []
         for glob_pattern in scope:

@@ -9,7 +9,7 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import os
-from typing import List, Optional, Protocol
+from typing import Protocol
 
 import httpx
 import numpy as np
@@ -29,7 +29,7 @@ class Embeddable(Protocol):
     """Defines the interface for any service that can create embeddings."""
 
     # ID: ac2f3e7e-34f5-44b6-80b1-dce2e7160c2e
-    async def get_embedding(self, text: str) -> List[float]: ...
+    async def get_embedding(self, text: str) -> list[float]: ...
 
 
 class _Adapter:
@@ -39,11 +39,11 @@ class _Adapter:
         self._service = service
 
     # ID: 5a628ba4-df9b-4e8e-9ecc-9e74dc125b1f
-    async def get_embedding(self, text: str) -> List[float]:
+    async def get_embedding(self, text: str) -> list[float]:
         return await self._service.get_embedding(text)
 
 
-def _chunk_text(text: str, chunk_size: int, chunk_overlap: int) -> List[str]:
+def _chunk_text(text: str, chunk_size: int, chunk_overlap: int) -> list[str]:
     """Splits text into overlapping chunks."""
     if not text:
         return []
@@ -82,11 +82,11 @@ class EmbeddingService:
 
     def __init__(
         self,
-        provider: Optional[str] = None,
-        base_url: Optional[str] = None,
-        model: Optional[str] = None,
+        provider: str | None = None,
+        base_url: str | None = None,
+        model: str | None = None,
         timeout: float = 30.0,
-        api_key: Optional[str] = None,
+        api_key: str | None = None,
     ) -> None:
         # Resolve provider + base/model from env with sensible defaults
         self.provider = (
@@ -139,7 +139,7 @@ class EmbeddingService:
         log.info(f"EmbeddingService initialized for API at {self.base}")
 
     # ID: 8f5d2d61-1a1a-4e21-9c69-7a9e1d0ec0ab
-    async def get_embedding(self, text: str) -> List[float]:
+    async def get_embedding(self, text: str) -> list[float]:
         """Return a single embedding vector for the given text."""
         url = f"{self.base}{self.endpoint}"
         payload = self._payload(text)

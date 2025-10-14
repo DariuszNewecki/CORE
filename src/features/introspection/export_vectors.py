@@ -13,6 +13,7 @@ from pathlib import Path
 import typer
 from rich.console import Console
 from rich.progress import track
+
 from services.clients.qdrant_client import QdrantService
 from shared.logger import getLogger
 

@@ -5,9 +5,13 @@ Python code validation pipeline.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Dict, List, Tuple
+from typing import TYPE_CHECKING, Any
 
 import black
+
+from core.black_formatter import format_code_with_black
+from core.ruff_linter import fix_and_lint_code_with_ruff
+from core.syntax_checker import check_syntax
 from features.governance.checks.import_rules import ImportRulesCheck
 
 # --- START: IMPORT THE NEW SERVICE ---
@@ -16,25 +20,21 @@ from features.governance.runtime_validator import RuntimeValidatorService
 # --- END: IMPORT THE NEW SERVICE ---
 from shared.models import AuditFinding
 
-from core.black_formatter import format_code_with_black
-from core.ruff_linter import fix_and_lint_code_with_ruff
-from core.syntax_checker import check_syntax
-
 from .validation_policies import PolicyValidator
 from .validation_quality import QualityChecker
 
 if TYPE_CHECKING:
     from features.governance.audit_context import AuditorContext
 
-Violation = Dict[str, Any]
+Violation = dict[str, Any]
 
 
 # ID: df30ee5a-2cf7-4671-a10b-5d995a28310a
 async def validate_python_code_async(
-    path_hint: str, code: str, auditor_context: "AuditorContext"
-) -> Tuple[str, List[Violation]]:
+    path_hint: str, code: str, auditor_context: AuditorContext
+) -> tuple[str, list[Violation]]:
     """Comprehensive validation pipeline for Python code, now including runtime checks."""
-    all_violations: List[Violation] = []
+    all_violations: list[Violation] = []
 
     # --- Step 1: Static Analysis (unchanged) ---
     safety_policy = auditor_context.policies.get("safety_policy", {})

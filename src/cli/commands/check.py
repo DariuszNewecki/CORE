@@ -6,9 +6,8 @@ Refactored under dry_by_design to use the canonical context setter.
 
 from __future__ import annotations
 
-from typing import Optional
-
 import typer
+
 from cli.logic.audit import audit, lint, test_system
 from cli.logic.diagnostics import policy_coverage
 from shared.context import CoreContext
@@ -20,7 +19,7 @@ check_app = typer.Typer(
     no_args_is_help=True,
 )
 
-_context: Optional[CoreContext] = None
+_context: CoreContext | None = None
 
 
 check_app.command("audit", help="Run the full constitutional self-audit.")(audit)

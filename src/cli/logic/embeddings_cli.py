@@ -6,9 +6,9 @@ Exposes: `core-admin knowledge vectorize [--write|--dry-run] [--cap capability -
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Optional, Set
 
 import typer
+
 from core.cognitive_service import CognitiveService
 from core.knowledge_service import KnowledgeService
 from services.clients.qdrant_client import QdrantService
@@ -34,7 +34,7 @@ def vectorize_cmd(
     verbose: bool = typer.Option(
         False, "--verbose", help="Verbose logging / stack traces."
     ),
-    cap: Optional[list[str]] = typer.Option(
+    cap: list[str] | None = typer.Option(
         None, "--cap", help="Limit to specific capability keys (repeatable)."
     ),
     flush_every: int = typer.Option(
@@ -50,7 +50,7 @@ def vectorize_cmd(
     symbols_map: dict = knowledge.get("symbols", knowledge)
     cognitive = CognitiveService()
     qdrant = QdrantService()
-    targets: Optional[Set[str]] = set(cap) if cap else None
+    targets: set[str] | None = set(cap) if cap else None
     typer.echo("🚀 Starting capability vectorization process (per-chunk idempotent)…")
     import asyncio
 

@@ -3,26 +3,26 @@ from __future__ import annotations
 
 import asyncio
 from functools import partial
-from typing import Any, Dict, List
+from typing import Any
+
+from rich.console import Console
+from sqlalchemy import text
 
 from core.cognitive_service import CognitiveService
-from rich.console import Console
+from features.introspection.knowledge_helpers import extract_source_code
 from services.clients.qdrant_client import QdrantService
 from services.database.session_manager import get_session
 from shared.config import settings
 from shared.logger import getLogger
 from shared.utils.parallel_processor import ThrottledParallelProcessor
 from shared.utils.parsing import extract_json_from_response
-from sqlalchemy import text
-
-from features.introspection.knowledge_helpers import extract_source_code
 
 console = Console()
 log = getLogger("enrichment_service")
 REPO_ROOT = settings.REPO_PATH
 
 
-async def _get_symbols_to_enrich() -> List[Dict[str, Any]]:
+async def _get_symbols_to_enrich() -> list[dict[str, Any]]:
     """Fetches symbols that are ready for enrichment (have a null or placeholder description)."""
     async with get_session() as session:
         # --- FIX #1: Query the correct table (core.symbols) and look for NULL/TBD intents ---
@@ -39,10 +39,10 @@ async def _get_symbols_to_enrich() -> List[Dict[str, Any]]:
 
 
 async def _enrich_single_symbol(
-    symbol: Dict[str, Any],
+    symbol: dict[str, Any],
     cognitive_service: CognitiveService,
     qdrant_service: QdrantService,
-) -> Dict[str, str]:
+) -> dict[str, str]:
     """Uses an AI to generate a description for a single symbol."""
     try:
         log.debug(f"Enriching symbol: {symbol.get('symbol_path')}")
@@ -92,7 +92,7 @@ async def _enrich_single_symbol(
         return {"uuid": symbol["uuid"], "description": "error.processing_failed"}
 
 
-async def _update_descriptions_in_db(descriptions: List[Dict[str, str]]):
+async def _update_descriptions_in_db(descriptions: list[dict[str, str]]):
     """Updates the 'intent' column for symbols in the database."""
     if not descriptions:
         return

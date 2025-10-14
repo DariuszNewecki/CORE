@@ -10,13 +10,13 @@ import tempfile
 import time
 import uuid
 from pathlib import Path
-from typing import Optional
 
 import typer
+from rich.console import Console
+
 from core.agents.micro_planner import MicroPlannerAgent
 from core.agents.plan_executor import PlanExecutor
 from features.governance.micro_proposal_validator import MicroProposalValidator
-from rich.console import Console
 from shared.action_logger import action_logger
 from shared.context import CoreContext
 from shared.logger import getLogger
@@ -30,7 +30,7 @@ log = getLogger("proposals_micro")
 async def micro_propose(
     context: CoreContext,
     goal: str,
-) -> Optional[Path]:
+) -> Path | None:
     """Uses an agent to create a safe, auto-approvable plan for a goal."""
     console.print(f"🤖 Generating micro-proposal for goal: '[cyan]{goal}[/cyan]'")
 

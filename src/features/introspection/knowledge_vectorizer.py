@@ -6,9 +6,8 @@ Idempotency is enforced at the chunk (symbol_key) level via `chunk_id` stored in
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Dict
 
 from core.cognitive_service import CognitiveService
 from services.clients.qdrant_client import QdrantService
@@ -25,12 +24,12 @@ MAX_SCROLL_LIMIT = 10000
 
 
 # ID: 81ddb9e8-60c9-4564-bd08-b5e6c2843381
-async def get_stored_chunks(qdrant_service: QdrantService) -> Dict[str, dict]:
+async def get_stored_chunks(qdrant_service: QdrantService) -> dict[str, dict]:
     """
     Return mapping: chunk_id (symbol_key) -> {hash, rev, point_id, capability}
     """
     log.info("Checking Qdrant for already vectorized chunks...")
-    chunks: Dict[str, dict] = {}
+    chunks: dict[str, dict] = {}
     next_offset = None
     try:
         while True:
@@ -82,7 +81,7 @@ async def sync_existing_vector_ids(
             with_payload=["chunk_id"],
             with_vectors=False,
         )
-        chunk_to_point_id: Dict[str, str] = {
+        chunk_to_point_id: dict[str, str] = {
             p.payload["chunk_id"]: str(p.id)
             for p in stored_points
             if p.payload and "chunk_id" in p.payload
@@ -110,7 +109,7 @@ async def process_vectorization_task(
     dry_run: bool,
     failure_log_path: Path,
     verbose: bool,
-    stored_chunks: Dict[str, dict] | None = None,
+    stored_chunks: dict[str, dict] | None = None,
 ) -> bool:
     """
     Process a single vectorization task. It assumes the decision to process has already been made.
@@ -155,7 +154,7 @@ async def process_vectorization_task(
         symbols_map[symbol_key].update(
             {
                 "vector_id": str(point_id),
-                "vectorized_at": datetime.now(timezone.utc).isoformat(),
+                "vectorized_at": datetime.now(UTC).isoformat(),
                 "embedding_model": settings.LOCAL_EMBEDDING_MODEL_NAME,
                 "model_revision": settings.EMBED_MODEL_REVISION,
                 "content_hash": content_hash,

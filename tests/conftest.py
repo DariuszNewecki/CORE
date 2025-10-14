@@ -11,13 +11,14 @@ from pathlib import Path
 import pytest
 import sqlparse  # <-- ADD THIS IMPORT
 import yaml
-from shared.config import settings
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import (
     AsyncSession,
     async_sessionmaker,
     create_async_engine,
 )
+
+from shared.config import settings
 
 
 @pytest.fixture(scope="session")

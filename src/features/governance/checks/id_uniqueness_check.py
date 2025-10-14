@@ -7,11 +7,9 @@ from __future__ import annotations
 
 import re
 from collections import defaultdict
-from typing import Dict, List
-
-from shared.models import AuditFinding, AuditSeverity
 
 from features.governance.checks.base_check import BaseCheck
+from shared.models import AuditFinding, AuditSeverity
 
 # Pre-compiled regex for efficiency to find '# ID: <uuid>'
 ID_TAG_REGEX = re.compile(
@@ -27,12 +25,12 @@ class IdUniquenessCheck(BaseCheck):
     """
 
     # ID: f2a3b4c5-d6e7-f8a9-b0c1-d2e3f4a5b6c7
-    def execute(self) -> List[AuditFinding]:
+    def execute(self) -> list[AuditFinding]:
         """
         Runs the check by scanning all Python files in `src/` and returns findings for any duplicate UUIDs.
         """
         # A dictionary to store locations of each UUID: {uuid: [("file/path.py", line_num), ...]}
-        uuid_locations: Dict[str, List[tuple[str, int]]] = defaultdict(list)
+        uuid_locations: dict[str, list[tuple[str, int]]] = defaultdict(list)
 
         src_dir = self.context.repo_path / "src"
         for file_path in src_dir.rglob("*.py"):

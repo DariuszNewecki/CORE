@@ -3,25 +3,25 @@ from __future__ import annotations
 
 import asyncio
 from functools import partial
-from typing import Any, Dict, List, Set
+from typing import Any
+
+from rich.console import Console
+from sqlalchemy import text
 
 from core.cognitive_service import CognitiveService
-from rich.console import Console
+from features.introspection.knowledge_helpers import extract_source_code
 from services.clients.qdrant_client import QdrantService
 from services.database.session_manager import get_session
 from shared.config import settings
 from shared.logger import getLogger
 from shared.utils.parallel_processor import ThrottledParallelProcessor
-from sqlalchemy import text
-
-from features.introspection.knowledge_helpers import extract_source_code
 
 console = Console()
 log = getLogger("definition_service")
 
 
 # ID: b095628d-b3d0-4fad-bfb6-483a217ea42c
-async def get_undefined_symbols() -> List[Dict[str, Any]]:
+async def get_undefined_symbols() -> list[dict[str, Any]]:
     """
     Fetches symbols that are ready for definition (have a vector link but no key).
     """
@@ -41,11 +41,11 @@ async def get_undefined_symbols() -> List[Dict[str, Any]]:
 
 # ID: ec330970-c4ad-4bfd-87de-9e43fdaffaf0
 async def define_single_symbol(
-    symbol: Dict[str, Any],
+    symbol: dict[str, Any],
     cognitive_service: CognitiveService,
     qdrant_service: QdrantService,
-    existing_keys: Set[str],
-) -> Dict[str, Any]:
+    existing_keys: set[str],
+) -> dict[str, Any]:
     """Uses an AI to generate a definition for a single symbol, using semantic context."""
     log.info(f"Defining symbol: {symbol.get('symbol_path')}")
     source_code = extract_source_code(settings.REPO_PATH, symbol)
@@ -110,7 +110,7 @@ async def define_single_symbol(
 
 
 # ID: 2d5b3476-74be-46f5-b173-1a909327bb85
-async def update_definitions_in_db(definitions: List[Dict[str, Any]]):
+async def update_definitions_in_db(definitions: list[dict[str, Any]]):
     """Updates the 'key' column for symbols in the database."""
     if not definitions:
         return

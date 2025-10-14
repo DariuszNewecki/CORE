@@ -5,18 +5,19 @@ Intent: Governance/validation guard commands exposed to the operator.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import yaml
 from rich import print as rprint
 from rich.panel import Panel
 from rich.table import Table
+
 from shared.logger import getLogger
 
 log = getLogger("core_admin")
 
 
-def _find_manifest_path(root: Path, explicit: Optional[Path]) -> Optional[Path]:
+def _find_manifest_path(root: Path, explicit: Path | None) -> Path | None:
     """Locate and return the path to the project manifest file, or None."""
     if explicit and explicit.exists():
         return explicit
@@ -26,7 +27,7 @@ def _find_manifest_path(root: Path, explicit: Optional[Path]) -> Optional[Path]:
     return None
 
 
-def _load_raw_manifest(root: Path, explicit: Optional[Path]) -> Dict[str, Any]:
+def _load_raw_manifest(root: Path, explicit: Path | None) -> dict[str, Any]:
     """Loads and parses a YAML manifest file, returning an empty dict if not found."""
     path = _find_manifest_path(root, explicit)
     if not path:
@@ -35,7 +36,7 @@ def _load_raw_manifest(root: Path, explicit: Optional[Path]) -> Dict[str, Any]:
     return data
 
 
-def _ux_defaults(root: Path, explicit: Optional[Path]) -> Dict[str, Any]:
+def _ux_defaults(root: Path, explicit: Path | None) -> dict[str, Any]:
     """Extracts and returns UX-related default values from the manifest."""
     raw = _load_raw_manifest(root, explicit)
     ux = raw.get("operator_experience", {}).get("guard", {}).get("drift", {})
@@ -65,20 +66,20 @@ def _is_clean(report: dict) -> bool:
     )
 
 
-def _print_table(report_dict: dict, labels: Dict[str, str]) -> None:
+def _print_table(report_dict: dict, labels: dict[str, str]) -> None:
     """Prints a formatted table of the drift report."""
     table = Table(show_header=True, header_style="bold", title="Capability Drift")
     table.add_column("Section", style="bold")
     table.add_column("Values")
 
     # ID: 2b132e4d-1d2b-48e3-92bb-cbaea04dfd0d
-    def row(title: str, items: List[str]):
+    def row(title: str, items: list[str]):
         """Adds a row with a formatted list of items."""
         if not items:
             table.add_row(title, f"[bold green]{labels['none']}[/bold green]")
         else:
             table.add_row(
-                title, f'[yellow]{'\\n'.join((f'- {it}' for it in items))}[/yellow]'
+                title, f'[yellow]{'\\n'.join(f'- {it}' for it in items)}[/yellow]'
             )
 
     row("Missing in code", report_dict.get("missing_in_code", []))
@@ -103,6 +104,6 @@ def _print_table(report_dict: dict, labels: Dict[str, str]) -> None:
     rprint(Panel.fit(table, title=status))
 
 
-def _print_pretty(report_dict: dict, labels: Dict[str, str]) -> None:
+def _print_pretty(report_dict: dict, labels: dict[str, str]) -> None:
     """Prints a user-friendly summary of the drift report."""
     _print_table(report_dict, labels)

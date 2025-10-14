@@ -6,16 +6,15 @@ generation, validation, and self-correction tasks within the CORE system.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Dict
-
-from shared.config import get_path_or_none, settings
-from shared.logger import getLogger
-from shared.models import ExecutionTask
+from typing import TYPE_CHECKING
 
 from core.cognitive_service import CognitiveService
 from core.prompt_pipeline import PromptPipeline
 from core.self_correction_engine import attempt_correction
 from core.validation_pipeline import validate_code_async
+from shared.config import get_path_or_none, settings
+from shared.logger import getLogger
+from shared.models import ExecutionTask
 
 if TYPE_CHECKING:
     from features.governance.audit_context import AuditorContext
@@ -31,7 +30,7 @@ class CoderAgent:
         self,
         cognitive_service: CognitiveService,
         prompt_pipeline: PromptPipeline,
-        auditor_context: "AuditorContext",
+        auditor_context: AuditorContext,
     ):
         self.cognitive_service = cognitive_service
         self.prompt_pipeline = prompt_pipeline
@@ -110,8 +109,8 @@ class CoderAgent:
         )
 
     async def _attempt_code_correction(
-        self, task: ExecutionTask, current_code: str, validation_result: Dict, goal: str
-    ) -> Dict:
+        self, task: ExecutionTask, current_code: str, validation_result: dict, goal: str
+    ) -> dict:
         """Invokes the self-correction engine for a piece of failed code."""
         correction_context = {
             "file_path": task.params.file_path,

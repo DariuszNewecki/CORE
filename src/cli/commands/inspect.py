@@ -7,9 +7,9 @@ Refactored under dry_by_design to use the canonical context setter.
 from __future__ import annotations
 
 import asyncio
-from typing import Optional
 
 import typer
+
 from cli.logic.diagnostics import cli_tree
 from cli.logic.duplicates import inspect_duplicates
 from cli.logic.guard_cli import register_guard
@@ -24,7 +24,7 @@ inspect_app = typer.Typer(
     no_args_is_help=True,
 )
 
-_context: Optional[CoreContext] = None
+_context: CoreContext | None = None
 
 
 # ID: e1f2a3b4-c5d6-7e8f-9a0b-1c2d3e4f5a6b

@@ -6,7 +6,6 @@ Defines the abstract base class for all AI provider strategies.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import List
 
 import httpx
 
@@ -43,6 +42,6 @@ class AIProvider(ABC):
 
     @abstractmethod
     # ID: bf6da823-1185-4a93-98bb-da095eb92f4f
-    async def get_embedding(self, text: str) -> List[float]:
+    async def get_embedding(self, text: str) -> list[float]:
         """Generate an embedding vector for a given text."""
         pass

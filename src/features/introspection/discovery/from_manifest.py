@@ -6,9 +6,9 @@ Discovers capability definitions by parsing constitutional manifest files.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Dict
 
 import yaml
+
 from shared.logger import getLogger
 from shared.models import CapabilityMeta
 
@@ -18,12 +18,12 @@ log = getLogger("discovery.from_manifest")
 # ID: 67f5324b-5dbd-4250-a216-bbd557d3c8e9
 def load_manifest_capabilities(
     root: Path, explicit_path: Path | None = None
-) -> Dict[str, CapabilityMeta]:
+) -> dict[str, CapabilityMeta]:
     """
     Scans for manifest files and aggregates all declared capabilities.
     The primary source of truth is now .intent/mind/project_manifest.yaml.
     """
-    capabilities: Dict[str, CapabilityMeta] = {}
+    capabilities: dict[str, CapabilityMeta] = {}
 
     manifest_path = root / ".intent" / "mind" / "project_manifest.yaml"
 
@@ -41,7 +41,7 @@ def load_manifest_capabilities(
                         capabilities[key] = CapabilityMeta(key=key)
                         # --- END OF FIX ---
 
-        except (yaml.YAMLError, IOError) as e:
+        except (OSError, yaml.YAMLError) as e:
             log.warning(f"Could not parse manifest at {manifest_path}: {e}")
 
     return capabilities

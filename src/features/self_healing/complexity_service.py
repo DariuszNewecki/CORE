@@ -13,7 +13,7 @@ import json
 import re
 import uuid
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import typer
 import yaml
@@ -36,12 +36,12 @@ console = Console()
 REPO_ROOT = settings.REPO_PATH
 
 
-def _get_capabilities_from_code(code: str) -> List[str]:
+def _get_capabilities_from_code(code: str) -> list[str]:
     """A simple parser to extract # CAPABILITY tags from a string of code."""
     return re.findall(r"#\s*CAPABILITY:\s*(\S+)", code)
 
 
-def _propose_constitutional_amendment(proposal_plan: Dict[str, Any]):
+def _propose_constitutional_amendment(proposal_plan: dict[str, Any]):
     """Creates a formal proposal file for a constitutional amendment."""
     proposal_dir = REPO_ROOT / ".intent" / "proposals"
     proposal_dir.mkdir(exist_ok=True)
@@ -72,9 +72,9 @@ def _propose_constitutional_amendment(proposal_plan: Dict[str, Any]):
 async def _run_capability_reconciliation(
     cognitive_service: CognitiveService,
     original_code: str,
-    original_capabilities: List[str],
-    refactoring_plan: Dict[str, str],
-) -> Dict[str, Any]:
+    original_capabilities: list[str],
+    refactoring_plan: dict[str, str],
+) -> dict[str, Any]:
     """
     Asks an AI Constitutionalist to analyze the refactoring, re-tag capabilities,
     and propose manifest changes.
@@ -114,7 +114,7 @@ Your entire output must be a single, valid JSON object.
 
 
 async def _async_complexity_outliers(
-    file_path: Optional[Path],
+    file_path: Path | None,
     dry_run: bool,
 ):
     """Async core logic for identifying and refactoring complexity outliers."""
@@ -198,7 +198,7 @@ async def _async_complexity_outliers(
 
 # ID: 6e802493-3d72-40e4-b80e-89c1518fdabb
 def complexity_outliers(
-    file_path: Optional[Path] = typer.Argument(
+    file_path: Path | None = typer.Argument(
         None,
         help="Optional: The path to a specific file to refactor. If omitted, outliers are detected automatically.",
         exists=True,

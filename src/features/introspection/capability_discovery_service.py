@@ -7,8 +7,8 @@ Removed local _load_yaml in favor of the canonical implementation from shared.co
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Set
 
 from shared.config_loader import load_yaml_file
 from shared.logger import getLogger
@@ -24,13 +24,13 @@ class CapabilityRegistry:
     Provides simple resolution (canonical → itself, alias → canonical).
     """
 
-    def __init__(self, canonical: Set[str], aliases: Dict[str, str]):
+    def __init__(self, canonical: set[str], aliases: dict[str, str]):
         """Initializes the registry with canonical tags and an alias map."""
-        self.canonical: Set[str] = set(canonical)
-        self.aliases: Dict[str, str] = dict(aliases)
+        self.canonical: set[str] = set(canonical)
+        self.aliases: dict[str, str] = dict(aliases)
 
     # ID: 6d38d34c-a0da-4bce-a961-c3ff9c0f093e
-    def resolve(self, tag: str) -> Optional[str]:
+    def resolve(self, tag: str) -> str | None:
         """
         Return canonical capability if `tag` is known, otherwise None.
         Resolution is single-hop (alias -> canonical).
@@ -55,11 +55,11 @@ def _iter_capability_files(base: Path) -> Iterable[Path]:
             yield p
 
 
-def _extract_canonical_from_doc(doc: dict) -> Set[str]:
+def _extract_canonical_from_doc(doc: dict) -> set[str]:
     """
     Extracts canonical capability keys from a domain manifest file.
     """
-    canonical: Set[str] = set()
+    canonical: set[str] = set()
     tags = doc.get("tags", [])
     if isinstance(tags, list):
         for item in tags:
@@ -72,11 +72,11 @@ def _extract_canonical_from_doc(doc: dict) -> Set[str]:
     return canonical
 
 
-def _extract_aliases_from_doc(doc: dict) -> Dict[str, str]:
+def _extract_aliases_from_doc(doc: dict) -> dict[str, str]:
     """
     Extracts aliases from a manifest file.
     """
-    aliases: Dict[str, str] = {}
+    aliases: dict[str, str] = {}
     raw = doc.get("aliases")
     if isinstance(raw, dict):
         for k, v in raw.items():
@@ -85,22 +85,22 @@ def _extract_aliases_from_doc(doc: dict) -> Dict[str, str]:
     return aliases
 
 
-def _merge_sets(*sets: Iterable[str]) -> Set[str]:
+def _merge_sets(*sets: Iterable[str]) -> set[str]:
     """Merges multiple iterables into a single set."""
-    acc: Set[str] = set()
+    acc: set[str] = set()
     for s in sets:
         acc.update(s)
     return acc
 
 
-def _detect_alias_cycles(aliases: Dict[str, str]) -> List[List[str]]:
+def _detect_alias_cycles(aliases: dict[str, str]) -> list[list[str]]:
     """Detects simple cycles in the alias graph."""
-    visited: Set[str] = set()
-    stack: Set[str] = set()
-    cycles: List[List[str]] = []
+    visited: set[str] = set()
+    stack: set[str] = set()
+    cycles: list[list[str]] = []
 
     # ID: 208ce23e-ee4f-4e52-90e8-f2a8949fc284
-    def dfs(node: str, path: List[str]):
+    def dfs(node: str, path: list[str]):
         visited.add(node)
         stack.add(node)
         nxt = aliases.get(node)
@@ -126,8 +126,8 @@ def load_and_validate_capabilities(intent_dir: Path) -> CapabilityRegistry:
     Loads and validates all canonical capabilities and aliases.
     """
     base = intent_dir / "knowledge" / "capability_tags"
-    canonical_tags: Set[str] = set()
-    alias_map: Dict[str, str] = {}
+    canonical_tags: set[str] = set()
+    alias_map: dict[str, str] = {}
 
     if not base.exists():
         raise FileNotFoundError(f"Capability tags directory not found: {base}")
@@ -159,7 +159,7 @@ def load_and_validate_capabilities(intent_dir: Path) -> CapabilityRegistry:
 # ID: 8bd2e3d4-f273-4d7d-bf6d-a47b7f0fefce
 def validate_agent_roles(agent_roles: dict, registry: CapabilityRegistry) -> None:
     """Validates agent role configurations against the capability registry."""
-    errors: List[str] = []
+    errors: list[str] = []
     roles = agent_roles.get("roles", {})
     if not isinstance(roles, dict):
         raise ValueError("agent_roles must contain a 'roles' mapping")
@@ -181,8 +181,8 @@ def validate_agent_roles(agent_roles: dict, registry: CapabilityRegistry) -> Non
 
 # ID: 650d3944-b37d-4aaf-8f7f-d0c08530cb86
 def collect_code_capabilities(
-    root: Path, include_globs: List[str], exclude_globs: List[str], require_kgb: bool
-) -> Dict[str, CapabilityMeta]:
+    root: Path, include_globs: list[str], exclude_globs: list[str], require_kgb: bool
+) -> dict[str, CapabilityMeta]:
     """Unified discovery entrypoint."""
     from features.introspection.discovery.from_kgb import collect_from_kgb
     from features.introspection.discovery.from_source_scan import (

@@ -7,7 +7,6 @@ from __future__ import annotations
 
 import ast
 from pathlib import Path
-from typing import List
 
 from shared.logger import getLogger
 
@@ -15,7 +14,7 @@ log = getLogger(__name__)
 
 
 # ID: fd3f890e-c234-4942-afb0-3b7551d393b9
-def scan_imports_for_file(file_path: Path) -> List[str]:
+def scan_imports_for_file(file_path: Path) -> list[str]:
     """
     Parse a Python file and extract all imported module paths.
 

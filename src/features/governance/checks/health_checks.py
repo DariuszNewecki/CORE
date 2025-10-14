@@ -8,12 +8,11 @@ from __future__ import annotations
 import ast
 import statistics
 from pathlib import Path
-from typing import List
 
 from radon.visitors import ComplexityVisitor
-from shared.models import AuditFinding, AuditSeverity
 
 from features.governance.checks.base_check import BaseCheck
+from shared.models import AuditFinding, AuditSeverity
 
 
 # ID: 64e34c49-4bad-4d35-8de7-df4f67b51adc
@@ -52,7 +51,7 @@ class HealthChecks(BaseCheck):
 
     def _analyze_python_file(
         self, file_path: Path, rules: dict
-    ) -> tuple[int, List[AuditFinding]]:
+    ) -> tuple[int, list[AuditFinding]]:
         """Analyze a single Python file for health violations."""
         try:
             source_code = file_path.read_text(encoding="utf-8")
@@ -89,7 +88,7 @@ class HealthChecks(BaseCheck):
         visitor: ComplexityVisitor,
         rules: dict,
         file_path_str: str,
-    ) -> List[AuditFinding]:
+    ) -> list[AuditFinding]:
         violations = []
         for function in visitor.functions:
             if function.cognitive_complexity > rules.get(
@@ -116,7 +115,7 @@ class HealthChecks(BaseCheck):
 
     def _find_file_size_outliers(
         self, file_line_counts: dict, rules: dict
-    ) -> List[AuditFinding]:
+    ) -> list[AuditFinding]:
         if len(file_line_counts) < 3:
             return []
         violations = []

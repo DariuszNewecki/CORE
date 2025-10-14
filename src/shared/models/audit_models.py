@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import IntEnum  # <-- CHANGED from Enum to IntEnum
-from typing import Any, Dict, Optional
+from typing import Any
 
 
 # ID: 5ccdae76-2214-413d-8551-13d4b224b694
@@ -37,12 +37,12 @@ class AuditFinding:
     check_id: str
     severity: AuditSeverity
     message: str
-    file_path: Optional[str] = None
-    line_number: Optional[int] = None
-    context: Dict[str, Any] = field(default_factory=dict)
+    file_path: str | None = None
+    line_number: int | None = None
+    context: dict[str, Any] = field(default_factory=dict)
 
     # ID: d638215e-ceb0-421e-b33b-a0b191876530
-    def as_dict(self) -> Dict[str, Any]:
+    def as_dict(self) -> dict[str, Any]:
         """Serializes the finding to a dictionary for reporting."""
         return {
             "check_id": self.check_id,

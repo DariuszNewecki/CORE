@@ -9,9 +9,10 @@ import hashlib
 import json
 import uuid
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
 import yaml
+
 from shared.config_loader import load_yaml_file
 
 
@@ -28,7 +29,7 @@ def canonicalize(obj: Any) -> Any:
 
 
 # ID: 96c822f2-6aeb-49e1-866f-53d8d97953c4
-def compute_digest(items: List[Dict[str, Any]]) -> str:
+def compute_digest(items: list[dict[str, Any]]) -> str:
     """Creates a unique fingerprint (SHA256) for a list of items."""
     canon = canonicalize(items)
     payload = json.dumps(
@@ -39,7 +40,7 @@ def compute_digest(items: List[Dict[str, Any]]) -> str:
 
 # ID: 915326c0-141c-83d4-fe10-2e46-ddae48f4-9813cce0001f0ea091b3c86d5595bf2f
 # ID: b91d073b-f19b-42ce-b6a9-afe7594a10a5
-def write_yaml(path: Path, items: List[Dict[str, Any]], exported_at: str) -> str:
+def write_yaml(path: Path, items: list[dict[str, Any]], exported_at: str) -> str:
     """Writes a list of items to a YAML file, including version, timestamp, and digest."""
     stringified_items = [
         {k: (str(v) if isinstance(v, uuid.UUID) else v) for k, v in item.items()}
@@ -65,13 +66,13 @@ read_yaml = load_yaml_file
 
 
 # ID: 75d790d9-b2f7-5757-b2f7-6d790d9b2f7d
-def _get_diff_links_key(item: Dict[str, Any]) -> str:
+def _get_diff_links_key(item: dict[str, Any]) -> str:
     """Creates a stable composite key for a link dictionary."""
     return f"{str(item.get('symbol_id', ''))}-{str(item.get('capability_id', ''))}-{item.get('source', '')}"
 
 
 # ID: eab5bc15-09c8-56ca-9103-a160e16f0bce
-def _get_items_from_doc(doc: Dict[str, Any], doc_name: str) -> List[Dict[str, Any]]:
+def _get_items_from_doc(doc: dict[str, Any], doc_name: str) -> list[dict[str, Any]]:
     """Extract items from a document using the appropriate key."""
     possible_keys = [doc_name, "items", "llm_resources", "cognitive_roles"]
     items_key = next((k for k in possible_keys if k in doc), None)

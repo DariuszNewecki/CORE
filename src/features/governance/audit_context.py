@@ -8,9 +8,10 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
 import yaml
+
 from core.knowledge_service import KnowledgeService
 from shared.logger import getLogger
 from shared.models import AuditFinding
@@ -33,17 +34,17 @@ class AuditorContext:
         self.src_dir = self.repo_path / "src"
 
         # Optional: last audit results
-        self.last_findings: List[AuditFinding] = []
+        self.last_findings: list[AuditFinding] = []
 
         # Load constitutional data
-        self.meta: Dict[str, Any] = self._load_yaml(self.intent_path / "meta.yaml")
-        self.policies: Dict[str, Any] = self._load_policies()
-        self.source_structure: Dict[str, Any] = self._load_yaml(
+        self.meta: dict[str, Any] = self._load_yaml(self.intent_path / "meta.yaml")
+        self.policies: dict[str, Any] = self._load_policies()
+        self.source_structure: dict[str, Any] = self._load_yaml(
             self.mind_path / "knowledge" / "source_structure.yaml"
         )
 
         # Knowledge graph placeholders
-        self.knowledge_graph: Dict[str, Any] = {"symbols": {}}
+        self.knowledge_graph: dict[str, Any] = {"symbols": {}}
         self.symbols_list: list = []
         self.symbols_map: dict = {}
 
@@ -60,7 +61,7 @@ class AuditorContext:
 
     # -------------------- helpers -------------------- #
 
-    def _load_yaml(self, path: Path) -> Dict[str, Any]:
+    def _load_yaml(self, path: Path) -> dict[str, Any]:
         if not path.exists():
             log.warning(f"YAML not found: {path}")
             return {}
@@ -70,12 +71,12 @@ class AuditorContext:
             log.error(f"Failed to parse YAML {path}: {e}")
             return {}
 
-    def _load_policies(self) -> Dict[str, Any]:
+    def _load_policies(self) -> dict[str, Any]:
         policies_dir = self.charter_path / "policies"
         if not policies_dir.is_dir():
             log.warning(f"Policies directory missing: {policies_dir}")
             return {}
-        out: Dict[str, Any] = {}
+        out: dict[str, Any] = {}
         for f in policies_dir.glob("**/*_policy.yaml"):
             content = self._load_yaml(f)
             if content:

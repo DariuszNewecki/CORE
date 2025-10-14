@@ -20,17 +20,10 @@ import importlib
 import inspect
 import json
 import pkgutil
+from collections.abc import MutableMapping
 from typing import (
     Any,
-    Dict,
-    List,
-    MutableMapping,
-    Optional,
-    Tuple,
 )
-
-from shared.models import AuditFinding
-from shared.path_utils import get_repo_root
 
 from features.governance import checks
 from features.governance.audit_context import AuditorContext
@@ -39,6 +32,8 @@ from features.governance.audit_postprocessor import (
     apply_entry_point_downgrade_and_report,
 )
 from features.governance.checks.base_check import BaseCheck
+from shared.models import AuditFinding
+from shared.path_utils import get_repo_root
 
 # --- Configuration for the Auditor ---
 REPORTS_DIR = get_repo_root() / "reports"
@@ -59,7 +54,7 @@ class ConstitutionalAuditor:
         self.context = context
         REPORTS_DIR.mkdir(parents=True, exist_ok=True)
 
-    def _discover_checks(self) -> List[type[BaseCheck]]:
+    def _discover_checks(self) -> list[type[BaseCheck]]:
         """Dynamically discovers all BaseCheck subclasses in the checks package."""
         check_classes = []
         for _, name, _ in pkgutil.iter_modules(checks.__path__):
@@ -73,9 +68,9 @@ class ConstitutionalAuditor:
                     check_classes.append(item)
         return check_classes
 
-    async def _run_all_checks(self) -> Tuple[List[AuditFinding], int]:
+    async def _run_all_checks(self) -> tuple[list[AuditFinding], int]:
         """Instantiates and runs all discovered checks, collecting their findings."""
-        all_findings: List[AuditFinding] = []
+        all_findings: list[AuditFinding] = []
         check_classes = self._discover_checks()
 
         for check_class in check_classes:
@@ -100,7 +95,7 @@ class ConstitutionalAuditor:
         return all_findings, unassigned_count
 
     # ID: 32160d41-0c9c-4e43-ba55-9994b857eb76
-    async def run_full_audit_async(self) -> List[MutableMapping[str, Any]]:
+    async def run_full_audit_async(self) -> list[MutableMapping[str, Any]]:
         """
         The main entry point for running a full, orchestrated constitutional audit.
         """
@@ -150,15 +145,15 @@ class ConstitutionalAuditor:
 # This part of the file is left unchanged
 # ID: 115bf540-765e-4620-9b4e-7cb9efae908e
 def run_full_audit(
-    context: Any, *, config: Optional[Dict] = None
-) -> List[MutableMapping[str, Any]]:
+    context: Any, *, config: dict | None = None
+) -> list[MutableMapping[str, Any]]:
     auditor = ConstitutionalAuditor(context)
     return asyncio.run(auditor.run_full_audit_async())
 
 
 # ID: 531a4409-4ae2-4dbd-af30-33215d28f311
 async def run_full_audit_async(
-    context: Any, *, config: Optional[Dict] = None
-) -> List[MutableMapping[str, Any]]:
+    context: Any, *, config: dict | None = None
+) -> list[MutableMapping[str, Any]]:
     auditor = ConstitutionalAuditor(context)
     return await auditor.run_full_audit_async()

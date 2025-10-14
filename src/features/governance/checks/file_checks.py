@@ -5,13 +5,10 @@ Audits file existence and orphan detection for constitutional governance files.
 
 from __future__ import annotations
 
-from typing import List, Set
-
+from features.governance.checks.base_check import BaseCheck
 from shared.config import settings
 from shared.models import AuditFinding, AuditSeverity
 from shared.utils.constitutional_parser import get_all_constitutional_paths
-
-from features.governance.checks.base_check import BaseCheck
 
 KNOWN_UNINDEXED_FILES = {
     ".intent/charter/constitution/approvers.yaml.example",
@@ -30,7 +27,7 @@ class FileChecks(BaseCheck):
     """Container for file-based constitutional checks."""
 
     # ID: 56481071-3a0c-437d-ba57-533bc03d9ed6
-    def execute(self) -> List[AuditFinding]:
+    def execute(self) -> list[AuditFinding]:
         """Runs all file-related checks."""
         meta_content = settings._meta_config
         required_files = get_all_constitutional_paths(meta_content, self.intent_path)
@@ -39,9 +36,9 @@ class FileChecks(BaseCheck):
         findings.extend(self._check_for_deprecated_files())
         return findings
 
-    def _check_for_deprecated_files(self) -> List[AuditFinding]:
+    def _check_for_deprecated_files(self) -> list[AuditFinding]:
         """Verify that files constitutionally replaced by the database do not exist."""
-        findings: List[AuditFinding] = []
+        findings: list[AuditFinding] = []
         for file_rel_path in DEPRECATED_KNOWLEDGE_FILES:
             full_path = self.repo_root / file_rel_path
             if full_path.exists():
@@ -55,9 +52,9 @@ class FileChecks(BaseCheck):
                 )
         return findings
 
-    def _check_required_files(self, required_files: Set[str]) -> List[AuditFinding]:
+    def _check_required_files(self, required_files: set[str]) -> list[AuditFinding]:
         """Verify that all files declared in meta.yaml exist on disk."""
-        findings: List[AuditFinding] = []
+        findings: list[AuditFinding] = []
         for file_rel_path in sorted(required_files):
             full_path = self.repo_root / file_rel_path
             if not full_path.exists():
@@ -72,14 +69,14 @@ class FileChecks(BaseCheck):
         return findings
 
     def _check_for_orphaned_intent_files(
-        self, declared_files: Set[str]
-    ) -> List[AuditFinding]:
+        self, declared_files: set[str]
+    ) -> list[AuditFinding]:
         """Find .intent files not referenced in meta.yaml."""
-        findings: List[AuditFinding] = []
+        findings: list[AuditFinding] = []
         all_known_files = declared_files.union(KNOWN_UNINDEXED_FILES)
         if (self.intent_path / "proposals/README.md").exists():
             all_known_files.add(".intent/proposals/README.md")
-        physical_files: Set[str] = {
+        physical_files: set[str] = {
             str(p.relative_to(self.repo_root)).replace("\\", "/")
             for p in self.intent_path.rglob("*")
             if p.is_file()

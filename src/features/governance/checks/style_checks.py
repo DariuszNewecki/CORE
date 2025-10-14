@@ -8,9 +8,8 @@ from __future__ import annotations
 
 import ast
 
-from shared.models import AuditFinding, AuditSeverity
-
 from features.governance.checks.base_check import BaseCheck
+from shared.models import AuditFinding, AuditSeverity
 
 
 # ID: fd4ffac0-217f-4b9c-9a70-3a0106779421

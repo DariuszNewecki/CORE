@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
 import yaml
 
@@ -39,7 +39,7 @@ class Settings(BaseSettings):
         case_sensitive=True,
     )
 
-    _meta_config: Dict[str, Any] = PrivateAttr(default_factory=dict)
+    _meta_config: dict[str, Any] = PrivateAttr(default_factory=dict)
 
     REPO_PATH: Path = REPO_ROOT
     MIND: Path = REPO_PATH / ".intent"
@@ -55,7 +55,7 @@ class Settings(BaseSettings):
     LOCAL_EMBEDDING_API_URL: str
     LOCAL_EMBEDDING_MODEL_NAME: str
     LOCAL_EMBEDDING_DIM: int
-    LOCAL_EMBEDDING_API_KEY: Optional[str] = None
+    LOCAL_EMBEDDING_API_KEY: str | None = None
     EMBED_MODEL_REVISION: str = "2025-09-15"
 
     KEY_STORAGE_DIR: Path = REPO_PATH / ".intent" / "keys"
@@ -79,10 +79,10 @@ class Settings(BaseSettings):
             return
         try:
             self._meta_config = self._load_file_content(meta_path)
-        except (IOError, ValueError) as e:
+        except (OSError, ValueError) as e:
             raise RuntimeError(f"FATAL: Could not parse .intent/meta.yaml: {e}")
 
-    def _load_file_content(self, file_path: Path) -> Dict[str, Any]:
+    def _load_file_content(self, file_path: Path) -> dict[str, Any]:
         content = file_path.read_text("utf-8")
         if file_path.suffix in (".yaml", ".yml"):
             return yaml.safe_load(content) or {}
@@ -109,7 +109,7 @@ class Settings(BaseSettings):
 
     # ID: ab774e44-9edf-4309-af2a-84a20f9e86bd
     def find_logical_path_for_file(self, filename: str) -> str:
-        def _search(d: Any) -> Optional[str]:
+        def _search(d: Any) -> str | None:
             if isinstance(d, dict):
                 for _, v in d.items():
                     if isinstance(v, str) and v.endswith(filename):
@@ -125,14 +125,14 @@ class Settings(BaseSettings):
         raise ValueError(f"Filename '{filename}' not found in meta.yaml index.")
 
     # ID: 73a12ea2-7924-482f-a6c7-b0c67c56b486
-    def load(self, logical_path: str) -> Dict[str, Any]:
+    def load(self, logical_path: str) -> dict[str, Any]:
         file_path = self.get_path(logical_path)
         try:
             return self._load_file_content(file_path)
         except FileNotFoundError:
             raise
-        except (IOError, ValueError) as e:
-            raise IOError(f"Failed to load or parse file for '{logical_path}': {e}")
+        except (OSError, ValueError) as e:
+            raise OSError(f"Failed to load or parse file for '{logical_path}': {e}")
 
 
 try:
@@ -142,7 +142,7 @@ except (RuntimeError, FileNotFoundError) as e:
 
 
 # ID: a40df97d-3f3f-4ab9-9fca-7986ca5d5b25
-def get_path_or_none(logical_path: str) -> Optional[Path]:
+def get_path_or_none(logical_path: str) -> Path | None:
     try:
         if "settings" not in globals() or settings is None:
             return None
