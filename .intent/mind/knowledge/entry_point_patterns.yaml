@@ -1,80 +1,236 @@
-# .intent/knowledge/entry_point_patterns.yaml
+# .intent/mind/knowledge/entry_point_patterns.yaml
 #
-# A declarative set of rules for the KnowledgeGraphBuilder to identify valid
-# system entry points that are not discoverable through simple call-graph analysis.
-# This prevents the auditor from incorrectly flagging valid code as "dead."
+# ==============================================================
+#  CORE — Entry Point Pattern Policy (v2.1)
+# --------------------------------------------------------------
+#  Purpose:
+#    To declaratively define all patterns that represent valid
+#    system entry points for audit and knowledge graph analysis.
+#
+#  Scope:
+#    These rules prevent the auditor from flagging boilerplate,
+#    framework-defined, or data-only symbols as “dead code”
+#    while maintaining constitutional integrity.
+#
+#  Each pattern below includes:
+#    - name: unique identifier
+#    - description: concise rationale
+#    - match: structural matching criteria
+#    - entry_point_type: classification label used by the auditor
+# ==============================================================
 
 patterns:
+  # ------------------------------------------------------------
+  # Core language constructs
+  # ------------------------------------------------------------
   - name: "python_magic_method"
-    description: "Standard Python __dunder__ methods are entry points called by the interpreter."
+    description: "Standard Python __dunder__ methods are invoked automatically."
     match:
       type: "function"
       name_regex: "^__.+__$"
     entry_point_type: "magic_method"
 
   - name: "ast_visitor_method"
-    description: "Methods in ast.NodeVisitor subclasses starting with 'visit_' are entry points for the visitor pattern."
+    description: "NodeVisitor methods named visit_* are invoked by ast traversal."
     match:
       type: "function"
       name_regex: "^visit_"
       base_class_includes: "NodeVisitor"
     entry_point_type: "visitor_method"
 
-  - name: "capability_implementation"
-    description: "Any symbol tagged with a # CAPABILITY is a primary entry point for the CORE system's reasoning loop."
-    match:
-      has_capability_tag: true
-    entry_point_type: "capability"
-
-  - name: "typer_cli_command"
-    description: "Functions registered as Typer CLI commands are valid entry points called by the user."
-    match:
-      # This is a heuristic. A more robust check might look for specific decorators,
-      # but for our project, checking the module path is very effective.
-      module_path_contains: "src/system/admin"
-      is_public_function: true # i.e., does not start with an underscore
-    entry_point_type: "cli_command"
-
-  # --- THIS IS THE FIX ---
-  - name: "core_tooling_component"
-    description: "Classes within the internal tooling directory are considered essential system components and are always live."
-    match:
-      type: "class"
-      module_path_contains: "src/system/tools"
-    entry_point_type: "core_tool"
-  # --- END OF FIX ---
-
+  # ------------------------------------------------------------
+  # Base / Framework constructs
+  # ------------------------------------------------------------
   - name: "framework_base_class"
-    description: "Classes that other components inherit from are valid entry points."
+    description: "Base classes intended for subclassing are valid entry points."
     match:
       type: "class"
       is_base_class: true
     entry_point_type: "base_class"
 
+  - name: "action_handler_boilerplate"
+    description: "ActionHandler core methods (execute/name) are boilerplate."
+    match:
+      type: "function"
+      base_class_includes: "ActionHandler"
+      name_regex: "^(execute|name)$"
+    entry_point_type: "boilerplate_method"
+
+  # ------------------------------------------------------------
+  # Data / Schema objects
+  # ------------------------------------------------------------
   - name: "pydantic_model"
-    description: "Pydantic models are data structures, not callable code, and are valid entry points."
+    description: "Pydantic models are declarative data schemas, not callable code."
     match:
       type: "class"
       base_class_includes: "BaseModel"
     entry_point_type: "data_model"
 
-  - name: "pydantic_property"
-    description: "Functions decorated with @property in Pydantic models are data accessors, not callable logic."
+  - name: "dataclass_definition"
+    description: "Dataclasses are plain data containers, valid entry points."
     match:
-      has_decorator: "property"
-      base_class_includes: "BaseSettings"
-    entry_point_type: "data_property"
+      type: "class"
+      has_decorator: "dataclass"
+    entry_point_type: "data_model"
+
+  - name: "sqlalchemy_orm_model"
+    description: "SQLAlchemy ORM models represent data tables, not logic units."
+    match:
+      type: "class"
+      module_path_contains: "src/services/database/models"
+    entry_point_type: "data_model"
 
   - name: "enum_definition"
-    description: "Enum classes are data structures, not callable code, and are valid entry points."
+    description: "Enum classes are constant sets and valid entry points."
     match:
       type: "class"
       base_class_includes: "Enum"
     entry_point_type: "enum"
 
-  - name: "dataclass_definition"
-    description: "Dataclasses are data structures, not callable code, and are valid entry points."
+  # ------------------------------------------------------------
+  # Capability / tagged logic
+  # ------------------------------------------------------------
+  - name: "capability_implementation"
+    description: "Any symbol tagged with a # ID is a primary CORE capability entry point."
     match:
-      type: "class"
-      has_decorator: "dataclass"
-    entry_point_type: "data_model"
+      has_capability_tag: true
+    entry_point_type: "capability"
+
+  # ------------------------------------------------------------
+  # CLI commands and interactive wrappers
+  # ------------------------------------------------------------
+  - name: "typer_cli_command"
+    description: "Functions registered by Typer under src/cli/ are valid CLI commands."
+    match:
+      module_path_contains: "src/cli/"
+      type: "function"
+      is_public_function: true
+    entry_point_type: "cli_command"
+
+  - name: "cli_wrapper_function"
+    description: "Thin CLI wrappers delegating to services or orchestrators."
+    match:
+      type: "function"
+      module_path_contains: "src/cli/"
+      name_regex: "^(show_.*|hub_.*|report|lint|test_system|peer_review|docs_clarity_audit|debug_.*)$"
+    entry_point_type: "cli_wrapper"
+
+  - name: "cli_interactive_menu"
+    description: "Interactive menu helpers and run_command utilities."
+    match:
+      type: "function"
+      module_path_contains: "src/cli/interactive"
+      name_regex: "^(show_.*_menu|run_command)$"
+    entry_point_type: "cli_wrapper"
+
+  # ------------------------------------------------------------
+  # Orchestrators / factories / registries
+  # ------------------------------------------------------------
+  - name: "high_level_orchestrator"
+    description: "Top-level orchestrators that coordinate internal services."
+    match:
+      type: "function"
+      module_path_contains: "src/features/"
+      name_regex: "^(.*_audit|.*_report|.*_doctor|collect_from_.*)$"
+    entry_point_type: "orchestrator"
+
+  - name: "db_session_factory"
+    description: "Functions creating DB sessions; invoked indirectly by DI."
+    match:
+      type: "function"
+      name_regex: "^get_session$"
+      module_path_contains: "src/services/"
+    entry_point_type: "factory"
+
+  - name: "registry_accessor"
+    description: "Registry accessors provide indirection for handler lookup."
+    match:
+      type: "function"
+      module_path_contains: "src/core/actions/registry.py"
+      name_regex: "^get_handler$"
+    entry_point_type: "registry_accessor"
+
+  # ------------------------------------------------------------
+  # Service adapters / external clients
+  # ------------------------------------------------------------
+  - name: "llm_provider_adapter_methods"
+    description: "LLM provider adapters expose standardized surfaces."
+    match:
+      type: "function"
+      module_path_contains: "src/services/llm/providers/"
+      name_regex: "^(chat_completion|get_embedding)$"
+    entry_point_type: "provider_method"
+
+  - name: "llm_client_surface"
+    description: "LLM client public API (async/sync requests, embeddings)."
+    match:
+      type: "function"
+      module_path_contains: "src/services/llm/"
+      name_regex: "^(make_request_async|make_request_sync|get_embedding)$"
+    entry_point_type: "client_surface"
+
+  - name: "qdrant_client_surface"
+    description: "Qdrant client methods form the vector storage/search interface."
+    match:
+      type: "function"
+      module_path_contains: "src/services/clients/qdrant_client.py"
+      name_regex: "^(ensure_collection|get_all_vectors|get_vector_by_id|search_similar|upsert_capability_vector)$"
+    entry_point_type: "client_adapter"
+
+  # ------------------------------------------------------------
+  # Knowledge graph and governance pipelines
+  # ------------------------------------------------------------
+  - name: "knowledge_builder_core"
+    description: "Core components of symbol scanning and knowledge graph construction."
+    match:
+      type: "function"
+      module_path_contains: "src/features/introspection/"
+      name_regex: "^(SymbolScanner\\.scan|SymbolVisitor\\.visit_.*|KnowledgeGraphBuilder\\.build|CapabilityRegistry\\.resolve)$"
+    entry_point_type: "knowledge_core"
+
+  - name: "governance_checks_execute"
+    description: "Each governance check's execute() method is called by the audit engine."
+    match:
+      type: "function"
+      module_path_contains: "src/features/governance/checks/"
+      name_regex: "execute$"
+    entry_point_type: "governance_check"
+
+  - name: "auditor_pipeline"
+    description: "Constitutional auditor orchestration and runtime validators."
+    match:
+      type: "function"
+      module_path_contains: "src/features/governance/"
+      name_regex: "^(ConstitutionalAuditor\\.run_full_audit(_async)?|PolicyCoverageService\\.run|RuntimeValidatorService\\.run_tests_in_canary)$"
+    entry_point_type: "auditor_pipeline"
+
+  # ------------------------------------------------------------
+  # Utility / adapter helpers
+  # ------------------------------------------------------------
+  - name: "utility_function_core"
+    description: "Low-level helpers or pure utility functions (parsers, YAML tools, parallel processors)."
+    match:
+      type: "function"
+      module_path_contains: "src/shared/utils/"
+      name_regex: "^(run_poetry_command|get_all_constitutional_paths|parse|reconstruct|resolve|dump|load|load_strict|run_async|run_sync|get_embedding)$"
+    entry_point_type: "utility_function"
+
+  - name: "file_handler_methods"
+    description: "FileHandler interface methods invoked by the I/O pipeline."
+    match:
+      type: "function"
+      module_path_contains: "src/core/file_handler.py"
+      name_regex: "^(add_pending_write|confirm_write)$"
+    entry_point_type: "io_handler"
+
+  - name: "git_service_methods"
+    description: "GitService public interface methods used throughout CORE."
+    match:
+      type: "function"
+      module_path_contains: "src/core/git_service.py"
+      name_regex: "^(add_all|commit|get_current_commit|get_staged_files|is_git_repo|status_porcelain)$"
+    entry_point_type: "git_adapter"
+
+  # ------------------------------------------------------------
+  # End of file
+  # ------------------------------------------------------------

@@ -6,7 +6,6 @@ Provides a CLI interface for human operators to directly invoke autonomous agent
 from __future__ import annotations
 
 import json
-import subprocess
 import textwrap
 from typing import Any
 
@@ -39,7 +38,7 @@ async def scaffold_new_application(
     """Uses an LLM to plan and generate a new, multi-file application."""
     log.info(f"🌱 Starting to scaffold new application '{project_name}'...")
     cognitive_service = context.cognitive_service
-    await cognitive_service.initialize()  # Ensure service is ready
+    await cognitive_service.initialize()
 
     prompt_template = textwrap.dedent(
         """
@@ -93,14 +92,16 @@ async def scaffold_new_application(
             log.info(
                 f"   -> Initializing new Git repository in {scaffolder.project_root}..."
             )
-            subprocess.run(
-                ["git", "init"],
-                cwd=scaffolder.project_root,
-                check=True,
-                capture_output=True,
+            # --- THIS IS THE FIX ---
+            # Use the sanctioned GitService instead of subprocess
+            git_service.init(scaffolder.project_root)
+            # Re-initialize the service to operate within the new repo
+            scoped_git_service = context.git_service.__class__(scaffolder.project_root)
+            scoped_git_service.add_all()
+            scoped_git_service.commit(
+                f"feat(scaffold): Initial commit for '{project_name}'"
             )
-            git_service.add(".")
-            git_service.commit(f"feat(scaffold): Initial commit for '{project_name}'")
+            # --- END OF FIX ---
 
         return (
             True,

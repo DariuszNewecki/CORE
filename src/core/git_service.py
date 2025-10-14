@@ -28,18 +28,18 @@ class GitService:
         """
         self.repo_path = Path(repo_path).resolve()
 
-        git_dir = self.repo_path / ".git"
-        if not git_dir.exists():
-            raise ValueError(f"Not a git repository ('.git' missing): {self.repo_path}")
-        log.info(f"GitService initialized for repo at {self.repo_path}")
+        # Allow initialization on a path that doesn't yet have .git
+        # The is_git_repo() check can be used by callers.
+        log.info(f"GitService initialized for path {self.repo_path}")
 
-    def _run_command(self, command: list[str]) -> str:
+    def _run_command(self, command: list[str], cwd: Path | None = None) -> str:
         """Runs a git command and returns stdout; raises RuntimeError on failure."""
         try:
-            log.debug(f"Running git command: {' '.join(command)}")
+            effective_cwd = cwd or self.repo_path
+            log.debug(f"Running git command: {' '.join(command)} in {effective_cwd}")
             result = subprocess.run(
                 ["git", *command],
-                cwd=self.repo_path,
+                cwd=effective_cwd,
                 capture_output=True,
                 text=True,
                 check=True,
@@ -49,6 +49,11 @@ class GitService:
             msg = e.stderr or e.stdout or ""
             log.error(f"Git command failed: {msg}")
             raise RuntimeError(f"Git command failed: {msg}") from e
+
+    # ID: e8ab2870-d868-4c23-9f18-240110560b6d
+    def init(self, path: Path):
+        """Initializes a new Git repository at the specified path."""
+        self._run_command(["init"], cwd=path)
 
     # ID: 41b4a07f-880b-4180-8e2e-ab7109b07ffc
     def get_current_commit(self) -> str:
@@ -70,7 +75,7 @@ class GitService:
 
     # ID: 8d60714d-0214-48a9-be5b-9011e53ad93e
     def is_git_repo(self) -> bool:
-        """Returns True if a '.git' directory exists (lightweight check for tests)."""
+        """Returns True if a '.git' directory exists."""
         return (self.repo_path / ".git").exists()
 
     # ID: b5420530-081f-4fa8-9754-5a00bedd5924

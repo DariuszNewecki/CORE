@@ -53,7 +53,7 @@ charter:
       canary_policy: "charter/policies/operations/canary_policy.yaml"
       dev_fastpath_policy: "charter/policies/operations/dev_fastpath_policy.yaml"
       incident_response_policy: "charter/policies/operations/incident_response_policy.yaml"
-      workflows_policy: "charter/policies/operations/workflows_policy.yaml" # <-- ADDED
+      workflows_policy: "charter/policies/operations/workflows_policy.yaml"
 
   schemas:
     policy_schema: "charter/schemas/policy_schema.json"
@@ -90,12 +90,9 @@ charter:
       canary_policy_schema: "charter/schemas/operations/canary_policy_schema.json"
       config_schema: "charter/schemas/operations/config_schema.yaml"
       runtime_requirements_schema: "charter/schemas/operations/runtime_requirements_schema.json"
-      workflows_policy_schema: "charter/schemas/operations/workflows_policy_schema.json" # <-- ADDED
+      workflows_policy_schema: "charter/schemas/operations/workflows_policy_schema.json"
 
 mind:
-  # The project_manifest is now obsolete as the database is the source of truth for capabilities.
-  # project_manifest: "mind/project_manifest.yaml"
-
   config:
     local_mode: "mind/config/local_mode.yaml"
     runtime_requirements: "mind/config/runtime_requirements.yaml"
@@ -109,8 +106,6 @@ mind:
     file_handlers: "mind/knowledge/file_handlers.yaml"
     source_structure: "mind/knowledge/source_structure.yaml"
 
-  # The mind_export directory contains the canonical YAML sources for populating
-  # the operational database tables.
   mind_export:
     cognitive_roles: "mind_export/cognitive_roles.yaml"
     resource_manifest: "mind_export/resource_manifest.yaml"
@@ -131,7 +126,7 @@ mind:
     fix_line_length: "mind/prompts/fix_line_length.prompt"
     goal_assessor: "mind/prompts/goal_assessor.prompt"
     intent_translator: "mind/prompts/intent_translator.prompt"
-    micro_planner: "mind/prompts/micro_planner.prompt" # <-- THIS LINE IS THE FIX
+    micro_planner: "mind/prompts/micro_planner.prompt"
     module_docstring_writer: "mind/prompts/module_docstring_writer.prompt"
     new_capability_generator: "mind/prompts/new_capability_generator.prompt"
     planner_agent: "mind/prompts/planner_agent.prompt"

@@ -94,7 +94,24 @@ def audit(
 
     async def _async_audit():
         auditor = ConstitutionalAuditor(_context.auditor_context)
-        passed, all_findings, unassigned_count = await auditor.run_full_audit_async()
+        all_findings_dicts = await auditor.run_full_audit_async()
+
+        # --- THIS IS THE FIX ---
+        # Re-hydrate the dictionaries into proper AuditFinding objects,
+        # correctly converting the severity string back to an Enum member.
+        severity_map = {str(s): s for s in AuditSeverity}
+        all_findings = []
+        for f_dict in all_findings_dicts:
+            severity_str = f_dict.get("severity", "info")
+            f_dict["severity"] = severity_map.get(severity_str, AuditSeverity.INFO)
+            all_findings.append(AuditFinding(**f_dict))
+        # --- END OF FIX ---
+
+        unassigned_count = len(
+            [f for f in all_findings if f.check_id == "linkage.capability.unassigned"]
+        )
+        blocking_errors = [f for f in all_findings if f.severity.is_blocking]
+        passed = not bool(blocking_errors)
 
         try:
             min_severity = AuditSeverity[severity.upper()]
