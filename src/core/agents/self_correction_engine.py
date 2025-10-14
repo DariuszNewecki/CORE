@@ -26,7 +26,7 @@ pipeline = PromptPipeline(repo_path=REPO_PATH)
 async def attempt_correction(
     failure_context: dict,
     cognitive_service: CognitiveService,
-    auditor_context: "AuditorContext",
+    auditor_context: AuditorContext,
 ) -> dict:
     """Attempts to fix a failed validation or test result using an enriched LLM prompt."""
     generator = await cognitive_service.aget_client_for_role("Coder")

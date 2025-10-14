@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 class BaseCheck:
     """A base class for audit checks, providing a shared context."""
 
-    def __init__(self, context: "AuditorContext"):
+    def __init__(self, context: AuditorContext):
         """
         Initializes the check with a shared auditor context.
         This common initializer serves the 'dry_by_design' principle.

@@ -5,9 +5,12 @@ Handles importing YAML files into the database for the CORE Working Mind.
 
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Any
 
 from rich.console import Console
+from sqlalchemy import text
+from sqlalchemy.dialects.postgresql import insert as pg_insert
+
 from services.database.models import (
     Capability,
     CognitiveRole,
@@ -18,8 +21,6 @@ from services.database.models import (
 )
 from services.database.session_manager import get_session
 from shared.config import settings
-from sqlalchemy import text
-from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 from .utils import _get_items_from_doc, compute_digest, read_yaml
 
@@ -59,7 +60,7 @@ async def _upsert_items(session, table_model, items, index_elements):
     await session.execute(upsert_stmt)
 
 
-async def _import_capabilities(session, doc: Dict[str, Any]) -> None:
+async def _import_capabilities(session, doc: dict[str, Any]) -> None:
     """Import capabilities into the database.
 
     Args:
@@ -70,7 +71,7 @@ async def _import_capabilities(session, doc: Dict[str, Any]) -> None:
     await _upsert_items(session, Capability, doc.get("items", []), ["id"])
 
 
-async def _import_symbols(session, doc: Dict[str, Any]) -> None:
+async def _import_symbols(session, doc: dict[str, Any]) -> None:
     """Import symbols into the database, fixing missing symbol_path if necessary."""
     console.print("  -> Importing symbols...")
     items = doc.get("items", [])
@@ -85,7 +86,7 @@ async def _import_symbols(session, doc: Dict[str, Any]) -> None:
     await _upsert_items(session, Symbol, items, ["id"])
 
 
-async def _import_links(session, doc: Dict[str, Any]) -> None:
+async def _import_links(session, doc: dict[str, Any]) -> None:
     """Import symbol-capability links into the database.
 
     Args:
@@ -104,7 +105,7 @@ async def _import_links(session, doc: Dict[str, Any]) -> None:
         )
 
 
-async def _import_northstar(session, doc: Dict[str, Any]) -> None:
+async def _import_northstar(session, doc: dict[str, Any]) -> None:
     """Import North Star mission into the database.
 
     Args:
@@ -115,7 +116,7 @@ async def _import_northstar(session, doc: Dict[str, Any]) -> None:
     await _upsert_items(session, Northstar, doc.get("items", []), ["id"])
 
 
-async def _import_llm_resources(session, doc: Dict[str, Any]) -> None:
+async def _import_llm_resources(session, doc: dict[str, Any]) -> None:
     """Import LLM resources into the database.
 
     Args:
@@ -126,7 +127,7 @@ async def _import_llm_resources(session, doc: Dict[str, Any]) -> None:
     await _upsert_items(session, LlmResource, doc.get("llm_resources", []), ["name"])
 
 
-async def _import_cognitive_roles(session, doc: Dict[str, Any]) -> None:
+async def _import_cognitive_roles(session, doc: dict[str, Any]) -> None:
     """Import cognitive roles into the database.
 
     Args:

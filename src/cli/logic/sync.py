@@ -9,8 +9,9 @@ from __future__ import annotations
 import asyncio
 
 import typer
-from features.introspection.sync_service import run_sync_with_db
 from rich.console import Console
+
+from features.introspection.sync_service import run_sync_with_db
 
 console = Console()
 

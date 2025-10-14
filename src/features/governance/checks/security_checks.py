@@ -11,9 +11,8 @@ import fnmatch
 import re
 from pathlib import Path
 
-from shared.models import AuditFinding, AuditSeverity
-
 from features.governance.checks.base_check import BaseCheck
+from shared.models import AuditFinding, AuditSeverity
 
 
 # ID: e5596ce5-1529-4670-864a-5bd8adfc160d

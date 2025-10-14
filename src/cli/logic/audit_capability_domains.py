@@ -6,10 +6,10 @@ Provides functionality for the audit_capability_domains module.
 from __future__ import annotations
 
 import typer
+from sqlalchemy import text
 
 # CORRECTED IMPORT: Now points to the single source of truth for sessions.
 from services.database.session_manager import get_session
-from sqlalchemy import text
 
 
 async def _audit_queries(limit: int):

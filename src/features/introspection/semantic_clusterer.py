@@ -11,6 +11,7 @@ from pathlib import Path
 import numpy as np
 import typer
 from dotenv import load_dotenv
+
 from shared.logger import getLogger
 
 try:
@@ -68,7 +69,7 @@ def run_clustering(
     kmeans.fit(X)
     labels = kmeans.labels_
     proposed_domains = {
-        key: f"domain_{label}" for key, label in zip(capability_keys, labels)
+        key: f"domain_{label}" for key, label in zip(capability_keys, labels, strict=False)
     }
 
     with output.open("w", encoding="utf-8") as f:

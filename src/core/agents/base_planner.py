@@ -7,17 +7,16 @@ This serves the 'dry_by_design' constitutional principle.
 from __future__ import annotations
 
 import json
-from typing import List
 
 from pydantic import ValidationError
 from rich.console import Console
 from rich.syntax import Syntax
+
+from core.prompt_pipeline import PromptPipeline
 from shared.config import settings
 from shared.logger import getLogger
 from shared.models import ExecutionTask, PlanExecutionError
 from shared.utils.parsing import extract_json_from_response
-
-from core.prompt_pipeline import PromptPipeline
 
 log = getLogger(__name__)
 
@@ -55,7 +54,7 @@ def build_planning_prompt(
 
 
 # ID: b2c3d4e5-f6a7-b8c9-d0e1-f2a3b4c5d6e7
-def parse_and_validate_plan(response_text: str) -> List[ExecutionTask]:
+def parse_and_validate_plan(response_text: str) -> list[ExecutionTask]:
     """Parses the LLM's JSON response and validates it into a list of ExecutionTask objects."""
     console = Console()
     try:

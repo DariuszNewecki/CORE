@@ -4,7 +4,9 @@ from __future__ import annotations
 import asyncio
 import os
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
+
+from sqlalchemy import select
 
 from services.config_service import config_service
 from services.database.models import CognitiveRole, LlmResource
@@ -15,7 +17,6 @@ from services.llm.providers.ollama import OllamaProvider
 from services.llm.providers.openai import OpenAIProvider
 from services.llm.resource_selector import ResourceSelector
 from shared.logger import getLogger
-from sqlalchemy import select
 
 log = getLogger(__name__)
 
@@ -30,8 +31,8 @@ class CognitiveService:
     def __init__(self, repo_path: Path):
         self._repo_path = Path(repo_path)
         self._loaded: bool = False
-        self._clients_by_role: Dict[str, LLMClient] = {}
-        self._resource_selector: Optional[ResourceSelector] = None
+        self._clients_by_role: dict[str, LLMClient] = {}
+        self._resource_selector: ResourceSelector | None = None
         self._init_lock = asyncio.Lock()
         # Lazy import pattern to avoid import-time side effects in tests
         self.qdrant_service = __import__(
@@ -126,7 +127,7 @@ class CognitiveService:
             ) from e
 
     # ID: 13aabd89-2e2b-49a1-94d9-3a4e8bbd434b
-    async def get_embedding_for_code(self, source_code: str) -> Optional[list[float]]:
+    async def get_embedding_for_code(self, source_code: str) -> list[float] | None:
         """Generate an embedding using the Vectorizer role."""
         if not source_code:
             return None

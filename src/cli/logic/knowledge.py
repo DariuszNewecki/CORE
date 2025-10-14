@@ -8,11 +8,12 @@ from __future__ import annotations
 
 import asyncio
 
+from rich.console import Console
+from rich.table import Table
+
 from features.self_healing.knowledge_consolidation_service import (
     find_structurally_similar_helpers,
 )
-from rich.console import Console
-from rich.table import Table
 
 console = Console()
 

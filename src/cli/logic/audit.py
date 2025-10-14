@@ -8,13 +8,13 @@ from __future__ import annotations
 import asyncio
 from collections import defaultdict
 from pathlib import Path
-from typing import Optional
 
 import typer
-from features.governance.constitutional_auditor import ConstitutionalAuditor
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
+
+from features.governance.constitutional_auditor import ConstitutionalAuditor
 from shared.context import CoreContext
 from shared.models import AuditFinding, AuditSeverity
 from shared.utils.subprocess_utils import run_poetry_command
@@ -24,7 +24,7 @@ from .cli_utils import find_test_file_for_capability_async
 console = Console()
 
 # Global variable to store context, set by the main admin_cli.py
-_context: Optional[CoreContext] = None
+_context: CoreContext | None = None
 
 
 # ID: 8afdeab9-fc81-4d7c-b05f-dd27f936b3e6

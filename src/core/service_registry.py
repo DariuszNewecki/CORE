@@ -9,12 +9,13 @@ from __future__ import annotations
 import asyncio
 import importlib
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
+
+from sqlalchemy import text
 
 from services.repositories.db.engine import get_session
 from shared.config import settings
 from shared.logger import getLogger
-from sqlalchemy import text
 
 log = getLogger("service_registry")
 
@@ -23,8 +24,8 @@ log = getLogger("service_registry")
 class ServiceRegistry:
     """A simple singleton service locator and DI container."""
 
-    _instances: Dict[str, Any] = {}
-    _service_map: Dict[str, str] = {}
+    _instances: dict[str, Any] = {}
+    _service_map: dict[str, str] = {}
     _initialized = False
     _lock = asyncio.Lock()
 

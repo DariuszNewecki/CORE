@@ -7,9 +7,10 @@ from __future__ import annotations
 
 import asyncio
 import json
-from typing import Any, Dict, List
+from typing import Any
 
 from rich.console import Console
+
 from shared.config import settings
 
 from .snapshot import fetch_capabilities, fetch_links, fetch_northstar, fetch_symbols
@@ -21,8 +22,8 @@ EXPORT_DIR = settings.REPO_PATH / ".intent" / "mind_export"
 
 # ID: e066d956-a155-42b5-be8c-adb693371b99
 def diff_sets(
-    db_items: List[Dict[str, Any]], file_items: List[Dict[str, Any]], key: str
-) -> Dict[str, Any]:
+    db_items: list[dict[str, Any]], file_items: list[dict[str, Any]], key: str
+) -> dict[str, Any]:
     """Compares two lists of dictionaries based on a key and returns the differences.
 
     Args:

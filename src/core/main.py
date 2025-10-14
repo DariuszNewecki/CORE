@@ -4,20 +4,20 @@ from __future__ import annotations
 import os
 from contextlib import asynccontextmanager
 
-from api.v1 import development_routes, knowledge_routes
 from fastapi import FastAPI
+
+from api.v1 import development_routes, knowledge_routes
+from core.cognitive_service import CognitiveService
+from core.errors import register_exception_handlers
+from core.file_handler import FileHandler
+from core.git_service import GitService
+from core.knowledge_service import KnowledgeService
 from features.governance.audit_context import AuditorContext
 from services.clients.qdrant_client import QdrantService
 from shared.config import settings
 from shared.context import CoreContext
 from shared.logger import getLogger
 from shared.models import PlannerConfig
-
-from core.cognitive_service import CognitiveService
-from core.errors import register_exception_handlers
-from core.file_handler import FileHandler
-from core.git_service import GitService
-from core.knowledge_service import KnowledgeService
 
 log = getLogger("core.main")
 

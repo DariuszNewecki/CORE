@@ -5,8 +5,6 @@ A registry for discovering and accessing all available ActionHandlers.
 
 from __future__ import annotations
 
-from typing import Dict, List, Optional, Type
-
 from shared.logger import getLogger
 
 from .base import ActionHandler
@@ -28,12 +26,12 @@ class ActionRegistry:
     """A central registry for all action handlers."""
 
     def __init__(self):
-        self._handlers: Dict[str, ActionHandler] = {}
+        self._handlers: dict[str, ActionHandler] = {}
         self._register_handlers()
 
     def _register_handlers(self):
         """Discovers and registers all concrete ActionHandler classes."""
-        handlers_to_register: List[Type[ActionHandler]] = [
+        handlers_to_register: list[type[ActionHandler]] = [
             ReadFileHandler,
             ListFilesHandler,
             DeleteFileHandler,
@@ -57,6 +55,6 @@ class ActionRegistry:
         log.info(f"ActionRegistry initialized with {len(self._handlers)} handlers.")
 
     # ID: c1cf8df7-795d-44a0-92f3-2e7f8b99455d
-    def get_handler(self, action_name: str) -> Optional[ActionHandler]:
+    def get_handler(self, action_name: str) -> ActionHandler | None:
         """Retrieves a handler instance by its action name."""
         return self._handlers.get(action_name)

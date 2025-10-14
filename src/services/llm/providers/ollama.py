@@ -5,8 +5,6 @@ Provides an AIProvider implementation for Ollama APIs.
 
 from __future__ import annotations
 
-from typing import List
-
 import httpx
 
 from .base import AIProvider
@@ -36,7 +34,7 @@ class OllamaProvider(AIProvider):
             return data["message"]["content"]
 
     # ID: b74a1365-3b5b-4080-8433-dfe0d4243390
-    async def get_embedding(self, text: str) -> List[float]:
+    async def get_embedding(self, text: str) -> list[float]:
         """Generates an embedding using the Ollama format."""
         endpoint = f"{self.api_url}/api/embeddings"
         payload = {"model": self.model_name, "prompt": text}

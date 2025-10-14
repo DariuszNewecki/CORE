@@ -6,11 +6,10 @@ Provides utility functions for working with file system paths within the reposit
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Optional
 
 
 # ID: d302f037-094f-4573-92d0-39dc29c012f6
-def get_repo_root(start_path: Optional[Path] = None) -> Path:
+def get_repo_root(start_path: Path | None = None) -> Path:
     """Find and return the repository root by locating the .git directory, starting from the current directory or provided path."""
     """
     Find and return the repository root by locating the .git directory.

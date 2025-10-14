@@ -8,8 +8,9 @@ from __future__ import annotations
 import asyncio
 
 import typer
-from services.database.session_manager import get_session
 from sqlalchemy import text
+
+from services.database.session_manager import get_session
 
 
 # ID: 27a79c8d-285f-4e79-8de9-a4a5cba424d4

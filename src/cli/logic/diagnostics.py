@@ -11,16 +11,17 @@ import json
 import jsonschema
 import typer
 import yaml
+from rich.console import Console
+from rich.table import Table
+from rich.tree import Tree
+from ruamel.yaml import YAML
+
 from features.governance.audit_context import AuditorContext
 from features.governance.checks.domain_placement import DomainPlacementCheck
 from features.governance.checks.legacy_tag_check import LegacyTagCheck
 from features.governance.policy_coverage_service import PolicyCoverageService
 from features.introspection.audit_unassigned_capabilities import get_unassigned_symbols
 from features.introspection.graph_analysis_service import find_semantic_clusters
-from rich.console import Console
-from rich.table import Table
-from rich.tree import Tree
-from ruamel.yaml import YAML
 from shared.config import settings
 from shared.models import AuditSeverity
 from shared.utils.constitutional_parser import get_all_constitutional_paths

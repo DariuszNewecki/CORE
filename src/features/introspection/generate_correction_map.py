@@ -13,6 +13,7 @@ from pathlib import Path
 import typer
 import yaml
 from rich.console import Console
+
 from shared.logger import getLogger
 
 log = getLogger("generate_correction_map")

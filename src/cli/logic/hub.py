@@ -11,16 +11,16 @@ import asyncio
 import importlib
 import inspect
 from pathlib import Path
-from typing import List, Optional
 
 import typer
 from rich.console import Console
 from rich.table import Table
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from services.database.models import CliCommand
 from services.database.session_manager import get_session
 from shared.config import settings
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 console = Console()
 hub_app = typer.Typer(help="Central hub for discovering and locating CORE tools.")
@@ -35,13 +35,13 @@ def _format_command_name(cmd: CliCommand) -> str:
     return getattr(cmd, "name", "") or ""
 
 
-def _shorten(s: Optional[str], n: int = 80) -> str:
+def _shorten(s: str | None, n: int = 80) -> str:
     if not s:
         return "—"
     return s if len(s) <= n else s[: n - 1] + "…"
 
 
-def _module_file(module_path: str) -> Optional[Path]:
+def _module_file(module_path: str) -> Path | None:
     try:
         mod = importlib.import_module(module_path)
         f = inspect.getsourcefile(mod)
@@ -110,7 +110,7 @@ def hub_search(
             )
             raise typer.Exit(code=2)
         term_l = term.lower()
-        hits: List[CliCommand] = []
+        hits: list[CliCommand] = []
         for c in cmds:
             name = (_format_command_name(c) or "").lower()
             desc = _desc_for(c).lower()

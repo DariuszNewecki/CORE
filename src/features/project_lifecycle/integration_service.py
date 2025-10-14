@@ -5,6 +5,7 @@ import subprocess
 
 import typer
 from rich.console import Console
+
 from shared.config import settings
 from shared.context import CoreContext
 from shared.logger import getLogger

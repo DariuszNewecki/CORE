@@ -8,10 +8,10 @@ from __future__ import annotations
 
 import asyncio
 from pathlib import Path
-from typing import Optional
 
 import typer
 from dotenv import load_dotenv
+
 from features.autonomy.autonomous_developer import develop_from_goal
 from features.introspection.vectorization_service import run_vectorize
 from shared.config import settings
@@ -31,12 +31,12 @@ run_app = typer.Typer(
 # ID: 1ddfca35-8fcd-4f5e-925d-f0659f34e2a4
 def develop(
     context: CoreContext,
-    goal: Optional[str] = typer.Argument(
+    goal: str | None = typer.Argument(
         None,
         help="The high-level development goal for CORE to achieve.",
         show_default=False,
     ),
-    from_file: Optional[Path] = typer.Option(
+    from_file: Path | None = typer.Option(
         None,
         "--from-file",
         "-f",

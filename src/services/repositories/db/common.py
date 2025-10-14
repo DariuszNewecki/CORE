@@ -8,8 +8,7 @@ from __future__ import annotations
 import os
 import pathlib
 import subprocess
-from datetime import datetime, timezone
-from typing import List, Set
+from datetime import UTC, datetime
 
 import sqlparse
 import yaml
@@ -76,7 +75,7 @@ async def ensure_ledger() -> None:
 
 
 # ID: ec3e6b37-b4e8-4870-80f5-10d652ac5902
-async def get_applied() -> Set[str]:
+async def get_applied() -> set[str]:
     """Return set of applied migration IDs."""
     async with get_session() as session:
         result = await session.execute(text("select id from core._migrations"))
@@ -87,7 +86,7 @@ async def get_applied() -> Set[str]:
 async def apply_sql_file(path: pathlib.Path) -> None:
     """Apply a .sql file by splitting into single statements (asyncpg-safe)."""
     sql_text = path.read_text(encoding="utf-8")
-    statements: List[str] = [s.strip() for s in sqlparse.split(sql_text) if s.strip()]
+    statements: list[str] = [s.strip() for s in sqlparse.split(sql_text) if s.strip()]
     async with get_session() as session:
         async with session.begin():
             for stmt in statements:
@@ -102,7 +101,7 @@ async def record_applied(mig_id: str) -> None:
             await session.execute(
                 text(
                     "insert into core._migrations (id, applied_at) values (:id, :ts)"
-                ).bindparams(id=mig_id, ts=datetime.now(tz=timezone.utc))
+                ).bindparams(id=mig_id, ts=datetime.now(tz=UTC))
             )
 
 

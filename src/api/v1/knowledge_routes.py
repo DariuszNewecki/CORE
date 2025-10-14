@@ -1,8 +1,9 @@
 # src/api/v1/knowledge_routes.py
 from __future__ import annotations
 
-from core.knowledge_service import KnowledgeService
 from fastapi import APIRouter
+
+from core.knowledge_service import KnowledgeService
 
 # Prefix aligns with test path: /v1/knowledge/capabilities
 router = APIRouter(prefix="/knowledge")

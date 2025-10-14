@@ -9,11 +9,11 @@ from __future__ import annotations
 import asyncio
 
 from rich.progress import track
+
+from features.introspection.knowledge_graph_service import KnowledgeGraphBuilder
 from shared.config import settings
 from shared.logger import getLogger
 from shared.utils.header_tools import HeaderTools
-
-from features.introspection.knowledge_graph_service import KnowledgeGraphBuilder
 
 log = getLogger("core_admin.fixer")
 REPO_ROOT = settings.REPO_PATH

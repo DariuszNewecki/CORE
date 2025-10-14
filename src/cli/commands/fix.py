@@ -7,9 +7,10 @@ from __future__ import annotations
 
 import asyncio
 from pathlib import Path
-from typing import Optional
 
 import typer
+from rich.console import Console
+
 from cli.logic.proposals_micro import micro_propose, propose_and_apply_autonomously
 from features.maintenance.command_sync_service import sync_commands_to_db
 from features.self_healing.capability_tagging_service import (
@@ -26,7 +27,6 @@ from features.self_healing.prune_orphaned_vectors import (
     main_sync as prune_orphaned_vectors,
 )
 from features.self_healing.purge_legacy_tags_service import purge_legacy_tags
-from rich.console import Console
 from shared.context import CoreContext
 from shared.logger import getLogger
 
@@ -37,7 +37,7 @@ fix_app = typer.Typer(
     no_args_is_help=True,
 )
 
-_context: Optional[CoreContext] = None
+_context: CoreContext | None = None
 
 
 def _ensure_context() -> CoreContext:
@@ -52,7 +52,7 @@ def _print_completion_message(
     operation: str,
     total: int,
     dry_run: bool,
-    next_step: Optional[str] = None,
+    next_step: str | None = None,
 ) -> None:
     """Prints a consistent completion message for fix commands."""
     console.print(f"\n--- {operation} Complete ---")
@@ -215,7 +215,7 @@ def fix_policy_ids_command(
 )
 # ID: 3159ad83-bea2-4a10-9d3a-b4598f4f3d1c
 def fix_tags_command(
-    file_path: Optional[Path] = typer.Argument(
+    file_path: Path | None = typer.Argument(
         None,
         help="Optional: A specific file to process. If omitted, all files are scanned.",
         exists=True,

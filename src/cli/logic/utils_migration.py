@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
-from typing import Dict
 
 from rich.console import Console
 from ruamel.yaml import YAML
@@ -19,7 +18,7 @@ yaml_handler.indent(mapping=2, sequence=4, offset=2)
 
 
 # ID: 64bb309f-1cf9-4480-afc4-78130e8357e2
-def parse_migration_plan(plan_path: Path) -> Dict[str, str]:
+def parse_migration_plan(plan_path: Path) -> dict[str, str]:
     """Parses the markdown migration plan into a mapping dictionary."""
     if not plan_path.exists():
         raise FileNotFoundError(f"Migration plan not found at: {plan_path}")
@@ -33,7 +32,7 @@ def parse_migration_plan(plan_path: Path) -> Dict[str, str]:
 
 # ID: 80131c72-c024-4823-8226-f63c5d8c4704
 def replacer(
-    match: re.Match, domain_map: Dict, console: Console, py_file: Path, repo_root: Path
+    match: re.Match, domain_map: dict, console: Console, py_file: Path, repo_root: Path
 ) -> str:
     """Replacement function for re.subn to update capability tags."""
     old_cap = match.group(1)

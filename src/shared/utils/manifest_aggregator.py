@@ -7,7 +7,7 @@ Aggregates domain-specific capability definitions from the constitution into a u
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 import yaml
 
@@ -17,7 +17,7 @@ log = getLogger("manifest_aggregator")
 
 
 # ID: 5f0549df-0ce5-468a-a232-c61663724a77
-def aggregate_manifests(repo_root: Path) -> Dict[str, Any]:
+def aggregate_manifests(repo_root: Path) -> dict[str, Any]:
     """
     Finds all domain-specific capability definition YAML files and merges them.
     This is "canary-aware": if a 'reports/proposed_manifests' directory

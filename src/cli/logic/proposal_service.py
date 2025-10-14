@@ -15,9 +15,10 @@ from pathlib import Path
 import typer
 from cryptography.hazmat.primitives import serialization
 from dotenv import load_dotenv
-from features.governance.constitutional_auditor import ConstitutionalAuditor
 from rich.console import Console
 from rich.table import Table
+
+from features.governance.constitutional_auditor import ConstitutionalAuditor
 from shared.config import settings
 from shared.config_loader import load_yaml_file
 from shared.context import CoreContext

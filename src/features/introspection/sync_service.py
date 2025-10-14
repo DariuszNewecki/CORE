@@ -3,13 +3,14 @@ from __future__ import annotations
 
 import ast
 import uuid
-from typing import Any, Dict, List
+from typing import Any
 
 from rich.console import Console
+from sqlalchemy import text
+
 from services.database.session_manager import get_session
 from shared.ast_utility import calculate_structural_hash
 from shared.config import settings
-from sqlalchemy import text
 
 console = Console()
 
@@ -23,8 +24,8 @@ class SymbolVisitor(ast.NodeVisitor):
 
     def __init__(self, file_path: str):
         self.file_path = file_path
-        self.symbols: List[Dict[str, Any]] = []
-        self.class_stack: List[str] = []
+        self.symbols: list[dict[str, Any]] = []
+        self.class_stack: list[str] = []
 
     # ID: 0b1d3e2c-5f6a-7b8c-9d0e-1f2a3b4c5d6e
     def visit_ClassDef(self, node: ast.ClassDef):
@@ -94,7 +95,7 @@ class SymbolScanner:
     """Scans the codebase to extract symbol information."""
 
     # ID: 1c60168e-3d83-4c72-b4be-390554f51b18
-    def scan(self) -> List[Dict[str, Any]]:
+    def scan(self) -> list[dict[str, Any]]:
         """Scans all Python files in src/ and extracts symbols."""
         src_dir = settings.REPO_PATH / "src"
         all_symbols = []
@@ -113,7 +114,7 @@ class SymbolScanner:
 
 
 # ID: 5ca33e91-947b-435c-9756-c74a22f37a2b
-async def run_sync_with_db() -> Dict[str, int]:
+async def run_sync_with_db() -> dict[str, int]:
     """
     Executes the full, database-centric sync logic using the "smart merge" strategy.
     This is the single source of truth for updating the symbols table from the codebase.

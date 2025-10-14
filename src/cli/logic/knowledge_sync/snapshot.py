@@ -7,13 +7,14 @@ from __future__ import annotations
 
 import asyncio
 import getpass
-from typing import Any, List
+from typing import Any
 
 from rich.console import Console
+from sqlalchemy import text
+
 from services.database.session_manager import get_session
 from shared.config import settings
 from shared.time import now_iso
-from sqlalchemy import text
 
 from .utils import write_yaml
 
@@ -22,7 +23,7 @@ EXPORT_DIR = settings.REPO_PATH / ".intent" / "mind_export"
 
 
 # ID: 0e4f98b0-6132-435f-b463-9f27c447302a
-async def fetch_capabilities() -> List[dict[str, Any]]:
+async def fetch_capabilities() -> list[dict[str, Any]]:
     """Reads all capabilities from the database, ordered consistently.
 
     Returns:
@@ -39,7 +40,7 @@ async def fetch_capabilities() -> List[dict[str, Any]]:
 
 
 # ID: 03445002-3060-4d3f-bc0b-27c6ccdc2fe9
-async def fetch_symbols() -> List[dict[str, Any]]:
+async def fetch_symbols() -> list[dict[str, Any]]:
     """Reads all symbols from the database, ordered consistently.
 
     Returns:
@@ -56,7 +57,7 @@ async def fetch_symbols() -> List[dict[str, Any]]:
 
 
 # ID: 323d778b-4ed7-4d65-9d8d-9077fb880bb9
-async def fetch_links() -> List[dict[str, Any]]:
+async def fetch_links() -> list[dict[str, Any]]:
     """Reads all symbol-capability links from the database, ordered consistently.
 
     Returns:
@@ -78,7 +79,7 @@ async def fetch_links() -> List[dict[str, Any]]:
 
 
 # ID: 9f94dca6-1d04-41db-8970-b09fdc803222
-async def fetch_northstar() -> List[dict[str, Any]]:
+async def fetch_northstar() -> list[dict[str, Any]]:
     """Reads the current North Star mission from the database.
 
     Returns:

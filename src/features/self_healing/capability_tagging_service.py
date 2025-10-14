@@ -8,17 +8,16 @@ from __future__ import annotations
 
 import asyncio
 from pathlib import Path
-from typing import Optional
+
+from rich.console import Console
 
 from core.agents.tagger_agent import CapabilityTaggerAgent
 from core.cognitive_service import CognitiveService
 from core.knowledge_service import KnowledgeService
-from rich.console import Console
+from features.introspection.knowledge_graph_service import KnowledgeGraphBuilder
 from services.database.session_manager import get_session
 from shared.config import settings
 from shared.logger import getLogger
-
-from features.introspection.knowledge_graph_service import KnowledgeGraphBuilder
 
 log = getLogger("capability_tagging_service")
 console = Console()
@@ -28,7 +27,7 @@ REPO_ROOT = settings.REPO_PATH
 async def _async_tag_capabilities(
     cognitive_service: CognitiveService,
     knowledge_service: KnowledgeService,
-    file_path: Optional[Path],
+    file_path: Path | None,
     write: bool,
 ):
     """The core async logic for the capability tagging process."""
@@ -82,7 +81,7 @@ async def _async_tag_capabilities(
 def tag_unassigned_capabilities(
     cognitive_service: CognitiveService,
     knowledge_service: KnowledgeService,
-    file_path: Optional[Path],
+    file_path: Path | None,
     write: bool,
 ):
     """Synchronous wrapper for the capability tagging service."""

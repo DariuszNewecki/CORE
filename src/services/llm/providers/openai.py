@@ -5,8 +5,6 @@ Provides an AIProvider implementation for OpenAI-compatible APIs (e.g., DeepSeek
 
 from __future__ import annotations
 
-from typing import List
-
 import httpx
 
 from .base import AIProvider
@@ -38,7 +36,7 @@ class OpenAIProvider(AIProvider):
             return data["choices"][0]["message"]["content"]
 
     # ID: bd55279d-308d-4483-890f-05835055b54e
-    async def get_embedding(self, text: str) -> List[float]:
+    async def get_embedding(self, text: str) -> list[float]:
         """Generates an embedding using the OpenAI format."""
         endpoint = f"{self.api_url}/v1/embeddings"
         payload = {"model": self.model_name, "input": [text]}

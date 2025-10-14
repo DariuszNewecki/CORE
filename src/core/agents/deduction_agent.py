@@ -1,8 +1,8 @@
 # src/core/agents/deduction_agent.py
 from __future__ import annotations
 
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Iterable, Optional
 
 import yaml
 
@@ -65,7 +65,7 @@ class DeductionAgent:
         role: CognitiveRole,
         candidates: Iterable[LlmResource],
         task_context: str | None = None,
-    ) -> Optional[str]:
+    ) -> str | None:
         """
         Return a preferred resource name if policy can pick one, else None.
         Policy-light heuristic:

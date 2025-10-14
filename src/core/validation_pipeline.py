@@ -5,7 +5,7 @@ A context-aware validation pipeline that applies different validation steps base
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Dict
+from typing import TYPE_CHECKING, Any
 
 from shared.logger import getLogger
 
@@ -25,8 +25,8 @@ async def validate_code_async(
     file_path: str,
     code: str,
     quiet: bool = False,
-    auditor_context: "AuditorContext" | None = None,
-) -> Dict[str, Any]:
+    auditor_context: AuditorContext | None = None,
+) -> dict[str, Any]:
     """Validate a file's code by routing it to the appropriate validation pipeline."""
     classification = get_file_classification(file_path)
     if not quiet:

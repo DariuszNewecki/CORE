@@ -11,12 +11,12 @@ import json
 import os
 import subprocess
 import tempfile
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
 from shared.logger import getLogger
 
 log = getLogger(__name__)
-Violation = Dict[str, Any]
+Violation = dict[str, Any]
 
 
 # --- MODIFICATION: Complete refactor to use Ruff's JSON output. ---
@@ -24,7 +24,7 @@ Violation = Dict[str, Any]
 # ID: 592ac81a-25a7-4313-9977-41f4dbca3cde
 def fix_and_lint_code_with_ruff(
     code: str, display_filename: str = "<code>"
-) -> Tuple[str, List[Violation]]:
+) -> tuple[str, list[Violation]]:
     """
     Fix and lint the provided Python code using Ruff's JSON output format.
 
@@ -54,7 +54,7 @@ def fix_and_lint_code_with_ruff(
         )
 
         # Step 2: Read the potentially modified code back from the file.
-        with open(tmp_file_path, "r", encoding="utf-8") as f:
+        with open(tmp_file_path, encoding="utf-8") as f:
             fixed_code = f.read()
 
         # Step 3: Run Ruff again without fix, but with JSON output to get remaining violations.

@@ -8,25 +8,25 @@ from __future__ import annotations
 
 import asyncio
 from pathlib import Path
-from typing import List, Optional
 
 import typer
+from rich.progress import track
+
 from core.cognitive_service import CognitiveService
 
 # --- START OF AMENDMENT: Import the new async validator ---
 from core.validation_pipeline import validate_code_async
-from rich.progress import track
-from shared.config import settings
-from shared.logger import getLogger
 
 # --- END OF AMENDMENT ---
 from features.governance.audit_context import AuditorContext
+from shared.config import settings
+from shared.logger import getLogger
 
 log = getLogger("core_admin.fixer_linelength")
 REPO_ROOT = settings.REPO_PATH
 
 
-async def _async_fix_line_lengths(files_to_process: List[Path], dry_run: bool):
+async def _async_fix_line_lengths(files_to_process: list[Path], dry_run: bool):
     """Async core logic for finding and fixing all line length violations."""
     log.info(
         f"Scanning {len(files_to_process)} files for lines longer than 100 characters..."
@@ -108,7 +108,7 @@ async def _async_fix_line_lengths(files_to_process: List[Path], dry_run: bool):
 
 # ID: 1655a2ca-f71f-470b-8f43-a33ee28d64dd
 def fix_line_lengths(
-    file_path: Optional[Path] = typer.Argument(
+    file_path: Path | None = typer.Argument(
         None,
         help="Optional: A specific file to fix. If omitted, all project files are scanned.",
         exists=True,

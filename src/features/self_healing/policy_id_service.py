@@ -10,6 +10,7 @@ import uuid
 
 import yaml
 from rich.console import Console
+
 from shared.config import settings
 
 console = Console()

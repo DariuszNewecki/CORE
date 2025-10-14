@@ -2,18 +2,18 @@
 from __future__ import annotations
 
 import asyncio
-from typing import Optional
 
 import typer
+from rich.console import Console
+
 from core.crate_processing_service import process_crates
 from features.project_lifecycle.integration_service import integrate_changes
-from rich.console import Console
 from shared.context import CoreContext
 
 console = Console()
 
 # Global variable to store context, set by the registration layer.
-_context: Optional[CoreContext] = None
+_context: CoreContext | None = None
 
 
 # ID: 46b79a8e-3360-4fac-af15-9a52cf0d9a7a

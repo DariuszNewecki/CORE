@@ -8,14 +8,14 @@ from __future__ import annotations
 # --- THIS IS THE FIX ---
 # Add all the necessary imports that were missing.
 import ast
-from typing import Any, Dict, List
+from typing import Any
 
-Violation = Dict[str, Any]
+Violation = dict[str, Any]
 # --- END OF FIX ---
 
 
 # ID: c1e335fb-1ee0-4e76-b6bd-9ed7a7494f14
-def check_syntax(file_path: str, code: str) -> List[Violation]:
+def check_syntax(file_path: str, code: str) -> list[Violation]:
     """Checks the given Python code for syntax errors and returns a list of violations, if any."""
     """
     Checks whether the given code has valid Python syntax.

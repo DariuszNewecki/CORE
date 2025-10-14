@@ -7,12 +7,13 @@ Provides Ed25519 key generation and helper output for approver configuration.
 from __future__ import annotations
 
 import os
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import typer
 import yaml
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ed25519
+
 from shared.config import settings
 from shared.logger import getLogger
 
@@ -65,7 +66,7 @@ def keygen(
     approver_data = {
         "identity": identity,
         "public_key": pem_public.decode("utf-8"),
-        "created_at": datetime.now(timezone.utc).isoformat(),
+        "created_at": datetime.now(UTC).isoformat(),
         "role": "maintainer",
         "description": "Primary maintainer",
     }

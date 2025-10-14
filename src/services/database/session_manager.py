@@ -5,16 +5,17 @@ The single source of truth for creating and managing database sessions.
 
 from __future__ import annotations
 
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from typing import AsyncGenerator
 
-from shared.config import settings
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
     async_sessionmaker,
     create_async_engine,
 )
+
+from shared.config import settings
 
 _ENGINE: AsyncEngine = create_async_engine(
     settings.DATABASE_URL,

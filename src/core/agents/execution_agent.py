@@ -5,13 +5,12 @@ Provides functionality for the execution_agent module.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, List
-
-from shared.logger import getLogger
-from shared.models import ExecutionTask, PlanExecutionError
+from typing import TYPE_CHECKING
 
 from core.agents.coder_agent import CoderAgent
 from core.agents.plan_executor import PlanExecutor
+from shared.logger import getLogger
+from shared.models import ExecutionTask, PlanExecutionError
 
 if TYPE_CHECKING:
     from features.governance.audit_context import AuditorContext
@@ -25,9 +24,9 @@ class ExecutionAgent:
 
     def __init__(
         self,
-        coder_agent: "CoderAgent",
+        coder_agent: CoderAgent,
         plan_executor: PlanExecutor,
-        auditor_context: "AuditorContext",
+        auditor_context: AuditorContext,
     ):
         """Initializes the ExecutionAgent as a pure orchestrator."""
         self.coder_agent = coder_agent
@@ -36,7 +35,7 @@ class ExecutionAgent:
 
     # ID: 6557eefd-2f5e-4904-998a-e7ad2d8d070f
     async def execute_plan(
-        self, high_level_goal: str, plan: List[ExecutionTask]
+        self, high_level_goal: str, plan: list[ExecutionTask]
     ) -> tuple[bool, str]:
         """
         Orchestrates the execution of a plan, delegating code generation to the CoderAgent.

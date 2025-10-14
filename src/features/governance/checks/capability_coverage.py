@@ -6,11 +6,8 @@ project manifest are implemented in the database.
 
 from __future__ import annotations
 
-from typing import List, Set
-
-from shared.models import AuditFinding, AuditSeverity
-
 from features.governance.audit_context import AuditorContext
+from shared.models import AuditFinding, AuditSeverity
 
 
 # ID: 979ce56f-7f3c-40e7-8736-ce219bab6ad8
@@ -24,7 +21,7 @@ class CapabilityCoverageCheck:
         self.context = context
 
     # ID: e0730fb8-2616-42b2-915b-48f30ff4ac17
-    def execute(self) -> List[AuditFinding]:
+    def execute(self) -> list[AuditFinding]:
         """
         Runs the check and returns a list of findings for any violations.
         """
@@ -43,12 +40,12 @@ class CapabilityCoverageCheck:
             return findings
 
         manifest_content = self.context._load_yaml(manifest_path)
-        declared_capabilities: Set[str] = set(manifest_content.get("capabilities", []))
+        declared_capabilities: set[str] = set(manifest_content.get("capabilities", []))
 
         # --- THIS IS THE CORRECT LOGIC ---
         # The source of truth for implementation is the database, not code comments.
         # The view aliases 'key' to 'capability', so we must use that name here.
-        implemented_capabilities: Set[str] = {
+        implemented_capabilities: set[str] = {
             s["capability"]
             for s in self.context.knowledge_graph.get("symbols", {}).values()
             if s.get("capability")

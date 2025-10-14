@@ -6,7 +6,6 @@ Provides a dedicated service for selecting the optimal LLM resource for a given 
 from __future__ import annotations
 
 import json  # <-- ADD THIS IMPORT
-from typing import List, Optional
 
 from services.database.models import CognitiveRole, LlmResource
 from shared.logger import getLogger
@@ -22,7 +21,7 @@ class ResourceSelector:
     selection from the main CognitiveService orchestration.
     """
 
-    def __init__(self, resources: List[LlmResource], roles: List[CognitiveRole]):
+    def __init__(self, resources: list[LlmResource], roles: list[CognitiveRole]):
         """
         Initializes the selector with the full list of available resources and roles from the database.
         """
@@ -65,7 +64,7 @@ class ResourceSelector:
         return int(cost) if isinstance(cost, (int, float)) else 3
 
     # ID: 8636a4a6-7c58-4bb0-8372-e48e9184884d
-    def select_resource_for_role(self, role_name: str) -> Optional[LlmResource]:
+    def select_resource_for_role(self, role_name: str) -> LlmResource | None:
         """
         Selects the best resource for a role, prioritizing the explicitly assigned one.
         """

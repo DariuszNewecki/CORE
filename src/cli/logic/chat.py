@@ -9,9 +9,10 @@ import json
 import subprocess
 
 import typer
+from dotenv import load_dotenv
+
 from core.agents.intent_translator import IntentTranslator
 from core.cognitive_service import CognitiveService
-from dotenv import load_dotenv
 from shared.config import settings
 from shared.logger import getLogger
 from shared.utils.parsing import extract_json_from_response

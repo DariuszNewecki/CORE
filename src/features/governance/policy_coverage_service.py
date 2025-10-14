@@ -9,11 +9,12 @@ from __future__ import annotations
 import hashlib
 import json
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from pydantic import BaseModel
+
 from shared.config import settings
 from shared.logger import getLogger
 
@@ -25,8 +26,8 @@ class PolicyCoverageReport(BaseModel):
     report_id: str
     generated_at_utc: str
     repo_root: str
-    summary: Dict[str, int]
-    records: List[Dict[str, Any]]
+    summary: dict[str, int]
+    records: list[dict[str, Any]]
     exit_code: int
 
 
@@ -37,7 +38,7 @@ class _PolicyRef:
     id: str
     path: Path
     status: str = "active"
-    title: Optional[str] = None
+    title: str | None = None
 
 
 # ID: 78d662f3-f672-4f51-b73e-fb411c106728
@@ -47,7 +48,7 @@ class PolicyCoverageService:
     are well-formed and covered by the governance model.
     """
 
-    def __init__(self, repo_root: Optional[Path] = None):
+    def __init__(self, repo_root: Path | None = None):
         self.repo_root: Path = repo_root or settings.REPO_PATH
         # --- THIS IS THE REFACTOR ---
         # The service now loads its governing policy via the settings object
@@ -57,7 +58,7 @@ class PolicyCoverageService:
         self.enforcement_model = self._load_enforcement_model()
         # --- END OF REFACTOR ---
 
-    def _load_enforcement_model(self) -> Dict[str, int]:
+    def _load_enforcement_model(self) -> dict[str, int]:
         """Loads and parses the enforcement model from the pre-loaded policy content."""
         levels = self.enforcement_model_policy.get("levels", {})
         # Note: exit_code is not a standard part of the model, so we default to standard behavior
@@ -69,7 +70,7 @@ class PolicyCoverageService:
             "info": 0,
         }
 
-    def _discover_active_policies(self) -> List[_PolicyRef]:
+    def _discover_active_policies(self) -> list[_PolicyRef]:
         """Discovers all active policies by reading the meta.yaml index via settings."""
         refs = []
         # settings._meta_config is a private but convenient accessor here
@@ -90,7 +91,7 @@ class PolicyCoverageService:
         return refs
 
     @staticmethod
-    def _extract_rules(policy_data: Dict[str, Any]) -> List[Dict[str, str]]:
+    def _extract_rules(policy_data: dict[str, Any]) -> list[dict[str, str]]:
         """Extracts and normalizes rule definitions from a policy file."""
         rules = policy_data.get("rules", [])
         if not isinstance(rules, list):
@@ -113,8 +114,8 @@ class PolicyCoverageService:
         Executes the policy coverage audit and returns a structured report.
         """
         policies = self._discover_active_policies()
-        records: List[Dict[str, Any]] = []
-        failures: List[Tuple[str, str]] = []
+        records: list[dict[str, Any]] = []
+        failures: list[tuple[str, str]] = []
 
         for policy_ref in policies:
             policy_data = settings.load(f"charter.policies.{policy_ref.id}")
@@ -145,7 +146,7 @@ class PolicyCoverageService:
             exit_code = max(exit_code, self.enforcement_model.get(level, 0))
 
         report_dict = {
-            "generated_at_utc": datetime.now(timezone.utc).isoformat(),
+            "generated_at_utc": datetime.now(UTC).isoformat(),
             "repo_root": str(self.repo_root),
             "summary": {
                 "policies_seen": len(policies),

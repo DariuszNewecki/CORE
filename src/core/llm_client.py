@@ -8,6 +8,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import httpx
+
 from shared.logger import getLogger
 
 logger = getLogger(Path(__file__).stem)

@@ -8,9 +8,10 @@ from __future__ import annotations
 import asyncio
 import json
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
 import typer
+
 from features.introspection.drift_detector import write_report
 from features.introspection.drift_service import run_drift_analysis_async
 
@@ -33,14 +34,14 @@ def register_guard(app: typer.Typer) -> None:
     # ID: 9c69d559-0c4a-4431-918b-14b3d588da91
     def drift(
         root: Path = typer.Option(Path("."), help="Repository root."),
-        manifest_path: Optional[Path] = typer.Option(
+        manifest_path: Path | None = typer.Option(
             None, help="Explicit manifest path (deprecated)."
         ),
-        output: Optional[Path] = typer.Option(
+        output: Path | None = typer.Option(
             None, help="Path for JSON evidence report."
         ),
-        format: Optional[str] = typer.Option(None, help="json|table|pretty"),
-        fail_on: Optional[str] = typer.Option(None, help="any|missing|undeclared"),
+        format: str | None = typer.Option(None, help="json|table|pretty"),
+        fail_on: str | None = typer.Option(None, help="any|missing|undeclared"),
     ) -> None:
         """Compares manifest vs code to detect capability drift."""
         try:
@@ -49,7 +50,7 @@ def register_guard(app: typer.Typer) -> None:
             fail_policy = (fail_on or ux["default_fail_on"]).lower()
 
             report = asyncio.run(run_drift_analysis_async(root))
-            report_dict: Dict[str, Any] = report.to_dict()
+            report_dict: dict[str, Any] = report.to_dict()
 
             if ux["evidence_json"]:
                 write_report(output or (root / ux["evidence_path"]), report)

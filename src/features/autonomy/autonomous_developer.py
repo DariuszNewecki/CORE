@@ -6,6 +6,8 @@ development cycle, from goal to implemented code.
 
 from __future__ import annotations
 
+from sqlalchemy import update
+
 from core.agents.coder_agent import CoderAgent
 from core.agents.execution_agent import ExecutionAgent
 from core.agents.plan_executor import PlanExecutor
@@ -17,7 +19,6 @@ from services.database.session_manager import get_session
 from shared.context import CoreContext
 from shared.logger import getLogger
 from shared.models import PlanExecutionError
-from sqlalchemy import update
 
 log = getLogger("autonomous_developer")
 

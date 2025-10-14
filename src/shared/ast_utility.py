@@ -17,7 +17,6 @@ import logging
 import re
 import uuid
 from dataclasses import dataclass
-from typing import Dict, List, Optional
 
 log = logging.getLogger(__name__)
 
@@ -25,7 +24,7 @@ log = logging.getLogger(__name__)
 # --- THIS IS THE NEW, ROBUST HELPER FUNCTION ---
 # ID: a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d
 def find_definition_line(
-    node: ast.FunctionDef | ast.AsyncFunctionDef | ast.ClassDef, source_lines: List[str]
+    node: ast.FunctionDef | ast.AsyncFunctionDef | ast.ClassDef, source_lines: list[str]
 ) -> int:
     """
     Finds the actual line number of the 'def' or 'class' keyword,
@@ -58,14 +57,14 @@ class SymbolIdResult:
     """Holds the result of finding a symbol's ID and definition line."""
 
     has_id: bool
-    uuid: Optional[str] = None
-    id_tag_line_num: Optional[int] = None
+    uuid: str | None = None
+    id_tag_line_num: int | None = None
     definition_line_num: int = 0
 
 
 # ID: 6a3b9d5c-1f8e-4b2a-9c7d-8e5f4a3b2c1d
 def find_symbol_id_and_def_line(
-    node: ast.FunctionDef | ast.AsyncFunctionDef | ast.ClassDef, source_lines: List[str]
+    node: ast.FunctionDef | ast.AsyncFunctionDef | ast.ClassDef, source_lines: list[str]
 ) -> SymbolIdResult:
     """
     Finds the actual definition line and ID tag for a symbol, correctly skipping decorators.
@@ -104,15 +103,15 @@ def find_symbol_id_and_def_line(
 
 
 # ID: 79ccf26e-3710-4802-9ccb-29423f545e45
-def extract_docstring(node: ast.AST) -> Optional[str]:
+def extract_docstring(node: ast.AST) -> str | None:
     """Extract the docstring from the given AST node if it exists."""
     return ast.get_docstring(node)
 
 
 # ID: 79024211-279d-40af-91c3-679d5afdcf9f
-def extract_base_classes(node: ast.ClassDef) -> List[str]:
+def extract_base_classes(node: ast.ClassDef) -> list[str]:
     """Return a list of base class names for the given class node."""
-    bases: List[str] = []
+    bases: list[str] = []
     for base in node.bases:
         if isinstance(base, ast.Name):
             bases.append(base.id)
@@ -129,7 +128,7 @@ def extract_base_classes(node: ast.ClassDef) -> List[str]:
 
 
 # ID: 502f4096-53ca-49d8-b3e4-ec7a075b0881
-def extract_parameters(node: ast.FunctionDef | ast.AsyncFunctionDef) -> List[str]:
+def extract_parameters(node: ast.FunctionDef | ast.AsyncFunctionDef) -> list[str]:
     """Extract parameter names from a function (or async function) definition node."""
     if not hasattr(node, "args") or node.args is None:
         return []
@@ -142,7 +141,7 @@ class FunctionCallVisitor(ast.NodeVisitor):
 
     def __init__(self) -> None:
         """Initialize an empty collection of function call names."""
-        self.calls: List[str] = []
+        self.calls: list[str] = []
 
     # ID: 2eec3148-6aeb-4d74-9dd3-b73be105ee02
     def visit_Call(self, node: ast.Call) -> None:
@@ -160,7 +159,7 @@ class FunctionCallVisitor(ast.NodeVisitor):
 
 
 # ID: 5f4a3e52-b52a-49ac-aa37-a5201376979f
-def parse_metadata_comment(node: ast.AST, source_lines: List[str]) -> Dict[str, str]:
+def parse_metadata_comment(node: ast.AST, source_lines: list[str]) -> dict[str, str]:
     """Returns a dict like {'capability': 'domain.key'} when present; otherwise empty dict."""
     if getattr(node, "lineno", None) and node.lineno > 1:
         line = source_lines[node.lineno - 2].strip()

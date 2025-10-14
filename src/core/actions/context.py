@@ -6,7 +6,7 @@ Defines the execution context for the PlanExecutor.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Dict
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from core.file_handler import FileHandler
@@ -20,7 +20,7 @@ if TYPE_CHECKING:
 class PlanExecutorContext:
     """A container for services and state shared across all action handlers."""
 
-    file_handler: "FileHandler"
-    git_service: "GitService"
-    auditor_context: "AuditorContext"
-    file_content_cache: Dict[str, str] = field(default_factory=dict)
+    file_handler: FileHandler
+    git_service: GitService
+    auditor_context: AuditorContext
+    file_content_cache: dict[str, str] = field(default_factory=dict)

@@ -8,16 +8,16 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
 from rich.console import Console
 from rich.table import Table
-from shared.config import settings
-from shared.logger import getLogger
-from shared.utils.parallel_processor import ThrottledParallelProcessor
 
 from core.cognitive_service import CognitiveService
 from core.knowledge_service import KnowledgeService
+from shared.config import settings
+from shared.logger import getLogger
+from shared.utils.parallel_processor import ThrottledParallelProcessor
 
 log = getLogger("tagger_agent")
 
@@ -40,7 +40,7 @@ class CapabilityTaggerAgent:
         self.existing_capabilities = self.knowledge_service.list_capabilities()
         self.tagger_client = self.cognitive_service.get_client_for_role("CodeReviewer")
 
-    def _extract_symbol_info(self, symbol: Dict[str, Any]) -> Dict[str, Any]:
+    def _extract_symbol_info(self, symbol: dict[str, Any]) -> dict[str, Any]:
         """Extracts the relevant information for the prompt from a symbol entry."""
         return {
             "key": symbol.get("key"),
@@ -50,7 +50,7 @@ class CapabilityTaggerAgent:
             "docstring": symbol.get("docstring"),
         }
 
-    def _build_suggestion_prompt(self, symbol_info: Dict[str, Any]) -> str:
+    def _build_suggestion_prompt(self, symbol_info: dict[str, Any]) -> str:
         """Builds the final prompt for AI suggestion request."""
         return self.prompt_template.format(
             existing_capabilities=json.dumps(self.existing_capabilities, indent=2),
@@ -58,8 +58,8 @@ class CapabilityTaggerAgent:
         )
 
     async def _get_suggestion_for_symbol(
-        self, symbol: Dict[str, Any]
-    ) -> Optional[Dict[str, str]]:
+        self, symbol: dict[str, Any]
+    ) -> dict[str, str] | None:
         """Async worker to get a single tag suggestion from the LLM."""
         symbol_info = self._extract_symbol_info(symbol)
         final_prompt = self._build_suggestion_prompt(symbol_info)
@@ -87,7 +87,7 @@ class CapabilityTaggerAgent:
     # ID: 4c92bdd4-66f8-4292-b9c4-daeb2d7fdff7
     async def suggest_and_apply_tags(
         self, file_path: Path | None = None
-    ) -> Optional[Dict[str, Dict]]:
+    ) -> dict[str, dict] | None:
         """
         Finds unassigned public symbols, gets AI-powered suggestions, and returns them.
         """

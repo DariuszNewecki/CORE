@@ -9,10 +9,11 @@ import ast
 import json
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 import typer
 from jsonschema import ValidationError, validate
+
 from shared.config_loader import load_yaml_file
 from shared.logger import getLogger
 
@@ -26,7 +27,7 @@ def _load_json(path: Path) -> dict:
         return json.load(f)
 
 
-def _validate_schema_pair(pair: Tuple[Path, Path]) -> str | None:
+def _validate_schema_pair(pair: tuple[Path, Path]) -> str | None:
     """Validates a YAML file against a JSON Schema, returning an error message or None."""
     yml_path, schema_path = pair
     if not yml_path.exists():
@@ -54,7 +55,7 @@ def validate_intent_schema(
     """Validate policy YAMLs under .intent/charter using their corresponding JSON Schemas."""
     log.info("Running intent schema validation via core-admin...")
     base = intent_path / "charter"
-    checks: List[Tuple[Path, Path]] = [
+    checks: list[tuple[Path, Path]] = [
         (
             base / "policies" / "agent_policy.yaml",
             base / "schemas" / "agent_policy_schema.json",
@@ -114,7 +115,7 @@ _ALLOWED_NODES = {
 }
 
 
-def _safe_eval(expr: str, ctx: Dict[str, Any]) -> bool:
+def _safe_eval(expr: str, ctx: dict[str, Any]) -> bool:
     """Safely evaluate a boolean expression string against a context dictionary using AST validation."""
     expr = expr.replace(" true", " True").replace(" false", " False")
     tree = ast.parse(expr, mode="eval")
@@ -143,7 +144,7 @@ def validate_risk_gates(
     mind_path: Path = typer.Option(
         Path(".intent/mind"), "--mind-path", help="Path to the .intent/mind directory."
     ),
-    context: Optional[Path] = typer.Option(None, "--context"),
+    context: Path | None = typer.Option(None, "--context"),
     risk_tier: str = typer.Option("low", "--risk-tier"),
     score: float = typer.Option(0.0, "--score"),
     touches_critical_paths: bool = typer.Option(
@@ -162,8 +163,8 @@ def validate_risk_gates(
         typer.echo(f"Missing score policy: {spath}", err=True)
         raise typer.Exit(code=2)
     policy = load_yaml_file(spath)
-    gates: Dict[str, Any] = policy.get("risk_tier_gates", {})
-    conds: Dict[str, str] = policy.get("gate_conditions", {})
+    gates: dict[str, Any] = policy.get("risk_tier_gates", {})
+    conds: dict[str, str] = policy.get("gate_conditions", {})
     file_ctx = ReviewContext()
     if context and context.exists():
         raw = load_yaml_file(context)
@@ -172,7 +173,7 @@ def validate_risk_gates(
         risk_tier, score, touches_critical_paths, checkpoint, canary, approver_quorum
     )
     ctx = _merge_contexts(file_ctx, cli_ctx)
-    violations: List[str] = []
+    violations: list[str] = []
     tier = gates.get(ctx.risk_tier, {})
     min_score = float(tier.get("min_score", 0.0))
     required_flags = set(tier.get("require", []))

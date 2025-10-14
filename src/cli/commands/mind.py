@@ -5,9 +5,9 @@ Registers the new 'mind' command group for managing the Working Mind's SSOT.
 from __future__ import annotations
 
 import asyncio
-from typing import Optional
 
 import typer
+
 from cli.logic.knowledge_sync import run_diff, run_import, run_snapshot, run_verify
 
 mind_app = typer.Typer(
@@ -21,10 +21,10 @@ mind_app = typer.Typer(
 )
 # ID: 92cdf207-d8c3-4665-a520-ddbd3714882b
 def snapshot_command(
-    env: Optional[str] = typer.Option(
+    env: str | None = typer.Option(
         None, "--env", help="Environment tag (e.g., 'dev', 'prod')."
     ),
-    note: Optional[str] = typer.Option(
+    note: str | None = typer.Option(
         None, "--note", help="A brief note to store with the export manifest."
     ),
 ):

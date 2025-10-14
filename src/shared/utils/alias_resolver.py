@@ -11,7 +11,6 @@ If the alias file is missing or unreadable, this resolver degrades gracefully:
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Dict, Optional
 
 from shared.config import settings
 from shared.config_loader import load_yaml_file
@@ -26,12 +25,12 @@ __all__ = ["AliasResolver"]
 class AliasResolver:
     """Loads and resolves capability aliases."""
 
-    def __init__(self, alias_file_path: Optional[Path] = None):
+    def __init__(self, alias_file_path: Path | None = None):
         """
         Initializes the resolver by loading the alias map from the constitution.
         Defaults to reports/aliases.yaml.
         """
-        self.alias_map: Dict[str, str] = {}
+        self.alias_map: dict[str, str] = {}
         path = alias_file_path or (settings.REPO_PATH / "reports" / "aliases.yaml")
 
         if path.exists():

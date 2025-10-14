@@ -7,8 +7,6 @@ by the ExecutionAgent.
 
 from __future__ import annotations
 
-from typing import List
-
 from core.agents.base_planner import build_planning_prompt, parse_and_validate_plan
 from core.cognitive_service import CognitiveService
 from shared.config import settings
@@ -32,7 +30,7 @@ class PlannerAgent:
     # ID: b918335b-60af-4132-a944-88628a3caa66
     async def create_execution_plan(
         self, goal: str, reconnaissance_report: str = ""
-    ) -> List[ExecutionTask]:
+    ) -> list[ExecutionTask]:
         """
         Creates an execution plan from a user goal and a reconnaissance report.
         """

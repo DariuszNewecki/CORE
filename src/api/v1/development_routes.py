@@ -6,8 +6,10 @@ Provides API endpoints for initiating and managing autonomous development cycles
 from __future__ import annotations
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Request
-from features.autonomy.autonomous_developer import develop_from_goal
 from pydantic import BaseModel
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from features.autonomy.autonomous_developer import develop_from_goal
 from services.database.models import Task
 
 # --- THIS IS THE FIX: Correct the import path ---
@@ -15,7 +17,6 @@ from services.database.session_manager import get_db_session
 
 # --- END OF FIX ---
 from shared.context import CoreContext
-from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter()
 

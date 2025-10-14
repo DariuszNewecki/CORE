@@ -7,7 +7,6 @@ from __future__ import annotations
 
 import ast
 import textwrap
-from typing import Optional, Tuple
 
 from core.validation_pipeline import validate_code_async
 from shared.logger import getLogger
@@ -22,7 +21,7 @@ log = getLogger("code_actions")
 # --- START: Logic moved from the deleted CodeEditor class ---
 def _get_symbol_start_end_lines(
     tree: ast.AST, symbol_name: str
-) -> Optional[Tuple[int, int]]:
+) -> tuple[int, int] | None:
     """Finds the 1-based start and end line numbers of a symbol."""
     for node in ast.walk(tree):
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):

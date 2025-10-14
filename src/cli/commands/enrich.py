@@ -6,17 +6,17 @@ Registers the 'enrich' command group.
 from __future__ import annotations
 
 import asyncio
-from typing import Optional
 
 import typer
-from features.self_healing.enrichment_service import enrich_symbols
 from rich.console import Console
+
+from features.self_healing.enrichment_service import enrich_symbols
 from shared.context import CoreContext
 
 console = Console()
 enrich_app = typer.Typer(help="Autonomous tools to enrich the system's knowledge base.")
 
-_context: Optional[CoreContext] = None
+_context: CoreContext | None = None
 
 
 @enrich_app.command("symbols")

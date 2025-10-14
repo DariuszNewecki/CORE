@@ -5,8 +5,6 @@ Defines the Pydantic models for representing autonomous execution plans and task
 
 from __future__ import annotations
 
-from typing import List, Optional
-
 from pydantic import BaseModel, Field
 
 
@@ -16,13 +14,13 @@ class TaskParams(BaseModel):
 
     # --- THIS IS THE FIX ---
     # The file_path is now optional to allow for tasks that don't operate on a single file.
-    file_path: Optional[str] = None
+    file_path: str | None = None
     # --- END OF FIX ---
 
-    code: Optional[str] = None
-    symbol_name: Optional[str] = None
-    justification: Optional[str] = None
-    tag: Optional[str] = None
+    code: str | None = None
+    symbol_name: str | None = None
+    justification: str | None = None
+    tag: str | None = None
 
 
 # ID: 3173b37e-a64f-4227-92c5-84e444b68dc1
@@ -47,6 +45,6 @@ class PlannerConfig(BaseModel):
 class PlanExecutionError(Exception):
     """Custom exception for errors during plan execution."""
 
-    def __init__(self, message: str, violations: List[dict] | None = None):
+    def __init__(self, message: str, violations: list[dict] | None = None):
         super().__init__(message)
         self.violations = violations or []

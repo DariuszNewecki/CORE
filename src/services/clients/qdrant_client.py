@@ -9,7 +9,8 @@ ensuring every vector is stored with complete, traceable provenance.
 from __future__ import annotations
 
 import uuid
-from typing import Any, List, Optional, Sequence
+from collections.abc import Sequence
+from typing import Any
 
 from shared.config import settings
 from shared.models import EmbeddingPayload
@@ -48,10 +49,10 @@ class QdrantService:
 
     def __init__(
         self,
-        url: Optional[str] = None,
-        api_key: Optional[str] = None,
-        collection_name: Optional[str] = None,
-        vector_size: Optional[int] = None,
+        url: str | None = None,
+        api_key: str | None = None,
+        collection_name: str | None = None,
+        vector_size: int | None = None,
     ) -> None:
         """Initializes the Qdrant client from constitutional settings."""
         self.url = url or settings.QDRANT_URL
@@ -65,7 +66,7 @@ class QdrantService:
 
         # Optional support for named vectors if your collection is later migrated.
         # If set, we'll prefer this key inside record.vectors.
-        self.vector_name: Optional[str] = settings.model_extra.get("QDRANT_VECTOR_NAME")
+        self.vector_name: str | None = settings.model_extra.get("QDRANT_VECTOR_NAME")
 
         if not self.url:
             raise ValueError("QDRANT_URL is not configured.")
@@ -112,7 +113,7 @@ class QdrantService:
     async def upsert_capability_vector(
         self,
         point_id_str: str,
-        vector: List[float],
+        vector: list[float],
         payload_data: dict,
     ) -> str:
         """
@@ -150,7 +151,7 @@ class QdrantService:
         return pid
 
     # ID: 400e23e3-0911-4419-86be-9b06ba5b3fb5
-    async def get_all_vectors(self) -> List[qm.Record]:
+    async def get_all_vectors(self) -> list[qm.Record]:
         """Fetches all points with their vectors and payloads from the collection."""
         try:
             records, _ = await self.client.scroll(
@@ -165,7 +166,7 @@ class QdrantService:
             return []
 
     # ID: 19e184b6-3b4e-483f-902d-c8ac35d3e8d4 (updated)
-    async def get_vector_by_id(self, point_id: str) -> Optional[List[float]]:
+    async def get_vector_by_id(self, point_id: str) -> list[float] | None:
         """
         Retrieves a single vector by its point ID.
         """
@@ -252,7 +253,7 @@ class QdrantService:
         query_vector: Sequence[float],
         limit: int = 5,
         with_payload: bool = True,
-        filter_: Optional[qm.Filter] = None,
+        filter_: qm.Filter | None = None,
     ) -> list[dict[str, Any]]:
         """
         Simple nearest-neighbor search.

@@ -8,17 +8,16 @@ from __future__ import annotations
 
 import ast
 from pathlib import Path
-from typing import Dict, List, Set
 
-from services.database.session_manager import get_session
-from shared.models import AuditFinding, AuditSeverity
 from sqlalchemy import text
 
 from features.governance.audit_context import AuditorContext
 from features.governance.checks.base_check import BaseCheck
+from services.database.session_manager import get_session
+from shared.models import AuditFinding, AuditSeverity
 
 
-def _scan_imports(file_path: Path, content: str | None = None) -> List[str]:
+def _scan_imports(file_path: Path, content: str | None = None) -> list[str]:
     """
     Parse a Python file or its content and extract all imported module paths.
     """
@@ -58,8 +57,8 @@ class ImportRulesCheck(BaseCheck):
 
     def __init__(self, context: AuditorContext):
         super().__init__(context)
-        self.domain_map: Dict[str, str] = {}
-        self.import_rules: Dict[str, Set[str]] = {}
+        self.domain_map: dict[str, str] = {}
+        self.import_rules: dict[str, set[str]] = {}
 
     async def _load_rules_from_db(self):
         """Loads domain maps and import rules from the database."""
@@ -90,7 +89,7 @@ class ImportRulesCheck(BaseCheck):
         return None
 
     # ID: f1a7dedb-d5e4-442d-8957-b7f974778bc5
-    async def execute(self) -> List[AuditFinding]:
+    async def execute(self) -> list[AuditFinding]:
         """
         Runs the check by scanning all source files and validating their imports.
         """
@@ -104,7 +103,7 @@ class ImportRulesCheck(BaseCheck):
     # ID: 31287af5-d942-4a1d-b06d-d0570026d035
     async def execute_on_content(
         self, file_path_str: str, file_content: str
-    ) -> List[AuditFinding]:
+    ) -> list[AuditFinding]:
         """
         Runs the import check on a string of content instead of a file on disk.
         """
@@ -115,7 +114,7 @@ class ImportRulesCheck(BaseCheck):
 
     def _check_file_imports(
         self, file_path: Path, file_content: str | None
-    ) -> List[AuditFinding]:
+    ) -> list[AuditFinding]:
         """Core logic to check imports for a given file path and optional content."""
         findings = []
         # Use self.repo_root provided by the BaseCheck

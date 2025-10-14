@@ -7,7 +7,7 @@ that have not been assigned a capability ID.
 from __future__ import annotations
 
 import asyncio
-from typing import Any, Dict, List
+from typing import Any
 
 from core.knowledge_service import KnowledgeService
 from shared.config import settings
@@ -17,7 +17,7 @@ log = getLogger("audit_unassigned_caps")
 
 
 # ID: d93e7a47-27c1-4fa5-bf39-0a44bef8bf59
-def get_unassigned_symbols() -> List[Dict[str, Any]]:
+def get_unassigned_symbols() -> list[dict[str, Any]]:
     """
     Scans the knowledge graph for governable symbols with a capability of
     'unassigned' and returns them.

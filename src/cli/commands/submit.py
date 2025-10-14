@@ -6,9 +6,9 @@ Registers the new, high-level 'submit' workflow command.
 from __future__ import annotations
 
 import asyncio
-from typing import Optional
 
 import typer
+
 from features.project_lifecycle.integration_service import integrate_changes
 from shared.context import CoreContext
 
@@ -17,7 +17,7 @@ submit_app = typer.Typer(
     no_args_is_help=True,
 )
 
-_context: Optional[CoreContext] = None
+_context: CoreContext | None = None
 
 
 @submit_app.command(

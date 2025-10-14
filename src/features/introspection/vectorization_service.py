@@ -11,23 +11,23 @@ from __future__ import annotations
 import ast
 import hashlib
 from pathlib import Path
-from typing import Dict, List, Optional
 
-from core.cognitive_service import CognitiveService
 from rich.console import Console
 from rich.progress import track
+from sqlalchemy import text
+
+from core.cognitive_service import CognitiveService
 from services.clients.qdrant_client import QdrantService
 from services.database.session_manager import get_session
 from shared.config import settings
 from shared.logger import getLogger
 from shared.utils.embedding_utils import normalize_text
-from sqlalchemy import text
 
 log = getLogger("core_admin.knowledge.orchestrator")
 console = Console()
 
 
-async def _fetch_all_public_symbols_from_db() -> List[Dict]:
+async def _fetch_all_public_symbols_from_db() -> list[dict]:
     """Queries the database for all public symbols."""
     async with get_session() as session:
         stmt = text(
@@ -41,7 +41,7 @@ async def _fetch_all_public_symbols_from_db() -> List[Dict]:
         return [dict(row._mapping) for row in result]
 
 
-async def _get_stored_vector_hashes(qdrant_service: QdrantService) -> Dict[str, str]:
+async def _get_stored_vector_hashes(qdrant_service: QdrantService) -> dict[str, str]:
     """Fetches all point IDs and their content hashes from Qdrant."""
     hashes = {}
     offset = None
@@ -67,7 +67,7 @@ async def _get_stored_vector_hashes(qdrant_service: QdrantService) -> Dict[str, 
     return hashes
 
 
-def _get_source_code(file_path: Path, symbol_path: str) -> Optional[str]:
+def _get_source_code(file_path: Path, symbol_path: str) -> str | None:
     """Extracts the source code of a specific symbol from a file using AST."""
     if not file_path.exists():
         log.warning(
@@ -90,11 +90,11 @@ def _get_source_code(file_path: Path, symbol_path: str) -> Optional[str]:
 
 
 async def _process_vectorization_task(
-    task: Dict,
+    task: dict,
     cognitive_service: CognitiveService,
     qdrant_service: QdrantService,
     failure_log_path: Path,
-) -> Optional[str]:
+) -> str | None:
     """Processes a single symbol: gets embedding and upserts to Qdrant. Returns Qdrant point ID on success."""
     try:
         vector = await cognitive_service.get_embedding_for_code(task["source_code"])
@@ -127,7 +127,7 @@ async def _process_vectorization_task(
         return None
 
 
-async def _update_db_after_vectorization(updates: List[Dict]):
+async def _update_db_after_vectorization(updates: list[dict]):
     """Creates links in symbol_vector_links and updates the last_embedded timestamp."""
     if not updates:
         return

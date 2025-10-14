@@ -7,12 +7,10 @@ has a registered ID in the database.
 from __future__ import annotations
 
 import ast
-from typing import List
-
-from shared.ast_utility import find_symbol_id_and_def_line
-from shared.models import AuditFinding, AuditSeverity
 
 from features.governance.checks.base_check import BaseCheck
+from shared.ast_utility import find_symbol_id_and_def_line
+from shared.models import AuditFinding, AuditSeverity
 
 
 # ID: 3501ed8c-8366-4ad7-9ab4-7dcf4c045c70
@@ -22,7 +20,7 @@ class IdCoverageCheck(BaseCheck):
     """
 
     # ID: f69a1a2e-26cd-4cc2-8fdc-7f18e0e77d0c
-    def execute(self) -> List[AuditFinding]:
+    def execute(self) -> list[AuditFinding]:
         """
         Runs the check and returns a list of findings for any violations.
         """

@@ -8,11 +8,10 @@ from __future__ import annotations
 
 import json
 import re
-from typing import Dict, List, Optional, Union
 
 
 # ID: f2bd2480-f310-4090-ac1a-58ce05bfc4d3
-def extract_json_from_response(text: str) -> Optional[Union[Dict, List]]:
+def extract_json_from_response(text: str) -> dict | list | None:
     """
     Extracts a JSON object or array from a raw text response, making it robust
     against common LLM formatting issues like introductory text.
@@ -32,7 +31,7 @@ def extract_json_from_response(text: str) -> Optional[Union[Dict, List]]:
     return _extract_raw_json(text)
 
 
-def _extract_from_markdown(text: str) -> Optional[Union[Dict, List]]:
+def _extract_from_markdown(text: str) -> dict | list | None:
     """
     Attempts to extract JSON from a markdown code block.
 
@@ -54,7 +53,7 @@ def _extract_from_markdown(text: str) -> Optional[Union[Dict, List]]:
         return None
 
 
-def _extract_raw_json(text: str) -> Optional[Union[Dict, List]]:
+def _extract_raw_json(text: str) -> dict | list | None:
     """
     Extracts JSON by finding the outermost braces or brackets.
     Robust against extra text before or after the JSON.
@@ -93,7 +92,7 @@ def _extract_raw_json(text: str) -> Optional[Union[Dict, List]]:
 
 
 # ID: 853be68b-f2d4-4494-bf4c-98200bc08026
-def parse_write_blocks(text: str) -> Dict[str, str]:
+def parse_write_blocks(text: str) -> dict[str, str]:
     """
     Parses a string for one or more [[write:file_path]]...[[/write]] blocks.
 

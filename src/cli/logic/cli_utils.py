@@ -9,13 +9,14 @@ from __future__ import annotations
 import json
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
 import typer
-from core.knowledge_service import KnowledgeService
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ed25519
 from rich.console import Console
+
+from core.knowledge_service import KnowledgeService
 from shared.config import settings
 from shared.logger import getLogger
 
@@ -27,7 +28,7 @@ console = Console()
 
 
 # ID: 76d0313a-1d12-4ea2-9c98-e1d44283bb86
-async def find_test_file_for_capability_async(capability_key: str) -> Optional[Path]:
+async def find_test_file_for_capability_async(capability_key: str) -> Path | None:
     """
     Asynchronously finds the test file corresponding to a given capability key.
     """
@@ -64,7 +65,7 @@ async def find_test_file_for_capability_async(capability_key: str) -> Optional[P
 
 
 # ID: 8143391a-d9a7-5015-9c47-63647ca9eaee
-def save_yaml_file(path: Path, data: Dict[str, Any]) -> None:
+def save_yaml_file(path: Path, data: dict[str, Any]) -> None:
     """Saves data to a YAML file with consistent sorting."""
     import yaml
 
@@ -84,7 +85,7 @@ def load_private_key() -> ed25519.Ed25519PrivateKey:
 
 
 # ID: eebbca97-f3ba-46f0-a6dd-af189bfaf93c
-def archive_rollback_plan(proposal_name: str, proposal: Dict[str, Any]) -> None:
+def archive_rollback_plan(proposal_name: str, proposal: dict[str, Any]) -> None:
     """Archives a proposal's rollback plan upon approval."""
     rollback_plan = proposal.get("rollback_plan")
     if not rollback_plan:

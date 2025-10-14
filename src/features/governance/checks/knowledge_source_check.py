@@ -8,7 +8,7 @@ import json
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
 import yaml
 from sqlalchemy import text
@@ -65,7 +65,7 @@ FIELD_PRIORITY = [
 class CheckResult:
     name: str
     passed: bool
-    details: Dict[str, Any]
+    details: dict[str, Any]
 
 
 # ID: 81d6e8ed-a6f6-444c-acda-9064896c5111
@@ -142,11 +142,11 @@ class KnowledgeSourceCheck:
         *,
         label: str,
         yaml_path: Path | None,
-        db_rows: List[Dict[str, Any]],
-        db_cols: List[str],
+        db_rows: list[dict[str, Any]],
+        db_cols: list[str],
         yaml_key: str,
         primary_key: str,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Compare a single section (YAML vs DB)."""
         # Handle missing YAML file
         if yaml_path is None:
@@ -165,7 +165,7 @@ class KnowledgeSourceCheck:
             "diff": diff,
         }
 
-    def _handle_missing_yaml(self) -> Dict[str, Any]:
+    def _handle_missing_yaml(self) -> dict[str, Any]:
         """Handle the case where a YAML file is missing."""
         if self.require_yaml_exports:
             return {
@@ -185,8 +185,8 @@ class KnowledgeSourceCheck:
         session: AsyncSession,
         schema: str,
         table: str,
-        preferred_order: List[str],
-    ) -> Tuple[List[Dict[str, Any]], List[str]]:
+        preferred_order: list[str],
+    ) -> tuple[list[dict[str, Any]], list[str]]:
         """Fetch all rows and columns from a database table."""
         cols = await self._list_columns(session, schema, table)
         if not cols:
@@ -205,7 +205,7 @@ class KnowledgeSourceCheck:
 
     async def _list_columns(
         self, session: AsyncSession, schema: str, table: str
-    ) -> List[str]:
+    ) -> list[str]:
         """Get the list of columns for a table from information_schema."""
         sql = text(
             """
@@ -229,7 +229,7 @@ class KnowledgeSourceCheck:
                 return p
         return None
 
-    def _read_yaml(self, path: Path, key: str) -> List[Dict[str, Any]]:
+    def _read_yaml(self, path: Path, key: str) -> list[dict[str, Any]]:
         """Read a YAML file and extract items by key."""
         try:
             data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
@@ -243,8 +243,8 @@ class KnowledgeSourceCheck:
 
     # ---------- Comparison logic ----------
     def _determine_compare_fields(
-        self, yaml_items: List[Dict[str, Any]], db_cols: List[str]
-    ) -> Tuple[str, ...]:
+        self, yaml_items: list[dict[str, Any]], db_cols: list[str]
+    ) -> tuple[str, ...]:
         """Determine which fields to compare based on YAML and DB columns."""
         yaml_keys = set()
         for item in yaml_items:
@@ -257,11 +257,11 @@ class KnowledgeSourceCheck:
 
     def _diff_records(
         self,
-        yaml_items: List[Dict[str, Any]],
-        db_items: List[Dict[str, Any]],
+        yaml_items: list[dict[str, Any]],
+        db_items: list[dict[str, Any]],
         primary_key: str,
-        compare_fields: Tuple[str, ...],
-    ) -> Dict[str, Any]:
+        compare_fields: tuple[str, ...],
+    ) -> dict[str, Any]:
         """Compare YAML and DB records and return differences."""
         # Build indexes by primary key
         yaml_index = self._build_index(yaml_items, primary_key)
@@ -281,8 +281,8 @@ class KnowledgeSourceCheck:
         }
 
     def _build_index(
-        self, items: List[Dict[str, Any]], key: str
-    ) -> Dict[str, Dict[str, Any]]:
+        self, items: list[dict[str, Any]], key: str
+    ) -> dict[str, dict[str, Any]]:
         """Build an index of items by their primary key."""
         return {
             str(item.get(key)).strip(): item
@@ -292,10 +292,10 @@ class KnowledgeSourceCheck:
 
     def _find_mismatches(
         self,
-        yaml_index: Dict[str, Dict[str, Any]],
-        db_index: Dict[str, Dict[str, Any]],
-        compare_fields: Tuple[str, ...],
-    ) -> List[Dict[str, Any]]:
+        yaml_index: dict[str, dict[str, Any]],
+        db_index: dict[str, dict[str, Any]],
+        compare_fields: tuple[str, ...],
+    ) -> list[dict[str, Any]]:
         """Find records that exist in both but have different field values."""
         mismatched = []
         common_keys = set(yaml_index.keys()) & set(db_index.keys())
@@ -313,10 +313,10 @@ class KnowledgeSourceCheck:
 
     def _compare_records(
         self,
-        yaml_record: Dict[str, Any],
-        db_record: Dict[str, Any],
-        compare_fields: Tuple[str, ...],
-    ) -> Dict[str, Dict[str, Any]]:
+        yaml_record: dict[str, Any],
+        db_record: dict[str, Any],
+        compare_fields: tuple[str, ...],
+    ) -> dict[str, dict[str, Any]]:
         """Compare two records field by field."""
         diffs = {}
 
@@ -343,7 +343,7 @@ class KnowledgeSourceCheck:
         return (val1 is None or val1 == "") and (val2 is None or val2 == "")
 
     @staticmethod
-    def _is_diff_clean(diff: Dict[str, Any]) -> bool:
+    def _is_diff_clean(diff: dict[str, Any]) -> bool:
         """Check if a diff shows no differences."""
         return (
             not diff["missing_in_db"]
@@ -353,14 +353,14 @@ class KnowledgeSourceCheck:
 
     # ---------- Utility functions ----------
     @staticmethod
-    def _order_columns(cols: List[str], preferred: List[str]) -> List[str]:
+    def _order_columns(cols: list[str], preferred: list[str]) -> list[str]:
         """Order columns with preferred ones first, rest alphabetically."""
         return [c for c in preferred if c in cols] + [
             c for c in cols if c not in preferred
         ]
 
     @staticmethod
-    def _order_fields(fields: set) -> Tuple[str, ...]:
+    def _order_fields(fields: set) -> tuple[str, ...]:
         """Order fields with priority fields first, rest alphabetically."""
         ordered = [f for f in FIELD_PRIORITY if f in fields] + [
             f for f in sorted(fields) if f not in FIELD_PRIORITY
@@ -368,7 +368,7 @@ class KnowledgeSourceCheck:
         return tuple(ordered)
 
     def _determine_overall_status(
-        self, section_results: Dict[str, Dict[str, Any]]
+        self, section_results: dict[str, dict[str, Any]]
     ) -> bool:
         """Determine if the overall check passed based on section results."""
         any_failed = any(
@@ -386,9 +386,9 @@ class KnowledgeSourceCheck:
     def _build_report(
         self,
         passed: bool,
-        yaml_paths: Dict[str, Path | None],
-        section_results: Dict[str, Dict[str, Any]],
-    ) -> Dict[str, Any]:
+        yaml_paths: dict[str, Path | None],
+        section_results: dict[str, dict[str, Any]],
+    ) -> dict[str, Any]:
         """Build the complete report structure."""
         return {
             "check": self.NAME,
@@ -408,7 +408,7 @@ class KnowledgeSourceCheck:
             "sections": section_results,
         }
 
-    def _save_report(self, report: Dict[str, Any]) -> None:
+    def _save_report(self, report: dict[str, Any]) -> None:
         """Save the report to a timestamped JSON file."""
         report_path = self.reports_dir / (
             datetime.utcnow().strftime("%Y%m%d_%H%M%S") + ".json"

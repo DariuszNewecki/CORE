@@ -7,12 +7,12 @@ Refactored under dry_by_design to use the canonical context setter.
 from __future__ import annotations
 
 import asyncio
-from typing import Optional
 
 import typer
-from cli.logic.hub import hub_search
 from rich.console import Console
 from rich.table import Table
+
+from cli.logic.hub import hub_search
 from shared.context import CoreContext
 
 console = Console()
@@ -21,7 +21,7 @@ search_app = typer.Typer(
     no_args_is_help=True,
 )
 
-_context: Optional[CoreContext] = None
+_context: CoreContext | None = None
 
 
 # ID: ce6ffa34-2440-4188-bc95-0f6703651b9a

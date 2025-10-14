@@ -59,9 +59,9 @@ import argparse
 # src/features/governance/audit_postprocessor.py
 import json
 import sys
-from datetime import datetime, timezone
+from collections.abc import Iterable, Mapping, MutableMapping, Sequence
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Iterable, Mapping, MutableMapping, Sequence
 
 
 # ID: 34bd4ecc-62ce-4d54-b72b-bfd2b14324ed
@@ -79,7 +79,7 @@ class EntryPointAllowList:
 
     @classmethod
     # ID: f789f14f-26bc-4cc4-b889-17c55c6c5f77
-    def default(cls) -> "EntryPointAllowList":
+    def default(cls) -> EntryPointAllowList:
         return cls(
             allowed_types=[
                 # Structural/data constructs
@@ -117,7 +117,7 @@ class EntryPointAllowList:
 
 
 def _now_iso() -> str:
-    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def _safe_symbol_meta(

@@ -9,18 +9,19 @@ from __future__ import annotations
 import asyncio
 import json
 import uuid
-from typing import Any, Dict, List
+from typing import Any
 
 import yaml
 from rich.console import Console
+from sqlalchemy import text
+
 from services.database.session_manager import get_session
 from shared.config import settings
-from sqlalchemy import text
 
 console = Console()
 
 
-async def _migrate_capabilities_from_manifest() -> List[Dict[str, Any]]:
+async def _migrate_capabilities_from_manifest() -> list[dict[str, Any]]:
     """Loads capabilities from the legacy project_manifest.yaml file, ensuring uniqueness."""
     manifest_path = settings.get_path("mind.project_manifest")
     if not manifest_path.exists():
@@ -58,7 +59,7 @@ async def _migrate_capabilities_from_manifest() -> List[Dict[str, Any]]:
     return migrated_caps
 
 
-async def _migrate_symbols_from_ast() -> List[Dict[str, Any]]:
+async def _migrate_symbols_from_ast() -> list[dict[str, Any]]:
     """Scans the codebase using SymbolScanner to populate the symbols table."""
     from features.introspection.sync_service import SymbolScanner
 

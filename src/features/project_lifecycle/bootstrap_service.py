@@ -8,10 +8,10 @@ from __future__ import annotations
 
 import shutil
 import subprocess
-from typing import Optional
 
 import typer
 from rich.console import Console
+
 from shared.logger import getLogger
 
 log = getLogger("core_admin.bootstrap")
@@ -72,7 +72,7 @@ def _run_gh_command(command: list[str], ignore_errors: bool = False):
 @bootstrap_app.command("issues")
 # ID: 695834ae-f6a1-49ed-baa8-7e99276df2ac
 def bootstrap_issues(
-    repo: Optional[str] = typer.Option(
+    repo: str | None = typer.Option(
         None, "--repo", help="The GitHub repository in 'owner/repo' format."
     ),
 ):

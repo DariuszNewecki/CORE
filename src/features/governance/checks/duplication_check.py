@@ -7,20 +7,20 @@ symbols (functions/classes) using the Qdrant vector database.
 from __future__ import annotations
 
 import asyncio
-from typing import Any, Dict, List
+from typing import Any
 
 import networkx as nx
 from rich.progress import track
+
+from features.governance.audit_context import AuditorContext
 from services.clients.qdrant_client import QdrantService
 from shared.logger import getLogger
 from shared.models import AuditFinding, AuditSeverity
 
-from features.governance.audit_context import AuditorContext
-
 log = getLogger("duplication_check")
 
 
-def _group_findings(findings: list[AuditFinding]) -> List[List[AuditFinding]]:
+def _group_findings(findings: list[AuditFinding]) -> list[list[AuditFinding]]:
     """Groups individual finding pairs into clusters of related duplicates."""
     # This helper function is correct and does not need changes.
     graph = nx.Graph()
@@ -72,8 +72,8 @@ class DuplicationCheck:
         }
 
     async def _check_single_symbol(
-        self, symbol: Dict[str, Any], threshold: float
-    ) -> List[AuditFinding]:
+        self, symbol: dict[str, Any], threshold: float
+    ) -> list[AuditFinding]:
         """Checks a single symbol for duplicates against the Qdrant index."""
         findings = []
         symbol_key = symbol.get("symbol_path")
@@ -134,7 +134,7 @@ class DuplicationCheck:
         return findings
 
     # ID: a74388ba-140f-4cf6-aa58-de9d61374038
-    async def execute(self, threshold: float = 0.80) -> List[AuditFinding]:
+    async def execute(self, threshold: float = 0.80) -> list[AuditFinding]:
         """
         Asynchronously runs the duplication check across all vectorized symbols.
         """

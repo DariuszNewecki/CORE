@@ -11,7 +11,6 @@ import json
 import os
 import subprocess
 from pathlib import Path
-from typing import Dict
 
 from shared.config import settings
 from shared.logger import getLogger
@@ -20,7 +19,7 @@ log = getLogger(__name__)
 
 
 # ID: f22f2743-a396-4ca4-b88b-94cd76ee8572
-def run_tests(silent: bool = True) -> Dict[str, str]:
+def run_tests(silent: bool = True) -> dict[str, str]:
     """Executes pytest on the tests/ directory and returns a structured result."""
     log.info("🧪 Running tests with pytest...")
     result = {
@@ -88,7 +87,7 @@ def _summarize(output: str) -> str:
     return "No test summary found."
 
 
-def _log_test_result(data: Dict[str, str]):
+def _log_test_result(data: dict[str, str]):
     """Appends a JSON record of a test run to the persistent log file."""
     try:
         log_path = Path(settings.CORE_ACTION_LOG_PATH)
@@ -99,7 +98,7 @@ def _log_test_result(data: Dict[str, str]):
         log.warning(f"Failed to write to persistent test log file: {e}", exc_info=True)
 
 
-def _store_failure_if_any(data: Dict[str, str]):
+def _store_failure_if_any(data: dict[str, str]):
     """Saves the details of a failed test run to a dedicated file for easy access."""
     try:
         failure_path = Path("logs/test_failures.json")

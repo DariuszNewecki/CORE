@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import ast
 import hashlib
-from typing import Dict, List, Tuple
 
 # --- THIS IS THE FIX ---
 from shared.ast_utility import normalize_ast
@@ -21,7 +20,7 @@ from shared.config import settings
 def find_structurally_similar_helpers(
     min_occurrences: int = 3,
     max_lines: int = 10,
-) -> Dict[str, List[Tuple[str, int]]]:
+) -> dict[str, list[tuple[str, int]]]:
     """
     Scans the 'src/' directory for small, structurally identical public functions.
 
@@ -38,7 +37,7 @@ def find_structurally_similar_helpers(
         and values are a list of tuples containing (file_path, line_number).
     """
     src_root = settings.REPO_PATH / "src"
-    duplicates: Dict[str, List[Tuple[str, int]]] = {}
+    duplicates: dict[str, list[tuple[str, int]]] = {}
 
     for py_file in src_root.rglob("*.py"):
         # Exclude tests and other non-source directories

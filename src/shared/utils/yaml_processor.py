@@ -19,7 +19,7 @@ pipeline.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
 from ruamel.yaml import YAML
 
@@ -50,7 +50,7 @@ class YAMLProcessor:
             log.debug("YAML processor configured for strict constitutional compliance")
 
     # ID: 78d97bea-bfa3-49b2-ba62-8e4093d84fb0
-    def load(self, file_path: Path) -> Optional[Dict[str, Any]]:
+    def load(self, file_path: Path) -> dict[str, Any] | None:
         """Load and parse a constitutional YAML file with error context.
 
         This is the single entry point for all YAML loading in governance checks,
@@ -94,7 +94,7 @@ class YAMLProcessor:
             ) from e
 
     # ID: 7e913478-a8e9-4e75-bd12-54f2264487c6
-    def load_strict(self, file_path: Path) -> Dict[str, Any]:
+    def load_strict(self, file_path: Path) -> dict[str, Any]:
         """Load YAML with strict constitutional validation (no duplicate keys).
 
         Use for policy files and schemas where duplicate keys indicate errors.
@@ -120,7 +120,7 @@ class YAMLProcessor:
         return content
 
     # ID: 91acfb90-7639-41f3-b1cc-064e7d8a0d46
-    def dump(self, data: Dict[str, Any], file_path: Path) -> None:
+    def dump(self, data: dict[str, Any], file_path: Path) -> None:
         """Write YAML content with constitutional formatting.
 
         Ensures consistent formatting for .intent/ files, preserving order and

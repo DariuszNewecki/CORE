@@ -6,11 +6,11 @@ Parses the constitutional structure definition from meta.yaml to discover all de
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Set
+from typing import Any
 
 
 # ID: ae492732-1dab-4982-a129-1f7f9af67439
-def get_all_constitutional_paths(meta_content: dict, intent_dir: Path) -> Set[str]:
+def get_all_constitutional_paths(meta_content: dict, intent_dir: Path) -> set[str]:
     """
     Recursively discovers all declared constitutional file paths from the parsed
     content of meta.yaml.
@@ -24,7 +24,7 @@ def get_all_constitutional_paths(meta_content: dict, intent_dir: Path) -> Set[st
     """
     repo_root = intent_dir.parent
     # The path to meta.yaml is known relative to the intent_dir
-    known_paths: Set[str] = {
+    known_paths: set[str] = {
         str((intent_dir / "meta.yaml").relative_to(repo_root)).replace("\\", "/")
     }
 

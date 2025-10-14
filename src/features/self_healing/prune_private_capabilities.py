@@ -11,8 +11,9 @@ import asyncio
 import re
 
 import typer
-from core.knowledge_service import KnowledgeService
 from rich.console import Console
+
+from core.knowledge_service import KnowledgeService
 from shared.config import settings
 from shared.logger import getLogger
 

@@ -8,12 +8,13 @@ from __future__ import annotations
 
 import asyncio
 
-from features.introspection.sync_service import SymbolScanner
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
-from services.database.session_manager import get_session
 from sqlalchemy import text
+
+from features.introspection.sync_service import SymbolScanner
+from services.database.session_manager import get_session
 
 console = Console()
 

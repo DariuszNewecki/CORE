@@ -6,8 +6,6 @@ using K-Means clustering on their vector embeddings.
 
 from __future__ import annotations
 
-from typing import List
-
 import numpy as np
 from rich.console import Console
 
@@ -28,7 +26,7 @@ console = Console()
 # ID: 1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d
 async def find_semantic_clusters(
     n_clusters: int = 15,
-) -> List[List[str]]:
+) -> list[list[str]]:
     """
     Finds clusters of semantically similar code symbols using K-Means clustering.
     """
@@ -67,7 +65,7 @@ async def find_semantic_clusters(
         labels = kmeans.fit_predict(vector_array)
 
         # Group symbol keys by their predicted cluster label
-        clusters: List[List[str]] = [[] for _ in range(n_clusters)]
+        clusters: list[list[str]] = [[] for _ in range(n_clusters)]
         for i, label in enumerate(labels):
             clusters[label].append(symbol_keys[i])
         # --- END OF FIX ---

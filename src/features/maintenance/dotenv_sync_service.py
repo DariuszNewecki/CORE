@@ -6,16 +6,17 @@ into the database, governed by the runtime_requirements.yaml policy.
 
 from __future__ import annotations
 
-from typing import Any, Dict, List
+from typing import Any
 
 from rich.console import Console
 from rich.table import Table
+from sqlalchemy import func
+from sqlalchemy.dialects.postgresql import insert as pg_insert
+
 from services.database.models import RuntimeService as RuntimeSetting
 from services.database.session_manager import get_session
 from shared.config import settings
 from shared.logger import getLogger
-from sqlalchemy import func
-from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 log = getLogger("dotenv_sync_service")
 console = Console()
@@ -44,7 +45,7 @@ async def run_dotenv_sync(dry_run: bool):
         )
         return
 
-    settings_to_upsert: List[Dict[str, Any]] = []
+    settings_to_upsert: list[dict[str, Any]] = []
     for key, config in variables_to_sync.items():
         value = getattr(settings, key, None)
 

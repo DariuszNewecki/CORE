@@ -9,20 +9,19 @@ from __future__ import annotations
 import json
 from dataclasses import asdict
 from pathlib import Path
-from typing import Dict, Set
 
 from shared.models import CapabilityMeta, DriftReport
 
 
 # ID: 6cc5efdf-037e-4862-b13e-0a569d889a97
 def detect_capability_drift(
-    manifest_caps: Dict[str, CapabilityMeta], code_caps: Dict[str, CapabilityMeta]
+    manifest_caps: dict[str, CapabilityMeta], code_caps: dict[str, CapabilityMeta]
 ) -> DriftReport:
     """
     Compares two dictionaries of capabilities and returns a drift report.
     """
-    manifest_keys: Set[str] = set(manifest_caps.keys())
-    code_keys: Set[str] = set(code_caps.keys())
+    manifest_keys: set[str] = set(manifest_caps.keys())
+    code_keys: set[str] = set(code_caps.keys())
 
     missing_in_code = sorted(list(manifest_keys - code_keys))
     undeclared_in_manifest = sorted(list(code_keys - manifest_keys))
