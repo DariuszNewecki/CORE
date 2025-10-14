@@ -37,9 +37,7 @@ def register_guard(app: typer.Typer) -> None:
         manifest_path: Path | None = typer.Option(
             None, help="Explicit manifest path (deprecated)."
         ),
-        output: Path | None = typer.Option(
-            None, help="Path for JSON evidence report."
-        ),
+        output: Path | None = typer.Option(None, help="Path for JSON evidence report."),
         format: str | None = typer.Option(None, help="json|table|pretty"),
         fail_on: str | None = typer.Option(None, help="any|missing|undeclared"),
     ) -> None:
