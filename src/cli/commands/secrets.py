@@ -13,9 +13,8 @@ from __future__ import annotations
 from pathlib import Path
 
 import typer
-from rich.table import Table
-
 from core.secrets_service import get_secrets_service
+from rich.table import Table
 from services.database.session_manager import get_session
 from shared.cli_utils import (
     async_command,
@@ -36,6 +35,7 @@ app = typer.Typer(
 
 @app.command()
 @async_command
+# ID: 61189f66-cc71-4938-a678-0184487ad2da
 async def set(
     key: str = typer.Argument(..., help="Secret key (e.g., 'anthropic.api_key')"),
     value: str = typer.Option(
@@ -99,6 +99,7 @@ async def set(
 
 @app.command()
 @async_command
+# ID: a8a46426-d62f-4b38-ac40-80fe770116f8
 async def get(
     key: str = typer.Argument(..., help="Secret key to retrieve"),
     show: bool = typer.Option(
@@ -140,6 +141,7 @@ async def get(
 
 @app.command()
 @async_command
+# ID: dbe5d13b-304a-4ead-a089-8db68887ac1e
 async def list():
     """
     List all secret keys in the database (does not show values).
@@ -186,6 +188,7 @@ async def list():
 
 @app.command()
 @async_command
+# ID: e789e7ff-2cca-4225-beee-f0076ee80201
 async def delete(
     key: str = typer.Argument(..., help="Secret key to delete"),
     yes: bool = typer.Option(
@@ -226,6 +229,7 @@ async def delete(
 
 @app.command()
 @async_command
+# ID: 9a01bc3c-1fde-4cd9-a918-905b926da343
 async def migrate_from_env(
     env_file: Path = typer.Option(
         ".env",
@@ -348,6 +352,7 @@ async def migrate_from_env(
 
 @app.command()
 @async_command
+# ID: 7fdab6b1-4ffd-4e49-ace6-92fca4a5e4f0
 async def rotate(
     key: str = typer.Argument(..., help="Secret key to rotate"),
     new_value: str = typer.Option(

@@ -15,16 +15,16 @@ import os
 from datetime import datetime
 
 from cryptography.fernet import Fernet, InvalidToken
-from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from shared.exceptions import SecretNotFoundError
 from shared.logger import getLogger
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession
 
 log = getLogger(__name__)
 
 
 # ID: secrets-service-001
+# ID: 3b635f48-6792-4a07-9fb1-0a90461d26cd
 class SecretsService:
     """
     Manages encrypted secrets in the database.
@@ -51,6 +51,7 @@ class SecretsService:
             raise ValueError(f"Invalid master key format: {e}")
 
     @staticmethod
+    # ID: 0ca1b655-8522-413e-9668-a699b68ca224
     def generate_master_key() -> str:
         """
         Generate a new Fernet master key.
@@ -60,12 +61,14 @@ class SecretsService:
         """
         return Fernet.generate_key().decode()
 
+    # ID: dc8eadd9-5dab-4369-b598-9773cd967e51
     def encrypt(self, plaintext: str) -> str:
         """Encrypt a secret value."""
         if not plaintext:
             raise ValueError("Cannot encrypt empty value")
         return self.cipher.encrypt(plaintext.encode()).decode()
 
+    # ID: 9f41551a-9871-45c7-848b-5a4fcaae66be
     def decrypt(self, ciphertext: str) -> str:
         """Decrypt a secret value."""
         if not ciphertext:
@@ -75,6 +78,7 @@ class SecretsService:
         except InvalidToken:
             raise ValueError("Decryption failed - wrong master key or corrupted data")
 
+    # ID: 7a53be29-a1e2-4880-acb5-55b5b97f990f
     async def set_secret(
         self,
         db: AsyncSession,
@@ -119,6 +123,7 @@ class SecretsService:
 
         log.info(f"Secret '{key}' stored successfully (encrypted)")
 
+    # ID: a9f6d951-fcac-4bcb-9d30-f70c388da777
     async def get_secret(
         self,
         db: AsyncSession,
@@ -159,6 +164,7 @@ class SecretsService:
         # Decrypt and return
         return self.decrypt(row[0])
 
+    # ID: ccd364c2-e3b2-4f44-8c7a-183f5a1d9e58
     async def delete_secret(self, db: AsyncSession, key: str) -> None:
         """
         Delete a secret from the database.
@@ -185,6 +191,7 @@ class SecretsService:
 
         log.info(f"Secret '{key}' deleted")
 
+    # ID: 5a325326-dfed-4fa6-b4d7-0496a59d79d3
     async def list_secrets(self, db: AsyncSession) -> list[dict]:
         """
         List all secret keys (not values!) in the database.
@@ -211,6 +218,7 @@ class SecretsService:
             for row in result.fetchall()
         ]
 
+    # ID: 9c6290c5-faca-4ccf-a8c6-e11d785a1633
     async def rotate_secret(
         self,
         db: AsyncSession,
@@ -287,6 +295,7 @@ class SecretsService:
             log.error(f"Failed to audit secret access: {e}")
 
     @staticmethod
+    # ID: 7fe8f54c-1a07-430d-9870-49fc93ab5bf5
     async def migrate_from_env(
         db: AsyncSession,
         env_vars: dict[str, str],
@@ -330,6 +339,7 @@ class SecretsService:
 
 
 # ID: secrets-service-002
+# ID: ec3157ed-0084-441f-934c-a6646eae6942
 async def get_secrets_service(db: AsyncSession) -> SecretsService:
     """
     Factory function to create SecretsService with master key from environment.
