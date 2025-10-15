@@ -11,10 +11,9 @@ import asyncio
 import random
 from typing import Any
 
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from services.config_service import ConfigService, LLMResourceConfig
 from shared.logger import getLogger
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from .providers.base import AIProvider
 
@@ -43,6 +42,7 @@ class LLMClient:
         self._last_request_time: float = 0
 
     @classmethod
+    # ID: 7614f8ad-ce43-4ed4-b664-97c8b5561c5c
     async def create(
         cls,
         db: AsyncSession,
@@ -155,6 +155,7 @@ class LLMClient:
 
 
 # ID: llm-client-factory-001
+# ID: 54402cb1-0a95-46ce-95ac-66a3dad98e74
 async def create_llm_client_for_role(
     db: AsyncSession,
     cognitive_role: str,

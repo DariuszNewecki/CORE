@@ -17,16 +17,17 @@ from __future__ import annotations
 
 from typing import Any
 
+from shared.logger import getLogger
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.secrets_service import get_secrets_service
-from shared.logger import getLogger
 
 log = getLogger(__name__)
 
 
 # ID: config-service-001
+# ID: ae2315ee-848e-43fc-a243-81c4a87b4533
 class ConfigService:
     """
     Provides configuration from database with caching.
@@ -43,6 +44,7 @@ class ConfigService:
         self._secrets_service: Any | None = None
 
     @classmethod
+    # ID: 7d590758-beda-4a79-a1ae-2cffefad332b
     async def create(cls, db: AsyncSession) -> ConfigService:
         """
         Factory method to create ConfigService with preloaded cache.
@@ -66,6 +68,7 @@ class ConfigService:
 
         return cls(db, cache)
 
+    # ID: be423afb-bd41-48c9-873b-682a47def92e
     async def get(
         self,
         key: str,
@@ -95,6 +98,7 @@ class ConfigService:
 
         return value
 
+    # ID: 1c7b3d72-a9af-4cc3-843f-c154ae9971c5
     async def get_secret(
         self,
         key: str,
@@ -122,6 +126,7 @@ class ConfigService:
             audit_context=audit_context,
         )
 
+    # ID: 107d3d58-bbd7-48eb-9e29-daa924a5a2d8
     async def get_int(self, key: str, default: int | None = None) -> int | None:
         """Get config value as integer."""
         value = await self.get(
@@ -129,6 +134,7 @@ class ConfigService:
         )
         return int(value) if value else None
 
+    # ID: 0dec029a-d03b-4964-b613-f75b1765ce9b
     async def get_float(self, key: str, default: float | None = None) -> float | None:
         """Get config value as float."""
         value = await self.get(
@@ -136,6 +142,7 @@ class ConfigService:
         )
         return float(value) if value else None
 
+    # ID: 65c9694b-737c-4c0c-ac0b-bfe3194cf898
     async def get_bool(self, key: str, default: bool = False) -> bool:
         """Get config value as boolean."""
         value = await self.get(key, default=str(default))
@@ -143,6 +150,7 @@ class ConfigService:
             return default
         return value.lower() in ("true", "1", "yes", "on")
 
+    # ID: cd679f39-7913-4d3d-9082-a2ad06796b07
     async def set(
         self,
         key: str,
@@ -177,6 +185,7 @@ class ConfigService:
 
         log.info(f"Config '{key}' set to '{value}'")
 
+    # ID: ab4e193d-a975-4252-8076-e8eb0241d9bb
     async def reload_cache(self) -> None:
         """Reload non-secret config cache from database."""
         query = text(
@@ -194,6 +203,7 @@ class ConfigService:
 
 
 # ID: config-service-002
+# ID: ad8835b0-bc59-4f33-91c6-1b7813ba1769
 async def bootstrap_config_from_env() -> None:
     """
     Bootstrap database configuration from .env file.
@@ -205,7 +215,6 @@ async def bootstrap_config_from_env() -> None:
         poetry run core-admin manage config bootstrap
     """
     from dotenv import dotenv_values
-
     from services.database.session_manager import get_session
 
     env_vars = dotenv_values(".env")
@@ -254,6 +263,7 @@ async def bootstrap_config_from_env() -> None:
 
 
 # ID: config-service-003
+# ID: 02c61ec0-d371-4d87-8118-178f9aca042e
 class LLMResourceConfig:
     """
     Convenience wrapper for LLM resource configuration.
@@ -271,25 +281,30 @@ class LLMResourceConfig:
         self._prefix = resource_name.lower().replace("-", "_")
 
     @classmethod
+    # ID: 5370325e-b7e5-4c2a-b388-718b43c3c138
     async def for_resource(cls, config: ConfigService, resource_name: str):
         """Create config wrapper for a specific LLM resource."""
         return cls(config, resource_name)
 
+    # ID: 55e30edb-8a17-4467-8f2c-ef204bcfab57
     async def get_api_key(self, audit_context: str | None = None) -> str:
         """Get API key for this resource."""
         key = f"{self._prefix}.api_key"
         return await self.config.get_secret(key, audit_context=audit_context)
 
+    # ID: 44a8c3fc-c131-42a7-ab93-5d2e3e16d9f5
     async def get_model_name(self) -> str:
         """Get model name for this resource."""
         key = f"{self._prefix}.model_name"
         return await self.config.get(key, required=True)
 
+    # ID: 48e5c41d-5271-4f20-a91c-1af7f5764a2c
     async def get_api_url(self) -> str:
         """Get API URL for this resource."""
         key = f"{self._prefix}.api_url"
         return await self.config.get(key, required=True)
 
+    # ID: 46bebd92-9428-4040-95b1-2961bec26f0f
     async def get_max_concurrent(self) -> int:
         """Get max concurrent requests for this resource."""
         key = f"{self._prefix}.max_concurrent"
@@ -299,6 +314,7 @@ class LLMResourceConfig:
             value = await self.config.get(default_key, default="2")
         return int(value)
 
+    # ID: 87db30fd-2c4d-476f-8b2d-ad88bb5b7ecd
     async def get_rate_limit(self) -> float:
         """Get rate limit (seconds between requests) for this resource."""
         key = f"{self._prefix}.rate_limit"
@@ -308,6 +324,7 @@ class LLMResourceConfig:
             value = await self.config.get(default_key, default="2.0")
         return float(value)
 
+    # ID: cbcbb147-98f7-46e6-b51e-020af17899e4
     async def get_timeout(self) -> int:
         """Get request timeout for this resource."""
         key = f"{self._prefix}.timeout"

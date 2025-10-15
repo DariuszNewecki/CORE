@@ -16,17 +16,18 @@ import os
 from typing import Any
 
 from cryptography.fernet import Fernet
+from shared.config import settings
+from shared.logger import getLogger
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from services.database.session_manager import get_session
-from shared.config import settings
-from shared.logger import getLogger
 
 log = getLogger("config_service")
 
 
 # ID: secrets-manager-001
+# ID: b3687136-ebc4-40d0-85a9-20ca0a67f4ac
 class SecretsManager:
     """
     Handles encryption/decryption of secrets.
@@ -60,6 +61,7 @@ class SecretsManager:
 
         self._initialized = True
 
+    # ID: 7761508a-e278-4a25-84dd-662a6dc0da64
     def decrypt(self, ciphertext: str) -> str:
         """Decrypt a secret value."""
         self._ensure_initialized()
@@ -74,6 +76,7 @@ class SecretsManager:
         except Exception as e:
             raise ValueError(f"Decryption failed: {e}")
 
+    # ID: 747d32a4-1a21-4a8e-9f23-879fe3ddad76
     def encrypt(self, plaintext: str) -> str:
         """Encrypt a secret value."""
         self._ensure_initialized()
@@ -165,6 +168,7 @@ class ConfigService:
         # 3. Return the default
         return default
 
+    # ID: 37a77ebc-3d57-4982-ab06-0b3bd33f0085
     async def get_int(self, key: str, default: int | None = None) -> int | None:
         """Get configuration value as integer."""
         value = await self.get(key, default=default)
@@ -172,6 +176,7 @@ class ConfigService:
             return None
         return int(value)
 
+    # ID: 4ee6c6a8-9feb-488e-b0fc-756dde0e18d6
     async def get_float(self, key: str, default: float | None = None) -> float | None:
         """Get configuration value as float."""
         value = await self.get(key, default=default)
@@ -179,6 +184,7 @@ class ConfigService:
             return None
         return float(value)
 
+    # ID: 4bef5aa4-8a2c-4d96-b713-44649a582576
     async def get_bool(self, key: str, default: bool = False) -> bool:
         """Get configuration value as boolean."""
         value = await self.get(key, default=default)
@@ -189,6 +195,7 @@ class ConfigService:
         return str(value).lower() in ("true", "1", "yes", "on")
 
     # ID: config-service-secrets-001
+    # ID: b3718640-1d8e-4889-9575-c051dca5b942
     async def get_secret(
         self,
         key: str,
@@ -237,6 +244,7 @@ class ConfigService:
             log.error(f"Failed to retrieve secret '{key}': {e}")
             raise
 
+    # ID: 8562280a-0934-4271-9e86-bc17f51200b9
     async def set_secret(
         self,
         key: str,
@@ -316,6 +324,7 @@ class ConfigService:
             # Don't fail secret retrieval if audit fails
             log.error(f"Failed to audit secret access: {e}")
 
+    # ID: 384585a4-b0ec-4d18-ac66-c032a978e15b
     async def reload(self) -> None:
         """
         Force reload of configuration from database.
@@ -328,6 +337,7 @@ class ConfigService:
             self._initialized = False
             await self._load_settings_from_db()
 
+    # ID: c96a9014-16f5-4be1-a368-fe5b711e2f59
     async def set(
         self,
         key: str,
@@ -375,6 +385,7 @@ def get_config_service() -> ConfigService:
 
 
 # ID: config-service-llm-helper-001
+# ID: 3131b840-be2c-49f5-962e-8e2bfe5346ce
 class LLMResourceConfig:
     """
     Convenience helper for accessing LLM resource configuration.
@@ -392,11 +403,13 @@ class LLMResourceConfig:
         # Normalize: anthropic_claude_sonnet -> anthropic
         self._prefix = resource_name.lower().replace("-", "_").split("_")[0]
 
+    # ID: c0653290-9582-422a-8a98-f5945dac8e4d
     async def get_api_key(self, audit_context: str | None = None) -> str:
         """Get API key for this resource (decrypted)."""
         key = f"{self._prefix}.api_key"
         return await self.config.get_secret(key, audit_context=audit_context)
 
+    # ID: 497b9a82-d9f2-4b67-aa92-088f5522d66e
     async def get_model_name(self) -> str:
         """Get model name for this resource."""
         # Try specific key first, fall back to resource_name key
@@ -408,6 +421,7 @@ class LLMResourceConfig:
             value = await self.config.get(key)
         return value or "unknown"
 
+    # ID: d4ada9de-74a6-49d2-8bdb-588fb2b12d7d
     async def get_max_concurrent(self) -> int:
         """Get max concurrent requests for this resource."""
         key = f"{self._prefix}.max_concurrent"
@@ -416,6 +430,7 @@ class LLMResourceConfig:
             value = await self.config.get("llm.default_max_concurrent", default="2")
         return int(value)
 
+    # ID: ac47f3f9-f8fe-4969-b25e-f982e0e43e98
     async def get_rate_limit(self) -> float:
         """Get rate limit (seconds between requests)."""
         key = f"{self._prefix}.rate_limit"
@@ -424,6 +439,7 @@ class LLMResourceConfig:
             value = await self.config.get("llm.default_rate_limit", default="2.0")
         return float(value)
 
+    # ID: 85821815-8bf2-460f-929c-2975e69be8ce
     async def get_timeout(self) -> int:
         """Get request timeout in seconds."""
         key = f"{self._prefix}.timeout"
