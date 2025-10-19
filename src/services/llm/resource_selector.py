@@ -41,6 +41,10 @@ class ResourceSelector:
         res_caps_raw = resource.provided_capabilities
         req_caps_raw = role.required_capabilities
 
+        log.info(f"Checking resource {resource.name} for role {role.role}")
+        log.info(f"  Resource caps raw: {res_caps_raw} (type: {type(res_caps_raw)})")
+        log.info(f"  Role caps raw: {req_caps_raw} (type: {type(req_caps_raw)})")
+
         res_caps = set(
             json.loads(res_caps_raw)
             if isinstance(res_caps_raw, str)

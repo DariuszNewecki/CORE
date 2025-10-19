@@ -37,6 +37,7 @@ rules:
       - "docs/**/*.md"
       - "tests/**/*.py"
       - "src/**/*.py"
+      - "src"  # Allow directory-level operations
       - "src" # Allow targeting the whole directory
       - "tests" # Allow targeting the whole directory
     # --- END MODIFICATION ---

@@ -7,10 +7,9 @@ This module assembles all command groups into a single Typer application.
 from __future__ import annotations
 
 import typer
-from rich.console import Console
-
 from cli.commands import (
     check,
+    coverage,
     enrich,
     fix,
     inspect,
@@ -28,6 +27,7 @@ from core.file_handler import FileHandler
 from core.git_service import GitService
 from core.knowledge_service import KnowledgeService
 from features.governance.audit_context import AuditorContext
+from rich.console import Console
 from services.clients.qdrant_client import QdrantService
 from shared.config import settings
 from shared.context import CoreContext
@@ -62,6 +62,7 @@ def register_all_commands(app_instance: typer.Typer) -> None:
     """Register all command groups and inject context declaratively."""
     # 1. Add top-level command groups (verbs)
     app_instance.add_typer(check.check_app, name="check")
+    app_instance.add_typer(coverage.coverage_app, name="coverage")
     app_instance.add_typer(enrich.enrich_app, name="enrich")
     app_instance.add_typer(fix.fix_app, name="fix")
     app_instance.add_typer(inspect.inspect_app, name="inspect")
@@ -75,6 +76,7 @@ def register_all_commands(app_instance: typer.Typer) -> None:
     # 2. Inject context directly into the modules that need it.
     modules_with_context = [
         check,
+        coverage,
         enrich,
         fix,
         inspect,

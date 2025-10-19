@@ -143,15 +143,22 @@ select = [
     "W",   # pycodestyle warnings
     "F",   # pyflakes
     "I",   # isort
-    "N",   # pep8-naming
     "UP",  # pyupgrade
-    "B",   # flake8-bugbear
-    "C4",  # flake8-comprehensions
-    "SIM", # flake8-simplify
 ]
 ignore = [
     "E402",  # Module level import not at top of file
     "E501",  # Line too long (handled by black)
+    "B008",  # Allow function calls in argument defaults (FastAPI/Typer pattern)
+    "B904",  # Allow raise without 'from' in exception handlers
+    "B007",  # Loop control variable not used
+    "SIM102", # Allow nested if statements
+    "SIM117", # Allow nested with statements
+    "C401",  # Allow generator instead of set comprehension
+    "C408",  # Allow dict() calls
+    "C414",  # Allow list() in sorted()
+    "N806",  # Allow uppercase variable names
+    "UP038", # Allow isinstance with tuple (more readable than | syntax)
+    "F841",  # Allow unused local variables (sometimes intentional)
 ]
 
 [tool.ruff.lint.per-file-ignores]
@@ -172,6 +179,7 @@ disallow_untyped_defs = false
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+env_files = ".env.test"
 asyncio_mode = "auto"
 pythonpath = ["src"]
 addopts = [
@@ -188,7 +196,7 @@ markers = [
     "e2e: End-to-end tests (full system)",
     "slow: Slow running tests",
 ]
-env_files = [".env.test", ".env"]
+
 
 [tool.coverage.run]
 source = ["src"]

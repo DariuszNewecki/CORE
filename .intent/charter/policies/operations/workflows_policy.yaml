@@ -1,12 +1,13 @@
+# .intent/charter/policies/operations/workflows_policy.yaml
 policy_id: a3e1b0c4-9f8d-4a7b-8c1d-6e5f4a3b2c1d
 id: workflows_policy
-version: "1.3.0" # Version bump for corrected workflow
+version: "2.0.0" # MAJOR VERSION: Added constitutional coverage enforcement
 title: "System Workflows Policy"
 status: active
 purpose: >
   Defines the sequences for both mandatory integration checks and optional
   self-healing routines. This is the single source of truth for all
-  multi-step system operations.
+  multi-step system operations. Now includes constitutional coverage enforcement.
 owners:
   primary: "Governance Lead"
 review:
@@ -42,6 +43,24 @@ integration_workflow:
     description: "Assign capability keys to vectorized symbols."
     continues_on_failure: true # Acknowledges that AI might fail, but shouldn't block commit
 
+  # ===================================================================
+  # NEW: Constitutional Coverage Gate
+  # ===================================================================
+  - id: "quality.test_suite"
+    command: "core-admin check tests"
+    description: "Run the full test suite to ensure all tests pass."
+    continues_on_failure: false
+
+  - id: "quality.coverage_check"
+    command: "core-admin coverage check"
+    description: "Verify test coverage meets constitutional minimum (75%)."
+    continues_on_failure: false
+    rationale: >
+      This is a constitutional requirement per quality_assurance_policy.
+      If coverage is below threshold, integration MUST halt and trigger
+      autonomous remediation.
+  # ===================================================================
+
   - id: "governance.audit"
     command: "core-admin check audit"
     description: "Run the full constitutional audit on the new state."
@@ -64,3 +83,16 @@ self_healing_routines:
   - id: "style.formatting"
     command: "core-admin fix code-style"
     description: "Auto-formats all code using Black and Ruff."
+
+  # ===================================================================
+  # NEW: Quality Assurance Routines
+  # ===================================================================
+  - id: "quality.generate_tests"
+    command: "core-admin coverage remediate"
+    description: "Autonomously generates tests to restore constitutional coverage compliance."
+    trigger: "coverage < 75%"
+    capability: "autonomous.quality.coverage_remediation"
+
+  - id: "quality.coverage_report"
+    command: "core-admin coverage report --html"
+    description: "Generates detailed HTML coverage report for review."

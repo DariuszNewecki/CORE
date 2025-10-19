@@ -6,11 +6,14 @@ Central pytest configuration and fixtures for the CORE project.
 from __future__ import annotations
 
 import asyncio
+import os
 from pathlib import Path
 
 import pytest
-import sqlparse  # <-- ADD THIS IMPORT
+import sqlparse
 import yaml
+from dotenv import load_dotenv
+from shared.config import settings
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import (
     AsyncSession,
@@ -18,7 +21,10 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 
-from shared.config import settings
+# --- THIS IS THE CRITICAL FIX: Ensure .env.test is loaded FIRST ---
+# This guarantees that os.getenv() will have the correct values for the test session.
+load_dotenv(".env.test", override=True)
+os.environ.setdefault("CORE_ENV", "TEST")
 
 
 @pytest.fixture(scope="session")
@@ -31,7 +37,6 @@ def event_loop():
 
 @pytest.fixture
 def mock_fs_with_constitution(tmp_path: Path) -> Path:
-    # This fixture is correct, no changes needed here.
     intent_dir = tmp_path / ".intent"
     charter_dir = intent_dir / "charter"
     policies_dir = charter_dir / "policies"
@@ -54,7 +59,12 @@ def mock_fs_with_constitution(tmp_path: Path) -> Path:
                 },
             }
         },
-        "mind": {"prompts": {"planner_agent": "mind/prompts/planner_agent.prompt"}},
+        "mind": {
+            "prompts": {
+                "planner_agent": "mind/prompts/planner_agent.prompt",
+                "micro_planner": "mind/prompts/micro_planner.prompt",
+            }
+        },
     }
     (intent_dir / "meta.yaml").write_text(yaml.dump(meta_content))
     available_actions_content = {
@@ -77,60 +87,25 @@ def mock_fs_with_constitution(tmp_path: Path) -> Path:
                 "description": "Formats code.",
                 "parameters": [{"name": "file_path", "type": "string"}],
             },
-            {
-                "name": "system.dangerous.execute_shell",
-                "description": "A dangerous action.",
-                "parameters": [],
-            },
         ],
     }
     (governance_policies_dir / "available_actions_policy.yaml").write_text(
         yaml.dump(available_actions_content)
     )
-    micro_proposal_content = {
-        "policy_id": "mock-uuid-micro",
-        "id": "micro_proposal_policy",
-        "version": "1.0.0",
-        "title": "Mock Micro Proposal",
-        "purpose": "...",
-        "status": "active",
-        "owners": {"primary": "test"},
-        "review": {"frequency": "annual"},
-        "rules": [
-            {
-                "id": "safe_actions",
-                "description": "...",
-                "enforcement": "error",
-                "allowed_actions": ["autonomy.self_healing.format_code"],
-            },
-            {
-                "id": "safe_paths",
-                "description": "...",
-                "enforcement": "error",
-                "allowed_paths": ["src/safe_dir/*"],
-                "forbidden_paths": [".intent/**"],
-            },
-        ],
-    }
     (agent_policies_dir / "micro_proposal_policy.yaml").write_text(
-        yaml.dump(micro_proposal_content)
+        "policy_id: mock-uuid\nid: micro_proposal_policy\nversion: '1.0.0'\n"
     )
-    agent_policy_content = {
-        "policy_id": "mock-uuid-agent",
-        "id": "agent_policy",
-        "version": "1.0.0",
-        "title": "Mock Agent Policy",
-        "purpose": "...",
-        "status": "active",
-        "owners": {"primary": "test"},
-        "review": {"frequency": "annual"},
-        "rules": [],
-        "execution_agent": {"max_correction_attempts": 2},
-    }
     (agent_policies_dir / "agent_policy.yaml").write_text(
-        yaml.dump(agent_policy_content)
+        "policy_id: mock-uuid-agent\nid: agent_policy\nversion: '1.0.0'\n"
     )
     (prompts_dir / "planner_agent.prompt").write_text("Plan for: {goal}")
+
+    # --- THIS FIXES THE KeyError: 'goal' ---
+    # The agent code expects the placeholder to be 'user_goal'.
+    (prompts_dir / "micro_planner.prompt").write_text(
+        "Create micro-plan for: {user_goal}"
+    )
+
     return tmp_path
 
 
@@ -143,11 +118,17 @@ def mock_core_env(mock_fs_with_constitution: Path, monkeypatch) -> Path:
 
 @pytest.fixture(scope="function")
 async def get_test_session(monkeypatch) -> AsyncSession:
-    db_url = settings.DATABASE_URL
-    if not db_url or "testdb" not in db_url:
-        pytest.fail(
-            "DATABASE_URL for testing must be set and point to the 'testdb' database."
-        )
+    # --- THIS FIXTURE IS NOW ROBUST ---
+    raw_db_url = os.getenv("DATABASE_URL")
+    if not raw_db_url:
+        pytest.fail("DATABASE_URL not found. Ensure it is set in your .env.test file.")
+
+    # Use os.path.expandvars to correctly substitute $VAR style variables
+    db_url = os.path.expandvars(raw_db_url)
+
+    # Safety check: ensure we are not running against the production DB
+    if "core_test" not in db_url:
+        pytest.fail(f"Refusing to run tests on non-test DB URL: {db_url}")
 
     engine = create_async_engine(db_url, echo=False)
     TestSession = async_sessionmaker(
@@ -160,17 +141,18 @@ async def get_test_session(monkeypatch) -> AsyncSession:
         pytest.fail(f"Could not find schema file at {schema_sql_path}")
     schema_sql = schema_sql_path.read_text(encoding="utf-8")
 
+    # Always start from a clean 'core' schema in core_test
     async with engine.begin() as conn:
-        # --- THIS IS THE FIX ---
-        # Split the SQL file into individual statements and execute them one by one.
+        await conn.execute(text("DROP SCHEMA IF EXISTS core CASCADE;"))
+        await conn.execute(text("CREATE SCHEMA core;"))
         for statement in sqlparse.split(schema_sql):
             if statement.strip():
                 await conn.execute(text(statement))
-        # --- END OF FIX ---
 
     async with TestSession() as session:
         yield session
 
+    # Teardown: only in core_test
     async with engine.begin() as conn:
         await conn.execute(text("DROP SCHEMA IF EXISTS core CASCADE;"))
 

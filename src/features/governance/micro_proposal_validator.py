@@ -4,6 +4,7 @@ from __future__ import annotations
 from fnmatch import fnmatch
 from typing import Any
 
+from shared.config import settings
 from shared.logger import getLogger
 
 log = getLogger(__name__)
@@ -42,7 +43,9 @@ class MicroProposalValidator:
     """
 
     def __init__(self):
-        self.policy: dict[str, Any] = _default_policy()
+        self.policy: dict[str, Any] = settings.load(
+            "charter.policies.agent.micro_proposal_policy"
+        )
         rule = next(
             (r for r in self.policy.get("rules", []) if r.get("id") == "safe_paths"), {}
         )
