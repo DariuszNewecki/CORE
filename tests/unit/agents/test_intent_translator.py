@@ -3,7 +3,6 @@ import json
 from unittest.mock import MagicMock
 
 import pytest
-
 from core.agents.intent_translator import IntentTranslator
 from shared.config import settings
 

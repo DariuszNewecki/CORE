@@ -8,17 +8,13 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 import black
+from features.governance.checks.import_rules import ImportRulesCheck
+from features.governance.runtime_validator import RuntimeValidatorService
+from shared.models import AuditFinding
 
 from core.black_formatter import format_code_with_black
 from core.ruff_linter import fix_and_lint_code_with_ruff
 from core.syntax_checker import check_syntax
-from features.governance.checks.import_rules import ImportRulesCheck
-
-# --- START: IMPORT THE NEW SERVICE ---
-from features.governance.runtime_validator import RuntimeValidatorService
-
-# --- END: IMPORT THE NEW SERVICE ---
-from shared.models import AuditFinding
 
 from .validation_policies import PolicyValidator
 from .validation_quality import QualityChecker
@@ -29,7 +25,7 @@ if TYPE_CHECKING:
 Violation = dict[str, Any]
 
 
-# ID: df30ee5a-2cf7-4671-a10b-5d995a28310a
+# ID: 9b262a79-1e30-43fb-a9e2-1141058981d5
 async def validate_python_code_async(
     path_hint: str, code: str, auditor_context: AuditorContext
 ) -> tuple[str, list[Violation]]:
@@ -81,9 +77,13 @@ async def validate_python_code_async(
             }
         )
 
-    # --- Step 2: Runtime Validation (NEW) ---
-    # Only proceed to runtime tests if all static analysis passed.
-    if not any(v.get("severity") == "error" for v in all_violations):
+    # --- Step 2: Conditional Runtime Validation (THE FIX) ---
+    # Only proceed to runtime tests if all static analysis passed AND the file
+    # being validated is NOT a test file itself.
+    is_test_file = "tests/" in path_hint.replace("\\", "/")
+    if not is_test_file and not any(
+        v.get("severity") == "error" for v in all_violations
+    ):
         runtime_validator = RuntimeValidatorService(auditor_context.repo_path)
         passed, details = await runtime_validator.run_tests_in_canary(
             path_hint, fixed_code

@@ -13,17 +13,16 @@ from typing import Any
 
 import yaml
 from rich.console import Console
-from sqlalchemy import text
-
 from services.database.session_manager import get_session
 from shared.config import settings
+from sqlalchemy import text
 
 console = Console()
 
 
 async def _migrate_capabilities_from_manifest() -> list[dict[str, Any]]:
     """Loads capabilities from the legacy project_manifest.yaml file, ensuring uniqueness."""
-    manifest_path = settings.get_path("mind.project_manifest")
+    manifest_path = settings.get_path("mind.knowledge.project_manifest")
     if not manifest_path.exists():
         console.print(
             "[yellow]Warning: project_manifest.yaml not found. No capabilities to migrate.[/yellow]"
@@ -71,18 +70,13 @@ async def _migrate_symbols_from_ast() -> list[dict[str, Any]]:
         migrated_syms.append(
             {
                 "id": uuid.uuid5(uuid.NAMESPACE_DNS, symbol_data["symbol_path"]),
-                "uuid": symbol_data["uuid"],
-                "module": symbol_data["file_path"],
-                "qualname": symbol_data["symbol_path"].split("::")[-1],
-                "kind": (
-                    "function" if "Function" in symbol_data.get("type", "") else "class"
-                ),
-                "ast_signature": "TBD",
-                "fingerprint": symbol_data["structural_hash"],
-                "state": "discovered",
-                "symbol_path": symbol_data[
-                    "symbol_path"
-                ],  # Ensure the true identifier is present
+                "module": symbol_data["module"],
+                "qualname": symbol_data["qualname"],
+                "kind": symbol_data["kind"],
+                "ast_signature": symbol_data.get("ast_signature", "TBD"),
+                "fingerprint": symbol_data["fingerprint"],
+                "state": symbol_data.get("state", "discovered"),
+                "symbol_path": symbol_data["symbol_path"],
             }
         )
     return migrated_syms
@@ -132,8 +126,8 @@ async def run_ssot_migration(dry_run: bool):
                 # Insert symbols one by one to handle potential duplicates gracefully if any slip through
                 insert_stmt = text(
                     """
-                    INSERT INTO core.symbols (id, uuid, module, qualname, kind, ast_signature, fingerprint, state, symbol_path)
-                    VALUES (:id, :uuid, :module, :qualname, :kind, :ast_signature, :fingerprint, :state, :symbol_path)
+                    INSERT INTO core.symbols (id, module, qualname, kind, ast_signature, fingerprint, state, symbol_path)
+                    VALUES (:id, :module, :qualname, :kind, :ast_signature, :fingerprint, :state, :symbol_path)
                     ON CONFLICT (symbol_path) DO NOTHING;
                 """
                 )

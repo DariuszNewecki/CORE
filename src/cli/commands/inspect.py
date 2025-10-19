@@ -7,9 +7,9 @@ Refactored under dry_by_design to use the canonical context setter.
 from __future__ import annotations
 
 import asyncio
+from pathlib import Path
 
 import typer
-
 from cli.logic.diagnostics import cli_tree
 from cli.logic.duplicates import inspect_duplicates
 from cli.logic.guard_cli import register_guard
@@ -17,8 +17,12 @@ from cli.logic.knowledge import find_common_knowledge
 from cli.logic.status import status
 from cli.logic.symbol_drift import inspect_symbol_drift
 from cli.logic.vector_drift import inspect_vector_drift
+from features.self_healing.test_target_analyzer import TestTargetAnalyzer
+from rich.console import Console
+from rich.table import Table
 from shared.context import CoreContext
 
+console = Console()
 inspect_app = typer.Typer(
     help="Read-only commands to inspect system state and configuration.",
     no_args_is_help=True,
@@ -49,6 +53,51 @@ inspect_app.command(
     "common-knowledge",
     help="Finds structurally identical helper functions that can be consolidated.",
 )(find_common_knowledge)
+
+
+@inspect_app.command(
+    "test-targets", help="Analyzes a file to find good targets for autonomous testing."
+)
+# ID: c024afb9-6e4c-466c-b527-f1deeab533c0
+def inspect_test_targets(
+    file_path: Path = typer.Argument(
+        ...,
+        help="The path to the Python file to analyze.",
+        exists=True,
+        dir_okay=False,
+        resolve_path=True,
+    ),
+):
+    """
+    Identifies and classifies functions in a file as SIMPLE or COMPLEX test targets.
+    """
+    console.print(
+        f"[bold cyan]🔍 Analyzing test targets in '{file_path.name}'...[/bold cyan]"
+    )
+    analyzer = TestTargetAnalyzer()
+    targets = analyzer.analyze_file(file_path)
+
+    if not targets:
+        console.print("[yellow]No suitable public functions found to analyze.[/yellow]")
+        return
+
+    table = Table(
+        title="Test Target Analysis", header_style="bold magenta", show_header=True
+    )
+    table.add_column("Function", style="cyan")
+    table.add_column("Complexity", style="magenta", justify="right")
+    table.add_column("Classification", style="yellow")
+    table.add_column("Reason")
+
+    for target in targets:
+        style = "green" if target.classification == "SIMPLE" else "red"
+        table.add_row(
+            target.name,
+            str(target.complexity),
+            f"[{style}]{target.classification}[/{style}]",
+            target.reason,
+        )
+    console.print(table)
 
 
 @inspect_app.command(

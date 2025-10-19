@@ -84,7 +84,20 @@ check: ## Lint + tests + audit + docs drift check
 	@$(MAKE) check-docs
 
 dev-sync: ## Run the safe, non-destructive developer sync and audit workflow
-	$(POETRY) run core-admin check system
+	@echo "🔄 Running comprehensive dev-sync workflow..."
+	@echo "📝 Step 1/6: Assigning missing IDs..."
+	$(POETRY) run core-admin fix ids --write
+	@echo "📚 Step 2/6: Adding missing docstrings..."
+	$(POETRY) run core-admin fix docstrings --write
+	@echo "🎨 Step 3/6: Formatting code (black/ruff)..."
+	$(POETRY) run core-admin fix code-style
+	@echo "🔍 Step 4/6: Running linter (stop on error)..."
+	$(POETRY) run core-admin check lint
+	@echo "💾 Step 5/6: Syncing symbols to database..."
+	$(POETRY) run core-admin manage database sync-knowledge --write
+	@echo "🧠 Step 6/6: Vectorizing knowledge graph..."
+	$(POETRY) run core-admin run vectorize --write
+	@echo "✅ Dev-sync complete! Database is now current."
 
 cli-tree: ## Display CLI command tree
 	@echo "🌳 Generating CLI command tree..."
@@ -96,6 +109,12 @@ migrate: ## Apply pending DB schema migrations
 
 export-db: ## Export DB tables to canonical YAML
 	$(POETRY) run core-admin manage database export
+
+reset-test-db: ## Reset test database from live
+	@./scripts/reset_test_db.sh
+
+test-test-db: reset-test-db ## Reset test DB and run tests
+	$(POETRY) run pytest
 
 sync-knowledge: ## Scan codebase and sync symbols to DB (Single Source of Truth)
 	$(POETRY) run core-admin manage database sync-knowledge --write
@@ -110,6 +129,10 @@ vectorize: ## Vectorize knowledge graph (embeddings pipeline)
 integrate: ## Canonical integration sequence (submit changes)
 	@echo "🤝 Running Canonical Integration Sequence via 'submit changes'..."
 	$(POETRY) run core-admin submit changes --message "feat: Integrate changes via make"
+
+coverage-run: ## Run the nightly autonomous coverage remediation job
+	@echo "🤖 Starting autonomous coverage remediation job..."
+	$(POETRY) run python scripts/nightly_coverage_remediation.py
 
 # ---- Docs --------------------------------------------------------------------
 docs: ## Generate capability documentation

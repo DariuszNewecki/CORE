@@ -44,6 +44,8 @@ class Settings(BaseSettings):
     REPO_PATH: Path = REPO_ROOT
     MIND: Path = REPO_PATH / ".intent"
     BODY: Path = REPO_PATH / "src"
+    PROMPTS: Path = MIND / "mind" / "prompts"
+
     LLM_ENABLED: bool = True
     LOG_LEVEL: str = "INFO"
     CORE_MAX_CONCURRENT_REQUESTS: int = 5

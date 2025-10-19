@@ -1,6 +1,6 @@
 policy_id: 05ffbf34-2e0e-4069-b77e-473923537077
 id: safety_policy
-version: "1.5.0" # Final version for this refactoring
+version: "1.6.0" # Version bump for coverage module exemptions
 title: "System Safety & Security Policy"
 status: active
 purpose: >
@@ -111,6 +111,18 @@ rules:
           rationale: "TECHNICAL DEBT: This low-level utility calls 'git' and should be refactored."
         - path: "src/core/ruff_linter.py"
           rationale: "The linter is a core tool that needs to run an external process."
+        # ===================================================================
+        # NEW EXEMPTIONS: Coverage Remediation System
+        # ===================================================================
+        - path: "src/features/self_healing/coverage_analyzer.py"
+          rationale: "Needs subprocess to run pytest for coverage measurement."
+        - path: "src/features/self_healing/test_generator.py"
+          rationale: "Needs subprocess to execute generated tests for validation."
+        - path: "src/features/governance/checks/coverage_check.py"
+          rationale: "Needs subprocess to run pytest for constitutional coverage enforcement."
+        - path: "src/cli/commands/coverage.py"
+          rationale: "CLI commands need subprocess to invoke pytest for coverage reports."
+        # ===================================================================
         - path: "scripts/**"
           rationale: "Developer scripts are exempt for utility purposes."
     detection:

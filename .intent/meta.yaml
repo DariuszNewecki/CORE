@@ -45,6 +45,7 @@ charter:
       intent_guard_policy: "charter/policies/governance/intent_guard_policy.yaml"
       knowledge_source_policy: "charter/policies/governance/knowledge_source_policy.yaml"
       logging_policy: "charter/policies/governance/logging_policy.yaml"
+      quality_assurance_policy: "charter/policies/governance/quality_assurance_policy.yaml"
       reporting_policy: "charter/policies/governance/reporting_policy.yaml"
       risk_classification_policy: "charter/policies/governance/risk_classification_policy.yaml"
       tooling_policy: "charter/policies/governance/tooling_policy.yaml"
@@ -97,6 +98,7 @@ mind:
     local_mode: "mind/config/local_mode.yaml"
     runtime_requirements: "mind/config/runtime_requirements.yaml"
 
+
   evaluation:
     score_policy: "mind/evaluation/score_policy.yaml"
     audit_checklist: "mind/evaluation/audit_checklist.yaml"
@@ -105,6 +107,7 @@ mind:
     entry_point_patterns: "mind/knowledge/entry_point_patterns.yaml"
     file_handlers: "mind/knowledge/file_handlers.yaml"
     source_structure: "mind/knowledge/source_structure.yaml"
+    project_manifest: "mind/knowledge/project_manifest.yaml"
 
   mind_export:
     cognitive_roles: "mind_export/cognitive_roles.yaml"
@@ -133,4 +136,5 @@ mind:
     refactor_for_clarity: "mind/prompts/refactor_for_clarity.prompt"
     refactor_outlier: "mind/prompts/refactor_outlier.prompt"
     standard_task_generator: "mind/prompts/standard_task_generator.prompt"
+    test_generator: "mind/prompts/test_generator.prompt"
     vectorizer: "mind/prompts/vectorizer.prompt"
