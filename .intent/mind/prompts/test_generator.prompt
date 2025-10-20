@@ -16,43 +16,35 @@ Goal: {goal}
 
 ---
 
-### CRITICAL MOCKING REQUIREMENTS
+### CRITICAL MOCKING & TEST REQUIREMENTS
 
 * **IMPORT PATH:** Always use this exact import path for the module under test: `{import_path}`.
-* **NO REAL RESOURCES:** Tests MUST mock all external dependencies (database, HTTP, filesystem, git). Use `unittest.mock.patch`.
-* **HTTPX:** Mock httpx responses with `Mock()`, not `AsyncMock()`.
-* **DATABASE:** Mock database sessions using `@patch('{import_path}.get_session')`.
+* **NO REAL RESOURCES:** Tests MUST mock all external dependencies (database, HTTP, git). Use `unittest.mock.patch`.
+* **FILESYSTEM TESTING:** When testing code that writes files or creates directories, you MUST use the `tmp_path` fixture provided by pytest. Do **NOT** write to hardcoded paths like `/test` or `./work`.
+
+#### Example — Correct Way to Test Filesystem
+
+```python
+# CORRECT WAY TO TEST FILESYSTEM
+
+def test_something_that_writes_files(tmp_path):
+    # tmp_path is a temporary directory provided by pytest
+    service = YourService(repo_root=tmp_path)
+    service.do_something()
+    assert (tmp_path / "expected_file.txt").exists()
+```
+
+* **HTTPX MOCKING:** Mock httpx responses with `Mock()`, not `AsyncMock()`.
+* **DATABASE MOCKING:** Mock database sessions using `@patch('{import_path}.get_session')`.
 
 ---
 
 ### ABSOLUTE REQUIREMENTS
 
-* **Focus on Simplicity:** Write simple, focused tests. Do not test multiple things in one function. Prefer testing one public method at a time.
-* **Correct Syntax:** Your generated code MUST be free of Python syntax errors. Double-check your parentheses and keywords.
+* **Focus on Simplicity:** Write simple, focused tests. Do not test multiple things in one function.
+* **Correct Syntax:** Your generated code MUST be free of Python syntax errors.
 * **Full File:** Your output must be a complete Python file.
-* **Single Code Block:** Your entire response MUST be a single Python code block enclosed in `python ...`. Do not include any text or explanations outside of it.
-
----
-
-### Example of a PERFECT, simple test
-
-```python
-import pytest
-from unittest.mock import Mock, patch
-from {import_path} import your_function_to_test
-
-@patch('{import_path}.some_dependency')
-def test_your_function_to_test_happy_path(mock_dependency):
-    # Arrange
-    mock_dependency.return_value = 'mocked result'
-
-    # Act
-    result = your_function_to_test('some input')
-
-    # Assert
-    assert result == 'expected outcome'
-    mock_dependency.assert_called_once_with('some input')
-```
+* **Single Code Block:** Your entire response MUST be a single Python code block enclosed in `python ...`. Do not include any text outside of it.
 
 ---
 
