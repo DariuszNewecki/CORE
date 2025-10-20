@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import asyncio
 import re
+from pathlib import Path
 from typing import Any
 
 from core.cognitive_service import CognitiveService
@@ -20,7 +21,6 @@ from features.governance.audit_context import AuditorContext
 log = getLogger(__name__)
 
 
-# ID: 4f03a78f-31ae-4604-aa71-1a1b112681f8
 class TestGenerator:
     """Generates and validates test files for modules."""
 
@@ -43,7 +43,6 @@ class TestGenerator:
             )
         return prompt_path.read_text(encoding="utf-8")
 
-    # ID: bec4b687-b0a0-4e03-b61f-80945a4cba3c
     async def generate_test(
         self,
         module_path: str,
@@ -80,6 +79,16 @@ class TestGenerator:
                     test_file,
                     validation_result.get("violations", []),
                 )
+
+                # --- THIS IS THE FIX ---
+                # Save the failed code to the reports directory for debugging.
+                failed_dir = settings.REPO_PATH / "reports" / "failed_test_generation"
+                failed_dir.mkdir(parents=True, exist_ok=True)
+                failed_path = failed_dir / f"failed_{Path(test_file).name}"
+                failed_path.write_text(test_code, encoding="utf-8")
+                log.error(f"Saved syntactically incorrect test code to: {failed_path}")
+                # --- END OF FIX ---
+
                 return {
                     "status": "failed",
                     "error": "Validation failed",
@@ -119,11 +128,9 @@ class TestGenerator:
         )
 
         safe_module_name = module_full_path.stem
-        # --- THIS IS THE FIX: More robust import path calculation ---
-        import_path = module_path.replace(".py", "").replace("/", ".")
-        if import_path.startswith("src."):
-            import_path = import_path[4:]
-        # --- END OF FIX ---
+        import_path = (
+            module_path.replace("src/", "").replace(".py", "").replace("/", ".")
+        )
 
         filled_prompt = self.prompt_template.format(
             module_path=module_path,
@@ -224,7 +231,7 @@ class TestGenerator:
                 "returncode": proc.returncode,
             }
         except Exception as e:
-            log.error("Exception running test %s: %s", test_file, e, exc_info=True)
+            log.error("Exception running test %s: %s", e, exc_info=True)
             return {
                 "passed": False,
                 "output": "",
