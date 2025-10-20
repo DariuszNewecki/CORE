@@ -31,7 +31,7 @@ cryptography = ">=42.0.0"
 rich = "^13"
 black = "^24"
 jsonschema = "^4"
-typer = {extras = ["rich"], version = "^0.16.1"}
+typer = {extras = ["rich"], version = "^0.20.0"}
 radon = ">=5.1.0"
 filelock = "^3.13.0"
 ruamel-yaml = "^0.18.6"
