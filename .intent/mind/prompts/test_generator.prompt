@@ -1,8 +1,9 @@
 # Constitutional Test Generation Task
 
-You are CORE's test generator. Produce a SINGLE, COMPLETE, WORKING pytest file.
+You are CORE's test generator. Your task is to produce a SINGLE, COMPLETE, and SYNTACTICALLY CORRECT pytest file.
 
 ## Module Under Test
+
 **File path:** {module_path}
 **Import path:** {import_path}
 **Target coverage:** {target_coverage}%
@@ -11,160 +12,48 @@ You are CORE's test generator. Produce a SINGLE, COMPLETE, WORKING pytest file.
 {module_code}
 ```
 
-**Goal:** {goal}
+Goal: {goal}
 
 ---
 
-## CRITICAL MOCKING REQUIREMENTS
+### CRITICAL MOCKING REQUIREMENTS
 
-### 1. IMPORT PATHS
-Always use the correct import path: `{import_path}`
-
-Example:
-```python
-from {import_path} import YourClass, your_function
-```
-
-### 2. HTTPX RESPONSE MOCKING (CRITICAL!)
-httpx responses use SYNC methods, not async. Use `Mock()`, NOT `AsyncMock()`:
-
-```python
-from unittest.mock import Mock, patch, AsyncMock
-
-@patch('{import_path}.httpx.AsyncClient')
-async def test_http_call(mock_client):
-    # Create SYNC mock response
-    mock_response = Mock()  # NOT AsyncMock!
-    mock_response.json.return_value = {{'data': 'test'}}  # Sync method
-    mock_response.raise_for_status = Mock()  # Sync method
-    mock_response.status_code = 200
-
-    # The client methods ARE async
-    mock_client.return_value.__aenter__.return_value.post = AsyncMock(
-        return_value=mock_response
-    )
-```
-
-### 3. DATABASE MOCKING
-Mock database sessions properly:
-
-```python
-@patch('{import_path}.get_session')
-async def test_database_operation(mock_get_session):
-    mock_session = MagicMock()
-    mock_session.execute = AsyncMock(return_value=mock_result)
-    mock_session.commit = AsyncMock()
-    mock_get_session.return_value.__aenter__.return_value = mock_session
-```
-
-### 4. FILE SYSTEM MOCKING
-Mock Path operations to avoid real filesystem:
-
-```python
-@patch('pathlib.Path.exists', return_value=True)
-@patch('pathlib.Path.read_text', return_value='test content')
-def test_file_operation(mock_read, mock_exists):
-    # Your test here
-    pass
-```
-
-### 5. GIT OPERATIONS MOCKING
-Mock git operations:
-
-```python
-@patch('{import_path}.GitService')
-def test_git_operation(mock_git_service):
-    mock_git_service.return_value.get_repo_root.return_value = Path('/tmp/test')
-    # Your test here
-```
+* **IMPORT PATH:** Always use this exact import path for the module under test: `{import_path}`.
+* **NO REAL RESOURCES:** Tests MUST mock all external dependencies (database, HTTP, filesystem, git). Use `unittest.mock.patch`.
+* **HTTPX:** Mock httpx responses with `Mock()`, not `AsyncMock()`.
+* **DATABASE:** Mock database sessions using `@patch('{import_path}.get_session')`.
 
 ---
 
-## ABSOLUTE REQUIREMENTS
+### ABSOLUTE REQUIREMENTS
 
-1. **Use correct import**: `from {import_path} import ...`
-2. **Mock ALL external dependencies**: database, HTTP, filesystem, git
-3. **Use Mock() for sync methods**: `response.json()`, `response.raise_for_status()`
-4. **Use AsyncMock() for async methods**: `session.execute()`, `client.post()`
-5. **NO real resources**: No actual HTTP calls, database connections, or file reads
-6. **Output ONLY Python code** in a single ```python block
-7. **NO explanations** before or after the code block
+* **Focus on Simplicity:** Write simple, focused tests. Do not test multiple things in one function. Prefer testing one public method at a time.
+* **Correct Syntax:** Your generated code MUST be free of Python syntax errors. Double-check your parentheses and keywords.
+* **Full File:** Your output must be a complete Python file.
+* **Single Code Block:** Your entire response MUST be a single Python code block enclosed in `python ...`. Do not include any text or explanations outside of it.
 
 ---
 
-## Example Test Structure
+### Example of a PERFECT, simple test
 
 ```python
 import pytest
-from unittest.mock import Mock, patch, AsyncMock, MagicMock
-from pathlib import Path
+from unittest.mock import Mock, patch
+from {import_path} import your_function_to_test
 
-from {import_path} import TargetClass, target_function
-
-@pytest.fixture
-def mock_config():
-    """Fixture providing mock configuration."""
-    config = Mock()
-    config.some_setting = "test_value"
-    return config
-
-def test_basic_functionality(mock_config):
-    """Test basic synchronous functionality."""
+@patch('{import_path}.some_dependency')
+def test_your_function_to_test_happy_path(mock_dependency):
     # Arrange
-    obj = TargetClass(mock_config)
+    mock_dependency.return_value = 'mocked result'
 
     # Act
-    result = obj.some_method()
+    result = your_function_to_test('some input')
 
     # Assert
-    assert result is not None
-
-@pytest.mark.asyncio
-@patch('{import_path}.httpx.AsyncClient')
-async def test_async_http_call(mock_client):
-    """Test async HTTP functionality with proper mocking."""
-    # Arrange - SYNC mock for response
-    mock_response = Mock()
-    mock_response.json.return_value = {{'status': 'ok'}}
-    mock_response.raise_for_status = Mock()
-
-    # ASYNC mock for client
-    mock_client.return_value.__aenter__.return_value.get = AsyncMock(
-        return_value=mock_response
-    )
-
-    # Act
-    result = await target_function()
-
-    # Assert
-    assert result['status'] == 'ok'
-
-@pytest.mark.asyncio
-@patch('{import_path}.get_session')
-async def test_database_operation(mock_get_session):
-    """Test database operation with mocked session."""
-    # Arrange
-    mock_session = MagicMock()
-    mock_result = Mock()
-    mock_result.scalar_one_or_none.return_value = {{'id': 1}}
-    mock_session.execute = AsyncMock(return_value=mock_result)
-    mock_get_session.return_value.__aenter__.return_value = mock_session
-
-    # Act
-    result = await target_function()
-
-    # Assert
-    assert result['id'] == 1
-    mock_session.execute.assert_awaited_once()
+    assert result == 'expected outcome'
+    mock_dependency.assert_called_once_with('some input')
 ```
 
 ---
 
-## NOW GENERATE THE COMPLETE TEST FILE
-
-Remember:
-- Output ONLY the ```python code block
-- Use correct import: {import_path}
-- Mock httpx responses with Mock(), not AsyncMock()
-- Mock ALL external dependencies
-- No explanations
+NOW GENERATE THE COMPLETE AND SYNTACTICALLY CORRECT TEST FILE.

@@ -20,7 +20,7 @@ from features.governance.audit_context import AuditorContext
 log = getLogger(__name__)
 
 
-# ID: e4a619f6-3b6c-4c85-ae3d-cef8f811e935
+# ID: 4f03a78f-31ae-4604-aa71-1a1b112681f8
 class TestGenerator:
     """Generates and validates test files for modules."""
 
@@ -43,7 +43,7 @@ class TestGenerator:
             )
         return prompt_path.read_text(encoding="utf-8")
 
-    # ID: 350146a9-3043-4271-afb9-9bccb6aca6a5
+    # ID: bec4b687-b0a0-4e03-b61f-80945a4cba3c
     async def generate_test(
         self,
         module_path: str,
@@ -53,38 +53,21 @@ class TestGenerator:
     ) -> dict[str, Any]:
         """
         Generates and validates a single test file.
-
-        Args:
-            module_path: Path to module being tested
-            test_file: Path where test should be written
-            goal: Description of testing goal
-            target_coverage: Target coverage percentage
-
-        Returns:
-            Dict with generation result and metrics
         """
         try:
-            # Build test generation prompt
             prompt = self._build_prompt(module_path, goal, target_coverage)
-
-            # Get AI client for code generation
             client = await self.cognitive.aget_client_for_role("Coder")
+            response = await client.make_request_async(prompt, user_id="test_generator")
 
-            # Generate test code
-            response = await client.make_request_async(
-                prompt,
-                user_id="test_generator",
-            )
-
-            # Extract code from response
             test_code = self._extract_code_block(response)
             if not test_code:
+                preview = (response or "")[:500]
                 log.error(
-                    f"Failed to extract code from response. Response preview: {response[:500]}"
+                    "Failed to extract code from response. Response preview: %s",
+                    preview,
                 )
                 return {"status": "failed", "error": "No code block in response"}
 
-            # Validate the generated test
             validation_result = await validate_code_async(
                 test_file,
                 test_code,
@@ -93,20 +76,22 @@ class TestGenerator:
 
             if validation_result.get("status") == "dirty":
                 log.warning(
-                    f"Validation failed for {test_file}: {validation_result.get('violations', [])}"
+                    "Validation failed for %s: %s",
+                    test_file,
+                    validation_result.get("violations", []),
                 )
                 return {
                     "status": "failed",
                     "error": "Validation failed",
-                    "violations": validation_result["violations"],
+                    "violations": validation_result.get("violations", []),
                 }
 
-            # Write test file
             test_path = settings.REPO_PATH / test_file
             test_path.parent.mkdir(parents=True, exist_ok=True)
-            test_path.write_text(validation_result["code"], encoding="utf-8")
+            test_path.write_text(
+                validation_result.get("code", test_code), encoding="utf-8"
+            )
 
-            # Run the test
             test_result = await self._run_test_async(test_file)
 
             return {
@@ -117,7 +102,7 @@ class TestGenerator:
             }
 
         except Exception as e:
-            log.error(f"Failed to generate test: {e}", exc_info=True)
+            log.error("Failed to generate test: %s", e, exc_info=True)
             return {"status": "failed", "error": str(e)}
 
     def _build_prompt(
@@ -126,19 +111,19 @@ class TestGenerator:
         goal: str,
         target_coverage: float,
     ) -> str:
-        """Builds a comprehensive prompt for test generation using the template."""
         module_full_path = settings.REPO_PATH / module_path
-
-        if not module_full_path.exists():
-            module_code = f"# Module not found: {module_path}"
-        else:
-            module_code = module_full_path.read_text(encoding="utf-8")
+        module_code = (
+            module_full_path.read_text(encoding="utf-8")
+            if module_full_path.exists()
+            else f"# Module not found: {module_path}"
+        )
 
         safe_module_name = module_full_path.stem
-        # Correctly derive the import path from the repo-relative path
-        import_path = (
-            module_path.replace("src/", "").replace(".py", "").replace("/", ".")
-        )
+        # --- THIS IS THE FIX: More robust import path calculation ---
+        import_path = module_path.replace(".py", "").replace("/", ".")
+        if import_path.startswith("src."):
+            import_path = import_path[4:]
+        # --- END OF FIX ---
 
         filled_prompt = self.prompt_template.format(
             module_path=module_path,
@@ -149,32 +134,21 @@ class TestGenerator:
             import_path=import_path,
         )
 
-        # The giant hardcoded string has been removed. The prompt file is now the SSOT.
         return self.pipeline.process(filled_prompt)
 
     def _extract_code_block(self, response: str) -> str | None:
-        """Extracts Python code from markdown or raw response."""
-        # This function is now more robust to handle different LLM output styles
         if not response:
             return None
-
-        # Pattern 1: Standard markdown python blocks
-        pattern = r"```python\s*(.*?)\s*```"
-        matches = re.findall(pattern, response, re.DOTALL | re.IGNORECASE)
-        if matches:
-            code = matches[0].strip()
-            if self._looks_like_python(code):
-                return code
-
-        # Pattern 2: Generic code blocks
-        pattern = r"```\s*(.*?)\s*```"
-        matches = re.findall(pattern, response, re.DOTALL)
-        if matches:
-            code = matches[0].strip()
-            if self._looks_like_python(code):
-                return code
-
-        # Pattern 3: Look for Python code without fences
+        patterns = [
+            r"```python\s*(.*?)\s*```",
+            r"```\s*(.*?)\s*```",
+        ]
+        for pattern in patterns:
+            matches = re.findall(pattern, response, re.DOTALL | re.IGNORECASE)
+            if matches:
+                code = matches[0].strip()
+                if self._looks_like_python(code):
+                    return code
         lines = response.split("\n")
         start_idx = None
         for i, line in enumerate(lines):
@@ -188,16 +162,12 @@ class TestGenerator:
             code = "\n".join(lines[start_idx:]).strip()
             if self._looks_like_python(code):
                 return code
-
-        # Pattern 4: If the whole response looks like Python
         if self._looks_like_python(response):
             return response.strip()
-
         log.warning("Could not extract valid Python code from LLM response")
         return None
 
     def _looks_like_python(self, code: str) -> bool:
-        """A simple heuristic to check if a string contains Python code."""
         code = (code or "").strip()
         if not code:
             return False
@@ -218,7 +188,6 @@ class TestGenerator:
         return any(indicator in code for indicator in python_indicators)
 
     async def _run_test_async(self, test_file: str) -> dict[str, Any]:
-        """Runs a specific test file asynchronously and returns results."""
         try:
             proc = await asyncio.create_subprocess_exec(
                 "poetry",
@@ -233,35 +202,29 @@ class TestGenerator:
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
             )
-
             try:
                 stdout, stderr = await asyncio.wait_for(
                     proc.communicate(), timeout=120.0
                 )
             except TimeoutError:
                 proc.kill()
-                await asyncio.wait_for(
-                    proc.wait(), timeout=5.0
-                )  # Ensure process is terminated
+                await asyncio.wait_for(proc.wait(), timeout=5.0)
                 return {
                     "passed": False,
                     "output": "",
                     "errors": "Test execution timed out after 120 seconds",
                     "returncode": -1,
                 }
-
             output = stdout.decode("utf-8", errors="replace")
             errors = stderr.decode("utf-8", errors="replace")
-
             return {
                 "passed": proc.returncode == 0,
                 "output": output,
                 "errors": errors,
                 "returncode": proc.returncode,
             }
-
         except Exception as e:
-            log.error(f"Exception running test {test_file}: {e}", exc_info=True)
+            log.error("Exception running test %s: %s", test_file, e, exc_info=True)
             return {
                 "passed": False,
                 "output": "",

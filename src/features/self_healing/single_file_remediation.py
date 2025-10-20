@@ -11,6 +11,7 @@ from typing import Any
 
 from core.cognitive_service import CognitiveService
 from rich.console import Console
+from rich.panel import Panel
 from shared.config import settings
 from shared.logger import getLogger
 
@@ -23,7 +24,7 @@ console = Console()
 
 
 @dataclass
-# ID: ece1686e-2511-421a-a7eb-78303de4de4b
+# ID: 97d95d4a-8d23-4db5-9f36-71d35226db00
 class TestGoal:
     """Represents a single test generation goal."""
 
@@ -35,13 +36,10 @@ class TestGoal:
     goal: str
 
 
-# ID: cd1de13c-3197-40ed-a332-3bc4a1eb3922
+# ID: 5a1ac32f-a8e6-43bd-a646-3d614918a3cd
 class SingleFileRemediationService:
     """
     Generates tests for a single specific file.
-
-    This is the simple path: one file → one goal → generate → done.
-    No strategic analysis, no batching, no complex orchestration.
     """
 
     def __init__(
@@ -56,35 +54,25 @@ class SingleFileRemediationService:
         self.analyzer = CoverageAnalyzer()
         self.generator = TestGenerator(cognitive_service, auditor_context)
 
-    # ID: c8b1c34f-27b4-46ec-8c34-b8ba516d122e
+    # ID: 0b904618-b389-4f9a-bd98-24fbf5e11e25
     async def remediate(self) -> dict[str, Any]:
         """
         Generate tests for the target file.
-
-        Returns:
-            Dict with remediation results
         """
         console.print("\n[bold cyan]🎯 Single File Coverage Remediation[/bold cyan]")
         console.print(f"   Target: {self.target_file}\n")
 
-        # Convert Path to module name (handle absolute paths)
         target_str = str(self.target_file)
-
-        # If it's an absolute path, extract just the part after 'src/'
         if "src/" in target_str:
             target_str = target_str.split("src/", 1)[1]
 
         module_name = target_str.replace("/", ".").replace(".py", "")
 
-        # Determine the relative module path for test generation
-        # TestGenerator needs the path relative to repo root
         if str(self.target_file).startswith(str(settings.REPO_PATH)):
             relative_path = self.target_file.relative_to(settings.REPO_PATH)
         else:
             relative_path = Path(target_str)
 
-        # Determine test file path based on module structure
-        # e.g., core.config_service -> tests/core/test_config_service.py
         module_parts = module_name.split(".")
         if len(module_parts) > 1:
             test_dir = "tests/" + "/".join(module_parts[:-1])
@@ -93,9 +81,10 @@ class SingleFileRemediationService:
         else:
             test_file_path = f"tests/test_{self.target_file.stem}.py"
 
-        # Create test goal
         goal = TestGoal(
-            module=module_name,
+            module=str(
+                relative_path
+            ),  # Pass the relative path as the module identifier
             test_file=test_file_path,
             priority=1,
             current_coverage=0.0,
@@ -103,23 +92,21 @@ class SingleFileRemediationService:
             goal=f"Generate comprehensive tests for {module_name}",
         )
 
-        console.print(f"[green]✅ Target: {module_name}[/green]\n")
+        console.print(f"[green]✅ Target Module: {goal.module}[/green]\n")
 
-        # Generate test
         try:
             result = await self.generator.generate_test(
-                module_path=str(relative_path),
+                module_path=goal.module,
                 test_file=goal.test_file,
                 goal=goal.goal,
                 target_coverage=goal.target_coverage,
             )
 
             if result.get("status") == "success":
-                console.print("[green]✅ Test generated successfully[/green]")
-
-                # Measure final coverage
+                console.print(
+                    "[green]✅ Test generated and passed successfully[/green]"
+                )
                 final_coverage = self._measure_final_coverage()
-
                 return {
                     "status": "completed",
                     "succeeded": 1,
@@ -128,15 +115,34 @@ class SingleFileRemediationService:
                     "final_coverage": final_coverage,
                 }
             else:
-                error = result.get("error", "Unknown error")
-                console.print(f"[red]❌ Generation failed: {error}[/red]")
+                # --- THIS IS THE FIX ---
+                # Provide a much more detailed error report.
+                error_details = "Unknown error"
+                test_result = result.get("test_result")
+                if test_result:
+                    error_details = (
+                        f"Test execution failed with code {test_result.get('returncode')}.\n"
+                        f"--- STDOUT ---\n{test_result.get('output')}\n"
+                        f"--- STDERR ---\n{test_result.get('errors')}"
+                    )
+                else:
+                    error_details = result.get("error", "Unknown error")
+
+                console.print(
+                    Panel(
+                        error_details,
+                        title="[bold red]❌ Generation Failed[/bold red]",
+                        border_style="red",
+                    )
+                )
                 return {
                     "status": "failed",
                     "succeeded": 0,
                     "failed": 1,
                     "total": 1,
-                    "error": error,
+                    "error": error_details,
                 }
+                # --- END OF FIX ---
 
         except Exception as e:
             log.error(f"Test generation failed: {e}", exc_info=True)

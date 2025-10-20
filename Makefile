@@ -134,6 +134,10 @@ coverage-run: ## Run the nightly autonomous coverage remediation job
 	@echo "🤖 Starting autonomous coverage remediation job..."
 	$(POETRY) run python scripts/nightly_coverage_remediation.py
 
+coverage-now: ## Run the coverage remediation job immediately, ignoring the time window
+	@echo "🤖 Starting autonomous coverage remediation job with --now flag..."
+	$(POETRY) run python scripts/nightly_coverage_remediation.py --now
+
 # ---- Docs --------------------------------------------------------------------
 docs: ## Generate capability documentation
 	@echo "📚 Generating capability documentation..."
