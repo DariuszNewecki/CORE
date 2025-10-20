@@ -21,6 +21,7 @@ from features.governance.audit_context import AuditorContext
 log = getLogger(__name__)
 
 
+# ID: 51188b3d-7ca8-4b23-8118-7f83c507e1ed
 class TestGenerator:
     """Generates and validates test files for modules."""
 
@@ -43,6 +44,7 @@ class TestGenerator:
             )
         return prompt_path.read_text(encoding="utf-8")
 
+    # ID: 8f4bd3c6-fa84-4b84-927e-2af3de98d90b
     async def generate_test(
         self,
         module_path: str,
