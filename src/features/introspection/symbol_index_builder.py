@@ -1,7 +1,5 @@
 # src/features/introspection/symbol_index_builder.py
-# Build a minimal symbol_index the auditor can consume, without relying on
-# project-specific services. It scans Python files under `src/`, loads
-# .intent/mind/knowledge/entry_point_patterns.yaml, and classifies symbols.
+"""Provides functionality for the symbol_index_builder module."""
 
 from __future__ import annotations
 

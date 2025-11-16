@@ -99,6 +99,7 @@ dev-sync: ## Run the safe, non-destructive developer sync and audit workflow
 	$(POETRY) run core-admin run vectorize --write
 	@echo "✅ Dev-sync complete! Database is now current."
 
+
 cli-tree: ## Display CLI command tree
 	@echo "🌳 Generating CLI command tree..."
 	$(POETRY) run core-admin inspect command-tree

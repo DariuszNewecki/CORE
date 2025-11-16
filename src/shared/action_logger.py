@@ -1,4 +1,5 @@
 # src/shared/action_logger.py
+
 """
 Provides a dedicated service for writing structured, auditable events to the system's action log.
 """
@@ -12,10 +13,10 @@ from typing import Any
 from shared.config import settings
 from shared.logger import getLogger
 
-log = getLogger("action_logger")
+logger = getLogger(__name__)
 
 
-# ID: 7a8b9c0d-1e2f-3a4b-5c6d-7e8f9a0b1c2d
+# ID: 89c44112-a689-4285-a069-194cb334fa72
 class ActionLogger:
     """Handles writing structured JSON events to the CORE_ACTION_LOG_PATH."""
 
@@ -28,12 +29,12 @@ class ActionLogger:
             self.log_path = settings.REPO_PATH / log_path_str
             self.log_path.parent.mkdir(parents=True, exist_ok=True)
         except (ValueError, AttributeError) as e:
-            log.error(
+            logger.error(
                 f"ActionLogger failed to initialize: {e}. Logging will be disabled."
             )
             self.log_path = None
 
-    # ID: 5d7a8b9c-0d1e-2f3a-4b5c-6d7e8f9a0b1c
+    # ID: 513dbaf6-e0dc-4d6f-b090-e7767e3ad7cb
     def log_event(self, event_type: str, details: dict[str, Any]):
         """
         Writes a single, timestamped event to the action log file.
@@ -43,8 +44,7 @@ class ActionLogger:
             details: A dictionary of context-specific information about the event.
         """
         if not self.log_path:
-            return  # Fail silently if the logger could not be initialized.
-
+            return
         log_entry = {
             "timestamp_utc": datetime.now(UTC).isoformat(),
             "event_type": event_type,
@@ -54,8 +54,7 @@ class ActionLogger:
             with self.log_path.open("a", encoding="utf-8") as f:
                 f.write(json.dumps(log_entry) + "\n")
         except Exception as e:
-            log.error(f"Failed to write to action log at {self.log_path}: {e}")
+            logger.error(f"Failed to write to action log at {self.log_path}: {e}")
 
 
-# A singleton instance for easy access across the application
 action_logger = ActionLogger()

@@ -1,84 +1,49 @@
-version: "2.0.0" # Version bump for v2.1 Schema Migration
+version: "3.0.0" # Major version bump for constitutional refactoring
 # PURPOSE: This is the master index for the entire CORE constitution. It maps
-# abstract concepts to their concrete file paths, fully embracing the new
-# hierarchical policy structure for maximum clarity and governance.
+# abstract concepts to their concrete file paths, embracing a thematic,
+# domain-oriented policy structure for improved clarity and governance.
 
 charter:
   constitution:
     active_version: "charter/constitution/ACTIVE"
-    amendment_process: "charter/constitution/amendment_process.md"
-    approvers: "charter/constitution/approvers.yaml"
-    critical_paths: "charter/constitution/critical_paths.yaml"
-    operator_lifecycle: "charter/constitution/operator_lifecycle.md"
+    # The core governance mechanics are now consolidated into a single file.
+    governance_framework: "charter/constitution/governance_framework.yaml"
+    precedence_rules: "charter/constitution/precedence_rules.yaml"
 
   mission:
-    manifesto: "charter/mission/manifesto.md"
-    northstar: "charter/mission/northstar.yaml"
-    principles: "charter/mission/principles.yaml"
+    # Mission statements remain foundational and unchanged in structure.
+    # These files have been consolidated into mind/knowledge/domain_definitions.yaml
+    # and are no longer needed here as separate top-level entries.
+    # The auditor will load them through the knowledge section.
 
   policies:
-    safety_policy: "charter/policies/safety_policy.yaml"
-
-    agent:
-      agent_policy: "charter/policies/agent/agent_policy.yaml"
-      micro_proposal_policy: "charter/policies/agent/micro_proposal_policy.yaml"
-
-    code:
-      capability_linter_policy: "charter/policies/code/capability_linter_policy.yaml"
-      code_health_policy: "charter/policies/code/code_health_policy.yaml"
-      code_style_policy: "charter/policies/code/code_style_policy.yaml"
-      dependency_injection_policy: "charter/policies/code/dependency_injection_policy.yaml"
-      naming_conventions_policy: "charter/policies/code/naming_conventions_policy.yaml"
-      refactoring_patterns_policy: "charter/policies/code/refactoring_patterns_policy.yaml"
-
-    data:
-      database_policy: "charter/policies/data/database_policy.yaml"
-      secrets_management_policy: "charter/policies/data/secrets_management_policy.yaml"
-
-    governance:
-      audit_ignore_policy: "charter/policies/governance/audit_ignore_policy.yaml"
-      auditor_policy: "charter/policies/governance/auditor_policy.yaml"
-      available_actions_policy: "charter/policies/governance/available_actions_policy.yaml"
-      cli_governance_policy: "charter/policies/governance/cli_governance_policy.yaml"
-      enforcement_model_policy: "charter/policies/governance/enforcement_model_policy.yaml"
-      intent_crate_policy: "charter/policies/governance/intent_crate_policy.yaml"
-      intent_guard_policy: "charter/policies/governance/intent_guard_policy.yaml"
-      knowledge_source_policy: "charter/policies/governance/knowledge_source_policy.yaml"
-      logging_policy: "charter/policies/governance/logging_policy.yaml"
-      quality_assurance_policy: "charter/policies/governance/quality_assurance_policy.yaml"
-      reporting_policy: "charter/policies/governance/reporting_policy.yaml"
-      risk_classification_policy: "charter/policies/governance/risk_classification_policy.yaml"
-      tooling_policy: "charter/policies/governance/tooling_policy.yaml"
-
-    operations:
-      canary_policy: "charter/policies/operations/canary_policy.yaml"
-      dev_fastpath_policy: "charter/policies/operations/dev_fastpath_policy.yaml"
-      incident_response_policy: "charter/policies/operations/incident_response_policy.yaml"
-      workflows_policy: "charter/policies/operations/workflows_policy.yaml"
+    # The policy structure is now flat and thematic, with each file covering a major domain.
+    safety_framework: "charter/policies/safety_framework.yaml"
+    agent_governance: "charter/policies/agent_governance.yaml"
+    code_standards: "charter/policies/code_standards.yaml"
+    data_governance: "charter/policies/data_governance.yaml"
+    operations: "charter/policies/operations.yaml"
+    quality_assurance: "charter/policies/quality_assurance.yaml"
 
   schemas:
+    # Schemas retain their original granular structure for precise validation.
     policy_schema: "charter/schemas/policy_schema.json"
-
     agent:
       agent_policy_schema: "charter/schemas/agent/agent_policy_schema.json"
       cognitive_roles_schema: "charter/schemas/agent/cognitive_roles_schema.json"
       micro_proposal_policy_schema: "charter/schemas/agent/micro_proposal_policy_schema.json"
       resource_manifest_policy_schema: "charter/schemas/agent/resource_manifest_policy_schema.json"
-
     code:
       capability_tag_schema: "charter/schemas/code/capability_tag_schema.json"
       dependency_injection_policy_schema: "charter/schemas/code/dependency_injection_policy_schema.json"
       knowledge_graph_entry_schema: "charter/schemas/code/knowledge_graph_entry_schema.json"
-
     constitutional:
       intent_bundle_schema: "charter/schemas/constitutional/intent_bundle_schema.json"
       intent_crate_schema: "charter/schemas/constitutional/intent_crate_schema.json"
       proposal_schema: "charter/schemas/constitutional/proposal_schema.json"
-
     data:
       database_policy_schema: "charter/schemas/data/database_policy_schema.json"
       database_schema: "charter/schemas/data/database_schema.yaml"
-
     governance:
       available_actions_policy_schema: "charter/schemas/governance/available_actions_policy_schema.json"
       cli_registry_schema: "charter/schemas/governance/cli_registry_schema.json"
@@ -86,7 +51,6 @@ charter:
       intent_guard_schema: "charter/schemas/governance/intent_guard_schema.json"
       reporting_policy_schema: "charter/schemas/governance/reporting_policy_schema.json"
       risk_classification_policy_schema: "charter/schemas/governance/risk_classification_policy_schema.json"
-
     operations:
       canary_policy_schema: "charter/schemas/operations/canary_policy_schema.json"
       config_schema: "charter/schemas/operations/config_schema.yaml"
@@ -94,20 +58,15 @@ charter:
       workflows_policy_schema: "charter/schemas/operations/workflows_policy_schema.json"
 
 mind:
+  # The Working Mind structure reflects the new consolidation.
   config:
     local_mode: "mind/config/local_mode.yaml"
     runtime_requirements: "mind/config/runtime_requirements.yaml"
 
-
-  evaluation:
-    score_policy: "mind/evaluation/score_policy.yaml"
-    audit_checklist: "mind/evaluation/audit_checklist.yaml"
-
   knowledge:
-    entry_point_patterns: "mind/knowledge/entry_point_patterns.yaml"
-    file_handlers: "mind/knowledge/file_handlers.yaml"
-    source_structure: "mind/knowledge/source_structure.yaml"
-    project_manifest: "mind/knowledge/project_manifest.yaml"
+    # The consolidated knowledge definitions.
+    domain_definitions: "mind/knowledge/domain_definitions.yaml"
+    project_structure: "mind/knowledge/project_structure.yaml"
 
   mind_export:
     cognitive_roles: "mind_export/cognitive_roles.yaml"
@@ -118,6 +77,7 @@ mind:
     northstar: "mind_export/northstar.yaml"
 
   prompts:
+    # Prompts remain granular and are unchanged.
     capability_definer: "mind/prompts/capability_definer.prompt"
     code_peer_review: "mind/prompts/code_peer_review.prompt"
     constitutional_review: "mind/prompts/constitutional_review.prompt"
@@ -138,3 +98,9 @@ mind:
     standard_task_generator: "mind/prompts/standard_task_generator.prompt"
     test_generator: "mind/prompts/test_generator.prompt"
     vectorizer: "mind/prompts/vectorizer.prompt"
+
+  context:
+    # ContextPackage governance & structure
+    schema: "context/schema.yaml"        # .intent/context/schema.yaml
+    policy: "context/policy.yaml"        # .intent/context/policy.yaml
+    domains: "knowledge/domains.yaml"    # .intent/knowledge/domains.yaml

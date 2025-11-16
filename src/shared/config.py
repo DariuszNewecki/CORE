@@ -1,4 +1,7 @@
 # src/shared/config.py
+
+"""Provides functionality for the config module."""
+
 from __future__ import annotations
 
 import json
@@ -6,68 +9,84 @@ from pathlib import Path
 from typing import Any
 
 import yaml
-
-# --- THIS IS THE FIX ---
-# We now explicitly load the .env file right here, ensuring it's always available.
 from dotenv import load_dotenv
 from pydantic import PrivateAttr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from shared.logger import getLogger
 
-log = getLogger("core.config")
-
+logger = getLogger(__name__)
 REPO_ROOT = Path(__file__).resolve().parents[2]
-# This line proactively loads the .env file from the project root.
-load_dotenv(REPO_ROOT / ".env")
-# --- END OF FIX ---
 
 
-# ID: fffe6c00-5587-4951-a7c2-2dd83d1adb5f
+# ID: 8d63432d-6c04-4696-b9e0-33d1174ebdf8
 class Settings(BaseSettings):
     """
-    The single, canonical source of truth for all CORE configuration.
-    It loads from environment variables and provides "Pathfinder" methods
+    Bootstrap configuration ONLY. Loads the bare minimum required to connect
+    to the database (the system's Mind) and provides "Pathfinder" methods
     to access constitutional files via the .intent/meta.yaml index.
+
+    All other application settings are loaded from the database via the ConfigService.
     """
 
+    CORE_ENV: str = "development"
+
+    @property
+    def _env_file(self) -> str:
+        mapping = {
+            "TEST": ".env.test",
+            "PROD": ".env.prod",
+            "PRODUCTION": ".env.prod",
+            "DEV": ".env",
+            "DEVELOPMENT": ".env",
+        }
+        return mapping.get(self.CORE_ENV.upper(), ".env")
+
     model_config = SettingsConfigDict(
-        # We still keep this for pydantic's native features, but our load_dotenv is more robust.
-        env_file=".env",
-        env_file_encoding="utf-8",
-        extra="allow",
-        case_sensitive=True,
+        env_file=None, env_file_encoding="utf-8", extra="allow", case_sensitive=True
     )
-
     _meta_config: dict[str, Any] = PrivateAttr(default_factory=dict)
-
     REPO_PATH: Path = REPO_ROOT
     MIND: Path = REPO_PATH / ".intent"
     BODY: Path = REPO_PATH / "src"
-    PROMPTS: Path = MIND / "mind" / "prompts"
-
-    LLM_ENABLED: bool = True
-    LOG_LEVEL: str = "INFO"
-    CORE_MAX_CONCURRENT_REQUESTS: int = 5
-
+    KEY_STORAGE_DIR: Path = REPO_PATH / ".intent" / "keys"
+    CORE_ACTION_LOG_PATH: Path = REPO_PATH / "logs" / "actions.jsonl"
     DATABASE_URL: str
     QDRANT_URL: str
-    QDRANT_COLLECTION_NAME: str = "core_capabilities"
-
-    LOCAL_EMBEDDING_API_URL: str
-    LOCAL_EMBEDDING_MODEL_NAME: str
-    LOCAL_EMBEDDING_DIM: int
-    LOCAL_EMBEDDING_API_KEY: str | None = None
+    CORE_MASTER_KEY: str | None = None
+    LOG_LEVEL: str = "INFO"
+    LLM_ENABLED: bool = True
+    QDRANT_COLLECTION_NAME: str = "core_symbols"
+    LOCAL_EMBEDDING_DIM: int = 768
+    LOCAL_EMBEDDING_MODEL_NAME: str = "nomic-embed-text"
     EMBED_MODEL_REVISION: str = "2025-09-15"
-
-    KEY_STORAGE_DIR: Path = REPO_PATH / ".intent" / "keys"
+    CORE_MAX_CONCURRENT_REQUESTS: int = 2
+    LLM_REQUEST_TIMEOUT: int = 300
 
     def __init__(self, **values: Any):
+        load_dotenv(REPO_ROOT / ".env", override=True)
+        core_env = values.get("CORE_ENV") or "development"
+        env_file = REPO_ROOT / self._get_env_file_name(core_env)
+        if env_file.exists():
+            load_dotenv(env_file, override=True)
+            logger.debug(f"Loaded environment file: {env_file}")
+        else:
+            logger.warning(f"Environment file not found: {env_file}, using defaults")
         super().__init__(**values)
         if (self.REPO_PATH / ".intent" / "meta.yaml").exists():
             self._load_meta_config()
 
-    # ID: ea16ad9b-bf16-4e44-bc48-dd8734f79f73
+    def _get_env_file_name(self, core_env: str) -> str:
+        mapping = {
+            "TEST": ".env.test",
+            "PROD": ".env.prod",
+            "PRODUCTION": ".env.prod",
+            "DEV": ".env",
+            "DEVELOPMENT": ".env",
+        }
+        return mapping.get(core_env.upper(), ".env")
+
+    # ID: f3368871-0171-4724-992b-7144beda92f2
     def initialize_for_test(self, repo_path: Path):
         self.REPO_PATH = repo_path
         self.MIND = repo_path / ".intent"
@@ -92,7 +111,7 @@ class Settings(BaseSettings):
             return json.loads(content) or {}
         raise ValueError(f"Unsupported config file type: {file_path}")
 
-    # ID: 84038773-3d4c-4f59-8cf7-db6b68e0fd37
+    # ID: c5d53841-226f-403c-891e-20d723f8b28e
     def get_path(self, logical_path: str) -> Path:
         keys = logical_path.split(".")
         value: Any = self._meta_config
@@ -109,7 +128,7 @@ class Settings(BaseSettings):
                 f"Logical path '{logical_path}' not found or invalid in meta.yaml."
             )
 
-    # ID: ab774e44-9edf-4309-af2a-84a20f9e86bd
+    # ID: defdb6ae-211b-4ca7-abda-3582519cc6e3
     def find_logical_path_for_file(self, filename: str) -> str:
         def _search(d: Any) -> str | None:
             if isinstance(d, dict):
@@ -126,7 +145,7 @@ class Settings(BaseSettings):
             return found_path
         raise ValueError(f"Filename '{filename}' not found in meta.yaml index.")
 
-    # ID: 73a12ea2-7924-482f-a6c7-b0c67c56b486
+    # ID: ce3d8a38-9dd7-4467-a921-2576d9a3d3eb
     def load(self, logical_path: str) -> dict[str, Any]:
         file_path = self.get_path(logical_path)
         try:
@@ -140,10 +159,11 @@ class Settings(BaseSettings):
 try:
     settings = Settings()
 except (RuntimeError, FileNotFoundError) as e:
-    log.critical(f"FATAL ERROR during settings initialization: {e}")
+    logger.critical(f"FATAL ERROR during settings initialization: {e}")
+    raise
 
 
-# ID: a40df97d-3f3f-4ab9-9fca-7986ca5d5b25
+# ID: c920ea8e-ecae-48f4-8fd4-c1dda9a506e7
 def get_path_or_none(logical_path: str) -> Path | None:
     try:
         if "settings" not in globals() or settings is None:

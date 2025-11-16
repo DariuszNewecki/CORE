@@ -8,12 +8,13 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from core.knowledge_service import KnowledgeService
+from services.knowledge.knowledge_service import KnowledgeService
+from shared.models import CapabilityMeta, DriftReport
+
 from features.introspection.discovery.from_manifest import (
     load_manifest_capabilities,
 )
 from features.introspection.drift_detector import detect_capability_drift
-from shared.models import CapabilityMeta, DriftReport
 
 
 # ID: 58d789bd-6dc5-440d-ad53-efb8a204b4d3

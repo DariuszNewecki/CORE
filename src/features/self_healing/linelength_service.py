@@ -1,4 +1,5 @@
 # src/features/self_healing/linelength_service.py
+
 """
 Implements the 'fix line-lengths' command, an AI-powered tool to
 refactor code for better readability by adhering to line length policies.
@@ -10,39 +11,33 @@ import asyncio
 from pathlib import Path
 
 import typer
+from mind.governance.audit_context import AuditorContext
 from rich.progress import track
-
-from core.cognitive_service import CognitiveService
-
-# --- START OF AMENDMENT: Import the new async validator ---
-from core.validation_pipeline import validate_code_async
-
-# --- END OF AMENDMENT ---
-from features.governance.audit_context import AuditorContext
 from shared.config import settings
+from shared.context import CoreContext
 from shared.logger import getLogger
+from will.orchestration.cognitive_service import CognitiveService
+from will.orchestration.validation_pipeline import validate_code_async
 
-log = getLogger("core_admin.fixer_linelength")
+logger = getLogger(__name__)
 REPO_ROOT = settings.REPO_PATH
 
 
-async def _async_fix_line_lengths(files_to_process: list[Path], dry_run: bool):
+async def _async_fix_line_lengths(
+    cognitive_service: CognitiveService, files_to_process: list[Path], dry_run: bool
+):
     """Async core logic for finding and fixing all line length violations."""
-    log.info(
+    logger.info(
         f"Scanning {len(files_to_process)} files for lines longer than 100 characters..."
     )
-
-    cognitive_service = CognitiveService(REPO_ROOT)
     prompt_template_path = settings.MIND / "prompts" / "fix_line_length.prompt"
     if not prompt_template_path.exists():
-        log.error(f"Prompt not found at {prompt_template_path}. Cannot proceed.")
+        logger.error(f"Prompt not found at {prompt_template_path}. Cannot proceed.")
         raise typer.Exit(code=1)
     prompt_template = prompt_template_path.read_text(encoding="utf-8")
-    fixer_client = cognitive_service.get_client_for_role("CodeStyleFixer")
-
+    fixer_client = await cognitive_service.aget_client_for_role("CodeStyleFixer")
     auditor_context = AuditorContext(REPO_ROOT)
-    await auditor_context.load_knowledge_graph()  # Pre-load the graph for the validator
-
+    await auditor_context.load_knowledge_graph()
     files_with_long_lines = []
     for file_path in files_to_process:
         try:
@@ -52,44 +47,35 @@ async def _async_fix_line_lengths(files_to_process: list[Path], dry_run: bool):
                     break
         except Exception:
             continue
-
     if not files_with_long_lines:
-        log.info("✅ No files with long lines found. Nothing to do.")
+        logger.info("✅ No files with long lines found. Nothing to do.")
         return
-
-    log.info(f"Found {len(files_with_long_lines)} file(s) with long lines to fix.")
-
+    logger.info(f"Found {len(files_with_long_lines)} file(s) with long lines to fix.")
     modification_plan = {}
-
     for file_path in track(
         files_with_long_lines, description="Asking AI to refactor files..."
     ):
         try:
             original_content = file_path.read_text(encoding="utf-8")
             final_prompt = prompt_template.replace("{source_code}", original_content)
-
             corrected_code = await fixer_client.make_request_async(
                 final_prompt, user_id="line_length_fixer_agent"
             )
-
             if corrected_code and corrected_code.strip() != original_content.strip():
-                # --- START OF AMENDMENT: Call the async validator and await it ---
                 validation_result = await validate_code_async(
                     str(file_path),
                     corrected_code,
                     quiet=True,
                     auditor_context=auditor_context,
                 )
-                # --- END OF AMENDMENT ---
                 if validation_result["status"] == "clean":
                     modification_plan[file_path] = validation_result["code"]
                 else:
-                    log.warning(
+                    logger.warning(
                         f"Skipping {file_path.name}: AI-generated code failed validation."
                     )
         except Exception as e:
-            log.error(f"Could not process {file_path.name}: {e}")
-
+            logger.error(f"Could not process {file_path.name}: {e}")
     if dry_run:
         typer.secho("\n💧 Dry Run Summary:", bold=True)
         for file_path in sorted(modification_plan.keys()):
@@ -98,16 +84,17 @@ async def _async_fix_line_lengths(files_to_process: list[Path], dry_run: bool):
                 fg=typer.colors.YELLOW,
             )
     else:
-        log.info("\n💾 Writing changes to disk...")
+        logger.info("\n💾 Writing changes to disk...")
         for file_path, new_code in modification_plan.items():
             file_path.write_text(new_code, "utf-8")
-            log.info(
+            logger.info(
                 f"   -> ✅ Fixed line lengths in {file_path.relative_to(REPO_ROOT)}"
             )
 
 
-# ID: 1655a2ca-f71f-470b-8f43-a33ee28d64dd
+# ID: 3b56560b-f4d7-4418-9ca8-fd8154744621
 def fix_line_lengths(
+    context: CoreContext,
     file_path: Path | None = typer.Argument(
         None,
         help="Optional: A specific file to fix. If omitted, all project files are scanned.",
@@ -115,8 +102,10 @@ def fix_line_lengths(
         dir_okay=False,
         resolve_path=True,
     ),
-    write: bool = typer.Option(
-        False, "--write", help="Apply the changes directly to the files."
+    dry_run: bool = typer.Option(
+        True,
+        "--dry-run/--write",
+        help="Show what refactoring would be applied. Use --write to apply.",
     ),
 ):
     """Uses an AI agent to refactor files with lines longer than 100 characters."""
@@ -124,8 +113,8 @@ def fix_line_lengths(
     if file_path:
         files_to_scan.append(file_path)
     else:
-        # Scan all Python files in the src directory
         src_dir = REPO_ROOT / "src"
         files_to_scan.extend(src_dir.rglob("*.py"))
-
-    asyncio.run(_async_fix_line_lengths(files_to_scan, dry_run=not write))
+    asyncio.run(
+        _async_fix_line_lengths(context.cognitive_service, files_to_scan, dry_run)
+    )

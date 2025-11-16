@@ -6,7 +6,7 @@ Tests for the FileHandler - CORE's safe file I/O layer.
 import json
 
 import pytest
-from core.file_handler import FileHandler
+from services.storage.file_handler import FileHandler
 
 
 @pytest.fixture

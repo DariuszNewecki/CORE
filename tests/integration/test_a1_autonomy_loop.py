@@ -10,8 +10,8 @@ import json
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from cli.logic.proposals_micro import propose_and_apply_autonomously
 from shared.context import CoreContext
+from will.cli_logic.proposals_micro import propose_and_apply_autonomously
 
 
 @pytest.mark.asyncio
@@ -59,7 +59,7 @@ async def test_fix_docstrings_autonomously(mock_core_env, mocker):
         test_file_path.write_text("\n".join(lines) + "\n")
 
     mocker.patch(
-        "core.actions.healing_actions._async_fix_docstrings",
+        "body.actions.healing_actions._async_fix_docstrings",
         new=AsyncMock(side_effect=mock_fix_docstrings),
     )
 

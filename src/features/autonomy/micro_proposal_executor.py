@@ -1,4 +1,5 @@
 # src/features/autonomy/micro_proposal_executor.py
+
 """
 Service for validating and applying micro-proposals to enable safe, autonomous
 changes to the CORE codebase, adhering to the micro_proposal_policy.yaml and
@@ -15,11 +16,11 @@ from shared.models import CheckResult
 from shared.path_utils import get_repo_root
 from shared.utils.yaml_processor import strict_yaml_processor
 
-log = getLogger("micro_proposal_executor")
+logger = getLogger(__name__)
 
 
 @dataclass
-# ID: 5b337f4b-e1c5-43f2-a26e-17bc7ceee474
+# ID: 59a37e53-cff3-451b-b007-e67294a938bc
 class MicroProposal:
     """Internal data structure for a micro-proposal with target file, action, and content."""
 
@@ -29,7 +30,7 @@ class MicroProposal:
     validation_report_id: str | None = None
 
 
-# ID: 9f3a2e7b-5c4d-4b9e-a2f0-8d7a9e3d6e2c
+# ID: a681a59e-70b7-43a9-a35e-228ca254d055
 class MicroProposalExecutor:
     """
     Validates and applies micro-proposals for safe, autonomous changes as defined
@@ -49,7 +50,7 @@ class MicroProposalExecutor:
             self.repo_root / ".intent/charter/policies/agent/micro_proposal_policy.yaml"
         )
         self.policy = self._load_policy()
-        log.debug("MicroProposalExecutor initialized")
+        logger.debug("MicroProposalExecutor initialized")
 
     def _load_policy(self) -> dict:
         """
@@ -67,7 +68,7 @@ class MicroProposalExecutor:
                 raise ValueError("Micro-proposal policy is empty or invalid")
             return policy
         except ValueError as e:
-            log.error(f"Failed to load micro-proposal policy: {e}")
+            logger.error(f"Failed to load micro-proposal policy: {e}")
             raise
 
     def _check_safe_actions(self, action: str) -> CheckResult:
@@ -92,7 +93,6 @@ class MicroProposalExecutor:
                 message="Safe actions rule not found in policy",
                 path=None,
             )
-
         if action not in safe_actions_rule["allowed_actions"]:
             return CheckResult(
                 policy_id=self.policy["policy_id"],
@@ -132,7 +132,6 @@ class MicroProposalExecutor:
                 message="Safe paths rule not found in policy",
                 path=file_path,
             )
-
         path_obj = Path(file_path)
         is_allowed = any(
             fnmatch(str(path_obj), pattern)
@@ -142,7 +141,6 @@ class MicroProposalExecutor:
             fnmatch(str(path_obj), pattern)
             for pattern in safe_paths_rule["forbidden_paths"]
         )
-
         if is_forbidden:
             return CheckResult(
                 policy_id=self.policy["policy_id"],
@@ -185,7 +183,6 @@ class MicroProposalExecutor:
                 message="No validation report ID provided",
                 path=None,
             )
-        # Placeholder for actual validation report check (e.g., query DB or file)
         return CheckResult(
             policy_id=self.policy["policy_id"],
             rule_id="require_validation",
@@ -194,7 +191,7 @@ class MicroProposalExecutor:
             path=None,
         )
 
-    # ID: 7c2e8d9a-6f3e-4c7a-b3f1-9e8a7f4c5d3b
+    # ID: b539d219-51aa-4123-9cd8-d77ffb209a4c
     def validate_proposal(self, proposal: MicroProposal) -> list[CheckResult]:
         """
         Validate a micro-proposal against safe_actions, safe_paths, and
@@ -207,31 +204,22 @@ class MicroProposalExecutor:
             List[CheckResult]: List of validation results detailing compliance or violations.
         """
         results = []
-        log.debug(
+        logger.debug(
             f"Validating micro-proposal for action '{proposal.action}' on '{proposal.file_path}'"
         )
-
-        # Check safe actions
         results.append(self._check_safe_actions(proposal.action))
-
-        # Check safe paths
         results.append(self._check_safe_paths(proposal.file_path))
-
-        # Check validation report
         results.append(self._check_validation_report(proposal.validation_report_id))
-
-        # Log validation outcome
         errors = [r for r in results if r.severity == "error"]
         if errors:
-            log.error(
+            logger.error(
                 f"Micro-proposal validation failed: {[(r.rule_id, r.message) for r in errors]}"
             )
         else:
-            log.info("Micro-proposal passed all validation checks")
-
+            logger.info("Micro-proposal passed all validation checks")
         return results
 
-    # ID: 5d4f9e8b-8c2f-4d9a-a4e2-0f7b6a5c4e3a
+    # ID: 945fb9c6-6789-415c-9412-64b57e03fd8f
     async def apply_proposal(self, proposal: MicroProposal) -> bool:
         """
         Apply a validated micro-proposal by executing the specified action.
@@ -244,27 +232,22 @@ class MicroProposalExecutor:
         """
         validation_results = self.validate_proposal(proposal)
         if any(result.severity == "error" for result in validation_results):
-            log.error("Cannot apply proposal due to validation errors")
+            logger.error("Cannot apply proposal due to validation errors")
             return False
-
         try:
             if proposal.action == "autonomy.self_healing.format_code":
-                # Placeholder for formatting logic (e.g., invoke black)
                 Path(proposal.file_path).write_text(proposal.content, encoding="utf-8")
-                log.info(f"Applied format_code to {proposal.file_path}")
+                logger.info(f"Applied format_code to {proposal.file_path}")
             elif proposal.action == "autonomy.self_healing.fix_docstrings":
-                # Placeholder for docstring fixing logic
                 Path(proposal.file_path).write_text(proposal.content, encoding="utf-8")
-                log.info(f"Applied fix_docstrings to {proposal.file_path}")
+                logger.info(f"Applied fix_docstrings to {proposal.file_path}")
             elif proposal.action == "autonomy.self_healing.fix_headers":
-                # Placeholder for header fixing logic
                 Path(proposal.file_path).write_text(proposal.content, encoding="utf-8")
-                log.info(f"Applied fix_headers to {proposal.file_path}")
+                logger.info(f"Applied fix_headers to {proposal.file_path}")
             else:
-                log.error(f"Unsupported action: {proposal.action}")
+                logger.error(f"Unsupported action: {proposal.action}")
                 return False
-
             return True
         except Exception as e:
-            log.error(f"Failed to apply micro-proposal: {e}")
+            logger.error(f"Failed to apply micro-proposal: {e}")
             return False

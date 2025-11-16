@@ -1,4 +1,6 @@
 # src/features/introspection/sync_service.py
+"""Provides functionality for the sync_service module."""
+
 from __future__ import annotations
 
 import ast
@@ -6,11 +8,10 @@ import uuid
 from typing import Any
 
 from rich.console import Console
-from sqlalchemy import text
-
 from services.database.session_manager import get_session
 from shared.ast_utility import calculate_structural_hash
 from shared.config import settings
+from sqlalchemy import text
 
 console = Console()
 

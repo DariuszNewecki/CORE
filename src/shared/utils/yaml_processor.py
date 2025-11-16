@@ -1,4 +1,5 @@
 # src/shared/utils/yaml_processor.py
+
 """
 
 Centralized YAML processor for constitutional compliance, providing consistent
@@ -25,10 +26,10 @@ from ruamel.yaml import YAML
 
 from shared.logger import getLogger
 
-log = getLogger("yaml_processor")
+logger = getLogger(__name__)
 
 
-# ID: b824d032-49d4-486b-9182-99a76c78843f
+# ID: a9d1d5fb-f17f-4f08-8c85-fafacff4c937
 class YAMLProcessor:
     """Centralized YAML processor for constitutional file operations."""
 
@@ -43,13 +44,15 @@ class YAMLProcessor:
         self.yaml = YAML(typ="safe")
         if allow_duplicates:
             self.yaml.allow_duplicate_keys = True
-            log.debug(
+            logger.debug(
                 "YAML processor configured for duplicate key tolerance (diagnostic mode)"
             )
         else:
-            log.debug("YAML processor configured for strict constitutional compliance")
+            logger.debug(
+                "YAML processor configured for strict constitutional compliance"
+            )
 
-    # ID: 78d97bea-bfa3-49b2-ba62-8e4093d84fb0
+    # ID: b4715b26-2d01-47cb-bf6a-4862d3d67ad2
     def load(self, file_path: Path) -> dict[str, Any] | None:
         """Load and parse a constitutional YAML file with error context.
 
@@ -67,33 +70,28 @@ class YAMLProcessor:
             OSError: If file system errors occur during reading
         """
         if not file_path.exists():
-            log.debug(f"YAML file not found (non-error): {file_path}")
+            logger.debug(f"YAML file not found (non-error): {file_path}")
             return None
-
         try:
-            log.debug(f"Loading YAML from: {file_path}")
+            logger.debug(f"Loading YAML from: {file_path}")
             with file_path.open("r", encoding="utf-8") as f:
                 content = self.yaml.load(f)
-
             if content is None:
-                log.warning(f"YAML file is empty: {file_path}")
+                logger.warning(f"YAML file is empty: {file_path}")
                 return {}
-
             if not isinstance(content, dict):
                 raise ValueError(
                     f"YAML root must be a mapping (dict), got {type(content).__name__}: {file_path}"
                 )
-
-            log.debug(f"Successfully loaded YAML: {file_path} ({len(content)} keys)")
+            logger.debug(f"Successfully loaded YAML: {file_path} ({len(content)} keys)")
             return content
-
         except Exception as e:
-            log.error(f"YAML parsing failed for {file_path}: {e}")
+            logger.error(f"YAML parsing failed for {file_path}: {e}")
             raise ValueError(
                 f"Failed to parse constitutional YAML {file_path}: {e}"
             ) from e
 
-    # ID: 7e913478-a8e9-4e75-bd12-54f2264487c6
+    # ID: 73394e37-41db-4391-93e8-6ced1a61735f
     def load_strict(self, file_path: Path) -> dict[str, Any]:
         """Load YAML with strict constitutional validation (no duplicate keys).
 
@@ -112,14 +110,12 @@ class YAMLProcessor:
             raise ValueError(
                 "Cannot use strict mode with duplicate key tolerance enabled"
             )
-
         content = self.load(file_path)
         if content is None:
             raise ValueError(f"Required constitutional file missing: {file_path}")
-
         return content
 
-    # ID: 91acfb90-7639-41f3-b1cc-064e7d8a0d46
+    # ID: c4e2777b-8eb7-4998-96ae-b58427b52c98
     def dump(self, data: dict[str, Any], file_path: Path) -> None:
         """Write YAML content with constitutional formatting.
 
@@ -134,24 +130,17 @@ class YAMLProcessor:
             OSError: If file system errors occur during writing
         """
         file_path.parent.mkdir(parents=True, exist_ok=True)
-
         try:
-            log.debug(f"Dumping YAML to: {file_path}")
+            logger.debug(f"Dumping YAML to: {file_path}")
             with file_path.open("w", encoding="utf-8") as f:
                 self.yaml.dump(data, f)
-            log.debug(f"Successfully wrote YAML: {file_path}")
+            logger.debug(f"Successfully wrote YAML: {file_path}")
         except Exception as e:
-            log.error(f"YAML write failed for {file_path}: {e}")
+            logger.error(f"YAML write failed for {file_path}: {e}")
             raise OSError(
                 f"Failed to write constitutional YAML {file_path}: {e}"
             ) from e
 
 
-# Global instance for convenience (used by all governance checks)
-# This follows the constitutional pattern of shared singletons for utilities
-yaml_processor = YAMLProcessor(
-    allow_duplicates=True
-)  # Diagnostic tools need duplicate tolerance
-
-# Strict processor for policy/schema validation
+yaml_processor = YAMLProcessor(allow_duplicates=True)
 strict_yaml_processor = YAMLProcessor(allow_duplicates=False)

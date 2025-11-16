@@ -88,11 +88,18 @@ async def test_request_with_retry_success_first_attempt(llm_client):
 
 
 @pytest.mark.asyncio
-async def test_request_with_retry_succeeds_after_failure(llm_client):
+async def test_request_with_retry_succeeds_after_failure(llm_client, mocker):
     """Tests that failed requests are retried and eventually succeed."""
     mock_method = AsyncMock(
         side_effect=[Exception("First failure"), Exception("Second failure"), "success"]
     )
+
+    # Patch asyncio.sleep to avoid real backoff delays
+    async def fast_sleep(duration):
+        # No real waiting; we only care that retries happen.
+        return None
+
+    mocker.patch("asyncio.sleep", side_effect=fast_sleep)
 
     result = await llm_client._request_with_retry(mock_method)
 
@@ -101,9 +108,15 @@ async def test_request_with_retry_succeeds_after_failure(llm_client):
 
 
 @pytest.mark.asyncio
-async def test_request_with_retry_fails_after_max_attempts(llm_client):
+async def test_request_with_retry_fails_after_max_attempts(llm_client, mocker):
     """Tests that requests fail after max retry attempts."""
     mock_method = AsyncMock(side_effect=Exception("Persistent failure"))
+
+    # Patch asyncio.sleep to avoid real backoff delays
+    async def fast_sleep(duration):
+        return None
+
+    mocker.patch("asyncio.sleep", side_effect=fast_sleep)
 
     with pytest.raises(Exception, match="Persistent failure"):
         await llm_client._request_with_retry(mock_method)
@@ -113,24 +126,29 @@ async def test_request_with_retry_fails_after_max_attempts(llm_client):
 
 
 @pytest.mark.asyncio
-async def test_rate_limiting_enforced(llm_client, mock_resource_config):
-    """Tests that rate limiting delays are enforced."""
+async def test_rate_limiting_enforced(llm_client, mock_resource_config, mocker):
+    """Tests that rate limiting delays are enforced (via requested sleep time)."""
     # Set rate limit to 1 second
     mock_resource_config.get_rate_limit = AsyncMock(return_value=1.0)
 
-    # First request should succeed immediately
-    start = asyncio.get_event_loop().time()
-    await llm_client._enforce_rate_limit()
-    first_duration = asyncio.get_event_loop().time() - start
+    # Track requested sleep durations instead of real time
+    sleep_times = []
 
-    # Second request should be delayed
-    start = asyncio.get_event_loop().time()
-    await llm_client._enforce_rate_limit()
-    second_duration = asyncio.get_event_loop().time() - start
+    async def mock_sleep(duration: float):
+        sleep_times.append(duration)
+        # No real wait
 
-    # First request should be fast, second should take ~1 second
-    assert first_duration < 0.1
-    assert second_duration >= 0.9  # Allow some margin
+    mocker.patch("asyncio.sleep", side_effect=mock_sleep)
+
+    # First request should not sleep (no prior timestamp or long ago)
+    await llm_client._enforce_rate_limit()
+
+    # Second request should request ~1s sleep
+    await llm_client._enforce_rate_limit()
+
+    # We expect exactly one sleep call of ~1 second
+    assert len(sleep_times) == 1
+    assert 0.9 <= sleep_times[0] <= 1.1
 
 
 @pytest.mark.asyncio
@@ -140,10 +158,11 @@ async def test_rate_limiting_not_enforced_when_disabled(
     """Tests that rate limiting is skipped when set to 0."""
     mock_resource_config.get_rate_limit = AsyncMock(return_value=0)
 
-    start = asyncio.get_event_loop().time()
+    loop = asyncio.get_running_loop()
+    start = loop.time()
     await llm_client._enforce_rate_limit()
     await llm_client._enforce_rate_limit()
-    duration = asyncio.get_event_loop().time() - start
+    duration = loop.time() - start
 
     # Both requests should be fast
     assert duration < 0.1

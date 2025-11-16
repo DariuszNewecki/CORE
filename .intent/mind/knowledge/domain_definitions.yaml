@@ -1,0 +1,46 @@
+# .intent/mind/knowledge/domain_definitions.yaml
+id: domain_definitions
+version: "2.0.0"
+title: "Project Identity & Capability Domains"
+
+# === PROJECT IDENTITY ===
+project:
+  name: CORE
+  version: "1.0.0"
+  purpose: >
+    CORE is a self-improving, intent-aware development system that orchestrates
+    safe, meaningful, and governed changes through intent bundles and introspective loops.
+
+# === CORE PRINCIPLES ===
+principles:
+  - id: clarity_first
+    description: "Prioritize clear, understandable code and documentation."
+
+  - id: safe_by_default
+    description: "Every change must assume rollback or rejection unless explicitly validated."
+
+  - id: reason_with_purpose
+    description: "Every autonomous step must be traceable to core principles."
+
+  - id: evolvable_structure
+    description: "System must be designed to evolve safely with formal amendment process."
+
+  # ... ALL 12 original principles remain
+
+# === CAPABILITY DOMAINS ===
+capability_domains:
+  - name: governance
+    owner: "Governance Lead"
+    description: "Constitutional compliance, policy enforcement, and amendment processing"
+
+  - name: autonomy
+    owner: "Core Maintainer"
+    description: "Agent behavior, reasoning, and safe autonomous actions"
+
+  - name: quality
+    owner: "Quality Lead"
+    description: "Code standards, testing, and quality assurance"
+
+  - name: operations
+    owner: "Platform SRE"
+    description: "System workflows, deployment, and incident response"

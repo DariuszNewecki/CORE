@@ -6,6 +6,7 @@ according to CORE's constitutional style guide.
 
 from __future__ import annotations
 
+import ast
 from dataclasses import dataclass, field
 
 
@@ -31,70 +32,92 @@ class HeaderTools:
         """Parses the source code and extracts header components."""
         components = HeaderComponents()
         lines = source_code.splitlines()
-        state = "start"
-        docstring_lines = []
+        if not lines:
+            return components
 
-        for line in lines:
-            if state == "start":
-                if line.strip().startswith("#") and ("/" in line or "\\" in line):
-                    components.location = line
-                    state = "location_found"
-                else:  # No header found, treat everything as body
-                    components.body.append(line)
-                    state = "body_started"
+        try:
+            tree = ast.parse(source_code)
+        except SyntaxError:
+            components.body = lines
+            return components
 
-            elif state == "location_found":
-                if not line.strip():
-                    continue  # Skip blank lines
-                if '"""' in line or "'''" in line:
-                    docstring_lines.append(line)
-                    if line.count('"""') == 2 or line.count("'''") == 2:
-                        state = "docstring_done"
+        # Find the end of the header section (last docstring or import)
+        last_header_line = 0
+        header_nodes = []
+        for node in tree.body:
+            is_docstring = isinstance(node, ast.Expr) and isinstance(
+                node.value, ast.Constant
+            )
+            is_import = isinstance(node, (ast.Import, ast.ImportFrom))
+            if is_docstring or is_import:
+                last_header_line = node.end_lineno or node.lineno
+                header_nodes.append(node)
+            else:
+                # First non-header node marks the end of the header
+                break
+
+        # Body starts after the header, skipping blank lines
+        body_start_index = last_header_line
+        while body_start_index < len(lines) and not lines[body_start_index].strip():
+            body_start_index += 1
+
+        components.body = lines[body_start_index:]
+
+        # Process Header Content
+        if lines and lines[0].strip().startswith("#"):
+            components.location = lines[0]
+
+        # Extract docstring directly from source lines to preserve original quotes
+        docstring_node = (
+            tree.body[0] if tree.body and isinstance(tree.body[0], ast.Expr) else None
+        )
+        if (
+            docstring_node
+            and hasattr(docstring_node, "lineno")
+            and hasattr(docstring_node, "end_lineno")
+        ):
+            # Get the exact lines from the source
+            start_line = docstring_node.lineno - 1
+            end_line = docstring_node.end_lineno - 1
+
+            # Extract lines including quotes
+            docstring_lines = lines[start_line : end_line + 1]
+
+            # Preserve original formatting by joining lines
+            if docstring_lines:
+                # Detect if it's a multi-line docstring
+                first_line = docstring_lines[0].strip()
+                last_line = docstring_lines[-1].strip()
+
+                # Check if it starts and ends with quotes
+                if first_line.startswith(
+                    ('"""', "'''", '"', "'")
+                ) and last_line.endswith(('"""', "'''", '"', "'")):
+                    # For single-line docstrings
+                    if len(docstring_lines) == 1:
+                        components.module_description = docstring_lines[0].strip()
                     else:
-                        state = "in_docstring"
-                else:
-                    components.body.append(line)
-                    state = "body_started"
+                        # For multi-line docstrings, preserve all lines
+                        # Find the indentation level
+                        base_indent = len(docstring_lines[0]) - len(
+                            docstring_lines[0].lstrip()
+                        )
+                        # Strip consistent indentation
+                        stripped_lines = []
+                        for line in docstring_lines:
+                            if line.startswith(" " * base_indent):
+                                stripped_lines.append(line[base_indent:])
+                            else:
+                                stripped_lines.append(line)
+                        components.module_description = "\n".join(stripped_lines)
 
-            elif state == "in_docstring":
-                docstring_lines.append(line)
-                if '"""' in line or "'''" in line:
-                    state = "docstring_done"
-
-            elif state == "docstring_done":
-                if not line.strip():
-                    continue
-                if "from __future__ import annotations" in line:
+        for node in header_nodes:
+            if isinstance(node, (ast.Import, ast.ImportFrom)):
+                import_line = ast.unparse(node)
+                if "from __future__ import annotations" in import_line:
                     components.has_future_import = True
-                    state = "future_import_found"
                 else:
-                    components.body.append(line)
-                    state = "body_started"
-
-            elif state == "future_import_found":
-                if line.strip().startswith("from") or line.strip().startswith("import"):
-                    components.other_imports.append(line)
-                else:
-                    components.body.append(line)
-                    state = "body_started"
-
-            elif state == "body_started":
-                components.body.append(line)
-
-        if docstring_lines:
-            components.module_description = "\n".join(docstring_lines)
-
-        # --- START OF FIX ---
-        # Strip future import from body if it was misplaced and rename variable 'l' to 'line'.
-        body_without_future = [
-            line
-            for line in components.body
-            if "from __future__ import annotations" not in line
-        ]
-        # --- END OF FIX ---
-        if len(body_without_future) < len(components.body):
-            components.has_future_import = True
-            components.body = body_without_future
+                    components.other_imports.append(import_line)
 
         return components
 
@@ -103,25 +126,44 @@ class HeaderTools:
     def reconstruct(components: HeaderComponents) -> str:
         """Reconstructs the source code from its parsed components."""
         parts = []
+
         if components.location:
             parts.append(components.location)
 
         if components.module_description:
-            if parts:
+            if parts and parts[-1].strip():
                 parts.append("")
             parts.append(components.module_description)
 
-        if components.has_future_import:
-            if parts:
+        imports_present = components.has_future_import or components.other_imports
+        if imports_present:
+            if parts and parts[-1].strip():
                 parts.append("")
-            parts.append("from __future__ import annotations")
 
-        if components.other_imports:
-            parts.extend(components.other_imports)
+            if components.has_future_import:
+                parts.append("from __future__ import annotations")
+
+            if components.other_imports:
+                # Add a blank line between future import and other imports
+                if components.has_future_import:
+                    parts.append("")
+                parts.extend(sorted(components.other_imports))
 
         if components.body:
-            if parts and (parts[-1] != "" or components.body[0] != ""):
+            # If there was any header content, ensure two blank lines before the body
+            if parts:
+                while parts and not parts[-1].strip():
+                    parts.pop()
                 parts.append("")
-            parts.extend(components.body)
+                parts.append("")
+
+            # Remove leading and trailing blank lines from body
+            body_lines = components.body[:]
+            while body_lines and not body_lines[0].strip():
+                body_lines.pop(0)
+            while body_lines and not body_lines[-1].strip():
+                body_lines.pop()
+
+            parts.extend(body_lines)
 
         return "\n".join(parts) + "\n"

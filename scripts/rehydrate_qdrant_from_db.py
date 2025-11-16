@@ -7,7 +7,7 @@ import json
 import math
 import os
 import sys
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import requests
 from sqlalchemy import text
@@ -32,8 +32,8 @@ VECTOR_COL_CANDIDATES = ["vector", "values", "embedding", "data", "vec"]
 DIM_COL_CANDIDATES = ["dim", "size", "length", "ndim"]
 
 
-def make_vector_queries(vector_table: str) -> List[str]:
-    stmts: List[str] = []
+def make_vector_queries(vector_table: str) -> list[str]:
+    stmts: list[str] = []
     for col in VECTOR_COL_CANDIDATES:
         for dim_col in DIM_COL_CANDIDATES:
             stmts.append(
@@ -46,7 +46,7 @@ def make_vector_queries(vector_table: str) -> List[str]:
 
 
 def qdrant_upsert_points(
-    qdrant_url: str, collection: str, points: List[Dict[str, Any]], *, timeout: int = 30
+    qdrant_url: str, collection: str, points: list[dict[str, Any]], *, timeout: int = 30
 ) -> None:
     if not points:
         return
@@ -81,7 +81,7 @@ async def main() -> int:
 
     db_url = os.getenv("DATABASE_URL")
     qdrant_url = os.getenv("QDRANT_URL")
-    collection = os.getenv("QDRANT_COLLECTION_NAME", "core_capabilities")
+    collection = os.getenv("QDRANT_COLLECTION_NAME", "core_symbols")
     expected_dim_env = os.getenv("LOCAL_EMBEDDING_DIM")
 
     if not db_url or not qdrant_url:
@@ -127,7 +127,7 @@ async def main() -> int:
                 rows = res.fetchall()
                 offset += len(rows)
 
-                out_points: List[Dict[str, Any]] = []
+                out_points: list[dict[str, Any]] = []
 
                 # CORRECTED: The loop variables now match the corrected SQL query.
                 for symbol_id, symbol_path, vector_id in rows:
@@ -137,8 +137,8 @@ async def main() -> int:
                     if not sid or not vid:
                         continue
 
-                    vector: Optional[List[float]] = None
-                    dim: Optional[int] = None
+                    vector: list[float] | None = None
+                    dim: int | None = None
 
                     for stmt in vector_sqls:
                         try:

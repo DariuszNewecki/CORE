@@ -1,12 +1,13 @@
 # src/features/self_healing/purge_legacy_tags_service.py
+"""Provides functionality for the purge_legacy_tags_service module."""
+
 from __future__ import annotations
 
 from collections import defaultdict
 
+from mind.governance.audit_context import AuditorContext
+from mind.governance.checks.legacy_tag_check import LegacyTagCheck
 from rich.console import Console
-
-from features.governance.audit_context import AuditorContext
-from features.governance.checks.legacy_tag_check import LegacyTagCheck
 from shared.config import settings
 
 console = Console()

@@ -1,4 +1,5 @@
 # src/shared/config_loader.py
+
 """
 Utility for loading configuration files (YAML or JSON) safely.
 """
@@ -13,10 +14,10 @@ import yaml
 
 from shared.logger import getLogger
 
-log = getLogger(__name__)
+logger = getLogger(__name__)
 
 
-# ID: 85467d87-762e-461c-8c08-af2b982e2387
+# ID: 7c39612e-da89-47b1-8b80-131aeec8d4fb
 def load_yaml_file(file_path: Path) -> dict[str, Any]:
     """
     Loads a YAML or JSON config file safely, with consistent error handling.
@@ -33,9 +34,8 @@ def load_yaml_file(file_path: Path) -> dict[str, Any]:
         ValueError: If the file format is unsupported or parsing fails.
     """
     if not file_path.exists():
-        log.error(f"Config file not found: {file_path}")
+        logger.error(f"Config file not found: {file_path}")
         raise FileNotFoundError(f"Config file not found: {file_path}")
-
     try:
         content = file_path.read_text(encoding="utf-8")
         if file_path.suffix in (".yaml", ".yml"):
@@ -43,11 +43,11 @@ def load_yaml_file(file_path: Path) -> dict[str, Any]:
         elif file_path.suffix == ".json":
             return json.loads(content) or {}
         else:
-            log.error(f"Unsupported file type: {file_path.suffix}")
+            logger.error(f"Unsupported file type: {file_path.suffix}")
             raise ValueError(f"Unsupported config file type: {file_path}")
     except (yaml.YAMLError, json.JSONDecodeError) as e:
-        log.error(f"Error parsing config {file_path}: {e}")
+        logger.error(f"Error parsing config {file_path}: {e}")
         raise ValueError(f"Invalid config format in {file_path}") from e
     except UnicodeDecodeError as e:
-        log.error(f"Encoding error in {file_path}: {e}")
+        logger.error(f"Encoding error in {file_path}: {e}")
         raise ValueError(f"Encoding error in config {file_path}") from e

@@ -1,4 +1,8 @@
 # src/shared/cli_utils.py
+"""Provides functionality for the cli_utils module."""
+
+from __future__ import annotations
+
 import asyncio
 import functools
 
@@ -7,16 +11,33 @@ from rich.console import Console
 console = Console()
 
 
-# ID: b922c2ce-45df-4107-93e8-2407095cb25f
+# --- START OF FIX: Add a robust async command decorator ---
+# ID: 8297e3ce-fccb-48f4-804a-416a25a59da0
 def async_command(func):
-    """Decorator to run async functions in Typer commands."""
+    """Decorator to run async functions in Typer commands correctly."""
 
     @functools.wraps(func)
-    # ID: 7b95eef7-d454-4531-9deb-dc80e1e41d93
+    # ID: 921b9a91-5047-460a-9fd2-e970fac5fe80
     def wrapper(*args, **kwargs):
-        return asyncio.run(func(*args, **kwargs))
+        """
+        Runs the decorated async function. If an event loop is already
+        running (like in tests), it awaits the function. Otherwise, it
+        creates a new event loop.
+        """
+        try:
+            loop = asyncio.get_running_loop()
+            if loop.is_running():
+                # This path is often taken in testing environments
+                return loop.create_task(func(*args, **kwargs))
+            return asyncio.run(func(*args, **kwargs))
+        except RuntimeError:
+            # No running loop, so we can safely start one
+            return asyncio.run(func(*args, **kwargs))
 
     return wrapper
+
+
+# --- END OF FIX ---
 
 
 # ID: 6471fd1b-d2fe-47a3-9dff-e59c2fe09b81

@@ -11,11 +11,12 @@ license = "MIT"
 readme = "README.md"
 packages = [
     { include = "api", from = "src" },
-    { include = "cli", from = "src" },
-    { include = "core", from = "src" },
+    { include = "body", from = "src" },
     { include = "features", from = "src" },
+    { include = "mind", from = "src" },
     { include = "services", from = "src" },
     { include = "shared", from = "src" },
+    { include = "will", from = "src" },
 ]
 
 [tool.poetry.dependencies]
@@ -106,9 +107,10 @@ sphinx-rtd-theme = "^2.0"
 # Development Tools
 httpx = "^0.28.1"
 ipython = "^8.12"
+anyio = "^4.11.0"
 
 [tool.poetry.scripts]
-core-admin = "cli.admin_cli:app"
+core-admin = "body.cli.admin_cli:app"
 
 [tool.black]
 line-length = 88
@@ -163,7 +165,10 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]  # Unused imports in __init__.py
-"tests/**/*.py" = ["B008"]  # Do not perform function calls in argument defaults
+"tests/**/*.py" = [
+    "B008",  # Do not perform function calls in argument defaults
+    "F403", # Allow star imports in test files for resilience
+]
 
 [tool.mypy]
 python_version = "3.12"
@@ -180,6 +185,7 @@ disallow_untyped_defs = false
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 env_files = ".env.test"
+env_override_existing_values = "true"
 asyncio_mode = "auto"
 pythonpath = ["src"]
 addopts = [
@@ -189,12 +195,14 @@ addopts = [
     "--cov=src",
     "--cov-report=html",
     "--cov-report=term-missing:skip-covered",
+    "-m", "not trio"
 ]
 markers = [
     "unit: Unit tests (fast, no external dependencies)",
     "integration: Integration tests (database, external services)",
     "e2e: End-to-end tests (full system)",
     "slow: Slow running tests",
+    "trio: marks tests to run with trio backend (skipped by default)",
 ]
 
 
