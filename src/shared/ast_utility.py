@@ -18,11 +18,11 @@ import re
 import uuid
 from dataclasses import dataclass
 
-log = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 # --- THIS IS THE NEW, ROBUST HELPER FUNCTION ---
-# ID: a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d
+# ID: 0e3a0a90-b772-49f8-bc59-fe5b89f49dfd
 def find_definition_line(
     node: ast.FunctionDef | ast.AsyncFunctionDef | ast.ClassDef, source_lines: list[str]
 ) -> int:
@@ -217,7 +217,7 @@ def calculate_structural_hash(node: ast.AST) -> str:
             fallback = ast.unparse(node)
         except Exception:
             fallback = repr(node)
-        log.exception("Structural hash computation failed; using fallback hash.")
+        logger.exception("Structural hash computation failed; using fallback hash.")
         return hashlib.sha256(fallback.encode("utf-8")).hexdigest()
 
 

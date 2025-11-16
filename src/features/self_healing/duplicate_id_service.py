@@ -8,12 +8,11 @@ from __future__ import annotations
 import uuid
 from collections import defaultdict
 
+from mind.governance.checks.id_uniqueness_check import IdUniquenessCheck
 from rich.console import Console
-from sqlalchemy import text
-
-from features.governance.checks.id_uniqueness_check import IdUniquenessCheck
 from services.database.session_manager import get_session
 from shared.config import settings
+from sqlalchemy import text
 
 console = Console()
 

@@ -1,4 +1,5 @@
 # src/features/autonomy/autonomous_developer.py
+
 """
 Provides a dedicated, reusable service for orchestrating the full autonomous
 development cycle, from goal to implemented code.
@@ -6,94 +7,60 @@ development cycle, from goal to implemented code.
 
 from __future__ import annotations
 
-from sqlalchemy import update
-
-from core.agents.coder_agent import CoderAgent
-from core.agents.execution_agent import ExecutionAgent
-from core.agents.plan_executor import PlanExecutor
-from core.agents.planner_agent import PlannerAgent
-from core.agents.reconnaissance_agent import ReconnaissanceAgent
-from core.prompt_pipeline import PromptPipeline
 from services.database.models import Task
 from services.database.session_manager import get_session
 from shared.context import CoreContext
 from shared.logger import getLogger
 from shared.models import PlanExecutionError
+from sqlalchemy import update
+from will.agents.execution_agent import ExecutionAgent
+from will.agents.planner_agent import PlannerAgent
+from will.agents.reconnaissance_agent import ReconnaissanceAgent
 
-log = getLogger("autonomous_developer")
+logger = getLogger(__name__)
 
 
-# ID: 7a8b9c0d-1e2f-3a4b-5c6d-7e8f9a0b
-# ID: f40722fc-751e-4643-81d7-99509b5baa91
+# ID: a37be1f9-d912-487f-bfde-1efddb155017
 async def develop_from_goal(
-    context: CoreContext, goal: str, task_id: str | None = None
+    context: CoreContext,
+    goal: str,
+    executor_agent: ExecutionAgent,
+    task_id: str | None = None,
 ):
     """
     Runs the full, end-to-end autonomous development cycle for a given goal.
-    This is the single source of truth for the A2 development loop.
-    Now includes robust error handling and database status updates.
+    This function now receives a pre-configured ExecutionAgent.
     """
     try:
-        log.info(f"🚀 Initiating autonomous development cycle for goal: '{goal}'")
-
-        # --- START OF NEW ROUTER LOGIC ---
+        logger.info(f"🚀 Initiating autonomous development cycle for goal: '{goal}'")
         goal_lower = goal.lower()
         if "create" in goal_lower and (
             "new file" in goal_lower or "new function" in goal_lower
         ):
-            log.info(
+            logger.info(
                 "   -> Intent classified as 'CREATE_FILE'. Using specialized planner."
             )
-            # Use a dummy recon report since we know we're creating something new
             context_report = "# Reconnaissance Report\n\n- No relevant files found. Proceeding with file creation."
-            # Use the specialized planner agent for creation
             planner = PlannerAgent(context.cognitive_service)
-            # Temporarily override the prompt template for this specific task
-            planner.prompt_template = context.settings.get_path(
-                "mind.prompts.create_file_planner"
-            ).read_text(encoding="utf-8")
         else:
-            log.info(
+            logger.info(
                 "   -> Intent classified as 'GENERAL'. Using standard reconnaissance and planning."
             )
-            # 1. Reconnaissance (only for general tasks now)
             recon_agent = ReconnaissanceAgent(
                 await context.knowledge_service.get_graph(), context.cognitive_service
             )
             context_report = await recon_agent.generate_report(goal)
-            # 2. Planning
             planner = PlannerAgent(context.cognitive_service)
-        # --- END OF NEW ROUTER LOGIC ---
-
         plan = await planner.create_execution_plan(goal, context_report)
         if not plan:
             raise PlanExecutionError(
                 "PlannerAgent failed to create a valid execution plan."
             )
-
-        # 3. Execution (this part remains the same)
-        prompt_pipeline = PromptPipeline(context.git_service.repo_path)
-        plan_executor = PlanExecutor(
-            context.file_handler, context.git_service, context.planner_config
-        )
-        coder_agent = CoderAgent(
-            cognitive_service=context.cognitive_service,
-            prompt_pipeline=prompt_pipeline,
-            auditor_context=context.auditor_context,
-        )
-        executor_agent = ExecutionAgent(
-            coder_agent=coder_agent,
-            plan_executor=plan_executor,
-            auditor_context=context.auditor_context,
-        )
-
         success, message = await executor_agent.execute_plan(
             high_level_goal=goal, plan=plan
         )
-
         if not success:
             raise PlanExecutionError(f"Execution failed: {message}")
-
         if task_id:
             async with get_session() as session:
                 async with session.begin():
@@ -103,10 +70,10 @@ async def develop_from_goal(
                         .values(status="completed")
                     )
                     await session.execute(stmt)
-
+        return (success, message)
     except (PlanExecutionError, Exception) as e:
         error_message = f"Autonomous development cycle failed: {e}"
-        log.error(error_message, exc_info=True)
+        logger.error(error_message, exc_info=True)
         if task_id:
             async with get_session() as session:
                 async with session.begin():
@@ -116,3 +83,4 @@ async def develop_from_goal(
                         .values(status="failed", failure_reason=error_message)
                     )
                     await session.execute(stmt)
+        return (False, error_message)

@@ -3,5 +3,7 @@
 Centralized location for system-wide constant values.
 """
 
+from __future__ import annotations
+
 # Maximum allowed file size for system operations (1MB)
 MAX_FILE_SIZE_BYTES = 1 * 1024 * 1024

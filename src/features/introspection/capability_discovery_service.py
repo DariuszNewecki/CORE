@@ -1,4 +1,5 @@
 # src/features/introspection/capability_discovery_service.py
+
 """
 Refactored under dry_by_design.
 Pattern: move_function.
@@ -14,10 +15,10 @@ from shared.config_loader import load_yaml_file
 from shared.logger import getLogger
 from shared.models import CapabilityMeta
 
-log = getLogger("capability_discovery")
+logger = getLogger(__name__)
 
 
-# ID: 0a3c2441-928c-47e6-9f9d-3663b31245af
+# ID: 7ab95b32-3d81-4094-8b7f-6a4386a68bb7
 class CapabilityRegistry:
     """
     Holds the canonical capability keys and alias mapping.
@@ -29,7 +30,7 @@ class CapabilityRegistry:
         self.canonical: set[str] = set(canonical)
         self.aliases: dict[str, str] = dict(aliases)
 
-    # ID: 6d38d34c-a0da-4bce-a961-c3ff9c0f093e
+    # ID: c04bc1da-dc61-47e2-ab72-ca2fe4d7b772
     def resolve(self, tag: str) -> str | None:
         """
         Return canonical capability if `tag` is known, otherwise None.
@@ -99,7 +100,7 @@ def _detect_alias_cycles(aliases: dict[str, str]) -> list[list[str]]:
     stack: set[str] = set()
     cycles: list[list[str]] = []
 
-    # ID: 208ce23e-ee4f-4e52-90e8-f2a8949fc284
+    # ID: 9eda4fea-f45e-486b-bec5-dc28c8231907
     def dfs(node: str, path: list[str]):
         visited.add(node)
         stack.add(node)
@@ -116,11 +117,10 @@ def _detect_alias_cycles(aliases: dict[str, str]) -> list[list[str]]:
     for a in aliases:
         if a not in visited:
             dfs(a, [a])
-
     return cycles
 
 
-# ID: 2779fe54-cfaf-4b3b-8df5-156347d53166
+# ID: 00b0e51d-5808-4525-84c1-60027d5efc12
 def load_and_validate_capabilities(intent_dir: Path) -> CapabilityRegistry:
     """
     Loads and validates all canonical capabilities and aliases.
@@ -128,42 +128,35 @@ def load_and_validate_capabilities(intent_dir: Path) -> CapabilityRegistry:
     base = intent_dir / "knowledge" / "capability_tags"
     canonical_tags: set[str] = set()
     alias_map: dict[str, str] = {}
-
     if not base.exists():
         raise FileNotFoundError(f"Capability tags directory not found: {base}")
-
     for path in _iter_capability_files(base):
         try:
             doc = load_yaml_file(path)
         except Exception as e:
             raise ValueError(f"Failed to load capability YAML: {path} ({e})") from e
-
         canonical_tags |= _extract_canonical_from_doc(doc)
         alias_map.update(_extract_aliases_from_doc(doc))
-
     cycles = _detect_alias_cycles(alias_map)
     if cycles:
         formatted = "; ".join(" -> ".join(c) for c in cycles)
         raise ValueError(f"Alias cycle(s) detected: {formatted}")
-
     unresolved = [(a, t) for a, t in alias_map.items() if t not in canonical_tags]
     if unresolved:
-        lines = "\n - ".join(f"'{a}' → '{t}'" for a, t in unresolved)
+        lines = "\n - ".join((f"'{a}' → '{t}'" for a, t in unresolved))
         raise ValueError(
             "Alias targets that do not map to a canonical capability:\n - " + lines
         )
-
     return CapabilityRegistry(canonical=canonical_tags, aliases=alias_map)
 
 
-# ID: 8bd2e3d4-f273-4d7d-bf6d-a47b7f0fefce
+# ID: 4902698e-fea7-436b-bd3b-289ab279dd15
 def validate_agent_roles(agent_roles: dict, registry: CapabilityRegistry) -> None:
     """Validates agent role configurations against the capability registry."""
     errors: list[str] = []
     roles = agent_roles.get("roles", {})
     if not isinstance(roles, dict):
         raise ValueError("agent_roles must contain a 'roles' mapping")
-
     for role, cfg in roles.items():
         allowed = cfg.get("allowed_tags", [])
         for tag in allowed:
@@ -179,7 +172,7 @@ def validate_agent_roles(agent_roles: dict, registry: CapabilityRegistry) -> Non
         )
 
 
-# ID: 650d3944-b37d-4aaf-8f7f-d0c08530cb86
+# ID: ccb0e95b-03e9-447b-931f-b6a665355392
 def collect_code_capabilities(
     root: Path, include_globs: list[str], exclude_globs: list[str], require_kgb: bool
 ) -> dict[str, CapabilityMeta]:
@@ -194,7 +187,7 @@ def collect_code_capabilities(
             return collect_from_kgb(root)
         return collect_from_source_scan(root, include_globs, exclude_globs)
     except Exception as e:
-        log.warning(
+        logger.warning(
             f"Capability discovery failed: {e}. Returning empty.", exc_info=True
         )
         return {}

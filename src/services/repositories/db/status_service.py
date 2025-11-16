@@ -1,8 +1,8 @@
 # src/services/repositories/db/status_service.py
 """
 Refactored under dry_by_design.
-Pattern: extract_module. Source of truth for database status logic.
-Merged from: src/cli/logic/status.py::status
+This is the single source of truth for database status logic,
+consolidated from the CLI layer.
 """
 
 from __future__ import annotations

@@ -15,6 +15,7 @@ This script implements the "foreman" for the testing agent:
 
 from __future__ import annotations
 
+import asyncio
 import subprocess
 import sys
 from datetime import datetime
@@ -23,24 +24,31 @@ from pathlib import Path
 from rich.console import Console
 from rich.panel import Panel
 
-# --- THIS IS THE FIX: Ensure we can import from our project ---
-# Add the project's 'src' directory to the Python path
+# --- START OF FIX: Add all necessary imports for CoreContext ---
 project_root = Path(__file__).resolve().parents[1]
 src_path = project_root / "src"
 if str(src_path) not in sys.path:
     sys.path.insert(0, str(src_path))
+
+from body.services.file_handler import FileHandler
+from body.services.git_service import GitService
+from features.self_healing.coverage_watcher import watch_and_remediate
+from mind.governance.audit_context import AuditorContext
+from services.clients.qdrant_client import QdrantService
+from services.knowledge_service import KnowledgeService
+from shared.config import settings
+from shared.context import CoreContext
+from shared.models import PlannerConfig
+from will.orchestration.cognitive_service import CognitiveService
+
 # --- END OF FIX ---
 
-from features.self_healing.coverage_analyzer import CoverageAnalyzer
-from features.self_healing.test_target_analyzer import TestTargetAnalyzer
-from shared.config import settings
 
 console = Console()
 
 # --- Configuration ---
 START_HOUR = 22  # 10 PM
 END_HOUR = 7  # 7 AM
-MINIMUM_COVERAGE_TARGET = 75
 
 
 def _ensure_clean_and_synced_workspace() -> bool:
@@ -92,79 +100,8 @@ def _is_within_operating_window() -> bool:
         return START_HOUR <= current_hour < END_HOUR
 
 
-def _get_low_coverage_files() -> list[tuple[str, float]]:
-    """Gets a list of source files sorted by the lowest coverage first."""
-    console.print("\n[bold cyan]Step 1: Analyzing current test coverage...[/bold cyan]")
-    analyzer = CoverageAnalyzer()
-    coverage_data = analyzer.get_module_coverage()
-
-    if not coverage_data:
-        console.print("[yellow]Could not retrieve coverage data. Aborting.[/yellow]")
-        return []
-
-    low_coverage = [
-        (path, percent)
-        for path, percent in coverage_data.items()
-        if percent < MINIMUM_COVERAGE_TARGET and path.startswith("src/")
-    ]
-    low_coverage.sort(key=lambda item: item[1])
-    console.print(f"   -> Found {len(low_coverage)} files below the coverage target.")
-    return low_coverage
-
-
-def _find_next_target(low_coverage_files: list[tuple[str, float]]) -> Path | None:
-    """Finds the best next file to work on by looking for one with at least one "SIMPLE" test target."""
-    console.print(
-        "\n[bold cyan]Step 2: Finding a suitable file with 'SIMPLE' test targets...[/bold cyan]"
-    )
-    analyzer = TestTargetAnalyzer()
-    for file_path_str, coverage in low_coverage_files:
-        file_path = settings.REPO_PATH / file_path_str
-        if not file_path.exists():
-            continue
-        targets = analyzer.analyze_file(file_path)
-        if any(target.classification == "SIMPLE" for target in targets):
-            console.print(
-                f"   -> Found a great target: [green]{file_path_str}[/green] (Coverage: {coverage:.1f}%)"
-            )
-            return file_path
-    console.print("[yellow]No more files with 'SIMPLE' test targets found.[/yellow]")
-    return None
-
-
-def _run_remediation_for_file(file_path: Path) -> bool:
-    """Invokes the autonomous test generation for a single file."""
-    console.print(
-        f"\n[bold cyan]Step 3: Invoking autonomous agent for [green]{file_path.name}[/green]...[/bold cyan]"
-    )
-    command = [
-        "poetry",
-        "run",
-        "core-admin",
-        "coverage",
-        "remediate",
-        "--file",
-        str(file_path),
-    ]
-    try:
-        with subprocess.Popen(
-            command,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            text=True,
-            cwd=settings.REPO_PATH,
-        ) as proc:
-            if proc.stdout:
-                for line in proc.stdout:
-                    print(line, end="")
-        return proc.returncode == 0
-    except Exception as e:
-        console.print(f"[bold red]   -> Error running remediation: {e}[/bold red]")
-        return False
-
-
-def main():
-    """The main entry point for the nightly remediation script."""
+async def _async_main():
+    """The main async entry point for the remediation script."""
     force_run = "--now" in sys.argv
 
     console.print(
@@ -184,47 +121,39 @@ def main():
         )
         return
 
-    files_processed = 0
-    while True:
-        if not force_run and not _is_within_operating_window():
-            console.print(
-                f"\n[bold yellow]🕓 Current time is outside the operational window ({START_HOUR}:00 - {END_HOUR}:00). Halting run.[/bold yellow]"
-            )
-            break
-
-        low_coverage_files = _get_low_coverage_files()
-        if not low_coverage_files:
-            console.print(
-                "\n[bold green]✨ All files meet the coverage target! Nothing more to do.[/bold green]"
-            )
-            break
-
-        target_file = _find_next_target(low_coverage_files)
-        if not target_file:
-            console.print(
-                "\n[bold yellow]No more actionable targets found. Halting run.[/bold yellow]"
-            )
-            break
-
-        success = _run_remediation_for_file(target_file)
-        files_processed += 1
-
-        if not success:
-            console.print(
-                f"[bold red]Remediation failed for {target_file.name}. Halting run to prevent further errors.[/bold red]"
-            )
-            break
-
+    if not force_run and not _is_within_operating_window():
         console.print(
-            f"\n[bold]--- Cycle {files_processed} complete. Checking for next target... ---[/bold]\n"
+            f"\n[bold yellow]🕓 Current time is outside the operational window ({START_HOUR}:00 - {END_HOUR}:00). Halting run.[/bold yellow]"
         )
+        return
+
+    # === START OF FIX ===
+    # Construct the full CoreContext toolbox here, at the top-level entry point.
+    context = CoreContext(
+        git_service=GitService(settings.REPO_PATH),
+        cognitive_service=CognitiveService(settings.REPO_PATH),
+        knowledge_service=KnowledgeService(settings.REPO_PATH),
+        qdrant_service=QdrantService(),
+        auditor_context=AuditorContext(settings.REPO_PATH),
+        file_handler=FileHandler(str(settings.REPO_PATH)),
+        planner_config=PlannerConfig(),
+    )
+
+    # Pass the context to the watcher service.
+    result = await watch_and_remediate(context=context, auto_remediate=True)
+    # === END OF FIX ===
 
     console.print(
         Panel(
-            f"[bold green]✅ Remediation Run Finished. Processed {files_processed} file(s).[/bold green]",
+            f"[bold green]✅ Remediation Run Finished. Final Status: {result.get('status', 'unknown')}[/bold green]",
             expand=False,
         )
     )
+
+
+def main():
+    """Synchronous entry point for the script."""
+    asyncio.run(_async_main())
 
 
 if __name__ == "__main__":

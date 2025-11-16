@@ -5,15 +5,15 @@ Central pytest configuration and fixtures for the CORE project.
 
 from __future__ import annotations
 
-import asyncio
 import os
+import sys
+from collections.abc import AsyncGenerator
 from pathlib import Path
 
 import pytest
 import sqlparse
 import yaml
 from dotenv import load_dotenv
-from shared.config import settings
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import (
     AsyncSession,
@@ -21,18 +21,13 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 
-# --- THIS IS THE CRITICAL FIX: Ensure .env.test is loaded FIRST ---
-# This guarantees that os.getenv() will have the correct values for the test session.
-load_dotenv(".env.test", override=True)
+REPO_ROOT = Path(__file__).parent.parent
+sys.path.insert(0, str(REPO_ROOT / "src"))
+
+from shared.config import settings
+
+# Set the environment to TEST. The actual .env file is now loaded inside the fixture.
 os.environ.setdefault("CORE_ENV", "TEST")
-
-
-@pytest.fixture(scope="session")
-def event_loop():
-    """Create an instance of the default event loop for each test session."""
-    loop = asyncio.get_event_loop_policy().new_event_loop()
-    yield loop
-    loop.close()
 
 
 @pytest.fixture
@@ -44,18 +39,25 @@ def mock_fs_with_constitution(tmp_path: Path) -> Path:
     governance_policies_dir = policies_dir / "governance"
     mind_dir = intent_dir / "mind"
     prompts_dir = mind_dir / "prompts"
-    for p in [agent_policies_dir, governance_policies_dir, prompts_dir]:
+    knowledge_dir = mind_dir / "knowledge"
+
+    for p in [agent_policies_dir, governance_policies_dir, prompts_dir, knowledge_dir]:
         p.mkdir(parents=True, exist_ok=True)
+
     (tmp_path / ".git").mkdir()
+
+    # This structure now PERFECTLY matches the nested lookup that your
+    # application's settings.get_path() function expects.
+    # e.g., charter -> policies -> agent -> agent_policy
     meta_content = {
         "charter": {
             "policies": {
                 "agent": {
-                    "micro_proposal_policy": "charter/policies/agent/micro_proposal_policy.yaml",
                     "agent_policy": "charter/policies/agent/agent_policy.yaml",
+                    "micro_proposal_policy": "charter/policies/agent/micro_proposal_policy.yaml",
                 },
                 "governance": {
-                    "available_actions_policy": "charter/policies/governance/available_actions_policy.yaml"
+                    "available_actions_policy": "charter/policies/governance/available_actions_policy.yaml",
                 },
             }
         },
@@ -63,19 +65,23 @@ def mock_fs_with_constitution(tmp_path: Path) -> Path:
             "prompts": {
                 "planner_agent": "mind/prompts/planner_agent.prompt",
                 "micro_planner": "mind/prompts/micro_planner.prompt",
-            }
+            },
+            "knowledge": {"project_structure": "mind/knowledge/project_structure.yaml"},
         },
     }
     (intent_dir / "meta.yaml").write_text(yaml.dump(meta_content))
+
+    project_structure_content = {
+        "architectural_domains": [],
+        "entry_point_patterns": [],
+        "file_handlers": [],
+    }
+    (knowledge_dir / "project_structure.yaml").write_text(
+        yaml.dump(project_structure_content)
+    )
+
     available_actions_content = {
         "policy_id": "mock-uuid-actions",
-        "id": "available_actions_policy",
-        "version": "1.0.0",
-        "title": "Mock Actions",
-        "purpose": "...",
-        "status": "active",
-        "owners": {"primary": "test"},
-        "review": {"frequency": "annual"},
         "actions": [
             {
                 "name": "create_file",
@@ -99,9 +105,6 @@ def mock_fs_with_constitution(tmp_path: Path) -> Path:
         "policy_id: mock-uuid-agent\nid: agent_policy\nversion: '1.0.0'\n"
     )
     (prompts_dir / "planner_agent.prompt").write_text("Plan for: {goal}")
-
-    # --- THIS FIXES THE KeyError: 'goal' ---
-    # The agent code expects the placeholder to be 'user_goal'.
     (prompts_dir / "micro_planner.prompt").write_text(
         "Create micro-plan for: {user_goal}"
     )
@@ -117,22 +120,24 @@ def mock_core_env(mock_fs_with_constitution: Path, monkeypatch) -> Path:
 
 
 @pytest.fixture(scope="function")
-async def get_test_session(monkeypatch) -> AsyncSession:
-    # --- THIS FIXTURE IS NOW ROBUST ---
+async def get_test_session(monkeypatch) -> AsyncGenerator[AsyncSession, None]:
+    """
+    Provide a fresh database session for each test function.
+    Each test gets its own engine to avoid event loop conflicts.
+    """
+    load_dotenv(REPO_ROOT / ".env.test", override=True)
+
     raw_db_url = os.getenv("DATABASE_URL")
     if not raw_db_url:
         pytest.fail("DATABASE_URL not found. Ensure it is set in your .env.test file.")
 
-    # Use os.path.expandvars to correctly substitute $VAR style variables
     db_url = os.path.expandvars(raw_db_url)
 
-    # Safety check: ensure we are not running against the production DB
     if "core_test" not in db_url:
         pytest.fail(f"Refusing to run tests on non-test DB URL: {db_url}")
 
-    engine = create_async_engine(db_url, echo=False)
-    TestSession = async_sessionmaker(
-        engine, expire_on_commit=False, class_=AsyncSession
+    engine = create_async_engine(
+        db_url, echo=False, pool_size=5, max_overflow=10, pool_pre_ping=True
     )
 
     real_repo_root = Path(__file__).parent.parent
@@ -141,7 +146,6 @@ async def get_test_session(monkeypatch) -> AsyncSession:
         pytest.fail(f"Could not find schema file at {schema_sql_path}")
     schema_sql = schema_sql_path.read_text(encoding="utf-8")
 
-    # Always start from a clean 'core' schema in core_test
     async with engine.begin() as conn:
         await conn.execute(text("DROP SCHEMA IF EXISTS core CASCADE;"))
         await conn.execute(text("CREATE SCHEMA core;"))
@@ -149,10 +153,13 @@ async def get_test_session(monkeypatch) -> AsyncSession:
             if statement.strip():
                 await conn.execute(text(statement))
 
+    TestSession = async_sessionmaker(
+        engine, expire_on_commit=False, class_=AsyncSession
+    )
+
     async with TestSession() as session:
         yield session
 
-    # Teardown: only in core_test
     async with engine.begin() as conn:
         await conn.execute(text("DROP SCHEMA IF EXISTS core CASCADE;"))
 

@@ -39,9 +39,8 @@ def load_policy() -> dict:
         with META_YAML_PATH.open("r", encoding="utf-8") as f:
             meta_config = yaml.safe_load(f)
 
-        db_policy_path_str = meta_config["charter"]["policies"]["data"][
-            "database_policy"
-        ]
+        # The data_governance policy is at the top level under policies
+        db_policy_path_str = meta_config["charter"]["policies"]["data_governance"]
         db_policy_path = REPO_ROOT / ".intent" / db_policy_path_str
 
         with db_policy_path.open("r", encoding="utf-8") as f:

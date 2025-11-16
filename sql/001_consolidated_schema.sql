@@ -61,6 +61,9 @@ CREATE TABLE IF NOT EXISTS core.symbols (
     embedding_model text DEFAULT 'text-embedding-3-small',
     last_embedded timestamptz, -- Timestamp of the last successful vectorization
 
+    -- Calls (Dependencies)
+    calls jsonb DEFAULT '[]'::jsonb,
+
     -- Timestamps
     first_seen timestamptz DEFAULT now() NOT NULL,
     last_seen timestamptz DEFAULT now() NOT NULL,
@@ -733,3 +736,9 @@ COMMENT ON MATERIALIZED VIEW core.mv_symbol_usage_patterns IS
 INSERT INTO core.mv_refresh_log (view_name, triggered_by)
 VALUES ('core.mv_symbol_usage_patterns', 'schema_init')
 ON CONFLICT (view_name) DO NOTHING;
+
+-- --- START OF FIX: Add permissions grant ---
+-- This ensures the 'core' user can read/write to all tables created in this schema.
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA core TO core;
+GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA core TO core;
+-- --- END OF FIX ---

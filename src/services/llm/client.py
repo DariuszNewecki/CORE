@@ -1,4 +1,5 @@
-# src/services/llm/client.py (UPDATED VERSION)
+# src/services/llm/client.py
+
 """
 A simplified LLM Client that acts as a facade over a specific AI provider.
 
@@ -17,10 +18,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from .providers.base import AIProvider
 
-log = getLogger(__name__)
+logger = getLogger(__name__)
 
 
-# ID: 8a9f272d-4f69-48f0-bda3-b485446bfc37
+# ID: 3bbee275-19fe-4823-a424-33c41b25d52d
 class LLMClient:
     """
     A client that uses a provider strategy to interact with an LLM API.
@@ -28,26 +29,17 @@ class LLMClient:
     UPDATED: Now reads configuration from database instead of environment variables.
     """
 
-    def __init__(
-        self,
-        provider: AIProvider,
-        resource_config: LLMResourceConfig,
-    ):
+    def __init__(self, provider: AIProvider, resource_config: LLMResourceConfig):
         self.provider = provider
         self.resource_config = resource_config
         self.model_name = provider.model_name
-
-        # Rate limiting state
         self._semaphore: asyncio.Semaphore | None = None
         self._last_request_time: float = 0
 
     @classmethod
-    # ID: 7614f8ad-ce43-4ed4-b664-97c8b5561c5c
+    # ID: c9aaf69f-39ba-42b4-aa9a-96c07e8e8588
     async def create(
-        cls,
-        db: AsyncSession,
-        provider: AIProvider,
-        resource_name: str,
+        cls, db: AsyncSession, provider: AIProvider, resource_name: str
     ) -> LLMClient:
         """
         Factory method to create LLMClient with database configuration.
@@ -73,33 +65,24 @@ class LLMClient:
         """
         config = await ConfigService.create(db)
         resource_config = await LLMResourceConfig.for_resource(config, resource_name)
-
         instance = cls(provider, resource_config)
-
-        # Initialize rate limiting based on DB config
         max_concurrent = await resource_config.get_max_concurrent()
         instance._semaphore = asyncio.Semaphore(max_concurrent)
-
-        log.info(
-            f"Initialized LLMClient for {resource_name} "
-            f"(model={provider.model_name}, max_concurrent={max_concurrent})"
+        logger.info(
+            f"Initialized LLMClient for {resource_name} (model={provider.model_name}, max_concurrent={max_concurrent})"
         )
-
         return instance
 
     async def _enforce_rate_limit(self):
         """Enforce rate limiting based on database configuration."""
         rate_limit = await self.resource_config.get_rate_limit()
-
         if rate_limit > 0:
             now = asyncio.get_event_loop().time()
             time_since_last = now - self._last_request_time
-
             if time_since_last < rate_limit:
                 wait_time = rate_limit - time_since_last
-                log.debug(f"Rate limiting: waiting {wait_time:.2f}s")
+                logger.debug(f"Rate limiting: waiting {wait_time:.2f}s")
                 await asyncio.sleep(wait_time)
-
             self._last_request_time = asyncio.get_event_loop().time()
 
     async def _request_with_retry(self, method, *args, **kwargs) -> Any:
@@ -115,31 +98,27 @@ class LLMClient:
             raise RuntimeError(
                 "LLMClient not properly initialized - use create() factory method"
             )
-
         backoff_delays = [1.0, 2.0, 4.0]
-
-        async with self._semaphore:  # Enforce max concurrent
-            await self._enforce_rate_limit()  # Enforce rate limit
-
+        async with self._semaphore:
+            await self._enforce_rate_limit()
             for attempt in range(len(backoff_delays) + 1):
                 try:
                     return await method(*args, **kwargs)
                 except Exception as e:
-                    error_message = (
-                        f"Request failed (attempt {attempt + 1}/{len(backoff_delays) + 1}): "
-                        f"{type(e).__name__} - {e}"
-                    )
-
+                    error_message = f"Request failed (attempt {attempt + 1}/{len(backoff_delays) + 1}): {type(e).__name__} - {e}"
                     if attempt < len(backoff_delays):
                         wait_time = backoff_delays[attempt] + random.uniform(0, 0.5)
-                        log.warning(f"{error_message}. Retrying in {wait_time:.1f}s...")
+                        logger.warning(
+                            f"{error_message}. Retrying in {wait_time:.1f}s..."
+                        )
                         await asyncio.sleep(wait_time)
                         continue
-
-                    log.error(f"Final attempt failed: {error_message}", exc_info=True)
+                    logger.error(
+                        f"Final attempt failed: {error_message}", exc_info=True
+                    )
                     raise
 
-    # ID: 1c0b0c26-46a8-4559-9b73-0b8a429a1303
+    # ID: 94b27523-b60f-4ce3-a5df-ea2b98b19835
     async def make_request_async(
         self, prompt: str, user_id: str = "core_system"
     ) -> str:
@@ -148,17 +127,15 @@ class LLMClient:
             self.provider.chat_completion, prompt, user_id
         )
 
-    # ID: 262ea6eb-241e-444d-8388-aab25b9b5fa8
+    # ID: f740d19b-ee4d-41ec-82c1-80049d22e872
     async def get_embedding(self, text: str) -> list[float]:
         """Gets an embedding using the configured provider with retries."""
         return await self._request_with_retry(self.provider.get_embedding, text)
 
 
-# ID: llm-client-factory-001
-# ID: 54402cb1-0a95-46ce-95ac-66a3dad98e74
+# ID: 141f3410-1bd3-485f-a69d-827b0876af78
 async def create_llm_client_for_role(
-    db: AsyncSession,
-    cognitive_role: str,
+    db: AsyncSession, cognitive_role: str
 ) -> LLMClient:
     """
     Factory function to create an LLM client for a specific cognitive role.
@@ -182,43 +159,27 @@ async def create_llm_client_for_role(
     """
     from sqlalchemy import text
 
-    # Get the assigned resource for this role
     query = text(
-        """
-        SELECT assigned_resource
-        FROM core.cognitive_roles
-        WHERE role = :role AND is_active = true
-    """
+        "\n        SELECT assigned_resource\n        FROM core.cognitive_roles\n        WHERE role = :role AND is_active = true\n    "
     )
-
     result = await db.execute(query, {"role": cognitive_role})
     row = result.fetchone()
-
     if not row or not row[0]:
         raise ValueError(
             f"Cognitive role '{cognitive_role}' not found or not assigned to a resource"
         )
-
     resource_name = row[0]
-
-    # Get resource configuration
     config = await ConfigService.create(db)
     resource_config = await LLMResourceConfig.for_resource(config, resource_name)
-
-    # Determine provider type and create appropriate provider instance
     api_url = await resource_config.get_api_url()
     api_key = await resource_config.get_api_key(audit_context=cognitive_role)
     model_name = await resource_config.get_model_name()
-
-    # Import appropriate provider based on API URL
     if "anthropic" in api_url:
         from .providers.anthropic import AnthropicProvider
 
         provider = AnthropicProvider(api_key=api_key, model_name=model_name)
     elif "deepseek" in api_url:
-        from .providers.openai import (
-            OpenAIProvider,
-        )
+        from .providers.openai import OpenAIProvider
 
         provider = OpenAIProvider(
             api_url=api_url, api_key=api_key, model_name=model_name
@@ -228,12 +189,9 @@ async def create_llm_client_for_role(
 
         provider = OllamaProvider(api_url=api_url, model_name=model_name)
     else:
-        # Default to OpenAI-compatible
         from .providers.openai import OpenAIProvider
 
         provider = OpenAIProvider(
             api_url=api_url, api_key=api_key, model_name=model_name
         )
-
-    # Create and return client
     return await LLMClient.create(db, provider, resource_name)

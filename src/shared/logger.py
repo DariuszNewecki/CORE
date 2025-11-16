@@ -1,73 +1,111 @@
 # src/shared/logger.py
 
-"""
-CORE's Unified Logging System.
-
-This module provides a single, pre-configured logger instance for the entire
-application. It uses the 'rich' library to ensure all output is consistent,
-beautifully formatted, and informative.
-
-All other modules should import `getLogger` from this file instead of using
-print() or configuring their own loggers.
-"""
+"""Centralized logger configuration and factory for the CORE system."""
 
 from __future__ import annotations
 
 import logging
 import os
+from typing import TYPE_CHECKING
 
-from rich.logging import RichHandler
+if TYPE_CHECKING:
+    from collections.abc import Sequence
 
-# --- Configuration ---
-# Get the log level from the environment, defaulting to INFO
-LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
-LOG_FORMAT = "%(message)s"
-LOG_DATE_FORMAT = "[%X]"  # e.g., [14:30:55]
+# ─────────────────────────────────────────────────────────────── Configuration
+_LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
+_LOG_FORMAT = os.getenv("LOG_FORMAT", "%(message)s")
+_LOG_DATE_FORMAT = "[%X]"
+_VALID_LEVELS = frozenset({"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"})
 
-# --- Prevent duplicate handlers if this module is reloaded ---
-logging.getLogger().handlers = []
+# Validate level at import time
+if _LOG_LEVEL not in _VALID_LEVELS:
+    logging.warning(f"Invalid LOG_LEVEL '{_LOG_LEVEL}'. Using INFO.")
+    _LOG_LEVEL = "INFO"
 
-# --- Create and configure the handler ---
-handler = RichHandler(
-    rich_tracebacks=True,
-    show_time=True,
-    show_level=True,
-    show_path=False,
-    log_time_format=LOG_DATE_FORMAT,
-)
+# ─────────────────────────────────────────────────────────────── Handler Setup
+try:
+    from rich.logging import RichHandler
 
-# --- Configure the root logger ---
-logging.basicConfig(
-    level=LOG_LEVEL,
-    format=LOG_FORMAT,
-    handlers=[handler],
-    force=True,  # Ensure our configuration overwrites any defaults
-)
-
-# --- THIS IS THE FIX: Set quieter log levels for noisy libraries ---
-# This tells the http client library used by Qdrant to only log warnings and errors.
-logging.getLogger("httpx").setLevel(logging.WARNING)
-# We can also make our own verbose services quieter by default.
-logging.getLogger("qdrant_service").setLevel(logging.WARNING)
-# --- END OF FIX ---
+    _HANDLER = RichHandler(
+        rich_tracebacks=True,
+        show_time=True,
+        show_level=True,
+        show_path=False,
+        log_time_format=_LOG_DATE_FORMAT,
+    )
+except ImportError:
+    _HANDLER = logging.StreamHandler()
+    logging.warning("rich library not found. Using standard logging.")
 
 
-# ID: b6a332e8-17ca-4a0a-8699-4eaff466aafe
-def getLogger(name: str) -> logging.Logger:
+# ─────────────────────────────────────────────────────────────── Public API
+# ID: 71a69dde-6c42-46d2-9055-968e46c7df35
+def getLogger(name: str | None = None) -> logging.Logger:
     """
-    Returns a pre-configured logger instance.
+    Return a pre-configured logger instance.
 
     Args:
-        name (str): The name of the logger, typically __name__ of the calling module.
+        name: Logger name. Defaults to calling module's __name__.
 
     Returns:
-        logging.Logger: The configured logger.
+        Configured logging.Logger instance.
     """
     return logging.getLogger(name)
 
 
-# Example of a root-level logger if needed directly
-log = getLogger("core_root")
+# ID: ba1f990c-8d82-41e4-aca3-2c2607c1f08b
+def configure_root_logger(
+    level: str | None = None,
+    format_: str | None = None,
+    handlers: Sequence[logging.Handler] | None = None,
+) -> None:
+    """
+    Configure the root logger. Safe to call multiple times.
 
-# Set the log level for the root logger from the environment variable
-log.setLevel(LOG_LEVEL)
+    Args:
+        level: Override log level. Defaults to LOG_LEVEL env var.
+        format_: Override format string. Defaults to LOG_FORMAT env var.
+        handlers: Custom handlers. Defaults to RichHandler/StreamHandler.
+    """
+    effective_level = (level or _LOG_LEVEL).upper()
+    if effective_level not in _VALID_LEVELS:
+        raise ValueError(f"Invalid log level: {effective_level}")
+
+    logging.basicConfig(
+        level=getattr(logging, effective_level),
+        format=format_ or _LOG_FORMAT,
+        handlers=handlers or [_HANDLER],
+        force=True,
+    )
+
+    # Suppress noisy external libraries
+    _suppress_noisy_loggers()
+
+
+def _suppress_noisy_loggers() -> None:
+    """Restrict logging for known verbose libraries."""
+    for lib in ("httpx",):
+        logging.getLogger(lib).setLevel(logging.WARNING)
+
+
+# ID: adb255a4-234c-4f61-8ba3-37239238206d
+def reconfigure_log_level(level: str) -> bool:
+    """
+    Reconfigure the root logger's level at runtime.
+
+    Returns:
+        True if successful, False if invalid level.
+    """
+    try:
+        configure_root_logger(level=level)
+        getLogger(__name__).info("Log level reconfigured to %s", level.upper())
+        return True
+    except ValueError:
+        return False
+
+
+# ─────────────────────────────────────────────────────────────── Initialization
+configure_root_logger()  # Auto-configure on import
+
+# Module logger for internal use
+logger = getLogger(__name__)

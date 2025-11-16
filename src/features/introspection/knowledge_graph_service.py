@@ -1,4 +1,5 @@
 # src/features/introspection/knowledge_graph_service.py
+
 """
 Provides the KnowledgeGraphBuilder, the primary tool for introspecting the
 codebase and creating an in-memory representation of its symbols.
@@ -13,7 +14,6 @@ from pathlib import Path
 from typing import Any
 
 import yaml
-
 from shared.ast_utility import (
     FunctionCallVisitor,
     calculate_structural_hash,
@@ -25,10 +25,10 @@ from shared.ast_utility import (
 from shared.config import settings
 from shared.logger import getLogger
 
-log = getLogger("knowledge_graph_builder")
+logger = getLogger(__name__)
 
 
-# ID: efd11315-be84-44cd-ace1-f688d85a9d86
+# ID: 2e165ce4-0685-4157-b1da-89fdc2caa5f2
 class KnowledgeGraphBuilder:
     """
     Scans the source code to build a comprehensive in-memory knowledge graph.
@@ -68,15 +68,14 @@ class KnowledgeGraphBuilder:
         except (FileNotFoundError, yaml.YAMLError):
             return []
 
-    # ID: f5689b89-8060-4328-a9f4-0d4e2ad77175
+    # ID: bd4866df-2036-4de5-ba12-781dd867fbdf
     def build(self) -> dict[str, Any]:
         """
         Executes the full build process for the knowledge graph and returns it.
         """
-        log.info(f"Building knowledge graph for repository at: {self.root_path}")
+        logger.info(f"Building knowledge graph for repository at: {self.root_path}")
         for py_file in self.src_dir.rglob("*.py"):
             self._scan_file(py_file)
-
         knowledge_graph = {
             "metadata": {
                 "generated_at": datetime.now(UTC).isoformat(),
@@ -84,14 +83,12 @@ class KnowledgeGraphBuilder:
             },
             "symbols": self.symbols,
         }
-
         output_path = settings.REPO_PATH / "reports" / "knowledge_graph.json"
         output_path.parent.mkdir(parents=True, exist_ok=True)
         output_path.write_text(json.dumps(knowledge_graph, indent=2))
-        log.info(
+        logger.info(
             f"Knowledge graph artifact with {len(self.symbols)} symbols saved to {output_path}"
         )
-
         return knowledge_graph
 
     def _scan_file(self, file_path: Path):
@@ -100,14 +97,13 @@ class KnowledgeGraphBuilder:
             content = file_path.read_text(encoding="utf-8")
             tree = ast.parse(content, filename=str(file_path))
             source_lines = content.splitlines()
-
             for node in ast.walk(tree):
                 if isinstance(
                     node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)
                 ):
                     self._process_symbol(node, file_path, source_lines)
         except Exception as e:
-            log.error(f"Failed to process file {file_path}: {e}")
+            logger.error(f"Failed to process file {file_path}: {e}")
 
     def _determine_domain(self, file_path: Path) -> str:
         """Determines the architectural domain of a file."""
@@ -121,15 +117,12 @@ class KnowledgeGraphBuilder:
         """Extracts all relevant data from a symbol AST node."""
         if not hasattr(node, "name"):
             return
-
         rel_path = file_path.relative_to(self.root_path)
         symbol_path_key = f"{rel_path}::{node.name}"
         metadata = parse_metadata_comment(node, source_lines)
         docstring = (extract_docstring(node) or "").strip()
-
         call_visitor = FunctionCallVisitor()
         call_visitor.visit(node)
-
         symbol_data = {
             "uuid": symbol_path_key,
             "key": metadata.get("capability"),

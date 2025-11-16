@@ -1,4 +1,8 @@
 # src/shared/utils/common_knowledge.py
+"""Provides functionality for the common_knowledge module."""
+
+from __future__ import annotations
+
 # ID: 7c05b6a1-0b1d-5c9a-9b5f-1cce01b9f8a7
 """
 Constitutional “common knowledge” – ultra-reusable micro-functions.

@@ -1,6 +1,4 @@
 # FILE: .pre-commit-config.yaml
-# See https://pre-commit.com for more information
-# See https://pre-commit.com/hooks.html for more hooks
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.6.0
@@ -21,14 +19,18 @@ repos:
         args: [ --fix ]
       - id: ruff-format
 
-  # --- THIS IS THE CORRECTED HOOK ---
+  # --- SAFE & NON-DESTRUCTIVE MIND VERIFICATION ---
   - repo: local
     hooks:
       - id: core-mind-verify
-        name: CORE - Verify Mind Snapshot
-        entry: poetry run core-admin mind verify
+        name: CORE - Verify Mind Snapshot (READ-ONLY)
+        entry: |
+          bash -c "poetry run core-admin mind verify || \
+          (echo 'Mind drift detected. Run: core-admin mind sync' && exit 1)"
         language: system
         types: [ file ]
-        files: ^(\.intent/mind_export/|src/)
+        files: "^(\\.intent/mind_export/|src/|pyproject\\.toml$)"
         pass_filenames: false
         stages: [ commit ]
+        always_run: false
+        verbose: true

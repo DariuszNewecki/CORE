@@ -1,0 +1,69 @@
+# .intent/mind/knowledge/project_structure.yaml
+id: project_structure
+version: "2.0.0"
+title: "Architectural Blueprint & Entry Points"
+
+# === ARCHITECTURAL DOMAINS ===
+architectural_domains:
+  - domain: api
+    path: src/api
+    description: "FastAPI routers ONLY. The HTTP Entrypoint."
+    allowed_imports: [api, core, features, services, shared]
+
+  - domain: core
+    path: src/core
+    description: "Orchestration Layer. Connects entrypoints to features."
+    allowed_imports: [core, features, services, shared]
+
+  - domain: features
+    path: src/features
+    description: "Self-contained business capabilities mapped to DB."
+    allowed_imports: [features, services, shared, core]
+
+  - domain: services
+    path: src/services
+    description: "Cross-cutting infrastructure services."
+    allowed_imports: [services, shared]
+
+# === ENTRY POINT PATTERNS ===
+entry_point_patterns:
+  - name: "python_magic_method"
+    description: "Standard Python __dunder__ methods invoked automatically."
+    match:
+      type: "function"
+      name_regex: "^__.+__$"
+    entry_point_type: "magic_method"
+
+  - name: "capability_implementation"
+    description: "Any symbol tagged with # ID is a primary CORE capability."
+    match:
+      has_capability_tag: true
+    entry_point_type: "capability"
+
+  - name: "typer_cli_command"
+    description: "Functions registered by Typer under src/body/cli/ are CLI commands."
+    match:
+      module_path_contains: "src/body/cli/"
+      type: "function"
+      is_public_function: true
+    entry_point_type: "cli_command"
+
+# === FILE HANDLERS ===
+file_handlers:
+  - type: python
+    extensions: [".py"]
+    parse_as: ast
+    editable: true
+    description: "Python source code with manifest-enforced governance"
+
+  - type: yaml
+    extensions: [".yaml", ".yml"]
+    parse_as: structured
+    editable: true
+    description: "Configuration, policies, intent declarations"
+
+  - type: binary
+    extensions: [".png", ".jpg", ".pdf"]
+    parse_as: none
+    editable: false
+    description: "Visual artifacts — viewable only"

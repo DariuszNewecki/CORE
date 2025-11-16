@@ -1,10 +1,10 @@
-# tests/unit/test_intent_translator.py
 import json
 from unittest.mock import MagicMock
 
 import pytest
-from core.agents.intent_translator import IntentTranslator
 from shared.config import settings
+
+from src.will.agents.intent_translator import IntentTranslator
 
 
 @pytest.fixture
@@ -27,10 +27,12 @@ def mock_cognitive_service(mocker):
 @pytest.fixture
 def mock_prompt_pipeline(mocker):
     """Mocks the PromptPipeline to prevent file system access during the unit test."""
-    mock_pipeline = mocker.patch("core.agents.intent_translator.PromptPipeline")
-    mock_instance = mock_pipeline.return_value
-    mock_instance.process.side_effect = lambda prompt: prompt
-    return mock_instance
+    # FIX: Use the correct import path
+    mock_pipeline = mocker.patch(
+        "src.will.orchestration.prompt_pipeline.PromptPipeline"
+    )
+    mock_pipeline.return_value.process.return_value = "Processed prompt"
+    return mock_pipeline.return_value
 
 
 def test_translator_handles_vague_goal(

@@ -1,0 +1,1583 @@
+--- START OF FILE .intent/meta.yaml ---
+version: "3.0.0" # Major version bump for constitutional refactoring
+# PURPOSE: This is the master index for the entire CORE constitution. It maps
+# abstract concepts to their concrete file paths, embracing a thematic,
+# domain-oriented policy structure for improved clarity and governance.
+
+charter:
+  constitution:
+    active_version: "charter/constitution/ACTIVE"
+    # The core governance mechanics are now consolidated into a single file.
+    governance_framework: "charter/constitution/governance_framework.yaml"
+    precedence_rules: "charter/constitution/precedence_rules.yaml"
+
+  mission:
+    # Mission statements remain foundational and unchanged in structure.
+    # These files have been consolidated into mind/knowledge/domain_definitions.yaml
+    # and are no longer needed here as separate top-level entries.
+    # The auditor will load them through the knowledge section.
+
+  policies:
+    # The policy structure is now flat and thematic, with each file covering a major domain.
+    safety_framework: "charter/policies/safety_framework.yaml"
+    agent_governance: "charter/policies/agent_governance.yaml"
+    code_standards: "charter/policies/code_standards.yaml"
+    data_governance: "charter/policies/data_governance.yaml"
+    operations: "charter/policies/operations.yaml"
+    quality_assurance: "charter/policies/quality_assurance.yaml"
+
+  schemas:
+    # Schemas retain their original granular structure for precise validation.
+    policy_schema: "charter/schemas/policy_schema.json"
+    agent:
+      agent_policy_schema: "charter/schemas/agent/agent_policy_schema.json"
+      cognitive_roles_schema: "charter/schemas/agent/cognitive_roles_schema.json"
+      micro_proposal_policy_schema: "charter/schemas/agent/micro_proposal_policy_schema.json"
+      resource_manifest_policy_schema: "charter/schemas/agent/resource_manifest_policy_schema.json"
+    code:
+      capability_tag_schema: "charter/schemas/code/capability_tag_schema.json"
+      dependency_injection_policy_schema: "charter/schemas/code/dependency_injection_policy_schema.json"
+      knowledge_graph_entry_schema: "charter/schemas/code/knowledge_graph_entry_schema.json"
+    constitutional:
+      intent_bundle_schema: "charter/schemas/constitutional/intent_bundle_schema.json"
+      intent_crate_schema: "charter/schemas/constitutional/intent_crate_schema.json"
+      proposal_schema: "charter/schemas/constitutional/proposal_schema.json"
+    data:
+      database_policy_schema: "charter/schemas/data/database_policy_schema.json"
+      database_schema: "charter/schemas/data/database_schema.yaml"
+    governance:
+      available_actions_policy_schema: "charter/schemas/governance/available_actions_policy_schema.json"
+      cli_registry_schema: "charter/schemas/governance/cli_registry_schema.json"
+      enforcement_model_schema: "charter/schemas/governance/enforcement_model_schema.json"
+      intent_guard_schema: "charter/schemas/governance/intent_guard_schema.json"
+      reporting_policy_schema: "charter/schemas/governance/reporting_policy_schema.json"
+      risk_classification_policy_schema: "charter/schemas/governance/risk_classification_policy_schema.json"
+    operations:
+      canary_policy_schema: "charter/schemas/operations/canary_policy_schema.json"
+      config_schema: "charter/schemas/operations/config_schema.yaml"
+      runtime_requirements_schema: "charter/schemas/operations/runtime_requirements_schema.json"
+      workflows_policy_schema: "charter/schemas/operations/workflows_policy_schema.json"
+
+mind:
+  # The Working Mind structure reflects the new consolidation.
+  config:
+    local_mode: "mind/config/local_mode.yaml"
+    runtime_requirements: "mind/config/runtime_requirements.yaml"
+
+  knowledge:
+    # The consolidated knowledge definitions.
+    domain_definitions: "mind/knowledge/domain_definitions.yaml"
+    project_structure: "mind/knowledge/project_structure.yaml"
+
+  mind_export:
+    cognitive_roles: "mind_export/cognitive_roles.yaml"
+    resource_manifest: "mind_export/resource_manifest.yaml"
+    capabilities: "mind_export/capabilities.yaml"
+    symbols: "mind_export/symbols.yaml"
+    links: "mind_export/links.yaml"
+    northstar: "mind_export/northstar.yaml"
+
+  prompts:
+    # Prompts remain granular and are unchanged.
+    capability_definer: "mind/prompts/capability_definer.prompt"
+    code_peer_review: "mind/prompts/code_peer_review.prompt"
+    constitutional_review: "mind/prompts/constitutional_review.prompt"
+    create_file_planner: "mind/prompts/create_file_planner.prompt"
+    enrich_symbol: "mind/prompts/enrich_symbol.prompt"
+    fix_capability_manifest: "mind/prompts/fix_capability_manifest.prompt"
+    fix_function_docstring: "mind/prompts/fix_function_docstring.prompt"
+    fix_header: "mind/prompts/fix_header.prompt"
+    fix_line_length: "mind/prompts/fix_line_length.prompt"
+    goal_assessor: "mind/prompts/goal_assessor.prompt"
+    intent_translator: "mind/prompts/intent_translator.prompt"
+    micro_planner: "mind/prompts/micro_planner.prompt"
+    module_docstring_writer: "mind/prompts/module_docstring_writer.prompt"
+    new_capability_generator: "mind/prompts/new_capability_generator.prompt"
+    planner_agent: "mind/prompts/planner_agent.prompt"
+    refactor_for_clarity: "mind/prompts/refactor_for_clarity.prompt"
+    refactor_outlier: "mind/prompts/refactor_outlier.prompt"
+    standard_task_generator: "mind/prompts/standard_task_generator.prompt"
+    test_generator: "mind/prompts/test_generator.prompt"
+    vectorizer: "mind/prompts/vectorizer.prompt"
+
+  context:
+    # ContextPackage governance & structure
+    schema: "context/schema.yaml"        # .intent/context/schema.yaml
+    policy: "context/policy.yaml"        # .intent/context/policy.yaml
+    domains: "knowledge/domains.yaml"    # .intent/knowledge/domains.yaml
+
+--- END OF FILE .intent/meta.yaml ---
+
+==============================================================================
+                            PART 1: THE CHARTER
+ (The Immutable Laws, Mission, and Foundational Principles of the System)
+==============================================================================
+
+--- START OF SECTION: Constitution ---
+
+--- START OF FILE .intent/charter/constitution/governance_framework.yaml ---
+# .intent/charter/constitution/governance_framework.yaml
+id: governance_framework
+version: "2.0.0"
+title: "Constitutional Governance Framework"
+
+# === AMENDMENT PROCESS ===
+amendment_process:
+  core_principles:
+    - "Safety First: Prevent accidental/unauthorized changes"
+    - "Clarity and Intent: Every change must have clear justification"
+    - "Auditability: Every step must be traceable"
+
+  standard_process:
+    - step: "Proposal Creation"
+      requirements:
+        - "Formal proposal file (cr-*.yaml) following proposal_schema"
+        - "target_path must be canonical Charter path"
+        - "clear justification linking to core principles"
+
+    - step: "Signature and Quorum"
+      requirements:
+        - "Signed by authorized approvers from approvers list"
+        - "Meet quorum requirements for current operational mode"
+        - "Critical paths require critical quorum"
+
+    - step: "Validation and Ratification"
+      requirements:
+        - "Pass full constitutional audit (core-admin check ci audit)"
+        - "Subject to canary deployment if required"
+        - "Merge after checks pass and quorum met"
+
+  emergency_procedures:
+    - "Detailed in operator_lifecycle procedures"
+    - "Always require critical quorum"
+    - "Considered critical amendments"
+
+# === APPROVERS & QUORUM ===
+approvers:
+  - identity: "core-team@core-system.ai"
+    public_key: "..."
+    role: "maintainer"
+    # ... ALL original approvers remain
+
+quorum:
+  current_mode: development
+  development:
+    standard: 1
+    critical: 1
+  production:
+    standard: 2
+    critical: 3
+
+# === CRITICAL PATHS ===
+critical_paths:
+  - ".intent/meta.yaml"
+  - "charter/constitution/approvers.yaml"
+  - "charter/constitution/operator_lifecycle.md"
+  - "charter/constitution/amendment_process.md"
+  - "mind/knowledge/domain_definitions.yaml"
+  - "mind_export/northstar.yaml"
+  - "charter/policies/safety_framework.yaml"  # Now protects itself!
+  # ... ALL original critical paths remain
+
+# === OPERATOR LIFECYCLE ===
+operator_lifecycle:
+  onboarding:
+    - "Key Generation: Generate secure Ed25519 key pair"
+    - "Proposal Creation: Active approver creates formal amendment"
+    - "Ratification: Meet quorum, canary validation, then active"
+
+  standard_revocation:
+    - "Proposal to remove operator block from approvers list"
+    - "Clear non-emergency justification required"
+
+  emergency_revocation:
+    - "Immediate proposal creation for suspected key compromise"
+    - "Requires critical quorum"
+    - "Identity invalidated for quorum calculations until resolved"
+
+--- END OF FILE .intent/charter/constitution/governance_framework.yaml ---
+
+--- START OF FILE .intent/charter/constitution/precedence_rules.yaml ---
+# .intent/charter/constitution/precedence_rules.yaml
+id: precedence_rules
+version: "1.0.0"
+title: "Policy Conflict Resolution Hierarchy"
+
+policy_hierarchy:
+  - level: 1
+    policy: "safety_framework.yaml"
+    rationale: "Safety and constitutional protection always prevail"
+
+  - level: 2
+    policy: "governance_framework.yaml"
+    rationale: "Constitutional amendment process is foundational"
+
+  - level: 3
+    policy: "agent_governance.yaml"
+    rationale: "Agent behavior governs autonomous actions"
+
+  - level: 4
+    policies:
+      - "code_standards.yaml"
+      - "data_governance.yaml"
+      - "operations.yaml"
+    rationale: "Implementation policies follow core governance"
+
+conflict_resolution:
+  default_strategy: "most_restrictive_wins"
+  override_conditions:
+    - "safety_emergency: safety_framework always prevails"
+    - "constitutional_crisis: human_arbitration_required"
+    - "autonomy_decision: agent_governance defines boundaries"
+--- END OF FILE .intent/charter/constitution/precedence_rules.yaml ---
+
+--- END OF SECTION: Constitution (2 files) ---
+
+--- START OF SECTION: Policies ---
+
+--- START OF FILE .intent/charter/policies/agent_governance.yaml ---
+# .intent/charter/policies/agent_governance.yaml
+policy_id: "18f048cb-b084-4faa-ac62-17fca55fed77"  # From agent_policy
+id: agent_governance
+version: "2.0.0"
+title: "Agent Behavior & Autonomous Action Governance"
+status: active
+purpose: >
+  Define how CORE’s agents may act, what they are forbidden to do, and how
+  autonomous behavior is constrained by the constitution, governance, and
+  safety rules.
+
+# === CORE AGENT RULES ===
+agent_rules:
+  - id: agent.compliance.no_write_intent
+    statement: "Agents MUST NOT write directly to '.intent/charter/**'."
+    enforcement: error
+
+  - id: agent.compliance.respect_cli_registry
+    statement: "All tool invocations MUST route through registered CLI commands."
+    enforcement: error
+
+  - id: agent.execution.no_unverified_code
+    statement: "MUST NOT execute/commit code without full validation pipeline."
+    enforcement: error
+
+  - id: agent.execution.require_runtime_validation
+    statement: "All generated code MUST pass test suite before commit."
+    enforcement: error
+
+  - id: agent.reasoning.trace_required
+    statement: "MUST produce inspectable trace for non-trivial tasks."
+    enforcement: warn
+
+# === AUTONOMY LANES ===
+autonomy_lanes:
+  micro_proposals:
+    description: "Low-risk autonomous changes that can auto-approve"
+    allowed_actions:
+      - "autonomy.self_healing.fix_docstrings"
+      - "autonomy.self_healing.format_code"
+      - "autonomy.self_healing.fix_headers"
+      # ... ALL original micro-proposal actions remain
+
+    safe_paths:
+      - "docs/**/*.md"
+      - "tests/**/*.py"
+      - "src/**/*.py"
+      # ... ALL original safe paths remain
+
+    forbidden_paths:
+      - ".intent/**"
+      - "src/system/governance/**"
+      - "src/core/**"
+      # ... ALL original forbidden paths remain
+
+  full_amendments:
+    description: "Changes requiring human review and quorum"
+    requires:
+      - "formal_proposal"
+      - "approver_signatures"
+      - "constitutional_audit"
+      - "meet_quorum_requirements"
+
+# === RESOURCE SELECTION ===
+resource_selection:
+  scoring_weights:
+    cost: 0.5
+    speed: 0.3
+    quality: 0.1
+    reasoning: 0.1
+
+--- END OF FILE .intent/charter/policies/agent_governance.yaml ---
+
+--- START OF FILE .intent/charter/policies/code_standards.yaml ---
+# .intent/charter/policies/code_standards.yaml
+policy_id: "aaa0a228-125d-4013-bfed-c1b58cec0f66" # From original code_style_policy
+id: code_standards
+version: "2.2.1" # Version bump for simplified header-only rule
+title: "Comprehensive Code Quality & Standards"
+status: active
+purpose: >
+  Unified standards for code quality, style, naming, and refactoring patterns.
+  Ensures consistent, maintainable, and safe code across the entire codebase.
+
+# === CODE STYLE & FORMATTING ===
+style_rules:
+  - id: style.linter_required
+    statement: "All changes MUST pass ruff (lint) before merge."
+    enforcement: error
+  - id: style.formatter_required
+    statement: "All changes MUST be formatted by black; CI runs black --check."
+    enforcement: error
+  - id: style.docstrings_public_apis
+    statement: "Public APIs MUST have docstrings summarizing intent and parameters."
+    enforcement: warn
+  - id: style.universal_helper_first
+    statement: "Before creating new helpers, check shared.universal. Reuse or extend instead of duplicating."
+    enforcement: warn
+  - id: style.capability_id_placement
+    statement: >
+      Primary public symbols that represent distinct capabilities MUST have '# ID: <uuid>'
+      tags directly above their definition. Private helpers MUST NOT receive capability IDs.
+    enforcement: warn
+  - id: style.import_order
+    statement: "Imports MUST follow grouping/order and avoid unused imports (enforced by linter)."
+    enforcement: warn
+  - id: style.fail_on_style_in_ci
+    statement: "CI MUST fail on style or lint violations (no auto-fixing in CI)."
+    enforcement: error
+
+# === FILE HEADER (PATH COMMENT) ===
+file_header_rules:
+  - id: layout.src_module_header
+    statement: >
+      Every Python module under 'src/' MUST start with a single file path comment
+      that exactly matches its repo-root path, e.g. '# src/body/cli/admin_cli.py'.
+      No other content may appear before this comment except optional leading
+      blank lines.
+    enforcement: error
+    scope:
+      - "src/**/*.py"
+    details:
+      example: "# src/body/cli/admin_cli.py"
+      behavior:
+        - "If a correct header exists as the first non-empty line, do nothing."
+        - "If a header exists but is incorrect, replace it."
+        - "If no header exists, insert a new one as the first non-empty line."
+
+import_structure_rules:
+  - id: layout.import_grouping
+    statement: >
+      Imports MUST be grouped in the canonical order: future imports, standard library,
+      third-party packages, then internal modules. Mixed groups or interleaving are forbidden.
+    enforcement: warn
+    scope:
+      - "src/**/*.py"
+      - "tests/**/*.py"
+    details:
+      groups:
+        - name: future
+          examples:
+            - "from __future__ import annotations"
+        - name: stdlib
+          examples:
+            - "import os"
+            - "from pathlib import Path"
+        - name: third_party
+          examples:
+            - "import qdrant_client"
+            - "import sqlalchemy"
+            - "import typer"
+        - name: internal
+          examples:
+            - "from shared.logger import getLogger"
+            - "from services.git_service import GitService"
+            - "from mind.governance.audit_context import AuditorContext"
+            - "from will.orchestration.cognitive_service import CognitiveService"
+
+# === CODE HEALTH & COMPLEXITY ===
+health_standards:
+  max_cognitive_complexity: 15
+  max_nesting_depth: 4
+  max_line_length: 120
+  max_module_lloc: 300
+  max_function_lloc: 80
+  outlier_standard_deviations: 2.0
+  enforce_dead_public_symbols: true
+
+# === SYMBOL METADATA & CAPABILITIES ===
+symbol_metadata_rules:
+  - id: symbols.public_capability_id_and_docstring
+    statement: >
+      Public symbols that represent a capability (primary functions/classes not starting
+      with '_') MUST have an '# ID: <uuid>' comment directly above the definition and
+      MUST provide a meaningful docstring describing behavior and guarantees.
+    enforcement: error
+    scope:
+      - "src/**/*.py"
+    details:
+      id_comment_format: "^#\\s*ID:\\s*[0-9a-fA-F-]{36}$"
+      public_symbol_criteria:
+        - "Name does not start with '_'"
+        - "Exported as part of module's capability surface (e.g. referenced in manifests or used externally)."
+      docstring_requirements:
+        - "Summarize the behavior and main responsibilities."
+        - "Document side-effects or external interactions when non-trivial."
+  - id: symbols.private_helpers_no_id_required
+    statement: >
+      Private helpers (functions/classes starting with '_') MUST NOT receive capability
+      IDs. They MAY have docstrings where non-trivial but are not required to.
+    enforcement: warn
+    scope:
+      - "src/**/*.py"
+    details:
+      private_symbol_criteria:
+        - "Name starts with '_'"
+      rationale: >
+        Capability IDs are reserved for traceable, externally meaningful symbols.
+        Helper functions should not pollute the capability graph.
+
+# === CAPABILITY LINTING ===
+capability_rules:
+  - id: caps.meaningful_description
+    statement: "Capability descriptions MUST be specific and non-placeholder."
+    enforcement: error
+  - id: caps.owner_required
+    statement: "Active capabilities MUST have an assigned owner (agent/team)."
+    enforcement: error
+  - id: caps.no_placeholder_text
+    statement: "Descriptions such as 'TBD' or 'N/A' are forbidden."
+    enforcement: error
+  - id: caps.id_format
+    statement: "Source code linkers MUST use the form '# ID: <uuid>'."
+    enforcement: error
+
+# === DEPENDENCY INJECTION ===
+dependency_injection:
+  - id: di.no_direct_instantiation
+    statement: "Services and features MUST NOT directly instantiate other major services. Dependencies MUST be injected via the constructor."
+    enforcement: error
+    scope:
+      - "src/features/**/*.py"
+      - "src/services/**/*.py"
+    # === START OF FIXED EXCLUSIONS ===
+    # We are telling the auditor that this rule does not apply to test files,
+    # and certain entrypoints like the admin CLI, which are allowed to wire up
+    # the system manually.
+    exclusions:
+      - "src/body/cli/admin_cli.py"
+      - "src/features/governance/runtime_validator.py"
+      - "tests/**/*.py"
+    # === END OF FIXED EXCLUSIONS ===
+    forbidden_instantiations:
+      - "CognitiveService"
+      - "GitService"
+      - "ConstitutionalAuditor"
+      - "QdrantService"
+      - "ActionRegistry"
+      - "PlanExecutor"
+      - "SelfHealingAdvisor"
+      - "CapabilityInvoker"
+      - "CoderAgent"
+  - id: di.no_global_session_import
+    statement: "Modules within 'features' and 'services' MUST NOT directly import `get_session`. The database session MUST be injected."
+    enforcement: error
+    scope:
+      - "src/features/**/*.py"
+      - "src/services/repositories/**/*.py"
+    forbidden_imports:
+      - "services.database.session_manager.get_session"
+      - "services.repositories.db.engine.get_session"
+  - id: di.constructor_injection_preferred
+    statement: "Services SHOULD receive their dependencies through the `__init__` constructor, with type hints."
+    enforcement: warn
+
+# === NAMING CONVENTIONS (REFACTORED) ===
+# This section is now fully self-contained. The auditor reads the scope and pattern from here.
+
+naming_conventions:
+  intent:
+    - id: "intent.policy_file_naming"
+      description: "All charter policy files must use snake_case and end with '.yaml'."
+      enforcement: error
+      scope: ".intent/charter/policies/*.yaml"
+      pattern: "^[a-z0-9_]+\\.yaml$"
+    - id: "intent.policy_schema_naming"
+      description: "Schemas for policy files must end with '_policy_schema.json'."
+      enforcement: error
+      scope: ".intent/charter/schemas/*_policy_schema.json"
+      pattern: "^[a-z0-9_]+_policy_schema\\.json$"
+    - id: "intent.artifact_schema_naming"
+      description: "Schemas for non-policy artifacts must end with '_schema.[json|yaml]'."
+      enforcement: error
+      scope: ".intent/charter/schemas/*"
+      pattern: "^[a-z0-9_]+_schema\\.(json|yaml)$"
+      exclusions:
+        - "*_policy_schema.json"
+    - id: "intent.prompt_file_naming"
+      description: "All prompt files must use snake_case and end with '.prompt'."
+      enforcement: error
+      scope: ".intent/mind/prompts/*.prompt"
+      pattern: "^[a-z0-9_]+\\.prompt$"
+    - id: "intent.proposal_file_naming"
+      description: "All proposal files must follow the 'cr-*.yaml' naming convention."
+      enforcement: warn
+      scope: ".intent/proposals/*.yaml"
+      pattern: "^cr-[a-zA-Z0-9_-]+\\.yaml$"
+      exclusions:
+        - "README.md"
+  code:
+    - id: "code.python_module_naming"
+      description: "All Python source files must use snake_case naming."
+      enforcement: error
+      scope: "src/**/*.py"
+      pattern: "^[a-z0-9_]+\\.py$"
+      exclusions:
+        - "__init__.py"
+    - id: "code.python_test_module_naming"
+      description: "All Python test files must be prefixed with 'test_'."
+      enforcement: error
+      scope: "tests/**/*.py"
+      pattern: "^test_[a-z0-9_]+\\.py$"
+      exclusions:
+        - "__init__.py"
+        - "conftest.py"
+
+# === REFACTORING PATTERNS ===
+refactoring_patterns:
+  - id: extract_function
+    description: "Move coherent logic into new function with clear name and docstring."
+    guardrails:
+      - must_keep_behavior: true
+      - add_unit_tests: true
+      - run_audit: true
+  - id: extract_module
+    description: "Move related functions/classes into new module; update imports and domain boundaries."
+    guardrails:
+      - must_keep_behavior: true
+      - update_import_map: true
+      - run_audit: true
+  - id: introduce_facade
+    description: "Add a facade/API layer to hide complexity behind a small, stable surface."
+    guardrails:
+      - document_contract: true
+      - avoid_breaking_changes: true
+      - run_audit: true
+
+refactoring_rules:
+  - id: refactor.requires_tests
+    statement: "Any refactor that changes public behavior MUST include tests or proof of equivalence."
+    enforcement: error
+  - id: refactor.update_capabilities
+    statement: "When moving symbols, update capability tags and manifests accordingly."
+    enforcement: warn
+  - id: refactor.audit_after
+    statement: "A constitutional audit MUST run after refactors before merge."
+    enforcement: error
+
+# === AUDIT HOOKS ===
+audit_checks:
+  - id: header_compliance
+    description: >
+      Verify that every src module has a correct file header comment in line with
+      file_header_rules.layout.src_module_header (path comment matching repo-root path).
+    scope:
+      - "src/**/*.py"
+    severity: error
+    policy_ref:
+      policy: code_standards
+      rule: layout.src_module_header
+    auto_fix:
+      tool: "fix_header"
+      prompt_path: ".intent/mind/prompts/fix_header.prompt"
+      mode: "suggest_or_write"
+
+--- END OF FILE .intent/charter/policies/code_standards.yaml ---
+
+--- START OF FILE .intent/charter/policies/data_governance.yaml ---
+# .intent/charter/policies/data_governance.yaml
+policy_id: "1fb8949c-02db-486a-8b9d-556191456de3"  # From database_policy
+id: data_governance
+version: "2.0.0"
+title: "Data Management & Knowledge Source Governance"
+status: active
+purpose: >
+  Unified governance for database as Single Source of Truth, secrets management,
+  and knowledge source integrity.
+
+# === DATABASE AS SSOT ===
+database_ssot:
+  engine:
+    type: postgresql
+    schema: core
+
+  migrations:
+    directory: sql
+    order:
+      - "001_consolidated_schema.sql"
+
+  rules:
+    - id: db.ssot_for_operational_data
+      statement: "Database is authoritative source for all operational data. Files are read-only mirrors."
+      enforcement: error
+
+    - id: db.write_via_governed_cli
+      statement: "All writes MUST originate from registered CLI commands."
+      enforcement: error
+
+    - id: db.domains_in_db
+      statement: "Capability domains MUST be stored in and queried from database."
+      enforcement: error
+
+    - id: db.vector_index_in_db
+      statement: "Vector index data MUST be stored in database with metadata."
+      enforcement: error
+
+    - id: db.cli_registry_in_db
+      statement: "Canonical CLI commands MUST be stored in database."
+      enforcement: error
+
+    - id: db.llm_resources_in_db
+      statement: "LLM resource manifest MUST be stored in database."
+      enforcement: error
+
+    - id: db.cognitive_roles_in_db
+      statement: "Cognitive roles MUST be stored in database."
+      enforcement: error
+
+# === SECURITY & PRIVACY ===
+security_rules:
+  - id: db.privacy.no_pii_or_secrets
+    statement: "Personal data and secrets MUST NOT be stored in operational tables."
+    enforcement: error
+
+  - id: db.privacy.masking
+    statement: "Logs and audit records MUST redact tokens, keys, and secrets."
+    enforcement: error
+
+  - id: secrets.no_hardcoded_secrets
+    statement: "Source code MUST NOT contain hardcoded secrets. Use environment variables."
+    enforcement: error
+    detection:
+      patterns:
+        - "(A|B|S|G)K[0-9A-Za-z]{30,}"
+        - 'password\s*[:=]\s*[''""].+[''""]'
+
+  - id: secrets.redact_in_logs
+    statement: "Logs and telemetry MUST redact sensitive data before persistence."
+    enforcement: warn
+
+# === KNOWLEDGE SOURCE INTEGRITY ===
+knowledge_integrity:
+  - id: knowledge.database_ssot
+    statement: "Database is single source of operational truth for knowledge artifacts."
+    enforcement: error
+
+  - id: knowledge.limited_legacy_access
+    statement: "Only explicitly allowed system tools may interact with legacy knowledge artifacts."
+    enforcement: error
+    allowed_access_paths:
+      - "src/features/introspection/knowledge_graph_service.py"
+      - "src/features/governance/checks/knowledge_source_check.py"
+
+# === RETENTION & BACKUP ===
+retention:
+  audit_runs_days: 180
+  cli_runs_days: 90
+  capability_history_days: 365
+  proposals_days: 1095
+
+backup_restore:
+  cadence: daily
+  test_restore_quarterly: true
+--- END OF FILE .intent/charter/policies/data_governance.yaml ---
+
+--- START OF FILE .intent/charter/policies/operations.yaml ---
+# .intent/charter/policies/operations.yaml
+policy_id: "a3e1b0c4-9f8d-4a7b-8c1d-6e5f4a3b2c1d"  # From workflows_policy
+id: operations
+version: "2.0.0"
+title: "System Operations & Workflows"
+status: active
+purpose: >
+  Unified operational policies for workflows, canary deployments, incident response,
+  and developer fastpaths.
+
+# === MANDATORY INTEGRATION WORKFLOW ===
+integration_workflow:
+  - id: "linkage.assign_ids"
+    command: "core-admin fix ids --write"
+    description: "Assign stable UUIDs to new public symbols."
+    continues_on_failure: false
+
+  - id: "linkage.duplicate_ids"
+    command: "core-admin fix duplicate-ids --write"
+    description: "Find and resolve duplicate '# ID:' tags."
+    continues_on_failure: false
+
+  - id: "ssot.sync_knowledge"
+    command: "core-admin manage database sync-knowledge --write"
+    description: "Synchronize codebase state with database SSOT."
+    continues_on_failure: false
+
+  - id: "quality.test_suite"
+    command: "core-admin check tests"
+    description: "Run full test suite to ensure all tests pass."
+    continues_on_failure: false
+
+  - id: "quality.coverage_check"
+    command: "core-admin coverage check"
+    description: "Verify test coverage meets constitutional minimum (75%)."
+    continues_on_failure: false
+
+  - id: "governance.audit"
+    command: "core-admin check audit"
+    description: "Run full constitutional audit on new state."
+    continues_on_failure: false
+
+# === SELF-HEALING ROUTINES ===
+self_healing_routines:
+  - id: "style.headers"
+    command: "core-admin fix headers --write"
+    description: "Enforce constitutional header conventions."
+
+  - id: "docs.docstrings"
+    command: "core-admin fix docstrings --write"
+    description: "Add missing docstrings to public functions."
+
+  - id: "quality.generate_tests"
+    command: "core-admin coverage remediate"
+    description: "Autonomously generate tests to restore coverage compliance."
+    trigger: "coverage < 75%"
+
+# === CANARY DEPLOYMENTS ===
+canary:
+  enabled: true
+  scope:
+    paths:
+      - "src/**"
+      - "cli/**"
+      - "agents/**"
+    modes:
+      - "development"
+      - "staging"
+
+  abort_conditions:
+    - "audit:level=error"
+    - "tests:failed>0"
+    - "latency:p95>threshold"
+
+  metrics:
+    - name: "audit.errors"
+      threshold: 0
+      direction: "less"
+    - name: "tests.failed"
+      threshold: 0
+      direction: "less"
+
+# === DEVELOPER FASTPATH ===
+dev_fastpath:
+  thresholds:
+    max_changed_files: 20
+    allow_intent_changes: false
+
+  required_checks:
+    - syntax
+    - linter
+    - formatter
+
+  disallowed_paths:
+    - ".intent/**"
+    - "src/system/governance/**"
+
+# === INCIDENT RESPONSE ===
+incident_response:
+  severity_levels:
+    - low
+    - medium
+    - high
+    - critical
+
+  response_rules:
+    - id: ir.triage_required
+      statement: "All incidents MUST be triaged within 24h with severity and owner assigned."
+      enforcement: error
+
+    - id: ir.timeline
+      statement: "Minimal timeline (what happened, when, who, evidence) MUST be recorded."
+      enforcement: warn
+
+    - id: ir.comms
+      statement: "Notifications MUST be sent to maintainers for high/critical incidents."
+      enforcement: warn
+
+    - id: ir.postmortem
+      statement: "High/critical incidents REQUIRE short postmortem with actions and owners."
+      enforcement: warn
+--- END OF FILE .intent/charter/policies/operations.yaml ---
+
+--- START OF FILE .intent/charter/policies/quality_assurance.yaml ---
+# .intent/charter/policies/quality_assurance.yaml
+policy_id: "7d4f8c9a-2e1b-4f6d-9a8c-3b5e7f1d2c4a"  # From quality_assurance_policy
+id: quality_assurance
+version: "2.0.0"
+title: "Quality Assurance & Evaluation Framework"
+status: active
+purpose: >
+  Unified quality standards including test coverage mandates, autonomous remediation,
+  and change evaluation scoring.
+
+# === COVERAGE MANDATES ===
+coverage_requirements:
+  minimum_threshold: 75
+  target_threshold: 80
+  critical_paths:
+    - "src/core/**/*.py: 85%"
+    - "src/features/governance/**/*.py: 85%"
+    - "src/features/self_healing/**/*.py: 80%"
+
+  exclusions:
+    - "src/**/__init__.py"
+    - "src/**/models.py"
+    - "tests/**/*.py"
+    - "scripts/**/*.py"
+
+  rules:
+    - id: coverage.minimum_threshold
+      statement: "Codebase MUST maintain minimum 75% test coverage for production code."
+      enforcement: error
+
+    - id: coverage.no_untested_commits
+      statement: "No code changes shall reduce overall coverage below minimum without remediation plan."
+      enforcement: error
+
+    - id: coverage.auto_remediation
+      statement: "When coverage falls below minimum, MUST trigger autonomous test generation."
+      enforcement: error
+
+# === AUTONOMOUS REMEDIATION ===
+autonomous_remediation:
+  trigger_conditions:
+    - "coverage < minimum_threshold"
+    - "new_uncovered_modules > 3"
+    - "coverage_delta < -5%"
+
+  phases:
+    - phase: strategic_analysis
+      actions:
+        - "analyze_coverage_gaps"
+        - "identify_critical_modules"
+        - "generate_testing_strategy"
+
+    - phase: test_generation
+      actions:
+        - "generate_test_code"
+        - "validate_syntax_and_style"
+        - "execute_tests"
+        - "measure_coverage_improvement"
+
+# === CHANGE EVALUATION ===
+evaluation_framework:
+  strategy: weighted_criteria
+
+  criteria:
+    - id: intent_alignment
+      description: "Does this change serve a declared intent?"
+      weight: 0.4
+
+    - id: structural_compliance
+      description: "Does it follow folder conventions and manifest structure?"
+      weight: 0.2
+
+    - id: safety
+      description: "Was the change gated by a test or checkpoint?"
+      weight: 0.2
+
+    - id: code_quality
+      description: "Does it pass formatting, linting, and basic semantic checks?"
+      weight: 0.2
+
+  thresholds:
+    pass: 0.7
+    warn: 0.5
+
+# === RISK-TIER GATES ===
+risk_tier_gates:
+  medium:
+    min_score: 0.80
+    require:
+      - checkpoint
+      - canary
+
+  high:
+    min_score: 0.90
+    require:
+      - checkpoint
+      - canary
+      - approver_quorum
+
+# === AUDIT CHECKLIST ===
+audit_checklist:
+  - id: declared_intent
+    item: "Was the intent declared before the change?"
+    required: true
+
+  - id: explanation
+    item: "Was the change explained or justified?"
+    required: true
+
+  - id: quality_verified
+    item: "Was code quality verified post-write?"
+    required: true
+
+  - id: quorum_evidence
+    item: "Quorum evidence recorded for medium/high risk changes"
+    applies_when: "risk_tier in ['medium', 'high']"
+    severity: "block"
+--- END OF FILE .intent/charter/policies/quality_assurance.yaml ---
+
+--- START OF FILE .intent/charter/policies/safety_framework.yaml ---
+# .intent/charter/policies/safety_framework.yaml
+policy_id: "05ffbf34-2e0e-4069-b77e-473923537077"  # Kept from safety_policy
+id: safety_framework
+version: "2.0.0"
+title: "Safety & Constitutional Protection Framework"
+status: active
+purpose: >
+  The single source of truth for all safety, security, and constitutional
+  boundary protection. Merges safety_policy, intent_guard, and enforcement_model.
+
+# === CONSTITUTIONAL BOUNDARIES (from intent_guard) ===
+constitutional_boundaries:
+  immutable_charter:
+    statement: "The Charter (.intent/charter/**) is immutable. Changes require formal amendment."
+    enforcement: error
+    protected_paths:
+      - ".intent/charter/**"
+
+  single_active_constitution:
+    statement: "Exactly one active constitution version MUST be referenced by '.intent/charter/constitution/ACTIVE'."
+    enforcement: error
+
+# === ENFORCEMENT MODEL (from enforcement_model) ===
+enforcement_levels:
+  error:
+    description: "Critical violation. Blocks merge/deploy. Non-zero exit code."
+    ci_behavior: "fail"
+    runtime_behavior: "block"
+  warn:
+    description: "Non-critical issue. Reported but doesn't block."
+    ci_behavior: "pass_with_warnings"
+    runtime_behavior: "log_and_continue"
+  info:
+    description: "Informational finding. No action required."
+    ci_behavior: "ignore"
+    runtime_behavior: "ignore"
+
+# === SAFETY RULES (from safety_policy) ===
+safety_rules:
+  - id: safety.immutable_constitution
+    statement: "Core mission files are immutable without human-in-the-loop amendment process."
+    enforcement: error
+    protected_paths:
+      - "mind/knowledge/domain_definitions.yaml"
+      - "mind_export/northstar.yaml"
+
+  - id: safety.deny_core_loop_edit
+    statement: "Cannot modify core orchestration and governance engine without human review."
+    enforcement: error
+    protected_paths:
+      - "src/core/main.py"
+      - "src/core/intent_guard.py"
+      - "charter/policies/safety_framework.yaml"  # Self-protection!
+
+  - id: safety.no_dangerous_execution
+    statement: "Generated code must not contain dangerous execution primitives."
+    enforcement: error
+    detection:
+      patterns:
+        - "eval\\("
+        - "exec\\("
+        - "subprocess\\.(run|Popen|call)\\([^)]*shell\\s*=\\s*True"
+    # ... keep ALL original safety patterns and exemptions
+
+  - id: safety.change_must_be_logged
+    statement: "Every file change must be preceded by a log entry with IntentBundle ID."
+    enforcement: error
+
+--- END OF FILE .intent/charter/policies/safety_framework.yaml ---
+
+--- END OF SECTION: Policies (6 files) ---
+
+--- START OF SECTION: Schemas ---
+
+--- START OF FILE .intent/charter/schemas/policy_schema.json ---
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Policy Schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "title", "version", "status"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Stable, machine-friendly identifier",
+      "pattern": "^[a-z][a-z0-9_]*$",
+      "minLength": 3,
+      "maxLength": 80
+    },
+    "title": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 120
+    },
+    "description": {
+      "type": "string",
+      "minLength": 10
+    },
+    "version": {
+      "type": "string",
+      "description": "Semver or dated version string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(-[a-z0-9\\.]+)?$"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["draft", "active", "deprecated"]
+    },
+    "enforcement": {
+      "type": "string",
+      "enum": ["advisory", "mandatory"],
+      "description": "High-level enforcement posture for this policy (optional)."
+    },
+    "owners": {
+      "type": "object",
+      "description": "Who is accountable for this policy (recommended)",
+      "additionalProperties": false,
+      "properties": {
+        "primary": { "type": "string" },
+        "reviewers": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "review": {
+      "type": "object",
+      "description": "Review cadence metadata (recommended)",
+      "additionalProperties": false,
+      "properties": {
+        "frequency": {
+          "type": "string",
+          "description": "e.g., quarterly, semiannual, annual"
+        },
+        "last_reviewed": {
+          "type": "string",
+          "format": "date"
+        }
+      }
+    },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["paths"],
+      "properties": {
+        "paths": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 1
+        },
+        "excludes": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "rules": {
+      "type": "array",
+      "description": "Concrete, testable rules; semantics are policy-specific",
+      "items": {
+        "type": "object",
+        "additionalProperties": true
+      }
+    },
+    "created_at": { "type": "string", "format": "date" },
+    "updated_at": { "type": "string", "format": "date" }
+  }
+}
+
+--- END OF FILE .intent/charter/schemas/policy_schema.json ---
+
+--- END OF SECTION: Schemas (1 files) ---
+
+==============================================================================
+                            PART 2: THE WORKING MIND
+ (The Dynamic Knowledge, Configuration, and Evaluation Logic of the System)
+==============================================================================
+
+--- START OF SECTION: Configuration ---
+
+--- START OF FILE .intent/mind/config/local_mode.yaml ---
+# .intent/mind/config/local_mode.yaml
+
+mode: local_fallback
+apis:
+  llm:
+    enabled: false
+    fallback: local_validator
+  git:
+    ignore_validation: false
+
+# Development-specific overrides
+dev_fastpath: true        # allow auto-sign in dev env only
+
+--- END OF FILE .intent/mind/config/local_mode.yaml ---
+
+--- START OF FILE .intent/mind/config/runtime_requirements.yaml ---
+# .intent/mind/config/runtime_requirements.yaml
+id: runtime_requirements
+version: 1 # You might consider bumping this to 2 after applying
+title: "Runtime Requirements"
+status: active
+owners:
+  accountable: "Platform SRE"
+  responsible: ["Core Maintainer"]
+review:
+  frequency: "6 months"
+
+variables:
+  # ======================================================================
+  # 1. GLOBAL FALLBACK SETTINGS
+  # ======================================================================
+  LLM_CONNECT_TIMEOUT:
+    description: "Timeout in seconds for establishing a connection to an LLM API."
+    source: env
+    required: false
+    type: integer
+    default: 10
+    used_by: ["agents"]
+  LLM_REQUEST_TIMEOUT:
+    description: "Timeout in seconds for waiting for a full response from an LLM API. Increase this on slower hardware."
+    source: env
+    required: false
+    type: integer
+    default: 300 # Increased default as per your .env
+    used_by: ["agents"]
+  CORE_MAX_CONCURRENT_REQUESTS:
+    description: "GLOBAL FALLBACK for the maximum number of simultaneous outbound LLM requests. This is used if a resource-specific override is not set."
+    source: env
+    required: false
+    type: integer
+    default: 2 # A safe, conservative default
+    used_by: ["system", "agents"]
+  LLM_SECONDS_BETWEEN_REQUESTS:
+    description: "GLOBAL FALLBACK for the delay to insert between LLM API calls. Used if a resource-specific override is not set."
+    source: env
+    required: false
+    type: integer
+    default: 1 # A safe default for cloud APIs
+    used_by: ["agents"]
+
+
+  # ======================================================================
+  # 2. CORE SYSTEM & PATHS
+  # ======================================================================
+  MIND:
+    description: "The relative path to the system's declarative 'mind' (.intent directory)."
+    source: env
+    required: true
+    type: path
+    used_by: ["system", "auditor"]
+  BODY:
+    description: "The relative path to the system's executable 'body' (src directory)."
+    source: env
+    required: true
+    type: path
+    used_by: ["system"]
+  REPO_PATH:
+    description: "The absolute path to the root of the repository."
+    source: env
+    required: true
+    type: path
+    used_by: ["system","auditor"]
+  LLM_ENABLED:
+    description: "Master flag to enable or disable all LLM-related capabilities."
+    source: env
+    required: true
+    type: bool
+    allowed: ["true","false"]
+    used_by: ["agents"]
+  KEY_STORAGE_DIR:
+    description: "The secure directory for storing operator private keys."
+    source: env
+    required: true
+    type: path
+    default: ".intent/keys"
+    used_by: ["system"]
+  CORE_ACTION_LOG_PATH:
+    description: "Path to the action/change log file, required for the safety policy 'change_must_be_logged'."
+    source: env
+    required: true
+    type: path
+    used_by: ["auditor", "system"]
+  CORE_ENV:
+    description: "Runtime mode: 'development' or 'production'."
+    source: env
+    required: true
+    type: enum
+    allowed: ["development","production"]
+    used_by: ["system"]
+  LOG_LEVEL:
+    description: "Logging level."
+    source: env
+    required: true
+    type: enum
+    allowed: ["DEBUG","INFO","WARNING","ERROR"]
+    used_by: ["system"]
+
+
+  # ======================================================================
+  # 3. LLM RESOURCE CONFIGURATION (WITH PER-RESOURCE TUNING)
+  # ======================================================================
+
+  # --- START OF NEW DEFINITIONS for ollama_local ---
+  OLLAMA_LOCAL_API_URL:
+    description: "API URL for the 'ollama_local' resource."
+    source: env
+    required: false
+    type: uri
+    used_by: ["agents"]
+    required_when: "LLM_ENABLED == true"
+  OLLAMA_LOCAL_API_KEY:
+    description: "API key for the 'ollama_local' resource (if required)."
+    source: secret
+    required: false
+    type: string
+    used_by: ["agents"]
+  OLLAMA_LOCAL_MODEL_NAME:
+    description: "Model name for the 'ollama_local' resource."
+    source: env
+    required: false
+    type: string
+    used_by: ["agents"]
+    required_when: "LLM_ENABLED == true"
+  OLLAMA_LOCAL_MAX_CONCURRENT_REQUESTS:
+    description: "Concurrency override for 'ollama_local'. Recommended: 1 for local GPUs."
+    source: env
+    required: false
+    type: integer
+    default: 1
+    used_by: ["agents"]
+  OLLAMA_LOCAL_SECONDS_BETWEEN_REQUESTS:
+    description: "Delay override for 'ollama_local'. Recommended: 0 for no artificial delay."
+    source: env
+    required: false
+    type: integer
+    default: 0
+    used_by: ["agents"]
+  # --- END OF NEW DEFINITIONS for ollama_local ---
+
+  DEEPSEEK_CHAT_API_URL:
+    description: "API URL for the 'deepseek_chat' resource."
+    source: env
+    required: false
+    type: uri
+    used_by: ["agents"]
+    required_when: "LLM_ENABLED == true"
+  DEEPSEEK_CHAT_API_KEY:
+    description: "API key for the 'deepseek_chat' resource."
+    source: secret
+    required: false
+    type: string
+    used_by: ["agents"]
+    required_when: "LLM_ENABLED == true"
+  DEEPSEEK_CHAT_MODEL_NAME:
+    description: "Model name for the 'deepseek_chat' resource."
+    source: env
+    required: false
+    type: string
+    used_by: ["agents"]
+    required_when: "LLM_ENABLED == true"
+  DEEPSEEK_CHAT_MAX_CONCURRENT_REQUESTS:
+    description: "Concurrency override for the 'deepseek_chat' resource."
+    source: env
+    required: false
+    type: integer
+    default: 2
+    used_by: ["agents"]
+  DEEPSEEK_CHAT_SECONDS_BETWEEN_REQUESTS:
+    description: "Delay override for the 'deepseek_chat' resource."
+    source: env
+    required: false
+    type: integer
+    default: 1
+    used_by: ["agents"]
+
+  DEEPSEEK_CODER_API_URL:
+    description: "API URL for the 'deepseek_coder' resource."
+    source: env
+    required: false
+    type: uri
+    used_by: ["agents"]
+    required_when: "LLM_ENABLED == true"
+  DEEPSEEK_CODER_API_KEY:
+    description: "API key for the 'deepseek_coder' resource."
+    source: secret
+    required: false
+    type: string
+    used_by: ["agents"]
+    required_when: "LLM_ENABLED == true"
+  DEEPSEEK_CODER_MODEL_NAME:
+    description: "Model name for the 'deepseek_coder' resource."
+    source: env
+    required: false
+    type: string
+    used_by: ["agents"]
+    required_when: "LLM_ENABLED == true"
+  DEEPSEEK_CODER_MAX_CONCURRENT_REQUESTS:
+    description: "Concurrency override for the 'deepseek_coder' resource."
+    source: env
+    required: false
+    type: integer
+    default: 3
+    used_by: ["agents"]
+  DEEPSEEK_CODER_SECONDS_BETWEEN_REQUESTS:
+    description: "Delay override for the 'deepseek_coder' resource."
+    source: env
+    required: false
+    type: integer
+    default: 1
+    used_by: ["agents"]
+
+  ANTHROPIC_CLAUDE_SONNET_API_URL:
+    description: "API URL for the 'anthropic_claude_sonnet' resource."
+    source: env
+    required: false
+    type: uri
+    used_by: ["agents"]
+    required_when: "LLM_ENABLED == true"
+  ANTHROPIC_CLAUDE_SONNET_API_KEY:
+    description: "API key for the 'anthropic_claude_sonnet' resource."
+    source: secret
+    required: false
+    type: string
+    used_by: ["agents"]
+    required_when: "LLM_ENABLED == true"
+  ANTHROPIC_CLAUDE_SONNET_MODEL_NAME:
+    description: "Model name for the 'anthropic_claude_sonnet' resource."
+    source: env
+    required: false
+    type: string
+    used_by: ["agents"]
+    required_when: "LLM_ENABLED == true"
+  ANTHROPIC_CLAUDE_SONNET_MAX_CONCURRENT_REQUESTS:
+    description: "Concurrency override for the 'anthropic_claude_sonnet' resource."
+    source: env
+    required: false
+    type: integer
+    default: 2
+    used_by: ["agents"]
+  ANTHROPIC_CLAUDE_SONNET_SECONDS_BETWEEN_REQUESTS:
+    description: "Delay override for the 'anthropic_claude_sonnet' resource."
+    source: env
+    required: false
+    type: integer
+    default: 1
+    used_by: ["agents"]
+
+  LOCAL_EMBEDDING_API_URL:
+    description: "API URL for the local embedding resource."
+    source: env
+    required: true
+    type: uri
+    used_by: ["system"]
+    required_when: "LLM_ENABLED == true"
+  LOCAL_EMBEDDING_API_KEY:
+    description: "API key for the local embedding resource (if required)."
+    source: secret
+    required: false
+    type: string
+    used_by: ["system"]
+    required_when: "LLM_ENABLED == true"
+  LOCAL_EMBEDDING_MODEL_NAME:
+    description: "Model name for the local embedding resource."
+    source: env
+    required: true
+    type: string
+    used_by: ["system"]
+    required_when: "LLM_ENABLED == true"
+  LOCAL_EMBEDDING_DIM:
+    description: "The output dimension of the embedding model."
+    source: env
+    required: true
+    type: integer
+    default: 768
+    used_by: ["system"]
+    required_when: "LLM_ENABLED == true"
+  EMBED_MODEL_REVISION:
+    description: "A revision tag/date for the embedding model to track provenance."
+    source: env
+    required: true
+    type: string
+    default: "2025-09-15"
+    used_by: ["system"]
+    required_when: "LLM_ENABLED == true"
+  EMBEDDING_MAX_CONCURRENT_REQUESTS:
+    description: "Concurrency override for the embedding model."
+    source: env
+    required: false
+    type: integer
+    default: 2
+    used_by: ["system"]
+
+
+  # ======================================================================
+  # 4. DATABASE & VECTOR STORE
+  # ======================================================================
+  QDRANT_URL:
+    description: "URL for the Qdrant vector database instance."
+    source: env
+    required: true
+    type: uri
+    used_by: ["system"]
+  QDRANT_COLLECTION_NAME:
+    description: "The name of the collection within Qdrant to use for capabilities."
+    source: env
+    required: true
+    type: string
+    default: "core_capabilities"
+    used_by: ["system"]
+  DATABASE_URL:
+    description: "The full connection string for the PostgreSQL database."
+    source: env
+    required: true
+    type: uri
+    used_by: ["system", "auditor"]
+
+--- END OF FILE .intent/mind/config/runtime_requirements.yaml ---
+
+--- END OF SECTION: Configuration (2 files) ---
+
+--- START OF SECTION: Knowledge ---
+
+--- START OF FILE .intent/mind/knowledge/domain_definitions.yaml ---
+# .intent/mind/knowledge/domain_definitions.yaml
+id: domain_definitions
+version: "2.0.0"
+title: "Project Identity & Capability Domains"
+
+# === PROJECT IDENTITY ===
+project:
+  name: CORE
+  version: "1.0.0"
+  purpose: >
+    CORE is a self-improving, intent-aware development system that orchestrates
+    safe, meaningful, and governed changes through intent bundles and introspective loops.
+
+# === CORE PRINCIPLES ===
+principles:
+  - id: clarity_first
+    description: "Prioritize clear, understandable code and documentation."
+
+  - id: safe_by_default
+    description: "Every change must assume rollback or rejection unless explicitly validated."
+
+  - id: reason_with_purpose
+    description: "Every autonomous step must be traceable to core principles."
+
+  - id: evolvable_structure
+    description: "System must be designed to evolve safely with formal amendment process."
+
+  # ... ALL 12 original principles remain
+
+# === CAPABILITY DOMAINS ===
+capability_domains:
+  - name: governance
+    owner: "Governance Lead"
+    description: "Constitutional compliance, policy enforcement, and amendment processing"
+
+  - name: autonomy
+    owner: "Core Maintainer"
+    description: "Agent behavior, reasoning, and safe autonomous actions"
+
+  - name: quality
+    owner: "Quality Lead"
+    description: "Code standards, testing, and quality assurance"
+
+  - name: operations
+    owner: "Platform SRE"
+    description: "System workflows, deployment, and incident response"
+--- END OF FILE .intent/mind/knowledge/domain_definitions.yaml ---
+
+--- START OF FILE .intent/mind/knowledge/project_structure.yaml ---
+# .intent/mind/knowledge/project_structure.yaml
+id: project_structure
+version: "2.0.0"
+title: "Architectural Blueprint & Entry Points"
+
+# === ARCHITECTURAL DOMAINS ===
+architectural_domains:
+  - domain: api
+    path: src/api
+    description: "FastAPI routers ONLY. The HTTP Entrypoint."
+    allowed_imports: [api, core, features, services, shared]
+
+  - domain: core
+    path: src/core
+    description: "Orchestration Layer. Connects entrypoints to features."
+    allowed_imports: [core, features, services, shared]
+
+  - domain: features
+    path: src/features
+    description: "Self-contained business capabilities mapped to DB."
+    allowed_imports: [features, services, shared, core]
+
+  - domain: services
+    path: src/services
+    description: "Cross-cutting infrastructure services."
+    allowed_imports: [services, shared]
+
+# === ENTRY POINT PATTERNS ===
+entry_point_patterns:
+  - name: "python_magic_method"
+    description: "Standard Python __dunder__ methods invoked automatically."
+    match:
+      type: "function"
+      name_regex: "^__.+__$"
+    entry_point_type: "magic_method"
+
+  - name: "capability_implementation"
+    description: "Any symbol tagged with # ID is a primary CORE capability."
+    match:
+      has_capability_tag: true
+    entry_point_type: "capability"
+
+  - name: "typer_cli_command"
+    description: "Functions registered by Typer under src/body/cli/ are CLI commands."
+    match:
+      module_path_contains: "src/body/cli/"
+      type: "function"
+      is_public_function: true
+    entry_point_type: "cli_command"
+
+# === FILE HANDLERS ===
+file_handlers:
+  - type: python
+    extensions: [".py"]
+    parse_as: ast
+    editable: true
+    description: "Python source code with manifest-enforced governance"
+
+  - type: yaml
+    extensions: [".yaml", ".yml"]
+    parse_as: structured
+    editable: true
+    description: "Configuration, policies, intent declarations"
+
+  - type: binary
+    extensions: [".png", ".jpg", ".pdf"]
+    parse_as: none
+    editable: false
+    description: "Visual artifacts — viewable only"
+
+--- END OF FILE .intent/mind/knowledge/project_structure.yaml ---
+
+--- END OF SECTION: Knowledge (2 files) ---

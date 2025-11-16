@@ -1,0 +1,70 @@
+# .intent/charter/policies/agent_governance.yaml
+policy_id: "18f048cb-b084-4faa-ac62-17fca55fed77"  # From agent_policy
+id: agent_governance
+version: "2.0.0"
+title: "Agent Behavior & Autonomous Action Governance"
+status: active
+purpose: >
+  Define how CORE’s agents may act, what they are forbidden to do, and how
+  autonomous behavior is constrained by the constitution, governance, and
+  safety rules.
+
+# === CORE AGENT RULES ===
+agent_rules:
+  - id: agent.compliance.no_write_intent
+    statement: "Agents MUST NOT write directly to '.intent/charter/**'."
+    enforcement: error
+
+  - id: agent.compliance.respect_cli_registry
+    statement: "All tool invocations MUST route through registered CLI commands."
+    enforcement: error
+
+  - id: agent.execution.no_unverified_code
+    statement: "MUST NOT execute/commit code without full validation pipeline."
+    enforcement: error
+
+  - id: agent.execution.require_runtime_validation
+    statement: "All generated code MUST pass test suite before commit."
+    enforcement: error
+
+  - id: agent.reasoning.trace_required
+    statement: "MUST produce inspectable trace for non-trivial tasks."
+    enforcement: warn
+
+# === AUTONOMY LANES ===
+autonomy_lanes:
+  micro_proposals:
+    description: "Low-risk autonomous changes that can auto-approve"
+    allowed_actions:
+      - "autonomy.self_healing.fix_docstrings"
+      - "autonomy.self_healing.format_code"
+      - "autonomy.self_healing.fix_headers"
+      # ... ALL original micro-proposal actions remain
+
+    safe_paths:
+      - "docs/**/*.md"
+      - "tests/**/*.py"
+      - "src/**/*.py"
+      # ... ALL original safe paths remain
+
+    forbidden_paths:
+      - ".intent/**"
+      - "src/system/governance/**"
+      - "src/core/**"
+      # ... ALL original forbidden paths remain
+
+  full_amendments:
+    description: "Changes requiring human review and quorum"
+    requires:
+      - "formal_proposal"
+      - "approver_signatures"
+      - "constitutional_audit"
+      - "meet_quorum_requirements"
+
+# === RESOURCE SELECTION ===
+resource_selection:
+  scoring_weights:
+    cost: 0.5
+    speed: 0.3
+    quality: 0.1
+    reasoning: 0.1

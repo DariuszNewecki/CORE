@@ -1,6 +1,8 @@
 # src/shared/exceptions.py
 """Exception hierarchy for CORE system."""
 
+from __future__ import annotations
+
 
 # ID: bbaf6baf-a332-4856-b43f-bac7b47639cc
 class CoreException(Exception):

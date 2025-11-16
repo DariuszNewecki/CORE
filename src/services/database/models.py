@@ -1,9 +1,5 @@
 # src/services/database/models.py
-"""
-SQLAlchemy ORM models for CORE's v2.1 operational database schema.
-This file is the Python representation of the database's structure and is
-aligned with the v2.1 SQL schema.
-"""
+"""Provides functionality for the models module."""
 
 from __future__ import annotations
 
@@ -312,3 +308,20 @@ class Northstar(Base):
     updated_at = Column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
+
+
+# --- START OF FIX: ADD THE MISSING RUNTIMESETTING MODEL ---
+# ID: f8c994c5-9af8-49ba-b7fd-76df01ad7f2a
+class RuntimeSetting(Base):
+    __tablename__ = "runtime_settings"
+    __table_args__ = {"schema": "core"}
+    key = Column(Text, primary_key=True)
+    value = Column(Text)
+    description = Column(Text)
+    is_secret = Column(Boolean, nullable=False, server_default="false")
+    last_updated = Column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+
+# --- END OF FIX ---
