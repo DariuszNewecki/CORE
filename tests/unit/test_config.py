@@ -7,9 +7,19 @@ from shared.config import Settings
 
 def test_settings_loads_defined_attributes(monkeypatch):
     """Test that explicitly defined attributes are loaded correctly."""
+
+    # 1. Temporarily disable the load_dotenv function so it does nothing.
+    #    This prevents the __init__ method from overwriting our test environment.
+    monkeypatch.setattr("shared.config.load_dotenv", lambda *args, **kwargs: None)
+
+    # 2. Set the environment variable we want to test.
     monkeypatch.setenv("LOG_LEVEL", "DEBUG")
-    # We must create a new instance to re-evaluate the env var
+
+    # 3. Now, create the Settings instance. Its __init__ will run, but the
+    #    load_dotenv calls inside it will be neutralized by our patch.
     settings = Settings()
+
+    # 4. The assertion will now pass, because only monkeypatch has set the value.
     assert settings.LOG_LEVEL == "DEBUG"
 
 

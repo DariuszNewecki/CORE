@@ -1,0 +1,36 @@
+# FILE: .pre-commit-config.yaml
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: check-yaml
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+
+  - repo: https://github.com/psf/black
+    rev: 24.4.2
+    hooks:
+      - id: black
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.4.8
+    hooks:
+      - id: ruff
+        args: [ --fix ]
+      - id: ruff-format
+
+  # --- SAFE & NON-DESTRUCTIVE MIND VERIFICATION ---
+  - repo: local
+    hooks:
+      - id: core-mind-verify
+        name: CORE - Verify Mind Snapshot (READ-ONLY)
+        entry: |
+          bash -c "poetry run core-admin mind verify || \
+          (echo 'Mind drift detected. Run: core-admin mind sync' && exit 1)"
+        language: system
+        types: [ file ]
+        files: "^(\\.intent/mind_export/|src/|pyproject\\.toml$)"
+        pass_filenames: false
+        stages: [ commit ]
+        always_run: false
+        verbose: true

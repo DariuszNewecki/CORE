@@ -1,0 +1,117 @@
+# .intent/charter/policies/quality_assurance.yaml
+policy_id: "7d4f8c9a-2e1b-4f6d-9a8c-3b5e7f1d2c4a"  # From quality_assurance_policy
+id: quality_assurance
+version: "2.0.0"
+title: "Quality Assurance & Evaluation Framework"
+status: active
+purpose: >
+  Unified quality standards including test coverage mandates, autonomous remediation,
+  and change evaluation scoring.
+
+# === COVERAGE MANDATES ===
+coverage_requirements:
+  minimum_threshold: 50
+  target_threshold: 80
+  critical_paths:
+    - "src/core/**/*.py: 85%"
+    - "src/features/governance/**/*.py: 85%"
+    - "src/features/self_healing/**/*.py: 80%"
+
+  exclusions:
+    - "src/**/__init__.py"
+    - "src/**/models.py"
+    - "tests/**/*.py"
+    - "scripts/**/*.py"
+
+  rules:
+    - id: coverage.minimum_threshold
+      statement: "Codebase MUST maintain minimum 75% test coverage for production code."
+      enforcement: error
+
+    - id: coverage.no_untested_commits
+      statement: "No code changes shall reduce overall coverage below minimum without remediation plan."
+      enforcement: error
+
+    - id: coverage.auto_remediation
+      statement: "When coverage falls below minimum, MUST trigger autonomous test generation."
+      enforcement: error
+
+# === AUTONOMOUS REMEDIATION ===
+autonomous_remediation:
+  trigger_conditions:
+    - "coverage < minimum_threshold"
+    - "new_uncovered_modules > 3"
+    - "coverage_delta < -5%"
+
+  phases:
+    - phase: strategic_analysis
+      actions:
+        - "analyze_coverage_gaps"
+        - "identify_critical_modules"
+        - "generate_testing_strategy"
+
+    - phase: test_generation
+      actions:
+        - "generate_test_code"
+        - "validate_syntax_and_style"
+        - "execute_tests"
+        - "measure_coverage_improvement"
+
+# === CHANGE EVALUATION ===
+evaluation_framework:
+  strategy: weighted_criteria
+
+  criteria:
+    - id: intent_alignment
+      description: "Does this change serve a declared intent?"
+      weight: 0.4
+
+    - id: structural_compliance
+      description: "Does it follow folder conventions and manifest structure?"
+      weight: 0.2
+
+    - id: safety
+      description: "Was the change gated by a test or checkpoint?"
+      weight: 0.2
+
+    - id: code_quality
+      description: "Does it pass formatting, linting, and basic semantic checks?"
+      weight: 0.2
+
+  thresholds:
+    pass: 0.7
+    warn: 0.5
+
+# === RISK-TIER GATES ===
+risk_tier_gates:
+  medium:
+    min_score: 0.80
+    require:
+      - checkpoint
+      - canary
+
+  high:
+    min_score: 0.90
+    require:
+      - checkpoint
+      - canary
+      - approver_quorum
+
+# === AUDIT CHECKLIST ===
+audit_checklist:
+  - id: declared_intent
+    item: "Was the intent declared before the change?"
+    required: true
+
+  - id: explanation
+    item: "Was the change explained or justified?"
+    required: true
+
+  - id: quality_verified
+    item: "Was code quality verified post-write?"
+    required: true
+
+  - id: quorum_evidence
+    item: "Quorum evidence recorded for medium/high risk changes"
+    applies_when: "risk_tier in ['medium', 'high']"
+    severity: "block"

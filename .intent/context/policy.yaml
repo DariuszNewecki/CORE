@@ -1,0 +1,202 @@
+# ContextPackage Policy
+# Constitutional governance for LLM context
+# Last modified: 2025-11-11
+
+version: "0.1"
+policy_type: "context_governance"
+
+privacy:
+  description: "Privacy and data handling rules"
+
+  default_level: "local_only"
+
+  forbidden_paths:
+    description: "Paths that must never appear in context packets"
+    patterns:
+      - ".env"
+      - ".env.*"
+      - "*.key"
+      - "*.pem"
+      - "*.p12"
+      - "*.pfx"
+      - ".secrets/**"
+      - "secrets.yaml"
+      - "credentials.json"
+      - ".ssh/**"
+      - ".gnupg/**"
+
+  forbidden_content:
+    description: "Content patterns that trigger redaction"
+    patterns:
+      - regex: "(?i)(password|passwd|pwd)\\s*[=:]\\s*['\"]?\\w+"
+        reason: "Potential password in code"
+      - regex: "(?i)(api[_-]?key|apikey)\\s*[=:]\\s*['\"]?[A-Za-z0-9_-]+"
+        reason: "API key pattern"
+      - regex: "(?i)(secret|token)\\s*[=:]\\s*['\"]?[A-Za-z0-9_-]+"
+        reason: "Secret or token pattern"
+      - regex: "-----BEGIN\\s+(RSA\\s+)?PRIVATE\\s+KEY-----"
+        reason: "Private key"
+      - regex: "\\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Z|a-z]{2,}\\b"
+        reason: "Email address (PII)"
+        redact_with: "[EMAIL_REDACTED]"
+
+  sensitive_dirs:
+    description: "Directories requiring explicit approval"
+    paths:
+      - ".git"
+      - ".github/workflows"
+      - "deployment"
+      - "infrastructure"
+    approval_required: true
+
+routing:
+  description: "Rules for remote LLM access"
+
+  remote_allowed_by_default: false
+
+  require_remote_approval:
+    task_types:
+      - "code.generate"
+      - "refactor"
+    reason: "These tasks may generate substantial new code"
+
+  always_local:
+    task_types:
+      - "security.audit"
+      - "secrets.scan"
+    reason: "Sensitive operations must stay local"
+
+  remote_allowed_if:
+    conditions:
+      - "No forbidden paths in context"
+      - "No sensitive content patterns detected"
+      - "privacy_level explicitly set to remote_allowed"
+      - "Task type not in always_local list"
+
+redaction:
+  description: "What and how to redact"
+
+  strategies:
+    secrets:
+      action: "remove_item"
+      log: true
+      reason: "Security policy violation"
+
+    pii:
+      action: "mask_content"
+      replacement: "[REDACTED]"
+      log: true
+      reason: "Privacy protection"
+
+    large_files:
+      action: "truncate"
+      max_length: 5000
+      log: false
+      reason: "Token budget management"
+
+  mandatory_checks:
+    - "forbidden_paths scan"
+    - "forbidden_content regex scan"
+    - "token budget enforcement"
+    - "file size limits"
+
+budgets:
+  description: "Default resource constraints"
+
+  defaults:
+    max_tokens: 100000
+    max_items: 50
+    time_budget_seconds: 30
+    cost_budget_usd: 1.0
+
+  by_task_type:
+    "docstring.fix":
+      max_tokens: 10000
+      max_items: 10
+    "header.fix":
+      max_tokens: 5000
+      max_items: 5
+    "test.generate":
+      max_tokens: 50000
+      max_items: 30
+    "code.generate":
+      max_tokens: 100000
+      max_items: 50
+    "refactor":
+      max_tokens: 150000
+      max_items: 75
+
+invariants:
+  description: "Rules that must always hold"
+
+  rules:
+    - id: "no_absolute_paths"
+      description: "All paths must be relative to project root"
+      enforcement: "validation"
+
+    - id: "no_filesystem_ops"
+      description: "Context snippets must not contain FS operations"
+      enforcement: "redaction"
+      forbidden_calls:
+        - "os.remove"
+        - "os.unlink"
+        - "shutil.rmtree"
+        - "pathlib.Path.unlink"
+
+    - id: "no_network_ops"
+      description: "Context snippets must not contain network calls"
+      enforcement: "redaction"
+      forbidden_calls:
+        - "requests.get"
+        - "requests.post"
+        - "urllib.request"
+        - "socket.connect"
+        - "httpx.get"
+
+    - id: "no_subprocess"
+      description: "Context snippets must not contain subprocess calls"
+      enforcement: "redaction"
+      forbidden_calls:
+        - "subprocess.run"
+        - "subprocess.Popen"
+        - "os.system"
+
+    - id: "token_budget"
+      description: "Total tokens must not exceed max_tokens"
+      enforcement: "validation"
+
+    - id: "item_limit"
+      description: "Context array length must not exceed max_items"
+      enforcement: "validation"
+
+audit:
+  description: "Logging and compliance"
+
+  log_events:
+    - "packet_created"
+    - "redaction_applied"
+    - "validation_failed"
+    - "remote_route_requested"
+    - "budget_exceeded"
+
+  retention:
+    packet_metadata: "90 days"
+    redaction_logs: "365 days"
+    validation_failures: "30 days"
+
+  compliance_checks:
+    - "All packets logged to DB"
+    - "All redactions recorded in policy.redactions_applied"
+    - "All remote routes audited"
+
+notes: |
+  This policy enforces constitutional governance at the context layer.
+
+  Key principles:
+  1. Privacy by default (local_only unless explicitly set)
+  2. Zero secrets in context (forbidden_paths + content patterns)
+  3. Token budgets prevent overflow
+  4. All operations audited
+
+  The ContextService enforces this policy before any LLM call.
+  Violations block packet creation and log to audit trail.

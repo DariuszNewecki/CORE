@@ -3,10 +3,10 @@
 Defines the Pydantic/dataclass models for representing capabilities and
 their metadata throughout the system.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Optional
 
 
 @dataclass
@@ -18,5 +18,5 @@ class CapabilityMeta:
     """
 
     key: str
-    domain: Optional[str] = None
-    owner: Optional[str] = None
+    domain: str | None = None
+    owner: str | None = None

@@ -1,15 +1,22 @@
 # .intent/mind/config/runtime_requirements.yaml
+# Schema: charter/schemas/operations/runtime_requirements_schema.json
+
 id: runtime_requirements
-version: 1
+version: 2
 title: "Runtime Requirements"
 status: active
+
 owners:
   accountable: "Platform SRE"
   responsible: ["Core Maintainer"]
+
 review:
   frequency: "6 months"
 
 variables:
+  # ======================================================================
+  # 1. GLOBAL FALLBACK SETTINGS
+  # ======================================================================
   LLM_CONNECT_TIMEOUT:
     description: "Timeout in seconds for establishing a connection to an LLM API."
     source: env
@@ -22,25 +29,27 @@ variables:
     source: env
     required: false
     type: integer
-    default: 180
+    default: 300 # Increased default as per your .env
     used_by: ["agents"]
   CORE_MAX_CONCURRENT_REQUESTS:
-    description: "The maximum number of simultaneous outbound LLM requests to prevent rate-limiting or overwhelming local models."
+    description: "GLOBAL FALLBACK for the maximum number of simultaneous outbound LLM requests. This is used if a resource-specific override is not set."
     source: env
     required: false
     type: integer
-    default: 5
+    default: 2 # A safe, conservative default
     used_by: ["system", "agents"]
-  # --- START OF AMENDMENT ---
   LLM_SECONDS_BETWEEN_REQUESTS:
-    description: "A small delay to insert between LLM API calls to respect rate limits."
+    description: "GLOBAL FALLBACK for the delay to insert between LLM API calls. Used if a resource-specific override is not set."
     source: env
     required: false
     type: integer
-    default: 1
+    default: 1 # A safe default for cloud APIs
     used_by: ["agents"]
-  # --- END OF AMENDMENT ---
 
+
+  # ======================================================================
+  # 2. CORE SYSTEM & PATHS
+  # ======================================================================
   MIND:
     description: "The relative path to the system's declarative 'mind' (.intent directory)."
     source: env
@@ -93,13 +102,49 @@ variables:
     type: enum
     allowed: ["DEBUG","INFO","WARNING","ERROR"]
     used_by: ["system"]
-  CORE_DEV_FASTPATH:
-    description: "Enable development fastpath."
+
+
+  # ======================================================================
+  # 3. LLM RESOURCE CONFIGURATION (WITH PER-RESOURCE TUNING)
+  # ======================================================================
+
+  # --- START OF NEW DEFINITIONS for ollama_local ---
+  OLLAMA_LOCAL_API_URL:
+    description: "API URL for the 'ollama_local' resource."
     source: env
     required: false
-    type: bool
-    used_by: ["system"]
-    required_when: "CORE_ENV == 'development'"
+    type: uri
+    used_by: ["agents"]
+    required_when: "LLM_ENABLED == true"
+  OLLAMA_LOCAL_API_KEY:
+    description: "API key for the 'ollama_local' resource (if required)."
+    source: secret
+    required: false
+    type: string
+    used_by: ["agents"]
+  OLLAMA_LOCAL_MODEL_NAME:
+    description: "Model name for the 'ollama_local' resource."
+    source: env
+    required: false
+    type: string
+    used_by: ["agents"]
+    required_when: "LLM_ENABLED == true"
+  OLLAMA_LOCAL_MAX_CONCURRENT_REQUESTS:
+    description: "Concurrency override for 'ollama_local'. Recommended: 1 for local GPUs."
+    source: env
+    required: false
+    type: integer
+    default: 1
+    used_by: ["agents"]
+  OLLAMA_LOCAL_SECONDS_BETWEEN_REQUESTS:
+    description: "Delay override for 'ollama_local'. Recommended: 0 for no artificial delay."
+    source: env
+    required: false
+    type: integer
+    default: 0
+    used_by: ["agents"]
+  # --- END OF NEW DEFINITIONS for ollama_local ---
+
   DEEPSEEK_CHAT_API_URL:
     description: "API URL for the 'deepseek_chat' resource."
     source: env
@@ -121,6 +166,21 @@ variables:
     type: string
     used_by: ["agents"]
     required_when: "LLM_ENABLED == true"
+  DEEPSEEK_CHAT_MAX_CONCURRENT_REQUESTS:
+    description: "Concurrency override for the 'deepseek_chat' resource."
+    source: env
+    required: false
+    type: integer
+    default: 2
+    used_by: ["agents"]
+  DEEPSEEK_CHAT_SECONDS_BETWEEN_REQUESTS:
+    description: "Delay override for the 'deepseek_chat' resource."
+    source: env
+    required: false
+    type: integer
+    default: 1
+    used_by: ["agents"]
+
   DEEPSEEK_CODER_API_URL:
     description: "API URL for the 'deepseek_coder' resource."
     source: env
@@ -142,6 +202,21 @@ variables:
     type: string
     used_by: ["agents"]
     required_when: "LLM_ENABLED == true"
+  DEEPSEEK_CODER_MAX_CONCURRENT_REQUESTS:
+    description: "Concurrency override for the 'deepseek_coder' resource."
+    source: env
+    required: false
+    type: integer
+    default: 3
+    used_by: ["agents"]
+  DEEPSEEK_CODER_SECONDS_BETWEEN_REQUESTS:
+    description: "Delay override for the 'deepseek_coder' resource."
+    source: env
+    required: false
+    type: integer
+    default: 1
+    used_by: ["agents"]
+
   ANTHROPIC_CLAUDE_SONNET_API_URL:
     description: "API URL for the 'anthropic_claude_sonnet' resource."
     source: env
@@ -163,6 +238,21 @@ variables:
     type: string
     used_by: ["agents"]
     required_when: "LLM_ENABLED == true"
+  ANTHROPIC_CLAUDE_SONNET_MAX_CONCURRENT_REQUESTS:
+    description: "Concurrency override for the 'anthropic_claude_sonnet' resource."
+    source: env
+    required: false
+    type: integer
+    default: 2
+    used_by: ["agents"]
+  ANTHROPIC_CLAUDE_SONNET_SECONDS_BETWEEN_REQUESTS:
+    description: "Delay override for the 'anthropic_claude_sonnet' resource."
+    source: env
+    required: false
+    type: integer
+    default: 1
+    used_by: ["agents"]
+
   LOCAL_EMBEDDING_API_URL:
     description: "API URL for the local embedding resource."
     source: env
@@ -201,12 +291,17 @@ variables:
     used_by: ["system"]
     required_when: "LLM_ENABLED == true"
   EMBEDDING_MAX_CONCURRENT_REQUESTS:
-    description: "Maximum concurrent requests to the embedding model to prevent overload."
+    description: "Concurrency override for the embedding model."
     source: env
     required: false
     type: integer
-    default: 4
+    default: 2
     used_by: ["system"]
+
+
+  # ======================================================================
+  # 4. DATABASE & VECTOR STORE
+  # ======================================================================
   QDRANT_URL:
     description: "URL for the Qdrant vector database instance."
     source: env
@@ -220,3 +315,9 @@ variables:
     type: string
     default: "core_capabilities"
     used_by: ["system"]
+  DATABASE_URL:
+    description: "The full connection string for the PostgreSQL database."
+    source: env
+    required: true
+    type: uri
+    used_by: ["system", "auditor"]

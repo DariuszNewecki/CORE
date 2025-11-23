@@ -1,57 +1,92 @@
 {
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://core.local/schemas/policy_schema.json",
-  "title": "CORE Policy",
-  "description": "The canonical schema for all constitutional policy files in .intent/charter/policies/.",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Policy Schema",
   "type": "object",
-  "required": ["policy_id", "id", "version", "title", "purpose", "status", "owners", "review"],
+  "additionalProperties": false,
+  "required": ["id", "title", "version", "status"],
   "properties": {
-    "policy_id": {
-      "type": "string",
-      "description": "A unique and stable UUID for this policy document.",
-      "pattern": "^[0-9a-fA-F]{8}-([0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}$"
-    },
     "id": {
       "type": "string",
-      "description": "The unique, snake_case identifier for the policy, matching the file name (e.g., 'agent_policy').",
-      "pattern": "^[a-z0-9_]+_policy$"
-    },
-    "version": {
-      "type": "string",
-      "description": "The semantic version of the policy document.",
-      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+      "description": "Stable, machine-friendly identifier",
+      "pattern": "^[a-z][a-z0-9_]*$",
+      "minLength": 3,
+      "maxLength": 80
     },
     "title": {
       "type": "string",
-      "description": "A human-readable, Title Case name for the policy."
+      "minLength": 3,
+      "maxLength": 120
     },
-    "purpose": {
+    "description": {
       "type": "string",
-      "description": "A concise, one or two-sentence explanation of why this policy exists."
+      "minLength": 10
+    },
+    "version": {
+      "type": "string",
+      "description": "Semver or dated version string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(-[a-z0-9\\.]+)?$"
     },
     "status": {
       "type": "string",
-      "description": "The current lifecycle status of the policy.",
-      "enum": ["active", "draft", "deprecated"]
+      "enum": ["draft", "active", "deprecated"]
+    },
+    "enforcement": {
+      "type": "string",
+      "enum": ["advisory", "mandatory"],
+      "description": "High-level enforcement posture for this policy (optional)."
     },
     "owners": {
       "type": "object",
-      "description": "Defines the roles responsible for maintaining this policy.",
+      "description": "Who is accountable for this policy (recommended)",
+      "additionalProperties": false,
       "properties": {
         "primary": { "type": "string" },
-        "reviewers": { "type": "array", "items": { "type": "string" } }
-      },
-      "required": ["primary"]
+        "reviewers": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
     },
     "review": {
       "type": "object",
-      "description": "Specifies the review cadence for this policy.",
+      "description": "Review cadence metadata (recommended)",
+      "additionalProperties": false,
       "properties": {
-        "frequency": { "type": "string", "description": "e.g., '12 months', 'quarterly'" },
-        "last_reviewed": { "type": "string", "format": "date" }
-      },
-      "required": ["frequency"]
-    }
-  },
-  "additionalProperties": true
+        "frequency": {
+          "type": "string",
+          "description": "e.g., quarterly, semiannual, annual"
+        },
+        "last_reviewed": {
+          "type": "string",
+          "format": "date"
+        }
+      }
+    },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["paths"],
+      "properties": {
+        "paths": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 1
+        },
+        "excludes": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "rules": {
+      "type": "array",
+      "description": "Concrete, testable rules; semantics are policy-specific",
+      "items": {
+        "type": "object",
+        "additionalProperties": true
+      }
+    },
+    "created_at": { "type": "string", "format": "date" },
+    "updated_at": { "type": "string", "format": "date" }
+  }
 }

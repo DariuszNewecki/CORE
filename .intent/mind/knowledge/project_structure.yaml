@@ -1,0 +1,169 @@
+# .intent/mind/knowledge/project_structure.yaml
+id: project_structure
+version: "2.0.0"
+title: "Architectural Blueprint & Entry Points"
+
+# === ARCHITECTURAL DOMAINS ===
+architectural_domains:
+  - domain: api
+    path: src/api
+    description: "FastAPI routers ONLY. The HTTP Entrypoint."
+    allowed_imports: [api, core, features, services, shared]
+
+  - domain: core
+    path: src/core
+    description: "Orchestration Layer. Connects entrypoints to features."
+    allowed_imports: [core, features, services, shared]
+
+  - domain: features
+    path: src/features
+    description: "Self-contained business capabilities mapped to DB."
+    allowed_imports: [features, services, shared, core]
+
+  - domain: services
+    path: src/services
+    description: "Cross-cutting infrastructure services."
+    allowed_imports: [services, shared]
+
+# === ENTRY POINT PATTERNS ===
+entry_point_patterns:
+  - name: "python_magic_method"
+    description: "Standard Python __dunder__ methods invoked automatically."
+    match:
+      type: "function"
+      name_regex: "^__.+__$"
+    entry_point_type: "magic_method"
+
+  - name: "capability_implementation"
+    description: "Any symbol tagged with # ID is a primary CORE capability."
+    match:
+      has_capability_tag: true
+    entry_point_type: "capability"
+
+  - name: "typer_cli_command"
+    description: "Functions registered by Typer under src/body/cli/ are CLI commands."
+    match:
+      module_path_contains: "src/body/cli/"
+      type: "function"
+      is_public_function: true
+    entry_point_type: "cli_command"
+
+  - name: "action_handler_methods"
+    description: "ActionHandler methods (execute and name) are dynamically dispatched via ActionRegistry"
+    entry_point_type: "action_handler_method"
+    match:
+      module_path_contains: "body.actions"
+      name_regex: "Handler\\.(execute|name)$"
+      type: "function"
+
+  - name: "ast_visitor_methods"
+    description: "AST visitor methods are called by the visitor pattern"
+    entry_point_type: "visitor_method"
+    match:
+      name_regex: "\\.(visit_|visit|generic_visit)"
+      type: "function"
+
+  - name: "service_accessors"
+    description: "Service registry accessor methods"
+    entry_point_type: "registry_accessor"
+    match:
+      name_regex: "\\.(get_|get|resolve|find_|lookup)"
+      type: "function"
+
+  - name: "cli_command_functions"
+    description: "CLI command functions"
+    entry_point_type: "cli_command"
+    match:
+      name_regex: "(_command|_cmd)$"
+      type: "function"
+
+  - name: "service_operations"
+    description: "Standard service operation methods"
+    entry_point_type: "service_method"
+    match:
+      name_regex: "\\.(build|apply|validate|check|process|scan|approve|sign|list|make_)"
+      type: "function"
+
+  - name: "data_classes"
+    description: "Helper data classes"
+    entry_point_type: "data_class"
+    match:
+      name_regex: "(Info|Data|Config|Payload|Result|Response|Request|Metadata)$"
+      type: "class"
+
+  - name: "serialization_methods"
+    description: "Serialization methods"
+    entry_point_type: "serialization_method"
+    match:
+      name_regex: "\\.(to_dict|to_json|from_dict|from_json|as_dict)$"
+      type: "function"
+
+  - name: "governance_check_execute"
+    description: "Governance check execute methods are called by the audit framework"
+    entry_point_type: "governance_check"
+    match:
+      module_path_contains: "mind.governance.checks"
+      name_regex: "(Check|Checks)\\.execute"
+      type: "function"
+
+  - name: "service_classes"
+    description: "Service/helper/utility classes are infrastructure"
+    entry_point_type: "service_class"
+    match:
+      name_regex: "(Service|Helper|Utility|Manager|Handler|Builder|Generator|Analyzer|Filter|Processor|Executor|Validator|Scanner|Visitor|Discovery|Scaffolder|Fixer|Remediator|Context|Monitor|Differ|Cache|Database|Provider|Finder)$"
+      type: "class"
+
+  - name: "analysis_methods"
+    description: "Analysis, generation, and transformation methods"
+    entry_point_type: "service_method"
+    match:
+      name_regex: "\\.(analyze|generate|transform|remediate|accumulate|measure|attempt|scaffold|write_|create_|produce_|extract_)"
+      type: "function"
+
+  - name: "property_accessors"
+    description: "Python properties and computed attributes"
+    entry_point_type: "property_accessor"
+    match:
+      name_regex: "\\.(default|python_files|success_rate|is_|has_|can_|should_)"
+      type: "function"
+
+  - name: "context_methods"
+    description: "Context building and conversion methods"
+    entry_point_type: "context_method"
+    match:
+      name_regex: "\\.(to_|from_|as_|into_)"
+      type: "function"
+
+  - name: "async_runners"
+    description: "Async execution methods"
+    entry_point_type: "async_runner"
+    match:
+      name_regex: "_async$"
+      type: "function"
+
+  - name: "infrastructure_methods"
+    description: "Infrastructure operation methods (load, save, run, ensure, upsert, clear, etc.)"
+    entry_point_type: "infrastructure_method"
+    match:
+      name_regex: "\\.(load_|load|save_|run_|run|ensure_|upsert_|clear_|clear|search_|compare|audit_|invalidate|put|discover_|for_|execute_on_|create|set|add_|add|init|commit|decrypt|encrypt|redact|parse|reconstruct|dump|translate|select|delete_|rotate_|migrate_|pending_|confirm_|log_|initialize|compute_|estimate_|execute_plan|suggest_|chat_completion|aget_|touched_|qdrant_service|context_service|reload|canonicalize|status_)"
+      type: "function"
+
+# === FILE HANDLERS ===
+file_handlers:
+  - type: python
+    extensions: [".py"]
+    parse_as: ast
+    editable: true
+    description: "Python source code with manifest-enforced governance"
+
+  - type: yaml
+    extensions: [".yaml", ".yml"]
+    parse_as: structured
+    editable: true
+    description: "Configuration, policies, intent declarations"
+
+  - type: binary
+    extensions: [".png", ".jpg", ".pdf"]
+    parse_as: none
+    editable: false
+    description: "Visual artifacts — viewable only"

@@ -1,0 +1,23 @@
+# .intent/mind/knowledge/cognitive_roles.yaml
+# Maps abstract cognitive roles to specific, configured LLM resources.
+
+cognitive_roles:
+  - role: "Planner"
+    description: "Decomposes high-level goals into step-by-step plans."
+    assigned_resource: "deepseek_chat"
+    required_capabilities: ["planning"]
+
+  - role: "Coder"
+    description: "Generates and refactors source code."
+    assigned_resource: "deepseek_coder"
+    required_capabilities: ["code_generation"]
+
+  - role: "Vectorizer"
+    description: "Creates semantic vector embeddings from text."
+    assigned_resource: "local_embedding"
+    required_capabilities: ["embedding"]
+
+  - role: "CodeReviewer"
+    description: "Reviews code for clarity, style, and correctness."
+    assigned_resource: "deepseek_coder"
+    required_capabilities: ["code_generation"]

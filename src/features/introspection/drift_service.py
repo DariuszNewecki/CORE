@@ -3,16 +3,16 @@
 Provides a dedicated service for detecting drift between the declared constitution
 and the implemented reality of the codebase.
 """
+
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Dict
 
-from core.knowledge_service import KnowledgeService
 from features.introspection.discovery.from_manifest import (
     load_manifest_capabilities,
 )
 from features.introspection.drift_detector import detect_capability_drift
+from services.knowledge.knowledge_service import KnowledgeService
 from shared.models import CapabilityMeta, DriftReport
 
 
@@ -27,7 +27,7 @@ async def run_drift_analysis_async(root: Path) -> DriftReport:
     knowledge_service = KnowledgeService(root)
     graph = await knowledge_service.get_graph()
 
-    code_caps: Dict[str, CapabilityMeta] = {}
+    code_caps: dict[str, CapabilityMeta] = {}
     for symbol in graph.get("symbols", {}).values():
         key = symbol.get("key")
         if key and key != "unassigned":

@@ -1,26 +1,25 @@
-# src/system/admin/bootstrap.py
+# src/features/project_lifecycle/bootstrap_service.py
+
 """
 Provides CLI commands for bootstrapping the project with initial setup tasks,
 such as creating a default set of GitHub issues for a new repository.
 """
+
 from __future__ import annotations
 
 import shutil
 import subprocess
-from typing import Optional
 
 import typer
 from rich.console import Console
 
 from shared.logger import getLogger
 
-log = getLogger("core_admin.bootstrap")
+logger = getLogger(__name__)
 console = Console()
-
 bootstrap_app = typer.Typer(
     help="Commands for project bootstrapping and initial setup."
 )
-
 ISSUES_TO_CREATE = [
     {
         "title": "Add JSON logging & request IDs",
@@ -43,7 +42,6 @@ ISSUES_TO_CREATE = [
         "labels": "roadmap,organizational,audit",
     },
 ]
-
 LABELS_TO_ENSURE = [
     {"name": "roadmap", "color": "0366d6", "desc": "Roadmap item"},
     {"name": "organizational", "color": "a2eeef", "desc": "Project organization"},
@@ -70,15 +68,14 @@ def _run_gh_command(command: list[str], ignore_errors: bool = False):
 
 
 @bootstrap_app.command("issues")
-# ID: 695834ae-f6a1-49ed-baa8-7e99276df2ac
+# ID: 2eabf15e-e851-4cb5-86a5-ae74e5ceb751
 def bootstrap_issues(
-    repo: Optional[str] = typer.Option(
+    repo: str | None = typer.Option(
         None, "--repo", help="The GitHub repository in 'owner/repo' format."
     ),
 ):
     """Creates a standard set of starter issues for the project on GitHub."""
     console.print("[bold cyan]🚀 Bootstrapping standard GitHub issues...[/bold cyan]")
-
     console.print("   -> Ensuring required labels exist...")
     for label in LABELS_TO_ENSURE:
         cmd = [
@@ -94,7 +91,6 @@ def bootstrap_issues(
         if repo:
             cmd.extend(["--repo", repo])
         _run_gh_command(cmd, ignore_errors=True)
-
     console.print(f"   -> Creating {len(ISSUES_TO_CREATE)} starter issues...")
     for issue in ISSUES_TO_CREATE:
         cmd = [
@@ -111,13 +107,6 @@ def bootstrap_issues(
         if repo:
             cmd.extend(["--repo", repo])
         _run_gh_command(cmd)
-
     console.print(
         "[bold green]✅ Successfully created starter issues on GitHub.[/bold green]"
     )
-
-
-# ID: 86fe149d-06be-4cf8-a874-b03b28c1fe39
-def register(app: typer.Typer):
-    """Register the 'bootstrap' command group with the main CLI app."""
-    app.add_typer(bootstrap_app, name="bootstrap")

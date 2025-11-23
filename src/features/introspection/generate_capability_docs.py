@@ -2,6 +2,7 @@
 """
 Generates the canonical capability reference documentation from the database.
 """
+
 from __future__ import annotations
 
 import asyncio

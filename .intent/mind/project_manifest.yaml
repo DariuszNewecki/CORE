@@ -1,143 +1,73 @@
-name: CORE
-version: 0.5.0
-intent: A self-governing system that can safely and autonomously evolve its own codebase.
-capabilities:
-- admin.byor.initialize
-- admin.key_management.generate
-- alias.resolver.resolve
-- ast.node.definition_line.find
-- ast.symbol.definition.resolve
-- ast.symbol.locate
-- async.execution.throttled_parallel
-- audit.finding.serialize
-- audit.list
-- audit.log.create
-- audit.severity.is_blocking
-- capability.meta.key
-- charter.policies.add_missing_ids
-- cli.admin.tree
-- cli.code.review
-- cli.commands.register
-- cli.logic.reconcile
-- cli.logic.rewire_imports
-- cli.registry.validate
-- cli.search.capabilities
-- cli.tools.register
-- code.function.edit
-- code.intelligence.define_symbol
-- code.refactoring.rewire_imports
-- code.validation.execute
-- code.validation.python
-- constitution.audit.peer_review
-- context.executor.services
-- core.actions.handler.execute
-- core.agents.execution.execute_plan
-- core.agents.reconnaissance
-- core.greeting.print
-- core.self_correction.attempt
-- crate.processing.execute
-- data.export.execute
-- database.migration.read
-- db.sql.execute_file
-- diagnostics.clustering.find
-- diagnostics.debug.meta_paths
-- docs.clarity.audit
-- drift.report.serialize
-- embedding.factory.build
-- embedding.processing.average
-- execution.orchestrator.execute
-- execution.task.create
-- file.constitutional.discover
-- file.create
-- file.edit
-- file.header.components
-- file.header.parse_reconstruct
-- file.import.scan
-- file.list.read
-- file.operations.delete
-- file.parsing.extract_write_blocks
-- file.read.execute
-- git.service.commit.sha
-- governance.audit.capability_coverage
-- governance.audit.execute
-- governance.audit.scope
-- governance.auditor.context
-- governance.capability.assignment.orphaned_logic
-- governance.check.result
-- governance.checks.domain_placement
-- governance.checks.duplication
-- governance.checks.id_coverage
-- governance.checks.manifest_lint
-- governance.checks.naming_conventions.execute
-- governance.checks.style
-- governance.checks.unassigned_symbols
-- governance.diagnostics.unassigned_symbols
-- governance.environment.verify
-- governance.health.analyze
-- governance.manifest.domain_placement
-- governance.policy.load_actions
-- governance.policy.load_micro_proposal
-- governance.policy_coverage.generate
-- governance.proposal.create
-- governance.security.secrets.detect
-- governance.tags.check_legacy
-- introspection.alias_generation.generate_maps
-- introspection.analysis.cluster_symbols
-- introspection.ast.symbol_discovery
-- introspection.capability.load
-- introspection.capability.resolve
-- introspection.clustering.run
-- introspection.discovery.collect
-- introspection.discovery.from_kgb
-- introspection.discovery.from_source_scan
-- introspection.docs.generate
-- introspection.drift.analyze
-- introspection.drift.detect
-- introspection.drift.write_report
-- introspection.knowledge_graph.build_sync
-- introspection.manifest.load
-- introspection.roles.validate
-- introspection.source.extract
-- introspection.vector_store.retrieve_chunks
-- introspection.vector_store.sync_existing_ids
-- introspection.vectorization.collect
-- introspection.vectorization.run
-- knowledge.base.sync
-- knowledge.vector.embedding_payload
-- knowledge.vector_cleanup.prune_orphaned
-- knowledge.vectorization.process_task
-- llm.client.request.async
-- logging.logger.create
-- manifest.aggregation.merge
-- manifest.hygiene.fix
-- manifest.validation.entry
-- micro.proposal.set_context
-- migration.ledger.record
-- migration.plan.parse
-- migration.plan.update_capability_tag
-- parsing.json.extract
-- planner.configuration.manage
-- planning.plan.create
-- project.lifecycle.bootstrap_issues
-- project.scaffolding.create
-- project_lifecycle.bootstrap.register
-- project_lifecycle.definition.define_autonomous
-- project_lifecycle.definition.update
-- project_lifecycle.scaffolding.write_file
-- project_lifecycle.symbols.read_undefined
-- proposal.approval.generate
-- repository.constitution.initialize
-- review.constitution.export
-- schema.migration.ensure
-- schemas.json.load
-- self_healing.compliance.prune_private_capabilities
-- self_healing.id_tagging.assign_missing
-- self_healing.tags.purge
-- style.no_legacy_capability_tags
-- system.knowledge.register
-- system.logging.failure
-- text.normalization.process
-- utils.hashing.sha256_hex
-- vectordb.export.vectors
-- vectorize.capabilities.execute
-- yaml.constitutional.operations
+id: core.project_manifest
+version: "0.1.0"
+
+name: "CORE"
+title: "CORE — Self-Improving Software Engineering System"
+
+description: >
+  High-level manifest for CORE. 
+  This file does not duplicate ontology or capability definitions.
+  Instead, it declares where CORE should look for the authoritative sources
+  of truth across its Mind, Body, and Governance layers.
+
+northstar:
+  source: "db:core.northstar"
+  description: >
+    The NorthStar mission lives in Postgres as a single-row table
+    and is loaded during system initialization.
+
+knowledge:
+  symbols:
+    source: "db:core.symbols"
+    views:
+      - "db:core.knowledge_graph"
+      - "db:core.v_symbols_needing_embedding"
+      - "db:core.v_orphan_symbols"
+  capabilities:
+    source: "db:core.capabilities"
+    links:  "db:core.symbol_capability_links"
+    domains_table: "db:core.domains"
+    description: >
+      Capability definitions, ownership, and relationships are stored
+      in the database and discovered from the codebase.
+
+governance:
+  policies_dir: ".intent/charter/policies"
+  checks_dir:  ".intent/mind/governance/checks"
+  incident_log: ".intent/mind/ir"
+  proposal_system:
+    proposals_table: "db:core.proposals"
+    signatures_table: "db:core.proposal_signatures"
+  audit:
+    runs_table: "db:core.audit_runs"
+    violations_table: "db:core.constitutional_violations"
+
+runtime:
+  tasks: "db:core.tasks"
+  actions: "db:core.actions"
+  agent_decisions: "db:core.agent_decisions"
+  agent_memory: "db:core.agent_memory"
+
+vector_integration:
+  qdrant:
+    symbol_links: "db:core.symbol_vector_links"
+    sync_log: "db:core.vector_sync_log"
+    retrieval_feedback: "db:core.retrieval_feedback"
+
+context_packages:
+  packets_table: "db:core.context_packets"
+  description: >
+    ContextPackage artifacts generated by ContextBuilder. 
+    These packets serve as semantic scaffolding for LLM tasks.
+
+metadata:
+  migrations_table: "db:core._migrations"
+  cli_commands_table: "db:core.cli_commands"
+  runtime_settings_table: "db:core.runtime_settings"
+
+notes: >
+  This manifest intentionally avoids enumerating capabilities,
+  symbols, domains, or agents directly. These are dynamically
+  discovered from the codebase and database and evolve as CORE evolves.
+  The manifest’s purpose is only to provide stable pointers to
+  authoritative data sources across the system.

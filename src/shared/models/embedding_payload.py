@@ -3,9 +3,8 @@
 Defines the Pydantic model for the data payload associated with each
 vector stored in the Qdrant database.
 """
-from __future__ import annotations
 
-from typing import List, Optional
+from __future__ import annotations
 
 from pydantic import BaseModel, Field
 
@@ -33,10 +32,10 @@ class EmbeddingPayload(BaseModel):
     created_at: str = Field(..., description="ISO 8601 timestamp of vector creation.")
 
     # Optional fields for richer context
-    language: Optional[str] = Field(None, description="Programming or markup language.")
-    symbol: Optional[str] = Field(
+    language: str | None = Field(None, description="Programming or markup language.")
+    symbol: str | None = Field(
         None, description="For code: fully qualified function/class name."
     )
-    capability_tags: Optional[List[str]] = Field(
+    capability_tags: list[str] | None = Field(
         None, description="Associated capability tags."
     )

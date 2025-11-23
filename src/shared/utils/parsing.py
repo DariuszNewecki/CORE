@@ -8,52 +8,91 @@ from __future__ import annotations
 
 import json
 import re
-from typing import Dict, List, Optional
 
 
 # ID: f2bd2480-f310-4090-ac1a-58ce05bfc4d3
-def extract_json_from_response(text: str) -> Optional[Dict | List]:
+def extract_json_from_response(text: str) -> dict | list | None:
     """
-    Extracts a JSON object or array from a raw text response.
-    Handles markdown code blocks (```json) and raw JSON.
-    Returns None if no valid JSON is found.
-    """
-    # Pattern for JSON within a markdown block, now more lenient
-    match = re.search(
-        r"```(json)?\s*(\{[\s\S]*?\}|\[[\s\S]*?\])\s*```", text, re.DOTALL
-    )
-    if match:
-        # Group 2 will contain the JSON object or array
-        json_str = match.group(2)
-        try:
-            return json.loads(json_str)
-        except json.JSONDecodeError:
-            pass  # Fall through to the next method if parsing fails
+    Extracts a JSON object or array from a raw text response, making it robust
+    against common LLM formatting issues like introductory text.
 
-    # Fallback: Find the first '{' or '[' and try to parse from there
+    Args:
+        text: Raw text response that may contain JSON.
+
+    Returns:
+        Parsed JSON as a dictionary or list, or None if no valid JSON found.
+    """
+    # 1. Try to extract JSON from markdown code blocks
+    json_data = _extract_from_markdown(text)
+    if json_data is not None:
+        return json_data
+
+    # 2. Fallback: Find raw JSON by matching braces/brackets
+    return _extract_raw_json(text)
+
+
+def _extract_from_markdown(text: str) -> dict | list | None:
+    """
+    Attempts to extract JSON from a markdown code block.
+
+    Args:
+        text: Text that may contain a markdown JSON block.
+
+    Returns:
+        Parsed JSON or None if extraction fails.
+    """
+    pattern = r"```(?:json)?\s*(\{[\s\S]*?\}|\[[\s\S]*?\])\s*```"
+    match = re.search(pattern, text, re.DOTALL)
+
+    if not match:
+        return None
+
     try:
-        start_brace = text.find("{")
-        start_bracket = text.find("[")
+        return json.loads(match.group(1))
+    except json.JSONDecodeError:
+        return None
 
-        if start_brace == -1 and start_bracket == -1:
-            return None
 
-        if start_brace != -1 and (start_bracket == -1 or start_brace < start_bracket):
-            start_index = start_brace
-        else:
-            start_index = start_bracket
+def _extract_raw_json(text: str) -> dict | list | None:
+    """
+    Extracts JSON by finding the outermost braces or brackets.
+    Robust against extra text before or after the JSON.
 
-        decoder = json.JSONDecoder()
-        obj, _ = decoder.raw_decode(text[start_index:])
-        return obj
+    Args:
+        text: Text that may contain raw JSON.
+
+    Returns:
+        Parsed JSON or None if extraction fails.
+    """
+    first_brace = text.find("{")
+    first_bracket = text.find("[")
+
+    # No JSON markers found
+    if first_brace == -1 and first_bracket == -1:
+        return None
+
+    # Determine which comes first: object or array
+    if first_brace != -1 and (first_bracket == -1 or first_brace < first_bracket):
+        end_char = "}"
+        start_index = first_brace
+    else:
+        end_char = "]"
+        start_index = first_bracket
+
+    # Find the matching closing character
+    last_index = text.rfind(end_char)
+    if last_index <= start_index:
+        return None
+
+    try:
+        json_str = text[start_index : last_index + 1]
+        return json.loads(json_str)
     except (json.JSONDecodeError, ValueError):
-        pass
-
-    return None
+        return None
 
 
 # ID: 853be68b-f2d4-4494-bf4c-98200bc08026
-def parse_write_blocks(text: str) -> Dict[str, str]:
+def parse_write_blocks(text: str) -> dict[str, str]:
     """
     Parses a string for one or more [[write:file_path]]...[[/write]] blocks.
 
@@ -62,14 +101,12 @@ def parse_write_blocks(text: str) -> Dict[str, str]:
 
     Returns:
         A dictionary where keys are file paths and values are the code blocks.
+
+    Example:
+        >>> text = "[[write:test.py]]\\nprint('hello')\\n[[/write]]"
+        >>> parse_write_blocks(text)
+        {'test.py': "print('hello')"}
     """
-    # Regex to find all occurrences of the write block pattern.
-    # It captures the file path and the content between the tags.
-    # re.DOTALL allows '.' to match newlines, which is crucial for multi-line code.
-    pattern = re.compile(r"\[\[write:(.+?)\]\]\s*\n(.*?)\n\s*\[\[/write\]\]", re.DOTALL)
-
-    matches = pattern.findall(text)
-
-    # Return a dictionary comprehension of the found (path, content) tuples.
-    # .strip() on the path and content cleans up any minor whitespace issues.
+    pattern = r"\[\[write:(.+?)\]\]\s*\n(.*?)\n\s*\[\[/write\]\]"
+    matches = re.findall(pattern, text, re.DOTALL)
     return {path.strip(): content.strip() for path, content in matches}

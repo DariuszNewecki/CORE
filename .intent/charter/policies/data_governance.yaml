@@ -1,0 +1,98 @@
+policy_id: "1fb8949c-02db-486a-8b9d-556191456de3"  # From database_policy
+id: data_governance
+version: "2.0.1" # Version bump for enhanced detection metadata
+title: "Data Management & Knowledge Source Governance"
+status: active
+purpose: >
+  Unified governance for database as Single Source of Truth, secrets management,
+  and knowledge source integrity.
+
+# === DATABASE AS SSOT ===
+database_ssot:
+  engine:
+    type: postgresql
+    schema: core
+
+  migrations:
+    directory: sql
+    order:
+      - "001_consolidated_schema.sql"
+
+  rules:
+    - id: db.ssot_for_operational_data
+      statement: "Database is authoritative source for all operational data. Files are read-only mirrors."
+      enforcement: error
+
+    - id: db.write_via_governed_cli
+      statement: "All writes MUST originate from registered CLI commands."
+      enforcement: error
+
+    - id: db.domains_in_db
+      statement: "Capability domains MUST be stored in and queried from database."
+      enforcement: error
+
+    - id: db.vector_index_in_db
+      statement: "Vector index data MUST be stored in database with metadata."
+      enforcement: error
+
+    - id: db.cli_registry_in_db
+      statement: "Canonical CLI commands MUST be stored in database."
+      enforcement: error
+
+    - id: db.llm_resources_in_db
+      statement: "LLM resource manifest MUST be stored in database."
+      enforcement: error
+
+    - id: db.cognitive_roles_in_db
+      statement: "Cognitive roles MUST be stored in database."
+      enforcement: error
+
+# === SECURITY & PRIVACY ===
+security_rules:
+  - id: db.privacy.no_pii_or_secrets
+    statement: "Personal data and secrets MUST NOT be stored in operational tables."
+    enforcement: error
+
+  - id: db.privacy.masking
+    statement: "Logs and audit records MUST redact tokens, keys, and secrets."
+    enforcement: error
+
+  - id: secrets.no_hardcoded_secrets
+    statement: "Source code MUST NOT contain hardcoded secrets. Use environment variables."
+    enforcement: error
+    detection:
+      # --- AMENDMENT START ---
+      # This key tells the SecurityChecks engine which scanner to use.
+      method: regex_scan
+      # --- AMENDMENT END ---
+      patterns:
+        - "(A|B|S|G)K[0-9A-Za-z]{30,}"
+        - 'password\s*[:=]\s*[''""].+[''""]'
+
+  - id: secrets.redact_in_logs
+    statement: "Logs and telemetry MUST redact sensitive data before persistence."
+    enforcement: warn
+
+# === KNOWLEDGE SOURCE INTEGRITY ===
+knowledge_integrity:
+  - id: knowledge.database_ssot
+    statement: "Database is single source of operational truth for knowledge artifacts."
+    enforcement: error
+
+  - id: knowledge.limited_legacy_access
+    statement: "Only explicitly allowed system tools may interact with legacy knowledge artifacts."
+    enforcement: error
+    allowed_access_paths:
+      - "src/features/introspection/knowledge_graph_service.py"
+      - "src/features/governance/checks/knowledge_source_check.py"
+
+# === RETENTION & BACKUP ===
+retention:
+  audit_runs_days: 180
+  cli_runs_days: 90
+  capability_history_days: 365
+  proposals_days: 1095
+
+backup_restore:
+  cadence: daily
+  test_restore_quarterly: true

@@ -1,0 +1,31 @@
+# .intent/charter/constitution/precedence_rules.yaml
+id: precedence_rules
+version: "1.0.0"
+title: "Policy Conflict Resolution Hierarchy"
+
+policy_hierarchy:
+  - level: 1
+    policy: "safety_framework.yaml"
+    rationale: "Safety and constitutional protection always prevail"
+
+  - level: 2
+    policy: "governance_framework.yaml"
+    rationale: "Constitutional amendment process is foundational"
+
+  - level: 3
+    policy: "agent_governance.yaml"
+    rationale: "Agent behavior governs autonomous actions"
+
+  - level: 4
+    policies:
+      - "code_standards.yaml"
+      - "data_governance.yaml"
+      - "operations.yaml"
+    rationale: "Implementation policies follow core governance"
+
+conflict_resolution:
+  default_strategy: "most_restrictive_wins"
+  override_conditions:
+    - "safety_emergency: safety_framework always prevails"
+    - "constitutional_crisis: human_arbitration_required"
+    - "autonomy_decision: agent_governance defines boundaries"
