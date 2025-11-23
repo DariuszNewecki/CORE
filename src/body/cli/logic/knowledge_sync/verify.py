@@ -6,6 +6,7 @@ Verifies the integrity of exported YAML files by checking their digests.
 from __future__ import annotations
 
 from rich.console import Console
+
 from shared.config import settings
 
 from .utils import compute_digest, read_yaml

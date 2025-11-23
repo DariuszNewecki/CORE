@@ -929,14 +929,6 @@ items:
   ast_signature: TBD
   fingerprint: 27d7f82669fadff345cca341cc892c94fabeadafbaf0446e3d7e6b730e046484
   state: discovered
-- id: 574b6ddd-0ae2-5b06-a8f6-ada805d4734c
-  symbol_path: src/features/project_lifecycle/scaffolding_service.py::new_project
-  module: features.project_lifecycle.scaffolding_service
-  qualname: new_project
-  kind: function
-  ast_signature: TBD
-  fingerprint: 2835a5461ad670b91c0e202f81dff92260a43b0fc177580739e529e0f62856c4
-  state: discovered
 - id: 172ae594-7da3-599c-adc9-4c485e905679
   symbol_path: src/features/introspection/knowledge_helpers.py::log_failure
   module: features.introspection.knowledge_helpers

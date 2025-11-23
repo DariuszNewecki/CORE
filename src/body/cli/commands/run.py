@@ -7,12 +7,13 @@ import asyncio
 from pathlib import Path
 
 import typer
+
 from shared.context import CoreContext
 from shared.logger import getLogger
 
 # --- START OF FIX ---
 # Updated import to point to the new 'will' location for the logic file
-from will.cli_logic.run import develop
+from will.cli_logic.run import _develop
 
 # --- END OF FIX ---
 
@@ -47,7 +48,7 @@ def develop_command(
 ) -> None:
     """Orchestrates the autonomous development process from a high-level goal."""
     core_context: CoreContext = ctx.obj
-    asyncio.run(develop(context=core_context, goal=goal, from_file=from_file))
+    asyncio.run(_develop(context=core_context, goal=goal, from_file=from_file))
 
 
 @run_app.command("vectorize")

@@ -5,6 +5,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import jsonschema
 import pytest
 import yaml
+
 from body.services.crate_processing_service import (
     Crate,
     CrateProcessingService,

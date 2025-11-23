@@ -6,6 +6,7 @@ from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
 import typer
+
 from features.introspection.export_vectors import _async_export, export_vectors
 from shared.context import CoreContext
 

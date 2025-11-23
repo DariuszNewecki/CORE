@@ -7,9 +7,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from shared.models import AuditFinding, AuditSeverity
-
 from mind.governance.checks.base_check import BaseCheck
+from shared.models import AuditFinding, AuditSeverity
 
 
 # ID: o5p6q7r8-s9t0-0u1v-2w3x-4y5z6a7b8c9d
@@ -50,7 +49,7 @@ class IRCheck(BaseCheck):
         msg += ". Run `fix ir-log`."
         return AuditFinding(
             check_id=rule_id,
-            severity=AuditSeverity.WARN,
+            severity=AuditSeverity.WARNING,
             message=msg,
             file_path=".core/ir.log",
             line_number=1,

@@ -2,11 +2,12 @@
 from unittest.mock import AsyncMock
 
 import pytest
-from api.main import create_app
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy import insert
+
+from api.main import create_app
 from services.database.models import Capability
 from services.database.session_manager import get_db_session
-from sqlalchemy import insert
 
 
 @pytest.mark.asyncio

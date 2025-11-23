@@ -8,13 +8,14 @@ from pathlib import Path
 
 import typer
 from dotenv import load_dotenv
+
 from features.autonomy.autonomous_developer import develop_from_goal
 from features.introspection.vectorization_service import run_vectorize
 from services.config_service import config_service
 from shared.context import CoreContext
 from shared.logger import getLogger
 from will.agents.coder_agent import CoderAgent
-from will.agents.execution_agent import ExecutionAgent
+from will.agents.execution_agent import _ExecutionAgent
 from will.agents.plan_executor import PlanExecutor
 from will.orchestration.prompt_pipeline import PromptPipeline
 
@@ -25,7 +26,7 @@ run_app = typer.Typer(
 
 
 # ID: ca0e111a-4d71-42db-bbc7-540e6ea756a0
-async def develop(
+async def _develop(
     context: CoreContext, goal: str | None = None, from_file: Path | None = None
 ):
     """Orchestrates the autonomous development process from a high-level goal."""
@@ -52,7 +53,7 @@ async def develop(
         prompt_pipeline=prompt_pipeline,
         auditor_context=context.auditor_context,
     )
-    executor_agent = ExecutionAgent(
+    executor_agent = _ExecutionAgent(
         coder_agent=coder_agent,
         plan_executor=plan_executor,
         auditor_context=context.auditor_context,
@@ -70,7 +71,7 @@ async def develop(
 
 
 # ID: 0c28ad61-1da0-4764-9dbd-ca38ffd90efa
-async def vectorize_capabilities(
+async def _vectorize_capabilities(
     context: CoreContext, dry_run: bool = True, force: bool = False
 ):
     """The CLI wrapper for the database-driven vectorization process."""

@@ -10,6 +10,7 @@ import subprocess
 
 import typer
 from dotenv import load_dotenv
+
 from services.config_service import config_service
 from shared.config import settings
 from shared.logger import getLogger

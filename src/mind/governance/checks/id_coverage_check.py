@@ -8,11 +8,10 @@ from __future__ import annotations
 
 import ast
 
+from mind.governance.checks.base_check import BaseCheck
 from shared.ast_utility import find_symbol_id_and_def_line
 from shared.logger import getLogger
 from shared.models import AuditFinding, AuditSeverity
-
-from mind.governance.checks.base_check import BaseCheck
 
 logger = getLogger(__name__)
 

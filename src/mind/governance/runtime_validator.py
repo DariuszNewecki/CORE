@@ -13,6 +13,7 @@ import tempfile
 from pathlib import Path
 
 from rich.console import Console
+
 from shared.logger import getLogger
 
 logger = getLogger(__name__)

@@ -11,9 +11,9 @@ import statistics
 from pathlib import Path
 
 from radon.visitors import ComplexityVisitor
-from shared.models import AuditFinding, AuditSeverity
 
 from mind.governance.checks.base_check import BaseCheck
+from shared.models import AuditFinding, AuditSeverity
 
 
 # ID: 51dd8f1d-eda6-40e2-9c64-530ce6c290a6

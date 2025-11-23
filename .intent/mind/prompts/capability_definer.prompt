@@ -22,3 +22,20 @@ For a function that synchronizes a database, a good key is `database.sync.all`.
 ## Code to Analyze:
 ```python
 {code}
+```
+
+## Required Output Format
+
+You MUST respond with ONLY a valid JSON object in this exact format. Do NOT include any markdown formatting, code blocks, explanations, or any text outside the JSON structure.
+
+Required JSON structure:
+{{
+  "suggested_capability": "your.capability.key"
+}}
+
+Example valid response:
+{{
+  "suggested_capability": "database.sync.all"
+}}
+
+CRITICAL: Your entire response must be ONLY the JSON object above. No markdown, no backticks, no explanations.

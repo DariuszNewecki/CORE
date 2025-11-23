@@ -9,9 +9,8 @@ import ast
 import re
 from pathlib import Path
 
-from shared.models import AuditFinding, AuditSeverity
-
 from mind.governance.checks.base_check import BaseCheck  # ← FIXED
+from shared.models import AuditFinding, AuditSeverity
 
 
 # ID: q7r8s9t0-u1v2-2w3x-4y5z-6a7b8c9d0e1f
@@ -74,7 +73,7 @@ class ImportGroupCheck(BaseCheck):
                 findings.append(
                     AuditFinding(
                         check_id="layout.import_grouping",
-                        severity=AuditSeverity.WARN,
+                        severity=AuditSeverity.WARNING,
                         message=f"Parse error: {e}",
                         file_path=str(file_path.relative_to(self.repo_root)),
                         line_number=1,
@@ -86,7 +85,7 @@ class ImportGroupCheck(BaseCheck):
     def _finding(self, file_path: Path, line: int) -> AuditFinding:
         return AuditFinding(
             check_id="layout.import_grouping",
-            severity=AuditSeverity.WARN,
+            severity=AuditSeverity.WARNING,
             message="Imports not properly grouped. Run `fix import-group`.",
             file_path=str(file_path.relative_to(self.repo_root)),
             line_number=line,

@@ -51,8 +51,7 @@ def _introspect_typer_app(app: typer.Typer, prefix: str = "") -> list[dict[str, 
     return commands
 
 
-# ID: fbbc9eaa-df52-48e5-95ea-998c027002d9
-async def sync_commands_to_db(main_app: typer.Typer):
+async def _sync_commands_to_db(main_app: typer.Typer):
     """
     Introspects the main CLI application, discovers all commands, and upserts them
     into the database, making the database the single source of truth.

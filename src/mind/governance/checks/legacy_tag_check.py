@@ -9,12 +9,15 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
+from mind.governance.checks.base_check import BaseCheck
 from shared.models import AuditFinding, AuditSeverity
 
-from mind.governance.checks.base_check import BaseCheck
+# --- START OF FIX ---
+# This pattern is now more specific. It requires the line to start with the tag
+# and to be followed by at least one non-whitespace character (the key).
+LEGACY_TAG_PATTERN = re.compile(r"^\s*#\s*CAPABILITY:\s*\S+", re.IGNORECASE)
+# --- END OF FIX ---
 
-# It's good practice to define constants at the module level.
-LEGACY_TAG_PATTERN = re.compile(r"#\s*CAPABILITY:", re.IGNORECASE)
 EXCLUDE_DIRS = {
     ".git",
     ".venv",

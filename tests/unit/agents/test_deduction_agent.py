@@ -9,6 +9,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 import yaml
+
 from services.database.models import CognitiveRole, LlmResource
 from will.agents.deduction_agent import DeductionAgent
 

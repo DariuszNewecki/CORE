@@ -13,6 +13,7 @@ from typing import Any
 import typer
 import yaml
 from rich.console import Console
+
 from shared.config import settings
 from shared.logger import getLogger
 

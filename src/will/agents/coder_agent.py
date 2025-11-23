@@ -12,7 +12,6 @@ from typing import TYPE_CHECKING
 from shared.config import get_path_or_none, settings
 from shared.logger import getLogger
 from shared.models import ExecutionTask
-
 from will.orchestration.cognitive_service import CognitiveService
 from will.orchestration.prompt_pipeline import PromptPipeline
 from will.orchestration.self_correction_engine import attempt_correction

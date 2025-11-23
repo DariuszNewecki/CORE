@@ -8,8 +8,9 @@ from __future__ import annotations
 import asyncio
 
 import typer
-from features.self_healing.enrichment_service import enrich_symbols
 from rich.console import Console
+
+from features.self_healing.enrichment_service import enrich_symbols
 from shared.context import CoreContext
 
 console = Console()

@@ -6,8 +6,9 @@ Provides functionality for the audit_capability_domains module.
 from __future__ import annotations
 
 import typer
-from services.database.session_manager import get_session
 from sqlalchemy import text
+
+from services.database.session_manager import get_session
 
 
 async def _audit_queries(limit: int):

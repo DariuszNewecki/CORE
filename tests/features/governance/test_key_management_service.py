@@ -4,6 +4,7 @@ from unittest.mock import MagicMock
 
 import pytest
 import typer
+
 from mind.governance.key_management_service import keygen
 
 

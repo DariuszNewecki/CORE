@@ -3,6 +3,7 @@ from pathlib import Path
 from unittest.mock import MagicMock
 
 import pytest
+
 from mind.governance.checks.naming_conventions import NamingConventionsCheck
 from shared.models import AuditSeverity
 

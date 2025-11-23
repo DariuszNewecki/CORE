@@ -16,6 +16,11 @@ import re
 from pathlib import Path
 from typing import Any
 
+from features.self_healing.iterative_test_fixer import IterativeTestFixer
+from features.self_healing.test_context_analyzer import (
+    ModuleContext,
+    TestContextAnalyzer,
+)
 from mind.governance.audit_context import AuditorContext
 from services.context import ContextBuilder
 from services.context.providers import ASTProvider, DBProvider, VectorProvider
@@ -25,12 +30,6 @@ from shared.logger import getLogger
 from will.orchestration.cognitive_service import CognitiveService
 from will.orchestration.prompt_pipeline import PromptPipeline
 from will.orchestration.validation_pipeline import validate_code_async
-
-from features.self_healing.iterative_test_fixer import IterativeTestFixer
-from features.self_healing.test_context_analyzer import (
-    ModuleContext,
-    TestContextAnalyzer,
-)
 
 logger = getLogger(__name__)
 

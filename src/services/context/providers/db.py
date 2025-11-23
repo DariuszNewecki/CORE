@@ -12,25 +12,36 @@ from fnmatch import fnmatch
 from typing import Any
 
 from sqlalchemy import select, text
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from services.database.models import Symbol
+
+# --- START OF FIX: Import the session manager ---
+from services.database.session_manager import get_session
+
+# --- END OF FIX ---
 
 logger = logging.getLogger(__name__)
 
 
-# ID: 0996b285-2ca9-41ef-aa35-1baf2f706b3a
+# ID: b0a16299-e125-421a-a4c1-a95f41b8c022
 class DBProvider:
     """Provides symbol data from database."""
 
-    def __init__(self, db_service: AsyncSession | None = None):
-        self.db = db_service
+    # --- START OF FIX: Remove the session from the constructor ---
+    def __init__(self):
+        """Initializes the provider without a persistent database session."""
+        pass
+
+    # --- END OF FIX ---
 
     def _format_symbol_as_context_item(self, row) -> dict:
         """
         Helper to convert a database row from core.symbols into the
         standard context item dictionary format.
         """
+        if not row:
+            return {}
+
         module_path = row.module.replace(".", "/")
         file_path = f"src/{module_path}.py"
 
@@ -44,23 +55,19 @@ class DBProvider:
             "metadata": {
                 "symbol_id": str(row.id),
                 "kind": row.kind,
-                "health": row.health_status,
+                "health": getattr(row, "health_status", "unknown"),
             },
         }
 
-    # --- START OF THE FINAL, CORRECTED METHOD ---
-    # ID: 56e8783a-1a7e-46d1-8e08-f129d43cc709
+    # ID: 55c25e2c-8998-49db-bec1-beab8ea81c49
     async def get_related_symbols(self, symbol_id: str, depth: int) -> list[dict]:
         """
-        Fetches related symbols (callers and callees) up to a specified depth
-        by traversing the knowledge graph within the database.
+        Fetches related symbols by traversing the knowledge graph within the database.
         """
-        if not self.db or depth == 0:
+        if depth == 0:
             return []
 
         logger.info(f"Graph traversal for symbol {symbol_id} to depth {depth}")
-
-        # This recursive query correctly traverses the `calls` JSONB array.
         recursive_query = text(
             """
             WITH RECURSIVE symbol_graph AS (
@@ -91,13 +98,16 @@ class DBProvider:
         )
 
         try:
-            result = await self.db.execute(
-                recursive_query, {"symbol_id": symbol_id, "depth": depth}
-            )
-            # Use mappings() to get dict-like rows that work with the formatter
-            related_symbols = [
-                self._format_symbol_as_context_item(row) for row in result.mappings()
-            ]
+            # --- START OF FIX: Acquire a session for this specific query ---
+            async with get_session() as db:
+                result = await db.execute(
+                    recursive_query, {"symbol_id": symbol_id, "depth": depth}
+                )
+                related_symbols = [
+                    self._format_symbol_as_context_item(row)
+                    for row in result.mappings()
+                ]
+            # --- END OF FIX ---
             logger.info(
                 f"Found {len(related_symbols)} related symbols via graph traversal."
             )
@@ -106,14 +116,10 @@ class DBProvider:
             logger.error(f"Graph traversal query failed: {e}", exc_info=True)
             return []
 
-    # --- END OF THE FINAL, CORRECTED METHOD ---
-
-    # ID: 156881a0-d88b-47b3-bd61-e8cf7e20a4f8
+    # ID: 03bc6c96-7ad3-4b08-9faa-d281289807b7
     async def get_symbols_for_scope(
         self, scope: dict[str, Any], max_items: int = 50
     ) -> list[dict[str, Any]]:
-        if not self.db:
-            return []
         try:
             roots = scope.get("roots", [])
             includes = scope.get("include", [])
@@ -140,28 +146,29 @@ class DBProvider:
             all_symbols: list[dict[str, Any]] = []
             seen_symbol_ids = set()
 
-            for pattern, priority in sorted(query_parts, key=lambda x: x[1]):
-                if len(all_symbols) >= max_items:
-                    break
-                limit = 100 if priority == 1 else max_items - len(all_symbols)
-                stmt = (
-                    select(Symbol)
-                    .where(Symbol.is_public, Symbol.module.like(pattern))
-                    .limit(limit)
-                )
-                result = await self.db.execute(stmt)
-                rows = result.scalars().all()
+            # --- START OF FIX: Acquire a session for this set of queries ---
+            async with get_session() as db:
+                for pattern, priority in sorted(query_parts, key=lambda x: x[1]):
+                    if len(all_symbols) >= max_items:
+                        break
+                    limit = 100 if priority == 1 else max_items - len(all_symbols)
+                    stmt = (
+                        select(Symbol)
+                        .where(Symbol.is_public, Symbol.module.like(pattern))
+                        .limit(limit)
+                    )
+                    result = await db.execute(stmt)
+                    rows = result.scalars().all()
 
-                for row in rows:
-                    if row.id in seen_symbol_ids:
-                        continue
-                    seen_symbol_ids.add(row.id)
-                    file_path = "src/" + row.module.replace(".", "/") + ".py"
-                    if any(fnmatch(file_path, exc) for exc in excludes):
-                        continue
-                    # Use the formatter here as well for consistency
-                    all_symbols.append(self._format_symbol_as_context_item(row))
-
+                    for row in rows:
+                        if row.id in seen_symbol_ids:
+                            continue
+                        seen_symbol_ids.add(row.id)
+                        file_path = "src/" + row.module.replace(".", "/") + ".py"
+                        if any(fnmatch(file_path, exc) for exc in excludes):
+                            continue
+                        all_symbols.append(self._format_symbol_as_context_item(row))
+            # --- END OF FIX ---
             logger.info(
                 f"Retrieved {len(all_symbols)} symbols from DB (prioritized by scope)"
             )
@@ -170,14 +177,15 @@ class DBProvider:
             logger.error(f"DB query for scope failed: {e}", exc_info=True)
             return []
 
-    # ID: 3176d7e0-ac1a-4acd-87e0-924c7ad956c1
+    # ID: 83f8df77-84cd-498a-b798-e674fe2dc1cf
     async def get_symbol_by_name(self, name: str) -> dict[str, Any] | None:
-        if not self.db:
-            return None
         try:
-            stmt = select(Symbol).where(Symbol.qualname == name).limit(1)
-            result = await self.db.execute(stmt)
-            row = result.scalars().first()
+            # --- START OF FIX: Acquire a session for this query ---
+            async with get_session() as db:
+                stmt = select(Symbol).where(Symbol.qualname == name).limit(1)
+                result = await db.execute(stmt)
+                row = result.scalars().first()
+            # --- END OF FIX ---
             return self._format_symbol_as_context_item(row) if row else None
         except Exception as e:
             logger.error(f"Symbol lookup failed: {e}", exc_info=True)

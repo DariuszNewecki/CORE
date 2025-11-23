@@ -1,1 +1,0 @@
-tar -czf core_source.tar.gz   --exclude='__pycache__'   --exclude='*.pyc'   --exclude='.git'   --exclude='.venv'   --exclude='node_modules'   --exclude='logs'   --exclude='work'   .intent/   src/   tests/services/test_context_service.py   sql/2025-11-11_create_context_packets.sql   pyproject.toml   README.md

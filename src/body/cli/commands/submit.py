@@ -8,6 +8,7 @@ from __future__ import annotations
 import asyncio
 
 import typer
+
 from features.project_lifecycle.integration_service import integrate_changes
 from shared.context import CoreContext
 

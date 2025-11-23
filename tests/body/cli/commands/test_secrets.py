@@ -8,9 +8,10 @@ from types import SimpleNamespace
 from typing import Any
 
 import pytest
+from typer.testing import CliRunner
+
 from body.cli.commands import secrets as secrets_cli
 from shared.exceptions import SecretNotFoundError
-from typer.testing import CliRunner
 
 runner = CliRunner()
 

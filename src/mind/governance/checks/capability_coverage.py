@@ -6,14 +6,13 @@ project manifest are implemented in the database, enforcing the 'knowledge.datab
 
 from __future__ import annotations
 
-from shared.models import AuditFinding, AuditSeverity
+import yaml
 
-# Import the BaseCheck to inherit from it
 from mind.governance.checks.base_check import BaseCheck
+from shared.models import AuditFinding, AuditSeverity
 
 
 # ID: 979ce56f-7f3c-40e7-8736-ce219bab6ad8
-# Inherit from BaseCheck
 # ID: 92f0b3ec-48d7-49f0-aace-2c894186a46f
 class CapabilityCoverageCheck(BaseCheck):
     """
@@ -21,11 +20,7 @@ class CapabilityCoverageCheck(BaseCheck):
     implementation entry in the database's symbols table.
     """
 
-    # Fulfills the contract from BaseCheck, linking this check directly
-    # to the data_governance policy.
     policy_rule_ids = ["knowledge.database_ssot"]
-
-    # The __init__ method is no longer needed; it is handled by BaseCheck.
 
     # ID: e0730fb8-2616-42b2-915b-48f30ff4ac17
     def execute(self) -> list[AuditFinding]:
@@ -36,9 +31,6 @@ class CapabilityCoverageCheck(BaseCheck):
 
         manifest_path = self.context.mind_path / "project_manifest.yaml"
         if not manifest_path.exists():
-            # This is a structural issue, not a direct rule violation from the
-            # core policies yet. We can give it a more specific check_id
-            # related to overall structural compliance.
             findings.append(
                 AuditFinding(
                     check_id="structural_compliance.manifest.missing",
@@ -51,7 +43,9 @@ class CapabilityCoverageCheck(BaseCheck):
             )
             return findings
 
-        manifest_content = self.context._load_yaml(manifest_path)
+        with open(manifest_path, encoding="utf-8") as f:
+            manifest_content = yaml.safe_load(f)
+
         declared_capabilities: set[str] = set(manifest_content.get("capabilities", []))
 
         # SSOT-correct logic: The database is the source of truth.
@@ -66,9 +60,7 @@ class CapabilityCoverageCheck(BaseCheck):
         for cap_key in sorted(missing_implementations):
             findings.append(
                 AuditFinding(
-                    # The check_id is now the exact ID from the constitution.
                     check_id="knowledge.database_ssot",
-                    # The severity now matches the policy's enforcement level.
                     severity=AuditSeverity.ERROR,
                     message=(
                         f"Violation of 'knowledge.database_ssot': Capability '{cap_key}' "

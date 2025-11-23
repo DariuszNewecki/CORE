@@ -1,4 +1,5 @@
 # src/shared/context.py
+
 """
 Defines the CoreContext, a dataclass that holds singleton instances of all major
 services, enabling explicit dependency injection throughout the application.
@@ -6,11 +7,9 @@ services, enabling explicit dependency injection throughout the application.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any
-
-if TYPE_CHECKING:
-    from src.services.context import ContextService
+from typing import Any
 
 
 @dataclass
@@ -20,7 +19,7 @@ class CoreContext:
     A container for shared services, passed explicitly to commands.
 
     NOTE: Fields are typed as 'Any' to avoid cross-domain imports from here.
-    Concrete types are created/wired in the CLI layer.
+    Concrete types are created/wired in the CLI or API composition roots.
     """
 
     git_service: Any
@@ -31,27 +30,33 @@ class CoreContext:
     file_handler: Any
     planner_config: Any
     _is_test_mode: bool = False
+
+    # Factory used to create a ContextService instance.
+    # This is injected from composition roots to keep shared/context decoupled
+    # from services and database layers.
+    context_service_factory: Callable[[], Any] | None = field(
+        default=None,
+        repr=False,
+    )
+
     _context_service: Any = field(default=None, init=False, repr=False)
 
     @property
     # ID: 11a1768b-d222-40af-99d7-0d45d300e2ba
-    def context_service(self) -> ContextService:
+    def context_service(self) -> Any:
         """
         Get or create ContextService instance.
 
         Provides constitutional governance for all LLM context via ContextPackages.
+        The actual construction is delegated to a factory configured in the
+        composition root (CLI/API).
         """
         if self._context_service is None:
-            from src.services.context import ContextService
-            from src.shared.config import settings
-
-            # Initialize with existing services
-            self._context_service = ContextService(
-                db_service=None,  # TODO: Wire when DB service available
-                qdrant_client=self.qdrant_service,
-                cognitive_service=self.cognitive_service,
-                config={},
-                project_root=str(settings.REPO_PATH),
-            )
+            if self.context_service_factory is None:
+                raise RuntimeError(
+                    "ContextService factory is not configured on CoreContext. "
+                    "This should be wired in the composition root (CLI/API).",
+                )
+            self._context_service = self.context_service_factory()
 
         return self._context_service

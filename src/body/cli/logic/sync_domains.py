@@ -10,9 +10,10 @@ import asyncio
 import typer
 import yaml
 from rich.console import Console
+from sqlalchemy import text
+
 from services.database.session_manager import get_session
 from shared.config import settings
-from sqlalchemy import text
 
 console = Console()
 

@@ -1,0 +1,50 @@
+id: core.northstar
+version: "1.0.0"
+
+title: "CORE NorthStar Definition"
+
+description: >
+  This file defines how CORE maintains, validates, and evolves its NorthStar mission.
+  The mission text itself does not live here; it is stored in the database and updated
+  through intentional processes. This file provides the structure, constraints, and
+  governance rules for the NorthStar subsystem.
+
+storage:
+  source: "db:core.northstar"
+  type: "single-row"
+  fields:
+    - name: "mission"
+      type: "text"
+      required: true
+      description: >
+        The declarative purpose of CORE. This mission is the top-level guiding objective
+        used for alignment, validation, and reasoning. It must be concise, stable,
+        and meaningful.
+
+governance:
+  update_requires:
+    - constitutional: "northstar.update_rule"
+    - process: "proposal_approval"
+  description: >
+    Any modification to the mission must follow a formal path:
+    - A proposal must be created
+    - Governance checks must pass
+    - Approval signatures must be collected
+    - Changes are written to db:core.northstar only after validation
+
+validation:
+  max_length: 2000
+  min_length: 10
+  forbids:
+    - "empty_mission"
+    - "self_reference_only"
+  description: >
+    The mission should be a meaningful guiding principle, not a slogan or tautology.
+    Validation ensures clarity, purpose, and forward alignment.
+
+notes: >
+  This file intentionally does not contain the mission text.
+  The mission is stored exclusively in the Postgres table core.northstar
+  so that CORE can evolve it, reason about it, and reference it without
+  modifying version-controlled artifacts. This file defines the structure,
+  not the content.

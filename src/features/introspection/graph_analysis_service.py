@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import numpy as np
 from rich.console import Console
+
 from services.clients.qdrant_client import QdrantService
 from shared.logger import getLogger
 

@@ -7,8 +7,9 @@ This is the new, governed home for logic from standalone scripts.
 from __future__ import annotations
 
 import typer
-from features.maintenance.maintenance_service import rewire_imports
 from rich.console import Console
+
+from features.maintenance.maintenance_service import rewire_imports
 
 console = Console()
 tools_app = typer.Typer(

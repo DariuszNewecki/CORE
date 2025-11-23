@@ -64,8 +64,12 @@ def test_archive_rollback_plan():
     ):
         # Directory creation chain
         mock_mind = mock_settings.MIND
-        mock_mind.__truediv__.return_value.__truediv__.return_value.mkdir.return_value = None
-        mock_mind.__truediv__.return_value.__truediv__.return_value.__truediv__.return_value.write_text.return_value = None
+        mock_mind.__truediv__.return_value.__truediv__.return_value.mkdir.return_value = (
+            None
+        )
+        mock_mind.__truediv__.return_value.__truediv__.return_value.__truediv__.return_value.write_text.return_value = (
+            None
+        )
 
         mock_datetime.utcnow.return_value.strftime.return_value = "20231201120000"
         mock_dumps.return_value = '{"test": "data"}'

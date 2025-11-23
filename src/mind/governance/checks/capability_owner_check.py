@@ -3,9 +3,8 @@ from __future__ import annotations
 
 import re
 
-from shared.models import AuditFinding, AuditSeverity
-
 from mind.governance.checks.base_check import BaseCheck
+from shared.models import AuditFinding, AuditSeverity
 
 
 # ID: 3adcb244-bd0a-45a8-98a7-6bf58f1fda42

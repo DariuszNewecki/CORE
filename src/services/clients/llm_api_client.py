@@ -13,6 +13,7 @@ import time
 from typing import Any
 
 import httpx
+
 from shared.config import settings
 from shared.logger import getLogger
 

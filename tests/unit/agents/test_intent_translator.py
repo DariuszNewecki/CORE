@@ -2,8 +2,8 @@ import json
 from unittest.mock import MagicMock
 
 import pytest
-from shared.config import settings
 
+from shared.config import settings
 from src.will.agents.intent_translator import IntentTranslator
 
 

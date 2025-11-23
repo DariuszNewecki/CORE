@@ -12,6 +12,7 @@ import subprocess
 
 import typer
 from rich.console import Console
+
 from shared.logger import getLogger
 
 logger = getLogger(__name__)

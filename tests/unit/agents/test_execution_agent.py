@@ -4,8 +4,9 @@ from __future__ import annotations
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+
 from shared.models import ExecutionTask, PlanExecutionError, TaskParams
-from will.agents.execution_agent import ExecutionAgent
+from will.agents.execution_agent import _ExecutionAgent
 
 
 @pytest.fixture
@@ -18,7 +19,7 @@ def mock_execution_agent(mock_core_env):
     mock_plan_executor.execute_plan = AsyncMock()
     mock_auditor_context = MagicMock()
 
-    agent = ExecutionAgent(
+    agent = _ExecutionAgent(
         coder_agent=mock_coder_agent,
         plan_executor=mock_plan_executor,
         auditor_context=mock_auditor_context,

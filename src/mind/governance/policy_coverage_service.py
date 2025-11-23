@@ -18,11 +18,11 @@ from typing import Any
 
 from pydantic import BaseModel
 
+from mind.governance.checks.base_check import BaseCheck
+
 # We only need the canonical settings object.
 from shared.config import settings
 from shared.logger import getLogger
-
-from mind.governance.checks.base_check import BaseCheck
 
 logger = getLogger(__name__)
 

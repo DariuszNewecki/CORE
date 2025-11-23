@@ -13,8 +13,9 @@ import uuid
 from pathlib import Path
 
 import typer
-from mind.governance.micro_proposal_validator import MicroProposalValidator
 from rich.console import Console
+
+from mind.governance.micro_proposal_validator import MicroProposalValidator
 from shared.action_logger import action_logger
 from shared.context import CoreContext
 from shared.logger import getLogger
@@ -69,7 +70,7 @@ async def propose_and_apply_autonomously(context: CoreContext, goal: str):
         console.print(
             "\n[bold cyan]-> Plan generated. Proceeding with autonomous application...[/bold cyan]"
         )
-        await micro_apply(context=context, proposal_path=proposal_path)
+        await _micro_apply(context=context, proposal_path=proposal_path)
     elif proposal_path:
         console.print(
             f"[bold red]❌ Proposal file was not created at {proposal_path}. Aborting.[/bold red]"
@@ -82,8 +83,7 @@ async def propose_and_apply_autonomously(context: CoreContext, goal: str):
         raise typer.Exit(code=1)
 
 
-# ID: ec4fbd27-9923-4f2a-a0eb-b064d02a8382
-async def micro_apply(context: CoreContext, proposal_path: Path):
+async def _micro_apply(context: CoreContext, proposal_path: Path):
     """Validates and applies a micro-proposal."""
     console.print(f"🔵 Loading and applying micro-proposal: {proposal_path.name}")
     start_time = time.monotonic()

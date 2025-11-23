@@ -7,7 +7,6 @@ for governance checks and audits.
 
 from __future__ import annotations
 
-import os
 from pathlib import Path
 from typing import Any
 
@@ -27,11 +26,11 @@ class AuditorContext:
     """
 
     def __init__(self, repo_path: Path):
-        self.repo_path = Path(repo_path).resolve()
-        self.intent_path = self.repo_path / ".intent"
-        self.mind_path = self.intent_path / "mind"
-        self.charter_path = self.intent_path / "charter"
-        self.src_dir = self.repo_path / "src"
+        self.repo_path = repo_path
+        self.intent_path = settings.MIND
+        self.mind_path = settings.MIND / "mind"
+        self.charter_path = settings.MIND / "charter"
+        self.src_dir = settings.BODY / "src"
         self.last_findings: list[AuditFinding] = []
         self.meta: dict[str, Any] = settings._meta_config
         self.policies: dict[str, Any] = self._load_policies()
@@ -76,17 +75,10 @@ class AuditorContext:
     @property
     # ID: 38c486bf-9050-4814-b665-188118e16114
     def python_files(self) -> list[Path]:
+        """Returns Python files ONLY from BODY (src/)."""
         paths: list[Path] = []
-        for root, dirs, files in os.walk(self.repo_path):
-            dirs[:] = [
-                d
-                for d in dirs
-                if d
-                not in {".git", "__pycache__", ".pytest_cache", ".venv", "node_modules"}
-            ]
-            for name in files:
-                if name.endswith(".py"):
-                    paths.append(Path(root) / name)
+        for file_path in self.src_dir.rglob("*.py"):  # ← Scan ONLY BODY!
+            paths.append(file_path)
         return paths
 
 

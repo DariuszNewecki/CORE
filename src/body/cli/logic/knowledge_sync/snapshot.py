@@ -10,10 +10,11 @@ import getpass
 from typing import Any
 
 from rich.console import Console
+from sqlalchemy import text
+
 from services.database.session_manager import get_session
 from shared.config import settings
 from shared.time import now_iso
-from sqlalchemy import text
 
 from .utils import write_yaml
 

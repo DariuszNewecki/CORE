@@ -9,7 +9,7 @@ from .init import init_db as _init_db
 from .list_audits import list_audits as _list_audits
 from .log_audit import log_audit as _log_audit
 from .report import report as _report
-from .status import status as _status
+from .status import _status_impl as _status
 
 app = typer.Typer(help="Generic DB commands (migrations, status, audits).")
 

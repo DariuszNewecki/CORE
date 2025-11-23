@@ -1,7 +1,7 @@
 # .intent/charter/policies/code_standards.yaml
 policy_id: "aaa0a228-125d-4013-bfed-c1b58cec0f66" # From original code_style_policy
 id: code_standards
-version: "2.2.1" # Version bump for simplified header-only rule
+version: "2.3.0" # Version bump for simplified header-only rule
 title: "Comprehensive Code Quality & Standards"
 status: active
 purpose: >
@@ -38,19 +38,34 @@ style_rules:
 file_header_rules:
   - id: layout.src_module_header
     statement: >
-      Every Python module under 'src/' MUST start with a single file path comment
-      that exactly matches its repo-root path, e.g. '# src/body/cli/admin_cli.py'.
-      No other content may appear before this comment except optional leading
-      blank lines.
+      Every Python module under 'src/' MUST begin with a correct file path
+      comment matching its repo-root location, followed by the module docstring
+      and then the canonical future import. This ordering constitutes the
+      required header block.
     enforcement: error
     scope:
       - "src/**/*.py"
     details:
-      example: "# src/body/cli/admin_cli.py"
+      example: |
+        # src/body/cli/admin_cli.py
+        """
+        Module documentation...
+        """
+        from __future__ import annotations
+
+      required_order:
+        - "1. File path comment (exact match to repo-root path)"
+        - "2. Module-level docstring"
+        - "3. from __future__ import annotations"
+        - "4. All other imports, grouped per import order rules"
+
       behavior:
-        - "If a correct header exists as the first non-empty line, do nothing."
-        - "If a header exists but is incorrect, replace it."
-        - "If no header exists, insert a new one as the first non-empty line."
+        - "If the header block exists in correct order, do nothing."
+        - "If the file path comment exists but is incorrect, replace it."
+        - "If the header block exists but is out of order, reorder it."
+        - "If the header block is missing components, insert them."
+        - "If no header exists, construct a complete header block at the top."
+
 
 import_structure_rules:
   - id: layout.import_grouping
@@ -123,6 +138,28 @@ symbol_metadata_rules:
       rationale: >
         Capability IDs are reserved for traceable, externally meaningful symbols.
         Helper functions should not pollute the capability graph.
+  - id: symbols.cli_async_helpers_private
+    statement: >
+      Async orchestration helpers used exclusively to bridge CLI commands and
+      domain capabilities MUST be private (their name must start with '_') and
+      MUST NOT receive capability IDs. They exist only to wire CLI-level
+      entrypoints to domain-level capabilities and are not part of the governed
+      capability surface.
+    enforcement: error
+    scope:
+      - "src/**/*.py"
+    details:
+      rationale: >
+        Public async shims pollute the capability graph and confuse the
+        intent_alignment auditor. Only the CLI entrypoint and the underlying
+        domain capability should appear as governed symbols.
+      example_good:
+        - "_async_define_symbols"
+        - "_async_sync_operation"
+      example_bad:
+        - "async_define_symbols"
+        - "async_sync_operation"
+
 
 # === CAPABILITY LINTING ===
 capability_rules:
@@ -141,43 +178,14 @@ capability_rules:
 
 # === DEPENDENCY INJECTION ===
 dependency_injection:
-  - id: di.no_direct_instantiation
-    statement: "Services and features MUST NOT directly instantiate other major services. Dependencies MUST be injected via the constructor."
-    enforcement: error
-    scope:
-      - "src/features/**/*.py"
-      - "src/services/**/*.py"
-    # === START OF FIXED EXCLUSIONS ===
-    # We are telling the auditor that this rule does not apply to test files,
-    # and certain entrypoints like the admin CLI, which are allowed to wire up
-    # the system manually.
-    exclusions:
-      - "src/body/cli/admin_cli.py"
-      - "src/features/governance/runtime_validator.py"
-      - "tests/**/*.py"
-    # === END OF FIXED EXCLUSIONS ===
-    forbidden_instantiations:
-      - "CognitiveService"
-      - "GitService"
-      - "ConstitutionalAuditor"
-      - "QdrantService"
-      - "ActionRegistry"
-      - "PlanExecutor"
-      - "SelfHealingAdvisor"
-      - "CapabilityInvoker"
-      - "CoderAgent"
-  - id: di.no_global_session_import
-    statement: "Modules within 'features' and 'services' MUST NOT directly import `get_session`. The database session MUST be injected."
-    enforcement: error
-    scope:
-      - "src/features/**/*.py"
-      - "src/services/repositories/**/*.py"
-    forbidden_imports:
-      - "services.database.session_manager.get_session"
-      - "services.repositories.db.engine.get_session"
-  - id: di.constructor_injection_preferred
-    statement: "Services SHOULD receive their dependencies through the `__init__` constructor, with type hints."
-    enforcement: warn
+  - id: di.policy_reference
+    statement: >
+      Dependency Injection rules are defined canonically in
+      'dependency_injection_policy.yaml'. Auditors and agents MUST treat that
+      policy as the single source of truth and only reference these standards
+      as a high-level summary.
+    enforcement: info
+
 
 # === NAMING CONVENTIONS (REFACTORED) ===
 # This section is now fully self-contained. The auditor reads the scope and pattern from here.

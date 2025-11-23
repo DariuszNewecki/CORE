@@ -9,9 +9,10 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+from sqlalchemy import text
+
 from services.database.session_manager import get_session
 from shared.logger import getLogger
-from sqlalchemy import text
 
 logger = getLogger(__name__)
 
@@ -36,39 +37,42 @@ class KnowledgeService:
         logger.info("Loading knowledge graph from database view...")
         symbols_map = {}
         try:
-            if self._session:
-                result = await self._session.execute(
+            # --- START OF FINAL FIX ---
+            # This unified block uses the robust .mappings().all() method which was
+            # proven to work correctly in our diagnostic script. This resolves the
+            # subtle data loading bug.
+
+            async def _fetch_data(s):
+                result = await s.execute(
                     text("SELECT * FROM core.knowledge_graph ORDER BY symbol_path")
                 )
-                for row in result:
-                    row_dict = dict(row._mapping)
-                    symbol_path = row_dict.get("symbol_path")
-                    if symbol_path:
-                        if "uuid" in row_dict and row_dict["uuid"] is not None:
-                            row_dict["uuid"] = str(row_dict["uuid"])
-                        if (
-                            "vector_id" in row_dict
-                            and row_dict["vector_id"] is not None
-                        ):
-                            row_dict["vector_id"] = str(row_dict["vector_id"])
-                        symbols_map[symbol_path] = row_dict
+                # Use mappings().all() to get a list of dict-like objects
+                return result.mappings().all()
+
+            if self._session:
+                rows = await _fetch_data(self._session)
             else:
                 async with get_session() as session:
-                    result = await session.execute(
-                        text("SELECT * FROM core.knowledge_graph ORDER BY symbol_path")
-                    )
-                    for row in result:
-                        row_dict = dict(row._mapping)
-                        symbol_path = row_dict.get("symbol_path")
-                        if symbol_path:
-                            if "uuid" in row_dict and row_dict["uuid"] is not None:
-                                row_dict["uuid"] = str(row_dict["uuid"])
-                            if (
-                                "vector_id" in row_dict
-                                and row_dict["vector_id"] is not None
-                            ):
-                                row_dict["vector_id"] = str(row_dict["vector_id"])
-                            symbols_map[symbol_path] = row_dict
+                    rows = await _fetch_data(session)
+
+            for row in rows:
+                row_dict = dict(row)  # Convert the RowMapping to a mutable dict
+                symbol_path = row_dict.get("symbol_path")
+                if symbol_path:
+                    # Ensure UUIDs are converted to strings for JSON compatibility
+                    if "uuid" in row_dict and row_dict["uuid"] is not None:
+                        row_dict["uuid"] = str(row_dict["uuid"])
+                    if "vector_id" in row_dict and row_dict["vector_id"] is not None:
+                        row_dict["vector_id"] = str(row_dict["vector_id"])
+
+                    # --- CRITICAL FIX: ADAPTER PATTERN ---
+                    # The DB View returns 'capabilities_array', but the App logic expects 'capabilities'.
+                    # We explicitly map it here so the Audit check can find the data.
+                    row_dict["capabilities"] = row_dict.get("capabilities_array", [])
+
+                    symbols_map[symbol_path] = row_dict
+            # --- END OF FINAL FIX ---
+
             knowledge_graph = {"symbols": symbols_map}
             logger.info(
                 f"Successfully loaded {len(symbols_map)} symbols from the database."

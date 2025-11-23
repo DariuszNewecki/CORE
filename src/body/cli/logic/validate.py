@@ -15,6 +15,7 @@ from typing import Any
 
 import typer
 from jsonschema import ValidationError, validate
+
 from shared.config_loader import load_yaml_file
 from shared.logger import getLogger
 

@@ -7,6 +7,7 @@ Tests building a context packet for a real function from the codebase.
 from pathlib import Path
 
 import pytest
+
 from services.clients.qdrant_client import QdrantService
 from services.context.builder import ContextBuilder
 from services.context.providers.ast import ASTProvider

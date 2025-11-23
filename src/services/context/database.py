@@ -22,15 +22,18 @@ logger = logging.getLogger(__name__)
 class ContextDatabase:
     """Manages database persistence for context packets."""
 
-    def __init__(self, db_service: AsyncSession | None = None):
-        """Initialize with database service.
-
-        Args:
-            db_service: AsyncSession or None for testing
+    # --- START OF FIX: The db session is no longer stored on the instance permanently ---
+    def __init__(self):
         """
-        self.db = db_service
+        Initializes the database component. The session is expected to be
+        set by the caller before a method is invoked.
+        """
+        self.db: AsyncSession | None = None
 
-    # ID: 4e8d301c-fe6b-4250-9185-96f82bc305cb
+    # --- END OF FIX ---
+
+    # ID: 4e8d301c-fe6b-4250-_9185-96f82bc305cb
+    # ID: dc3213b2-6f97-4235-bd44-1385194fd417
     async def save_packet_metadata(
         self, packet: dict[str, Any], file_path: str, size_bytes: int
     ) -> bool:
@@ -45,7 +48,6 @@ class ContextDatabase:
             provenance = packet.get("provenance", {})
             build_stats = provenance.get("build_stats", {})
 
-            # --- START OF THE CORRECTED CODE ---
             query = text(
                 """
                 INSERT INTO core.context_packets (
@@ -90,13 +92,13 @@ class ContextDatabase:
 
             await self.db.execute(query, params)
             await self.db.commit()
-            # --- END OF THE CORRECTED CODE ---
 
             logger.info(f"Saved packet metadata: {header['packet_id']}")
             return True
 
         except Exception as e:
             logger.error(f"Failed to save packet metadata: {e}")
+            # Rollback is handled by the context manager in the service layer
             return False
 
     # ID: 4eb86c73-2821-4479-8a62-044908f05856

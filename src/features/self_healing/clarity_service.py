@@ -11,6 +11,7 @@ import asyncio
 from pathlib import Path
 
 from rich.console import Console
+
 from shared.config import settings
 from shared.context import CoreContext
 from shared.logger import getLogger
@@ -23,11 +24,14 @@ async def _async_fix_clarity(context: CoreContext, file_path: Path, dry_run: boo
     """Async core logic for clarity-focused refactoring."""
     logger.info(f"🔬 Analyzing '{file_path.name}' for clarity improvements...")
     cognitive_service = context.cognitive_service
+
     prompt_template = (
         settings.MIND / "prompts" / "refactor_for_clarity.prompt"
     ).read_text()
     original_code = file_path.read_text("utf-8")
+
     final_prompt = prompt_template.replace("{source_code}", original_code)
+
     refactor_client = await cognitive_service.aget_client_for_role(
         "RefactoringArchitect"
     )
@@ -35,13 +39,16 @@ async def _async_fix_clarity(context: CoreContext, file_path: Path, dry_run: boo
         "[bold green]Asking AI Architect to refactor for clarity...[/bold green]"
     ):
         refactored_code = await refactor_client.make_request_async(
-            final_prompt, user_id="clarity_fixer_agent"
+            final_prompt,
+            user_id="clarity_fixer_agent",
         )
+
     if not refactored_code.strip() or refactored_code.strip() == original_code.strip():
         console.print(
             "[bold green]✅ AI Architect found no clarity improvements to make.[/bold green]"
         )
         return
+
     if dry_run:
         console.print(
             f"\n[bold yellow]-- DRY RUN: Would refactor {file_path.name} --[/bold yellow]"
@@ -53,7 +60,10 @@ async def _async_fix_clarity(context: CoreContext, file_path: Path, dry_run: boo
         )
 
 
-# ID: ba5a0438-3f31-4d55-8d34-d2096b146329
-def fix_clarity(context: CoreContext, file_path: Path, dry_run: bool):
-    """Uses an AI agent to refactor a Python file for improved clarity and simplicity."""
+def _fix_clarity(context: CoreContext, file_path: Path, dry_run: bool) -> None:
+    """
+    Backwards-compatible alias for older callers.
+
+    Prefer using `fix_clarity` directly.
+    """
     asyncio.run(_async_fix_clarity(context, file_path, dry_run))

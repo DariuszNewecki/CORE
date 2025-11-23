@@ -8,9 +8,8 @@ from __future__ import annotations
 import ast
 from pathlib import Path
 
-from shared.models import AuditFinding, AuditSeverity
-
 from mind.governance.checks.base_check import BaseCheck
+from shared.models import AuditFinding, AuditSeverity
 
 
 # ID: m3n4o5p6-q7r8-8s9t-0u1v-2w3x4y5z6a7b
@@ -56,7 +55,7 @@ class UpdateCapsCheck(BaseCheck):
                 findings.append(
                     AuditFinding(
                         check_id="refactor.update_capabilities",
-                        severity=AuditSeverity.WARN,
+                        severity=AuditSeverity.WARNING,
                         message=f"Failed to parse {cap_file}: {e}",
                         file_path=str(cap_file.relative_to(self.repo_root)),
                         line_number=1,
@@ -68,7 +67,7 @@ class UpdateCapsCheck(BaseCheck):
     def _finding(self, file_path: Path, line: int) -> AuditFinding:
         return AuditFinding(
             check_id="refactor.update_capabilities",
-            severity=AuditSeverity.WARN,
+            severity=AuditSeverity.WARNING,
             message="Capability module missing CAPABILITY_ID. Run `fix update-caps`.",
             file_path=str(file_path.relative_to(self.repo_root)),
             line_number=line,

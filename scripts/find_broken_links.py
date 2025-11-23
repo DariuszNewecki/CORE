@@ -4,7 +4,6 @@ import sys
 from pathlib import Path
 
 # Add the project's 'src' directory to Python's path
-# This allows the script to find modules like 'services' and 'shared'
 project_root = Path(__file__).resolve().parents[1]
 src_path = project_root / "src"
 if str(src_path) not in sys.path:
@@ -19,36 +18,43 @@ from sqlalchemy import text
 console = Console()
 
 
-async def find_broken_links():
-    """
-    Finds and generates a fix for links in the database that point to
-    non-existent vectors in Qdrant. This is the permanent diagnostic tool.
-    """
+async def list_postgres_vector_ids():
+    """Connects ONLY to PostgreSQL and prints all vector_ids from the link table."""
     console.print(
-        "[bold cyan]🔍 Finding broken links between PostgreSQL and Qdrant...[/bold cyan]"
+        "\n[bold cyan]--- Querying PostgreSQL: `core.symbol_vector_links` ---[/bold cyan]"
     )
-
     try:
-        # 1. Get all vector IDs that PostgreSQL thinks should exist in Qdrant.
-        # The `symbol_id` is used as the point ID in Qdrant.
         async with get_session() as session:
             result = await session.execute(
-                text("SELECT symbol_id FROM core.symbol_vector_links")
+                text("SELECT vector_id FROM core.symbol_vector_links ORDER BY vector_id")
             )
-            db_point_ids = {str(row.symbol_id) for row in result}
+            db_point_ids = [str(row.vector_id) for row in result]
 
         if not db_point_ids:
             console.print("[yellow]No vector links found in the database.[/yellow]")
             return
 
-        # 2. Get all point IDs that *actually* exist in Qdrant using the robust `scroll` method.
+        console.print(f"Found {len(db_point_ids)} vector IDs in PostgreSQL:")
+        for i, vector_id in enumerate(db_point_ids):
+            console.print(f"{i+1:4d}: {vector_id}")
+
+    except Exception as e:
+        console.print(f"[bold red]An error occurred during PostgreSQL query: {e}[/bold red]")
+
+
+async def list_qdrant_point_ids():
+    """Connects ONLY to Qdrant and prints all point IDs from the collection."""
+    console.print(
+        f"\n[bold cyan]--- Querying Qdrant Collection: `{settings.QDRANT_COLLECTION_NAME}` ---[/bold cyan]"
+    )
+    try:
         qdrant_client = AsyncQdrantClient(url=settings.QDRANT_URL)
         qdrant_point_ids = set()
         offset = None
         while True:
             records, next_page_offset = await qdrant_client.scroll(
                 collection_name=settings.QDRANT_COLLECTION_NAME,
-                limit=1000,  # Process in batches of 1000
+                limit=1000,
                 with_payload=False,
                 with_vectors=False,
                 offset=offset,
@@ -62,40 +68,23 @@ async def find_broken_links():
                 break
             offset = next_page_offset
 
-        # 3. Find the difference: IDs that are in the DB but not in Qdrant.
-        broken_point_ids = db_point_ids - qdrant_point_ids
+        if not qdrant_point_ids:
+            console.print("[yellow]No points found in the Qdrant collection.[/yellow]")
+            return
+            
+        sorted_ids = sorted(list(qdrant_point_ids))
+        console.print(f"Found {len(sorted_ids)} point IDs in Qdrant:")
+        for i, point_id in enumerate(sorted_ids):
+            console.print(f"{i+1:4d}: {point_id}")
 
     except Exception as e:
-        console.print(f"[bold red]An error occurred during diagnosis: {e}[/bold red]")
-        return
+        console.print(f"[bold red]An error occurred during Qdrant query: {e}[/bold red]")
 
-    if not broken_point_ids:
-        console.print(
-            "[bold green]✅ No broken links found! Your data is consistent.[/bold green]"
-        )
-        return
 
-    console.print(
-        f"\n[bold red]❌ Found {len(broken_point_ids)} broken link(s):[/bold red]"
-    )
-    console.print(
-        "These symbols have a link in PostgreSQL, but the corresponding vector is missing from Qdrant."
-    )
-
-    # 4. Prepare the exact SQL command to fix the issue.
-    ids_sql_list = ", ".join([f"'{_id}'" for _id in broken_point_ids])
-    delete_command = (
-        f"DELETE FROM core.symbol_vector_links WHERE symbol_id IN ({ids_sql_list});"
-    )
-
-    console.print(
-        "\n[bold]To fix this, run the following SQL command against your database:[/bold]"
-    )
-    console.print(f"[yellow]{delete_command}[/yellow]")
-    console.print(
-        "\nThen, run 'poetry run core-admin run vectorize --write' to regenerate the missing vectors."
-    )
+async def main():
+    await list_postgres_vector_ids()
+    await list_qdrant_point_ids()
 
 
 if __name__ == "__main__":
-    asyncio.run(find_broken_links())
+    asyncio.run(main())

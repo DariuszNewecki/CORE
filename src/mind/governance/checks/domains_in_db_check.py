@@ -8,9 +8,8 @@ from __future__ import annotations
 import ast
 from pathlib import Path
 
-from shared.models import AuditFinding, AuditSeverity
-
 from mind.governance.checks.base_check import BaseCheck
+from shared.models import AuditFinding, AuditSeverity
 
 
 # ID: i9j0k1l2-m3n4-4o5p-6q7r-8s9t0u1v2w3x

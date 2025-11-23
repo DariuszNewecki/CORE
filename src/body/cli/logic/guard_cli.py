@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any
 
 import typer
+
 from features.introspection.drift_detector import write_report
 from features.introspection.drift_service import run_drift_analysis_async
 

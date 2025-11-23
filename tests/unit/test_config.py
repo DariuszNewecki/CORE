@@ -1,6 +1,7 @@
 # tests/unit/test_config.py
 
 import pytest
+
 from shared.config import Settings
 
 

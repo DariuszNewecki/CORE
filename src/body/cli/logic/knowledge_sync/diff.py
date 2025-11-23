@@ -10,6 +10,7 @@ import json
 from typing import Any
 
 from rich.console import Console
+
 from shared.config import settings
 
 from .snapshot import fetch_capabilities, fetch_links, fetch_northstar, fetch_symbols

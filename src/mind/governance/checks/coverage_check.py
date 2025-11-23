@@ -12,13 +12,12 @@ import json
 import subprocess
 from typing import Any
 
-from shared.logger import getLogger
-from shared.models import AuditFinding, AuditSeverity
-
 from mind.governance.audit_context import AuditorContext
 
 # Import the BaseCheck to inherit from it
 from mind.governance.checks.base_check import BaseCheck
+from shared.logger import getLogger
+from shared.models import AuditFinding, AuditSeverity
 
 logger = getLogger(__name__)
 

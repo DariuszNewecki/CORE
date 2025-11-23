@@ -11,9 +11,9 @@ import asyncio
 import typer
 from rich.console import Console
 from rich.table import Table
-from shared.context import CoreContext
 
-from body.cli.logic.hub import hub_search
+from body.cli.logic.hub import hub_search_cmd
+from shared.context import CoreContext
 
 console = Console()
 search_app = typer.Typer(
@@ -71,4 +71,4 @@ def search_capabilities_wrapper(
     search_knowledge_command(context=_context, query=query, limit=limit)
 
 
-search_app.command("commands")(hub_search)
+search_app.command("commands")(hub_search_cmd)

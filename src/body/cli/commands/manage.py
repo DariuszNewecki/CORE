@@ -1,26 +1,15 @@
 # src/body/cli/commands/manage.py
 """
-Registers the new, verb-based 'manage' command group with subgroups.
+State-changing administrative tasks for the system (DB, dotenv, projects, proposals, keys).
 """
 
 from __future__ import annotations
 
 import asyncio
-from pathlib import Path
 
 import typer
-from features.introspection.export_vectors import export_vectors
-from features.maintenance.dotenv_sync_service import run_dotenv_sync
-from features.maintenance.migration_service import run_ssot_migration
-from features.project_lifecycle.definition_service import define_new_symbols
-from features.project_lifecycle.scaffolding_service import new_project
-from mind.governance.key_management_service import keygen
 from rich.console import Console
-from shared.context import CoreContext
-from will.cli_logic.proposals_micro import micro_apply, micro_propose  # Corrected
 
-# --- START OF FIX ---
-# Updated imports to point to the new 'will' location for logic files
 from body.cli.logic.byor import initialize_repository
 from body.cli.logic.db import export_data, migrate_db
 from body.cli.logic.project_docs import docs as project_docs
@@ -31,10 +20,21 @@ from body.cli.logic.proposal_service import (
 )
 from body.cli.logic.sync import sync_knowledge_base
 from body.cli.logic.sync_manifest import sync_manifest
-
-# --- END OF FIX ---
+from features.introspection.export_vectors import export_vectors
+from features.maintenance.dotenv_sync_service import run_dotenv_sync
+from features.maintenance.migration_service import run_ssot_migration
+from features.project_lifecycle.definition_service import _define_new_symbols
+from features.project_lifecycle.scaffolding_service import create_new_project
+from mind.governance.key_management_service import keygen
+from services.clients.qdrant_client import QdrantService
+from services.context.service import ContextService
+from shared.config import settings
+from shared.context import CoreContext
+from shared.logger import getLogger
 
 console = Console()
+logger = getLogger(__name__)
+
 manage_app = typer.Typer(
     help="State-changing administrative tasks for the system.",
     no_args_is_help=True,
@@ -42,8 +42,12 @@ manage_app = typer.Typer(
 
 _context: CoreContext | None = None
 
+# === DATABASE SUB-COMMANDS ==================================================
+
+
 db_sub_app = typer.Typer(
-    help="Manage the database schema and data.", no_args_is_help=True
+    help="Manage the database schema and data.",
+    no_args_is_help=True,
 )
 db_sub_app.command("migrate")(migrate_db)
 db_sub_app.command("export")(export_data)
@@ -56,112 +60,172 @@ db_sub_app.command("export-vectors")(export_vectors)
     "migrate-ssot",
     help="One-time data migration from legacy files to the SSOT database.",
 )
-# ID: 7b1dac6e-cd1b-4e58-8ac7-0ee135de3299
+# ID: 6aa37e30-2fd5-4738-8bbd-2a4f3cb4441f
 def migrate_ssot_command(
     write: bool = typer.Option(
-        False, "--write", help="Apply the migration to the database."
+        False,
+        "--write",
+        help="Apply the migration to the database.",
     ),
-):
+) -> None:
     asyncio.run(run_ssot_migration(dry_run=not write))
 
 
 manage_app.add_typer(db_sub_app, name="database")
 
+
+# === DOTENV SUB-COMMANDS =====================================================
+
+
 dotenv_sub_app = typer.Typer(
-    help="Manage runtime configuration from .env.", no_args_is_help=True
+    help="Manage runtime configuration from .env.",
+    no_args_is_help=True,
 )
 
 
 @dotenv_sub_app.command(
     "sync",
-    help="Sync settings from .env to the database, governed by runtime_requirements.yaml.",
+    help=(
+        "Sync settings from .env to the database, governed by "
+        "runtime_requirements.yaml."
+    ),
 )
-# ID: a7719186-00f3-4e70-a549-de586bb45e0d
+# ID: 0cbb0df6-2070-41f5-a6e1-d6cb339294f2
 def dotenv_sync_command(
     write: bool = typer.Option(
-        False, "--write", help="Apply the sync to the database."
+        False,
+        "--write",
+        help="Apply the sync to the database.",
     ),
-):
+) -> None:
     asyncio.run(run_dotenv_sync(dry_run=not write))
 
 
 manage_app.add_typer(dotenv_sub_app, name="dotenv")
 
-project_sub_app = typer.Typer(help="Manage CORE projects.", no_args_is_help=True)
-project_sub_app.command("new")(new_project)
+
+# === PROJECT SUB-COMMANDS ====================================================
+
+project_sub_app = typer.Typer(
+    help="Manage CORE projects.",
+    no_args_is_help=True,
+)
+
+
+@project_sub_app.command("new")
+# ID: 9a6c6a6d-2c5a-4b57-9e2a-5b5199e4f3f21
+# ID: af616f12-7dd9-417e-aff2-ae9aad8ced78
+def project_new_command(
+    name: str = typer.Argument(
+        ...,
+        help="The name of the new CORE-governed application to create.",
+    ),
+    profile: str = typer.Option(
+        "default",
+        "--profile",
+        help="The starter kit profile to use for the new project's constitution.",
+    ),
+    dry_run: bool = typer.Option(
+        True,
+        "--dry-run/--write",
+        help="Show what will be created without writing files. Use --write to apply.",
+    ),
+) -> None:
+    """
+    CLI entrypoint: scaffold a new CORE-governed application.
+
+    This bridges user input (Typer) to the domain-level scaffolding service.
+    """
+    console.print(
+        f"[bold cyan]🚀 Creating new CORE project[/bold cyan]: '{name}' "
+        f"(profile: '{profile}', dry_run={dry_run})"
+    )
+    try:
+        create_new_project(name=name, profile=profile, dry_run=dry_run)
+        if dry_run:
+            console.print("[yellow]Dry-run completed. No files were written.[/yellow]")
+        else:
+            console.print(
+                f"[bold green]✅ Project '{name}' scaffolded successfully.[/bold green]"
+            )
+    except FileExistsError as e:
+        console.print(f"[bold red]❌ {e}[/bold red]")
+        raise typer.Exit(code=1)
+    except Exception as e:  # noqa: BLE001
+        logger.error("Unexpected error in project_new_command", exc_info=True)
+        console.print(f"[bold red]❌ Unexpected error: {e}[/bold red]")
+        raise typer.Exit(code=1)
+
+
 project_sub_app.command("onboard")(initialize_repository)
 project_sub_app.command("docs")(project_docs)
 manage_app.add_typer(project_sub_app, name="project")
 
+
+# === PROPOSALS SUB-COMMANDS ==================================================
+
 proposals_sub_app = typer.Typer(
-    help="Manage constitutional amendment proposals.", no_args_is_help=True
+    help="Manage constitutional amendment proposals.",
+    no_args_is_help=True,
 )
 proposals_sub_app.command("list")(proposals_list)
 proposals_sub_app.command("sign")(proposals_sign)
 
 
 @proposals_sub_app.command("approve")
-# ID: a383c906-9af5-410f-9c92-978ed68625ab
+# ID: f6665b18-e3bc-46b0-85bf-4f7ff7a6a2ad
 def approve_command_wrapper(
     ctx: typer.Context,
     proposal_name: str = typer.Argument(
-        ..., help="Filename of the proposal to approve."
+        ...,
+        help="Filename of the proposal to approve.",
     ),
-):
+) -> None:
     core_context: CoreContext = ctx.obj
     proposals_approve(context=core_context, proposal_name=proposal_name)
 
 
-@proposals_sub_app.command("micro-apply")
-# ID: 3c419342-3813-4b2e-9727-86353b8512fd
-def micro_apply_command(
-    ctx: typer.Context,
-    proposal_path: Path = typer.Argument(..., exists=True),
-):
-    """Validates and applies a micro-proposal JSON file."""
-    core_context: CoreContext = ctx.obj
-    asyncio.run(micro_apply(context=core_context, proposal_path=proposal_path))
-
-
-@proposals_sub_app.command("micro-propose")
-# ID: 7f70241a-844a-4997-958a-40e9cea8739e
-def micro_propose_command(
-    ctx: typer.Context,
-    goal: str = typer.Argument(...),
-):
-    """Generates a micro-proposal for a given goal without applying it."""
-    core_context: CoreContext = ctx.obj
-    asyncio.run(micro_propose(context=core_context, goal=goal))
-
-
 manage_app.add_typer(proposals_sub_app, name="proposals")
 
+
+# === KEYS SUB-COMMANDS =======================================================
+
 keys_sub_app = typer.Typer(
-    help="Manage operator cryptographic keys.", no_args_is_help=True
+    help="Manage operator cryptographic keys.",
+    no_args_is_help=True,
 )
 keys_sub_app.command("generate")(keygen)
 manage_app.add_typer(keys_sub_app, name="keys")
 
 
-@manage_app.command(
-    "define-symbols",
-    help="Defines all undefined capabilities one by one using an AI agent.",
-)
-# ID: de8a268e-3358-4a49-a898-982b9e5fa9e2
-def define_symbols_command(
-    ctx: typer.Context,
-):
-    """Synchronous wrapper that calls the refactored definition service."""
-    console.print(
-        "[bold yellow]Running asynchronous symbol definition...[/bold yellow]"
+# === DEFINE SYMBOLS ==========================================================
+
+
+async def _async_define_symbols(core_context: CoreContext) -> None:
+    """
+    Asynchronous core logic for defining symbols.
+
+    This is a private async helper: CLI -> this -> domain capability.
+    """
+    if core_context.qdrant_service is None:
+        logger.info("Initializing QdrantService for symbol definition...")
+        core_context.qdrant_service = QdrantService()
+
+    context_service = ContextService(
+        qdrant_client=core_context.qdrant_service,
+        cognitive_service=core_context.cognitive_service,
+        project_root=str(settings.REPO_PATH),
     )
+    await _define_new_symbols(context_service)
+
+
+@manage_app.command("define-symbols")
+# ID: 34b2f0d2-3b69-4ea2-bc9d-5b2071bce2d3
+def define_symbols_command(ctx: typer.Context) -> None:
+    """
+    CLI entrypoint to run symbol definition across the codebase.
+
+    This is the public CLI surface; `_async_define_symbols` remains private.
+    """
     core_context: CoreContext = ctx.obj
-    try:
-        cognitive_service = core_context.cognitive_service
-        qdrant_service = core_context.qdrant_service
-        asyncio.run(define_new_symbols(cognitive_service, qdrant_service))
-    except Exception as e:
-        console.print(
-            f"[bold red]An unexpected error occurred: {e}[/bold red]", highlight=False
-        )
-        raise typer.Exit(code=1)
+    asyncio.run(_async_define_symbols(core_context))

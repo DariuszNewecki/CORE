@@ -11,6 +11,7 @@ from collections.abc import Awaitable, Callable
 
 import typer
 from rich.table import Table
+
 from services.database.session_manager import get_session
 from services.secrets_service import get_secrets_service
 from shared.cli_utils import (

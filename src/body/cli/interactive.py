@@ -11,6 +11,7 @@ from collections.abc import Callable
 
 from rich.console import Console
 from rich.panel import Panel
+
 from shared.utils.subprocess_utils import run_poetry_command
 
 console = Console()

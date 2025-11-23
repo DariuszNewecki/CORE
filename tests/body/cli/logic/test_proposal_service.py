@@ -5,9 +5,10 @@ from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from body.cli.logic.proposal_service import ProposalService
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ed25519
+
+from body.cli.logic.proposal_service import ProposalService
 from shared.utils.yaml_processor import YAMLProcessor
 
 yaml_processor = YAMLProcessor()

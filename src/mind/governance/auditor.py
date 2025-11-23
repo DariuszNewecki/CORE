@@ -13,9 +13,6 @@ import pkgutil
 from collections.abc import MutableMapping
 from typing import Any
 
-from shared.models import AuditFinding
-from shared.path_utils import get_repo_root
-
 from mind.governance import checks
 from mind.governance.audit_context import AuditorContext
 from mind.governance.audit_postprocessor import (
@@ -23,6 +20,8 @@ from mind.governance.audit_postprocessor import (
     apply_entry_point_downgrade_and_report,
 )
 from mind.governance.checks.base_check import BaseCheck
+from shared.models import AuditFinding, AuditSeverity
+from shared.path_utils import get_repo_root
 
 # --- Configuration for the Auditor ---
 REPORTS_DIR = get_repo_root() / "reports"
@@ -61,28 +60,35 @@ class ConstitutionalAuditor:
         """Instantiates and runs all discovered checks, collecting their findings."""
         all_findings: list[AuditFinding] = []
         check_classes = self._discover_checks()
+        qdrant_service = None  # Lazy-initialized service placeholder
 
         for check_class in check_classes:
-            # === START OF FIX ===
-            # Inject dependencies based on the check's specific needs.
+            check_instance = None
+            # --- START OF FIX ---
+            # This logic now handles the special dependency of DuplicationCheck internally.
             if check_class.__name__ == "DuplicationCheck":
-                # The DuplicationCheck has a special dependency on QdrantService.
-                # We get it from the context and pass it in during instantiation.
-                if not hasattr(self.context, "qdrant_service"):
-                    # This is an internal error state, but we handle it gracefully.
-                    all_findings.append(
-                        AuditFinding(
-                            check_id="auditor.internal.error",
-                            severity="error",
-                            message="AuditorContext is missing qdrant_service. Cannot run DuplicationCheck.",
+                # The DuplicationCheck has a special dependency. Initialize it only if needed.
+                if qdrant_service is None:
+                    try:
+                        from services.clients.qdrant_client import QdrantService
+
+                        qdrant_service = QdrantService()
+                    except Exception as e:
+                        # If Qdrant can't be initialized (e.g., Docker is down),
+                        # log a single, clear error and skip this specific check.
+                        all_findings.append(
+                            AuditFinding(
+                                check_id="auditor.internal.error",
+                                severity=AuditSeverity.ERROR,
+                                message=f"Failed to initialize QdrantService for DuplicationCheck: {e}",
+                            )
                         )
-                    )
-                    continue
-                check_instance = check_class(self.context, self.context.qdrant_service)
+                        continue  # Skip to the next check
+                check_instance = check_class(self.context, qdrant_service)
             else:
                 # Standard checks only need the context.
                 check_instance = check_class(self.context)
-            # === END OF FIX ===
+            # --- END OF FIX ---
 
             if inspect.iscoroutinefunction(check_instance.execute):
                 findings = await check_instance.execute()
@@ -136,9 +142,7 @@ class ConstitutionalAuditor:
         return processed_findings
 
 
-# === START OF FIX: REMOVE REDUNDANT AND VIOLATING HELPER FUNCTIONS ===
 # The functions below created new instances of ConstitutionalAuditor, which
 # violated the DI policy. The correct pattern is to create the instance
 # in the CLI layer (which is already being done) and call its methods.
-# These functions are no longer needed.
-# === END OF FIX ===
+# These functions are no longer needed and have been removed.

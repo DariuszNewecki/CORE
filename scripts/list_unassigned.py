@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 # scripts/list_unassigned.py
 import asyncio
+import re
 import sys
 from pathlib import Path
+from typing import Any
 
-import yaml
 from rich.console import Console
 from rich.table import Table
 from sqlalchemy import text
@@ -18,62 +19,69 @@ console = Console()
 
 
 async def list_unassigned_symbols():
-    """Connects to the DB and lists all symbols with a NULL key, respecting the ignore policy."""
+    """
+    Connects to the DB and lists all TRULY orphaned symbols.
+    An orphan is a public symbol with no assigned capability key AND no incoming calls.
+    """
     console.print(
-        "[bold cyan]--- Unassigned Symbol Report (Ignoring Boilerplate) ---[/bold cyan]"
+        "[bold cyan]--- True Orphaned Symbol Report (Graph-Aware) ---[/bold cyan]"
     )
     try:
-        # --- THIS IS THE FIX: Load the ignore policy ---
-        ignore_policy_path = settings.get_path(
-            "charter.policies.governance.audit_ignore_policy"
-        )
-        ignore_policy = yaml.safe_load(ignore_policy_path.read_text("utf-8"))
-        ignored_symbol_keys = {
-            item["key"]
-            for item in ignore_policy.get("symbol_ignores", [])
-            if "key" in item
-        }
-        console.print(
-            f"   -> Applying {len(ignored_symbol_keys)} ignore rules from the constitution."
-        )
-        # --- END OF FIX ---
-
         async with get_session() as session:
+            console.print("   -> Fetching full symbol and call graph from database...")
             stmt = text(
                 """
-                SELECT symbol_path, module AS file_path
+                SELECT id, symbol_path, module, qualname, kind, is_public, key, calls
                 FROM core.symbols
-                WHERE key IS NULL AND is_public = TRUE
                 ORDER BY module, symbol_path;
                 """
             )
             result = await session.execute(stmt)
-            all_unassigned = [dict(row._mapping) for row in result]
+            all_symbols = [dict(row._mapping) for row in result]
+            console.print(f"   -> Analyzing {len(all_symbols)} total symbols.")
 
-            # --- THIS IS THE FIX: Filter the results ---
-            unassigned = [
-                s for s in all_unassigned if s["symbol_path"] not in ignored_symbol_keys
-            ]
-            # --- END OF FIX ---
+            all_called_symbols = set()
+            for symbol in all_symbols:
+                called_list = symbol.get("calls") or []
+                for called_qualname in called_list:
+                    all_called_symbols.add(called_qualname)
+            
+            console.print(f"   -> Found {len(all_called_symbols)} unique symbol names that are being called.")
 
-            if not unassigned:
+            orphaned_symbols = []
+            for symbol in all_symbols:
+                is_public = symbol.get("is_public", False)
+                has_no_key = symbol.get("key") is None
+
+                # --- START OF THE FINAL, CORRECT FIX ---
+                # Check for both the full qualified name and the short name.
+                qualname = symbol.get("qualname", "")
+                short_name = qualname.split('.')[-1]
+                is_called = (qualname in all_called_symbols) or (short_name in all_called_symbols)
+                # --- END OF THE FINAL, CORRECT FIX ---
+
+                if is_public and has_no_key and not is_called:
+                    orphaned_symbols.append(symbol)
+            
+
+            if not orphaned_symbols:
                 console.print(
-                    "\n[bold green]✅ Success! No unassigned public symbols found.[/bold green]"
+                    "\n[bold green]✅ Success! No truly orphaned public symbols found.[/bold green]"
                 )
                 return
 
             console.print(
-                f"\n[bold yellow]Found {len(unassigned)} unassigned public symbols that require definition:[/bold yellow]"
+                f"\n[bold yellow]Found {len(orphaned_symbols)} true orphaned public symbols that require definition or removal:[/bold yellow]"
             )
             table = Table(show_header=True, header_style="bold magenta")
             table.add_column("File Path (Module)", style="cyan")
             table.add_column("Symbol Path", style="green")
 
-            for symbol in unassigned:
-                table.add_row(symbol["file_path"], symbol["symbol_path"])
+            for symbol in orphaned_symbols:
+                table.add_row(symbol["module"], symbol["symbol_path"])
             console.print(table)
     except Exception as e:
-        console.print(f"\n[bold red]❌ An error occurred: {e}[/bold red]")
+        console.print(f"\n[bold red]❌ An error occurred: {e}[/bold red]", extra_data={'exception': str(e)})
 
 
 if __name__ == "__main__":

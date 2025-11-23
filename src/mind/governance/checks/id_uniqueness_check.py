@@ -9,9 +9,8 @@ from __future__ import annotations
 import re
 from collections import defaultdict
 
-from shared.models import AuditFinding, AuditSeverity
-
 from mind.governance.checks.base_check import BaseCheck
+from shared.models import AuditFinding, AuditSeverity
 
 # Pre-compiled regex for efficiency to find '# ID: <uuid>'
 ID_TAG_REGEX = re.compile(

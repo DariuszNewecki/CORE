@@ -18,15 +18,15 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ed25519
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 from dotenv import load_dotenv
-from mind.governance.auditor import ConstitutionalAuditor
 from rich.console import Console
+
+from mind.governance.auditor import ConstitutionalAuditor
 from shared.config import settings
 from shared.logger import getLogger
 from shared.path_utils import copy_file, copy_tree
 from shared.utils.crypto import generate_approval_token
 from shared.utils.yaml_processor import YAMLProcessor
 
-# The dependency on cli_utils.load_private_key is removed.
 from .cli_utils import archive_rollback_plan
 
 logger = getLogger(__name__)
@@ -75,7 +75,7 @@ class ProposalService:
         self.critical_paths = critical_paths_data.get("paths", [])
 
     def _load_private_key(self) -> ed25519.Ed25519PrivateKey:
-        """Loads the operator's private key from the correct repository path."""
+        """Loads the operator's private key from disk."""
         key_path = self.repo_root / settings.KEY_STORAGE_DIR / "private.key"
         if not key_path.exists():
             logger.error(f"Private key not found at {key_path}.")
@@ -84,23 +84,26 @@ class ProposalService:
 
     # ID: 95d5b788-eac0-4d3d-b065-f07625b26ad9
     def list(self) -> list[ProposalInfo]:
-        """Returns a list of structured data for all pending proposals."""
+        """Returns structured info for all pending proposals."""
         proposals = []
         for prop_path in sorted(list(self.proposals_dir.glob("cr-*.yaml"))):
             config = yaml_processor.load(prop_path) or {}
             target_path = config.get("target_path", "")
             is_critical = any(target_path == p for p in self.critical_paths)
             current_sigs = len(config.get("signatures", []))
+
             quorum_config = self.approvers_config.get("quorum", {})
             current_mode = quorum_config.get("current_mode", "development")
             required_sigs = quorum_config.get(current_mode, {}).get(
                 "critical" if is_critical else "standard", 1
             )
+
             status = (
                 "✅ Ready"
                 if current_sigs >= required_sigs
                 else f"⏳ {current_sigs}/{required_sigs} sigs"
             )
+
             proposals.append(
                 ProposalInfo(
                     name=prop_path.name,
@@ -132,6 +135,7 @@ class ProposalService:
         proposal["signatures"] = [
             s for s in proposal["signatures"] if s.get("identity") != identity
         ]
+
         proposal["signatures"].append(
             {
                 "identity": identity,
@@ -140,21 +144,25 @@ class ProposalService:
                 "timestamp": datetime.now(UTC).isoformat() + "Z",
             }
         )
+
         yaml_processor.dump(proposal, proposal_path)
 
     def _verify_signatures(self, proposal: dict[str, Any]) -> int:
-        """Verifies all signatures on a proposal and returns the count of valid ones."""
+        """Verifies all signatures and returns the count of valid ones."""
         expected_token = generate_approval_token(proposal)
-        valid_signatures = 0
+        valid = 0
+
         for sig in proposal.get("signatures", []):
             identity = sig.get("identity")
             if sig.get("token") != expected_token:
                 logger.warning(f"   ⚠️ Stale signature from '{identity}'.")
                 continue
+
             pem = self.approver_keys.get(identity)
             if not pem:
-                logger.warning(f"   ⚠️ No public key found for signatory '{identity}'.")
+                logger.warning(f"   ⚠️ No public key found for '{identity}'.")
                 continue
+
             try:
                 pub_key: Ed25519PublicKey = serialization.load_pem_public_key(
                     pem.encode("utf-8")
@@ -164,59 +172,71 @@ class ProposalService:
                     expected_token.encode("utf-8"),
                 )
                 logger.info(f"   ✅ Valid signature from '{identity}'.")
-                valid_signatures += 1
+                valid += 1
             except Exception:
-                logger.warning(
-                    f"   ⚠️ Verification failed for signature from '{identity}'."
-                )
-        return valid_signatures
+                logger.warning(f"   ⚠️ Verification failed for '{identity}'.")
 
-    async def _run_canary_audit(self, proposal: dict[str, Any]) -> tuple[bool, list]:
-        """Creates a canary environment, applies the change, and runs a full audit."""
+        return valid
+
+    async def _run_canary_audit(self, proposal: dict[str, Any]):
+        """Creates a canary environment, applies the change, and runs the full audit."""
         target_rel_path = proposal["target_path"]
+
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
             copy_tree(self.repo_root, tmp_path)
+
             env_file = self.repo_root / ".env"
             if env_file.exists():
                 copy_file(env_file, tmp_path / ".env")
+
             canary_target_path = tmp_path / target_rel_path
             canary_target_path.parent.mkdir(parents=True, exist_ok=True)
             canary_target_path.write_text(proposal.get("content", ""), encoding="utf-8")
+
             if (tmp_path / ".env").exists():
                 load_dotenv(dotenv_path=tmp_path / ".env", override=True)
+
             auditor = ConstitutionalAuditor(repo_root_override=tmp_path)
             success, findings, _ = await auditor.run_full_audit_async()
+
             return success, findings
 
     # ID: 92ce9218-fc89-4ee0-aba4-9956729c794c
     def approve(self, proposal_name: str) -> None:
-        """Orchestrates the full approval workflow: verify, check quorum, audit, and apply."""
+        """Full approval workflow: verify, check quorum, audit, apply."""
         proposal_path = self.proposals_dir / proposal_name
         if not proposal_path.exists():
             raise FileNotFoundError(f"Proposal '{proposal_name}' not found.")
+
         proposal = yaml_processor.load(proposal_path) or {}
         target_rel_path = proposal.get("target_path")
         if not target_rel_path:
             raise ValueError("Proposal is invalid: missing 'target_path'.")
-        valid_signatures = self._verify_signatures(proposal)
+
+        valid_sigs = self._verify_signatures(proposal)
+
         is_critical = any(str(target_rel_path) == p for p in self.critical_paths)
         quorum_config = self.approvers_config.get("quorum", {})
         mode = quorum_config.get("current_mode", "development")
         required_sigs = quorum_config.get(mode, {}).get(
             "critical" if is_critical else "standard", 1
         )
-        if valid_signatures < required_sigs:
-            msg = (
-                f"Approval failed: Quorum not met ({valid_signatures}/{required_sigs})."
+
+        if valid_sigs < required_sigs:
+            raise PermissionError(
+                f"Approval failed: Quorum not met ({valid_sigs}/{required_sigs})."
             )
-            raise PermissionError(msg)
+
         success, findings = asyncio.run(self._run_canary_audit(proposal))
+
         if success:
             archive_rollback_plan(proposal_name, proposal)
+
             live_target_path = self.repo_root / target_rel_path
             live_target_path.parent.mkdir(parents=True, exist_ok=True)
             live_target_path.write_text(proposal.get("content", ""), encoding="utf-8")
+
             proposal_path.unlink()
             logger.info(f"✅ Successfully approved and applied '{proposal_name}'.")
         else:
@@ -225,12 +245,14 @@ class ProposalService:
             raise ChildProcessError("Canary audit failed.")
 
 
-# --- CLI Command Functions (Thin Wrappers) ---
+# ---------------------------------------------------------------------------
+# CLI COMMAND FUNCTIONS (renamed to *_cmd)
+# ---------------------------------------------------------------------------
 
 
 # ID: ac0fafee-585f-4ece-8675-269b5a8168c1
-def proposals_list() -> None:
-    """CLI command to list all pending proposals."""
+def proposals_list_cmd() -> None:
+    """CLI command: list all pending proposals."""
     logger.info("🔍 Finding pending constitutional proposals...")
     service = ProposalService(settings.REPO_PATH)
     proposals = service.list()
@@ -244,15 +266,15 @@ def proposals_list() -> None:
         logger.info(f"\n  - **{prop.name}**: {prop.justification.strip()}")
         logger.info(f"    Target: {prop.target_path}")
         logger.info(
-            f"    Status: {prop.status} ({('Critical' if prop.is_critical else 'Standard')})"
+            f"    Status: {prop.status} ({'Critical' if prop.is_critical else 'Standard'})"
         )
 
 
 # ID: 9247acde-c437-4eab-88ee-4b5c3da85cae
-def proposals_sign(
+def proposals_sign_cmd(
     proposal_name: str = typer.Argument(..., help="Filename of the proposal to sign."),
 ) -> None:
-    """CLI command to sign a proposal."""
+    """CLI command: sign a proposal."""
     logger.info(f"✍️ Signing proposal: {proposal_name}")
     try:
         service = ProposalService(settings.REPO_PATH)
@@ -265,17 +287,17 @@ def proposals_sign(
         logger.error(f"❌ {e}")
         raise typer.Exit(code=1)
     except Exception as e:
-        logger.error(f"❌ An unexpected error occurred during signing: {e}")
+        logger.error(f"❌ Unexpected error during signing: {e}")
         raise typer.Exit(code=1)
 
 
 # ID: 9f252083-c262-4251-b5d0-2c6661528db6
-def proposals_approve(
+def proposals_approve_cmd(
     proposal_name: str = typer.Argument(
         ..., help="Filename of the proposal to approve."
     ),
 ) -> None:
-    """CLI command to approve and apply a proposal."""
+    """CLI command: approve and apply a proposal."""
     logger.info(f"🚀 Attempting to approve proposal: {proposal_name}")
     try:
         service = ProposalService(settings.REPO_PATH)
@@ -284,5 +306,14 @@ def proposals_approve(
         logger.error(f"❌ {e}")
         raise typer.Exit(code=1)
     except Exception as e:
-        logger.error(f"❌ An unexpected error occurred during approval: {e}")
+        logger.error(f"❌ Unexpected error during approval: {e}")
         raise typer.Exit(code=1)
+
+
+# ---------------------------------------------------------------------------
+# BACKWARD-COMPATIBLE ALIASES
+# ---------------------------------------------------------------------------
+
+proposals_list = proposals_list_cmd
+proposals_sign = proposals_sign_cmd
+proposals_approve = proposals_approve_cmd

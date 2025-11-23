@@ -12,10 +12,11 @@ import asyncio
 import typer
 from rich.console import Console
 from ruamel.yaml import YAML
+from sqlalchemy import text
+
 from services.database.session_manager import get_session
 from shared.config import settings
 from shared.logger import getLogger
-from sqlalchemy import text
 
 logger = getLogger(__name__)
 console = Console()

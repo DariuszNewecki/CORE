@@ -177,14 +177,14 @@ def collect_code_capabilities(
     root: Path, include_globs: list[str], exclude_globs: list[str], require_kgb: bool
 ) -> dict[str, CapabilityMeta]:
     """Unified discovery entrypoint."""
-    from features.introspection.discovery.from_kgb import collect_from_kgb
+    from features.introspection.discovery.from_kgb import _collect_from_kgb
     from features.introspection.discovery.from_source_scan import (
         collect_from_source_scan,
     )
 
     try:
         if require_kgb:
-            return collect_from_kgb(root)
+            return _collect_from_kgb(root)
         return collect_from_source_scan(root, include_globs, exclude_globs)
     except Exception as e:
         logger.warning(

@@ -10,18 +10,20 @@ symbols when their source code has been modified by comparing structural hashes.
 from __future__ import annotations
 
 import ast
+import asyncio
 import hashlib
 from pathlib import Path
 
 from rich.console import Console
 from rich.progress import track
+from sqlalchemy import text
+
 from services.clients.qdrant_client import QdrantService
 from services.database.session_manager import get_session
 from shared.config import settings
 from shared.context import CoreContext
 from shared.logger import getLogger
 from shared.utils.embedding_utils import normalize_text
-from sqlalchemy import text
 from will.orchestration.cognitive_service import CognitiveService
 
 logger = getLogger(__name__)
@@ -29,13 +31,32 @@ console = Console()
 
 
 async def _fetch_all_public_symbols_from_db() -> list[dict]:
-    """Queries the database for all public symbols and their vector link status."""
+    """Queries the database for all public symbols."""
+    # SIMPLIFIED: We no longer need the LEFT JOIN here. We'll get links separately.
     async with get_session() as session:
         stmt = text(
-            "\n            SELECT s.id, s.symbol_path, s.module, s.fingerprint AS structural_hash, l.vector_id\n            FROM core.symbols s\n            LEFT JOIN core.symbol_vector_links l ON s.id = l.symbol_id\n            WHERE s.is_public = TRUE\n            "
+            """
+            SELECT id, symbol_path, module, fingerprint AS structural_hash
+            FROM core.symbols
+            WHERE is_public = TRUE
+            """
         )
         result = await session.execute(stmt)
         return [dict(row._mapping) for row in result]
+
+
+# --- START OF NEW HELPER FUNCTION ---
+async def _fetch_existing_vector_links() -> dict[str, str]:
+    """Fetches all existing symbol_id -> vector_id mappings from the database."""
+    async with get_session() as session:
+        result = await session.execute(
+            text("SELECT symbol_id, vector_id FROM core.symbol_vector_links")
+        )
+        # Key: symbol_id (str), Value: vector_id (str)
+        return {str(row.symbol_id): str(row.vector_id) for row in result}
+
+
+# --- END OF NEW HELPER FUNCTION ---
 
 
 async def _get_stored_vector_hashes(qdrant_service: QdrantService) -> dict[str, str]:
@@ -125,7 +146,15 @@ async def _update_db_after_vectorization(updates: list[dict]):
         async with session.begin():
             await session.execute(
                 text(
-                    "\n                    INSERT INTO core.symbol_vector_links (symbol_id, vector_id, embedding_model, embedding_version, created_at)\n                    VALUES (:symbol_id, :vector_id, :embedding_model, :embedding_version, NOW())\n                    ON CONFLICT (symbol_id) DO UPDATE SET\n                        vector_id = EXCLUDED.vector_id,\n                        embedding_model = EXCLUDED.embedding_model,\n                        embedding_version = EXCLUDED.embedding_version,\n                        created_at = NOW();\n                "
+                    """
+                    INSERT INTO core.symbol_vector_links (symbol_id, vector_id, embedding_model, embedding_version, created_at)
+                    VALUES (:symbol_id, :vector_id, :embedding_model, :embedding_version, NOW())
+                    ON CONFLICT (symbol_id) DO UPDATE SET
+                        vector_id = EXCLUDED.vector_id,
+                        embedding_model = EXCLUDED.embedding_model,
+                        embedding_version = EXCLUDED.embedding_version,
+                        created_at = NOW();
+                """
                 ),
                 updates,
             )
@@ -138,6 +167,7 @@ async def _update_db_after_vectorization(updates: list[dict]):
     console.print(f"   -> Updated {len(updates)} records in the database.")
 
 
+# --- START OF REFACTOR ---
 # ID: c1f403a3-cc28-450f-a182-b368e32abca5
 async def run_vectorize(
     context: CoreContext, dry_run: bool = False, force: bool = False
@@ -147,24 +177,48 @@ async def run_vectorize(
     """
     console.print("[bold cyan]🚀 Starting Database-Driven Vectorization...[/bold cyan]")
     failure_log_path = settings.REPO_PATH / "logs" / "vectorization_failures.log"
-    all_symbols = await _fetch_all_public_symbols_from_db()
+
+    # 1. Fetch all state concurrently
+    all_symbols, existing_links, stored_vector_hashes = await asyncio.gather(
+        _fetch_all_public_symbols_from_db(),
+        _fetch_existing_vector_links(),
+        _get_stored_vector_hashes(context.qdrant_service),
+    )
+
     cognitive_service = context.cognitive_service
     qdrant_service = context.qdrant_service
     await qdrant_service.ensure_collection()
-    stored_vector_hashes = await _get_stored_vector_hashes(qdrant_service)
+
     tasks = []
     for symbol in all_symbols:
         symbol_id_str = str(symbol["id"])
+
+        # 2. Get source code and calculate its current hash
         module_path = symbol["module"]
         file_path_str = "src/" + module_path.replace(".", "/") + ".py"
         file_path = settings.REPO_PATH / file_path_str
         source_code = _get_source_code(file_path, symbol["symbol_path"])
         if not source_code:
             continue
+
         normalized_code = normalize_text(source_code)
         current_code_hash = hashlib.sha256(normalized_code.encode("utf-8")).hexdigest()
-        stored_hash = stored_vector_hashes.get(symbol_id_str)
-        if force or current_code_hash != stored_hash:
+
+        # 3. Determine if vectorization is needed using explicit logic
+        needs_vectorization = False
+        if force:
+            needs_vectorization = True
+        elif symbol_id_str not in existing_links:
+            # Case A: Symbol is new and has never been vectorized.
+            needs_vectorization = True
+        else:
+            # Case B: Symbol has been vectorized. Check if its content has changed.
+            vector_id = existing_links[symbol_id_str]
+            stored_hash = stored_vector_hashes.get(vector_id)
+            if current_code_hash != stored_hash:
+                needs_vectorization = True
+
+        if needs_vectorization:
             task_data = {
                 **symbol,
                 "source_code": normalized_code,
@@ -172,11 +226,13 @@ async def run_vectorize(
                 "file_path_str": str(file_path.relative_to(settings.REPO_PATH)),
             }
             tasks.append(task_data)
+
     if not tasks:
         console.print(
             "[bold green]✅ Vector knowledge base is already up-to-date.[/bold green]"
         )
         return
+
     console.print(f"   -> Found {len(tasks)} symbols needing vectorization.")
     if dry_run:
         console.print(
@@ -187,6 +243,7 @@ async def run_vectorize(
         if len(tasks) > 5:
             console.print(f"   -> ... and {len(tasks) - 5} more.")
         return
+
     updates_to_db = []
     for task in track(tasks, description="Vectorizing symbols..."):
         point_id = await _process_vectorization_task(
@@ -201,6 +258,7 @@ async def run_vectorize(
                     "embedding_version": 1,
                 }
             )
+
     await _update_db_after_vectorization(updates_to_db)
     console.print(
         f"\n[bold green]✅ Vectorization complete. Processed {len(updates_to_db)}/{len(tasks)} symbols.[/bold green]"

@@ -9,11 +9,10 @@ from __future__ import annotations
 import os
 from typing import Any
 
-from shared.models import AuditFinding, AuditSeverity
-
 # No longer need 'Any' as we know the context type
 from mind.governance.audit_context import AuditorContext
 from mind.governance.checks.base_check import BaseCheck
+from shared.models import AuditFinding, AuditSeverity
 
 
 # ID: 0c3965b7-b3f3-4fb6-bbbb-c94a1ffae3fe

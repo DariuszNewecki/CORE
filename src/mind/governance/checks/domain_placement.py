@@ -9,12 +9,11 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+from mind.governance.audit_context import AuditorContext
+from mind.governance.checks.base_check import BaseCheck
 from shared.logger import getLogger
 from shared.models import AuditFinding, AuditSeverity
 from shared.utils.yaml_processor import yaml_processor
-
-from mind.governance.audit_context import AuditorContext
-from mind.governance.checks.base_check import BaseCheck
 
 logger = getLogger(__name__)
 

@@ -8,11 +8,11 @@ from __future__ import annotations
 import ast
 from pathlib import Path
 
-from shared.logger import getLogger
-from shared.models import AuditFinding, AuditSeverity
 from sqlalchemy import select
 
 from mind.governance.checks.base_check import BaseCheck
+from shared.logger import getLogger
+from shared.models import AuditFinding, AuditSeverity
 
 logger = getLogger(__name__)
 
@@ -21,26 +21,28 @@ logger = getLogger(__name__)
 class RespectCliRegistryCheck(BaseCheck):
     policy_rule_ids = ["agent.compliance.respect_cli_registry"]
 
-    # ID: c0d27e66-d56f-47b4-b534-53a0ddab3c26
-    def execute(self) -> list[AuditFinding]:
+    # --- START OF FIX: Make _get_registered an async method ---
+    async def _get_registered(self) -> set[str]:
+        """Asynchronously fetches the set of registered command names from the database."""
+        from services.database.models import CliCommand
+        from services.database.session_manager import get_session
+
+        async with get_session() as db:
+            result = await db.execute(select(CliCommand.name))
+            return {row[0] for row in result.fetchall()}
+
+    # --- END OF FIX ---
+
+    # --- START OF FIX: Convert the main execute method to async ---
+    # ID: e67915d4-4b91-449f-b7af-f64ac3b2c72b
+    async def execute(self) -> list[AuditFinding]:
         findings = []
 
         # Load registered CLI commands from DB
         registered = set()
         try:
-            from services.database.models import CliCommand  # ← MOVED HERE
-            from services.database.session_manager import get_session
-
-            async def _get_registered():
-                async with get_session() as db:
-                    result = await db.execute(select(CliCommand.command_name))
-                    return {
-                        row[0] for row in result.fetchall()
-                    }  # ← FIXED: fetchall() + row[0]
-
-            import asyncio
-
-            registered = asyncio.run(_get_registered())
+            # Await the async method directly instead of using asyncio.run()
+            registered = await self._get_registered()
             logger.info(
                 f"Loaded {len(registered)} registered CLI commands: {sorted(registered)}"
             )
@@ -48,8 +50,9 @@ class RespectCliRegistryCheck(BaseCheck):
             logger.warning(
                 f"Failed to load CLI registry: {e}. Treating all commands as unregistered."
             )
+        # --- END OF FIX ---
 
-        # Look for subprocess/os.system calls
+        # Look for subprocess/os.system calls (this part remains synchronous)
         for file_path in self.context.python_files:
             try:
                 content = file_path.read_text(encoding="utf-8")
@@ -93,9 +96,8 @@ class RespectCliRegistryCheck(BaseCheck):
                                 cmd = arg.s if hasattr(arg, "s") else arg.value
 
                     if cmd and cmd.startswith("core-admin"):
-                        # Extract subcommand: "core-admin fix ids" → "fix"
                         parts = cmd.split()
-                        subcommand = parts[1] if len(parts) > 1 else ""
+                        subcommand = ".".join(parts[1:3]) if len(parts) > 2 else ""
                         if subcommand and subcommand not in registered:
                             findings.append(self._finding(file_path, node.lineno, cmd))
             except Exception as e:

@@ -5,9 +5,10 @@ from __future__ import annotations
 
 from collections import defaultdict
 
+from rich.console import Console
+
 from mind.governance.audit_context import AuditorContext
 from mind.governance.checks.legacy_tag_check import LegacyTagCheck
-from rich.console import Console
 from shared.config import settings
 
 console = Console()

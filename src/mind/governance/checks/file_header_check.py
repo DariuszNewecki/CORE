@@ -6,9 +6,8 @@ Every src/*.py file must start with '# src/path/to/file.py'
 
 from __future__ import annotations
 
-from shared.models import AuditFinding, AuditSeverity
-
 from mind.governance.checks.base_check import BaseCheck
+from shared.models import AuditFinding, AuditSeverity
 
 
 # ID: a1b2c3d4-e5f6-7890-g1h2-i3j4k5l6m7n8

@@ -8,9 +8,8 @@ from __future__ import annotations
 import ast
 from pathlib import Path
 
-from shared.models import AuditFinding, AuditSeverity
-
 from mind.governance.checks.base_check import BaseCheck
+from shared.models import AuditFinding, AuditSeverity
 
 
 # ID: p6q7r8s9-t0u1-1v2w-3x4y-5z6a7b8c9d0e
@@ -49,7 +48,7 @@ class ReasoningTraceCheck(BaseCheck):
                 findings.append(
                     AuditFinding(
                         check_id="agent.reasoning.trace_required",
-                        severity=AuditSeverity.WARN,
+                        severity=AuditSeverity.WARNING,
                         message=f"Parse error in {file_path.name}: {e}",
                         file_path=str(file_path.relative_to(self.repo_root)),
                         line_number=1,
@@ -61,7 +60,7 @@ class ReasoningTraceCheck(BaseCheck):
     def _finding(self, file_path: Path, line: int) -> AuditFinding:
         return AuditFinding(
             check_id="agent.reasoning.trace_required",
-            severity=AuditSeverity.WARN,
+            severity=AuditSeverity.WARNING,
             message="reason() called without TRACE: log. Add `logger.info('TRACE: ...')`.",
             file_path=str(file_path.relative_to(self.repo_root)),
             line_number=line,

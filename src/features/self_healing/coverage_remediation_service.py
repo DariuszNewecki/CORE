@@ -12,14 +12,13 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+from features.self_healing.full_project_remediation import FullProjectRemediationService
 from mind.governance.audit_context import AuditorContext
 from shared.logger import getLogger
-from will.orchestration.cognitive_service import CognitiveService
-
-from features.self_healing.full_project_remediation import FullProjectRemediationService
 from src.features.self_healing.single_file_remediation import (
     EnhancedSingleFileRemediationService,
 )
+from will.orchestration.cognitive_service import CognitiveService
 
 logger = getLogger(__name__)
 
@@ -74,8 +73,7 @@ async def remediate_coverage_enhanced(
         return await service.remediate()
 
 
-# ID: 1b2d54bb-0ef0-40e0-b41f-5101d8c16be0
-async def remediate_coverage(
+async def _remediate_coverage(
     cognitive_service: CognitiveService,
     auditor_context: AuditorContext,
     target_coverage: int | None = None,

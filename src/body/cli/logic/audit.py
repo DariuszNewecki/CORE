@@ -1,6 +1,6 @@
 # src/body/cli/logic/audit.py
 """
-Implements high-level CI and system health checks, including the main constitutional audit.
+Provides functionality for the audit module.
 """
 
 from __future__ import annotations
@@ -12,10 +12,10 @@ import typer
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
+
 from shared.context import CoreContext
 from shared.models import AuditFinding, AuditSeverity
 from shared.utils.subprocess_utils import run_poetry_command
-
 from src.mind.governance.auditor import ConstitutionalAuditor
 
 console = Console()
@@ -57,16 +57,15 @@ def _print_verbose_findings(findings: list[AuditFinding]):
 
 
 def _print_summary_findings(findings: list[AuditFinding]):
-    """Groups findings by check ID and prints a summary table."""
-    grouped_findings: dict[tuple[str, str, AuditSeverity], list[str]] = defaultdict(
+    """Groups findings by check ID only and prints a summary table."""
+    # FIXED: Group by check_id and severity only, NOT by message
+    grouped_findings: dict[tuple[str, AuditSeverity], list[AuditFinding]] = defaultdict(
         list
     )
+
     for f in findings:
-        location = str(f.file_path or "")
-        if f.line_number:
-            location += f":{f.line_number}"
-        key = (f.check_id, f.message, f.severity)
-        grouped_findings[key].append(location)
+        key = (f.check_id, f.severity)
+        grouped_findings[key].append(f)
 
     table = Table(
         title="[bold]Audit Findings Summary[/bold]",
@@ -87,16 +86,19 @@ def _print_summary_findings(findings: list[AuditFinding]):
     # Sort by severity (highest first), then by check_id
     sorted_items = sorted(
         grouped_findings.items(),
-        key=lambda item: (item[0][2], item[0][0]),
+        key=lambda item: (item[0][1], item[0][0]),
         reverse=True,
     )
 
-    for (check_id, message, severity), locations in sorted_items:
+    for (check_id, severity), finding_list in sorted_items:
+        # Take the first message as representative for the check_id
+        representative_message = finding_list[0].message
+
         table.add_row(
             severity_styles.get(severity, str(severity)),
             check_id,
-            message,
-            str(len(locations)),
+            representative_message,
+            str(len(finding_list)),
         )
 
     console.print(table)
@@ -129,7 +131,8 @@ async def _async_audit(severity: str, verbose: bool):
         min_severity = AuditSeverity[severity.upper()]
     except KeyError:
         console.print(
-            f"[bold red]Invalid severity level '{severity}'. Must be 'info', 'warning', or 'error'.[/bold red]"
+            f"[bold red]Invalid severity level '{severity}'. "
+            "Must be 'info', 'warning', or 'error'.[/bold red]"
         )
         raise typer.Exit(code=1)
 
@@ -192,5 +195,4 @@ def audit(
     ),
 ):
     """Run a full constitutional self-audit and print a summary of findings."""
-    # THE FIX: Pass the arguments to the async function.
     asyncio.run(_async_audit(severity=severity, verbose=verbose))

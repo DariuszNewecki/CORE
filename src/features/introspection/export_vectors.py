@@ -15,6 +15,7 @@ import typer
 from qdrant_client.http import models as qm
 from rich.console import Console
 from rich.progress import track
+
 from services.clients.qdrant_client import QdrantService
 from shared.context import CoreContext
 from shared.logger import getLogger
