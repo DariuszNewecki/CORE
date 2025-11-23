@@ -1,24 +1,96 @@
 #!/usr/-bin/env python3
 # tools/build_llm_context.py
-import argparse, hashlib, json, os, sys, time, fnmatch, subprocess
+import argparse
+import fnmatch
+import hashlib
+import json
+import os
+import subprocess
+import sys
+import time
 from pathlib import Path
 
 TEXT_EXTS = {
-    ".py",".pyi",".md",".txt",".yaml",".yml",".toml",".ini",".cfg",".json",".sql",
-    ".sh",".bash",".zsh",".ps1",".bat",".gitignore",".dockerignore",".env.example",
-    ".rst",".csv"
+    ".py",
+    ".pyi",
+    ".md",
+    ".txt",
+    ".yaml",
+    ".yml",
+    ".toml",
+    ".ini",
+    ".cfg",
+    ".json",
+    ".sql",
+    ".sh",
+    ".bash",
+    ".zsh",
+    ".ps1",
+    ".bat",
+    ".gitignore",
+    ".dockerignore",
+    ".env.example",
+    ".rst",
+    ".csv",
 }
 BINARY_EXTS = {
-    ".png",".jpg",".jpeg",".gif",".webp",".ico",".bmp",".tiff",".svg",
-    ".mp3",".wav",".flac",".ogg",".mp4",".webm",".mov",".avi",
-    ".pdf",".zip",".tar",".gz",".xz",".7z",".rar",".whl",".so",".dll",".dylib",
-    ".pyc",".pyo"
+    ".png",
+    ".jpg",
+    ".jpeg",
+    ".gif",
+    ".webp",
+    ".ico",
+    ".bmp",
+    ".tiff",
+    ".svg",
+    ".mp3",
+    ".wav",
+    ".flac",
+    ".ogg",
+    ".mp4",
+    ".webm",
+    ".mov",
+    ".avi",
+    ".pdf",
+    ".zip",
+    ".tar",
+    ".gz",
+    ".xz",
+    ".7z",
+    ".rar",
+    ".whl",
+    ".so",
+    ".dll",
+    ".dylib",
+    ".pyc",
+    ".pyo",
 }
 DEFAULT_EXCLUDE_DIRS = {
-    ".git",".venv","venv","__pycache__",".pytest_cache",".ruff_cache",".mypy_cache",
-    "logs","sandbox","pending_writes","dist","build",".idea",".vscode","demo","work"
+    ".git",
+    ".venv",
+    "venv",
+    "__pycache__",
+    ".pytest_cache",
+    ".ruff_cache",
+    ".mypy_cache",
+    "logs",
+    "sandbox",
+    "pending_writes",
+    "dist",
+    "build",
+    ".idea",
+    ".vscode",
+    "demo",
+    "work",
 }
-ROOT_DEFAULTS = ["pyproject.toml","poetry.lock","README.md","LICENSE","Makefile",".gitignore"]
+ROOT_DEFAULTS = [
+    "pyproject.toml",
+    "poetry.lock",
+    "README.md",
+    "LICENSE",
+    "Makefile",
+    ".gitignore",
+]
 
 # --- START OF MODIFICATION ---
 # We are adding the 'sql' directory to the developer and full profiles
@@ -29,11 +101,19 @@ PROFILES = {
         "root_files": ROOT_DEFAULTS,
     },
     "dev": {
-        "include_dirs": ["src", ".intent", "docs", "tests", "sql"], # <-- ADDED 'sql'
+        "include_dirs": ["src", ".intent", "docs", "tests", "sql"],  # <-- ADDED 'sql'
         "root_files": ROOT_DEFAULTS,
     },
     "full": {
-        "include_dirs": ["src", ".intent", "docs", "tests", "scripts", "tools", "sql"], # <-- ADDED 'sql'
+        "include_dirs": [
+            "src",
+            ".intent",
+            "docs",
+            "tests",
+            "scripts",
+            "tools",
+            "sql",
+        ],  # <-- ADDED 'sql'
         "root_files": ROOT_DEFAULTS,
     },
     "intent-only": {
@@ -42,6 +122,7 @@ PROFILES = {
     },
 }
 # --- END OF MODIFICATION ---
+
 
 def is_probably_binary(path: Path) -> bool:
     if path.suffix.lower() in BINARY_EXTS:
@@ -55,10 +136,12 @@ def is_probably_binary(path: Path) -> bool:
         return True
     return False
 
+
 def sha256_of_bytes(b: bytes) -> str:
     h = hashlib.sha256()
     h.update(b)
     return h.hexdigest()
+
 
 def read_text_head(path: Path, max_bytes: int) -> bytes:
     with path.open("rb") as f:
@@ -69,11 +152,23 @@ def read_text_head(path: Path, max_bytes: int) -> bytes:
         size = len(data)
     trailer = b""
     if size > len(data):
-        trailer = f"\n[... TRUNCATED: kept first {len(data)} bytes of {size} ...]\n".encode("utf-8")
+        trailer = (
+            f"\n[... TRUNCATED: kept first {len(data)} bytes of {size} ...]\n".encode(
+                "utf-8"
+            )
+        )
     return data + trailer
 
-def collect_files(root: Path, include_dirs, extra_paths, exclude_dirs, allow_exts,
-                  include_root_files, name_excludes: list[str]):
+
+def collect_files(
+    root: Path,
+    include_dirs,
+    extra_paths,
+    exclude_dirs,
+    allow_exts,
+    include_root_files,
+    name_excludes: list[str],
+):
     files = []
     # add root files if present
     for rf in include_root_files:
@@ -116,15 +211,19 @@ def collect_files(root: Path, include_dirs, extra_paths, exclude_dirs, allow_ext
     uniq = sorted({str(p) for p in files})
     return [Path(u) for u in uniq]
 
+
 def git_changed_files(since: str) -> set:
     try:
         r = subprocess.run(
             ["git", "diff", "--name-only", since, "HEAD"],
-            check=True, capture_output=True, text=True
+            check=True,
+            capture_output=True,
+            text=True,
         )
         return {line.strip() for line in r.stdout.splitlines() if line.strip()}
     except Exception:
         return set()
+
 
 def write_chunks(outdir: Path, entries, max_chunk_bytes: int):
     outdir.mkdir(parents=True, exist_ok=True)
@@ -163,17 +262,48 @@ def write_chunks(outdir: Path, entries, max_chunk_bytes: int):
 
     return paths
 
+
 def main():
-    ap = argparse.ArgumentParser(description="Build compact, chunked LLM context from a repo.")
+    ap = argparse.ArgumentParser(
+        description="Build compact, chunked LLM context from a repo."
+    )
     ap.add_argument("--profile", choices=PROFILES.keys(), default="minimal")
-    ap.add_argument("--paths", help="Comma-separated extra paths to include (files or dirs).", default="")
-    ap.add_argument("--exclude-dirs", help="Comma-separated dirs to exclude in addition to defaults.", default="")
-    ap.add_argument("--names-exclude", help="Comma-separated filename globs to exclude (e.g. '*.md,*.csv')", default="")
-    ap.add_argument("--max-file-bytes", type=int, default=300_000, help="Max bytes per file to capture.")
-    ap.add_argument("--max-chunk-bytes", type=int, default=12_000_000, help="Max bytes per output chunk.")
-    ap.add_argument("--max-files", type=int, default=0, help="Stop after N files (0 = no limit).")
+    ap.add_argument(
+        "--paths",
+        help="Comma-separated extra paths to include (files or dirs).",
+        default="",
+    )
+    ap.add_argument(
+        "--exclude-dirs",
+        help="Comma-separated dirs to exclude in addition to defaults.",
+        default="",
+    )
+    ap.add_argument(
+        "--names-exclude",
+        help="Comma-separated filename globs to exclude (e.g. '*.md,*.csv')",
+        default="",
+    )
+    ap.add_argument(
+        "--max-file-bytes",
+        type=int,
+        default=300_000,
+        help="Max bytes per file to capture.",
+    )
+    ap.add_argument(
+        "--max-chunk-bytes",
+        type=int,
+        default=12_000_000,
+        help="Max bytes per output chunk.",
+    )
+    ap.add_argument(
+        "--max-files", type=int, default=0, help="Stop after N files (0 = no limit)."
+    )
     ap.add_argument("--outdir", default="llm_context", help="Output directory.")
-    ap.add_argument("--since", help="Only include files changed since this git ref (e.g. v0.2.0)", default=None)
+    ap.add_argument(
+        "--since",
+        help="Only include files changed since this git ref (e.g. v0.2.0)",
+        default=None,
+    )
     ap.add_argument("--print-summary", action="store_true")
     args = ap.parse_args()
 
@@ -188,7 +318,13 @@ def main():
     name_excludes = [p.strip() for p in args.names_exclude.split(",") if p.strip()]
 
     candidates = collect_files(
-        root, include_dirs, extra_paths, exclude_dirs, TEXT_EXTS, include_root_files, name_excludes
+        root,
+        include_dirs,
+        extra_paths,
+        exclude_dirs,
+        TEXT_EXTS,
+        include_root_files,
+        name_excludes,
     )
 
     if args.since:
@@ -216,12 +352,14 @@ def main():
             data = read_text_head(p, args.max_file_bytes)
             total_bytes += len(data)
             total_files += 1
-            entries.append({
-                "path": str(p.relative_to(root)),
-                "sha256": sha256_of_bytes(data),
-                "size_bytes_captured": len(data),
-                "bytes": data,
-            })
+            entries.append(
+                {
+                    "path": str(p.relative_to(root)),
+                    "sha256": sha256_of_bytes(data),
+                    "size_bytes_captured": len(data),
+                    "bytes": data,
+                }
+            )
         except Exception:
             unreadable += 1
             continue
@@ -244,7 +382,14 @@ def main():
         "total_files": total_files,
         "total_bytes_captured": total_bytes,
         "chunks": chunk_paths,
-        "files": [{"path": e["path"], "sha256": e["sha256"], "size_bytes_captured": e["size_bytes_captured"]} for e in entries],
+        "files": [
+            {
+                "path": e["path"],
+                "sha256": e["sha256"],
+                "size_bytes_captured": e["size_bytes_captured"],
+            }
+            for e in entries
+        ],
         "skipped_binary_like": skipped_binaries[:200],
         "unreadable_count": unreadable,
     }
@@ -252,25 +397,31 @@ def main():
 
     # Write a brief human summary
     (outdir / "summary.txt").write_text(
-        "\n".join([
-            f"Created: {manifest['created_at']}",
-            f"Profile: {manifest['profile']}",
-            f"Files captured: {total_files}",
-            f"Bytes captured: {total_bytes}",
-            f"Chunks: {len(chunk_paths)}",
-            f"Skipped (binary-like): {len(skipped_binaries)}",
-            f"Unreadable: {unreadable}",
-            f"Outdir: {outdir}",
-        ]) + "\n"
+        "\n".join(
+            [
+                f"Created: {manifest['created_at']}",
+                f"Profile: {manifest['profile']}",
+                f"Files captured: {total_files}",
+                f"Bytes captured: {total_bytes}",
+                f"Chunks: {len(chunk_paths)}",
+                f"Skipped (binary-like): {len(skipped_binaries)}",
+                f"Unreadable: {unreadable}",
+                f"Outdir: {outdir}",
+            ]
+        )
+        + "\n"
     )
 
     if args.print_summary:
-        mb = total_bytes / (1024*1024)
-        print(f"[OK] Captured {total_files} files, {mb:.2f} MiB into {len(chunk_paths)} chunk(s):")
+        mb = total_bytes / (1024 * 1024)
+        print(
+            f"[OK] Captured {total_files} files, {mb:.2f} MiB into {len(chunk_paths)} chunk(s):"
+        )
         for c in chunk_paths:
             print(f"  - {c}")
         print(f"Manifest: {outdir/'index.json'}")
         print(f"Summary : {outdir/'summary.txt'}")
+
 
 if __name__ == "__main__":
     sys.exit(main())

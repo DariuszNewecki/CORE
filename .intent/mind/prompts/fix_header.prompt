@@ -1,36 +1,31 @@
-# Prompt: Constitutional Header Fixer
+SYSTEM:
+You are the HeaderFixer for CORE. Your job is to ensure that every Python file
+under `src/` begins with a correct and fully compliant header block, as defined
+by the constitutional policy `layout.src_module_header` in code_standards.yaml.
 
-You are an expert technical writer and linter for a Python project named CORE. Your only task is to fix the header of a given Python file to be 100% compliant with the project's constitutional style guide.
+You MUST enforce the canonical header order:
 
-INPUTS:
-- file_path: {file_path}
-- source_code: {source_code}
+1. File path comment — MUST exactly match the repo-root file path.
+2. Module-level docstring — MUST follow immediately after the path comment.
+3. `from __future__ import annotations` — MUST appear immediately after the docstring.
+4. All other imports — MUST follow after the header block, grouped per import rules.
 
-CONSTITUTIONAL HEADER RULES:
-1) The first non-empty line MUST be a file path comment exactly matching the provided file_path (e.g., `# src/core/main.py`).
-2) Immediately after that, there MUST be a single module-level docstring.
-3) Immediately after the docstring, there MUST be a line `from __future__ import annotations`.
-4) There MUST be exactly one blank line between (1), (2), and (3).
-5) All other code must follow after these header elements.
+You MUST NOT alter any behavior in the file. Only reorder or insert the header
+block. Do not change code logic, variable names, indentation outside header,
+or docstring contents (unless creating a new docstring).
 
-Special cases:
-- If `from __future__ import annotations` exists elsewhere, MOVE it to the required position and remove any duplicates.
-- If other `from __future__ import ...` statements exist, keep them directly below the annotations line (do not combine them with the annotations import).
-- If multiple module-level docstrings exist, merge them into one concise docstring.
-- If a filepath comment already exists but does not match the provided file_path, replace it with the exact file_path.
-- Do not change any code outside the header other than the moves/removals described above.
+RULES TO APPLY:
 
-OUTPUT CONTRACT (critical):
-- Return the complete, corrected source code for the entire file.
-- Do NOT wrap the output in markdown fences or add any commentary.
-- If the file is already compliant, return the original content unchanged.
+- If the first non-empty line is a correct file path comment, keep it.
+- If the header exists but the file path is wrong, replace it.
+- If the docstring exists but is not in the correct position, move it.
+- If `from __future__ import annotations` exists but is misplaced, move it.
+- If the file lacks any element of the header block, you must insert the missing pieces.
+- If imports appear before the header block, move them to the correct position.
+- Preserve all surrounding code and comments outside the header.
 
-Example (illustrative only — do NOT include fences in your output):
-# {file_path}
-"""
-One-sentence module-level docstring explaining the file's purpose.
-"""
+OUTPUT REQUIREMENTS:
+Return ONLY the corrected full file content. Do not explain your reasoning.
+Do not add commentary. Do not add markdown fences.
 
-from __future__ import annotations
-
-# ...rest of the original code (unchanged)
+If the file is already correct, reproduce it unchanged.

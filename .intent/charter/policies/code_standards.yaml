@@ -1,0 +1,288 @@
+# .intent/charter/policies/code_standards.yaml
+policy_id: "aaa0a228-125d-4013-bfed-c1b58cec0f66" # From original code_style_policy
+id: code_standards
+version: "2.3.0" # Version bump for simplified header-only rule
+title: "Comprehensive Code Quality & Standards"
+status: active
+purpose: >
+  Unified standards for code quality, style, naming, and refactoring patterns.
+  Ensures consistent, maintainable, and safe code across the entire codebase.
+
+# === CODE STYLE & FORMATTING ===
+style_rules:
+  - id: style.linter_required
+    statement: "All changes MUST pass ruff (lint) before merge."
+    enforcement: error
+  - id: style.formatter_required
+    statement: "All changes MUST be formatted by black; CI runs black --check."
+    enforcement: error
+  - id: style.docstrings_public_apis
+    statement: "Public APIs MUST have docstrings summarizing intent and parameters."
+    enforcement: warn
+  - id: style.universal_helper_first
+    statement: "Before creating new helpers, check shared.universal. Reuse or extend instead of duplicating."
+    enforcement: warn
+  - id: style.capability_id_placement
+    statement: >
+      Primary public symbols that represent distinct capabilities MUST have '# ID: <uuid>'
+      tags directly above their definition. Private helpers MUST NOT receive capability IDs.
+    enforcement: warn
+  - id: style.import_order
+    statement: "Imports MUST follow grouping/order and avoid unused imports (enforced by linter)."
+    enforcement: warn
+  - id: style.fail_on_style_in_ci
+    statement: "CI MUST fail on style or lint violations (no auto-fixing in CI)."
+    enforcement: error
+
+# === FILE HEADER (PATH COMMENT) ===
+file_header_rules:
+  - id: layout.src_module_header
+    statement: >
+      Every Python module under 'src/' MUST begin with a correct file path
+      comment matching its repo-root location, followed by the module docstring
+      and then the canonical future import. This ordering constitutes the
+      required header block.
+    enforcement: error
+    scope:
+      - "src/**/*.py"
+    details:
+      example: |
+        # src/body/cli/admin_cli.py
+        """
+        Module documentation...
+        """
+        from __future__ import annotations
+
+      required_order:
+        - "1. File path comment (exact match to repo-root path)"
+        - "2. Module-level docstring"
+        - "3. from __future__ import annotations"
+        - "4. All other imports, grouped per import order rules"
+
+      behavior:
+        - "If the header block exists in correct order, do nothing."
+        - "If the file path comment exists but is incorrect, replace it."
+        - "If the header block exists but is out of order, reorder it."
+        - "If the header block is missing components, insert them."
+        - "If no header exists, construct a complete header block at the top."
+
+
+import_structure_rules:
+  - id: layout.import_grouping
+    statement: >
+      Imports MUST be grouped in the canonical order: future imports, standard library,
+      third-party packages, then internal modules. Mixed groups or interleaving are forbidden.
+    enforcement: warn
+    scope:
+      - "src/**/*.py"
+      - "tests/**/*.py"
+    details:
+      groups:
+        - name: future
+          examples:
+            - "from __future__ import annotations"
+        - name: stdlib
+          examples:
+            - "import os"
+            - "from pathlib import Path"
+        - name: third_party
+          examples:
+            - "import qdrant_client"
+            - "import sqlalchemy"
+            - "import typer"
+        - name: internal
+          examples:
+            - "from shared.logger import getLogger"
+            - "from services.git_service import GitService"
+            - "from mind.governance.audit_context import AuditorContext"
+            - "from will.orchestration.cognitive_service import CognitiveService"
+
+# === CODE HEALTH & COMPLEXITY ===
+health_standards:
+  max_cognitive_complexity: 15
+  max_nesting_depth: 4
+  max_line_length: 120
+  max_module_lloc: 300
+  max_function_lloc: 80
+  outlier_standard_deviations: 2.0
+  enforce_dead_public_symbols: true
+
+# === SYMBOL METADATA & CAPABILITIES ===
+symbol_metadata_rules:
+  - id: symbols.public_capability_id_and_docstring
+    statement: >
+      Public symbols that represent a capability (primary functions/classes not starting
+      with '_') MUST have an '# ID: <uuid>' comment directly above the definition and
+      MUST provide a meaningful docstring describing behavior and guarantees.
+    enforcement: error
+    scope:
+      - "src/**/*.py"
+    details:
+      id_comment_format: "^#\\s*ID:\\s*[0-9a-fA-F-]{36}$"
+      public_symbol_criteria:
+        - "Name does not start with '_'"
+        - "Exported as part of module's capability surface (e.g. referenced in manifests or used externally)."
+      docstring_requirements:
+        - "Summarize the behavior and main responsibilities."
+        - "Document side-effects or external interactions when non-trivial."
+  - id: symbols.private_helpers_no_id_required
+    statement: >
+      Private helpers (functions/classes starting with '_') MUST NOT receive capability
+      IDs. They MAY have docstrings where non-trivial but are not required to.
+    enforcement: warn
+    scope:
+      - "src/**/*.py"
+    details:
+      private_symbol_criteria:
+        - "Name starts with '_'"
+      rationale: >
+        Capability IDs are reserved for traceable, externally meaningful symbols.
+        Helper functions should not pollute the capability graph.
+  - id: symbols.cli_async_helpers_private
+    statement: >
+      Async orchestration helpers used exclusively to bridge CLI commands and
+      domain capabilities MUST be private (their name must start with '_') and
+      MUST NOT receive capability IDs. They exist only to wire CLI-level
+      entrypoints to domain-level capabilities and are not part of the governed
+      capability surface.
+    enforcement: error
+    scope:
+      - "src/**/*.py"
+    details:
+      rationale: >
+        Public async shims pollute the capability graph and confuse the
+        intent_alignment auditor. Only the CLI entrypoint and the underlying
+        domain capability should appear as governed symbols.
+      example_good:
+        - "_async_define_symbols"
+        - "_async_sync_operation"
+      example_bad:
+        - "async_define_symbols"
+        - "async_sync_operation"
+
+
+# === CAPABILITY LINTING ===
+capability_rules:
+  - id: caps.meaningful_description
+    statement: "Capability descriptions MUST be specific and non-placeholder."
+    enforcement: error
+  - id: caps.owner_required
+    statement: "Active capabilities MUST have an assigned owner (agent/team)."
+    enforcement: error
+  - id: caps.no_placeholder_text
+    statement: "Descriptions such as 'TBD' or 'N/A' are forbidden."
+    enforcement: error
+  - id: caps.id_format
+    statement: "Source code linkers MUST use the form '# ID: <uuid>'."
+    enforcement: error
+
+# === DEPENDENCY INJECTION ===
+dependency_injection:
+  - id: di.policy_reference
+    statement: >
+      Dependency Injection rules are defined canonically in
+      'dependency_injection_policy.yaml'. Auditors and agents MUST treat that
+      policy as the single source of truth and only reference these standards
+      as a high-level summary.
+    enforcement: info
+
+
+# === NAMING CONVENTIONS (REFACTORED) ===
+# This section is now fully self-contained. The auditor reads the scope and pattern from here.
+
+naming_conventions:
+  intent:
+    - id: "intent.policy_file_naming"
+      description: "All charter policy files must use snake_case and end with '.yaml'."
+      enforcement: error
+      scope: ".intent/charter/policies/*.yaml"
+      pattern: "^[a-z0-9_]+\\.yaml$"
+    - id: "intent.policy_schema_naming"
+      description: "Schemas for policy files must end with '_policy_schema.json'."
+      enforcement: error
+      scope: ".intent/charter/schemas/*_policy_schema.json"
+      pattern: "^[a-z0-9_]+_policy_schema\\.json$"
+    - id: "intent.artifact_schema_naming"
+      description: "Schemas for non-policy artifacts must end with '_schema.[json|yaml]'."
+      enforcement: error
+      scope: ".intent/charter/schemas/*"
+      pattern: "^[a-z0-9_]+_schema\\.(json|yaml)$"
+      exclusions:
+        - "*_policy_schema.json"
+    - id: "intent.prompt_file_naming"
+      description: "All prompt files must use snake_case and end with '.prompt'."
+      enforcement: error
+      scope: ".intent/mind/prompts/*.prompt"
+      pattern: "^[a-z0-9_]+\\.prompt$"
+    - id: "intent.proposal_file_naming"
+      description: "All proposal files must follow the 'cr-*.yaml' naming convention."
+      enforcement: warn
+      scope: ".intent/proposals/*.yaml"
+      pattern: "^cr-[a-zA-Z0-9_-]+\\.yaml$"
+      exclusions:
+        - "README.md"
+  code:
+    - id: "code.python_module_naming"
+      description: "All Python source files must use snake_case naming."
+      enforcement: error
+      scope: "src/**/*.py"
+      pattern: "^[a-z0-9_]+\\.py$"
+      exclusions:
+        - "__init__.py"
+    - id: "code.python_test_module_naming"
+      description: "All Python test files must be prefixed with 'test_'."
+      enforcement: error
+      scope: "tests/**/*.py"
+      pattern: "^test_[a-z0-9_]+\\.py$"
+      exclusions:
+        - "__init__.py"
+        - "conftest.py"
+
+# === REFACTORING PATTERNS ===
+refactoring_patterns:
+  - id: extract_function
+    description: "Move coherent logic into new function with clear name and docstring."
+    guardrails:
+      - must_keep_behavior: true
+      - add_unit_tests: true
+      - run_audit: true
+  - id: extract_module
+    description: "Move related functions/classes into new module; update imports and domain boundaries."
+    guardrails:
+      - must_keep_behavior: true
+      - update_import_map: true
+      - run_audit: true
+  - id: introduce_facade
+    description: "Add a facade/API layer to hide complexity behind a small, stable surface."
+    guardrails:
+      - document_contract: true
+      - avoid_breaking_changes: true
+      - run_audit: true
+
+refactoring_rules:
+  - id: refactor.requires_tests
+    statement: "Any refactor that changes public behavior MUST include tests or proof of equivalence."
+    enforcement: error
+  - id: refactor.update_capabilities
+    statement: "When moving symbols, update capability tags and manifests accordingly."
+    enforcement: warn
+  - id: refactor.audit_after
+    statement: "A constitutional audit MUST run after refactors before merge."
+    enforcement: error
+
+# === AUDIT HOOKS ===
+audit_checks:
+  - id: header_compliance
+    description: >
+      Verify that every src module has a correct file header comment in line with
+      file_header_rules.layout.src_module_header (path comment matching repo-root path).
+    scope:
+      - "src/**/*.py"
+    severity: error
+    policy_ref:
+      policy: code_standards
+      rule: layout.src_module_header
+    auto_fix:
+      tool: "fix_header"
+      prompt_path: ".intent/mind/prompts/fix_header.prompt"
+      mode: "suggest_or_write"

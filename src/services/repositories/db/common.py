@@ -8,19 +8,17 @@ from __future__ import annotations
 import os
 import pathlib
 import subprocess
-from datetime import datetime, timezone
-from typing import List, Set
+from datetime import UTC, datetime
 
 import sqlparse
 import yaml
 from sqlalchemy import text
 
-from services.repositories.db.engine import get_session
+# CORRECTED IMPORT: Now points to the single source of truth for sessions.
+from services.database.session_manager import get_session
 
 
-# --- THIS IS THE DEFINITIVE FIX ---
-# This module must be self-sufficient. This robust function finds the project
-# root without relying on the global settings object, which may not be initialized yet.
+# This robust function finds the project root without relying on the global settings object.
 def _get_repo_root_for_migration() -> pathlib.Path:
     """Finds the repo root by searching upwards for a known marker file."""
     current_path = pathlib.Path(__file__).resolve()
@@ -32,23 +30,17 @@ def _get_repo_root_for_migration() -> pathlib.Path:
 
 REPO_ROOT = _get_repo_root_for_migration()
 META_YAML_PATH = REPO_ROOT / ".intent" / "meta.yaml"
-# --- END OF FIX ---
 
 
 # ID: 80ae5adf-d9cc-432e-b962-369b8992c700
 def load_policy() -> dict:
     """Load the database_policy.yaml using a minimal, self-contained pathfinder."""
     try:
-        # Manually parse meta.yaml to find the true path to the database policy.
-        # This makes the migration command robust and independent of the main app's
-        # initialization sequence.
         with META_YAML_PATH.open("r", encoding="utf-8") as f:
             meta_config = yaml.safe_load(f)
 
-        db_policy_path_str = meta_config["charter"]["policies"]["data"][
-            "database_policy"
-        ]
-        # The path in meta.yaml is relative to the .intent directory
+        # The data_governance policy is at the top level under policies
+        db_policy_path_str = meta_config["charter"]["policies"]["data_governance"]
         db_policy_path = REPO_ROOT / ".intent" / db_policy_path_str
 
         with db_policy_path.open("r", encoding="utf-8") as f:
@@ -82,7 +74,7 @@ async def ensure_ledger() -> None:
 
 
 # ID: ec3e6b37-b4e8-4870-80f5-10d652ac5902
-async def get_applied() -> Set[str]:
+async def get_applied() -> set[str]:
     """Return set of applied migration IDs."""
     async with get_session() as session:
         result = await session.execute(text("select id from core._migrations"))
@@ -93,7 +85,7 @@ async def get_applied() -> Set[str]:
 async def apply_sql_file(path: pathlib.Path) -> None:
     """Apply a .sql file by splitting into single statements (asyncpg-safe)."""
     sql_text = path.read_text(encoding="utf-8")
-    statements: List[str] = [s.strip() for s in sqlparse.split(sql_text) if s.strip()]
+    statements: list[str] = [s.strip() for s in sqlparse.split(sql_text) if s.strip()]
     async with get_session() as session:
         async with session.begin():
             for stmt in statements:
@@ -108,7 +100,7 @@ async def record_applied(mig_id: str) -> None:
             await session.execute(
                 text(
                     "insert into core._migrations (id, applied_at) values (:id, :ts)"
-                ).bindparams(id=mig_id, ts=datetime.now(tz=timezone.utc))
+                ).bindparams(id=mig_id, ts=datetime.now(tz=UTC))
             )
 
 

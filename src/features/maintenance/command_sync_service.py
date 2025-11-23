@@ -3,9 +3,10 @@
 Provides a service to introspect the live Typer CLI application and synchronize
 the discovered commands with the `core.cli_commands` database table.
 """
+
 from __future__ import annotations
 
-from typing import Any, Dict, List
+from typing import Any
 
 import typer
 from rich.console import Console
@@ -18,7 +19,7 @@ from services.database.session_manager import get_session
 console = Console()
 
 
-def _introspect_typer_app(app: typer.Typer, prefix: str = "") -> List[Dict[str, Any]]:
+def _introspect_typer_app(app: typer.Typer, prefix: str = "") -> list[dict[str, Any]]:
     """Recursively scans a Typer app to discover all commands and their metadata."""
     commands = []
 
@@ -50,8 +51,7 @@ def _introspect_typer_app(app: typer.Typer, prefix: str = "") -> List[Dict[str, 
     return commands
 
 
-# ID: fbbc9eaa-df52-48e5-95ea-998c027002d9
-async def sync_commands_to_db(main_app: typer.Typer):
+async def _sync_commands_to_db(main_app: typer.Typer):
     """
     Introspects the main CLI application, discovers all commands, and upserts them
     into the database, making the database the single source of truth.

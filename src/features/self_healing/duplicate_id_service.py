@@ -2,30 +2,29 @@
 """
 Provides a service to intelligently find and resolve duplicate UUIDs in the codebase.
 """
+
 from __future__ import annotations
 
 import uuid
 from collections import defaultdict
-from typing import Dict, List, Tuple
 
 from rich.console import Console
 from sqlalchemy import text
 
-from features.governance.checks.id_uniqueness_check import IdUniquenessCheck
+from mind.governance.checks.id_uniqueness_check import IdUniquenessCheck
 from services.database.session_manager import get_session
 from shared.config import settings
 
 console = Console()
 
 
-async def _get_symbol_creation_dates() -> Dict[str, str]:
+async def _get_symbol_creation_dates() -> dict[str, str]:
     """Queries the database to get the creation timestamp for each symbol UUID."""
     async with get_session() as session:
-        result = await session.execute(
-            text("SELECT uuid, created_at FROM core.symbols")
-        )
-        # Return a dictionary mapping uuid to its ISO timestamp string
-        return {str(row.uuid): row.created_at.isoformat() for row in result}
+        # --- MODIFIED: Select the correct 'id' column instead of 'uuid' ---
+        result = await session.execute(text("SELECT id, created_at FROM core.symbols"))
+        # --- MODIFIED: Access the result using 'row.id' instead of 'row.uuid' ---
+        return {str(row.id): row.created_at.isoformat() for row in result}
 
 
 # ID: 5891cbbe-ae62-4743-92fa-2e204ca5fa13
@@ -58,12 +57,12 @@ async def resolve_duplicate_ids(dry_run: bool = True) -> int:
     # 2. Get creation dates from the database to find the "original"
     symbol_creation_dates = await _get_symbol_creation_dates()
 
-    files_to_modify: Dict[str, List[Tuple[int, str]]] = defaultdict(list)
+    files_to_modify: dict[str, list[tuple[int, str]]] = defaultdict(list)
 
     for finding in duplicates:
         locations_str = finding.context.get("locations", "")
-        # The UUID is in the message: "Duplicate UUID '{uuid}' found..."
-        duplicate_uuid = finding.message.split("'")[1]
+        # The UUID is in the message: "Duplicate ID tag found: {uuid}"
+        duplicate_uuid = finding.message.split(": ")[-1]
 
         locations = []
         for loc in locations_str.split(", "):

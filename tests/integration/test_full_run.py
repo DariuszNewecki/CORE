@@ -1,24 +1,41 @@
 # tests/integration/test_full_run.py
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock
 
 import pytest
-from fastapi.testclient import TestClient
+from httpx import ASGITransport, AsyncClient
+from sqlalchemy import insert
+
+from api.main import create_app
+from services.database.models import Capability
+from services.database.session_manager import get_db_session
 
 
-@pytest.mark.anyio
-async def test_execute_goal_end_to_end(mock_core_env, mocker):
-    from core.main import create_app
-    from shared.config import settings
+@pytest.mark.asyncio
+async def test_list_capabilities_endpoint(mock_core_env, get_test_session, mocker):
+    """
+    Tests the /v1/knowledge/capabilities endpoint with a real, isolated test database session.
+    """
+    async with get_test_session.begin():
+        await get_test_session.execute(
+            insert(Capability).values(
+                name="test.cap", title="Test Cap", owner="test", domain="test"
+            )
+        )
 
+    mock_config_instance = AsyncMock()
+    mock_config_instance.get.return_value = "INFO"
     mocker.patch(
-        "core.agents.execution_agent.ExecutionAgent.execute_plan",
-        new_callable=AsyncMock,
-        return_value=(True, "Success"),
+        "services.config_service.ConfigService.create",
+        return_value=mock_config_instance,
     )
 
-    with patch.object(settings, "LLM_ENABLED", True):
-        app = create_app()
-        with TestClient(app) as client:
-            response = client.post("/execute_goal", json={"goal": "test goal"})
-            assert response.status_code == 200, response.text
-            assert response.json()["status"] == "success"
+    app = create_app()
+    app.dependency_overrides[get_db_session] = lambda: get_test_session
+
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
+        response = await client.get("/v1/knowledge/capabilities")
+
+    assert response.status_code == 200
+    assert response.json()["capabilities"] == ["test.cap"]

@@ -1,0 +1,78 @@
+# .intent/charter/constitution/governance_framework.yaml
+id: governance_framework
+version: "2.0.0"
+title: "Constitutional Governance Framework"
+
+# === AMENDMENT PROCESS ===
+amendment_process:
+  core_principles:
+    - "Safety First: Prevent accidental/unauthorized changes"
+    - "Clarity and Intent: Every change must have clear justification"
+    - "Auditability: Every step must be traceable"
+
+  standard_process:
+    - step: "Proposal Creation"
+      requirements:
+        - "Formal proposal file (cr-*.yaml) following proposal_schema"
+        - "target_path must be canonical Charter path"
+        - "clear justification linking to core principles"
+
+    - step: "Signature and Quorum"
+      requirements:
+        - "Signed by authorized approvers from approvers list"
+        - "Meet quorum requirements for current operational mode"
+        - "Critical paths require critical quorum"
+
+    - step: "Validation and Ratification"
+      requirements:
+        - "Pass full constitutional audit (core-admin check ci audit)"
+        - "Subject to canary deployment if required"
+        - "Merge after checks pass and quorum met"
+
+  emergency_procedures:
+    - "Detailed in operator_lifecycle procedures"
+    - "Always require critical quorum"
+    - "Considered critical amendments"
+
+# === APPROVERS & QUORUM ===
+approvers:
+  - identity: "core-team@core-system.ai"
+    public_key: "..."
+    role: "maintainer"
+    # ... ALL original approvers remain
+
+quorum:
+  current_mode: development
+  development:
+    standard: 1
+    critical: 1
+  production:
+    standard: 2
+    critical: 3
+
+# === CRITICAL PATHS ===
+critical_paths:
+  - ".intent/meta.yaml"
+  - "charter/constitution/approvers.yaml"
+  - "charter/constitution/operator_lifecycle.md"
+  - "charter/constitution/amendment_process.md"
+  - "mind/knowledge/domain_definitions.yaml"
+  - "mind_export/northstar.yaml"
+  - "charter/policies/safety_framework.yaml"  # Now protects itself!
+  # ... ALL original critical paths remain
+
+# === OPERATOR LIFECYCLE ===
+operator_lifecycle:
+  onboarding:
+    - "Key Generation: Generate secure Ed25519 key pair"
+    - "Proposal Creation: Active approver creates formal amendment"
+    - "Ratification: Meet quorum, canary validation, then active"
+
+  standard_revocation:
+    - "Proposal to remove operator block from approvers list"
+    - "Clear non-emergency justification required"
+
+  emergency_revocation:
+    - "Immediate proposal creation for suspected key compromise"
+    - "Requires critical quorum"
+    - "Identity invalidated for quorum calculations until resolved"

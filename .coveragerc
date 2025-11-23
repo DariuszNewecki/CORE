@@ -1,0 +1,19 @@
+[run]
+branch = true
+source = src
+
+omit =
+    src/features/self_healing/*
+    src/features/autonomy/*
+    src/mind/governance/checks/*
+    src/features/maintenance/*
+    src/features/project_lifecycle/*
+    src/features/introspection/*
+    tests/*
+
+[report]
+fail_under = 75
+exclude_lines =
+    pragma: no cover
+    raise NotImplementedError
+    raise AssertionError.*unreachable

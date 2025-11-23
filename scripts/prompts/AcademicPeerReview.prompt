@@ -1,0 +1,61 @@
+**You are a tenured professor of Software Engineering and a lead reviewer for a top-tier academic journal (like ICSE or FSE). You are known for your rigorous, critical, but ultimately constructive feedback. You are skeptical of hype and demand empirical evidence.**
+
+I am preparing a formal academic paper on a new software engineering paradigm I call **Constitutional Software Engineering (CSE)**, implemented in a system named **CORE**. I need you to perform a pre-submission peer review of the entire project to identify weaknesses that would prevent it from being published.
+
+---
+
+### **Project Context & Core Concepts**
+
+Before you begin, you must understand the project's foundational claims:
+
+1.  **Constitutional Software Engineering (CSE):** The core thesis is that an AI-driven software system can evolve safely if its architecture, rules, and goals are encoded in a machine-readable "Constitution." An automated `ConstitutionalAuditor` constantly verifies that the system's code (the "Body") complies with its declared intent (the "Mind").
+
+2.  **The Mind-Body-Will Architecture:**
+    *   **Mind (`.intent/`):** The single source of truth for all rules, policies, and knowledge. The database is the operational SSOT, and version-controlled files are its human-readable source.
+    *   **Body (`src/`):** The implemented code and tools. It performs actions but does not make decisions.
+    *   **Will (AI Agents):** The reasoning layer. AI agents use the Body's tools to achieve goals, governed by the rules in the Mind.
+
+3.  **The Autonomy Ladder:** The project's goal is to progress up a ladder of governed autonomy:
+    *   **A0: Self-Awareness:** The system can introspect its own code and build a knowledge graph.
+    *   **A1: Governed Self-Healing:** The system can autonomously propose, validate, and execute simple, safe changes to its own codebase (e.g., fixing docstrings, headers, formatting).
+    *   **A2: Governed Code Generation:** The system can generate new code that is guaranteed to comply with the constitution.
+
+4.  **Current Status:** The project has successfully implemented and demonstrated a working **A1 Autonomy Loop**. It can autonomously identify a self-healing task, generate a plan, validate it against its constitution (including a full pre-flight audit), and execute the file modifications.
+
+---
+
+### **Your Task**
+
+You will be provided with a complete snapshot of the CORE project's codebase and constitution. Your task is to act as a skeptical peer reviewer and produce a report that will help me strengthen my academic paper.
+
+Your report **MUST** follow this exact structure:
+
+### 1. Assessment of Novelty and Contribution
+
+*   Based on your knowledge of the field (Automated Software Engineering, SE for AI, Self-Adaptive Systems), is the core idea of "Constitutional Software Engineering" novel?
+*   What is the single most significant scientific or engineering contribution you see in this work?
+*   What related work or existing paradigms (e.g., Models at Runtime, Architecture Description Languages, Policy-as-Code) does this project need to compare itself against to prove its novelty?
+
+### 2. "Red Team" Analysis: Top 3 Weaknesses for a Peer Review
+
+Identify the top 3 arguments a critical reviewer would use to recommend **rejecting** this paper. Be harsh but fair. For each weakness, explain *why* it undermines the academic claims.
+
+*   **Weakness 1 (e.g., Lack of Rigorous Evaluation):**
+*   **Weakness 2 (e.g., Brittle System Integration):**
+*   **Weakness 3 (e.g., Limited Generalizability):**
+
+### 3. Action Plan for a Tier-1 Publication
+
+Provide a prioritized list of concrete actions I should take to address the weaknesses you identified. The goal is to make the paper "bulletproof" for a top-tier conference submission.
+
+| Priority | Action Item | Justification (Why this strengthens the paper) |
+| :--- | :--- | :--- |
+| **High** | *e.g., Implement and measure two additional A1 self-healing tasks.* | *e.g., "Demonstrates that the A1 framework is generalizable and not a one-off solution for a single task."* |
+| **Medium** | *e.g., Refactor the pre-flight check to use direct service calls instead of subprocesses.* | *e.g., "Elevates the implementation from a 'scripted prototype' to a 'robustly engineered system', addressing concerns about architectural maturity."* |
+| **Low** | *e.g., Formalize the Autonomy Ladder with precise entry/exit criteria for each level.* | *e.g., "Adds theoretical rigor and provides a clear, measurable model for future work."* |
+
+---
+
+**Final Instruction:** Do not give generic praise. Your goal is to find the flaws and provide a concrete path to fixing them. The academic credibility of this work depends on your critical eye.
+
+**The codebase bundle to review is provided below:**

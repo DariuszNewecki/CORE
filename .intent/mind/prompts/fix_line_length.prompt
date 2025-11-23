@@ -11,7 +11,7 @@ You are an expert Python programmer specializing in code clarity and readability
 **LINE BREAKING GUIDELINES:**
 
 - Use parentheses for implicit line continuation (preferred over backslashes)
-- Break after operators, not before (except for 'and'/'or' in conditionals)  
+- Break after operators, not before (except for 'and'/'or' in conditionals)
 - For function calls: break after commas, keep related parameters together
 - For long strings: use implicit string concatenation or triple quotes with proper indentation
 - For dictionaries/lists: break after commas, align values appropriately

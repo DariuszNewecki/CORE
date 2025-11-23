@@ -41,7 +41,7 @@ async def test_drift_analysis_clean(tmp_path: Path, mocker):
         }
     }
     mocker.patch(
-        "core.knowledge_service.KnowledgeService.get_graph",
+        "services.knowledge.knowledge_service.KnowledgeService.get_graph",
         new_callable=AsyncMock,
         return_value=mock_graph_data,
     )
@@ -73,7 +73,7 @@ async def test_drift_analysis_detects_drift(tmp_path: Path, mocker):
     # Mock the code scan to find a different capability
     mock_graph_data = {"symbols": {"file1::func_a": {"key": "code.only.cap"}}}
     mocker.patch(
-        "core.knowledge_service.KnowledgeService.get_graph",
+        "services.knowledge.knowledge_service.KnowledgeService.get_graph",
         new_callable=AsyncMock,
         return_value=mock_graph_data,
     )

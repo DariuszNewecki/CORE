@@ -2,6 +2,7 @@
 """
 Pydantic models for parsing legacy YAML configuration files during migration.
 """
+
 from __future__ import annotations
 
 from pydantic import BaseModel, Field

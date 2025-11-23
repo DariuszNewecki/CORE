@@ -1,179 +1,292 @@
 # src/features/introspection/sync_service.py
+"""Provides functionality for the sync_service module."""
+
 from __future__ import annotations
 
 import ast
+import json
 import uuid
-from typing import Any, Dict, List, Set
+from typing import Any
 
 from rich.console import Console
 from sqlalchemy import text
 
-from services.repositories.db.engine import get_session
-from shared.ast_utility import calculate_structural_hash
+from services.database.session_manager import get_session
+from shared.ast_utility import FunctionCallVisitor, calculate_structural_hash
 from shared.config import settings
 
 console = Console()
 
 
-# ID: 9b343ade-594e-4bd8-9580-3d32c84d4f2b
+# ID: 2082848a-e1e3-48fa-aeb5-8d1b63f8d687
 class SymbolVisitor(ast.NodeVisitor):
-    """An AST visitor that discovers symbols and their hierarchical paths."""
+    """
+    An AST visitor that discovers top-level public symbols, their immediate methods,
+    and the symbols they call.
+    """
 
-    def __init__(self, file_path: str, source_lines: List[str], seen_uuids: Set[str]):
+    def __init__(self, file_path: str) -> None:
         self.file_path = file_path
-        self.source_lines = source_lines
-        self.symbols: List[Dict[str, Any]] = []
-        self.class_stack: List[str] = []
-        self.seen_uuids = seen_uuids
+        self.symbols: list[dict[str, Any]] = []
+        self.class_stack: list[str] = []
 
-    # ID: 89431690-9e7a-40e1-bb4c-d2ad247a5277
-    def visit_ClassDef(self, node: ast.ClassDef):
-        """Process a class definition and its children (methods)."""
-        self.class_stack.append(node.name)
-        self._process_symbol(node)  # Process the class itself
-        self.generic_visit(node)  # IMPORTANT: Visit children (methods)
-        self.class_stack.pop()
+    # ID: 8ed3d0b6-d777-4927-b63b-5ed864045d39
+    def visit_ClassDef(self, node: ast.ClassDef) -> None:
+        if not self.class_stack:
+            self._process_symbol(node)
+            self.class_stack.append(node.name)
+            self.generic_visit(node)
+            self.class_stack.pop()
 
-    # ID: 0bfa9ab7-a83a-4d58-aa5d-6c6769af4e4f
-    def visit_FunctionDef(self, node: ast.FunctionDef):
-        """Process a function or method definition."""
-        self._process_symbol(node)  # Process all functions/methods
+    # ID: 7932462c-64cf-4987-979e-7d748e99ac73
+    def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
+        if len(self.class_stack) <= 1:
+            self._process_symbol(node)
 
-    # ID: 8e860945-daec-4ffa-a5ac-3c669082ff8a
-    def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef):
-        """Process an async function or method definition."""
-        self._process_symbol(node)  # Process all async functions/methods
+    # ID: de6530a7-200e-4932-9244-273e2a3e4308
+    def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> None:
+        if len(self.class_stack) <= 1:
+            self._process_symbol(node)
 
     def _process_symbol(
         self, node: ast.ClassDef | ast.FunctionDef | ast.AsyncFunctionDef
-    ):
-        """Extracts metadata for a single symbol, respecting its context."""
+    ) -> None:
+        """Extracts metadata for a single symbol, including its outbound calls."""
         is_public = not node.name.startswith("_")
         is_dunder = node.name.startswith("__") and node.name.endswith("__")
         if not (is_public and not is_dunder):
             return
 
-        tag_line_index = node.lineno - 2
-        symbol_id = None
-        if 0 <= tag_line_index < len(self.source_lines):
-            line_above = self.source_lines[tag_line_index].strip()
-            if line_above.startswith("# ID:"):
-                try:
-                    symbol_id = str(uuid.UUID(line_above.split(":", 1)[1].strip()))
-                except ValueError:
-                    return
+        path_components = self.class_stack + [node.name]
+        symbol_path = f"{self.file_path}::{'.'.join(path_components)}"
+        qualname = ".".join(path_components)
 
-        if symbol_id:
-            if symbol_id in self.seen_uuids:
-                console.print(
-                    f"[bold red]CRITICAL WARNING: Duplicate UUID '{symbol_id}' found in '{self.file_path}' for symbol '{node.name}'. Skipping.[/bold red]"
-                )
-                return
-            self.seen_uuids.add(symbol_id)
+        module_name = (
+            self.file_path.replace("src/", "").replace(".py", "").replace("/", ".")
+        )
+        kind_map = {
+            "ClassDef": "class",
+            "FunctionDef": "function",
+            "AsyncFunctionDef": "function",
+        }
 
-            if self.class_stack:
-                class_path = ".".join(self.class_stack)
-                symbol_path = (
-                    f"{self.file_path}::{class_path}.{node.name}"
-                    if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
-                    else f"{self.file_path}::{class_path}"
-                )
-            else:
-                symbol_path = f"{self.file_path}::{node.name}"
+        call_visitor = FunctionCallVisitor()
+        call_visitor.visit(node)
 
-            self.symbols.append(
-                {
-                    "uuid": symbol_id,
-                    "symbol_path": symbol_path,
-                    "file_path": self.file_path,
-                    "structural_hash": calculate_structural_hash(node),
-                }
-            )
+        # `calls` is serialized as JSON for storage in the DB
+        calls = sorted(list(call_visitor.calls))
+
+        self.symbols.append(
+            {
+                "id": uuid.uuid5(uuid.NAMESPACE_DNS, symbol_path),
+                "symbol_path": symbol_path,
+                "module": module_name,
+                "qualname": qualname,
+                "kind": kind_map.get(type(node).__name__, "function"),
+                "ast_signature": "TBD",
+                "fingerprint": calculate_structural_hash(node),
+                "state": "discovered",
+                "is_public": True,
+                "calls": json.dumps(calls),
+            }
+        )
 
 
-# ID: b1bfdf4e-f1d6-4ad8-b2ad-f8e65589b618
+# ID: ca6a48d2-acbe-4ebd-9e06-2a8d0428aa56
 class SymbolScanner:
-    """Scans the codebase to extract symbol information using a hierarchical visitor."""
+    """Scans the codebase to extract symbol information."""
 
-    # ID: b7f12001-466a-43fe-98ab-f6d6053c5d40
-    def scan(self) -> List[Dict[str, Any]]:
-        """Scans all Python files in src/ and extracts ID'd symbols."""
+    # ID: bab1a94f-8a2d-4c12-95fe-6822f19ba634
+    def scan(self) -> list[dict[str, Any]]:
+        """Scans all Python files in src/ and extracts symbols."""
         src_dir = settings.REPO_PATH / "src"
-        all_symbols = []
-        seen_uuids: Set[str] = set()
+        all_symbols: list[dict[str, Any]] = []
 
         for file_path in src_dir.rglob("*.py"):
             try:
-                content = file_path.read_text("utf-8")
-                source_lines = content.splitlines()
+                content = file_path.read_text(encoding="utf-8")
                 tree = ast.parse(content, filename=str(file_path))
-
                 rel_path_str = str(file_path.relative_to(settings.REPO_PATH))
-                visitor = SymbolVisitor(rel_path_str, source_lines, seen_uuids)
+                visitor = SymbolVisitor(rel_path_str)
                 visitor.visit(tree)
                 all_symbols.extend(visitor.symbols)
+            except Exception as exc:  # noqa: BLE001
+                console.print(f"[bold red]Error scanning {file_path}: {exc}[/bold red]")
 
-            except Exception as e:
-                console.print(f"[bold red]Error scanning {file_path}: {e}[/bold red]")
-
+        # Deduplicate by symbol_path (last one wins)
         unique_symbols = {s["symbol_path"]: s for s in all_symbols}
         return list(unique_symbols.values())
 
 
-# ID: 1673589c-8198-494c-9bac-d40fd7d60322
-async def run_sync_with_db() -> Dict[str, int]:
+# ID: f6cedf76-ff2c-48bd-9847-3a65c07edb2e
+async def run_sync_with_db() -> dict[str, int]:
     """
-    Executes the full, database-centric sync logic using a clean slate approach.
+    Executes the full, database-centric sync logic using the "smart merge" strategy.
+    This is the single source of truth for updating the symbols table from the codebase.
     """
     scanner = SymbolScanner()
     code_state = scanner.scan()
-    stats = {"scanned": len(code_state), "inserted": 0, "updated": 0, "deleted": 0}
+    stats: dict[str, int] = {
+        "scanned": len(code_state),
+        "inserted": 0,
+        "updated": 0,
+        "deleted": 0,
+    }
 
     async with get_session() as session:
         async with session.begin():
-            pre_sync_result = await session.execute(
-                text("SELECT uuid FROM core.symbols")
-            )
-            pre_sync_uuids = {row[0] for row in pre_sync_result}
-
             await session.execute(
                 text(
-                    "CREATE TEMPORARY TABLE core_symbols_staging (LIKE core.symbols INCLUDING DEFAULTS) ON COMMIT DROP;"
+                    """
+                    CREATE TEMPORARY TABLE core_symbols_staging
+                    (LIKE core.symbols INCLUDING DEFAULTS)
+                    ON COMMIT DROP;
+                    """
                 )
             )
+
             if code_state:
-                await session.execute(
-                    text(
-                        """
-                        INSERT INTO core_symbols_staging (uuid, symbol_path, file_path, structural_hash, is_public)
-                        VALUES (:uuid, :symbol_path, :file_path, :structural_hash, TRUE)
+                insert_stmt = text(
                     """
-                    ),
-                    code_state,
+                    INSERT INTO core_symbols_staging (
+                        id,
+                        symbol_path,
+                        module,
+                        qualname,
+                        kind,
+                        ast_signature,
+                        fingerprint,
+                        state,
+                        is_public,
+                        calls
+                    ) VALUES (
+                        :id,
+                        :symbol_path,
+                        :module,
+                        :qualname,
+                        :kind,
+                        :ast_signature,
+                        :fingerprint,
+                        :state,
+                        :is_public,
+                        :calls
+                    )
+                    """
                 )
+                await session.execute(insert_stmt, code_state)
+
+            deleted_result = await session.execute(
+                text(
+                    """
+                    SELECT COUNT(*)
+                    FROM core.symbols
+                    WHERE symbol_path NOT IN (
+                        SELECT symbol_path FROM core_symbols_staging
+                    )
+                    """
+                )
+            )
+            stats["deleted"] = deleted_result.scalar_one()
+
+            inserted_result = await session.execute(
+                text(
+                    """
+                    SELECT COUNT(*)
+                    FROM core_symbols_staging
+                    WHERE symbol_path NOT IN (
+                        SELECT symbol_path FROM core.symbols
+                    )
+                    """
+                )
+            )
+            stats["inserted"] = inserted_result.scalar_one()
+
+            updated_result = await session.execute(
+                text(
+                    """
+                    SELECT COUNT(*)
+                    FROM core.symbols s
+                    JOIN core_symbols_staging st
+                        ON s.symbol_path = st.symbol_path
+                    WHERE
+                        s.fingerprint != st.fingerprint
+                        OR s.calls::text != st.calls::text
+                    """
+                )
+            )
+            stats["updated"] = updated_result.scalar_one()
 
             await session.execute(
                 text(
                     """
-                UPDATE core_symbols_staging st
-                SET vector_id = s.vector_id
-                FROM core.symbols s
-                WHERE st.uuid = s.uuid AND st.structural_hash = s.structural_hash;
-            """
+                    DELETE FROM core.symbols
+                    WHERE symbol_path NOT IN (
+                        SELECT symbol_path FROM core_symbols_staging
+                    )
+                    """
                 )
             )
 
             await session.execute(
-                text("TRUNCATE TABLE core.symbols RESTART IDENTITY CASCADE")
+                text(
+                    """
+                    UPDATE core.symbols
+                    SET
+                        fingerprint   = st.fingerprint,
+                        calls         = st.calls,
+                        last_modified = NOW(),
+                        last_embedded = NULL,
+                        updated_at    = NOW()
+                    FROM core_symbols_staging st
+                    WHERE core.symbols.symbol_path = st.symbol_path
+                    AND (
+                        core.symbols.fingerprint != st.fingerprint
+                        OR core.symbols.calls::text != st.calls::text
+                    );
+                    """
+                )
             )
 
             await session.execute(
-                text("INSERT INTO core.symbols SELECT * FROM core_symbols_staging;")
+                text(
+                    """
+                    INSERT INTO core.symbols (
+                        id,
+                        symbol_path,
+                        module,
+                        qualname,
+                        kind,
+                        ast_signature,
+                        fingerprint,
+                        state,
+                        is_public,
+                        calls,
+                        created_at,
+                        updated_at,
+                        last_modified,
+                        first_seen,
+                        last_seen
+                    )
+                    SELECT
+                        id,
+                        symbol_path,
+                        module,
+                        qualname,
+                        kind,
+                        ast_signature,
+                        fingerprint,
+                        state,
+                        is_public,
+                        calls,
+                        NOW(),
+                        NOW(),
+                        NOW(),
+                        NOW(),
+                        NOW()
+                    FROM core_symbols_staging
+                    ON CONFLICT (symbol_path) DO NOTHING;
+                    """
+                )
             )
-
-            post_sync_uuids = {s["uuid"] for s in code_state}
-            stats["inserted"] = len(post_sync_uuids - pre_sync_uuids)
-            stats["deleted"] = len(pre_sync_uuids - post_sync_uuids)
-            stats["updated"] = len(pre_sync_uuids.intersection(post_sync_uuids))
 
     return stats

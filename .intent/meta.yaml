@@ -1,60 +1,32 @@
-version: "1.0.0" # Ratification of the Final Constitutional Alignment
-# PURPOSE: This is the master index for the entire CORE constitution. It maps
-# abstract concepts to their concrete file paths, fully embracing the new
-# hierarchical policy structure for maximum clarity and governance.
+version: "3.0.0"  # Major version bump for constitutional refactoring
+
+# PURPOSE:
+# The master index of the CORE Constitution. This file defines the authoritative
+# mapping between conceptual domains and their concrete artifacts. Every policy,
+# schema, knowledge source, and cognitive asset referenced by the Mind is
+# discoverable through this index.
 
 charter:
+
   constitution:
     active_version: "charter/constitution/ACTIVE"
-    amendment_process: "charter/constitution/amendment_process.md"
-    approvers: "charter/constitution/approvers.yaml"
-    critical_paths: "charter/constitution/critical_paths.yaml"
-    operator_lifecycle: "charter/constitution/operator_lifecycle.md"
+    governance_framework: "charter/constitution/governance_framework.yaml"
+    precedence_rules: "charter/constitution/precedence_rules.yaml"
 
-  mission:
-    manifesto: "charter/mission/manifesto.md"
-    northstar: "charter/mission/northstar.yaml"
-    principles: "charter/mission/principles.yaml"
+  mission: {}  # Mission material now consolidated under mind/knowledge
 
   policies:
-    safety_policy: "charter/policies/safety_policy.yaml"
-
-    agent:
-      agent_policy: "charter/policies/agent/agent_policy.yaml"
-      micro_proposal_policy: "charter/policies/agent/micro_proposal_policy.yaml"
-
-    code:
-      capability_linter_policy: "charter/policies/code/capability_linter_policy.yaml"
-      code_health_policy: "charter/policies/code/code_health_policy.yaml"
-      code_style_policy: "charter/policies/code/code_style_policy.yaml"
-      naming_conventions_policy: "charter/policies/code/naming_conventions_policy.yaml"
-      refactoring_patterns_policy: "charter/policies/code/refactoring_patterns_policy.yaml"
-
-    data:
-      database_policy: "charter/policies/data/database_policy.yaml"
-      secrets_management_policy: "charter/policies/data/secrets_management_policy.yaml"
-
-    governance:
-      audit_ignore_policy: "charter/policies/governance/audit_ignore_policy.yaml"
-      auditor_policy: "charter/policies/governance/auditor_policy.yaml"
-      available_actions_policy: "charter/policies/governance/available_actions_policy.yaml"
-      cli_governance_policy: "charter/policies/governance/cli_governance_policy.yaml"
-      enforcement_model_policy: "charter/policies/governance/enforcement_model_policy.yaml"
-      intent_crate_policy: "charter/policies/governance/intent_crate_policy.yaml"
-      intent_guard_policy: "charter/policies/governance/intent_guard_policy.yaml"
-      knowledge_source_policy: "charter/policies/governance/knowledge_source_policy.yaml"
-      logging_policy: "charter/policies/governance/logging_policy.yaml"
-      reporting_policy: "charter/policies/governance/reporting_policy.yaml"
-      tooling_policy: "charter/policies/governance/tooling_policy.yaml"
-
-    operations:
-      canary_policy: "charter/policies/operations/canary_policy.yaml"
-      dev_fastpath_policy: "charter/policies/operations/dev_fastpath_policy.yaml"
-      incident_response_policy: "charter/policies/operations/incident_response_policy.yaml"
+    safety_framework: "charter/policies/safety_framework.yaml"
+    agent_governance: "charter/policies/agent_governance.yaml"
+    code_standards: "charter/policies/code_standards.yaml"
+    dependency_injection_policy: "charter/policies/dependency_injection_policy.yaml"
+    data_governance: "charter/policies/data_governance.yaml"
+    operations: "charter/policies/operations.yaml"
+    quality_assurance: "charter/policies/quality_assurance.yaml"
 
   schemas:
     policy_schema: "charter/schemas/policy_schema.json"
-    
+
     agent:
       agent_policy_schema: "charter/schemas/agent/agent_policy_schema.json"
       cognitive_roles_schema: "charter/schemas/agent/cognitive_roles_schema.json"
@@ -63,8 +35,9 @@ charter:
 
     code:
       capability_tag_schema: "charter/schemas/code/capability_tag_schema.json"
+      dependency_injection_policy_schema: "charter/schemas/code/dependency_injection_policy_schema.json"
       knowledge_graph_entry_schema: "charter/schemas/code/knowledge_graph_entry_schema.json"
-      
+
     constitutional:
       intent_bundle_schema: "charter/schemas/constitutional/intent_bundle_schema.json"
       intent_crate_schema: "charter/schemas/constitutional/intent_crate_schema.json"
@@ -73,49 +46,73 @@ charter:
     data:
       database_policy_schema: "charter/schemas/data/database_policy_schema.json"
       database_schema: "charter/schemas/data/database_schema.yaml"
-      
+
     governance:
       available_actions_policy_schema: "charter/schemas/governance/available_actions_policy_schema.json"
       cli_registry_schema: "charter/schemas/governance/cli_registry_schema.json"
       enforcement_model_schema: "charter/schemas/governance/enforcement_model_schema.json"
       intent_guard_schema: "charter/schemas/governance/intent_guard_schema.json"
       reporting_policy_schema: "charter/schemas/governance/reporting_policy_schema.json"
+      risk_classification_policy_schema: "charter/schemas/governance/risk_classification_policy_schema.json"
 
     operations:
       canary_policy_schema: "charter/schemas/operations/canary_policy_schema.json"
       config_schema: "charter/schemas/operations/config_schema.yaml"
       runtime_requirements_schema: "charter/schemas/operations/runtime_requirements_schema.json"
+      workflows_policy_schema: "charter/schemas/operations/workflows_policy_schema.json"
 
 mind:
+
   project_manifest: "mind/project_manifest.yaml"
+  northstar: "mind/northstar.yaml"
 
   config:
     local_mode: "mind/config/local_mode.yaml"
     runtime_requirements: "mind/config/runtime_requirements.yaml"
 
-  evaluation:
-    score_policy: "mind/evaluation/score_policy.yaml"
-    audit_checklist: "mind/evaluation/audit_checklist.yaml"
+  ir:
+    incident_log: "mind/ir/incident_log.yaml"
+    triage_log: "mind/ir/triage_log.yaml"
 
   knowledge:
-    entry_point_patterns: "mind/knowledge/entry_point_patterns.yaml"
-    file_handlers: "mind/knowledge/file_handlers.yaml"
-    source_structure: "mind/knowledge/source_structure.yaml"
+    domain_definitions: "mind/knowledge/domain_definitions.yaml"
+    project_structure: "mind/knowledge/project_structure.yaml"
+
+  mind_export:
+    cognitive_roles: "mind_export/cognitive_roles.yaml"
+    resource_manifest: "mind_export/resource_manifest.yaml"
+    capabilities: "mind_export/capabilities.yaml"
+    symbols: "mind_export/symbols.yaml"
+    links: "mind_export/links.yaml"
+    northstar: "mind_export/northstar.yaml"
 
   prompts:
+    capability_consolidator: "mind/prompts/capability_consolidator.prompt"
     capability_definer: "mind/prompts/capability_definer.prompt"
     code_peer_review: "mind/prompts/code_peer_review.prompt"
     constitutional_review: "mind/prompts/constitutional_review.prompt"
+    coverage_strategy: "mind/prompts/coverage_strategy.prompt"
+    create_file_planner: "mind/prompts/create_file_planner.prompt"
+    docs_clarity_review: "mind/prompts/docs_clarity_review.prompt"
+    enrich_symbol: "mind/prompts/enrich_symbol.prompt"
     fix_capability_manifest: "mind/prompts/fix_capability_manifest.prompt"
     fix_function_docstring: "mind/prompts/fix_function_docstring.prompt"
     fix_header: "mind/prompts/fix_header.prompt"
     fix_line_length: "mind/prompts/fix_line_length.prompt"
     goal_assessor: "mind/prompts/goal_assessor.prompt"
     intent_translator: "mind/prompts/intent_translator.prompt"
+    micro_planner: "mind/prompts/micro_planner.prompt"
     module_docstring_writer: "mind/prompts/module_docstring_writer.prompt"
     new_capability_generator: "mind/prompts/new_capability_generator.prompt"
     planner_agent: "mind/prompts/planner_agent.prompt"
     refactor_for_clarity: "mind/prompts/refactor_for_clarity.prompt"
     refactor_outlier: "mind/prompts/refactor_outlier.prompt"
     standard_task_generator: "mind/prompts/standard_task_generator.prompt"
+    test_fixer: "mind/prompts/test_fixer.prompt"
+    test_generator: "mind/prompts/test_generator.prompt"
     vectorizer: "mind/prompts/vectorizer.prompt"
+
+  context:
+    schema: "context/schema.yaml"
+    policy: "context/policy.yaml"
+    domains: "knowledge/domains.yaml"

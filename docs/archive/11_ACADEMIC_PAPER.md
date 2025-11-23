@@ -1,98 +1,128 @@
-Paper outline (v1.0, conference-ready)
+# 11_ACADEMIC_PAPER (ARCHIVE)
 
-Title (working):
-Constitutional Software Engineering: Mind–Body–Will Governance for AI-Driven Systems
+> **ARCHIVE NOTICE**
+> This document is preserved for historical context only.
+> It reflects early conceptual thinking during the initial development of CORE.
+> It does **not** represent the current architecture, governance model, terminology, or autonomy pipeline.
+> All content below is lightly cleaned for formatting and readability, but otherwise unchanged.
 
-Abstract (draft):
-Large Language Models (LLMs) accelerate code generation but amplify architectural drift and erode trust in software evolution. We present Constitutional Software Engineering (CSE), a framework that treats a project’s intent and rules as a first-class, machine-readable Constitution (“Mind”), executed by a constrained Body (code + tools), and governed by a deliberate Will (AI agents) under an independent Constitutional Auditor. We instantiate CSE in CORE, which implements cryptographically signed proposals, quorum rules, and canary self-audits before constitutional changes apply. A staged Autonomy Ladder demonstrates governed progression from self-awareness to self-healing. In a case study, CORE detects capability gaps, proposes compliant fixes, and ratifies them under human-in-the-loop signatures, integrating CI to continuously enforce the Constitution. We find that CSE maintains architectural integrity while enabling safe AI-assisted evolution at scale.
+---
 
-1. Introduction
+# Autonomous Development – What Actually Works Today *(Archived Draft)*
 
-Problem: AI speeds code, not governance; drift & spaghetti persist.
+**This is not a roadmap. This is live, shipped code (November 2025).**
 
-Thesis: Treat intent & rules as executable artifacts to bound AI agency.
+You can turn a natural-language goal into fully constitutional, tested, audited code with one command:
 
-Contributions:
+```bash
+poetry run core-admin develop feature "Add rate-limiting middleware with Redis"
+```
 
-CSE model (Mind–Body–Will + Auditor),
+## What happens (fully working today)
 
-Signed-proposal governance protocol with canary validation,
+| Step                          | Status         | Proof It Works                                            |
+| ----------------------------- | -------------- | --------------------------------------------------------- |
+| Intent → Constitutional crate | Done           | `develop` command + crate service                         |
+| Autonomous code generation    | Done           | CoderAgent + Doc/Test agents produce real files           |
+| Canary validation             | Done           | Full audit + tests before anything touches `main`         |
+| Auto-accept / auto-reject     | Done           | Crates move to `accepted/` or `rejected/`                 |
+| Background daemon             | *(Deprecated)* | `core-admin daemon start --detach` *(archival reference)* |
 
-Autonomy Ladder for governed AI agency,
+---
 
-CORE implementation + evaluable CI pipeline.
+# 30-second demo (Archived)
 
-(Grounding: architecture & flows)
+```bash
+poetry run core-admin daemon start --detach      # start background processor
+poetry run core-admin develop feature "Add health endpoint"
+poetry run core-admin crate list --watch         # watch it happen
+```
 
-2. Background & Related Models
+**Result:**
+2–5 minutes later, a fully governed, passing feature appears.
 
-Code assistants vs. governed systems; CI/CD vs. constitutional audits.
+*(Note: the daemon workflow no longer exists in the modern system.)*
 
-Why “machine-readable governance” differs from linting/policies.
+---
 
-3. Constitutional Software Engineering (CSE)
+# Crate Creation & Develop Command (Archived Example)
 
-Mind: the Constitution (.intent/): principles, policies, schemas, knowledge graph. Define invariants (e.g., every change has declared intent; knowledge graph is current).
+Worked example (captured from an early development session):
 
-Body: deterministic machinery (src/, CLI), audited by rules.
+```
+[Example output omitted here — archival placeholder.]
+```
 
-Will: agents bound by policies (reason_from_reality; pre_write_validation).
+This section originally contained console logs from early versions of the crate pipeline.
+These logs are outdated and not relevant to the modern A1/A2 system.
 
-Auditor: parses code (AST) → builds knowledge graph → enforces.
+---
 
-4. Governance Protocol
+# Early Architectural Observations (Archived)
 
-Lifecycle: Proposal → Sign → Quorum → Canary → Ratify.
+The following points summarize realities observed during prototyping:
 
-Cryptographic approvals & quorum: approvers.yaml, critical paths.
+* Agents are capable of generating production-ready code when context is sufficiently constrained.
+* Constitutional checks are mandatory before integrating any autonomous code.
+* The crate system must fully isolate agent output.
+* Validation (Black, Ruff, Syntax, Tests) must run before governance audits.
+* Background autonomy (daemon mode) was unstable and later removed.
+* Deterministic context is critical for reproducible agent behavior.
 
-Canary validation: ephemeral clone + full constitutional audit before apply (algorithm/pseudocode from CLI).
+These points influenced early versions of the Mind–Body–Will architecture.
 
-Operational procedures: onboarding, revocation, emergency key compromise.
+---
 
-5. The Autonomy Ladder (Governed Agency)
+# Notes From Experiments (Archived)
 
-A0–A? levels mapped to CORE:
-A0 Self-awareness (auditor + knowledge graph) →
-A1 Governed action (develop under policies) →
-A2 Proposal discipline (signed + quorum) →
-A3 Self-healing (auto-propose tag/refactor; human ratifies) →
-A4 Architect’s cockpit (capability consolidation / abstraction).
+These represent early findings during experimentation in 2024–2025:
 
-Formal properties: each level adds constraints, not unconstrained agency.
+* Multi-agent planning improved quality but introduced nondeterminism.
+* Limiting agent access to strictly curated context dramatically reduced errors.
+* Canary audits prevented unsafe merges even in early prototypes.
+* Drift between crate and repo state caused instability until crate isolation was introduced.
+* The system could generate full implementations but required stricter governance.
 
-6. Implementation: CORE
+Many of these observations directly led to:
 
-Directory anatomy & allowed imports; visual pipeline to knowledge graph.
+* the development of `.intent/` governance,
+* the modern validation pipeline,
+* the separation between planning, execution, and review agents.
 
-Policies that bind agents; regeneration preconditions.
+---
 
-CI integration (PR comments, nightly fail surfacing).
+# Deprecated Concepts (Preserved for Transparency)
 
-7. Case Study: From Drift to Ratified Fix
+The following items existed in early versions but are no longer part of CORE:
 
-Scenario: knowledge graph shows unassigned capabilities (e.g., parsing helpers). Auditor flags; propose capability tags/refactor; collect signatures; run canary; ratify. Metrics to report: time-to-ratify, audit pass rate, drift delta.
+* `core-admin daemon …` commands
+* background autonomous workers
+* auto-integration of crates
+* early manifest formats
+* ungoverned planning workflows
+* direct LLM writes to repository
+* uncoupled test generators
 
-8. Security & Safety Analysis
+These remain here only as historical artifacts.
 
-Key management & signatures (procedures + emergency revocation).
+---
 
-Risk: private key in repo—lessons & hardening (rotate, history purge, enforce secrets scanning; verify .gitignore + CI secret checks).
+# Summary (Archive)
 
-Dev vs Prod quorum modes; critical paths.
+This document reflects an early proof-of-concept stage of CORE.
+It demonstrates the moment when autonomous development first became **real** — before governance, restructuring, and the mature A1 pipeline.
 
-9. Evaluation Plan
+Modern CORE uses:
 
-Benchmarks: architectural drift incidents/month, MTTR for governance fixes, % of PRs blocked by constitutional audit, ratio of auto-proposed vs. human-drafted proposals, reproducibility via CI artifacts.
+* governed agents,
+* explicit CLI workflows,
+* strict constitutional audits,
+* no background daemons,
+* a unified crate pipeline,
+* and a fully formalized Mind–Body–Will architecture.
 
-10. Limitations & Threats to Validity
+For the modern implementation guide, see:
 
-Model hallucinations vs. policy enforcement; governance overhead; false positives in audits; portability to non-Python codebases.
-
-11. Future Work
-
-Multi-repo federated constitutions; cross-service policy propagation; formal verification hooks; richer provenance logs.
-
-12. Conclusion
-
-CSE makes AI-accelerated development governable, auditable, and evolvable.
+* `core-concept/02_ARCHITECTURE.md`
+* `planning/01-complete-implementation-plan.md`
+* `developer-guide/03-cli-reference

@@ -24,8 +24,8 @@ PY          := $(POETRY) run python
 # ---- Phony targets -----------------------------------------------------------
 .PHONY: \
   help install lock run stop \
-  audit lint format test fast-check check \
-  cli-tree clean distclean nuke \
+  audit audit-full lint format test test-coverage fast-check check dev-sync \
+  fix-all dupes cli-tree clean distclean nuke \
   docs check-docs vectorize integrate \
   migrate export-db sync-knowledge sync-manifest
 
@@ -62,6 +62,14 @@ stop: ## Kill any process listening on $(PORT)
 audit: ## Run the constitutional audit
 	$(POETRY) run core-admin check audit
 
+audit-full: ## Full constitutional compliance check (audit + coverage validation)
+	@echo "🔍 Running full constitutional compliance check..."
+	@echo "📋 Step 1/2: Constitutional audit..."
+	$(MAKE) audit
+	@echo "📊 Step 2/2: Coverage validation (75% minimum required)..."
+	$(MAKE) test-coverage
+	@echo "✅ Full constitutional compliance check complete!"
+
 lint: ## Check code format and quality (read-only)
 	$(POETRY) run core-admin check lint
 
@@ -69,18 +77,52 @@ format: ## Fix code style issues (Black/Ruff via CLI)
 	$(POETRY) run core-admin fix code-style
 
 test: ## Run tests
-	$(POETRY) run core-admin check tests
+	@echo "🧪 Running tests with pytest..."
+	$(POETRY) run pytest
+
+test-coverage: ## Run tests with coverage report and validation
+	@echo "📊 Running tests with coverage report..."
+	$(POETRY) run pytest --cov --cov-report=term-missing
+	@echo "📈 Checking coverage meets constitutional requirement (75%)..."
+	$(POETRY) run core-admin coverage check
 
 fast-check: ## Lint + tests (quick local cycle)
 	$(MAKE) lint
 	$(MAKE) test
 
-check: ## Lint + tests + audit + docs drift check
+check: ## Lint + tests + audit + docs drift + coverage validation
 	@echo "🤝 Running full constitutional audit and documentation check..."
 	$(MAKE) lint
 	$(MAKE) test
+	$(MAKE) test-coverage
 	$(MAKE) audit
 	@$(MAKE) check-docs
+
+fix-all: ## Run all self-healing fixes in curated sequence
+	@echo "🔧 Running all self-healing fixes..."
+	$(POETRY) run core-admin fix all
+
+dev-sync: ## Run the safe, non-destructive developer sync and audit workflow
+	@echo "🔄 Running comprehensive dev-sync workflow..."
+	@echo "🆔 Step 1/7: Assigning missing IDs..."
+	$(POETRY) run core-admin fix ids --write
+	@echo "📚 Step 2/7: Adding missing docstrings..."
+	$(POETRY) run core-admin fix docstrings --write
+	@echo "🎨 Step 3/7: Formatting code (black/ruff)..."
+	$(POETRY) run core-admin fix code-style
+	@echo "🔍 Step 4/7: Running linter (stop on error)..."
+	$(POETRY) run core-admin check lint
+	@echo "🔄 Step 5/7: Synchronizing vector database..."
+	$(POETRY) run core-admin fix vector-sync --write
+	@echo "💾 Step 6/7: Syncing symbols to database..."
+	$(POETRY) run core-admin manage database sync-knowledge --write
+	@echo "🧠 Step 7/7: Vectorizing knowledge graph..."
+	$(POETRY) run core-admin run vectorize --write
+	@echo "✅ Dev-sync complete! Database is now current."
+
+dupes: ## Check for duplicate code (semantic similarity analysis)
+	@echo "🔍 Running semantic duplication analysis..."
+	$(POETRY) run core-admin inspect duplicates --threshold 0.96
 
 cli-tree: ## Display CLI command tree
 	@echo "🌳 Generating CLI command tree..."
@@ -93,6 +135,12 @@ migrate: ## Apply pending DB schema migrations
 export-db: ## Export DB tables to canonical YAML
 	$(POETRY) run core-admin manage database export
 
+reset-test-db: ## Reset test database from live
+	@./scripts/reset_test_db.sh
+
+test-test-db: reset-test-db ## Reset test DB and run tests
+	$(POETRY) run pytest
+
 sync-knowledge: ## Scan codebase and sync symbols to DB (Single Source of Truth)
 	$(POETRY) run core-admin manage database sync-knowledge --write
 
@@ -104,8 +152,17 @@ vectorize: ## Vectorize knowledge graph (embeddings pipeline)
 	$(POETRY) run core-admin run vectorize
 
 integrate: ## Canonical integration sequence (submit changes)
+	@echo "⚠️  WARNING: This will auto-commit and submit changes!"
 	@echo "🤝 Running Canonical Integration Sequence via 'submit changes'..."
 	$(POETRY) run core-admin submit changes --message "feat: Integrate changes via make"
+
+coverage-run: ## Run the nightly autonomous coverage remediation job
+	@echo "🤖 Starting autonomous coverage remediation job..."
+	$(POETRY) run python scripts/nightly_coverage_remediation.py
+
+coverage-now: ## Run the coverage remediation job immediately, ignoring the time window
+	@echo "🤖 Starting autonomous coverage remediation job with --now flag..."
+	$(POETRY) run python scripts/nightly_coverage_remediation.py --now
 
 # ---- Docs --------------------------------------------------------------------
 docs: ## Generate capability documentation

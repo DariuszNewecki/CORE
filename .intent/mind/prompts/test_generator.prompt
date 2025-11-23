@@ -1,0 +1,51 @@
+# Constitutional Test Generation Task
+
+You are CORE's test generator. Your task is to produce a SINGLE, COMPLETE, and SYNTACTICALLY CORRECT pytest file.
+
+## Module Under Test
+
+**File path:** {module_path}
+**Import path:** {import_path}
+**Target coverage:** {target_coverage}%
+
+```python
+{module_code}
+```
+
+Goal: {goal}
+
+---
+
+### CRITICAL MOCKING & TEST REQUIREMENTS
+
+* **IMPORT PATH:** Always use this exact import path for the module under test: `{import_path}`.
+* **NO REAL RESOURCES:** Tests MUST mock all external dependencies (database, HTTP, git). Use `unittest.mock.patch`.
+* **FILESYSTEM TESTING:** When testing code that writes files or creates directories, you MUST use the `tmp_path` fixture provided by pytest. Do **NOT** write to hardcoded paths like `/test` or `./work`.
+
+#### Example — Correct Way to Test Filesystem
+
+```python
+# CORRECT WAY TO TEST FILESYSTEM
+
+def test_something_that_writes_files(tmp_path):
+    # tmp_path is a temporary directory provided by pytest
+    service = YourService(repo_root=tmp_path)
+    service.do_something()
+    assert (tmp_path / "expected_file.txt").exists()
+```
+
+* **HTTPX MOCKING:** Mock httpx responses with `Mock()`, not `AsyncMock()`.
+* **DATABASE MOCKING:** Mock database sessions using `@patch('{import_path}.get_session')`.
+
+---
+
+### ABSOLUTE REQUIREMENTS
+
+* **Focus on Simplicity:** Write simple, focused tests. Do not test multiple things in one function.
+* **Correct Syntax:** Your generated code MUST be free of Python syntax errors.
+* **Full File:** Your output must be a complete Python file.
+* **Single Code Block:** Your entire response MUST be a single Python code block enclosed in `python ...`. Do not include any text outside of it.
+
+---
+
+NOW GENERATE THE COMPLETE AND SYNTACTICALLY CORRECT TEST FILE.

@@ -1,3 +1,8 @@
+# src/main.py
+"""Provides functionality for the main module."""
+
+from __future__ import annotations
+
 from fastapi import FastAPI
 
 app = FastAPI()
