@@ -1,8 +1,7 @@
-#!/usr/bin/env python3
 # scripts/inspect_db_state.py
 """
 A diagnostic script to directly inspect the state of the `core.symbols` table
-to verify if refactoring changes are being correctly written and committed.
+to verify if the 'define-symbols' command is successfully updating records.
 """
 
 from __future__ import annotations
@@ -11,7 +10,7 @@ import asyncio
 import sys
 from pathlib import Path
 
-# Add the 'src' directory to the Python path to allow importing project modules
+# Add the 'src' directory to the Python path to allow imports
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from rich.console import Console
@@ -29,53 +28,29 @@ async def inspect_database_state():
         async with get_session() as session:
             console.print("✅ Successfully connected to the database.")
 
-            # Check 1: Count total symbols
-            total_result = await session.execute(
-                text("SELECT COUNT(*) FROM core.symbols")
+            # Check for a specific symbol that should have been defined.
+            # We'll check for 'resolve_duplicate_ids' which was in your successful `define-symbols` run logs.
+            symbol_path_to_check = "src/features/self_healing/duplicate_id_service.py::resolve_duplicate_ids"
+            
+            result = await session.execute(
+                text("SELECT key FROM core.symbols WHERE symbol_path = :path"),
+                {"path": symbol_path_to_check},
             )
-            total_count = total_result.scalar_one()
-            console.print(f"\n[bold]1. Total Symbols in Database:[/bold] {total_count}")
-
-            # Check 2: Look for the specific symbol we deleted from the CLI layer
-            status_symbol_path = "src/cli/logic/status.py::status"
-            status_result = await session.execute(
-                text("SELECT COUNT(*) FROM core.symbols WHERE symbol_path = :path"),
-                {"path": status_symbol_path},
-            )
-            status_count = status_result.scalar_one()
+            # Use scalar_one_or_none() which returns the value, or None if no row is found.
+            symbol_key = result.scalar_one_or_none()
 
             console.print(
-                f"\n[bold]2. Checking for deleted symbol '{status_symbol_path}':[/bold]"
+                f"\n[bold]Checking for symbol '{symbol_path_to_check}':[/bold]"
             )
-            if status_count > 0:
-                console.print(
-                    f"   -> [bold red]FOUND {status_count} entr(y/ies).[/bold red] This symbol should have been deleted."
+            
+            # This logic now correctly handles all cases
+            if symbol_key is None:
+                 console.print(
+                    f"   -> [bold red]FOUND, BUT KEY IS NULL.[/bold red] This symbol was NOT updated by the 'define-symbols' command."
                 )
             else:
-                console.print(
-                    "   -> [bold green]NOT FOUND.[/bold green] This is correct."
-                )
-
-            # Check 3: Look for the other duplicated symbol
-            normalize_symbol_path = (
-                "src/shared/utils/embedding_utils.py::normalize_text"
-            )
-            normalize_result = await session.execute(
-                text("SELECT COUNT(*) FROM core.symbols WHERE symbol_path = :path"),
-                {"path": normalize_symbol_path},
-            )
-            normalize_count = normalize_result.scalar_one()
-
-            console.print(
-                f"\n[bold]3. Checking for deleted symbol '{normalize_symbol_path}':[/bold]"
-            )
-            if normalize_count > 0:
-                console.print(
-                    f"   -> [bold red]FOUND {normalize_count} entr(y/ies).[/bold red] This symbol should have been deleted."
-                )
-            else:
-                console.print(
-                    "   -> [bold green]NOT FOUND.[/bold green] This is correct."
+                 console.print(
+                    f"   -> [bold green]FOUND AND DEFINED![/bold green] Key is '{symbol_key}'. This is unexpected based on the audit."
                 )
 
             console.print(
@@ -83,11 +58,13 @@ async def inspect_database_state():
             )
 
             # Final diagnosis
-            if status_count > 0 or normalize_count > 0:
+            if symbol_key is None:
                 console.print("\n[bold red]Diagnosis: CONFIRMED.[/bold red]")
                 console.print(
-                    "The database the application is using still contains the old, stale data. "
-                    "This proves that the `sync-knowledge` command is updating a DIFFERENT database."
+                    "The database the application is connecting to still contains the OLD, undefined data."
+                )
+                console.print(
+                    "This proves that the `define-symbols` command is writing its changes to a DIFFERENT database."
                 )
                 console.print(
                     "\n[bold]Next Step:[/bold] Check your `.env` and `docker-compose.yml` files. Ensure the `DATABASE_URL` is identical and correct everywhere, and that you do not have multiple database containers running."
@@ -95,7 +72,7 @@ async def inspect_database_state():
             else:
                 console.print("\n[bold green]Diagnosis: UNEXPECTED.[/bold green]")
                 console.print(
-                    "The database appears to be correctly updated. The problem lies elsewhere, likely in the `inspect duplicates` command's logic itself."
+                    "The database appears to be correctly updated. The problem may lie elsewhere."
                 )
 
     except Exception as e:

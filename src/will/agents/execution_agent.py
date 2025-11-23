@@ -10,17 +10,16 @@ from typing import TYPE_CHECKING
 
 from shared.logger import getLogger
 from shared.models import ExecutionTask, PlanExecutionError
-
 from will.agents.coder_agent import CoderAgent
 from will.agents.plan_executor import PlanExecutor
 
 if TYPE_CHECKING:
     from mind.governance.audit_context import AuditorContext
+
 logger = getLogger(__name__)
 
 
-# ID: 71b27169-6bfd-473b-a9de-3b64f9cba5fa
-class ExecutionAgent:
+class _ExecutionAgent:
     """Orchestrates the execution of a plan, delegating code generation to the CoderAgent."""
 
     def __init__(
@@ -76,7 +75,7 @@ class ExecutionAgent:
             return (True, "✅ Plan executed successfully.")
         except PlanExecutionError as e:
             return (False, f"Plan execution failed during orchestration: {str(e)}")
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             logger.error(
                 f"An unexpected error occurred during execution: {e}", exc_info=True
             )

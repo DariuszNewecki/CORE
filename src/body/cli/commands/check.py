@@ -8,11 +8,11 @@ Refactored under dry_by_design to use the canonical context setter.
 from __future__ import annotations
 
 import typer
-from shared.context import CoreContext
-from shared.logger import getLogger
 
 from body.cli.logic.audit import audit, lint, test_system
 from body.cli.logic.diagnostics import policy_coverage
+from shared.context import CoreContext
+from shared.logger import getLogger
 
 logger = getLogger(__name__)
 check_app = typer.Typer(

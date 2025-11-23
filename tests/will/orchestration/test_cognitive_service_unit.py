@@ -78,10 +78,10 @@ async def test_initialize_handles_exception(
 @pytest.mark.asyncio
 async def test_create_provider_openai(mocker, tmp_service):
     res = SimpleNamespace(name="OpenAIResource", env_prefix="OPENAI")
-    mocker.patch(
-        "services.config_service.ConfigService.create"
-    ).return_value.get = AsyncMock(
-        side_effect=lambda k, d=None: "dummy" if "URL" in k or "MODEL" in k else d
+    mocker.patch("services.config_service.ConfigService.create").return_value.get = (
+        AsyncMock(
+            side_effect=lambda k, d=None: "dummy" if "URL" in k or "MODEL" in k else d
+        )
     )
     mocker.patch(
         "services.config_service.ConfigService.create"
@@ -95,9 +95,9 @@ async def test_create_provider_openai(mocker, tmp_service):
 @pytest.mark.asyncio
 async def test_create_provider_ollama(mocker, tmp_service):
     res = SimpleNamespace(name="ollama-test", env_prefix="OLLAMA")
-    mocker.patch(
-        "services.config_service.ConfigService.create"
-    ).return_value.get = AsyncMock(return_value=None)
+    mocker.patch("services.config_service.ConfigService.create").return_value.get = (
+        AsyncMock(return_value=None)
+    )
     mocker.patch(
         "services.config_service.ConfigService.create"
     ).return_value.get_secret = AsyncMock(return_value="sek")
@@ -137,9 +137,9 @@ async def test_create_provider_missing_config(mocker, tmp_service):
 @pytest.mark.asyncio
 async def test_create_provider_secret_keyerror(mocker, tmp_service):
     res = SimpleNamespace(name="EnvBack", env_prefix="ENV")
-    mocker.patch(
-        "services.config_service.ConfigService.create"
-    ).return_value.get = AsyncMock(return_value="x")
+    mocker.patch("services.config_service.ConfigService.create").return_value.get = (
+        AsyncMock(return_value="x")
+    )
     mocker.patch(
         "services.config_service.ConfigService.create"
     ).return_value.get_secret = AsyncMock(side_effect=KeyError)

@@ -9,18 +9,18 @@ import asyncio
 from pathlib import Path
 
 import typer
-from features.self_healing.test_target_analyzer import TestTargetAnalyzer
 from rich.console import Console
 from rich.table import Table
-from shared.context import CoreContext
 
+import body.cli.logic.status as status_logic
 from body.cli.logic.diagnostics import cli_tree
 from body.cli.logic.duplicates import inspect_duplicates
 from body.cli.logic.guard_cli import register_guard
 from body.cli.logic.knowledge import find_common_knowledge
-from body.cli.logic.status import status
 from body.cli.logic.symbol_drift import inspect_symbol_drift
 from body.cli.logic.vector_drift import inspect_vector_drift
+from features.self_healing.test_target_analyzer import TestTargetAnalyzer
+from shared.context import CoreContext
 
 console = Console()
 inspect_app = typer.Typer(
@@ -40,21 +40,57 @@ def set_context(context: CoreContext):
 
 @inspect_app.command("status")
 # ID: 43192f07-fb4f-4f45-9d8c-a096ee0142f6
-def status_command():
-    """Display database connection and migration status."""
-    asyncio.run(status())
+def status_command() -> None:
+    """
+    Display database connection and migration status.
+
+    Uses `body.cli.logic.status.get_status_report` so it can be mocked in tests
+    and reused by other callers.
+    """
+
+    async def _run() -> None:
+        # IMPORTANT: call via the module so tests patching
+        # body.cli.logic.status.get_status_report see this call.
+        report = await status_logic.get_status_report()
+
+        # Connection line
+        if report.is_connected:
+            console.print("Database connection: OK")
+        else:
+            console.print("Database connection: FAILED")
+
+        # Version line
+        if report.db_version:
+            console.print(f"Database version: {report.db_version}")
+        else:
+            console.print("Database version: N/A")
+
+        # Migration status
+        pending = list(report.pending_migrations)
+        if not pending:
+            console.print("Migrations are up to date")
+        else:
+            console.print(f"Found {len(pending)} pending migrations")
+            for mig in pending:
+                console.print(f"- {mig}")
+
+    asyncio.run(_run())
 
 
 register_guard(inspect_app)
+
 inspect_app.command("command-tree")(cli_tree)
+
 inspect_app.command(
     "symbol-drift",
     help="Detects drift between symbols on the filesystem and in the database.",
 )(inspect_symbol_drift)
+
 inspect_app.command(
     "vector-drift",
     help="Verifies perfect synchronization between PostgreSQL and Qdrant.",
 )(lambda: asyncio.run(inspect_vector_drift()))
+
 inspect_app.command(
     "common-knowledge",
     help="Finds structurally identical helper functions that can be consolidated.",

@@ -8,9 +8,8 @@ from __future__ import annotations
 import ast
 from pathlib import Path
 
-from shared.models import AuditFinding, AuditSeverity
-
 from mind.governance.checks.base_check import BaseCheck
+from shared.models import AuditFinding, AuditSeverity
 
 
 # ID: n4o5p6q7-r8s9-9t0u-1v2w-3x4y5z6a7b8c
@@ -51,7 +50,7 @@ class PrivateIdCheck(BaseCheck):
                 findings.append(
                     AuditFinding(
                         check_id="symbols.private_helpers_no_id_required",
-                        severity=AuditSeverity.WARN,
+                        severity=AuditSeverity.WARNING,
                         message=f"Parse error in {file_path.name}: {e}",
                         file_path=str(file_path.relative_to(self.repo_root)),
                         line_number=1,
@@ -63,7 +62,7 @@ class PrivateIdCheck(BaseCheck):
     def _finding(self, file_path: Path, line: int) -> AuditFinding:
         return AuditFinding(
             check_id="symbols.private_helpers_no_id_required",
-            severity=AuditSeverity.WARN,
+            severity=AuditSeverity.WARNING,
             message="Private helper contains CAPABILITY_ID. Remove it.",
             file_path=str(file_path.relative_to(self.repo_root)),
             line_number=line,

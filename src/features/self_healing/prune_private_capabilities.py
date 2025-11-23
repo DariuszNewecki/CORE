@@ -13,6 +13,7 @@ import re
 
 import typer
 from rich.console import Console
+
 from services.knowledge_service import KnowledgeService
 from shared.config import settings
 from shared.logger import getLogger

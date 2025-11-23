@@ -1,10 +1,11 @@
 -- =============================================================================
--- CORE v2.1 — Self-Improving System Schema
+-- CORE v2.2 — Self-Improving System Schema
 -- Designed for A1+ Autonomy with Qdrant Vector Integration
 --
 -- Design Principles:
 -- - UUID type consistency (native uuid everywhere, no text UUIDs)
 -- - symbol_path as natural key, id as immutable PK
+-- - Single Source of Truth (Links Table only, no Arrays for relationships)
 -- - Production-ready materialized view management
 -- - Full observability and audit trails
 -- =============================================================================
@@ -78,6 +79,8 @@ CREATE INDEX IF NOT EXISTS idx_symbols_state ON core.symbols(state);
 CREATE INDEX IF NOT EXISTS idx_symbols_health ON core.symbols(health_status);
 CREATE INDEX IF NOT EXISTS idx_symbols_qualname ON core.symbols(qualname);
 CREATE INDEX IF NOT EXISTS idx_symbols_fingerprint ON core.symbols(fingerprint);
+-- Optimization for path lookups (added in v2.2)
+CREATE INDEX IF NOT EXISTS idx_symbols_path_pattern ON core.symbols (symbol_path text_pattern_ops);
 
 -- Lookup helper for natural key usage
 CREATE OR REPLACE FUNCTION core.get_symbol_id(path text)
@@ -97,8 +100,9 @@ CREATE TABLE IF NOT EXISTS core.capabilities (
     objective text,
     owner text NOT NULL,
 
-    -- Implementation tracking (arrays of UUIDs)
-    entry_points uuid[] DEFAULT '{}',        -- Main symbol IDs
+    -- NOTE: 'entry_points' array removed in v2.2 to prevent split-brain.
+    -- Use core.symbol_capability_links instead.
+    
     dependencies jsonb DEFAULT '[]'::jsonb,  -- Required capability names
     test_coverage numeric(5,2),              -- 0-100%
 
@@ -114,12 +118,8 @@ CREATE TABLE IF NOT EXISTS core.capabilities (
 
 CREATE INDEX IF NOT EXISTS idx_capabilities_domain ON core.capabilities(domain);
 CREATE INDEX IF NOT EXISTS idx_capabilities_status ON core.capabilities(status);
-CREATE INDEX IF NOT EXISTS idx_capabilities_entry_points ON core.capabilities USING GIN(entry_points);
 
-COMMENT ON COLUMN core.capabilities.entry_points IS
-    'Array of symbol UUIDs that serve as primary entry points for this capability';
-
--- Link symbols to capabilities they implement
+-- Link symbols to capabilities they implement (The Single Source of Truth)
 CREATE TABLE IF NOT EXISTS core.symbol_capability_links (
     symbol_id uuid NOT NULL REFERENCES core.symbols(id) ON DELETE CASCADE,
     capability_id uuid NOT NULL REFERENCES core.capabilities(id) ON DELETE CASCADE,
@@ -494,6 +494,85 @@ CREATE TABLE IF NOT EXISTS core.runtime_settings (
 COMMENT ON TABLE core.runtime_settings IS 'Single source of truth for runtime configuration, loaded from .env and managed by `core-admin manage dotenv sync`.';
 COMMENT ON COLUMN core.runtime_settings.is_secret IS 'If true, the value should be handled with care.';
 
+-- =============================================================================
+-- SECTION 6A: CONTEXT PACKETS (ContextPackage Artifacts)
+-- =============================================================================
+-- Context Packets Table
+-- Stores metadata for ContextPackage artifacts
+
+CREATE TABLE IF NOT EXISTS core.context_packets (
+    -- Identity
+    packet_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    task_id VARCHAR(255) NOT NULL,
+    task_type VARCHAR(50) NOT NULL,
+
+    -- Timestamps
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+
+    -- Privacy & governance
+    privacy VARCHAR(20) NOT NULL CHECK (privacy IN ('local_only', 'remote_allowed')),
+    remote_allowed BOOLEAN NOT NULL DEFAULT FALSE,
+
+    -- Hashing & caching
+    packet_hash VARCHAR(64) NOT NULL,
+    cache_key VARCHAR(64),
+
+    -- Metrics
+    tokens_est INTEGER NOT NULL DEFAULT 0,
+    size_bytes INTEGER NOT NULL DEFAULT 0,
+    build_ms INTEGER NOT NULL DEFAULT 0,
+    items_count INTEGER NOT NULL DEFAULT 0,
+    redactions_count INTEGER NOT NULL DEFAULT 0,
+
+    -- Storage
+    path TEXT NOT NULL,
+
+    -- Extensible metadata
+    metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+
+    -- Audit
+    builder_version VARCHAR(20) NOT NULL,
+
+    -- Constraints
+    CONSTRAINT valid_task_type CHECK (
+        task_type IN ('docstring.fix', 'header.fix', 'test.generate', 'code.generate', 'refactor')
+    ),
+    CONSTRAINT positive_metrics CHECK (
+        tokens_est >= 0 AND
+        size_bytes >= 0 AND
+        build_ms >= 0 AND
+        items_count >= 0 AND
+        redactions_count >= 0
+    )
+);
+
+-- Indexes for common queries
+CREATE INDEX IF NOT EXISTS idx_context_packets_task_id ON core.context_packets(task_id);
+CREATE INDEX IF NOT EXISTS idx_context_packets_task_type ON core.context_packets(task_type);
+CREATE INDEX IF NOT EXISTS idx_context_packets_packet_hash ON core.context_packets(packet_hash);
+CREATE INDEX IF NOT EXISTS idx_context_packets_created_at ON core.context_packets(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_context_packets_cache_key ON core.context_packets(cache_key) WHERE cache_key IS NOT NULL;
+
+-- GIN index for metadata JSONB queries
+CREATE INDEX IF NOT EXISTS idx_context_packets_metadata ON core.context_packets USING GIN(metadata);
+
+-- Comments
+COMMENT ON TABLE core.context_packets IS 'Metadata for ContextPackage artifacts created by ContextService';
+COMMENT ON COLUMN core.context_packets.packet_id IS 'Unique identifier for this packet';
+COMMENT ON COLUMN core.context_packets.task_id IS 'Associated task identifier';
+COMMENT ON COLUMN core.context_packets.task_type IS 'Type of task (docstring.fix, test.generate, etc.)';
+COMMENT ON COLUMN core.context_packets.privacy IS 'Privacy level: local_only or remote_allowed';
+COMMENT ON COLUMN core.context_packets.remote_allowed IS 'Whether packet can be sent to remote LLMs';
+COMMENT ON COLUMN core.context_packets.packet_hash IS 'SHA256 hash of packet content for validation';
+COMMENT ON COLUMN core.context_packets.cache_key IS 'Hash of task spec for cache lookup';
+COMMENT ON COLUMN core.context_packets.tokens_est IS 'Estimated token count for packet';
+COMMENT ON COLUMN core.context_packets.size_bytes IS 'Size of serialized packet in bytes';
+COMMENT ON COLUMN core.context_packets.build_ms IS 'Time taken to build packet in milliseconds';
+COMMENT ON COLUMN core.context_packets.items_count IS 'Number of items in context array';
+COMMENT ON COLUMN core.context_packets.redactions_count IS 'Number of redactions applied';
+COMMENT ON COLUMN core.context_packets.path IS 'File path to serialized packet YAML';
+COMMENT ON COLUMN core.context_packets.metadata IS 'Extensible metadata (provenance, stats, etc.)';
+COMMENT ON COLUMN core.context_packets.builder_version IS 'Version of ContextBuilder that created packet';
 
 -- =============================================================================
 -- SECTION 7: MATERIALIZED VIEW MANAGEMENT (Production-Ready)
@@ -554,6 +633,7 @@ FROM core.symbols s
 WHERE s.last_embedded IS NULL OR s.last_modified > s.last_embedded
 ORDER BY s.last_modified DESC;
 
+-- FIXED: Now checks Link Table (not array)
 CREATE OR REPLACE VIEW core.v_orphan_symbols AS
 SELECT s.id, s.symbol_path, s.module, s.qualname, s.kind, s.state, s.health_status
 FROM core.symbols s
@@ -631,6 +711,7 @@ FROM core.tasks t
 WHERE t.status IN ('pending', 'executing', 'planning')
 ORDER BY t.created_at;
 
+-- FIXED: Replaced Materialized View with Standard View (No Refresh Lag)
 CREATE OR REPLACE VIEW core.knowledge_graph AS
 SELECT
     s.id as uuid,
@@ -694,51 +775,48 @@ BEGIN
     END IF;
 END$$;
 
+-- CLEANUP: Drop Legacy MV if exists (Using standard View now)
+DROP MATERIALIZED VIEW IF EXISTS core.mv_symbol_usage_patterns;
+
+-- Permissions
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA core TO core_db;
+GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA core TO core_db;
+
 -- =============================================================================
--- SECTION 10: MATERIALIZED VIEW FOR ANALYTICS
+-- SECTION 10: AUTOMATED MIGRATION LOGIC
 -- =============================================================================
 
-CREATE MATERIALIZED VIEW IF NOT EXISTS core.mv_symbol_usage_patterns AS
-SELECT
-    s.id,
-    s.symbol_path,
-    s.module,
-    s.kind,
-    s.state,
-    s.health_status,
-    COUNT(DISTINCT a.task_id) FILTER (WHERE a.action_type = 'file_write') as times_modified,
-    COUNT(DISTINCT a.task_id) FILTER (WHERE a.action_type = 'file_read') as times_read,
-    COUNT(DISTINCT rf.task_id) as times_retrieved,
-    CASE
-        WHEN COUNT(DISTINCT rf.task_id) > 0
-        THEN COUNT(DISTINCT a.task_id) FILTER (WHERE a.action_type IN ('file_write', 'file_read'))::numeric
-             / COUNT(DISTINCT rf.task_id)
-        ELSE 0
-    END as retrieval_precision,
-    array_agg(DISTINCT c.name) FILTER (WHERE c.name IS NOT NULL) as associated_capabilities,
-    MAX(a.created_at) as last_action_at,
-    MAX(rf.created_at) as last_retrieved_at
-FROM core.symbols s
-LEFT JOIN core.actions a ON a.target = s.symbol_path
-LEFT JOIN core.retrieval_feedback rf ON s.id = ANY(rf.retrieved_symbols)
-LEFT JOIN core.symbol_capability_links l ON l.symbol_id = s.id
-LEFT JOIN core.capabilities c ON c.id = l.capability_id
-GROUP BY s.id, s.symbol_path, s.module, s.kind, s.state, s.health_status;
+DO $$
+BEGIN
+    -- Check if the legacy 'entry_points' column still exists
+    IF EXISTS (
+        SELECT 1 
+        FROM information_schema.columns 
+        WHERE table_schema = 'core' 
+          AND table_name = 'capabilities' 
+          AND column_name = 'entry_points'
+    ) THEN
+        RAISE NOTICE 'Legacy entry_points column found. Migrating data...';
 
-CREATE UNIQUE INDEX IF NOT EXISTS idx_mv_usage_id ON core.mv_symbol_usage_patterns(id);
-CREATE INDEX IF NOT EXISTS idx_mv_usage_precision ON core.mv_symbol_usage_patterns(retrieval_precision DESC);
-CREATE INDEX IF NOT EXISTS idx_mv_usage_modified ON core.mv_symbol_usage_patterns(times_modified DESC);
-CREATE INDEX IF NOT EXISTS idx_mv_usage_last_action ON core.mv_symbol_usage_patterns(last_action_at DESC NULLS LAST);
+        -- 1. Migrate valid links (ignoring Ghost IDs that don't exist in symbols table)
+        INSERT INTO core.symbol_capability_links (symbol_id, capability_id, confidence, source, verified)
+        SELECT DISTINCT
+            raw_links.symbol_uuid,
+            raw_links.capability_id,
+            1.0,
+            'manual', -- Valid enum value
+            true
+        FROM (
+            SELECT unnest(entry_points) AS symbol_uuid, id AS capability_id
+            FROM core.capabilities
+            WHERE entry_points IS NOT NULL
+        ) raw_links
+        JOIN core.symbols s ON s.id = raw_links.symbol_uuid -- FILTER GHOSTS (Critical Fix)
+        ON CONFLICT (symbol_id, capability_id, source) DO NOTHING;
 
-COMMENT ON MATERIALIZED VIEW core.mv_symbol_usage_patterns IS
-    'Analytics view for symbol usage patterns. Refresh with: SELECT * FROM core.refresh_materialized_view(''core.mv_symbol_usage_patterns'');';
-
-INSERT INTO core.mv_refresh_log (view_name, triggered_by)
-VALUES ('core.mv_symbol_usage_patterns', 'schema_init')
-ON CONFLICT (view_name) DO NOTHING;
-
--- --- START OF FIX: Add permissions grant ---
--- This ensures the 'core' user can read/write to all tables created in this schema.
-GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA core TO core;
-GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA core TO core;
--- --- END OF FIX ---
+        -- 2. Drop the column to enforce 3rd Normal Form
+        ALTER TABLE core.capabilities DROP COLUMN entry_points;
+        
+        RAISE NOTICE 'Migration complete. Legacy column dropped.';
+    END IF;
+END$$;

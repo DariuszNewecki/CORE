@@ -3,6 +3,8 @@ import uuid
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from qdrant_client.http import models as rest
+
 from features.introspection.knowledge_vectorizer import (
     VectorizationPayload,
     _prepare_vectorization_payload,
@@ -10,7 +12,6 @@ from features.introspection.knowledge_vectorizer import (
     process_vectorization_task,
     sync_existing_vector_ids,
 )
-from qdrant_client.http import models as rest
 
 # A consistent symbol for use in tests
 SAMPLE_SYMBOL_DATA = {

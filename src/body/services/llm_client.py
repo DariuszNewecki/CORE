@@ -7,6 +7,7 @@ A dedicated, asynchronous client for interacting with LLM APIs.
 from __future__ import annotations
 
 import httpx
+
 from shared.logger import getLogger
 
 logger = getLogger(__name__)

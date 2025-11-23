@@ -1,10 +1,10 @@
-# verify_view.py
+# scripts/verify_view.py
 import asyncio
 
 from rich.console import Console
 from sqlalchemy import text
 
-from src.services.database.session_manager import get_session
+from services.database.session_manager import get_session
 
 console = Console()
 

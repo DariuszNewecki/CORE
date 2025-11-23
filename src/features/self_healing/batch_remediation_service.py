@@ -12,17 +12,17 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from mind.governance.audit_context import AuditorContext
 from rich.console import Console
 from rich.table import Table
-from shared.config import settings
-from shared.logger import getLogger
-from will.orchestration.cognitive_service import CognitiveService
 
 from features.self_healing.coverage_analyzer import CoverageAnalyzer
 from features.self_healing.single_file_remediation import (
     EnhancedSingleFileRemediationService,
 )
+from mind.governance.audit_context import AuditorContext
+from shared.config import settings
+from shared.logger import getLogger
+from will.orchestration.cognitive_service import CognitiveService
 
 logger = getLogger(__name__)
 console = Console()
@@ -253,8 +253,7 @@ class BatchRemediationService:
         console.print(f"  ⏭️  Skipped: {skipped_count}")
 
 
-# ID: c5a75c8a-9bb0-4513-9574-72b7b72bb295
-async def remediate_batch(
+async def _remediate_batch(
     cognitive_service: CognitiveService,
     auditor_context: AuditorContext,
     count: int,

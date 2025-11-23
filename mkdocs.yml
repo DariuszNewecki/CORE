@@ -1,0 +1,85 @@
+site_name: CORE Documentation
+site_description: Constitutional, self-governing AI development framework.
+repo_name: DariuszNewecki/CORE
+repo_url: https://github.com/DariuszNewecki/CORE
+
+theme:
+  name: material
+  language: en
+  features:
+    - navigation.tabs      # top-level items as tabs at the top
+    - navigation.top       # back-to-top button
+    - toc.integrate        # put headings inside the page, not in a sidebar
+
+extra_css:
+  - css/no-sidebars.css    # our custom override
+
+nav:
+  - Home: index.md
+  - Core Concepts:
+      - What is CORE?: core-concept/00_WHAT_IS_CORE.md
+      - Philosophy: core-concept/01_PHILOSOPHY.md
+      - Architecture: core-concept/02_ARCHITECTURE.md
+      - Governance: core-concept/03_GOVERNANCE.md
+      - Roadmap: core-concept/04_ROADMAP.md
+      - Autonomy Ladder: core-concept/05-autonomy-ladder.md
+      - Context & Comparisons: core-concept/06-context-and-comparisons.md
+      - Worked Example: core-concept/07-worked-example.md
+  - Getting Started:
+      - Starter Kits: getting-started/01-starter-kits.md
+      - Bring Your Own Runtime (BYOR): getting-started/02-byor.md
+      - Batch Mode: getting-started/03-batch-mode.md
+      - Secrets Management: getting-started/04-secrets-management.md
+  - Developer Guide:
+      - Contributing: developer-guide/01-contributing.md
+      - Cheat Sheet: developer-guide/02-cheatsheet.md
+      - CLI Reference: developer-guide/03-cli-reference.md
+      - CLI Command Index: developer-guide/04-cli-commands-table.md
+      - CLI Workflows: developer-guide/05-cli-workflows.md
+      - Technical Debt: developer-guide/06-technical-debt.md
+  - Autonomy & Governance:
+      - Peer Review: autonomy-and-governance/01-peer-review.md
+      - Complexity Filtering: autonomy-and-governance/02-complexity-filtering.md
+      - Pragmatic Test Generation: autonomy-and-governance/03-test-generation-pragmatics.md
+      - Constitutional Coverage:
+          - Executive Summary: autonomy-and-governance/constitutional-coverage/executive-summary.md
+          - Quick Reference: autonomy-and-governance/constitutional-coverage/quick-reference.md
+          - Implementation Checklist: autonomy-and-governance/constitutional-coverage/implementation-checklist.md
+          - Test Coverage Plan: autonomy-and-governance/constitutional-coverage/test-coverage-plan.md
+          - Remediation Summary: autonomy-and-governance/constitutional-coverage/coverage-remediation-summary.md
+  - Context & Knowledge:
+      - Integration TODO: context-and-knowledge/01-integration-todo.md
+      - ContextPackage:
+          - README: context-and-knowledge/context-package/readme.md
+          - Phase 1 Complete: context-and-knowledge/context-package/phase-1-complete.md
+          - Integration Plan: context-and-knowledge/context-package/integration-plan.md
+          - Integration Summary: context-and-knowledge/context-package/integration-summary.md
+  - Planning & Releases:
+      - Complete Implementation Plan: planning/01-complete-implementation-plan.md
+      - Phase 1 Delivery: planning/02-phase1-delivery.md
+      - Restructure Plan: planning/03-restructure-plan.md
+      - Releases:
+          - v0.2.0: planning/releases/v0.2.0.md
+  - Reference:
+      - API Reference: reference/01-api-reference.md
+      - Capability Reference: reference/02-capability-reference.md
+  - Archive:
+      - Academic Paper Draft: archive/11_ACADEMIC_PAPER.md
+      - Old Strategic Plan: archive/StrategicPlan.md
+
+plugins:
+  - search
+
+markdown_extensions:
+  - admonition
+  - tables
+  - footnotes
+  - def_list
+  - attr_list
+  - pymdownx.highlight
+  - pymdownx.superfences
+  - pymdownx.details
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.emoji:
+      emoji_generator: !!python/name:materialx.emoji.to_svg

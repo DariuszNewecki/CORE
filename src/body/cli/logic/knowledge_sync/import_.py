@@ -8,6 +8,9 @@ from __future__ import annotations
 from typing import Any
 
 from rich.console import Console
+from sqlalchemy import text
+from sqlalchemy.dialects.postgresql import insert as pg_insert
+
 from services.database.models import (
     Capability,
     CognitiveRole,
@@ -18,8 +21,6 @@ from services.database.models import (
 )
 from services.database.session_manager import get_session
 from shared.config import settings
-from sqlalchemy import text
-from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 from .utils import _get_items_from_doc, compute_digest, read_yaml
 

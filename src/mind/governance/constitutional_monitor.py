@@ -17,10 +17,9 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Protocol
 
-from shared.logger import getLogger
-from shared.utils.header_tools import HeaderTools
-
 from mind.governance.audit_context import AuditorContext
+from shared.logger import getLogger
+from shared.utils.header_tools import _HeaderTools
 
 logger = getLogger(__name__)
 
@@ -115,7 +114,7 @@ class ConstitutionalMonitor:
             file_path = self.repo_path / file_path_str
             try:
                 original_content = file_path.read_text(encoding="utf-8")
-                header = HeaderTools.parse(original_content)
+                header = _HeaderTools.parse(original_content)
                 correct_location_comment = f"# {file_path_str}"
                 is_compliant = (
                     header.location == correct_location_comment
@@ -212,7 +211,7 @@ class ConstitutionalMonitor:
         try:
             file_path = self.repo_path / violation.file_path
             original_content = file_path.read_text(encoding="utf-8")
-            header = HeaderTools.parse(original_content)
+            header = _HeaderTools.parse(original_content)
             correct_location_comment = f"# {violation.file_path}"
             header.location = correct_location_comment
             if not header.module_description:
@@ -220,7 +219,7 @@ class ConstitutionalMonitor:
                     f'"""Provides functionality for the {file_path.stem} module."""'
                 )
             header.has_future_import = True
-            corrected_code = HeaderTools.reconstruct(header)
+            corrected_code = _HeaderTools.reconstruct(header)
             if corrected_code != original_content:
                 file_path.write_text(corrected_code, "utf-8")
                 logger.info(f"Fixed header in {violation.file_path}")

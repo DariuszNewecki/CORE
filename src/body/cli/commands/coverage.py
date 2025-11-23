@@ -15,11 +15,12 @@ import subprocess
 from pathlib import Path
 
 import typer
-from features.self_healing.batch_remediation_service import remediate_batch
-from features.self_healing.coverage_remediation_service import remediate_coverage
-from mind.governance.checks.coverage_check import CoverageGovernanceCheck
 from rich.console import Console
 from rich.table import Table
+
+from features.self_healing.batch_remediation_service import _remediate_batch
+from features.self_healing.coverage_remediation_service import _remediate_coverage
+from mind.governance.checks.coverage_check import CoverageGovernanceCheck
 from shared.config import settings
 from shared.context import CoreContext
 from shared.logger import getLogger
@@ -221,14 +222,14 @@ def remediate_coverage_cmd(
     async def _async_remediate():
         try:
             if count:
-                result = await remediate_batch(
+                result = await _remediate_batch(
                     cognitive_service=ctx.cognitive_service,
                     auditor_context=ctx.auditor_context,
                     count=count,
                     max_complexity=complexity_param,
                 )
             else:
-                result = await remediate_coverage(
+                result = await _remediate_coverage(
                     cognitive_service=ctx.cognitive_service,
                     auditor_context=ctx.auditor_context,
                     target_coverage=None,

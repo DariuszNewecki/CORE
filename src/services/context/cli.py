@@ -13,12 +13,12 @@ from pathlib import Path
 import typer
 from rich.console import Console
 from rich.table import Table
-from shared.cli_utils import display_error, display_info, display_success
 
 from services.context import (
     ContextSerializer,
     ContextValidator,
 )
+from shared.cli_utils import display_error, display_info, display_success
 
 console = Console()
 app = typer.Typer(
@@ -31,14 +31,14 @@ app = typer.Typer(
 # ID: cli.context.build
 @app.command("build")
 # ID: caac6251-83ec-4b0e-8915-c9921f88c0ed
-def build(
+def build_cmd(
     task: str = typer.Option(..., "--task", help="Task ID to build context for"),
     out: Path | None = typer.Option(
         None,
         "--out",
         help="Output path (default: work/context_packets/<task_id>/context.yaml)",
     ),
-):
+) -> None:
     """
     Build a context packet for a given task.
 
@@ -50,11 +50,11 @@ def build(
 # ID: cli.context.validate
 @app.command("validate")
 # ID: 63198399-73de-4460-a522-ce13a0a2e6cf
-def validate(
+def validate_cmd(
     file: Path = typer.Option(
         ..., "--file", exists=True, help="Path to context packet YAML"
     ),
-):
+) -> None:
     """
     Validate a context packet against schema.
 
@@ -66,9 +66,9 @@ def validate(
 # ID: cli.context.show
 @app.command("show")
 # ID: 46218ce5-1c51-406b-9492-fb7caf5c3ed2
-def show(
+def show_cmd(
     task: str = typer.Option(..., "--task", help="Task ID to show context for"),
-):
+) -> None:
     """
     Show metadata for a context packet.
 
@@ -77,7 +77,7 @@ def show(
     asyncio.run(_show_internal(task))
 
 
-async def _build_internal(task: str, out: Path | None):
+async def _build_internal(task: str, out: Path | None) -> None:
     """Internal async implementation of build command."""
     try:
         display_info(f"Building context packet for task: {task}")
@@ -110,7 +110,7 @@ async def _build_internal(task: str, out: Path | None):
         raise typer.Exit(1)
 
 
-def _validate_internal(file: Path):
+def _validate_internal(file: Path) -> None:
     """Internal implementation of validate command."""
     try:
         display_info(f"Validating context packet: {file}")
@@ -144,27 +144,22 @@ def _validate_internal(file: Path):
             for error in errors:
                 console.print(f"  - {error}", style="red")
             raise typer.Exit(1)
-
     except Exception as e:
-        display_error(f"Validation error: {e}")
+        display_error(f"Error during validation: {e}")
         raise typer.Exit(1)
 
 
-async def _show_internal(task: str):
+async def _show_internal(task: str) -> None:
     """Internal async implementation of show command."""
     try:
-        packet_path = Path(f"work/context_packets/{task}/context.yaml")
+        display_info(f"Showing context packet metadata for task: {task}")
 
-        if not packet_path.exists():
-            display_error(f"No context packet found for task: {task}")
-            display_info(f"Expected location: {packet_path}")
-            raise typer.Exit(1)
-
-        # Use validate to show details
-        _validate_internal(packet_path)
-
-    except typer.Exit:
-        raise
+        # Placeholder: when ContextService wiring is complete, this will fetch from DB / disk.
+        display_error(
+            "Context 'show' command is not yet wired to ContextService. "
+            "This is a structural placeholder."
+        )
+        raise typer.Exit(1)
     except Exception as e:
         display_error(f"Failed to show context: {e}")
         raise typer.Exit(1)

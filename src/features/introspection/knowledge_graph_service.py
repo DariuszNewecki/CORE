@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Any
 
 import yaml
+
 from shared.ast_utility import (
     FunctionCallVisitor,
     calculate_structural_hash,

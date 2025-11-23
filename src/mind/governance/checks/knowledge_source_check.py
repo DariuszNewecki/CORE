@@ -6,13 +6,12 @@ enforcing the database SSOT rules from the data_governance policy.
 
 from __future__ import annotations
 
-from services.database.session_manager import get_session
-from shared.models import AuditFinding, AuditSeverity
-
 from mind.governance.checks.base_check import BaseCheck
 
 # Import our new engine
 from mind.governance.checks.knowledge_differ import KnowledgeDiffer
+from services.database.session_manager import get_session
+from shared.models import AuditFinding, AuditSeverity
 
 # The configuration remains part of the check, as it's specific to this audit.
 TABLE_CONFIGS = {

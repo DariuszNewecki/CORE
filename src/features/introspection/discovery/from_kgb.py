@@ -12,9 +12,12 @@ from shared.models import CapabilityMeta
 
 
 # ID: 12a7fddd-fa62-4dd8-8e1b-54208392a078
-def collect_from_kgb(root: Path) -> dict[str, CapabilityMeta]:
+def _collect_from_kgb(root: Path) -> dict[str, CapabilityMeta]:
     """
-    Uses the KnowledgeGraphBuilder to find all capabilities.
+    Internal helper: use the KnowledgeGraphBuilder to find all capabilities.
+
+    This is a strategy used by the higher-level capability discovery service.
+    It is not a public capability surface on its own.
     """
     builder = KnowledgeGraphBuilder(root_path=root)
     graph = builder.build()

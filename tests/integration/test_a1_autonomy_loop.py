@@ -10,6 +10,7 @@ import json
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+
 from shared.context import CoreContext
 from will.cli_logic.proposals_micro import propose_and_apply_autonomously
 

@@ -2,7 +2,8 @@
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from will.agents.self_correction_engine import attempt_correction
+
+from will.agents.self_correction_engine import _attempt_correction
 
 
 @pytest.fixture
@@ -60,7 +61,7 @@ async def test_attempt_correction_success(
             "violations": ["syntax error"],
         }
 
-        result = await attempt_correction(
+        result = await _attempt_correction(
             failure_context=failure_context,
             cognitive_service=mock_cognitive_service,
             auditor_context=mock_auditor_context,
@@ -82,7 +83,7 @@ async def test_attempt_correction_missing_context(
         # Missing 'code' and 'violations'
     }
 
-    result = await attempt_correction(
+    result = await _attempt_correction(
         failure_context=failure_context,
         cognitive_service=mock_cognitive_service,
         auditor_context=mock_auditor_context,
@@ -107,7 +108,7 @@ async def test_attempt_correction_llm_no_write_block(
         "violations": ["error"],
     }
 
-    result = await attempt_correction(
+    result = await _attempt_correction(
         failure_context=failure_context,
         cognitive_service=mock_cognitive_service,
         auditor_context=mock_auditor_context,
@@ -141,7 +142,7 @@ async def test_attempt_correction_validation_fails(
             "violations": ["error"],
         }
 
-        result = await attempt_correction(
+        result = await _attempt_correction(
             failure_context=failure_context,
             cognitive_service=mock_cognitive_service,
             auditor_context=mock_auditor_context,
@@ -164,7 +165,7 @@ async def test_attempt_correction_llm_error(
         "violations": ["error"],
     }
 
-    result = await attempt_correction(
+    result = await _attempt_correction(
         failure_context=failure_context,
         cognitive_service=mock_cognitive_service,
         auditor_context=mock_auditor_context,

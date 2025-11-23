@@ -8,9 +8,10 @@ import asyncio
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
+from sqlalchemy import text
+
 from services.clients.qdrant_client import QdrantService
 from services.database.session_manager import get_session
-from sqlalchemy import text
 
 console = Console()
 

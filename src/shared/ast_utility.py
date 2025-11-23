@@ -1,3 +1,9 @@
+# ID: 7a0593fc-153b-400b-9c20-eb2c7dc5acb5
+# ID: 65e17af4-239e-4a61-be73-8e418f482a73
+# ID: ast.analysis.extract_function_calls
+# ID: ast.analysis.function_calls.unique
+# ID: ast.analysis.function_calls.identify
+# ID: ast.analysis.function_calls
 # src/shared/ast_utility.py
 """
 Utility functions for working with Python AST (Abstract Syntax Trees).
@@ -137,20 +143,31 @@ def extract_parameters(node: ast.FunctionDef | ast.AsyncFunctionDef) -> list[str
 
 # ID: d73a2936-68f4-4dc4-b6ef-db6188740683
 class FunctionCallVisitor(ast.NodeVisitor):
-    """Visitor that collects function call names within a node."""
+    """
+    Visitor that collects names of functions or methods being called.
 
+    - `calls` preserves order and allows duplicates (for frequency / sequence analysis).
+    - Use `unique_calls` if you only care about distinct function names.
+    """
+
+    # ID: e01591d8-894d-4027-9141-f2a56a3367a4
     def __init__(self) -> None:
-        """Initialize an empty collection of function call names."""
         self.calls: list[str] = []
 
-    # ID: 2eec3148-6aeb-4d74-9dd3-b73be105ee02
+    # ID: 058cdef2-bbfa-4272-a257-a67eaab9c226
     def visit_Call(self, node: ast.Call) -> None:
         """Record the called function/method name, then continue traversal."""
         if isinstance(node.func, ast.Name):
             self.calls.append(node.func.id)
         elif isinstance(node.func, ast.Attribute):
             self.calls.append(node.func.attr)
+
         self.generic_visit(node)
+
+    @property
+    def _unique_calls(self) -> set[str]:
+        """Convenience accessor to get distinct call names."""
+        return set(self.calls)
 
 
 # ---------------------------------------------------------------------------

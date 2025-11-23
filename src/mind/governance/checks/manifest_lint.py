@@ -6,9 +6,8 @@ the 'caps.no_placeholder_text' and 'caps.meaningful_description' rules.
 
 from __future__ import annotations
 
-from shared.models import AuditFinding, AuditSeverity
-
 from mind.governance.checks.base_check import BaseCheck
+from shared.models import AuditFinding, AuditSeverity
 
 # Define placeholder strings as a constant for clarity.
 # In the future, this could be loaded from the policy file itself.

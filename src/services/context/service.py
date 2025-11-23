@@ -8,6 +8,8 @@ Integrates builder, validator, redactor, cache, and database.
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
+from contextlib import AbstractAsyncContextManager
 from pathlib import Path
 from typing import Any
 
@@ -23,6 +25,8 @@ from .validator import ContextValidator
 
 logger = logging.getLogger(__name__)
 
+SessionFactory = Callable[[], AbstractAsyncContextManager]
+
 
 # ID: 6fee4321-e9f8-4234-b9f0-dbe2c49ec016
 class ContextService:
@@ -30,41 +34,49 @@ class ContextService:
 
     def __init__(
         self,
-        db_service=None,
-        qdrant_client=None,
-        cognitive_service=None,
+        qdrant_client: Any | None = None,
+        cognitive_service: Any | None = None,
         config: dict[str, Any] | None = None,
         project_root: str = ".",
+        session_factory: SessionFactory | None = None,
     ):
         """Initialize context service with dependencies.
 
         Args:
-            db_service: DatabaseService instance
-            qdrant_client: Qdrant client instance
-            cognitive_service: CognitiveService for embeddings
-            config: Configuration dict
-            project_root: Project root directory
+            qdrant_client: Qdrant client instance.
+            cognitive_service: CognitiveService for embeddings.
+            config: Configuration dict.
+            project_root: Project root directory.
+            session_factory: Callable that returns an async DB session context
+                manager. If None, DB persistence and stats are skipped.
         """
         self.config = config or {}
         self.project_root = Path(project_root)
+        self.cognitive_service = cognitive_service
+        self._session_factory = session_factory
 
-        # Initialize providers
-        self.db_provider = DBProvider(db_service)
+        # Initialize providers without a database session.
+        self.db_provider = DBProvider()
         self.vector_provider = VectorProvider(qdrant_client, cognitive_service)
         self.ast_provider = ASTProvider(project_root)
 
         # Initialize components
         self.builder = ContextBuilder(
-            self.db_provider, self.vector_provider, self.ast_provider, self.config
+            self.db_provider,
+            self.vector_provider,
+            self.ast_provider,
+            self.config,
         )
         self.validator = ContextValidator()
         self.redactor = ContextRedactor()
         self.cache = ContextCache(self.config.get("cache_dir", "work/context_cache"))
-        self.database = ContextDatabase(db_service)
+        self.database = ContextDatabase()
 
     # ID: 498ac646-47e9-4e86-83b0-e25923ff9ef5
     async def build_for_task(
-        self, task_spec: dict[str, Any], use_cache: bool = True
+        self,
+        task_spec: dict[str, Any],
+        use_cache: bool = True,
     ) -> dict[str, Any]:
         """Build complete context packet for task.
 
@@ -84,9 +96,8 @@ class ContextService:
         Returns:
             Complete, validated, redacted ContextPackage
         """
-        logger.info(f"Building context for task {task_spec.get('task_id')}")
+        logger.info("Building context for task %s", task_spec.get("task_id"))
 
-        # Check cache first
         if use_cache:
             cache_key = ContextSerializer.compute_cache_key(task_spec)
             cached = self.cache.get(cache_key)
@@ -94,20 +105,16 @@ class ContextService:
                 logger.info("Using cached packet")
                 return cached
 
-        # Build packet
         packet = await self.builder.build_for_task(task_spec)
 
-        # Validate
         is_valid, errors = self.validator.validate(packet)
         if not is_valid:
             error_msg = f"Validation failed: {errors}"
             logger.error(error_msg)
             raise ValueError(error_msg)
 
-        # Redact
         packet = self.redactor.redact(packet)
 
-        # Compute final hashes
         packet["provenance"]["packet_hash"] = ContextSerializer.compute_packet_hash(
             packet
         )
@@ -115,7 +122,6 @@ class ContextService:
             task_spec
         )
 
-        # Persist to disk
         task_id = task_spec["task_id"]
         output_dir = self.project_root / "work" / "context_packets" / task_id
         output_dir.mkdir(parents=True, exist_ok=True)
@@ -124,15 +130,27 @@ class ContextService:
         ContextSerializer.to_yaml(packet, str(output_path))
         file_size = output_path.stat().st_size
 
-        # Save metadata to database
-        await self.database.save_packet_metadata(packet, str(output_path), file_size)
+        # Persist metadata to DB if a session factory is available.
+        if self._session_factory is not None:
+            async with self._session_factory() as db:
+                self.database.db = db
+                await self.database.save_packet_metadata(
+                    packet,
+                    str(output_path),
+                    file_size,
+                )
+        else:
+            logger.debug(
+                "No session_factory configured; skipping DB persistence "
+                "for packet %s",
+                packet["header"]["packet_id"],
+            )
 
-        # Cache for future use
         if use_cache:
             cache_key = packet["provenance"]["cache_key"]
             self.cache.put(cache_key, packet)
 
-        logger.info(f"Built and persisted packet {packet['header']['packet_id']}")
+        logger.info("Built and persisted packet %s", packet["header"]["packet_id"])
         return packet
 
     # ID: 1548660f-ebc3-41b0-9427-83f527dbf9b9
@@ -150,7 +168,7 @@ class ContextService:
         )
 
         if not packet_path.exists():
-            logger.warning(f"Packet not found for task {task_id}")
+            logger.warning("Packet not found for task %s", task_id)
             return None
 
         return ContextSerializer.from_yaml(str(packet_path))
@@ -177,7 +195,16 @@ class ContextService:
         Returns:
             List of packet metadata dicts
         """
-        return await self.database.get_packets_for_task(task_id)
+        if self._session_factory is None:
+            logger.warning(
+                "No session_factory configured; cannot load task packets for %s",
+                task_id,
+            )
+            return []
+
+        async with self._session_factory() as db:
+            self.database.db = db
+            return await self.database.get_packets_for_task(task_id)
 
     # ID: ab7a9ff9-c733-4867-8d4a-fac12672096d
     async def get_stats(self) -> dict[str, Any]:
@@ -186,7 +213,16 @@ class ContextService:
         Returns:
             Statistics dict
         """
-        return await self.database.get_stats()
+        if self._session_factory is None:
+            logger.warning(
+                "No session_factory configured; returning empty stats "
+                "because no session_factory is configured.",
+            )
+            return {}
+
+        async with self._session_factory() as db:
+            self.database.db = db
+            return await self.database.get_stats()
 
     # ID: 0a767d59-acbc-4c3c-a372-4ef9bf991d2c
     def clear_cache(self) -> int:

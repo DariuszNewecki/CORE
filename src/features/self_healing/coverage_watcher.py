@@ -11,13 +11,13 @@ import json
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 
-from mind.governance.checks.coverage_check import CoverageGovernanceCheck
 from rich.console import Console
+
+from features.self_healing.coverage_remediation_service import remediate_coverage
+from mind.governance.checks.coverage_check import CoverageGovernanceCheck
 from shared.config import settings
 from shared.context import CoreContext
 from shared.logger import getLogger
-
-from features.self_healing.coverage_remediation_service import remediate_coverage
 
 logger = getLogger(__name__)
 console = Console()

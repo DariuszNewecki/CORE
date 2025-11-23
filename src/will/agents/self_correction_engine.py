@@ -10,7 +10,6 @@ from typing import TYPE_CHECKING
 
 from shared.config import settings
 from shared.utils.parsing import parse_write_blocks
-
 from will.orchestration.cognitive_service import CognitiveService
 from will.orchestration.prompt_pipeline import PromptPipeline
 from will.orchestration.validation_pipeline import validate_code_async
@@ -23,8 +22,7 @@ REPO_PATH = settings.REPO_PATH
 pipeline = PromptPipeline(repo_path=REPO_PATH)
 
 
-# ID: 4f94f86f-4119-4f65-b4a6-adbcd159c071
-async def attempt_correction(
+async def _attempt_correction(
     failure_context: dict,
     cognitive_service: CognitiveService,
     auditor_context: AuditorContext,
@@ -43,21 +41,29 @@ async def attempt_correction(
         }
 
     correction_prompt = (
-        f"You are CORE's self-correction agent.\n\nA recent code generation attempt failed validation.\n"
-        f"Please analyze the violations and fix the code below.\n\nFile: {file_path}\n\n"
-        f"[[violations]]\n{json.dumps(violations, indent=2)}\n[[/violations]]\n\n"
-        f"[[code]]\n{code.strip()}\n[[/code]]\n\n"
-        f"Respond with the full, corrected code in a single write block:\n[[write:{file_path}]]\n<corrected code here>\n[[/write]]"
+        "You are CORE's self-correction agent.\n\n"
+        "A recent code generation attempt failed validation.\n"
+        "Please analyze the violations and fix the code below.\n\n"
+        f"File: {file_path}\n\n"
+        "[[violations]]\n"
+        f"{json.dumps(violations, indent=2)}\n"
+        "[[/violations]]\n\n"
+        "[[code]]\n"
+        f"{code.strip()}\n"
+        "[[/code]]\n\n"
+        "Respond with the full, corrected code in a single write block:\n"
+        f"[[write:{file_path}]]\n<corrected code here>\n[[/write]]"
     )
 
     final_prompt = pipeline.process(correction_prompt)
 
-    # FIX: Add exception handling for LLM errors
+    # Handle LLM errors defensively so the caller gets a structured error.
     try:
         llm_output = await generator.make_request_async(
-            final_prompt, user_id="auto_repair"
+            final_prompt,
+            user_id="auto_repair",
         )
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         return {
             "status": "error",
             "message": f"LLM request failed: {str(e)}",
@@ -81,7 +87,7 @@ async def attempt_correction(
             "violations": validation_result["violations"],
         }
 
-    # --- FIX: Return the validated code directly ---
+    # Return the validated code directly.
     return {
         "status": "success",
         "code": validation_result["code"],

@@ -19,28 +19,26 @@ from .serializers import ContextSerializer
 logger = logging.getLogger(__name__)
 
 
+# --- START OF FINAL FIX: Correctly parse ALL symbols, including methods ---
 def _parse_python_file(filepath: str) -> list[dict]:
+    """
+    Parses a Python file and extracts metadata for ALL functions and classes,
+    including methods nested within classes.
+    """
     try:
         with open(filepath, encoding="utf-8") as f:
             source = f.read()
         tree = ast.parse(source, filename=filepath)
 
         symbols = []
+        # The fix is to use ast.walk(), which traverses the entire tree,
+        # instead of iterating over tree.body, which only contains top-level nodes.
         for node in ast.walk(tree):
-            if isinstance(node, ast.FunctionDef):
-                args = [arg.arg for arg in node.args.args]
-                sig_parts = []
-                for i, name in enumerate(args):
-                    if i < len(args) - len(node.args.defaults):
-                        sig_parts.append(name)
-                    else:
-                        sig_parts.append(f"{name}=...")
-                signature = f"def {node.name}({', '.join(sig_parts)})"
-                if node.returns:
-                    signature += " -> ..."
-
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                # We can add further filtering here if needed, but for now,
+                # we want to find ALL symbols to ensure the context is complete.
+                signature = ast.get_source_segment(source, node).split("\n")[0]
                 lines = source.splitlines()
-                # Ensure end_lineno exists and is valid
                 end_lineno = getattr(node, "end_lineno", node.lineno)
                 code = "\n".join(lines[node.lineno - 1 : end_lineno])
                 docstring = ast.get_docstring(node) or ""
@@ -57,6 +55,9 @@ def _parse_python_file(filepath: str) -> list[dict]:
     except Exception as e:
         logger.error(f"Failed to parse {filepath}: {e}")
         return []
+
+
+# --- END OF FINAL FIX ---
 
 
 # ID: 67d2b587-1115-41a1-8bfd-6911901a9f32
@@ -81,7 +82,6 @@ class ContextBuilder:
         """Loads the knowledge graph from its canonical JSON file."""
         kg_path = Path("knowledge_graph.json")
         if not kg_path.exists():
-            # Fallback to the reports directory if it's not in the root
             kg_path = Path("reports/knowledge_graph.json")
             if not kg_path.exists():
                 logger.warning(
@@ -205,7 +205,6 @@ class ContextBuilder:
         all_symbols = self._knowledge_graph["symbols"]
         related_symbol_keys = set()
 
-        # We need the full symbol key (path::name) to traverse
         queue = {
             item.get("metadata", {}).get("symbol_path")
             for item in seed_items
@@ -220,14 +219,11 @@ class ContextBuilder:
             for symbol_key in queue:
                 symbol_data = all_symbols.get(symbol_key)
                 if symbol_data:
-                    # Find callees (dependencies)
                     for callee_name in symbol_data.get("calls", []):
-                        # This is a simplification; we'd ideally look up the full callee key
                         if callee_name not in related_symbol_keys:
                             related_symbol_keys.add(callee_name)
                             next_queue.add(callee_name)
 
-                # Find callers (dependents)
                 for caller_key, caller_data in all_symbols.items():
                     if symbol_key and symbol_key.split("::")[-1] in caller_data.get(
                         "calls", []
@@ -288,9 +284,7 @@ class ContextBuilder:
             if sym["name"] == target_symbol:
                 item = {
                     "name": sym["name"],
-                    # --- START OF FIX ---
-                    "path": target_file_str,  # Use the original string path
-                    # --- END OF FIX ---
+                    "path": target_file_str,
                     "item_type": "code",
                     "content": sym["code"],
                     "summary": sym["docstring"][:200],

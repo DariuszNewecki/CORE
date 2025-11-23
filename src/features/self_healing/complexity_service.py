@@ -18,9 +18,10 @@ from typing import Any
 
 import typer
 import yaml
-from mind.governance.audit_context import AuditorContext
 from rich.console import Console
 from rich.panel import Panel
+
+from mind.governance.audit_context import AuditorContext
 from shared.config import settings
 from shared.context import CoreContext
 from shared.logger import getLogger

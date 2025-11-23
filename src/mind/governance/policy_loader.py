@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any
 
 import yaml
+
 from shared.config import settings
 from shared.logger import getLogger
 

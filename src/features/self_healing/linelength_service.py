@@ -11,8 +11,9 @@ import asyncio
 from pathlib import Path
 
 import typer
-from mind.governance.audit_context import AuditorContext
 from rich.progress import track
+
+from mind.governance.audit_context import AuditorContext
 from shared.config import settings
 from shared.context import CoreContext
 from shared.logger import getLogger

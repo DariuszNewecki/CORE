@@ -12,10 +12,11 @@ import importlib
 from pathlib import Path
 from typing import Any
 
+from sqlalchemy import text
+
 from services.repositories.db.engine import get_session
 from shared.config import settings
 from shared.logger import getLogger
-from sqlalchemy import text
 
 logger = getLogger(__name__)
 

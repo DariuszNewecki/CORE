@@ -15,14 +15,14 @@ from typing import Any
 
 import jsonschema
 import yaml
+from rich.console import Console
+
 from features.introspection.knowledge_graph_service import KnowledgeGraphBuilder
 from mind.governance.audit_context import AuditorContext
-from rich.console import Console
 from shared.action_logger import action_logger
 from shared.config import settings
 from shared.logger import getLogger
 from shared.models import AuditFinding
-
 from src.mind.governance.auditor import ConstitutionalAuditor
 
 logger = getLogger(__name__)

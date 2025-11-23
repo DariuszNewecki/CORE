@@ -10,6 +10,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import typer
+
 from services.clients.qdrant_client import QdrantService
 from services.knowledge_service import KnowledgeService
 from shared.logger import getLogger

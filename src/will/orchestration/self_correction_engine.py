@@ -10,7 +10,6 @@ from typing import TYPE_CHECKING
 
 from shared.config import settings
 from shared.utils.parsing import parse_write_blocks
-
 from will.orchestration.cognitive_service import CognitiveService
 from will.orchestration.prompt_pipeline import PromptPipeline
 from will.orchestration.validation_pipeline import validate_code_async

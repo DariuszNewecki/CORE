@@ -5,6 +5,7 @@ from pathlib import Path
 from unittest.mock import AsyncMock
 
 import pytest
+
 from features.introspection.drift_service import run_drift_analysis_async
 from shared.models import CapabilityMeta
 

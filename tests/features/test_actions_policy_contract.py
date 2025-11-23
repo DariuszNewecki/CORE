@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import pytest
+
 from body.actions.registry import ActionRegistry
 from mind.governance import policy_loader
 

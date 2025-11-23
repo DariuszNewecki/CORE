@@ -12,11 +12,11 @@ import json
 from pydantic import ValidationError
 from rich.console import Console
 from rich.syntax import Syntax
+
 from shared.config import settings
 from shared.logger import getLogger
 from shared.models import ExecutionTask, PlanExecutionError
 from shared.utils.parsing import extract_json_from_response
-
 from will.orchestration.prompt_pipeline import PromptPipeline
 
 logger = getLogger(__name__)

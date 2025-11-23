@@ -13,7 +13,6 @@ from typing import Any
 from shared.config import settings
 from shared.logger import getLogger
 from shared.models import PlanExecutionError
-
 from will.agents.base_planner import parse_and_validate_plan
 from will.orchestration.cognitive_service import CognitiveService
 

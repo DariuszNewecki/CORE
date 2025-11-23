@@ -32,26 +32,17 @@ if [ -z "${DATABASE_URL-}" ] || [ -z "${QDRANT_URL-}" ] || [ -z "${DEEPSEEK_CHAT
     exit 1
 fi
 
-# --- Final Confirmation ---
-echo "☢️  WARNING: This will permanently delete all data in the 'core' schema of your database"
-echo "    and the Qdrant collection '${QDRANT_COLLECTION_NAME-}'."
-read -p "Are you sure you want to continue? (y/N): " -n 1 -r
-echo
-if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-    echo "Aborted."
-    exit 1
-fi
+# --- The following steps have been performed manually in pgAdmin ---
+# echo "🔥 Dropping the 'core' schema..."
+# CLEAN_DB_URL=$(echo "$DATABASE_URL" | sed 's/+asyncpg//')
+# psql "$CLEAN_DB_URL" -c "DROP SCHEMA IF EXISTS core CASCADE;"
+# echo "✅ PostgreSQL schema dropped."
 
-# --- Step 1: Drop the PostgreSQL Schema ---
-echo "🔥 Dropping the 'core' schema..."
-CLEAN_DB_URL=$(echo "$DATABASE_URL" | sed 's/+asyncpg//')
-psql "$CLEAN_DB_URL" -c "DROP SCHEMA IF EXISTS core CASCADE;"
-echo "✅ PostgreSQL schema dropped."
+# echo "🏗️  Re-creating the PostgreSQL schema from sql/001_consolidated_schema.sql..."
+# psql "$CLEAN_DB_URL" -f sql/001_consolidated_schema.sql
+# echo "✅ PostgreSQL schema re-created."
+# --- End of manual steps ---
 
-# --- Step 2: Re-migrate the PostgreSQL Schema ---
-echo "🏗️  Re-creating the PostgreSQL schema from migrations..."
-poetry run core-admin manage database migrate --apply
-echo "✅ PostgreSQL schema re-created."
 
 # --- Step 3: Re-create the Qdrant Collection ---
 echo "⚡ Re-creating Qdrant vector collection..."
@@ -61,27 +52,19 @@ echo "✅ Qdrant collection is ready."
 # --- Step 4: Re-build Knowledge from Source Code & Exports ---
 echo "🧠 Re-building knowledge from scratch..."
 
-# --- THIS IS THE CORRECTED SEQUENCE ---
-
 echo "   -> (1/5) Importing bootstrap knowledge from mind_export/ YAMLs..."
-# This is the crucial first step: SEED the database with AI config.
 poetry run core-admin mind import --write
 
 echo "   -> (2/5) Syncing symbols from code to DB..."
-# Now discover all symbols from the source code.
 poetry run core-admin manage database sync-knowledge --write
 
-echo "   -> (3/5) Defining capabilities for any new symbols..."
-# This step is now likely redundant if your exports are up to date, but it's safe to run.
-poetry run core-admin manage define-symbols
-
-echo "   -> (4/5) Vectorizing all symbols..."
-# Now that AI config is in the DB, this will succeed.
+echo "   -> (3/5) Vectorizing all symbols..."
 poetry run core-admin run vectorize --write --force
+
+echo "   -> (4/5) Defining capabilities for all new symbols..."
+poetry run core-admin manage define-symbols
 
 echo "   -> (5/5) Running final constitutional audit..."
 poetry run core-admin check audit
-
-# --- END OF CORRECTED SEQUENCE ---
 
 echo "🎉 Database reset and rebuild complete!"

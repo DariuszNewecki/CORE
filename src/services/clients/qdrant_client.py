@@ -15,6 +15,7 @@ from typing import Any
 
 from qdrant_client import AsyncQdrantClient
 from qdrant_client.http import models as qm
+
 from shared.config import settings
 from shared.models import EmbeddingPayload
 from shared.time import now_iso
@@ -231,30 +232,36 @@ class QdrantService:
 
         rec = records[0]
 
-        # Try direct vector attribute first
+        # --- START OF FIX ---
+        # This block implements the "triple-check" to robustly find the vector
+        # regardless of the qdrant-client's response format.
+
+        # 1. Try direct .vector attribute (common case)
         vec = getattr(rec, "vector", None)
         if isinstance(vec, (list, tuple)):
             return [float(v) for v in vec]
 
-        # Try named vectors
+        # 2. Try .vectors dictionary (for named vectors)
         vectors_obj = getattr(rec, "vectors", None)
         if isinstance(vectors_obj, dict) and vectors_obj:
-            # Use configured vector name if available
             if self.vector_name and self.vector_name in vectors_obj:
                 chosen = vectors_obj[self.vector_name]
             else:
-                # Fallback to first available vector
                 first_key = sorted(vectors_obj.keys())[0]
                 chosen = vectors_obj[first_key]
-                if self.vector_name:
-                    logger.debug(
-                        "Vector name %s not found, using %s instead",
-                        self.vector_name,
-                        first_key,
-                    )
-
             if isinstance(chosen, (list, tuple)):
                 return [float(v) for v in chosen]
+
+        # 3. Fallback: try converting the Record object to a dict
+        try:
+            rec_dict = dict(rec)
+            vec_from_dict = rec_dict.get("vector")
+            if isinstance(vec_from_dict, (list, tuple)):
+                return [float(v) for v in vec_from_dict]
+        except Exception:
+            # This can fail if the Record object is not dict-convertible; ignore.
+            pass
+        # --- END OF FIX ---
 
         raise VectorNotFoundError(f"No valid vector found for point {point_id}")
 

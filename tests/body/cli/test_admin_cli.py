@@ -1,9 +1,10 @@
 # tests/body/cli/test_admin_cli.py
 from unittest.mock import AsyncMock, patch
 
+from typer.testing import CliRunner
+
 from body.cli.admin_cli import app
 from services.repositories.db.status_service import StatusReport
-from typer.testing import CliRunner
 
 runner = CliRunner()
 
@@ -31,7 +32,7 @@ class TestStatusCommand:
         )
 
         mock_get_status = AsyncMock(return_value=mock_report)
-        with patch("body.cli.logic.status.get_status_report", mock_get_status):
+        with patch("body.cli.logic.status._get_status_report", mock_get_status):
             result = runner.invoke(app, ["inspect", "status"])
             assert result.exit_code == 0
             assert "Database connection: OK" in result.output
@@ -47,7 +48,7 @@ class TestStatusCommand:
         )
 
         mock_get_status = AsyncMock(return_value=mock_report)
-        with patch("body.cli.logic.status.get_status_report", mock_get_status):
+        with patch("body.cli.logic.status._get_status_report", mock_get_status):
             result = runner.invoke(app, ["inspect", "status"])
             assert result.exit_code == 0
             assert "Found 1 pending migrations" in result.output
@@ -62,7 +63,7 @@ class TestStatusCommand:
         )
 
         mock_get_status = AsyncMock(return_value=mock_report)
-        with patch("body.cli.logic.status.get_status_report", mock_get_status):
+        with patch("body.cli.logic.status._get_status_report", mock_get_status):
             result = runner.invoke(app, ["inspect", "status"])
             assert result.exit_code == 0
             assert "Database connection: FAILED" in result.output

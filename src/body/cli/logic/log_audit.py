@@ -8,8 +8,9 @@ from __future__ import annotations
 import asyncio
 
 import typer
-from services.database.session_manager import get_session
 from sqlalchemy import text
+
+from services.database.session_manager import get_session
 
 from .common import git_commit_sha
 

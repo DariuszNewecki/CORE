@@ -16,11 +16,12 @@ from pathlib import Path
 import typer
 from rich.console import Console
 from rich.table import Table
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from services.database.models import CliCommand
 from services.database.session_manager import get_session
 from shared.config import settings
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 console = Console()
 hub_app = typer.Typer(help="Central hub for discovering and locating CORE tools.")
@@ -61,15 +62,16 @@ def _desc_for(c: CliCommand) -> str:
 
 @hub_app.command("list")
 # ID: 89be20b9-1d77-408f-9f59-3ac2ca169144
-def hub_list():
+def hub_list_cmd() -> None:
     """Show all registered CLI commands from the DB registry."""
 
-    async def _run():
+    async def _run() -> None:
         async with get_session() as session:
             cmds = await _fetch_commands(session)
         if not cmds:
             console.print(
-                "[bold yellow]No CLI registry entries in DB.[/bold yellow] Run: [bold]core-admin knowledge sync[/bold]"
+                "[bold yellow]No CLI registry entries in DB.[/bold yellow] "
+                "Run: [bold]core-admin knowledge sync[/bold]"
             )
             raise typer.Exit(code=2)
         table = Table(title="All CLI commands in registry")
@@ -93,20 +95,23 @@ def hub_list():
 
 @hub_app.command("search")
 # ID: 8ac36c7c-867c-4f17-9503-5b5199cb813e
-def hub_search(
+def hub_search_cmd(
     term: str = typer.Argument(
         ..., help="Term to search in command names/descriptions."
     ),
     limit: int = typer.Option(25, "--limit", "-l", help="Max results."),
-):
+) -> None:
     """Fuzzy search across CLI commands from the registry."""
 
-    async def _run():
+    async def _run() -> None:
         async with get_session() as session:
             cmds = await _fetch_commands(session)
         if not cmds:
             console.print(
-                "[bold yellow]No CLI registry entries found in DB.[/bold yellow]\nTry:\n  • core-admin knowledge migrate-ssot    (if you still have legacy YAML)\n  • core-admin knowledge sync            (introspect and populate)\n"
+                "[bold yellow]No CLI registry entries found in DB.[/bold yellow]\n"
+                "Try:\n"
+                "  • core-admin knowledge migrate-ssot    (if you still have legacy YAML)\n"
+                "  • core-admin knowledge sync            (introspect and populate)\n"
             )
             raise typer.Exit(code=2)
         term_l = term.lower()
@@ -139,20 +144,24 @@ def hub_search(
 
 @hub_app.command("whereis")
 # ID: 263425b5-3e99-4e3b-a89f-0fc4b88d3fdd
-def hub_whereis(
+def hub_whereis_cmd(
     command: str = typer.Argument(
         ...,
-        help="Exact command name as stored (e.g., 'proposals.micro.apply' or 'knowledge.sync')",
+        help=(
+            "Exact command name as stored (e.g., 'proposals.micro.apply' or "
+            "'knowledge.sync')"
+        ),
     ),
-):
+) -> None:
     """Show module, entrypoint, and file path for a command."""
 
-    async def _run():
+    async def _run() -> None:
         async with get_session() as session:
             cmds = await _fetch_commands(session)
         if not cmds:
             console.print(
-                "[bold yellow]No CLI registry in DB.[/bold yellow] Run [bold]core-admin knowledge sync[/bold] first."
+                "[bold yellow]No CLI registry in DB.[/bold yellow] "
+                "Run [bold]core-admin knowledge sync[/bold] first."
             )
             raise typer.Exit(code=2)
         matches = [c for c in cmds if _format_command_name(c) == command]
@@ -177,10 +186,10 @@ def hub_whereis(
 
 @hub_app.command("doctor")
 # ID: a09b6ebe-6a2a-4030-b85c-e9f127e74171
-def hub_doctor():
+def hub_doctor_cmd() -> None:
     """Quick health checks for discoverability + SSOT surfaces."""
 
-    async def _run():
+    async def _run() -> None:
         ok = True
         async with get_session() as session:
             try:

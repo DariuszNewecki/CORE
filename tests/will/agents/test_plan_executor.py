@@ -4,6 +4,7 @@ from types import SimpleNamespace
 from unittest.mock import MagicMock
 
 import pytest
+
 from shared.models import ExecutionTask, PlanExecutionError, TaskParams
 from will.agents.plan_executor import PlanExecutor
 

@@ -1,49 +1,52 @@
-version: "3.0.0" # Major version bump for constitutional refactoring
-# PURPOSE: This is the master index for the entire CORE constitution. It maps
-# abstract concepts to their concrete file paths, embracing a thematic,
-# domain-oriented policy structure for improved clarity and governance.
+version: "3.0.0"  # Major version bump for constitutional refactoring
+
+# PURPOSE:
+# The master index of the CORE Constitution. This file defines the authoritative
+# mapping between conceptual domains and their concrete artifacts. Every policy,
+# schema, knowledge source, and cognitive asset referenced by the Mind is
+# discoverable through this index.
 
 charter:
+
   constitution:
     active_version: "charter/constitution/ACTIVE"
-    # The core governance mechanics are now consolidated into a single file.
     governance_framework: "charter/constitution/governance_framework.yaml"
     precedence_rules: "charter/constitution/precedence_rules.yaml"
 
-  mission:
-    # Mission statements remain foundational and unchanged in structure.
-    # These files have been consolidated into mind/knowledge/domain_definitions.yaml
-    # and are no longer needed here as separate top-level entries.
-    # The auditor will load them through the knowledge section.
+  mission: {}  # Mission material now consolidated under mind/knowledge
 
   policies:
-    # The policy structure is now flat and thematic, with each file covering a major domain.
     safety_framework: "charter/policies/safety_framework.yaml"
     agent_governance: "charter/policies/agent_governance.yaml"
     code_standards: "charter/policies/code_standards.yaml"
+    dependency_injection_policy: "charter/policies/dependency_injection_policy.yaml"
     data_governance: "charter/policies/data_governance.yaml"
     operations: "charter/policies/operations.yaml"
     quality_assurance: "charter/policies/quality_assurance.yaml"
 
   schemas:
-    # Schemas retain their original granular structure for precise validation.
     policy_schema: "charter/schemas/policy_schema.json"
+
     agent:
       agent_policy_schema: "charter/schemas/agent/agent_policy_schema.json"
       cognitive_roles_schema: "charter/schemas/agent/cognitive_roles_schema.json"
       micro_proposal_policy_schema: "charter/schemas/agent/micro_proposal_policy_schema.json"
       resource_manifest_policy_schema: "charter/schemas/agent/resource_manifest_policy_schema.json"
+
     code:
       capability_tag_schema: "charter/schemas/code/capability_tag_schema.json"
       dependency_injection_policy_schema: "charter/schemas/code/dependency_injection_policy_schema.json"
       knowledge_graph_entry_schema: "charter/schemas/code/knowledge_graph_entry_schema.json"
+
     constitutional:
       intent_bundle_schema: "charter/schemas/constitutional/intent_bundle_schema.json"
       intent_crate_schema: "charter/schemas/constitutional/intent_crate_schema.json"
       proposal_schema: "charter/schemas/constitutional/proposal_schema.json"
+
     data:
       database_policy_schema: "charter/schemas/data/database_policy_schema.json"
       database_schema: "charter/schemas/data/database_schema.yaml"
+
     governance:
       available_actions_policy_schema: "charter/schemas/governance/available_actions_policy_schema.json"
       cli_registry_schema: "charter/schemas/governance/cli_registry_schema.json"
@@ -51,6 +54,7 @@ charter:
       intent_guard_schema: "charter/schemas/governance/intent_guard_schema.json"
       reporting_policy_schema: "charter/schemas/governance/reporting_policy_schema.json"
       risk_classification_policy_schema: "charter/schemas/governance/risk_classification_policy_schema.json"
+
     operations:
       canary_policy_schema: "charter/schemas/operations/canary_policy_schema.json"
       config_schema: "charter/schemas/operations/config_schema.yaml"
@@ -58,13 +62,19 @@ charter:
       workflows_policy_schema: "charter/schemas/operations/workflows_policy_schema.json"
 
 mind:
-  # The Working Mind structure reflects the new consolidation.
+
+  project_manifest: "mind/project_manifest.yaml"
+  northstar: "mind/northstar.yaml"
+
   config:
     local_mode: "mind/config/local_mode.yaml"
     runtime_requirements: "mind/config/runtime_requirements.yaml"
 
+  ir:
+    incident_log: "mind/ir/incident_log.yaml"
+    triage_log: "mind/ir/triage_log.yaml"
+
   knowledge:
-    # The consolidated knowledge definitions.
     domain_definitions: "mind/knowledge/domain_definitions.yaml"
     project_structure: "mind/knowledge/project_structure.yaml"
 
@@ -77,11 +87,13 @@ mind:
     northstar: "mind_export/northstar.yaml"
 
   prompts:
-    # Prompts remain granular and are unchanged.
+    capability_consolidator: "mind/prompts/capability_consolidator.prompt"
     capability_definer: "mind/prompts/capability_definer.prompt"
     code_peer_review: "mind/prompts/code_peer_review.prompt"
     constitutional_review: "mind/prompts/constitutional_review.prompt"
+    coverage_strategy: "mind/prompts/coverage_strategy.prompt"
     create_file_planner: "mind/prompts/create_file_planner.prompt"
+    docs_clarity_review: "mind/prompts/docs_clarity_review.prompt"
     enrich_symbol: "mind/prompts/enrich_symbol.prompt"
     fix_capability_manifest: "mind/prompts/fix_capability_manifest.prompt"
     fix_function_docstring: "mind/prompts/fix_function_docstring.prompt"
@@ -96,11 +108,11 @@ mind:
     refactor_for_clarity: "mind/prompts/refactor_for_clarity.prompt"
     refactor_outlier: "mind/prompts/refactor_outlier.prompt"
     standard_task_generator: "mind/prompts/standard_task_generator.prompt"
+    test_fixer: "mind/prompts/test_fixer.prompt"
     test_generator: "mind/prompts/test_generator.prompt"
     vectorizer: "mind/prompts/vectorizer.prompt"
 
   context:
-    # ContextPackage governance & structure
-    schema: "context/schema.yaml"        # .intent/context/schema.yaml
-    policy: "context/policy.yaml"        # .intent/context/policy.yaml
-    domains: "knowledge/domains.yaml"    # .intent/knowledge/domains.yaml
+    schema: "context/schema.yaml"
+    policy: "context/policy.yaml"
+    domains: "knowledge/domains.yaml"

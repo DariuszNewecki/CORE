@@ -16,6 +16,7 @@ from typing import Any
 from urllib.parse import urlparse
 
 import requests
+
 from shared.logger import getLogger
 
 logger = getLogger(__name__)

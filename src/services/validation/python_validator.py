@@ -8,6 +8,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 import black
+
 from body.services.validation_policies import PolicyValidator
 from mind.governance.checks.import_rules import ImportRulesCheck
 from mind.governance.runtime_validator import RuntimeValidatorService

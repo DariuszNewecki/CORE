@@ -22,8 +22,7 @@ class HeaderComponents:
     body: list[str] = field(default_factory=list)
 
 
-# ID: 3f524d93-83cd-41bd-b5e2-38a7703d39d4
-class HeaderTools:
+class _HeaderTools:
     """A stateless utility class for parsing and reconstructing file headers."""
 
     @staticmethod
@@ -167,3 +166,7 @@ class HeaderTools:
             parts.extend(body_lines)
 
         return "\n".join(parts) + "\n"
+
+
+# Public alias to satisfy callers and tests expecting `HeaderTools`.
+HeaderTools = _HeaderTools

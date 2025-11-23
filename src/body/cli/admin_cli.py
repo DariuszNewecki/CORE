@@ -8,17 +8,7 @@ This module assembles all command groups into a single Typer application.
 from __future__ import annotations
 
 import typer
-from mind.governance.audit_context import AuditorContext
 from rich.console import Console
-from services.context import cli as context_cli
-from services.git_service import GitService
-from services.knowledge.knowledge_service import KnowledgeService
-from services.storage.file_handler import FileHandler
-from shared.config import settings
-from shared.context import CoreContext
-from shared.logger import getLogger
-from shared.models import PlannerConfig
-from will.orchestration.cognitive_service import CognitiveService
 
 from body.cli.commands import (
     check,
@@ -33,8 +23,22 @@ from body.cli.commands import (
     secrets,
     submit,
 )
+from body.cli.commands.develop import develop_app
+from body.cli.commands.fix import fix_app
 from body.cli.interactive import launch_interactive_menu
 from body.cli.logic import audit
+from mind.governance.audit_context import AuditorContext
+from services.context import cli as context_cli
+from services.context.service import ContextService
+from services.database.session_manager import get_session
+from services.git_service import GitService
+from services.knowledge.knowledge_service import KnowledgeService
+from services.storage.file_handler import FileHandler
+from shared.config import settings
+from shared.context import CoreContext
+from shared.logger import getLogger
+from shared.models import PlannerConfig
+from will.orchestration.cognitive_service import CognitiveService
 
 console = Console()
 logger = getLogger(__name__)
@@ -68,13 +72,34 @@ core_context = CoreContext(
 )
 
 
+def _build_context_service() -> ContextService:
+    """
+    Factory for ContextService, wired at the CLI composition root.
+
+    This is where it is legitimate to compose infrastructure like DB sessions,
+    vector clients, and cognitive services.
+    """
+    return ContextService(
+        qdrant_client=core_context.qdrant_service,
+        cognitive_service=core_context.cognitive_service,
+        config={},
+        project_root=str(settings.REPO_PATH),
+        session_factory=get_session,
+    )
+
+
+# Wire the factory into CoreContext so that lower layers don't need to know
+# about services or database wiring.
+core_context.context_service_factory = _build_context_service
+
+
 # ID: c1414598-a5f8-46c2-8ff9-3a141bea3b11
 def register_all_commands(app_instance: typer.Typer) -> None:
     """Register all command groups and inject context declaratively."""
     app_instance.add_typer(check.check_app, name="check")
     app_instance.add_typer(coverage.coverage_app, name="coverage")
     app_instance.add_typer(enrich.enrich_app, name="enrich")
-    app_instance.add_typer(fix.fix_app, name="fix")
+    app_instance.add_typer(fix_app, name="fix")
     app_instance.add_typer(inspect.inspect_app, name="inspect")
     app_instance.add_typer(manage.manage_app, name="manage")
     app_instance.add_typer(mind.mind_app, name="mind")
@@ -83,12 +108,13 @@ def register_all_commands(app_instance: typer.Typer) -> None:
     app_instance.add_typer(submit.submit_app, name="submit")
     app_instance.add_typer(secrets.app, name="secrets")
     app_instance.add_typer(context_cli.app, name="context")
+    app_instance.add_typer(develop_app, name="develop")
 
     modules_with_context = [
         check,
         coverage,
         enrich,
-        fix,
+        fix,  # <- now the fix *package* (body.cli.commands.fix)
         inspect,
         manage,
         run,

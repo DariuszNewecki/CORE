@@ -9,13 +9,13 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from sqlalchemy import select
+
 from services.database.models import CognitiveRole, LlmResource
 from services.database.session_manager import get_session
 from services.llm.client import LLMClient
 from services.llm.client_registry import LLMClientRegistry
 from shared.logger import getLogger
-from sqlalchemy import select
-
 from will.agents.resource_selector import ResourceSelector
 
 logger = getLogger(__name__)

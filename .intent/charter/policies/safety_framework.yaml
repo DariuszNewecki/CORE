@@ -1,6 +1,6 @@
 policy_id: "05ffbf34-2e0e-4069-b77e-473923537077"  # Kept from safety_policy
 id: safety_framework
-version: "2.0.1" # Version bump for enhanced detection metadata
+version: "2.0.1"  # Version bump for enhanced detection metadata
 title: "Safety & Constitutional Protection Framework"
 status: active
 purpose: >
@@ -25,10 +25,12 @@ enforcement_levels:
     description: "Critical violation. Blocks merge/deploy. Non-zero exit code."
     ci_behavior: "fail"
     runtime_behavior: "block"
+
   warn:
     description: "Non-critical issue. Reported but doesn't block."
     ci_behavior: "pass_with_warnings"
     runtime_behavior: "log_and_continue"
+
   info:
     description: "Informational finding. No action required."
     ci_behavior: "ignore"
@@ -36,6 +38,7 @@ enforcement_levels:
 
 # === SAFETY RULES (from safety_policy) ===
 safety_rules:
+
   - id: safety.immutable_constitution
     statement: "Core mission files are immutable without human-in-the-loop amendment process."
     enforcement: error
@@ -49,16 +52,13 @@ safety_rules:
     protected_paths:
       - "src/core/main.py"
       - "src/core/intent_guard.py"
-      - "charter/policies/safety_framework.yaml"  # Self-protection!
+      - ".intent/charter/policies/safety_framework.yaml"  # Self-protection!
 
   - id: safety.no_dangerous_execution
     statement: "Generated code must not contain dangerous execution primitives."
     enforcement: error
     detection:
-      # --- AMENDMENT START ---
-      # This key tells the SecurityChecks engine which scanner to use.
-      method: ast_call_scan
-      # --- AMENDMENT END ---
+      method: ast_call_scan  # tells SecurityChecks which scanner to use
       patterns:
         - "eval\\("
         - "exec\\("

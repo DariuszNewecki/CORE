@@ -8,11 +8,11 @@ missing docstrings to functions and methods.
 from __future__ import annotations
 
 from rich.progress import track
+
+from features.introspection.knowledge_helpers import extract_source_code
 from shared.config import settings
 from shared.context import CoreContext
 from shared.logger import getLogger
-
-from features.introspection.knowledge_helpers import extract_source_code
 
 logger = getLogger(__name__)
 REPO_ROOT = settings.REPO_PATH

@@ -9,6 +9,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import yaml
+
 from shared.logger import getLogger
 from shared.models import CapabilityMeta
 

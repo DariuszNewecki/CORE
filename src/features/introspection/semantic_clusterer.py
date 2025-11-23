@@ -12,6 +12,7 @@ from pathlib import Path
 import numpy as np
 import typer
 from dotenv import load_dotenv
+
 from shared.logger import getLogger
 
 try:

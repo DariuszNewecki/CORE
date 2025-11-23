@@ -6,10 +6,10 @@ from __future__ import annotations
 import asyncio
 
 import typer
-from features.project_lifecycle.integration_service import integrate_changes
 from rich.console import Console
-from shared.context import CoreContext
 
+from features.project_lifecycle.integration_service import integrate_changes
+from shared.context import CoreContext
 from src.body.services.crate_processing_service import process_crates
 
 console = Console()

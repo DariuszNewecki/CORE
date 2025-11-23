@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any
 
 from radon.visitors import ComplexityVisitor
+
 from shared.logger import getLogger
 
 logger = getLogger(__name__)

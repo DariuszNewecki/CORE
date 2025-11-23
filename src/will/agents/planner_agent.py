@@ -11,7 +11,6 @@ from __future__ import annotations
 from shared.config import settings
 from shared.logger import getLogger
 from shared.models import ExecutionTask, PlanExecutionError
-
 from will.agents.base_planner import build_planning_prompt, parse_and_validate_plan
 from will.orchestration.cognitive_service import CognitiveService
 

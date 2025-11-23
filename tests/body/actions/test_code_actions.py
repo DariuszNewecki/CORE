@@ -3,8 +3,9 @@ import textwrap
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
 
-import body.actions.code_actions as ca
 import pytest
+
+import body.actions.code_actions as ca
 from shared.models import PlanExecutionError
 
 # ---------------------------------------------------------------------------

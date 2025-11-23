@@ -8,6 +8,8 @@ import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+
+from api.v1 import development_routes, knowledge_routes
 from mind.governance.audit_context import AuditorContext
 from services.clients.qdrant_client import QdrantService
 from services.config_service import config_service
@@ -18,10 +20,8 @@ from shared.config import settings
 from shared.context import CoreContext
 from shared.logger import getLogger, reconfigure_log_level
 from shared.models import PlannerConfig
-from will.orchestration.cognitive_service import CognitiveService
-
-from api.v1 import development_routes, knowledge_routes
 from src.shared.errors import register_exception_handlers
+from will.orchestration.cognitive_service import CognitiveService
 
 logger = getLogger(__name__)
 
