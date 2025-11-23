@@ -1,0 +1,52 @@
+name: Deploy Docs
+
+on:
+    push:
+        branches: [main]
+    workflow_dispatch:
+
+permissions:
+    contents: write
+    pages: write
+    id-token: write
+
+jobs:
+    build:
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+
+            - name: Setup Python
+              uses: actions/setup-python@v5
+              with:
+                  python-version: "3.12"
+
+            - name: Install MkDocs + Material
+              run: |
+                  pip install mkdocs mkdocs-material
+
+            - name: Build MkDocs site
+              run: mkdocs build --clean
+
+            - name: Upload site to GitHub Pages
+              uses: actions/upload-pages-artifact@v3
+              with:
+                  path: site
+
+    deploy:
+        needs: build
+        runs-on: ubuntu-latest
+        permissions:
+            pages: write
+            id-token: write
+
+        environment:
+            name: github-pages
+            url: ${{ steps.pages.outputs.page_url }}
+
+        steps:
+            - name: Deploy GitHub Pages site
+              id: pages
+              uses: actions/deploy-pages@v4

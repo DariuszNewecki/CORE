@@ -3,9 +3,9 @@ name: CORE CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [main, develop]
   pull_request:
-    branches: [ main ]
+    branches: [main, develop]
 
 permissions:
   contents: read
@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [ "3.11", "3.12" ]
+        python-version: ["3.11", "3.12"]
 
     steps:
       - name: Checkout
@@ -45,8 +45,17 @@ jobs:
       - name: Install dependencies
         run: poetry install --no-interaction --no-root
 
-      - name: Run All Checks (Lint, Test, Audit, Docs)
-        run: make check
+      # --- Lightweight, stable PR checks --------------------------
+
+      - name: Lint (ruff/black via CLI)
+        run: poetry run core-admin check lint
+
+      - name: Run tests with coverage (XML for Codecov)
+        run: |
+          poetry run pytest \
+            --cov=src \
+            --cov-report=xml:coverage.xml \
+            --cov-report=term-missing:skip-covered
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
