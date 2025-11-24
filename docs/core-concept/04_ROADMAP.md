@@ -1,201 +1,186 @@
 # CORE Roadmap
 
-This roadmap reflects the **current reality** of CORE’s codebase (as of 2025) and the **planned next stages** of its evolution.
-It is intentionally conservative: everything marked *Shipped* exists in `src/`, everything marked *Planned* is architectural direction, and nothing here promises unimplemented features.
+> **Status:** Active
+> **Last Updated:** 2025-11-24
+> **Current Phase:** Entering A2 (Intent-Aware Agents)
+
+This roadmap reflects the **current reality** of CORE’s architecture (post–Service Registry, DB-as-SSOT, strict DI) and the **planned next stages** of its evolution.
+It is intentionally conservative: everything marked **Shipped** exists in `src/`, and nothing here promises speculative or ungrounded features.
 
 The goal is simple:
 
-> **Evolve CORE from a governed development framework (A1) into a safely autonomous system (A2 → A3) without ever compromising constitutional control.**
+> **Evolve CORE from a governed development framework (A1) into a safely autonomous system (A2 → A3 → A4) without ever compromising constitutional control.**
 
 ---
 
-## 1. Status Overview
+# 1. Status Overview
 
-### ✅ **A1 — Governed Generation (Current State)**
+## ✅ A1 — Governed Generation *(Shipped)*
 
 CORE today already supports:
 
-* Crate creation for new features and fixes
-* Context building (Body → Will)
-* AI-driven code & test generation (Will)
-* Local validation (formatting, linting, tests)
-* Full constitutional audits (Mind)
-* Accept/reject cycle for crates
-* Knowledge Graph & symbol discovery
-* Extensive introspection & self-healing tools
+* **Crate-based development** (no direct writes)
+* **Context building** (Body → Will)
+* **AI-driven code + test generation**
+* **Formatter/linter/test validation**
+* **Full Constitutional Audit** (Mind)
+* **Accept/reject crate cycle**
+* **Introspection & Knowledge Graph sync**
+* **Vectorized semantic memory**
 
-This forms the stable foundation of A1.
-
----
-
-## 2. Near-Term Roadmap (A1 → A2)
-
-These are realistic, incremental enhancements fully consistent with current architecture.
-
-### 🧩 **2.1. Autonomous Cycle Improvements (A1.5)**
-
-**Goal:** Improve reliability, accuracy, and clarity of autonomous generation.
-
-Planned:
-
-* Better crate metadata (more explicit boundaries)
-* Richer context selection (more relevant source extraction)
-* Improved test generation heuristics
-* Enhanced self-healing pipelines (IDs, docs, structure)
-* More detailed audit output for crate rejection
-
-All items extend existing systems without introducing new complexity.
+This constitutes a complete A1 governed development loop.
 
 ---
 
-### 🧠 **2.2. Intent-Aware Agents (A2)**
+## ✅ A1.5 — Structural Stability *(Shipped)*
 
-**Goal:** Agents reason using Mind knowledge instead of generic prompts.
+Foundational hardening of CORE’s infrastructure:
 
-Planned:
+* **Service Registry** eliminates split-brain service instantiation
+* **Database-as-SSOT**: all symbols, capabilities, and metadata unified in Postgres
+* **Self-Healing**: Autonomous fixing of IDs, headers, docstrings, structure
+* **Qdrant + Knowledge Graph synchronization** now stable
 
-* Agents consume `.intent/` rules directly
-* Agents select capabilities from Knowledge Graph
-* Validation Pipeline upgraded to catch semantic misalignment
-* Planner Agent becomes constraint-driven rather than free-form
+These upgrades complete the transition to an A2-ready architecture.
+
+---
+
+# 2. Near-Term Roadmap (A2: The "Will" Awakening)
+
+With architecture stabilized, the focus moves to enhancing the **Will** (Agents).
+
+## 🧠 2.1 Intent-Aware Agents *(Active)*
+
+**Goal:** Agents reason using constitutional rules, not generic prompts.
+
+Planned / Under Construction:
+
+* [ ] **Context-Aware Planning:** Planner Agent queries Knowledge Graph to understand existing capabilities
+* [ ] **Constitution-in-Loop:** Agents receive `.intent/` constraints dynamically
+* [ ] **Semantic Validation Pipeline:** Detect misaligned but syntactically valid code
+* [ ] **Policy-Constrained Generation:** Will must respect boundaries *during* generation, not after
 
 Outcome:
-Agents obey constitutional rules not just after generation, but **during** generation.
+Agents behave as governed actors, not free text predictors.
 
 ---
 
-## 3. Medium-Term Roadmap (A2 → A3)
+## 📦 2.2 Capability-First Development *(Transition Phase)*
 
-These require more coordination across Mind–Body–Will.
-
-### ⚙️ **3.1. Autonomous Refactoring (Governed)**
-
-**Goal:** Enable safe, governed structural improvements.
+**Goal:** Development becomes capability-based instead of file-based.
 
 Planned:
 
-* Drift-aware refactor suggestions
-* Localized structural cleanups
-* Autonomous but governed: changes still occur through crates
+* [ ] **Capability Selection UI/Query:** Agents browse `core.capabilities` before generating code
+* [ ] **Reuse Analyzer:** "Does this already exist?" checks before writing new functions
+* [ ] **Refactoring Agent:** Dedicated agent for eliminating duplication & debt
 
-No direct file writes, no bypass of audits.
+This enables consistent, reusable reasoning.
 
 ---
 
-### 📦 **3.2. Capability-Aware Planning**
+# 3. Medium-Term Roadmap (A2 → A3)
 
-**Goal:** Replace ad-hoc prompt reasoning with capability-based planning.
+These stages deepen integration of Mind, Body, and Will.
 
-Planned:
+## ⚙️ 3.1 Autonomous Refactoring *(Planned)*
 
-* Planner Agent selects capabilities from Knowledge Graph
-* Will reasons in terms of *actions CORE can perform*
-* Plans become reproducible and auditable
+**Goal:** Safe, governed structural improvements.
 
-This is foundational for long-term stability.
+Capabilities:
+
+* Drift-aware refactor proposals
+* Dead-code detection & cleanup
+* Intelligent, localized structure improvements
+* Still fully governed: Crate → Audit → Canary → Commit
+
+No bypasses, no direct writes.
 
 ---
 
-### 🔍 **3.3. Deeper Knowledge Graph Integration**
+## 🔍 3.2 Deep Knowledge Graph Integration *(Planned)*
 
-Planned:
+Enhancements:
 
-* More relationships in the graph (imports, dependencies, test coverage)
 * Semantic clustering of capabilities
+* Import/dependency graphing
 * Knowledge-driven test generation
+* Change-impact analysis ("If we modify X, what breaks?")
 
-Outcome:
-CORE begins to *understand itself* at a structural level.
-
----
-
-## 4. Long-Term Vision (A3 → A4)
-
-These goals are ambitious but aligned with the design.
-
-### 🏛 **4.1. Fully Governed Autonomous Maintenance**
-
-CORE maintains itself:
-
-* Enforces coverage thresholds
-* Detects drift & decay
-* Unifies test strategy & quality rules
-* Generates routine maintenance PRs autonomously
-
-Changes still go through crate → validation → audit.
+Outcome: CORE begins to *understand itself* structurally.
 
 ---
 
-### 👁 **4.2. Constitutional Self-Evolution**
+# 4. Long-Term Vision (A3 → A4)
 
-Already partially implemented through:
+## 🏛 4.1 Constitutional Self-Evolution *(Vision)*
 
-* Proposal workflow
-* Human signature requirements
-* Canary evaluation
+Already partially implemented via proposals + human signatures.
 
-Long-term goal:
+Future goals:
 
-* Agents propose constitutional changes
-* Humans approve or reject
-* Constitution evolves safely
+* Agents propose amendments to `.intent/policies`
+* Humans review/cryptographically sign
+* Constitution evolves safely over time
 
 ---
 
-### 🎛 **4.3. Multi-Agent Collaboration**
+## 🎛 4.2 Multi-Agent Collaboration *(Vision)*
 
-Multiple agents coordinate under the Mind:
+Roles:
 
-* Planner → Analyzer → Coder → Reviewer
-* Shared context
-* Shared capability set
+* **Planner** designs architectural intent
+* **Analyzer** searches capability graph for matches
+* **Coder** implements governed modifications
+* **Auditor (AI)** checks constitutional alignment
+* **Reviewer (Human)** validates outcomes
 
 Still fully governed.
 
 ---
 
-## 5. Anti-Goals (Things CORE Will Not Become)
+# 5. Anti-Goals (Non-Objectives)
 
-To avoid architectural drift or feature sprawl, CORE **will not**:
+To avoid architectural drift and unsafe autonomy, CORE will **not**:
 
-* Become a generic unrestricted auto-coder
+* Become a generic auto-coder
 * Execute code outside governed workflows
-* Allow agents to bypass the Mind
+* Allow agents to bypass `.intent/` or DB SSOT
 * Replace CI pipelines
-* Accept uncontrolled code generation or refactoring
+* Permit uncontrolled refactoring or generation
 
-CORE’s strength is governance, not speed at all costs.
-
----
-
-## 6. Roadmap Summary
-
-| Stage | Name                         | Focus                                       | Status      |
-| ----- | ---------------------------- | ------------------------------------------- | ----------- |
-| A1    | Governed Generation          | Autonomous crates, audits, validation       | **Shipped** |
-| A1.5  | Autonomous Improvement       | Context, metadata, stability                | **Planned** |
-| A2    | Intent-Aware Planning        | Agents reason using Mind constraints        | **Planned** |
-| A2.5  | Knowledge-Driven Development | Capability-based reasoning                  | **Planned** |
-| A3    | Governed Refactoring         | Safe, autonomous structural changes         | **Planned** |
-| A4    | Self-Evolving Constitution   | Agents propose Mind changes, humans approve | **Vision**  |
+Governance > Speed.
 
 ---
 
-## 7. Guidance for Contributors
+# 6. Roadmap Summary
 
-If you’re implementing features described here:
-
-* Stay aligned with Mind–Body–Will
-* Never bypass audits or `.intent/`
-* Treat roadmap items as **direction**, not requirements
-* Keep interfaces stable and explicit
-* Prefer small, well-bounded capabilities
+| Stage | Name                         | Focus                                        | Status      |
+| ----: | ---------------------------- | -------------------------------------------- | ----------- |
+|    A1 | Governed Generation          | Autonomous crates, audits, validation        | **Shipped** |
+|  A1.5 | Structural Stability         | Service Registry, SSOT, Self-Healing         | **Shipped** |
+|    A2 | Intent-Aware Agents          | Context-driven planning, reuse, constitution | **Active**  |
+|  A2.5 | Capability-Based Development | Knowledge Graph reasoning                    | **Planned** |
+|    A3 | Autonomous Refactoring       | Proactive, governed code improvements        | **Planned** |
+|    A4 | Self-Evolving Constitution   | Agents propose Mind changes                  | **Vision**  |
 
 ---
 
-CORE evolves deliberately, not quickly.
-Governance always comes first.
+# 7. Guidance for Contributors
+
+When contributing to roadmap items:
+
+* **Align with Mind–Body–Will** at all times
+* **Never bypass audits or `.intent/`**
+* **Use only DI-provided services (ServiceRegistry)**
+* **Favor small, explicit, capability-based changes**
+* **Document new capabilities** for the Knowledge Graph
+
+---
+
+CORE evolves deliberately — not quickly — because **governance comes first**.
 
 Next:
-🔸 [Autonomy Ladder](05-autonomy-ladder.md)
-🔸 [Context & Comparisons](06-context-and-comparisons.md)
+
+* 🔸 **Autonomy Ladder (`05-autonomy-ladder.md`)**
+* 🔸 **Context & Comparisons (`06-context-and-comparisons.md`)**

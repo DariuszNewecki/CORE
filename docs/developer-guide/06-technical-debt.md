@@ -1,286 +1,158 @@
 # Technical Debt & Architectural Health (Governed Log)
 
-This document provides the **canonical, governed overview** of technical debt inside CORE.
-It consolidates all real architectural signals that emerged from:
+> **Status:** Active
+> **Last Updated:** 2025-11-24
+> **Recent Milestone:** Completed A2-Readiness Refactor (ServiceRegistry & DI)
 
-* the `DuplicationCheck` audit,
-* introspection reports,
-* architectural validator findings,
-* Phase 4 hardening work,
-* and long-term governance expectations.
+This document serves as the **canonical, governed overview** of technical debt inside CORE.
+It consolidates architectural signals from:
 
-It replaces old notes with a single, authoritative document.
+* `DuplicationCheck` audits
+* Introspection reports
+* Constitutional validator findings
+* A2-readiness refactor results
+
+It replaces legacy notes with a **single source of truth** that guides safe evolution.
 
 ---
 
 # 1. Purpose
 
-Technical debt in CORE is not merely “messy code.” In a governed system, debt is:
+In CORE, technical debt is **not** “messy code.”
+In a governed system, debt is any misalignment between **constitution, architecture, and implementation**, such as:
 
-* **misalignment with constitutional principles**,
-* **friction between Mind, Body, and Will**,
-* **ambiguity in intent or structure**,
-* **drift between knowledge and source**,
-* **duplication that erodes clarity**,
-* **architecture violations**,
-* **unruled exceptions**,
-* **or inconsistent patterns**.
+* misalignment with constitutional principles,
+* friction between Mind, Body, and Will,
+* drift between source code and knowledge graph,
+* architecture or dependency violations,
+* unruled exceptions,
+* duplicated logic that weakens clarity.
 
-This log exists to ensure debt is:
+Technical debt is tracked to ensure it is:
 
-* **transparent**,
-* **classifiable**,
-* **prioritized**,
-* **tractable**,
-* **and auditable**.
-
----
-
-# 2. Sources of Technical Debt in CORE
-
-CORE’s architecture produces *three* classes of debt:
-
-## 2.1. **Code-Level Debt** (Body)
-
-Issues in the runtime codebase, including:
-
-* duplicate logic,
-* unclear boundaries,
-* mis-scoped helpers,
-* complexity hotspots,
-* missing tests.
-
-## 2.2. **Knowledge Debt** (Mind)
-
-When the internal knowledge model becomes stale:
-
-* drift between symbols in the DB and real code,
-* outdated capability metadata,
-* missing domain boundaries,
-* legacy tags,
-* old patterns that are no longer accurate.
-
-## 2.3. **Intent Debt** (Will → Mind alignment)
-
-When capabilities or agents operate under outdated assumptions:
-
-* prompts outdated vs system expectations,
-* missing policy coverage,
-* unclear example sets,
-* ambiguity in context providers.
+* **transparent**
+* **classifiable**
+* **prioritized**
+* **tractable**
+* **auditable**
 
 ---
 
-# 3. Classification of Debt (Derived from Real Findings)
+# 2. Sources of Technical Debt
 
-Debt uncovered through audits falls into **three categories**.
+CORE produces three natural classes of debt:
 
-## 3.1. Category 1 — False Positives (High Cohesion)
+## 2.1 Code-Level Debt (Body)
 
-These are **non-problems**.
+* Duplicate logic
+* Complexity hotspots
+* Mis-scoped helpers
+* Missing tests
+* Thin wrappers being misclassified as duplicates
 
-Examples:
+## 2.2 Knowledge Debt (Mind)
 
-* A class flagged as similar to its own methods.
-* Thin service wrappers that mirror internal structure.
+* Drift between DB symbols and actual source
+* Outdated capability definitions
+* Missing or stale domain boundaries
+* Legacy tags
 
-**Interpretation:** High cohesion, not duplication.
+## 2.3 Intent Debt (Will → Mind Alignment)
 
-**Action:** Tune `DuplicationCheck` sensitivity.
-
----
-
-## 3.2. Category 2 — Intentional Architectural Patterns
-
-This duplication is *deliberate*.
-
-Examples:
-
-* CLI wrappers in `/cli/commands/` matching service-layer logic.
-* Mirrored structure in Mind vs Body checks.
-
-**Interpretation:** Intentional DDD replication.
-
-**Action:** Document via:
-
-* `audit_ignore_policy.yaml` → `symbol_ignores`
-* In-code Justification comments
+* Prompts outdated vs current expectations
+* Missing policy coverage
+* Incomplete or inconsistent examples in context providers
 
 ---
 
-## 3.3. Category 3 — Legitimate Duplication (Actionable Debt)
+# 3. Current Architectural Debt (Backlog)
 
-This is real technical debt.
+## 🔴 High Priority — Critical for A2
 
-Examples:
+### 3.1 Test Coverage Gaps
 
-* Duplicate AST extraction logic across `knowledge_helpers.py` and vectorizer services.
-* YAML-loading utility duplicated in two different modules.
+* Current: ~51% (target: 75%)
+* Impact: limits trust in autonomous refactoring
+* Action: nightly coverage remediation
+* Principle: `safe_by_default`
 
-**Interpretation:** Violates `dry_by_design`.
+### 3.2 Semantic Duplication Warnings
 
-**Action:**
+* ~57 warnings flagged
+* Many due to legitimate CLI→Service mirrors
+* Action: Tune `DuplicationCheck` or mark intentional patterns
+* Principle: `dry_by_design`
 
-* Consolidate into shared utilities.
-* Update call sites.
-* Remove outdated helpers.
+## 🟡 Medium Priority — Structural Maintenance
 
----
+### 3.3 Legacy "Shared" Utilities
 
-# 4. Architecture Debt (Cross-Cutting)
+* Overlap between `src/shared/utils` and `src/services`
+* Action: Consolidate into clear boundaries:
 
-Beyond duplication, architectural health checks revealed:
-
-## 4.1. Capability Model Drift
-
-* Some capabilities lack owners.
-* Some symbols assigned incorrectly.
-* Some domains missing rules.
-
-**Action:** Regenerate capability docs, re-run indexing.
-
-## 4.2. Import Boundary Violations
-
-* `shared.*` depends on `features.*` (illegal direction).
-
-**Action:** Move modules or break dependency chain.
-
-## 4.3. Context Providers Out of Sync
-
-* Missing examples/test patterns.
-* Inconsistent context enrichment.
-
-**Action:** Phase 4/5 consolidation.
-
-## 4.4. Overlapping Logic in Self-Healing
-
-Multiple services handle:
-
-* complexity detection,
-* refactoring suggestions,
-* duplication checks,
-* vectorization.
-
-**Action:** Merge under a unified self-healing architecture.
+  * logic utilities → `shared.universal`
+  * infra utilities → `services`
+* Principle: `separation_of_concerns`
 
 ---
 
-# 5. Phase 4 Roadmap: Hardening & Debt Repayment
+# 4. Recently Resolved Debt (Victories)
 
-Mapped against constitutional principles.
+### ✅ [2025-11-24] Split-Brain Dependency Injection
 
-| Priority | Task                                                    | Principle                | Status  |
-| -------: | ------------------------------------------------------- | ------------------------ | ------- |
-|    **1** | Consolidate duplicated helpers                          | `dry_by_design`          | Pending |
-|    **2** | Tune `DuplicationCheck` (reduce false positives)        | `clarity_first`          | Pending |
-|    **3** | Add justified `symbol_ignores` for intentional patterns | `separation_of_concerns` | Pending |
-|    **4** | Remove global ignores once above resolved               | `safe_by_default`        | Pending |
+* Issue: Multiple independent instantiations of `QdrantService`
+* Fix: Introduced `ServiceRegistry` + strict DI
+* Result: Stable service lifecycle
 
----
+### ✅ [2025-11-24] Orphaned Logic in Self-Healing
 
-# 6. Technical Debt Scanner (Planned Component)
+* Issue: New components missing capability IDs
+* Fix: Added 13 capability definitions + resynced DB
+* Result: Auditor passes cleanly
 
-The upcoming **develop scan** command integrates:
+### ✅ [2025-11-24] Database-as-SSOT Migration
 
-* complexity metrics,
-* architecture violations,
-* similarity detection,
-* refactoring suggestions,
-* estimated effort ratings.
-
-Its output guides human developers and agents.
-
-This will add:
-
-* `ComplexityAnalyzer` (extended),
-* `ArchitectureCheck`,
-* `RefactoringSuggester`,
-* optional `AutoRefactorer`.
-
-These are governed extensions, not replacements.
+* Issue: Mixed YAML/db source of truth
+* Fix: DB is now the canonical SSOT
+* Result: Docs auto-generated from knowledge graph
 
 ---
 
-# 7. Governance Principles for Debt
+# 5. Governance Principles for Debt
 
-Technical debt must always be evaluated through CORE’s constitutional lens.
+Debt evaluation follows CORE’s constitutional guidelines:
 
-## 7.1. `clarity_first`
-
-Prefer clarity over sophistication.
-If fixing debt reduces cognitive load, it is **mandatory**.
-
-## 7.2. `dry_by_design`
-
-No duplicated logic across modules.
-If duplication emerges, consolidate.
-
-## 7.3. `evolvable_structure`
-
-Debt resolution must improve long-term maintainability.
-
-## 7.4. `safe_by_default`
-
-Debt resolutions must:
-
-* maintain audit compliance,
-* avoid direct mutation without crates,
-* use safe refactoring paths.
-
-## 7.5. `separation_of_concerns`
-
-Architectural boundaries should be clear and enforced.
+1. **`clarity_first`** — clarity beats cleverness
+2. **`dry_by_design`** — eliminate duplication
+3. **`evolvable_structure`** — improve long-term adaptability
+4. **`safe_by_default`** — never break audit compliance
+5. **`separation_of_concerns`** — maintain boundary integrity
 
 ---
 
-# 8. Recommended Workflow for Addressing Debt
+# 6. Recommended Workflow for Addressing Debt
 
-When a new debt signal appears:
+1. Reproduce audit findings:
 
-1. **Reproduce audit findings**
+   ```bash
+   poetry run core-admin check audit
+   ```
+2. Classify the finding: **False Positive → Intentional Pattern → Actionable Debt**
+3. Apply safe fixes:
 
-```bash
-poetry run core-admin check audit
-```
+   ```bash
+   poetry run core-admin fix all
+   ```
+4. Sync knowledge:
 
-2. **Classify** (Category 1, 2, or 3)
-3. **Decide on remedy**
-4. Apply safe fixes:
-
-```bash
-poetry run core-admin fix ids --write
-poetry run core-admin fix headers --write
-```
-
-5. Sync knowledge:
-
-```bash
-poetry run core-admin manage database sync-knowledge
-```
-
-6. Run constitutional audit again:
-
-```bash
-poetry run core-admin check audit
-```
+   ```bash
+   poetry run core-admin manage database sync-knowledge
+   ```
+5. Re-run the constitutional audit.
 
 ---
 
-# 9. Long-Term Expectations
-
-CORE aims for:
-
-* **zero net debt**,
-* **continuous architectural clarity**,
-* **automatic detection**,
-* **governed remediation**,
-* **and safe evolution**.
-
-This log should be revisited **after every major enhancement**.
-
----
-
-# 10. Closing Principle
+# 7. Closing Principle
 
 > Technical debt in CORE is not a flaw.
-> It is a **signal** — an opportunity to strengthen the system’s clarity, correctness, and constitutional alignment.
+> It is a **signal** — an invitation to strengthen clarity, correctness, and constitutional alignment.
