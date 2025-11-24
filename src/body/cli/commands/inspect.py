@@ -44,14 +44,14 @@ def status_command() -> None:
     """
     Display database connection and migration status.
 
-    Uses `body.cli.logic.status.get_status_report` so it can be mocked in tests
+    Uses `body.cli.logic.status._get_status_report` so it can be mocked in tests
     and reused by other callers.
     """
 
     async def _run() -> None:
         # IMPORTANT: call via the module so tests patching
-        # body.cli.logic.status.get_status_report see this call.
-        report = await status_logic.get_status_report()
+        # body.cli.logic.status._get_status_report see this call.
+        report = await status_logic._get_status_report()
 
         # Connection line
         if report.is_connected:
@@ -68,10 +68,11 @@ def status_command() -> None:
         # Migration status
         pending = list(report.pending_migrations)
         if not pending:
-            console.print("Migrations are up to date")
+            # Tests expect the period at the end.
+            console.print("Migrations are up to date.")
         else:
             console.print(f"Found {len(pending)} pending migrations")
-            for mig in pending:
+            for mig in sorted(pending):
                 console.print(f"- {mig}")
 
     asyncio.run(_run())

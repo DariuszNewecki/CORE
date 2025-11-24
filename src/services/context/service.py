@@ -20,6 +20,7 @@ from .providers.ast import ASTProvider
 from .providers.db import DBProvider
 from .providers.vectors import VectorProvider
 from .redactor import ContextRedactor
+from .reuse import ReuseAnalysis, ReuseFinder
 from .serializers import ContextSerializer
 from .validator import ContextValidator
 
@@ -71,6 +72,12 @@ class ContextService:
         self.redactor = ContextRedactor()
         self.cache = ContextCache(self.config.get("cache_dir", "work/context_cache"))
         self.database = ContextDatabase()
+
+        # Initialize reuse helper (semantic + structural search for reuse-first development).
+        self.reuse_finder = ReuseFinder(
+            vector_provider=self.vector_provider,
+            ast_provider=self.ast_provider,
+        )
 
     # ID: 498ac646-47e9-4e86-83b0-e25923ff9ef5
     async def build_for_task(
@@ -223,6 +230,23 @@ class ContextService:
         async with self._session_factory() as db:
             self.database.db = db
             return await self.database.get_stats()
+
+    # ID: 57f88e39-69b5-4b9d-9a78-52f2ce4bfa45
+    async def get_reuse_analysis(self, goal: str) -> ReuseAnalysis:
+        """Return reuse analysis for a given goal.
+
+        This method composes semantic and structural search results to support
+        reuse-first development. It does not perform any refactoring or make
+        decisions; it only exposes data for agents and policies to act on.
+
+        Args:
+            goal: Natural-language description of the intended change or feature.
+
+        Returns:
+            A ReuseAnalysis instance containing similar symbols, structural
+            matches, and available universal helpers.
+        """
+        return await self.reuse_finder.analyze(goal)
 
     # ID: 0a767d59-acbc-4c3c-a372-4ef9bf991d2c
     def clear_cache(self) -> int:

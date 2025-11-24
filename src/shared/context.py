@@ -1,5 +1,4 @@
 # src/shared/context.py
-
 """
 Defines the CoreContext, a dataclass that holds singleton instances of all major
 services, enabling explicit dependency injection throughout the application.
@@ -18,22 +17,28 @@ class CoreContext:
     """
     A container for shared services, passed explicitly to commands.
 
-    NOTE: Fields are typed as 'Any' to avoid cross-domain imports from here.
-    Concrete types are created/wired in the CLI or API composition roots.
+    Refactored for A2 Autonomy: Now relies on ServiceRegistry for
+    infrastructure instantiation to prevent split-brain states.
     """
 
+    # These fields are kept for backwards compatibility with existing commands
+    # until they can be migrated to use the registry.
     git_service: Any
     cognitive_service: Any
     knowledge_service: Any
-    qdrant_service: Any
     auditor_context: Any
     file_handler: Any
     planner_config: Any
+
+    # The authoritative registry (added for the refactor)
+    registry: Any | None = None
+
+    # Optional direct reference to Qdrant (managed via registry now)
+    qdrant_service: Any | None = None
+
     _is_test_mode: bool = False
 
     # Factory used to create a ContextService instance.
-    # This is injected from composition roots to keep shared/context decoupled
-    # from services and database layers.
     context_service_factory: Callable[[], Any] | None = field(
         default=None,
         repr=False,
@@ -48,8 +53,6 @@ class CoreContext:
         Get or create ContextService instance.
 
         Provides constitutional governance for all LLM context via ContextPackages.
-        The actual construction is delegated to a factory configured in the
-        composition root (CLI/API).
         """
         if self._context_service is None:
             if self.context_service_factory is None:

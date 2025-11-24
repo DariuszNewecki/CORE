@@ -1,5 +1,4 @@
 # src/features/self_healing/coverage_remediation_service.py
-
 """
 Enhanced coverage remediation service with configurable generator selection.
 
@@ -44,13 +43,19 @@ async def remediate_coverage_enhanced(
         max_complexity: Maximum complexity to attempt (SIMPLE/MODERATE/COMPLEX)
 
     Returns:
-        Remediation results and metrics
+        Remediation results and metrics.
     """
+
+    # --- SINGLE FILE MODE ----------------------------------------------------
     if file_path:
         logger.info(f"Starting enhanced single-file remediation for {file_path}")
+
         if use_enhanced:
             service = EnhancedSingleFileRemediationService(
-                cognitive_service, auditor_context, file_path, max_complexity
+                cognitive_service=cognitive_service,
+                auditor_context=auditor_context,
+                file_path=file_path,
+                max_complexity=max_complexity,
             )
             logger.info(
                 f"Using EnhancedTestGenerator (max_complexity={max_complexity})"
@@ -61,18 +66,25 @@ async def remediate_coverage_enhanced(
             )
 
             service = SingleFileRemediationService(
-                cognitive_service, auditor_context, file_path
+                cognitive_service=cognitive_service,
+                auditor_context=auditor_context,
+                file_path=file_path,
             )
             logger.info("Using original TestGenerator")
-        return await service.remediate()
-    else:
-        logger.info("Starting full-project remediation (using original implementation)")
-        service = FullProjectRemediationService(cognitive_service, auditor_context)
-        if target_coverage is not None:
-            service.config["minimum_threshold"] = target_coverage
+
         return await service.remediate()
 
+    # --- FULL PROJECT MODE ---------------------------------------------------
+    logger.info("Starting full-project remediation (using original implementation)")
+    service = FullProjectRemediationService(cognitive_service, auditor_context)
 
+    if target_coverage is not None:
+        service.config["minimum_threshold"] = target_coverage
+
+    return await service.remediate()
+
+
+# ID: 4ad14f63-98b2-4f9e-9e13-6e7e900ad2b1
 async def _remediate_coverage(
     cognitive_service: CognitiveService,
     auditor_context: AuditorContext,
@@ -81,7 +93,7 @@ async def _remediate_coverage(
     max_complexity: str = "MODERATE",
 ) -> dict[str, Any]:
     """
-    Default remediation function - now uses enhanced generator.
+    Default remediation function — now uses enhanced generator.
 
     This maintains backward compatibility while defaulting to the improved version.
     """

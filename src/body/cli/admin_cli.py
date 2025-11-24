@@ -3,6 +3,8 @@
 """
 The single, canonical entry point for the core-admin CLI.
 This module assembles all command groups into a single Typer application.
+
+Refactored for A2 Autonomy: Now uses ServiceRegistry for dependency wiring.
 """
 
 from __future__ import annotations
@@ -27,6 +29,9 @@ from body.cli.commands.develop import develop_app
 from body.cli.commands.fix import fix_app
 from body.cli.interactive import launch_interactive_menu
 from body.cli.logic import audit
+
+# New Architecture: Registry
+from body.services.service_registry import service_registry
 from mind.governance.audit_context import AuditorContext
 from services.context import cli as context_cli
 from services.context.service import ContextService
@@ -53,19 +58,15 @@ app = typer.Typer(
     no_args_is_help=False,
 )
 
-# NOTE:
-# We intentionally DO NOT instantiate QdrantService here.
-# Qdrant is an optional projection layer and should only be touched
-# by commands that explicitly require vector operations (e.g. vectorize,
-# vector drift checks, embeddings export, etc.).
-# This keeps core-admin commands (fix ids, docstrings, lint, DB sync, etc.)
-# decoupled from the vector store and allows them to run even if Qdrant
-# is unavailable.
+# Initialize the Context using the Registry pattern.
+# Note: qdrant_service is deliberately None here to avoid slow startup.
+# Services requiring it will fetch it via registry.get_qdrant_service().
 core_context = CoreContext(
+    registry=service_registry,  # <-- The source of truth
     git_service=GitService(settings.REPO_PATH),
-    cognitive_service=CognitiveService(settings.REPO_PATH),
+    cognitive_service=CognitiveService(settings.REPO_PATH, qdrant_service=None),
     knowledge_service=KnowledgeService(settings.REPO_PATH),
-    qdrant_service=None,  # Lazy / command-scoped Qdrant initialization instead of global
+    qdrant_service=None,
     auditor_context=AuditorContext(settings.REPO_PATH),
     file_handler=FileHandler(str(settings.REPO_PATH)),
     planner_config=PlannerConfig(),
@@ -75,12 +76,10 @@ core_context = CoreContext(
 def _build_context_service() -> ContextService:
     """
     Factory for ContextService, wired at the CLI composition root.
-
-    This is where it is legitimate to compose infrastructure like DB sessions,
-    vector clients, and cognitive services.
+    Uses the registry to ensure singletons are used.
     """
     return ContextService(
-        qdrant_client=core_context.qdrant_service,
+        qdrant_client=core_context.qdrant_service,  # Pass None initially, let Service fetch if needed
         cognitive_service=core_context.cognitive_service,
         config={},
         project_root=str(settings.REPO_PATH),
@@ -114,7 +113,7 @@ def register_all_commands(app_instance: typer.Typer) -> None:
         check,
         coverage,
         enrich,
-        fix,  # <- now the fix *package* (body.cli.commands.fix)
+        fix,
         inspect,
         manage,
         run,

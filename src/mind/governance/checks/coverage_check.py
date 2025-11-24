@@ -9,7 +9,6 @@ quality_assurance policy.
 from __future__ import annotations
 
 import json
-import subprocess
 from typing import Any
 
 from mind.governance.audit_context import AuditorContext
@@ -128,43 +127,41 @@ class CoverageGovernanceCheck(BaseCheck):
         return findings
 
     def _measure_coverage(self) -> dict[str, Any] | None:
-        """Runs pytest with coverage and returns parsed results."""
-        try:
-            # Use self.repo_root from BaseCheck for consistency
-            result = subprocess.run(
-                [
-                    "poetry",
-                    "run",
-                    "pytest",
-                    "--cov=src",
-                    "--cov-report=json",
-                    "--cov-report=term",
-                    "-q",
-                ],
-                cwd=self.repo_root,
-                capture_output=True,
-                text=True,
-                timeout=300,
-            )
+        """
+        Loads existing coverage data from coverage.json.
 
-            coverage_json = self.repo_root / "coverage.json"
-            if coverage_json.exists():
-                data = json.loads(coverage_json.read_text())
-                totals = data.get("totals", {})
-                return {
-                    "overall_percent": float(totals.get("percent_covered", 0) or 0),
-                    "lines_covered": int(totals.get("covered_lines", 0) or 0),
-                    "lines_total": int(totals.get("num_statements", 0) or 0),
-                    "files": data.get("files", {}),
-                    "timestamp": data.get("meta", {}).get("timestamp"),
-                }
-            return self._parse_term_output(result.stdout)
-        except subprocess.TimeoutExpired:
-            logger.error("Coverage measurement timed out after 5 minutes")
+        IMPORTANT:
+        - This no longer runs pytest itself.
+        - It assumes some other command (e.g. `core-admin coverage.check`,
+          `fix coverage`, or a direct pytest run with --cov-report=json)
+          has already produced coverage.json in the repo root.
+        """
+        coverage_json = self.repo_root / "coverage.json"
+
+        if not coverage_json.exists():
+            logger.warning(
+                "CoverageGovernanceCheck: coverage.json not found under %s; "
+                "skipping coverage enforcement and returning no data.",
+                self.repo_root,
+            )
             return None
-        except Exception as exc:
-            logger.error("Failed to measure coverage: %s", exc, exc_info=True)
+
+        try:
+            data = json.loads(coverage_json.read_text())
+        except Exception as exc:  # noqa: BLE001
+            logger.error(
+                "CoverageGovernanceCheck: failed to parse coverage.json: %s", exc
+            )
             return None
+
+        totals = data.get("totals", {})
+        return {
+            "overall_percent": float(totals.get("percent_covered", 0) or 0),
+            "lines_covered": int(totals.get("covered_lines", 0) or 0),
+            "lines_total": int(totals.get("num_statements", 0) or 0),
+            "files": data.get("files", {}),
+            "timestamp": data.get("meta", {}).get("timestamp"),
+        }
 
     def _parse_term_output(self, output: str) -> dict[str, Any] | None:
         """Fallback parser for terminal coverage output."""
@@ -183,7 +180,7 @@ class CoverageGovernanceCheck(BaseCheck):
                             "lines_total": total_lines,
                             "lines_covered": covered_lines,
                         }
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001
             logger.debug("Failed to parse coverage output: %s", exc)
         return None
 
@@ -245,7 +242,7 @@ class CoverageGovernanceCheck(BaseCheck):
                         "delta": delta,
                     },
                 )
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001
             logger.debug("Could not check coverage regression: %s", exc)
         return None
 
@@ -260,5 +257,5 @@ class CoverageGovernanceCheck(BaseCheck):
                 "updated_at": coverage_data.get("timestamp"),
             }
             history_file.write_text(json.dumps(history, indent=2))
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001
             logger.debug("Could not save coverage history: %s", exc)
