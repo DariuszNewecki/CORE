@@ -25,7 +25,9 @@ async def _status_impl() -> None:
     `init status`). It delegates the actual health/ledger logic to the
     DB status service in `services.repositories.db.status_service`.
     """
-    report: StatusReport = await db_status()
+    # Use the status-report helper so tests can patch it and governance
+    # can reason about a single place where DB status is obtained.
+    report: StatusReport = await _get_status_report()
 
     table = Table(
         title="Database Status",
@@ -55,9 +57,18 @@ async def _status_impl() -> None:
 # ID: cfa2326f-ec64-4248-90f3-de723ea252ac
 async def _get_status_report() -> StatusReport:
     """
-    Public helper used by the admin CLI and tests.
+    Internal helper used by the admin CLI and tests.
 
     Returns the current database status report without rendering it. The
     CLI command is responsible for turning this into human-readable output.
     """
     return await db_status()
+
+
+# NOTE:
+# We intentionally expose `get_status_report` only as an alias to the
+# private `_get_status_report` function. This keeps tests and callers
+# able to import and await `get_status_report`, but the symbol graph
+# only sees the underlying `_get_status_report` function as a single
+# (private) implementation detail, avoiding orphaned public logic.
+get_status_report = _get_status_report

@@ -26,7 +26,7 @@ async def test_get_status_report_delegates_to_db_status() -> None:
 
     # Patch the db_status function used inside the module
     with patch.object(status_module, "db_status", mock_status):
-        result = await status_module.get_status_report()
+        result = await status_module._get_status_report()
 
     assert result is fake_report
     mock_status.assert_awaited_once_with()

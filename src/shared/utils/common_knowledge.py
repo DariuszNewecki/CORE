@@ -1,30 +1,81 @@
 # src/shared/utils/common_knowledge.py
-"""Provides functionality for the common_knowledge module."""
+"""
+Common Knowledge Helpers
+
+This module defines the implementation of small, pure, general-purpose utilities
+used across CORE. These helpers feed the curated surface exposed through the
+`shared.universal` module.
+
+Philosophy:
+- Tiny, stable, side-effect-free functions.
+- Safe defaults. No assumptions about upstream caller context.
+- Reusable across agents, features, and governance components.
+
+This is the *implementation layer* — the public import surface is
+`shared.universal`.
+"""
 
 from __future__ import annotations
 
-# ID: 7c05b6a1-0b1d-5c9a-9b5f-1cce01b9f8a7
-"""
-Constitutional “common knowledge” – ultra-reusable micro-functions.
-Import from here *before* inventing yet another helper.
-"""
 
-import re
-
-
-# ID: c494b539-a653-4d46-b627-94a90698a832
-def action_name() -> str:
-    """Return the canonical action name string for handlers."""
-    return "action_name"
+# ID: 88db4d40-e91a-4d5e-b627-c215ea063f2e
+def normalize_whitespace(text: str) -> str:
+    """
+    Collapse consecutive whitespace characters (including tabs/newlines)
+    into a single space, preserving readable semantics.
+    """
+    return " ".join(text.split())
 
 
-# ID: 15ad7ea3-9219-4e6e-8b4c-644ac781ea1b
-def sanitize_key(raw: str) -> str:
-    """Lower-case, underscore, alnum only."""
-    return re.sub(r"[^0-9a-zA-Z]+", "_", raw).lower()
-
-
-# ID: 78f9e52e-43e0-4942-bbc4-c4d3784553ee
+# ID: 7b2e3c55-55e4-4f42-94d5-4a0b8b5e7f9a
 def normalize_text(text: str) -> str:
-    """Collapse whitespace and strip."""
-    return re.sub(r"\s+", " ", text).strip()
+    """
+    Backwards-compatible alias for text normalization used by embedding_utils.
+
+    Historically, code imported `normalize_text` from this module.
+    It is now implemented as a thin wrapper around `normalize_whitespace`
+    to keep behavior simple, pure, and predictable.
+    """
+    return normalize_whitespace(text)
+
+
+# ID: 6fca50dc-e2a4-4b44-ae52-cb599eaded0e
+def collapse_blank_lines(text: str) -> str:
+    """
+    Remove redundant blank lines while preserving paragraph separation.
+    """
+    lines = text.splitlines()
+    result: list[str] = []
+    buffer_blank = False
+
+    for line in lines:
+        if not line.strip():
+            if not buffer_blank:
+                result.append("")
+            buffer_blank = True
+        else:
+            result.append(line)
+            buffer_blank = False
+
+    return "\n".join(result)
+
+
+# ID: 23ad1f63-c768-4a4b-8f4c-41bbb6dbbb66
+def ensure_trailing_newline(text: str) -> str:
+    """
+    Ensure that a string ends with exactly one newline. Helps keep diffs minimal.
+    """
+    return text.rstrip("\n") + "\n"
+
+
+# ID: 0b51b893-0212-4037-8e6d-5af16677924c
+def safe_truncate(text: str, max_chars: int) -> str:
+    """
+    Truncate text safely to `max_chars`, preserving whole words where possible,
+    and adding '…' to indicate truncation.
+    """
+    if len(text) <= max_chars:
+        return text
+
+    cut = text[:max_chars].rsplit(" ", 1)[0]
+    return cut + "…"

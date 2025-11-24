@@ -10,6 +10,7 @@ import importlib
 import inspect
 import json
 import pkgutil
+import time
 from collections.abc import MutableMapping
 from typing import Any
 
@@ -20,8 +21,11 @@ from mind.governance.audit_postprocessor import (
     apply_entry_point_downgrade_and_report,
 )
 from mind.governance.checks.base_check import BaseCheck
+from shared.logger import getLogger  # ✅ CORRECT logger import
 from shared.models import AuditFinding, AuditSeverity
 from shared.path_utils import get_repo_root
+
+logger = getLogger(__name__)  # ✅ CORRECT logger instance
 
 # --- Configuration for the Auditor ---
 REPORTS_DIR = get_repo_root() / "reports"
@@ -64,18 +68,15 @@ class ConstitutionalAuditor:
 
         for check_class in check_classes:
             check_instance = None
-            # --- START OF FIX ---
-            # This logic now handles the special dependency of DuplicationCheck internally.
+
+            # DuplicationCheck special-case
             if check_class.__name__ == "DuplicationCheck":
-                # The DuplicationCheck has a special dependency. Initialize it only if needed.
                 if qdrant_service is None:
                     try:
                         from services.clients.qdrant_client import QdrantService
 
                         qdrant_service = QdrantService()
                     except Exception as e:
-                        # If Qdrant can't be initialized (e.g., Docker is down),
-                        # log a single, clear error and skip this specific check.
                         all_findings.append(
                             AuditFinding(
                                 check_id="auditor.internal.error",
@@ -83,17 +84,24 @@ class ConstitutionalAuditor:
                                 message=f"Failed to initialize QdrantService for DuplicationCheck: {e}",
                             )
                         )
-                        continue  # Skip to the next check
+                        continue
                 check_instance = check_class(self.context, qdrant_service)
             else:
-                # Standard checks only need the context.
                 check_instance = check_class(self.context)
-            # --- END OF FIX ---
 
+            # RUN CHECK
+            start = time.perf_counter()  # ⏱️ Start timing
             if inspect.iscoroutinefunction(check_instance.execute):
                 findings = await check_instance.execute()
             else:
                 findings = await asyncio.to_thread(check_instance.execute)
+            elapsed = time.perf_counter() - start
+
+            logger.info(
+                f"Audit: check {check_class.__name__} completed in {elapsed:.2f}s "
+                f"with {len(findings)} findings."
+            )
+
             all_findings.extend(findings)
 
         unassigned_count = len(
@@ -107,8 +115,24 @@ class ConstitutionalAuditor:
         """
         The main entry point for running a full, orchestrated constitutional audit.
         """
+
+        logger.info("Audit: starting (loading knowledge graph)...")
+        start = time.perf_counter()
         await self.context.load_knowledge_graph()
+        logger.info(
+            "Audit: load_knowledge_graph finished in %.2f seconds",
+            time.perf_counter() - start,
+        )
+
+        logger.info("Audit: running all checks...")
+        checks_start = time.perf_counter()
         raw_findings_objects, unassigned_count = await self._run_all_checks()
+        logger.info(
+            "Audit: _run_all_checks finished in %.2f seconds (unassigned_count=%d)",
+            time.perf_counter() - checks_start,
+            unassigned_count,
+        )
+
         raw_findings = [f.as_dict() for f in raw_findings_objects]
 
         symbol_index = {
@@ -140,9 +164,3 @@ class ConstitutionalAuditor:
         )
 
         return processed_findings
-
-
-# The functions below created new instances of ConstitutionalAuditor, which
-# violated the DI policy. The correct pattern is to create the instance
-# in the CLI layer (which is already being done) and call its methods.
-# These functions are no longer needed and have been removed.

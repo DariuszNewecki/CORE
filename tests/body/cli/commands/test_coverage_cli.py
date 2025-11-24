@@ -14,9 +14,21 @@ import typer
 def coverage_module():
     import body.cli.commands.coverage as coverage
 
-    # Provide a fake CoreContext so _ensure_context() doesn't instantiate a real one
+    # Reset context to ensure clean state
+    coverage._context = None
+
+    # Provide a fake CoreContext with all required services
+    # This matches the structure used in src/body/cli/commands/coverage.py
+    mock_git = MagicMock()
+    mock_git.repo_path = Path("/tmp/core-repo")
+
+    mock_file_handler = MagicMock()
+    mock_file_handler.repo_path = Path("/tmp/core-repo")
+
     fake_ctx = SimpleNamespace(
-        repo_path=Path("/tmp/core-repo"),
+        repo_path=Path("/tmp/core-repo"),  # Keep for legacy compat
+        git_service=mock_git,
+        file_handler=mock_file_handler,
         cognitive_service=MagicMock(),
         auditor_context=MagicMock(),
     )
@@ -68,7 +80,9 @@ def test_check_coverage_failure(coverage_module):
 def test_coverage_report_text_only(coverage_module):
     """coverage_report runs 'coverage report' and prints output."""
     fake_ctx = coverage_module._ensure_context()
-    fake_ctx.repo_path = Path("/tmp/core-repo")
+    # Update path in git_service which is used by report command
+    test_path = Path("/tmp/core-repo")
+    fake_ctx.git_service.repo_path = test_path
 
     def fake_run(cmd, cwd, capture_output, text):
         class R:
@@ -78,7 +92,7 @@ def test_coverage_report_text_only(coverage_module):
 
         # Basic sanity check on the command
         assert cmd[:2] == ["coverage", "report"]
-        assert cwd == fake_ctx.repo_path
+        assert cwd == test_path
         return R()
 
     with patch.object(
@@ -94,7 +108,8 @@ def test_coverage_report_text_only(coverage_module):
 def test_coverage_report_with_html(coverage_module):
     """coverage_report with --html also runs 'coverage html'."""
     fake_ctx = coverage_module._ensure_context()
-    fake_ctx.repo_path = Path("/tmp/core-repo")
+    test_path = Path("/tmp/core-repo")
+    fake_ctx.git_service.repo_path = test_path
 
     def fake_run(cmd, cwd, capture_output, text):
         class R:
@@ -121,7 +136,8 @@ def test_coverage_report_with_html(coverage_module):
 def test_coverage_history_no_file(coverage_module, tmp_path):
     """coverage_history handles missing history file gracefully."""
     fake_ctx = coverage_module._ensure_context()
-    fake_ctx.repo_path = tmp_path  # no work/testing/coverage_history.json yet
+    # history command uses file_handler.repo_path
+    fake_ctx.file_handler.repo_path = tmp_path
 
     # Should not raise; just print a warning
     coverage_module.coverage_history(limit=5)
@@ -130,7 +146,7 @@ def test_coverage_history_no_file(coverage_module, tmp_path):
 def test_coverage_history_with_data(coverage_module, tmp_path):
     """coverage_history prints data from a valid JSON history file."""
     fake_ctx = coverage_module._ensure_context()
-    fake_ctx.repo_path = tmp_path
+    fake_ctx.file_handler.repo_path = tmp_path
 
     history_dir = tmp_path / "work" / "testing"
     history_dir.mkdir(parents=True, exist_ok=True)
@@ -225,7 +241,8 @@ def test_remediate_coverage_conflicting_file_and_count(coverage_module, tmp_path
 def test_remediate_coverage_single_file_success(coverage_module, tmp_path):
     """Single-file remediation path should call _remediate_coverage and exit 0."""
     fake_ctx = coverage_module._ensure_context()
-    fake_ctx.repo_path = tmp_path
+    # Ensure dependencies for remediation are set
+    fake_ctx.file_handler.repo_path = tmp_path
 
     test_file = tmp_path / "src" / "foo.py"
     test_file.parent.mkdir(parents=True, exist_ok=True)
@@ -280,19 +297,19 @@ def test_accumulate_tests_command_uses_accumulative_service(
 
     calls: list[str] = []
 
-    async def fake_accumulate(file_path: str):
+    async def fake_accumulate(self, file_path: str):
         calls.append(file_path)
         return result_payload
 
     # Patch the AccumulativeTestService in the real module it is imported from
     import features.self_healing.accumulative_test_service as acc_mod
 
+    # Use a real class or Mock, but attach the method
     class FakeService:
         def __init__(self, cognitive_service):
-            # Verify wiring
             assert cognitive_service is fake_ctx.cognitive_service
 
-        accumulate_tests_for_file = staticmethod(fake_accumulate)
+        accumulate_tests_for_file = fake_accumulate
 
     monkeypatch.setattr(acc_mod, "AccumulativeTestService", FakeService)
 
@@ -322,7 +339,7 @@ def test_accumulate_batch_command_with_files(coverage_module, tmp_path, monkeypa
 
     calls: list[str] = []
 
-    async def fake_accumulate(file_path: str):
+    async def fake_accumulate(self, file_path: str):
         calls.append(file_path)
         # Return a minimal but valid result dict
         return {
@@ -340,7 +357,7 @@ def test_accumulate_batch_command_with_files(coverage_module, tmp_path, monkeypa
         def __init__(self, cognitive_service):
             assert cognitive_service is fake_ctx.cognitive_service
 
-        accumulate_tests_for_file = staticmethod(fake_accumulate)
+        accumulate_tests_for_file = fake_accumulate
 
     monkeypatch.setattr(acc_mod, "AccumulativeTestService", FakeService)
 
