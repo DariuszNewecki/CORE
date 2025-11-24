@@ -36,11 +36,12 @@ _context: CoreContext | None = None
 def _ensure_context() -> CoreContext:
     """
     Ensure CoreContext is initialized.
-    This is the missing function that caused the error!
     """
     global _context
     if _context is None:
-        _context = CoreContext()
+        from body.cli.admin_cli import core_context
+
+        _context = core_context
     return _context
 
 
@@ -55,8 +56,12 @@ def check_coverage():
     """
     console.print("[bold cyan]🔍 Checking Coverage Compliance...[/bold cyan]\n")
 
+    # FIX: Get the context so we can pass the auditor_context
+    ctx = _ensure_context()
+
     async def _async_check():
-        checker = CoverageGovernanceCheck()
+        # FIX: Inject the auditor_context into the check
+        checker = CoverageGovernanceCheck(ctx.auditor_context)
         findings = await checker.execute()
         if not findings:
             console.print(
@@ -96,17 +101,22 @@ def coverage_report(
         cmd = ["coverage", "report"]
         if show_missing:
             cmd.append("--show-missing")
-        result = subprocess.run(cmd, cwd=ctx.repo_path, capture_output=True, text=True)
+        result = subprocess.run(
+            cmd, cwd=ctx.git_service.repo_path, capture_output=True, text=True
+        )
         if result.returncode != 0:
             console.print(f"[red]Coverage report failed:[/red]\n{result.stderr}")
             raise typer.Exit(code=1)
         console.print(result.stdout)
         if html:
             html_result = subprocess.run(
-                ["coverage", "html"], cwd=ctx.repo_path, capture_output=True, text=True
+                ["coverage", "html"],
+                cwd=ctx.git_service.repo_path,
+                capture_output=True,
+                text=True,
             )
             if html_result.returncode == 0:
-                html_dir = ctx.repo_path / "htmlcov"
+                html_dir = ctx.git_service.repo_path / "htmlcov"
                 console.print(
                     f"\n[bold green]✅ HTML report generated:[/bold green] {html_dir}/index.html"
                 )
@@ -165,33 +175,6 @@ def remediate_coverage_cmd(
 ):
     """
     Autonomously generates tests to restore constitutional coverage compliance.
-
-    Supports three modes:
-
-    1. **Single-file mode** (--file): Generate tests for one specific module
-       Example: --file src/core/git_service.py
-
-    2. **Batch mode** (--count): Process N files automatically
-       Example: --count 10 --complexity simple
-
-    3. **Full-project mode** (default): Analyze entire codebase (deprecated)
-
-    The process:
-    1. Analyzes coverage gaps and creates a testing strategy
-    2. Filters by complexity threshold (simple/moderate/complex)
-    3. Generates tests using AI agents
-    4. Validates and executes generated tests
-    5. Reports results
-
-    Examples:
-        # Single file
-        core-admin coverage remediate --file src/core/git_service.py
-
-        # Batch: 5 simple files
-        core-admin coverage remediate --count 5 --complexity simple
-
-        # Batch: 10 moderate files
-        core-admin coverage remediate --count 10 --complexity moderate
     """
     ctx = _ensure_context()
     complexity_lower = complexity.lower()
@@ -273,12 +256,11 @@ def coverage_history(
 ):
     """
     Shows coverage history and trends over time.
-
-    Displays historical coverage data from previous check runs,
-    helping identify trends and regressions.
     """
     ctx = _ensure_context()
-    history_file = ctx.repo_path / "work" / "testing" / "coverage_history.json"
+    history_file = (
+        ctx.file_handler.repo_path / "work" / "testing" / "coverage_history.json"
+    )
     if not history_file.exists():
         console.print("[yellow]No coverage history found[/yellow]")
         console.print("   Run 'core-admin coverage check' to start tracking")
@@ -330,10 +312,6 @@ def coverage_history(
 def show_targets():
     """
     Shows constitutional coverage requirements and targets.
-
-    Displays the minimum and target thresholds defined in the
-    quality_assurance_policy, along with critical paths that
-    require higher coverage.
     """
     _ensure_context()
     console.print("[bold cyan]🎯 Coverage Targets[/bold cyan]\n")
@@ -356,15 +334,6 @@ def accumulate_tests_command(
 ):
     """
     Generate tests for individual symbols, keep what works.
-
-    This is the pragmatic approach: any successful test is a win.
-    No complex strategies, just symbol-by-symbol accumulation.
-
-    Philosophy: 40% success with simple approach > 30% with complex approach.
-
-    Examples:
-        core-admin coverage accumulate src/core/prompt_pipeline.py
-        core-admin coverage accumulate src/shared/logger.py
     """
 
     async def _run():
@@ -401,13 +370,6 @@ def accumulate_batch_command(
 ):
     """
     Generate tests for multiple files in batch (pragmatic approach).
-
-    Uses simple symbol-by-symbol generation. Accumulates successful tests,
-    skips failures. No complex strategies.
-
-    Examples:
-        core-admin coverage accumulate-batch --pattern "src/core/*.py" --limit 5
-        core-admin coverage accumulate-batch --pattern "src/shared/*.py"
     """
 
     async def _run():

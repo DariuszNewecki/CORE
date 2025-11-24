@@ -1,7 +1,7 @@
 # src/body/cli/commands/search.py
 """
-Registers the new, verb-based 'search' command group.
-Refactored under dry_by_design to use the canonical context setter.
+Registers the 'search' command group.
+Refactored for A2 Autonomy: Uses ServiceRegistry for Just-In-Time wiring.
 """
 
 from __future__ import annotations
@@ -29,6 +29,12 @@ def search_knowledge_command(context: CoreContext, query: str, limit: int = 5) -
     """Synchronous wrapper around async search."""
 
     async def _run() -> None:
+        # JIT Wiring: Ensure CognitiveService has Qdrant
+        if context.registry:
+            qdrant = await context.registry.get_qdrant_service()
+            context.cognitive_service._qdrant_service = qdrant
+            context.qdrant_service = qdrant
+
         console.print(
             f"🧠 Searching for capabilities related to: '[cyan]{query}[/cyan]'..."
         )

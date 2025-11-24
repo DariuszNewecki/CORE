@@ -6,21 +6,16 @@ primarily from Large Language Model (LLM) outputs.
 
 from __future__ import annotations
 
+import ast
 import json
 import re
 
 
-# ID: f2bd2480-f310-4090-ac1a-58ce05bfc4d3
+# ID: 03987fc0-13ec-460a-a399-a89c7289eac6
 def extract_json_from_response(text: str) -> dict | list | None:
     """
     Extracts a JSON object or array from a raw text response, making it robust
     against common LLM formatting issues like introductory text.
-
-    Args:
-        text: Raw text response that may contain JSON.
-
-    Returns:
-        Parsed JSON as a dictionary or list, or None if no valid JSON found.
     """
     # 1. Try to extract JSON from markdown code blocks
     json_data = _extract_from_markdown(text)
@@ -32,15 +27,6 @@ def extract_json_from_response(text: str) -> dict | list | None:
 
 
 def _extract_from_markdown(text: str) -> dict | list | None:
-    """
-    Attempts to extract JSON from a markdown code block.
-
-    Args:
-        text: Text that may contain a markdown JSON block.
-
-    Returns:
-        Parsed JSON or None if extraction fails.
-    """
     pattern = r"```(?:json)?\s*(\{[\s\S]*?\}|\[[\s\S]*?\])\s*```"
     match = re.search(pattern, text, re.DOTALL)
 
@@ -54,24 +40,12 @@ def _extract_from_markdown(text: str) -> dict | list | None:
 
 
 def _extract_raw_json(text: str) -> dict | list | None:
-    """
-    Extracts JSON by finding the outermost braces or brackets.
-    Robust against extra text before or after the JSON.
-
-    Args:
-        text: Text that may contain raw JSON.
-
-    Returns:
-        Parsed JSON or None if extraction fails.
-    """
     first_brace = text.find("{")
     first_bracket = text.find("[")
 
-    # No JSON markers found
     if first_brace == -1 and first_bracket == -1:
         return None
 
-    # Determine which comes first: object or array
     if first_brace != -1 and (first_bracket == -1 or first_brace < first_bracket):
         end_char = "}"
         start_index = first_brace
@@ -79,7 +53,6 @@ def _extract_raw_json(text: str) -> dict | list | None:
         end_char = "]"
         start_index = first_bracket
 
-    # Find the matching closing character
     last_index = text.rfind(end_char)
     if last_index <= start_index:
         return None
@@ -91,22 +64,141 @@ def _extract_raw_json(text: str) -> dict | list | None:
         return None
 
 
-# ID: 853be68b-f2d4-4494-bf4c-98200bc08026
+# ID: d4c82c76-0762-4358-b7b4-13d4819fce6c
 def parse_write_blocks(text: str) -> dict[str, str]:
     """
     Parses a string for one or more [[write:file_path]]...[[/write]] blocks.
-
-    Args:
-        text: The raw string output from an LLM.
-
-    Returns:
-        A dictionary where keys are file paths and values are the code blocks.
-
-    Example:
-        >>> text = "[[write:test.py]]\\nprint('hello')\\n[[/write]]"
-        >>> parse_write_blocks(text)
-        {'test.py': "print('hello')"}
     """
     pattern = r"\[\[write:(.+?)\]\]\s*\n(.*?)\n\s*\[\[/write\]\]"
     matches = re.findall(pattern, text, re.DOTALL)
     return {path.strip(): content.strip() for path, content in matches}
+
+
+def _normalize_python_snippet(code: str) -> str:
+    """
+    Normalize a Python snippet extracted from an LLM response.
+    """
+    if not code:
+        return code
+
+    lines = code.splitlines()
+    if not lines:
+        return code
+
+    fixed_lines: list[str] = []
+    for idx, line in enumerate(lines):
+        if idx == 0:
+            stripped = line.lstrip()
+            if stripped.startswith(r"\n"):
+                stripped = stripped[2:]
+            if stripped.startswith("\\") and not stripped.startswith("\\\\"):
+                stripped = stripped.lstrip("\\")
+            fixed_lines.append(stripped)
+        else:
+            fixed_lines.append(line)
+
+    normalized = "\n".join(fixed_lines).strip()
+    try:
+        ast.parse(normalized)
+        return normalized
+    except SyntaxError:
+        return code
+
+
+def _is_valid_python_block(code: str) -> bool:
+    """
+    Heuristic check to see if a block contains actual Python logic.
+    Filters out blocks that are just comments or lack keywords.
+    """
+    if not code or not code.strip():
+        return False
+
+    # Fix: Rename 'l' to 'line' to avoid E741 (Ambiguous variable name)
+    lines = [line.strip() for line in code.splitlines() if line.strip()]
+    if not lines:
+        return False
+
+    # Reject if every line is a comment
+    if all(line.startswith("#") for line in lines):
+        return False
+
+    # Must contain at least one structural keyword
+    keywords = {
+        "def ",
+        "class ",
+        "import ",
+        "from ",
+        "@",
+        "async def ",
+        "return ",
+        "assert ",
+    }
+    return any(any(k in line for k in keywords) for line in lines)
+
+
+# ID: 44c9f1bf-9a35-46d1-8059-f0d82b745a58
+def extract_python_code_from_response(text: str) -> str | None:
+    """
+    Extract Python code from an LLM response using a prioritized scoring strategy.
+
+    This handles cases where the LLM outputs verbose plans or explanations (often wrapped
+    in generic code blocks) that are longer than the actual code.
+    """
+    if not text:
+        return None
+
+    candidates = []
+
+    # 1. Find all fenced blocks
+    # regex captures: Group 1 (optional lang), Group 2 (content)
+    pattern = r"```(\w*)\s*\n(.*?)\n\s*```"
+    matches = re.findall(pattern, text, re.DOTALL)
+
+    for lang, content in matches:
+        cleaned = content.strip()
+        # If tagged, it must be python-ish or empty
+        if lang and lang.lower() not in ("python", "py", ""):
+            continue
+
+        if len(cleaned) > 10 and _is_valid_python_block(cleaned):
+            candidates.append(cleaned)
+
+    # 2. Fallback: Check raw text if no valid blocks found
+    if not candidates:
+        stripped = text.strip()
+        if _is_valid_python_block(stripped):
+            candidates.append(stripped)
+
+    if not candidates:
+        return None
+
+    # 3. Scoring Strategy
+    # ID: 219e62bc-d822-48d9-ac87-5cd99729b5b4
+    def score_candidate(code: str) -> float:
+        score = 0.0
+
+        # Critical: Tests MUST define tests.
+        # Massive bonus for `def test_` or `class Test`
+        if "def test_" in code:
+            score += 1000
+        if "class Test" in code:
+            score += 1000
+
+        # Imports are a strong signal of code vs pseudocode
+        if "import " in code or "from " in code:
+            score += 100
+
+        # Test framework specific imports
+        if "pytest" in code or "unittest" in code:
+            score += 500
+
+        # Length is a tie-breaker, but we cap it so a massive text block
+        # doesn't win over a compact but correct test file.
+        score += min(len(code), 5000) / 10000.0
+
+        return score
+
+    # Sort by score descending
+    candidates.sort(key=score_candidate, reverse=True)
+
+    return _normalize_python_snippet(candidates[0])
