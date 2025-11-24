@@ -36,6 +36,7 @@ demo/
 .intent/keys/
 pending_writes/
 sandbox/
+scripts/
 knowledge_graph.json
 *.jsonl
 *.lock
