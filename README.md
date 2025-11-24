@@ -1,59 +1,85 @@
-# CORE — The Self-Improving System Architect
+# CORE — The Self‑Improving System Architect
 
 > **Where Intelligence Lives.**
 
-[![Status: Architectural Prototype](https://img.shields.io/badge/status-architectural%20prototype-blue.svg)](#-project-status)
+[![Status: Alpha (A2-Ready)](https://img.shields.io/badge/status-Alpha%20\(A2--Ready\)-green.svg)](#-project-status)
+[![Documentation](https://img.shields.io/badge/docs-GitHub%20Pages-blue)](https://dariusznewecki.github.io/CORE/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![codecov](https://codecov.io/gh/DariuszNewecki/CORE/graph/badge.svg)](https://codecov.io/gh/DariuszNewecki/CORE)
 
-CORE is a self-governing, constitutionally aligned AI development framework that can plan, write, validate, and evolve software systems — autonomously and safely. It is designed for environments where **trust, traceability, and governance matter**.
+CORE is a **self‑governing, constitutionally aligned AI development system** capable of planning, writing, validating, and evolving software **autonomously and safely**. It is designed for environments where **trust, traceability, and governance matter as much as raw capability**.
 
 ---
 
-## 🏛️ Project Status: Architectural Prototype
+## 🏛️ Project Status: Alpha (A2‑Ready)
 
-The core self-governance and constitutional amendment loop is complete and stable. The system can audit and modify its own constitution via a human-in-the-loop, cryptographically signed approval process.
+CORE has moved beyond architectural experimentation and now provides:
 
-The next phase is to expand agent capabilities so CORE can generate and manage entirely new applications based on user intent. We’re making the project public now to invite collaboration on this foundational architecture.
+* A robust, production‑grade **Service Registry** architecture
+* Strict **dependency injection** across all system layers
+* A fully synchronized **Knowledge Graph** (database‑backed SSOT)
+* Stable **self‑governance loop**
 
----
+The internal feedback cycle is fully operational:
 
-## 🧠 What is CORE?
+1. **Introspection** – CORE parses its codebase and updates the symbolic graph in PostgreSQL.
+2. **Validation** – The `ConstitutionalAuditor` enforces all architectural & governance rules.
+3. **Self‑Healing** – Agents automatically fix documentation drift, formatting, and structural violations.
 
-Traditional codebases often suffer from **architectural drift** — the code no longer matches the original design. Linters catch syntax errors, but architectural mistakes slip through.
-
-CORE solves this by using a **“constitution”** (a set of machine-readable rules in `.intent/`) and an AI-powered **`ConstitutionalAuditor`** to ensure your code stays true to its design.
-
-It’s built on a simple **Mind–Body–Will** philosophy:
-
-* **Mind (`.intent/`)**: The Constitution. You declare your project's rules and goals here.
-* **Body (`src/`)**: The Machinery. Simple, reliable tools that act on the code.
-* **Will (AI Agents)**: The Reasoning Layer. AI agents that read the Mind and use the Body's tools to achieve your goals, while the Auditor ensures they never break the rules.
+The next frontier is **A2 (Governed Code Generation)**: controlled, auditable creation of new features.
 
 ---
 
-## 🚀 Getting Started (5-Minute Demo)
+## 🧠 What Is CORE?
 
-See CORE in action by running the worked example: create a simple API, intentionally break an architectural rule, and watch CORE's auditor catch it.
+Traditional systems drift: architecture diverges from the implementation; design documents rot; no one has the full picture.
 
-👉 **[Run the Worked Example (`docs/09_WORKED_EXAMPLE.md`)](docs/09_WORKED_EXAMPLE.md)**
+CORE fixes this by making **the architecture machine‑readable and enforceable**.
+
+It is built on the **Mind–Body–Will** model:
+
+### 🧠 Mind — The Constitution & State (`.intent/`, PostgreSQL)
+
+* The **Constitution** defines immutable laws: structure, policies, schemas, allowed dependencies.
+* The **Database** stores every symbol, capability, and relation as the **Single Source of Truth**.
+
+### 🏗️ Body — The Machinery (`src/body/`, `src/services/`)
+
+* Provides deterministic tools: auditing, filesystem operations, code parsing, git control.
+* A centralized **Service Registry** ensures clean lifecycle management and singleton resources.
+
+### ⚡ Will — The Reasoning Layer (`src/will/`)
+
+* AI Agents that plan, write, and review code.
+* Agents never act freely: **every action is pre‑validated** against the Constitution.
+
+This creates a system that can **understand itself**, detect deviations, and evolve safely.
+
+---
+
+## 🚀 Getting Started (5‑Minute Demo)
+
+Run a minimal walkthrough: create an API, break a rule, and watch CORE catch it.
+
+👉 **[Run the Worked Example](docs/09_WORKED_EXAMPLE.md)**
 
 ---
 
 ## 📖 Documentation Portal
 
-* **[What is CORE? (`docs/00_WHAT_IS_CORE.md`)](docs/00_WHAT_IS_CORE.md)** — The vision and philosophy.
-* **[Architecture (`docs/02_ARCHITECTURE.md`)](docs/02_ARCHITECTURE.md)** — Technical details of the Mind and Body.
-* **[Governance (`docs/03_GOVERNANCE.md`)](docs/03_GOVERNANCE.md)** — How changes are made safely.
-* **[Roadmap (`docs/04_ROADMAP.md`)](docs/04_ROADMAP.md)** — See where we're going.
-* **[Technical Debt Log (`docs/05_TECHNICAL_DEBT.md`)](docs/05_TECHNICAL_DEBT.md)** — Our formal plan for architectural improvements.
-* **[Contributing (`CONTRIBUTING.md`)](CONTRIBUTING.md)** — Join our mission!
+🌐 **[https://dariusznewecki.github.io/CORE/](https://dariusznewecki.github.io/CORE/)**
+
+* **What is CORE?** – Foundations & philosophy
+* **Architecture** – Mind/Body/Will, Service Registry, Knowledge Graph
+* **Governance** – How CORE enforces constitutional rules
+* **Roadmap** – Towards A2, A3, and full autonomous delivery
+* **Contributing** – How to collaborate
 
 ---
 
 ## ⚙️ Installation & Quick Start
 
-**Requirements**: Python 3.12+, Poetry
+**Requirements:** Python 3.12+, Poetry
 
 ```bash
 # Clone and install
@@ -61,19 +87,33 @@ git clone https://github.com/DariuszNewecki/CORE.git
 cd CORE
 poetry install
 
-# Set up environment
+# Prepare config
 cp .env.example .env
-# Edit .env with your LLM API keys
+# Add LLM keys (OpenAI, Anthropic, Ollama)
 
-# Verify setup is clean by running the full system check
-poetry run core-admin system check
+# 1. Build Knowledge Graph
+dpoetry run core-admin fix vector-sync --write
 
-# Try the conversational command!
-poetry run core-admin chat "make me a simple command-line tool that prints a random number"
+# 2. Run full audit
+poetry run core-admin check audit
 
-# 🌱 Contributing
-We welcome all contributors! The best place to start is our Contributing Guide.
+# 3. Try conversational commands
+poetry run core-admin chat "make me a CLI tool that prints a random number"
+```
 
-Check the Project Roadmap for "Next Up" tasks and see our open issues on GitHub.
-# 📄 License
-Licensed under the MIT License. See LICENSE.
+---
+
+## 🛠️ Common Commands
+
+| Command                     | Description                                      |
+| --------------------------- | ------------------------------------------------ |
+| `make check`                | Run Lint, Test, Audit (full governance pipeline) |
+| `core-admin fix all`        | Autonomous repair: headers, metadata, formatting |
+| `core-admin inspect status` | Check DB, migrations, and registry health        |
+| `core-admin run develop`    | Execute a complex, governed coding task          |
+
+---
+
+## 📄 License
+
+Licensed under the **MIT License**. See `LICENSE`.
