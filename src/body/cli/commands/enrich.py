@@ -1,6 +1,7 @@
 # src/body/cli/commands/enrich.py
 """
 Registers the 'enrich' command group.
+Refactored for A2 Autonomy: Uses ServiceRegistry for Just-In-Time wiring.
 """
 
 from __future__ import annotations
@@ -29,11 +30,18 @@ def enrich_symbols_command(
 ):
     """Uses an AI agent to write descriptions for symbols that have placeholders."""
     core_context: CoreContext = ctx.obj
-    # CORRECTED: Pass both required services from the context
-    asyncio.run(
-        enrich_symbols(
+
+    async def _run():
+        # JIT Wiring
+        if core_context.registry:
+            qdrant = await core_context.registry.get_qdrant_service()
+            core_context.qdrant_service = qdrant
+            core_context.cognitive_service._qdrant_service = qdrant
+
+        await enrich_symbols(
             cognitive_service=core_context.cognitive_service,
             qdrant_service=core_context.qdrant_service,
             dry_run=not write,
         )
-    )
+
+    asyncio.run(_run())

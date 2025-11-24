@@ -1,6 +1,9 @@
 # src/will/orchestration/cognitive_service.py
 
-""" "Provides functionality for the cognitive_service module."""
+"""
+Provides the CognitiveService, which orchestrates LLM interactions.
+Refactored for A2 Autonomy: Enforces Dependency Injection for QdrantService.
+"""
 
 from __future__ import annotations
 
@@ -34,7 +37,16 @@ class CognitiveService:
     Acts as a factory for creating provider-specific clients.
     """
 
-    def __init__(self, repo_path: Path):
+    def __init__(self, repo_path: Path, qdrant_service: QdrantService | None = None):
+        """
+        Initialize CognitiveService.
+
+        Args:
+            repo_path: Path to the repository root.
+            qdrant_service: Singleton QdrantService instance. Injected to prevent
+                          split-brain states. If None, semantic search capabilities
+                          will raise an error if accessed.
+        """
         self._repo_path = Path(repo_path)
         self._loaded: bool = False
         self._clients_by_role: dict[str, LLMClient] = {}
@@ -42,20 +54,22 @@ class CognitiveService:
         self._roles: list[CognitiveRole] = []
         self._init_lock = asyncio.Lock()
         self._config_service: ConfigService | None = None
-        # NOTE:
-        # We no longer eagerly create QdrantService here.
-        # Qdrant is an optional projection layer and should only be
-        # initialized when semantic search is actually used.
-        self._qdrant_service: QdrantService | None = None
+
+        # DI: Store the injected service
+        self._qdrant_service = qdrant_service
 
     @property
     # ID: 1ecf260d-148e-49fc-b446-efbb3ecea178
     def qdrant_service(self) -> QdrantService:
-        """Lazily initialize and cache the QdrantService instance."""
+        """
+        Access the injected QdrantService.
+        Raises RuntimeError if it wasn't provided during initialization.
+        """
         if self._qdrant_service is None:
-            # Use dynamic import to avoid circular imports at module load time.
-            qdrant_module = __import__("services.clients.qdrant_client")
-            self._qdrant_service = qdrant_module.clients.qdrant_client.QdrantService()
+            raise RuntimeError(
+                "QdrantService was not injected into CognitiveService. "
+                "This capability requires a fully wired service via ServiceRegistry."
+            )
         return self._qdrant_service
 
     # ID: 2e16bd1a-066c-401d-b835-60b05887963b
@@ -87,8 +101,6 @@ class CognitiveService:
     async def _create_provider_for_resource(self, resource: LlmResource) -> AIProvider:
         """
         Create the correct provider. Config is fetched from DB-backed config service.
-
-        UPDATED: Now uses encrypted secrets for API keys!
         """
         prefix = (resource.env_prefix or "").strip().upper()
         if not prefix:
@@ -184,6 +196,8 @@ class CognitiveService:
         if not self._loaded:
             await self.initialize()
         try:
+            # This line will now RAISE if qdrant_service wasn't injected
+            # This is INTENTIONAL to catch split-brain usage
             query_vector = await self.get_embedding_for_code(query)
             if not query_vector:
                 return []

@@ -10,7 +10,7 @@ import asyncio
 from rich.console import Console
 from sqlalchemy import text
 
-from services.repositories.db.engine import get_session
+from services.database.session_manager import get_session
 from shared.config import settings
 
 console = Console()
@@ -31,9 +31,14 @@ async def _fetch_capabilities() -> list[dict]:
     """Fetches all public capabilities from the database knowledge graph view."""
     console.print("[cyan]Fetching capabilities from the database...[/cyan]")
     async with get_session() as session:
+        # FIX: Removed 'line_number' and JOIN, as the column does not exist in the DB schema.
+        # We will default to line 1 in the python logic.
         stmt = text(
             """
-            SELECT capability, intent, file, line_number
+            SELECT
+                capability,
+                intent,
+                file_path as file
             FROM core.knowledge_graph
             WHERE is_public = TRUE AND capability IS NOT NULL
             ORDER BY capability;
@@ -61,7 +66,12 @@ def main():
     """The main entry point for the documentation generation script."""
 
     async def _async_main():
-        capabilities = await _fetch_capabilities()
+        try:
+            capabilities = await _fetch_capabilities()
+        except Exception as e:
+            console.print(f"[bold red]Error fetching capabilities: {e}[/bold red]")
+            return
+
         if not capabilities:
             console.print(
                 "[yellow]Warning: No capabilities found in the database. Documentation will be empty.[/yellow]"
@@ -87,14 +97,15 @@ def main():
                 md_content.append(f"  - **Description:** {description.strip()}")
 
                 file_path = cap.get("file")
-                # Use a default line number if it's missing to avoid errors
-                line_number = cap.get("line_number") or 0
-                github_link = f"{GITHUB_URL_BASE}{file_path}#L{line_number + 1}"
+                # FIX: Default to 1 since DB doesn't store line numbers for symbols
+                line_number = cap.get("line_number") or 1
+                github_link = f"{GITHUB_URL_BASE}{file_path}#L{line_number}"
                 md_content.append(f"  - **Source:** [{file_path}]({github_link})")
             md_content.append("")
 
         final_text = "\n".join(md_content)
 
+        OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
         OUTPUT_PATH.write_text(final_text, encoding="utf-8")
         console.print(
             f"[bold green]✅ Capability reference documentation successfully written to {OUTPUT_PATH}[/bold green]"

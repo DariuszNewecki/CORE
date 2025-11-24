@@ -1,4 +1,124 @@
 version: 1
-exported_at: '2025-11-14T22:37:25.366602+00:00'
-items: []
-digest: sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945
+exported_at: '2025-11-24T19:21:09.209424+00:00'
+items:
+- id: ddf4b3d4-bc93-459d-9aff-8f372afac594
+  name: context.reuse.summarize
+  objective: null
+  owner: system
+  domain: context
+  tags:
+  - test-gen
+  status: Active
+- id: 6e2cc8fa-d674-45bc-8fb4-ad2064c61ac7
+  name: self_healing.repair.automatic_repair_service
+  objective: null
+  owner: system
+  domain: self_healing
+  tags:
+  - repair
+  - auto
+  status: Active
+- id: 891b75d7-5269-4c6d-9835-fb3e75457f71
+  name: self_healing.repair.e_o_f_syntax_fixer
+  objective: null
+  owner: system
+  domain: self_healing
+  tags:
+  - repair
+  - auto
+  status: Active
+- id: 706b3495-2dca-413f-9652-a55dbad58ba1
+  name: self_healing.repair.empty_function_fixer
+  objective: null
+  owner: system
+  domain: self_healing
+  tags:
+  - repair
+  - auto
+  status: Active
+- id: f677f143-d440-4e75-8354-b6775c24caa0
+  name: self_healing.repair.mixed_quote_fixer
+  objective: null
+  owner: system
+  domain: self_healing
+  tags:
+  - repair
+  - auto
+  status: Active
+- id: 5bd35ebb-c2ba-4516-b463-e7cbf4946a9b
+  name: self_healing.repair.quote_fixer
+  objective: null
+  owner: system
+  domain: self_healing
+  tags:
+  - repair
+  - auto
+  status: Active
+- id: 100e286d-f747-47b5-8bd1-0579b00c3b9c
+  name: self_healing.repair.trailing_whitespace_fixer
+  objective: null
+  owner: system
+  domain: self_healing
+  tags:
+  - repair
+  - auto
+  status: Active
+- id: e223d481-c5f8-4e8f-a89c-bebdd12dc295
+  name: self_healing.repair.truncated_docstring_fixer
+  objective: null
+  owner: system
+  domain: self_healing
+  tags:
+  - repair
+  - auto
+  status: Active
+- id: 74993fee-ca5a-43ed-9a5c-05954cb1d8b2
+  name: self_healing.repair.unterminated_string_fixer
+  objective: null
+  owner: system
+  domain: self_healing
+  tags:
+  - repair
+  - auto
+  status: Active
+- id: ed2c6f13-96f7-45d9-b879-b12dbefa5d2c
+  name: self_healing.test_gen.execute
+  objective: null
+  owner: system
+  domain: self_healing
+  tags:
+  - test-gen
+  status: Active
+- id: 0091e933-a158-4d3b-b44e-be522e99f7e0
+  name: self_healing.test_gen.extract_code
+  objective: null
+  owner: system
+  domain: self_healing
+  tags:
+  - test-gen
+  status: Active
+- id: 862ff5b9-bde4-4420-85c3-62ee22ba9f07
+  name: self_healing.test_gen.fix_single
+  objective: null
+  owner: system
+  domain: self_healing
+  tags:
+  - test-gen
+  status: Active
+- id: bfd9117b-5c11-4d63-9fe6-d96057ebd795
+  name: self_healing.test_gen.replace_fn
+  objective: null
+  owner: system
+  domain: self_healing
+  tags:
+  - test-gen
+  status: Active
+- id: 5d035362-6173-4d01-a591-a288e1820941
+  name: shared.universal.normalize_whitespace
+  objective: null
+  owner: system
+  domain: shared
+  tags:
+  - test-gen
+  status: Active
+digest: sha256:b88bd4130e943b22dc8b379648432a75804e988eb12cf856a312c3fe894433fd

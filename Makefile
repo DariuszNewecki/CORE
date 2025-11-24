@@ -183,8 +183,8 @@ clean: ## Remove temporary files and caches
 	find . -type f -name '*.pyc' -delete
 	find . -type d -name '__pycache__' -prune -exec rm -rf {} +
 	rm -rf .pytest_cache .ruff_cache .mypy_cache .cache
-	rm -f .coverage
-	rm -rf htmlcov
+#	rm -f .coverage
+#	rm -rf htmlcov
 	rm -rf build dist *.egg-info
 	rm -rf pending_writes sandbox
 	@echo "✅ Clean complete."

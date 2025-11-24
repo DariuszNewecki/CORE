@@ -61,10 +61,10 @@ async def validate_python_code_async(
     all_violations.extend(policy_validator.check_semantics(fixed_code, path_hint))
     all_violations.extend(quality_checker.check_for_todo_comments(fixed_code))
 
+    # --- FIX APPLIED HERE: removed "await" ---
     try:
-        import_violations = await import_checker.execute_on_content(
-            path_hint, fixed_code
-        )
+        # ImportRulesCheck.execute_on_content is synchronous.
+        import_violations = import_checker.execute_on_content(path_hint, fixed_code)
         all_violations.extend(import_violations)
     except Exception as e:
         all_violations.append(
@@ -76,9 +76,7 @@ async def validate_python_code_async(
             }
         )
 
-    # --- Step 2: Conditional Runtime Validation (THE FIX) ---
-    # Only proceed to runtime tests if all static analysis passed AND the file
-    # being validated is NOT a test file itself.
+    # --- Step 2: Conditional Runtime Validation (unchanged) ---
     is_test_file = "tests/" in path_hint.replace("\\", "/")
     if not is_test_file and not any(
         v.get("severity") == "error" for v in all_violations

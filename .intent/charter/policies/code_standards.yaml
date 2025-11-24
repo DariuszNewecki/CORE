@@ -1,7 +1,7 @@
 # .intent/charter/policies/code_standards.yaml
 policy_id: "aaa0a228-125d-4013-bfed-c1b58cec0f66" # From original code_style_policy
 id: code_standards
-version: "2.3.0" # Version bump for simplified header-only rule
+version: "2.4.0" # Version bump for reuse-first rule
 title: "Comprehensive Code Quality & Standards"
 status: active
 purpose: >
@@ -106,6 +106,26 @@ health_standards:
   max_function_lloc: 80
   outlier_standard_deviations: 2.0
   enforce_dead_public_symbols: true
+
+# === REUSE-FIRST DEVELOPMENT ===
+reuse_rules:
+  - id: reuse.before_new_code
+    statement: >
+      Before generating or committing new code, agents MUST search existing symbols
+      (semantic, AST, and structural) via the ContextPackage and prefer reusing or
+      extending existing logic. New code MAY only be written when no suitable symbol
+      exists or when the change is part of an explicit refactor.
+    enforcement: error
+    details:
+      search_requirements:
+        - "Query embeddings for semantically similar symbols in the requested domain."
+        - "Inspect AST/structural matches for helpers and utilities."
+        - "Check shared/ and shared.universal for reusable units."
+      justification_requirements:
+        - "If new code is created, the crate or change summary MUST explain why reuse was not possible or appropriate."
+      scope:
+        - "agents: CoderAgent, DocAgent, TestAgent"
+        - "workflows: develop, refactor, remediation"
 
 # === SYMBOL METADATA & CAPABILITIES ===
 symbol_metadata_rules:

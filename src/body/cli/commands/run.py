@@ -1,5 +1,8 @@
 # src/body/cli/commands/run.py
-"""Provides functionality for the run module."""
+"""
+Provides functionality for the run module.
+Refactored for A2 Autonomy: Uses ServiceRegistry for Just-In-Time dependency injection.
+"""
 
 from __future__ import annotations
 
@@ -8,22 +11,16 @@ from pathlib import Path
 
 import typer
 
+# We import the logic function, but we will inject dependencies before calling it
+from features.introspection.vectorization_service import run_vectorize
 from shared.context import CoreContext
 from shared.logger import getLogger
-
-# --- START OF FIX ---
-# Updated import to point to the new 'will' location for the logic file
 from will.cli_logic.run import _develop
 
-# --- END OF FIX ---
-
 logger = getLogger(__name__)
-
 run_app = typer.Typer(
     help="Commands for executing complex processes and autonomous cycles."
 )
-
-_context: CoreContext | None = None
 
 
 @run_app.command("develop")
@@ -48,7 +45,18 @@ def develop_command(
 ) -> None:
     """Orchestrates the autonomous development process from a high-level goal."""
     core_context: CoreContext = ctx.obj
-    asyncio.run(_develop(context=core_context, goal=goal, from_file=from_file))
+
+    # Ensure CognitiveService has Qdrant wired up if it needs it (develop often does for retrieval)
+    async def _setup_and_run():
+        if core_context.registry:
+            # JIT Injection: Ensure CognitiveService has its dependencies
+            qdrant = await core_context.registry.get_qdrant_service()
+            core_context.cognitive_service._qdrant_service = qdrant
+            core_context.qdrant_service = qdrant
+
+        await _develop(context=core_context, goal=goal, from_file=from_file)
+
+    asyncio.run(_setup_and_run())
 
 
 @run_app.command("vectorize")
@@ -63,15 +71,17 @@ def vectorize_command(
     """Scan capabilities from the DB, generate embeddings, and upsert to Qdrant."""
     core_context: CoreContext = ctx.obj
 
-    # ✅ Lazy Qdrant initialization: only when this command actually runs
-    if core_context.qdrant_service is None:
-        from services.clients.qdrant_client import QdrantService
+    async def _setup_and_vectorize():
+        logger.info("Initializing services for vectorization via Registry...")
 
-        logger.info(
-            "Initializing QdrantService for 'run vectorize' command via core context..."
-        )
-        core_context.qdrant_service = QdrantService()
+        # 1. Fetch singleton from Registry (slow import happens here)
+        qdrant = await core_context.registry.get_qdrant_service()
 
-    from features.introspection.vectorization_service import run_vectorize
+        # 2. Wire it into the context and cognitive service
+        core_context.qdrant_service = qdrant
+        core_context.cognitive_service._qdrant_service = qdrant
 
-    asyncio.run(run_vectorize(context=core_context, dry_run=not write, force=force))
+        # 3. Run the feature logic
+        await run_vectorize(context=core_context, dry_run=not write, force=force)
+
+    asyncio.run(_setup_and_vectorize())
