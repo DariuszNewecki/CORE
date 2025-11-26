@@ -1,6 +1,10 @@
 # CORE Documentation
 
-Welcome to the **CORE Documentation Hub** — the complete guide to understanding, operating, and extending the **Constitutional, Self‑Governing AI Development Framework**.
+Welcome to the **CORE Documentation Hub** — the complete guide to understanding, operating, and extending the **Constitutional, Self-Governing AI Development Framework**.
+
+> 🧭 **New to CORE?**
+> Start with the plain-language overview:
+> 👉 [START HERE — What CORE Is and Why It Exists](00_START_HERE.md)
 
 CORE is built on a clear architectural model:
 
@@ -8,13 +12,13 @@ CORE is built on a clear architectural model:
 * **Body** — Execution engine, CLI, services, actions (`src/body/`, `src/features/`, `src/services/`)
 * **Will** — Agents, reasoning, LLM orchestration (`src/will/`)
 
-The purpose of this documentation is to give you a clean, accurate, and up‑to‑date entry point into the system — free from architectural drift, speculative features, or outdated assumptions.
+The purpose of this documentation is to give you a clean, accurate, and up-to-date entry point into the system — free from architectural drift, speculative features, or outdated assumptions.
 
 ---
 
 ## 🚀 Getting Started
 
-If you are new to CORE, start with these pages:
+If you are new to CORE and want more depth after the START HERE page, use:
 
 ### **1. What is CORE?**
 
@@ -51,7 +55,7 @@ CORE exposes a powerful CLI called **`core-admin`**, which integrates:
 * Autonomous development
 * Context building
 * Knowledge syncing
-* Self‑healing and remediation
+* Self-healing and remediation
 
 To explore the CLI:
 
@@ -128,6 +132,8 @@ Constitutional coverage & enforcement:
 
 * [Coverage Quick Reference](autonomy-and-governance/constitutional-coverage/quick-reference.md)
 * [Implementation Checklist](autonomy-and-governance/constitutional-coverage/implementation-checklist.md)
+* [Test Coverage Plan](autonomy-and-governance/constitutional-coverage/test-coverage-plan.md)
+* [Remediation Summary](autonomy-and-governance/constitutional-coverage/coverage-remediation-summary.md)
 
 ---
 
