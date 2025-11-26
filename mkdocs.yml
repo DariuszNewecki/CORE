@@ -15,7 +15,8 @@ extra_css:
   - css/no-sidebars.css    # our custom override
 
 nav:
-  - Home: index.md
+  - Home: 00_START_HERE.md
+  - Documentation Index: index.md
   - Core Concepts:
       - What is CORE?: core-concept/00_WHAT_IS_CORE.md
       - Philosophy: core-concept/01_PHILOSOPHY.md

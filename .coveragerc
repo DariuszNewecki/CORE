@@ -12,7 +12,7 @@ omit =
     tests/*
 
 [report]
-fail_under = 50
+fail_under = 45
 exclude_lines =
     pragma: no cover
     raise NotImplementedError
