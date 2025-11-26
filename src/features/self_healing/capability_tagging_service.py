@@ -14,17 +14,15 @@ must be injected by the caller (CLI or fix workflow).
 from __future__ import annotations
 
 import asyncio
-import uuid
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
 from rich.console import Console
-from sqlalchemy import text
-
 from services.knowledge.knowledge_service import KnowledgeService
 from shared.config import settings
 from shared.logger import getLogger
+from sqlalchemy import text
 from will.agents.tagger_agent import CapabilityTaggerAgent
 from will.orchestration.cognitive_service import CognitiveService
 
@@ -46,8 +44,8 @@ async def _async_tag_capabilities(
     """
     Core async logic for capability tagging.
 
-    This function applies new capability IDs to source code and registers them
-    in the DB using the injected session_factory. No CLI-layer imports allowed.
+    This function registers capability links in the DB using the injected session_factory.
+    It NO LONGER writes # ID tags to source files (that is handled by 'fix ids').
     """
 
     agent = CapabilityTaggerAgent(cognitive_service, knowledge_service)
@@ -65,19 +63,16 @@ async def _async_tag_capabilities(
     # DRY RUN
     if dry_run:
         console.print(
-            "[bold yellow]-- DRY RUN: Would apply the following capability tags --[/bold yellow]"
+            "[bold yellow]-- DRY RUN: Would register the following capability links --[/bold yellow]"
         )
         for key, info in suggestions.items():
-            temp_uuid = str(uuid.uuid4())
             console.print(
-                f"  • {info['suggestion']} (ID: {temp_uuid}) → "
-                f"{info['file']}:{info['line_number']}"
+                f"  • Symbol {info['name']} -> Capability '{info['suggestion']}'"
             )
         return
 
     console.print(
-        f"\n[bold green]Applying {len(suggestions)} new capability tags "
-        f"to source code...[/bold green]"
+        f"\n[bold green]Linking {len(suggestions)} symbols to capabilities in the database...[/bold green]"
     )
 
     # ------------- DB OPERATION THROUGH INJECTED SESSION ---------------- #
@@ -85,71 +80,50 @@ async def _async_tag_capabilities(
         async with session.begin():
             for _, new_info in suggestions.items():
                 suggested_name = new_info["suggestion"]
+                symbol_uuid = new_info["key"]  # Use the existing ID from the symbol
 
-                # Real UUID for the new capability
-                symbol_uuid = str(uuid.uuid4())
-
-                # Convert module path to file system path if needed
-                file_path_str = new_info["file"]
-                if not file_path_str.endswith(".py"):
-                    file_path_str = "src/" + file_path_str.replace(".", "/") + ".py"
-
-                source_file_path = REPO_ROOT / file_path_str
-
-                if not source_file_path.exists():
-                    logger.error(f"File not found: {source_file_path}")
-                    continue
-
-                # ---------------- Insert tag into code ----------------- #
-                lines = source_file_path.read_text("utf-8").splitlines()
-                line_to_tag = new_info["line_number"] - 1
-
-                if line_to_tag >= len(lines):
-                    logger.error(
-                        f"Line {line_to_tag} out of bounds for {source_file_path}"
-                    )
-                    continue
-
-                original_line = lines[line_to_tag]
-                indentation = len(original_line) - len(original_line.lstrip(" "))
-                tag_line = f"{' ' * indentation}# ID: {symbol_uuid}"
-
-                lines.insert(line_to_tag, tag_line)
-                source_file_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
-
-                # ---------------- Register in DB ----------------------- #
+                # ---------------- Register Capability ----------------------- #
                 domain = (
                     suggested_name.split(".")[0] if "." in suggested_name else "general"
                 )
 
-                upsert_sql = text(
+                # Upsert capability and get its ID
+                cap_upsert_sql = text(
                     """
                     INSERT INTO core.capabilities
-                        (name, domain, title, owner, entry_points, status, tags)
+                        (name, domain, title, owner, status, tags, created_at, updated_at)
                     VALUES
-                        (:name, :domain, :name, 'system', ARRAY[:uuid]::uuid[],
-                         'Active', '[]'::jsonb)
+                        (:name, :domain, :name, 'system', 'Active', '[]'::jsonb, now(), now())
                     ON CONFLICT (domain, name)
-                    DO UPDATE SET
-                        entry_points = CASE
-                            WHEN NOT (:uuid = ANY(core.capabilities.entry_points))
-                            THEN array_append(core.capabilities.entry_points, :uuid)
-                            ELSE core.capabilities.entry_points
-                        END,
-                        updated_at = now();
+                    DO UPDATE SET updated_at = now()
+                    RETURNING id;
+                    """
+                )
+
+                result = await session.execute(
+                    cap_upsert_sql,
+                    {"name": suggested_name, "domain": domain},
+                )
+                capability_id = result.scalar_one()
+
+                # ---------------- Link Symbol to Capability ---------------- #
+                # This replaces the old 'entry_points' array update
+                link_sql = text(
+                    """
+                    INSERT INTO core.symbol_capability_links
+                        (symbol_id, capability_id, confidence, source, verified, created_at)
+                    VALUES
+                        (:symbol_id, :capability_id, 1.0, 'llm-classified', true, now())
+                    ON CONFLICT (symbol_id, capability_id, source) DO NOTHING;
                     """
                 )
 
                 await session.execute(
-                    upsert_sql,
-                    {"name": suggested_name, "domain": domain, "uuid": symbol_uuid},
+                    link_sql,
+                    {"symbol_id": symbol_uuid, "capability_id": capability_id},
                 )
 
-                console.print(
-                    f"   → Tagged '{suggested_name}' "
-                    f"(ID: {symbol_uuid}) in "
-                    f"{source_file_path.relative_to(REPO_ROOT)}"
-                )
+                console.print(f"   → Linked '{new_info['name']}' to '{suggested_name}'")
 
         await session.commit()
 

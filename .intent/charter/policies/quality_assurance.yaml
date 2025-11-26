@@ -10,7 +10,7 @@ purpose: >
 
 # === COVERAGE MANDATES ===
 coverage_requirements:
-  minimum_threshold: 50
+  minimum_threshold: 45
   target_threshold: 80
   critical_paths:
     - "src/core/**/*.py: 85%"

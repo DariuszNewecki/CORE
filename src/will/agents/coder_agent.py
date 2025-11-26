@@ -12,8 +12,9 @@ from typing import TYPE_CHECKING
 
 from shared.config import get_path_or_none, settings
 from shared.logger import getLogger
-from shared.models import ExecutionTask
+from shared.models import ExecutionTask, TaskParams
 from shared.utils.parsing import extract_python_code_from_response
+
 from will.orchestration.cognitive_service import CognitiveService
 from will.orchestration.prompt_pipeline import PromptPipeline
 from will.orchestration.self_correction_engine import attempt_correction
@@ -99,6 +100,75 @@ Current file target:
 
 Follow these guardrails while generating code.
 """
+
+    # ID: NEW - Phase 0 Standalone Entry Point
+    # ID: 1a6f552f-1ea8-49e1-865d-900260b59bbf
+    async def generate(
+        self,
+        goal: str,
+        target_file: str,
+        symbol_name: str | None = None,
+        context_hints: dict | None = None,
+    ) -> str:
+        """
+        Standalone entry point for code generation (Phase 0 validation).
+
+        This method wraps the existing generate_and_validate_code_for_task()
+        by building a minimal ExecutionTask internally. This enables direct
+        usage in validation harnesses without full orchestration setup.
+
+        Args:
+            goal: Natural language description of what to generate
+                Example: "Create a function to extract markdown headers"
+            target_file: Absolute or relative path where code should live
+                Example: "src/shared/utils/markdown.py"
+            symbol_name: Optional name of function/class to generate
+                Example: "extract_markdown_headers"
+            context_hints: Optional dict with additional context
+                Example: {"related_symbols": ["parse_text"], "imports": ["re"]}
+
+        Returns:
+            Validated Python code as string (passes constitutional audit)
+
+        Raises:
+            Exception: If code cannot be generated or validated
+
+        Example:
+            >>> coder = CoderAgent(cognitive_service, prompt_pipeline, auditor_context)
+            >>> code = await coder.generate(
+            ...     goal="Create markdown header parser",
+            ...     target_file="src/shared/utils/markdown.py",
+            ...     symbol_name="extract_headers"
+            ... )
+        """
+        logger.info(f"CoderAgent.generate() called for: {goal[:100]}...")
+
+        # Build minimal ExecutionTask for internal use
+        task = ExecutionTask(
+            step=f"generate_{symbol_name or 'code'}",
+            action="create_file",  # Default action
+            params=TaskParams(
+                file_path=target_file,
+                symbol_name=symbol_name,
+                code=None,  # Will be generated
+            ),
+        )
+
+        # Build context string from hints
+        context_str = ""
+        if context_hints:
+            context_str = "\n\n--- GENERATION CONTEXT ---\n"
+            for key, value in context_hints.items():
+                context_str += f"{key}: {value}\n"
+            context_str += "--- END CONTEXT ---\n"
+
+        # Delegate to existing implementation
+        logger.info("Delegating to generate_and_validate_code_for_task()...")
+        return await self.generate_and_validate_code_for_task(
+            task=task,
+            high_level_goal=goal,
+            context_str=context_str,
+        )
 
     # ID: 1bb9b0c2-12e7-497c-b39b-716a7df06bdf
     async def generate_and_validate_code_for_task(
