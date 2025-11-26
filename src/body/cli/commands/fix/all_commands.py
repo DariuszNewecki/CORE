@@ -12,7 +12,7 @@ from collections.abc import Awaitable, Callable
 from typing import Any
 
 import typer
-
+from features.introspection.sync_service import run_sync_with_db
 from features.maintenance.command_sync_service import _sync_commands_to_db
 from features.self_healing.code_style_service import format_code
 from features.self_healing.docstring_service import fix_docstrings
@@ -20,6 +20,7 @@ from features.self_healing.id_tagging_service import assign_missing_ids
 from features.self_healing.policy_id_service import add_missing_policy_ids
 from features.self_healing.purge_legacy_tags_service import purge_legacy_tags
 from features.self_healing.sync_vectors import main_async as sync_vectors_async
+from services.database.session_manager import get_session
 from shared.cli_utils import async_command
 from shared.context import CoreContext
 
@@ -96,7 +97,6 @@ async def run_all_fixes(
             _run_sync_step("Formatting code (Black & Ruff)", format_code)
 
         elif name == "line-lengths":
-            # Keep this as a manual tool for now due to async orchestration clashes.
             console.print(
                 "[yellow]Skipping 'fix line-lengths' in 'fix all' because it is "
                 "designed as a targeted, file-aware async command. "
@@ -123,13 +123,21 @@ async def run_all_fixes(
             )
 
         elif name == "duplicate-ids":
-            # Temporarily keep this as a manual tool until the underlying
-            # duplicate_id_service is repaired (missing features.governance import).
             console.print(
                 "[yellow]Skipping 'fix duplicate-ids' in 'fix all' because its "
                 "service depends on a missing 'features.governance' module. "
                 "Run it manually later once that dependency is fixed.[/yellow]"
             )
+
+        # --- CRITICAL: SYNC KNOWLEDGE BASE ---
+        # Must run after 'ids' (which modifies code) and before 'tags' (which relies on DB).
+        elif name == "knowledge-sync":
+            if write:
+                stats = await run_sync_with_db()
+                console.print(f"   -> Scanned: {stats['scanned']}")
+                console.print(f"   -> Updated: {stats['updated']}")
+            else:
+                console.print("[yellow]Skipping DB sync in dry-run mode[/yellow]")
 
         # --- Vector / DB sync ---
         elif name == "vector-sync":
@@ -156,9 +164,16 @@ async def run_all_fixes(
         elif name == "tags":
             from features.self_healing.capability_tagging_service import main_async
 
+            # FIX: Use the correct arguments (Dependency Injection)
             await _run_async_step(
                 "Tagging capabilities",
-                main_async(write=write, dry_run=dry_run, core_context=core_context),
+                main_async(
+                    session_factory=get_session,
+                    cognitive_service=core_context.cognitive_service,
+                    knowledge_service=core_context.knowledge_service,
+                    write=write,
+                    dry_run=dry_run,
+                ),
             )
 
         # --- IR bootstrap (sync wrappers are safe to call) ---
@@ -182,26 +197,28 @@ async def run_all_fixes(
 
     # Curated execution plan. Order matters.
     plan = [
-        # Formatting & style
+        # 1. Code physical structure
         "code-style",
         "line-lengths",
-        # IDs & metadata hygiene
-        "ids",
+        # 2. Source metadata
+        "ids",  # Adds # ID: tags to files
         "purge-legacy-tags",
         "policy-ids",
-        "duplicate-ids",
-        # Vector store sync (atomic operation replacing orphaned-vectors + dangling-vector-links)
-        "vector-sync",
+        # 3. Sync Knowledge Base (CRITICAL BRIDGE)
+        # This reads the files (now with IDs) and updates core.symbols
+        "knowledge-sync",  # <-- Ensures DB knows about new symbols
+        # 4. Vector / Semantic sync
+        "vector-sync",  # Syncs core.symbols -> Qdrant
+        "db-registry",
+        # 5. Intelligent Augmentation (Reads DB, updates DB or Files)
         "docstrings",
-        "tags",
-        # IR artifacts
+        "tags",  # Links Symbols -> Capabilities in DB
+        # 6. Ops/Misc
         "ir-triage",
         "ir-log",
-        # Explicit-file commands (documented but not auto-run)
+        "duplicate-ids",  # Run late to catch any dupes generated
         "clarity",
         "complexity",
-        # Registry sync at the end
-        "db-registry",
     ]
 
     for name in plan:
