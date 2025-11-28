@@ -1,19 +1,13 @@
-version: "3.0.0"  # Major version bump for constitutional refactoring
-
-# PURPOSE:
-# The master index of the CORE Constitution. This file defines the authoritative
-# mapping between conceptual domains and their concrete artifacts. Every policy,
-# schema, knowledge source, and cognitive asset referenced by the Mind is
-# discoverable through this index.
+# .intent/meta.yaml
+version: "2.0.0" # A2 Autonomy Achievement - Autonomous Code Generation
 
 charter:
-
   constitution:
     active_version: "charter/constitution/ACTIVE"
     governance_framework: "charter/constitution/governance_framework.yaml"
     precedence_rules: "charter/constitution/precedence_rules.yaml"
-
-  mission: {}  # Mission material now consolidated under mind/knowledge
+    approvers: "charter/constitution/approvers.yaml"
+    critical_paths: "charter/constitution/critical_paths.yaml"
 
   policies:
     safety_framework: "charter/policies/safety_framework.yaml"
@@ -26,27 +20,22 @@ charter:
 
   schemas:
     policy_schema: "charter/schemas/policy_schema.json"
-
     agent:
       agent_policy_schema: "charter/schemas/agent/agent_policy_schema.json"
       cognitive_roles_schema: "charter/schemas/agent/cognitive_roles_schema.json"
       micro_proposal_policy_schema: "charter/schemas/agent/micro_proposal_policy_schema.json"
       resource_manifest_policy_schema: "charter/schemas/agent/resource_manifest_policy_schema.json"
-
     code:
       capability_tag_schema: "charter/schemas/code/capability_tag_schema.json"
       dependency_injection_policy_schema: "charter/schemas/code/dependency_injection_policy_schema.json"
       knowledge_graph_entry_schema: "charter/schemas/code/knowledge_graph_entry_schema.json"
-
     constitutional:
       intent_bundle_schema: "charter/schemas/constitutional/intent_bundle_schema.json"
       intent_crate_schema: "charter/schemas/constitutional/intent_crate_schema.json"
       proposal_schema: "charter/schemas/constitutional/proposal_schema.json"
-
     data:
       database_policy_schema: "charter/schemas/data/database_policy_schema.json"
       database_schema: "charter/schemas/data/database_schema.yaml"
-
     governance:
       available_actions_policy_schema: "charter/schemas/governance/available_actions_policy_schema.json"
       cli_registry_schema: "charter/schemas/governance/cli_registry_schema.json"
@@ -54,7 +43,6 @@ charter:
       intent_guard_schema: "charter/schemas/governance/intent_guard_schema.json"
       reporting_policy_schema: "charter/schemas/governance/reporting_policy_schema.json"
       risk_classification_policy_schema: "charter/schemas/governance/risk_classification_policy_schema.json"
-
     operations:
       canary_policy_schema: "charter/schemas/operations/canary_policy_schema.json"
       config_schema: "charter/schemas/operations/config_schema.yaml"
@@ -62,30 +50,30 @@ charter:
       workflows_policy_schema: "charter/schemas/operations/workflows_policy_schema.json"
 
 mind:
-
   project_manifest: "mind/project_manifest.yaml"
   northstar: "mind/northstar.yaml"
-
   config:
     local_mode: "mind/config/local_mode.yaml"
     runtime_requirements: "mind/config/runtime_requirements.yaml"
-
   ir:
     incident_log: "mind/ir/incident_log.yaml"
     triage_log: "mind/ir/triage_log.yaml"
-
   knowledge:
     domain_definitions: "mind/knowledge/domain_definitions.yaml"
     project_structure: "mind/knowledge/project_structure.yaml"
-
+    entry_point_patterns: "mind/knowledge/entry_point_patterns.yaml"
+    # The following are now DB-resident and managed via SSOT logic
+    # cli_registry: REMOVED
+    # resource_manifest: REMOVED
+    # cognitive_roles: REMOVED
   mind_export:
+    # Exports are still valid artifacts for backup/restore
     cognitive_roles: "mind_export/cognitive_roles.yaml"
     resource_manifest: "mind_export/resource_manifest.yaml"
     capabilities: "mind_export/capabilities.yaml"
     symbols: "mind_export/symbols.yaml"
     links: "mind_export/links.yaml"
     northstar: "mind_export/northstar.yaml"
-
   prompts:
     capability_consolidator: "mind/prompts/capability_consolidator.prompt"
     capability_definer: "mind/prompts/capability_definer.prompt"
@@ -111,7 +99,6 @@ mind:
     test_fixer: "mind/prompts/test_fixer.prompt"
     test_generator: "mind/prompts/test_generator.prompt"
     vectorizer: "mind/prompts/vectorizer.prompt"
-
   context:
     schema: "context/schema.yaml"
     policy: "context/policy.yaml"

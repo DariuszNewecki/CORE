@@ -1,16 +1,5 @@
-# ID: 0400a226-fa7f-4069-8513-3c95bd5ddfdb
-# ID: f6effc19-8267-4e34-a6ad-a3262b4f6c03
-# ID: 71cb04bc-ce5d-4cbc-ba37-4b05adc633e9
-# ID: 443deff8-dfd1-466a-ac27-2133137fe3d3
-# ID: self_healing.headers.fix_all
-# ID: self_healing.header_service.fix
-# ID: self_healing.headers.fix_all
-# ID: self_healing.headers.fix
-# ID: self_healing.headers.fix_all
-# ID: self_healing.headers.fix
-# ID: self_healing.headers.fix_all
-# ID: self_healing.header_service.fix
 # src/features/self_healing/header_service.py
+
 """
 HeaderService — enforces the constitutional file header law.
 Now 100% correct and fully tested.
@@ -22,11 +11,11 @@ from pathlib import Path
 from typing import Any
 
 from rich.progress import track
-
-from features.introspection.knowledge_graph_service import KnowledgeGraphBuilder
 from shared.config import settings
 from shared.logger import getLogger
 from shared.utils.header_tools import _HeaderTools
+
+from features.introspection.knowledge_graph_service import KnowledgeGraphBuilder
 
 logger = getLogger(__name__)
 REPO_ROOT = settings.REPO_PATH

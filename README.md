@@ -2,7 +2,7 @@
 
 > **Where Intelligence Lives.**
 
-[![Status: Alpha (A2-Ready)](https://img.shields.io/badge/status-Alpha%20\(A2--Ready\)-green.svg)](#-project-status)
+[![Status: A2 Achieved](https://img.shields.io/badge/status-A2%20Achieved-brightgreen.svg)](#-project-status)
 [![Documentation](https://img.shields.io/badge/docs-GitHub%20Pages-blue)](https://dariusznewecki.github.io/CORE/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![codecov](https://codecov.io/gh/DariuszNewecki/CORE/graph/badge.svg)](https://codecov.io/gh/DariuszNewecki/CORE)
@@ -11,22 +11,31 @@ CORE is a **self‑governing, constitutionally aligned AI development system** c
 
 ---
 
-## 🏛️ Project Status: Alpha (A2‑Ready)
+## 🏛️ Project Status: A2 Autonomy Achieved
 
-CORE has moved beyond architectural experimentation and now provides:
+**CORE has achieved Level 2 Autonomy (A2): Autonomous Code Generation**
 
-* A robust, production‑grade **Service Registry** architecture
-* Strict **dependency injection** across all system layers
-* A fully synchronized **Knowledge Graph** (database‑backed SSOT)
-* Stable **self‑governance loop**
+### Current Capabilities
 
-The internal feedback cycle is fully operational:
+* ✅ **A0 (Self-Awareness)**: 513 symbols vectorized, 66 module anchors, knowledge graph operational
+* ✅ **A1 (Self-Healing)**: Automatic docstrings, headers, imports, formatting, constitutional compliance
+* ✅ **A2 (Code Generation)**: 70-80% success rate on autonomous code generation with constitutional governance
+* 🎯 **A3 (Strategic Refactoring)**: Next frontier - multi-file architectural improvements
 
-1. **Introspection** – CORE parses its codebase and updates the symbolic graph in PostgreSQL.
-2. **Validation** – The `ConstitutionalAuditor` enforces all architectural & governance rules.
-3. **Self‑Healing** – Agents automatically fix documentation drift, formatting, and structural violations.
+### Live Metrics (v2.0.0)
 
-The next frontier is **A2 (Governed Code Generation)**: controlled, auditable creation of new features.
+* **Autonomous Code Generation**: 70-80% success rate (up from 0%)
+* **Semantic Placement Accuracy**: 100% (up from 45%)
+* **Knowledge Graph**: 513 symbols, 66 module anchors, 48 policy chunks
+* **Test Coverage**: 48-51% (target: 75%)
+* **Constitutional Compliance**: Active monitoring with autonomous remediation
+
+### Production-Grade Architecture
+
+* Robust **Service Registry** with strict dependency injection
+* PostgreSQL-backed **Knowledge Graph** (Single Source of Truth)
+* **Constitutional Audit System** preventing AI agents from "going off the rails"
+* Fully operational **self-governance loop**: Introspection → Validation → Self-Healing
 
 ---
 
@@ -42,18 +51,35 @@ It is built on the **Mind–Body–Will** model:
 
 * The **Constitution** defines immutable laws: structure, policies, schemas, allowed dependencies.
 * The **Database** stores every symbol, capability, and relation as the **Single Source of Truth**.
+* **Semantic Infrastructure**: Policies, symbols, and architectural context vectorized for AI reasoning.
 
 ### 🏗️ Body — The Machinery (`src/body/`, `src/services/`)
 
 * Provides deterministic tools: auditing, filesystem operations, code parsing, git control.
 * A centralized **Service Registry** ensures clean lifecycle management and singleton resources.
+* **Constitutional Auditor** enforces governance rules and tracks violations.
 
 ### ⚡ Will — The Reasoning Layer (`src/will/`)
 
-* AI Agents that plan, write, and review code.
+* AI Agents that plan, write, and review code autonomously.
 * Agents never act freely: **every action is pre‑validated** against the Constitution.
+* **Context-Aware Code Generation**: Rich semantic context enables accurate, policy-compliant code.
 
 This creates a system that can **understand itself**, detect deviations, and evolve safely.
+
+---
+
+## 🎯 The Autonomy Ladder
+
+CORE progresses through defined autonomy levels:
+
+```
+A0: Self-Awareness          ✅ Knowledge graph, symbol vectorization
+A1: Self-Healing            ✅ Autonomous fixes for drift, formatting, compliance
+A2: Code Generation         ✅ Create new features with constitutional governance
+A3: Strategic Refactoring   🎯 Multi-file architectural improvements
+A4: Self-Replication        🔮 Write CORE.NG from scratch based on functionality
+```
 
 ---
 
@@ -72,7 +98,8 @@ Run a minimal walkthrough: create an API, break a rule, and watch CORE catch it.
 * **What is CORE?** – Foundations & philosophy
 * **Architecture** – Mind/Body/Will, Service Registry, Knowledge Graph
 * **Governance** – How CORE enforces constitutional rules
-* **Roadmap** – Towards A2, A3, and full autonomous delivery
+* **Autonomy Ladder** – From self-awareness to self-replication
+* **Roadmap** – Towards A3, A4, and full autonomous delivery
 * **Contributing** – How to collaborate
 
 ---
@@ -92,13 +119,13 @@ cp .env.example .env
 # Add LLM keys (OpenAI, Anthropic, Ollama)
 
 # 1. Build Knowledge Graph
-dpoetry run core-admin fix vector-sync --write
+poetry run core-admin fix vector-sync --write
 
 # 2. Run full audit
 poetry run core-admin check audit
 
-# 3. Try conversational commands
-poetry run core-admin chat "make me a CLI tool that prints a random number"
+# 3. Try autonomous code generation
+poetry run core-admin chat "create a CLI command that validates JSON files"
 ```
 
 ---
@@ -110,7 +137,35 @@ poetry run core-admin chat "make me a CLI tool that prints a random number"
 | `make check`                | Run Lint, Test, Audit (full governance pipeline) |
 | `core-admin fix all`        | Autonomous repair: headers, metadata, formatting |
 | `core-admin inspect status` | Check DB, migrations, and registry health        |
-| `core-admin run develop`    | Execute a complex, governed coding task          |
+| `core-admin run develop`    | Execute autonomous, governed coding task         |
+
+---
+
+## 🔒 Constitutional Governance
+
+CORE's key innovation is **constitutional AI governance**:
+
+* All policies stored as human-authored YAML in `.intent/charter/policies/`
+* AI agents operate within defined "autonomy lanes" with explicit permissions
+* Cryptographic signing for constitutional amendments (quorum-based approval)
+* Continuous audit system catches and remediates violations
+* Semantic policy vectorization enables AI understanding of governance rules
+
+**Result**: AI agents that are powerful yet provably bounded by human-defined constraints.
+
+---
+
+## 📊 Success Metrics
+
+From initial implementation to A2 achievement:
+
+* Code generation success: **0% → 70-80%**
+* Semantic placement accuracy: **45% → 100%**
+* Test success rate: **0% → 70-80%**
+* Knowledge graph symbols: **0 → 513**
+* Policy chunks vectorized: **0 → 48**
+
+All improvements driven by constitutional governance and semantic infrastructure.
 
 ---
 

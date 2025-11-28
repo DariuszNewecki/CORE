@@ -10,12 +10,12 @@ import asyncio
 from typing import Any
 
 from rich.progress import track
-
-from mind.governance.audit_context import AuditorContext
-from mind.governance.checks.base_check import BaseCheck
 from services.clients.qdrant_client import QdrantService
 from shared.logger import getLogger
 from shared.models import AuditFinding, AuditSeverity
+
+from mind.governance.audit_context import AuditorContext
+from mind.governance.checks.base_check import BaseCheck
 
 logger = getLogger(__name__)
 
@@ -66,11 +66,13 @@ class DuplicationCheck(BaseCheck):
             "symbols", {}
         )
 
-        # Get ignore configuration from the central context, not by loading it here.
-        ignore_policy = self.context.policies.get("audit_ignore_policy", {})
+        # FIX: Load from quality_assurance -> audit_exceptions -> symbol_ignores
+        qa_policy = self.context.policies.get("quality_assurance", {})
+        exceptions = qa_policy.get("audit_exceptions", {})
+
         self.ignored_symbol_keys: set[str] = {
             item["key"]
-            for item in ignore_policy.get("symbol_ignores", [])
+            for item in exceptions.get("symbol_ignores", [])
             if isinstance(item, dict) and "key" in item
         }
 

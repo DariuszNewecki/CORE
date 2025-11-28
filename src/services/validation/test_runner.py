@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import datetime
 import json
-import os
 import subprocess
 from pathlib import Path
 
@@ -33,14 +32,15 @@ def run_tests(silent: bool = True) -> dict[str, str]:
     repo_root = Path(__file__).resolve().parents[2]
     tests_path = repo_root / "tests"
     cmd = ["pytest", str(tests_path), "--tb=short", "-q"]
-    timeout = os.getenv("TEST_RUNNER_TIMEOUT")
-    try:
-        timeout_val = int(timeout) if timeout else None
-    except ValueError:
-        timeout_val = None
+
+    # Use settings instead of direct env var access for consistency
+    timeout = settings.model_extra.get(
+        "TEST_RUNNER_TIMEOUT", 300
+    )  # Default 5 mins for full suite
+
     try:
         proc = subprocess.run(
-            cmd, capture_output=True, text=True, check=False, timeout=timeout_val
+            cmd, capture_output=True, text=True, check=False, timeout=timeout
         )
         result["exit_code"] = str(proc.returncode)
         result["stdout"] = proc.stdout.strip()
@@ -51,9 +51,9 @@ def run_tests(silent: bool = True) -> dict[str, str]:
             if proc.stderr:
                 logger.warning(f"Pytest stderr:\n{proc.stderr}")
     except subprocess.TimeoutExpired:
-        result["stderr"] = "Test run timed out."
+        result["stderr"] = f"Test run timed out after {timeout}s."
         result["summary"] = "⏰ Timeout"
-        logger.error("Pytest run timed out.")
+        logger.error(f"Pytest run timed out after {timeout}s.")
     except FileNotFoundError:
         result["stderr"] = "pytest is not installed or not found in PATH."
         result["summary"] = "❌ Pytest not available"

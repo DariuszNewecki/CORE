@@ -1,12 +1,26 @@
 # .intent/charter/policies/operations.yaml
-policy_id: "a3e1b0c4-9f8d-4a7b-8c1d-6e5f4a3b2c1d"  # From workflows_policy
+policy_id: "a3e1b0c4-9f8d-4a7b-8c1d-6e5f4a3b2c1d"
 id: operations
-version: "2.0.0"
+version: "2.1.0"
 title: "System Operations & Workflows"
 status: active
 purpose: >
   Unified operational policies for workflows, canary deployments, incident response,
-  and developer fastpaths.
+  intent crates, and developer fastpaths.
+
+# === INTENT CRATES (Change Management) ===
+intent_crates:
+  validation:
+    - rule: "schema_compliance"
+      description: "All crates must pass schema validation against intent_crate_schema.json."
+      enforcement: error
+    - rule: "canary_required"
+      description: "All crates must pass a canary audit in an isolated environment before application."
+      enforcement: error
+  lifecycle:
+    - rule: "immutable_history"
+      description: "Processed crates must be moved to accepted/rejected and never modified in place."
+      enforcement: error
 
 # === MANDATORY INTEGRATION WORKFLOW ===
 integration_workflow:

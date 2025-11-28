@@ -91,19 +91,23 @@ fix-all: ## Run all self-healing fixes in curated sequence
 
 dev-sync: ## Run the safe, non-destructive developer sync and audit workflow
 	@echo "🔄 Running comprehensive dev-sync workflow..."
-	@echo "🆔 Step 1/7: Assigning missing IDs..."
+	@echo "🆔 Step 1/9: Assigning missing IDs..."
 	$(CORE_ADMIN) fix ids --write
-	@echo "📚 Step 2/7: Adding missing docstrings..."
+	@echo "📝 Step 2/9: Fixing file headers..."
+	$(CORE_ADMIN) fix headers --write
+	@echo "📚 Step 3/9: Adding missing docstrings..."
 	$(CORE_ADMIN) fix docstrings --write
-	@echo "🎨 Step 3/7: Formatting code (black/ruff)..."
+	@echo "🎨 Step 4/9: Formatting code (black/ruff)..."
 	$(CORE_ADMIN) fix code-style
-	@echo "🔍 Step 4/7: Running linter (stop on error)..."
+	@echo "🔍 Step 5/9: Running linter (stop on error)..."
 	$(CORE_ADMIN) check lint
-	@echo "🔄 Step 5/7: Synchronizing vector database..."
+	@echo "🔄 Step 6/9: Synchronizing vector database..."
 	$(CORE_ADMIN) fix vector-sync --write
-	@echo "💾 Step 6/7: Syncing symbols to database..."
+	@echo "💾 Step 7/9: Syncing symbols to database..."
 	$(CORE_ADMIN) manage database sync-knowledge --write
-	@echo "🧠 Step 7/7: Vectorizing knowledge graph..."
+	@echo "🏷️ Step 8/9: Defining capabilities (AI Naming)..."
+	$(CORE_ADMIN) manage define-symbols
+	@echo "🧠 Step 9/9: Vectorizing knowledge graph..."
 	$(CORE_ADMIN) run vectorize --write
 	@echo "✅ Dev-sync complete! Database is now current."
 
