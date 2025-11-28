@@ -1,9 +1,3 @@
-# ID: 703652a8-0f7a-4a78-9a9e-8081c4f814af
-# ID: 1aea0306-21ea-45ab-b378-b86b587a6648
-# ID: self_healing.vectors.sync
-# ID: self_healing.vectors.sync
-# ID: self_healing.vectors.sync
-# ID: self_healing.vectors.sync
 # src/features/self_healing/sync_vectors.py
 """
 Atomic vector synchronization between PostgreSQL and Qdrant.
@@ -25,11 +19,11 @@ import typer
 from qdrant_client import AsyncQdrantClient
 from qdrant_client.http.models import PointIdsList
 from rich.console import Console
-from sqlalchemy import text
-
+from services.clients.qdrant_client import QdrantService
 from services.database.session_manager import get_session
 from shared.config import settings
 from shared.logger import getLogger
+from sqlalchemy import text
 
 logger = getLogger(__name__)
 console = Console()
@@ -231,7 +225,9 @@ async def _prune_dangling_links(
 # ============================================================================
 
 
-async def _async_sync_vectors(dry_run: bool) -> tuple[int, int]:
+async def _async_sync_vectors(
+    dry_run: bool, qdrant_service: QdrantService | None = None
+) -> tuple[int, int]:
     """
     Core async logic for complete vector synchronization.
 
@@ -244,8 +240,14 @@ async def _async_sync_vectors(dry_run: bool) -> tuple[int, int]:
 
     # Step 0: Load all data
     console.print("[bold]Phase 0: Loading current state...[/bold]")
+
+    # Use injected service or create new one if missing
+    if qdrant_service is None:
+        client = AsyncQdrantClient(url=settings.QDRANT_URL)
+    else:
+        client = qdrant_service.client
+
     console.print("   → Fetching vector IDs from Qdrant...")
-    client = AsyncQdrantClient(url=settings.QDRANT_URL)
     qdrant_ids = await _fetch_all_qdrant_ids(client)
     console.print(f"      Found {len(qdrant_ids)} vectors in Qdrant.")
 
@@ -321,11 +323,15 @@ def main_sync(
 async def main_async(
     write: bool = False,
     dry_run: bool = False,
+    qdrant_service: QdrantService | None = None,
 ) -> tuple[int, int]:
     """
     Async entry point for orchestrators that own the event loop.
+    Accepts optional qdrant_service for JIT injection.
 
     Returns (orphans_pruned, dangling_pruned) counts.
     """
     effective_dry_run = dry_run or not write
-    return await _async_sync_vectors(dry_run=effective_dry_run)
+    return await _async_sync_vectors(
+        dry_run=effective_dry_run, qdrant_service=qdrant_service
+    )

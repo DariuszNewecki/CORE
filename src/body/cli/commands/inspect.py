@@ -9,18 +9,18 @@ import asyncio
 from pathlib import Path
 
 import typer
+from features.self_healing.test_target_analyzer import TestTargetAnalyzer
 from rich.console import Console
 from rich.table import Table
+from shared.context import CoreContext
 
 import body.cli.logic.status as status_logic
-from body.cli.logic.diagnostics import cli_tree
+from body.cli.logic.diagnostics import cli_tree, find_clusters_command_sync
 from body.cli.logic.duplicates import inspect_duplicates
 from body.cli.logic.guard_cli import register_guard
 from body.cli.logic.knowledge import find_common_knowledge
 from body.cli.logic.symbol_drift import inspect_symbol_drift
 from body.cli.logic.vector_drift import inspect_vector_drift
-from features.self_healing.test_target_analyzer import TestTargetAnalyzer
-from shared.context import CoreContext
 
 console = Console()
 inspect_app = typer.Typer(
@@ -83,14 +83,28 @@ register_guard(inspect_app)
 inspect_app.command("command-tree")(cli_tree)
 
 inspect_app.command(
+    "find-clusters",
+    help="Finds and displays all semantic capability clusters.",
+)(find_clusters_command_sync)
+
+inspect_app.command(
     "symbol-drift",
     help="Detects drift between symbols on the filesystem and in the database.",
 )(inspect_symbol_drift)
 
-inspect_app.command(
+
+@inspect_app.command(
     "vector-drift",
     help="Verifies perfect synchronization between PostgreSQL and Qdrant.",
-)(lambda: asyncio.run(inspect_vector_drift()))
+)
+# ID: vector_drift_cmd_v2
+# ID: a5233d60-2ba7-44de-b5d4-1d8766915a86
+def vector_drift_command(ctx: typer.Context):
+    """CLI wrapper for vector drift inspection with context injection."""
+    core_context: CoreContext = ctx.obj
+    # Pass the context so JIT injection of QdrantService works
+    asyncio.run(inspect_vector_drift(core_context))
+
 
 inspect_app.command(
     "common-knowledge",

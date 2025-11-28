@@ -1,0 +1,11 @@
+# .intent/charter/constitution/critical_paths.yaml
+id: critical_paths_registry
+version: "1.0.0"
+title: "Critical Constitutional Paths"
+
+paths:
+  - ".intent/meta.yaml"
+  - ".intent/charter/constitution/approvers.yaml"
+  - ".intent/charter/constitution/critical_paths.yaml"
+  - ".intent/charter/policies/safety_framework.yaml"
+  - "src/will/orchestration/intent_guard.py"

@@ -8,6 +8,7 @@ from __future__ import annotations
 import asyncio
 import base64
 import tempfile
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -18,9 +19,8 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ed25519
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 from dotenv import load_dotenv
-from rich.console import Console
-
 from mind.governance.auditor import ConstitutionalAuditor
+from rich.console import Console
 from shared.config import settings
 from shared.logger import getLogger
 from shared.path_utils import copy_file, copy_tree
@@ -270,25 +270,36 @@ def proposals_list_cmd() -> None:
         )
 
 
+def _safe_proposal_action(action_desc: str, action_func: Callable) -> None:
+    """
+    Wraps proposal actions with standard error handling to reduce duplication.
+    """
+    logger.info(action_desc)
+    try:
+        action_func()
+    except (FileNotFoundError, ValueError, PermissionError, ChildProcessError) as e:
+        logger.error(f"❌ {e}")
+        raise typer.Exit(code=1)
+    except Exception as e:
+        logger.error(f"❌ Unexpected error: {e}")
+        raise typer.Exit(code=1)
+
+
 # ID: 9247acde-c437-4eab-88ee-4b5c3da85cae
 def proposals_sign_cmd(
     proposal_name: str = typer.Argument(..., help="Filename of the proposal to sign."),
 ) -> None:
     """CLI command: sign a proposal."""
-    logger.info(f"✍️ Signing proposal: {proposal_name}")
-    try:
+
+    def _action():
         service = ProposalService(settings.REPO_PATH)
         identity = typer.prompt(
             "Enter your identity (e.g., name@domain.com) for this signature"
         )
         service.sign(proposal_name, identity)
         logger.info("✅ Signature added to proposal file.")
-    except (FileNotFoundError, typer.Abort) as e:
-        logger.error(f"❌ {e}")
-        raise typer.Exit(code=1)
-    except Exception as e:
-        logger.error(f"❌ Unexpected error during signing: {e}")
-        raise typer.Exit(code=1)
+
+    _safe_proposal_action(f"✍️ Signing proposal: {proposal_name}", _action)
 
 
 # ID: 9f252083-c262-4251-b5d0-2c6661528db6
@@ -298,16 +309,14 @@ def proposals_approve_cmd(
     ),
 ) -> None:
     """CLI command: approve and apply a proposal."""
-    logger.info(f"🚀 Attempting to approve proposal: {proposal_name}")
-    try:
+
+    def _action():
         service = ProposalService(settings.REPO_PATH)
         service.approve(proposal_name)
-    except (FileNotFoundError, ValueError, PermissionError, ChildProcessError) as e:
-        logger.error(f"❌ {e}")
-        raise typer.Exit(code=1)
-    except Exception as e:
-        logger.error(f"❌ Unexpected error during approval: {e}")
-        raise typer.Exit(code=1)
+
+    _safe_proposal_action(
+        f"🚀 Attempting to approve proposal: {proposal_name}", _action
+    )
 
 
 # ---------------------------------------------------------------------------

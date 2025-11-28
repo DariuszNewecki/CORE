@@ -18,16 +18,15 @@ from typing import Any
 
 from pydantic import BaseModel
 
-from mind.governance.checks.base_check import BaseCheck
-
 # We only need the canonical settings object.
 from shared.config import settings
 from shared.logger import getLogger
 
+from mind.governance.checks.base_check import BaseCheck
+
 logger = getLogger(__name__)
 
 
-# (Dataclasses and Report Model remain unchanged)
 @dataclass
 class _RuleRef:
     policy_id: str
@@ -35,7 +34,7 @@ class _RuleRef:
     enforcement: str
 
 
-# ID: 7f1a7783-899c-432f-9e03-123503b93ccd
+# ID: 8fcd8be3-c283-4034-9a69-0af548b1c6d1
 class PolicyCoverageReport(BaseModel):
     report_id: str
     generated_at_utc: str
@@ -45,7 +44,7 @@ class PolicyCoverageReport(BaseModel):
     exit_code: int
 
 
-# ID: 2cf6528f-62e7-41a7-9350-820f0137a3a4
+# ID: 116bb208-a6a7-4aee-8981-9140320d7ba9
 class PolicyCoverageService:
     def __init__(self, repo_root: Path | None = None):
         self.repo_root: Path = repo_root or settings.REPO_PATH
@@ -61,13 +60,11 @@ class PolicyCoverageService:
         except Exception:
             return {"error": 1, "warn": 0, "info": 0}
 
-    # --- THIS IS THE FINAL, CONSOLIDATED, AND CORRECTED METHOD ---
     def _discover_rules_and_coverage(self) -> tuple[list[_RuleRef], dict[str, str]]:
         """
         Loads all policies, extracts all rules, and introspects all checks
         to build a complete coverage map.
         """
-        # --- START: RELIABLE POLICY LOADER (using canonical settings) ---
         all_policies = {}
         policy_logical_paths = []
 
@@ -118,12 +115,11 @@ class PolicyCoverageService:
                 all_policies[policy_name] = settings.load(logical_path)
             except (FileNotFoundError, AttributeError):
                 pass  # It's okay if these optional policies don't exist.
-        # --- END: RELIABLE POLICY LOADER ---
 
         # Extract all rules from the loaded policies.
         all_rules: list[_RuleRef] = []
         for policy_id, policy_data in all_policies.items():
-            # ID: 8c172639-8a73-4952-8b85-dd4ce31dac4b
+            # ID: e5fe8c03-90d1-4f16-b25d-a909b5a87b5f
             def visit(node: Any):
                 if isinstance(node, dict) and "id" in node and "statement" in node:
                     all_rules.append(
@@ -142,6 +138,7 @@ class PolicyCoverageService:
         unique_rules = list({(r.policy_id, r.rule_id): r for r in all_rules}.values())
 
         # Build the complete, accurate Mock Context.
+        # FIX: Added source_structure
         mock_context = type(
             "MockAuditorContext",
             (),
@@ -150,7 +147,8 @@ class PolicyCoverageService:
                 "intent_path": self.repo_root / ".intent",
                 "mind_path": self.repo_root / ".intent" / "mind",
                 "src_dir": self.repo_root / "src",
-                "policies": all_policies,  # Now correctly populated
+                "policies": all_policies,
+                "source_structure": all_policies.get("project_structure", {}),
                 "python_files": [],
                 "symbols_list": [],
                 "symbols_map": {},
@@ -173,14 +171,26 @@ class PolicyCoverageService:
                 module = importlib.import_module(module_name)
                 for member_name, member in inspect.getmembers(module, inspect.isclass):
                     if issubclass(member, BaseCheck) and member is not BaseCheck:
-                        # Instantiate all checks (except the one with special needs) to get their rules.
-                        rule_ids = (
-                            member(mock_context).policy_rule_ids
-                            if member_name != "DuplicationCheck"
-                            else member.policy_rule_ids
-                        )
-                        for rule_id in rule_ids:
-                            coverage_map[rule_id] = member_name
+                        try:
+                            # Instantiate all checks (except the one with special needs) to get their rules.
+                            if member_name == "DuplicationCheck":
+                                # DuplicationCheck needs extra args sometimes, but defaults to None
+                                # However, we can just inspect the class attribute directly if we don't need instance
+                                # But BaseCheck subclasses usually set it on the class.
+                                # Let's try instantiation to be safe as some might be dynamic (like SecurityChecks)
+                                instance = member(mock_context)
+                                rule_ids = instance.policy_rule_ids
+                            else:
+                                instance = member(mock_context)
+                                rule_ids = instance.policy_rule_ids
+
+                            for rule_id in rule_ids:
+                                coverage_map[rule_id] = member_name
+                        except Exception as e:
+                            logger.error(
+                                f"Could not instantiate check {member_name}: {e}"
+                            )
+
             except Exception as e:
                 logger.error(
                     "Failed to import or inspect check module %s: %s", module_name, e
@@ -188,7 +198,7 @@ class PolicyCoverageService:
 
         return unique_rules, coverage_map
 
-    # ID: e2b692bd-4f43-4032-b146-7f6fa66bf993
+    # ID: 2b6e0823-f351-469c-aaec-f418cd5ad7bf
     def run(self) -> PolicyCoverageReport:
         records, uncovered_error_rules = [], []
         for rule in self.all_rules:

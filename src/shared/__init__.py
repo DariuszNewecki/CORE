@@ -1,4 +1,5 @@
 # src/shared/__init__.py
+
 """
 `shared` — Cross-cutting, foundational building blocks for CORE.
 
@@ -27,3 +28,5 @@ Dependency rule:
 This guarantees a stable, well-defined reuse surface for CoderAgent and
 ContextPackage reuse analysis.
 """
+
+from __future__ import annotations

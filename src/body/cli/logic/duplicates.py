@@ -10,14 +10,13 @@ import asyncio
 
 import networkx as nx
 import typer
-from rich.console import Console
-from rich.table import Table
-
 from mind.governance.audit_context import AuditorContext
 from mind.governance.checks.duplication_check import DuplicationCheck
+from rich.console import Console
+from rich.table import Table
 from services.clients.qdrant_client import (
     QdrantService,
-)  # Only imported for type hinting
+)
 from shared.context import CoreContext
 from shared.models import AuditFinding
 
@@ -74,20 +73,29 @@ async def _async_inspect_duplicates(context: CoreContext, threshold: float):
     await auditor_context.load_knowledge_graph()
 
     # === CONSTITUTIONALLY CORRECT RESOLUTION ===
-    # DuplicationCheck constructor was updated to accept QdrantService.
-    # We safely pass it when available (via CognitiveService).
-    qdrant_service: QdrantService | None = None
-    if context.qdrant_service:
-        qdrant_service = context.qdrant_service
-    elif (
-        hasattr(context.cognitive_service, "qdrant_service")
-        and context.cognitive_service.qdrant_service
-    ):
-        qdrant_service = context.cognitive_service.qdrant_service
+    qdrant_service: QdrantService | None = context.qdrant_service
+
+    # JIT Injection: If not in context, try to get from registry
+    if not qdrant_service and context.registry:
+        try:
+            qdrant_service = await context.registry.get_qdrant_service()
+            # Wire it back to context components for consistency
+            context.qdrant_service = qdrant_service
+            if context.cognitive_service:
+                context.cognitive_service._qdrant_service = qdrant_service
+        except Exception as e:
+            console.print(
+                f"[yellow]Warning: Could not initialize Qdrant service: {e}[/yellow]"
+            )
+
+    # Fallback: Check if cognitive_service has it internally (legacy path)
+    if not qdrant_service and context.cognitive_service:
+        # Access internal member directly to avoid RuntimeError property check
+        qdrant_service = getattr(context.cognitive_service, "_qdrant_service", None)
 
     duplication_check = DuplicationCheck(
         context=auditor_context,
-        qdrant_service=qdrant_service,  # type: ignore[arg-type]
+        qdrant_service=qdrant_service,
     )
     # ===========================================
 
