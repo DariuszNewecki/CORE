@@ -60,6 +60,39 @@ def _replace_symbol_in_code(
     return "\n".join(final_lines)
 
 
+async def _validate_persist_and_commit(
+    context: PlanExecutorContext,
+    file_path: str,
+    code: str,
+    prompt: str,
+    commit_message: str,
+) -> None:
+    """
+    Centralized logic for the Validation -> Write -> Commit loop.
+    Enforces safe_by_default by ensuring validation always runs before writing.
+    """
+    validation_result = await validate_code_async(
+        file_path, code, auditor_context=context.auditor_context
+    )
+    if validation_result["status"] == "dirty":
+        raise PlanExecutionError(
+            f"Generated code for '{file_path}' failed validation.",
+            violations=validation_result["violations"],
+        )
+
+    context.file_handler.confirm_write(
+        context.file_handler.add_pending_write(
+            prompt=prompt,
+            suggested_path=file_path,
+            code=validation_result["code"],
+        )
+    )
+
+    if context.git_service.is_git_repo():
+        context.git_service.add(file_path)
+        context.git_service.commit(commit_message)
+
+
 # ID: 631af2ad-29e0-4b41-9ef7-cc47bce5f1af
 class CreateFileHandler(ActionHandler):
     """Handles the 'create_file' action."""
@@ -79,24 +112,14 @@ class CreateFileHandler(ActionHandler):
         full_path = context.file_handler.repo_path / file_path
         if full_path.exists():
             raise FileExistsError(f"File '{file_path}' already exists.")
-        validation_result = await validate_code_async(
-            file_path, code, auditor_context=context.auditor_context
+
+        await _validate_persist_and_commit(
+            context=context,
+            file_path=file_path,
+            code=code,
+            prompt=f"Goal: create file {file_path}",
+            commit_message=f"feat: Create new file {file_path}",
         )
-        if validation_result["status"] == "dirty":
-            raise PlanExecutionError(
-                f"Generated code for '{file_path}' failed validation.",
-                violations=validation_result["violations"],
-            )
-        context.file_handler.confirm_write(
-            context.file_handler.add_pending_write(
-                prompt=f"Goal: create file {file_path}",
-                suggested_path=file_path,
-                code=validation_result["code"],
-            )
-        )
-        if context.git_service.is_git_repo():
-            context.git_service.add(file_path)
-            context.git_service.commit(f"feat: Create new file {file_path}")
 
 
 # ID: f5fc09af-268c-4200-8b0b-e50d39006056
@@ -121,24 +144,14 @@ class EditFileHandler(ActionHandler):
             raise PlanExecutionError(
                 f"File to be edited does not exist: {file_path_str}"
             )
-        validation_result = await validate_code_async(
-            file_path_str, new_content, auditor_context=context.auditor_context
+
+        await _validate_persist_and_commit(
+            context=context,
+            file_path=file_path_str,
+            code=new_content,
+            prompt=f"Goal: edit file {file_path_str}",
+            commit_message=f"feat: Modify file {file_path_str}",
         )
-        if validation_result["status"] == "dirty":
-            raise PlanExecutionError(
-                f"Generated code for '{file_path_str}' failed validation.",
-                violations=validation_result["violations"],
-            )
-        context.file_handler.confirm_write(
-            context.file_handler.add_pending_write(
-                prompt=f"Goal: edit file {file_path_str}",
-                suggested_path=file_path_str,
-                code=validation_result["code"],
-            )
-        )
-        if context.git_service.is_git_repo():
-            context.git_service.add(file_path_str)
-            context.git_service.commit(f"feat: Modify file {file_path_str}")
 
 
 # ID: 15cf01e1-2c6c-491d-a3f5-c738ff6acf03
@@ -167,6 +180,8 @@ class EditFunctionHandler(ActionHandler):
                 f"Cannot edit function, file not found: '{file_path}'"
             )
         original_code = full_path.read_text("utf-8")
+
+        # First validate the new snippet in isolation
         validation_result = await validate_code_async(
             file_path, new_code, auditor_context=context.auditor_context
         )
@@ -176,21 +191,19 @@ class EditFunctionHandler(ActionHandler):
                 violations=validation_result["violations"],
             )
         validated_code_snippet = validation_result["code"]
+
+        # Then splice and commit
         try:
             final_code = _replace_symbol_in_code(
                 original_code, symbol_name, validated_code_snippet
             )
         except ValueError as e:
             raise PlanExecutionError(f"Failed to edit code in '{file_path}': {e}")
-        context.file_handler.confirm_write(
-            context.file_handler.add_pending_write(
-                prompt=f"Goal: edit function {symbol_name} in {file_path}",
-                suggested_path=file_path,
-                code=final_code,
-            )
+
+        await _validate_persist_and_commit(
+            context=context,
+            file_path=file_path,
+            code=final_code,
+            prompt=f"Goal: edit function {symbol_name} in {file_path}",
+            commit_message=f"feat: Modify function {symbol_name} in {file_path}",
         )
-        if context.git_service.is_git_repo():
-            context.git_service.add(file_path)
-            context.git_service.commit(
-                f"feat: Modify function {symbol_name} in {file_path}"
-            )

@@ -15,14 +15,14 @@ from typing import Any
 
 import jsonschema
 import yaml
-from rich.console import Console
-
 from features.introspection.knowledge_graph_service import KnowledgeGraphBuilder
 from mind.governance.audit_context import AuditorContext
+from rich.console import Console
 from shared.action_logger import action_logger
 from shared.config import settings
 from shared.logger import getLogger
 from shared.models import AuditFinding
+
 from src.mind.governance.auditor import ConstitutionalAuditor
 
 logger = getLogger(__name__)
@@ -47,9 +47,17 @@ class CrateProcessingService:
     def __init__(self):
         """Initializes the service with its required dependencies and constitutional policies."""
         self.repo_root = settings.REPO_PATH
-        self.crate_policy = settings.load(
-            "charter.policies.governance.intent_crate_policy"
-        )
+
+        # FIX: Load from operations.yaml instead of intent_crate_policy.yaml
+        try:
+            ops_policy = settings.load("charter.policies.operations")
+            self.crate_policy = ops_policy.get("intent_crates", {})
+        except Exception as e:
+            logger.warning(
+                f"Failed to load intent_crates policy from operations.yaml: {e}"
+            )
+            self.crate_policy = {}
+
         self.crate_schema = settings.load(
             "charter.schemas.constitutional.intent_crate_schema"
         )

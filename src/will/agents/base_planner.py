@@ -8,15 +8,17 @@ This serves the 'dry_by_design' constitutional principle.
 from __future__ import annotations
 
 import json
+import textwrap
 
+from body.actions.registry import ActionRegistry
 from pydantic import ValidationError
 from rich.console import Console
 from rich.syntax import Syntax
-
 from shared.config import settings
 from shared.logger import getLogger
 from shared.models import ExecutionTask, PlanExecutionError
 from shared.utils.parsing import extract_json_from_response
+
 from will.orchestration.prompt_pipeline import PromptPipeline
 
 logger = getLogger(__name__)
@@ -26,29 +28,47 @@ logger = getLogger(__name__)
 def build_planning_prompt(
     goal: str, prompt_template: str, reconnaissance_report: str
 ) -> str:
-    """Builds the detailed prompt for a planning LLM, including available actions."""
-    actions_policy = settings.load(
-        "charter.policies.governance.available_actions_policy"
-    )
-    available_actions = actions_policy.get("actions", [])
-    prompt_pipeline = PromptPipeline(settings.REPO_PATH)
+    """
+    Builds the detailed prompt for a planning LLM.
+
+    DYNAMICALLY discovers available actions from the ActionRegistry (The Body),
+    ensuring the Planner (The Will) only uses tools that actually exist.
+    """
+    # 1. Instantiate Registry to discover actual code capabilities
+    registry = ActionRegistry()
+
+    # 2. Build descriptions dynamically from the source of truth
     action_descriptions = []
-    for action in available_actions:
-        desc = f"### Action: `{action['name']}`\n"
-        desc += f"**Description:** {action['description']}\n"
-        params = action.get("parameters", [])
-        if params:
-            desc += "**Parameters:**\n"
-            for param in params:
-                req_str = "(required)" if param.get("required", False) else "(optional)"
-                desc += f"- `{param['name']}` ({param.get('type', 'any')} {req_str}): {param.get('description', '')}\n"
+
+    # Sort for deterministic prompting
+    for name, handler in sorted(registry._handlers.items()):
+        # Use the handler's docstring as the description
+        doc = textwrap.dedent(handler.__doc__ or "No description provided.").strip()
+
+        # Build the action block
+        desc = f"### Action: `{name}`\n"
+        desc += f"**Description:** {doc}\n"
+
+        # Since all handlers currently use TaskParams, we document the standard schema
+        # In the future, handlers could expose their own specific schema property
+        desc += "**Parameters:**\n"
+        desc += "- `file_path` (string, optional): Target file.\n"
+        desc += "- `code` (string, optional): Content to write or use.\n"
+        desc += "- `symbol_name` (string, optional): Function/Class name to target.\n"
+
         action_descriptions.append(desc)
+
     action_descriptions_str = "\n".join(action_descriptions)
+
+    # 3. Inject into template via Pipeline
+    prompt_pipeline = PromptPipeline(settings.REPO_PATH)
+
     base_prompt = prompt_template.format(
         goal=goal,
         action_descriptions=action_descriptions_str,
         reconnaissance_report=reconnaissance_report,
     )
+
     return prompt_pipeline.process(base_prompt)
 
 

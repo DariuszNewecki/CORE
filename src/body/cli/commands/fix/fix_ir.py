@@ -1,4 +1,5 @@
-# src/body/cli/commands/fix_ir.py
+# src/body/cli/commands/fix/fix_ir.py
+
 """
 IR (Incident Response) self-healing commands.
 
@@ -15,6 +16,8 @@ from __future__ import annotations
 from pathlib import Path
 
 import typer
+from shared.config import settings
+from shared.logger import getLogger
 
 from body.cli.commands.fix import (
     _confirm_dangerous_operation,
@@ -23,8 +26,6 @@ from body.cli.commands.fix import (
     fix_app,
     handle_command_errors,
 )
-from shared.config import settings
-from shared.logger import getLogger
 
 logger = getLogger(__name__)
 

@@ -8,14 +8,13 @@ from __future__ import annotations
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
+from shared.config import settings
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
     async_sessionmaker,
     create_async_engine,
 )
-
-from shared.config import settings
 
 _ENGINE: AsyncEngine = create_async_engine(
     settings.DATABASE_URL,
@@ -43,7 +42,6 @@ async def get_session() -> AsyncGenerator[AsyncSession, None]:
         await session.close()
 
 
-# --- START MODIFICATION: Add FastAPI Dependency Provider ---
 # ID: a5020e20-0b41-4790-b810-8b2354cad751
 async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
     """
@@ -54,4 +52,10 @@ async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
         yield session
 
 
-# --- END MODIFICATION ---
+# ID: 78c9a2b3-4d5e-6f7a-8b9c-0d1e2f3a4b5c
+async def dispose_engine() -> None:
+    """
+    Gracefully dispose of the global database engine connection pool.
+    Call this on application shutdown to avoid 'Event loop is closed' errors.
+    """
+    await _ENGINE.dispose()

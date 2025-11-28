@@ -1,0 +1,39 @@
+# .intent/mind/knowledge/entry_point_patterns.yaml
+patterns:
+  - name: "typer_cli_command"
+    description: "Public functions registered as Typer commands."
+    match:
+      type: "function"
+      module_path_contains: "body/cli/commands"
+    entry_point_type: "cli_command"
+
+  - name: "fastapi_route"
+    description: "Functions decorated as FastAPI routes."
+    match:
+      type: "function"
+      module_path_contains: "api/v1"
+    entry_point_type: "api_route"
+
+  - name: "action_handler"
+    description: "Classes implementing the ActionHandler interface."
+    match:
+      type: "class"
+      module_path_contains: "body/actions"
+      base_class_includes: "ActionHandler"
+    entry_point_type: "action_handler"
+
+  - name: "test_function"
+    description: "Pytest test functions."
+    match:
+      type: "function"
+      name_regex: "^test_"
+      module_path_contains: "tests/"
+    entry_point_type: "test"
+
+  - name: "public_service_method"
+    description: "Public methods on service classes."
+    match:
+      type: "method"
+      is_public_function: true
+      module_path_contains: "services/"
+    entry_point_type: "service_method"

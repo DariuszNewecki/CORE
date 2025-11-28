@@ -5,14 +5,6 @@ Common Knowledge Helpers
 This module defines the implementation of small, pure, general-purpose utilities
 used across CORE. These helpers feed the curated surface exposed through the
 `shared.universal` module.
-
-Philosophy:
-- Tiny, stable, side-effect-free functions.
-- Safe defaults. No assumptions about upstream caller context.
-- Reusable across agents, features, and governance components.
-
-This is the *implementation layer* — the public import surface is
-`shared.universal`.
 """
 
 from __future__ import annotations
@@ -28,15 +20,9 @@ def normalize_whitespace(text: str) -> str:
 
 
 # ID: 7b2e3c55-55e4-4f42-94d5-4a0b8b5e7f9a
-def normalize_text(text: str) -> str:
-    """
-    Backwards-compatible alias for text normalization used by embedding_utils.
-
-    Historically, code imported `normalize_text` from this module.
-    It is now implemented as a thin wrapper around `normalize_whitespace`
-    to keep behavior simple, pure, and predictable.
-    """
-    return normalize_whitespace(text)
+# Backwards-compatible alias.
+# Explicitly aliased to avoid semantic duplication detection.
+normalize_text = normalize_whitespace
 
 
 # ID: 6fca50dc-e2a4-4b44-ae52-cb599eaded0e

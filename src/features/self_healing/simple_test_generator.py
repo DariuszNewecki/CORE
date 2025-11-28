@@ -13,13 +13,15 @@ from __future__ import annotations
 
 import ast
 import asyncio
-import re
 import tempfile
 from pathlib import Path
 from typing import Any
 
 from shared.config import settings
 from shared.logger import getLogger
+
+# NEW IMPORT
+from shared.utils.parsing import extract_python_code_from_response
 from will.orchestration.cognitive_service import CognitiveService
 
 logger = getLogger(__name__)
@@ -138,26 +140,11 @@ class SimpleTestGenerator:
             response = await client.make_request_async(
                 prompt, user_id="simple_test_gen"
             )
-            code = self._extract_code_block(response)
-            return code
+            # REFACTORED: Use shared utility
+            return extract_python_code_from_response(response)
         except Exception as e:
             logger.error(f"LLM request failed: {e}")
             return None
-
-    def _extract_code_block(self, response: str) -> str | None:
-        """Extract Python code from LLM response."""
-        if not response:
-            return None
-        patterns = ["```python\\s*(.*?)\\s*```", "```\\s*(.*?)\\s*```"]
-        for pattern in patterns:
-            matches = re.findall(pattern, response, re.DOTALL)
-            if matches:
-                code = matches[0].strip()
-                if code and len(code) > 20:
-                    return code
-        if response.strip().startswith(("def ", "async def ", "import ", "from ")):
-            return response.strip()
-        return None
 
     async def _try_run_test(self, test_code: str, symbol_name: str) -> tuple[bool, str]:
         """

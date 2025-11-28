@@ -13,7 +13,7 @@ import tempfile
 from pathlib import Path
 
 from rich.console import Console
-
+from shared.config import settings
 from shared.logger import getLogger
 
 logger = getLogger(__name__)
@@ -35,6 +35,8 @@ class RuntimeValidatorService:
             ".ruff_cache",
             "work",
         )
+        # Load timeout from config, default to 60 seconds for safety
+        self.test_timeout = settings.model_extra.get("TEST_RUNNER_TIMEOUT", 60)
 
     # ID: 98669e0a-8295-408c-ab06-740690de43af
     async def run_tests_in_canary(
@@ -57,15 +59,31 @@ class RuntimeValidatorService:
                 target_file.parent.mkdir(parents=True, exist_ok=True)
                 target_file.write_text(new_code_content, encoding="utf-8")
                 logger.info("Running test suite in canary environment...")
+
                 proc = await asyncio.create_subprocess_exec(
                     "poetry",
                     "run",
                     "pytest",
+                    # Run only relevant tests to save time if possible,
+                    # but default to full suite to be safe.
+                    # Could filter by file_path_str if it's a test file or has a known companion.
                     cwd=canary_path,
                     stdout=asyncio.subprocess.PIPE,
                     stderr=asyncio.subprocess.PIPE,
                 )
-                stdout, stderr = await proc.communicate()
+
+                try:
+                    stdout, stderr = await asyncio.wait_for(
+                        proc.communicate(), timeout=self.test_timeout
+                    )
+                except TimeoutError:
+                    proc.kill()
+                    logger.error("Canary tests timed out.")
+                    return (
+                        False,
+                        f"Tests timed out after {self.test_timeout} seconds.",
+                    )
+
                 if proc.returncode == 0:
                     logger.info("✅ Canary tests PASSED.")
                     return (True, "All tests passed in the isolated environment.")

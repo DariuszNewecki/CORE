@@ -2,76 +2,108 @@
 
 """
 Centralized loaders for constitution-backed policies used by agents and services.
-- Avoids hardcoding actions/params in code.
-- Keeps a single source of truth for Planner/ExecutionAgent validation.
+Updated to use consolidated policy files (agent_governance, operations).
 """
 
 from __future__ import annotations
 
-from pathlib import Path
 from typing import Any
 
 import yaml
-
 from shared.config import settings
 from shared.logger import getLogger
 
 logger = getLogger(__name__)
 
-CONSTITUTION_DIR = Path(".intent/charter")
-GOVERNANCE_DIR = CONSTITUTION_DIR / "policies" / "governance"
-AGENT_DIR = CONSTITUTION_DIR / "policies" / "agent"
 
-
-def _load_policy_yaml(path: Path) -> dict[str, Any]:
+def _load_policy_yaml(logical_path: str) -> dict[str, Any]:
     """
-    Loads and performs basic validation on a policy YAML file.
-    Resolves relative paths based on settings.REPO_PATH.
+    Loads a policy using the settings pathfinder (meta.yaml aware).
     """
-    if not path.is_absolute():
-        path = settings.REPO_PATH / path
-    if not path.exists():
-        msg = f"Policy file not found: {path}"
-        logger.error(msg)
-        raise ValueError(msg)
     try:
+        path = settings.get_path(logical_path)
+        if not path.exists():
+            msg = f"Policy file not found: {path}"
+            logger.error(msg)
+            # Fallback: try loading relative to repo root if meta lookup failed
+            # or if the file is standard but not in meta yet during bootstrapping
+            fallback_path = (
+                settings.REPO_PATH / ".intent" / logical_path.replace(".", "/")
+            )
+            if not fallback_path.suffix:
+                fallback_path = fallback_path.with_suffix(".yaml")
+
+            if fallback_path.exists():
+                logger.info(f"Found policy at fallback path: {fallback_path}")
+                path = fallback_path
+            else:
+                raise ValueError(msg)
+
         with path.open("r", encoding="utf-8") as f:
             data = yaml.safe_load(f) or {}
         if not isinstance(data, dict):
-            msg = f"Policy file must be a dictionary: {path}"
-            logger.error(msg)
-            raise ValueError(msg)
+            raise ValueError(f"Policy file must be a dictionary: {path}")
         return data
     except Exception as e:
-        msg = f"Failed to load policy YAML: {path} ({e})"
-        logger.error(msg)
-        raise ValueError(msg) from e
+        logger.error(f"Failed to load policy '{logical_path}': {e}")
+        raise ValueError(f"Failed to load policy '{logical_path}': {e}") from e
 
 
 # ID: 5477bdaa-1466-405a-a8a8-50d15020ebf9
 def load_available_actions() -> dict[str, Any]:
     """
-    Load the canonical list of available actions for the PlannerAgent.
+    Load available actions from agent_governance.yaml.
+    Adapts the new schema to the format expected by PlannerAgent.
     """
-    policy_path = GOVERNANCE_DIR / "available_actions_policy.yaml"
-    policy = _load_policy_yaml(policy_path)
-    actions = policy.get("actions")
-    if not isinstance(actions, list) or not actions:
-        raise ValueError("'actions' must be a non-empty list in the policy.")
-    return policy
+    policy = _load_policy_yaml("charter.policies.agent_governance")
+    # New location: planner_actions
+    actions = policy.get("planner_actions")
+
+    if not actions:
+        # Fallback for backward compatibility
+        actions = policy.get("actions", [])
+
+    if not actions:
+        logger.warning(
+            "'planner_actions' section missing in agent_governance.yaml, returning empty list"
+        )
+        return {"actions": []}
+
+    # Wrap in dict to match expected return signature
+    return {"actions": actions}
 
 
 # ID: d921aae8-c492-4e39-9aba-d5d2ad89af09
 def load_micro_proposal_policy() -> dict[str, Any]:
     """
-    Load the Micro-Proposal Policy for autonomous path guardrails.
+    Load Micro-Proposal rules from agent_governance.yaml (autonomy_lanes).
+    Adapts to match expected structure.
     """
-    policy_path = AGENT_DIR / "micro_proposal_policy.yaml"
-    policy = _load_policy_yaml(policy_path)
-    rules = policy.get("rules")
-    if not isinstance(rules, list) or not rules:
-        raise ValueError("'rules' must be a non-empty list in the policy.")
-    return policy
+    policy = _load_policy_yaml("charter.policies.agent_governance")
+    lanes = policy.get("autonomy_lanes", {}).get("micro_proposals", {})
+
+    if not lanes:
+        logger.warning(
+            "'autonomy_lanes.micro_proposals' missing in agent_governance.yaml"
+        )
+        return {"rules": []}
+
+    # Construct the rule object expected by MicroProposalExecutor
+    # We combine safe_paths/forbidden_paths into one rule
+    path_rule = {
+        "id": "safe_paths",
+        "allowed_paths": lanes.get("safe_paths", []),
+        "forbidden_paths": lanes.get("forbidden_paths", []),
+    }
+
+    # We verify actions against allowed_actions
+    action_rule = {
+        "id": "safe_actions",
+        "allowed_actions": lanes.get("allowed_actions", []),
+    }
+
+    # Return in format expected by MicroProposalValidator
+    return {"policy_id": policy.get("policy_id"), "rules": [path_rule, action_rule]}
 
 
 __all__ = ["load_available_actions", "load_micro_proposal_policy"]
