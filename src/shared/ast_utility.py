@@ -1,10 +1,5 @@
-# ID: 7a0593fc-153b-400b-9c20-eb2c7dc5acb5
-# ID: 65e17af4-239e-4a61-be73-8e418f482a73
-# ID: ast.analysis.extract_function_calls
-# ID: ast.analysis.function_calls.unique
-# ID: ast.analysis.function_calls.identify
-# ID: ast.analysis.function_calls
 # src/shared/ast_utility.py
+
 """
 Utility functions for working with Python AST (Abstract Syntax Trees).
 

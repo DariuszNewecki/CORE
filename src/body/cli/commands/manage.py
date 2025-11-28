@@ -8,7 +8,18 @@ from __future__ import annotations
 import asyncio
 
 import typer
+from features.introspection.export_vectors import export_vectors
+from features.maintenance.dotenv_sync_service import run_dotenv_sync
+from features.maintenance.migration_service import run_ssot_migration
+from features.project_lifecycle.definition_service import _define_new_symbols
+from features.project_lifecycle.scaffolding_service import create_new_project
+from mind.governance.key_management_service import keygen
 from rich.console import Console
+from services.clients.qdrant_client import QdrantService
+from services.context.service import ContextService
+from shared.config import settings
+from shared.context import CoreContext
+from shared.logger import getLogger
 
 from body.cli.logic.byor import initialize_repository
 from body.cli.logic.db import export_data, migrate_db
@@ -20,17 +31,6 @@ from body.cli.logic.proposal_service import (
 )
 from body.cli.logic.sync import sync_knowledge_base
 from body.cli.logic.sync_manifest import sync_manifest
-from features.introspection.export_vectors import export_vectors
-from features.maintenance.dotenv_sync_service import run_dotenv_sync
-from features.maintenance.migration_service import run_ssot_migration
-from features.project_lifecycle.definition_service import _define_new_symbols
-from features.project_lifecycle.scaffolding_service import create_new_project
-from mind.governance.key_management_service import keygen
-from services.clients.qdrant_client import QdrantService
-from services.context.service import ContextService
-from shared.config import settings
-from shared.context import CoreContext
-from shared.logger import getLogger
 
 console = Console()
 logger = getLogger(__name__)
@@ -207,9 +207,20 @@ async def _async_define_symbols(core_context: CoreContext) -> None:
 
     This is a private async helper: CLI -> this -> domain capability.
     """
-    if core_context.qdrant_service is None:
-        logger.info("Initializing QdrantService for symbol definition...")
+    # === JIT INJECTION ===
+    if core_context.qdrant_service is None and core_context.registry:
+        logger.info("Initializing QdrantService via Registry for symbol definition...")
+        core_context.qdrant_service = await core_context.registry.get_qdrant_service()
+    elif core_context.qdrant_service is None:
+        # Fallback for non-registry contexts (tests)
+        logger.info("Initializing QdrantService manually for symbol definition...")
         core_context.qdrant_service = QdrantService()
+
+    # Ensure cognitive service has it too
+    if core_context.cognitive_service and not hasattr(
+        core_context.cognitive_service, "_qdrant_service"
+    ):
+        core_context.cognitive_service._qdrant_service = core_context.qdrant_service
 
     context_service = ContextService(
         qdrant_client=core_context.qdrant_service,

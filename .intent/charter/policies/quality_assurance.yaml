@@ -1,12 +1,17 @@
 # .intent/charter/policies/quality_assurance.yaml
-policy_id: "7d4f8c9a-2e1b-4f6d-9a8c-3b5e7f1d2c4a"  # From quality_assurance_policy
+policy_id: "7d4f8c9a-2e1b-4f6d-9a8c-3b5e7f1d2c4a"
 id: quality_assurance
-version: "2.0.0"
+version: "2.1.0"
 title: "Quality Assurance & Evaluation Framework"
 status: active
 purpose: >
   Unified quality standards including test coverage mandates, autonomous remediation,
-  and change evaluation scoring.
+  audit exceptions, and change evaluation scoring.
+
+# === AUDIT EXCEPTIONS (Sanctioned Technical Debt) ===
+audit_exceptions:
+  symbol_ignores: []
+  # Example: - { key: "legacy.module", reason: "Deprecated" }
 
 # === COVERAGE MANDATES ===
 coverage_requirements:

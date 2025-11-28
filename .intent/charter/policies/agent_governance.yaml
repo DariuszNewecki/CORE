@@ -1,13 +1,12 @@
 # .intent/charter/policies/agent_governance.yaml
-policy_id: "18f048cb-b084-4faa-ac62-17fca55fed77"  # From agent_policy
+policy_id: "18f048cb-b084-4faa-ac62-17fca55fed77"
 id: agent_governance
-version: "2.0.0"
+version: "2.1.0"
 title: "Agent Behavior & Autonomous Action Governance"
 status: active
 purpose: >
   Define how CORE’s agents may act, what they are forbidden to do, and how
-  autonomous behavior is constrained by the constitution, governance, and
-  safety rules.
+  autonomous behavior is constrained by the constitution.
 
 # === CORE AGENT RULES ===
 agent_rules:
@@ -39,19 +38,21 @@ autonomy_lanes:
       - "autonomy.self_healing.fix_docstrings"
       - "autonomy.self_healing.format_code"
       - "autonomy.self_healing.fix_headers"
-      # ... ALL original micro-proposal actions remain
+      - "autonomy.self_healing.fix_imports"
+      - "autonomy.self_healing.remove_dead_code"
+      - "autonomy.self_healing.fix_line_length"
+      - "autonomy.self_healing.add_policy_ids"
+      - "autonomy.self_healing.sort_imports"
 
     safe_paths:
       - "docs/**/*.md"
       - "tests/**/*.py"
       - "src/**/*.py"
-      # ... ALL original safe paths remain
 
     forbidden_paths:
       - ".intent/**"
       - "src/system/governance/**"
       - "src/core/**"
-      # ... ALL original forbidden paths remain
 
   full_amendments:
     description: "Changes requiring human review and quorum"
@@ -60,6 +61,49 @@ autonomy_lanes:
       - "approver_signatures"
       - "constitutional_audit"
       - "meet_quorum_requirements"
+
+# === PLANNER ACTIONS (The Physics of Will) ===
+planner_actions:
+  - name: "create_file"
+    description: "Create a new file with the specified content."
+    parameters:
+      - {name: "file_path", type: "string", required: true}
+      - {name: "code", type: "string", required: true}
+
+  - name: "edit_file"
+    description: "Replace the entire content of an existing file."
+    parameters:
+      - {name: "file_path", type: "string", required: true}
+      - {name: "code", type: "string", required: true}
+
+  - name: "edit_function"
+    description: "Replace a specific function or method in a file."
+    parameters:
+      - {name: "file_path", type: "string", required: true}
+      - {name: "symbol_name", type: "string", required: true}
+      - {name: "code", type: "string", required: true}
+
+  - name: "read_file"
+    description: "Read the content of a file."
+    parameters:
+      - {name: "file_path", type: "string", required: true}
+
+  - name: "list_files"
+    description: "List files in a directory."
+    parameters:
+      - {name: "file_path", type: "string", required: true}
+
+  - name: "delete_file"
+    description: "Delete a file."
+    parameters:
+      - {name: "file_path", type: "string", required: true}
+
+  - name: "create_proposal"
+    description: "Create a governance proposal."
+    parameters:
+      - {name: "file_path", type: "string"}
+      - {name: "code", type: "string"}
+      - {name: "justification", type: "string"}
 
 # === RESOURCE SELECTION ===
 resource_selection:

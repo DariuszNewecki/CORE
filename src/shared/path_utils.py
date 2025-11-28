@@ -7,6 +7,15 @@ from __future__ import annotations
 from pathlib import Path
 
 
+# ID: 897908af-e0f8-4836-aa93-df0bdaac56d1
+def copy_file(src: Path, dst: Path):
+    """
+    Copies a single file, creating the destination parent directory if needed.
+    """
+    dst.parent.mkdir(parents=True, exist_ok=True)
+    dst.write_bytes(src.read_bytes())
+
+
 # ID: 4feaf13b-3445-46b3-941f-2258e5cba309
 def copy_tree(src: Path, dst: Path, exclude: list[str] | None = None):
     """
@@ -25,18 +34,8 @@ def copy_tree(src: Path, dst: Path, exclude: list[str] | None = None):
         if s.is_dir():
             copy_tree(s, d, exclude)
         else:
-            # FIX: The original file content was not being written.
-            d.write_bytes(s.read_bytes())
-
-
-# ID: 897908af-e0f8-4836-aa93-df0bdaac56d1
-def copy_file(src: Path, dst: Path):
-    """
-    Copies a single file, creating the destination parent directory if needed.
-    """
-    dst.parent.mkdir(parents=True, exist_ok=True)
-    # FIX: The original file content was not being written.
-    dst.write_bytes(src.read_bytes())
+            # Use shared helper instead of duplicating logic
+            copy_file(s, d)
 
 
 # RENAMED: Changed from find_project_root to get_repo_root to match existing imports.
