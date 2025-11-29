@@ -4,7 +4,10 @@
 Provides the CoderAgent, a specialist AI agent responsible for all code
 generation, validation, and self-correction tasks within the CORE system.
 
-UPGRADED (Phase 1): Now integrates Semantic Infrastructure for context-aware generation.
+UPGRADED (Phase 2): Now enforces design patterns at generation time via IntentGuard.
+- Patterns checked BEFORE code is written
+- Constitutional pattern enforcement (not tests)
+- Integrated with Semantic Infrastructure
 """
 
 from __future__ import annotations
@@ -19,6 +22,7 @@ from shared.models import ExecutionTask
 from shared.utils.parsing import extract_python_code_from_response
 
 from will.orchestration.cognitive_service import CognitiveService
+from will.orchestration.intent_guard import IntentGuard
 from will.orchestration.prompt_pipeline import PromptPipeline
 from will.orchestration.self_correction_engine import attempt_correction
 from will.orchestration.validation_pipeline import validate_code_async
@@ -46,6 +50,7 @@ class CoderAgent:
     """
     A specialist agent for writing, validating, and fixing code.
     Powered by Semantic Infrastructure (Vectorized Policies + Module Anchors).
+    Enhanced with Constitutional Pattern Enforcement.
     """
 
     def __init__(
@@ -56,7 +61,7 @@ class CoderAgent:
         qdrant_service: QdrantService | None = None,
     ):
         """
-        Initialize the CoderAgent with semantic tools.
+        Initialize the CoderAgent with semantic tools and pattern enforcement.
 
         Args:
             cognitive_service: Access to LLMs
@@ -67,6 +72,11 @@ class CoderAgent:
         self.cognitive_service = cognitive_service
         self.prompt_pipeline = prompt_pipeline
         self.auditor_context = auditor_context
+        self.repo_root = settings.REPO_PATH
+
+        # Initialize IntentGuard for pattern validation
+        self.intent_guard = IntentGuard(self.repo_root)
+        logger.info("CoderAgent: IntentGuard initialized for pattern enforcement")
 
         # Constitutional settings - FIX: Update path to match meta.yaml structure
         try:
@@ -82,7 +92,6 @@ class CoderAgent:
         self.semantic_enabled = False
         if qdrant_service:
             try:
-                self.repo_root = settings.REPO_PATH
                 self.policy_vectorizer = PolicyVectorizer(
                     self.repo_root, cognitive_service, qdrant_service
                 )
@@ -113,7 +122,13 @@ class CoderAgent:
         context_str: str,
     ) -> str:
         """
-        The main entry point. Orchestrates generation -> validation -> correction.
+        The main entry point. Orchestrates generation -> pattern validation -> constitutional validation -> correction.
+
+        Flow:
+        1. Generate code (with pattern hints in prompt)
+        2. PATTERN VALIDATION (IntentGuard - blocks pattern violations)
+        3. Constitutional validation (existing flow)
+        4. Self-correction if needed
         """
         current_code = await self._generate_code_for_task(
             task,
@@ -123,6 +138,65 @@ class CoderAgent:
 
         for attempt in range(self.max_correction_attempts + 1):
             logger.info("  -> Validation attempt %s...", attempt + 1)
+
+            # ========================================
+            # PHASE 1: Pattern Validation (NEW!)
+            # ========================================
+            pattern_id = self._infer_pattern_id(task)
+            component_type = self._infer_component_type(task)
+
+            logger.info(f"  -> Checking pattern compliance: {pattern_id}")
+
+            (
+                pattern_approved,
+                pattern_violations,
+            ) = await self.intent_guard.validate_generated_code(
+                code=current_code,
+                pattern_id=pattern_id,
+                component_type=component_type,
+                target_path=task.params.file_path,
+            )
+
+            if not pattern_approved:
+                error_violations = [
+                    v for v in pattern_violations if v.severity == "error"
+                ]
+                violation_msg = "\n".join(
+                    [f"  - {v.message}" for v in error_violations]
+                )
+
+                if attempt >= self.max_correction_attempts:
+                    raise CodeGenerationError(
+                        f"Pattern violations after {self.max_correction_attempts + 1} attempts:\n{violation_msg}",
+                        code=current_code,
+                    )
+
+                logger.warning(f"  -> ⚠️ Pattern violations found:\n{violation_msg}")
+                logger.warning("  -> Attempting pattern-aware correction...")
+
+                # Pass pattern violations to correction engine
+                pattern_correction_result = await self._attempt_pattern_correction(
+                    task,
+                    current_code,
+                    pattern_violations,
+                    pattern_id,
+                    high_level_goal,
+                )
+
+                if pattern_correction_result.get("status") == "success":
+                    current_code = pattern_correction_result["code"]
+                    continue  # Retry validation with corrected code
+                else:
+                    raise CodeGenerationError(
+                        f"Pattern correction failed: {pattern_correction_result.get('message')}",
+                        code=current_code,
+                    )
+
+            logger.info(f"  -> ✅ Pattern validation passed: {pattern_id}")
+
+            # ========================================
+            # PHASE 2: Constitutional Validation (Existing)
+            # ========================================
             validation_result = await validate_code_async(
                 task.params.file_path,
                 current_code,
@@ -130,17 +204,19 @@ class CoderAgent:
             )
 
             if validation_result["status"] == "clean":
-                logger.info("  -> ✅ Code is constitutionally valid.")
+                logger.info("  -> ✅ Constitutional validation passed.")
                 return validation_result["code"]
 
             if attempt >= self.max_correction_attempts:
                 # Failed after max retries. Raise custom error with the code.
                 raise CodeGenerationError(
-                    f"Self-correction failed after {self.max_correction_attempts + 1} attempts.",
+                    f"Constitutional validation failed after {self.max_correction_attempts + 1} attempts.",
                     code=current_code,
                 )
 
-            logger.warning("  -> ⚠️ Code failed validation. Attempting self-correction.")
+            logger.warning(
+                "  -> ⚠️ Constitutional violations found. Attempting self-correction."
+            )
             correction_result = await self._attempt_code_correction(
                 task,
                 current_code,
@@ -161,6 +237,58 @@ class CoderAgent:
             "Could not produce valid code after all attempts.", code=current_code
         )
 
+    def _infer_pattern_id(self, task: ExecutionTask) -> str:
+        """
+        Infer which pattern this code should follow based on task context.
+
+        Returns pattern_id like 'inspect_pattern', 'action_pattern', etc.
+        """
+        # Check if task has explicit pattern
+        if hasattr(task.params, "pattern_id") and task.params.pattern_id:
+            return task.params.pattern_id
+
+        # Infer from file path
+        file_path = task.params.file_path or ""
+
+        if "cli/commands" in file_path:
+            # Infer command pattern from naming
+            if "inspect" in file_path.lower() or "inspect" in task.step.lower():
+                return "inspect_pattern"
+            elif "check" in file_path.lower() or "validate" in task.step.lower():
+                return "check_pattern"
+            elif "run" in file_path.lower() or "execute" in task.step.lower():
+                return "run_pattern"
+            elif "manage" in file_path.lower() or "admin" in task.step.lower():
+                return "manage_pattern"
+            else:
+                # Default for commands: action pattern (safest - requires --write)
+                return "action_pattern"
+
+        elif "services" in file_path:
+            if "repository" in file_path.lower():
+                return "repository_pattern"
+            else:
+                return "stateful_service"
+
+        elif "agents" in file_path:
+            return "cognitive_agent"
+
+        # Default fallback
+        return "action_pattern"
+
+    def _infer_component_type(self, task: ExecutionTask) -> str:
+        """Infer component type from file path."""
+        file_path = task.params.file_path or ""
+
+        if "cli/commands" in file_path:
+            return "command"
+        elif "services" in file_path:
+            return "service"
+        elif "agents" in file_path:
+            return "agent"
+        else:
+            return "command"  # Default
+
     async def _generate_code_for_task(
         self,
         task: ExecutionTask,
@@ -169,11 +297,16 @@ class CoderAgent:
     ) -> str:
         """
         Generates code using either semantic context (if available) or standard prompts.
+        NOW: Includes pattern requirements in the prompt.
         """
         logger.info("✍️  Generating code for task: '%s'...", task.step)
 
         target_file = task.params.file_path or "unknown.py"
         symbol_name = task.params.symbol_name or ""
+
+        # Determine pattern to follow
+        pattern_id = self._infer_pattern_id(task)
+        pattern_requirements = self._get_pattern_requirements(pattern_id)
 
         # ---------------------------------------------------------
         # PATH A: Semantic Generation (A2 Capable)
@@ -186,9 +319,13 @@ class CoderAgent:
                 goal=f"{goal} (Step: {task.step})", target_file=target_file
             )
 
-            # Inject it into the prompt structure
+            # Inject it into the prompt structure WITH pattern requirements
             prompt = self._build_semantic_prompt(
-                arch_context=arch_context, task=task, manual_context=context_str
+                arch_context=arch_context,
+                task=task,
+                manual_context=context_str,
+                pattern_id=pattern_id,
+                pattern_requirements=pattern_requirements,
             )
 
             # Log confidence for debugging
@@ -196,6 +333,7 @@ class CoderAgent:
                 f"  -> Placement Confidence: {arch_context.placement_confidence} "
                 f"(Layer: {arch_context.target_layer})"
             )
+            logger.info(f"  -> Target Pattern: {pattern_id}")
 
         # ---------------------------------------------------------
         # PATH B: Legacy Generation (Fallback)
@@ -218,7 +356,7 @@ class CoderAgent:
 
             # Manual reuse guardrails (heuristic only)
             reuse_block = self._build_reuse_guidance_block(task)
-            prompt = f"{base_prompt}\n\n{reuse_block}\n{context_str}"
+            prompt = f"{base_prompt}\n\n{reuse_block}\n\n{pattern_requirements}\n{context_str}"
 
         # Use PromptPipeline to expand any [[directives]] in the prompt
         enriched_prompt = self.prompt_pipeline.process(prompt)
@@ -242,14 +380,60 @@ class CoderAgent:
 
         return self._repair_basic_syntax(code)
 
+    def _get_pattern_requirements(self, pattern_id: str) -> str:
+        """Get pattern requirements to include in prompt."""
+        requirements = {
+            "inspect_pattern": """
+## Pattern Requirements: inspect_pattern
+CRITICAL: This is a READ-ONLY command that must NEVER modify state.
+- Must NOT have --write, --apply, or --force parameters
+- Should return data for inspection only
+- Exit code: 0 for success, 1 for error
+""",
+            "action_pattern": """
+## Pattern Requirements: action_pattern
+CRITICAL: This command modifies state and must follow safety guarantees.
+- MUST have a 'write' parameter with type: bool
+- MUST default to False (dry-run by default)
+- In dry-run mode, show what WOULD change without changing it
+- Only execute when write=True
+- Must be atomic (all or nothing)
+""",
+            "check_pattern": """
+## Pattern Requirements: check_pattern
+CRITICAL: This is a VALIDATION command.
+- Must NOT modify state (no --write parameter)
+- Must return clear pass/fail status
+- Exit code: 0 for pass, 1 for fail, 2 for warnings
+- Provide actionable error messages
+""",
+            "run_pattern": """
+## Pattern Requirements: run_pattern
+CRITICAL: This executes autonomous operations.
+- MUST have 'write' parameter (bool, default=False)
+- Must operate within autonomy lane boundaries
+- Must log all autonomous decisions
+- Respects constitutional constraints
+""",
+        }
+        return requirements.get(pattern_id, "")
+
     def _build_semantic_prompt(
-        self, arch_context: Any, task: ExecutionTask, manual_context: str
+        self,
+        arch_context: Any,
+        task: ExecutionTask,
+        manual_context: str,
+        pattern_id: str,
+        pattern_requirements: str,
     ) -> str:
         """Constructs the prompt when semantic infra is available."""
         context_text = self.context_builder.format_for_prompt(arch_context)
 
         parts = [
             context_text,
+            "",
+            pattern_requirements,  # ADD PATTERN REQUIREMENTS
+            "",
             "## Implementation Task",
             f"Step: {task.step}",
             f"Symbol: {task.params.symbol_name}" if task.params.symbol_name else "",
@@ -261,7 +445,8 @@ class CoderAgent:
             "1. Return ONLY valid Python code.",
             "2. Include all necessary imports.",
             "3. Include docstrings and type hints.",
-            "4. NO markdown formatting outside the code block.",
+            "4. FOLLOW the pattern requirements above.",
+            "5. NO markdown formatting outside the code block.",
         ]
         return "\n".join(parts)
 
@@ -315,6 +500,51 @@ class CoderAgent:
         if not any(ln.strip() for ln in code_lines):
             return None
         return "\n".join(code_lines).strip()
+
+    async def _attempt_pattern_correction(
+        self,
+        task: ExecutionTask,
+        current_code: str,
+        pattern_violations: list,
+        pattern_id: str,
+        goal: str,
+    ) -> dict:
+        """
+        Attempt to fix pattern violations.
+
+        Similar to _attempt_code_correction but focused on pattern compliance.
+        """
+        violation_messages = "\n".join([f"- {v.message}" for v in pattern_violations])
+        pattern_requirements = self._get_pattern_requirements(pattern_id)
+
+        correction_prompt = f"""
+The following code violates the {pattern_id} pattern:
+
+```python
+{current_code}
+```
+
+Pattern Violations:
+{violation_messages}
+
+Pattern Requirements:
+{pattern_requirements}
+
+Please fix the code to comply with the {pattern_id} pattern.
+Return ONLY the corrected Python code.
+"""
+
+        generator = await self.cognitive_service.aget_client_for_role("Coder")
+        raw_response = await generator.make_request_async(
+            correction_prompt,
+            user_id="coder_agent_pattern_correction",
+        )
+
+        corrected_code = extract_python_code_from_response(raw_response)
+        if corrected_code:
+            return {"status": "success", "code": corrected_code}
+        else:
+            return {"status": "failure", "message": "Could not extract corrected code"}
 
     async def _attempt_code_correction(
         self,

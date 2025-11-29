@@ -13,13 +13,41 @@ This is part of the Mind-Body-Will refactoring to separate concerns:
 from __future__ import annotations
 
 import asyncio
+from typing import Any
 
-from services.config_service import config_service
+from services.config_service import ConfigService, LLMResourceConfig
 from services.database.models import LlmResource
+from services.database.session_manager import get_session
 from services.llm.client import LLMClient
 from shared.logger import getLogger
 
 logger = getLogger(__name__)
+
+
+# ID: 73176353-f439-4aa3-bea6-be2b907aa0e3
+class CachedConfigService:
+    """
+    A ConfigService impersonator that serves values from a static cache.
+    Used to provide configuration to LLMResourceConfig without holding open DB sessions.
+    """
+
+    def __init__(self, cache: dict[str, Any]):
+        self._cache = cache
+
+    # ID: 67de48ce-a1f4-462f-99be-2d34ed31711c
+    async def get(
+        self, key: str, default: str | None = None, required: bool = False
+    ) -> str | None:
+        val = self._cache.get(key)
+        if val is None:
+            if required:
+                raise KeyError(f"Key {key} not found in cache")
+            return default
+        return val
+
+    # ID: e373f8cd-a149-46c5-9382-a35b3875fe23
+    async def get_secret(self, key: str, audit_context: str | None = None) -> str:
+        raise NotImplementedError("CachedConfigService does not support secrets")
 
 
 # ID: 92a5f45c-cc8f-4d98-af41-302c6b128e1c
@@ -65,14 +93,29 @@ class LLMClientRegistry:
             if resource.name in self._clients:
                 logger.debug(f"Returning cached client for {resource.name}")
                 return self._clients[resource.name]
+
             logger.info(f"Creating new client for {resource.name}")
             provider = await provider_factory(resource)
-            from services.config_service import LLMResourceConfig
 
-            resource_config = LLMResourceConfig(config_service, resource.name)
+            # FIX: Load config into memory to avoid Session lifecycle issues
+            # We perform a read-only sync of config values needed for client behavior
+            # (timeouts, concurrency limits) so the client doesn't need an active DB connection
+            async with get_session() as session:
+                real_config_service = await ConfigService.create(session)
+                # Copy the cache so we can close the session safely
+                config_cache = dict(real_config_service._cache)
+
+            # Use the cached service wrapper to satisfy LLMResourceConfig interface
+            cached_service = CachedConfigService(config_cache)
+            # We suppress type checking here because CachedConfigService duck-types ConfigService
+            resource_config = LLMResourceConfig(cached_service, resource.name)  # type: ignore
+
             client = LLMClient(provider, resource_config)
+
+            # Initialize semaphore based on config now, while we have the cache
             max_concurrent = await resource_config.get_max_concurrent()
             client._semaphore = asyncio.Semaphore(max_concurrent)
+
             logger.info(
                 f"Initialized LLMClient for {resource.name} (model={provider.model_name}, max_concurrent={max_concurrent})"
             )

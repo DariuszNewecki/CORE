@@ -12,6 +12,7 @@ Provides:
 
 from __future__ import annotations
 
+import time
 from pathlib import Path
 
 import typer
@@ -25,6 +26,7 @@ from features.self_healing.duplicate_id_service import resolve_duplicate_ids
 from features.self_healing.id_tagging_service import assign_missing_ids
 from features.self_healing.policy_id_service import add_missing_policy_ids
 from features.self_healing.purge_legacy_tags_service import purge_legacy_tags
+from shared.cli_types import CommandResult
 from shared.cli_utils import async_command
 from shared.context import CoreContext
 
@@ -37,23 +39,72 @@ from . import (
 )
 
 
+# ID: fix_ids_internal_v1
+# ID: a3fca3a1-8cc4-4f87-89e9-abe557a34709
+async def fix_ids_internal(write: bool = False) -> CommandResult:
+    """
+    Core logic for fix ids command.
+    Returns CommandResult instead of printing.
+    """
+    start_time = time.time()
+
+    try:
+        total_assigned = assign_missing_ids(dry_run=not write)
+
+        return CommandResult(
+            name="fix.ids",
+            ok=True,
+            data={
+                "ids_assigned": total_assigned,
+                "dry_run": not write,
+                "mode": "write" if write else "dry-run",
+            },
+            duration_sec=time.time() - start_time,
+        )
+
+    except Exception as e:
+        return CommandResult(
+            name="fix.ids",
+            ok=False,
+            data={
+                "error": str(e),
+                "error_type": type(e).__name__,
+            },
+            duration_sec=time.time() - start_time,
+            logs=[f"Exception during ID assignment: {e}"],
+        )
+
+
 @fix_app.command(
     "ids", help="Assigns a stable '# ID: <uuid>' to all untagged public symbols."
 )
 @handle_command_errors
+@async_command
 # ID: b6a55ee8-fce6-48dc-8940-24e9498bbe70
-def assign_ids_command(
+async def assign_ids_command(
     write: bool = typer.Option(
         False, "--write", help="Apply the changes to the files."
     ),
 ) -> None:
+    """CLI wrapper - presentation only."""
+
     if not _confirm_dangerous_operation("ids", write):
         console.print("[yellow]Operation cancelled by user.[/yellow]")
         return
-    total_assigned = _run_with_progress(
-        "Assigning missing IDs", lambda: assign_missing_ids(dry_run=not write)
-    )
-    console.print(f"[green]Total IDs assigned: {total_assigned}[/green]")
+
+    # Call internal function
+    with console.status("[cyan]Assigning missing IDs...[/cyan]"):
+        result = await fix_ids_internal(write=write)
+
+    # Present results
+    if result.ok:
+        count = result.data["ids_assigned"]
+        mode = result.data["mode"]
+        console.print(f"[green]Total IDs assigned: {count} ({mode})[/green]")
+    else:
+        error = result.data.get("error", "Unknown error")
+        console.print(f"[red]❌ Failed: {error}[/red]")
+        raise typer.Exit(1)
 
 
 @fix_app.command(

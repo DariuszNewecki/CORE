@@ -19,10 +19,9 @@ from __future__ import annotations
 import asyncio
 import os
 from pathlib import Path
+from typing import Any
 
-from sqlalchemy import select
-
-from services.config_service import config_service
+from services.config_service import ConfigService
 from services.database.models import CognitiveRole, LlmResource
 from services.database.session_manager import get_session
 from services.llm.client import LLMClient
@@ -31,6 +30,7 @@ from services.llm.providers.base import AIProvider
 from services.llm.providers.ollama import OllamaProvider
 from services.llm.providers.openai import OpenAIProvider
 from shared.logger import getLogger
+from sqlalchemy import select
 from will.agents.resource_selector import ResourceSelector
 
 logger = getLogger(__name__)
@@ -65,15 +65,13 @@ class ClientOrchestrator:
         self._roles: list[CognitiveRole] = []
         self._client_registry = LLMClientRegistry()
         self._init_lock = asyncio.Lock()
+        # Cache for non-secret config to avoid DB thrashing
+        self._config_cache: dict[str, Any] = {}
 
     # ID: afff714a-8e04-4c35-97c7-11bda8507c92
     async def initialize(self) -> None:
         """
         Load Mind state: Read roles and resources from database.
-
-        This is the orchestrator's connection to the Mind - it reads
-        the constitutional rules about what roles exist and what resources
-        are available to fulfill them.
         """
         async with self._init_lock:
             if self._loaded:
@@ -81,6 +79,10 @@ class ClientOrchestrator:
             try:
                 logger.info("ClientOrchestrator: Loading Mind state from database...")
                 async with get_session() as session:
+                    # Pre-load config cache for efficiency
+                    temp_config = await ConfigService.create(session)
+                    self._config_cache = temp_config._cache
+
                     res_result = await session.execute(select(LlmResource))
                     role_result = await session.execute(select(CognitiveRole))
                     self._resources = list(res_result.scalars().all())
@@ -101,25 +103,12 @@ class ClientOrchestrator:
     async def get_client_for_role(self, role_name: str) -> LLMClient:
         """
         Will: Decide which resource to use for a role, then get client.
-
-        This is the core orchestration method that:
-        1. Ensures Mind state is loaded
-        2. Decides which resource should handle this role (Mind rules)
-        3. Delegates to Body to get/create the actual client
-
-        Args:
-            role_name: Name of cognitive role (e.g., "Coder", "Planner")
-
-        Returns:
-            Configured LLMClient ready to use
-
-        Raises:
-            RuntimeError: If no suitable resource found or client creation fails
         """
         if not self._loaded:
             await self.initialize()
         if not self._resources or not self._roles:
             raise RuntimeError("Resources and roles not initialized (Mind not loaded)")
+
         resource = ResourceSelector.select_resource_for_role(
             role_name, self._roles, self._resources
         )
@@ -127,7 +116,7 @@ class ClientOrchestrator:
             raise RuntimeError(
                 f"No compatible resource found for role '{role_name}' (Mind does not have a suitable resource configured)"
             )
-        logger.info(
+        logger.debug(
             f"Orchestrator: Selected resource '{resource.name}' for role '{role_name}'"
         )
 
@@ -139,9 +128,6 @@ class ClientOrchestrator:
             client = await self._client_registry.get_or_create_client(
                 resource, provider_factory
             )
-            logger.info(
-                f"Orchestrator: Successfully provisioned client for role '{role_name}'"
-            )
             return client
         except Exception as e:
             raise RuntimeError(
@@ -150,79 +136,70 @@ class ClientOrchestrator:
 
     async def _create_provider_for_resource(self, resource: LlmResource) -> AIProvider:
         """
-        Create the correct provider for a resource.
-
-        This is Will's decision-making: choosing which provider implementation
-        to use based on resource configuration.
-
-        Args:
-            resource: LlmResource from Mind
-
-        Returns:
-            Configured AIProvider instance
-
-        Raises:
-            ValueError: If resource configuration is invalid
+        Create the correct provider for a resource based on its configuration.
         """
         prefix = (resource.env_prefix or "").strip().upper()
         if not prefix:
             raise ValueError(
                 f"Resource '{resource.name}' is missing env_prefix (Mind misconfiguration)"
             )
-        api_url = await config_service.get(f"{prefix}_API_URL") or os.getenv(
-            f"{prefix}_API_URL"
-        )
-        model_name = await config_service.get(f"{prefix}_MODEL_NAME") or os.getenv(
-            f"{prefix}_MODEL_NAME"
-        )
-        api_key = None
-        try:
-            api_key = await config_service.get_secret(
-                f"{prefix}_API_KEY",
-                audit_context=f"client_orchestrator:{resource.name}",
+
+        # Use a fresh session for secret retrieval to ensure connection safety
+        async with get_session() as session:
+            # Rehydrate config service with cached non-secrets + new session for secrets
+            config = ConfigService(session, self._config_cache)
+
+            api_url = await config.get(f"{prefix}_API_URL") or os.getenv(
+                f"{prefix}_API_URL"
             )
-            logger.debug(f"Retrieved encrypted API key for {resource.name}")
-        except KeyError:
-            api_key = os.getenv(f"{prefix}_API_KEY")
-            if api_key:
-                logger.warning(
-                    f"Using API key from environment for {resource.name}. Consider migrating: core-admin secrets set {prefix}_API_KEY"
+            model_name = await config.get(f"{prefix}_MODEL_NAME") or os.getenv(
+                f"{prefix}_MODEL_NAME"
+            )
+
+            api_key = None
+            try:
+                api_key = await config.get_secret(
+                    f"{prefix}_API_KEY",
+                    audit_context=f"client_orchestrator:{resource.name}",
                 )
+            except KeyError:
+                # Fallback to env var if not in DB secrets
+                api_key = os.getenv(f"{prefix}_API_KEY")
+
         if not api_url or not model_name:
             raise ValueError(
                 f"Missing required config for resource '{resource.name}' with prefix '{prefix}_'. Ensure URL and model_name are configured."
             )
-        if "ollama" in resource.name.lower() or "11434" in (api_url or ""):
+
+        # --- Provider Selection Logic ---
+
+        # 1. Anthropic (Claude)
+        if "anthropic" in api_url.lower():
+            logger.info(f"Creating AnthropicProvider for {resource.name}")
+            from services.llm.providers.anthropic import AnthropicProvider
+
+            return AnthropicProvider(
+                api_url=api_url, model_name=model_name, api_key=api_key
+            )
+
+        # 2. Ollama / Local
+        if "ollama" in resource.name.lower() or "11434" in api_url:
             logger.info(f"Creating OllamaProvider for {resource.name}")
             return OllamaProvider(
                 api_url=api_url, model_name=model_name, api_key=api_key
             )
+
+        # 3. Default to OpenAI (works for DeepSeek, OpenAI, Azure, etc.)
         logger.info(f"Creating OpenAIProvider for {resource.name}")
         return OpenAIProvider(api_url=api_url, model_name=model_name, api_key=api_key)
 
     # ID: aae28476-3d3f-428a-a01a-6ae302e119a4
     def get_cached_resource_names(self) -> list[str]:
-        """
-        Get list of currently cached resource names.
-
-        Useful for debugging and monitoring.
-
-        Returns:
-            List of resource names currently in cache
-        """
+        """Get list of currently cached resource names."""
         return self._client_registry.get_cached_resource_names()
 
     # ID: 1b744485-8a18-46cf-9037-04a0fffa4c9b
     async def clear_cache(self) -> None:
-        """
-        Clear all cached clients.
-
-        Useful for:
-        - Testing
-        - Configuration changes requiring fresh clients
-        - Resource cleanup
-
-        Note: This is an orchestration decision, but delegates to Body for execution.
-        """
+        """Clear all cached clients."""
         logger.info("Orchestrator: Clearing client cache")
         self._client_registry.clear_cache()
