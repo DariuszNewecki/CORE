@@ -60,3 +60,4 @@ project_context.txt
 
 # Test files (temporary)
 test_placement.py
+dev-scripts/
