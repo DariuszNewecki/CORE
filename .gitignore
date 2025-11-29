@@ -20,6 +20,7 @@ __pypackages__/
 .coverage
 htmlcov/
 *.log
+coverage.json
 
 # Editors
 .vscode/
@@ -36,7 +37,6 @@ demo/
 .intent/keys/
 pending_writes/
 sandbox/
-scripts/
 knowledge_graph.json
 *.jsonl
 *.lock
@@ -46,5 +46,17 @@ reports/
 *.bak
 *.tmp
 
+# Work directory
 work/*
 !work/.gitkeep
+
+# Demo recordings (keep README.md only)
+demos/*.cast
+demos/*.mp4
+demos/*.gif
+
+# Context files (local only)
+project_context.txt
+
+# Test files (temporary)
+test_placement.py
