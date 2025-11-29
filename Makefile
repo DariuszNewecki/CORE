@@ -28,7 +28,8 @@ OUTPUT_PATH := docs/10_CAPABILITY_REFERENCE.md
   audit lint format test test-coverage check dev-sync \
   fix-all dupes cli-tree clean distclean nuke \
   docs check-docs vectorize integrate \
-  migrate export-db sync-knowledge sync-manifest
+  migrate export-db sync-knowledge sync-manifest \
+  patterns check-patterns state
 
 # ---- Help (auto-documented) --------------------------------------------------
 help: ## Show this help message
@@ -36,7 +37,7 @@ help: ## Show this help message
 	@echo "-------------------------"
 	@echo "Usage: make [target]"
 	@echo ""
-	@awk 'BEGIN {FS":.*##"} /^[a-zA-Z0-9_.-]+:.*##/ {printf "  \033[36m%-18s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
+	@awk 'BEGIN {FS":.*##"} /^[a-zA-Z0-9_.-]+:.*##/ {printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 	@echo ""
 	@echo "Tip: run 'core-admin --help' to see all granular CLI commands."
 
@@ -118,6 +119,20 @@ dupes: ## Check for duplicate code (semantic similarity analysis)
 cli-tree: ## Display CLI command tree
 	@echo "🌳 Generating CLI command tree..."
 	$(CORE_ADMIN) inspect command-tree
+
+# ---- Pattern Management ------------------------------------------------------
+patterns: ## List available design patterns
+	@echo "📋 CORE Design Patterns"
+	@$(CORE_ADMIN) patterns list
+
+check-patterns: ## Check code compliance with design patterns
+	@echo "🔍 Checking pattern compliance..."
+	@$(CORE_ADMIN) patterns check
+
+# ---- System State ------------------------------------------------------------
+state: ## Show current CORE system state snapshot
+	@echo "📊 CORE System State"
+	@$(CORE_ADMIN) inspect state
 
 # ---- Knowledge / DB helpers --------------------------------------------------
 migrate: ## Apply pending DB schema migrations

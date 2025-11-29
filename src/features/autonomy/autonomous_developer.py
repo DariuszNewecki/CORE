@@ -4,10 +4,12 @@
 Provides a dedicated, reusable service for orchestrating the full autonomous
 development cycle, from goal to implemented code.
 
-UPDATED: Now creates crates even on validation failure for human review.
+UPGRADED (Phase 2): Now uses ContextService for graph-aware context.
 """
 
 from __future__ import annotations
+
+from typing import Any
 
 from services.database.models import Task
 from services.database.session_manager import get_session
@@ -17,9 +19,46 @@ from shared.models import PlanExecutionError
 from sqlalchemy import update
 from will.agents.execution_agent import _ExecutionAgent
 from will.agents.planner_agent import PlannerAgent
-from will.agents.reconnaissance_agent import ReconnaissanceAgent
+
+# DEPRECATED: from will.agents.reconnaissance_agent import ReconnaissanceAgent
 
 logger = getLogger(__name__)
+
+
+def _format_context_package_report(packet: dict[str, Any]) -> str:
+    """
+    Transforms a structured ContextPackage into a readable report for the Planner.
+    """
+    report = ["# Context Report (Graph-Aware)\n"]
+
+    # 1. Context Items
+    items = packet.get("context", [])
+    if not items:
+        report.append("- No existing context found. Proceeding as a greenfield task.")
+    else:
+        report.append(f"Found {len(items)} relevant items in the Knowledge Graph:\n")
+
+        files = set()
+        symbols = []
+
+        for item in items:
+            name = item.get("name", "unknown")
+            path = item.get("path", "unknown")
+            summary = item.get("summary", "")[:200]  # Truncate summary
+
+            files.add(path)
+            symbols.append(
+                f"- **{name}** ({item.get('item_type')}) in `{path}`\n  _{summary}_"
+            )
+
+        report.append("## Relevant Files")
+        for f in sorted(files):
+            report.append(f"- `{f}`")
+
+        report.append("\n## Relevant Symbols")
+        report.extend(symbols)
+
+    return "\n".join(report)
 
 
 # ID: a37be1f9-d912-487f-bfde-1efddb155017
@@ -37,26 +76,36 @@ async def develop_from_goal(
         logger.info(f"🚀 Initiating autonomous development cycle for goal: '{goal}'")
         logger.info(f"   -> Output mode: {output_mode}")
 
-        goal_lower = goal.lower()
-        if "create" in goal_lower and (
-            "new file" in goal_lower or "new function" in goal_lower
-        ):
-            logger.info(
-                "   -> Intent classified as 'CREATE_FILE'. Using specialized planner."
-            )
-            context_report = "# Reconnaissance Report\n\n- No relevant files found. Proceeding with file creation."
-            planner = PlannerAgent(context.cognitive_service)
-        else:
-            logger.info(
-                "   -> Intent classified as 'GENERAL'. Using standard reconnaissance and planning."
-            )
-            recon_agent = ReconnaissanceAgent(
-                await context.knowledge_service.get_graph(), context.cognitive_service
-            )
-            context_report = await recon_agent.generate_report(goal)
-            planner = PlannerAgent(context.cognitive_service)
+        # --- CONTEXT GATHERING (Phase 2 Upgrade) ---
+        # Instead of simple search, we build a full ContextPackage
+        logger.info("   -> Building ContextPackage (Graph + Search)...")
 
+        # Ensure ContextService is ready
+        context_service = context.context_service
+
+        # Create a task specification for the ContextBuilder
+        task_spec = {
+            "task_id": task_id or "dev_task",
+            # FIX: Use 'code.generate' to match DB constraint, not 'code.generation'
+            "task_type": "code.generate",
+            "summary": goal,
+            # This enables graph traversal to find callers/callees
+            "scope": {"traversal_depth": 1, "roots": ["src/"]},
+            "constraints": {"max_items": 30, "max_tokens": 50000},
+        }
+        # Build the packet (Search + Graph)
+        packet = await context_service.build_for_task(task_spec, use_cache=False)
+
+        # Format for the Planner LLM
+        context_report = _format_context_package_report(packet)
+        logger.info(
+            f"   -> Context Report generated ({len(packet.get('context', []))} items)."
+        )
+
+        # --- PLANNING ---
+        planner = PlannerAgent(context.cognitive_service)
         plan = await planner.create_execution_plan(goal, context_report)
+
         if not plan:
             raise PlanExecutionError(
                 "PlannerAgent failed to create a valid execution plan."
@@ -73,7 +122,6 @@ async def develop_from_goal(
         except Exception as e:
             execution_message = f"Execution failed: {str(e)}"
             logger.warning(f"Plan execution had issues: {e}")
-            # Continue to crate creation to salvage any generated code
 
         # Handle crate mode: extract generated files
         if output_mode == "crate":
@@ -97,14 +145,12 @@ async def develop_from_goal(
                     except ValueError:
                         generated_files[abs_path] = content
 
-            # 2. Try extracting from the plan object (if partial run or cache missed)
-            # This works because plan tasks are modified in-place with generated code
+            # 2. Try extracting from the plan object (fallback)
             for task in plan:
                 if task.params.file_path and task.params.code:
                     generated_files[task.params.file_path] = task.params.code
 
             if not generated_files:
-                # Only hard fail if we have absolutely nothing to show
                 if not execution_success:
                     raise PlanExecutionError(execution_message)
                 raise PlanExecutionError("No generated files found to package.")
@@ -141,7 +187,7 @@ async def develop_from_goal(
                         )
                         await session.execute(stmt)
 
-            return (True, result)  # Return True so CLI proceeds
+            return (True, result)
 
         # Direct mode logic (unchanged)
         if not execution_success:

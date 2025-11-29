@@ -16,8 +16,6 @@ import typer
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ed25519
 from rich.console import Console
-
-from services.knowledge.knowledge_service import KnowledgeService
 from shared.config import settings
 from shared.logger import getLogger
 
@@ -26,38 +24,122 @@ console = Console()
 
 
 # ID: ebc07171-b4df-48cd-99b5-2bd8a06056d4
-async def find_test_file_for_capability_async(capability_key: str) -> Path | None:
+import asyncio
+import logging
+import os
+
+logger = logging.getLogger(__name__)
+
+
+async def _find_test_file_for_capability_async(
+    capability_name: str, search_paths: list[str] | None = None
+) -> Path | None:
     """
-    Asynchronously finds the test file corresponding to a given capability key.
+    Asynchronously find the test file associated with a given capability name.
+
+    Args:
+        capability_name: The name of the capability to find tests for
+        search_paths: Optional list of paths to search in. If None, uses default paths.
+
+    Returns:
+        Path to the test file if found, None otherwise
     """
-    logger.debug(f"Searching for test file for capability: '{capability_key}'")
-    try:
-        knowledge_service = KnowledgeService(settings.REPO_PATH)
-        graph = await knowledge_service.get_graph()
-        symbols = graph.get("symbols", {})
-        source_file_str = None
-        for symbol in symbols.values():
-            if symbol.get("key") == capability_key:
-                source_file_str = symbol.get("file_path")
-                break
-        if not source_file_str:
-            logger.warning(
-                f"Capability '{capability_key}' not found in knowledge graph."
-            )
-            return None
-        p = Path(source_file_str)
-        test_file_path = (
-            settings.REPO_PATH / "tests" / p.relative_to("src")
-        ).with_name(f"test_{p.name}")
-        if test_file_path.exists():
-            logger.debug(f"Found corresponding test file at: {test_file_path}")
-            return test_file_path
-        else:
-            logger.warning(f"Conventional test file not found at: {test_file_path}")
-            return None
-    except Exception as e:
-        logger.error(f"Error processing knowledge graph: {e}")
-        return None
+    if search_paths is None:
+        search_paths = [
+            "tests",
+            "test",
+            "src/tests",
+        ]
+
+    # Common test file patterns
+    patterns = [
+        f"test_{capability_name}.py",
+        f"{capability_name}_test.py",
+        f"test{capability_name}.py",
+    ]
+
+    for search_path in search_paths:
+        if not os.path.exists(search_path):
+            continue
+
+        for root, dirs, files in os.walk(search_path):
+            for pattern in patterns:
+                if pattern in files:
+                    return Path(root) / pattern
+
+            # Also check for capability name in subdirectories
+            for file in files:
+                if file.endswith(".py") and capability_name.lower() in file.lower():
+                    return Path(root) / file
+
+    return None
+
+
+# ID: 2731a790-41f4-4bbd-893c-c2bad6fb7e0b
+def find_source_file(
+    symbol_name: str, search_paths: list[str] | None = None
+) -> Path | None:
+    """
+    Find the source file containing a given symbol.
+
+    Args:
+        symbol_name: The name of the symbol to find
+        search_paths: Optional list of paths to search in. If None, uses default paths.
+
+    Returns:
+        Path to the source file if found, None otherwise
+    """
+    if search_paths is None:
+        search_paths = ["src", "lib", "."]
+
+    for search_path in search_paths:
+        if not os.path.exists(search_path):
+            continue
+
+        for root, dirs, files in os.walk(search_path):
+            # Skip test directories
+            if "test" in root.lower():
+                continue
+
+            for file in files:
+                if file.endswith(".py"):
+                    file_path = Path(root) / file
+                    try:
+                        with open(file_path, encoding="utf-8") as f:
+                            content = f.read()
+                            if (
+                                f"def {symbol_name}" in content
+                                or f"class {symbol_name}" in content
+                            ):
+                                return file_path
+                    except Exception as e:
+                        logger.debug(f"Error reading {file_path}: {e}")
+                        continue
+
+    return None
+
+
+# ID: fb913de9-c965-48ea-9704-773426120071
+async def scan_directory_async(directory: Path, pattern: str = "*.py") -> list[Path]:
+    """
+    Asynchronously scan a directory for files matching a pattern.
+
+    Args:
+        directory: The directory to scan
+        pattern: The glob pattern to match files against
+
+    Returns:
+        List of matching file paths
+    """
+    if not directory.exists():
+        return []
+
+    loop = asyncio.get_event_loop()
+
+    def _scan():
+        return list(directory.rglob(pattern))
+
+    return await loop.run_in_executor(None, _scan)
 
 
 # ID: 92607e4d-3537-4ea8-b04f-77c36b026171

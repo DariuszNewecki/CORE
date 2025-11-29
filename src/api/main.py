@@ -8,11 +8,12 @@ import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
-
-from api.v1 import development_routes, knowledge_routes
 from mind.governance.audit_context import AuditorContext
 from services.clients.qdrant_client import QdrantService
-from services.config_service import config_service
+
+# FIX: Import Class and Session Manager
+from services.config_service import ConfigService
+from services.database.session_manager import get_session
 from services.git_service import GitService
 from services.knowledge.knowledge_service import KnowledgeService
 from services.storage.file_handler import FileHandler
@@ -20,8 +21,10 @@ from shared.config import settings
 from shared.context import CoreContext
 from shared.logger import getLogger, reconfigure_log_level
 from shared.models import PlannerConfig
-from src.shared.errors import register_exception_handlers
 from will.orchestration.cognitive_service import CognitiveService
+
+from api.v1 import development_routes, knowledge_routes
+from src.shared.errors import register_exception_handlers
 
 logger = getLogger(__name__)
 
@@ -44,11 +47,14 @@ async def lifespan(app: FastAPI):
         core_context._is_test_mode = True
     try:
         if not getattr(core_context, "_is_test_mode", False):
-            await config_service.reload()
-            await core_context.cognitive_service.initialize()
-            await core_context.auditor_context.load_knowledge_graph()
-            log_level_from_db = await config_service.get("LOG_LEVEL", "INFO")
-            reconfigure_log_level(log_level_from_db)
+            # FIX: Instantiate ConfigService properly
+            async with get_session() as session:
+                config = await ConfigService.create(session)
+                await config.reload()
+                await core_context.cognitive_service.initialize()
+                await core_context.auditor_context.load_knowledge_graph()
+                log_level_from_db = await config.get("LOG_LEVEL", "INFO")
+                reconfigure_log_level(log_level_from_db)
         yield
     finally:
         logger.info("🛑 CORE system shutting down.")

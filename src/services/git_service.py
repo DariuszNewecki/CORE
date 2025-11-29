@@ -86,6 +86,14 @@ class GitService:
         """Stages all changes, including untracked files."""
         self._run_command(["add", "-A"])
 
+    # --- FIX: Added missing add() method ---
+    # ID: ac30b490-2ee4-41ae-93c6-a06ad5a72db0
+    def add(self, path: str | Path) -> None:
+        """Stages a specific file."""
+        self._run_command(["add", str(path)])
+
+    # ---------------------------------------
+
     # ID: f95573be-ebc4-4d48-bc3c-0187edb982ef
     def commit(self, message: str) -> None:
         """

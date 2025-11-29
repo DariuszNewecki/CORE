@@ -10,10 +10,23 @@ Refactored for A2 Autonomy: Now uses ServiceRegistry for dependency wiring.
 from __future__ import annotations
 
 import typer
+from mind.governance.audit_context import AuditorContext
 from rich.console import Console
+from services.context import cli as context_cli
+from services.context.service import ContextService
+from services.database.session_manager import get_session
+from services.git_service import GitService
+from services.knowledge.knowledge_service import KnowledgeService
+from services.storage.file_handler import FileHandler
+from shared.config import settings
+from shared.context import CoreContext
+from shared.logger import getLogger
+from shared.models import PlannerConfig
+from will.orchestration.cognitive_service import CognitiveService
 
 from body.cli.commands import (
     check,
+    check_patterns,
     coverage,
     enrich,
     fix,
@@ -32,18 +45,6 @@ from body.cli.logic import audit
 
 # New Architecture: Registry
 from body.services.service_registry import service_registry
-from mind.governance.audit_context import AuditorContext
-from services.context import cli as context_cli
-from services.context.service import ContextService
-from services.database.session_manager import get_session
-from services.git_service import GitService
-from services.knowledge.knowledge_service import KnowledgeService
-from services.storage.file_handler import FileHandler
-from shared.config import settings
-from shared.context import CoreContext
-from shared.logger import getLogger
-from shared.models import PlannerConfig
-from will.orchestration.cognitive_service import CognitiveService
 
 console = Console()
 logger = getLogger(__name__)
@@ -108,6 +109,7 @@ def register_all_commands(app_instance: typer.Typer) -> None:
     app_instance.add_typer(secrets.app, name="secrets")
     app_instance.add_typer(context_cli.app, name="context")
     app_instance.add_typer(develop_app, name="develop")
+    app_instance.add_typer(check_patterns.patterns_group, name="patterns")
 
     modules_with_context = [
         check,

@@ -9,13 +9,12 @@ from functools import partial
 from typing import Any
 
 from rich.console import Console
-from sqlalchemy import text
-
 from services.context import ContextService
 from services.database.session_manager import get_session
 from shared.config import settings
 from shared.logger import getLogger
 from shared.utils.parallel_processor import ThrottledParallelProcessor
+from sqlalchemy import text
 
 console = Console()
 logger = getLogger(__name__)
@@ -27,9 +26,6 @@ async def get_undefined_symbols() -> list[dict[str, Any]]:
     Fetches symbols that are ready for definition (public and have no key).
     """
     async with get_session() as session:
-        # --- START OF FIX: Changed JOIN to LEFT JOIN ---
-        # This ensures we select all public, un-keyed symbols, regardless of
-        # whether they have a vector link yet.
         result = await session.execute(
             text(
                 """
@@ -40,7 +36,6 @@ async def get_undefined_symbols() -> list[dict[str, Any]]:
                 """
             )
         )
-        # --- END OF FIX ---
         return [dict(row._mapping) for row in result]
 
 
@@ -51,7 +46,7 @@ async def define_single_symbol(
     existing_keys: set[str],
 ) -> dict[str, Any]:
     """Uses an AI to generate a definition for a single symbol, using semantic context."""
-    logger.info(f"Defining symbol: {symbol.get('symbol_path')}")
+    # logger.info(f"Defining symbol: {symbol.get('symbol_path')}")
 
     symbol_path = symbol.get("symbol_path", "")
     file_path, symbol_name = (
@@ -69,7 +64,10 @@ async def define_single_symbol(
     }
 
     try:
-        packet = await context_service.build_for_task(task_spec, use_cache=False)
+        # Reduced log noise - only log on error or success
+        packet = await context_service.build_for_task(
+            task_spec, use_cache=True
+        )  # Enable cache for speed
         source_code = ""
         similar_capabilities_str = "No similar capabilities found."
 
@@ -87,9 +85,7 @@ async def define_single_symbol(
                     similar_keys.append(item.get("name", ""))
 
         if not source_code:
-            logger.warning(
-                f"Could not find source code in context packet for {symbol['symbol_path']}"
-            )
+            # logger.warning(f"Could not find source code in context for {symbol['symbol_path']}")
             return {"id": symbol["id"], "key": "error.code_not_found"}
 
         if similar_keys:
@@ -119,18 +115,15 @@ async def define_single_symbol(
                 raw_response.strip().replace("`", "").replace("'", "").replace('"', "")
             )
 
+        # FIX: Allow existing keys. This enables multiple symbols to map to one capability.
         if cleaned_key in existing_keys:
-            console.print(
-                f"[yellow]Warning: AI suggested existing key '{cleaned_key}' for a new symbol. Skipping to avoid conflict.[/yellow]"
-            )
-            return {"id": symbol["id"], "key": "error.duplicate_key"}
+            # This is valid reuse, not an error.
+            pass
 
         return {"id": symbol["id"], "key": cleaned_key}
 
     except Exception as e:
-        logger.warning(
-            f"Context building or AI call failed during definition for {symbol['symbol_path']}: {e}"
-        )
+        logger.warning(f"Definition failed for {symbol['symbol_path']}: {e}")
         return {"id": symbol["id"], "key": "error.processing_failed"}
 
 
@@ -139,19 +132,18 @@ async def update_definitions_in_db(definitions: list[dict[str, Any]]):
     """Updates the 'key' column for symbols in the database."""
     if not definitions:
         return
-    logger.info(
-        f"Attempting to update {len(definitions)} definitions in the database..."
-    )
+    logger.info(f"Persisting {len(definitions)} capability definitions to database...")
     serializable_definitions = [
         {"id": str(d["id"]), "key": d["key"]} for d in definitions
     ]
     async with get_session() as session:
         async with session.begin():
+            # Use executemany via SQLAlchemy for batch update
             await session.execute(
                 text("UPDATE core.symbols SET key = :key WHERE id = :id"),
                 serializable_definitions,
             )
-    logger.info("Database update transaction completed.")
+    logger.info("Database definitions updated successfully.")
 
 
 async def _define_new_symbols(context_service: ContextService):
@@ -175,25 +167,16 @@ async def _define_new_symbols(context_service: ContextService):
         existing_keys=existing_keys,
     )
 
+    # Process in parallel
     processor = ThrottledParallelProcessor(description="Defining symbols...")
     definitions = await processor.run_async(undefined_symbols, worker_fn)
 
+    # Filter out errors, but allow duplicates in the list (multiple symbols -> same key)
     valid_definitions = [
         d for d in definitions if d.get("key") and (not d["key"].startswith("error."))
     ]
-    unique_definitions = []
-    seen_keys = set()
-    for d in valid_definitions:
-        key = d["key"]
-        if key not in seen_keys:
-            unique_definitions.append(d)
-            seen_keys.add(key)
-        else:
-            console.print(
-                f"[yellow]Warning: AI generated duplicate key '{key}'. Skipping redundant assignment.[/yellow]"
-            )
 
-    await update_definitions_in_db(unique_definitions)
+    await update_definitions_in_db(valid_definitions)
     console.print(
-        f"   -> Successfully defined {len(unique_definitions)} new capabilities."
+        f"   -> Successfully defined {len(valid_definitions)} new capabilities."
     )
