@@ -38,6 +38,7 @@ from body.cli.commands import (
     secrets,
     submit,
 )
+from body.cli.commands.dev_sync import dev_sync_app  # NEW: Import dev sync
 from body.cli.commands.develop import develop_app
 from body.cli.commands.fix import fix_app
 from body.cli.interactive import launch_interactive_menu
@@ -110,6 +111,7 @@ def register_all_commands(app_instance: typer.Typer) -> None:
     app_instance.add_typer(context_cli.app, name="context")
     app_instance.add_typer(develop_app, name="develop")
     app_instance.add_typer(check_patterns.patterns_group, name="patterns")
+    app_instance.add_typer(dev_sync_app, name="dev")  # NEW: Register dev sync
 
     modules_with_context = [
         check,

@@ -49,6 +49,7 @@ def format_code_cmd() -> None:
 
 
 # ID: fix_headers_internal_v1
+# ID: 92312357-aedb-4381-8b5c-e824877871d9
 async def fix_headers_internal(write: bool = False) -> CommandResult:
     """
     Core logic for fix headers command.
