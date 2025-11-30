@@ -14,8 +14,15 @@ theme:
 extra_css:
   - css/no-sidebars.css    # our custom override
 
+plugins:
+  - search:
+      lang: en
+      # Optimize search for CLI commands (e.g. "fix.ids") by treating dots/dashes as connectors
+      separator: '[\s\-\.]+'
+
 nav:
   - Home: 00_START_HERE.md
+  - The Vision: THE_VISION.md
   - Documentation Index: index.md
   - Core Concepts:
       - What is CORE?: core-concept/00_WHAT_IS_CORE.md
@@ -68,9 +75,6 @@ nav:
       - Academic Paper Draft: archive/11_ACADEMIC_PAPER.md
       - Old Strategic Plan: archive/StrategicPlan.md
 
-plugins:
-  - search
-
 markdown_extensions:
   - admonition
   - tables
@@ -78,9 +82,14 @@ markdown_extensions:
   - def_list
   - attr_list
   - pymdownx.highlight
-  - pymdownx.superfences
   - pymdownx.details
   - pymdownx.tabbed:
       alternate_style: true
   - pymdownx.emoji:
       emoji_generator: !!python/name:materialx.emoji.to_svg
+  # Critical: Enables Mermaid diagram rendering for architecture docs
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format

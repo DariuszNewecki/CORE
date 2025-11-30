@@ -1,0 +1,10 @@
+/* Fix emoji list formatting */
+ul li {
+  list-style: none;
+  text-indent: 0;
+  padding-left: 0;
+}
+
+ul {
+  padding-left: 1.5em;
+}
