@@ -1,37 +1,29 @@
 # src/shared/activity_logging.py
 """
-Unified activity logging for CORE workflows.
+Activity logging for workflow execution tracking.
 
-Provides:
-- ActivityRun: correlation info for a single workflow execution
-- activity_run(): context manager for wrapping a workflow with start/end logs
-- log_activity(): helper to emit structured activity events
-
-This is intentionally generic and can be used by:
-- check.audit
-- context.build / context.rebuild
-- coverage.remediate
-- future A2 orchestrators
+Provides structured logging with correlation IDs for all workflow runs.
+Maintains audit trail of all actions and their outcomes.
 """
 
 from __future__ import annotations
 
 import contextlib
+import logging
 import time
 import uuid
 from collections.abc import Generator
 from dataclasses import dataclass
-from typing import Any, Literal
+from typing import Any
 
-from shared.logger import getLogger
+logger = logging.getLogger(__name__)
 
-logger = getLogger(__name__)
+# Type alias for activity status
+ActivityStatus = str  # "start" | "ok" | "error" | "warning"
 
-ActivityStatus = Literal["start", "ok", "warning", "error", "skipped"]
 
-
-@dataclass(frozen=True)
-# ID: d5a1bf85-27bd-4404-a51a-4c78a02a20fd
+@dataclass
+# ID: 8be33d13-9d87-46d4-a5c2-ef5f1f8f3b5e
 class ActivityRun:
     """Correlation info for a single workflow execution."""
 
@@ -60,7 +52,7 @@ def log_activity(
     we always include workflow_id + run_id + status + event.
 
     Logging behaviour:
-    - workflow_start / workflow_complete / phase:* → INFO
+    - workflow_start / workflow_complete / phase:* → DEBUG (quiet for CLI)
     - status == "warning" → WARNING
     - status == "error"   → ERROR
     - everything else      → DEBUG
@@ -82,9 +74,9 @@ def log_activity(
     # Human-readable message instead of just "activity"
     msg = message or f"[{run.workflow_id}] {event} ({status})"
 
-    # Decide log level
+    # Decide log level - workflow events go to DEBUG to keep CLI clean
     if event in {"workflow_start", "workflow_complete"} or event.startswith("phase:"):
-        log_fn = logger.info
+        log_fn = logger.debug  # Changed from INFO to DEBUG for cleaner CLI
     elif status == "warning":
         log_fn = logger.warning
     elif status == "error":
@@ -111,6 +103,7 @@ def activity_run(
             ...
 
     On exit, it automatically logs workflow completion or error with duration.
+    Note: Logs at DEBUG level to keep CLI output clean.
     """
     run = new_activity_run(workflow_id)
     start_time = time.time()
