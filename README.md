@@ -9,6 +9,12 @@
 
 CORE is a **self‑governing, constitutionally aligned AI development system** capable of planning, writing, validating, and evolving software **autonomously and safely**. It is designed for environments where **trust, traceability, and governance matter as much as raw capability**.
 
+## See It In Action
+
+<script src="https://asciinema.org/a/S4tXkXUclYeTo6kEH1Z5UyUPE.js" id="asciicast-S4tXkXUclYeTo6kEH1Z5UyUPE" async></script>
+
+[View full screen](https://asciinema.org/a/S4tXkXUclYeTo6kEH1Z5UyUPE)
+
 ---
 
 ## 🏛️ Project Status: A2 Autonomy Achieved

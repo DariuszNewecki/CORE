@@ -16,12 +16,13 @@ from rich.text import Text
 from shared.activity_logging import ActivityRun, log_activity
 from shared.cli_types import CommandResult
 
-console = Console()
+# FIXED: Disable timestamps in console output for cleaner display
+console = Console(log_time=False)
 
 
 @dataclass
 # ID: dev_sync_phase_v1
-# ID: ede66864-4a43-4708-95a9-cc9c149754aa
+# ID: 08f90cdd-370c-4988-80e8-0ad64f73afe1
 class DevSyncPhase:
     """Represents a logical phase in the dev-sync workflow."""
 
@@ -32,13 +33,13 @@ class DevSyncPhase:
     """Commands executed in this phase"""
 
     @property
-    # ID: 8039e19e-d62e-4862-bade-673ee55ddbc5
+    # ID: 56b5b128-8286-48ef-942a-21b9da4a7a83
     def ok(self) -> bool:
         """Phase succeeds if all commands succeed."""
         return all(r.ok for r in self.results)
 
     @property
-    # ID: 3115fc02-98b0-4dc1-92d3-ab970ca59bbf
+    # ID: 1258d2aa-3dd9-434c-a495-4e59d33bcbca
     def total_duration(self) -> float:
         """Sum of all command durations in this phase."""
         return sum(r.duration_sec for r in self.results)
@@ -46,7 +47,7 @@ class DevSyncPhase:
 
 @dataclass
 # ID: dev_sync_reporter_v1
-# ID: 58897a89-86c3-4bf7-b651-372e81b8550a
+# ID: a6bd1a16-dae7-4acb-892c-e467f945870c
 class DevSyncReporter:
     """
     Coordinates user-facing reporting for dev-sync workflow.
@@ -73,7 +74,7 @@ class DevSyncReporter:
     current_phase: DevSyncPhase | None = None
 
     # ID: print_header_v1
-    # ID: 9208be80-49f9-4ada-b276-f0fc54052b99
+    # ID: d62160fa-7cdb-4610-95f0-540394d8ea22
     def print_header(self) -> None:
         """Print workflow header with run metadata."""
         console.rule("[bold]CORE Dev Sync Workflow[/bold]")
@@ -83,7 +84,7 @@ class DevSyncReporter:
         console.print()
 
     # ID: start_phase_v1
-    # ID: 5b68c4ac-36ed-4e3b-9d30-4413e7853bdc
+    # ID: 2a98b30c-0cbb-48fd-a40a-270913ab982c
     def start_phase(self, name: str) -> DevSyncPhase:
         """
         Start a new phase and return it.
@@ -100,7 +101,7 @@ class DevSyncReporter:
         return phase
 
     # ID: record_result_v1
-    # ID: d567fbf6-431b-4583-88b0-0660863cf35c
+    # ID: ff8c918d-9521-4e82-bac6-00b01ffa9462
     def record_result(
         self,
         result: CommandResult,
@@ -134,7 +135,7 @@ class DevSyncReporter:
         )
 
     # ID: print_phases_v1
-    # ID: b44fa3f0-c261-4c85-b9c5-39f7b2454e83
+    # ID: d4f9fb26-e073-4a28-a661-8431078967dc
     def print_phases(self) -> None:
         """Render all phases with their results in a table format."""
         if not self.phases:
@@ -206,16 +207,20 @@ class DevSyncReporter:
             return f"{fixed}/{violations} fixed"
 
         elif result.name in ["fix.docstrings", "fix.code-style", "fix.vector-sync"]:
-            # Commands that just complete
+            # Commands that just complete - don't show truncated output
             return "Completed"
 
         elif result.name == "check.lint":
             # Lint check - show if passed or had issues
             return "Passed" if result.ok else "Issues found"
 
-        elif result.name in ["manage.sync-knowledge", "run.vectorize"]:
-            # DB sync commands - show completion
-            return "Synced" if result.ok else "Failed"
+        elif result.name in [
+            "manage.sync-knowledge",
+            "run.vectorize",
+            "manage.define-symbols",
+        ]:
+            # DB sync commands - show completion without log noise
+            return "Completed"
 
         elif result.name == "inspect.duplicates":
             # Analysis command
@@ -226,26 +231,18 @@ class DevSyncReporter:
             return f"{result.data['count']} processed"
 
         elif "output" in result.data:
-            # CLI wrapper - show first bit of output
-            output = result.data["output"]
-            if output:
-                return output[:30] + "..." if len(output) > 30 else output
+            # CLI wrapper - just show "Completed" instead of truncated logs
             return "Completed"
 
         elif "success" in result.data:
             return "Completed" if result.data["success"] else "Failed"
 
         else:
-            # Fallback: show first key
-            if result.data:
-                key, value = next(iter(result.data.items()))
-                if isinstance(value, str) and len(value) < 30:
-                    return f"{value}"
-                return f"{key}: {value}"
+            # Fallback
             return "Completed"
 
     # ID: print_summary_v1
-    # ID: 37398c6d-21b8-4a21-bef0-0242fce5f69c
+    # ID: 232e679a-071f-4d1f-b131-dfad3352cfd1
     def print_summary(self) -> None:
         """Print final summary with phase breakdown and overall status."""
         if not self.phases:
