@@ -11,9 +11,9 @@ CORE is a **self‑governing, constitutionally aligned AI development system** c
 
 ## See It In Action
 
-<script src="https://asciinema.org/a/S4tXkXUclYeTo6kEH1Z5UyUPE.js" id="asciicast-S4tXkXUclYeTo6kEH1Z5UyUPE" async></script>
+[![asciicast](https://asciinema.org/a/S4tXkXUclYeTo6kEH1Z5UyUPE.svg)](https://asciinema.org/a/S4tXkXUclYeTo6kEH1Z5UyUPE)
 
-[View full screen](https://asciinema.org/a/S4tXkXUclYeTo6kEH1Z5UyUPE)
+[View full screen →](https://asciinema.org/a/S4tXkXUclYeTo6kEH1Z5UyUPE)
 
 ---
 
