@@ -90,27 +90,10 @@ check: ## Run full suite: Lint + Tests + Coverage + Audit + Docs
 fix-all: ## Run all self-healing fixes in curated sequence
 	$(CORE_ADMIN) fix all
 
-dev-sync: ## Run the safe, non-destructive developer sync and audit workflow
-	@echo "🔄 Running comprehensive dev-sync workflow..."
-	@echo "🆔 Step 1/9: Assigning missing IDs..."
-	$(CORE_ADMIN) fix ids --write
-	@echo "📝 Step 2/9: Fixing file headers..."
-	$(CORE_ADMIN) fix headers --write
-	@echo "📚 Step 3/9: Adding missing docstrings..."
-	$(CORE_ADMIN) fix docstrings --write
-	@echo "🎨 Step 4/9: Formatting code (black/ruff)..."
-	$(CORE_ADMIN) fix code-style
-	@echo "🔍 Step 5/9: Running linter (stop on error)..."
-	$(CORE_ADMIN) check lint
-	@echo "🔄 Step 6/9: Synchronizing vector database..."
-	$(CORE_ADMIN) fix vector-sync --write
-	@echo "💾 Step 7/9: Syncing symbols to database..."
-	$(CORE_ADMIN) manage database sync-knowledge --write
-	@echo "🏷️ Step 8/9: Defining capabilities (AI Naming)..."
-	$(CORE_ADMIN) manage define-symbols
-	@echo "🧠 Step 9/9: Vectorizing knowledge graph..."
-	$(CORE_ADMIN) run vectorize --write
-	@echo "✅ Dev-sync complete! Database is now current."
+dev-sync: ## Run the comprehensive dev-sync workflow (now governed by DevSyncReporter)
+	@echo "🔄 Running CORE dev-sync workflow..."
+	$(CORE_ADMIN) dev sync --write
+	@echo "✅ Dev-sync complete! All systems synchronized."
 
 dupes: ## Check for duplicate code (semantic similarity analysis)
 	@echo "🔍 Running semantic duplication analysis..."
