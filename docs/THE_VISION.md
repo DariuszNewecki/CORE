@@ -1906,76 +1906,68 @@ CREATE TABLE workflow_runs (
 
 ## The Path Forward
 
-### Immediate Next Steps (This Week)
+### Immediate Next Steps
 
-1. **Commit Today's Work:**
-   ```bash
-   git add .
-   git commit -m "feat: Establish CORE vision and atomic actions foundation"
-   ```
-
-2. **Finish ActionResult Migration (Week 1-4):**
-
+#### Finish ActionResult Migration (Week 1-4):
    - Follow MIGRATION_GUIDE.md
    - Convert all Python commands
    - Unify reporters
    - Validate with tests
 
-3. **Document Current State:**
-
+#### Document Current State:
    - Update README with vision
    - Create architecture diagrams
    - Write contributor guide
 
-### First External Validation (Month 2)
+### First External Validation
 
-1. **Add Second Language (C):**
+#### Add Second Language (C):
 
    - Create C domain constitution
    - Build simple C action (generate.c_function)
    - Validate with kernel coding standards
    - Prove multi-language works
 
-2. **Blog Post / Demo:**
+#### Blog Post / Demo:
 
    - "Constitutional AI for Reliable Code Generation"
    - Show Python + C working together
    - Demonstrate hallucination detection
    - Get community feedback
 
-### First Real Product (Month 4)
+### First Real Product
 
-1. **Build Something Useful:**
+#### Build Something Useful:
 
    - Simple web service generator
    - Or CLI tool generator
    - Or documentation generator
    - Something people can actually use
 
-2. **Open Source Release:**
+#### Open Source Release:
 
    - Clean up codebase
    - Write comprehensive docs
    - Create contribution guidelines
    - Announce on relevant forums
 
-### Gather Community (Months 5-6)
+### Gather Community
 
-1. **Engage AI Safety Researchers:**
+#### Engage AI Safety Researchers:
 
    - Constitutional AI is their language
    - Scalable oversight is their problem
    - CORE is a practical solution
    - Seek feedback and collaboration
 
-2. **Engage Developers:**
+#### Engage Developers:
 
    - Show how CORE saves time
    - Demonstrate governance benefits
    - Prove reliability improvements
    - Build user base
 
-### Scale Up (Year 1)
+### Scale Up
 
 1. **Add More Domains:**
 
@@ -1996,7 +1988,7 @@ CREATE TABLE workflow_runs (
    - Quality improvement metrics
    - Cost reduction metrics
 
-### The Ultimate Goal (Year 2+)
+### The Ultimate Goal
 
 **Build the mobile OS.**
 
