@@ -26,13 +26,18 @@ from features.self_healing.duplicate_id_service import resolve_duplicate_ids
 from features.self_healing.id_tagging_service import assign_missing_ids
 from features.self_healing.policy_id_service import add_missing_policy_ids
 from features.self_healing.purge_legacy_tags_service import purge_legacy_tags
-from shared.cli_types import CommandResult
+from shared.action_types import (
+    ActionImpact,
+    ActionResult,
+)
+
+# CHANGED: Import from action_types
+from shared.atomic_action import atomic_action  # NEW: Import decorator
 from shared.cli_utils import async_command
 from shared.context import CoreContext
 
 from . import (
     _confirm_dangerous_operation,
-    _run_with_progress,
     console,
     fix_app,
     handle_command_errors,
@@ -40,19 +45,40 @@ from . import (
 
 
 # ID: fix_ids_internal_v1
-# ID: a3fca3a1-8cc4-4f87-89e9-abe557a34709
-async def fix_ids_internal(write: bool = False) -> CommandResult:
+@atomic_action(
+    action_id="fix.ids",
+    intent="Assign stable UUIDs to untagged public symbols",
+    impact=ActionImpact.WRITE_METADATA,
+    policies=["symbol_identification"],
+    category="fixers",
+)
+# ID: 61377f91-d017-4749-a863-774ea5c2df3d
+async def fix_ids_internal(write: bool = False) -> ActionResult:
     """
     Core logic for fix ids command.
-    Returns CommandResult instead of printing.
+
+    Assigns stable UUID identifiers to all public symbols (functions, classes)
+    that don't already have one. This enables:
+    - Stable references across refactorings
+    - Symbol tracking in knowledge graph
+    - Constitutional governance of code structure
+
+    Args:
+        write: If True, apply changes. If False, dry-run only.
+
+    Returns:
+        ActionResult with:
+        - ok: True if successful
+        - data: {"ids_assigned": int, "dry_run": bool, "mode": str}
+        - duration_sec: Execution time
     """
     start_time = time.time()
 
     try:
         total_assigned = assign_missing_ids(dry_run=not write)
 
-        return CommandResult(
-            name="fix.ids",
+        return ActionResult(
+            action_id="fix.ids",
             ok=True,
             data={
                 "ids_assigned": total_assigned,
@@ -60,11 +86,12 @@ async def fix_ids_internal(write: bool = False) -> CommandResult:
                 "mode": "write" if write else "dry-run",
             },
             duration_sec=time.time() - start_time,
+            impact=ActionImpact.WRITE_METADATA,
         )
 
     except Exception as e:
-        return CommandResult(
-            name="fix.ids",
+        return ActionResult(
+            action_id="fix.ids",
             ok=False,
             data={
                 "error": str(e),
@@ -86,7 +113,15 @@ async def assign_ids_command(
         False, "--write", help="Apply the changes to the files."
     ),
 ) -> None:
-    """CLI wrapper - presentation only."""
+    """
+    CLI wrapper for fix ids command.
+
+    Handles user interaction and presentation while fix_ids_internal()
+    contains the core logic. This separation enables:
+    - Testing without CLI
+    - Workflow orchestration
+    - Constitutional governance
+    """
 
     if not _confirm_dangerous_operation("ids", write):
         console.print("[yellow]Operation cancelled by user.[/yellow]")
@@ -100,103 +135,103 @@ async def assign_ids_command(
     if result.ok:
         count = result.data["ids_assigned"]
         mode = result.data["mode"]
-        console.print(f"[green]Total IDs assigned: {count} ({mode})[/green]")
+        console.print(f"[bold green]Total IDs assigned: {count} ({mode})[/bold green]")
     else:
         error = result.data.get("error", "Unknown error")
-        console.print(f"[red]❌ Failed: {error}[/red]")
-        raise typer.Exit(1)
+        console.print(f"[bold red]Error: {error}[/bold red]")
 
 
 @fix_app.command(
     "purge-legacy-tags",
-    help="Removes obsolete '# CAPABILITY:' tags from source code.",
+    help="Removes obsolete tag formats (e.g. old 'Tag:' or 'Metadata:' lines).",
 )
 @handle_command_errors
-# ID: df0742ef-5cc1-4c3f-b885-3c82ef00e08c
-def purge_legacy_tags_command(
+@async_command
+# ID: 68f2fc74-f7a5-44fc-9c2a-fc98d8e1ad9f
+async def purge_legacy_tags_command(
     write: bool = typer.Option(
-        False, "--write", help="Apply the changes to the files."
+        False, "--write", help="Apply changes (remove the lines)."
     ),
 ) -> None:
+    """Remove obsolete tag formats from Python files."""
     if not _confirm_dangerous_operation("purge-legacy-tags", write):
         console.print("[yellow]Operation cancelled by user.[/yellow]")
         return
-    total_removed = _run_with_progress(
-        "Purging legacy tags", lambda: purge_legacy_tags(dry_run=not write)
-    )
-    console.print(f"[green]Total legacy tags removed: {total_removed}[/green]")
+
+    removed_count = purge_legacy_tags(dry_run=not write)
+    mode = "removed" if write else "would be removed (dry-run)"
+    console.print(f"[bold green]Obsolete tags {mode}: {removed_count}[/bold green]")
 
 
 @fix_app.command(
-    "policy-ids", help="Adds a unique `policy_id` UUID to any policy file missing one."
+    "policy-ids",
+    help="Assigns missing IDs to policy files in .intent/charter/policies/.",
 )
 @handle_command_errors
-# ID: d6c3eef7-85e2-4be0-b2eb-7aa450eeb81b
-def fix_policy_ids_command(
+@async_command
+# ID: 86a8df48-a3b2-4aa2-9088-61ed36b89c0f
+async def fix_policy_ids_command(
     write: bool = typer.Option(
-        False, "--write", help="Apply the changes to the files."
+        False, "--write", help="Write the IDs to the policy files."
+    ),
+    policies_dir: Path = typer.Option(
+        Path(".intent/charter/policies"),
+        help="Path to the policies directory.",
     ),
 ) -> None:
+    """Ensure each policy file has a unique policy_id."""
     if not _confirm_dangerous_operation("policy-ids", write):
         console.print("[yellow]Operation cancelled by user.[/yellow]")
         return
-    total_updated = _run_with_progress(
-        "Adding missing policy IDs", lambda: add_missing_policy_ids(dry_run=not write)
+
+    added, skipped = add_missing_policy_ids(
+        policies_dir=policies_dir, dry_run=not write
     )
-    console.print(f"[green]Total policy files updated: {total_updated}[/green]")
+    mode = "write" if write else "dry-run"
+    console.print(
+        f"[bold green]Policy IDs: added={added}, skipped={skipped} ({mode})[/bold green]"
+    )
 
 
 @fix_app.command(
     "tags",
-    help="Use an AI agent to suggest and apply capability tags to untagged symbols.",
+    help="Tags untagged capabilities by calling the capability-tagging service.",
 )
 @handle_command_errors
 @async_command
-# ID: d06f24c4-1f52-4f3e-8e7f-e14861098084
+# ID: a74fc4e1-b64d-44d9-9ba9-c8f9f9c6d6a7
 async def fix_tags_command(
-    ctx: typer.Context,
-    file_path: Path | None = typer.Argument(
-        None,
-        help="Optional: A specific file to process.",
-        exists=True,
-        dir_okay=False,
-        resolve_path=True,
-    ),
-    write: bool = typer.Option(
-        False, "--write", help="Apply the suggested tags directly to the files."
-    ),
-    dry_run: bool = typer.Option(
-        False, "--dry-run", help="Show what would be tagged without writing."
-    ),
+    write: bool = typer.Option(False, "--write", help="Write capability tags to DB."),
 ) -> None:
+    """
+    Automatically tag untagged capabilities using the AI naming agent.
+    Preserves user-defined tags and only tags capabilities missing them.
+    """
     if not _confirm_dangerous_operation("tags", write):
         console.print("[yellow]Operation cancelled by user.[/yellow]")
         return
 
-    core_context: CoreContext = ctx.obj
-    effective_dry_run = dry_run or not write
-
-    target_files = f"file {file_path}" if file_path else "all files"
-    with console.status(f"[cyan]Tagging capabilities in {target_files}...[/cyan]"):
-        await tag_capabilities_async(
-            write=write,
-            dry_run=effective_dry_run,
-        )
-    console.print("[green]Capability tagging completed[/green]")
+    ctx = CoreContext.get_or_fail()
+    await tag_capabilities_async(write=write, db=ctx.db)
 
 
 @fix_app.command(
-    "duplicate-ids", help="Finds and fixes duplicate '# ID:' tags in the codebase."
+    "duplicate-ids",
+    help="Resolves duplicate IDs by regenerating fresh UUIDs for conflicts.",
 )
 @handle_command_errors
 @async_command
-# ID: 277119a4-b01c-4237-bfce-f7dcd2b1c10a
+# ID: c2a7e1f3-4b9d-4e8a-9c3a-8f5e6d7c8b9a
 async def fix_duplicate_ids_command(
-    write: bool = typer.Option(False, "--write", help="Apply fixes to source files."),
+    write: bool = typer.Option(
+        False, "--write", help="Apply the changes to resolve duplicate IDs."
+    ),
 ) -> None:
+    """Detect and resolve duplicate IDs in Python files."""
     if not _confirm_dangerous_operation("duplicate-ids", write):
         console.print("[yellow]Operation cancelled by user.[/yellow]")
         return
-    with console.status("[cyan]Resolving duplicate IDs...[/cyan]"):
-        await resolve_duplicate_ids(dry_run=not write)
-    console.print("[green]Duplicate ID resolution completed[/green]")
+
+    resolved_count = resolve_duplicate_ids(dry_run=not write)
+    mode = "resolved" if write else "would be resolved (dry-run)"
+    console.print(f"[bold green]Duplicate IDs {mode}: {resolved_count}[/bold green]")

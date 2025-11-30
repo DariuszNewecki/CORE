@@ -4,7 +4,7 @@ Code style related self-healing commands for the 'fix' CLI group.
 
 Provides:
 - fix code-style
-- fix headers (MIGRATED to CommandResult pattern)
+- fix headers (MIGRATED to ActionResult pattern with @atomic_action)
 """
 
 from __future__ import annotations
@@ -14,7 +14,13 @@ import time
 import typer
 from features.self_healing.code_style_service import format_code
 from mind.governance.constitutional_monitor import ConstitutionalMonitor
-from shared.cli_types import CommandResult
+from shared.action_types import (
+    ActionImpact,
+    ActionResult,
+)
+
+# CHANGED: Import from action_types
+from shared.atomic_action import atomic_action  # NEW: Import decorator
 from shared.cli_utils import async_command
 from shared.config import settings
 
@@ -44,33 +50,49 @@ def format_code_cmd() -> None:
 
 
 # ============================================================================
-# NEW: Internal function that returns CommandResult
+# NEW: Internal function with ActionResult and @atomic_action
 # ============================================================================
 
 
 # ID: fix_headers_internal_v1
-# ID: 92312357-aedb-4381-8b5c-e824877871d9
-async def fix_headers_internal(write: bool = False) -> CommandResult:
+@atomic_action(
+    action_id="fix.headers",
+    intent="Ensure all Python files have constitutionally compliant headers",
+    impact=ActionImpact.WRITE_METADATA,
+    policies=["file_headers"],
+    category="fixers",
+)
+# ID: 598ba917-d84a-4bce-9bbc-27d62733aeed
+async def fix_headers_internal(write: bool = False) -> ActionResult:
     """
     Core logic for fix headers command.
 
-    Returns CommandResult with audit and remediation data.
+    Audits all Python files for constitutional header compliance and
+    optionally remediates violations. Headers must include:
+    - File path comment
+    - Module docstring
+    - Required imports
+
+    This ensures:
+    - Consistent file structure across codebase
+    - Constitutional compliance for AI code generation
+    - Proper documentation for knowledge graph
 
     Args:
-        write: Whether to apply fixes (False = dry-run audit only)
+        write: If True, fix violations. If False, audit only (dry-run).
 
     Returns:
-        CommandResult with:
-            - name: "fix.headers"
-            - ok: True if no violations or all fixed successfully
-            - data: {
-                "violations_found": int,
-                "files_scanned": int,
-                "compliant_files": int,
-                "fixed_count": int (only if write=True),
-                "failed_count": int (only if write=True),
-                "dry_run": bool,
-              }
+        ActionResult with:
+        - ok: True if no violations or all fixed successfully
+        - data: {
+            "violations_found": int,
+            "files_scanned": int,
+            "compliant_files": int,
+            "fixed_count": int (only if write=True),
+            "failed_count": int (only if write=True),
+            "dry_run": bool,
+          }
+        - duration_sec: Execution time
     """
     start_time = time.time()
 
@@ -89,11 +111,12 @@ async def fix_headers_internal(write: bool = False) -> CommandResult:
 
         # If no violations, we're done
         if not audit_report.violations:
-            return CommandResult(
-                name="fix.headers",
+            return ActionResult(
+                action_id="fix.headers",
                 ok=True,
                 data=result_data,
                 duration_sec=time.time() - start_time,
+                impact=ActionImpact.WRITE_METADATA,
             )
 
         # Step 2: Remediate (if write mode)
@@ -106,85 +129,89 @@ async def fix_headers_internal(write: bool = False) -> CommandResult:
                 }
             )
 
-            return CommandResult(
-                name="fix.headers",
+            return ActionResult(
+                action_id="fix.headers",
                 ok=remediation_result.success,
                 data=result_data,
                 duration_sec=time.time() - start_time,
+                impact=ActionImpact.WRITE_METADATA,
+                suggestions=(
+                    ["Run check audit to verify compliance"]
+                    if remediation_result.success
+                    else []
+                ),
             )
 
         # Dry-run: violations found but not fixed
-        return CommandResult(
-            name="fix.headers",
+        return ActionResult(
+            action_id="fix.headers",
             ok=False,  # Violations exist but not fixed
             data=result_data,
             duration_sec=time.time() - start_time,
+            suggestions=["Run with --write to fix violations"],
         )
 
     except Exception as e:
-        return CommandResult(
-            name="fix.headers",
+        return ActionResult(
+            action_id="fix.headers",
             ok=False,
             data={
                 "error": str(e),
                 "error_type": type(e).__name__,
             },
             duration_sec=time.time() - start_time,
-            logs=[f"Exception during header processing: {e}"],
+            logs=[f"Exception during header audit/remediation: {e}"],
         )
 
 
-# ============================================================================
-# CLI Command (refactored to use fix_headers_internal)
-# ============================================================================
-
-
 @fix_app.command(
-    "headers", help="Enforces constitutional header conventions on Python files."
+    "headers", help="Ensures all Python files have constitutionally compliant headers."
 )
 @handle_command_errors
 @async_command
-# ID: 80d3b5f4-a048-4b14-83ee-3fcd667d7ca7
+# ID: 00b6c8e4-9e5d-4a9a-8c3a-7f6e5d4c3b2a
 async def fix_headers_cmd(
     write: bool = typer.Option(
-        False, "--write", help="Apply the changes autonomously."
+        False, "--write", help="Apply fixes to files with violations."
     ),
 ) -> None:
-    """CLI wrapper - presentation only."""
+    """
+    CLI wrapper for fix headers command.
+
+    Handles user interaction and presentation while fix_headers_internal()
+    contains the core logic. This separation enables:
+    - Testing without CLI
+    - Workflow orchestration
+    - Constitutional governance
+    """
 
     if not _confirm_dangerous_operation("headers", write):
         console.print("[yellow]Operation cancelled by user.[/yellow]")
         return
 
-    console.print("[bold cyan]🚀 Initiating constitutional header audit...[/bold cyan]")
-
     # Call internal function
-    with console.status("[cyan]Auditing headers...[/cyan]"):
+    with console.status("[cyan]Checking file headers...[/cyan]"):
         result = await fix_headers_internal(write=write)
 
     # Present results
-    if not result.ok and result.data.get("error"):
-        # Fatal error occurred
-        error = result.data["error"]
-        console.print(f"[red]❌ Failed: {error}[/red]")
-        raise typer.Exit(1)
-
-    violations = result.data.get("violations_found", 0)
-
-    if violations == 0:
-        console.print("[green]✅ All headers are constitutionally compliant.[/green]")
-        return
-
-    console.print(f"[yellow]Found {violations} header violation(s).[/yellow]")
-
-    if write:
-        fixed = result.data.get("fixed_count", 0)
-        failed = result.data.get("failed_count", 0)
-
-        if result.ok:
-            console.print(f"[green]✅ Fixed {fixed} header(s).[/green]")
+    if result.ok:
+        violations = result.data.get("violations_found", 0)
+        if violations == 0:
+            console.print(
+                "[bold green]✅ All headers are constitutionally compliant.[/bold green]"
+            )
         else:
-            console.print(f"[red]❌ Fixed {fixed}, but {failed} failed.[/red]")
-            raise typer.Exit(1)
+            fixed = result.data.get("fixed_count", 0)
+            console.print(
+                f"[bold green]✅ Fixed {fixed}/{violations} header violations.[/bold green]"
+            )
     else:
-        console.print("[yellow]Dry run mode. Use --write to apply fixes.[/yellow]")
+        violations = result.data.get("violations_found", 0)
+        if "error" in result.data:
+            error = result.data["error"]
+            console.print(f"[bold red]❌ Error: {error}[/bold red]")
+        else:
+            console.print(
+                f"[yellow]⚠ Found {violations} header violations (dry-run mode).[/yellow]"
+            )
+            console.print("[dim]Run with --write to fix them.[/dim]")
