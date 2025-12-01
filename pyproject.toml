@@ -42,7 +42,7 @@ cryptography = "^42.0.0"
 
 # CLI & UI
 typer = {extras = ["rich"], version = "^0.16.1"}
-rich = "^13"
+rich = "^14"
 
 # Data Processing
 pyyaml = "^6.0"
