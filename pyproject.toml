@@ -24,7 +24,7 @@ packages = [
 python = "^3.12"
 
 # Web Framework
-fastapi = "^0.115.0"
+fastapi = "^0.123.0"
 uvicorn = {extras = ["standard"], version = "^0.32.0"}
 
 # Database (Async)
