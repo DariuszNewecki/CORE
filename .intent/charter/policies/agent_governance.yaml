@@ -43,6 +43,10 @@ autonomy_lanes:
       - "autonomy.self_healing.fix_line_length"
       - "autonomy.self_healing.add_policy_ids"
       - "autonomy.self_healing.sort_imports"
+    velocity_limits:
+      max_proposals_per_hour: 10
+      max_files_per_day: 50
+      breach_behavior: "lock_lane_and_alert"
 
     safe_paths:
       - "docs/**/*.md"

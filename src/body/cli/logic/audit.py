@@ -1,27 +1,24 @@
 # src/body/cli/logic/audit.py
 """
 Provides functionality for the audit module.
+
+Refactored to be stateless and pure async (logic layer).
 """
 
 from __future__ import annotations
 
-import asyncio
 from collections import defaultdict
 
 import typer
+from mind.governance.auditor import ConstitutionalAuditor
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
-
 from shared.context import CoreContext
 from shared.models import AuditFinding, AuditSeverity
 from shared.utils.subprocess_utils import run_poetry_command
-from src.mind.governance.auditor import ConstitutionalAuditor
 
 console = Console()
-
-# Global variable to store context, set by the main admin_cli.py
-_context: CoreContext | None = None
 
 
 def _print_verbose_findings(findings: list[AuditFinding]):
@@ -58,7 +55,6 @@ def _print_verbose_findings(findings: list[AuditFinding]):
 
 def _print_summary_findings(findings: list[AuditFinding]):
     """Groups findings by check ID only and prints a summary table."""
-    # FIXED: Group by check_id and severity only, NOT by message
     grouped_findings: dict[tuple[str, AuditSeverity], list[AuditFinding]] = defaultdict(
         list
     )
@@ -105,13 +101,19 @@ def _print_summary_findings(findings: list[AuditFinding]):
     console.print("\n[dim]Run with '--verbose' to see all individual locations.[/dim]")
 
 
-async def _async_audit(severity: str, verbose: bool):
-    """The core async logic for running the audit."""
-    if _context is None:
-        console.print("[bold red]Error: Context not initialized for audit[/bold red]")
-        raise typer.Exit(code=1)
+# ID: 7de7e5c2-0fbf-4028-8111-e3722b7d0ad9
+async def run_audit_workflow(
+    context: CoreContext, severity: str = "warning", verbose: bool = False
+) -> None:
+    """
+    The core async logic for running the audit.
 
-    auditor = ConstitutionalAuditor(_context.auditor_context)
+    Args:
+        context: The application context containing the auditor_context.
+        severity: Minimum severity level to report ("info", "warning", "error").
+        verbose: Whether to print detailed findings.
+    """
+    auditor = ConstitutionalAuditor(context.auditor_context)
     all_findings_dicts = await auditor.run_full_audit_async()
 
     severity_map = {str(s): s for s in AuditSeverity}
@@ -161,8 +163,8 @@ async def _async_audit(severity: str, verbose: bool):
         raise typer.Exit(1)
 
 
-# ID: a232d01a-26a1-417c-8911-225d6cf64288
-def lint():
+# ID: 09884f64-313e-4f9d-84d0-de9e2d16a8d3
+def lint() -> None:
     """Checks code formatting and quality using Black and Ruff."""
     run_poetry_command(
         "🔎 Checking code format with Black...", ["black", "--check", "src", "tests"]
@@ -172,27 +174,7 @@ def lint():
     )
 
 
-# ID: dab15c7d-53b5-4340-9502-80ceca6abad7
-def test_system():
+# ID: 0a52d8ef-18a6-40c6-9ffe-95b9f9c295e4
+def test_system() -> None:
     """Run the pytest suite."""
     run_poetry_command("🧪 Running tests with pytest...", ["pytest"])
-
-
-# ID: ae47757e-0e9a-4527-93e3-57f6102e65a7
-def audit(
-    severity: str = typer.Option(
-        "warning",
-        "--severity",
-        "-s",
-        help="Filter findings by minimum severity level (info, warning, error).",
-        case_sensitive=False,
-    ),
-    verbose: bool = typer.Option(
-        False,
-        "--verbose",
-        "-v",
-        help="Show all individual findings instead of a summary.",
-    ),
-):
-    """Run a full constitutional self-audit and print a summary of findings."""
-    asyncio.run(_async_audit(severity=severity, verbose=verbose))

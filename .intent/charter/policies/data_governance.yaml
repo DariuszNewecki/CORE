@@ -1,3 +1,4 @@
+# .intent/charter/policies/data_governance.yaml
 policy_id: "1fb8949c-02db-486a-8b9d-556191456de3"  # From database_policy
 id: data_governance
 version: "2.0.1" # Version bump for enhanced detection metadata

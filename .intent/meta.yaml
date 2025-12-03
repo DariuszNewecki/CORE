@@ -8,6 +8,7 @@ charter:
     precedence_rules: "charter/constitution/precedence_rules.yaml"
     approvers: "charter/constitution/approvers.yaml"
     critical_paths: "charter/constitution/critical_paths.yaml"
+    immutable_principles: "charter/constitution/immutable_principles.yaml"
 
   policies:
     safety_framework: "charter/policies/safety_framework.yaml"

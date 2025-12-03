@@ -9,13 +9,11 @@ Provides:
 from __future__ import annotations
 
 import typer
-
 from features.self_healing.docstring_service import fix_docstrings
-from shared.cli_utils import async_command
+from shared.cli_utils import core_command
 from shared.context import CoreContext
 
 from . import (
-    _confirm_dangerous_operation,
     console,
     fix_app,
     handle_command_errors,
@@ -26,18 +24,23 @@ from . import (
     "docstrings", help="Adds missing docstrings using the A1 autonomy loop."
 )
 @handle_command_errors
-@async_command
-# ID: f0a66115-bc7a-46bc-a363-d9fa2b283e89
+@core_command(dangerous=True, confirmation=True)
+# ID: 03a9012f-8da6-4431-a586-b83c146b7d2b
 async def fix_docstrings_command(
     ctx: typer.Context,
     write: bool = typer.Option(
         False, "--write", help="Propose and apply the fix autonomously."
     ),
 ) -> None:
-    if not _confirm_dangerous_operation("docstrings", write):
-        console.print("[yellow]Operation cancelled by user.[/yellow]")
-        return
+    """
+    CLI wrapper for fix docstrings.
+    """
+    # Safety checks and async loop handling are now managed by @core_command
+
     core_context: CoreContext = ctx.obj
+
+    # JIT wiring ensures cognitive_service is ready for the agent
     with console.status("[cyan]Fixing docstrings...[/cyan]"):
         await fix_docstrings(context=core_context, write=write)
+
     console.print("[green]✅ Docstring fixes completed[/green]")

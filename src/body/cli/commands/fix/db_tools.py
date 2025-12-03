@@ -2,22 +2,17 @@
 """
 Database and vector-related commands for the 'fix' CLI group.
 
-Provides:
-- fix db-registry
-- fix vector-sync (replaces orphaned-vectors + dangling-vector-links)
+Refactored to use the Constitutional CLI Framework (@core_command).
 """
 
 from __future__ import annotations
 
 import typer
-
 from features.maintenance.command_sync_service import _sync_commands_to_db
-from features.self_healing.sync_vectors import main_sync as sync_vectors
-from shared.cli_utils import async_command
+from features.self_healing.sync_vectors import main_async as sync_vectors_async
+from shared.cli_utils import core_command
 
 from . import (
-    _confirm_dangerous_operation,
-    _run_with_progress,
     console,
     fix_app,
     handle_command_errors,
@@ -28,14 +23,18 @@ from . import (
     "db-registry", help="Syncs the live CLI command structure to the database."
 )
 @handle_command_errors
-@async_command
-# ID: 0156169d-4675-4811-8118-1b94c3a03797
-async def sync_db_registry_command() -> None:
+@core_command(dangerous=True, confirmation=False)
+# Confirmation=False because this is a metadata sync that shouldn't break things,
+# typically run automatically.
+# ID: 9309bc1b-d580-4887-b07d-13eccd137ef7
+async def sync_db_registry_command(ctx: typer.Context) -> None:
     """CLI wrapper for the command sync service."""
+    # We need to import the app object to introspect it
     from body.cli.admin_cli import app as main_app
 
     with console.status("[cyan]Syncing CLI commands to database...[/cyan]"):
         await _sync_commands_to_db(main_app)
+
     console.print("[green]✅ Database registry sync completed[/green]")
 
 
@@ -44,8 +43,10 @@ async def sync_db_registry_command() -> None:
     help="Atomically synchronize vectors between PostgreSQL and Qdrant.",
 )
 @handle_command_errors
-# ID: 3a7f9c2e-5b8d-4f1a-9e6c-1d2b4a8f7e3c
-def fix_vector_sync_command(
+@core_command(dangerous=True, confirmation=True)
+# ID: 52bf74e6-e420-474d-9d8e-057d0d1d7023
+async def fix_vector_sync_command(
+    ctx: typer.Context,
     write: bool = typer.Option(
         False,
         "--write",
@@ -54,20 +55,21 @@ def fix_vector_sync_command(
 ) -> None:
     """
     Atomic bidirectional vector synchronization.
-
-    This performs two operations in correct order:
-    1. Prune orphaned vectors from Qdrant (vectors without DB links)
-    2. Prune dangling links from PostgreSQL (links to missing vectors)
-
-    Running both operations atomically prevents partial sync states and
-    ensures consistency between the vector store and the main database.
     """
-    if not _confirm_dangerous_operation("vector-sync", write):
-        console.print("[yellow]Operation cancelled by user.[/yellow]")
-        return
+    # Framework handles safety check.
+    # We use the async entry point here.
 
-    _run_with_progress(
-        "Synchronizing vector database",
-        lambda: sync_vectors(write=write, dry_run=not write),
+    # Note: dry_run is implicit if write is False
+    dry_run = not write
+
+    # We inject the qdrant service from context to reuse the connection
+    # core_command guarantees ctx.obj has qdrant_service initialized
+    core_context = ctx.obj
+
+    await sync_vectors_async(
+        write=write, dry_run=dry_run, qdrant_service=core_context.qdrant_service
     )
-    console.print("[green]✅ Vector synchronization completed[/green]")
+
+    # The service prints its own summary, but we add a final confirmation
+    if write:
+        console.print("[green]✅ Vector synchronization completed[/green]")

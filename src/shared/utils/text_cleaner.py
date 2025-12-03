@@ -1,10 +1,15 @@
 # src/shared/utils/text_cleaner.py
-"""Provides functionality for the text_cleaner module."""
+"""
+Provides functionality for the text_cleaner module.
+Refactored to use shared.utils.common_knowledge for whitespace normalization (SSOT).
+"""
 
 from __future__ import annotations
 
-import re
 import unicodedata
+
+# Import the Single Source of Truth for whitespace normalization
+from shared.utils.common_knowledge import normalize_whitespace as _canonical_normalize
 
 
 # ID: 95528f75-7e92-4b42-bb95-91c30a87bf4d
@@ -57,28 +62,14 @@ def remove_extra_whitespace(text: str) -> str:
     """
     Remove extra whitespace from the input text.
 
-    This function:
-    - Trims leading and trailing whitespace
-    - Replaces multiple consecutive whitespace characters with a single space
-    - Preserves single spaces between words
-
-    Args:
-        text: The input string that may contain extra whitespace
-
-    Returns:
-        A string with normalized whitespace
-
-    Example:
-        >>> remove_extra_whitespace("  Hello    world!  ")
-        'Hello world!'
+    DELEGATION NOTE:
+    This logic is now centralized in shared.utils.common_knowledge.
+    We delegate to that implementation to enforce the DRY principle.
     """
     if not text:
         return text
 
-    # Replace all whitespace sequences (spaces, tabs, newlines) with single space
-    # then trim leading and trailing whitespace
-    cleaned_text = re.sub(r"\s+", " ", text.strip())
-    return cleaned_text
+    return _canonical_normalize(text)
 
 
 # ID: d58d042a-d3ff-48a0-b724-2023d87778ea
@@ -97,10 +88,6 @@ def normalize_text(
 
     Returns:
         A normalized string
-
-    Example:
-        >>> normalize_text("  Hello 👋   world!  ")
-        'Hello world!'
     """
     if not text:
         return text

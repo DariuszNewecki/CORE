@@ -130,7 +130,11 @@ sync-knowledge: ## Scan codebase and sync symbols to DB (Single Source of Truth)
 sync-manifest: ## Sync .intent/mind/project_manifest.yaml from DB
 	$(CORE_ADMIN) manage database sync-manifest
 
-vectorize: ## Vectorize knowledge graph (embeddings pipeline)
+vectorize: ## Vectorize knowledge graph, patterns, and policies (embeddings pipeline)
+	@echo "🧠 Vectorizing constitutional patterns..."
+	$(CORE_ADMIN) manage patterns vectorize
+	@echo "🧠 Vectorizing constitutional policies..."
+	$(CORE_ADMIN) manage policies vectorize
 	@echo "🧠 Vectorizing knowledge graph..."
 	$(CORE_ADMIN) run vectorize --write
 

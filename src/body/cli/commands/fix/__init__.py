@@ -12,9 +12,8 @@ from pathlib import Path
 from typing import Any
 
 import typer
-from rich.console import Console
-
 from features.self_healing.linelength_service import fix_line_lengths
+from rich.console import Console
 from shared.cli_utils import async_command
 from shared.config import settings
 from shared.context import CoreContext
@@ -120,6 +119,12 @@ COMMAND_CONFIG = {
         "confirmation": False,
         "category": "incident-response",
     },
+    "atomic-actions": {
+        "timeout": 300,
+        "dangerous": True,
+        "confirmation": False,
+        "category": "compliance",
+    },
 }
 
 
@@ -215,6 +220,7 @@ async def fix_line_lengths_command(
 # Late imports so submodules can register additional commands on fix_app
 from . import (
     all_commands,  # noqa: F401
+    atomic_actions_cmd,  # noqa: F401  -- NEW: Register atomic-actions command
     clarity,  # noqa: F401
     code_style,  # noqa: F401
     db_tools,  # noqa: F401

@@ -26,12 +26,12 @@ from will.orchestration.cognitive_service import CognitiveService
 
 from body.cli.commands import (
     check,
+    check_atomic_actions,
     check_patterns,
     coverage,
     enrich,
     fix,
     inspect,
-    manage,
     mind,
     run,
     search,
@@ -41,11 +41,13 @@ from body.cli.commands import (
 from body.cli.commands.dev_sync import dev_sync_app  # NEW: Import dev sync
 from body.cli.commands.develop import develop_app
 from body.cli.commands.fix import fix_app
+from body.cli.commands.inspect_patterns import inspect_patterns
 from body.cli.interactive import launch_interactive_menu
 from body.cli.logic import audit
 
 # New Architecture: Registry
 from body.services.service_registry import service_registry
+from src.body.cli.commands.manage import manage
 
 console = Console()
 logger = getLogger(__name__)
@@ -112,6 +114,12 @@ def register_all_commands(app_instance: typer.Typer) -> None:
     app_instance.add_typer(develop_app, name="develop")
     app_instance.add_typer(check_patterns.patterns_group, name="patterns")
     app_instance.add_typer(dev_sync_app, name="dev")  # NEW: Register dev sync
+    app_instance.add_typer(
+        check_atomic_actions.atomic_actions_group, name="atomic-actions"
+    )  # NEW: Register atomic-actions
+
+    # Pattern diagnostics
+    app_instance.command(name="inspect-patterns")(inspect_patterns)
 
     modules_with_context = [
         check,

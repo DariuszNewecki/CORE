@@ -2,9 +2,6 @@
 
 """
 High-performance orchestrator for capability vectorization.
-This version reads its work queue directly from the database, treating it as the
-single source of truth for the symbol catalog. It intelligently re-vectorizes
-symbols when their source code has been modified by comparing structural hashes.
 """
 
 from __future__ import annotations
@@ -16,23 +13,26 @@ from pathlib import Path
 
 from rich.console import Console
 from rich.progress import track
-from sqlalchemy import text
-
 from services.clients.qdrant_client import QdrantService
 from services.database.session_manager import get_session
 from shared.config import settings
 from shared.context import CoreContext
 from shared.logger import getLogger
 from shared.utils.embedding_utils import normalize_text
+from sqlalchemy import text
+
+# Use correct relative import for chunking logic within the app context
+# We can't easily import chunk_and_embed here because it uses a different interface (Embeddable)
+# So we implement a simple fallback strategy here.
 from will.orchestration.cognitive_service import CognitiveService
 
 logger = getLogger(__name__)
 console = Console()
 
 
+# ... (Keep helper functions _fetch_all_public_symbols_from_db, _fetch_existing_vector_links, _get_stored_vector_hashes, _get_source_code as is) ...
 async def _fetch_all_public_symbols_from_db() -> list[dict]:
     """Queries the database for all public symbols."""
-    # SIMPLIFIED: We no longer need the LEFT JOIN here. We'll get links separately.
     async with get_session() as session:
         stmt = text(
             """
@@ -45,18 +45,13 @@ async def _fetch_all_public_symbols_from_db() -> list[dict]:
         return [dict(row._mapping) for row in result]
 
 
-# --- START OF NEW HELPER FUNCTION ---
 async def _fetch_existing_vector_links() -> dict[str, str]:
     """Fetches all existing symbol_id -> vector_id mappings from the database."""
     async with get_session() as session:
         result = await session.execute(
             text("SELECT symbol_id, vector_id FROM core.symbol_vector_links")
         )
-        # Key: symbol_id (str), Value: vector_id (str)
         return {str(row.symbol_id): str(row.vector_id) for row in result}
-
-
-# --- END OF NEW HELPER FUNCTION ---
 
 
 async def _get_stored_vector_hashes(qdrant_service: QdrantService) -> dict[str, str]:
@@ -105,6 +100,45 @@ def _get_source_code(file_path: Path, symbol_path: str) -> str | None:
     return None
 
 
+async def _get_robust_embedding(
+    cognitive_service: CognitiveService, text: str
+) -> list[float] | None:
+    """
+    Gets embedding with fallback strategy:
+    1. Try direct embedding
+    2. If it fails (Ghost Vector/Error), split text in half and average the embeddings
+    """
+    try:
+        return await cognitive_service.get_embedding_for_code(text)
+    except RuntimeError as e:
+        if "Ghost Vector" in str(e) or "Embedding model failed" in str(e):
+            # Fallback: Split and Average
+            mid = len(text) // 2
+            logger.warning(
+                f"Ghost Vector detected. Retrying with split strategy (len={len(text)})."
+            )
+
+            # Simple recursive split (depth 1)
+            part1 = text[:mid]
+            part2 = text[mid:]
+
+            v1 = await cognitive_service.get_embedding_for_code(part1)
+            v2 = await cognitive_service.get_embedding_for_code(part2)
+
+            if v1 and v2:
+                # Average the vectors
+                import numpy as np
+
+                avg = (np.array(v1) + np.array(v2)) / 2.0
+                # Normalize
+                norm = np.linalg.norm(avg)
+                if norm > 0:
+                    avg = avg / norm
+                return avg.tolist()
+
+        raise e
+
+
 async def _process_vectorization_task(
     task: dict,
     cognitive_service: CognitiveService,
@@ -113,9 +147,14 @@ async def _process_vectorization_task(
 ) -> str | None:
     """Processes a single symbol: gets embedding and upserts to Qdrant. Returns Qdrant point ID on success."""
     try:
-        vector = await cognitive_service.get_embedding_for_code(task["source_code"])
+        source_code = task["source_code"]
+
+        # Use robust embedding wrapper
+        vector = await _get_robust_embedding(cognitive_service, source_code)
+
         if not vector:
             raise ValueError("Embedding service returned None")
+
         point_id = str(task["id"])
         payload_data = {
             "source_path": task["file_path_str"],
@@ -167,8 +206,7 @@ async def _update_db_after_vectorization(updates: list[dict]):
     console.print(f"   -> Updated {len(updates)} records in the database.")
 
 
-# --- START OF REFACTOR ---
-# ID: c1f403a3-cc28-450f-a182-b368e32abca5
+# ID: bd6be1fb-bc8f-4b2a-8989-1f6c9a191075
 async def run_vectorize(
     context: CoreContext, dry_run: bool = False, force: bool = False
 ):
@@ -178,7 +216,6 @@ async def run_vectorize(
     console.print("[bold cyan]🚀 Starting Database-Driven Vectorization...[/bold cyan]")
     failure_log_path = settings.REPO_PATH / "logs" / "vectorization_failures.log"
 
-    # 1. Fetch all state concurrently
     all_symbols, existing_links, stored_vector_hashes = await asyncio.gather(
         _fetch_all_public_symbols_from_db(),
         _fetch_existing_vector_links(),
@@ -192,11 +229,10 @@ async def run_vectorize(
     tasks = []
     for symbol in all_symbols:
         symbol_id_str = str(symbol["id"])
-
-        # 2. Get source code and calculate its current hash
         module_path = symbol["module"]
         file_path_str = "src/" + module_path.replace(".", "/") + ".py"
         file_path = settings.REPO_PATH / file_path_str
+
         source_code = _get_source_code(file_path, symbol["symbol_path"])
         if not source_code:
             continue
@@ -204,15 +240,12 @@ async def run_vectorize(
         normalized_code = normalize_text(source_code)
         current_code_hash = hashlib.sha256(normalized_code.encode("utf-8")).hexdigest()
 
-        # 3. Determine if vectorization is needed using explicit logic
         needs_vectorization = False
         if force:
             needs_vectorization = True
         elif symbol_id_str not in existing_links:
-            # Case A: Symbol is new and has never been vectorized.
             needs_vectorization = True
         else:
-            # Case B: Symbol has been vectorized. Check if its content has changed.
             vector_id = existing_links[symbol_id_str]
             stored_hash = stored_vector_hashes.get(vector_id)
             if current_code_hash != stored_hash:

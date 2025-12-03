@@ -9,6 +9,7 @@ universal contract that enables constitutional governance across all domains.
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
@@ -51,22 +52,6 @@ class ActionResult:
 
     Every operation in CORE—whether checking code, generating documentation,
     or building systems—returns an ActionResult.
-
-    Example:
-        @atomic_action(
-            action_id="fix.ids",
-            intent="Assign stable UUIDs to untagged public symbols",
-            impact=ActionImpact.WRITE_METADATA,
-            policies=["symbol_identification"],
-        )
-        async def fix_ids_internal(write: bool) -> ActionResult:
-            total = assign_missing_ids(dry_run=not write)
-            return ActionResult(
-                action_id="fix.ids",
-                ok=True,
-                data={"ids_assigned": total, "dry_run": not write},
-                impact=ActionImpact.WRITE_METADATA,
-            )
     """
 
     action_id: str
@@ -154,14 +139,45 @@ class ActionResult:
     Enables autonomous agents to chain actions intelligently.
     """
 
+    # Constitutional constant: Maximum allowed payload size (5MB)
+    MAX_DATA_SIZE_BYTES = 5 * 1024 * 1024
+
     def __post_init__(self):
-        """Validate ActionResult structure."""
+        """Validate ActionResult structure and size constraints."""
         if not isinstance(self.action_id, str) or not self.action_id:
             raise ValueError("action_id must be non-empty string")
         if not isinstance(self.data, dict):
             raise ValueError("data must be a dict")
         if not isinstance(self.ok, bool):
             raise ValueError("ok must be a boolean")
+
+        # Enforce data size limit to prevent memory bloating in workflows
+        try:
+            # We use JSON serialization as a proxy for data size
+            serialized = json.dumps(self.data, default=str)
+            if len(serialized) > self.MAX_DATA_SIZE_BYTES:
+                raise ValueError(
+                    f"ActionResult.data exceeds size limit of {self.MAX_DATA_SIZE_BYTES} bytes "
+                    f"(got {len(serialized)} bytes). Action: {self.action_id}"
+                )
+        except (TypeError, OverflowError):
+            # If data isn't serializable, we warn but don't crash (logging handled by caller)
+            pass
+
+    # ------------------------------------------------------------------
+    # Backwards compatibility for legacy CommandResult.name usage
+    # ------------------------------------------------------------------
+    @property
+    # ID: c70bf747-67ee-4913-a8df-91e325b8021a
+    def name(self) -> str:
+        """
+        Backwards-compatible alias for `action_id`.
+
+        Older code (like CLI workflows and reporters) still expects
+        `result.name`. New code should prefer `action_id`, but this
+        keeps existing workflows running while we migrate.
+        """
+        return self.action_id
 
 
 # Backward compatibility aliases (temporary - will be removed in future version)

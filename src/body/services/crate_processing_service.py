@@ -15,13 +15,14 @@ from typing import Any
 
 import jsonschema
 import yaml
+from features.crate_processing.canary_executor import CanaryExecutor
 from features.introspection.knowledge_graph_service import KnowledgeGraphBuilder
 from mind.governance.audit_context import AuditorContext
 from rich.console import Console
 from shared.action_logger import action_logger
 from shared.config import settings
 from shared.logger import getLogger
-from shared.models import AuditFinding
+from shared.models import AuditFinding, AuditSeverity
 
 from src.mind.governance.auditor import ConstitutionalAuditor
 
@@ -48,15 +49,16 @@ class CrateProcessingService:
         """Initializes the service with its required dependencies and constitutional policies."""
         self.repo_root = settings.REPO_PATH
 
-        # FIX: Load from operations.yaml instead of intent_crate_policy.yaml
+        # Load operational policy (canary rules)
         try:
             ops_policy = settings.load("charter.policies.operations")
-            self.crate_policy = ops_policy.get("intent_crates", {})
+            self.canary_config = ops_policy.get("canary", {})
         except Exception as e:
-            logger.warning(
-                f"Failed to load intent_crates policy from operations.yaml: {e}"
-            )
-            self.crate_policy = {}
+            logger.warning(f"Failed to load canary policy from operations.yaml: {e}")
+            self.canary_config = {}
+
+        # Initialize Canary Executor
+        self.canary_executor = CanaryExecutor(self.canary_config)
 
         self.crate_schema = settings.load(
             "charter.schemas.constitutional.intent_crate_schema"
@@ -161,20 +163,57 @@ class CrateProcessingService:
                 else:
                     target_path = canary_path / file_in_payload
                 self._copy_file(source_path, target_path)
+
             console.print("   -> Building canary's internal knowledge graph...")
             canary_builder = KnowledgeGraphBuilder(root_path=canary_path)
             canary_builder.build()
+
             console.print("   -> 🔬 Running full constitutional audit on canary...")
             auditor = ConstitutionalAuditor(AuditorContext(canary_path))
-            passed_findings = await auditor.run_full_audit_async()
-            passed = not any(f.get("severity") == "error" for f in passed_findings)
-            findings = [AuditFinding(**f) for f in passed_findings if not passed]
-            if passed:
+
+            # Get raw findings (dicts)
+            raw_findings = await auditor.run_full_audit_async()
+
+            # Convert to objects
+            all_findings = [AuditFinding(**f) for f in raw_findings]
+
+            # 1. Calculate metrics from audit results
+            metrics = self.canary_executor.derive_metrics_from_audit(all_findings)
+
+            # 2. Enforce constitutional thresholds via CanaryExecutor
+            canary_result = self.canary_executor.enforce(metrics)
+
+            # 3. Check results
+            if canary_result.passed:
                 console.print("   -> [bold green]✅ Canary audit PASSED.[/bold green]")
                 return (True, [])
             else:
-                console.print("   -> [bold red]❌ Canary audit FAILED.[/bold red]")
-                return (False, findings)
+                # Convert policy violations into synthetic AuditFindings for the report
+                violation_findings = []
+                for msg in canary_result.violations:
+                    violation_findings.append(
+                        AuditFinding(
+                            check_id="operations.canary_policy",
+                            severity=AuditSeverity.ERROR,
+                            message=msg,
+                            file_path="operations.yaml",
+                        )
+                    )
+
+                # Return the specific violations + any existing errors/warnings that caused them
+                combined_findings = violation_findings + [
+                    f
+                    for f in all_findings
+                    if f.severity in (AuditSeverity.ERROR, AuditSeverity.WARNING)
+                ]
+
+                console.print(
+                    f"   -> [bold red]❌ Canary audit FAILED ({len(canary_result.violations)} policy violations).[/bold red]"
+                )
+                for v in canary_result.violations:
+                    console.print(f"      - {v}")
+
+                return (False, combined_findings)
 
     def _apply_accepted_crate(self, crate: Crate):
         """Applies the payload of an accepted crate to the live repository."""

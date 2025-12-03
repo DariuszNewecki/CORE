@@ -1,39 +1,139 @@
 # .intent/mind/knowledge/entry_point_patterns.yaml
-patterns:
-  - name: "typer_cli_command"
-    description: "Public functions registered as Typer commands."
+# Entry point patterns for orphaned logic detection
+# These patterns identify functions that are legitimate entry points and should not be flagged as orphaned
+
+entry_point_patterns:
+  - name: "python_magic_method"
+    description: "Standard Python __dunder__ methods invoked automatically."
     match:
       type: "function"
-      module_path_contains: "body/cli/commands"
+      name_regex: "^__.+__$"
+    entry_point_type: "magic_method"
+
+  - name: "capability_implementation"
+    description: "Any symbol tagged with # ID is a primary CORE capability."
+    match:
+      has_capability_tag: true
+    entry_point_type: "capability"
+
+  - name: "typer_cli_command"
+    description: "Functions registered by Typer under src/body/cli/ are CLI commands."
+    match:
+      module_path_contains: "body.cli"
+      type: "function"
+      is_public_function: true
     entry_point_type: "cli_command"
 
-  - name: "fastapi_route"
-    description: "Functions decorated as FastAPI routes."
+  - name: "action_handler_methods"
+    description: "ActionHandler methods (execute and name) are dynamically dispatched via ActionRegistry"
+    entry_point_type: "action_handler_method"
     match:
+      module_path_contains: "body.actions"
+      name_regex: "Handler\\.(execute|name)$"
       type: "function"
-      module_path_contains: "api/v1"
-    entry_point_type: "api_route"
 
-  - name: "action_handler"
-    description: "Classes implementing the ActionHandler interface."
+  - name: "ast_visitor_methods"
+    description: "AST visitor methods are called by the visitor pattern"
+    entry_point_type: "visitor_method"
     match:
-      type: "class"
-      module_path_contains: "body/actions"
-      base_class_includes: "ActionHandler"
-    entry_point_type: "action_handler"
-
-  - name: "test_function"
-    description: "Pytest test functions."
-    match:
+      name_regex: "\\.(visit_|visit|generic_visit)"
       type: "function"
-      name_regex: "^test_"
-      module_path_contains: "tests/"
-    entry_point_type: "test"
 
-  - name: "public_service_method"
-    description: "Public methods on service classes."
+  - name: "service_accessors"
+    description: "Service registry accessor methods"
+    entry_point_type: "registry_accessor"
     match:
-      type: "method"
-      is_public_function: true
-      module_path_contains: "services/"
+      name_regex: "\\.(get_|get|resolve|find_|lookup)"
+      type: "function"
+
+  - name: "cli_command_functions"
+    description: "CLI command functions with standard suffixes or wrapper patterns"
+    entry_point_type: "cli_command"
+    match:
+      name_regex: "(_command|_cmd|_wrapper)$"
+      type: "function"
+
+  - name: "cli_verb_functions"
+    description: "CLI functions starting with action verbs (list_, show_, query_, etc)"
+    entry_point_type: "cli_command"
+    match:
+      module_path_contains: "body.cli"
+      name_regex: "^(list_|show_|query_|find_|get_|create_|update_|delete_|run_|execute_|build_|make_|approve_)"
+      type: "function"
+
+  - name: "service_operations"
+    description: "Standard service operation methods"
     entry_point_type: "service_method"
+    match:
+      name_regex: "\\.(build|apply|validate|check|process|scan|approve|sign|list|make_|show_|query_)"
+      type: "function"
+
+  - name: "utility_introspection"
+    description: "Utility functions for introspection and metadata (used by framework)"
+    entry_point_type: "utility_function"
+    match:
+      name_regex: "^(get_.*_metadata|find_.*|extract_.*|inspect_.*)$"
+      type: "function"
+
+  - name: "data_classes"
+    description: "Helper data classes"
+    entry_point_type: "data_class"
+    match:
+      name_regex: "(Info|Data|Config|Payload|Result|Response|Request|Metadata)$"
+      type: "class"
+
+  - name: "serialization_methods"
+    description: "Serialization methods"
+    entry_point_type: "serialization_method"
+    match:
+      name_regex: "\\.(to_dict|to_json|from_dict|from_json|as_dict)$"
+      type: "function"
+
+  - name: "governance_check_execute"
+    description: "Governance check execute methods are called by the audit framework"
+    entry_point_type: "governance_check"
+    match:
+      name_regex: "Check\\.execute$"
+      type: "function"
+
+  - name: "fastapi_route_handlers"
+    description: "FastAPI route handlers (functions decorated with @app.get, @app.post, etc.)"
+    entry_point_type: "api_route"
+    match:
+      module_path_contains: "src.api"
+      type: "function"
+
+  - name: "pytest_fixtures"
+    description: "Pytest fixtures are invoked by the test framework"
+    entry_point_type: "test_fixture"
+    match:
+      name_regex: "^(fixture_|test_)"
+      type: "function"
+
+  - name: "factory_functions"
+    description: "Factory functions that create instances"
+    entry_point_type: "factory"
+    match:
+      name_regex: "^(create_|make_|build_|new_)"
+      type: "function"
+
+  - name: "callback_handlers"
+    description: "Callback and handler functions"
+    entry_point_type: "callback"
+    match:
+      name_regex: "^(on_|handle_|process_)"
+      type: "function"
+
+  - name: "lifecycle_hooks"
+    description: "Application lifecycle hooks"
+    entry_point_type: "lifecycle_hook"
+    match:
+      name_regex: "^(startup|shutdown|lifespan|init_|cleanup_|teardown_)"
+      type: "function"
+
+  - name: "main_entry_point"
+    description: "Main entry point functions"
+    entry_point_type: "main"
+    match:
+      name_regex: "^(main|run|start|execute)$"
+      type: "function"

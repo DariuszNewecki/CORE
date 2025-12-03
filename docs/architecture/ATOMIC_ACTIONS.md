@@ -1,7 +1,7 @@
 # CORE Atomic Actions Architecture
 
 **Status:** Foundational Pattern
-**Version:** 1.0.0
+**Version:** 2.0.0
 **Last Updated:** 2025-11-30
 **Constitutional Reference:** `.intent/charter/patterns/atomic_actions.yaml`
 
@@ -9,242 +9,195 @@
 
 ## Executive Summary
 
-CORE is not a collection of CLI commands—it is a **constitutional system of composable atomic actions**. This document defines the fundamental abstraction that enables:
-- Autonomous operation with governance
-- Composable workflows
-- Scalable oversight (A2 → A3 → A4)
-- Constitutional compliance at every layer
+CORE is not a collection of CLI commands—it is a **constitutional system of composable atomic actions**.
 
-**Key Insight:** Every operation in CORE—whether reading (audit checks), writing (fixes), or transforming (sync)—is an atomic action governed by the same constitutional principles.
+Like a brick layer who doesn't make bricks but builds with them, CORE composes small, focused building blocks into larger structures. Atomic actions are those fundamental bricks:
+
+- **One brick = One thing** (UNIX philosophy)
+- **Small and focused** (30 small files > 1 giant file)
+- **Clear contracts** (ActionResult = predictable shape)
+- **Compose upward** (small → medium → large → features → CORE)
+
+**Key Insight:** Every operation in CORE—whether reading (checks), writing (fixes), or transforming (sync)—is an atomic action. Not because of decorators or metadata pollution, but because of its **structure, contract, and registration in the system.**
 
 ---
 
 ## Table of Contents
 
 1. [The Problem](#the-problem)
-2. [The Atomic Action Abstraction](#the-atomic-action-abstraction)
+2. [The Philosophy](#the-philosophy)
 3. [The Universal Contract](#the-universal-contract)
-4. [Workflow Orchestration](#workflow-orchestration)
-5. [Constitutional Governance](#constitutional-governance)
-6. [Migration Path](#migration-path)
+4. [Discovery & Governance](#discovery--governance)
+5. [Composition Over Complexity](#composition-over-complexity)
+6. [Constitutional Enforcement](#constitutional-enforcement)
 7. [Implementation Guide](#implementation-guide)
-8. [Future Vision](#future-vision)
+8. [Migration Path](#migration-path)
 
 ---
 
 ## The Problem
 
-### What We Had
+### Kitchen Sink Anti-Pattern
 
-**Before CommandResult pattern:**
+Code naturally drifts toward complexity:
+
 ```python
-def fix_ids():
-    total = assign_missing_ids()
-    print(f"Fixed {total} IDs")  # No structure
-    # Returns nothing useful
+def fix_everything():
+    """Does way too many things"""
+    # 500 lines of chaos
+    assign_missing_ids()
+    fix_headers()
+    format_code()
+    sync_database()
+    update_vectors()
+    generate_reports()
+    send_notifications()
+    # ... keeps growing forever
 ```
 
 **Problems:**
-- No standard result format
-- Can't compose commands
-- Can't test without CLI
-- No governance hooks
-- Every command improvises output
+- Impossible to reuse
+- Hard to test
+- Violates single responsibility
+- Can't compose with other actions
+- No clear success/failure contract
 
-### What We Have Now
+### What We Had Before
 
-**After CommandResult pattern (partial):**
+**Random return types:**
 ```python
-async def fix_ids_internal() -> CommandResult:
-    total = assign_missing_ids()
-    return CommandResult(
-        name="fix.ids",
-        ok=True,
-        data={"ids_assigned": total}
-    )
+def check_imports():
+    print("Checking imports...")  # Side effects
+    return violations  # List? Dict? None?
+
+def fix_ids():
+    total = do_work()
+    # Returns nothing useful
 ```
 
-**Better, but:**
-- `CommandResult` for commands
-- `AuditCheckResult` for checks
-- Two different contracts for the same abstraction
-- Reporters duplicated (AuditRunReporter vs DevSyncReporter)
-- Still no universal governance
-
-### What We Need
-
-**One universal abstraction:**
-```python
-async def fix_ids_internal() -> ActionResult:
-    """Atomic action: Assign stable IDs"""
-    # ... implementation
-    return ActionResult(
-        action_id="fix.ids",
-        ok=True,
-        data={"ids_assigned": total}
-    )
-
-async def check_imports_internal() -> ActionResult:
-    """Atomic action: Validate imports"""
-    # ... implementation
-    return ActionResult(
-        action_id="check.imports",
-        ok=True,
-        data={"violations": violations}
-    )
-```
-
-**Why this matters:**
-- Universal contract = universal governance
-- Same orchestration for checks and fixes
-- One reporter system
-- Constitutional policies apply uniformly
-- Enables autonomous composition
+**No structure, no contract, no composability.**
 
 ---
 
-## The Atomic Action Abstraction
+## The Philosophy
 
-### Definition
+### The Brick Layer's Mental Model
 
-An **atomic action** is the fundamental unit of autonomous operation in CORE. It:
+**You are not a programmer writing code.** You are an architect who:
 
-1. **Does ONE thing** - Clear, singular purpose
-2. **Returns structured results** - ActionResult contract
-3. **Respects constitutional constraints** - Governed by Mind layer
-4. **Composes with other actions** - Building block for workflows
-5. **Logs to activity stream** - Full audit trail
+1. **Specifies what must exist** (`.intent/` - the blueprints)
+2. **Defines how bricks fit together** (patterns)
+3. **States why they're needed** (intent, goals)
 
-### Examples
+Then:
+- **CORE reads the blueprints** (`.intent/` files)
+- **LLMs build the bricks** (generate code)
+- **DB/Qdrant oversee the work** (validate patterns)
+- **Constitutional checks enforce quality** (canary testing)
 
-**Read Action (Check):**
-```python
-@atomic_action(
-    action_id="check.imports",
-    intent="Verify import grouping follows conventions",
-    impact="read-only",
-    policies=["import_organization"]
-)
-async def check_imports_internal() -> ActionResult:
-    violations = find_import_violations()
-    return ActionResult(
-        action_id="check.imports",
-        ok=len(violations) == 0,
-        data={
-            "violations_count": len(violations),
-            "violations": violations,
-            "files_scanned": count,
-        }
-    )
+### The UNIX Philosophy Applied
+
+**"Do one thing and do it well"** - but at scale:
+
+```
+Level 1: Atomic Actions (bricks)
+  ├─ assign_id_to_symbol()      ← 30 lines, one thing
+  ├─ validate_id_format()       ← 20 lines, one thing
+  └─ write_id_to_file()         ← 25 lines, one thing
+
+Level 2: Composed Actions (walls)
+  └─ fix_ids_internal()         ← Composes 3 bricks
+      └─ calls: validate → assign → write
+
+Level 3: Workflows (rooms)
+  └─ dev_sync()                 ← Composes multiple actions
+      └─ calls: fix_ids → fix_headers → check_lint
+
+Level 4: Features (house)
+  └─ autonomous_development     ← Composes workflows
 ```
 
-**Write Action (Fix):**
+**Key principle:** Build UP through composition, not OUT through bloat.
+
+### Source Code Purity
+
+**MAXIMUM allowed pollution:** IDs only.
+
 ```python
+# ID: 8be64ae4-477d-4166-b7bf-bbb7a77a4c6c
+async def fix_ids_internal(write: bool) -> ActionResult:
+    """
+    Assign stable UUIDs to untagged public symbols.
+
+    Pattern: action_pattern
+    Impact: write-metadata
+    Policies: symbol_identification
+    """
+```
+
+**Why IDs are tolerated:**
+- Refactoring breaks everything without them
+- Stable reference across file moves
+- Links code to DB/Qdrant entries
+
+**What is FORBIDDEN:**
+
+```python
+# ❌ WRONG - Metadata pollution
 @atomic_action(
     action_id="fix.ids",
-    intent="Assign stable UUIDs to untagged symbols",
-    impact="write-metadata",
-    policies=["symbol_identification"]
+    intent="Assign UUIDs",
+    impact=ActionImpact.WRITE_METADATA,
+    policies=["symbol_identification"],
+    category="fixers",
+    timeout=300,
+    retry_count=3,
 )
-async def fix_ids_internal(write: bool) -> ActionResult:
-    total = assign_missing_ids(dry_run=not write)
-    return ActionResult(
-        action_id="fix.ids",
-        ok=True,
-        data={
-            "ids_assigned": total,
-            "dry_run": not write,
-        }
-    )
 ```
 
-**Transform Action (Sync):**
-```python
-@atomic_action(
-    action_id="sync.knowledge",
-    intent="Synchronize filesystem to database",
-    impact="write-data",
-    policies=["knowledge_integrity"]
-)
-async def sync_knowledge_internal(write: bool) -> ActionResult:
-    result = synchronize_symbols(dry_run=not write)
-    return ActionResult(
-        action_id="sync.knowledge",
-        ok=result.success,
-        data={
-            "symbols_synced": result.count,
-            "symbols_added": result.added,
-            "symbols_updated": result.updated,
-        }
-    )
-```
+**Why forbidden:**
+- Duplicates what's in docstrings
+- Violates single-source-of-truth (DB is SSOT)
+- Makes code harder to read
+- LLMs love adding more metadata (slippery slope)
+
+**Where metadata lives:**
+
+| Data | Location | Why |
+|------|----------|-----|
+| Intent, behavior | Docstring | Humans read it |
+| Action registry | PostgreSQL | SSOT for what exists |
+| Pattern matching | Qdrant | Semantic search |
+| Execution history | Activity log | What happened |
+| IDs | Source code | Stable references |
 
 ---
 
 ## The Universal Contract
 
-### ActionResult Structure
+### ActionResult: The Brick Shape
+
+Every atomic action returns the same shape:
 
 ```python
 @dataclass
 class ActionResult:
-    """
-    Universal result contract for all atomic actions.
+    """Universal contract - every brick has this shape"""
 
-    Replaces CommandResult and AuditCheckResult with single abstraction.
-    """
+    action_id: str              # Identifies what action this was
+    ok: bool                    # Binary: success or failure
+    data: dict[str, Any]        # Action-specific details
+    duration_sec: float = 0.0   # Performance tracking
 
-    action_id: str
-    """Unique identifier (e.g., 'fix.ids', 'check.imports')"""
-
-    ok: bool
-    """Binary success indicator"""
-
-    data: dict[str, Any]
-    """Action-specific structured results"""
-
-    duration_sec: float = 0.0
-    """Execution time"""
-
-    impact: ActionImpact | None = None
-    """What changed: read-only, write-metadata, write-code, write-data"""
-
+    # Optional enrichment
     logs: list[str] = field(default_factory=list)
-    """Debug trace messages (not shown to user by default)"""
-
     warnings: list[str] = field(default_factory=list)
-    """Non-fatal issues encountered"""
-
     suggestions: list[str] = field(default_factory=list)
-    """Recommended follow-up actions"""
-```
-
-### Action Metadata (Decorator)
-
-```python
-@dataclass
-class ActionMetadata:
-    """Metadata about an atomic action (Mind-layer definition)"""
-
-    action_id: str
-    """Unique identifier"""
-
-    intent: str
-    """Human-readable purpose"""
-
-    impact: ActionImpact
-    """read-only | write-metadata | write-code | write-data"""
-
-    policies: list[str]
-    """Constitutional policies this action validates/enforces"""
-
-    category: str | None = None
-    """Logical grouping (e.g., 'fixers', 'checks', 'sync')"""
 ```
 
 ### Why This Works
 
-**For Checks:**
+**For Checks (read-only):**
 ```python
 ActionResult(
     action_id="check.imports",
@@ -253,16 +206,16 @@ ActionResult(
 )
 ```
 
-**For Fixes:**
+**For Fixes (writes):**
 ```python
 ActionResult(
     action_id="fix.headers",
     ok=True,  # Successfully fixed
-    data={"violations_found": 1, "fixed_count": 1}
+    data={"violations_found": 1, "fixed_count": 1, "dry_run": False}
 )
 ```
 
-**For Sync:**
+**For Sync (data operations):**
 ```python
 ActionResult(
     action_id="sync.knowledge",
@@ -271,170 +224,383 @@ ActionResult(
 )
 ```
 
-Same structure. Same governance. Same reporting. Different semantics.
+**Same shape, different data, universal governance.**
+
+### Function Signature Convention
+
+```python
+async def {action}_internal(write: bool = False) -> ActionResult:
+    """
+    One-line summary of what this brick does.
+
+    Pattern: action_pattern | inspect_pattern | check_pattern
+    Impact: read-only | write-metadata | write-code | write-data
+    Policies: [list of constitutional policies this validates]
+    """
+```
+
+**The `_internal` suffix signals:**
+- This is an atomic action (a brick)
+- Not meant to be called directly by users
+- Part of a larger composition
 
 ---
 
-## Workflow Orchestration
+## Discovery & Governance
 
-### Definition
+### The Three-Layer System
 
-A **workflow** is a constitutionally governed composition of atomic actions organized into phases to achieve a declared goal.
-
-Workflows are NOT scripts—they are **governance structures**.
-
-### Workflow Contract
-
-```python
-@dataclass
-class WorkflowDefinition:
-    """Mind-layer definition of a workflow"""
-
-    workflow_id: str
-    """Unique identifier (e.g., 'check.audit', 'dev.sync')"""
-
-    goal: str
-    """What success means"""
-
-    phases: list[WorkflowPhase]
-    """Logical groupings of actions"""
-
-    abort_policy: AbortPolicy
-    """When to stop: stop_on_any | stop_on_critical | continue_all"""
-
-    retry_policy: RetryPolicy | None = None
-    """How to handle transient failures"""
-
-
-@dataclass
-class WorkflowPhase:
-    """A logical grouping of related actions"""
-
-    name: str
-    """Human-readable phase name"""
-
-    actions: list[str]
-    """Action IDs to execute in this phase"""
-
-    critical: bool = True
-    """If False, phase failures don't abort workflow"""
+```
+┌─────────────────────────────────────┐
+│ .intent/ (Mind - What Should Exist) │
+│ - Patterns define rules             │
+│ - Policies define constraints       │
+│ - Constitution defines governance   │
+└─────────────────────────────────────┘
+          ↓ tells CORE what to build
+┌─────────────────────────────────────┐
+│ CORE (Orchestrator)                 │
+│ - Reads .intent/                    │
+│ - Asks LLMs to generate code        │
+│ - Validates against patterns        │
+└─────────────────────────────────────┘
+          ↓ LLMs produce
+┌─────────────────────────────────────┐
+│ Code (Body - How It's Implemented)  │
+│ - Small, focused functions          │
+│ - Return ActionResult               │
+│ - IDs for stability                 │
+└─────────────────────────────────────┘
+          ↓ registered in
+┌─────────────────────────────────────┐
+│ DB/Qdrant (Oversight - What Exists) │
+│ - PostgreSQL: Action registry       │
+│ - Qdrant: Semantic patterns         │
+│ - Activity log: Execution history   │
+└─────────────────────────────────────┘
 ```
 
-### Example: Audit Workflow
+### How Actions Are Discovered
 
+**At Build Time (Constitutional Checker):**
 ```python
-audit_workflow = WorkflowDefinition(
-    workflow_id="check.audit",
-    goal="Verify complete constitutional compliance",
-    phases=[
-        WorkflowPhase(
-            name="Knowledge Graph",
-            actions=["build.knowledge_graph"],
-            critical=True
-        ),
-        WorkflowPhase(
-            name="Constitutional Checks",
-            actions=[
-                "check.imports",
-                "check.naming",
-                "check.structure",
-                "check.capabilities",
-            ],
-            critical=False  # Show all violations, don't abort
-        ),
-    ],
-    abort_policy=AbortPolicy.CONTINUE_ALL,
+# Checker scans source files
+for file in source_files:
+    functions = parse_ast(file)
+    for func in functions:
+        if func.name.endswith('_internal'):
+            if not returns_action_result(func):
+                violations.append(f"{func.name} must return ActionResult")
+
+            # Extract metadata from docstring
+            metadata = parse_docstring(func)
+
+            # Validate against DB
+            if not db.action_exists(func.id):
+                violations.append(f"{func.name} not registered in DB")
+```
+
+**At Runtime (Action Registry):**
+```python
+# System queries DB to find actions
+actions = db.query("""
+    SELECT action_id, pattern, impact, policies
+    FROM action_registry
+    WHERE pattern = 'action_pattern'
+    AND impact = 'write-metadata'
+""")
+
+# Can discover and compose actions dynamically
+for action in actions:
+    if satisfies_requirements(action):
+        result = await execute_action(action.action_id)
+```
+
+**Via Semantic Search (Qdrant):**
+```python
+# Find actions by natural language
+results = qdrant.search(
+    "actions that fix code style issues",
+    collection="atomic_actions"
 )
+
+# Returns: fix.headers, fix.imports, fix.docstrings, ...
 ```
 
-### Example: Sync Workflow
+### Constitutional Validation Loop
 
-```python
-sync_workflow = WorkflowDefinition(
-    workflow_id="dev.sync",
-    goal="Synchronize development environment to compliant state",
-    phases=[
-        WorkflowPhase(
-            name="Code Fixers",
-            actions=["fix.ids", "fix.headers", "fix.docstrings"],
-            critical=True
-        ),
-        WorkflowPhase(
-            name="Quality Checks",
-            actions=["check.lint"],
-            critical=False  # Informational
-        ),
-        WorkflowPhase(
-            name="Database Sync",
-            actions=["sync.vectors", "sync.knowledge"],
-            critical=True
-        ),
-    ],
-    abort_policy=AbortPolicy.STOP_ON_CRITICAL,
-)
 ```
+1. Developer writes .intent/ (blueprint)
+   ↓
+2. CORE asks LLM to generate code
+   ↓
+3. LLM produces function
+   ↓
+4. Constitutional checker validates:
+   - Returns ActionResult? ✓
+   - Follows pattern? ✓
+   - Registered in DB? ✓
+   - Docstring complete? ✓
+   ↓
+5a. If valid → Canary test → Accept
+5b. If invalid → Reject → Try again
+```
+
+**Key insight:** Validation happens at BUILD TIME, not via decorator inspection at runtime.
 
 ---
 
-## Constitutional Governance
+## Composition Over Complexity
 
-### Principles
+### The Anti-Pattern: Kitchen Sink
 
-1. **Every action is governed**
-   No action executes outside constitutional oversight.
+```python
+# ❌ WRONG - Does everything
+async def dev_sync_all():
+    """The kitchen sink"""
+    # 1000 lines of everything
+    assign_ids()
+    fix_headers()
+    format_code()
+    run_linters()
+    sync_database()
+    update_vectors()
+    generate_docs()
+    # ... never stops growing
+```
 
-2. **Composition preserves governance**
-   When actions compose into workflows, constraints propagate.
+### The Right Pattern: Composition
 
-3. **Failures are constitutional events**
-   Not exceptions—governed states that trigger decisions.
+```python
+# ✅ RIGHT - Level 1: Atomic bricks
+async def fix_ids_internal(write: bool) -> ActionResult:
+    """Assign stable IDs. ONE thing."""
+    # 40 lines, focused
+    return ActionResult(...)
 
-4. **Autonomy requires governance**
-   A3/A4 need MORE oversight, not less.
+async def fix_headers_internal(write: bool) -> ActionResult:
+    """Fix file headers. ONE thing."""
+    # 35 lines, focused
+    return ActionResult(...)
+
+# ✅ RIGHT - Level 2: Composed workflow
+async def dev_sync_internal(write: bool) -> ActionResult:
+    """Orchestrates atomic actions"""
+    results = []
+
+    # Call bricks in sequence
+    results.append(await fix_ids_internal(write))
+    results.append(await fix_headers_internal(write))
+    results.append(await check_lint_internal())
+
+    # Aggregate results
+    return ActionResult(
+        action_id="dev.sync",
+        ok=all(r.ok for r in results),
+        data={
+            "phases": len(results),
+            "succeeded": sum(1 for r in results if r.ok),
+            "details": [r.data for r in results]
+        }
+    )
+```
+
+### Composition Hierarchy
+
+```
+Atomic (bricks) → Composed (walls) → Workflows (rooms) → Features (house)
+
+fix_ids_internal        dev_sync_internal       autonomous_dev
+    ↓ builds                 ↓ builds                ↓ builds
+fix_headers_internal    check_audit          self_improving_system
+    ↓                        ↓                        ↓
+check_lint_internal     coverage_repair           CORE
+```
+
+**Each level:**
+- Composes the level below
+- Returns ActionResult
+- Has clear success/failure
+- Can be tested independently
+
+---
+
+## Constitutional Enforcement
+
+### What Gets Enforced
+
+**1. Structural Compliance**
+
+```yaml
+# .intent/charter/patterns/atomic_actions.yaml
+validation_rules:
+  - rule: "action_must_return_result"
+    check: "Function ending in _internal returns ActionResult"
+    severity: "error"
+
+  - rule: "action_must_be_focused"
+    check: "Function is < 100 lines (not a kitchen sink)"
+    severity: "warning"
+
+  - rule: "action_must_be_registered"
+    check: "Function exists in DB action_registry"
+    severity: "error"
+```
+
+**2. Pattern Compliance**
+
+```python
+# Checker validates against command patterns
+if func_name.startswith('check_'):
+    assert 'write' not in func.parameters  # Check pattern: read-only
+
+if func_name.startswith('fix_'):
+    assert 'write' in func.parameters      # Action pattern: needs --write
+    assert default_value_of('write') == False  # Must default to dry-run
+```
+
+**3. Registration in DB**
+
+```sql
+-- Every atomic action must be registered
+CREATE TABLE action_registry (
+    id UUID PRIMARY KEY,
+    action_id TEXT UNIQUE NOT NULL,
+    function_name TEXT NOT NULL,
+    file_path TEXT NOT NULL,
+    pattern TEXT NOT NULL,  -- inspect_pattern, action_pattern, etc.
+    impact TEXT NOT NULL,   -- read-only, write-metadata, etc.
+    policies TEXT[],        -- Constitutional policies validated
+    created_at TIMESTAMP,
+    last_verified TIMESTAMP
+);
+```
+
+**4. Docstring Completeness**
+
+```python
+# Every _internal function must have complete docstring
+required_sections = ['Pattern:', 'Impact:', 'Policies:']
+for section in required_sections:
+    if section not in func.docstring:
+        violations.append(f"Missing {section} in docstring")
+```
 
 ### Enforcement Points
 
-**Pre-execution:**
-```python
-# Validate action metadata
-assert action.metadata.action_id in registered_actions
-assert all(policy in constitutional_policies for policy in action.metadata.policies)
-assert action.metadata.impact in [ActionImpact.READ_ONLY, ...]
+**Build Time (CI/CD):**
+```bash
+# Must pass before merge
+poetry run core-admin check atomic-actions
+poetry run core-admin check patterns
 ```
 
-**During execution:**
+**Canary Testing:**
 ```python
-# Activity logging (already implemented)
-with activity_run(workflow_id) as run:
-    log_activity(run, event=f"action:{action_id}", status="start")
-    result = await action()
-    log_activity(run, event=f"action:{action_id}", status="ok" if result.ok else "error")
+# Generated code tested in isolation
+crate = create_crate(new_code)
+canary_result = test_in_canary(crate)
+
+if canary_result.constitutional_violations > 0:
+    reject_crate("Constitutional violations found")
 ```
 
-**Post-execution:**
+**Runtime (Activity Logging):**
 ```python
-# Validate result structure
-assert isinstance(result, ActionResult)
-assert result.action_id == expected_action_id
-assert isinstance(result.data, dict)
-
-# Store for governance review (future)
-await governance_db.store_action_result(result)
+# All executions logged
+with activity_run("dev.sync") as run:
+    for action_id in workflow.actions:
+        result = await execute_action(action_id)
+        log_activity(run, action_id, result)
 ```
 
-### Constitutional Policies
+---
 
-Actions declare which policies they validate:
+## Implementation Guide
+
+### Step 1: Write in `.intent/`
 
 ```yaml
-# .intent/policies/symbol_identification.yaml
-policy_id: symbol_identification
-description: All public symbols must have stable UUIDs
-validated_by:
-  - fix.ids
-  - check.symbol_ids
-severity: medium
-remediation: "Run: core-admin fix ids --write"
+# .intent/charter/patterns/my_feature.yaml
+feature: data_validation
+atomic_actions:
+  - action_id: "validate.data_format"
+    purpose: "Check data follows schema"
+    pattern: "check_pattern"
+    impact: "read-only"
+
+  - action_id: "fix.data_format"
+    purpose: "Auto-correct schema violations"
+    pattern: "action_pattern"
+    impact: "write-data"
+```
+
+### Step 2: Generate Code (via CORE)
+
+```bash
+# CORE reads .intent/ and generates code
+poetry run core-admin develop feature --from-file my_feature.yaml
+```
+
+### Step 3: LLM Produces Atomic Actions
+
+```python
+# Generated by LLM, validated by CORE
+# ID: 8be64ae4-477d-4166-b7bf-bbb7a77a4c6c
+async def validate_data_format_internal(file: Path) -> ActionResult:
+    """
+    Check data file follows expected schema.
+
+    Pattern: check_pattern
+    Impact: read-only
+    Policies: data_governance
+    """
+    start = time.time()
+
+    violations = []
+    data = load_data(file)
+
+    if not matches_schema(data):
+        violations.append(f"{file}: Schema mismatch")
+
+    return ActionResult(
+        action_id="validate.data_format",
+        ok=len(violations) == 0,
+        data={
+            "violations": violations,
+            "files_checked": 1
+        },
+        duration_sec=time.time() - start
+    )
+```
+
+### Step 4: Register in DB
+
+```python
+# Automatic registration during dev-sync
+db.register_action(
+    id="8be64ae4-477d-4166-b7bf-bbb7a77a4c6c",
+    action_id="validate.data_format",
+    function_name="validate_data_format_internal",
+    file_path="src/features/validation/data.py",
+    pattern="check_pattern",
+    impact="read-only",
+    policies=["data_governance"]
+)
+```
+
+### Step 5: Validate & Accept
+
+```bash
+# Constitutional checker runs
+poetry run core-admin check atomic-actions
+
+# Output:
+# ✅ validate_data_format_internal
+#    - Returns ActionResult ✓
+#    - Pattern: check_pattern ✓
+#    - Registered in DB ✓
+#    - Docstring complete ✓
 ```
 
 ---
@@ -444,271 +610,70 @@ remediation: "Run: core-admin fix ids --write"
 ### Current State
 
 ```
-CommandResult (fix.*)  ←─┐
-                           ├─ Need unification
-AuditCheckResult (check.*) ←─┘
-
-AuditRunReporter ←─┐
-                    ├─ Need unification
-DevSyncReporter    ←─┘
+Some functions return CommandResult ✓
+Some functions return AuditCheckResult ✓
+Some functions return dict ❌
+Some functions return None ❌
+Some functions print output ❌
 ```
 
 ### Target State
 
 ```
-ActionResult (universal)
-    ↓
-WorkflowReporter (base)
-    ├─ AuditReporter (specialized)
-    └─ DevSyncReporter (specialized)
+ALL _internal functions return ActionResult ✓
+ALL registered in DB ✓
+ALL validated by constitutional checker ✓
+NO metadata pollution in decorators ✓
 ```
 
-### Phase 1: Unification (Week 1)
+### Migration Steps
 
-**Create the abstractions:**
-1. `ActionResult` class (merge CommandResult + AuditCheckResult)
-2. `WorkflowReporter` base class
-3. `@atomic_action` decorator
+**Week 1: Create Infrastructure**
+1. Create `ActionResult` dataclass
+2. Create DB `action_registry` table
+3. Create `check atomic-actions` command
+4. Prove pattern with 2-3 actions
 
-**Prove the pattern:**
-1. Migrate `fix.ids` to ActionResult
-2. Migrate `check.imports` to ActionResult
-3. Show both work with same reporter
+**Week 2-3: Migrate Actions**
+1. Identify all `_internal` functions
+2. Convert return types to `ActionResult`
+3. Add docstring metadata (Pattern, Impact, Policies)
+4. Register in DB
+5. Validate with checker
 
-**Success criteria:**
-- One action of each type (read, write) using ActionResult
-- WorkflowReporter renders both beautifully
-- No regressions in existing functionality
-
-### Phase 2: Migration (Weeks 2-3)
-
-**Migrate all actions:**
-1. All `fix.*` commands → ActionResult
-2. All `check.*` commands → ActionResult
-3. All `manage.*` commands → ActionResult
-4. All `run.*` commands → ActionResult
-
-**Update reporters:**
-1. AuditReporter extends WorkflowReporter
-2. DevSyncReporter extends WorkflowReporter
-3. Remove duplicated code
-
-**Success criteria:**
-- Zero CommandResult instances
-- Zero AuditCheckResult instances
-- All workflows use WorkflowReporter
-
-### Phase 3: Governance (Week 4)
-
-**Add validation hooks:**
-1. Pre-execution: validate action metadata
-2. During: enforce constitutional policies
-3. Post: store results for review
-
-**Enable composition:**
-1. Workflow DAG validation
-2. Transitive policy checking
-3. Auto-generated documentation
-
-**Success criteria:**
-- All actions have constitutional metadata
-- Policies enforce at runtime
-- Violations trigger governance events
-
-### Phase 4: Autonomy (Month 2+)
-
-**A3 capabilities:**
-1. Actions declare capabilities they provide
-2. Goal planner auto-composes workflows
-3. Self-healing on failures
-
-**A4 foundations:**
-1. Actions can modify actions
-2. Workflows can modify workflows
-3. Constitutional amendment process
+**Week 4: Enforce**
+1. Add to CI/CD pipeline
+2. Block PRs with violations
+3. Add to `dev-sync` workflow
+4. Update documentation
 
 ---
 
-## Implementation Guide
+## Summary
 
-### Step 1: Define ActionResult
+**Atomic actions are not about decorators or metadata pollution.**
 
-```python
-# src/shared/action_types.py
-from __future__ import annotations
+They are about:
 
-from dataclasses import dataclass, field
-from enum import Enum
-from typing import Any
+✅ **Structure** - Small, focused functions that do ONE thing
+✅ **Contract** - ActionResult provides predictable shape
+✅ **Composition** - Build UP through layers, not OUT through bloat
+✅ **Discovery** - DB/Qdrant know what exists, enable search
+✅ **Governance** - Constitutional validation at build time
 
+**The brick layer philosophy:**
+- You write `.intent/` (blueprints)
+- CORE + LLMs build (bricks)
+- DB/Qdrant validate (quality control)
+- System composes (house)
 
-class ActionImpact(Enum):
-    """What an action changes"""
-    READ_ONLY = "read-only"
-    WRITE_METADATA = "write-metadata"
-    WRITE_CODE = "write-code"
-    WRITE_DATA = "write-data"
-
-
-@dataclass
-class ActionResult:
-    """Universal result contract for all atomic actions"""
-
-    action_id: str
-    ok: bool
-    data: dict[str, Any]
-    duration_sec: float = 0.0
-    impact: ActionImpact | None = None
-    logs: list[str] = field(default_factory=list)
-    warnings: list[str] = field(default_factory=list)
-    suggestions: list[str] = field(default_factory=list)
-```
-
-### Step 2: Create Decorator
-
-```python
-# src/shared/atomic_action.py
-from functools import wraps
-
-
-@dataclass
-class ActionMetadata:
-    action_id: str
-    intent: str
-    impact: ActionImpact
-    policies: list[str]
-    category: str | None = None
-
-
-def atomic_action(
-    action_id: str,
-    intent: str,
-    impact: ActionImpact,
-    policies: list[str],
-    category: str | None = None,
-):
-    """Decorator to mark a function as an atomic action"""
-
-    metadata = ActionMetadata(
-        action_id=action_id,
-        intent=intent,
-        impact=impact,
-        policies=policies,
-        category=category,
-    )
-
-    def decorator(func):
-        func._atomic_action_metadata = metadata
-
-        @wraps(func)
-        async def wrapper(*args, **kwargs):
-            # Future: Add governance hooks here
-            return await func(*args, **kwargs)
-
-        return wrapper
-
-    return decorator
-```
-
-### Step 3: Migrate One Action
-
-```python
-# Before
-async def fix_ids_internal(write: bool) -> CommandResult:
-    ...
-
-# After
-@atomic_action(
-    action_id="fix.ids",
-    intent="Assign stable UUIDs to untagged public symbols",
-    impact=ActionImpact.WRITE_METADATA,
-    policies=["symbol_identification"],
-    category="fixers",
-)
-async def fix_ids_internal(write: bool) -> ActionResult:
-    start_time = time.time()
-
-    try:
-        total = assign_missing_ids(dry_run=not write)
-
-        return ActionResult(
-            action_id="fix.ids",
-            ok=True,
-            data={
-                "ids_assigned": total,
-                "dry_run": not write,
-            },
-            duration_sec=time.time() - start_time,
-            impact=ActionImpact.WRITE_METADATA,
-        )
-    except Exception as e:
-        return ActionResult(
-            action_id="fix.ids",
-            ok=False,
-            data={"error": str(e)},
-            duration_sec=time.time() - start_time,
-        )
-```
-
----
-
-## Future Vision
-
-### A3: Autonomous Goal Planning
-
-```python
-# User declares goal
-goal = "Achieve full constitutional compliance"
-
-# System plans workflow
-planner = AutonomousPlanner()
-workflow = await planner.plan_workflow(goal)
-
-# System shows plan
-print(workflow.phases)
-# Phase 1: Run all checks
-# Phase 2: Auto-fix violations
-# Phase 3: Verify compliance
-
-# User approves
-if confirm("Execute this plan?"):
-    await workflow.execute()
-```
-
-### A4: Self-Modification
-
-```python
-# System detects inefficiency
-if action.duration_sec > threshold:
-    # System proposes improvement
-    improvement = await optimizer.suggest_improvement(action)
-
-    # Constitutional review
-    if await constitution.approve(improvement):
-        # System modifies itself
-        await action.update_implementation(improvement)
-```
-
----
-
-## Conclusion
-
-Atomic actions are not just a refactoring—they are CORE's foundational abstraction for autonomous operation with constitutional governance.
-
-By establishing this universal contract, we enable:
-- Composable workflows
-- Scalable oversight
-- Autonomous planning (A3)
-- Self-modification (A4)
-
-**The papers are written. Now the Body can follow the Mind.**
+**Source code stays pure. Governance stays constitutional. CORE stays self-improving.**
 
 ---
 
 ## References
 
 - Constitutional Pattern: `.intent/charter/patterns/atomic_actions.yaml`
-- Workflow Pattern: `docs/patterns/WORKFLOW_ORCHESTRATION.md`
-- Related Commits:
-  - `908477d`: CommandResult pattern introduction
-  - Current: DevSyncReporter implementation
+- Command Patterns: `.intent/charter/patterns/command_patterns.yaml`
+- Code Purity Policy: `.intent/charter/policies/code_purity.yaml`
+- Related: `docs/architecture/MIND_BODY_WILL.md`

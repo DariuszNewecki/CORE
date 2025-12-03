@@ -2,21 +2,22 @@
 """
 CLI commands for encrypted secrets management.
 Constitutional compliance: agent_governance, data_governance, operations.
+
+Refactored to use the Constitutional CLI Framework (@core_command).
 """
 
 from __future__ import annotations
 
-import asyncio
-from collections.abc import Awaitable, Callable
-
 import typer
 from rich.table import Table
-
 from services.database.session_manager import get_session
 from services.secrets_service import get_secrets_service
+from shared.action_types import ActionImpact
+from shared.atomic_action import atomic_action
 from shared.cli_utils import (
     confirm_action,
     console,
+    core_command,
     display_error,
     display_info,
     display_success,
@@ -39,155 +40,16 @@ app = typer.Typer(
 
 
 # ---------------------------------------------------------------------------
-# Async runner / wrapper
+# Async implementations (domain logic) - KEPT AS IS
 # ---------------------------------------------------------------------------
 
 
-def _run_async(coro: Awaitable[object]) -> object:
-    """
-    Run an async coroutine safely from a synchronous context.
-
-    - In a plain CLI process (no running loop), delegate to asyncio.run().
-    - In a test (no running loop in sync code), same behaviour.
-    """
-    try:
-        loop = asyncio.get_running_loop()
-    except RuntimeError:
-        return asyncio.run(coro)
-    else:
-        # In typical pytest sync tests, this branch won't run.
-        # Left here for completeness / agent contexts.
-        return loop.run_until_complete(coro)
-
-
-def _safe_cli_run(factory: Callable[[], Awaitable[object]], command_name: str) -> None:
-    """
-    Run async implementation and map unexpected failures to consistent CLI error.
-
-    Domain-level failures are handled inside the async functions (where we can
-    show nice messages). This wrapper catches "unknown" exceptions.
-    """
-    try:
-        _run_async(factory())
-    except typer.Exit:
-        # Domain code has already decided the exit code.
-        raise
-    except Exception as exc:  # pragma: no cover - defensive
-        display_error(f"Critical failure in 'secrets {command_name}': {exc}")
-        raise typer.Exit(code=1) from exc
-
-
-# ---------------------------------------------------------------------------
-# Sync CLI commands (Typer entrypoints)
-# ---------------------------------------------------------------------------
-
-
-@app.command("set")
-# ID: 603636f8-de14-41e2-94ca-2d8b1f53c342
-def set_secret(
-    key: str = typer.Argument(..., help="Secret key (e.g., 'anthropic.api_key')"),
-    value: str = typer.Option(
-        ...,
-        "--value",
-        "-v",
-        prompt=True,
-        hide_input=True,
-        help="Secret value (will be encrypted)",
-    ),
-    description: str | None = typer.Option(
-        None,
-        "--description",
-        "-d",
-        help="Optional description of this secret",
-    ),
-    force: bool = typer.Option(
-        False,
-        "--force",
-        "-f",
-        help="Overwrite existing secret without confirmation",
-    ),
-) -> None:
-    """
-    Store an encrypted secret in the database.
-
-    Constitutional:
-    - safe_by_default
-    - change_must_be_logged
-    """
-    if not key.strip():
-        display_error("Secret key cannot be empty")
-        raise typer.Exit(code=1)
-
-    _safe_cli_run(
-        lambda: _set_secret_internal(
-            key=key,
-            value=value,
-            description=description,
-            force=force,
-        ),
-        command_name="set",
-    )
-
-
-@app.command("get")
-# ID: 0e52e782-a86e-44c6-8280-648a4c818cee
-def get(
-    key: str = typer.Argument(..., help="Secret key to retrieve"),
-    show: bool = typer.Option(
-        False,
-        "--show",
-        "-s",
-        help="Display the secret value (otherwise just confirms existence)",
-    ),
-) -> None:
-    """
-    Retrieve an encrypted secret from the database.
-
-    Constitutional: data_governance.privacy.masking.
-    """
-    _safe_cli_run(
-        lambda: _get_internal(key=key, show=show),
-        command_name="get",
-    )
-
-
-@app.command("list")
-# ID: f5806ba8-652d-4e89-9571-4f52f98a9d76
-def list_secrets() -> None:
-    """
-    List all secret keys in the database (does not show values).
-
-    Constitutional: data_governance.privacy.no_pii_or_secrets.
-    """
-    _safe_cli_run(_list_secrets_internal, command_name="list")
-
-
-@app.command("delete")
-# ID: 353d398f-0937-43de-8d39-2ca6557fb29b
-def delete(
-    key: str = typer.Argument(..., help="Secret key to delete"),
-    yes: bool = typer.Option(False, "--yes", "-y", help="Skip confirmation prompt"),
-) -> None:
-    """
-    Delete a secret from the database.
-
-    Constitutional: agent.compliance.respect_cli_registry.
-    """
-    if not yes and not confirm_action(
-        f"Are you sure you want to delete secret '{key}'?",
-        abort_message="Deletion cancelled",
-    ):
-        # User cancellation is not an error.
-        return
-
-    _safe_cli_run(lambda: _delete_internal(key=key), command_name="delete")
-
-
-# ---------------------------------------------------------------------------
-# Async implementations (domain logic)
-# ---------------------------------------------------------------------------
-
-
+@atomic_action(
+    action_id=".set",
+    intent="Atomic action for _set_secret_internal",
+    impact=ActionImpact.WRITE_CODE,
+    policies=["atomic_actions"],
+)
 async def _set_secret_internal(
     key: str,
     value: str,
@@ -232,6 +94,12 @@ async def _set_secret_internal(
             raise typer.Exit(code=1) from exc
 
 
+@atomic_action(
+    action_id=".get",
+    intent="Atomic action for _get_internal",
+    impact=ActionImpact.WRITE_CODE,
+    policies=["atomic_actions"],
+)
 async def _get_internal(key: str, show: bool) -> None:
     """
     Async implementation of `secrets get`.
@@ -259,6 +127,12 @@ async def _get_internal(key: str, show: bool) -> None:
             raise typer.Exit(code=1) from exc
 
 
+@atomic_action(
+    action_id=".list",
+    intent="Atomic action for _list_secrets_internal",
+    impact=ActionImpact.WRITE_CODE,
+    policies=["atomic_actions"],
+)
 async def _list_secrets_internal() -> None:
     """
     Async implementation of `secrets list`.
@@ -294,6 +168,12 @@ async def _list_secrets_internal() -> None:
             raise typer.Exit(code=1) from exc
 
 
+@atomic_action(
+    action_id=".delete",
+    intent="Atomic action for _delete_internal",
+    impact=ActionImpact.WRITE_CODE,
+    policies=["atomic_actions"],
+)
 async def _delete_internal(key: str) -> None:
     """
     Async implementation of `secrets delete`.
@@ -309,3 +189,105 @@ async def _delete_internal(key: str) -> None:
         except SecretsError as exc:
             display_error(f"Failed to delete secret: {exc.message}")
             raise typer.Exit(code=1) from exc
+
+
+# ---------------------------------------------------------------------------
+# CLI commands (Refactored to use @core_command)
+# ---------------------------------------------------------------------------
+
+
+@app.command("set")
+@core_command(dangerous=True, requires_context=False)
+# ID: f3589402-f99a-45a5-9255-a453cce3a7b0
+async def set_secret(
+    ctx: typer.Context,
+    key: str = typer.Argument(..., help="Secret key (e.g., 'anthropic.api_key')"),
+    value: str = typer.Option(
+        ...,
+        "--value",
+        "-v",
+        prompt=True,
+        hide_input=True,
+        help="Secret value (will be encrypted)",
+    ),
+    description: str | None = typer.Option(
+        None,
+        "--description",
+        "-d",
+        help="Optional description of this secret",
+    ),
+    force: bool = typer.Option(
+        False,
+        "--force",
+        "-f",
+        help="Overwrite existing secret without confirmation",
+    ),
+) -> None:
+    """
+    Store an encrypted secret in the database.
+    """
+    if not key.strip():
+        display_error("Secret key cannot be empty")
+        raise typer.Exit(code=1)
+
+    # Note: The framework will ask for confirmation because dangerous=True.
+    # We also have an internal confirmation in _set_secret_internal for overwrites.
+    await _set_secret_internal(
+        key=key,
+        value=value,
+        description=description,
+        force=force,
+    )
+
+
+@app.command("get")
+@core_command(dangerous=False, requires_context=False)
+# ID: 717e4862-f0cb-4960-8dfc-4edbda7e1177
+async def get(
+    ctx: typer.Context,
+    key: str = typer.Argument(..., help="Secret key to retrieve"),
+    show: bool = typer.Option(
+        False,
+        "--show",
+        "-s",
+        help="Display the secret value (otherwise just confirms existence)",
+    ),
+) -> None:
+    """
+    Retrieve an encrypted secret from the database.
+    """
+    await _get_internal(key=key, show=show)
+
+
+@app.command("list")
+@core_command(dangerous=False, requires_context=False)
+# ID: 3a04a91d-2f43-4588-a2e8-535418bb7c8c
+async def list_secrets(ctx: typer.Context) -> None:
+    """
+    List all secret keys in the database (does not show values).
+    """
+    await _list_secrets_internal()
+
+
+@app.command("delete")
+@core_command(dangerous=True, requires_context=False)
+# ID: 473daa47-5a87-4d63-95d8-7f4ef238199c
+async def delete(
+    ctx: typer.Context,
+    key: str = typer.Argument(..., help="Secret key to delete"),
+    yes: bool = typer.Option(False, "--yes", "-y", help="Skip confirmation prompt"),
+) -> None:
+    """
+    Delete a secret from the database.
+    """
+    # We have double confirmation here (one from @core_command, one internal).
+    # If 'yes' is passed, we skip the internal one.
+    # The @core_command confirmation runs first.
+
+    if not yes and not confirm_action(
+        f"Are you sure you want to delete secret '{key}'?",
+        abort_message="Deletion cancelled",
+    ):
+        return
+
+    await _delete_internal(key=key)

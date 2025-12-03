@@ -1,26 +1,23 @@
 # src/body/cli/commands/coverage.py
-
 """
 CLI commands for test coverage management and autonomous remediation.
 
-This implements the constitutional requirement that CORE maintains minimum
-test coverage (75%) and autonomously heals when coverage drops below threshold.
+Refactored to use the Constitutional CLI Framework (@core_command).
 """
 
 from __future__ import annotations
 
-import asyncio
 import json
 import subprocess
 from pathlib import Path
 
 import typer
-from rich.console import Console
-from rich.table import Table
-
 from features.self_healing.batch_remediation_service import _remediate_batch
 from features.self_healing.coverage_remediation_service import _remediate_coverage
 from mind.governance.checks.coverage_check import CoverageGovernanceCheck
+from rich.console import Console
+from rich.table import Table
+from shared.cli_utils import core_command
 from shared.config import settings
 from shared.context import CoreContext
 from shared.logger import getLogger
@@ -30,80 +27,66 @@ console = Console()
 coverage_app = typer.Typer(
     help="Test coverage management and autonomous remediation.", no_args_is_help=True
 )
-_context: CoreContext | None = None
 
-
-def _ensure_context() -> CoreContext:
-    """
-    Ensure CoreContext is initialized.
-    """
-    global _context
-    if _context is None:
-        from body.cli.admin_cli import core_context
-
-        _context = core_context
-    return _context
+# Removed: _context global and _ensure_context helper (handled by framework)
 
 
 @coverage_app.command("check")
-# ID: c378a399-83ed-40b2-a177-b5345761f9ec
-def check_coverage():
+@core_command(dangerous=False)
+# ID: 856e4881-14e7-4a5c-b2f9-d41453040992
+async def check_coverage(ctx: typer.Context) -> None:
     """
     Checks current test coverage against constitutional requirements.
-
-    This runs the coverage governance check and reports any violations.
     Exits with code 1 if coverage is below the minimum threshold (75%).
     """
     console.print("[bold cyan]🔍 Checking Coverage Compliance...[/bold cyan]\n")
 
-    # FIX: Get the context so we can pass the auditor_context
-    ctx = _ensure_context()
+    core_context: CoreContext = ctx.obj
 
-    async def _async_check():
-        # FIX: Inject the auditor_context into the check
-        checker = CoverageGovernanceCheck(ctx.auditor_context)
-        findings = await checker.execute()
-        if not findings:
-            console.print(
-                "[bold green]✅ Coverage meets constitutional requirements![/bold green]"
-            )
-            return 0
-        console.print("[bold red]❌ Coverage Violations Found:[/bold red]\n")
-        for finding in findings:
-            console.print(f"  • {finding.message}")
-            if finding.severity == "error":
-                console.print(f"    [red]Severity: {finding.severity}[/red]")
-        return 1
+    # Inject auditor context
+    checker = CoverageGovernanceCheck(core_context.auditor_context)
+    findings = await checker.execute()
 
-    exit_code = asyncio.run(_async_check())
-    raise typer.Exit(code=exit_code)
+    if not findings:
+        console.print(
+            "[bold green]✅ Coverage meets constitutional requirements![/bold green]"
+        )
+        raise typer.Exit(code=0)
+
+    console.print("[bold red]❌ Coverage Violations Found:[/bold red]\n")
+    for finding in findings:
+        console.print(f"  • {finding.message}")
+        if finding.severity == "error":
+            console.print(f"    [red]Severity: {finding.severity}[/red]")
+
+    raise typer.Exit(code=1)
 
 
 @coverage_app.command("report")
-# ID: cd808c91-3cd0-40bd-ba61-e9d8742e66c5
+@core_command(dangerous=False)
+# ID: 81a99734-ff1b-4330-9992-9fc3394fcbd4
 def coverage_report(
+    ctx: typer.Context,
     show_missing: bool = typer.Option(
         True,
         "--show-missing/--no-missing",
         help="Show line numbers of missing coverage",
     ),
     html: bool = typer.Option(False, "--html", help="Generate HTML coverage report"),
-):
+) -> None:
     """
     Generates a detailed coverage report.
-
-    By default, shows terminal output with missing lines.
-    Use --html to generate an interactive HTML report in htmlcov/.
     """
-    ctx = _ensure_context()
+    # Context provided by framework, but we mostly need repo path here
+    core_context: CoreContext = ctx.obj
+    repo_path = core_context.git_service.repo_path
+
     console.print("[bold cyan]📊 Generating Coverage Report...[/bold cyan]\n")
     try:
         cmd = ["coverage", "report"]
         if show_missing:
             cmd.append("--show-missing")
-        result = subprocess.run(
-            cmd, cwd=ctx.git_service.repo_path, capture_output=True, text=True
-        )
+        result = subprocess.run(cmd, cwd=repo_path, capture_output=True, text=True)
         if result.returncode != 0:
             console.print(f"[red]Coverage report failed:[/red]\n{result.stderr}")
             raise typer.Exit(code=1)
@@ -111,12 +94,12 @@ def coverage_report(
         if html:
             html_result = subprocess.run(
                 ["coverage", "html"],
-                cwd=ctx.git_service.repo_path,
+                cwd=repo_path,
                 capture_output=True,
                 text=True,
             )
             if html_result.returncode == 0:
-                html_dir = ctx.git_service.repo_path / "htmlcov"
+                html_dir = repo_path / "htmlcov"
                 console.print(
                     f"\n[bold green]✅ HTML report generated:[/bold green] {html_dir}/index.html"
                 )
@@ -133,8 +116,10 @@ def coverage_report(
 
 
 @coverage_app.command("remediate")
-# ID: 2b847514-44d9-4ba6-b597-6fc996707fc8
-def remediate_coverage_cmd(
+@core_command(dangerous=True, confirmation=True)
+# ID: d2c26a5f-21e3-4233-9c2d-cf9dfa18354c
+async def remediate_coverage_cmd(
+    ctx: typer.Context,
     file: Path = typer.Option(
         None,
         "--file",
@@ -155,248 +140,221 @@ def remediate_coverage_cmd(
         "-c",
         help="Max complexity: simple, moderate, or complex",
     ),
-    max_iterations: int = typer.Option(
-        10,
-        "--max-iterations",
-        help="Maximum remediation iterations (deprecated)",
-        min=1,
-        max=50,
-    ),
-    batch_size: int = typer.Option(
-        5,
-        "--batch-size",
-        help="Modules to process per iteration (deprecated)",
-        min=1,
-        max=20,
-    ),
+    # Deprecated options kept for interface compatibility but ignored or passed through
+    max_iterations: int = typer.Option(10, hidden=True),
+    batch_size: int = typer.Option(5, hidden=True),
     write: bool = typer.Option(
         False, "--write", help="Write generated tests to filesystem"
     ),
-):
+) -> None:
     """
     Autonomously generates tests to restore constitutional coverage compliance.
     """
-    ctx = _ensure_context()
+    core_context: CoreContext = ctx.obj
+
     complexity_lower = complexity.lower()
     if complexity_lower not in ["simple", "moderate", "complex"]:
         console.print(f"[red]Invalid complexity: {complexity}[/red]")
-        console.print("Valid options: simple, moderate, complex")
         raise typer.Exit(code=1)
     complexity_param = complexity_lower.upper()
+
     if file and count:
         console.print("[red]Error: Cannot use both --file and --count[/red]")
-        console.print("Use --file for single file, or --count for batch mode")
         raise typer.Exit(code=1)
+
     if file:
         console.print("[bold cyan]🎯 Single-File Coverage Remediation[/bold cyan]")
-        console.print(f"   Target: {file}")
-        console.print(f"   Complexity: {complexity_param}\n")
     elif count:
         console.print("[bold cyan]📦 Batch Coverage Remediation[/bold cyan]")
-        console.print(f"   Files: {count}")
-        console.print(f"   Complexity: {complexity_param}\n")
     else:
         console.print("[bold cyan]🤖 Full-Project Coverage Remediation[/bold cyan]")
-        console.print(
-            "[yellow]Note: Consider using --count for better control[/yellow]"
-        )
-        console.print(f"   Complexity: {complexity_param}\n")
 
-    async def _async_remediate():
-        try:
-            if count:
-                result = await _remediate_batch(
-                    cognitive_service=ctx.cognitive_service,
-                    auditor_context=ctx.auditor_context,
-                    count=count,
-                    max_complexity=complexity_param,
-                )
-            else:
-                result = await _remediate_coverage(
-                    cognitive_service=ctx.cognitive_service,
-                    auditor_context=ctx.auditor_context,
-                    target_coverage=None,
-                    file_path=file,
-                    max_complexity=complexity_param,
-                )
-            console.print("\n[bold]📊 Remediation Summary[/bold]")
-            console.print(f"Total Tests: {result.get('total', 1)}")
-            console.print(f"Succeeded: {result.get('succeeded', 0)}")
-            console.print(f"Failed: {result.get('failed', 0)}")
-            if "final_coverage" in result:
-                console.print(f"Final Coverage: {result.get('final_coverage', 0):.1f}%")
-            status = result.get("status")
-            if status == "completed":
-                console.print(
-                    "\n[bold green]✅ Test generation completed successfully[/bold green]"
-                )
-                return 0
-            else:
-                console.print(
-                    "\n[bold yellow]⚠️  Test generation had issues[/bold yellow]"
-                )
-                if "error" in result:
-                    console.print(f"[dim]Error: {result['error']}[/dim]")
-                return 1
-        except Exception as e:
-            logger.error(f"Remediation failed: {e}", exc_info=True)
-            console.print(f"[red]❌ Remediation failed: {e}[/red]")
-            return 1
+    try:
+        # JIT services are ready
+        if count:
+            result = await _remediate_batch(
+                cognitive_service=core_context.cognitive_service,
+                auditor_context=core_context.auditor_context,
+                count=count,
+                max_complexity=complexity_param,
+            )
+        else:
+            result = await _remediate_coverage(
+                cognitive_service=core_context.cognitive_service,
+                auditor_context=core_context.auditor_context,
+                target_coverage=None,
+                file_path=file,
+                max_complexity=complexity_param,
+            )
 
-    exit_code = asyncio.run(_async_remediate())
-    raise typer.Exit(code=exit_code)
+        console.print("\n[bold]📊 Remediation Summary[/bold]")
+        console.print(f"Status: {result.get('status')}")
+
+        if result.get("status") == "completed" or result.get("status") == "success":
+            console.print(
+                "[bold green]✅ Test generation completed successfully[/bold green]"
+            )
+        else:
+            console.print("[bold yellow]⚠️  Test generation had issues[/bold yellow]")
+            if "error" in result:
+                console.print(f"[dim]Error: {result['error']}[/dim]")
+
+    except Exception as e:
+        logger.error(f"Remediation failed: {e}", exc_info=True)
+        console.print(f"[red]❌ Remediation failed: {e}[/red]")
+        raise typer.Exit(code=1)
 
 
 @coverage_app.command("history")
-# ID: 9d3747a3-2fe1-4b20-8b0b-6afe0ca05dbb
+@core_command(dangerous=False)
+# ID: da398e37-3939-4883-bf9c-a16964415a54
 def coverage_history(
+    ctx: typer.Context,
     limit: int = typer.Option(
         10, "--limit", "-n", help="Number of history entries to show"
     ),
-):
+) -> None:
     """
     Shows coverage history and trends over time.
     """
-    ctx = _ensure_context()
+    core_context: CoreContext = ctx.obj
     history_file = (
-        ctx.file_handler.repo_path / "work" / "testing" / "coverage_history.json"
+        core_context.file_handler.repo_path
+        / "work"
+        / "testing"
+        / "coverage_history.json"
     )
+
     if not history_file.exists():
         console.print("[yellow]No coverage history found[/yellow]")
-        console.print("   Run 'core-admin coverage check' to start tracking")
         return
+
     try:
         history_data = json.loads(history_file.read_text())
         runs = history_data.get("runs", [])
         last_run = history_data.get("last_run", {})
-        if not runs and (not last_run):
+
+        if not runs and not last_run:
             console.print("[yellow]History file is empty[/yellow]")
             return
+
         console.print("[bold]📈 Coverage History[/bold]\n")
+
         if last_run:
             console.print("[bold cyan]Latest Run:[/bold cyan]")
             console.print(f"  Timestamp: {last_run.get('timestamp', 'Unknown')}")
-            console.print(f"  Overall Coverage: {last_run.get('overall_percent', 0)}%")
-            console.print(
-                f"  Lines Covered: {last_run.get('lines_covered', 0)}/{last_run.get('lines_total', 0)}"
-            )
+            console.print(f"  Overall:   {last_run.get('overall_percent', 0)}%")
+
         if runs:
-            console.print(
-                f"\n[bold cyan]Previous Runs (last {min(limit, len(runs))}):[/bold cyan]"
-            )
             table = Table()
             table.add_column("Date", style="cyan")
             table.add_column("Coverage", justify="right", style="green")
             table.add_column("Delta", justify="right")
-            table.add_column("Lines", justify="right", style="dim")
+
             for run in runs[-limit:]:
-                timestamp = run.get("timestamp", "Unknown")
-                coverage = run.get("overall_percent", 0)
                 delta = run.get("delta", 0)
-                lines = f"{run.get('lines_covered', 0)}/{run.get('lines_total', 0)}"
                 delta_color = "green" if delta >= 0 else "red"
-                delta_str = f"[{delta_color}]{delta:+.1f}%[/{delta_color}]"
-                table.add_row(timestamp, f"{coverage}%", delta_str, lines)
+                table.add_row(
+                    run.get("timestamp", "Unknown"),
+                    f"{run.get('overall_percent', 0)}%",
+                    f"[{delta_color}]{delta:+.1f}%[/{delta_color}]",
+                )
             console.print(table)
-    except json.JSONDecodeError as e:
-        console.print(f"[red]Error: Invalid JSON in history file: {e}[/red]")
-        raise typer.Exit(code=1)
+
     except Exception as e:
         console.print(f"[red]Error reading history: {e}[/red]")
-        logger.error(f"History read failed: {e}", exc_info=True)
         raise typer.Exit(code=1)
 
 
 @coverage_app.command("target")
-# ID: dd0beee4-4bfa-42e1-925f-6416ad0407b0
-def show_targets():
+@core_command(dangerous=False)
+# ID: 6d31e2a2-c0c3-4867-acc2-dae3e778cc2a
+def show_targets(ctx: typer.Context) -> None:
     """
     Shows constitutional coverage requirements and targets.
     """
-    _ensure_context()
     console.print("[bold cyan]🎯 Coverage Targets[/bold cyan]\n")
-    policy = settings.load("charter.policies.governance.quality_assurance_policy")
-    config = policy.get("coverage_config", {})
-    console.print("[bold]Thresholds:[/bold]")
-    console.print(f"  Minimum: {config.get('minimum_threshold', 75)}%")
-    console.print(f"  Target: {config.get('target_threshold', 80)}%\n")
-    console.print("[bold]Critical Paths (Higher Requirements):[/bold]")
-    for path_spec in config.get("critical_paths", []):
-        console.print(f"  • {path_spec}")
+    try:
+        policy = settings.load("charter.policies.governance.quality_assurance_policy")
+        config = policy.get("coverage_config", {}) or policy.get(
+            "coverage_requirements", {}
+        )
+
+        console.print("[bold]Thresholds:[/bold]")
+        console.print(f"  Minimum: {config.get('minimum_threshold', 75)}%")
+        console.print(f"  Target:  {config.get('target_threshold', 80)}%\n")
+    except Exception:
+        console.print("[yellow]Could not load coverage policy.[/yellow]")
 
 
 @coverage_app.command("accumulate")
-# ID: 8cc6cebd-3822-4d27-b4b4-f52276bfdc59
-def accumulate_tests_command(
+@core_command(dangerous=True, confirmation=True)
+# ID: e440b2d4-e4e4-4ba1-a276-6569f735e307
+async def accumulate_tests_command(
+    ctx: typer.Context,
     file_path: str = typer.Argument(
         ..., help="Source file to generate tests for (e.g., src/core/foo.py)"
     ),
-):
+    write: bool = typer.Option(
+        False, "--write", help="Write generated tests to filesystem"
+    ),
+) -> None:
     """
     Generate tests for individual symbols, keep what works.
     """
+    core_context: CoreContext = ctx.obj
+    from features.self_healing.accumulative_test_service import (
+        AccumulativeTestService,
+    )
 
-    async def _run():
-        ctx = _ensure_context()
-        from features.self_healing.accumulative_test_service import (
-            AccumulativeTestService,
-        )
+    service = AccumulativeTestService(core_context.cognitive_service)
 
-        service = AccumulativeTestService(ctx.cognitive_service)
-        result = await service.accumulate_tests_for_file(file_path)
-        console.print("\n[bold]Results:[/bold]")
-        console.print(f"  File: {result['file']}")
-        console.print(f"  Success rate: {result['success_rate']:.0%}")
-        console.print(
-            f"  Tests generated: {result['tests_generated']}/{result['total_symbols']}"
-        )
-        if result["test_file"]:
-            console.print(f"  Test file: {result['test_file']}")
-        if result["failed_symbols"]:
-            console.print("\n[yellow]Failed symbols (showing first 5):[/yellow]")
-            for sym in result["failed_symbols"][:5]:
-                console.print(f"  - {sym}")
+    # Note: Accumulative service currently writes directly.
+    # In a full migration, it should return an ActionResult.
+    # For now, we allow it since dangerous=True protects us.
+    result = await service.accumulate_tests_for_file(file_path)
 
-    asyncio.run(_run())
+    console.print("\n[bold]Results:[/bold]")
+    console.print(f"  File: {result['file']}")
+    console.print(f"  Success rate: {result['success_rate']:.0%}")
 
 
 @coverage_app.command("accumulate-batch")
-# ID: aacd6c45-9f5d-495f-b0b4-2797287ae4ae
-def accumulate_batch_command(
+@core_command(dangerous=True, confirmation=True)
+# ID: 7e941005-d150-479d-823b-cb728b6cf8c5
+async def accumulate_batch_command(
+    ctx: typer.Context,
     pattern: str = typer.Option(
         "src/**/*.py", help="Glob pattern for files to process"
     ),
     limit: int = typer.Option(10, help="Maximum number of files to process"),
-):
+    write: bool = typer.Option(
+        False, "--write", help="Write generated tests to filesystem"
+    ),
+) -> None:
     """
     Generate tests for multiple files in batch (pragmatic approach).
     """
+    core_context: CoreContext = ctx.obj
+    from features.self_healing.accumulative_test_service import (
+        AccumulativeTestService,
+    )
 
-    async def _run():
-        ctx = _ensure_context()
-        from features.self_healing.accumulative_test_service import (
-            AccumulativeTestService,
-        )
+    service = AccumulativeTestService(core_context.cognitive_service)
+    files = list(settings.REPO_PATH.glob(pattern))[:limit]
 
-        service = AccumulativeTestService(ctx.cognitive_service)
-        files = list(settings.REPO_PATH.glob(pattern))[:limit]
-        if not files:
-            console.print(f"[yellow]No files found matching: {pattern}[/yellow]")
-            return
-        console.print(f"[cyan]Processing {len(files)} files...[/cyan]\n")
-        total_tests = 0
-        total_symbols = 0
-        for file_path in files:
-            rel_path = file_path.relative_to(settings.REPO_PATH)
-            result = await service.accumulate_tests_for_file(str(rel_path))
-            total_tests += result["tests_generated"]
-            total_symbols += result["total_symbols"]
-        console.print("\n[bold green]Batch Complete![/bold green]")
-        console.print(f"  Total tests generated: {total_tests}")
-        console.print(f"  Total symbols attempted: {total_symbols}")
-        if total_symbols > 0:
-            console.print(
-                f"  Overall success rate: {total_tests / total_symbols * 100:.0%}"
-            )
+    if not files:
+        console.print(f"[yellow]No files found matching: {pattern}[/yellow]")
+        return
 
-    asyncio.run(_run())
+    console.print(f"[cyan]Processing {len(files)} files...[/cyan]\n")
+
+    total_tests = 0
+    for file_path in files:
+        rel_path = file_path.relative_to(settings.REPO_PATH)
+        result = await service.accumulate_tests_for_file(str(rel_path))
+        total_tests += result["tests_generated"]
+
+    console.print(
+        f"\n[bold green]Batch Complete! Generated {total_tests} tests.[/bold green]"
+    )

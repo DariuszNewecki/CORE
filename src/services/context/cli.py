@@ -13,12 +13,14 @@ from pathlib import Path
 import typer
 from rich.console import Console
 from rich.table import Table
+from shared.action_types import ActionImpact
+from shared.atomic_action import atomic_action
+from shared.cli_utils import display_error, display_info, display_success
 
 from services.context import (
     ContextSerializer,
     ContextValidator,
 )
-from shared.cli_utils import display_error, display_info, display_success
 
 console = Console()
 app = typer.Typer(
@@ -77,6 +79,12 @@ def show_cmd(
     asyncio.run(_show_internal(task))
 
 
+@atomic_action(
+    action_id=".build",
+    intent="Atomic action for _build_internal",
+    impact=ActionImpact.WRITE_CODE,
+    policies=["atomic_actions"],
+)
 async def _build_internal(task: str, out: Path | None) -> None:
     """Internal async implementation of build command."""
     try:
@@ -149,6 +157,12 @@ def _validate_internal(file: Path) -> None:
         raise typer.Exit(1)
 
 
+@atomic_action(
+    action_id=".show",
+    intent="Atomic action for _show_internal",
+    impact=ActionImpact.WRITE_CODE,
+    policies=["atomic_actions"],
+)
 async def _show_internal(task: str) -> None:
     """Internal async implementation of show command."""
     try:
