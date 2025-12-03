@@ -24,7 +24,6 @@ console = Console()
 
 
 # ID: ebc07171-b4df-48cd-99b5-2bd8a06056d4
-import asyncio
 import logging
 import os
 
@@ -117,29 +116,6 @@ def find_source_file(
                         continue
 
     return None
-
-
-# ID: fb913de9-c965-48ea-9704-773426120071
-async def scan_directory_async(directory: Path, pattern: str = "*.py") -> list[Path]:
-    """
-    Asynchronously scan a directory for files matching a pattern.
-
-    Args:
-        directory: The directory to scan
-        pattern: The glob pattern to match files against
-
-    Returns:
-        List of matching file paths
-    """
-    if not directory.exists():
-        return []
-
-    loop = asyncio.get_event_loop()
-
-    def _scan():
-        return list(directory.rglob(pattern))
-
-    return await loop.run_in_executor(None, _scan)
 
 
 # ID: 92607e4d-3537-4ea8-b04f-77c36b026171

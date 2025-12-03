@@ -1,6 +1,6 @@
 # .intent/charter/constitution/governance_framework.yaml
 id: governance_framework
-version: "2.0.0"
+version: "2.1.0"
 title: "Constitutional Governance Framework"
 
 # === AMENDMENT PROCESS ===
@@ -34,32 +34,34 @@ amendment_process:
     - "Always require critical quorum"
     - "Considered critical amendments"
 
+# === SPECIAL FILE PROTECTION ===
+# These rules override standard quorum settings.
+special_file_rules:
+  approvers_registry:
+    path: ".intent/charter/constitution/approvers.yaml"
+    rules:
+      - "ANY modification requires CRITICAL quorum in ALL environments"
+      - "Adding approver: Requires critical quorum + 24h waiting period"
+      - "Removing approver: Requires UNANIMOUS quorum of remaining active approvers"
+      - "Changing quorum thresholds: Requires UNANIMOUS quorum"
+
+  critical_paths_registry:
+    path: ".intent/charter/constitution/critical_paths.yaml"
+    rules:
+      - "ANY modification requires CRITICAL quorum"
+      - "Removal of paths requires UNANIMOUS quorum"
+      - "Adding paths requires standard quorum"
+
 # === APPROVERS & QUORUM ===
 approvers:
-  - identity: "core-team@core-system.ai"
-    public_key: "..."
-    role: "maintainer"
-    # ... ALL original approvers remain
+  source: "charter/constitution/approvers.yaml"
 
 quorum:
-  current_mode: development
-  development:
-    standard: 1
-    critical: 1
-  production:
-    standard: 2
-    critical: 3
+  source: "charter/constitution/approvers.yaml"
 
 # === CRITICAL PATHS ===
 critical_paths:
-  - ".intent/meta.yaml"
-  - "charter/constitution/approvers.yaml"
-  - "charter/constitution/operator_lifecycle.md"
-  - "charter/constitution/amendment_process.md"
-  - "mind/knowledge/domain_definitions.yaml"
-  - "mind_export/northstar.yaml"
-  - "charter/policies/safety_framework.yaml"  # Now protects itself!
-  # ... ALL original critical paths remain
+  source: "charter/constitution/critical_paths.yaml"
 
 # === OPERATOR LIFECYCLE ===
 operator_lifecycle:

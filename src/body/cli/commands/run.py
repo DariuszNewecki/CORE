@@ -1,21 +1,24 @@
 # src/body/cli/commands/run.py
 """
 Provides functionality for the run module.
-Refactored for A2 Autonomy: Uses ServiceRegistry for Just-In-Time dependency injection.
+Refactored to use the Constitutional CLI Framework.
 """
 
 from __future__ import annotations
 
-import asyncio
 from pathlib import Path
 
 import typer
-
-# We import the logic function, but we will inject dependencies before calling it
+from dotenv import load_dotenv
+from features.autonomy.autonomous_developer import develop_from_goal
 from features.introspection.vectorization_service import run_vectorize
+from shared.cli_utils import core_command
 from shared.context import CoreContext
 from shared.logger import getLogger
-from will.cli_logic.run import _develop
+from will.agents.coder_agent import CoderAgent
+from will.agents.execution_agent import _ExecutionAgent
+from will.agents.plan_executor import PlanExecutor
+from will.orchestration.prompt_pipeline import PromptPipeline
 
 logger = getLogger(__name__)
 run_app = typer.Typer(
@@ -24,8 +27,9 @@ run_app = typer.Typer(
 
 
 @run_app.command("develop")
-# ID: e3a1c5e2-53cd-41d0-b983-a673e0694a48
-def develop_command(
+@core_command(dangerous=True)  # Requires write permission to create files
+# ID: 62ba6795-9621-4f4f-a700-71b56bd85b87
+async def develop_command(
     ctx: typer.Context,
     goal: str | None = typer.Argument(
         None,
@@ -45,23 +49,13 @@ def develop_command(
 ) -> None:
     """Orchestrates the autonomous development process from a high-level goal."""
     core_context: CoreContext = ctx.obj
-
-    # Ensure CognitiveService has Qdrant wired up if it needs it (develop often does for retrieval)
-    async def _setup_and_run():
-        if core_context.registry:
-            # JIT Injection: Ensure CognitiveService has its dependencies
-            qdrant = await core_context.registry.get_qdrant_service()
-            core_context.cognitive_service._qdrant_service = qdrant
-            core_context.qdrant_service = qdrant
-
-        await _develop(context=core_context, goal=goal, from_file=from_file)
-
-    asyncio.run(_setup_and_run())
+    await _develop(context=core_context, goal=goal, from_file=from_file)
 
 
 @run_app.command("vectorize")
-# ID: 4ba1c83a-cab2-425b-b9e7-2fd601103c7c
-def vectorize_command(
+@core_command(dangerous=True)  # Requires write permission to update Qdrant
+# ID: fe1e4f7b-44a5-429f-8549-bd97760b3997
+async def vectorize_command(
     ctx: typer.Context,
     write: bool = typer.Option(False, "--write", help="Persist changes to Qdrant."),
     force: bool = typer.Option(
@@ -70,18 +64,66 @@ def vectorize_command(
 ) -> None:
     """Scan capabilities from the DB, generate embeddings, and upsert to Qdrant."""
     core_context: CoreContext = ctx.obj
+    # Manual JIT injection logic removed - handled by @core_command
+    await run_vectorize(context=core_context, dry_run=not write, force=force)
 
-    async def _setup_and_vectorize():
-        logger.info("Initializing services for vectorization via Registry...")
 
-        # 1. Fetch singleton from Registry (slow import happens here)
-        qdrant = await core_context.registry.get_qdrant_service()
+# Logic helper - kept for isolation
+async def _develop(
+    context: CoreContext, goal: str | None = None, from_file: Path | None = None
+):
+    if not goal and (not from_file):
+        logger.error(
+            "❌ You must provide a goal either as an argument or with --from-file."
+        )
+        raise typer.Exit(code=1)
 
-        # 2. Wire it into the context and cognitive service
-        core_context.qdrant_service = qdrant
-        core_context.cognitive_service._qdrant_service = qdrant
+    if from_file:
+        goal_content = from_file.read_text(encoding="utf-8").strip()
+    else:
+        goal_content = goal.strip() if goal else ""
 
-        # 3. Run the feature logic
-        await run_vectorize(context=core_context, dry_run=not write, force=force)
+    load_dotenv()
 
-    asyncio.run(_setup_and_vectorize())
+    # Simplified config check - context already has what we need ideally,
+    # but keeping logic similar to original for now
+    from services.config_service import ConfigService
+    from services.database.session_manager import get_session
+
+    async with get_session() as session:
+        config = await ConfigService.create(session)
+        llm_enabled = await config.get_bool("LLM_ENABLED", default=False)
+
+    if not llm_enabled:
+        logger.error("❌ The 'develop' command requires LLMs to be enabled.")
+        raise typer.Exit(code=1)
+
+    prompt_pipeline = PromptPipeline(context.git_service.repo_path)
+    plan_executor = PlanExecutor(
+        context.file_handler, context.git_service, context.planner_config
+    )
+    coder_agent = CoderAgent(
+        cognitive_service=context.cognitive_service,
+        prompt_pipeline=prompt_pipeline,
+        auditor_context=context.auditor_context,
+    )
+    executor_agent = _ExecutionAgent(
+        coder_agent=coder_agent,
+        plan_executor=plan_executor,
+        auditor_context=context.auditor_context,
+    )
+
+    success, message = await develop_from_goal(context, goal_content, executor_agent)
+
+    if success:
+        # Using simple prints here as it's not returning an ActionResult yet
+        from rich.console import Console
+
+        c = Console()
+        c.print(f"\n[bold green]✅ Goal execution successful:[/bold green] {message}")
+        c.print(
+            "   -> Run 'git status' to see changes and 'core-admin submit changes' to integrate."
+        )
+    else:
+        logger.error(f"Goal execution failed: {message}")
+        raise typer.Exit(code=1)

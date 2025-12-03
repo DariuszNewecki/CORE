@@ -1,11 +1,38 @@
 # .intent/charter/constitution/critical_paths.yaml
 id: critical_paths_registry
-version: "1.0.0"
+version: "2.0.0"
 title: "Critical Constitutional Paths"
+description: >
+  Registry of files and directories that require CRITICAL quorum for any modification.
+  This list defines the immune system of CORE. ANY change to files matching these
+  paths must meet the critical quorum threshold defined in approvers.yaml.
 
 paths:
+  # === CORE CONSTITUTION ===
+  # The foundation cannot be changed easily
   - ".intent/meta.yaml"
-  - ".intent/charter/constitution/approvers.yaml"
-  - ".intent/charter/constitution/critical_paths.yaml"
-  - ".intent/charter/policies/safety_framework.yaml"
+  - ".intent/charter/constitution/**/*.yaml"
+
+  # === ALL POLICIES ===
+  # Policies define the rules of the road. Modifying them changes the law.
+  - ".intent/charter/policies/**/*.yaml"
+
+  # === PATTERNS ===
+  # Architectural patterns are constitutional laws for structure.
+  - ".intent/charter/patterns/**/*.yaml"
+
+  # === GOVERNANCE SCHEMAS ===
+  # Schemas define the shape of laws and interactions.
+  - ".intent/charter/schemas/governance/**/*.json"
+  - ".intent/charter/schemas/constitutional/**/*.json"
+
+  # === CORE SCHEMAS ===
+  # Fundamental contracts (like ActionResult)
+  - ".intent/charter/schemas/core/**/*.json"
+
+  # === ENFORCEMENT CODE ===
+  # The code that explicitly validates and enforces the constitution.
+  # Modifying the police requires the highest authority.
   - "src/will/orchestration/intent_guard.py"
+  - "src/mind/governance/constitutional_guard.py"
+  - "src/core/intent_guard.py"

@@ -2,12 +2,7 @@
 """
 Action handler discovery and registration commands for the 'fix' CLI group.
 
-Provides:
-- core-admin fix discover-handlers
-- core-admin fix register-handlers (Iteration 2 - not yet implemented)
-- core-admin fix validate-handlers (Iteration 3 - not yet implemented)
-
-Part of Solution 2: Automatic Capability Assignment for Action Handlers
+Refactored to use the Constitutional CLI Framework (@core_command).
 """
 
 from __future__ import annotations
@@ -19,8 +14,9 @@ from pathlib import Path
 import typer
 from rich.panel import Panel
 from rich.table import Table
+from shared.cli_utils import core_command
 
-from . import console, fix_app, handle_command_errors
+from . import console, fix_app
 
 # Re-export for use in this module
 __all__ = [
@@ -35,7 +31,7 @@ __all__ = [
 # ============================================================================
 
 
-# ID: 1f572417-a0f0-4859-80cd-9109c3d85beb
+# ID: 9ec51dc5-78c7-40c9-8714-ec711d45e166
 class HandlerInfo:
     """Container for handler metadata"""
 
@@ -66,7 +62,7 @@ class HandlerInfo:
         return "body.actions.unknown"
 
 
-# ID: 090701bf-702c-4012-89ed-639448642a13
+# ID: 6e982aa7-d8fa-473b-a913-74be5c014cff
 class ActionHandlerDiscovery:
     """Discovers all ActionHandler implementations in the codebase"""
 
@@ -76,7 +72,7 @@ class ActionHandlerDiscovery:
         self.handlers: list[HandlerInfo] = []
         self.registered_handlers: set[str] = set()
 
-    # ID: 10d4af53-3dc9-41ce-ad85-a358d1537dba
+    # ID: e02ac9ad-fa06-4955-96d0-0d5c28b2c718
     def discover_all(self) -> list[HandlerInfo]:
         """Main discovery workflow"""
         self._load_registered_handlers()
@@ -225,198 +221,148 @@ class ActionHandlerDiscovery:
     "discover-handlers",
     help="Discover all ActionHandler implementations and report registration status.",
 )
-@handle_command_errors
-# ID: c8ac3fe0-bd53-4455-8a16-db4955db8d7c
+@core_command(dangerous=False, requires_context=False)
+# ID: 01b12a1f-8c71-486a-b2bf-dc6aa887d338
 def discover_handlers_command(
+    ctx: typer.Context,
     save_json: bool = typer.Option(
         True,
         "--save-json/--no-save-json",
         help="Save JSON report to reports/ directory",
     ),
-):
+) -> None:
     """
     Scan src/body/actions/ for ActionHandler classes and compare with ActionRegistry.
-
-    This is a **read-only diagnostic tool** that makes no changes to code or database.
-
-    Identifies:
-    - Active handlers (registered in ActionRegistry)
-    - Orphaned handlers (exist in code but not registered)
-
-    Output:
-    - Console table showing all handlers
-    - JSON report (if --save-json)
-
-    Examples:
-        poetry run core-admin fix discover-handlers
-        poetry run core-admin fix discover-handlers --no-save-json
     """
     console.print("[bold cyan]🔍 Discovering Action Handlers...[/bold cyan]\n")
 
-    try:
-        from shared.config import settings
+    from shared.config import settings
 
-        repo_root = settings.REPO_PATH
+    repo_root = settings.REPO_PATH
 
-        # Run discovery
-        discovery = ActionHandlerDiscovery(repo_root)
-        handlers = discovery.discover_all()
+    # Run discovery
+    discovery = ActionHandlerDiscovery(repo_root)
+    handlers = discovery.discover_all()
 
-        # Separate active and orphaned
-        active = [h for h in handlers if h.is_registered]
-        orphaned = [h for h in handlers if not h.is_registered]
+    # Separate active and orphaned
+    active = [h for h in handlers if h.is_registered]
+    orphaned = [h for h in handlers if not h.is_registered]
 
-        # Summary Panel
-        summary = f"""
+    # Summary Panel
+    summary = f"""
 [bold]Total Handlers Found:[/bold] {len(handlers)}
 [bold green]Active (Registered):[/bold green] {len(active)}
 [bold yellow]Orphaned (Unregistered):[/bold yellow] {len(orphaned)}
-        """
-        console.print(Panel(summary, title="📊 Discovery Summary", border_style="cyan"))
+    """
+    console.print(Panel(summary, title="📊 Discovery Summary", border_style="cyan"))
 
-        # Active Handlers Table
-        if active:
-            console.print("\n[bold green]✅ ACTIVE HANDLERS (Registered)[/bold green]")
-            table = Table(show_header=True, header_style="bold green")
-            table.add_column("Class Name", style="cyan")
-            table.add_column("Handler Name", style="green")
-            table.add_column("Domain", style="blue")
-            table.add_column("File", style="white")
+    # Active Handlers Table
+    if active:
+        console.print("\n[bold green]✅ ACTIVE HANDLERS (Registered)[/bold green]")
+        table = Table(show_header=True, header_style="bold green")
+        table.add_column("Class Name", style="cyan")
+        table.add_column("Handler Name", style="green")
+        table.add_column("Domain", style="blue")
+        table.add_column("File", style="white")
 
-            for h in sorted(active, key=lambda x: x.domain):
-                table.add_row(
-                    h.class_name,
-                    h.handler_name or "[dim]Not found[/dim]",
-                    h.domain,
-                    h.file_path.name,
-                )
-            console.print(table)
-
-        # Orphaned Handlers Table
-        if orphaned:
-            console.print(
-                "\n[bold yellow]⚠️  ORPHANED HANDLERS (Not Registered)[/bold yellow]"
+        for h in sorted(active, key=lambda x: x.domain):
+            table.add_row(
+                h.class_name,
+                h.handler_name or "[dim]Not found[/dim]",
+                h.domain,
+                h.file_path.name,
             )
-            table = Table(show_header=True, header_style="bold yellow")
-            table.add_column("Class Name", style="cyan")
-            table.add_column("Handler Name", style="yellow")
-            table.add_column("Domain", style="blue")
-            table.add_column("File", style="white")
+        console.print(table)
 
-            for h in sorted(orphaned, key=lambda x: x.domain):
-                table.add_row(
-                    h.class_name,
-                    h.handler_name or "[dim]Not found[/dim]",
-                    h.domain,
-                    h.file_path.name,
-                )
-            console.print(table)
-
-        # Save JSON report
-        if save_json:
-            report_file = repo_root / "reports" / "handler_discovery.json"
-            report_file.parent.mkdir(exist_ok=True)
-
-            report_data = {
-                "summary": {
-                    "total": len(handlers),
-                    "active": len(active),
-                    "orphaned": len(orphaned),
-                },
-                "handlers": [
-                    {
-                        "class_name": h.class_name,
-                        "handler_name": h.handler_name,
-                        "domain": h.domain,
-                        "module_path": h.module_path,
-                        "is_registered": h.is_registered,
-                        "has_execute": h.has_execute,
-                    }
-                    for h in handlers
-                ],
-            }
-
-            report_file.write_text(json.dumps(report_data, indent=2))
-            console.print(f"\n[green]📄 Report saved: {report_file}[/green]")
-
-        # Next steps guidance
-        console.print("\n[bold cyan]📋 NEXT STEPS:[/bold cyan]")
+    # Orphaned Handlers Table
+    if orphaned:
         console.print(
-            "1. Review orphaned handlers - are they dead code or missing from registry?"
+            "\n[bold yellow]⚠️  ORPHANED HANDLERS (Not Registered)[/bold yellow]"
         )
-        console.print(
-            "2. Run: [bold]poetry run core-admin fix register-handlers --dry-run[/bold]"
-        )
-        console.print("3. This will show what capability definitions would be created")
+        table = Table(show_header=True, header_style="bold yellow")
+        table.add_column("Class Name", style="cyan")
+        table.add_column("Handler Name", style="yellow")
+        table.add_column("Domain", style="blue")
+        table.add_column("File", style="white")
 
-        console.print("\n[bold green]✅ Discovery complete![/bold green]")
+        for h in sorted(orphaned, key=lambda x: x.domain):
+            table.add_row(
+                h.class_name,
+                h.handler_name or "[dim]Not found[/dim]",
+                h.domain,
+                h.file_path.name,
+            )
+        console.print(table)
 
-    except Exception as e:
-        console.print(f"\n[bold red]❌ Discovery failed: {e}[/bold red]")
-        raise typer.Exit(code=1)
+    # Save JSON report
+    if save_json:
+        report_file = repo_root / "reports" / "handler_discovery.json"
+        report_file.parent.mkdir(exist_ok=True)
+
+        report_data = {
+            "summary": {
+                "total": len(handlers),
+                "active": len(active),
+                "orphaned": len(orphaned),
+            },
+            "handlers": [
+                {
+                    "class_name": h.class_name,
+                    "handler_name": h.handler_name,
+                    "domain": h.domain,
+                    "module_path": h.module_path,
+                    "is_registered": h.is_registered,
+                    "has_execute": h.has_execute,
+                }
+                for h in handlers
+            ],
+        }
+
+        report_file.write_text(json.dumps(report_data, indent=2))
+        console.print(f"\n[green]📄 Report saved: {report_file}[/green]")
+
+    console.print("\n[bold green]✅ Discovery complete![/bold green]")
 
 
 @fix_app.command(
     "register-handlers",
     help="Register action handlers as capabilities in the Mind (NOT YET IMPLEMENTED).",
 )
-@handle_command_errors
-# ID: 7a5b983f-dae3-4194-9397-9577674a5441
+@core_command(dangerous=True, confirmation=False)
+# ID: be774d91-2b14-4751-a076-15ff15fc0903
 def register_handlers_command(
+    ctx: typer.Context,
     status: str = typer.Option(
         "active",
         "--status",
         help="Which handlers to register: 'active', 'all', or 'orphaned'",
     ),
-    dry_run: bool = typer.Option(
-        True,
-        "--dry-run/--execute",
-        help="Preview changes without committing to database",
+    # write flag is handled by core_command, mapping it manually for logic
+    write: bool = typer.Option(
+        False,
+        "--write",
+        help="Execute changes.",
     ),
 ):
     """
     Create capability definitions for discovered action handlers.
-
-    **STATUS: Iteration 2 - Not Yet Implemented**
-
-    This command will:
-    - Create capability entries in the database
-    - Link handler execute() methods to capabilities via symbol_capability_links
-    - Ensure Mind-Body synchronization
-
-    Examples:
-        poetry run core-admin fix register-handlers --status active --dry-run
-        poetry run core-admin fix register-handlers --status all --execute
     """
+    dry_run = not write
+
     console.print("[bold yellow]⚠️  ITERATION 2: Not yet implemented[/bold yellow]\n")
+    console.print(f"Status: {status}, Mode: {'Write' if write else 'Dry-Run'}")
     console.print("This command will create capability definitions for handlers.")
-    console.print("\nPlease run discovery first:")
-    console.print("  [bold]poetry run core-admin fix discover-handlers[/bold]")
 
 
 @fix_app.command(
     "validate-handlers",
     help="Validate Mind-Body alignment for action handlers (NOT YET IMPLEMENTED).",
 )
-@handle_command_errors
-# ID: 70925922-5d2f-4498-9930-9b0705096708
-def validate_handlers_command():
+@core_command(dangerous=False, requires_context=False)
+# ID: fa3e1bb0-9878-44e7-b3fb-e3df2cab3679
+def validate_handlers_command(ctx: typer.Context):
     """
     Verify that all registered handlers have corresponding capability definitions.
-
-    **STATUS: Iteration 3 - Not Yet Implemented**
-
-    This command will:
-    - Check registry vs database alignment
-    - Flag missing capability definitions
-    - Detect orphaned capabilities
-
-    Part of ongoing maintenance workflow in `make dev-sync`.
-
-    Examples:
-        poetry run core-admin fix validate-handlers
     """
     console.print("[bold yellow]⚠️  ITERATION 3: Not yet implemented[/bold yellow]\n")
     console.print("This command will verify Mind-Body handler alignment.")
-    console.print("\nPlease run discovery first:")
-    console.print("  [bold]poetry run core-admin fix discover-handlers[/bold]")

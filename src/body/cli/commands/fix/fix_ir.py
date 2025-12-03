@@ -1,14 +1,8 @@
 # src/body/cli/commands/fix/fix_ir.py
-
 """
 IR (Incident Response) self-healing commands.
 
-Provides:
-- core-admin fix ir-triage
-- core-admin fix ir-log
-
-These commands bootstrap minimal IR artifacts under .intent/mind/ir
-so that governance checks have something concrete to validate against.
+Refactored to use the Constitutional CLI Framework (@core_command).
 """
 
 from __future__ import annotations
@@ -16,12 +10,11 @@ from __future__ import annotations
 from pathlib import Path
 
 import typer
+from shared.cli_utils import core_command
 from shared.config import settings
 from shared.logger import getLogger
 
 from body.cli.commands.fix import (
-    _confirm_dangerous_operation,
-    _run_with_progress,
     console,
     fix_app,
     handle_command_errors,
@@ -33,59 +26,57 @@ IR_DIR = Path(settings.REPO_PATH) / ".intent" / "mind" / "ir"
 TRIAGE_FILE = IR_DIR / "triage_log.yaml"
 INCIDENT_LOG_FILE = IR_DIR / "incident_log.yaml"
 
-
-def _ensure_ir_dir() -> None:
-    """Ensure that the IR directory exists."""
-    IR_DIR.mkdir(parents=True, exist_ok=True)
-
-
-def _init_triage_log() -> None:
-    """
-    Initialize a minimal triage log file if it does not exist.
-
-    The structure is intentionally simple. Future governance can evolve
-    the schema; for now we only guarantee that the file exists and is
-    a valid YAML-like structure.
-    """
-    _ensure_ir_dir()
-    if TRIAGE_FILE.exists():
-        logger.info("IR triage log already exists at %s", TRIAGE_FILE)
-        return
-
-    content = """\
+TRIAGE_CONTENT = """\
 version: "0.1.0"
 type: "incident_triage_log"
 entries: []
 """
-    TRIAGE_FILE.write_text(content, encoding="utf-8")
-    logger.info("Created IR triage log at %s", TRIAGE_FILE)
 
-
-def _init_incident_log() -> None:
-    """
-    Initialize a minimal incident response log file if it does not exist.
-
-    This is a placeholder structure to satisfy governance checks and
-    provide a stable location for future IR entries.
-    """
-    _ensure_ir_dir()
-    if INCIDENT_LOG_FILE.exists():
-        logger.info("Incident log already exists at %s", INCIDENT_LOG_FILE)
-        return
-
-    content = """\
+INCIDENT_LOG_CONTENT = """\
 version: "0.1.0"
 type: "incident_response_log"
 entries: []
 """
-    INCIDENT_LOG_FILE.write_text(content, encoding="utf-8")
-    logger.info("Created incident log at %s", INCIDENT_LOG_FILE)
+
+
+def _ensure_ir_file(path: Path, content: str, label: str) -> None:
+    """
+    Helper: Ensure a minimal IR artifact exists.
+    """
+    path.parent.mkdir(parents=True, exist_ok=True)
+
+    if path.exists():
+        logger.info("%s already exists at %s", label, path)
+        console.print("[yellow]ℹ %s already exists.[/yellow]", label)
+        return
+
+    path.write_text(content, encoding="utf-8")
+    logger.info("Created %s at %s", label, path)
+    console.print("[green]✅ Created %s[/green]", label)
+
+
+def _run_ir_fix(path: Path, content: str, label: str, write: bool) -> None:
+    """
+    Generic handler for IR fix commands.
+    """
+    # Safety check handled by @core_command decorator
+
+    if not write:
+        console.print(
+            f"[yellow]Dry run:[/yellow] would ensure {path} exists with a "
+            f"minimal {label.lower()} structure. Use --write to apply."
+        )
+        return
+
+    _ensure_ir_file(path, content, label)
 
 
 @fix_app.command("ir-triage", help="Initialize or update the incident triage log.")
 @handle_command_errors
-# ID: 620f3b9a-fd35-4c1e-95e3-5ea49887a92d
+@core_command(dangerous=True, confirmation=False)
+# ID: cfce8395-9fdd-420e-bbaf-4cc18723bd5c
 def fix_ir_triage(
+    ctx: typer.Context,
     write: bool = typer.Option(
         False,
         "--write",
@@ -94,32 +85,16 @@ def fix_ir_triage(
 ) -> None:
     """
     Bootstrap the IR triage log under .intent/mind/ir/.
-
-    In the current implementation, this is idempotent and safe:
-    - If the file exists, it is left unchanged.
-    - If missing, a minimal skeleton is created.
     """
-    if not _confirm_dangerous_operation("ir-triage", write):
-        console.print("[yellow]Operation cancelled by user.[/yellow]")
-        return
-
-    if not write:
-        console.print(
-            f"[yellow]Dry run:[/yellow] would ensure {TRIAGE_FILE} exists with a "
-            "minimal triage log structure. Use --write to apply."
-        )
-        return
-
-    _run_with_progress("Bootstrapping IR triage log", _init_triage_log)
-    console.print(
-        f"[green]✅ IR triage log ensured at[/green] [bold]{TRIAGE_FILE}[/bold]"
-    )
+    _run_ir_fix(TRIAGE_FILE, TRIAGE_CONTENT, "IR triage log", write)
 
 
 @fix_app.command("ir-log", help="Initialize or update the incident response log.")
 @handle_command_errors
-# ID: a0eb79a8-e880-4f27-8233-aaa5f96ee9cb
+@core_command(dangerous=True, confirmation=False)
+# ID: c3e0e9ae-2e2e-4c7f-ac49-a857d44bfb86
 def fix_ir_log(
+    ctx: typer.Context,
     write: bool = typer.Option(
         False,
         "--write",
@@ -128,23 +103,5 @@ def fix_ir_log(
 ) -> None:
     """
     Bootstrap the main incident response log under .intent/mind/ir/.
-
-    Same semantics as ir-triage:
-    - Idempotent
-    - Minimal structure only
     """
-    if not _confirm_dangerous_operation("ir-log", write):
-        console.print("[yellow]Operation cancelled by user.[/yellow]")
-        return
-
-    if not write:
-        console.print(
-            f"[yellow]Dry run:[/yellow] would ensure {INCIDENT_LOG_FILE} exists "
-            "with a minimal incident log structure. Use --write to apply."
-        )
-        return
-
-    _run_with_progress("Bootstrapping IR incident log", _init_incident_log)
-    console.print(
-        f"[green]✅ IR incident log ensured at[/green] [bold]{INCIDENT_LOG_FILE}[/bold]"
-    )
+    _run_ir_fix(INCIDENT_LOG_FILE, INCIDENT_LOG_CONTENT, "IR incident log", write)

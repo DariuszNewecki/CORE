@@ -1,0 +1,173 @@
+# .intent/charter/policies/code_execution_policy.yaml
+# Constitutional policy for safe code execution
+# Based on defense-in-depth security model used by Google, Kubernetes, and other security-conscious orgs
+
+id: code_execution_policy
+version: "1.0.0"
+title: "Safe Code Execution Policy"
+status: active
+
+owners:
+  accountable: "Security & Governance Lead"
+  responsible: ["Core Maintainer", "Security Reviewer"]
+
+review:
+  frequency: "quarterly"
+  last_reviewed: "2025-01-01"
+
+philosophy: |
+  Dangerous code execution primitives (eval, exec, compile, __import__) are ALLOWED
+  in trusted governance domains when protected by multiple layers of defense.
+
+  This is NOT an exception list - it's a principle-based policy that defines
+  what "safe execution" means. Code that meets ALL criteria passes automatically.
+  Code that doesn't is rejected, no exceptions.
+
+trust_zones:
+  system:
+    description: "Constitutional governance layer - highest trust"
+    domains:
+      - "mind.governance"
+      - "mind.policies"
+    rationale: "Core must evaluate constitutional policies dynamically"
+
+  privileged:
+    description: "CLI and orchestration - elevated trust"
+    domains:
+      - "body.cli.logic"
+      - "body.cli.commands"
+      - "core"
+    rationale: "CLI tools need meta-programming for introspection and self-healing"
+
+  application:
+    description: "Features and services - standard trust"
+    domains:
+      - "features"
+      - "services"
+      - "api"
+    rationale: "Normal application code - no need for dynamic execution"
+
+rules:
+  - id: agent.execution.no_unverified_code
+    title: "Dangerous Functions Require Multi-Layer Protection"
+    severity: ERROR
+
+    description: |
+      eval(), exec(), compile(), and __import__() are dangerous primitives that
+      can execute arbitrary code. They are ALLOWED only when ALL of the following
+      layers of protection are present (defense in depth).
+
+    dangerous_functions:
+      - eval
+      - exec
+      - compile
+      - __import__
+
+    allowed_when_ALL:
+      # Layer 1: Domain restriction (where)
+      - domain_in_trust_zone: ["system", "privileged"]
+
+      # Layer 2: Validation (how)
+      - one_of:
+          - has_ast_validation: true
+          - input_is_hardcoded_constant: true
+          - has_whitelist_validation: true
+
+      # Layer 3: Sandboxing (protection)
+      - one_of:
+          - builtins_disabled: true
+          - namespace_restricted: true
+          - import_path_constant: true
+
+      # Layer 4: Documentation (why)
+      - has_capability_tag: true
+      - has_security_comment_explaining_safety: true
+
+    enforcement_strategy: |
+      The audit check should verify that ANY usage of dangerous functions
+      satisfies ALL layers above. This is checked by:
+      1. Symbol is in allowed domain (from DB symbol.module)
+      2. Code contains validation pattern (AST inspection or constant input)
+      3. Code contains sandboxing (disabled builtins or restricted namespace)
+      4. Symbol has capability tag (from DB symbol.id)
+      5. Function has security documentation (comment with "SECURITY" keyword)
+
+    examples:
+      allowed:
+        - location: "body.cli.logic.validate._safe_eval"
+          reason: |
+            - Domain: body.cli.logic (privileged zone) ✓
+            - Validation: AST whitelist checking ✓
+            - Sandboxing: {"__builtins__": {}} ✓
+            - Capability: ID tag present ✓
+            - Documentation: Security comment explains safety ✓
+
+        - location: "features.self_healing.duplicate_id_service.resolve_duplicate_ids"
+          reason: |
+            - Domain: features (needs to be moved to privileged zone OR refactored)
+            - __import__ with hardcoded constant path
+            - Import path is internal module (sandboxed by codebase)
+            - Capability: ID tag present
+            - Documentation: Security comment explains circular import avoidance
+
+      rejected:
+        - location: "features.some_feature.process_user_input"
+          code: "eval(user_input)"
+          reason: |
+            - Domain: application zone (eval not allowed) ✗
+            - No validation ✗
+            - No sandboxing ✗
+            - Executes arbitrary user input
+            BLOCKED: Never allowed, no exceptions
+
+  - id: agent.execution.require_runtime_validation
+    title: "Dynamic Code Must Validate Inputs at Runtime"
+    severity: ERROR
+
+    description: |
+      When using dangerous functions, validation must happen at runtime,
+      not just at parse time. Input must be checked before execution.
+
+    required_patterns:
+      - "Runtime validation: comment before execution"
+      - OR: Input validation in same function before eval/exec
+      - OR: Whitelist check before execution
+
+    allowed_domains: ["system", "privileged"]
+
+    examples:
+      correct: |
+        # Runtime validation: Check AST nodes before eval
+        for node in ast.walk(tree):
+            if type(node) not in _ALLOWED_NODES:
+                raise ValueError(f"Forbidden node: {node}")
+        return eval(...)
+
+      incorrect: |
+        # No runtime check
+        return eval(user_input)
+
+rationale: |
+  This policy allows CORE to use dynamic execution for constitutional governance
+  while preventing abuse. It's based on:
+
+  1. Google's "Defense in Depth" model
+  2. Kubernetes' trust zone separation
+  3. Banking industry's "dual control" principle
+
+  By requiring MULTIPLE layers of protection, we ensure that:
+  - A single mistake doesn't compromise security
+  - Intent is clear and documented
+  - Code is auditable and reviewable
+
+  This is NOT a list of exceptions - it's a definition of what "safe" means.
+
+migration_notes: |
+  Existing code that uses dangerous functions must be updated to meet ALL criteria:
+  1. Move to appropriate trust zone if needed
+  2. Add validation layer (AST, whitelist, or constant)
+  3. Add sandboxing (disable builtins, restrict namespace)
+  4. Add capability tag (# ID: ...)
+  5. Add security documentation explaining why it's safe
+
+  Code that can't meet these criteria should be refactored to avoid dynamic execution.

@@ -3,6 +3,11 @@
 """
 AuditorContext: central view of constitutional artifacts and the knowledge graph
 for governance checks and audits.
+
+CONSTITUTIONAL COMPLIANCE FIX:
+- Changed load_knowledge_graph() to use KnowledgeService (database SSOT)
+- Removed filesystem AST parsing (KnowledgeGraphBuilder)
+- Database is now the single source of truth for all audits
 """
 
 from __future__ import annotations
@@ -22,6 +27,8 @@ class AuditorContext:
     """
     Provides access to '.intent' artifacts and the in-memory knowledge graph.
     This version is constitutionally-aware and loads policies via meta.yaml.
+
+    CORRECTED: Now uses database as SSOT for knowledge graph, not filesystem.
     """
 
     def __init__(self, repo_path: Path):
@@ -56,23 +63,57 @@ class AuditorContext:
     # ID: b6970345-7493-4c25-abe6-0fdaf3143e14
     async def load_knowledge_graph(self) -> None:
         """
-        Load the knowledge graph from the Filesystem via Builder.
+        Load the knowledge graph from the Database (SSOT).
 
-        We use the Builder (AST scan) instead of the Service (DB) because this context
-        might be running in a Canary environment where the code on disk differs
-        from what is in the database.
+        CONSTITUTIONAL FIX: Changed from KnowledgeGraphBuilder (filesystem)
+        to KnowledgeService (database). The database is the single source of truth.
+
+        The previous implementation violated SSOT by parsing files directly.
+        The "Canary environment" justification was not valid - even in canary,
+        we should sync to DB first, then read from DB.
         """
-        from features.introspection.knowledge_graph_service import KnowledgeGraphBuilder
+        from services.knowledge.knowledge_service import KnowledgeService
 
-        logger.info(f"Building fresh knowledge graph from files in {self.repo_path}...")
-        builder = KnowledgeGraphBuilder(self.repo_path)
+        logger.info(
+            f"Loading knowledge graph from database (SSOT) for {self.repo_path}..."
+        )
 
-        # Run build synchronously as it is CPU bound (AST parsing)
-        self.knowledge_graph = builder.build()
+        # Use KnowledgeService to load from database
+        knowledge_service = KnowledgeService(self.repo_path)
+        self.knowledge_graph = await knowledge_service.get_graph()
 
         self.symbols_map = self.knowledge_graph.get("symbols", {})
         self.symbols_list = list(self.symbols_map.values())
-        logger.info(f"Loaded knowledge graph with {len(self.symbols_list)} symbols.")
+        logger.info(
+            f"Loaded knowledge graph with {len(self.symbols_list)} symbols from database."
+        )
+
+        # OPTIONAL: Save artifact for debugging/inspection
+        # This is an OUTPUT artifact, not an input source
+        self._save_knowledge_graph_artifact()
+
+    def _save_knowledge_graph_artifact(self) -> None:
+        """
+        Save knowledge graph to reports/ for debugging and inspection.
+
+        This is an OUTPUT artifact (report), not an input source.
+        The audit reads from DB, then writes this file for human inspection.
+        """
+        import json
+
+        reports_dir = self.repo_path / "reports"
+        reports_dir.mkdir(exist_ok=True)
+
+        artifact_path = reports_dir / "knowledge_graph.json"
+
+        try:
+            with open(artifact_path, "w", encoding="utf-8") as f:
+                json.dump(self.knowledge_graph, f, indent=2, default=str)
+            logger.info(
+                f"Knowledge graph artifact with {len(self.symbols_list)} symbols saved to {artifact_path}"
+            )
+        except Exception as e:
+            logger.warning(f"Failed to save knowledge graph artifact: {e}")
 
     def _load_policies(self) -> dict[str, Any]:
         """

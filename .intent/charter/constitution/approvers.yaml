@@ -32,17 +32,26 @@ approvers:
     description: "Mentor"
 
 quorum:
-  # The operational mode should reflect the CORE_ENV variable from mind/config/runtime_requirements.yaml.
-  # The system MUST enforce the 'production' quorum rules when CORE_ENV=production.
-  current_mode: development
+  # The operational mode is strictly determined by the runtime environment.
+  # The IntentGuard MUST validate that the loaded mode matches the system state.
+  current_mode: "${CORE_ENV}"
+
   development:
     standard: 1
     critical: 1
+    restrictions:
+      - "Allowed only when CORE_ENV is unset or 'development'"
+      - "Dev-fastpath signatures accepted"
+
   production:
     standard: 2
     critical: 3
+    restrictions:
+      - "Enforced when CORE_ENV='production'"
+      - "MUST reject any signature marked as dev_fastpath"
+      - "Critical changes require multi-party consensus (minimum 3 approvers)"
 
-# The list of paths requiring the 'critical' quorum is now managed centrally.
-critical_paths_source: "charter/constitution/critical_paths.yaml"
+# The list of paths requiring the 'critical' quorum is managed centrally.
+critical_paths_source: ".intent/charter/constitution/critical_paths.yaml"
 
 emergency_contact: "security-emergency@core-system.ai"

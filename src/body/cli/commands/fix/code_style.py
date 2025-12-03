@@ -1,10 +1,6 @@
 # src/body/cli/commands/fix/code_style.py
 """
 Code style related self-healing commands for the 'fix' CLI group.
-
-Provides:
-- fix code-style
-- fix headers (MIGRATED to ActionResult pattern with @atomic_action)
 """
 
 from __future__ import annotations
@@ -14,18 +10,12 @@ import time
 import typer
 from features.self_healing.code_style_service import format_code
 from mind.governance.constitutional_monitor import ConstitutionalMonitor
-from shared.action_types import (
-    ActionImpact,
-    ActionResult,
-)
-
-# CHANGED: Import from action_types
-from shared.atomic_action import atomic_action  # NEW: Import decorator
-from shared.cli_utils import async_command
+from shared.action_types import ActionImpact, ActionResult
+from shared.atomic_action import atomic_action
+from shared.cli_utils import core_command
 from shared.config import settings
 
 from . import (
-    _confirm_dangerous_operation,
     _run_with_progress,
     console,
     fix_app,
@@ -37,21 +27,16 @@ from . import (
     "code-style", help="Auto-format all code to be constitutionally compliant."
 )
 @handle_command_errors
-# ID: 79b873a6-ccd3-4aba-a5e9-b3da8fabd6a3
-def format_code_cmd() -> None:
+@core_command(dangerous=False)
+# ID: 227222a1-811d-4fd8-bd32-65329f8414ca
+def format_code_cmd(ctx: typer.Context) -> None:
     """
     CLI entry point for `fix code-style`.
-
-    Delegates to the code style self-healing service to run Black & Ruff
-    in a constitutionally aware way.
+    Delegates to Black & Ruff via subprocesses.
     """
+    # Note: _run_with_progress is kept here as it wraps subprocess calls specifically
     _run_with_progress("Formatting code", format_code)
     console.print("[green]✅ Code formatting completed[/green]")
-
-
-# ============================================================================
-# NEW: Internal function with ActionResult and @atomic_action
-# ============================================================================
 
 
 # ID: fix_headers_internal_v1
@@ -62,37 +47,11 @@ def format_code_cmd() -> None:
     policies=["file_headers"],
     category="fixers",
 )
-# ID: 598ba917-d84a-4bce-9bbc-27d62733aeed
+# ID: edb6d962-f821-475d-8885-ca8518569758
 async def fix_headers_internal(write: bool = False) -> ActionResult:
     """
     Core logic for fix headers command.
-
-    Audits all Python files for constitutional header compliance and
-    optionally remediates violations. Headers must include:
-    - File path comment
-    - Module docstring
-    - Required imports
-
-    This ensures:
-    - Consistent file structure across codebase
-    - Constitutional compliance for AI code generation
-    - Proper documentation for knowledge graph
-
-    Args:
-        write: If True, fix violations. If False, audit only (dry-run).
-
-    Returns:
-        ActionResult with:
-        - ok: True if no violations or all fixed successfully
-        - data: {
-            "violations_found": int,
-            "files_scanned": int,
-            "compliant_files": int,
-            "fixed_count": int (only if write=True),
-            "failed_count": int (only if write=True),
-            "dry_run": bool,
-          }
-        - duration_sec: Execution time
+    Audits and optionally remediates file headers.
     """
     start_time = time.time()
 
@@ -109,7 +68,7 @@ async def fix_headers_internal(write: bool = False) -> ActionResult:
             "dry_run": not write,
         }
 
-        # If no violations, we're done
+        # Case A: No violations found
         if not audit_report.violations:
             return ActionResult(
                 action_id="fix.headers",
@@ -119,7 +78,7 @@ async def fix_headers_internal(write: bool = False) -> ActionResult:
                 impact=ActionImpact.WRITE_METADATA,
             )
 
-        # Step 2: Remediate (if write mode)
+        # Case B: Write mode (Fix violations)
         if write:
             remediation_result = monitor.remediate_violations(audit_report)
             result_data.update(
@@ -142,10 +101,10 @@ async def fix_headers_internal(write: bool = False) -> ActionResult:
                 ),
             )
 
-        # Dry-run: violations found but not fixed
+        # Case C: Dry-run mode (Report violations)
         return ActionResult(
             action_id="fix.headers",
-            ok=False,  # Violations exist but not fixed
+            ok=True,  # Operation "succeeded" in reporting status
             data=result_data,
             duration_sec=time.time() - start_time,
             suggestions=["Run with --write to fix violations"],
@@ -168,50 +127,22 @@ async def fix_headers_internal(write: bool = False) -> ActionResult:
     "headers", help="Ensures all Python files have constitutionally compliant headers."
 )
 @handle_command_errors
-@async_command
-# ID: 00b6c8e4-9e5d-4a9a-8c3a-7f6e5d4c3b2a
+@core_command(dangerous=True, confirmation=True)
+# ID: 967c7322-5732-466f-a639-cacbaae425ba
 async def fix_headers_cmd(
+    ctx: typer.Context,
     write: bool = typer.Option(
         False, "--write", help="Apply fixes to files with violations."
     ),
-) -> None:
+) -> ActionResult:
     """
     CLI wrapper for fix headers command.
-
-    Handles user interaction and presentation while fix_headers_internal()
-    contains the core logic. This separation enables:
-    - Testing without CLI
-    - Workflow orchestration
-    - Constitutional governance
     """
+    # The framework handles:
+    # 1. Safety checks (confirmation prompt)
+    # 2. Async loop management
+    # 3. Error handling
+    # 4. Output formatting (via ActionResult)
 
-    if not _confirm_dangerous_operation("headers", write):
-        console.print("[yellow]Operation cancelled by user.[/yellow]")
-        return
-
-    # Call internal function
     with console.status("[cyan]Checking file headers...[/cyan]"):
-        result = await fix_headers_internal(write=write)
-
-    # Present results
-    if result.ok:
-        violations = result.data.get("violations_found", 0)
-        if violations == 0:
-            console.print(
-                "[bold green]✅ All headers are constitutionally compliant.[/bold green]"
-            )
-        else:
-            fixed = result.data.get("fixed_count", 0)
-            console.print(
-                f"[bold green]✅ Fixed {fixed}/{violations} header violations.[/bold green]"
-            )
-    else:
-        violations = result.data.get("violations_found", 0)
-        if "error" in result.data:
-            error = result.data["error"]
-            console.print(f"[bold red]❌ Error: {error}[/bold red]")
-        else:
-            console.print(
-                f"[yellow]⚠ Found {violations} header violations (dry-run mode).[/yellow]"
-            )
-            console.print("[dim]Run with --write to fix them.[/dim]")
+        return await fix_headers_internal(write=write)

@@ -1,0 +1,40 @@
+# .intent/charter/constitution/immutable_principles.yaml
+id: immutable_architectural_principles
+version: "1.0.0"
+title: "Architectural Principles That Cannot Be Changed"
+description: >
+  This file defines the bedrock laws of the system architecture.
+  Unlike standard policies, these rules guard the fundamental integrity of
+  CORE. They cannot be modified, relaxed, or removed without a
+  UNANIMOUS QUORUM of all active human approvers.
+
+immutable_rules:
+  - rule_id: "no_decorator_pollution"
+    statement: "Source code MUST NOT contain metadata decorators beyond @dataclass or standard library functional wrappers."
+    rationale: "The Database is the SSOT. Metadata decorators create a split-brain state and pollute business logic."
+    immutable_until: "unanimous_quorum"
+
+  - rule_id: "action_result_contract"
+    statement: "All internal atomic action functions MUST return a validated ActionResult object."
+    rationale: "A universal contract is required for reliable autonomous orchestration and auditing."
+    immutable_until: "unanimous_quorum"
+
+  - rule_id: "write_defaults_false"
+    statement: "All functions with a 'write' or 'modify' side-effect parameter MUST default it to False."
+    rationale: "Safety-by-default. The system must never be destructive without explicit intent."
+    immutable_until: "critical_quorum"
+
+  - rule_id: "db_is_ssot"
+    statement: "The PostgreSQL database is the SINGLE source of truth for all operational data (capabilities, history, links)."
+    rationale: "Prevents state drift between filesystem and runtime. Filesystem is for logic; DB is for state."
+    immutable_until: "unanimous_quorum"
+
+  - rule_id: "ids_only_pollution"
+    statement: "The ONLY allowed metadata intrusion in source code is the stable '# ID: <uuid>' tag."
+    rationale: "Stable IDs are necessary for refactoring; all other metadata belongs in the SSOT."
+    immutable_until: "unanimous_quorum"
+
+enforcement:
+  - "Any proposal modifying these rules requires the quorum level specified in 'immutable_until'."
+  - "Proposals that indirectly violate these rules (e.g., by introducing decorators) are constitutionally auto-rejected."
+  - "The Constitutional Guard must validate all code changes against these principles during the build/audit phase."

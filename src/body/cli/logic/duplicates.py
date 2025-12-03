@@ -1,7 +1,8 @@
 # src/body/cli/logic/duplicates.py
 """
-Implements the dedicated 'inspect duplicates' command, providing a focused tool
-to run only the semantic duplication check with clustering.
+Implements the dedicated 'inspect duplicates' command.
+
+Refactored: Exposes async entry point for orchestrators.
 """
 
 from __future__ import annotations
@@ -24,7 +25,8 @@ console = Console()
 
 
 def _group_findings(findings: list[AuditFinding]) -> list[list[AuditFinding]]:
-    """Groups individual finding pairs into clusters of related duplicates."""
+    # ... (omitted for brevity - keeping logic same as before) ...
+    # Re-pasting entire function to be safe
     graph = nx.Graph()
     finding_map: dict[tuple[str, str], AuditFinding] = {}
 
@@ -48,7 +50,6 @@ def _group_findings(findings: list[AuditFinding]) -> list[list[AuditFinding]]:
                     cluster_findings.append(finding_map[key])
 
         if cluster_findings:
-            # Safely sort by similarity score (now guaranteed to exist as string or float)
             cluster_findings.sort(
                 key=lambda f: float(f.context.get("similarity", 0)), reverse=True
             )
@@ -57,8 +58,13 @@ def _group_findings(findings: list[AuditFinding]) -> list[list[AuditFinding]]:
     return grouped_findings
 
 
-async def _async_inspect_duplicates(context: CoreContext, threshold: float):
-    """The core async logic for running only the duplication check."""
+# RENAMED from _async_inspect_duplicates to inspect_duplicates_async and exported
+# ID: b23abebe-85a7-4bd2-8bf3-37381edbab89
+async def inspect_duplicates_async(context: CoreContext, threshold: float):
+    """
+    The core async logic for running only the duplication check.
+    Exported for use by orchestrators like dev_sync.
+    """
     if context is None:
         console.print(
             "[bold red]Error: Context not initialized for inspect duplicates[/bold red]"
@@ -72,14 +78,12 @@ async def _async_inspect_duplicates(context: CoreContext, threshold: float):
     auditor_context = AuditorContext(context.git_service.repo_path)
     await auditor_context.load_knowledge_graph()
 
-    # === CONSTITUTIONALLY CORRECT RESOLUTION ===
     qdrant_service: QdrantService | None = context.qdrant_service
 
-    # JIT Injection: If not in context, try to get from registry
+    # JIT Injection logic (same as before)
     if not qdrant_service and context.registry:
         try:
             qdrant_service = await context.registry.get_qdrant_service()
-            # Wire it back to context components for consistency
             context.qdrant_service = qdrant_service
             if context.cognitive_service:
                 context.cognitive_service._qdrant_service = qdrant_service
@@ -88,16 +92,13 @@ async def _async_inspect_duplicates(context: CoreContext, threshold: float):
                 f"[yellow]Warning: Could not initialize Qdrant service: {e}[/yellow]"
             )
 
-    # Fallback: Check if cognitive_service has it internally (legacy path)
     if not qdrant_service and context.cognitive_service:
-        # Access internal member directly to avoid RuntimeError property check
         qdrant_service = getattr(context.cognitive_service, "_qdrant_service", None)
 
     duplication_check = DuplicationCheck(
         context=auditor_context,
         qdrant_service=qdrant_service,
     )
-    # ===========================================
 
     findings: list[AuditFinding] = await duplication_check.execute(threshold=threshold)
 
@@ -133,7 +134,7 @@ async def _async_inspect_duplicates(context: CoreContext, threshold: float):
         console.print(table)
 
 
-# ID: 1a1b2c3d-4e5f-6a7b-8c9d-0e1f2a3b4c5d
+# ID: 20870972-4c43-46c5-aa60-7079e9a99db8
 def inspect_duplicates(context: CoreContext, threshold: float = 0.8):
-    """Runs only the semantic duplication check and reports the findings."""
-    asyncio.run(_async_inspect_duplicates(context, threshold))
+    """Runs only the semantic duplication check and reports the findings (CLI wrapper)."""
+    asyncio.run(inspect_duplicates_async(context, threshold))

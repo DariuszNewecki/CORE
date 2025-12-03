@@ -8,12 +8,15 @@ Removed local _load_yaml in favor of the canonical implementation from shared.co
 
 from __future__ import annotations
 
+import json
 from collections.abc import Iterable
 from pathlib import Path
 
 from shared.config_loader import load_yaml_file
 from shared.logger import getLogger
 from shared.models import CapabilityMeta
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = getLogger(__name__)
 
@@ -191,3 +194,65 @@ def collect_code_capabilities(
             f"Capability discovery failed: {e}. Returning empty.", exc_info=True
         )
         return {}
+
+
+# ID: 8d2e4c1a-5b3f-4a9c-9d8e-7f6a5b4c3d2e
+async def sync_capabilities_to_db(
+    db: AsyncSession, intent_dir: Path
+) -> tuple[int, list[str]]:
+    """
+    Synchronizes capability definitions from the Constitution (.intent)
+    into the Database (core.capabilities).
+
+    Returns:
+        Tuple[int, list[str]]: (count of upserted capabilities, list of errors)
+    """
+    logger.info("Synchronizing capabilities from constitution to database...")
+
+    try:
+        # Reuse the existing validation logic
+        registry = load_and_validate_capabilities(intent_dir)
+    except FileNotFoundError:
+        msg = "No capability tags directory found. Skipping sync."
+        logger.warning(msg)
+        return 0, [msg]
+    except ValueError as e:
+        msg = f"Constitution Error: {e}"
+        logger.error(msg)
+        return 0, [msg]
+
+    capabilities_to_sync = list(registry.canonical)
+    upserted_count = 0
+
+    for cap_name in capabilities_to_sync:
+        # Infer domain from name (e.g. "security.crypto.hashing" -> "security")
+        domain = cap_name.split(".")[0] if "." in cap_name else "general"
+        # Generate a readable title from the key
+        title = cap_name.replace(".", " ").replace("_", " ").title()
+
+        # Upsert into DB
+        stmt = text(
+            """
+            INSERT INTO core.capabilities (name, domain, title, owner, status, tags, updated_at)
+            VALUES (:name, :domain, :title, 'constitution', 'Active', :tags, NOW())
+            ON CONFLICT (domain, name) DO UPDATE SET
+                status = 'Active',
+                updated_at = NOW()
+            RETURNING id
+        """
+        )
+
+        await db.execute(
+            stmt,
+            {
+                "name": cap_name,
+                "domain": domain,
+                "title": title,
+                "tags": json.dumps(["constitutional"]),
+            },
+        )
+        upserted_count += 1
+
+    await db.commit()
+    logger.info(f"Synced {upserted_count} capabilities to DB")
+    return upserted_count, []

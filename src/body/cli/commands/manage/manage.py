@@ -1,13 +1,16 @@
-# src/body/cli/commands/manage.py
+# src/body/cli/commands/manage/manage.py
+
 """
-State-changing administrative tasks for the system (DB, dotenv, projects, proposals, keys).
+Core logic for the 'manage' command group.
+Handles DB, dotenv, projects, proposals, keys, patterns, and policies.
+
+Refactored to use the Constitutional CLI Framework (@core_command).
 """
 
 from __future__ import annotations
 
-import asyncio
-
 import typer
+from features.introspection.capability_discovery_service import sync_capabilities_to_db
 from features.introspection.export_vectors import export_vectors
 from features.maintenance.dotenv_sync_service import run_dotenv_sync
 from features.maintenance.migration_service import run_ssot_migration
@@ -15,8 +18,8 @@ from features.project_lifecycle.definition_service import _define_new_symbols
 from features.project_lifecycle.scaffolding_service import create_new_project
 from mind.governance.key_management_service import keygen
 from rich.console import Console
-from services.clients.qdrant_client import QdrantService
-from services.context.service import ContextService
+from services.database.session_manager import get_session
+from shared.cli_utils import core_command
 from shared.config import settings
 from shared.context import CoreContext
 from shared.logger import getLogger
@@ -32,6 +35,10 @@ from body.cli.logic.proposal_service import (
 from body.cli.logic.sync import sync_knowledge_base
 from body.cli.logic.sync_manifest import sync_manifest
 
+from .patterns import patterns_sub_app
+from .policies import policies_sub_app
+from .vectors import app as vectors_sub_app
+
 console = Console()
 logger = getLogger(__name__)
 
@@ -40,10 +47,7 @@ manage_app = typer.Typer(
     no_args_is_help=True,
 )
 
-_context: CoreContext | None = None
-
 # === DATABASE SUB-COMMANDS ==================================================
-
 
 db_sub_app = typer.Typer(
     help="Manage the database schema and data.",
@@ -60,22 +64,60 @@ db_sub_app.command("export-vectors")(export_vectors)
     "migrate-ssot",
     help="One-time data migration from legacy files to the SSOT database.",
 )
-# ID: 6aa37e30-2fd5-4738-8bbd-2a4f3cb4441f
-def migrate_ssot_command(
+# ID: 5a0db9ac-d7af-4aa7-8907-84f00e4bb7da
+@core_command(dangerous=True, confirmation=True)
+# ID: e3693194-d3ec-4e77-8a94-0ae812a2258d
+async def migrate_ssot_command(
+    ctx: typer.Context,
     write: bool = typer.Option(
         False,
         "--write",
         help="Apply the migration to the database.",
     ),
 ) -> None:
-    asyncio.run(run_ssot_migration(dry_run=not write))
+    await run_ssot_migration(dry_run=not write)
+
+
+@db_sub_app.command(
+    "sync-capabilities",
+    help="Syncs capabilities from .intent/knowledge/capability_tags/ to the DB.",
+)
+# ID: 9eeb1713-6cf2-4526-9171-d8b1fcae11df
+@core_command(dangerous=True, confirmation=True)
+# ID: 072bde78-de6f-4a86-9eb2-1f3d488b8d70
+async def sync_capabilities_command(
+    ctx: typer.Context,
+    write: bool = typer.Option(False, "--write", help="Apply changes to the database."),
+) -> None:
+    """Syncs capabilities from .intent/knowledge/capability_tags/ to the DB."""
+
+    if not write:
+        console.print(
+            "[yellow]Dry run not supported for this command yet. Use --write to sync.[/yellow]"
+        )
+        return
+
+    intent_dir = settings.MIND.parent
+
+    async with get_session() as session:
+        count, errors = await sync_capabilities_to_db(session, intent_dir)
+
+        if errors:
+            for err in errors:
+                console.print(f"[red]Error:[/red] {err}")
+
+        if count > 0:
+            console.print(
+                f"[bold green]✅ Successfully synced {count} capabilities to DB.[/bold green]"
+            )
+        else:
+            console.print("[yellow]No capabilities synced.[/yellow]")
 
 
 manage_app.add_typer(db_sub_app, name="database")
 
 
 # === DOTENV SUB-COMMANDS =====================================================
-
 
 dotenv_sub_app = typer.Typer(
     help="Manage runtime configuration from .env.",
@@ -90,15 +132,18 @@ dotenv_sub_app = typer.Typer(
         "runtime_requirements.yaml."
     ),
 )
-# ID: 0cbb0df6-2070-41f5-a6e1-d6cb339294f2
-def dotenv_sync_command(
+# ID: 1b58c1f3-395b-494a-b717-918cae0b7665
+@core_command(dangerous=True, confirmation=True)
+# ID: 933a2755-cec1-487b-a314-a6c496baaf23
+async def dotenv_sync_command(
+    ctx: typer.Context,
     write: bool = typer.Option(
         False,
         "--write",
         help="Apply the sync to the database.",
     ),
 ) -> None:
-    asyncio.run(run_dotenv_sync(dry_run=not write))
+    await run_dotenv_sync(dry_run=not write)
 
 
 manage_app.add_typer(dotenv_sub_app, name="dotenv")
@@ -113,9 +158,11 @@ project_sub_app = typer.Typer(
 
 
 @project_sub_app.command("new")
-# ID: 9a6c6a6d-2c5a-4b57-9e2a-5b5199e4f3f21
-# ID: af616f12-7dd9-417e-aff2-ae9aad8ced78
+# ID: 64ad863a-3561-4108-b8a2-8dade00964be
+@core_command(dangerous=True, confirmation=True)
+# ID: 33552c18-f304-4c47-a552-e3eabdb58363
 def project_new_command(
+    ctx: typer.Context,
     name: str = typer.Argument(
         ...,
         help="The name of the new CORE-governed application to create.",
@@ -125,17 +172,19 @@ def project_new_command(
         "--profile",
         help="The starter kit profile to use for the new project's constitution.",
     ),
-    dry_run: bool = typer.Option(
-        True,
-        "--dry-run/--write",
-        help="Show what will be created without writing files. Use --write to apply.",
+    # Mapping legacy --dry-run/--write behavior to standard write flag
+    write: bool = typer.Option(
+        False,
+        "--write",
+        help="Create the project files (default is dry-run).",
     ),
 ) -> None:
     """
     CLI entrypoint: scaffold a new CORE-governed application.
-
-    This bridges user input (Typer) to the domain-level scaffolding service.
     """
+    # Map write=False to dry_run=True
+    dry_run = not write
+
     console.print(
         f"[bold cyan]🚀 Creating new CORE project[/bold cyan]: '{name}' "
         f"(profile: '{profile}', dry_run={dry_run})"
@@ -173,14 +222,23 @@ proposals_sub_app.command("sign")(proposals_sign)
 
 
 @proposals_sub_app.command("approve")
-# ID: f6665b18-e3bc-46b0-85bf-4f7ff7a6a2ad
+# ID: 9d773f7b-4e04-4cd3-abc9-c9e7c3d28485
+@core_command(dangerous=True, confirmation=True)
+# ID: 3dfb9cc6-c571-451b-a0af-1db40c250cfc
 def approve_command_wrapper(
     ctx: typer.Context,
     proposal_name: str = typer.Argument(
         ...,
         help="Filename of the proposal to approve.",
     ),
+    write: bool = typer.Option(False, "--write", help="Apply the approval."),
 ) -> None:
+    if not write:
+        console.print(
+            "[yellow]Dry run not supported for approvals. Use --write to approve.[/yellow]"
+        )
+        return
+
     core_context: CoreContext = ctx.obj
     proposals_approve(context=core_context, proposal_name=proposal_name)
 
@@ -198,45 +256,48 @@ keys_sub_app.command("generate")(keygen)
 manage_app.add_typer(keys_sub_app, name="keys")
 
 
+# === PATTERNS SUB-COMMANDS ===================================================
+
+manage_app.add_typer(patterns_sub_app, name="patterns")
+
+
+# === POLICIES SUB-COMMANDS ===================================================
+
+manage_app.add_typer(policies_sub_app, name="policies")
+
+
+# === VECTORS SUB-COMMANDS ====================================================
+
+manage_app.add_typer(vectors_sub_app, name="vectors")
+
+
 # === DEFINE SYMBOLS ==========================================================
 
 
-async def _async_define_symbols(core_context: CoreContext) -> None:
-    """
-    Asynchronous core logic for defining symbols.
-
-    This is a private async helper: CLI -> this -> domain capability.
-    """
-    # === JIT INJECTION ===
-    if core_context.qdrant_service is None and core_context.registry:
-        logger.info("Initializing QdrantService via Registry for symbol definition...")
-        core_context.qdrant_service = await core_context.registry.get_qdrant_service()
-    elif core_context.qdrant_service is None:
-        # Fallback for non-registry contexts (tests)
-        logger.info("Initializing QdrantService manually for symbol definition...")
-        core_context.qdrant_service = QdrantService()
-
-    # Ensure cognitive service has it too
-    if core_context.cognitive_service and not hasattr(
-        core_context.cognitive_service, "_qdrant_service"
-    ):
-        core_context.cognitive_service._qdrant_service = core_context.qdrant_service
-
-    context_service = ContextService(
-        qdrant_client=core_context.qdrant_service,
-        cognitive_service=core_context.cognitive_service,
-        project_root=str(settings.REPO_PATH),
-    )
-    await _define_new_symbols(context_service)
-
-
 @manage_app.command("define-symbols")
-# ID: 34b2f0d2-3b69-4ea2-bc9d-5b2071bce2d3
-def define_symbols_command(ctx: typer.Context) -> None:
+# ID: b66c3bfb-d92c-4641-9c2d-ccb4dc6e72ef
+@core_command(dangerous=True, confirmation=True)
+# ID: 950b9c6d-9d54-4e29-a856-b4af49fabe77
+async def define_symbols_command(
+    ctx: typer.Context,
+    write: bool = typer.Option(
+        False,
+        "--write",
+        help="Commit defined symbols to database.",
+    ),
+) -> None:
     """
     CLI entrypoint to run symbol definition across the codebase.
-
-    This is the public CLI surface; `_async_define_symbols` remains private.
     """
+    if not write:
+        console.print(
+            "[yellow]Dry run: Symbol definition requires --write to persist changes.[/yellow]"
+        )
+        # The underlying service doesn't currently support a dry-run mode that returns
+        # hypothetical changes without side effects, so we exit early.
+        return
+
     core_context: CoreContext = ctx.obj
-    asyncio.run(_async_define_symbols(core_context))
+
+    # @core_command ensures core_context.context_service is available (via factory)
+    await _define_new_symbols(core_context.context_service)

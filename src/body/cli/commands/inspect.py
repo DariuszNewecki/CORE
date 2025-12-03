@@ -1,17 +1,17 @@
 # src/body/cli/commands/inspect.py
 """
-Registers the new, verb-based 'inspect' command group.
+Registers the verb-based 'inspect' command group.
+Refactored to use the Constitutional CLI Framework (@core_command).
 """
 
 from __future__ import annotations
 
-import asyncio
 from pathlib import Path
 
 import typer
 from features.self_healing.test_target_analyzer import TestTargetAnalyzer
 from rich.console import Console
-from rich.table import Table
+from shared.cli_utils import core_command
 from shared.context import CoreContext
 
 import body.cli.logic.status as status_logic
@@ -28,95 +28,106 @@ inspect_app = typer.Typer(
     no_args_is_help=True,
 )
 
-_context: CoreContext | None = None
-
-
-# ID: 41a9713d-d4d2-4af5-9fa3-8fba203a2702
-def set_context(context: CoreContext):
-    """Sets the shared context for the logic layer."""
-    global _context
-    _context = context
-
 
 @inspect_app.command("status")
-# ID: 43192f07-fb4f-4f45-9d8c-a096ee0142f6
-def status_command() -> None:
+@core_command(dangerous=False, requires_context=False)
+# ID: fc253528-91bc-44bb-ae52-0ba3886d95d5
+async def status_command(ctx: typer.Context) -> None:
     """
     Display database connection and migration status.
-
-    Uses `body.cli.logic.status._get_status_report` so it can be mocked in tests
-    and reused by other callers.
     """
+    # Delegate to logic layer (now awaited directly)
+    report = await status_logic._get_status_report()
 
-    async def _run() -> None:
-        # IMPORTANT: call via the module so tests patching
-        # body.cli.logic.status._get_status_report see this call.
-        report = await status_logic._get_status_report()
+    # Connection line
+    if report.is_connected:
+        console.print("Database connection: OK")
+    else:
+        console.print("Database connection: FAILED")
 
-        # Connection line
-        if report.is_connected:
-            console.print("Database connection: OK")
-        else:
-            console.print("Database connection: FAILED")
+    # Version line
+    if report.db_version:
+        console.print(f"Database version: {report.db_version}")
+    else:
+        console.print("Database version: N/A")
 
-        # Version line
-        if report.db_version:
-            console.print(f"Database version: {report.db_version}")
-        else:
-            console.print("Database version: N/A")
-
-        # Migration status
-        pending = list(report.pending_migrations)
-        if not pending:
-            # Tests expect the period at the end.
-            console.print("Migrations are up to date.")
-        else:
-            console.print(f"Found {len(pending)} pending migrations")
-            for mig in sorted(pending):
-                console.print(f"- {mig}")
-
-    asyncio.run(_run())
+    # Migration status
+    pending = list(report.pending_migrations)
+    if not pending:
+        console.print("Migrations are up to date.")
+    else:
+        console.print(f"Found {len(pending)} pending migrations")
+        for mig in sorted(pending):
+            console.print(f"- {mig}")
 
 
+# Register guard commands (e.g. 'guard drift')
+# Note: These sub-commands internally manage their own execution for now.
 register_guard(inspect_app)
 
-inspect_app.command("command-tree")(cli_tree)
 
-inspect_app.command(
-    "find-clusters",
-    help="Finds and displays all semantic capability clusters.",
-)(find_clusters_command_sync)
-
-inspect_app.command(
-    "symbol-drift",
-    help="Detects drift between symbols on the filesystem and in the database.",
-)(inspect_symbol_drift)
+@inspect_app.command("command-tree")
+@core_command(dangerous=False, requires_context=False)
+# ID: db3b96cc-d4a8-4bb1-9002-5a9b81d96d51
+def command_tree_cmd(ctx: typer.Context) -> None:
+    """Displays a hierarchical tree view of all available CLI commands."""
+    cli_tree()
 
 
-@inspect_app.command(
-    "vector-drift",
-    help="Verifies perfect synchronization between PostgreSQL and Qdrant.",
-)
-# ID: vector_drift_cmd_v2
-# ID: a5233d60-2ba7-44de-b5d4-1d8766915a86
-def vector_drift_command(ctx: typer.Context):
-    """CLI wrapper for vector drift inspection with context injection."""
+@inspect_app.command("find-clusters")
+@core_command(dangerous=False)
+# ID: b3272cb8-f754-4a11-b18d-6ca5efecbd3d
+def find_clusters_cmd(
+    ctx: typer.Context,
+    n_clusters: int = typer.Option(
+        25, "--n-clusters", "-n", help="The number of clusters to find."
+    ),
+) -> None:
+    """
+    Finds and displays all semantic capability clusters.
+    """
+    # Passing ctx explicitly because find_clusters_command_sync extracts ctx.obj
+    find_clusters_command_sync(ctx, n_clusters=n_clusters)
+
+
+@inspect_app.command("symbol-drift")
+@core_command(dangerous=False)
+# ID: c08c957a-f5b3-480d-8232-8c8cafe060d5
+def symbol_drift_cmd(ctx: typer.Context) -> None:
+    """
+    Detects drift between symbols on the filesystem and in the database.
+    """
+    # inspect_symbol_drift handles its own sync/async logic internally
+    inspect_symbol_drift()
+
+
+@inspect_app.command("vector-drift")
+@core_command(dangerous=False)
+# ID: 79b5e56e-3aa5-4ce0-a693-e051e0fe1dad
+async def vector_drift_command(ctx: typer.Context) -> None:
+    """
+    Verifies perfect synchronization between PostgreSQL and Qdrant.
+    """
     core_context: CoreContext = ctx.obj
-    # Pass the context so JIT injection of QdrantService works
-    asyncio.run(inspect_vector_drift(core_context))
+    # Framework ensures Qdrant is initialized via JIT
+    await inspect_vector_drift(core_context)
 
 
-inspect_app.command(
-    "common-knowledge",
-    help="Finds structurally identical helper functions that can be consolidated.",
-)(find_common_knowledge)
+@inspect_app.command("common-knowledge")
+@core_command(dangerous=False)
+# ID: bf926e9a-3106-4697-8d96-ade3fb3cad22
+def common_knowledge_cmd(ctx: typer.Context) -> None:
+    """
+    Finds structurally identical helper functions that can be consolidated.
+    """
+    find_common_knowledge()
 
 
-@inspect_app.command(
-    "test-targets", help="Analyzes a file to find good targets for autonomous testing."
-)
-# ID: 90629e33-d442-4e29-be05-55603ad8750f
+@inspect_app.command("test-targets")
+@core_command(dangerous=False, requires_context=False)
+# ID: fc375cbc-c97f-40b5-a4a9-0fa4a4d7d359
 def inspect_test_targets(
+    ctx: typer.Context,
     file_path: Path = typer.Argument(
         ...,
         help="The path to the Python file to analyze.",
@@ -124,7 +135,7 @@ def inspect_test_targets(
         dir_okay=False,
         resolve_path=True,
     ),
-):
+) -> None:
     """
     Identifies and classifies functions in a file as SIMPLE or COMPLEX test targets.
     """
@@ -134,6 +145,8 @@ def inspect_test_targets(
     if not targets:
         console.print("[yellow]No suitable public functions found to analyze.[/yellow]")
         return
+
+    from rich.table import Table
 
     table = Table(
         title="Test Target Analysis", header_style="bold magenta", show_header=True
@@ -154,11 +167,11 @@ def inspect_test_targets(
     console.print(table)
 
 
-@inspect_app.command(
-    "duplicates", help="Runs only the semantic code duplication check."
-)
-# ID: c5fc156b-dbad-4a69-976a-8dcf67f4bd7d
+@inspect_app.command("duplicates")
+@core_command(dangerous=False)
+# ID: 5a340604-58ea-46d2-8841-a308abad5dff
 def duplicates_command(
+    ctx: typer.Context,
     threshold: float = typer.Option(
         0.80,
         "--threshold",
@@ -167,8 +180,9 @@ def duplicates_command(
         min=0.5,
         max=1.0,
     ),
-):
-    """Wrapper to pass context and threshold to the inspect_duplicates logic."""
-    if not _context:
-        raise typer.Exit("Context not set for duplicates command.")
-    inspect_duplicates(context=_context, threshold=threshold)
+) -> None:
+    """
+    Runs only the semantic code duplication check.
+    """
+    core_context: CoreContext = ctx.obj
+    inspect_duplicates(context=core_context, threshold=threshold)

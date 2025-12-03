@@ -497,6 +497,123 @@ error_handling_strategies:
       - "Continue when optional steps fail"
       - "Report degraded functionality"
 
+circuit_breaker:
+  purpose: "Prevent infinite loops in self-healing and auto-remediation workflows"
+
+  rationale: |
+    If a fixer and a linter disagree due to configuration mismatch, they could
+    fight forever in a loop. The circuit breaker detects this and escalates to
+    human intervention before wasting resources or masking real issues.
+
+  rules:
+    max_attempts_per_file:
+      limit: 3
+      window: "1 hour"
+      description: "Maximum remediation attempts on same file within time window"
+
+    max_attempts_per_issue:
+      limit: 5
+      window: "24 hours"
+      description: "Maximum attempts to fix same issue type globally"
+
+  detection_criteria:
+    - "Same file modified by auto-fix multiple times"
+    - "Same check failing repeatedly after remediation"
+    - "Oscillating state (A→B→A→B pattern)"
+    - "Resource usage spike from retry loops"
+
+  actions_on_breach:
+    immediate:
+      - action: "quarantine"
+        target: "file or check causing loop"
+        duration: "24 hours"
+
+      - action: "stop_remediation"
+        scope: "affected file/check only"
+        message: "Circuit breaker triggered"
+
+    escalation:
+      - action: "create_incident_report"
+        includes:
+          - "File path or check ID"
+          - "Number of attempts"
+          - "Timeline of changes"
+          - "Diff between oscillating states"
+
+      - action: "notify_human"
+        method: "log to incident report"
+        priority: "medium"
+        message: "Auto-remediation loop detected, human review required"
+
+    recovery:
+      - action: "reset_after_window"
+        description: "Circuit resets automatically after 24 hours"
+
+      - action: "manual_override"
+        command: "core-admin manage circuit-breaker reset --file <path>"
+        requires: "Human approval"
+
+  implementation_example: |
+    class CircuitBreaker:
+        def __init__(self, max_attempts=3, window_hours=1):
+            self._attempts = {}  # file_path -> [(timestamp, state_hash), ...]
+
+        def check_and_record(self, file_path: str, state_hash: str) -> bool:
+            """Returns False if circuit breaker should trigger."""
+            now = datetime.now()
+            cutoff = now - timedelta(hours=self.window_hours)
+
+            # Get recent attempts for this file
+            recent = [
+                (ts, h) for ts, h in self._attempts.get(file_path, [])
+                if ts > cutoff
+            ]
+
+            # Check for oscillation (A→B→A pattern)
+            if len(recent) >= 3:
+                hashes = [h for _, h in recent[-3:]]
+                if hashes[0] == hashes[2] and hashes[0] != hashes[1]:
+                    return False  # Oscillation detected
+
+            # Check attempt count
+            if len(recent) >= self.max_attempts:
+                return False  # Too many attempts
+
+            # Record this attempt
+            if file_path not in self._attempts:
+                self._attempts[file_path] = []
+            self._attempts[file_path].append((now, state_hash))
+
+            return True  # OK to proceed
+
+  monitoring:
+    metrics:
+      - "Circuit breaker trigger count"
+      - "Files currently quarantined"
+      - "Average time to resolution"
+      - "Most frequent trigger patterns"
+
+    dashboard:
+      - "List of quarantined files"
+      - "Recent circuit breaker events"
+      - "Oscillation patterns detected"
+
+  testing:
+    unit_tests:
+      - "Verify trigger after N attempts"
+      - "Verify oscillation detection"
+      - "Verify time window enforcement"
+
+    integration_tests:
+      - "Simulate fixer/linter conflict"
+      - "Verify quarantine prevents further attempts"
+      - "Verify incident report generation"
+
+    chaos_engineering:
+      - "Intentionally create oscillating fixes"
+      - "Verify system doesn't waste resources"
+      - "Verify human notification works"
+
 monitoring_and_observability:
   metrics:
     - "Workflow execution count"

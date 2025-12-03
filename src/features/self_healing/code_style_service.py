@@ -30,5 +30,5 @@ def format_code(path: str | None = None) -> None:
     )
     run_poetry_command(
         f"✨ Fixing {' '.join(targets)} with Ruff...",
-        ["ruff", "check", "--fix", *targets],
+        ["ruff", "check", "--fix", "--unsafe-fixes", *targets],
     )

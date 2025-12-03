@@ -11,84 +11,87 @@ from shared.models import PlanExecutionError, TaskParams
 
 from .base import ActionHandler
 from .context import PlanExecutorContext
+from .utils import resolve_target_path
 
 logger = getLogger(__name__)
 
 
-# ID: 84ed29ab-f969-4780-a869-d33b6b1a52f6
+# ID: 4088cf99-3f53-49d7-b8b3-20a0ab5189b4
 class ReadFileHandler(ActionHandler):
     """Handles the 'read_file' action."""
 
     @property
-    # ID: 66f15ecb-b0f2-4d55-a76f-57c729e22a41
+    # ID: 2d0a9ec8-2088-43d5-8c17-3a509dd39576
     def name(self) -> str:
         return "read_file"
 
-    # ID: 929331f5-b276-43e4-afc3-cef0b335b60b
+    # ID: 26cab27f-86ba-4f03-91ca-72275ab9c5d7
     async def execute(self, params: TaskParams, context: PlanExecutorContext):
-        file_path_str = params.file_path
-        if not file_path_str:
-            raise PlanExecutionError("Missing 'file_path' for read_file action.")
-        full_path = context.file_handler.repo_path / file_path_str
-        if not full_path.exists():
-            raise PlanExecutionError(f"File to be read does not exist: {file_path_str}")
+        # Enforce existence check here
+        full_path = resolve_target_path(params, context, must_exist=True)
+
         if full_path.is_dir():
             raise PlanExecutionError(
-                f"Cannot read '{file_path_str}' because it is a directory."
+                f"Cannot read '{params.file_path}' because it is a directory."
             )
+
         content = full_path.read_text(encoding="utf-8")
-        context.file_content_cache[file_path_str] = content
-        logger.info(f"📖 Read file '{file_path_str}' into context.")
+        context.file_content_cache[params.file_path] = content
+        logger.info(f"📖 Read file '{params.file_path}' into context.")
 
 
-# ID: 2bf03b98-bbc0-4629-aa64-c685bfb20233
+# ID: 47e13615-767e-4eea-80c6-5e7f08d22638
 class ListFilesHandler(ActionHandler):
     """Handles the 'list_files' action."""
 
     @property
-    # ID: 9ee2b33e-607d-4248-aa4e-9afe8c32aabd
+    # ID: 54a48f16-7e03-4e84-b859-98714e288ce3
     def name(self) -> str:
         return "list_files"
 
-    # ID: 9aeae6e3-5652-4a99-9eb0-960dba19285b
+    # ID: fc084385-c88a-4efe-b780-971248bfbb9b
     async def execute(self, params: TaskParams, context: PlanExecutorContext):
-        dir_path_str = params.file_path
-        if not dir_path_str:
-            raise PlanExecutionError("Missing 'file_path' for list_files action.")
-        full_path = context.file_handler.repo_path / dir_path_str
+        # Enforce existence check here
+        full_path = resolve_target_path(params, context, must_exist=True)
+
         if not full_path.is_dir():
             raise PlanExecutionError(
-                f"Directory to be listed does not exist or is not a directory: {dir_path_str}"
+                f"Directory to be listed does not exist or is not a directory: {params.file_path}"
             )
+
         contents = [item.name for item in full_path.iterdir()]
-        context.file_content_cache[dir_path_str] = "\n".join(sorted(contents))
-        logger.info(f"📁 Listed contents of '{dir_path_str}' into context.")
+        context.file_content_cache[params.file_path] = "\n".join(sorted(contents))
+        logger.info(f"📁 Listed contents of '{params.file_path}' into context.")
 
 
-# ID: 066fd67e-dc38-4138-a878-8ce1f51fd8e4
+# ID: 74439849-ff1a-443f-9669-545a60e267f0
 class DeleteFileHandler(ActionHandler):
     """Handles the 'delete_file' action."""
 
     @property
-    # ID: c4995027-f6d8-47a9-82f9-bd301213d283
+    # ID: d18e067e-e0b6-408e-b0ca-463b43d1a216
     def name(self) -> str:
         return "delete_file"
 
-    # ID: eaa645b5-8676-4fd4-afa2-9527707808de
+    # ID: ec26816c-2d56-45ff-b8e5-caea8a57a4d9
     async def execute(self, params: TaskParams, context: PlanExecutorContext):
-        file_path_str = params.file_path
-        if not file_path_str:
-            raise PlanExecutionError("Missing 'file_path' for delete_file action.")
-        full_path = context.file_handler.repo_path / file_path_str
-        if not full_path.exists():
+        try:
+            # We use must_exist=True so we can catch the specific case where it's missing
+            # and log the warning, matching original behavior.
+            full_path = resolve_target_path(params, context, must_exist=True)
+
+            full_path.unlink()
+            logger.info(f"🗑️  Deleted file: {params.file_path}")
+
+            if context.git_service.is_git_repo():
+                context.git_service.add(params.file_path)
+                context.git_service.commit(
+                    f"refactor(cleanup): Remove obsolete file {params.file_path}"
+                )
+
+        except PlanExecutionError:
+            # Original behavior: Warn but do not fail if file doesn't exist
             logger.warning(
-                f"File '{file_path_str}' to be deleted does not exist. Skipping."
+                f"File '{params.file_path}' to be deleted does not exist. Skipping."
             )
             return
-        full_path.unlink()
-        logger.info(f"🗑️  Deleted file: {file_path_str}")
-        if context.git_service.is_git_repo():
-            context.git_service.add(file_path_str)
-            context.git_service.commit(
-                f"refactor(cleanup): Remove obsolete file {file_path_str}"
-            )

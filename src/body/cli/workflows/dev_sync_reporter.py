@@ -13,11 +13,34 @@ from dataclasses import dataclass, field
 from rich.console import Console
 from rich.table import Table
 from rich.text import Text
+from shared.action_types import ActionResult
 from shared.activity_logging import ActivityRun, log_activity
 from shared.cli_types import CommandResult
 
 # FIXED: Disable timestamps in console output for cleaner display
 console = Console(log_time=False)
+
+# Results can now come from both the legacy CLI layer (CommandResult)
+# and the new action layer (ActionResult).
+ResultLike = CommandResult | ActionResult
+
+
+def _get_result_name(result: ResultLike) -> str:
+    """
+    Return a stable display name for a result.
+
+    - For CommandResult -> use .name
+    - For ActionResult  -> use .action_id
+    """
+    name = getattr(result, "name", None)
+    if name:
+        return name
+
+    action_id = getattr(result, "action_id", None)
+    if action_id:
+        return action_id
+
+    return "<unknown>"
 
 
 @dataclass
@@ -29,7 +52,7 @@ class DevSyncPhase:
     name: str
     """Human-readable phase name (e.g., 'Fixers', 'Database Sync')"""
 
-    results: list[CommandResult] = field(default_factory=list)
+    results: list[ResultLike] = field(default_factory=list)
     """Commands executed in this phase"""
 
     @property
@@ -104,14 +127,14 @@ class DevSyncReporter:
     # ID: ff8c918d-9521-4e82-bac6-00b01ffa9462
     def record_result(
         self,
-        result: CommandResult,
+        result: ResultLike,
         phase: DevSyncPhase | None = None,
     ) -> None:
         """
         Record a command result and emit structured activity log.
 
         Args:
-            result: CommandResult from a command
+            result: CommandResult or ActionResult from a command
             phase: Phase to add to (defaults to current_phase)
         """
         target_phase = phase or self.current_phase
@@ -122,13 +145,15 @@ class DevSyncReporter:
 
         # Log to activity stream
         status = "ok" if result.ok else "error"
+        name = _get_result_name(result)
         log_activity(
             self.run,
-            event=f"command:{result.name}",
+            event=f"command:{name}",
             status=status,
-            message=f"Command {result.name} completed in {result.duration_sec:.2f}s",
+            message=f"Command {name} completed in {result.duration_sec:.2f}s",
             details={
-                "command": result.name,
+                "command": name,
+                "action_id": getattr(result, "action_id", None),
                 "duration_sec": result.duration_sec,
                 "data": result.data,
             },
@@ -171,9 +196,10 @@ class DevSyncReporter:
 
                     # Extract key detail for display
                     details = self._format_details(result)
+                    name = _get_result_name(result)
 
                     table.add_row(
-                        result.name,
+                        name,
                         f"{result.duration_sec:.2f}s",
                         status_text,
                         details,
@@ -184,7 +210,7 @@ class DevSyncReporter:
             console.print()
 
     # ID: format_details_v1
-    def _format_details(self, result: CommandResult) -> str:
+    def _format_details(self, result: ResultLike) -> str:
         """
         Extract human-readable summary from result.data.
 
@@ -194,27 +220,45 @@ class DevSyncReporter:
             error_msg = result.data["error"][:40]
             return f"Error: {error_msg}"
 
+        name = _get_result_name(result)
+
         # Command-specific formatting
-        if result.name == "fix.ids":
+        if name == "fix.ids":
             count = result.data.get("ids_assigned", 0)
             return f"{count} IDs assigned"
 
-        elif result.name == "fix.headers":
+        elif name == "fix.headers":
             violations = result.data.get("violations_found", 0)
-            if violations == 0:
-                return "All compliant"
             fixed = result.data.get("fixed_count", 0)
-            return f"{fixed}/{violations} fixed"
+            if result.data.get("dry_run", False):
+                return f"{violations} violations (dry-run)"
+            return f"{fixed}/{violations} header violations fixed"
 
-        elif result.name in ["fix.docstrings", "fix.code-style", "fix.vector-sync"]:
-            # Commands that just complete - don't show truncated output
+        elif name == "fix.code-style":
+            # Code style formatter - show simple summary
+            if result.ok:
+                return "Formatted"
+            return "Formatting failed"
+
+        elif name == "fix.docstrings":
+            # Docstring fixer - show key stats if available
+            fixed = result.data.get("fixed", 0)
+            missing = result.data.get("missing", 0)
+            if fixed or missing:
+                return f"Fixed {fixed}, missing {missing}"
             return "Completed"
 
-        elif result.name == "check.lint":
+        elif name == "fix.vector-sync":
+            # Vector sync operation
+            if result.ok:
+                return "Sync completed"
+            return "Sync issues detected"
+
+        elif name == "check.lint":
             # Lint check - show if passed or had issues
             return "Passed" if result.ok else "Issues found"
 
-        elif result.name in [
+        elif name in [
             "manage.sync-knowledge",
             "run.vectorize",
             "manage.define-symbols",
@@ -222,7 +266,7 @@ class DevSyncReporter:
             # DB sync commands - show completion without log noise
             return "Completed"
 
-        elif result.name == "inspect.duplicates":
+        elif name == "inspect.duplicates":
             # Analysis command
             return "Analyzed"
 
@@ -289,7 +333,10 @@ class DevSyncReporter:
             console.print("[bold red]✗ Some phases failed[/bold red]")
             # Show failed commands
             failed = [
-                (p.name, r.name) for p in self.phases for r in p.results if not r.ok
+                (p.name, _get_result_name(r))
+                for p in self.phases
+                for r in p.results
+                if not r.ok
             ]
             if failed:
                 console.print("\n  Failed commands:")

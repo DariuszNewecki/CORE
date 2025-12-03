@@ -1,0 +1,78 @@
+# .intent/charter/policies/code_purity.yaml
+id: code_purity
+version: "1.0.0"
+title: "Code Purity and Pollution Prevention"
+
+core_principle: |
+  Source code is for LOGIC, not METADATA.
+  Metadata belongs in: docstrings, database (SSOT), or vectors.
+
+maximum_allowed_pollution:
+  - type: "stable_id"
+    format: "# ID: <uuid>"
+    justification: "Required for symbol tracking across refactors"
+    location: "Immediately after function/class definition"
+    enforcement: "error"
+
+forbidden_pollution:
+  - type: "metadata_decorators"
+    examples:
+      - "@atomic_action(action_id='...', intent='...', impact='...', policies=[...])"
+      - "@capability(name='...', category='...', tags=[...])"
+    reason: "Metadata duplicates docstrings and pollutes source"
+    alternative: "Extract from docstring + register in DB"
+    enforcement: "error"
+    exemptions:
+      - "fastapi.*"      # Required for API routing
+      - "typer.command"  # Required for CLI registry
+      - "pytest.fixture" # Required for testing
+      - "dataclasses.dataclass"
+      - "contextlib.*"
+
+  - type: "inline_configuration"
+    examples:
+      - "CONFIG = {'timeout': 300, 'retry': 3}"
+    reason: "Configuration belongs in .intent/ or database"
+    alternative: "Load from settings or DB"
+    enforcement: "warning"
+
+metadata_strategy:
+  docstrings:
+    purpose: "Human-readable intent, patterns, behavior"
+    example: |
+      def fix_ids_internal(write: bool) -> ActionResult:
+          """
+          Atomic action: Assign stable IDs to untagged symbols.
+
+          Pattern: action_pattern
+          Impact: write-metadata
+          Policies: symbol_identification
+          """
+
+  database:
+    purpose: "Operational metadata, relationships, history"
+    stores:
+      - "Action registry (what exists)"
+      - "Execution history (what happened)"
+      - "Relationships (what calls what)"
+
+  vectors:
+    purpose: "Semantic discovery and similarity"
+    indexed: "Docstrings + function signatures"
+
+enforcement:
+  - rule: "no_decorator_metadata"
+    check: "Decorators contain only function name, no key=value pairs"
+    violation: "Decorator with metadata arguments found"
+    fix: "Move metadata to docstring, register in DB"
+
+  - rule: "docstring_required"
+    check: "Every _internal function has docstring with pattern/impact"
+    violation: "Missing or incomplete docstring"
+    fix: "Generate from function behavior"
+
+philosophy: |
+  We tolerate IDs because refactoring breaks everything without them.
+  We forbid everything else because it violates single-source-of-truth.
+
+  If you're adding metadata to source: STOP. Put it in DB or docstring.
