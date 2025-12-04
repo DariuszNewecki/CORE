@@ -15,16 +15,13 @@ import ast
 from pathlib import Path
 from typing import Any
 
-from rich.console import Console
-from rich.progress import track
-
-from features.self_healing.simple_test_generator import SimpleTestGenerator
 from shared.config import settings
 from shared.logger import getLogger
 from will.orchestration.cognitive_service import CognitiveService
 
+from features.self_healing.simple_test_generator import SimpleTestGenerator
+
 logger = getLogger(__name__)
-console = Console()
 
 
 # ID: 4333b9d3-e1ae-432c-8395-ecf954342559
@@ -59,11 +56,13 @@ class AccumulativeTestService:
                 "failed_symbols": list[str]
             }
         """
-        console.print(f"\n[cyan]📝 Accumulating tests for {file_path}[/cyan]")
+        logger.info("Accumulating tests for %s", file_path)
+
         symbols = self._find_public_symbols(file_path)
-        console.print(f"   Found {len(symbols)} public symbols")
+        logger.info("Found %d public symbols", len(symbols))
+
         if not symbols:
-            console.print("[yellow]   No public symbols to test[/yellow]")
+            logger.warning("No public symbols to test in %s", file_path)
             return {
                 "file": file_path,
                 "total_symbols": 0,
@@ -73,29 +72,42 @@ class AccumulativeTestService:
                 "successful_symbols": [],
                 "failed_symbols": [],
             }
+
         successful_tests = []
         failed_symbols = []
-        for symbol in track(symbols, description="Generating tests..."):
+
+        for i, symbol in enumerate(symbols, 1):
+            logger.info(
+                "Generating test for symbol %s (%d/%d)", symbol, i, len(symbols)
+            )
             result = await self.generator.generate_test_for_symbol(
                 file_path=file_path, symbol_name=symbol
             )
+
             if result["status"] == "success" and result["passed"]:
                 successful_tests.append({"symbol": symbol, "code": result["test_code"]})
-                console.print(f"   ✅ {symbol}")
+                logger.info("✓ Test generated and passed for %s", symbol)
             else:
                 failed_symbols.append(symbol)
-                console.print(f"   ❌ {symbol} ({result['reason'][:50]})")
+                logger.warning(
+                    "✗ Failed to generate test for %s: %s", symbol, result["reason"]
+                )
+
         test_file = None
         if successful_tests:
             test_file = self._write_test_file(file_path, successful_tests)
-            console.print(
-                f"\n[green]✅ Generated {len(successful_tests)}/{len(symbols)} tests ({len(successful_tests) / len(symbols) * 100:.0f}%)[/green]"
+            success_rate = len(successful_tests) / len(symbols) * 100
+            logger.info(
+                "Generated %d/%d tests (%.0f%%) for %s. Saved to %s",
+                len(successful_tests),
+                len(symbols),
+                success_rate,
+                file_path,
+                test_file,
             )
-            console.print(f"   Saved to: {test_file}")
         else:
-            console.print(
-                f"\n[yellow]⚠️  No tests generated successfully for {file_path}[/yellow]"
-            )
+            logger.warning("No tests generated successfully for %s", file_path)
+
         return {
             "file": file_path,
             "total_symbols": len(symbols),

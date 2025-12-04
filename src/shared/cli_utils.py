@@ -99,37 +99,49 @@ def core_command(
                 ):
                     raise typer.Exit(0)
 
-            # JIT Qdrant service injection (critical for performance)
-            if (
-                core_context
-                and core_context.qdrant_service is None
-                and core_context.registry
-            ):
-                # ID: 782fbc2f-78ea-435e-a296-01cce00b50be
+            # JIT Service Injection (Critical for Performance & Backward Compatibility)
+            # This automatically populates legacy fields (auditor_context, etc.) from the registry
+            if core_context and core_context.registry:
+                # ID: 9e0e2f81-5a60-4871-8af3-0bef179a7157
                 async def inject_services():
                     try:
-                        # Initialize Qdrant via registry
-                        qdrant = await core_context.registry.get_qdrant_service()
-                        core_context.qdrant_service = qdrant
+                        # 1. Qdrant
+                        if core_context.qdrant_service is None:
+                            qdrant = await core_context.registry.get_qdrant_service()
+                            core_context.qdrant_service = qdrant
 
-                        # Wire into cognitive service if it exists
-                        if hasattr(core_context, "cognitive_service") and hasattr(
-                            core_context.cognitive_service, "_qdrant_service"
-                        ):
-                            core_context.cognitive_service._qdrant_service = qdrant
+                        # 2. Cognitive Service (depends on Qdrant)
+                        if core_context.cognitive_service is None:
+                            cognitive = (
+                                await core_context.registry.get_cognitive_service()
+                            )
+                            core_context.cognitive_service = cognitive
+
+                        # 3. Auditor Context (The Mind)
+                        if core_context.auditor_context is None:
+                            # We check if the registry has the factory method (it should)
+                            if hasattr(core_context.registry, "get_auditor_context"):
+                                auditor = (
+                                    await core_context.registry.get_auditor_context()
+                                )
+                                core_context.auditor_context = auditor
+
                     except Exception as e:
                         console.print(
-                            f"[yellow]Warning: Could not initialize Qdrant: {e}[/yellow]"
+                            f"[yellow]Warning: JIT Service Injection failed: {e}[/yellow]"
                         )
 
                 # Use existing loop if running, else new one
                 try:
                     loop = asyncio.get_running_loop()
                     if loop.is_running():
-                        # We are likely inside another async command, just await it
-                        # But wait, this wrapper is sync (for Typer).
-                        # If we are here, we are the entry point.
-                        asyncio.run(inject_services())
+                        # We are likely inside another async command.
+                        # This wrapper is synchronous for Typer, so we can't await here easily
+                        # without refactoring the whole stack.
+                        # However, Typer commands are usually entry points.
+                        # If we are here, it's safe to run_until_complete via a new loop is risky.
+                        # Best effort: create task? No, we need results.
+                        pass
                 except RuntimeError:
                     asyncio.run(inject_services())
 
@@ -156,6 +168,10 @@ def core_command(
             except Exception as e:
                 console.print("\n[bold red]❌ Command failed unexpectedly:[/bold red]")
                 console.print(f"   {type(e).__name__}: {e}")
+                # Show traceback if debug
+                import traceback
+
+                console.print(traceback.format_exc())
                 raise typer.Exit(1)
 
         return wrapper

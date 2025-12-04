@@ -10,19 +10,16 @@ from __future__ import annotations
 import asyncio
 from pathlib import Path
 
-from rich.console import Console
-
 from shared.config import settings
 from shared.context import CoreContext
 from shared.logger import getLogger
 
 logger = getLogger(__name__)
-console = Console()
 
 
 async def _async_fix_clarity(context: CoreContext, file_path: Path, dry_run: bool):
     """Async core logic for clarity-focused refactoring."""
-    logger.info(f"🔬 Analyzing '{file_path.name}' for clarity improvements...")
+    logger.info("Analyzing '%s' for clarity improvements...", file_path.name)
     cognitive_service = context.cognitive_service
 
     prompt_template = (
@@ -35,29 +32,22 @@ async def _async_fix_clarity(context: CoreContext, file_path: Path, dry_run: boo
     refactor_client = await cognitive_service.aget_client_for_role(
         "RefactoringArchitect"
     )
-    with console.status(
-        "[bold green]Asking AI Architect to refactor for clarity...[/bold green]"
-    ):
-        refactored_code = await refactor_client.make_request_async(
-            final_prompt,
-            user_id="clarity_fixer_agent",
-        )
+
+    logger.info("Asking AI Architect to refactor for clarity...")
+    refactored_code = await refactor_client.make_request_async(
+        final_prompt,
+        user_id="clarity_fixer_agent",
+    )
 
     if not refactored_code.strip() or refactored_code.strip() == original_code.strip():
-        console.print(
-            "[bold green]✅ AI Architect found no clarity improvements to make.[/bold green]"
-        )
+        logger.info("AI Architect found no clarity improvements to make.")
         return
 
     if dry_run:
-        console.print(
-            f"\n[bold yellow]-- DRY RUN: Would refactor {file_path.name} --[/bold yellow]"
-        )
+        logger.info("-- DRY RUN: Would refactor %s --", file_path.name)
     else:
         file_path.write_text(refactored_code, "utf-8")
-        console.print(
-            f"\n[bold green]✅ Successfully refactored '{file_path.name}' for clarity.[/bold green]"
-        )
+        logger.info("Successfully refactored '%s' for clarity.", file_path.name)
 
 
 def _fix_clarity(context: CoreContext, file_path: Path, dry_run: bool) -> None:

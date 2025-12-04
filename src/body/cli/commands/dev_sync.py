@@ -379,3 +379,40 @@ async def dev_sync_command(
 
         if critical_failures:
             raise typer.Exit(1)
+
+
+@dev_sync_app.command("fix-logging")
+@core_command(dangerous=True, confirmation=True)
+# ID: d1e2f3a4-b5c6-7890-d123-456789abcdef
+async def fix_logging_command(
+    ctx: typer.Context,
+    write: bool = typer.Option(
+        False,
+        "--write",
+        help="Apply fixes (default is dry-run)",
+    ),
+) -> None:
+    """Fix logging standards violations automatically."""
+    from pathlib import Path
+
+    from body.cli.commands.fix_logging import run_fix
+
+    dry_run = not write
+
+    console.print("\n[bold cyan]🔧 Logging Standards Fixer[/bold cyan]\n")
+
+    if dry_run:
+        console.print(
+            "[yellow]Running in DRY-RUN mode. Use --write to apply changes.[/yellow]\n"
+        )
+
+    result = run_fix(Path(settings.REPO_PATH), dry_run=dry_run)
+
+    console.print("\n[bold]Summary:[/bold]")
+    console.print(f"  Files modified: {result['files_modified']}")
+    console.print(f"  Fixes applied: {result['fixes_applied']}")
+
+    if dry_run:
+        console.print("\n[yellow]Use --write to apply these changes.[/yellow]")
+    else:
+        console.print("\n[green]✓ Fixes applied successfully![/green]")

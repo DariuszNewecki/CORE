@@ -10,7 +10,6 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from rich.progress import track
 from shared.config import settings
 from shared.logger import getLogger
 from shared.utils.header_tools import _HeaderTools
@@ -118,14 +117,19 @@ class HeaderService:
         final_lines.extend(new_lines)
 
         file_path.write_text("".join(final_lines), encoding="utf-8")
-        logger.info(f"Fixed header in {file_path.relative_to(self.repo_root)}")
+        logger.info("Fixed header in %s", file_path.relative_to(self.repo_root))
 
 
 def _run_header_fix_cycle(dry_run: bool, all_py_files: list[str]):
     """The core logic for finding and fixing all header style violations."""
-    logger.info(f"Scanning {len(all_py_files)} files for header compliance...")
+    logger.info("Scanning %d files for header compliance...", len(all_py_files))
     files_to_fix = {}
-    for file_path_str in track(all_py_files, description="Analyzing headers..."):
+
+    for i, file_path_str in enumerate(all_py_files, 1):
+        # Progress log (LOG-004)
+        if i % 20 == 0:
+            logger.debug("Header analysis progress: %d/%d", i, len(all_py_files))
+
         file_path = REPO_ROOT / file_path_str
         try:
             original_content = file_path.read_text(encoding="utf-8")
@@ -147,20 +151,23 @@ def _run_header_fix_cycle(dry_run: bool, all_py_files: list[str]):
                 if corrected_code != original_content:
                     files_to_fix[file_path_str] = corrected_code
         except Exception as e:
-            logger.warning(f"Could not process {file_path_str}: {e}")
+            logger.warning("Could not process %s: %s", file_path_str, e)
+
     if not files_to_fix:
-        logger.info("✅ All file headers are constitutionally compliant.")
+        logger.info("All file headers are constitutionally compliant.")
         return
-    logger.info(f"Found {len(files_to_fix)} file(s) requiring header fixes.")
+
+    logger.info("Found %d file(s) requiring header fixes.", len(files_to_fix))
+
     if dry_run:
         for file_path in sorted(files_to_fix.keys()):
-            logger.info(f"   -> [DRY RUN] Would fix header in: {file_path}")
+            logger.info("   -> [DRY RUN] Would fix header in: %s", file_path)
     else:
-        logger.info("💾 Writing changes to disk...")
+        logger.info("Writing changes to disk...")
         for file_path_str, new_code in files_to_fix.items():
             (REPO_ROOT / file_path_str).write_text(new_code, "utf-8")
-        logger.info("   -> ✅ All header fixes have been applied.")
-        logger.info("🧠 Rebuilding knowledge graph to reflect all changes...")
+        logger.info("   -> All header fixes have been applied.")
+        logger.info("Rebuilding knowledge graph to reflect all changes...")
         builder = KnowledgeGraphBuilder(REPO_ROOT)
         builder.build()
-        logger.info("✅ Knowledge graph successfully updated.")
+        logger.info("Knowledge graph successfully updated.")

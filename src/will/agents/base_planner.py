@@ -12,8 +12,6 @@ import textwrap
 
 from body.actions.registry import ActionRegistry
 from pydantic import ValidationError
-from rich.console import Console
-from rich.syntax import Syntax
 from shared.config import settings
 from shared.logger import getLogger
 from shared.models import ExecutionTask, PlanExecutionError
@@ -75,24 +73,27 @@ def build_planning_prompt(
 # ID: 53af1563-669b-4cd0-b636-671bdd46570d
 def parse_and_validate_plan(response_text: str) -> list[ExecutionTask]:
     """Parses the LLM's JSON response and validates it into a list of ExecutionTask objects."""
-    console = Console()
     try:
         parsed_json = extract_json_from_response(response_text)
         if not isinstance(parsed_json, list):
             raise ValueError("LLM did not return a valid JSON list for the plan.")
         validated_plan = [ExecutionTask(**task) for task in parsed_json]
-        logger.info("🧠 The PlannerAgent has created the following execution plan:")
+        logger.info(
+            "PlannerAgent created execution plan with %d steps.", len(validated_plan)
+        )
         for i, task in enumerate(validated_plan, 1):
-            logger.info(f"  {i}. {task.step} (Action: {task.action})")
-        logger.info("🕵️ The ExecutionAgent will now carry out this plan.")
+            logger.info("  Step %d: %s (Action: %s)", i, task.step, task.action)
+
         try:
+            # Log the full plan structure at DEBUG level for audit/traceability
             plan_json_str = json.dumps(
                 [t.model_dump() for t in validated_plan], indent=2
             )
-            console.print(Syntax(plan_json_str, "json", theme="solarized-dark"))
+            logger.debug("Full Execution Plan JSON:\n%s", plan_json_str)
         except Exception:
             logger.warning("Could not serialize plan to JSON for logging.")
+
         return validated_plan
     except (ValueError, ValidationError, json.JSONDecodeError) as e:
-        logger.warning(f"Plan creation failed validation: {e}")
+        logger.warning("Plan creation failed validation: %s", e)
         raise PlanExecutionError("Failed to create a valid plan.") from e

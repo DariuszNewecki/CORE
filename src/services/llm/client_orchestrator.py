@@ -17,7 +17,6 @@ Part of Mind-Body-Will architecture:
 from __future__ import annotations
 
 import asyncio
-import os
 from pathlib import Path
 from typing import Any
 
@@ -149,12 +148,23 @@ class ClientOrchestrator:
             # Rehydrate config service with cached non-secrets + new session for secrets
             config = ConfigService(session, self._config_cache)
 
-            api_url = await config.get(f"{prefix}_API_URL") or os.getenv(
-                f"{prefix}_API_URL"
-            )
-            model_name = await config.get(f"{prefix}_MODEL_NAME") or os.getenv(
-                f"{prefix}_MODEL_NAME"
-            )
+            # --- UPDATED LOGIC: STRICT DATABASE CONFIGURATION ---
+            api_url = await config.get(f"{prefix}_API_URL")
+
+            # Fail fast if missing from DB
+            if not api_url:
+                raise ValueError(
+                    f"Configuration '{prefix}_API_URL' is missing from the Database. "
+                    f"Run 'poetry run core-admin manage dotenv sync --write' to populate "
+                    "runtime settings from your .env file."
+                )
+
+            model_name = await config.get(f"{prefix}_MODEL_NAME")
+            if not model_name:
+                raise ValueError(
+                    f"Configuration '{prefix}_MODEL_NAME' is missing from the Database. "
+                    f"Run 'poetry run core-admin manage dotenv sync --write'."
+                )
 
             api_key = None
             try:
@@ -163,13 +173,8 @@ class ClientOrchestrator:
                     audit_context=f"client_orchestrator:{resource.name}",
                 )
             except KeyError:
-                # Fallback to env var if not in DB secrets
-                api_key = os.getenv(f"{prefix}_API_KEY")
-
-        if not api_url or not model_name:
-            raise ValueError(
-                f"Missing required config for resource '{resource.name}' with prefix '{prefix}_'. Ensure URL and model_name are configured."
-            )
+                # Fallback for non-secret API keys (rare) or local models
+                pass
 
         # --- Provider Selection Logic ---
 

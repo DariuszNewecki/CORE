@@ -12,18 +12,15 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from rich.console import Console
-from rich.panel import Panel
-
-from features.self_healing.coverage_analyzer import CoverageAnalyzer
 from mind.governance.audit_context import AuditorContext
 from shared.config import settings
 from shared.logger import getLogger
-from src.features.self_healing.test_generator import EnhancedTestGenerator
 from will.orchestration.cognitive_service import CognitiveService
 
+from features.self_healing.coverage_analyzer import CoverageAnalyzer
+from src.features.self_healing.test_generator import EnhancedTestGenerator
+
 logger = getLogger(__name__)
-console = Console()
 
 
 # ID: 0c2cfe25-2da0-4aaa-8927-f1312c7a3825
@@ -55,10 +52,7 @@ class EnhancedSingleFileRemediationService:
         """
         Generate comprehensive tests for the target file.
         """
-        console.print(
-            "\n[bold cyan]🎯 Enhanced Single-File Test Generation[/bold cyan]"
-        )
-        console.print(f"   Target: {self.target_file}\n")
+        logger.info("Enhanced Single-File Test Generation: %s", self.target_file)
 
         # Make the path relative to repo root if needed
         if str(self.target_file).startswith(str(settings.REPO_PATH)):
@@ -87,14 +81,11 @@ class EnhancedSingleFileRemediationService:
 
         goal = self._build_goal_description(module_name)
 
-        console.print("[bold]📊 Analysis Phase[/bold]")
-        console.print(f"  Module: {module_name}")
-        console.print(f"  Test file: {test_file}")
-        console.print(f"  Goal: {goal}\n")
+        logger.debug("Target: %s | Test: %s", module_name, test_file)
 
         # --- Test generation + validation ------------------------------------
         try:
-            console.print("[bold]🔬 Generating tests with enhanced context...[/bold]")
+            logger.info("Generating tests with enhanced context...")
 
             result = await self.generator.generate_test(
                 module_path=str(relative_path),
@@ -109,13 +100,6 @@ class EnhancedSingleFileRemediationService:
                 self.target_file,
                 exc,
                 exc_info=True,
-            )
-            console.print(
-                Panel(
-                    f"[bold red]❌ Unexpected error during test generation[/bold red]\n\n{exc}",
-                    title="[bold red]Generation Error[/bold red]",
-                    border_style="red",
-                )
             )
             return {
                 "status": "error",
@@ -132,13 +116,6 @@ class EnhancedSingleFileRemediationService:
                 "Expected a dict."
             )
             logger.error(msg)
-            console.print(
-                Panel(
-                    f"[bold red]❌ {msg}[/bold red]",
-                    title="[bold red]Generation Error[/bold red]",
-                    border_style="red",
-                )
-            )
             return {
                 "status": "error",
                 "file": str(self.target_file),
@@ -155,7 +132,13 @@ class EnhancedSingleFileRemediationService:
         # --- Happy path -------------------------------------------------------
         if status == "success":
             final_coverage = self._measure_final_coverage(str(relative_path))
+            logger.info(
+                "Test generation succeeded for %s. Final coverage: %s%%",
+                self.target_file,
+                final_coverage,
+            )
 
+            # Log context usage details for audit trail
             coverage_from_context = (
                 result.get("context_used", {}).get("coverage")
                 if isinstance(result.get("context_used"), dict)
@@ -166,35 +149,13 @@ class EnhancedSingleFileRemediationService:
                 if isinstance(result.get("context_used"), dict)
                 else 0
             )
-            similar_examples = (
-                result.get("context_used", {}).get("similar_examples", 0)
-                if isinstance(result.get("context_used"), dict)
-                else 0
-            )
 
-            coverage_line = ""
             if coverage_from_context is not None:
-                coverage_line = (
-                    f"Context coverage: {coverage_from_context:.1f}%\n"
-                    f"Uncovered functions: {uncovered_functions}\n"
-                    f"Similar examples used: {similar_examples}"
+                logger.debug(
+                    "Context stats: coverage=%.1f%%, uncovered_funcs=%d",
+                    coverage_from_context,
+                    uncovered_functions,
                 )
-
-            final_line = ""
-            if final_coverage is not None:
-                final_line = (
-                    f"\nFinal coverage for {relative_path}: {final_coverage:.1f}%"
-                )
-
-            console.print(
-                Panel(
-                    f"✅ Test generation succeeded!\n\n"
-                    f"Test file: {test_file}\n"
-                    f"{coverage_line}{final_line}",
-                    title="[bold green]Success[/bold green]",
-                    border_style="green",
-                )
-            )
 
             return {
                 "status": "completed",
@@ -211,18 +172,10 @@ class EnhancedSingleFileRemediationService:
         # --- Partial success: tests created but some fail ----------------------
         if status == "tests_created_with_failures":
             execution_result = result.get("execution_result", {})
-            output = execution_result.get("output", "")
-
-            console.print(
-                Panel(
-                    "[bold yellow]⚠ Tests generated with some failures[/bold yellow]\n\n"
-                    f"Test file: {test_file}\n"
-                    f"Status: Tests were successfully generated but some failed when executed.\n\n"
-                    "[dim]This is normal for LLM-generated tests. Review and fix the failing tests.[/dim]",
-                    title="[bold yellow]Partial Success[/bold yellow]",
-                    border_style="yellow",
-                )
+            logger.warning(
+                "Tests generated for %s but some failed execution", self.target_file
             )
+
             return {
                 "status": "partial_success",
                 "succeeded": 0,
@@ -241,54 +194,19 @@ class EnhancedSingleFileRemediationService:
             else:
                 error_details = "Test generation failed for unknown reasons."
 
-        lines: list[str] = [
-            f"[bold red]❌ Test generation failed for [cyan]{self.target_file}[/cyan][/bold red]",
-            "",
-            f"[bold]Reason:[/bold] {error_details}",
-        ]
-
-        # --- NEW: Show rejected code for debugging ---
-        generated_code = result.get("code")
-        if generated_code:
-            lines.append("\n[bold]Generated Code (Preview):[/bold]")
-            snippet = str(generated_code)
-            if len(snippet) > 500:
-                snippet = snippet[:500] + "\n... [truncated]"
-            lines.append(f"[dim]{snippet}[/dim]")
+        logger.error(
+            "Test generation failed for %s: %s", self.target_file, error_details
+        )
 
         if violations:
-            lines.append("\n[bold]Validation violations:[/bold]")
             for v in violations:
                 if isinstance(v, dict):
-                    rule = v.get("rule") or v.get("code") or "unknown"
-                    severity = v.get("severity", "info")
-                    message = v.get("message", "")
-                    line_no = v.get("line")
-                    loc = f" (line {line_no})" if line_no is not None else ""
-                    lines.append(f"  • [{severity}] {rule}{loc}: {message}")
-                else:
-                    lines.append(f"  • {v}")
-
-        if isinstance(test_result, dict):
-            error_output = (
-                test_result.get("errors")
-                or test_result.get("output")
-                or test_result.get("traceback")
-            )
-            if error_output:
-                lines.append("\n[bold]Pytest output (truncated):[/bold]")
-                snippet = str(error_output)
-                if len(snippet) > 2000:
-                    snippet = snippet[:2000] + "\n... [truncated]"
-                lines.append(f"[dim]{snippet}[/dim]")
-
-        console.print(
-            Panel(
-                "\n".join(lines),
-                title="[bold red]Enhanced Single-File Remediation[/bold red]",
-                border_style="red",
-            )
-        )
+                    logger.warning(
+                        "Violation: [%s] %s: %s",
+                        v.get("severity", "info"),
+                        v.get("rule", "unknown"),
+                        v.get("message", ""),
+                    )
 
         return {
             "status": "failed",

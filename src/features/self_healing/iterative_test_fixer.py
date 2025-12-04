@@ -16,10 +16,6 @@ from __future__ import annotations
 import asyncio
 from typing import Any
 
-from rich.console import Console
-
-from features.self_healing.test_context_analyzer import ModuleContext
-from features.self_healing.test_failure_analyzer import TestFailureAnalyzer
 from mind.governance.audit_context import AuditorContext
 from shared.config import settings
 from shared.logger import getLogger
@@ -27,8 +23,10 @@ from will.orchestration.cognitive_service import CognitiveService
 from will.orchestration.prompt_pipeline import PromptPipeline
 from will.orchestration.validation_pipeline import validate_code_async
 
+from features.self_healing.test_context_analyzer import ModuleContext
+from features.self_healing.test_failure_analyzer import TestFailureAnalyzer
+
 logger = getLogger(__name__)
-console = Console()
 
 
 # ID: 557c4191-5dfc-4b5c-bb31-0bc6e1f389a3
@@ -96,11 +94,14 @@ class IterativeTestFixer:
         """
         best_result = None
         best_passed = 0
-        console.print(
-            f"[bold cyan]🔄 Iterative Test Generation (max {self.max_attempts} attempts)[/bold cyan]\n"
+
+        logger.info(
+            "Iterative Test Generation: Starting (max %d attempts)", self.max_attempts
         )
+
         for attempt in range(1, self.max_attempts + 1):
-            console.print(f"[bold]Attempt {attempt}/{self.max_attempts}[/bold]")
+            logger.info("Attempt %d/%d", attempt, self.max_attempts)
+
             if attempt == 1:
                 result = await self._generate_initial(
                     module_context, test_file, goal, target_coverage
@@ -109,22 +110,29 @@ class IterativeTestFixer:
                 result = await self._fix_based_on_failures(
                     module_context, test_file, best_result, attempt
                 )
+
             if not result or result.get("status") == "failed":
-                console.print(f"  ❌ Attempt {attempt} failed to generate\n")
+                logger.warning("Attempt %d failed to generate valid tests", attempt)
                 continue
+
             test_results = result.get("test_result", {})
             passed = test_results.get("passed_count", 0)
             total = test_results.get("total_count", 0)
-            console.print(f"  📊 Results: {passed}/{total} tests passed")
+
+            logger.info("Results: %d/%d tests passed", passed, total)
+
             if passed > best_passed:
                 best_passed = passed
                 best_result = result
+
             if test_results.get("passed", False):
-                console.print("  ✅ All tests passed!\n")
+                logger.info("All tests passed!")
                 return result
-            console.print(f"  🔧 {total - passed} tests need fixing\n")
-        console.print(
-            f"[bold yellow]⚠️  Best result: {best_passed} tests passing[/bold yellow]\n"
+
+            logger.info("%d tests need fixing", total - passed)
+
+        logger.warning(
+            "Iterative generation finished. Best result: %d tests passing", best_passed
         )
         return best_result or {"status": "failed", "error": "All attempts failed"}
 

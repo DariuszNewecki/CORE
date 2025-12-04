@@ -14,11 +14,11 @@ from pathlib import Path
 # Type checking imports only (no runtime cost)
 from typing import TYPE_CHECKING, Any
 
-from sqlalchemy import text
-
+from mind.governance.audit_context import AuditorContext
 from services.database.session_manager import get_session
 from shared.config import settings
 from shared.logger import getLogger
+from sqlalchemy import text
 
 if TYPE_CHECKING:
     from services.clients.qdrant_client import QdrantService
@@ -114,6 +114,23 @@ class ServiceRegistry:
 
         return self._instances["cognitive_service"]
 
+    # ID: get_auditor_context_factory
+    # ID: bc12f62c-2336-4dd0-abf6-4e4f2d95cb26
+    async def get_auditor_context(self) -> AuditorContext:
+        """
+        Singleton factory for AuditorContext.
+        Ensures we only have one view of the constitution/knowledge graph.
+        """
+        if "auditor_context" not in self._instances:
+            async with self._lock:
+                if "auditor_context" not in self._instances:
+                    logger.debug("Lazy-loading AuditorContext...")
+                    # Initialize with the repo_path bound to this registry
+                    instance = AuditorContext(self.repo_path)
+                    self._instances["auditor_context"] = instance
+
+        return self._instances["auditor_context"]
+
     # --- Dynamic Service Resolution (Legacy/Plugin Support) ---
 
     # ID: 7a6471d3-f8df-442f-bd72-2df8727dd47a
@@ -127,6 +144,8 @@ class ServiceRegistry:
             return await self.get_qdrant_service()
         if name == "cognitive_service":
             return await self.get_cognitive_service()
+        if name == "auditor_context":
+            return await self.get_auditor_context()
 
         if not self._initialized:
             await self._initialize_from_db()

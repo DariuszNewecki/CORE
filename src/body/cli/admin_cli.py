@@ -10,7 +10,6 @@ Refactored for A2 Autonomy: Now uses ServiceRegistry for dependency wiring.
 from __future__ import annotations
 
 import typer
-from mind.governance.audit_context import AuditorContext
 from rich.console import Console
 from services.context import cli as context_cli
 from services.context.service import ContextService
@@ -22,7 +21,6 @@ from shared.config import settings
 from shared.context import CoreContext
 from shared.logger import getLogger
 from shared.models import PlannerConfig
-from will.orchestration.cognitive_service import CognitiveService
 
 from body.cli.commands import (
     check,
@@ -38,12 +36,13 @@ from body.cli.commands import (
     secrets,
     submit,
 )
-from body.cli.commands.dev_sync import dev_sync_app  # NEW: Import dev sync
+from body.cli.commands.dev_sync import dev_sync_app
 from body.cli.commands.develop import develop_app
 from body.cli.commands.fix import fix_app
 from body.cli.commands.inspect_patterns import inspect_patterns
 from body.cli.interactive import launch_interactive_menu
 from body.cli.logic import audit
+from body.cli.logic.tools import tools_app
 
 # New Architecture: Registry
 from body.services.service_registry import service_registry
@@ -63,17 +62,20 @@ app = typer.Typer(
 )
 
 # Initialize the Context using the Registry pattern.
-# Note: qdrant_service is deliberately None here to avoid slow startup.
-# Services requiring it will fetch it via registry.get_qdrant_service().
+# Note: We ONLY initialize what's strictly required for CLI bootstrap.
+# All heavy lifting (Qdrant, Cognitive, Auditor) happens lazily via the registry.
 core_context = CoreContext(
-    registry=service_registry,  # <-- The source of truth
+    registry=service_registry,
+    # Legacy fields - populated for backward compatibility, but sourced from registry/settings
+    # We still create simple lightweight objects here if needed, or pass None
     git_service=GitService(settings.REPO_PATH),
-    cognitive_service=CognitiveService(settings.REPO_PATH, qdrant_service=None),
-    knowledge_service=KnowledgeService(settings.REPO_PATH),
-    qdrant_service=None,
-    auditor_context=AuditorContext(settings.REPO_PATH),
     file_handler=FileHandler(str(settings.REPO_PATH)),
     planner_config=PlannerConfig(),
+    # Heavy services are explicitly None to force lazy loading or registry usage
+    cognitive_service=None,
+    knowledge_service=KnowledgeService(settings.REPO_PATH),  # Lightweight
+    qdrant_service=None,
+    auditor_context=None,
 )
 
 
@@ -82,17 +84,18 @@ def _build_context_service() -> ContextService:
     Factory for ContextService, wired at the CLI composition root.
     Uses the registry to ensure singletons are used.
     """
+    # NOTE: In a fully async CLI, we would await these.
+    # For now, ContextService will fetch them lazily if passed as None.
     return ContextService(
-        qdrant_client=core_context.qdrant_service,  # Pass None initially, let Service fetch if needed
-        cognitive_service=core_context.cognitive_service,
+        qdrant_client=None,  # Lazy load via registry inside service if needed
+        cognitive_service=None,  # Lazy load via registry
         config={},
         project_root=str(settings.REPO_PATH),
         session_factory=get_session,
     )
 
 
-# Wire the factory into CoreContext so that lower layers don't need to know
-# about services or database wiring.
+# Wire the factory into CoreContext
 core_context.context_service_factory = _build_context_service
 
 
@@ -113,10 +116,11 @@ def register_all_commands(app_instance: typer.Typer) -> None:
     app_instance.add_typer(context_cli.app, name="context")
     app_instance.add_typer(develop_app, name="develop")
     app_instance.add_typer(check_patterns.patterns_group, name="patterns")
-    app_instance.add_typer(dev_sync_app, name="dev")  # NEW: Register dev sync
+    app_instance.add_typer(dev_sync_app, name="dev")
     app_instance.add_typer(
         check_atomic_actions.atomic_actions_group, name="atomic-actions"
-    )  # NEW: Register atomic-actions
+    )
+    app_instance.add_typer(tools_app, name="tools")
 
     # Pattern diagnostics
     app_instance.command(name="inspect-patterns")(inspect_patterns)
