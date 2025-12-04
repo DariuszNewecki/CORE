@@ -61,6 +61,10 @@ from collections.abc import Iterable, Mapping, MutableMapping, Sequence
 from datetime import UTC, datetime
 from pathlib import Path
 
+from shared.logger import getLogger
+
+logger = getLogger(__name__)
+
 
 # ID: 34bd4ecc-62ce-4d54-b72b-bfd2b14324ed
 class EntryPointAllowList:
@@ -302,10 +306,10 @@ def main(argv: list[str] | None = None) -> int:
     symbols_obj = _load_json(symbols_path)
 
     if not isinstance(findings_obj, list):
-        print("ERROR: findings JSON must be a list of objects.", file=sys.stderr)
+        logger.info("ERROR: findings JSON must be a list of objects.", file=sys.stderr)
         return 2
     if not isinstance(symbols_obj, dict):
-        print(
+        logger.info(
             "ERROR: symbols JSON must be an object mapping symbol_key to metadata.",
             file=sys.stderr,
         )

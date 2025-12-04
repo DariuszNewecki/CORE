@@ -13,7 +13,6 @@ import typer
 from rich.console import Console
 from rich.markdown import Markdown
 from rich.panel import Panel
-
 from shared.config import settings
 from shared.logger import getLogger
 from shared.utils.constitutional_parser import get_all_constitutional_paths
@@ -107,8 +106,8 @@ def _orchestrate_review(
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(review_feedback, encoding="utf-8")
     logger.info(f"✅ Successfully received feedback and saved to: {output_path}")
-    console.print(f"\n--- {bundle_name.replace('_', ' ').title()} Review Summary ---")
-    console.print(Markdown(review_feedback))
+    logger.info(f"\n--- {bundle_name.replace('_', ' ').title()} Review Summary ---")
+    logger.info(Markdown(review_feedback))
 
 
 # ID: 9b8c0610-8aa8-4442-9ee4-3d00a9c5d43d
@@ -167,10 +166,10 @@ def code_review(
                 review_feedback = await reviewer_client.make_request_async(
                     final_prompt, user_id="code_review_operator"
                 )
-            console.print(
+            logger.info(
                 Panel("AI Peer Review Complete", style="bold green", expand=False)
             )
-            console.print(Markdown(review_feedback))
+            logger.info(Markdown(review_feedback))
         except FileNotFoundError:
             logger.error(f"❌ Error: File not found at '{file_path}'")
             raise typer.Exit(code=1)

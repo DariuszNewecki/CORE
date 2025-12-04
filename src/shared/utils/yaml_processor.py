@@ -19,6 +19,7 @@ pipeline.
 
 from __future__ import annotations
 
+from io import StringIO
 from pathlib import Path
 from typing import Any
 
@@ -42,6 +43,7 @@ class YAMLProcessor:
         """
         self.allow_duplicates = allow_duplicates
         self.yaml = YAML(typ="safe")
+        self.yaml.default_flow_style = False  # Prefer block style
         if allow_duplicates:
             self.yaml.allow_duplicate_keys = True
             logger.debug(
@@ -140,6 +142,24 @@ class YAMLProcessor:
             raise OSError(
                 f"Failed to write constitutional YAML {file_path}: {e}"
             ) from e
+
+    # ID: 3e29104a-f8b2-456d-a901-78943c15b4a0
+    def dump_yaml(self, data: Any) -> str:
+        """
+        Dump data to a YAML string.
+
+        Used for vectorization and creating text representations of
+        structured data.
+
+        Args:
+            data: Data to dump
+
+        Returns:
+            YAML string
+        """
+        stream = StringIO()
+        self.yaml.dump(data, stream)
+        return stream.getvalue()
 
 
 yaml_processor = YAMLProcessor(allow_duplicates=True)

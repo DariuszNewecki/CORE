@@ -31,12 +31,14 @@ if _LOG_LEVEL not in _VALID_LEVELS:
 # ─────────────────────────────────────────────────────────────── Formatters
 
 
+# ID: d453de4a-8b0a-4dbe-84bb-8bcd78751e15
 class JsonFormatter(logging.Formatter):
     """
     Constitutional JSON Formatter (LOG-005).
     Outputs structured logs for machine parsing/aggregation.
     """
 
+    # ID: 7602325a-ebe5-4b21-b25f-043650e8fcf4
     def format(self, record: logging.LogRecord) -> str:
         # Base structured log
         log_record: dict[str, Any] = {
@@ -97,10 +99,12 @@ class JsonFormatter(logging.Formatter):
 # ─────────────────────────────────────────────────────────────── Public API
 
 
+# ID: 90a8ab6f-c125-43b8-ae6f-e3a8ffc863a8
 def getLogger(name: str | None = None) -> logging.Logger:
     return logging.getLogger(name)
 
 
+# ID: 2021f8a9-f7e0-451c-939d-01d197b517da
 def configure_root_logger(
     level: str | None = None,
     handlers: Sequence[logging.Handler] | None = None,
@@ -144,6 +148,7 @@ def configure_root_logger(
         logging.getLogger(lib).setLevel(logging.WARNING)
 
 
+# ID: aa302f01-6997-4e14-b170-2a7e7d3928ea
 def reconfigure_log_level(level: str) -> bool:
     try:
         configure_root_logger(level=level)

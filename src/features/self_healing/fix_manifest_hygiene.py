@@ -13,7 +13,6 @@ from typing import Any
 import typer
 import yaml
 from rich.console import Console
-
 from shared.config import settings
 from shared.logger import getLogger
 
@@ -84,28 +83,28 @@ def run_fix_manifest_hygiene(
         except Exception as e:
             logger.error(f"Error processing {file_path.name}: {e}")
     if not changes_to_make:
-        console.print(
+        logger.info(
             "[bold green]✅ Manifest hygiene is perfect. No misplaced capabilities found.[/bold green]"
         )
         return
     if dry_run:
-        console.print(
+        logger.info(
             "\n[bold yellow]-- DRY RUN: The following manifest changes would be applied --[/bold yellow]"
         )
         for path_str, change in changes_to_make.items():
-            console.print(
+            logger.info(
                 f"  - File to {change['action']}: {Path(path_str).relative_to(REPO_ROOT)}"
             )
         return
-    console.print("\n[bold]Applying manifest hygiene fixes...[/bold]")
+    logger.info("\n[bold]Applying manifest hygiene fixes...[/bold]")
     for path_str, change in changes_to_make.items():
         try:
             Path(path_str).write_text(
                 yaml.dump(change["content"], indent=2, sort_keys=False), "utf-8"
             )
-            console.print(f"  - ✅ Updated {Path(path_str).name}")
+            logger.info(f"  - ✅ Updated {Path(path_str).name}")
         except Exception as e:
-            console.print(f"  - ❌ Failed to update {Path(path_str).name}: {e}")
+            logger.info(f"  - ❌ Failed to update {Path(path_str).name}: {e}")
 
 
 if __name__ == "__main__":

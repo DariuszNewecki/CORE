@@ -23,6 +23,7 @@ from shared.models import AuditSeverity
 
 from mind.governance.audit_types import AuditCheckResult
 
+# Use Console for user-facing report output (CLI Exemption)
 console = Console()
 
 

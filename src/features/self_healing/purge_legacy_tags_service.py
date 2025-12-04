@@ -5,12 +5,13 @@ from __future__ import annotations
 
 from collections import defaultdict
 
-from rich.console import Console
-
 from mind.governance.audit_context import AuditorContext
 from mind.governance.checks.legacy_tag_check import LegacyTagCheck
+from rich.console import Console
 from shared.config import settings
+from shared.logger import getLogger
 
+logger = getLogger(__name__)
 console = Console()
 
 
@@ -30,7 +31,7 @@ def purge_legacy_tags(dry_run: bool = True) -> int:
     all_findings = check.execute()
 
     if not all_findings:
-        console.print(
+        logger.info(
             "[bold green]✅ No legacy tags found anywhere in the project.[/bold green]"
         )
         return 0
@@ -45,12 +46,12 @@ def purge_legacy_tags(dry_run: bool = True) -> int:
     # --- END OF AMENDMENT ---
 
     if not src_findings:
-        console.print(
+        logger.info(
             f"[bold yellow]🔍 Found {len(all_findings)} total legacy tag(s) in non-code files, but none in 'src/'. No automated action taken.[/bold yellow]"
         )
         return 0
 
-    console.print(
+    logger.info(
         f"[bold]🔍 Found {len(all_findings)} total legacy tag(s). Purging the {len(src_findings)} found in 'src/'...[/bold]"
     )
 
@@ -61,7 +62,7 @@ def purge_legacy_tags(dry_run: bool = True) -> int:
 
     total_lines_removed = 0
     for file_path_str, line_numbers_to_delete in files_to_fix.items():
-        console.print(f"🔧 Processing file: [cyan]{file_path_str}[/cyan]")
+        logger.info(f"🔧 Processing file: [cyan]{file_path_str}[/cyan]")
         file_path = settings.REPO_PATH / file_path_str
 
         # Your critical insight: sort line numbers in reverse to avoid index shifting
@@ -69,7 +70,7 @@ def purge_legacy_tags(dry_run: bool = True) -> int:
 
         if dry_run:
             for line_num in sorted_line_numbers:
-                console.print(f"   -> [DRY RUN] Would delete line {line_num}")
+                logger.info(f"   -> [DRY RUN] Would delete line {line_num}")
                 total_lines_removed += 1
             continue
 
@@ -83,9 +84,9 @@ def purge_legacy_tags(dry_run: bool = True) -> int:
                     total_lines_removed += 1
 
             file_path.write_text("\n".join(lines) + "\n", "utf-8")
-            console.print(f"   -> ✅ Purged {len(sorted_line_numbers)} legacy tag(s).")
+            logger.info(f"   -> ✅ Purged {len(sorted_line_numbers)} legacy tag(s).")
         except Exception as e:
-            console.print(
+            logger.info(
                 f"   -> [bold red]❌ Error processing {file_path_str}: {e}[/bold red]"
             )
 

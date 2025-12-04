@@ -115,30 +115,28 @@ async def _prune_orphaned_vectors(
     orphaned_ids = list(qdrant_ids - db_vector_ids)
 
     if not orphaned_ids:
-        console.print("   [green]✓[/green] No orphaned vectors found in Qdrant.")
+        logger.info("   [green]✓[/green] No orphaned vectors found in Qdrant.")
         return 0
 
-    console.print(
+    logger.info(
         f"   [yellow]⚠[/yellow] Found {len(orphaned_ids)} orphaned vector(s) in Qdrant."
     )
 
     if dry_run:
-        console.print("      [dim](Would delete from Qdrant)[/dim]")
+        logger.info("      [dim](Would delete from Qdrant)[/dim]")
         for point_id in orphaned_ids[:10]:
-            console.print(f"        - {point_id}")
+            logger.info(f"        - {point_id}")
         if len(orphaned_ids) > 10:
-            console.print(f"        - ... and {len(orphaned_ids) - 10} more.")
+            logger.info(f"        - ... and {len(orphaned_ids) - 10} more.")
         return len(orphaned_ids)
 
     # Actually delete
-    console.print(
-        f"      Deleting {len(orphaned_ids)} orphaned vector(s) from Qdrant..."
-    )
+    logger.info(f"      Deleting {len(orphaned_ids)} orphaned vector(s) from Qdrant...")
     await client.delete(
         collection_name=settings.QDRANT_COLLECTION_NAME,
         points_selector=PointIdsList(points=orphaned_ids),
     )
-    console.print(
+    logger.info(
         f"      [green]✓[/green] Deleted {len(orphaned_ids)} orphaned vector(s)."
     )
 
@@ -195,27 +193,27 @@ async def _prune_dangling_links(
     ]
 
     if not dangling_links:
-        console.print("   [green]✓[/green] No dangling links found in PostgreSQL.")
+        logger.info("   [green]✓[/green] No dangling links found in PostgreSQL.")
         return 0
 
-    console.print(
+    logger.info(
         f"   [yellow]⚠[/yellow] Found {len(dangling_links)} dangling link(s) in PostgreSQL."
     )
 
     if dry_run:
-        console.print("      [dim](Would delete from PostgreSQL)[/dim]")
+        logger.info("      [dim](Would delete from PostgreSQL)[/dim]")
         for symbol_id, vector_id in dangling_links[:10]:
-            console.print(f"        - symbol_id={symbol_id}, vector_id={vector_id}")
+            logger.info(f"        - symbol_id={symbol_id}, vector_id={vector_id}")
         if len(dangling_links) > 10:
-            console.print(f"        - ... and {len(dangling_links) - 10} more.")
+            logger.info(f"        - ... and {len(dangling_links) - 10} more.")
         return len(dangling_links)
 
     # Actually delete
-    console.print(
+    logger.info(
         f"      Deleting {len(dangling_links)} dangling link(s) from PostgreSQL..."
     )
     deleted_count = await _delete_dangling_links(dangling_links)
-    console.print(f"      [green]✓[/green] Deleted {deleted_count} dangling link(s).")
+    logger.info(f"      [green]✓[/green] Deleted {deleted_count} dangling link(s).")
 
     return deleted_count
 
@@ -233,13 +231,13 @@ async def _async_sync_vectors(
 
     Returns (orphans_pruned, dangling_pruned) counts.
     """
-    console.print("[bold cyan]🔄 Starting vector synchronization...[/bold cyan]")
+    logger.info("[bold cyan]🔄 Starting vector synchronization...[/bold cyan]")
 
     if dry_run:
-        console.print("   [yellow]DRY RUN MODE: No changes will be made.[/yellow]\n")
+        logger.info("   [yellow]DRY RUN MODE: No changes will be made.[/yellow]\n")
 
     # Step 0: Load all data
-    console.print("[bold]Phase 0: Loading current state...[/bold]")
+    logger.info("[bold]Phase 0: Loading current state...[/bold]")
 
     # Use injected service or create new one if missing
     if qdrant_service is None:
@@ -247,41 +245,41 @@ async def _async_sync_vectors(
     else:
         client = qdrant_service.client
 
-    console.print("   → Fetching vector IDs from Qdrant...")
+    logger.info("   → Fetching vector IDs from Qdrant...")
     qdrant_ids = await _fetch_all_qdrant_ids(client)
-    console.print(f"      Found {len(qdrant_ids)} vectors in Qdrant.")
+    logger.info(f"      Found {len(qdrant_ids)} vectors in Qdrant.")
 
-    console.print("   → Fetching vector links from PostgreSQL...")
+    logger.info("   → Fetching vector links from PostgreSQL...")
     db_vector_ids = await _fetch_db_vector_ids()
     db_links = await _fetch_db_links()
-    console.print(f"      Found {len(db_vector_ids)} valid vector IDs in PostgreSQL.")
-    console.print(f"      Found {len(db_links)} total symbol-vector links.\n")
+    logger.info(f"      Found {len(db_vector_ids)} valid vector IDs in PostgreSQL.")
+    logger.info(f"      Found {len(db_links)} total symbol-vector links.\n")
 
     # Step 1: Prune orphaned vectors from Qdrant
-    console.print("[bold]Phase 1: Pruning orphaned vectors from Qdrant...[/bold]")
+    logger.info("[bold]Phase 1: Pruning orphaned vectors from Qdrant...[/bold]")
     orphans_pruned = await _prune_orphaned_vectors(
         client, qdrant_ids, db_vector_ids, dry_run
     )
 
     # Step 2: Prune dangling links from PostgreSQL
-    console.print("\n[bold]Phase 2: Pruning dangling links from PostgreSQL...[/bold]")
+    logger.info("\n[bold]Phase 2: Pruning dangling links from PostgreSQL...[/bold]")
     dangling_pruned = await _prune_dangling_links(db_links, qdrant_ids, dry_run)
 
     # Summary
-    console.print("\n[bold cyan]📊 Synchronization Summary[/bold cyan]")
-    console.print(f"   • Orphaned vectors pruned: {orphans_pruned}")
-    console.print(f"   • Dangling links pruned: {dangling_pruned}")
+    logger.info("\n[bold cyan]📊 Synchronization Summary[/bold cyan]")
+    logger.info(f"   • Orphaned vectors pruned: {orphans_pruned}")
+    logger.info(f"   • Dangling links pruned: {dangling_pruned}")
 
     if orphans_pruned == 0 and dangling_pruned == 0:
-        console.print(
+        logger.info(
             "\n[bold green]✅ Vector store is perfectly synchronized![/bold green]"
         )
     elif dry_run:
-        console.print(
+        logger.info(
             "\n[bold yellow]⚠ Issues found. Run with --write to fix them.[/bold yellow]"
         )
     else:
-        console.print("\n[bold green]✅ Synchronization complete![/bold green]")
+        logger.info("\n[bold green]✅ Synchronization complete![/bold green]")
 
     return (orphans_pruned, dangling_pruned)
 

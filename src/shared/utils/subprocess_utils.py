@@ -32,13 +32,13 @@ def run_poetry_command(description: str, command: list[str]):
             full_command, check=True, text=True, capture_output=True
         )
         if result.stdout:
-            console.print(result.stdout)
+            logger.info(result.stdout)
         if result.stderr:
-            console.print(f"[yellow]{result.stderr}[/yellow]")
+            logger.info(f"[yellow]{result.stderr}[/yellow]")
     except subprocess.CalledProcessError as e:
         logger.error(f"\n❌ Command failed: {' '.join(full_command)}")
         if e.stdout:
-            console.print(e.stdout)
+            logger.info(e.stdout)
         if e.stderr:
-            console.print(f"[bold red]{e.stderr}[/bold red]")
+            logger.info(f"[bold red]{e.stderr}[/bold red]")
         raise typer.Exit(code=1)

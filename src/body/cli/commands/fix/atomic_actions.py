@@ -11,15 +11,17 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from rich.console import Console  # Added missing import
 from shared.cli_types import CommandResult
 from shared.logger import getLogger
 
 from body.cli.logic.atomic_actions_checker import AtomicActionsChecker
 
 logger = getLogger(__name__)
+console = Console()  # Initialize console
 
 
-# ID: 4f8e9d7c-6a5b-3e2f-9c8d-7b6e9f4a8c7e
+# ID: 8d3ce433-a07a-457f-9ff7-3403341005cc
 def fix_atomic_actions_internal(
     root_path: Path,
     write: bool = False,
@@ -66,19 +68,18 @@ def fix_atomic_actions_internal(
                     with open(file_path, "w", encoding="utf-8") as f:
                         f.write(modified_source)
                     files_modified += 1
-                    logger.info(f"Fixed {file_path}")
+                    logger.info("Fixed %s", file_path)
                 else:
-                    print(f"\n[DRY RUN] Would modify {file_path}:")
+                    console.print(f"\n[DRY RUN] Would modify {file_path}:")
                     _show_preview(file_violations)
 
                 fixes_applied += len(file_violations)
 
         except Exception as e:
-            logger.error(f"Error processing {file_path}: {e}")
+            logger.error("Error processing %s: %s", file_path, e)
             continue
 
     mode = "Applied" if write else "Would apply"
-    message = f"{mode} {fixes_applied} fixes to {files_modified} files"
 
     return CommandResult(
         name="fix.atomic_actions",
@@ -146,9 +147,6 @@ def _apply_fixes_to_function(
     needs_return_type = any(
         v.rule_id == "action_must_return_result" for v in violations
     )
-    needs_metadata = any(
-        v.rule_id == "decorator_missing_required_field" for v in violations
-    )
 
     # Fix 1: Add missing @atomic_action decorator
     if needs_decorator:
@@ -200,6 +198,6 @@ def _infer_action_id(function_name: str) -> str:
 def _show_preview(violations: list) -> None:
     """Show what would be fixed."""
     for v in violations:
-        print(f"  • {v.rule_id}: {v.message}")
+        console.print(f"  • {v.rule_id}: {v.message}")
         if v.suggested_fix:
-            print(f"    Fix: {v.suggested_fix}")
+            console.print(f"    Fix: {v.suggested_fix}")

@@ -16,11 +16,14 @@ from rich.table import Table
 from shared.action_types import ActionImpact
 from shared.atomic_action import atomic_action
 from shared.cli_utils import display_error, display_info, display_success
+from shared.logger import getLogger
 
 from services.context import (
     ContextSerializer,
     ContextValidator,
 )
+
+logger = getLogger(__name__)
 
 console = Console()
 app = typer.Typer(
@@ -146,11 +149,11 @@ def _validate_internal(file: Path) -> None:
             context_items = len(packet.get("context", []))
             table.add_row("Context Items", str(context_items))
 
-            console.print(table)
+            logger.info(table)
         else:
             display_error("✗ Context packet validation failed:")
             for error in errors:
-                console.print(f"  - {error}", style="red")
+                logger.info(f"  - {error}", style="red")
             raise typer.Exit(1)
     except Exception as e:
         display_error(f"Error during validation: {e}")

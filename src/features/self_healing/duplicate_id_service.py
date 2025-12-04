@@ -9,20 +9,19 @@ import uuid
 from collections import defaultdict
 
 from mind.governance.checks.id_uniqueness_check import IdUniquenessCheck
-from rich.console import Console
 from services.database.session_manager import get_session
 from shared.config import settings
+from shared.logger import getLogger
 from sqlalchemy import text
 
-console = Console()
+logger = getLogger(__name__)
 
 
 async def _get_symbol_creation_dates() -> dict[str, str]:
     """Queries the database to get the creation timestamp for each symbol UUID."""
     async with get_session() as session:
-        # --- MODIFIED: Select the correct 'id' column instead of 'uuid' ---
+        # Select the correct 'id' column
         result = await session.execute(text("SELECT id, created_at FROM core.symbols"))
-        # --- MODIFIED: Access the result using 'row.id' instead of 'row.uuid' ---
         return {str(row.id): row.created_at.isoformat() for row in result}
 
 
@@ -34,31 +33,23 @@ async def resolve_duplicate_ids(dry_run: bool = True) -> int:
     Returns:
         The number of files that were (or would be) modified.
     """
-    console.print("🕵️  Scanning for duplicate UUIDs...")
+    logger.info("Scanning for duplicate UUIDs...")
 
     # 1. Discover duplicates using the existing auditor check
-    # SECURITY NOTE: __import__ used here to avoid circular import between
-    # features.self_healing and mind.governance modules.
-    # This is safe because:
-    # - Import path is a hardcoded string constant (not user input)
-    # - Only importing internal CORE modules from trusted codebase
-    # - Used for self-healing governance, not arbitrary code execution
-    # Runtime validated: The module path is verified at parse time
-    context = __import__(
-        "features.governance.audit_context"
-    ).governance.audit_context.AuditorContext(settings.REPO_PATH)
+    # Use local import to avoid circular dependency issues at module level
+    from mind.governance.audit_context import AuditorContext
+
+    context = AuditorContext(settings.REPO_PATH)
     uniqueness_check = IdUniquenessCheck(context)
     findings = uniqueness_check.execute()
 
-    duplicates = [f for f in findings if f.check_id == "linkage.id.duplicate"]
+    duplicates = [f for f in findings if f.check_id == "linkage.duplicate_ids"]
 
     if not duplicates:
-        console.print("[bold green]✅ No duplicate UUIDs found.[/bold green]")
+        logger.info("No duplicate UUIDs found.")
         return 0
 
-    console.print(
-        f"[bold yellow]Found {len(duplicates)} duplicate UUID(s). Resolving...[/bold yellow]"
-    )
+    logger.warning("Found %d duplicate UUID(s). Resolving...", len(duplicates))
 
     # 2. Get creation dates from the database to find the "original"
     symbol_creation_dates = await _get_symbol_creation_dates()
@@ -86,37 +77,33 @@ async def resolve_duplicate_ids(dry_run: bool = True) -> int:
             # Fallback for symbols not yet in DB: assume first found is original
             original_location = locations[0]
 
-        console.print(f"  -> Duplicate UUID: [cyan]{duplicate_uuid}[/cyan]")
-        console.print(
-            f"     - Original determined to be at: [green]{original_location[0]}:{original_location[1]}[/green]"
+        logger.info(
+            "Duplicate UUID: %s (Original at %s:%s)",
+            duplicate_uuid,
+            original_location[0],
+            original_location[1],
         )
 
         # Mark all other locations for change
         for path, line_num in locations:
             if (path, line_num) != original_location:
-                console.print(
-                    f"     - Copy found at: [yellow]{path}:{line_num}[/yellow]"
-                )
+                logger.info("   - Copy found at: %s:%s", path, line_num)
                 files_to_modify[path].append((line_num, duplicate_uuid))
 
     if not files_to_modify:
-        console.print(
-            "[bold green]✅ All duplicates seem to be resolved or are new. No changes needed.[/bold green]"
-        )
+        logger.info("All duplicates seem to be resolved or are new. No changes needed.")
         return 0
 
     if dry_run:
-        console.print(
-            "\n[bold yellow]-- DRY RUN: No files will be changed. --[/bold yellow]"
-        )
+        logger.info("-- DRY RUN: No files will be changed. --")
         for path, changes in files_to_modify.items():
-            console.print(
-                f"  - Would modify [cyan]{path}[/cyan] to fix {len(changes)} duplicate ID(s)."
+            logger.info(
+                "  - Would modify %s to fix %d duplicate ID(s).", path, len(changes)
             )
         return len(files_to_modify)
 
     # Apply the changes
-    console.print("\n[bold]Applying fixes...[/bold]")
+    logger.info("Applying fixes...")
     for file_str, changes in files_to_modify.items():
         file_path = settings.REPO_PATH / file_str
         content = file_path.read_text("utf-8")
@@ -127,9 +114,7 @@ async def resolve_duplicate_ids(dry_run: bool = True) -> int:
             line_index = line_num - 1
             if old_uuid in lines[line_index]:
                 lines[line_index] = lines[line_index].replace(old_uuid, new_uuid)
-                console.print(
-                    f"  - Replaced ID in [green]{file_str}:{line_num}[/green]"
-                )
+                logger.info("  - Replaced ID in %s:%s", file_str, line_num)
 
         file_path.write_text("\n".join(lines) + "\n", "utf-8")
 

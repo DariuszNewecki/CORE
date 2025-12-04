@@ -18,6 +18,7 @@ logger = getLogger(__name__)
 
 
 # ID: f8e7d6c5-b4a3-9281-c0d1-e2f3g4h5i6j7
+# ID: 88e5ab7a-5f4d-401d-abf6-280a27e653eb
 class LoggingStandardsCheck(BaseCheck):
     """Validates that code follows constitutional logging standards."""
 
@@ -122,7 +123,7 @@ class LoggingStandardsCheck(BaseCheck):
         patterns = [
             (
                 r"console\.print\(",
-                "LOG-001: Replace console.print() with logger.info()",
+                "LOG-001: Replace logger.info() with logger.info()",
                 not is_cli_layer,
             ),
             (
@@ -164,7 +165,7 @@ class LoggingStandardsCheck(BaseCheck):
     def _check_print_usage(
         self, file_path: Path, lines: list[str]
     ) -> list[AuditFinding]:
-        """Check for print() usage outside of scripts (LOG-001)."""
+        """Check for logger.info() usage outside of scripts (LOG-001)."""
         findings = []
         rel_path = file_path.relative_to(self.repo_root)
 

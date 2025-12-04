@@ -120,8 +120,10 @@ async def _develop(
         from rich.console import Console
 
         c = Console()
-        c.print(f"\n[bold green]✅ Goal execution successful:[/bold green] {message}")
-        c.print(
+        c.console.print(
+            f"\n[bold green]✅ Goal execution successful:[/bold green] {message}"
+        )
+        c.console.print(
             "   -> Run 'git status' to see changes and 'core-admin submit changes' to integrate."
         )
     else:

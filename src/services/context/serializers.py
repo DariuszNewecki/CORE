@@ -37,7 +37,8 @@ class ContextSerializer:
         with open(output, "w", encoding="utf-8") as f:
             yaml.safe_dump(packet, f, default_flow_style=False, sort_keys=False)
 
-        logger.info(f"Wrote packet to {output_path}")
+        # Downgraded to DEBUG
+        logger.debug(f"Wrote packet to {output_path}")
 
     @staticmethod
     # ID: dbc3018c-e19a-4928-adba-f2ab712a77f5
@@ -53,7 +54,8 @@ class ContextSerializer:
         with open(input_path, encoding="utf-8") as f:
             packet = yaml.safe_load(f)
 
-        logger.info(f"Loaded packet from {input_path}")
+        # Downgraded to DEBUG
+        logger.debug(f"Loaded packet from {input_path}")
         return packet
 
     @staticmethod

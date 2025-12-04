@@ -55,23 +55,21 @@ async def _async_tag_capabilities(
     )
 
     if not suggestions:
-        console.print(
-            "[bold green]No new public capabilities to register.[/bold green]"
-        )
+        logger.info("[bold green]No new public capabilities to register.[/bold green]")
         return
 
     # DRY RUN
     if dry_run:
-        console.print(
+        logger.info(
             "[bold yellow]-- DRY RUN: Would register the following capability links --[/bold yellow]"
         )
         for key, info in suggestions.items():
-            console.print(
+            logger.info(
                 f"  • Symbol {info['name']} -> Capability '{info['suggestion']}'"
             )
         return
 
-    console.print(
+    logger.info(
         f"\n[bold green]Linking {len(suggestions)} symbols to capabilities in the database...[/bold green]"
     )
 
@@ -123,7 +121,7 @@ async def _async_tag_capabilities(
                     {"symbol_id": symbol_uuid, "capability_id": capability_id},
                 )
 
-                console.print(f"   → Linked '{new_info['name']}' to '{suggested_name}'")
+                logger.info(f"   → Linked '{new_info['name']}' to '{suggested_name}'")
 
         await session.commit()
 

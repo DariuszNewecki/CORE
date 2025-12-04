@@ -11,28 +11,31 @@ import asyncio
 import hashlib
 from pathlib import Path
 
-from rich.console import Console
-from rich.progress import track
+# Type checking
+from typing import TYPE_CHECKING
+
+# Services
 from services.clients.qdrant_client import QdrantService
 from services.database.session_manager import get_session
 from shared.config import settings
 from shared.context import CoreContext
+
+# We use logger for system output
 from shared.logger import getLogger
 from shared.utils.embedding_utils import normalize_text
-from sqlalchemy import text
 
-# Use correct relative import for chunking logic within the app context
-# We can't easily import chunk_and_embed here because it uses a different interface (Embeddable)
-# So we implement a simple fallback strategy here.
-from will.orchestration.cognitive_service import CognitiveService
+if TYPE_CHECKING:
+    from will.orchestration.cognitive_service import CognitiveService
 
 logger = getLogger(__name__)
-console = Console()
+
+# ... helper functions ...
 
 
-# ... (Keep helper functions _fetch_all_public_symbols_from_db, _fetch_existing_vector_links, _get_stored_vector_hashes, _get_source_code as is) ...
 async def _fetch_all_public_symbols_from_db() -> list[dict]:
     """Queries the database for all public symbols."""
+    from sqlalchemy import text
+
     async with get_session() as session:
         stmt = text(
             """
@@ -47,6 +50,8 @@ async def _fetch_all_public_symbols_from_db() -> list[dict]:
 
 async def _fetch_existing_vector_links() -> dict[str, str]:
     """Fetches all existing symbol_id -> vector_id mappings from the database."""
+    from sqlalchemy import text
+
     async with get_session() as session:
         result = await session.execute(
             text("SELECT symbol_id, vector_id FROM core.symbol_vector_links")
@@ -75,7 +80,7 @@ async def _get_stored_vector_hashes(qdrant_service: QdrantService) -> dict[str, 
             offset = next_offset
     except Exception as e:
         logger.warning(
-            f"Could not retrieve hashes from Qdrant, will re-vectorize all. Error: {e}"
+            "Could not retrieve hashes from Qdrant (will re-vectorize all): %s", e
         )
     return hashes
 
@@ -84,7 +89,7 @@ def _get_source_code(file_path: Path, symbol_path: str) -> str | None:
     """Extracts the source code of a specific symbol from a file using AST."""
     if not file_path.exists():
         logger.warning(
-            f"Source file not found for symbol {symbol_path} at path {file_path}"
+            "Source file not found for symbol %s at path %s", symbol_path, file_path
         )
         return None
     content = file_path.read_text("utf-8", errors="ignore")
@@ -104,9 +109,7 @@ async def _get_robust_embedding(
     cognitive_service: CognitiveService, text: str
 ) -> list[float] | None:
     """
-    Gets embedding with fallback strategy:
-    1. Try direct embedding
-    2. If it fails (Ghost Vector/Error), split text in half and average the embeddings
+    Gets embedding with fallback strategy.
     """
     try:
         return await cognitive_service.get_embedding_for_code(text)
@@ -115,7 +118,8 @@ async def _get_robust_embedding(
             # Fallback: Split and Average
             mid = len(text) // 2
             logger.warning(
-                f"Ghost Vector detected. Retrying with split strategy (len={len(text)})."
+                "Ghost Vector detected. Retrying with split strategy (len=%d).",
+                len(text),
             )
 
             # Simple recursive split (depth 1)
@@ -145,7 +149,7 @@ async def _process_vectorization_task(
     qdrant_service: QdrantService,
     failure_log_path: Path,
 ) -> str | None:
-    """Processes a single symbol: gets embedding and upserts to Qdrant. Returns Qdrant point ID on success."""
+    """Processes a single symbol: gets embedding and upserts to Qdrant."""
     try:
         source_code = task["source_code"]
 
@@ -170,7 +174,8 @@ async def _process_vectorization_task(
         )
         return point_id
     except Exception as e:
-        logger.error(f"Failed to process symbol '{task['symbol_path']}': {e}")
+        # We assume the caller handles the Health Check now, so detailed errors per item are logged here
+        logger.error("Failed to process symbol '%s': %s", task["symbol_path"], e)
         failure_log_path.parent.mkdir(parents=True, exist_ok=True)
         with failure_log_path.open("a", encoding="utf-8") as f:
             f.write(f"vectorization_error\t{task['symbol_path']}\t{e}\n")
@@ -179,6 +184,8 @@ async def _process_vectorization_task(
 
 async def _update_db_after_vectorization(updates: list[dict]):
     """Creates links in symbol_vector_links and updates the last_embedded timestamp."""
+    from sqlalchemy import text
+
     if not updates:
         return
     async with get_session() as session:
@@ -197,13 +204,14 @@ async def _update_db_after_vectorization(updates: list[dict]):
                 ),
                 updates,
             )
+            # Update timestamp on symbols
             await session.execute(
                 text(
                     "UPDATE core.symbols SET last_embedded = NOW() WHERE id = ANY(:symbol_ids)"
                 ),
                 {"symbol_ids": [u["symbol_id"] for u in updates]},
             )
-    console.print(f"   -> Updated {len(updates)} records in the database.")
+    logger.info("Updated %d records in the database.", len(updates))
 
 
 # ID: bd6be1fb-bc8f-4b2a-8989-1f6c9a191075
@@ -213,16 +221,43 @@ async def run_vectorize(
     """
     The main orchestration logic for vectorizing capabilities based on the database.
     """
-    console.print("[bold cyan]🚀 Starting Database-Driven Vectorization...[/bold cyan]")
+    logger.info("Starting Database-Driven Vectorization...")
     failure_log_path = settings.REPO_PATH / "logs" / "vectorization_failures.log"
 
+    # 1. Config check
+    from services.config_service import ConfigService
+
+    async with get_session() as session:
+        config = await ConfigService.create(session)
+        llm_enabled = await config.get_bool("LLM_ENABLED", default=False)
+
+    if not llm_enabled:
+        logger.warning("LLM_ENABLED is False. Skipping vectorization.")
+        return
+
+    # 2. Health Check (The FIX)
+    cognitive_service = context.cognitive_service
+    logger.info("Performing pre-flight check on embedding service...")
+    try:
+        # Try a simple embedding to verify connectivity
+        check = await cognitive_service.get_embedding_for_code("test")
+        if not check:
+            raise RuntimeError("Embedding service returned empty result")
+        logger.info("Embedding service is healthy.")
+    except Exception as e:
+        logger.error("❌ Embedding service unreachable: %s", e)
+        logger.error(
+            "Skipping vectorization phase. Ensure your LLM provider is running."
+        )
+        return
+
+    # 3. Load Data
     all_symbols, existing_links, stored_vector_hashes = await asyncio.gather(
         _fetch_all_public_symbols_from_db(),
         _fetch_existing_vector_links(),
         _get_stored_vector_hashes(context.qdrant_service),
     )
 
-    cognitive_service = context.cognitive_service
     qdrant_service = context.qdrant_service
     await qdrant_service.ensure_collection()
 
@@ -261,28 +296,32 @@ async def run_vectorize(
             tasks.append(task_data)
 
     if not tasks:
-        console.print(
-            "[bold green]✅ Vector knowledge base is already up-to-date.[/bold green]"
-        )
+        logger.info("Vector knowledge base is already up-to-date.")
         return
 
-    console.print(f"   -> Found {len(tasks)} symbols needing vectorization.")
+    logger.info("Found %d symbols needing vectorization.", len(tasks))
     if dry_run:
-        console.print(
-            "\n[bold yellow]💧 Dry Run: No embeddings will be generated or stored.[/bold yellow]"
-        )
-        for task in tasks[:5]:
-            console.print(f"   -> Would vectorize: {task['symbol_path']}")
-        if len(tasks) > 5:
-            console.print(f"   -> ... and {len(tasks) - 5} more.")
+        logger.info("DRY RUN: No embeddings will be generated.")
         return
 
+    # 4. Execute
     updates_to_db = []
-    for task in track(tasks, description="Vectorizing symbols..."):
+    success_count = 0
+
+    # Simple loop without 'track' to be logging-friendly
+    # We'll log progress periodically
+    total = len(tasks)
+
+    for i, task in enumerate(tasks, 1):
+        if i % 10 == 0:
+            logger.info("Vectorizing... (%d/%d)", i, total)
+
         point_id = await _process_vectorization_task(
             task, cognitive_service, qdrant_service, failure_log_path
         )
+
         if point_id:
+            success_count += 1
             updates_to_db.append(
                 {
                     "symbol_id": task["id"],
@@ -291,12 +330,18 @@ async def run_vectorize(
                     "embedding_version": 1,
                 }
             )
+        else:
+            # If we fail and it's a connection error, we might want to abort
+            # But _process catches generic Exception.
+            # Given we did a pre-flight check, individual failures might be data issues.
+            pass
 
+    # 5. Persist
     await _update_db_after_vectorization(updates_to_db)
-    console.print(
-        f"\n[bold green]✅ Vectorization complete. Processed {len(updates_to_db)}/{len(tasks)} symbols.[/bold green]"
+    logger.info(
+        "Vectorization complete. Processed %d/%d symbols.", success_count, total
     )
-    if len(updates_to_db) < len(tasks):
-        console.print(
-            f"[bold red]   -> {len(tasks) - len(updates_to_db)} failures logged to {failure_log_path}[/bold red]"
+    if len(updates_to_db) < total:
+        logger.warning(
+            "%d failures logged to %s", total - len(updates_to_db), failure_log_path
         )

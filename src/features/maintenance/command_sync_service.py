@@ -10,11 +10,13 @@ from typing import Any
 
 import typer
 from rich.console import Console
+from services.database.models import CliCommand
+from services.database.session_manager import get_session
+from shared.logger import getLogger
 from sqlalchemy import delete
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
-from services.database.models import CliCommand
-from services.database.session_manager import get_session
+logger = getLogger(__name__)
 
 console = Console()
 
@@ -56,19 +58,19 @@ async def _sync_commands_to_db(main_app: typer.Typer):
     Introspects the main CLI application, discovers all commands, and upserts them
     into the database, making the database the single source of truth.
     """
-    console.print(
+    logger.info(
         "[bold cyan]🚀 Synchronizing CLI command registry with the database...[/bold cyan]"
     )
 
     discovered_commands = _introspect_typer_app(main_app)
 
     if not discovered_commands:
-        console.print(
+        logger.info(
             "[bold yellow]⚠️ No commands discovered. Nothing to sync.[/bold yellow]"
         )
         return
 
-    console.print(
+    logger.info(
         f"   -> Discovered {len(discovered_commands)} commands from the application code."
     )
 
@@ -87,6 +89,6 @@ async def _sync_commands_to_db(main_app: typer.Typer):
 
             await session.execute(upsert_stmt)
 
-    console.print(
+    logger.info(
         f"[bold green]✅ Successfully synchronized {len(discovered_commands)} commands to the database.[/bold green]"
     )

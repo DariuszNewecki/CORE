@@ -53,11 +53,7 @@ class LoggingFixer:
             original = content
             is_cli_layer = "body/cli" in str(file_path.as_posix())
 
-            # 1. Add logger import if missing (needed for any fix)
-            # We do this speculatively; if we don't use it, we rely on 'fix imports' later.
-            # Or smarter: only add if we make changes or if print/console is found.
-
-            # 2. Fix Operations based on layer
+            # 1. Fix Operations based on layer
             if not is_cli_layer:
                 # Logic Layer: Strict Ban on Console
                 content = self._fix_console_print(content)
@@ -66,11 +62,9 @@ class LoggingFixer:
             # Universal Ban on print() (except scripts, checked in _is_exempted)
             content = self._fix_print_calls(content, is_cli_layer)
 
-            # If changes made, ensure logger import exists
+            # 2. If changes made, ensure logger import exists
             if content != original:
                 content = self._ensure_logger_import(content)
-
-                changes = abs(len(content) - len(original))  # Rough metric
 
                 if not self.dry_run:
                     file_path.write_text(content, encoding="utf-8")
@@ -81,7 +75,7 @@ class LoggingFixer:
                     )
 
                 self.files_modified += 1
-                self.fixes_applied += 1  # Simplified counting
+                self.fixes_applied += 1
                 return True
 
         except Exception as e:
@@ -91,27 +85,31 @@ class LoggingFixer:
 
     # ID: d4e5f6a7-b8c9-0123-def4-4567890123de
     def _ensure_logger_import(self, content: str) -> str:
-        """Add logger import if missing."""
+        """Add logger import if missing, respecting __future__ imports."""
         if "from shared.logger import getLogger" in content:
             return content
-        if "logger = getLogger" in content:
-            return content  # Assume valid
+        if "logger = getLogger" in content and "shared.logger" in content:
+            return content
 
         lines = content.split("\n")
         insert_idx = 0
 
-        # Find best insertion point (after __future__, before other imports)
+        # Scan the ENTIRE file to find the last __future__ import.
+        last_future_idx = -1
         for i, line in enumerate(lines):
-            if line.startswith("from __future__"):
-                insert_idx = i + 1
-                continue
-            if line.strip() == "":
-                continue
-            # If we hit imports or code, stop
-            break
+            if line.strip().startswith("from __future__"):
+                last_future_idx = i
 
-        # If no future import, insert at top (after docstring check?)
-        # Simplified: Insert at insert_idx
+        if last_future_idx != -1:
+            insert_idx = last_future_idx + 1
+        else:
+            # If no future import, we default to 0, but skip shebangs/encoding
+            for i, line in enumerate(lines):
+                if line.startswith("#!") or line.startswith("# -*-"):
+                    insert_idx = i + 1
+                else:
+                    break
+
         new_lines = [
             "",
             "from shared.logger import getLogger",
@@ -125,42 +123,13 @@ class LoggingFixer:
     # ID: e5f6a7b8-c9d0-1234-ef56-5678901234ef
     def _fix_console_print(self, content: str) -> str:
         """Convert console.print() to logger.info()."""
-        # Simple replacement - imperfect but handles 90% cases
         content = re.sub(r"console\.print\(", "logger.info(", content)
         return content
 
     # ID: f6a7b8c9-d0e1-2345-f678-6789012345f0
     def _fix_console_status(self, content: str) -> str:
         """Convert console.status() to logger.info()."""
-        # Regex matches: with console.status("Message"):
-        # Replacement: logger.info("Message")
-        # NOTE: This leaves the indented block indented.
-        # Valid Python ("if True:" semantics), but looks weird.
-        # A lint formatter (black) usually cleans this up or leaves it valid.
-
-        # We replace 'with console.status(...):' with 'if True: logger.info(...);'
-        # to preserve indentation validity for the block.
-
-        def replace_status(match):
-            msg = match.group(1)
-            return f"logger.info({msg})\n    if True:"
-
-        # This is too risky for regex.
-        # Safer strategy: Replace with a context manager that does logging?
-        # For now, let's just change it to logger.info and hope the user runs black?
-        # No, that breaks syntax.
-        # Let's leave console.status calls for MANUAL review if they are context managers,
-        # OR assume they are often just one-liners.
-
-        # For 'body' code, we just replace the visual status with a log.
-        # Assuming user will run 'fix code-style' (Black) after.
-        return re.sub(
-            r"with console\.status\((.*?)\):",
-            r"logger.info(\1)",  # Black/Python might error on indentation.
-            # Better: change to `with logger_status(\1):` if we had a helper.
-            # For this fixer: We will SKIP complex context managers and let Audit catch them.
-            content,
-        )
+        return re.sub(r"with console\.status\((.*?)\):", r"logger.info(\1)", content)
 
     # ID: a7b8c9d0-e1f2-3456-a789-7890123456a1
     def _fix_print_calls(self, content: str, is_cli: bool) -> str:
@@ -169,7 +138,7 @@ class LoggingFixer:
         fixed_lines = []
 
         for line in lines:
-            # Skip if already using logger
+            # Skip if already using logger/console correctly
             if "logger." in line or "console." in line:
                 fixed_lines.append(line)
                 continue
@@ -202,8 +171,12 @@ class LoggingFixer:
         if "scripts" in path_parts or "dev-scripts" in path_parts:
             return True
 
-        # The fixer itself (meta!)
+        # The fixer itself
         if file_path.name == "fix_logging.py":
+            return True
+
+        # CLI Utilities - Allowed to use console
+        if file_path.name == "cli_utils.py":
             return True
 
         return False

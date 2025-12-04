@@ -103,13 +103,15 @@ class ContextService:
         Returns:
             Complete, validated, redacted ContextPackage
         """
-        logger.info("Building context for task %s", task_spec.get("task_id"))
+        # Downgraded to DEBUG to prevent log spam during batch operations
+        logger.debug("Building context for task %s", task_spec.get("task_id"))
 
         if use_cache:
             cache_key = ContextSerializer.compute_cache_key(task_spec)
             cached = self.cache.get(cache_key)
             if cached:
-                logger.info("Using cached packet")
+                # Downgraded to DEBUG
+                logger.debug("Using cached packet")
                 return cached
 
         packet = await self.builder.build_for_task(task_spec)
@@ -157,7 +159,8 @@ class ContextService:
             cache_key = packet["provenance"]["cache_key"]
             self.cache.put(cache_key, packet)
 
-        logger.info("Built and persisted packet %s", packet["header"]["packet_id"])
+        # Downgraded to DEBUG
+        logger.debug("Built and persisted packet %s", packet["header"]["packet_id"])
         return packet
 
     # ID: 1548660f-ebc3-41b0-9427-83f527dbf9b9

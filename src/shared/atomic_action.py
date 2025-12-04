@@ -15,6 +15,9 @@ from functools import wraps
 from typing import Any
 
 from shared.action_types import ActionImpact
+from shared.logger import getLogger
+
+logger = getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -184,8 +187,8 @@ def get_action_metadata(func: Callable) -> ActionMetadata | None:
     Example:
         metadata = get_action_metadata(fix_ids_internal)
         if metadata:
-            print(f"Action: {metadata.action_id}")
-            print(f"Intent: {metadata.intent}")
-            print(f"Policies: {metadata.policies}")
+            logger.info(f"Action: {metadata.action_id}")
+            logger.info(f"Intent: {metadata.intent}")
+            logger.info(f"Policies: {metadata.policies}")
     """
     return getattr(func, "_atomic_action_metadata", None)

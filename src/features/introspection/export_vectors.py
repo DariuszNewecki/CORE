@@ -15,7 +15,6 @@ import typer
 from qdrant_client.http import models as qm
 from rich.console import Console
 from rich.progress import track
-
 from services.clients.qdrant_client import QdrantService
 from shared.context import CoreContext
 from shared.logger import getLogger
@@ -26,16 +25,12 @@ console = Console()
 
 async def _async_export(qdrant_service: QdrantService, output_path: Path):
     """The core async logic for exporting vectors."""
-    console.print(
-        f"🚀 Exporting all vectors to [bold cyan]{output_path}[/bold cyan]..."
-    )
+    logger.info(f"🚀 Exporting all vectors to [bold cyan]{output_path}[/bold cyan]...")
     output_path.parent.mkdir(parents=True, exist_ok=True)
     try:
         all_vectors: list[qm.Record] = await qdrant_service.get_all_vectors()
         if not all_vectors:
-            console.print(
-                "[yellow]No vectors found in the database to export.[/yellow]"
-            )
+            logger.info("[yellow]No vectors found in the database to export.[/yellow]")
             return
         count = 0
         with output_path.open("w", encoding="utf-8") as f:
@@ -50,12 +45,12 @@ async def _async_export(qdrant_service: QdrantService, output_path: Path):
                 }
                 f.write(json.dumps(line_data) + "\n")
                 count += 1
-        console.print(
+        logger.info(
             f"[bold green]✅ Successfully exported {count} vectors.[/bold green]"
         )
     except Exception as e:
         logger.error(f"Failed to export vectors: {e}", exc_info=True)
-        console.print(f"[bold red]❌ An error occurred during export: {e}[/bold red]")
+        logger.info(f"[bold red]❌ An error occurred during export: {e}[/bold red]")
         raise typer.Exit(code=1)
 
 
