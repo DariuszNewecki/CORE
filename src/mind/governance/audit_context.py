@@ -15,6 +15,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+# 👇 NEW IMPORT: Read from DB
+from services.knowledge.knowledge_service import KnowledgeService
 from shared.config import settings
 from shared.logger import getLogger
 from shared.models import AuditFinding
@@ -27,8 +29,6 @@ class AuditorContext:
     """
     Provides access to '.intent' artifacts and the in-memory knowledge graph.
     This version is constitutionally-aware and loads policies via meta.yaml.
-
-    CORRECTED: Now uses database as SSOT for knowledge graph, not filesystem.
     """
 
     def __init__(self, repo_path: Path):
@@ -67,13 +67,7 @@ class AuditorContext:
 
         CONSTITUTIONAL FIX: Changed from KnowledgeGraphBuilder (filesystem)
         to KnowledgeService (database). The database is the single source of truth.
-
-        The previous implementation violated SSOT by parsing files directly.
-        The "Canary environment" justification was not valid - even in canary,
-        we should sync to DB first, then read from DB.
         """
-        from services.knowledge.knowledge_service import KnowledgeService
-
         logger.info(
             f"Loading knowledge graph from database (SSOT) for {self.repo_path}..."
         )
@@ -95,9 +89,6 @@ class AuditorContext:
     def _save_knowledge_graph_artifact(self) -> None:
         """
         Save knowledge graph to reports/ for debugging and inspection.
-
-        This is an OUTPUT artifact (report), not an input source.
-        The audit reads from DB, then writes this file for human inspection.
         """
         import json
 
@@ -180,7 +171,7 @@ class AuditorContext:
     def python_files(self) -> list[Path]:
         """Returns Python files ONLY from BODY (src/)."""
         paths: list[Path] = []
-        for file_path in self.src_dir.rglob("*.py"):  # ← Scan ONLY BODY!
+        for file_path in self.src_dir.rglob("*.py"):
             paths.append(file_path)
         return paths
 

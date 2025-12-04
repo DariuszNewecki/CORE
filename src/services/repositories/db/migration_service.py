@@ -9,7 +9,7 @@ import asyncio
 import pathlib
 
 import typer
-from rich.console import Console
+from shared.logger import getLogger
 
 from .common import (
     apply_sql_file,
@@ -19,7 +19,7 @@ from .common import (
     record_applied,
 )
 
-console = Console()
+logger = getLogger(__name__)
 
 
 async def _run_migrations(apply: bool):
@@ -30,7 +30,7 @@ async def _run_migrations(apply: bool):
         order = migrations_config.get("order", [])
         migration_dir = migrations_config.get("directory", "sql")
     except Exception as e:
-        console.print(f"[bold red]❌ Error loading database policy: {e}[/bold red]")
+        logger.error("Error loading database policy: %s", e)
         raise typer.Exit(code=1)
 
     await ensure_ledger()
@@ -38,27 +38,25 @@ async def _run_migrations(apply: bool):
     pending = [m for m in order if m not in applied]
 
     if not pending:
-        console.print("[bold green]✅ DB schema is up to date.[/bold green]")
+        logger.info("DB schema is up to date.")
         return
 
-    console.print(f"[yellow]Pending migrations found: {pending}[/yellow]")
+    logger.warning("Pending migrations found: %s", pending)
     if not apply:
-        console.print("   -> Run with '--apply' to execute them.")
+        logger.info("Run with '--apply' to execute them.")
         return
 
     for mig in pending:
-        console.print(f"   -> Applying migration: {mig}...")
+        logger.info("Applying migration: %s", mig)
         try:
             await apply_sql_file(pathlib.Path(migration_dir) / mig)
             await record_applied(mig)
-            console.print("      [green]...success.[/green]")
+            logger.info("Migration %s applied successfully.", mig)
         except Exception as e:
-            console.print(f"[bold red]      ❌ FAILED to apply {mig}: {e}[/bold red]")
+            logger.error("FAILED to apply %s: %s", mig, e)
             raise typer.Exit(code=1)
 
-    console.print(
-        "[bold green]✅ All pending migrations applied successfully.[/bold green]"
-    )
+    logger.info("All pending migrations applied successfully.")
 
 
 # ID: 7bb0c5ee-480b-4d14-9147-853c9f9b25c5

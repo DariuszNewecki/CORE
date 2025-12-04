@@ -16,6 +16,8 @@ from collections.abc import Generator
 from dataclasses import dataclass
 from typing import Any
 
+from shared.logger import _current_run_id  # Import the context var
+
 logger = logging.getLogger(__name__)
 
 # Type alias for activity status
@@ -76,7 +78,7 @@ def log_activity(
 
     # Decide log level - workflow events go to DEBUG to keep CLI clean
     if event in {"workflow_start", "workflow_complete"} or event.startswith("phase:"):
-        log_fn = logger.debug  # Changed from INFO to DEBUG for cleaner CLI
+        log_fn = logger.debug
     elif status == "warning":
         log_fn = logger.warning
     elif status == "error":
@@ -106,6 +108,10 @@ def activity_run(
     Note: Logs at DEBUG level to keep CLI output clean.
     """
     run = new_activity_run(workflow_id)
+
+    # Set the context var for this block
+    token = _current_run_id.set(run.run_id)
+
     start_time = time.time()
 
     log_activity(
@@ -137,3 +143,6 @@ def activity_run(
             message=f"Workflow {workflow_id} completed successfully",
             details={"duration_sec": duration},
         )
+    finally:
+        # Clean up context var
+        _current_run_id.reset(token)

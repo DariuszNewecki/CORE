@@ -17,23 +17,23 @@ class CoreContext:
     """
     A container for shared services, passed explicitly to commands.
 
-    Refactored for A2 Autonomy: Now relies on ServiceRegistry for
-    infrastructure instantiation to prevent split-brain states.
+    ARCHITECTURAL NOTE:
+    The 'registry' field is the authoritative source for services.
+    Direct service fields (git_service, etc.) are DEPRECATED and kept
+    temporarily for backward compatibility.
     """
 
-    # These fields are kept for backwards compatibility with existing commands
-    # until they can be migrated to use the registry.
-    git_service: Any
-    cognitive_service: Any
-    knowledge_service: Any
-    auditor_context: Any
-    file_handler: Any
-    planner_config: Any
+    # The authoritative registry
+    registry: Any
 
-    # The authoritative registry (added for the refactor)
-    registry: Any | None = None
-
-    # Optional direct reference to Qdrant (managed via registry now)
+    # --- DEPRECATED FIELDS (Legacy) ---
+    # These default to None now; legacy code should move to registry.
+    git_service: Any | None = None
+    cognitive_service: Any | None = None
+    knowledge_service: Any | None = None
+    auditor_context: Any | None = None
+    file_handler: Any | None = None
+    planner_config: Any | None = None
     qdrant_service: Any | None = None
 
     _is_test_mode: bool = False
@@ -51,8 +51,6 @@ class CoreContext:
     def context_service(self) -> Any:
         """
         Get or create ContextService instance.
-
-        Provides constitutional governance for all LLM context via ContextPackages.
         """
         if self._context_service is None:
             if self.context_service_factory is None:

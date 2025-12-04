@@ -18,16 +18,14 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from rich.console import Console
-
-from features.self_healing.coverage_analyzer import CoverageAnalyzer
 from mind.governance.audit_context import AuditorContext
 from shared.config import settings
 from shared.logger import getLogger
 from will.orchestration.cognitive_service import CognitiveService
 
+from features.self_healing.coverage_analyzer import CoverageAnalyzer
+
 logger = getLogger(__name__)
-console = Console()
 
 
 @dataclass
@@ -80,21 +78,22 @@ class FullProjectRemediationService:
         Returns:
             Dict with remediation results and metrics
         """
-        console.print(
-            "\n[bold cyan]🤖 Constitutional Coverage Remediation Activated[/bold cyan]"
+        target = self.config.get("minimum_threshold", 75)
+        logger.info(
+            "Constitutional Coverage Remediation Activated (Target: %s%%)", target
         )
-        console.print(
-            f"   Target: {self.config.get('minimum_threshold', 75)}% coverage\n"
-        )
+
         strategy = await self._analyze_gaps()
         if not strategy:
-            console.print("[yellow]⚠️  Could not generate testing strategy[/yellow]")
+            logger.warning("Could not generate testing strategy")
             return {"status": "failed", "phase": "analysis"}
+
         goals = await self._generate_goals(strategy)
         if not goals:
-            console.print("[yellow]⚠️  Could not generate test goals[/yellow]")
+            logger.warning("Could not generate test goals")
             return {"status": "failed", "phase": "goal_generation"}
-        console.print(f"[green]✅ Generated {len(goals)} test goals[/green]\n")
+
+        logger.info("Generated %d test goals", len(goals))
         results = await self._generate_tests(goals)
         return self._summarize_results(results)
 
@@ -102,7 +101,7 @@ class FullProjectRemediationService:
         """
         Phase 1: Analyze codebase and identify testing priorities.
         """
-        console.print("[bold]📊 Phase 1: Strategic Analysis[/bold]")
+        logger.info("Phase 1: Strategic Analysis")
         coverage_data = self.analyzer.get_module_coverage()
         module_info = self.analyzer.analyze_codebase()
         prompt = self._build_strategy_prompt(coverage_data, module_info)
@@ -112,7 +111,7 @@ class FullProjectRemediationService:
         )
         strategy_file = self.strategy_dir / "test_plan.md"
         strategy_file.write_text(response)
-        console.print(f"[green]✅ Strategy saved to {strategy_file}[/green]")
+        logger.info("Strategy saved to %s", strategy_file)
         return {
             "strategy_file": str(strategy_file),
             "coverage_data": coverage_data,
@@ -123,7 +122,7 @@ class FullProjectRemediationService:
         """
         Phase 2: Convert strategy into executable test generation goals.
         """
-        console.print("\n[bold]📋 Phase 2: Goal Generation[/bold]")
+        logger.info("Phase 2: Goal Generation")
         strategy_file = Path(strategy["strategy_file"])
         strategy_text = strategy_file.read_text()
         prompt = f'Based on this testing strategy, generate a JSON array of test goals.\n\nEach goal should have:\n- module: The Python module path (e.g., "core.prompt_pipeline")\n- test_file: Corresponding test file path (e.g., "tests/core/test_prompt_pipeline.py")\n- priority: Integer 1-10 (1=highest)\n- current_coverage: Current coverage percentage\n- target_coverage: Target coverage percentage\n- goal: A concise description of what tests to create\n\nStrategy:\n{strategy_text}\n\nReturn ONLY valid JSON starting with [ and ending with ].\n'
@@ -140,33 +139,33 @@ class FullProjectRemediationService:
                 goals = [TestGoal(**g) for g in goals_data]
                 goals_file = self.goals_dir / "test_goals.json"
                 goals_file.write_text(json.dumps(goals_data, indent=2))
-                console.print(f"[green]✅ Goals saved to {goals_file}[/green]")
+                logger.info("Goals saved to %s", goals_file)
                 return goals
         except Exception as e:
-            logger.error(f"Failed to parse goals: {e}")
-            console.print(f"[red]❌ Failed to parse goals: {e}[/red]")
+            logger.error("Failed to parse goals: %s", e)
         return []
 
     async def _generate_tests(self, goals: list[TestGoal]) -> dict[str, Any]:
         """
         Phase 3: Generate tests for each goal in batches.
         """
-        console.print("\n[bold]🧪 Phase 3: Test Generation[/bold]\n")
+        logger.info("Phase 3: Test Generation")
         batch_size = self.config.get("batch_size", 5)
         max_iterations = self.config.get("max_iterations", 10)
         succeeded = 0
         failed = 0
         results = []
+
         for i in range(0, len(goals), batch_size):
             if i // batch_size >= max_iterations:
-                console.print(
-                    f"[yellow]⚠️  Reached max iterations ({max_iterations})[/yellow]"
-                )
+                logger.warning("Reached max iterations (%d)", max_iterations)
                 break
+
             batch = goals[i : i + batch_size]
-            console.print(
-                f"[cyan]Processing batch {i // batch_size + 1} ({len(batch)} goals)[/cyan]"
+            logger.info(
+                "Processing batch %d (%d goals)", i // batch_size + 1, len(batch)
             )
+
             for goal in batch:
                 try:
                     result = await self.generator.generate_test(
@@ -177,21 +176,24 @@ class FullProjectRemediationService:
                     )
                     if result.get("status") == "success":
                         succeeded += 1
-                        console.print(f"  [green]✅ {goal.module}[/green]")
+                        logger.info("Generated tests for %s", goal.module)
                     else:
                         failed += 1
-                        console.print(
-                            f"  [red]❌ {goal.module}: {result.get('error', 'Unknown error')}[/red]"
+                        logger.warning(
+                            "Failed to generate tests for %s: %s",
+                            goal.module,
+                            result.get("error", "Unknown error"),
                         )
                     results.append({"goal": goal, "result": result})
                 except Exception as e:
                     failed += 1
-                    logger.error(f"Test generation failed for {goal.module}: {e}")
-                    console.print(f"  [red]❌ {goal.module}: {e}[/red]")
+                    logger.error("Test generation failed for %s: %s", goal.module, e)
+
             if i + batch_size < len(goals):
                 cooldown = self.config.get("cooldown_seconds", 10)
-                console.print(f"[dim]Cooling down for {cooldown}s...[/dim]\n")
+                logger.debug("Cooling down for %ds...", cooldown)
                 await asyncio.sleep(cooldown)
+
         return {
             "succeeded": succeeded,
             "failed": failed,
@@ -203,19 +205,20 @@ class FullProjectRemediationService:
         """
         Phase 4: Summarize and report results.
         """
-        console.print("\n[bold]📈 Remediation Summary[/bold]\n")
-        succeeded = results["succeeded"]
-        failed = results["failed"]
-        total = results["total"]
-        console.print(f"Total Goals: {total}")
-        console.print(f"[green]✅ Succeeded: {succeeded}[/green]")
-        console.print(f"[red]❌ Failed: {failed}[/red]")
+        logger.info(
+            "Remediation Summary: Succeeded=%d, Failed=%d, Total=%d",
+            results["succeeded"],
+            results["failed"],
+            results["total"],
+        )
+
         final_coverage = self._measure_final_coverage()
+
         return {
-            "status": "completed" if succeeded > 0 else "failed",
-            "succeeded": succeeded,
-            "failed": failed,
-            "total": total,
+            "status": "completed" if results["succeeded"] > 0 else "failed",
+            "succeeded": results["succeeded"],
+            "failed": results["failed"],
+            "total": results["total"],
             "final_coverage": final_coverage,
         }
 
@@ -236,6 +239,6 @@ class FullProjectRemediationService:
         coverage_data = self.analyzer.measure_coverage()
         if coverage_data:
             percent = coverage_data.get("overall_percent", 0)
-            console.print(f"\n[bold]Final Coverage: {percent}%[/bold]")
+            logger.info("Final Coverage: %s%%", percent)
             return percent
         return 0.0

@@ -6,10 +6,15 @@ This is the new, governed home for logic from standalone scripts.
 
 from __future__ import annotations
 
-import typer
-from rich.console import Console
+import sys
+from pathlib import Path
 
+import typer
 from features.maintenance.maintenance_service import rewire_imports
+
+# Import the moved script module
+from features.maintenance.scripts import context_export
+from rich.console import Console
 
 console = Console()
 tools_app = typer.Typer(
@@ -54,4 +59,46 @@ def rewire_imports_cli(
     )
 
 
-# The obsolete register function has been removed.
+@tools_app.command("export-context")
+# ID: af5abbe5-0304-4f54-9eb0-596d71791b41
+def export_context_cmd(
+    output_dir: Path = typer.Option(
+        Path("./scripts/exports"),
+        "--output-dir",
+        help="Directory to write export bundle into",
+    ),
+    db_url: str = typer.Option(None, "--db-url", help="Database URL override"),
+    qdrant_url: str = typer.Option(None, "--qdrant-url", help="Qdrant URL override"),
+    qdrant_collection: str = typer.Option(
+        None, "--qdrant-collection", help="Qdrant collection override"
+    ),
+):
+    """
+    Export a complete operational snapshot (Mind/Body/State/Vectors).
+    Wraps features.maintenance.scripts.context_export.
+    """
+    # Prepare arguments to look like sys.argv for the existing script logic
+    # This avoids rewriting the complex argparse logic inside the script for now.
+    args = ["context_export", "--output-dir", str(output_dir)]
+
+    if db_url:
+        args.extend(["--db-url", db_url])
+    if qdrant_url:
+        args.extend(["--qdrant-url", qdrant_url])
+    if qdrant_collection:
+        args.extend(["--qdrant-collection", qdrant_collection])
+
+    # Patch sys.argv temporarily to invoke the script's main
+    original_argv = sys.argv
+    try:
+        sys.argv = args
+        context_export.main()
+    except SystemExit as e:
+        # The script calls sys.exit(), we catch it to prevent CLI crash
+        if e.code != 0:
+            raise typer.Exit(e.code)
+    except Exception as e:
+        console.print(f"[bold red]Export failed: {e}[/bold red]")
+        raise typer.Exit(1)
+    finally:
+        sys.argv = original_argv

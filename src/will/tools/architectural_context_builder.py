@@ -223,7 +223,7 @@ class ArchitecturalContextBuilder:
         try:
             # Step 1: Generate embedding for the goal
             logger.debug(f"Generating embedding for goal: {goal[:50]}...")
-            embedding = await self.cognitive_service.get_embedding(goal)
+            embedding = await self.cognitive_service.get_embedding_for_code(goal)
 
             # Step 2: Search Qdrant for similar symbols with layer filter
             logger.debug(f"Searching for similar symbols in layer: {layer}")

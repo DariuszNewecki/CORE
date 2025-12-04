@@ -12,13 +12,11 @@ import re
 from pathlib import Path
 from typing import Any
 
-from rich.console import Console
-from rich.table import Table
-
 from services.knowledge.knowledge_service import KnowledgeService
 from shared.config import settings
 from shared.logger import getLogger
 from shared.utils.parallel_processor import ThrottledParallelProcessor
+
 from will.orchestration.cognitive_service import CognitiveService
 
 logger = getLogger(__name__)
@@ -34,7 +32,6 @@ class CapabilityTaggerAgent:
         """Initializes the agent with the tools it needs."""
         self.cognitive_service = cognitive_service
         self.knowledge_service = knowledge_service
-        self.console = Console()
         prompt_path = settings.MIND / "mind" / "prompts" / "capability_definer.prompt"
         self.prompt_template = prompt_path.read_text(encoding="utf-8")
         self.tagger_client = None
@@ -185,7 +182,7 @@ class CapabilityTaggerAgent:
                     "suggestion": suggestion,
                 }
         except (json.JSONDecodeError, AttributeError):
-            logger.warning(f"Could not parse suggestion for {symbol['name']}.")
+            logger.warning("Could not parse suggestion for %s.", symbol["name"])
         return None
 
     # ID: 31b9d32d-7a97-44cb-8472-1e46f4c1ee99
@@ -201,7 +198,7 @@ class CapabilityTaggerAgent:
                 "CodeReviewer"
             )
 
-        logger.info("🔍 Searching for orphaned capabilities (using audit logic)...")
+        logger.info("Searching for orphaned capabilities (using audit logic)...")
 
         existing_capabilities = await self._get_existing_capabilities()
         graph = await self.knowledge_service.get_graph()
@@ -211,7 +208,7 @@ class CapabilityTaggerAgent:
         orphaned_symbols = self._find_orphaned_symbols(all_symbols)
 
         logger.info(
-            f"   -> Found {len(orphaned_symbols)} truly orphaned symbols (same as audit)."
+            "Found %d truly orphaned symbols (same as audit).", len(orphaned_symbols)
         )
 
         # Filter by file_path if specified
@@ -225,8 +222,10 @@ class CapabilityTaggerAgent:
             return None
 
         logger.info(
-            f"Analyzing {len(target_symbols)} orphaned symbols for capability suggestions..."
+            "Analyzing %d orphaned symbols for capability suggestions...",
+            len(target_symbols),
         )
+
         processor = ThrottledParallelProcessor(description="Analyzing symbols...")
         results = await processor.run_async(
             target_symbols,
@@ -234,16 +233,15 @@ class CapabilityTaggerAgent:
                 symbol, existing_capabilities
             ),
         )
+
         suggestions_to_return = {}
-        table = Table(title="🤖 Capability Tagger Agent Suggestions")
-        table.add_column("Symbol", style="cyan")
-        table.add_column("File", style="green")
-        table.add_column("Suggested Capability", style="yellow")
-        valid_results = filter(None, results)
+        valid_results = list(filter(None, results))
+
         for res in valid_results:
-            table.add_row(res["name"], res["file"], res["suggestion"])
+            logger.info("Suggestion: %s -> %s", res["name"], res["suggestion"])
             suggestions_to_return[res["key"]] = res
+
         if not suggestions_to_return:
             return None
-        self.console.print(table)
+
         return suggestions_to_return

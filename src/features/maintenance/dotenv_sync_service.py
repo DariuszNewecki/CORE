@@ -6,18 +6,14 @@ from __future__ import annotations
 
 from typing import Any
 
-from rich.console import Console
-from rich.table import Table
-from sqlalchemy import func
-from sqlalchemy.dialects.postgresql import insert as pg_insert
-
 from services.database.models import RuntimeSetting
 from services.database.session_manager import get_session
 from shared.config import settings
 from shared.logger import getLogger
+from sqlalchemy import func
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 logger = getLogger(__name__)
-console = Console()
 
 
 # ID: b4e0cca2-7956-4ee9-80bc-e36aca3bf0f5
@@ -26,16 +22,12 @@ async def run_dotenv_sync(dry_run: bool):
     Reads variables defined in runtime_requirements.yaml from the environment/.env
     and upserts them into the core.runtime_settings table.
     """
-    console.print(
-        "[bold cyan]🚀 Synchronizing .env configuration to database...[/bold cyan]"
-    )
+    logger.info("Synchronizing .env configuration to database...")
     try:
         runtime_reqs = settings.load("mind.config.runtime_requirements")
         variables_to_sync = runtime_reqs.get("variables", {})
     except FileNotFoundError as e:
-        console.print(
-            f"[bold red]❌ Error: Cannot find runtime_requirements policy: {e}[/bold red]"
-        )
+        logger.error("Cannot find runtime_requirements policy: %s", e)
         return
     settings_to_upsert: list[dict[str, Any]] = []
     for key, config in variables_to_sync.items():
@@ -56,21 +48,19 @@ async def run_dotenv_sync(dry_run: bool):
             }
         )
     if dry_run:
-        console.print(
-            "[bold yellow]-- DRY RUN: The following settings would be synced --[/bold yellow]"
-        )
-        table = Table(title="Configuration Sync Plan")
-        table.add_column("Key", style="cyan")
-        table.add_column("Value", style="magenta")
-        table.add_column("Is Secret?", style="red")
+        logger.info("-- DRY RUN: The following settings would be synced --")
         for setting in settings_to_upsert:
             display_value = (
                 "********"
                 if setting["is_secret"] and setting["value"]
                 else str(setting["value"])
             )
-            table.add_row(setting["key"], display_value, str(setting["is_secret"]))
-        console.print(table)
+            logger.info(
+                "Plan: Key=%s | Value=%s | Secret=%s",
+                setting["key"],
+                display_value,
+                setting["is_secret"],
+            )
         return
     try:
         async with get_session() as session:
@@ -86,11 +76,11 @@ async def run_dotenv_sync(dry_run: bool):
                     index_elements=["key"], set_=update_dict
                 )
                 await session.execute(upsert_stmt)
-        console.print(
-            f"[bold green]✅ Successfully synchronized {len(settings_to_upsert)} settings to the database.[/bold green]"
+        logger.info(
+            "Successfully synchronized %d settings to the database.",
+            len(settings_to_upsert),
         )
     except Exception as e:
-        logger.error(f"Database sync failed: {e}", exc_info=True)
-        console.print(
-            f"[bold red]❌ Error: Failed to write to the database: {e}[/bold red]"
-        )
+        logger.error("Database sync failed: %s", e, exc_info=True)
+        # Note: Logic layer should generally raise exceptions or return status,
+        # but complying with existing pattern where return is void.

@@ -8,14 +8,13 @@ import json
 import uuid
 from typing import Any
 
-from rich.console import Console
-from sqlalchemy import text
-
 from services.database.session_manager import get_session
 from shared.ast_utility import FunctionCallVisitor, calculate_structural_hash
 from shared.config import settings
+from shared.logger import getLogger
+from sqlalchemy import text
 
-console = Console()
+logger = getLogger(__name__)
 
 
 # ID: 2082848a-e1e3-48fa-aeb5-8d1b63f8d687
@@ -111,7 +110,7 @@ class SymbolScanner:
                 visitor.visit(tree)
                 all_symbols.extend(visitor.symbols)
             except Exception as exc:  # noqa: BLE001
-                console.print(f"[bold red]Error scanning {file_path}: {exc}[/bold red]")
+                logger.error("Error scanning %s: %s", file_path, exc)
 
         # Deduplicate by symbol_path (last one wins)
         unique_symbols = {s["symbol_path"]: s for s in all_symbols}
@@ -124,6 +123,7 @@ async def run_sync_with_db() -> dict[str, int]:
     Executes the full, database-centric sync logic using the "smart merge" strategy.
     This is the single source of truth for updating the symbols table from the codebase.
     """
+    logger.info("Starting symbol sync with database")
     scanner = SymbolScanner()
     code_state = scanner.scan()
     stats: dict[str, int] = {
@@ -289,4 +289,11 @@ async def run_sync_with_db() -> dict[str, int]:
                 )
             )
 
+    logger.info(
+        "Sync complete. Scanned: %d, Inserted: %d, Updated: %d, Deleted: %d",
+        stats["scanned"],
+        stats["inserted"],
+        stats["updated"],
+        stats["deleted"],
+    )
     return stats
