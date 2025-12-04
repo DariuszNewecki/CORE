@@ -150,7 +150,7 @@ async def _define_new_symbols(context_service: ContextService):
     """The main orchestrator for the autonomous definition process."""
     undefined_symbols = await get_undefined_symbols()
     if not undefined_symbols:
-        console.print("   -> No new symbols to define.")
+        logger.info("   -> No new symbols to define.")
         return
 
     async with get_session() as session:
@@ -159,7 +159,7 @@ async def _define_new_symbols(context_service: ContextService):
         )
         existing_keys = {row[0] for row in result}
 
-    console.print(f"   -> Found {len(undefined_symbols)} new symbols to define...")
+    logger.info(f"   -> Found {len(undefined_symbols)} new symbols to define...")
 
     worker_fn = partial(
         define_single_symbol,
@@ -177,6 +177,6 @@ async def _define_new_symbols(context_service: ContextService):
     ]
 
     await update_definitions_in_db(valid_definitions)
-    console.print(
+    logger.info(
         f"   -> Successfully defined {len(valid_definitions)} new capabilities."
     )

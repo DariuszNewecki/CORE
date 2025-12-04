@@ -10,9 +10,10 @@ import uuid
 
 import yaml
 from rich.console import Console
-
 from shared.config import settings
+from shared.logger import getLogger
 
+logger = getLogger(__name__)
 console = Console()
 
 
@@ -29,7 +30,7 @@ def add_missing_policy_ids(dry_run: bool = True) -> int:
     """
     policies_dir = settings.REPO_PATH / ".intent" / "charter" / "policies"
     if not policies_dir.is_dir():
-        console.print(
+        logger.info(
             f"[bold red]Policies directory not found at: {policies_dir}[/bold red]"
         )
         return 0
@@ -37,9 +38,7 @@ def add_missing_policy_ids(dry_run: bool = True) -> int:
     files_to_process = list(policies_dir.rglob("*_policy.yaml"))
     policies_updated = 0
 
-    console.print(
-        f"🔍 Scanning {len(files_to_process)} policy files for missing IDs..."
-    )
+    logger.info(f"🔍 Scanning {len(files_to_process)} policy files for missing IDs...")
 
     for file_path in files_to_process:
         try:
@@ -58,17 +57,17 @@ def add_missing_policy_ids(dry_run: bool = True) -> int:
             new_content = f"policy_id: {new_id}\n" + content
 
             if dry_run:
-                console.print(
+                logger.info(
                     f"  -> [DRY RUN] Would add `policy_id: {new_id}` to [cyan]{file_path.name}[/cyan]"
                 )
             else:
                 file_path.write_text(new_content, "utf-8")
-                console.print(
+                logger.info(
                     f"  -> ✅ Added `policy_id` to [green]{file_path.name}[/green]"
                 )
 
         except Exception as e:
-            console.print(
+            logger.info(
                 f"  -> [bold red]❌ Error processing {file_path.name}: {e}[/bold red]"
             )
 

@@ -16,11 +16,10 @@ import os
 from datetime import datetime
 
 from cryptography.fernet import Fernet, InvalidToken
-from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from shared.exceptions import SecretNotFoundError
 from shared.logger import getLogger
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = getLogger(__name__)
 
@@ -280,6 +279,6 @@ async def get_secrets_service(db: AsyncSession) -> SecretsService:
     master_key = os.getenv("CORE_MASTER_KEY")
     if not master_key:
         raise RuntimeError(
-            "CORE_MASTER_KEY not found in environment. Generate one with: python -c 'from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())'"
+            "CORE_MASTER_KEY not found in environment. Generate one with: python -c 'from cryptography.fernet import Fernet; logger.info(Fernet.generate_key().decode())'"
         )
     return SecretsService(master_key)

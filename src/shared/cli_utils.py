@@ -17,8 +17,11 @@ from rich.prompt import Confirm
 
 from shared.action_types import ActionResult
 from shared.context import CoreContext
+from shared.logger import getLogger
 
+# CLI Utilities are allowed to use Console for interaction
 console = Console(log_time=False, log_path=False)
+logger = getLogger(__name__)
 
 # Type hint for the decorated function
 F = TypeVar("F", bound=Callable[..., Any])
@@ -136,11 +139,6 @@ def core_command(
                     loop = asyncio.get_running_loop()
                     if loop.is_running():
                         # We are likely inside another async command.
-                        # This wrapper is synchronous for Typer, so we can't await here easily
-                        # without refactoring the whole stack.
-                        # However, Typer commands are usually entry points.
-                        # If we are here, it's safe to run_until_complete via a new loop is risky.
-                        # Best effort: create task? No, we need results.
                         pass
                 except RuntimeError:
                     asyncio.run(inject_services())
@@ -182,11 +180,11 @@ def core_command(
 # ID: 66ad8653-546c-4605-a52b-1d3a896af0a3
 def confirm_action(message: str, *, abort_message: str = "Aborted.") -> bool:
     """Unified confirmation prompt for dangerous operations."""
-    console.print()
+    console.print()  # Valid spacing
     confirmed = Confirm.ask(message)
     if not confirmed:
         console.print(f"[yellow]{abort_message}[/yellow]")
-    console.print()
+    console.print()  # Valid spacing
     return confirmed
 
 

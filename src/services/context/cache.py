@@ -50,14 +50,15 @@ class ContextCache:
         # Check expiration
         age_hours = self._get_age_hours(cache_file)
         if age_hours > self.ttl_hours:
-            logger.info(f"Cache expired: {cache_key[:8]} ({age_hours:.1f}h old)")
+            logger.debug(f"Cache expired: {cache_key[:8]} ({age_hours:.1f}h old)")
             cache_file.unlink()
             return None
 
         # Load cached packet
         try:
             packet = ContextSerializer.from_yaml(str(cache_file))
-            logger.info(f"Cache hit: {cache_key[:8]}")
+            # Downgraded to DEBUG
+            logger.debug(f"Cache hit: {cache_key[:8]}")
             return packet
         except Exception as e:
             logger.error(f"Failed to load cache: {e}")
@@ -75,7 +76,8 @@ class ContextCache:
 
         try:
             ContextSerializer.to_yaml(packet, str(cache_file))
-            logger.info(f"Cached packet: {cache_key[:8]}")
+            # Downgraded to DEBUG
+            logger.debug(f"Cached packet: {cache_key[:8]}")
         except Exception as e:
             logger.error(f"Failed to cache packet: {e}")
 
@@ -90,7 +92,7 @@ class ContextCache:
 
         if cache_file.exists():
             cache_file.unlink()
-            logger.info(f"Invalidated cache: {cache_key[:8]}")
+            logger.debug(f"Invalidated cache: {cache_key[:8]}")
 
     # ID: 780655c4-539c-4ed7-94b4-3bfaec639a7e
     def clear_expired(self) -> int:

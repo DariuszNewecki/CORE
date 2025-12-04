@@ -326,7 +326,7 @@ if __name__ == "__main__":
     repo_root = Path.cwd() if len(sys.argv) == 1 else Path(sys.argv[1])
     result = asyncio.run(generate_anchors_command(repo_root))
 
-    print("\nAnchor generation complete!")
-    print(f"  Anchors: {result['anchors_created']}")
+    logger.info("\nAnchor generation complete!")
+    logger.info(f"  Anchors: {result['anchors_created']}")
     if result.get("errors"):
-        print(f"  Errors: {len(result['errors'])}")
+        logger.info(f"  Errors: {len(result['errors'])}")

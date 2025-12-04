@@ -7,6 +7,10 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, ClassVar
 
+from shared.logger import getLogger
+
+logger = getLogger(__name__)
+
 if TYPE_CHECKING:
     from mind.governance.audit_context import AuditorContext
 
@@ -37,6 +41,6 @@ class BaseCheck:
         # Future enhancement: You could add logic here to validate that
         # subclasses have indeed overridden `policy_rule_ids`.
         if not self.policy_rule_ids:
-            print(
+            logger.info(
                 f"Warning: Check '{self.__class__.__name__}' does not enforce any policy rules."
             )

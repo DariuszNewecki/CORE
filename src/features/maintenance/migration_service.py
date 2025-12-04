@@ -13,11 +13,12 @@ from typing import Any
 
 import yaml
 from rich.console import Console
-from sqlalchemy import text
-
 from services.database.session_manager import get_session
 from shared.config import settings
+from shared.logger import getLogger
+from sqlalchemy import text
 
+logger = getLogger(__name__)
 console = Console()
 
 
@@ -25,7 +26,7 @@ async def _migrate_capabilities_from_manifest() -> list[dict[str, Any]]:
     """Loads capabilities from the legacy project_manifest.yaml file, ensuring uniqueness."""
     manifest_path = settings.get_path("mind.knowledge.project_manifest")
     if not manifest_path.exists():
-        console.print(
+        logger.info(
             "[yellow]Warning: project_manifest.yaml not found. No capabilities to migrate.[/yellow]"
         )
         return []
@@ -86,31 +87,29 @@ async def _migrate_symbols_from_ast() -> list[dict[str, Any]]:
 # ID: cd2c3cf5-54ec-493c-b11f-d8bb6eae7a0f
 async def run_ssot_migration(dry_run: bool):
     """Orchestrates the full one-time migration from files to the SSOT database."""
-    console.print(
-        "🚀 Starting one-time migration of knowledge from files to database..."
-    )
+    logger.info("🚀 Starting one-time migration of knowledge from files to database...")
 
     capabilities = await _migrate_capabilities_from_manifest()
     symbols = await _migrate_symbols_from_ast()
 
     if dry_run:
-        console.print(
+        logger.info(
             "[bold yellow]-- DRY RUN: The following actions would be taken --[/bold yellow]"
         )
-        console.print(
+        logger.info(
             f"  - Insert {len(capabilities)} unique capabilities from project_manifest.yaml."
         )
-        console.print(f"  - Insert {len(symbols)} symbols from source code scan.")
+        logger.info(f"  - Insert {len(symbols)} symbols from source code scan.")
         return
 
     async with get_session() as session:
         async with session.begin():
-            console.print("  -> Deleting existing data from tables...")
+            logger.info("  -> Deleting existing data from tables...")
             await session.execute(text("DELETE FROM core.symbol_capability_links;"))
             await session.execute(text("DELETE FROM core.symbols;"))
             await session.execute(text("DELETE FROM core.capabilities;"))
 
-            console.print(f"  -> Inserting {len(capabilities)} capabilities...")
+            logger.info(f"  -> Inserting {len(capabilities)} capabilities...")
             if capabilities:
                 await session.execute(
                     text(
@@ -122,7 +121,7 @@ async def run_ssot_migration(dry_run: bool):
                     capabilities,
                 )
 
-            console.print(f"  -> Inserting {len(symbols)} symbols...")
+            logger.info(f"  -> Inserting {len(symbols)} symbols...")
             if symbols:
                 # Insert symbols one by one to handle potential duplicates gracefully if any slip through
                 insert_stmt = text(
@@ -135,7 +134,7 @@ async def run_ssot_migration(dry_run: bool):
                 for symbol in symbols:
                     await session.execute(insert_stmt, symbol)
 
-    console.print("[bold green]✅ One-time migration complete.[/bold green]")
-    console.print(
+    logger.info("[bold green]✅ One-time migration complete.[/bold green]")
+    logger.info(
         "Run 'core-admin mind snapshot' to create the first export from the database."
     )

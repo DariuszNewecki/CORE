@@ -1,5 +1,4 @@
 # src/body/cli/logic/cli_utils.py
-
 """
 Provides centralized, reusable utilities for standardizing the console output
 and execution of all `core-admin` commands.

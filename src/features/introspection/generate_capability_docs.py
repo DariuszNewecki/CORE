@@ -8,11 +8,12 @@ from __future__ import annotations
 import asyncio
 
 from rich.console import Console
-from sqlalchemy import text
-
 from services.database.session_manager import get_session
 from shared.config import settings
+from shared.logger import getLogger
+from sqlalchemy import text
 
+logger = getLogger(__name__)
 console = Console()
 
 # --- Configuration ---
@@ -29,7 +30,7 @@ It is generated from the `core.knowledge_graph` database view and should not be 
 
 async def _fetch_capabilities() -> list[dict]:
     """Fetches all public capabilities from the database knowledge graph view."""
-    console.print("[cyan]Fetching capabilities from the database...[/cyan]")
+    logger.info("Fetching capabilities from the database...")
     async with get_session() as session:
         # FIX: Removed 'line_number' and JOIN, as the column does not exist in the DB schema.
         # We will default to line 1 in the python logic.
@@ -69,19 +70,21 @@ def main():
         try:
             capabilities = await _fetch_capabilities()
         except Exception as e:
-            console.print(f"[bold red]Error fetching capabilities: {e}[/bold red]")
+            logger.error("Error fetching capabilities: %s", e)
             return
 
         if not capabilities:
-            console.print(
-                "[yellow]Warning: No capabilities found in the database. Documentation will be empty.[/yellow]"
+            logger.warning(
+                "No capabilities found in the database. Documentation will be empty."
             )
             return
 
         domains = _group_by_domain(capabilities)
 
-        console.print(
-            f"[cyan]Generating documentation for {len(capabilities)} capabilities across {len(domains)} domains...[/cyan]"
+        logger.info(
+            "Generating documentation for %d capabilities across %d domains...",
+            len(capabilities),
+            len(domains),
         )
 
         md_content = [HEADER.strip(), ""]
@@ -107,8 +110,8 @@ def main():
 
         OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
         OUTPUT_PATH.write_text(final_text, encoding="utf-8")
-        console.print(
-            f"[bold green]✅ Capability reference documentation successfully written to {OUTPUT_PATH}[/bold green]"
+        logger.info(
+            "Capability reference documentation successfully written to %s", OUTPUT_PATH
         )
 
     asyncio.run(_async_main())

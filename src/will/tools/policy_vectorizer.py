@@ -445,11 +445,11 @@ if __name__ == "__main__":
 
     result = asyncio.run(vectorize_policies_command(repo_root))
 
-    print("\nVectorization complete!")
-    print(f"  Policies: {result['policies_vectorized']}")
-    print(f"  Chunks: {result['chunks_created']}")
+    logger.info("\nVectorization complete!")
+    logger.info(f"  Policies: {result['policies_vectorized']}")
+    logger.info(f"  Chunks: {result['chunks_created']}")
 
     if result.get("errors"):
-        print(f"  Errors: {len(result['errors'])}")
+        logger.info(f"  Errors: {len(result['errors'])}")
         for error in result["errors"]:
-            print(f"    - {error['file']}: {error['error']}")
+            logger.info(f"    - {error['file']}: {error['error']}")

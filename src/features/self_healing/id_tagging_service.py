@@ -8,9 +8,11 @@ import uuid
 from collections import defaultdict
 
 from rich.console import Console
-
 from shared.ast_utility import find_symbol_id_and_def_line
 from shared.config import settings
+from shared.logger import getLogger
+
+logger = getLogger(__name__)
 
 console = Console()
 
@@ -55,7 +57,7 @@ def assign_missing_ids(dry_run: bool = True) -> int:
                             }
                         )
         except Exception as e:
-            console.print(
+            logger.info(
                 f"   -> [bold red]❌ Error processing {file_path}: {e}[/bold red]"
             )
 
@@ -84,7 +86,7 @@ def assign_missing_ids(dry_run: bool = True) -> int:
 
             file_path.write_text("\n".join(lines) + "\n", "utf-8")
         except Exception as e:
-            console.print(
+            logger.info(
                 f"   -> [bold red]❌ Error writing to {file_path}: {e}[/bold red]"
             )
 
