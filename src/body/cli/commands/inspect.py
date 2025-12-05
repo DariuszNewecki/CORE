@@ -16,7 +16,7 @@ from shared.context import CoreContext
 
 import body.cli.logic.status as status_logic
 from body.cli.logic.diagnostics import cli_tree, find_clusters_command_sync
-from body.cli.logic.duplicates import inspect_duplicates
+from body.cli.logic.duplicates import inspect_duplicates_async
 from body.cli.logic.guard_cli import register_guard
 from body.cli.logic.knowledge import find_common_knowledge
 from body.cli.logic.symbol_drift import inspect_symbol_drift
@@ -170,7 +170,7 @@ def inspect_test_targets(
 @inspect_app.command("duplicates")
 @core_command(dangerous=False)
 # ID: 5a340604-58ea-46d2-8841-a308abad5dff
-def duplicates_command(
+async def duplicates_command(
     ctx: typer.Context,
     threshold: float = typer.Option(
         0.80,
@@ -185,4 +185,4 @@ def duplicates_command(
     Runs only the semantic code duplication check.
     """
     core_context: CoreContext = ctx.obj
-    inspect_duplicates(context=core_context, threshold=threshold)
+    await inspect_duplicates_async(context=core_context, threshold=threshold)

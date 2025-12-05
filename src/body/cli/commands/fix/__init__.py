@@ -220,7 +220,7 @@ async def fix_line_lengths_command(
 # Late imports so submodules can register additional commands on fix_app
 from . import (
     all_commands,  # noqa: F401
-    atomic_actions_cmd,  # noqa: F401  -- NEW: Register atomic-actions command
+    atomic_actions,  # noqa: F401  -- NEW: Register atomic-actions command
     clarity,  # noqa: F401
     code_style,  # noqa: F401
     db_tools,  # noqa: F401

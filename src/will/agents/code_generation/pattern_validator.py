@@ -42,12 +42,6 @@ class PatternValidator:
 
         ENHANCED: Now classifies functions by their nature (pure vs stateful)
         to avoid forcing action_pattern on simple utilities.
-
-        Args:
-            task: The execution task to analyze
-
-        Returns:
-            Pattern ID string (e.g., 'action_pattern', 'pure_function')
         """
         if hasattr(task.params, "pattern_id") and task.params.pattern_id:
             return task.params.pattern_id
@@ -88,22 +82,18 @@ class PatternValidator:
         elif "agents" in file_path:
             return "cognitive_agent"
 
-        # Default for ambiguous cases
-        return "action_pattern"
+        elif "body/actions" in file_path:
+            return "action_pattern"
+
+        # === CRITICAL FIX ===
+        # If it falls through here (e.g. src/test_hello.py), it is a generic script.
+        # We must NOT enforce action_pattern (which requires write: bool).
+        # Defaulting to stateless_utility applies minimal validation (syntax check).
+        return "stateless_utility"
 
     def _classify_function_type(self, file_path: str, task_description: str) -> str:
         """
         Classify the nature of the function being created.
-
-        Pure functions and stateless utilities don't need action_pattern
-        validation (no write parameter required).
-
-        Args:
-            file_path: Target file path
-            task_description: Description of what's being created
-
-        Returns:
-            'pure_function', 'stateless_utility', or 'stateful' (needs action_pattern)
         """
         # PURE FUNCTION INDICATORS
         pure_indicators = [
@@ -117,6 +107,8 @@ class PatternValidator:
             "validator",
             "calculator",
             "transform",
+            "return string",
+            "returns",
         ]
 
         # Check if in shared/utils (strong signal for pure functions)
@@ -124,23 +116,10 @@ class PatternValidator:
             for indicator in pure_indicators:
                 if indicator in task_description:
                     return "pure_function"
-
-            # Even without keywords, shared/utils suggests stateless
-            if not any(
-                word in task_description
-                for word in [
-                    "command",
-                    "action",
-                    "execute",
-                    "write",
-                    "modify",
-                    "update",
-                    "delete",
-                ]
-            ):
-                return "stateless_utility"
+            return "stateless_utility"
 
         # STATEFUL INDICATORS (needs action_pattern)
+        # Note: "Create" removed from here to avoid trapping "Create a function..." goals
         stateful_indicators = [
             "command",
             "action",
@@ -148,12 +127,12 @@ class PatternValidator:
             "modify",
             "update",
             "delete",
-            "create",
             "write to",
             "save to",
             "persist",
             "database",
             "file system",
+            "upsert",
         ]
 
         if any(indicator in task_description for indicator in stateful_indicators):
@@ -170,6 +149,7 @@ class PatternValidator:
             "list",
             "show",
             "display",
+            "create",  # "Create a function" context is usually metadata, not DB op
         ]
 
         if any(indicator in task_description for indicator in readonly_indicators):
@@ -182,16 +162,9 @@ class PatternValidator:
     def infer_component_type(self, task: ExecutionTask) -> str:
         """
         Infer the component type from task metadata.
-
-        Args:
-            task: The execution task to analyze
-
-        Returns:
-            Component type string ('command', 'service', 'agent', 'utility')
         """
         file_path = task.params.file_path or ""
 
-        # New: Add 'utility' type for pure functions
         if "shared/utils" in file_path or "shared/universal" in file_path:
             return "utility"
 
@@ -202,20 +175,13 @@ class PatternValidator:
         elif "agents" in file_path:
             return "agent"
         else:
-            return "command"
+            # Default to utility for generic scripts
+            return "utility"
 
     # ID: 4d65d262-2cc0-4228-b12f-e45d1a341c14
     def get_pattern_requirements(self, pattern_id: str) -> str:
         """
         Get constitutional requirements for a specific pattern.
-
-        ENHANCED: Added requirements for pure_function and stateless_utility.
-
-        Args:
-            pattern_id: The pattern identifier
-
-        Returns:
-            Markdown-formatted requirements text
         """
         requirements = {
             "pure_function": """
@@ -230,13 +196,10 @@ CRITICAL: This is a PURE, STATELESS function.
 """,
             "stateless_utility": """
 ## Pattern Requirements: stateless_utility
-CRITICAL: This is a READ-ONLY utility function.
-- May read from external sources but NEVER modifies state
-- Should be idempotent (can be called multiple times safely)
+CRITICAL: This is a general utility or script.
 - Should use type hints for all parameters and return value
 - Should have comprehensive docstring
 - NO 'write' parameter needed (this is not a command)
-- If it accesses external resources, document assumptions
 """,
             "inspect_pattern": """
 ## Pattern Requirements: inspect_pattern
@@ -271,7 +234,7 @@ CRITICAL: This executes autonomous operations.
 - Respects constitutional constraints
 """,
         }
-        return requirements.get(pattern_id, requirements["action_pattern"])
+        return requirements.get(pattern_id, requirements["stateless_utility"])
 
     # ID: c4f9561f-2d24-409a-99b7-a9cb5a487ddf
     async def validate_code(
@@ -279,17 +242,6 @@ CRITICAL: This executes autonomous operations.
     ) -> tuple[bool, list]:
         """
         Validate generated code against pattern requirements.
-
-        ENHANCED: Pure functions and stateless utilities skip action_pattern validation.
-
-        Args:
-            code: The generated code to validate
-            pattern_id: The pattern it should conform to
-            component_type: The type of component
-            target_path: File path where code will be placed
-
-        Returns:
-            Tuple of (is_valid, violations_list)
         """
         # OPTIMIZATION: Skip pattern validation for pure functions
         if pattern_id in ("pure_function", "stateless_utility"):

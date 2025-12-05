@@ -99,14 +99,38 @@ async def feature(
         )
     )
 
-    # --- JIT Injection of Qdrant Service ---
+    # --- JIT Injection of Required Services ---
+    # CRITICAL FIX: Initialize CognitiveService first (was None causing crash)
+    cognitive_service = context.cognitive_service
+    if not cognitive_service and context.registry:
+        logger.info("Initializing CognitiveService...")
+        try:
+            cognitive_service = await context.registry.get_cognitive_service()
+            context.cognitive_service = cognitive_service
+        except Exception as e:
+            console.print(
+                f"[red]Error: Could not initialize CognitiveService: {e}[/red]"
+            )
+            console.print(
+                "[yellow]Check that LLM API URLs are configured in runtime_settings[/yellow]"
+            )
+            raise typer.Exit(code=1)
+
+    if not cognitive_service:
+        console.print(
+            "[red]Error: CognitiveService is required for autonomous development[/red]"
+        )
+        raise typer.Exit(code=1)
+
+    # Initialize Qdrant Service
     qdrant_service = context.qdrant_service
     if not qdrant_service and context.registry:
         logger.info("Initializing Qdrant for semantic development...")
         try:
             qdrant_service = await context.registry.get_qdrant_service()
-            # Ensure CognitiveService also has it
-            context.cognitive_service._qdrant_service = qdrant_service
+            # Inject Qdrant into CognitiveService
+            if cognitive_service:
+                cognitive_service._qdrant_service = qdrant_service
         except Exception as e:
             logger.warning(
                 f"Could not initialize Qdrant: {e}. Proceeding without semantic context."
@@ -120,7 +144,7 @@ async def feature(
 
     # Initialize CoderAgent with Semantic Infrastructure
     coder_agent = CoderAgent(
-        cognitive_service=context.cognitive_service,
+        cognitive_service=cognitive_service,
         prompt_pipeline=prompt_pipeline,
         auditor_context=context.auditor_context,
         qdrant_service=qdrant_service,

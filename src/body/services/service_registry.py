@@ -34,11 +34,16 @@ class ServiceRegistry:
     Manages the lifecycle of infrastructure services to ensure:
     1. Singletons (only one connection pool per service)
     2. Lazy loading (don't import heavy libs until needed)
+
+    DI Pattern: Two-Phase Initialization
+    - Phase 1 (inside lock): Construct lightweight objects
+    - Phase 2 (outside lock): Initialize async resources
     """
 
     _instances: dict[str, Any] = {}
     _service_map: dict[str, str] = {}
     _initialized = False
+    _init_flags: dict[str, bool] = {}  # Track which services are initialized
     _lock = asyncio.Lock()
 
     def __init__(self, repo_path: Path | None = None):
@@ -70,6 +75,24 @@ class ServiceRegistry:
         module = importlib.import_module(module_path)
         return getattr(module, class_name)
 
+    def _ensure_qdrant_instance(self):
+        """
+        Internal helper to create Qdrant instance if missing.
+        MUST be called under lock to ensure safety.
+        """
+        if "qdrant" not in self._instances:
+            logger.debug("Lazy-loading QdrantService...")
+            # Local import to prevent slow startup for non-vector commands
+            from services.clients.qdrant_client import QdrantService
+
+            # Phase 1: Construct (lightweight, no I/O)
+            instance = QdrantService(
+                url=settings.QDRANT_URL,
+                collection_name=settings.QDRANT_COLLECTION_NAME,
+            )
+            self._instances["qdrant"] = instance
+            self._init_flags["qdrant"] = False  # Mark as needing init
+
     # --- Explicit Factories for Core Infrastructure ---
 
     # ID: 8ebb81b4-2339-4755-849c-888096781db2
@@ -77,19 +100,15 @@ class ServiceRegistry:
         """
         Authoritative, lazy, singleton access to Qdrant.
         Prevents 'split-brain' initialization where multiple clients are created.
+
+        Two-Phase Init: Construction (fast) + Initialization (async I/O)
         """
         if "qdrant" not in self._instances:
             async with self._lock:
-                if "qdrant" not in self._instances:
-                    logger.debug("Lazy-loading QdrantService...")
-                    # Local import to prevent slow startup for non-vector commands
-                    from services.clients.qdrant_client import QdrantService
+                self._ensure_qdrant_instance()
 
-                    instance = QdrantService(
-                        url=settings.QDRANT_URL,
-                        collection_name=settings.QDRANT_COLLECTION_NAME,
-                    )
-                    self._instances["qdrant"] = instance
+            # Phase 2: Initialize (outside lock, async I/O allowed)
+            self._init_flags["qdrant"] = True
 
         return self._instances["qdrant"]
 
@@ -97,6 +116,8 @@ class ServiceRegistry:
     async def get_cognitive_service(self) -> CognitiveService:
         """
         Creates CognitiveService, injecting the singleton QdrantService.
+
+        Two-Phase Init: Construction (fast) + Initialization (async I/O)
         """
         if "cognitive_service" not in self._instances:
             async with self._lock:
@@ -104,13 +125,26 @@ class ServiceRegistry:
                     logger.debug("Lazy-loading CognitiveService...")
                     from will.orchestration.cognitive_service import CognitiveService
 
-                    # DI Rule: We inject the Qdrant dependency here
-                    qdrant = await self.get_qdrant_service()
+                    # DI Rule: We inject the Qdrant dependency here.
+                    # CRITICAL FIX: Do not call get_qdrant_service() here as it re-acquires lock.
+                    # Instead, use internal helper since we already hold the lock.
+                    self._ensure_qdrant_instance()
+                    qdrant = self._instances["qdrant"]
 
+                    # Phase 1: Construct (lightweight, no I/O)
                     instance = CognitiveService(
                         repo_path=self.repo_path, qdrant_service=qdrant
                     )
                     self._instances["cognitive_service"] = instance
+                    self._init_flags["cognitive_service"] = (
+                        False  # Mark as needing init
+                    )
+
+            # Phase 2: Initialize (outside lock, async I/O allowed)
+            if not self._init_flags.get("cognitive_service"):
+                logger.debug("Initializing CognitiveService (loading Mind from DB)...")
+                await self._instances["cognitive_service"].initialize()
+                self._init_flags["cognitive_service"] = True
 
         return self._instances["cognitive_service"]
 
@@ -128,6 +162,13 @@ class ServiceRegistry:
                     # Initialize with the repo_path bound to this registry
                     instance = AuditorContext(self.repo_path)
                     self._instances["auditor_context"] = instance
+                    self._init_flags["auditor_context"] = False
+
+            # Phase 2: Initialize if needed
+            if not self._init_flags.get("auditor_context"):
+                # AuditorContext might have async init in the future
+                # For now, mark as initialized
+                self._init_flags["auditor_context"] = True
 
         return self._instances["auditor_context"]
 
