@@ -1,4 +1,5 @@
 # src/body/cli/commands/fix/atomic_actions.py
+
 """
 Fix atomic actions pattern violations.
 
@@ -31,7 +32,7 @@ console = Console()
     policies=["atomic_actions", "code_standards"],
     category="fixers",
 )
-# ID: 8d3ce433-a07a-457f-9ff7-3403341005cc
+# ID: 4f8e9d7c-6a5b-3e2f-9c8d-7b6e9f4a8c7e
 async def fix_atomic_actions_internal(
     root_path: Path,
     write: bool = False,

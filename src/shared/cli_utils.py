@@ -102,11 +102,13 @@ def core_command(
                 ):
                     raise typer.Exit(0)
 
-            # JIT Service Injection (Critical for Performance & Backward Compatibility)
-            # This automatically populates legacy fields (auditor_context, etc.) from the registry
-            if core_context and core_context.registry:
-                # ID: 9e0e2f81-5a60-4871-8af3-0bef179a7157
-                async def inject_services():
+            # --- REFACTORED EXECUTION LOGIC ---
+
+            async def _run_in_unified_loop():
+                """Runs injection and execution in the SAME loop."""
+
+                # 1. JIT Injection
+                if core_context and core_context.registry:
                     try:
                         # 1. Qdrant
                         if core_context.qdrant_service is None:
@@ -122,33 +124,43 @@ def core_command(
 
                         # 3. Auditor Context (The Mind)
                         if core_context.auditor_context is None:
-                            # We check if the registry has the factory method (it should)
                             if hasattr(core_context.registry, "get_auditor_context"):
                                 auditor = (
                                     await core_context.registry.get_auditor_context()
                                 )
                                 core_context.auditor_context = auditor
-
                     except Exception as e:
                         console.print(
                             f"[yellow]Warning: JIT Service Injection failed: {e}[/yellow]"
                         )
 
-                # Use existing loop if running, else new one
+                # 2. Execute Command
+                if asyncio.iscoroutinefunction(func):
+                    return await func(*args, **kwargs)
+                else:
+                    return func(*args, **kwargs)
+
+            # Determine execution strategy
+            try:
+                # Check if we are ALREADY in a loop (e.g. FastAPI)
                 try:
                     loop = asyncio.get_running_loop()
-                    if loop.is_running():
-                        # We are likely inside another async command.
-                        pass
+                    # We are in a loop -> Schedule the task
+                    # Note: returning a Task/Coroutine to Typer might not work as expected
+                    # unless Typer is in async mode. For standard CLI usage, we usually
+                    # aren't in a loop yet.
+                    if asyncio.iscoroutinefunction(func):
+                        return loop.create_task(_run_in_unified_loop())
+                    else:
+                        # Sync function in async loop? Just run it.
+                        # But we can't await the injection...
+                        # This edge case is rare in CLI.
+                        raise RuntimeError(
+                            "Cannot run synchronous CLI command inside an existing async loop with async injection."
+                        )
                 except RuntimeError:
-                    asyncio.run(inject_services())
-
-            # Execute command
-            try:
-                if asyncio.iscoroutinefunction(func):
-                    result = asyncio.run(func(*args, **kwargs))
-                else:
-                    result = func(*args, **kwargs)
+                    # No loop running -> Use asyncio.run() for the WHOLE block
+                    result = asyncio.run(_run_in_unified_loop())
 
                 # Handle ActionResult constitutional formatting
                 if isinstance(result, ActionResult):

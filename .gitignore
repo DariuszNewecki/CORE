@@ -21,6 +21,7 @@ __pypackages__/
 htmlcov/
 *.log
 coverage.json
+ITAM
 
 # Editors
 .vscode/

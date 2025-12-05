@@ -23,7 +23,7 @@ class OpenAIProvider(AIProvider):
     # ID: 14948fa2-8ab2-4e16-addf-de5c1d24a807
     async def chat_completion(self, prompt: str, user_id: str) -> str:
         """Generates a chat completion using the OpenAI format."""
-        endpoint = f"{self.api_url}/v1/chat/completions"
+        endpoint = f"{self.api_url}/chat/completions"
         payload = {
             "model": self.model_name,
             "messages": [{"role": "user", "content": prompt}],

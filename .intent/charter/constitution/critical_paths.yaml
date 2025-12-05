@@ -35,4 +35,4 @@ paths:
   # Modifying the police requires the highest authority.
   - "src/will/orchestration/intent_guard.py"
   - "src/mind/governance/constitutional_guard.py"
-  - "src/core/intent_guard.py"
+  - "src/will/orchestration/intent_guard.py"
