@@ -1,15 +1,17 @@
 # src/body/cli/commands/fix/code_style.py
 """
-Code style related self-healing commands for the 'fix' CLI group.
+Code style and formatting commands for the 'fix' CLI group.
+
+Provides:
+- fix code-style (Black + Ruff formatting)
+- fix headers (file header compliance)
 """
 
 from __future__ import annotations
 
-import time
-
 import typer
 from features.self_healing.code_style_service import format_code
-from mind.governance.constitutional_monitor import ConstitutionalMonitor
+from features.self_healing.header_service import _run_header_fix_cycle
 from shared.action_types import ActionImpact, ActionResult
 from shared.atomic_action import atomic_action
 from shared.cli_utils import core_command
@@ -53,61 +55,30 @@ async def fix_headers_internal(write: bool = False) -> ActionResult:
     Core logic for fix headers command.
     Audits and optionally remediates file headers.
     """
+    import time
+
     start_time = time.time()
 
     try:
-        # Step 1: Audit
-        monitor = ConstitutionalMonitor(repo_path=settings.REPO_PATH)
-        audit_report = monitor.audit_headers()
+        # Get all Python files in src/
+        src_dir = settings.REPO_PATH / "src"
+        all_py_files = [
+            str(p.relative_to(settings.REPO_PATH)) for p in src_dir.rglob("*.py")
+        ]
 
-        # Base data (always present)
-        result_data = {
-            "violations_found": len(audit_report.violations),
-            "files_scanned": audit_report.total_files_scanned,
-            "compliant_files": audit_report.compliant_files,
-            "dry_run": not write,
-        }
+        # Call the service layer
+        _run_header_fix_cycle(dry_run=not write, all_py_files=all_py_files)
 
-        # Case A: No violations found
-        if not audit_report.violations:
-            return ActionResult(
-                action_id="fix.headers",
-                ok=True,
-                data=result_data,
-                duration_sec=time.time() - start_time,
-                impact=ActionImpact.WRITE_METADATA,
-            )
-
-        # Case B: Write mode (Fix violations)
-        if write:
-            remediation_result = monitor.remediate_violations(audit_report)
-            result_data.update(
-                {
-                    "fixed_count": remediation_result.fixed_count,
-                    "failed_count": remediation_result.failed_count,
-                }
-            )
-
-            return ActionResult(
-                action_id="fix.headers",
-                ok=remediation_result.success,
-                data=result_data,
-                duration_sec=time.time() - start_time,
-                impact=ActionImpact.WRITE_METADATA,
-                suggestions=(
-                    ["Run check audit to verify compliance"]
-                    if remediation_result.success
-                    else []
-                ),
-            )
-
-        # Case C: Dry-run mode (Report violations)
         return ActionResult(
             action_id="fix.headers",
-            ok=True,  # Operation "succeeded" in reporting status
-            data=result_data,
+            ok=True,
+            data={
+                "files_scanned": len(all_py_files),
+                "dry_run": not write,
+                "mode": "write" if write else "dry-run",
+            },
             duration_sec=time.time() - start_time,
-            suggestions=["Run with --write to fix violations"],
+            impact=ActionImpact.WRITE_METADATA if write else ActionImpact.READ_ONLY,
         )
 
     except Exception as e:
@@ -119,15 +90,22 @@ async def fix_headers_internal(write: bool = False) -> ActionResult:
                 "error_type": type(e).__name__,
             },
             duration_sec=time.time() - start_time,
-            logs=[f"Exception during header audit/remediation: {e}"],
+            logs=[f"Exception during header fix: {e}"],
         )
 
 
 @fix_app.command(
-    "headers", help="Ensures all Python files have constitutionally compliant headers."
+    "headers", help="Ensures all files have constitutionally compliant headers."
 )
 @handle_command_errors
 @core_command(dangerous=True, confirmation=True)
+@atomic_action(
+    action_id="fix.headers_cmd",
+    intent="CLI wrapper for file header compliance checking and fixing",
+    impact=ActionImpact.WRITE_METADATA,
+    policies=["file_headers", "atomic_actions"],
+    category="fixers",
+)
 # ID: 967c7322-5732-466f-a639-cacbaae425ba
 async def fix_headers_cmd(
     ctx: typer.Context,
