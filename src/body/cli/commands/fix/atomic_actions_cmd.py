@@ -1,49 +1,74 @@
 # src/body/cli/commands/fix/atomic_actions_cmd.py
-
 """
 Fix atomic actions pattern violations.
 
 This module provides functionality to automatically fix violations detected by
 the atomic-actions checker, including missing decorators, return types, and metadata.
+
+Constitutional Alignment: atomic_actions.yaml
 """
 
 from __future__ import annotations
 
+import time
 from pathlib import Path
 
 from rich.console import Console
-from shared.cli_types import CommandResult
+from shared.action_types import ActionImpact, ActionResult
+from shared.atomic_action import atomic_action
 from shared.logger import getLogger
 
 from body.cli.logic.atomic_actions_checker import AtomicActionsChecker
 
 logger = getLogger(__name__)
-console = Console()  # Initialize console
+console = Console()
 
 
+@atomic_action(
+    action_id="fix.atomic_actions",
+    intent="Fix atomic actions pattern violations automatically",
+    impact=ActionImpact.WRITE_CODE,
+    policies=["atomic_actions", "code_standards"],
+    category="fixers",
+)
 # ID: 4f8e9d7c-6a5b-3e2f-9c8d-7b6e9f4a8c7e
-def fix_atomic_actions_internal(
+async def fix_atomic_actions_internal(
     root_path: Path,
     write: bool = False,
-) -> CommandResult:
+) -> ActionResult:
     """
     Fix atomic actions pattern violations.
+
+    Constitutional enforcement:
+    - Adds missing @atomic_action decorators
+    - Fixes return type annotations to ActionResult
+    - Ensures required decorator metadata is present
+    - Validates structured ActionResult returns
 
     Args:
         root_path: Root directory to scan
         write: If True, apply fixes; if False, dry-run mode
 
     Returns:
-        CommandResult with fix statistics
+        ActionResult with fix statistics and suggestions
     """
+    start_time = time.time()
+
     checker = AtomicActionsChecker(root_path)
     result = checker.check_all()
 
     if not result.violations:
-        return CommandResult(
-            name="fix.atomic_actions",
+        return ActionResult(
+            action_id="fix.atomic_actions",
             ok=True,
-            data={"files_checked": result.total_actions, "violations_fixed": 0},
+            data={
+                "files_checked": result.total_actions,
+                "violations_fixed": 0,
+                "files_modified": 0,
+                "dry_run": not write,
+            },
+            duration_sec=time.time() - start_time,
+            impact=ActionImpact.WRITE_CODE,
         )
 
     # Group violations by file
@@ -55,6 +80,7 @@ def fix_atomic_actions_internal(
 
     fixes_applied = 0
     files_modified = 0
+    warnings = []
 
     for file_path, file_violations in violations_by_file.items():
         try:
@@ -76,19 +102,30 @@ def fix_atomic_actions_internal(
                 fixes_applied += len(file_violations)
 
         except Exception as e:
-            logger.error("Error processing %s: %s", file_path, e)
+            error_msg = f"Error processing {file_path}: {e}"
+            logger.error(error_msg)
+            warnings.append(error_msg)
             continue
 
-    mode = "Applied" if write else "Would apply"
+    suggestions = []
+    if not write and fixes_applied > 0:
+        suggestions.append("Run with --write to apply these fixes")
+    if warnings:
+        suggestions.append("Review warnings for files that couldn't be processed")
 
-    return CommandResult(
-        name="fix.atomic_actions",
+    return ActionResult(
+        action_id="fix.atomic_actions",
         ok=True,
         data={
             "files_modified": files_modified,
             "violations_fixed": fixes_applied,
+            "total_violations": len(result.violations),
             "dry_run": not write,
         },
+        duration_sec=time.time() - start_time,
+        impact=ActionImpact.WRITE_CODE if write else ActionImpact.READ_ONLY,
+        warnings=warnings,
+        suggestions=suggestions,
     )
 
 
@@ -177,6 +214,9 @@ def _apply_fixes_to_function(
 def _infer_action_id(function_name: str) -> str:
     """
     Infer action_id from function name.
+
+    Convention: {category}.{action}
+    Example: fix_ids_internal -> fix.ids
 
     Args:
         function_name: Function name (e.g., fix_ids_internal)

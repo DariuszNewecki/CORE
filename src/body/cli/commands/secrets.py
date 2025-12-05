@@ -4,15 +4,18 @@ CLI commands for encrypted secrets management.
 Constitutional compliance: agent_governance, data_governance, operations.
 
 Refactored to use the Constitutional CLI Framework (@core_command).
+Migrated to ActionResult pattern for atomic actions compliance.
 """
 
 from __future__ import annotations
+
+import time
 
 import typer
 from rich.table import Table
 from services.database.session_manager import get_session
 from services.secrets_service import get_secrets_service
-from shared.action_types import ActionImpact
+from shared.action_types import ActionImpact, ActionResult
 from shared.atomic_action import atomic_action
 from shared.cli_utils import (
     confirm_action,
@@ -40,29 +43,44 @@ app = typer.Typer(
 
 
 # ---------------------------------------------------------------------------
-# Async implementations (domain logic) - KEPT AS IS
+# Async implementations (atomic actions)
 # ---------------------------------------------------------------------------
 
 
 @atomic_action(
-    action_id=".set",
-    intent="Atomic action for _set_secret_internal",
-    impact=ActionImpact.WRITE_CODE,
-    policies=["atomic_actions"],
+    action_id="secrets.set",
+    intent="Store an encrypted secret in the database",
+    impact=ActionImpact.WRITE_DATA,
+    policies=["data_governance", "agent_governance"],
+    category="secrets",
 )
+# ID: 53
 async def _set_secret_internal(
     key: str,
     value: str,
     description: str | None,
     force: bool,
-) -> None:
+) -> ActionResult:
     """
-    Async implementation of `secrets set`.
+    Store an encrypted secret in the database.
+
+    Args:
+        key: Secret identifier
+        value: Plaintext secret value
+        description: Optional description
+        force: Skip overwrite confirmation
+
+    Returns:
+        ActionResult with operation status
     """
+    start_time = time.time()
+
     async with get_session() as db:
         secrets_service = await get_secrets_service(db)
 
         try:
+            overwrite_confirmed = False
+
             if not force:
                 # Check if the secret already exists
                 try:
@@ -75,8 +93,15 @@ async def _set_secret_internal(
                         f"Secret '{key}' already exists. Overwrite?",
                         abort_message="Overwrite cancelled",
                     ):
-                        # User cancelled overwrite → clean exit (code 0)
-                        raise typer.Exit()
+                        return ActionResult(
+                            action_id="secrets.set",
+                            ok=False,
+                            data={"key": key, "action": "cancelled"},
+                            duration_sec=time.time() - start_time,
+                            impact=ActionImpact.READ_ONLY,
+                            warnings=["User cancelled overwrite"],
+                        )
+                    overwrite_confirmed = True
                 except SecretNotFoundError:
                     # No existing secret → proceed normally
                     pass
@@ -88,22 +113,54 @@ async def _set_secret_internal(
                 description=description,
                 audit_context=AUDIT_CONTEXT_SET,
             )
+
             display_success(f"Secret '{key}' stored successfully")
+
+            return ActionResult(
+                action_id="secrets.set",
+                ok=True,
+                data={
+                    "key": key,
+                    "action": "overwritten" if overwrite_confirmed else "created",
+                    "has_description": description is not None,
+                },
+                duration_sec=time.time() - start_time,
+                impact=ActionImpact.WRITE_DATA,
+            )
+
         except SecretsError as exc:
             display_error(f"Failed to store secret: {exc.message}")
-            raise typer.Exit(code=1) from exc
+            return ActionResult(
+                action_id="secrets.set",
+                ok=False,
+                data={"key": key, "error": exc.message},
+                duration_sec=time.time() - start_time,
+                impact=ActionImpact.READ_ONLY,
+                warnings=[str(exc)],
+            )
 
 
 @atomic_action(
-    action_id=".get",
-    intent="Atomic action for _get_internal",
-    impact=ActionImpact.WRITE_CODE,
-    policies=["atomic_actions"],
+    action_id="secrets.get",
+    intent="Retrieve and decrypt a secret from the database",
+    impact=ActionImpact.READ_ONLY,
+    policies=["data_governance", "agent_governance"],
+    category="secrets",
 )
-async def _get_internal(key: str, show: bool) -> None:
+# ID: 103
+async def _get_internal(key: str, show: bool) -> ActionResult:
     """
-    Async implementation of `secrets get`.
+    Retrieve and decrypt a secret from the database.
+
+    Args:
+        key: Secret identifier
+        show: Whether to display the secret value
+
+    Returns:
+        ActionResult with retrieval status
     """
+    start_time = time.time()
+
     async with get_session() as db:
         secrets_service = await get_secrets_service(db)
         try:
@@ -112,6 +169,7 @@ async def _get_internal(key: str, show: bool) -> None:
                 key,
                 audit_context=AUDIT_CONTEXT_GET,
             )
+
             if show:
                 display_info(f"Secret '{key}':")
                 console.print(value)
@@ -119,31 +177,72 @@ async def _get_internal(key: str, show: bool) -> None:
                 display_success(
                     f"Secret '{key}' exists (use --show to display)",
                 )
+
+            return ActionResult(
+                action_id="secrets.get",
+                ok=True,
+                data={
+                    "key": key,
+                    "exists": True,
+                    "displayed": show,
+                },
+                duration_sec=time.time() - start_time,
+                impact=ActionImpact.READ_ONLY,
+            )
+
         except SecretNotFoundError:
             display_error(f"Secret '{key}' not found")
-            raise typer.Exit(code=1)
+            return ActionResult(
+                action_id="secrets.get",
+                ok=False,
+                data={"key": key, "exists": False},
+                duration_sec=time.time() - start_time,
+                impact=ActionImpact.READ_ONLY,
+                warnings=[f"Secret '{key}' not found"],
+            )
         except SecretsError as exc:
             display_error(f"Failed to retrieve secret: {exc.message}")
-            raise typer.Exit(code=1) from exc
+            return ActionResult(
+                action_id="secrets.get",
+                ok=False,
+                data={"key": key, "error": exc.message},
+                duration_sec=time.time() - start_time,
+                impact=ActionImpact.READ_ONLY,
+                warnings=[str(exc)],
+            )
 
 
 @atomic_action(
-    action_id=".list",
-    intent="Atomic action for _list_secrets_internal",
-    impact=ActionImpact.WRITE_CODE,
-    policies=["atomic_actions"],
+    action_id="secrets.list",
+    intent="List all secret keys in the database",
+    impact=ActionImpact.READ_ONLY,
+    policies=["data_governance"],
+    category="secrets",
 )
-async def _list_secrets_internal() -> None:
+# ID: 136
+async def _list_secrets_internal() -> ActionResult:
     """
-    Async implementation of `secrets list`.
+    List all secret keys (not values) in the database.
+
+    Returns:
+        ActionResult with list of secret keys
     """
+    start_time = time.time()
+
     async with get_session() as db:
         secrets_service = await get_secrets_service(db)
         try:
             secrets_list = await secrets_service.list_secrets(db)
+
             if not secrets_list:
                 display_warning("No secrets found in database")
-                return
+                return ActionResult(
+                    action_id="secrets.list",
+                    ok=True,
+                    data={"count": 0, "secrets": []},
+                    duration_sec=time.time() - start_time,
+                    impact=ActionImpact.READ_ONLY,
+                )
 
             table = Table(title="Encrypted Secrets")
             table.add_column("Key", style="cyan", no_wrap=True)
@@ -163,36 +262,88 @@ async def _list_secrets_internal() -> None:
 
             console.print(table)
             display_info(f"Total: {len(secrets_list)} secrets")
+
+            return ActionResult(
+                action_id="secrets.list",
+                ok=True,
+                data={
+                    "count": len(secrets_list),
+                    "secrets": [s["key"] for s in secrets_list],
+                },
+                duration_sec=time.time() - start_time,
+                impact=ActionImpact.READ_ONLY,
+            )
+
         except SecretsError as exc:
             display_error(f"Failed to list secrets: {exc.message}")
-            raise typer.Exit(code=1) from exc
+            return ActionResult(
+                action_id="secrets.list",
+                ok=False,
+                data={"error": exc.message},
+                duration_sec=time.time() - start_time,
+                impact=ActionImpact.READ_ONLY,
+                warnings=[str(exc)],
+            )
 
 
 @atomic_action(
-    action_id=".delete",
-    intent="Atomic action for _delete_internal",
-    impact=ActionImpact.WRITE_CODE,
-    policies=["atomic_actions"],
+    action_id="secrets.delete",
+    intent="Delete a secret from the database",
+    impact=ActionImpact.WRITE_DATA,
+    policies=["data_governance", "agent_governance"],
+    category="secrets",
 )
-async def _delete_internal(key: str) -> None:
+# ID: 177
+async def _delete_internal(key: str) -> ActionResult:
     """
-    Async implementation of `secrets delete`.
+    Delete a secret from the database.
+
+    Args:
+        key: Secret identifier
+
+    Returns:
+        ActionResult with deletion status
     """
+    start_time = time.time()
+
     async with get_session() as db:
         secrets_service = await get_secrets_service(db)
         try:
             await secrets_service.delete_secret(db, key)
             display_success(f"Secret '{key}' deleted")
+
+            return ActionResult(
+                action_id="secrets.delete",
+                ok=True,
+                data={"key": key, "action": "deleted"},
+                duration_sec=time.time() - start_time,
+                impact=ActionImpact.WRITE_DATA,
+            )
+
         except SecretNotFoundError:
             display_error(f"Secret '{key}' not found")
-            raise typer.Exit(code=1)
+            return ActionResult(
+                action_id="secrets.delete",
+                ok=False,
+                data={"key": key, "exists": False},
+                duration_sec=time.time() - start_time,
+                impact=ActionImpact.READ_ONLY,
+                warnings=[f"Secret '{key}' not found"],
+            )
         except SecretsError as exc:
             display_error(f"Failed to delete secret: {exc.message}")
-            raise typer.Exit(code=1) from exc
+            return ActionResult(
+                action_id="secrets.delete",
+                ok=False,
+                data={"key": key, "error": exc.message},
+                duration_sec=time.time() - start_time,
+                impact=ActionImpact.READ_ONLY,
+                warnings=[str(exc)],
+            )
 
 
 # ---------------------------------------------------------------------------
-# CLI commands (Refactored to use @core_command)
+# CLI commands (thin wrappers)
 # ---------------------------------------------------------------------------
 
 
@@ -230,14 +381,15 @@ async def set_secret(
         display_error("Secret key cannot be empty")
         raise typer.Exit(code=1)
 
-    # Note: The framework will ask for confirmation because dangerous=True.
-    # We also have an internal confirmation in _set_secret_internal for overwrites.
-    await _set_secret_internal(
+    result = await _set_secret_internal(
         key=key,
         value=value,
         description=description,
         force=force,
     )
+
+    if not result.ok:
+        raise typer.Exit(code=1)
 
 
 @app.command("get")
@@ -256,7 +408,10 @@ async def get(
     """
     Retrieve an encrypted secret from the database.
     """
-    await _get_internal(key=key, show=show)
+    result = await _get_internal(key=key, show=show)
+
+    if not result.ok:
+        raise typer.Exit(code=1)
 
 
 @app.command("list")
@@ -266,7 +421,10 @@ async def list_secrets(ctx: typer.Context) -> None:
     """
     List all secret keys in the database (does not show values).
     """
-    await _list_secrets_internal()
+    result = await _list_secrets_internal()
+
+    if not result.ok:
+        raise typer.Exit(code=1)
 
 
 @app.command("delete")
@@ -280,14 +438,13 @@ async def delete(
     """
     Delete a secret from the database.
     """
-    # We have double confirmation here (one from @core_command, one internal).
-    # If 'yes' is passed, we skip the internal one.
-    # The @core_command confirmation runs first.
-
     if not yes and not confirm_action(
         f"Are you sure you want to delete secret '{key}'?",
         abort_message="Deletion cancelled",
     ):
         return
 
-    await _delete_internal(key=key)
+    result = await _delete_internal(key=key)
+
+    if not result.ok:
+        raise typer.Exit(code=1)

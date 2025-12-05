@@ -1,55 +1,52 @@
 # src/services/context/cli.py
 """
-Context CLI commands for building, validating, and managing context packets.
+CLI commands for ContextPackage management.
 
-Constitutional compliance: data_governance, operations
+Provides commands to build, validate, and inspect context packets
+for LLM consumption with constitutional governance.
 """
 
 from __future__ import annotations
 
 import asyncio
+import time
 from pathlib import Path
 
 import typer
-from rich.console import Console
 from rich.table import Table
-from shared.action_types import ActionImpact
+from shared.action_types import ActionImpact, ActionResult
 from shared.atomic_action import atomic_action
-from shared.cli_utils import display_error, display_info, display_success
-from shared.logger import getLogger
+from shared.cli_utils import console, display_error, display_info, display_success
 
-from services.context import (
-    ContextSerializer,
-    ContextValidator,
-)
+from services.context import ContextSerializer, ContextValidator
 
-logger = getLogger(__name__)
-
-console = Console()
 app = typer.Typer(
     name="context",
-    help="Context packet operations for governed LLM interactions",
+    help="Manage ContextPackages for LLM consumption",
     no_args_is_help=True,
 )
 
 
+# ---------------------------------------------------------------------------
+# CLI Commands (sync wrappers)
+# ---------------------------------------------------------------------------
+
+
 # ID: cli.context.build
 @app.command("build")
-# ID: caac6251-83ec-4b0e-8915-c9921f88c0ed
+# ID: 46c0e5a6-9c6e-4e22-a8c5-2a99ee6c7e0d
 def build_cmd(
     task: str = typer.Option(..., "--task", help="Task ID to build context for"),
-    out: Path | None = typer.Option(
-        None,
-        "--out",
-        help="Output path (default: work/context_packets/<task_id>/context.yaml)",
-    ),
+    out: Path | None = typer.Option(None, "--out", help="Output file path (optional)"),
 ) -> None:
     """
     Build a context packet for a given task.
 
     Creates a validated, redacted context packet suitable for LLM consumption.
     """
-    asyncio.run(_build_internal(task, out))
+    result = asyncio.run(_build_internal(task, out))
+    if not result.ok:
+        raise typer.Exit(code=1)
 
 
 # ID: cli.context.validate
@@ -79,30 +76,57 @@ def show_cmd(
 
     Displays packet summary without revealing sensitive content.
     """
-    asyncio.run(_show_internal(task))
+    result = asyncio.run(_show_internal(task))
+    if not result.ok:
+        raise typer.Exit(code=1)
+
+
+# ---------------------------------------------------------------------------
+# Internal Async Implementations (atomic actions)
+# ---------------------------------------------------------------------------
 
 
 @atomic_action(
-    action_id=".build",
-    intent="Atomic action for _build_internal",
-    impact=ActionImpact.WRITE_CODE,
-    policies=["atomic_actions"],
+    action_id="context.build",
+    intent="Build a governed context packet for LLM consumption",
+    impact=ActionImpact.WRITE_DATA,
+    policies=["atomic_actions", "data_governance"],
+    category="context",
 )
-async def _build_internal(task: str, out: Path | None) -> None:
-    """Internal async implementation of build command."""
+# ID: 91
+async def _build_internal(task: str, out: Path | None) -> ActionResult:
+    """
+    Build a context packet for a given task.
+
+    Args:
+        task: Task identifier
+        out: Optional output file path
+
+    Returns:
+        ActionResult with build status and packet location
+    """
+    start_time = time.time()
+
     try:
         display_info(f"Building context packet for task: {task}")
 
         # TODO: Wire up actual builder initialization with DB/Qdrant/AST providers
         # For now, this is a stub showing the intended flow
 
+        # Placeholder implementation showing architectural intent:
         # builder = ContextBuilder(db, qdrant, ast_provider, config)
         # packet = await builder.build_for_task(task_spec)
         # validator = ContextValidator()
         # is_valid, errors = validator.validate(packet)
         # if not is_valid:
-        #     display_error(f"Validation failed: {errors}")
-        #     raise typer.Exit(1)
+        #     return ActionResult(
+        #         action_id="context.build",
+        #         ok=False,
+        #         data={"task": task, "errors": errors},
+        #         duration_sec=time.time() - start_time,
+        #         impact=ActionImpact.READ_ONLY,
+        #         warnings=errors,
+        #     )
         # redactor = ContextRedactor()
         # packet = redactor.redact(packet)
         # serializer = ContextSerializer()
@@ -114,15 +138,46 @@ async def _build_internal(task: str, out: Path | None) -> None:
         display_info(
             "Run 'poetry run pytest tests/services/context/' to see current status"
         )
-        raise typer.Exit(1)
+
+        return ActionResult(
+            action_id="context.build",
+            ok=False,
+            data={
+                "task": task,
+                "status": "not_implemented",
+                "output_path": str(out) if out else None,
+            },
+            duration_sec=time.time() - start_time,
+            impact=ActionImpact.READ_ONLY,
+            warnings=["ContextPackage build feature is under development"],
+            suggestions=[
+                "Run 'poetry run pytest tests/services/context/' for implementation status",
+                "Check .intent/charter/patterns/ for ContextPackage architecture",
+            ],
+        )
 
     except Exception as e:
         display_error(f"Failed to build context: {e}")
-        raise typer.Exit(1)
+        return ActionResult(
+            action_id="context.build",
+            ok=False,
+            data={
+                "task": task,
+                "error": str(e),
+            },
+            duration_sec=time.time() - start_time,
+            impact=ActionImpact.READ_ONLY,
+            warnings=[f"Build failed: {e}"],
+        )
 
 
 def _validate_internal(file: Path) -> None:
-    """Internal implementation of validate command."""
+    """
+    Validate a context packet against schema.
+
+    This is a sync helper for the CLI command.
+    Does not return ActionResult as it's a validation display function.
+    """
     try:
         display_info(f"Validating context packet: {file}")
 
@@ -149,11 +204,11 @@ def _validate_internal(file: Path) -> None:
             context_items = len(packet.get("context", []))
             table.add_row("Context Items", str(context_items))
 
-            logger.info(table)
+            console.print(table)
         else:
             display_error("✗ Context packet validation failed:")
             for error in errors:
-                logger.info(f"  - {error}", style="red")
+                console.print(f"  - {error}", style="red")
             raise typer.Exit(1)
     except Exception as e:
         display_error(f"Error during validation: {e}")
@@ -161,22 +216,79 @@ def _validate_internal(file: Path) -> None:
 
 
 @atomic_action(
-    action_id=".show",
-    intent="Atomic action for _show_internal",
-    impact=ActionImpact.WRITE_CODE,
-    policies=["atomic_actions"],
+    action_id="context.show",
+    intent="Display metadata for a context packet",
+    impact=ActionImpact.READ_ONLY,
+    policies=["atomic_actions", "data_governance"],
+    category="context",
 )
-async def _show_internal(task: str) -> None:
-    """Internal async implementation of show command."""
+# ID: 169
+async def _show_internal(task: str) -> ActionResult:
+    """
+    Show metadata for a context packet.
+
+    Args:
+        task: Task identifier
+
+    Returns:
+        ActionResult with packet metadata
+    """
+    start_time = time.time()
+
     try:
         display_info(f"Showing context packet metadata for task: {task}")
 
         # Placeholder: when ContextService wiring is complete, this will fetch from DB / disk.
+        # Architectural intent:
+        # context_service = get_context_service()
+        # packet_metadata = await context_service.get_packet_metadata(task)
+        #
+        # if packet_metadata:
+        #     return ActionResult(
+        #         action_id="context.show",
+        #         ok=True,
+        #         data={
+        #             "task": task,
+        #             "packet_id": packet_metadata.packet_id,
+        #             "created_at": packet_metadata.created_at,
+        #             "size_tokens": packet_metadata.size_tokens,
+        #             "context_items": packet_metadata.context_items,
+        #         },
+        #         duration_sec=time.time() - start_time,
+        #         impact=ActionImpact.READ_ONLY,
+        #     )
+
         display_error(
             "Context 'show' command is not yet wired to ContextService. "
             "This is a structural placeholder."
         )
-        raise typer.Exit(1)
+
+        return ActionResult(
+            action_id="context.show",
+            ok=False,
+            data={
+                "task": task,
+                "status": "not_implemented",
+            },
+            duration_sec=time.time() - start_time,
+            impact=ActionImpact.READ_ONLY,
+            warnings=["ContextService wiring is under development"],
+            suggestions=[
+                "Check services/context/ for implementation progress",
+                "Review ContextDatabase and ContextCache classes for metadata storage",
+            ],
+        )
+
     except Exception as e:
         display_error(f"Failed to show context: {e}")
-        raise typer.Exit(1)
+        return ActionResult(
+            action_id="context.show",
+            ok=False,
+            data={
+                "task": task,
+                "error": str(e),
+            },
+            duration_sec=time.time() - start_time,
+            impact=ActionImpact.READ_ONLY,
+            warnings=[f"Show failed: {e}"],
+        )
