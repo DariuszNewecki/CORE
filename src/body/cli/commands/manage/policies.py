@@ -58,15 +58,21 @@ async def vectorize_policies_internal(
 
         results = await vectorizer.vectorize_all_policies()
 
-        # Check for partial failures in the results dict
+        # Extract values for literal dict construction
+        success = results.get("success", False)
+        policies_vectorized = results.get("policies_vectorized", 0)
+        chunks_created = results.get("chunks_created", 0)
         errors = results.get("errors", [])
-        if errors:
-            logger.warning(f"Policy vectorization had errors: {errors}")
 
         return ActionResult(
             action_id="manage.vectorize-policies",
-            ok=results["success"],
-            data=results,
+            ok=success,
+            data={
+                "success": success,
+                "policies_vectorized": policies_vectorized,
+                "chunks_created": chunks_created,
+                "error_count": len(errors),
+            },
             duration_sec=time.time() - start_time,
             impact=ActionImpact.WRITE_DATA,
             warnings=[str(e) for e in errors] if errors else [],

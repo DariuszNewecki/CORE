@@ -92,6 +92,13 @@ async def fix_ids_internal(write: bool = False) -> ActionResult:
 )
 @handle_command_errors
 @core_command(dangerous=True, confirmation=False)
+@atomic_action(
+    action_id="fix.ids_cmd",
+    intent="CLI wrapper for stable UUID assignment to public symbols",
+    impact=ActionImpact.WRITE_METADATA,
+    policies=["symbol_identification", "atomic_actions"],
+    category="fixers",
+)
 # Note: confirmation=False because IDs are low-risk and essential for system health.
 # ID: 6c95448b-f539-4f22-9f44-51052ab5f51e
 async def assign_ids_command(
@@ -199,8 +206,10 @@ async def fix_duplicate_ids_command(
     ),
 ) -> None:
     """Detect and resolve duplicate IDs in Python files."""
-    # Note: resolve_duplicate_ids is an async function in the original file context imports
-    resolved_count = await resolve_duplicate_ids(dry_run=not write)
+    resolved = resolve_duplicate_ids(dry_run=not write)
 
-    mode = "resolved" if write else "would be resolved (dry-run)"
-    console.print(f"[bold green]Duplicate IDs {mode}: {resolved_count}[/bold green]")
+    if resolved == 0:
+        console.print("[green]✅ No duplicate IDs found[/green]")
+    else:
+        mode = "resolved" if write else "would be resolved (dry-run)"
+        console.print(f"[bold green]Duplicate IDs {mode}: {resolved}[/bold green]")
