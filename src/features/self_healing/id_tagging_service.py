@@ -7,14 +7,11 @@ import ast
 import uuid
 from collections import defaultdict
 
-from rich.console import Console
 from shared.ast_utility import find_symbol_id_and_def_line
 from shared.config import settings
 from shared.logger import getLogger
 
 logger = getLogger(__name__)
-
-console = Console()
 
 
 def _is_public(node: ast.FunctionDef | ast.AsyncFunctionDef | ast.ClassDef) -> bool:

@@ -1,11 +1,25 @@
 # .intent/charter/patterns/workflow_patterns.yaml
 id: workflow_patterns
-version: "1.0.0"
+version: "1.0.1"
 title: "Workflow Orchestration Patterns"
 description: |
   Defines canonical patterns for multi-step workflows in CORE.
   Workflows compose commands, agents, and services into reliable
   end-to-end processes.
+
+ui_contract:
+  owner: "workflow_orchestrator_or_cli"
+  description: >
+    Workflow orchestrators (and top-level CLI commands that invoke them)
+    are the ONLY layer allowed to render terminal UI for multi-step
+    operations: progress bars, spinners, step banners, and summaries.
+    All underlying services and atomic actions MUST be headless and MUST
+    NOT perform their own terminal I/O.
+
+  rules:
+    - "Workflows may use Rich Console/Progress for high-level progress only"
+    - "Nested UI components from called services/actions are forbidden"
+    - "Sub-workflows are treated as opaque units: they return results, not UI"
 
 patterns:
   - pattern_id: "linear_workflow"
@@ -670,3 +684,12 @@ migration_plan:
     - "Add learning to autonomous workflows"
     - "Implement improvement proposals"
     - "Enable self-optimization"
+
+validation_rules:
+  - rule: "workflow_ui_single_owner"
+    description: >
+      Workflows are the single owner of terminal UI for their execution.
+      They MUST NOT delegate UI concerns downward to services/actions,
+      and MUST NOT call UI-producing subroutines.
+    severity: "warning"
+    enforcement: "pattern checks + linting"

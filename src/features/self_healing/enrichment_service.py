@@ -8,7 +8,6 @@ import asyncio
 from functools import partial
 from typing import Any
 
-from rich.console import Console
 from services.clients.qdrant_client import QdrantService
 from services.database.session_manager import get_session
 from shared.config import settings
@@ -20,7 +19,6 @@ from will.orchestration.cognitive_service import CognitiveService
 
 from features.introspection.knowledge_helpers import extract_source_code
 
-console = Console()
 logger = getLogger(__name__)
 REPO_ROOT = settings.REPO_PATH
 
@@ -103,9 +101,7 @@ async def enrich_symbols(
     """The main orchestrator for the autonomous symbol enrichment process."""
     symbols_to_enrich = await _get_symbols_to_enrich()
     if not symbols_to_enrich:
-        logger.info(
-            "[bold green]✅ No symbols with placeholder descriptions found.[/bold green]"
-        )
+        logger.info("✅ No symbols with placeholder descriptions found.")
         return
     logger.info(f"   -> Found {len(symbols_to_enrich)} symbols to enrich...")
     processor = ThrottledParallelProcessor(description="Enriching symbols...")
@@ -121,11 +117,9 @@ async def enrich_symbols(
         if d.get("description") and (not d["description"].startswith("error."))
     ]
     if dry_run:
-        logger.info(
-            "[bold yellow]-- DRY RUN: The following descriptions would be written --[/bold yellow]"
-        )
+        logger.info("-- DRY RUN: The following descriptions would be written --")
         for d in valid_descriptions[:10]:
-            logger.info(f"  - Symbol ID [dim]{d['uuid']}[/dim] -> '{d['description']}'")
+            logger.info(f"  - Symbol ID {d['uuid']} -> '{d['description']}'")
         if len(valid_descriptions) > 10:
             logger.info(f"  - ... and {len(valid_descriptions) - 10} more.")
         return

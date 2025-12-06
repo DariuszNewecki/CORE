@@ -4,6 +4,12 @@ Dev sync workflow orchestrator.
 
 Replaces the Makefile's dev-sync target with a governed Python workflow.
 Refactored to use direct service calls (Internal Orchestration) instead of subprocesses.
+
+Constitutional alignment:
+- dev_sync_command is the workflow/CLI layer and is the ONLY place where
+  multi-step terminal UI (progress banners, spinners) is rendered.
+- Underlying services and atomic actions are expected to be headless and
+  return structured results (ActionResult or equivalent).
 """
 
 from __future__ import annotations
@@ -30,9 +36,8 @@ from shared.context import CoreContext
 from body.cli.commands.fix.code_style import fix_headers_internal
 from body.cli.commands.fix.metadata import fix_ids_internal
 from body.cli.logic.audit import lint
-
-# CRITICAL FIX: Import the async version
-from body.cli.logic.duplicates import inspect_duplicates_async
+from body.cli.logic.body_contracts_checker import check_body_contracts
+from body.cli.logic.duplicates import inspect_duplicates_async  # async version
 
 # --- Shared Utilities ---
 from body.cli.workflows.dev_sync_reporter import DevSyncReporter
@@ -51,15 +56,16 @@ dev_sync_app = typer.Typer(
 async def dev_sync_command(
     ctx: typer.Context,
     write: bool = typer.Option(
-        True,
+        False,
         "--write/--dry-run",
-        help="Apply changes (default) or dry-run only",
+        help="Dry-run by default; use --write to apply changes",
     ),
 ) -> None:
     """
     Run the comprehensive dev-sync workflow.
 
-    Executes services directly for maximum performance and shared state.
+    By default this runs in DRY-RUN mode (no writes).
+    Pass --write to apply changes to the repository and related indices.
     """
     core_context: CoreContext = ctx.obj
     dry_run = not write
@@ -103,7 +109,9 @@ async def dev_sync_command(
         except Exception as e:
             reporter.record_result(
                 ActionResult(
-                    action_id="fix.docstrings", ok=False, data={"error": str(e)}
+                    action_id="fix.docstrings",
+                    ok=False,
+                    data={"error": str(e)},
                 ),
                 phase,
             )
@@ -113,6 +121,8 @@ async def dev_sync_command(
         try:
             start = time.time()
             with console.status("[cyan]Formatting code...[/cyan]"):
+                # NOTE: format_code currently always applies changes.
+                # It is guarded by @core_command(dangerous=True) at this CLI level.
                 format_code()  # Sync function
 
             reporter.record_result(
@@ -127,7 +137,9 @@ async def dev_sync_command(
         except Exception as e:
             reporter.record_result(
                 ActionResult(
-                    action_id="fix.code-style", ok=False, data={"error": str(e)}
+                    action_id="fix.code-style",
+                    ok=False,
+                    data={"error": str(e)},
                 ),
                 phase,
             )
@@ -166,7 +178,67 @@ async def dev_sync_command(
             console.print("[yellow]⚠ Lint failures detected, continuing...[/yellow]")
 
         # =================================================================
-        # PHASE 3: DATABASE SYNC
+        # PHASE 3: BODY CONTRACTS
+        # =================================================================
+        phase = reporter.start_phase("Body Contracts")
+
+        try:
+            start = time.time()
+            with console.status("[cyan]Checking Body contracts...[/cyan]"):
+                contracts_result = await check_body_contracts()
+
+            # Attach timing to the ActionResult
+            contracts_result.duration_sec = time.time() - start  # type: ignore[attr-defined]
+            reporter.record_result(contracts_result, phase)
+
+            data = contracts_result.data or {}
+            violations = data.get("violations", []) or []
+            rules = data.get("rules_triggered", []) or []
+
+            console.print(
+                f"[bold cyan]Body Contracts:[/bold cyan] "
+                f"{len(violations)} violation(s), "
+                f"rules: {', '.join(rules) if rules else 'none'}"
+            )
+
+            # Print first few violations so we see where to start
+            for v in violations[:10]:
+                file = v.get("file", "?")
+                line = v.get("line", "?")
+                rule_id = v.get("rule_id", "?")
+                msg = v.get("message", "")
+                console.print(
+                    f"  • [red]{rule_id}[/red] in [magenta]{file}[/magenta]:{line} - {msg}"
+                )
+
+            if len(violations) > 10:
+                console.print(
+                    f"[dim]  … and {len(violations) - 10} more violation(s).[/dim]"
+                )
+
+            if not contracts_result.ok:
+                console.print(
+                    "[red]❌ Body contracts violations detected. "
+                    "See above for details.[/red]"
+                )
+                # Governance failure is a hard stop
+                raise typer.Exit(1)
+
+        except Exception as e:
+            reporter.record_result(
+                ActionResult(
+                    action_id="check.body-contracts",
+                    ok=False,
+                    data={"error": str(e)},
+                    warnings=["Body Contracts checker crashed unexpectedly."],
+                ),
+                phase,
+            )
+            # If governance layer fails, we stop.
+            raise typer.Exit(1)
+
+        # =================================================================
+        # PHASE 4: DATABASE SYNC
         # =================================================================
         phase = reporter.start_phase("Database Sync")
 
@@ -192,7 +264,9 @@ async def dev_sync_command(
         except Exception as e:
             reporter.record_result(
                 ActionResult(
-                    action_id="fix.vector-sync", ok=False, data={"error": str(e)}
+                    action_id="fix.vector-sync",
+                    ok=False,
+                    data={"error": str(e)},
                 ),
                 phase,
             )
@@ -218,7 +292,9 @@ async def dev_sync_command(
         except Exception as e:
             reporter.record_result(
                 ActionResult(
-                    action_id="manage.sync-knowledge", ok=False, data={"error": str(e)}
+                    action_id="manage.sync-knowledge",
+                    ok=False,
+                    data={"error": str(e)},
                 ),
                 phase,
             )
@@ -228,8 +304,8 @@ async def dev_sync_command(
         try:
             start = time.time()
             with console.status("[cyan]Defining symbols...[/cyan]"):
-                # Construct context service via factory if not already present
                 ctx_service = core_context.context_service
+                # Headless service: no UI, no ActionResult; just do the work
                 await _define_new_symbols(ctx_service)
 
             reporter.record_result(
@@ -242,17 +318,19 @@ async def dev_sync_command(
                 phase,
             )
         except Exception as e:
-            # Non-blocking
+            # Non-blocking, but recorded as a failed action
             reporter.record_result(
                 ActionResult(
-                    action_id="manage.define-symbols", ok=False, data={"error": str(e)}
+                    action_id="manage.define-symbols",
+                    ok=False,
+                    data={"error": str(e)},
                 ),
                 phase,
             )
             console.print("[yellow]⚠ Symbol definition issue, continuing...[/yellow]")
 
         # =================================================================
-        # PHASE 4: VECTORIZATION
+        # PHASE 5: VECTORIZATION
         # =================================================================
         phase = reporter.start_phase("Vectorization")
 
@@ -265,7 +343,8 @@ async def dev_sync_command(
                 # Policies
                 policy_items = adapter.policies_to_items()
                 policy_service = VectorIndexService(
-                    core_context.qdrant_service.client, "core_policies"
+                    core_context.qdrant_service.client,
+                    "core_policies",
                 )
                 await policy_service.ensure_collection()
                 if not dry_run:
@@ -274,7 +353,8 @@ async def dev_sync_command(
                 # Patterns
                 pattern_items = adapter.patterns_to_items()
                 pattern_service = VectorIndexService(
-                    core_context.qdrant_service.client, "core-patterns"
+                    core_context.qdrant_service.client,
+                    "core-patterns",
                 )
                 await pattern_service.ensure_collection()
                 if not dry_run:
@@ -297,7 +377,9 @@ async def dev_sync_command(
         except Exception as e:
             reporter.record_result(
                 ActionResult(
-                    action_id="manage.vectors.sync", ok=False, data={"error": str(e)}
+                    action_id="manage.vectors.sync",
+                    ok=False,
+                    data={"error": str(e)},
                 ),
                 phase,
             )
@@ -307,7 +389,11 @@ async def dev_sync_command(
         try:
             start = time.time()
             with console.status("[cyan]Vectorizing knowledge graph...[/cyan]"):
-                await run_vectorize(context=core_context, dry_run=dry_run, force=False)
+                await run_vectorize(
+                    context=core_context,
+                    dry_run=dry_run,
+                    force=False,
+                )
 
             reporter.record_result(
                 ActionResult(
@@ -321,14 +407,16 @@ async def dev_sync_command(
         except Exception as e:
             reporter.record_result(
                 ActionResult(
-                    action_id="run.vectorize", ok=False, data={"error": str(e)}
+                    action_id="run.vectorize",
+                    ok=False,
+                    data={"error": str(e)},
                 ),
                 phase,
             )
             raise typer.Exit(1)
 
         # =================================================================
-        # PHASE 5: ANALYSIS
+        # PHASE 6: ANALYSIS
         # =================================================================
         phase = reporter.start_phase("Code Analysis")
 
@@ -336,8 +424,10 @@ async def dev_sync_command(
         try:
             start = time.time()
             with console.status("[cyan]Detecting duplicate code...[/cyan]"):
-                # CRITICAL FIX: Use async version directly
-                await inspect_duplicates_async(context=core_context, threshold=0.96)
+                await inspect_duplicates_async(
+                    context=core_context,
+                    threshold=0.96,
+                )
 
             reporter.record_result(
                 ActionResult(
@@ -351,7 +441,9 @@ async def dev_sync_command(
         except Exception as e:
             reporter.record_result(
                 ActionResult(
-                    action_id="inspect.duplicates", ok=False, data={"error": str(e)}
+                    action_id="inspect.duplicates",
+                    ok=False,
+                    data={"error": str(e)},
                 ),
                 phase,
             )
@@ -383,7 +475,7 @@ async def dev_sync_command(
 
 @dev_sync_app.command("fix-logging")
 @core_command(dangerous=True, confirmation=True)
-# ID: d1e2f3a4-b5c6-7890-d123-456789abcdef
+# ID: d1e2f3a4-b5c6-7890-456789abcdef
 async def fix_logging_command(
     ctx: typer.Context,
     write: bool = typer.Option(

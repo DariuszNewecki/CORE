@@ -1,6 +1,6 @@
 # .intent/charter/constitution/immutable_principles.yaml
 id: immutable_architectural_principles
-version: "1.0.0"
+version: "1.1.0"
 title: "Architectural Principles That Cannot Be Changed"
 description: >
   This file defines the bedrock laws of the system architecture.
@@ -10,8 +10,15 @@ description: >
 
 immutable_rules:
   - rule_id: "no_decorator_pollution"
-    statement: "Source code MUST NOT contain metadata decorators beyond @dataclass or standard library functional wrappers."
-    rationale: "The Database is the SSOT. Metadata decorators create a split-brain state and pollute business logic."
+    statement: >
+      Source code MUST NOT contain metadata decorators beyond @dataclass,
+      standard library functional wrappers, or a SMALL, EXPLICITLY
+      WHITELISTED SET of constitutional decorators (e.g. @atomic_action)
+      defined in .intent.
+    rationale: >
+      The Database is the SSOT. Arbitrary metadata decorators create
+      split-brain state and pollute business logic. Only a minimal,
+      constitutionally-governed set of decorators is allowed.
     immutable_until: "unanimous_quorum"
 
   - rule_id: "action_result_contract"
@@ -30,11 +37,25 @@ immutable_rules:
     immutable_until: "unanimous_quorum"
 
   - rule_id: "ids_only_pollution"
-    statement: "The ONLY allowed metadata intrusion in source code is the stable '# ID: <uuid>' tag."
-    rationale: "Stable IDs are necessary for refactoring; all other metadata belongs in the SSOT."
+    statement: "The ONLY allowed metadata intrusion in source code is the stable '# ID: <uuid>' tag, plus constitutionally-whitelisted decorators."
+    rationale: "Stable IDs are necessary for refactoring; all other metadata belongs in the SSOT or in .intent."
     immutable_until: "unanimous_quorum"
+
+  - rule_id: "ui_single_owner"
+    statement: >
+      Only top-level CLI commands and workflow orchestrators may render
+      terminal UI (including Rich Console/Progress, spinners, progress bars,
+      or direct prints to stdout/stderr). All lower-level services,
+      adapters, and atomic actions MUST be headless and MUST NOT perform
+      any terminal I/O; they only return data and ActionResult objects.
+    rationale: >
+      A single UI layer is required for consistent behavior, testability,
+      and clean separation between logic and presentation. Services that
+      print or manage their own progress bars cannot be safely composed
+      into governed workflows.
+    immutable_until: "critical_quorum"
 
 enforcement:
   - "Any proposal modifying these rules requires the quorum level specified in 'immutable_until'."
-  - "Proposals that indirectly violate these rules (e.g., by introducing decorators) are constitutionally auto-rejected."
+  - "Proposals that indirectly violate these rules (e.g., by introducing new non-whitelisted decorators or service-level UI) are constitutionally auto-rejected."
   - "The Constitutional Guard must validate all code changes against these principles during the build/audit phase."
