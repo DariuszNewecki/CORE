@@ -1,6 +1,10 @@
 # src/body/cli/commands/fix/__init__.py
 """
 Registers the 'fix' command group and its associated self-healing capabilities.
+
+CLI/Workflow responsibilities (UI, prompts, banners) live here.
+All heavy logic must be delegated to headless Body logic modules under
+`body.cli.logic.*` and feature/services modules.
 """
 
 from __future__ import annotations
@@ -125,13 +129,17 @@ COMMAND_CONFIG = {
         "confirmation": False,
         "category": "compliance",
     },
+    "body-ui": {
+        "timeout": 900,
+        "dangerous": True,
+        "confirmation": True,
+        "category": "governance",
+    },
 }
 
 
-# ID: 942a29b0-1d9d-469f-b5dc-0679212b4388
 def handle_command_errors(func: Callable) -> Callable:
     @functools.wraps(func)
-    # ID: 639b0b45-f774-4bcf-873a-5e5ac1b31549
     def wrapper(*args, **kwargs):
         try:
             return func(*args, **kwargs)
@@ -156,9 +164,6 @@ def _run_with_progress(message: str, coro_or_func: Callable) -> Any:
 def _confirm_dangerous_operation(command_name: str, write: bool = False) -> bool:
     """
     In fully autonomous mode we treat CLI flags as the only source of consent.
-
-    This helper no longer prints warnings or asks for interactive confirmation.
-    It exists only to keep the command signatures and call sites stable.
     """
     return True
 
@@ -172,7 +177,6 @@ fix_app = typer.Typer(
 
 
 @fix_app.callback()
-# ID: 460604f9-e075-4666-a613-27c8f1ec9fa1
 def fix_callback(
     ctx: typer.Context,
     verbose: bool = typer.Option(
@@ -192,7 +196,6 @@ def fix_callback(
 @fix_app.command("line-lengths", help="Refactors files with long lines.")
 @handle_command_errors
 @async_command
-# ID: 75f2dc5a-c8de-41c9-aa27-efa2551f74c8
 async def fix_line_lengths_command(
     ctx: typer.Context,
     file_path: Path | None = typer.Argument(
@@ -209,24 +212,28 @@ async def fix_line_lengths_command(
     if not _confirm_dangerous_operation("line-lengths", write):
         console.print("[yellow]Operation cancelled by user.[/yellow]")
         return
+
     core_context: CoreContext = ctx.obj
     with console.status("[cyan]Fixing line lengths...[/cyan]"):
         await fix_line_lengths(
-            context=core_context, file_path=file_path, dry_run=not write
+            context=core_context,
+            file_path=file_path,
+            dry_run=not write,
         )
     console.print("[green]✅ Line length fixes completed[/green]")
 
 
-# Late imports so submodules can register additional commands on fix_app
-from . import (
-    all_commands,  # noqa: F401
-    atomic_actions,  # noqa: F401  -- NEW: Register atomic-actions command
-    clarity,  # noqa: F401
-    code_style,  # noqa: F401
-    db_tools,  # noqa: F401
-    docstrings,  # noqa: F401
-    fix_ir,  # noqa: F401
-    handler_discovery,  # noqa: F401
-    list_commands,  # noqa: F401
-    metadata,  # noqa: F401
+# Late imports to register submodules on fix_app
+from . import (  # noqa: E402,F401
+    all_commands,
+    atomic_actions,
+    body_ui,  # <--- CORRECT: Now we import the module we just created
+    clarity,
+    code_style,
+    db_tools,  # Covers db_registry, vector_sync
+    docstrings,
+    fix_ir,  # Covers ir_triage, ir_log
+    handler_discovery,
+    list_commands,
+    metadata,  # Covers ids, tags, policy-ids, duplicate-ids, purge-legacy-tags
 )

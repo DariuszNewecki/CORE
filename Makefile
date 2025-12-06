@@ -10,7 +10,7 @@ SHELL := /bin/bash
 .DEFAULT_GOAL := help
 
 # ---- Configurable knobs ------------------------------------------------------
-POETRY      ?= python3 -m poetry
+POETRY      ?= poetry
 APP         ?= src.api.main:create_app
 HOST        ?= 0.0.0.0
 PORT        ?= 8000
@@ -25,7 +25,8 @@ OUTPUT_PATH := docs/10_CAPABILITY_REFERENCE.md
 # ---- Phony targets -----------------------------------------------------------
 .PHONY: \
   help install lock run stop \
-  audit lint format test test-coverage check dev-sync \
+  audit lint format test test-coverage check \
+  dev-sync dev-sync-apply \
   fix-all dupes cli-tree clean distclean nuke \
   docs check-docs vectorize integrate \
   migrate export-db sync-knowledge sync-manifest \
@@ -90,10 +91,22 @@ check: ## Run full suite: Lint + Tests + Coverage + Audit + Docs
 fix-all: ## Run all self-healing fixes in curated sequence
 	$(CORE_ADMIN) fix all
 
-dev-sync: ## Run the comprehensive dev-sync workflow (now governed by DevSyncReporter)
-	@echo "🔄 Running CORE dev-sync workflow..."
+# ==============================================================================
+#   DEV-SYNC: SAFE vs. APPLY
+# ==============================================================================
+
+dev-sync: ## Run the dev-sync workflow in DRY-RUN mode (safe, recommended)
+	@echo "🔄 Running CORE dev-sync workflow (dry-run, no writes)..."
+	$(CORE_ADMIN) dev sync --dry-run
+	@echo "✅ Dev-sync dry-run complete! No changes were written."
+
+dev-sync-apply: ## Run dev-sync WITH WRITES (dangerous!)
+	@echo "⚠️  Running CORE dev-sync workflow WITH WRITES ENABLED..."
+	@echo "⚠️  This will modify files, update vectors, and apply system changes."
 	$(CORE_ADMIN) dev sync --write
-	@echo "✅ Dev-sync complete! All systems synchronized."
+	@echo "✅ Dev-sync with writes complete."
+
+# ==============================================================================
 
 dupes: ## Check for duplicate code (semantic similarity analysis)
 	@echo "🔍 Running semantic duplication analysis..."
@@ -124,13 +137,13 @@ migrate: ## Apply pending DB schema migrations
 export-db: ## Export DB tables to canonical YAML
 	$(CORE_ADMIN) manage database export
 
-sync-knowledge: ## Scan codebase and sync symbols to DB (Single Source of Truth)
+sync-knowledge: ## Scan codebase and sync symbols to DB (SSOT)
 	$(CORE_ADMIN) manage database sync-knowledge --write
 
-sync-manifest: ## Sync .intent/mind/project_manifest.yaml from DB
+sync-manifest: ## Sync .intent manifest from DB
 	$(CORE_ADMIN) manage database sync-manifest
 
-vectorize: ## Vectorize knowledge graph, patterns, and policies (embeddings pipeline)
+vectorize: ## Vectorize knowledge graph, patterns, and policies
 	@echo "🧠 Vectorizing constitutional patterns..."
 	$(CORE_ADMIN) manage patterns vectorize
 	@echo "🧠 Vectorizing constitutional policies..."
@@ -138,7 +151,7 @@ vectorize: ## Vectorize knowledge graph, patterns, and policies (embeddings pipe
 	@echo "🧠 Vectorizing knowledge graph..."
 	$(CORE_ADMIN) run vectorize --write
 
-integrate: ## Canonical integration sequence (submit changes)
+integrate: ## Canonical integration sequence (submits changes)
 	@echo "⚠️  WARNING: This will auto-commit and submit changes!"
 	$(CORE_ADMIN) submit changes --message "feat: Integrate changes via make"
 

@@ -13,7 +13,7 @@
 # - The Mind-Body-Will boundary for operations
 
 pattern_id: atomic_actions
-version: "1.0.0"
+version: "1.0.1"
 status: foundational
 category: orchestration
 layer: mind
@@ -87,6 +87,16 @@ atomic_action:
       - verify: "Action validates postconditions"
       - report: "Action returns structured ActionResult"
       - complete: "Action logs completion to activity stream"
+
+    ui_contract:
+      owner: "workflow_orchestrator_or_cli"
+      action_may_print: false
+      description: >
+        Atomic actions are HEADLESS. They MUST NOT perform any terminal I/O
+        (no print(), logging to stdout/stderr, or Rich Console/Progress
+        rendering). All UI concerns (spinners, progress bars, status lines)
+        are owned exclusively by the calling workflow or CLI layer, which
+        consumes ActionResult objects and decides how to present them.
 
   examples:
     read_action:
@@ -328,6 +338,14 @@ validation_rules:
     description: "No action can skip constitutional validation"
     severity: "critical"
     enforcement: "architectural invariant"
+
+  - rule: "action_must_be_headless"
+    description: >
+      Atomic actions MUST NOT perform terminal I/O (print, Rich Console/Progress,
+      direct writes to stdout/stderr). All UI rendering is the responsibility
+      of the calling workflow/CLI layer, which consumes ActionResult objects.
+    severity: "error"
+    enforcement: "static analysis and linting"
 
 # =============================================================================
 # FUTURE EXTENSIONS

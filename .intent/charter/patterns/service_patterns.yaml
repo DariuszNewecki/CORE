@@ -1,11 +1,137 @@
 # .intent/charter/patterns/service_patterns.yaml
 id: service_patterns
-version: "1.0.0"
+version: "1.1.0"
 title: "Service Architecture Patterns"
 description: |
-  Defines canonical patterns for all infrastructure services in CORE.
+  Defines canonical patterns for all infrastructure and body-layer services in CORE.
   Services manage stateful resources (DB, vectors, LLMs) and provide
   clean interfaces for business logic.
+
+  This pattern file has two dimensions:
+  - Architectural patterns: how different kinds of services are structured
+    (stateful services, repositories, facades, observers, etc.).
+  - Behavioral contract: how ALL services must behave (headless, safe-by-default,
+    consistent result contracts) so they can be orchestrated by workflows and agents.
+
+# =============================================================================
+# CROSS-CUTTING SERVICE CONTRACT (APPLIES TO ALL SERVICES)
+# =============================================================================
+
+service_contract:
+  headless:
+    description: >
+      Services are part of the Body layer and MUST be headless. They MUST NOT
+      render terminal UI or depend on interactive input. All user-facing UX
+      belongs to workflows/CLI (Will layer).
+    rules:
+      - "No use of rich.Console or other terminal UI libraries in services."
+      - "No print() calls in services."
+      - "No input() or interactive prompts in services."
+      - "Services communicate via return values, logging, and exceptions only."
+
+  safety:
+    description: >
+      Mutating behavior must be explicit and safe-by-default. This operationalizes
+      the 'write_defaults_false' immutable principle at the service level.
+    rules:
+      - "Any parameter that controls side effects MUST default to False (e.g. write=False)."
+      - "Services SHOULD support dry-run behavior where feasible."
+      - "Read-only operations MUST be clearly distinguishable from write operations."
+      - "Services MUST NOT perform writes without an explicit, intentional flag."
+
+  results:
+    description: >
+      Services MUST return predictable, structured results. High-level operations
+      that participate in workflows use ActionResult. Low-level helpers may return
+      plain types but MUST remain headless and easily wrappable.
+    types:
+      atomic_action_service:
+        description: >
+          High-level operations that are directly orchestrated by workflows/agents
+          and appear in audit trails MUST return ActionResult.
+        contract:
+          - "Return type: shared.action_types.ActionResult."
+          - "action_id identifies the operation semantically (e.g. 'fix.headers', 'sync.vectors')."
+          - "ok indicates success/failure."
+          - "data contains structured, JSON-serializable fields."
+          - "duration_sec captures execution time when meaningful."
+          - "impact indicates side-effect level (read-only/write-metadata/write-code/write-data) when applicable."
+
+      helper_service:
+        description: >
+          Narrow supporting operations MAY return plain Python types (dict, list,
+          domain objects) but MUST remain headless and deterministic where possible.
+        contract:
+          - "No terminal UI."
+          - "Errors communicated via exceptions or sentinel values, NOT via UI."
+          - "Can be wrapped by an atomic_action_service that returns ActionResult."
+
+  logging:
+    description: >
+      Services use the shared logger for observability. Logging is for operators
+      and debugging, not interactive UX.
+    rules:
+      - "Use shared.logger.getLogger(__name__) for logging."
+      - "INFO: high-level progress or key events."
+      - "DEBUG: detailed, per-item information that may be noisy."
+      - "WARNING / ERROR: unexpected failures, misconfigurations, or degraded behavior."
+      - "Avoid WARNING/ERROR inside tight loops; prefer DEBUG to prevent log spam."
+
+# =============================================================================
+# UI BOUNDARY (ALIGNS WITH workflow_patterns.ui_contract)
+# =============================================================================
+
+ui_boundary:
+  description: >
+    Reinforces that services MUST be headless. All terminal UI (Rich progress bars,
+    spinners, banners, summaries) belongs to the workflow/CLI layer as defined in
+    workflow_patterns.yaml (ui_contract).
+  forbidden_in_services:
+    - "from rich.console import Console"
+    - "from rich.progress import Progress"
+    - "print(...)"          # except in one-off scripts, never in services
+    - "Prompting for user input (input(), Confirm, etc.)"
+
+  allowed_in_services:
+    - "Logging via shared.logger"
+    - "Raising exceptions or returning ActionResult/values"
+    - "Pure computations and data transformations"
+
+  orchestration_responsibility:
+    - "Workflows/CLI own progress bars, spinners, banners, and summaries."
+    - "Services may expose progress via structured data (e.g. counts), not via UI."
+    - "Any new Rich-based UI MUST live in workflow/CLI modules, not in services."
+
+# =============================================================================
+# DRY-RUN & WRITE SEMANTICS
+# =============================================================================
+
+write_semantics:
+  description: >
+    To support safe autonomy and reversible behavior, services must be explicit
+    about write behavior and support dry-run where practical.
+  rules:
+    parameters:
+      - "Any mutating service SHOULD accept write: bool = False."
+      - "Services MAY also accept dry_run: bool, but MUST keep semantics consistent (dry_run == not write)."
+      - "Read-only services SHOULD omit write/dry_run parameters entirely."
+
+    behavior:
+      - "When write=False, services MUST NOT perform irreversible operations."
+      - "When write=False, services SHOULD still compute and return what WOULD happen where feasible."
+      - "When write=True, services perform the actual mutation and report impact in ActionResult or return data."
+
+  example_atomic_action: |
+    async def sync_vectors_action(
+        qdrant_service: QdrantService,
+        write: bool = False,
+    ) -> ActionResult:
+        dry_run = not write
+        ...
+
+# =============================================================================
+# ARCHITECTURAL SERVICE PATTERNS (YOUR ORIGINAL CONTENT)
+# =============================================================================
 
 patterns:
   - pattern_id: "stateful_service"
@@ -277,6 +403,10 @@ patterns:
                   except Exception as e:
                       logger.error(f"Observer failed: {e}")
 
+# =============================================================================
+# SERVICE COMPOSITION & DI
+# =============================================================================
+
 service_composition:
   dependency_injection:
     principle: "Services receive dependencies via constructor"
@@ -323,6 +453,10 @@ service_composition:
 
     usage: "Use for application-level service wiring, not within services"
 
+# =============================================================================
+# ERROR HANDLING
+# =============================================================================
+
 error_handling:
   exception_hierarchy:
     base: "CoreServiceError(Exception)"
@@ -354,6 +488,10 @@ error_handling:
                       raise
                   await asyncio.sleep(backoff * (2 ** attempt))
 
+# =============================================================================
+# TESTING PATTERNS
+# =============================================================================
+
 testing_patterns:
   unit_tests:
     - "Mock all external dependencies"
@@ -369,19 +507,60 @@ testing_patterns:
     - "Provide factory functions for test data"
     - "Use pytest fixtures for service setup"
 
+# =============================================================================
+# VALIDATION & MIGRATION
+# =============================================================================
+
+validation_rules:
+  - rule: "service_must_be_headless"
+    description: >
+      Service modules in features/*_service.py and services/*
+      MUST NOT import rich.Console or use print-based terminal output.
+    severity: "error"
+    enforcement: "static analysis + pattern checks"
+
+  - rule: "atomic_actions_return_actionresult"
+    description: >
+      Atomic action services that participate in workflows MUST
+      return ActionResult, not ad-hoc dicts or tuples.
+    severity: "error"
+    enforcement: "type hints + pattern checks"
+
+  - rule: "write_default_false"
+    description: >
+      Any service with a write or modify parameter MUST default it to False.
+      This rule operationalizes the immutable 'write_defaults_false' principle.
+    severity: "error"
+    enforcement: "static analysis"
+
+  - rule: "no_ui_imports_in_services"
+    description: >
+      Service modules MUST NOT import terminal UI components (Rich, click, etc.).
+    severity: "error"
+    enforcement: "linting + IntentGuard checks"
+
+  - rule: "service_module_naming"
+    description: >
+      Domain services SHOULD live in features/<domain>/*_service.py to make
+      architecture navigable and introspectable by CORE itself.
+    severity: "warning"
+    enforcement: "naming convention checks"
+
 migration_checklist:
   audit_existing_services:
-    - "List all service classes"
-    - "Identify which pattern each should follow"
-    - "Document pattern violations"
+    - "List all service classes and *_service.py modules."
+    - "Identify which architectural pattern each should follow."
+    - "Identify which ones are atomic_action_services vs helper_services."
+    - "Detect any UI usage (Rich/print) in services."
 
   refactor_priorities:
     1: "Services with global state (highest risk)"
-    2: "Services without error handling"
-    3: "Services with unclear responsibilities"
-    4: "Services with poor test coverage"
+    2: "Services that emit terminal UI (Rich/print)"
+    3: "Services without proper error handling"
+    4: "Services with unclear responsibilities"
+    5: "Services with poor or no test coverage"
 
   validation:
-    - "Each service declares its pattern in docstring"
-    - "Pattern checker validates implementation"
-    - "Add to dev-sync checks"
+    - "Each service can be mapped to a pattern in this file."
+    - "Pattern checker validates implementation and headless behavior."
+    - "Add service-pattern validation to dev-sync / audit checks."

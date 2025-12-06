@@ -9,12 +9,10 @@ from __future__ import annotations
 import uuid
 
 import yaml
-from rich.console import Console
 from shared.config import settings
 from shared.logger import getLogger
 
 logger = getLogger(__name__)
-console = Console()
 
 
 # ID: c1a2b3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d
@@ -30,15 +28,13 @@ def add_missing_policy_ids(dry_run: bool = True) -> int:
     """
     policies_dir = settings.REPO_PATH / ".intent" / "charter" / "policies"
     if not policies_dir.is_dir():
-        logger.info(
-            f"[bold red]Policies directory not found at: {policies_dir}[/bold red]"
-        )
+        logger.info("Policies directory not found at: %s", policies_dir)
         return 0
 
     files_to_process = list(policies_dir.rglob("*_policy.yaml"))
     policies_updated = 0
 
-    logger.info(f"🔍 Scanning {len(files_to_process)} policy files for missing IDs...")
+    logger.info("Scanning %d policy file(s) for missing IDs...", len(files_to_process))
 
     for file_path in files_to_process:
         try:
@@ -54,21 +50,23 @@ def add_missing_policy_ids(dry_run: bool = True) -> int:
             new_id = str(uuid.uuid4())
 
             # Prepend the new ID to the raw file content to preserve comments and structure
-            new_content = f"policy_id: {new_id}\n" + content
+            new_content = f"policy_id: {new_id}\n{content}"
 
             if dry_run:
                 logger.info(
-                    f"  -> [DRY RUN] Would add `policy_id: {new_id}` to [cyan]{file_path.name}[/cyan]"
+                    "  -> [DRY RUN] Would add policy_id=%s to %s",
+                    new_id,
+                    file_path.name,
                 )
             else:
                 file_path.write_text(new_content, "utf-8")
                 logger.info(
-                    f"  -> ✅ Added `policy_id` to [green]{file_path.name}[/green]"
+                    "  -> Added policy_id=%s to %s",
+                    new_id,
+                    file_path.name,
                 )
 
-        except Exception as e:
-            logger.info(
-                f"  -> [bold red]❌ Error processing {file_path.name}: {e}[/bold red]"
-            )
+        except Exception as e:  # pragma: no cover - defensive
+            logger.error("Error processing %s: %s", file_path.name, e, exc_info=True)
 
     return policies_updated

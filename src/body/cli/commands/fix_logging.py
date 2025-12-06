@@ -27,6 +27,8 @@ class LoggingFixer:
         self.dry_run = dry_run
         self.fixes_applied = 0
         self.files_modified = 0
+        # Matches rich tags like [bold], [/red], [color(1)]
+        self.rich_tag_pattern = re.compile(r"\[/?[a-z0-9\(\)\s]+\]")
 
     # ID: b2c3d4e5-f6a7-8901-bcde-2345678901bc
     def fix_all(self) -> dict:
@@ -120,16 +122,40 @@ class LoggingFixer:
         lines[insert_idx:insert_idx] = new_lines
         return "\n".join(lines)
 
+    def _clean_rich_tags(self, line: str) -> str:
+        """Remove Rich tags from a line when converting to logger."""
+        return self.rich_tag_pattern.sub("", line)
+
     # ID: e5f6a7b8-c9d0-1234-ef56-5678901234ef
     def _fix_console_print(self, content: str) -> str:
         """Convert console.print() to logger.info()."""
-        content = re.sub(r"console\.print\(", "logger.info(", content)
-        return content
+        lines = content.split("\n")
+        new_lines = []
+        for line in lines:
+            if "console.print(" in line:
+                # Remove styling tags if present
+                clean_line = self._clean_rich_tags(line)
+                new_lines.append(
+                    clean_line.replace("console.print(", "logger.info(", 1)
+                )
+            else:
+                new_lines.append(line)
+        return "\n".join(new_lines)
 
     # ID: f6a7b8c9-d0e1-2345-f678-6789012345f0
     def _fix_console_status(self, content: str) -> str:
         """Convert console.status() to logger.info()."""
-        return re.sub(r"with console\.status\((.*?)\):", r"logger.info(\1)", content)
+        # Regex handles the context manager pattern
+        # with console.status("Msg"): -> logger.info("Msg")
+        # We also strip Rich tags here
+
+        # ID: 1d277446-cef8-4762-a943-8458cfd0b2de
+        def replacement(match):
+            msg = match.group(1)
+            clean_msg = self._clean_rich_tags(msg)
+            return f"logger.info({clean_msg})"
+
+        return re.sub(r"with console\.status\((.*?)\):", replacement, content)
 
     # ID: a7b8c9d0-e1f2-3456-a789-7890123456a1
     def _fix_print_calls(self, content: str, is_cli: bool) -> str:
@@ -138,20 +164,23 @@ class LoggingFixer:
         fixed_lines = []
 
         for line in lines:
+            stripped = line.strip()
+
+            # Skip comments and decorators
+            if stripped.startswith(("#", "@")):
+                fixed_lines.append(line)
+                continue
+
             # Skip if already using logger/console correctly
             if "logger." in line or "console." in line:
                 fixed_lines.append(line)
                 continue
 
-            # Skip comments
-            if line.strip().startswith("#"):
-                fixed_lines.append(line)
-                continue
-
-            # Replace print(...)
+            # Check for print(...)
+            # We use a regex bound \b to avoid replacing "fingerprint(" or "sprint("
             if re.search(r"\bprint\s*\(", line):
                 replacement = "console.print(" if is_cli else "logger.info("
-                fixed_line = line.replace("print(", replacement, 1)
+                fixed_line = re.sub(r"\bprint\s*\(", replacement, line, count=1)
                 fixed_lines.append(fixed_line)
             else:
                 fixed_lines.append(line)
