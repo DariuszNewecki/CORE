@@ -98,7 +98,7 @@ aiosqlite = "^0.21.0"
 # Code Quality
 pre-commit = "^3.7.1"
 mypy = "^1.11"
-ruff = "^0.6.0"
+ruff = "^0.14.8"
 
 # Documentation
 sphinx = "^7.0"
