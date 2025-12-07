@@ -13,14 +13,16 @@ import uuid
 from pathlib import Path
 
 import typer
-from mind.governance.micro_proposal_validator import MicroProposalValidator
 from rich.console import Console
+
+from mind.governance.micro_proposal_validator import MicroProposalValidator
 from shared.action_logger import action_logger
 from shared.context import CoreContext
 from shared.logger import getLogger
 from shared.models import ExecutionTask
 from will.agents.micro_planner import MicroPlannerAgent
 from will.agents.plan_executor import PlanExecutor
+
 
 console = Console()
 logger = getLogger(__name__)

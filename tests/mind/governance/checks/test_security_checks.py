@@ -4,6 +4,7 @@
 
 from unittest.mock import MagicMock
 
+
 # Import from source module
 try:
     from mind.governance.checks.security_checks import *

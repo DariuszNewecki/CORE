@@ -44,7 +44,6 @@ from . import (
 )
 
 
-# ID: fix_ids_internal_v1
 @atomic_action(
     action_id="fix.ids",
     intent="Assign stable UUIDs to untagged public symbols",

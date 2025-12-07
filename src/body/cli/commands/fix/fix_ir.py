@@ -10,15 +10,16 @@ from __future__ import annotations
 from pathlib import Path
 
 import typer
-from shared.cli_utils import core_command
-from shared.config import settings
-from shared.logger import getLogger
 
 from body.cli.commands.fix import (
     console,
     fix_app,
     handle_command_errors,
 )
+from shared.cli_utils import core_command
+from shared.config import settings
+from shared.logger import getLogger
+
 
 logger = getLogger(__name__)
 

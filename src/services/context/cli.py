@@ -13,10 +13,11 @@ import time
 from pathlib import Path
 
 import typer
+
+from services.context import ContextSerializer, ContextValidator
 from shared.action_types import ActionImpact, ActionResult
 from shared.atomic_action import atomic_action
 
-from services.context import ContextSerializer, ContextValidator
 
 app = typer.Typer(
     name="context",
@@ -30,7 +31,6 @@ app = typer.Typer(
 # ---------------------------------------------------------------------------
 
 
-# ID: cli.context.build
 @app.command("build")
 # ID: 46c0e5a6-9c6e-4e22-a8c5-2a99ee6c7e0d
 def build_cmd(
@@ -47,7 +47,6 @@ def build_cmd(
         raise typer.Exit(code=1)
 
 
-# ID: cli.context.validate
 @app.command("validate")
 # ID: 63198399-73de-4460-a522-ce13a0a2e6cf
 def validate_cmd(
@@ -63,7 +62,6 @@ def validate_cmd(
     _validate_internal(file)
 
 
-# ID: cli.context.show
 @app.command("show")
 # ID: 46218ce5-1c51-406b-9492-fb7caf5c3ed2
 def show_cmd(
@@ -91,7 +89,6 @@ def show_cmd(
     policies=["atomic_actions", "data_governance"],
     category="context",
 )
-# ID: 91
 async def _build_internal(task: str, out: Path | None) -> ActionResult:
     """
     Build a context packet for a given task.
@@ -188,7 +185,6 @@ def _validate_internal(file: Path) -> None:
     policies=["atomic_actions", "data_governance"],
     category="context",
 )
-# ID: 169
 async def _show_internal(task: str) -> ActionResult:
     """
     Show metadata for a context packet.

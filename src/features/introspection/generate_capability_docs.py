@@ -7,10 +7,12 @@ from __future__ import annotations
 
 import asyncio
 
+from sqlalchemy import text
+
 from services.database.session_manager import get_session
 from shared.config import settings
 from shared.logger import getLogger
-from sqlalchemy import text
+
 
 logger = getLogger(__name__)
 

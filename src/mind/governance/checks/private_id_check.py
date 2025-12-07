@@ -12,7 +12,6 @@ from mind.governance.checks.base_check import BaseCheck
 from shared.models import AuditFinding, AuditSeverity
 
 
-# ID: n4o5p6q7-r8s9-9t0u-1v2w-3x4y5z6a7b8c
 # ID: 0b282023-fc61-4fa1-9118-1220a87ce07f
 class PrivateIdCheck(BaseCheck):
     policy_rule_ids = ["symbols.private_helpers_no_id_required"]

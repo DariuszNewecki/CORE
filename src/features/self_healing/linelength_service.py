@@ -11,12 +11,14 @@ import asyncio
 from pathlib import Path
 
 import typer
+
 from mind.governance.audit_context import AuditorContext
 from shared.config import settings
 from shared.context import CoreContext
 from shared.logger import getLogger
 from will.orchestration.cognitive_service import CognitiveService
 from will.orchestration.validation_pipeline import validate_code_async
+
 
 logger = getLogger(__name__)
 REPO_ROOT = settings.REPO_PATH

@@ -8,11 +8,13 @@ from __future__ import annotations
 import uuid
 from collections import defaultdict
 
+from sqlalchemy import text
+
 from mind.governance.checks.id_uniqueness_check import IdUniquenessCheck
 from services.database.session_manager import get_session
 from shared.config import settings
 from shared.logger import getLogger
-from sqlalchemy import text
+
 
 logger = getLogger(__name__)
 

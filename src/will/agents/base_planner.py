@@ -10,14 +10,15 @@ from __future__ import annotations
 import json
 import textwrap
 
-from body.actions.registry import ActionRegistry
 from pydantic import ValidationError
+
+from body.actions.registry import ActionRegistry
 from shared.config import settings
 from shared.logger import getLogger
 from shared.models import ExecutionTask, PlanExecutionError
 from shared.utils.parsing import extract_json_from_response
-
 from will.orchestration.prompt_pipeline import PromptPipeline
+
 
 logger = getLogger(__name__)
 

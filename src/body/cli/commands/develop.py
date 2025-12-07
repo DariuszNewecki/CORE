@@ -12,12 +12,17 @@ from __future__ import annotations
 from pathlib import Path
 
 import typer
-
-# Import async function directly
-from features.autonomy.autonomous_developer import develop_from_goal
 from rich.console import Console
 from rich.panel import Panel
 from rich.progress import Progress, SpinnerColumn, TextColumn
+
+from body.services.crate_creation_service import CrateCreationService
+from body.services.crate_processing_service import (
+    process_crates,
+)
+
+# Import async function directly
+from features.autonomy.autonomous_developer import develop_from_goal
 from shared.cli_utils import async_command
 from shared.context import CoreContext
 from shared.logger import getLogger
@@ -26,10 +31,6 @@ from will.agents.execution_agent import _ExecutionAgent
 from will.agents.plan_executor import PlanExecutor
 from will.orchestration.prompt_pipeline import PromptPipeline
 
-from body.services.crate_creation_service import CrateCreationService
-from body.services.crate_processing_service import (
-    process_crates,
-)
 
 logger = getLogger(__name__)
 console = Console()

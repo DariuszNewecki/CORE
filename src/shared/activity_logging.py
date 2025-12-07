@@ -18,6 +18,7 @@ from typing import Any
 
 from shared.logger import _current_run_id  # Import the context var
 
+
 logger = logging.getLogger(__name__)
 
 # Type alias for activity status

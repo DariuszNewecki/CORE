@@ -9,9 +9,8 @@ CONSTITUTIONAL COMPLIANCE:
 
 from __future__ import annotations
 
-from shared.models import AuditFinding, AuditSeverity
-
 from mind.governance.checks.base_check import BaseCheck
+from shared.models import AuditFinding, AuditSeverity
 
 
 # ID: 58eda072-18cf-4fc5-ac41-8a122d62a434

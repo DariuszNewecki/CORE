@@ -12,6 +12,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+
 # Optional dependency (PyYAML). If missing, we fall back to a tiny default set.
 try:
     import yaml  # type: ignore

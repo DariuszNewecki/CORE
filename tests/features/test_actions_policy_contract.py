@@ -9,8 +9,10 @@ from __future__ import annotations
 from unittest.mock import patch
 
 import pytest
+
 from body.actions.registry import ActionRegistry
 from mind.governance import policy_loader
+
 
 # Mock the policy data structure returned by load_available_actions
 MOCK_POLICY_DATA = {

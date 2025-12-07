@@ -8,6 +8,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 import black
+
 from body.services.validation_policies import PolicyValidator
 from mind.governance.checks.import_rules import ImportRulesCheck
 from mind.governance.runtime_validator import RuntimeValidatorService
@@ -16,6 +17,7 @@ from services.validation.quality import QualityChecker
 from services.validation.ruff_linter import fix_and_lint_code_with_ruff
 from services.validation.syntax_checker import check_syntax
 from shared.models import AuditFinding
+
 
 if TYPE_CHECKING:
     from mind.governance.audit_context import AuditorContext

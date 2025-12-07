@@ -15,11 +15,11 @@ import ast
 from pathlib import Path
 from typing import Any
 
+from features.self_healing.simple_test_generator import SimpleTestGenerator
 from shared.config import settings
 from shared.logger import getLogger
 from will.orchestration.cognitive_service import CognitiveService
 
-from features.self_healing.simple_test_generator import SimpleTestGenerator
 
 logger = getLogger(__name__)
 

@@ -16,6 +16,7 @@ from sqlalchemy import select, text
 from services.database.models import Symbol
 from services.database.session_manager import get_session
 
+
 logger = logging.getLogger(__name__)
 
 

@@ -16,6 +16,8 @@ from __future__ import annotations
 import asyncio
 from typing import Any
 
+from features.self_healing.test_context_analyzer import ModuleContext
+from features.self_healing.test_failure_analyzer import TestFailureAnalyzer
 from mind.governance.audit_context import AuditorContext
 from shared.config import settings
 from shared.logger import getLogger
@@ -23,8 +25,6 @@ from will.orchestration.cognitive_service import CognitiveService
 from will.orchestration.prompt_pipeline import PromptPipeline
 from will.orchestration.validation_pipeline import validate_code_async
 
-from features.self_healing.test_context_analyzer import ModuleContext
-from features.self_healing.test_failure_analyzer import TestFailureAnalyzer
 
 logger = getLogger(__name__)
 

@@ -12,12 +12,13 @@ import asyncio
 from typing import TYPE_CHECKING
 
 from qdrant_client.http import models as qm
+
+from services.clients.qdrant_client import QdrantService
 from shared.config import settings
 from shared.logger import getLogger
 from shared.models.vector_models import IndexResult, VectorizableItem
 from shared.utils.embedding_utils import build_embedder_from_env
 
-from services.clients.qdrant_client import QdrantService
 
 if TYPE_CHECKING:
     pass

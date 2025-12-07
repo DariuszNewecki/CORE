@@ -13,6 +13,7 @@ from typer.testing import CliRunner
 from body.cli.commands import secrets as secrets_cli
 from shared.exceptions import SecretNotFoundError
 
+
 runner = CliRunner()
 
 

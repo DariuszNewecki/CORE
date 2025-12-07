@@ -19,6 +19,7 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ed25519
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 from dotenv import load_dotenv
+
 from mind.governance.auditor import ConstitutionalAuditor
 from shared.config import settings
 from shared.logger import getLogger
@@ -27,6 +28,7 @@ from shared.utils.crypto import generate_approval_token
 from shared.utils.yaml_processor import YAMLProcessor
 
 from .cli_utils import archive_rollback_plan
+
 
 logger = getLogger(__name__)
 yaml_processor = YAMLProcessor()

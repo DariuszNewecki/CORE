@@ -20,14 +20,15 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
+from sqlalchemy import text
+
 from services.clients.qdrant_client import QdrantService
 from services.database.session_manager import get_session
 from shared.config import settings
 from shared.logger import getLogger
-from sqlalchemy import text
-
 from will.tools.module_anchor_generator import ModuleAnchorGenerator
 from will.tools.policy_vectorizer import PolicyVectorizer
+
 
 if TYPE_CHECKING:
     from will.orchestration.cognitive_service import CognitiveService

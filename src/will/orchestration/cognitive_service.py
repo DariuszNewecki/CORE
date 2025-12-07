@@ -16,6 +16,7 @@ from services.llm.client import LLMClient
 from services.llm.client_orchestrator import ClientOrchestrator
 from shared.logger import getLogger
 
+
 if TYPE_CHECKING:
     from services.clients.qdrant_client import QdrantService
 

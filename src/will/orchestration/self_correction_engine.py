@@ -13,11 +13,11 @@ from typing import TYPE_CHECKING, Any
 from shared.config import settings
 from shared.logger import getLogger
 from shared.utils.parsing import parse_write_blocks
-
 from will.orchestration.cognitive_service import CognitiveService
 from will.orchestration.prompt_pipeline import PromptPipeline
 from will.orchestration.validation_pipeline import validate_code_async
 from will.tools.symbol_finder import SymbolFinder
+
 
 if TYPE_CHECKING:
     from mind.governance.audit_context import AuditorContext

@@ -10,8 +10,10 @@ from __future__ import annotations
 from typing import Any
 
 import yaml
+
 from shared.config import settings
 from shared.logger import getLogger
+
 
 logger = getLogger(__name__)
 

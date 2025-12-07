@@ -12,7 +12,6 @@ from mind.governance.checks.base_check import BaseCheck
 from shared.models import AuditFinding, AuditSeverity
 
 
-# ID: j0k1l2m3-n4o5-5p6q-7r8s-9t0u1v2w3x4y
 # ID: ecf99ad0-883b-42e3-bbec-898ff40a3cc4
 class VectorIndexInDbCheck(BaseCheck):
     policy_rule_ids = ["db.vector_index_in_db"]

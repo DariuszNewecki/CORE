@@ -4,6 +4,7 @@
 
 from unittest.mock import MagicMock, patch
 
+
 # Import from source module
 try:
     from features.introspection.generate_capability_docs import *

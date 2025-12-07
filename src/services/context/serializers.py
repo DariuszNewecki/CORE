@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from shared.logger import getLogger
 
+
 logger = getLogger(__name__)
 
 import hashlib
@@ -18,6 +19,7 @@ from pathlib import Path
 from typing import Any
 
 import yaml
+
 
 logger = logging.getLogger(__name__)
 

@@ -18,6 +18,7 @@ from will.orchestration.cognitive_service import CognitiveService
 
 from .knowledge_orchestrator import run_vectorize
 
+
 logger = getLogger(__name__)
 app = typer.Typer(
     name="knowledge", no_args_is_help=True, help="Knowledge graph & embeddings commands"

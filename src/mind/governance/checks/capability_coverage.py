@@ -12,7 +12,6 @@ from mind.governance.checks.base_check import BaseCheck
 from shared.models import AuditFinding, AuditSeverity
 
 
-# ID: 979ce56f-7f3c-40e7-8736-ce219bab6ad8
 # ID: 92f0b3ec-48d7-49f0-aace-2c894186a46f
 class CapabilityCoverageCheck(BaseCheck):
     """

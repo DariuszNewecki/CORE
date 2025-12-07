@@ -12,6 +12,7 @@ import sys
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
+
 if TYPE_CHECKING:
     from collections.abc import Sequence
 

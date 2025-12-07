@@ -13,6 +13,7 @@ import yaml
 
 from shared.logger import getLogger
 
+
 logger = getLogger(__name__)
 
 

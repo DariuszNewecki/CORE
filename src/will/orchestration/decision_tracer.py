@@ -11,6 +11,7 @@ from typing import Any
 
 from shared.logger import getLogger
 
+
 logger = getLogger(__name__)
 
 

@@ -22,9 +22,9 @@ from typing import Any
 
 from services.clients.qdrant_client import QdrantService
 from shared.logger import getLogger
-
 from will.orchestration.cognitive_service import CognitiveService
 from will.tools.module_descriptor import ModuleDescriptor
+
 
 logger = getLogger(__name__)
 
@@ -320,7 +320,6 @@ class ModuleAnchorGenerator:
 async def generate_anchors_command(repo_root: Path) -> dict[str, Any]:
     """CLI command wrapper for anchor generation."""
     from services.clients.qdrant_client import QdrantService
-
     from will.orchestration.cognitive_service import CognitiveService
 
     qdrant_service = QdrantService()

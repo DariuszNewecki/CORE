@@ -8,7 +8,9 @@ from __future__ import annotations
 from unittest.mock import patch
 
 import pytest
+
 from body.actions.registry import ActionRegistry
+
 
 # Mock policy data for testing
 MOCK_AGENT_POLICY = {

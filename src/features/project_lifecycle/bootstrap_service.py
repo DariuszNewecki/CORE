@@ -11,7 +11,9 @@ import shutil
 import subprocess
 
 import typer
+
 from shared.logger import getLogger
+
 
 logger = getLogger(__name__)
 bootstrap_app = typer.Typer(

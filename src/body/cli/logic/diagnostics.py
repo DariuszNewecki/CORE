@@ -10,6 +10,7 @@ from __future__ import annotations
 import asyncio
 
 import typer
+
 from features.introspection.audit_unassigned_capabilities import get_unassigned_symbols
 from features.introspection.graph_analysis_service import find_semantic_clusters
 from shared.config import settings
@@ -20,6 +21,7 @@ from shared.utils.constitutional_parser import get_all_constitutional_paths
 # Import extracted logic
 from .diagnostics_policy import policy_coverage
 from .diagnostics_registry import check_legacy_tags, cli_registry, manifest_hygiene
+
 
 logger = getLogger(__name__)
 diagnostics_app = typer.Typer(help="Deep diagnostic and integrity checks.")

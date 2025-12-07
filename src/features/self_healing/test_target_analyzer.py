@@ -12,6 +12,7 @@ from typing import Literal
 
 from radon.visitors import ComplexityVisitor
 
+
 Classification = Literal["SIMPLE", "COMPLEX"]
 
 

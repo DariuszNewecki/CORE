@@ -13,6 +13,7 @@ import logging
 import re
 from pathlib import Path
 
+
 log = logging.getLogger(__name__)
 
 _INTENT_PATH_CANDIDATES: list[Path] = [

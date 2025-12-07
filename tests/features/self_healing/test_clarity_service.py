@@ -16,6 +16,7 @@ from shared.config import settings
 from shared.context import CoreContext
 from shared.logger import getLogger
 
+
 logger = getLogger(__name__)
 console = Console()
 

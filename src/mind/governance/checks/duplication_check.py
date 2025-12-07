@@ -10,12 +10,13 @@ import asyncio
 from typing import Any
 
 from rich.progress import track
+
+from mind.governance.audit_context import AuditorContext
+from mind.governance.checks.base_check import BaseCheck
 from services.clients.qdrant_client import QdrantService
 from shared.logger import getLogger
 from shared.models import AuditFinding, AuditSeverity
 
-from mind.governance.audit_context import AuditorContext
-from mind.governance.checks.base_check import BaseCheck
 
 logger = getLogger(__name__)
 

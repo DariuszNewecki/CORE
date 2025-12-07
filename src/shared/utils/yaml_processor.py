@@ -27,6 +27,7 @@ from ruamel.yaml import YAML
 
 from shared.logger import getLogger
 
+
 logger = getLogger(__name__)
 
 

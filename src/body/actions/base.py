@@ -8,6 +8,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING
 
+
 if TYPE_CHECKING:
     from shared.models import TaskParams
     from will.agents.plan_executor import PlanExecutorContext

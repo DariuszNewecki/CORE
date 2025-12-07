@@ -12,7 +12,6 @@ from mind.governance.checks.base_check import BaseCheck
 from shared.models import AuditFinding, AuditSeverity
 
 
-# ID: i9j0k1l2-m3n4-4o5p-6q7r-8s9t0u1v2w3x
 # ID: 77e5c60a-7802-4d64-be11-c1bc20cde9d9
 class DomainsInDbCheck(BaseCheck):
     policy_rule_ids = ["db.domains_in_db"]

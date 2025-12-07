@@ -10,11 +10,11 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+from features.introspection.knowledge_graph_service import KnowledgeGraphBuilder
 from shared.config import settings
 from shared.logger import getLogger
 from shared.utils.header_tools import _HeaderTools
 
-from features.introspection.knowledge_graph_service import KnowledgeGraphBuilder
 
 logger = getLogger(__name__)
 REPO_ROOT = settings.REPO_PATH

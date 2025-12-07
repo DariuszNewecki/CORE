@@ -14,6 +14,7 @@ from rich.panel import Panel
 
 from shared.utils.subprocess_utils import run_poetry_command
 
+
 console = Console()
 
 

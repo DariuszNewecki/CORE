@@ -15,6 +15,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from shared.logger import getLogger
 
+
 logger = getLogger(__name__)
 REPO_ROOT = Path(__file__).resolve().parents[2]
 

@@ -9,6 +9,7 @@ from unittest.mock import patch
 
 import pytest
 
+
 # EXPLICIT + SAFE IMPORT
 try:
     from body.cli.logic.project_docs import docs

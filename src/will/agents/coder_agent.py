@@ -19,7 +19,6 @@ from services.clients.qdrant_client import QdrantService
 from shared.config import settings
 from shared.logger import getLogger
 from shared.models import ExecutionTask
-
 from will.agents.code_generation import (
     CodeGenerator,
     CorrectionEngine,
@@ -33,6 +32,7 @@ from will.orchestration.validation_pipeline import validate_code_async
 from will.tools.architectural_context_builder import ArchitecturalContextBuilder
 from will.tools.module_anchor_generator import ModuleAnchorGenerator
 from will.tools.policy_vectorizer import PolicyVectorizer
+
 
 if TYPE_CHECKING:
     from mind.governance.audit_context import AuditorContext

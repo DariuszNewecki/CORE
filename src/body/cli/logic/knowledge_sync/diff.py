@@ -15,6 +15,7 @@ from shared.logger import getLogger
 from .snapshot import fetch_capabilities, fetch_links, fetch_northstar, fetch_symbols
 from .utils import _get_diff_links_key, canonicalize, read_yaml
 
+
 logger = getLogger(__name__)
 EXPORT_DIR = settings.REPO_PATH / ".intent" / "mind_export"
 

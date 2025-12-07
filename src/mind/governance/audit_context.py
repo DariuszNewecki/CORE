@@ -21,6 +21,7 @@ from shared.config import settings
 from shared.logger import getLogger
 from shared.models import AuditFinding
 
+
 logger = getLogger(__name__)
 
 

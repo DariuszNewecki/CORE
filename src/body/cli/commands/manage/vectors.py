@@ -16,10 +16,12 @@ from __future__ import annotations
 import asyncio
 
 import typer
+
 from services.clients.qdrant_client import QdrantService
 from services.vector.adapters.constitutional_adapter import ConstitutionalAdapter
 from services.vector.vector_index_service import VectorIndexService
 from shared.logger import getLogger
+
 
 logger = getLogger(__name__)
 

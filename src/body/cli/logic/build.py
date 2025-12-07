@@ -12,6 +12,7 @@ from features.introspection.generate_capability_docs import (
     main as generate_capability_docs,
 )
 
+
 build_app = typer.Typer(
     help="Commands to build artifacts (e.g., documentation) from the database."
 )

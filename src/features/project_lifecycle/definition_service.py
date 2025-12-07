@@ -1,6 +1,12 @@
 # src/features/project_lifecycle/definition_service.py
 """Services for defining capability keys for symbols (headless, no UI).
 
+ENHANCED VERSION with:
+- Symbol tier filtering (skip infrastructure)
+- Incremental processing (limit + cooldown)
+- Caching enabled for performance
+- Attempt tracking to prevent infinite retries
+
 This module is part of the Body/Services layer and MUST remain headless:
 - No Rich Console, no terminal UI.
 - Only logging via the shared logger.
@@ -15,6 +21,8 @@ import time
 from functools import partial
 from typing import Any
 
+from sqlalchemy import text
+
 from services.context import ContextService
 from services.database.session_manager import get_session
 from shared.action_types import ActionImpact, ActionResult
@@ -22,15 +30,24 @@ from shared.atomic_action import atomic_action
 from shared.config import settings
 from shared.logger import getLogger
 from shared.utils.parallel_processor import ThrottledParallelProcessor
-from sqlalchemy import text
+
 
 logger = getLogger(__name__)
 
 
 # ID: 45733c48-d1d4-4e44-8e06-af55a656e585
-async def get_undefined_symbols() -> list[dict[str, Any]]:
+async def get_undefined_symbols(
+    tier_filter: str | None = None, limit: int = 50
+) -> list[dict[str, Any]]:
     """
-    Fetch symbols that are ready for definition (public and have no key).
+    Fetch symbols that need capability definition (with smart filtering).
+
+    ENHANCED: Now filters by tier and limits batch size to prevent
+    expensive re-processing of infrastructure symbols.
+
+    Args:
+        tier_filter: Only return symbols with this tier ('capability', 'infrastructure', None for unclassified)
+        limit: Maximum symbols to return (default 50 to prevent runaway costs)
 
     Returns:
         A list of dicts with at least:
@@ -38,20 +55,96 @@ async def get_undefined_symbols() -> list[dict[str, Any]]:
         - symbol_path
         - qualname
         - module
+        - symbol_tier
         - vector_id (may be None)
     """
     async with get_session() as session:
-        result = await session.execute(
+        # Build WHERE conditions
+        conditions = [
+            "s.key IS NULL",
+            "s.is_public = TRUE",
+        ]
+
+        # Tier filtering
+        if tier_filter == "capability":
+            conditions.append("s.symbol_tier = 'capability'")
+        elif tier_filter == "infrastructure":
+            conditions.append("s.symbol_tier = 'infrastructure'")
+        elif tier_filter is None:
+            # Unclassified only (NULL tier, but not marked as infrastructure)
+            conditions.append("s.symbol_tier IS NULL")
+        # else: no tier filter, get all
+
+        # Skip recently attempted symbols (1 hour cooldown)
+        conditions.append(
+            """
+            (s.last_attempt_at IS NULL
+             OR s.last_attempt_at < NOW() - INTERVAL '1 hour')
+        """
+        )
+
+        where_clause = " AND ".join(conditions)
+
+        query = text(
+            f"""
+            SELECT
+                s.id,
+                s.symbol_path,
+                s.qualname,
+                s.module,
+                s.symbol_tier,
+                vl.vector_id
+            FROM core.symbols s
+            LEFT JOIN core.symbol_vector_links vl ON s.id = vl.symbol_id
+            WHERE {where_clause}
+            ORDER BY
+                -- Prioritize unclassified symbols first
+                CASE
+                    WHEN s.symbol_tier IS NULL THEN 1
+                    WHEN s.symbol_tier = 'capability' THEN 2
+                    ELSE 3
+                END,
+                -- Then by module depth (simpler modules first)
+                LENGTH(s.module) - LENGTH(REPLACE(s.module, '.', '')),
+                -- Then alphabetically
+                s.qualname
+            LIMIT {limit}
+        """
+        )
+
+        result = await session.execute(query)
+        symbols = [dict(row._mapping) for row in result]
+
+        logger.info(
+            "Found %d symbols needing definition (tier=%s, limit=%d)",
+            len(symbols),
+            tier_filter or "any",
+            limit,
+        )
+
+        return symbols
+
+
+# ID: a1b2c3d4-e5f6-7890-1234-567890abcdef
+async def mark_symbol_attempt(symbol_id: int):
+    """
+    Record that we attempted to define a symbol.
+
+    This prevents infinite retries on symbols that consistently fail
+    by enforcing a 1-hour cooldown between attempts.
+    """
+    async with get_session() as session:
+        await session.execute(
             text(
                 """
-                SELECT s.id, s.symbol_path, s.qualname, s.module, vl.vector_id
-                FROM core.symbols s
-                LEFT JOIN core.symbol_vector_links vl ON s.id = vl.symbol_id
-                WHERE s.key IS NULL AND s.is_public = TRUE
-                """
-            )
+                UPDATE core.symbols
+                SET last_attempt_at = NOW()
+                WHERE id = :symbol_id
+            """
+            ),
+            {"symbol_id": symbol_id},
         )
-        return [dict(row._mapping) for row in result]
+        await session.commit()
 
 
 # ID: dd8e26e5-d606-42bf-89f2-36866461c0fe
@@ -63,6 +156,8 @@ async def define_single_symbol(
     """
     Use an LLM (via ContextService) to generate a capability key
     for a single symbol, using semantic context.
+
+    ENHANCED: Now uses caching and tracks attempts.
 
     Returns:
         {"id": <symbol_id>, "key": <capability_key or error_code>}
@@ -83,8 +178,8 @@ async def define_single_symbol(
     }
 
     try:
-        # Build context package (cached for speed)
-        packet = await context_service.build_for_task(task_spec, use_cache=False)
+        # ENHANCED: Cache enabled for performance (was use_cache=False)
+        packet = await context_service.build_for_task(task_spec, use_cache=True)
 
         source_code = ""
         similar_capabilities_str = "No similar capabilities found."
@@ -102,7 +197,9 @@ async def define_single_symbol(
                     similar_keys.append(item.get("name", ""))
 
         if not source_code:
-            # Expected occasionally; keep noise low and rely on aggregate ActionResult.
+            # Mark attempt to prevent infinite retries
+            await mark_symbol_attempt(symbol["id"])
+
             logger.debug(
                 "No source code found in context for symbol '%s'",
                 symbol.get("symbol_path"),
@@ -141,14 +238,16 @@ async def define_single_symbol(
                 raw_response.strip().replace("`", "").replace("'", "").replace('"', "")
             )
 
-        # FIX: Allow existing keys. This enables multiple symbols to map to one capability.
+        # Allow existing keys (enables multiple symbols -> one capability)
         if cleaned_key in existing_keys:
-            # This is valid reuse, not an error.
-            pass
+            pass  # This is valid reuse, not an error
 
         return {"id": symbol["id"], "key": cleaned_key}
 
-    except Exception as e:  # pragma: no cover - defensive logging
+    except Exception as e:  # pragma: no cover
+        # Mark attempt even on error
+        await mark_symbol_attempt(symbol["id"])
+
         logger.warning(
             "Definition failed for symbol '%s': %s",
             symbol.get("symbol_path"),
@@ -179,7 +278,6 @@ async def update_definitions_in_db(definitions: list[dict[str, Any]]) -> None:
 
     async with get_session() as session:
         async with session.begin():
-            # Use executemany via SQLAlchemy for batch update
             await session.execute(
                 text("UPDATE core.symbols SET key = :key WHERE id = :id"),
                 serializable_definitions,
@@ -199,6 +297,12 @@ async def _define_new_symbols(context_service: ContextService) -> ActionResult:
     """
     Orchestrate the autonomous capability-definition process for undefined symbols.
 
+    ENHANCED VERSION:
+    - Filters out infrastructure symbols (no LLM needed)
+    - Processes max 50 symbols per run (prevents runaway costs)
+    - Uses caching for performance
+    - Tracks attempts to prevent infinite retries
+
     This function:
       - Finds symbols without a key.
       - Uses the ContextService + LLM to propose capability keys.
@@ -216,7 +320,11 @@ async def _define_new_symbols(context_service: ContextService) -> ActionResult:
     start = time.time()
 
     try:
-        undefined_symbols = await get_undefined_symbols()
+        # ENHANCED: Filter out infrastructure, limit batch size
+        undefined_symbols = await get_undefined_symbols(
+            tier_filter=None,  # Get unclassified symbols (not infrastructure)
+            limit=50,  # Process max 50 per run
+        )
         undefined_count = len(undefined_symbols)
 
         if not undefined_symbols:
@@ -249,11 +357,11 @@ async def _define_new_symbols(context_service: ContextService) -> ActionResult:
             existing_keys=existing_keys,
         )
 
-        # Process in parallel (implementation may manage its own throttling/logging)
+        # Process in parallel
         processor = ThrottledParallelProcessor(description="Defining symbols...")
         definitions = await processor.run_async(undefined_symbols, worker_fn)
 
-        # Filter out errors, but allow duplicates in the list (multiple symbols -> same key)
+        # Filter out errors
         valid_definitions = [
             d for d in definitions if d.get("key") and not d["key"].startswith("error.")
         ]
@@ -286,7 +394,7 @@ async def _define_new_symbols(context_service: ContextService) -> ActionResult:
             impact=impact,
         )
 
-    except Exception as e:  # pragma: no cover - defensive safety net
+    except Exception as e:  # pragma: no cover
         duration = time.time() - start
         logger.error("Error while defining new symbols: %s", e)
         return ActionResult(

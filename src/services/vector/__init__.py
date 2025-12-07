@@ -11,4 +11,5 @@ from __future__ import annotations
 
 from .vector_index_service import VectorIndexService
 
+
 __all__ = ["VectorIndexService"]

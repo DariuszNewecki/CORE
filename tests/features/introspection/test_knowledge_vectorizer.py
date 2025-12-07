@@ -13,6 +13,7 @@ from features.introspection.knowledge_vectorizer import (
     sync_existing_vector_ids,
 )
 
+
 # A consistent symbol for use in tests
 SAMPLE_SYMBOL_DATA = {
     "key": "src.services.my_service.my_function",

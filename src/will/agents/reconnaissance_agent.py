@@ -10,8 +10,8 @@ from __future__ import annotations
 from typing import Any
 
 from shared.logger import getLogger
-
 from will.orchestration.cognitive_service import CognitiveService
+
 
 logger = getLogger(__name__)
 

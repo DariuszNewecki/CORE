@@ -11,7 +11,6 @@ from mind.governance.checks.base_check import BaseCheck
 from shared.models import AuditFinding, AuditSeverity
 
 
-# ID: o5p6q7r8-s9t0-0u1v-2w3x-4y5z6a7b8c9d
 # ID: 25dc2724-9d94-4ba5-a1cd-c7d93a910d41
 class IRCheck(BaseCheck):
     policy_rule_ids = ["ir.comms", "ir.postmortem", "ir.timeline"]

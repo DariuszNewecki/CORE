@@ -13,6 +13,7 @@ from shared.ast_utility import find_symbol_id_and_def_line
 from shared.logger import getLogger
 from shared.models import AuditFinding, AuditSeverity
 
+
 logger = getLogger(__name__)
 
 

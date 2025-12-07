@@ -11,6 +11,7 @@ import logging
 
 import typer
 
+
 logger = logging.getLogger(__name__)
 
 capability_app = typer.Typer(help="[DEPRECATED] Create and manage capabilities.")

@@ -14,6 +14,7 @@ from will.orchestration.cognitive_service import CognitiveService
 from will.orchestration.prompt_pipeline import PromptPipeline
 from will.orchestration.validation_pipeline import validate_code_async
 
+
 if TYPE_CHECKING:
     from mind.governance.audit_context import AuditorContext
 

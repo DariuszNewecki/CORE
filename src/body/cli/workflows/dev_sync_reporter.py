@@ -13,9 +13,11 @@ from dataclasses import dataclass, field
 from rich.console import Console
 from rich.table import Table
 from rich.text import Text
+
 from shared.action_types import ActionResult
 from shared.activity_logging import ActivityRun, log_activity
 from shared.cli_types import CommandResult
+
 
 # FIXED: Disable timestamps in console output for cleaner display
 console = Console(log_time=False)
@@ -44,7 +46,6 @@ def _get_result_name(result: ResultLike) -> str:
 
 
 @dataclass
-# ID: dev_sync_phase_v1
 # ID: 08f90cdd-370c-4988-80e8-0ad64f73afe1
 class DevSyncPhase:
     """Represents a logical phase in the dev-sync workflow."""
@@ -69,7 +70,6 @@ class DevSyncPhase:
 
 
 @dataclass
-# ID: dev_sync_reporter_v1
 # ID: a6bd1a16-dae7-4acb-892c-e467f945870c
 class DevSyncReporter:
     """
@@ -96,7 +96,6 @@ class DevSyncReporter:
     phases: list[DevSyncPhase] = field(default_factory=list)
     current_phase: DevSyncPhase | None = None
 
-    # ID: print_header_v1
     # ID: d62160fa-7cdb-4610-95f0-540394d8ea22
     def print_header(self) -> None:
         """Print workflow header with run metadata."""
@@ -106,7 +105,6 @@ class DevSyncReporter:
         console.print(f"[bold]Run ID[/bold]   : {self.run.run_id}")
         console.print()
 
-    # ID: start_phase_v1
     # ID: 2a98b30c-0cbb-48fd-a40a-270913ab982c
     def start_phase(self, name: str) -> DevSyncPhase:
         """
@@ -123,7 +121,6 @@ class DevSyncReporter:
         self.current_phase = phase
         return phase
 
-    # ID: record_result_v1
     # ID: ff8c918d-9521-4e82-bac6-00b01ffa9462
     def record_result(
         self,
@@ -159,7 +156,6 @@ class DevSyncReporter:
             },
         )
 
-    # ID: print_phases_v1
     # ID: d4f9fb26-e073-4a28-a661-8431078967dc
     def print_phases(self) -> None:
         """Render all phases with their results in a table format."""
@@ -209,7 +205,6 @@ class DevSyncReporter:
 
             console.print()
 
-    # ID: format_details_v1
     def _format_details(self, result: ResultLike) -> str:
         """
         Extract human-readable summary from result.data.
@@ -285,7 +280,6 @@ class DevSyncReporter:
             # Fallback
             return "Completed"
 
-    # ID: print_summary_v1
     # ID: 232e679a-071f-4d1f-b131-dfad3352cfd1
     def print_summary(self) -> None:
         """Print final summary with phase breakdown and overall status."""

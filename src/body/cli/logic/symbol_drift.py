@@ -8,10 +8,12 @@ from __future__ import annotations
 
 import asyncio
 
+from sqlalchemy import text
+
 from features.introspection.sync_service import SymbolScanner
 from services.database.session_manager import get_session
 from shared.logger import getLogger
-from sqlalchemy import text
+
 
 logger = getLogger(__name__)
 

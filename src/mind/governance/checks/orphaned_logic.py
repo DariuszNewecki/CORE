@@ -14,10 +14,9 @@ from __future__ import annotations
 import re
 from typing import Any
 
-from shared.models import AuditFinding, AuditSeverity
-
 from mind.governance.audit_context import AuditorContext
 from mind.governance.checks.base_check import BaseCheck
+from shared.models import AuditFinding, AuditSeverity
 
 
 # ID: 83663760-524c-4698-b77c-05a8883d9067

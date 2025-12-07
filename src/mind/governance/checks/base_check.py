@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING, ClassVar
 
 from shared.logger import getLogger
 
+
 logger = getLogger(__name__)
 
 if TYPE_CHECKING:

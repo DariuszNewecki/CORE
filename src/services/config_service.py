@@ -19,11 +19,12 @@ from __future__ import annotations
 
 from typing import Any
 
-from shared.logger import getLogger
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from services.secrets_service import get_secrets_service
+from shared.logger import getLogger
+
 
 logger = getLogger(__name__)
 

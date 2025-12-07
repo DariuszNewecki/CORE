@@ -19,6 +19,7 @@ from will.orchestration.cognitive_service import CognitiveService
 
 from .knowledge_helpers import extract_source_code, log_failure
 
+
 logger = getLogger(__name__)
 DEFAULT_PAGE_SIZE = 250
 MAX_SCROLL_LIMIT = 10000

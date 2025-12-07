@@ -8,6 +8,7 @@ import time
 from pathlib import Path
 from typing import Any
 
+from body.cli.logic.body_contracts_checker import check_body_contracts
 from shared.action_types import ActionImpact, ActionResult
 from shared.atomic_action import atomic_action
 from shared.config import settings
@@ -15,7 +16,6 @@ from shared.context import CoreContext
 from shared.logger import getLogger
 from shared.utils.parallel_processor import ThrottledParallelProcessor
 
-from body.cli.logic.body_contracts_checker import check_body_contracts
 
 logger = getLogger(__name__)
 

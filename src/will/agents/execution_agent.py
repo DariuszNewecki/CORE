@@ -10,9 +10,9 @@ from typing import TYPE_CHECKING
 
 from shared.logger import getLogger
 from shared.models import ExecutionTask, PlanExecutionError
-
 from will.agents.coder_agent import CodeGenerationError, CoderAgent
 from will.agents.plan_executor import PlanExecutor
+
 
 if TYPE_CHECKING:
     from mind.governance.audit_context import AuditorContext

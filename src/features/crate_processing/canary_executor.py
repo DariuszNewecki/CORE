@@ -17,11 +17,11 @@ from typing import Any
 from shared.logger import getLogger
 from shared.models import AuditFinding, AuditSeverity
 
+
 logger = getLogger(__name__)
 
 
 @dataclass
-# ID: 7b9f3e2a-1c8d-4e5f-9a0b-2c3d4e5f6g7h
 # ID: 0e8b854a-96cd-4c79-9b8b-b5b9c67b0250
 class CanaryResult:
     """The outcome of a canary check."""

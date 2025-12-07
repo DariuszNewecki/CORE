@@ -15,6 +15,7 @@ from unittest.mock import patch
 
 import pytest
 import yaml
+
 from body.services.crate_creation_service import (
     CrateCreationService,
     create_crate_from_generation_result,

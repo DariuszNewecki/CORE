@@ -15,6 +15,7 @@ from mind.governance.checks.base_check import BaseCheck
 from shared.logger import getLogger
 from shared.models import AuditFinding, AuditSeverity
 
+
 logger = getLogger(__name__)
 
 

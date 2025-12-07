@@ -7,9 +7,13 @@ from __future__ import annotations
 import os
 from contextlib import asynccontextmanager
 
+from fastapi import FastAPI
+
+# Routes
+from api.v1 import development_routes, knowledge_routes
+
 # Architecture & Service Imports
 from body.services.service_registry import service_registry
-from fastapi import FastAPI
 from services.config_service import ConfigService
 from services.context.service import ContextService
 from services.database.session_manager import get_session
@@ -20,10 +24,8 @@ from shared.config import settings
 from shared.context import CoreContext
 from shared.logger import getLogger, reconfigure_log_level
 from shared.models import PlannerConfig
-
-# Routes
-from api.v1 import development_routes, knowledge_routes
 from src.shared.errors import register_exception_handlers
+
 
 logger = getLogger(__name__)
 

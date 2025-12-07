@@ -18,6 +18,7 @@ from typing import Any
 
 import typer
 import yaml
+
 from mind.governance.audit_context import AuditorContext
 from shared.config import settings
 from shared.context import CoreContext
@@ -25,6 +26,7 @@ from shared.logger import getLogger
 from shared.utils.parsing import extract_json_from_response, parse_write_blocks
 from will.orchestration.cognitive_service import CognitiveService
 from will.orchestration.validation_pipeline import validate_code_async
+
 
 logger = getLogger(__name__)
 REPO_ROOT = settings.REPO_PATH

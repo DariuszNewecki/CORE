@@ -13,6 +13,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from shared.logger import getLogger
 
+
 logger = getLogger(__name__)
 
 

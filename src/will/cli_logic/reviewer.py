@@ -13,10 +13,12 @@ import typer
 from rich.console import Console
 from rich.markdown import Markdown
 from rich.panel import Panel
+
 from shared.config import settings
 from shared.logger import getLogger
 from shared.utils.constitutional_parser import get_all_constitutional_paths
 from will.orchestration.cognitive_service import CognitiveService
+
 
 logger = getLogger(__name__)
 console = Console()

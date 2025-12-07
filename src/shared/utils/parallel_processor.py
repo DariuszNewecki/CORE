@@ -20,6 +20,7 @@ from rich.console import Console
 from shared.config import settings
 from shared.logger import getLogger
 
+
 logger = getLogger(__name__)
 console = Console()
 T = TypeVar("T")

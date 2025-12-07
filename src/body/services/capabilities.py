@@ -9,8 +9,10 @@ from __future__ import annotations
 import sys
 
 from dotenv import load_dotenv
+
 from shared.logger import getLogger
 from shared.utils.subprocess_utils import run_poetry_command
+
 
 logger = getLogger(__name__)
 

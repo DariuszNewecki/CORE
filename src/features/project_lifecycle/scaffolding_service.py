@@ -13,9 +13,11 @@ modelled in capabilities.
 from __future__ import annotations
 
 import yaml
+
 from shared.config import settings
 from shared.logger import getLogger
 from shared.path_utils import get_repo_root
+
 
 logger = getLogger(__name__)
 

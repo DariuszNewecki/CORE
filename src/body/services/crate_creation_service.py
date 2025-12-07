@@ -14,9 +14,11 @@ from typing import Any
 
 import jsonschema
 import yaml
+
 from shared.action_logger import action_logger
 from shared.config import settings
 from shared.logger import getLogger
+
 
 logger = getLogger(__name__)
 
@@ -129,7 +131,6 @@ class CrateCreationService:
                 return candidate
             counter += 1
 
-    # ID: 7d3f8e2a-9b1c-4f6d-8e5a-1c2b3d4e5f6g
     def _create_manifest(
         self,
         crate_id: str,  # Added parameter
@@ -241,7 +242,6 @@ class CrateCreationService:
         }
 
 
-# ID: 521515fc-4b0b-48e7-a46a46a-969a358d831f
 # ID: 098836fd-b0ef-4fc5-ac9e-29b8a82d5377
 def create_crate_from_generation_result(
     intent: str,

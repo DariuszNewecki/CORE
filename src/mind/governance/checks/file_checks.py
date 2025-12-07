@@ -11,6 +11,7 @@ from shared.config import settings
 from shared.models import AuditFinding, AuditSeverity
 from shared.utils.constitutional_parser import get_all_constitutional_paths
 
+
 # This maps the legacy file path to the specific constitutional rule it violates.
 # This makes the check a direct enforcer of the data_governance policy.
 DEPRECATED_KNOWLEDGE_MAP = {

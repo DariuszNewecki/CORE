@@ -16,6 +16,7 @@ from uuid import uuid4
 
 from shared.logger import getLogger
 
+
 logger = getLogger(__name__)
 
 

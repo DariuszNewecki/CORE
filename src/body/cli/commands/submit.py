@@ -7,9 +7,11 @@ Refactored to use the Constitutional CLI Framework (@core_command).
 from __future__ import annotations
 
 import typer
+
 from features.project_lifecycle.integration_service import integrate_changes
 from shared.cli_utils import core_command
 from shared.context import CoreContext
+
 
 submit_app = typer.Typer(
     help="High-level workflow commands for developers.",

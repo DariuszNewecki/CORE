@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from shared.logger import getLogger
 
+
 logger = getLogger(__name__)
 
 import json
@@ -18,6 +19,7 @@ from typing import Any
 
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
+
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +38,6 @@ class ContextDatabase:
 
     # --- END OF FIX ---
 
-    # ID: 4e8d301c-fe6b-4250-_9185-96f82bc305cb
     # ID: dc3213b2-6f97-4235-bd44-1385194fd417
     async def save_packet_metadata(
         self, packet: dict[str, Any], file_path: str, size_bytes: int

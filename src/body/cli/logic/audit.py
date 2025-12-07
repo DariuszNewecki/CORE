@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from shared.logger import getLogger
 
+
 logger = getLogger(__name__)
 
 from mind.governance.auditor import ConstitutionalAuditor

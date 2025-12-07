@@ -4,6 +4,7 @@
 
 from unittest.mock import patch
 
+
 # Import from source module
 try:
     from features.self_healing.test_failure_analyzer import *

@@ -9,13 +9,15 @@ import asyncio
 import getpass
 from typing import Any
 
+from sqlalchemy import text
+
 from services.database.session_manager import get_session
 from shared.config import settings
 from shared.logger import getLogger
 from shared.time import now_iso
-from sqlalchemy import text
 
 from .utils import write_yaml
+
 
 logger = getLogger(__name__)
 EXPORT_DIR = settings.REPO_PATH / ".intent" / "mind_export"

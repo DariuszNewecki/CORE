@@ -54,6 +54,7 @@ import urllib.request
 from pathlib import Path
 from typing import Any
 
+
 # TODO: Replace with shared.config.settings access
 # Currently using argparse defaults with os.environ fallback
 # Should be refactored to use shared.config.settings
@@ -466,6 +467,3 @@ def to_yaml(data: Any, indent: int = 0) -> str:
 # ---------------------------
 # Runtime context builder
 # ---------------------------
-
-
-# ID: ecc2831b-86e4-4388-960c-7b01d5

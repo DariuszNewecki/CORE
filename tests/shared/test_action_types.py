@@ -6,6 +6,7 @@ Validates the universal result contract and metadata system.
 """
 
 import pytest
+
 from shared.action_types import ActionImpact, ActionResult
 from shared.atomic_action import ActionMetadata, atomic_action, get_action_metadata
 

@@ -9,7 +9,9 @@ import logging
 from typing import Any
 
 import typer
+
 from mind.governance.policy_coverage_service import PolicyCoverageService
+
 
 logger = logging.getLogger(__name__)
 

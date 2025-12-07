@@ -10,6 +10,7 @@ from pathlib import Path
 
 import typer
 from dotenv import load_dotenv
+
 from features.autonomy.autonomous_developer import develop_from_goal
 from features.introspection.vectorization_service import run_vectorize
 from shared.cli_utils import core_command
@@ -19,6 +20,7 @@ from will.agents.coder_agent import CoderAgent
 from will.agents.execution_agent import _ExecutionAgent
 from will.agents.plan_executor import PlanExecutor
 from will.orchestration.prompt_pipeline import PromptPipeline
+
 
 logger = getLogger(__name__)
 run_app = typer.Typer(

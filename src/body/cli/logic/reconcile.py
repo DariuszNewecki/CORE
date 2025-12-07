@@ -10,10 +10,12 @@ import asyncio
 
 import typer
 import yaml
+from sqlalchemy import text
+
 from services.repositories.db.engine import get_session
 from shared.config import settings
 from shared.logger import getLogger
-from sqlalchemy import text
+
 
 logger = getLogger(__name__)
 CLI_REGISTRY_PATH = (

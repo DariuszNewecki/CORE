@@ -8,6 +8,7 @@ from __future__ import annotations
 import ast
 from typing import Any
 
+
 Violation = dict[str, Any]
 # --- END OF FIX ---
 

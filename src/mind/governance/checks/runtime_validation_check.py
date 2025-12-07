@@ -12,12 +12,10 @@ from __future__ import annotations
 import ast
 from pathlib import Path
 
+from mind.governance.checks.base_check import BaseCheck
 from shared.models import AuditFinding, AuditSeverity
 
-from mind.governance.checks.base_check import BaseCheck
 
-
-# ID: runtime-validation-check-v1
 # ID: 5f409021-f114-4db8-92c9-1b2f8372340f
 class RuntimeValidationCheck(BaseCheck):
     """

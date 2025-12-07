@@ -10,6 +10,7 @@ Provides:
 from __future__ import annotations
 
 import typer
+
 from shared.action_types import ActionImpact, ActionResult
 from shared.atomic_action import atomic_action
 from shared.cli_utils import core_command
@@ -83,6 +84,7 @@ async def fix_imports_command(
     policies=["import_organization"],
     category="fixers",
 )
+# ID: abd951ed-5daa-4f1c-8315-63c136c68e1d
 async def fix_imports_internal(write: bool = False) -> ActionResult:
     """
     Internal atomic action for import sorting.

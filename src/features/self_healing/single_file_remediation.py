@@ -12,13 +12,13 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+from features.self_healing.coverage_analyzer import CoverageAnalyzer
 from mind.governance.audit_context import AuditorContext
 from shared.config import settings
 from shared.logger import getLogger
+from src.features.self_healing.test_generator import EnhancedTestGenerator
 from will.orchestration.cognitive_service import CognitiveService
 
-from features.self_healing.coverage_analyzer import CoverageAnalyzer
-from src.features.self_healing.test_generator import EnhancedTestGenerator
 
 logger = getLogger(__name__)
 

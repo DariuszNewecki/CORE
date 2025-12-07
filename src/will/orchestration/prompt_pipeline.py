@@ -19,6 +19,7 @@ from pathlib import Path
 
 import yaml
 
+
 # --- FIX: Define a constant for a reasonable file size limit (1MB) ---
 MAX_FILE_SIZE_BYTES = 1 * 1024 * 1024
 

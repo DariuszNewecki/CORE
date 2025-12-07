@@ -9,6 +9,7 @@ import asyncio
 import pathlib
 
 import typer
+
 from shared.logger import getLogger
 
 from .common import (
@@ -18,6 +19,7 @@ from .common import (
     load_policy,
     record_applied,
 )
+
 
 logger = getLogger(__name__)
 

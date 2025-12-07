@@ -15,11 +15,13 @@ from __future__ import annotations
 
 from shared.logger import getLogger
 
+
 logger = getLogger(__name__)
 
 import logging
 import re
 from dataclasses import dataclass
+
 
 logger = logging.getLogger(__name__)
 

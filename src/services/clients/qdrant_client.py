@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from shared.logger import getLogger
 
+
 logger = getLogger(__name__)
 
 import logging
@@ -19,9 +20,11 @@ from typing import Any
 
 from qdrant_client import AsyncQdrantClient
 from qdrant_client.http import models as qm
+
 from shared.config import settings
 from shared.models import EmbeddingPayload
 from shared.time import now_iso
+
 
 logger = logging.getLogger(__name__)
 

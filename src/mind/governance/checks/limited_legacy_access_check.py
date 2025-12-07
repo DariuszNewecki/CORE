@@ -12,7 +12,6 @@ from mind.governance.checks.base_check import BaseCheck
 from shared.models import AuditFinding, AuditSeverity
 
 
-# ID: k1l2m3n4-o5p6-6q7r-8s9t-0u1v2w3x4y5z
 # ID: 1572122b-d11a-4ed4-89d7-678b92779480
 class LimitedLegacyAccessCheck(BaseCheck):
     policy_rule_ids = ["knowledge.limited_legacy_access"]

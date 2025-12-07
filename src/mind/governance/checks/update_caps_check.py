@@ -12,7 +12,6 @@ from mind.governance.checks.base_check import BaseCheck
 from shared.models import AuditFinding, AuditSeverity
 
 
-# ID: m3n4o5p6-q7r8-8s9t-0u1v-2w3x4y5z6a7b
 # ID: 624c92aa-575c-406f-ac4b-58f5d87558f1
 class UpdateCapsCheck(BaseCheck):
     policy_rule_ids = ["refactor.update_capabilities"]

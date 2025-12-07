@@ -8,8 +8,10 @@ using K-Means clustering on their vector embeddings.
 from __future__ import annotations
 
 import numpy as np
+
 from services.clients.qdrant_client import QdrantService
 from shared.logger import getLogger
+
 
 try:
     from sklearn.cluster import KMeans

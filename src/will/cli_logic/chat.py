@@ -10,12 +10,14 @@ import subprocess
 
 import typer
 from dotenv import load_dotenv
+
 from services.config_service import config_service
 from shared.config import settings
 from shared.logger import getLogger
 from shared.utils.parsing import extract_json_from_response
 from will.agents.intent_translator import IntentTranslator
 from will.orchestration.cognitive_service import CognitiveService
+
 
 logger = getLogger(__name__)
 load_dotenv()

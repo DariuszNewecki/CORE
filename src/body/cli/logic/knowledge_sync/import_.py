@@ -7,6 +7,9 @@ from __future__ import annotations
 
 from typing import Any
 
+from sqlalchemy import text
+from sqlalchemy.dialects.postgresql import insert as pg_insert
+
 from services.database.models import (
     Capability,
     CognitiveRole,
@@ -18,10 +21,9 @@ from services.database.models import (
 from services.database.session_manager import get_session
 from shared.config import settings
 from shared.logger import getLogger
-from sqlalchemy import text
-from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 from .utils import _get_items_from_doc, compute_digest, read_yaml
+
 
 logger = getLogger(__name__)
 EXPORT_DIR = settings.REPO_PATH / ".intent" / "mind_export"

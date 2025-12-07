@@ -14,15 +14,14 @@ from __future__ import annotations
 
 import ast
 
-from services.database.session_manager import get_session
-from shared.models import AuditFinding, AuditSeverity
 from sqlalchemy import text
 
 from mind.governance.audit_types import AuditCheckMetadata
 from mind.governance.checks.base_check import BaseCheck
+from services.database.session_manager import get_session
+from shared.models import AuditFinding, AuditSeverity
 
 
-# ID: PLACEHOLDER_UUID
 # ID: a6d3683e-d9e5-48d1-bf6a-901500b72c86
 class VectorServiceStandardsCheck(BaseCheck):
     """
@@ -47,7 +46,6 @@ class VectorServiceStandardsCheck(BaseCheck):
         "vector.typed_payloads",
     ]
 
-    # ID: PLACEHOLDER_UUID
     # ID: 84317b88-9277-4e83-a24a-e936447ed9b1
     def execute(self) -> list[AuditFinding]:
         """Run all vector service standards checks."""
@@ -64,7 +62,6 @@ class VectorServiceStandardsCheck(BaseCheck):
 
         return findings
 
-    # ID: PLACEHOLDER_UUID
     def _check_direct_client_access(self) -> list[AuditFinding]:
         """
         Check for direct .client. access outside QdrantService.
@@ -156,7 +153,6 @@ class VectorServiceStandardsCheck(BaseCheck):
 
         return findings
 
-    # ID: PLACEHOLDER_UUID
     def _get_name_from_node(self, node: ast.AST) -> str:
         """Extract name from AST node for pattern matching."""
         if isinstance(node, ast.Name):
@@ -166,7 +162,6 @@ class VectorServiceStandardsCheck(BaseCheck):
             return f"{parent}.{node.attr}"
         return ""
 
-    # ID: PLACEHOLDER_UUID
     def _check_hash_coverage_note(self) -> list[AuditFinding]:
         """
         Note that hash coverage should be checked via CLI.
@@ -217,7 +212,6 @@ class VectorServiceStandardsCheck(BaseCheck):
 
         return findings
 
-    # ID: PLACEHOLDER_UUID
     def _check_sync_integrity_note(self) -> list[AuditFinding]:
         """
         Note that sync integrity should be checked via CLI.

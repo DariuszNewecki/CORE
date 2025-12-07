@@ -14,6 +14,7 @@ from collections.abc import Callable
 from typing import Any
 
 import typer
+
 from features.introspection.sync_service import run_sync_with_db
 from features.maintenance.command_sync_service import _sync_commands_to_db
 from features.self_healing.code_style_service import format_code

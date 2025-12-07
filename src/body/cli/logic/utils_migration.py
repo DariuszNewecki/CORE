@@ -11,6 +11,7 @@ from pathlib import Path
 
 from ruamel.yaml import YAML
 
+
 yaml_handler = YAML()
 yaml_handler.preserve_quotes = True
 yaml_handler.indent(mapping=2, sequence=4, offset=2)

@@ -13,6 +13,7 @@ import time
 
 import typer
 from rich.table import Table
+
 from services.database.session_manager import get_session
 from services.secrets_service import get_secrets_service
 from shared.action_types import ActionImpact, ActionResult
@@ -27,6 +28,7 @@ from shared.cli_utils import (
     display_warning,
 )
 from shared.exceptions import SecretNotFoundError, SecretsError
+
 
 # Audit context tags for observability / governance
 AUDIT_CONTEXT_SET = "cli:set"
@@ -54,7 +56,6 @@ app = typer.Typer(
     policies=["data_governance", "agent_governance"],
     category="secrets",
 )
-# ID: 53
 async def _set_secret_internal(
     key: str,
     value: str,
@@ -147,7 +148,6 @@ async def _set_secret_internal(
     policies=["data_governance", "agent_governance"],
     category="secrets",
 )
-# ID: 103
 async def _get_internal(key: str, show: bool) -> ActionResult:
     """
     Retrieve and decrypt a secret from the database.
@@ -219,7 +219,6 @@ async def _get_internal(key: str, show: bool) -> ActionResult:
     policies=["data_governance"],
     category="secrets",
 )
-# ID: 136
 async def _list_secrets_internal() -> ActionResult:
     """
     List all secret keys (not values) in the database.
@@ -293,7 +292,6 @@ async def _list_secrets_internal() -> ActionResult:
     policies=["data_governance", "agent_governance"],
     category="secrets",
 )
-# ID: 177
 async def _delete_internal(key: str) -> ActionResult:
     """
     Delete a secret from the database.

@@ -9,6 +9,7 @@ import os
 
 import yaml
 
+
 POLICY_ROOT = os.getenv("CORE_POLICY_ROOT", ".intent")
 
 

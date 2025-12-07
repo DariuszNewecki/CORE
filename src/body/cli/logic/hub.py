@@ -14,12 +14,14 @@ import inspect
 from pathlib import Path
 
 import typer
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from services.database.models import CliCommand
 from services.database.session_manager import get_session
 from shared.config import settings
 from shared.logger import getLogger
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
+
 
 logger = getLogger(__name__)
 

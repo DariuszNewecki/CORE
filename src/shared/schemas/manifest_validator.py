@@ -12,6 +12,7 @@ import jsonschema
 
 from shared.path_utils import get_repo_root
 
+
 # --- THIS IS THE FIX ---
 # The single source of truth for the location of constitutional schemas.
 SCHEMA_DIR = get_repo_root() / ".intent" / "charter" / "schemas"

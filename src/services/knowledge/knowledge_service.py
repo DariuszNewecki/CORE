@@ -14,6 +14,7 @@ from sqlalchemy import text
 from services.database.session_manager import get_session
 from shared.logger import getLogger
 
+
 logger = getLogger(__name__)
 
 
