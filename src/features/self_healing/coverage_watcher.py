@@ -12,7 +12,6 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 
 from mind.governance.checks.coverage_check import CoverageGovernanceCheck
-from rich.console import Console
 from shared.config import settings
 from shared.context import CoreContext
 from shared.logger import getLogger
@@ -20,7 +19,6 @@ from shared.logger import getLogger
 from features.self_healing.coverage_remediation_service import remediate_coverage
 
 logger = getLogger(__name__)
-console = Console()
 
 
 @dataclass
@@ -57,21 +55,19 @@ class CoverageWatcher:
         """
         Checks coverage and triggers remediation if needed.
         """
-        logger.info("\n[bold cyan]🔍 Constitutional Coverage Watch[/bold cyan]")
+        logger.info("Constitutional Coverage Watch")
         findings = await self.checker.execute()
         if not findings:
-            logger.info("[green]✅ Coverage compliant - no action needed[/green]")
+            logger.info("Coverage compliant - no action needed")
             self._record_compliant_state()
             return {"status": "compliant", "action": "none", "findings": []}
         violation = self._analyze_findings(findings)
-        logger.info("\n[bold red]⚠️  Constitutional Violation Detected[/bold red]")
+        logger.warning("Constitutional Violation Detected")
         logger.info(f"   Current: {violation.current_coverage}%")
         logger.info(f"   Required: {violation.required_coverage}%")
         logger.info(f"   Gap: {abs(violation.delta):.1f}%")
         if not auto_remediate:
-            logger.info(
-                "\n[yellow]Auto-remediation disabled - manual intervention required[/yellow]"
-            )
+            logger.warning("Auto-remediation disabled - manual intervention required")
             return {
                 "status": "violation",
                 "action": "manual_required",
@@ -79,14 +75,14 @@ class CoverageWatcher:
                 "findings": findings,
             }
         if self._in_cooldown():
-            logger.info("\n[yellow]Remediation in cooldown period - skipping[/yellow]")
+            logger.warning("Remediation in cooldown period - skipping")
             return {
                 "status": "violation",
                 "action": "cooldown",
                 "violation": violation,
                 "findings": findings,
             }
-        logger.info("\n[bold cyan]🤖 Triggering Autonomous Remediation[/bold cyan]")
+        logger.info("Triggering Autonomous Remediation")
         try:
             remediation_result = await remediate_coverage(
                 context.cognitive_service, context.auditor_context
@@ -94,18 +90,13 @@ class CoverageWatcher:
             self._record_remediation(violation, remediation_result)
             post_findings = await self.checker.execute()
             if not post_findings:
-                logger.info(
-                    "\n[bold green]✅ Remediation successful - coverage restored![/bold green]"
-                )
+                logger.info("Remediation successful - coverage restored!")
                 return {"status": "remediated", "compliant": True}
             else:
-                logger.info(
-                    "\n[yellow]⚠️  Partial remediation - some violations remain[/yellow]"
-                )
+                logger.warning("Partial remediation - some violations remain")
                 return {"status": "partial_remediation", "compliant": False}
         except Exception as e:
             logger.error(f"Remediation failed: {e}", exc_info=True)
-            logger.info(f"\n[red]❌ Remediation failed: {e}[/red]")
             return {"status": "remediation_failed", "error": str(e)}
 
     def _analyze_findings(self, findings: list) -> CoverageViolation:

@@ -7,6 +7,7 @@ and execution of all `core-admin` commands.
 from __future__ import annotations
 
 import json
+import os
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -14,19 +15,10 @@ from typing import Any
 import typer
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ed25519
-from rich.console import Console
 from shared.config import settings
 from shared.logger import getLogger
 
 logger = getLogger(__name__)
-console = Console()
-
-
-# ID: ebc07171-b4df-48cd-99b5-2bd8a06056d4
-import logging
-import os
-
-logger = logging.getLogger(__name__)
 
 
 async def _find_test_file_for_capability_async(
@@ -73,7 +65,7 @@ async def _find_test_file_for_capability_async(
     return None
 
 
-# ID: 2731a790-41f4-4bbd-893c-c2bad6fb7e0b
+# ID: fe11b579-66f5-4aaf-bd91-636ce01604ad
 def find_source_file(
     symbol_name: str, search_paths: list[str] | None = None
 ) -> Path | None:
@@ -117,7 +109,7 @@ def find_source_file(
     return None
 
 
-# ID: 92607e4d-3537-4ea8-b04f-77c36b026171
+# ID: a3d61adf-6e42-4854-a028-89a73d47c667
 def save_yaml_file(path: Path, data: dict[str, Any]) -> None:
     """Saves data to a YAML file with consistent sorting."""
     import yaml
@@ -125,19 +117,19 @@ def save_yaml_file(path: Path, data: dict[str, Any]) -> None:
     path.write_text(yaml.dump(data, sort_keys=True), encoding="utf-8")
 
 
-# ID: d7abfcd7-d423-491c-aca5-4d48f4fc9355
+# ID: 4e814eab-bdc4-4d68-b13e-8c4c53269a68
 def load_private_key() -> ed25519.Ed25519PrivateKey:
     """Loads the operator's private key."""
     key_path = settings.KEY_STORAGE_DIR / "private.key"
     if not key_path.exists():
         logger.error(
-            "❌ Private key not found. Please run 'core-admin keygen' to create one."
+            "Private key not found. Please run 'core-admin keygen' to create one."
         )
         raise typer.Exit(code=1)
     return serialization.load_pem_private_key(key_path.read_bytes(), password=None)
 
 
-# ID: 44918a43-7049-42f8-9c07-64818cefc7d2
+# ID: f803faac-7a8d-40b1-84cb-659379a4b512
 def archive_rollback_plan(proposal_name: str, proposal: dict[str, Any]) -> None:
     """Archives a proposal's rollback plan upon approval."""
     rollback_plan = proposal.get("rollback_plan")
@@ -161,10 +153,10 @@ def archive_rollback_plan(proposal_name: str, proposal: dict[str, Any]) -> None:
         ),
         encoding="utf-8",
     )
-    logger.info(f"📖 Rollback plan archived to {archive_path}")
+    logger.info(f"Rollback plan archived to {archive_path}")
 
 
-# ID: 33632ec4-5afe-413e-b5ca-37153c5c2fa0
+# ID: 0babc74d-bd4e-4cbd-8cd6-bc955b32967e
 def should_fail(report: dict, fail_on: str) -> bool:
     """
     Determines if the CLI should exit with an error code based on the drift

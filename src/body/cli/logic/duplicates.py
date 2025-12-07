@@ -10,18 +10,16 @@ from __future__ import annotations
 import asyncio
 
 import networkx as nx
-import typer
 from mind.governance.audit_context import AuditorContext
 from mind.governance.checks.duplication_check import DuplicationCheck
-from rich.console import Console
-from rich.table import Table
 from services.clients.qdrant_client import (
     QdrantService,
 )
 from shared.context import CoreContext
+from shared.logger import getLogger
 from shared.models import AuditFinding
 
-console = Console()
+logger = getLogger(__name__)
 
 
 def _group_findings(findings: list[AuditFinding]) -> list[list[AuditFinding]]:
@@ -66,14 +64,10 @@ async def inspect_duplicates_async(context: CoreContext, threshold: float):
     Exported for use by orchestrators like dev_sync.
     """
     if context is None:
-        console.print(
-            "[bold red]Error: Context not initialized for inspect duplicates[/bold red]"
-        )
-        raise typer.Exit(code=1)
+        logger.error("Error: Context not initialized for inspect duplicates")
+        raise ValueError("Context not initialized for inspect duplicates")
 
-    console.print(
-        f"[bold cyan]🚀 Running semantic duplication check with threshold: {threshold}...[/bold cyan]"
-    )
+    logger.info(f"Running semantic duplication check with threshold: {threshold}...")
 
     auditor_context = AuditorContext(context.git_service.repo_path)
     await auditor_context.load_knowledge_graph()
@@ -88,9 +82,7 @@ async def inspect_duplicates_async(context: CoreContext, threshold: float):
             if context.cognitive_service:
                 context.cognitive_service._qdrant_service = qdrant_service
         except Exception as e:
-            console.print(
-                f"[yellow]Warning: Could not initialize Qdrant service: {e}[/yellow]"
-            )
+            logger.warning(f"Warning: Could not initialize Qdrant service: {e}")
 
     if not qdrant_service and context.cognitive_service:
         qdrant_service = getattr(context.cognitive_service, "_qdrant_service", None)
@@ -103,13 +95,13 @@ async def inspect_duplicates_async(context: CoreContext, threshold: float):
     findings: list[AuditFinding] = await duplication_check.execute(threshold=threshold)
 
     if not findings:
-        console.print("[bold green]✅ No semantic duplicates found.[/bold green]")
+        logger.info("No semantic duplicates found.")
         return
 
     grouped_findings = _group_findings(findings)
 
-    console.print(
-        f"\n[bold yellow]Found {len(findings)} duplicate pairs, forming {len(grouped_findings)} cluster(s):[/bold yellow]"
+    logger.info(
+        f"Found {len(findings)} duplicate pairs, forming {len(grouped_findings)} cluster(s)"
     )
 
     for i, cluster in enumerate(grouped_findings, 1):
@@ -118,20 +110,12 @@ async def inspect_duplicates_async(context: CoreContext, threshold: float):
             all_symbols_in_cluster.add(f.context["symbol_a"])
             all_symbols_in_cluster.add(f.context["symbol_b"])
 
-        title = f"Cluster #{i} ({len(all_symbols_in_cluster)} related symbols)"
-        table = Table(show_header=True, header_style="bold magenta", title=title)
-        table.add_column("Symbol 1", style="cyan")
-        table.add_column("Symbol 2", style="cyan")
-        table.add_column("Similarity", style="yellow")
-
+        logger.info(f"Cluster #{i} ({len(all_symbols_in_cluster)} related symbols):")
         for finding in cluster:
-            table.add_row(
-                finding.context["symbol_a"],
-                finding.context["symbol_b"],
-                f"{float(finding.context.get('similarity', 0)):.3f}",
+            logger.info(
+                f"  {finding.context['symbol_a']} <-> {finding.context['symbol_b']}: "
+                f"{float(finding.context.get('similarity', 0)):.3f}"
             )
-
-        console.print(table)
 
 
 # ID: 20870972-4c43-46c5-aa60-7079e9a99db8

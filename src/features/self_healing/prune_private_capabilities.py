@@ -12,13 +12,11 @@ import asyncio
 import re
 
 import typer
-from rich.console import Console
 from services.knowledge_service import KnowledgeService
 from shared.config import settings
 from shared.logger import getLogger
 
 logger = getLogger(__name__)
-console = Console()
 REPO_ROOT = settings.REPO_PATH
 
 
@@ -47,11 +45,11 @@ def main(
         ]
         if not private_symbols_with_tags:
             logger.info(
-                "[bold green]✅ No private symbols with capability tags found. Compliance is perfect.[/bold green]"
+                "✅ No private symbols with capability tags found. Compliance is perfect."
             )
             return
         logger.info(
-            f"[yellow]Found {len(private_symbols_with_tags)} private symbol(s) with capability tags.[/yellow]"
+            f"Found {len(private_symbols_with_tags)} private symbol(s) with capability tags."
         )
         files_to_modify = {}
         tag_pattern = re.compile("^\\s*#\\s*CAPABILITY:\\s*\\S+\\s*$", re.IGNORECASE)
@@ -80,11 +78,9 @@ def main(
                     )
                     files_to_modify[file_path][tag_line_index] = "__DELETE_THIS_LINE__"
         if dry_run:
-            logger.info(
-                "\n[bold yellow]-- DRY RUN: No files will be changed --[/bold yellow]"
-            )
+            logger.info("-- DRY RUN: No files will be changed --")
             return
-        logger.info("\n[bold]Applying fixes to source files...[/bold]")
+        logger.info("Applying fixes to source files...")
         for file_path, lines in files_to_modify.items():
             new_content = (
                 "\n".join([line for line in lines if line != "__DELETE_THIS_LINE__"])

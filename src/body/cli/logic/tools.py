@@ -9,14 +9,15 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
+import shared.logger
 import typer
 from features.maintenance.maintenance_service import rewire_imports
 
 # Import the moved script module
 from features.maintenance.scripts import context_export
-from rich.console import Console
 
-console = Console()
+logger = shared.logger.getLogger(__name__)
+
 tools_app = typer.Typer(
     help="Governed, operator-focused maintenance and refactoring tools."
 )
@@ -36,26 +37,24 @@ def rewire_imports_cli(
     CLI wrapper for the import rewiring service.
     """
     dry_run = not write
-    console.print("🚀 Starting architectural import re-wiring script...")
+    logger.info("Starting architectural import re-wiring script...")
     if dry_run:
-        console.print("💧 [yellow]DRY RUN MODE[/yellow]: No files will be changed.")
+        logger.info("DRY RUN MODE: No files will be changed.")
     else:
-        console.print("🟢 [bold green]WRITE MODE[/bold green]: Files will be modified.")
+        logger.info("WRITE MODE: Files will be modified.")
 
     total_changes = rewire_imports(dry_run=dry_run)
 
-    console.print("\n--- Re-wiring Complete ---")
+    logger.info("--- Re-wiring Complete ---")
     if dry_run:
-        console.print(
-            f"💧 DRY RUN: Found {total_changes} potential import changes to make."
-        )
-        console.print("   Run with '--write' to apply them.")
+        logger.info(f"DRY RUN: Found {total_changes} potential import changes to make.")
+        logger.info("Run with '--write' to apply them.")
     else:
-        console.print(f"✅ APPLIED: Made {total_changes} import changes.")
+        logger.info(f"APPLIED: Made {total_changes} import changes.")
 
-    console.print("\n--- NEXT STEPS ---")
-    console.print(
-        "1.  VERIFY: Run 'make format' and then 'make check' to ensure compliance."
+    logger.info("--- NEXT STEPS ---")
+    logger.info(
+        "1. VERIFY: Run 'make format' and then 'make check' to ensure compliance."
     )
 
 
@@ -98,7 +97,7 @@ def export_context_cmd(
         if e.code != 0:
             raise typer.Exit(e.code)
     except Exception as e:
-        console.print(f"[bold red]Export failed: {e}[/bold red]")
+        logger.error(f"Export failed: {e}")
         raise typer.Exit(1)
     finally:
         sys.argv = original_argv

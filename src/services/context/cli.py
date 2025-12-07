@@ -13,10 +13,8 @@ import time
 from pathlib import Path
 
 import typer
-from rich.table import Table
 from shared.action_types import ActionImpact, ActionResult
 from shared.atomic_action import atomic_action
-from shared.cli_utils import console, display_error, display_info, display_success
 
 from services.context import ContextSerializer, ContextValidator
 
@@ -108,8 +106,6 @@ async def _build_internal(task: str, out: Path | None) -> ActionResult:
     start_time = time.time()
 
     try:
-        display_info(f"Building context packet for task: {task}")
-
         # TODO: Wire up actual builder initialization with DB/Qdrant/AST providers
         # For now, this is a stub showing the intended flow
 
@@ -134,11 +130,6 @@ async def _build_internal(task: str, out: Path | None) -> ActionResult:
         # output_path.parent.mkdir(parents=True, exist_ok=True)
         # serializer.save(packet, output_path)
 
-        display_error("ContextPackage build not yet fully implemented")
-        display_info(
-            "Run 'poetry run pytest tests/services/context/' to see current status"
-        )
-
         return ActionResult(
             action_id="context.build",
             ok=False,
@@ -157,7 +148,6 @@ async def _build_internal(task: str, out: Path | None) -> ActionResult:
         )
 
     except Exception as e:
-        display_error(f"Failed to build context: {e}")
         return ActionResult(
             action_id="context.build",
             ok=False,
@@ -179,39 +169,15 @@ def _validate_internal(file: Path) -> None:
     Does not return ActionResult as it's a validation display function.
     """
     try:
-        display_info(f"Validating context packet: {file}")
-
         serializer = ContextSerializer()
         packet = serializer.from_yaml(str(file))
 
         validator = ContextValidator()
         is_valid, errors = validator.validate(packet)
 
-        if is_valid:
-            display_success("✓ Context packet is valid")
-
-            # Show summary
-            table = Table(title="Packet Summary")
-            table.add_column("Field", style="cyan")
-            table.add_column("Value", style="white")
-
-            header = packet.get("header", {})
-            table.add_row("Packet ID", header.get("packet_id", "N/A"))
-            table.add_row("Task ID", header.get("task_id", "N/A"))
-            table.add_row("Task Type", header.get("task_type", "N/A"))
-            table.add_row("Privacy", header.get("privacy", "N/A"))
-
-            context_items = len(packet.get("context", []))
-            table.add_row("Context Items", str(context_items))
-
-            console.print(table)
-        else:
-            display_error("✗ Context packet validation failed:")
-            for error in errors:
-                console.print(f"  - {error}", style="red")
+        if not is_valid:
             raise typer.Exit(1)
     except Exception as e:
-        display_error(f"Error during validation: {e}")
         raise typer.Exit(1)
 
 
@@ -236,8 +202,6 @@ async def _show_internal(task: str) -> ActionResult:
     start_time = time.time()
 
     try:
-        display_info(f"Showing context packet metadata for task: {task}")
-
         # Placeholder: when ContextService wiring is complete, this will fetch from DB / disk.
         # Architectural intent:
         # context_service = get_context_service()
@@ -258,11 +222,6 @@ async def _show_internal(task: str) -> ActionResult:
         #         impact=ActionImpact.READ_ONLY,
         #     )
 
-        display_error(
-            "Context 'show' command is not yet wired to ContextService. "
-            "This is a structural placeholder."
-        )
-
         return ActionResult(
             action_id="context.show",
             ok=False,
@@ -280,7 +239,6 @@ async def _show_internal(task: str) -> ActionResult:
         )
 
     except Exception as e:
-        display_error(f"Failed to show context: {e}")
         return ActionResult(
             action_id="context.show",
             ok=False,

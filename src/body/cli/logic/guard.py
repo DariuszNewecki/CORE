@@ -10,10 +10,6 @@ from pathlib import Path
 from typing import Any
 
 import yaml
-from rich import print as rprint
-from rich.panel import Panel
-from rich.table import Table
-
 from shared.logger import getLogger
 
 logger = getLogger(__name__)
@@ -68,44 +64,32 @@ def _is_clean(report: dict) -> bool:
     )
 
 
-def _print_table(report_dict: dict, labels: dict[str, str]) -> None:
-    """Prints a formatted table of the drift report."""
-    table = Table(show_header=True, header_style="bold", title="Capability Drift")
-    table.add_column("Section", style="bold")
-    table.add_column("Values")
-
-    # ID: 9112339f-a641-477c-8498-19068c1e8715
-    def row(title: str, items: list[str]):
-        """Adds a row with a formatted list of items."""
-        if not items:
-            table.add_row(title, f"[bold green]{labels['none']}[/bold green]")
-        else:
-            table.add_row(
-                title, f'[yellow]{'\\n'.join(f'- {it}' for it in items)}[/yellow]'
-            )
-
-    row("Missing in code", report_dict.get("missing_in_code", []))
-    row("Undeclared in manifest", report_dict.get("undeclared_in_manifest", []))
-    mismatches = report_dict.get("mismatched_mappings", [])
-    if not mismatches:
-        table.add_row(
-            "Mismatched mappings", f"[bold green]{labels['none']}[/bold green]"
-        )
-    else:
-        lines = [
-            f"- {m.get('capability')}: manifest(...) != code(...)" for m in mismatches
-        ]
-        table.add_row(
-            "Mismatched mappings", "[yellow]" + "\n".join(lines) + "[/yellow]"
-        )
-    status = (
-        f"[bold green]{labels['success']}[/bold green]"
-        if _is_clean(report_dict)
-        else f"[bold red]{labels['failure']}[/bold red]"
-    )
-    rprint(Panel.fit(table, title=status))
+def _format_report(report_dict: dict, labels: dict[str, str]) -> dict[str, Any]:
+    """Formats a drift report into a structured dictionary for logging or serialization."""
+    formatted = {
+        "missing_in_code": report_dict.get("missing_in_code", []),
+        "undeclared_in_manifest": report_dict.get("undeclared_in_manifest", []),
+        "mismatched_mappings": report_dict.get("mismatched_mappings", []),
+        "is_clean": _is_clean(report_dict),
+        "status_label": (
+            labels["success"] if _is_clean(report_dict) else labels["failure"]
+        ),
+    }
+    return formatted
 
 
 def _print_pretty(report_dict: dict, labels: dict[str, str]) -> None:
-    """Prints a user-friendly summary of the drift report."""
-    _print_table(report_dict, labels)
+    """Logs a structured summary of the drift report."""
+    formatted = _format_report(report_dict, labels)
+    if formatted["is_clean"]:
+        logger.info("Capability drift check passed: %s", formatted["status_label"])
+    else:
+        logger.warning("Capability drift detected: %s", formatted["status_label"])
+        if formatted["missing_in_code"]:
+            logger.warning("Missing in code: %s", formatted["missing_in_code"])
+        if formatted["undeclared_in_manifest"]:
+            logger.warning(
+                "Undeclared in manifest: %s", formatted["undeclared_in_manifest"]
+            )
+        if formatted["mismatched_mappings"]:
+            logger.warning("Mismatched mappings: %s", formatted["mismatched_mappings"])

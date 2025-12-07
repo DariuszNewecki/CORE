@@ -27,7 +27,7 @@ app = typer.Typer(name="vectors", help="Manage vector collections")
 
 
 @app.command(name="sync")
-# ID: 222b9b8f-7903-421a-9b9f-98b622c9f60d
+# ID: d6711ab9-3a79-47df-957a-59ffc52e947f
 def sync_vectors(
     target: str = typer.Argument(
         ...,
@@ -79,7 +79,7 @@ async def _async_sync_vectors(target: str, dry_run: bool) -> None:
         typer.echo()
 
         service = VectorIndexService(
-            qdrant_client=qdrant_service.client,
+            qdrant_service=qdrant_service,  # FIX: Pass service, not .client
             collection_name="core_policies",
         )
 
@@ -104,7 +104,7 @@ async def _async_sync_vectors(target: str, dry_run: bool) -> None:
         typer.echo()
 
         service = VectorIndexService(
-            qdrant_client=qdrant_service.client,
+            qdrant_service=qdrant_service,  # FIX: Pass service, not .client
             collection_name="core-patterns",
         )
 
@@ -136,7 +136,7 @@ async def _async_sync_vectors(target: str, dry_run: bool) -> None:
 
 
 @app.command(name="query")
-# ID: 277e8828-235f-45cc-aabe-cc1e0b28f752
+# ID: 26c63756-eb12-4f88-a46b-b0e43d4760b6
 def query_vectors(
     collection: str = typer.Argument(
         ...,
@@ -169,7 +169,7 @@ async def _async_query_vectors(collection: str, query: str, limit: int) -> None:
 
     qdrant_service = QdrantService()
     service = VectorIndexService(
-        qdrant_client=qdrant_service.client,
+        qdrant_service=qdrant_service,  # FIX: Pass service instance
         collection_name=collection_map[collection],
     )
 

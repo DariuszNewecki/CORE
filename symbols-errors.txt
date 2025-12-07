@@ -1,0 +1,8 @@
+[16:34:52] DEBUG    DEBUG:shared.config:Loaded environment file: /opt/dev/CORE/.env
+[16:34:54] DEBUG    DEBUG:shared.utils.yaml_processor:YAML processor configured for duplicate key tolerance (diagnostic mode)
+           DEBUG    DEBUG:shared.utils.yaml_processor:YAML processor configured for strict constitutional compliance
+           DEBUG    DEBUG:shared.utils.yaml_processor:YAML processor configured for strict constitutional compliance
+           INFO     INFO:services.git_service:GitService initialized for path /opt/dev/CORE
+
+🚨 CONFIRM DANGEROUS OPERATION
+   This will modify your codebase. Continue? [y/n]:

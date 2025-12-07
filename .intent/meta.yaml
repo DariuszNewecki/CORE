@@ -18,6 +18,7 @@ charter:
     data_governance: "charter/policies/data_governance.yaml"
     operations: "charter/policies/operations.yaml"
     quality_assurance: "charter/policies/quality_assurance.yaml"
+    decorator_governance: "charter/policies/decorator_governance.yaml"
 
   schemas:
     policy_schema: "charter/schemas/policy_schema.json"

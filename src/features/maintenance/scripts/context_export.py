@@ -39,23 +39,24 @@ Outputs (under output-dir/TIMESTAMP/):
 
 from __future__ import annotations
 
-import argparse
 import ast
 import dataclasses
 import datetime as dt
-import getpass
 import hashlib
 import json
 import os
 import re
 import subprocess
-import sys
 import tarfile
 import urllib.error
 import urllib.parse
 import urllib.request
 from pathlib import Path
 from typing import Any
+
+# TODO: Replace with shared.config.settings access
+# Currently using argparse defaults with os.environ fallback
+# Should be refactored to use shared.config.settings
 
 # ---------------------------
 # Helpers
@@ -467,181 +468,4 @@ def to_yaml(data: Any, indent: int = 0) -> str:
 # ---------------------------
 
 
-# ID: ecc2831b-86e4-4388-960c-7b01d5b09483
-def build_runtime_context(
-    repo_root: Path,
-    db_url: str | None,
-    qdrant_url: str | None,
-    qdrant_collection: str | None,
-) -> dict[str, Any]:
-    git = git_info(repo_root)
-    ctx = {
-        "generated_at": now_utc_iso(),
-        "user": getpass.getuser(),
-        "repo_root": str(repo_root),
-        "git": git,
-        "database_url": redacted_url(db_url) if db_url else None,
-        "qdrant_url": qdrant_url,
-        "qdrant_collection": qdrant_collection,
-        "autonomy_level": "A1",  # informational
-    }
-    return ctx
-
-
-# ---------------------------
-# Main
-# ---------------------------
-
-
-# ID: 3e5f4876-b6a2-438f-a256-51ff4adb4e64
-def main():
-    p = argparse.ArgumentParser(
-        description="Export CORE operational context (Mind/Body/State/Vectors/Runtime)."
-    )
-    p.add_argument("--repo-root", default=".", help="Repository root (default: .)")
-    p.add_argument(
-        "--intent-dir", default=".intent", help="Path to .intent/ relative to repo root"
-    )
-    p.add_argument(
-        "--src-dir", default="src", help="Path to src/ relative to repo root"
-    )
-    # ✅ Make output-dir optional with sensible default
-    p.add_argument(
-        "--output-dir",
-        default="./scripts/exports",
-        help="Directory to write export bundle into (default: ./_exports)",
-    )
-    p.add_argument(
-        "--db-url",
-        default=os.environ.get("DATABASE_URL"),
-        help="PostgreSQL URL (or env DATABASE_URL)",
-    )
-    p.add_argument(
-        "--qdrant-url",
-        default=os.environ.get("QDRANT_URL"),
-        help="Qdrant base URL (or env QDRANT_URL)",
-    )
-    p.add_argument(
-        "--qdrant-collection",
-        default=os.environ.get("QDRANT_COLLECTION_NAME"),
-        help="Qdrant collection (or env QDRANT_COLLECTION_NAME)",
-    )
-    p.add_argument(
-        "--db-sample-rows",
-        type=int,
-        default=5,
-        help="Max sample rows per table for DB samples",
-    )
-    args = p.parse_args()
-
-    repo_root = Path(args.repo_root).resolve()
-    intent_dir = (repo_root / args.intent_dir).resolve()
-    src_dir = (repo_root / args.src_dir).resolve()
-
-    if not intent_dir.exists():
-        print(f"[WARN] .intent directory not found at {intent_dir}", file=sys.stderr)
-    if not src_dir.exists():
-        print(f"[WARN] src directory not found at {src_dir}", file=sys.stderr)
-
-    ts = dt.datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
-    # ✅ default output root if user didn't override
-    base_out = Path(args.output_dir).expanduser().resolve()
-    out_root = base_out / f"core_export_{ts}"
-    out_root.mkdir(parents=True, exist_ok=True)
-
-    # 1) Mind (.intent)
-    intent_tar = out_root / ".intent.tar.gz"
-    if intent_dir.exists():
-        tar_dir(
-            intent_dir,
-            intent_tar,
-            exclude_globs=["**/__pycache__/**", "**/*.pyc", "**/*.log", "**/.DS_Store"],
-        )
-    intent_manifest = {
-        "generated_at": now_utc_iso(),
-        "root": str(intent_dir),
-        "note": "Full .intent tree archived; per-policy dependencies can be added later.",
-    }
-    safe_write_text(out_root / "intent_manifest.yaml", to_yaml(intent_manifest))
-
-    # 2) Body (src) + symbol index
-    src_tar = out_root / "src.tar.gz"
-    if src_dir.exists():
-        tar_dir(
-            src_dir,
-            src_tar,
-            exclude_globs=["**/__pycache__/**", "**/*.pyc", "**/*.log", "**/.DS_Store"],
-        )
-        symbol_index = scan_python_symbols(src_dir)
-        safe_write_json(out_root / "symbol_index.json", symbol_index)
-    else:
-        safe_write_json(
-            out_root / "symbol_index.json", {"note": "src directory missing"}
-        )
-
-    # 3) DB schema + samples (best-effort)
-    db_schema_path = out_root / "db_schema.sql"
-    db_samples_path = out_root / "db_samples.json"
-    if args.db_url:
-        export_db_schema(args.db_url, db_schema_path)
-        try_db_samples(args.db_url, db_samples_path, max_rows=args.db_sample_rows)
-    else:
-        safe_write_text(db_schema_path, "-- DATABASE_URL not provided.\n")
-        safe_write_json(db_samples_path, {"note": "DATABASE_URL not provided"})
-
-    # 4) Qdrant
-    qdrant_schema = out_root / "qdrant_schema.yaml"
-    qdrant_samples = out_root / "qdrant_samples.json"
-    if args.qdrant_url and args.qdrant_collection:
-        export_qdrant(
-            args.qdrant_url, args.qdrant_collection, qdrant_schema, qdrant_samples
-        )
-    else:
-        safe_write_text(qdrant_schema, "# Qdrant URL/collection not provided.\n")
-        safe_write_json(qdrant_samples, {"note": "Qdrant URL/collection not provided"})
-
-    # 5) Runtime context
-    runtime_ctx = build_runtime_context(
-        repo_root, args.db_url, args.qdrant_url, args.qdrant_collection
-    )
-    safe_write_text(out_root / "runtime_context.yaml", to_yaml(runtime_ctx))
-
-    # 6) Top-level manifest with checksums
-    artifacts = [
-        intent_tar,
-        out_root / "intent_manifest.yaml",
-        src_tar,
-        out_root / "symbol_index.json",
-        db_schema_path,
-        db_samples_path,
-        qdrant_schema,
-        qdrant_samples,
-        out_root / "runtime_context.yaml",
-    ]
-    artifact_list = []
-    for pth in artifacts:
-        entry = {"path": str(pth.name)}
-        if pth.exists():
-            entry["sha256"] = sha256_file(pth)
-            entry["size_bytes"] = pth.stat().st_size
-        else:
-            entry["missing"] = True
-        artifact_list.append(entry)
-
-    core_manifest = {
-        "generated_at": now_utc_iso(),
-        "export_dir": str(out_root),
-        "artifacts": artifact_list,
-        "lane_default": "strict",  # informational for future CML integration
-        "notes": [
-            "This manifest ties together all exported components.",
-            "Checksums allow reproducibility/audit of what was shared.",
-        ],
-    }
-    safe_write_text(out_root / "core_context_manifest.yaml", to_yaml(core_manifest))
-
-    print(f"[OK] Export complete in: {out_root}")
-
-
-if __name__ == "__main__":
-    main()
+# ID: ecc2831b-86e4-4388-960c-7b01d5

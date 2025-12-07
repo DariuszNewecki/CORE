@@ -7,10 +7,6 @@ from __future__ import annotations
 
 from typing import Any
 
-from rich.console import Console
-from sqlalchemy import text
-from sqlalchemy.dialects.postgresql import insert as pg_insert
-
 from services.database.models import (
     Capability,
     CognitiveRole,
@@ -21,10 +17,13 @@ from services.database.models import (
 )
 from services.database.session_manager import get_session
 from shared.config import settings
+from shared.logger import getLogger
+from sqlalchemy import text
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 from .utils import _get_items_from_doc, compute_digest, read_yaml
 
-console = Console()
+logger = getLogger(__name__)
 EXPORT_DIR = settings.REPO_PATH / ".intent" / "mind_export"
 YAML_FILES = {
     "capabilities": "capabilities.yaml",
@@ -67,13 +66,13 @@ async def _import_capabilities(session, doc: dict[str, Any]) -> None:
         session: Database session.
         doc: YAML document containing capabilities.
     """
-    console.print("  -> Importing capabilities...")
+    logger.debug("Importing capabilities...")
     await _upsert_items(session, Capability, doc.get("items", []), ["id"])
 
 
 async def _import_symbols(session, doc: dict[str, Any]) -> None:
     """Import symbols into the database, fixing missing symbol_path if necessary."""
-    console.print("  -> Importing symbols...")
+    logger.debug("Importing symbols...")
     items = doc.get("items", [])
     for item in items:
         if "symbol_path" not in item or not item["symbol_path"]:
@@ -93,7 +92,7 @@ async def _import_links(session, doc: dict[str, Any]) -> None:
         session: Database session.
         doc: YAML document containing links.
     """
-    console.print("  -> Importing links...")
+    logger.debug("Importing links...")
     links_items = doc.get("items", [])
     if links_items:
         await session.execute(text("DELETE FROM core.symbol_capability_links;"))
@@ -112,7 +111,7 @@ async def _import_northstar(session, doc: dict[str, Any]) -> None:
         session: Database session.
         doc: YAML document containing North Star data.
     """
-    console.print("  -> Importing North Star...")
+    logger.debug("Importing North Star...")
     await _upsert_items(session, Northstar, doc.get("items", []), ["id"])
 
 
@@ -123,7 +122,7 @@ async def _import_llm_resources(session, doc: dict[str, Any]) -> None:
         session: Database session.
         doc: YAML document containing LLM resources.
     """
-    console.print("  -> Importing LLM resources...")
+    logger.debug("Importing LLM resources...")
     await _upsert_items(session, LlmResource, doc.get("llm_resources", []), ["name"])
 
 
@@ -134,7 +133,7 @@ async def _import_cognitive_roles(session, doc: dict[str, Any]) -> None:
         session: Database session.
         doc: YAML document containing cognitive roles.
     """
-    console.print("  -> Importing cognitive roles...")
+    logger.debug("Importing cognitive roles...")
     await _upsert_items(
         session, CognitiveRole, doc.get("cognitive_roles", []), ["role"]
     )
@@ -148,9 +147,7 @@ async def run_import(dry_run: bool) -> None:
         dry_run: If True, prints actions without executing them.
     """
     if not EXPORT_DIR.exists():
-        console.print(
-            f"[bold red]Export directory not found: {EXPORT_DIR}. Cannot import.[/bold red]"
-        )
+        logger.error(f"Export directory not found: {EXPORT_DIR}. Cannot import.")
         return
 
     # Load all YAML documents
@@ -162,19 +159,17 @@ async def run_import(dry_run: bool) -> None:
     for name, doc in docs.items():
         if "digest" in doc and "items" in doc:
             if doc["digest"] != compute_digest(doc["items"]):
-                console.print(
-                    f"[bold red]Digest mismatch in {name}.yaml! "
-                    "Aborting import. Run 'snapshot' to regenerate.[/bold red]"
+                logger.error(
+                    f"Digest mismatch in {name}.yaml! "
+                    "Aborting import. Run 'snapshot' to regenerate."
                 )
                 return
 
     if dry_run:
-        console.print(
-            "[bold yellow]-- DRY RUN: The following actions would be taken --[/bold yellow]"
-        )
+        logger.info("-- DRY RUN: The following actions would be taken --")
         for name, doc in docs.items():
             count = len(_get_items_from_doc(doc, name))
-            console.print(f"  - Upsert {count} {name}.")
+            logger.info(f"  - Upsert {count} {name}.")
         return
 
     async with get_session() as session:
@@ -186,6 +181,4 @@ async def run_import(dry_run: bool) -> None:
             await _import_llm_resources(session, docs["resource_manifest"])
             await _import_cognitive_roles(session, docs["cognitive_roles"])
 
-    console.print(
-        "[bold green]✅ Import complete. Database is synchronized with YAML files.[/bold green]"
-    )
+    logger.info("Import complete. Database is synchronized with YAML files.")

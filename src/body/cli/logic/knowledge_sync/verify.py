@@ -5,13 +5,13 @@ Verifies the integrity of exported YAML files by checking their digests.
 
 from __future__ import annotations
 
-from rich.console import Console
+import logging
 
 from shared.config import settings
 
 from .utils import compute_digest, read_yaml
 
-console = Console()
+logger = logging.getLogger(__name__)
 EXPORT_DIR = settings.REPO_PATH / ".intent" / "mind_export"
 
 
@@ -23,12 +23,10 @@ def run_verify() -> bool:
         bool: True if all digests are valid, False otherwise.
     """
     if not EXPORT_DIR.exists():
-        console.print(
-            f"[bold red]Export directory not found: {EXPORT_DIR}. Cannot verify.[/bold red]"
-        )
+        logger.error(f"Export directory not found: {EXPORT_DIR}. Cannot verify.")
         return False
 
-    console.print("🔐 Verifying digests of exported YAML files...")
+    logger.info("Verifying digests of exported YAML files...")
 
     files_to_check = [
         "capabilities.yaml",
@@ -41,9 +39,7 @@ def run_verify() -> bool:
     for filename in files_to_check:
         path = EXPORT_DIR / filename
         if not path.exists():
-            console.print(
-                f"  - [yellow]SKIP[/yellow]: [cyan]{filename}[/cyan] does not exist."
-            )
+            logger.warning(f"SKIP: {filename} does not exist.")
             continue
 
         doc = read_yaml(path)
@@ -51,29 +47,21 @@ def run_verify() -> bool:
         expected_digest = doc.get("digest")
 
         if not expected_digest:
-            console.print(
-                f"  - [red]FAIL[/red]: [cyan]{filename}[/cyan] is missing a digest."
-            )
+            logger.error(f"FAIL: {filename} is missing a digest.")
             all_ok = False
             continue
 
         actual_digest = compute_digest(items)
 
         if expected_digest == actual_digest:
-            console.print(
-                f"  - [green]PASS[/green]: [cyan]{filename}[/cyan] digest is valid."
-            )
+            logger.info(f"PASS: {filename} digest is valid.")
         else:
-            console.print(
-                f"  - [red]FAIL[/red]: [cyan]{filename}[/cyan] digest mismatch!"
-            )
+            logger.error(f"FAIL: {filename} digest mismatch!")
             all_ok = False
 
     if all_ok:
-        console.print("[bold green]✅ All digests are valid.[/bold green]")
+        logger.info("All digests are valid.")
     else:
-        console.print(
-            "[bold red]❌ One or more digests failed verification.[/bold red]"
-        )
+        logger.error("One or more digests failed verification.")
 
     return all_ok

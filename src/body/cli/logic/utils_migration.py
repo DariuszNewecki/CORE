@@ -9,7 +9,6 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-from rich.console import Console
 from ruamel.yaml import YAML
 
 yaml_handler = YAML()
@@ -31,16 +30,13 @@ def parse_migration_plan(plan_path: Path) -> dict[str, str]:
 
 
 # ID: 80131c72-c024-4823-8226-f63c5d8c4704
-def replacer(
-    match: re.Match, domain_map: dict, console: Console, py_file: Path, repo_root: Path
-) -> str:
+def replacer(match: re.Match, domain_map: dict, py_file: Path, repo_root: Path) -> str:
     """Replacement function for re.subn to update capability tags."""
     old_cap = match.group(1)
     for old_domain, new_domain in domain_map.items():
         if old_cap.startswith(old_domain):
             new_cap = old_cap.replace(old_domain, new_domain, 1)
             if old_cap != new_cap:
-                console.print(
-                    f"   -> In '{py_file.relative_to(repo_root)}': Renaming tag '{old_cap}' -> '[green]{new_cap}[/green]'"
-                )
+                # TODO: Add logging if needed
+                pass
     return match.group(0)

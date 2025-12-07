@@ -12,14 +12,12 @@ import uuid
 from typing import Any
 
 import yaml
-from rich.console import Console
 from services.database.session_manager import get_session
 from shared.config import settings
 from shared.logger import getLogger
 from sqlalchemy import text
 
 logger = getLogger(__name__)
-console = Console()
 
 
 async def _migrate_capabilities_from_manifest() -> list[dict[str, Any]]:
@@ -27,7 +25,7 @@ async def _migrate_capabilities_from_manifest() -> list[dict[str, Any]]:
     manifest_path = settings.get_path("mind.knowledge.project_manifest")
     if not manifest_path.exists():
         logger.info(
-            "[yellow]Warning: project_manifest.yaml not found. No capabilities to migrate.[/yellow]"
+            "Warning: project_manifest.yaml not found. No capabilities to migrate."
         )
         return []
 
@@ -87,15 +85,13 @@ async def _migrate_symbols_from_ast() -> list[dict[str, Any]]:
 # ID: cd2c3cf5-54ec-493c-b11f-d8bb6eae7a0f
 async def run_ssot_migration(dry_run: bool):
     """Orchestrates the full one-time migration from files to the SSOT database."""
-    logger.info("🚀 Starting one-time migration of knowledge from files to database...")
+    logger.info("Starting one-time migration of knowledge from files to database...")
 
     capabilities = await _migrate_capabilities_from_manifest()
     symbols = await _migrate_symbols_from_ast()
 
     if dry_run:
-        logger.info(
-            "[bold yellow]-- DRY RUN: The following actions would be taken --[/bold yellow]"
-        )
+        logger.info("-- DRY RUN: The following actions would be taken --")
         logger.info(
             f"  - Insert {len(capabilities)} unique capabilities from project_manifest.yaml."
         )
@@ -134,7 +130,7 @@ async def run_ssot_migration(dry_run: bool):
                 for symbol in symbols:
                     await session.execute(insert_stmt, symbol)
 
-    logger.info("[bold green]✅ One-time migration complete.[/bold green]")
+    logger.info("✅ One-time migration complete.")
     logger.info(
         "Run 'core-admin mind snapshot' to create the first export from the database."
     )

@@ -138,8 +138,10 @@ COMMAND_CONFIG = {
 }
 
 
+# ID: 05158317-04fe-4e2f-8939-78bdc049dcbb
 def handle_command_errors(func: Callable) -> Callable:
     @functools.wraps(func)
+    # ID: 67f71923-2bdd-4520-9710-2c4374dce568
     def wrapper(*args, **kwargs):
         try:
             return func(*args, **kwargs)
@@ -177,6 +179,7 @@ fix_app = typer.Typer(
 
 
 @fix_app.callback()
+# ID: 4165545f-18b7-4890-b89f-605ae2772b16
 def fix_callback(
     ctx: typer.Context,
     verbose: bool = typer.Option(
@@ -196,6 +199,7 @@ def fix_callback(
 @fix_app.command("line-lengths", help="Refactors files with long lines.")
 @handle_command_errors
 @async_command
+# ID: 0c1a3ed2-299d-4df9-87a3-db714667d7cd
 async def fix_line_lengths_command(
     ctx: typer.Context,
     file_path: Path | None = typer.Argument(

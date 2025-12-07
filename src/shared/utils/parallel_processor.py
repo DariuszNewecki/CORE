@@ -2,7 +2,11 @@
 
 """
 Provides a reusable, throttled parallel processor for running async tasks
-concurrently with a progress bar, governed by a constitutional limit.
+concurrently.
+
+UI STANDARDS UPDATE:
+Switched from Progress Bar (track) to Spinner (status) to comply with
+workflow_patterns.yaml visual standards.
 """
 
 from __future__ import annotations
@@ -11,12 +15,13 @@ import asyncio
 from collections.abc import Awaitable, Callable
 from typing import TypeVar
 
-from rich.progress import track
+from rich.console import Console
 
 from shared.config import settings
 from shared.logger import getLogger
 
 logger = getLogger(__name__)
+console = Console()
 T = TypeVar("T")
 R = TypeVar("R")
 
@@ -50,10 +55,12 @@ class ThrottledParallelProcessor:
                 return await worker_fn(item)
 
         tasks = [asyncio.create_task(_worker(item)) for item in items]
-        for task in track(
-            asyncio.as_completed(tasks), description=self.description, total=len(items)
-        ):
-            results.append(await task)
+
+        with console.status(f"[bold cyan]{self.description}[/bold cyan]"):
+            for task in asyncio.as_completed(tasks):
+                result = await task
+                results.append(result)
+
         return results
 
     # ID: d64f09ac-d05d-4a32-ad5d-87bf95d0efcf
@@ -62,7 +69,6 @@ class ThrottledParallelProcessor:
     ) -> list[R]:
         """
         Asynchronous entry point to run the worker over all items.
-        To be used when called from an already-running async function.
         """
         return await self._process_items_async(items, worker_fn)
 
@@ -72,6 +78,5 @@ class ThrottledParallelProcessor:
     ) -> list[R]:
         """
         Synchronous entry point to run the async worker over all items.
-        This will start and manage its own asyncio event loop.
         """
         return asyncio.run(self._process_items_async(items, worker_fn))

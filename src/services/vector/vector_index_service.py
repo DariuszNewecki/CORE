@@ -2,7 +2,8 @@
 """
 Unified Vector Indexing Service - Constitutional Infrastructure
 
-Fixed: Runtime import of IndexResult.
+Phase 1: Uses QdrantService for upsert operations.
+Updated: Implements Smart Deduplication using content hashes.
 """
 
 from __future__ import annotations
@@ -10,44 +11,33 @@ from __future__ import annotations
 import asyncio
 from typing import TYPE_CHECKING
 
-from qdrant_client.models import Distance, PointStruct, VectorParams
+from qdrant_client.http import models as qm
 from shared.config import settings
 from shared.logger import getLogger
-
-# FIX: Import models at runtime
 from shared.models.vector_models import IndexResult, VectorizableItem
 from shared.utils.embedding_utils import build_embedder_from_env
 
+from services.clients.qdrant_client import QdrantService
+
 if TYPE_CHECKING:
-    from qdrant_client import AsyncQdrantClient
+    pass
 
 logger = getLogger(__name__)
 
 
-# ID: 71d4ffa4-e0a5-4c7d-a4bd-f530a76605a4
+# ID: df12cdd3-8c09-4f51-a453-d5dd6ae03a69
 class VectorIndexService:
-    # ... (rest of class remains identical) ...
-    # Just ensure the import above is fixed.
+    """Unified vector indexing service with smart deduplication."""
 
     def __init__(
         self,
-        qdrant_client: AsyncQdrantClient,
+        qdrant_service: QdrantService,
         collection_name: str,
         vector_dim: int | None = None,
     ):
-        """
-        Initialize the vector indexing service.
-
-        Args:
-            qdrant_client: Async Qdrant client instance
-            collection_name: Name of the target collection
-            vector_dim: Vector dimension (defaults to LOCAL_EMBEDDING_DIM)
-        """
-        self.client = qdrant_client
+        self.qdrant = qdrant_service
         self.collection_name = collection_name
         self.vector_dim = vector_dim or int(settings.LOCAL_EMBEDDING_DIM)
-
-        # Use CORE's existing embedding infrastructure
         self._embedder = build_embedder_from_env()
 
         logger.info(
@@ -55,37 +45,15 @@ class VectorIndexService:
             f"dim={self.vector_dim}"
         )
 
-    # ID: cff34c47-fca3-4241-b062-e0dbbeae110c
+    # ID: aac3d753-7f8d-44b3-b5a8-2c4da71f8129
     async def ensure_collection(self) -> None:
-        """
-        Idempotently create the collection if it doesn't exist.
-
-        Uses correct dimensions from configuration.
-        Safe to call multiple times.
-        """
-        collections_response = await self.client.get_collections()
-        existing = {c.name for c in collections_response.collections}
-
-        if self.collection_name in existing:
-            logger.debug(f"Collection {self.collection_name} already exists")
-            return
-
-        logger.info(
-            f"Creating collection: {self.collection_name} "
-            f"(dim={self.vector_dim}, distance=cosine)"
-        )
-
-        await self.client.create_collection(
+        """Idempotently create the collection if it doesn't exist."""
+        await self.qdrant.ensure_collection(
             collection_name=self.collection_name,
-            vectors_config=VectorParams(
-                size=self.vector_dim,
-                distance=Distance.COSINE,
-            ),
+            vector_size=self.vector_dim,
         )
 
-        logger.info(f"✓ Created collection: {self.collection_name}")
-
-    # ID: f95ced0c-30a9-42a6-a18b-ea0c01b2afc0
+    # ID: 9ec62721-d2ab-47fd-9ae8-f476ae1148fc
     async def index_items(
         self,
         items: list[VectorizableItem],
@@ -93,8 +61,7 @@ class VectorIndexService:
     ) -> list[IndexResult]:
         """
         Index a batch of items: generate embeddings and upsert to Qdrant.
-
-        This is the CORE operation that all vectorization flows through.
+        Skips items that are already indexed with the same content hash.
 
         Args:
             items: List of VectorizableItem objects to index
@@ -102,45 +69,77 @@ class VectorIndexService:
 
         Returns:
             List of IndexResult objects with point IDs
-
-        Raises:
-            ValueError: If items list is empty
-            RuntimeError: If embedding generation fails for all items
         """
         if not items:
             raise ValueError("Cannot index empty list of items")
 
+        # --- SMART DEDUPLICATION ---
+        # 1. Fetch existing hashes from Qdrant
+        stored_hashes = await self.qdrant.get_stored_hashes(self.collection_name)
+
+        items_to_index = []
+        skipped_count = 0
+
+        for item in items:
+            # Calculate the point ID deterministically (same as QdrantService logic)
+            point_id = str(hash(item.item_id) % (2**63))
+
+            new_hash = item.payload.get("content_sha256")
+
+            # If the ID exists and hash matches, skip it
+            if (
+                point_id in stored_hashes
+                and new_hash
+                and stored_hashes[point_id] == new_hash
+            ):
+                skipped_count += 1
+                continue
+
+            items_to_index.append(item)
+
+        if skipped_count > 0:
+            logger.info(
+                f"Skipped {skipped_count} unchanged items (smart deduplication)."
+            )
+
+        if not items_to_index:
+            logger.info("All items are up to date. Nothing to index.")
+            # Return "fake" results for the skipped items so the caller knows they exist
+            return [
+                IndexResult(
+                    item_id=item.item_id,
+                    point_id=hash(item.item_id) % (2**63),
+                    vector_dim=self.vector_dim,
+                )
+                for item in items
+            ]
+
         logger.info(
-            f"Indexing {len(items)} items into {self.collection_name} "
+            f"Indexing {len(items_to_index)} new/changed items into {self.collection_name} "
             f"(batch_size={batch_size})"
         )
 
         results: list[IndexResult] = []
 
-        # Process in batches to avoid overwhelming the embedding service
-        for i in range(0, len(items), batch_size):
-            batch = items[i : i + batch_size]
+        # Process filtered items in batches
+        for i in range(0, len(items_to_index), batch_size):
+            batch = items_to_index[i : i + batch_size]
             batch_results = await self._process_batch(batch)
             results.extend(batch_results)
 
             logger.debug(
-                f"Processed batch {i // batch_size + 1}/{(len(items) - 1) // batch_size + 1}"
+                f"Processed batch {i // batch_size + 1}/{(len(items_to_index) - 1) // batch_size + 1}"
             )
 
-        logger.info(f"✓ Indexed {len(results)}/{len(items)} items successfully")
+        logger.info(
+            f"✓ Indexed {len(results)}/{len(items_to_index)} items successfully"
+        )
         return results
 
     async def _process_batch(self, items: list[VectorizableItem]) -> list[IndexResult]:
-        """
-        Process a single batch: generate embeddings and upsert.
+        """Process a single batch: generate embeddings and upsert."""
 
-        Args:
-            items: Batch of items to process
-
-        Returns:
-            List of IndexResult for successfully indexed items
-        """
-        # Step 1: Generate embeddings using CORE's embedding service
+        # Step 1: Generate embeddings
         embedding_tasks = [self._embedder.get_embedding(item.text) for item in items]
         embeddings = await asyncio.gather(*embedding_tasks, return_exceptions=True)
 
@@ -154,15 +153,13 @@ class VectorIndexService:
                 valid_pairs.append((item, emb))
 
         if not valid_pairs:
-            logger.warning("All embeddings failed in batch")
             return []
 
         # Step 3: Create Qdrant points
         points = []
         for item, embedding in valid_pairs:
-            point_id = hash(item.item_id) % (2**63)  # Convert to positive int64
+            point_id = hash(item.item_id) % (2**63)
 
-            # Enrich payload with metadata
             payload = {
                 **item.payload,
                 "item_id": item.item_id,
@@ -172,7 +169,7 @@ class VectorIndexService:
             }
 
             points.append(
-                PointStruct(
+                qm.PointStruct(
                     id=point_id,
                     vector=(
                         embedding.tolist()
@@ -183,15 +180,15 @@ class VectorIndexService:
                 )
             )
 
-        # Step 4: Upsert to Qdrant
-        await self.client.upsert(
-            collection_name=self.collection_name,
-            points=points,
-            wait=True,
-        )
+        # Step 4: Upsert via Service
+        if points:
+            await self.qdrant.upsert_points(
+                collection_name=self.collection_name,
+                points=points,
+                wait=True,
+            )
 
         # Step 5: Build results
-        # FIX: IndexResult is now imported at runtime
         results = [
             IndexResult(
                 item_id=item.item_id,
@@ -203,37 +200,24 @@ class VectorIndexService:
 
         return results
 
-    # ID: 359b81c9-a347-4e3c-96d7-abf833afb1fa
+    # ID: cb21c047-cfd2-4bef-b81c-17662e402292
     async def query(
         self,
         query_text: str,
         limit: int = 5,
         score_threshold: float | None = None,
     ) -> list[dict]:
-        """
-        Semantic search in the collection.
-
-        Args:
-            query_text: Natural language query
-            limit: Maximum results to return
-            score_threshold: Minimum similarity score (0.0-1.0)
-
-        Returns:
-            List of dicts with 'score' and 'payload' keys
-        """
-        # Generate query embedding using CORE's embedding service
+        """Semantic search in the collection."""
         query_vector = await self._embedder.get_embedding(query_text)
 
         if query_vector is None:
             logger.warning("Failed to generate query embedding")
             return []
 
-        # Convert to list if numpy array
         if hasattr(query_vector, "tolist"):
             query_vector = query_vector.tolist()
 
-        # Search Qdrant
-        results = await self.client.search(
+        results = await self.qdrant.search(
             collection_name=self.collection_name,
             query_vector=query_vector,
             limit=limit,

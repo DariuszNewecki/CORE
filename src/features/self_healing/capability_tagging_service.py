@@ -18,7 +18,6 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
-from rich.console import Console
 from services.knowledge.knowledge_service import KnowledgeService
 from shared.config import settings
 from shared.logger import getLogger
@@ -27,7 +26,6 @@ from will.agents.tagger_agent import CapabilityTaggerAgent
 from will.orchestration.cognitive_service import CognitiveService
 
 logger = getLogger(__name__)
-console = Console()
 REPO_ROOT = settings.REPO_PATH
 
 # Async DB session factory type
@@ -55,14 +53,12 @@ async def _async_tag_capabilities(
     )
 
     if not suggestions:
-        logger.info("[bold green]No new public capabilities to register.[/bold green]")
+        logger.info("No new public capabilities to register.")
         return
 
     # DRY RUN
     if dry_run:
-        logger.info(
-            "[bold yellow]-- DRY RUN: Would register the following capability links --[/bold yellow]"
-        )
+        logger.info("-- DRY RUN: Would register the following capability links --")
         for key, info in suggestions.items():
             logger.info(
                 f"  • Symbol {info['name']} -> Capability '{info['suggestion']}'"
@@ -70,7 +66,7 @@ async def _async_tag_capabilities(
         return
 
     logger.info(
-        f"\n[bold green]Linking {len(suggestions)} symbols to capabilities in the database...[/bold green]"
+        f"Linking {len(suggestions)} symbols to capabilities in the database..."
     )
 
     # ------------- DB OPERATION THROUGH INJECTED SESSION ---------------- #

@@ -20,7 +20,6 @@ from cryptography.hazmat.primitives.asymmetric import ed25519
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 from dotenv import load_dotenv
 from mind.governance.auditor import ConstitutionalAuditor
-from rich.console import Console
 from shared.config import settings
 from shared.logger import getLogger
 from shared.path_utils import copy_file, copy_tree
@@ -30,7 +29,6 @@ from shared.utils.yaml_processor import YAMLProcessor
 from .cli_utils import archive_rollback_plan
 
 logger = getLogger(__name__)
-console = Console()
 yaml_processor = YAMLProcessor()
 
 
@@ -155,12 +153,12 @@ class ProposalService:
         for sig in proposal.get("signatures", []):
             identity = sig.get("identity")
             if sig.get("token") != expected_token:
-                logger.warning(f"   ⚠️ Stale signature from '{identity}'.")
+                logger.warning(f"Stale signature from '{identity}'.")
                 continue
 
             pem = self.approver_keys.get(identity)
             if not pem:
-                logger.warning(f"   ⚠️ No public key found for '{identity}'.")
+                logger.warning(f"No public key found for '{identity}'.")
                 continue
 
             try:
@@ -171,10 +169,10 @@ class ProposalService:
                     base64.b64decode(sig["signature_b64"]),
                     expected_token.encode("utf-8"),
                 )
-                logger.info(f"   ✅ Valid signature from '{identity}'.")
+                logger.info(f"Valid signature from '{identity}'.")
                 valid += 1
             except Exception:
-                logger.warning(f"   ⚠️ Verification failed for '{identity}'.")
+                logger.warning(f"Verification failed for '{identity}'.")
 
         return valid
 
@@ -238,10 +236,12 @@ class ProposalService:
             live_target_path.write_text(proposal.get("content", ""), encoding="utf-8")
 
             proposal_path.unlink()
-            logger.info(f"✅ Successfully approved and applied '{proposal_name}'.")
+            logger.info(f"Successfully approved and applied '{proposal_name}'.")
         else:
             if findings:
-                console.print("\n[bold red]Canary Audit Findings:[/bold red]")
+                logger.error("Canary Audit Findings:")
+                for finding in findings:
+                    logger.error(finding)
             raise ChildProcessError("Canary audit failed.")
 
 
@@ -253,17 +253,17 @@ class ProposalService:
 # ID: ac0fafee-585f-4ece-8675-269b5a8168c1
 def proposals_list_cmd() -> None:
     """CLI command: list all pending proposals."""
-    logger.info("🔍 Finding pending constitutional proposals...")
+    logger.info("Finding pending constitutional proposals...")
     service = ProposalService(settings.REPO_PATH)
     proposals = service.list()
 
     if not proposals:
-        logger.info("✅ No pending proposals found.")
+        logger.info("No pending proposals found.")
         return
 
     logger.info(f"Found {len(proposals)} pending proposal(s):")
     for prop in proposals:
-        logger.info(f"\n  - **{prop.name}**: {prop.justification.strip()}")
+        logger.info(f"  - **{prop.name}**: {prop.justification.strip()}")
         logger.info(f"    Target: {prop.target_path}")
         logger.info(
             f"    Status: {prop.status} ({'Critical' if prop.is_critical else 'Standard'})"
@@ -278,10 +278,10 @@ def _safe_proposal_action(action_desc: str, action_func: Callable) -> None:
     try:
         action_func()
     except (FileNotFoundError, ValueError, PermissionError, ChildProcessError) as e:
-        logger.error(f"❌ {e}")
+        logger.error(f"{e}")
         raise typer.Exit(code=1)
     except Exception as e:
-        logger.error(f"❌ Unexpected error: {e}")
+        logger.error(f"Unexpected error: {e}")
         raise typer.Exit(code=1)
 
 
@@ -297,9 +297,9 @@ def proposals_sign_cmd(
             "Enter your identity (e.g., name@domain.com) for this signature"
         )
         service.sign(proposal_name, identity)
-        logger.info("✅ Signature added to proposal file.")
+        logger.info("Signature added to proposal file.")
 
-    _safe_proposal_action(f"✍️ Signing proposal: {proposal_name}", _action)
+    _safe_proposal_action(f"Signing proposal: {proposal_name}", _action)
 
 
 # ID: 9f252083-c262-4251-b5d0-2c6661528db6
@@ -314,9 +314,7 @@ def proposals_approve_cmd(
         service = ProposalService(settings.REPO_PATH)
         service.approve(proposal_name)
 
-    _safe_proposal_action(
-        f"🚀 Attempting to approve proposal: {proposal_name}", _action
-    )
+    _safe_proposal_action(f"Attempting to approve proposal: {proposal_name}", _action)
 
 
 # ---------------------------------------------------------------------------

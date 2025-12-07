@@ -12,14 +12,20 @@ ui_contract:
   description: >
     Workflow orchestrators (and top-level CLI commands that invoke them)
     are the ONLY layer allowed to render terminal UI for multi-step
-    operations: progress bars, spinners, step banners, and summaries.
-    All underlying services and atomic actions MUST be headless and MUST
-    NOT perform their own terminal I/O.
+    operations. All underlying services and atomic actions MUST be headless
+    and MUST NOT perform their own terminal I/O.
+
+  visual_standards:
+    - "primary_feedback: Spinners (console.status)"
+    - "secondary_feedback: Structured Logging (logger.info)"
+    - "avoid: Progress Bars (track)"
+    - "rationale: Spinners maintain a clean, vertical log flow. Progress bars overwrite lines, hiding logs and cluttering CI buffers."
 
   rules:
-    - "Workflows may use Rich Console/Progress for high-level progress only"
     - "Nested UI components from called services/actions are forbidden"
     - "Sub-workflows are treated as opaque units: they return results, not UI"
+    - "Use 'console.status(...)' for all duration-based operations."
+    - "Do NOT use 'rich.progress.track' or 'Progress()' unless the operation is a user-interactive file download/upload."
 
 patterns:
   - pattern_id: "linear_workflow"

@@ -299,5 +299,19 @@ async def define_symbols_command(
 
     core_context: CoreContext = ctx.obj
 
-    # @core_command ensures core_context.context_service is available (via factory)
-    await _define_new_symbols(core_context.context_service)
+    # Get the shared ContextService instance
+    ctx_service = core_context.context_service
+
+    # Wire in the CognitiveService and QdrantService if missing,
+    # mirroring the dev-sync command behavior.
+    if not ctx_service.cognitive_service:
+        ctx_service.cognitive_service = core_context.cognitive_service
+
+    if not ctx_service.vector_provider.qdrant:
+        ctx_service.vector_provider.qdrant = core_context.qdrant_service
+
+    if not ctx_service.vector_provider.cognitive_service:
+        ctx_service.vector_provider.cognitive_service = core_context.cognitive_service
+
+    # Run the actual symbol definition with a fully wired context service
+    await _define_new_symbols(ctx_service)

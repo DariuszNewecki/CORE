@@ -12,12 +12,10 @@ from typing import Any
 
 import typer
 import yaml
-from rich.console import Console
 from shared.config import settings
 from shared.logger import getLogger
 
 logger = getLogger(__name__)
-console = Console()
 REPO_ROOT = settings.REPO_PATH
 DOMAINS_DIR = REPO_ROOT / ".intent" / "mind" / "knowledge" / "domains"
 
@@ -32,7 +30,7 @@ def run_fix_manifest_hygiene(
     Scans for and corrects misplaced capability declarations in domain manifests.
     """
     dry_run = not write
-    logger.info("🧼 Starting manifest hygiene check for misplaced capabilities...")
+    logger.info("Starting manifest hygiene check for misplaced capabilities...")
     if not DOMAINS_DIR.is_dir():
         logger.error(f"Domains directory not found at: {DOMAINS_DIR}")
         raise typer.Exit(code=1)
@@ -83,28 +81,24 @@ def run_fix_manifest_hygiene(
         except Exception as e:
             logger.error(f"Error processing {file_path.name}: {e}")
     if not changes_to_make:
-        logger.info(
-            "[bold green]✅ Manifest hygiene is perfect. No misplaced capabilities found.[/bold green]"
-        )
+        logger.info("Manifest hygiene is perfect. No misplaced capabilities found.")
         return
     if dry_run:
-        logger.info(
-            "\n[bold yellow]-- DRY RUN: The following manifest changes would be applied --[/bold yellow]"
-        )
+        logger.info("-- DRY RUN: The following manifest changes would be applied --")
         for path_str, change in changes_to_make.items():
             logger.info(
                 f"  - File to {change['action']}: {Path(path_str).relative_to(REPO_ROOT)}"
             )
         return
-    logger.info("\n[bold]Applying manifest hygiene fixes...[/bold]")
+    logger.info("Applying manifest hygiene fixes...")
     for path_str, change in changes_to_make.items():
         try:
             Path(path_str).write_text(
                 yaml.dump(change["content"], indent=2, sort_keys=False), "utf-8"
             )
-            logger.info(f"  - ✅ Updated {Path(path_str).name}")
+            logger.info(f"  - Updated {Path(path_str).name}")
         except Exception as e:
-            logger.info(f"  - ❌ Failed to update {Path(path_str).name}: {e}")
+            logger.info(f"  - Failed to update {Path(path_str).name}: {e}")
 
 
 if __name__ == "__main__":

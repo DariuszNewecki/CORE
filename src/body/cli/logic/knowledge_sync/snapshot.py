@@ -9,15 +9,15 @@ import asyncio
 import getpass
 from typing import Any
 
-from rich.console import Console
 from services.database.session_manager import get_session
 from shared.config import settings
+from shared.logger import getLogger
 from shared.time import now_iso
 from sqlalchemy import text
 
 from .utils import write_yaml
 
-console = Console()
+logger = getLogger(__name__)
 EXPORT_DIR = settings.REPO_PATH / ".intent" / "mind_export"
 
 
@@ -85,7 +85,7 @@ async def run_snapshot(env: str | None, note: str | None) -> None:
     who = getpass.getuser()
     env = env or "dev"
 
-    console.print(f"📸 Creating a new snapshot of the database in '{EXPORT_DIR}'...")
+    logger.info(f"Creating a new snapshot of the database in '{EXPORT_DIR}'...")
 
     # Fetch all data
     caps, syms, links, north = await asyncio.gather(
@@ -138,6 +138,6 @@ async def run_snapshot(env: str | None, note: str | None) -> None:
                     },
                 )
 
-    console.print("[bold green]✅ Snapshot complete.[/bold green]")
+    logger.info("Snapshot complete.")
     for filename, sha in digests:
-        console.print(f"  - Wrote '{filename}' with digest: {sha}")
+        logger.debug(f"Wrote '{filename}' with digest: {sha}")

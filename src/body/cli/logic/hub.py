@@ -14,16 +14,15 @@ import inspect
 from pathlib import Path
 
 import typer
-from rich.console import Console
-from rich.table import Table
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from services.database.models import CliCommand
 from services.database.session_manager import get_session
 from shared.config import settings
+from shared.logger import getLogger
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
-console = Console()
+logger = getLogger(__name__)
+
 hub_app = typer.Typer(help="Central hub for discovering and locating CORE tools.")
 
 
@@ -69,28 +68,30 @@ def hub_list_cmd() -> None:
         async with get_session() as session:
             cmds = await _fetch_commands(session)
         if not cmds:
-            console.print(
-                "[bold yellow]No CLI registry entries in DB.[/bold yellow] "
-                "Run: [bold]core-admin knowledge sync[/bold]"
+            logger.warning(
+                "No CLI registry entries in DB. Run: core-admin knowledge sync"
             )
             raise typer.Exit(code=2)
-        table = Table(title="All CLI commands in registry")
-        table.add_column("#", justify="right", style="dim")
-        table.add_column("Command", style="cyan")
-        table.add_column("Module", style="magenta")
-        table.add_column("Entrypoint", style="green")
-        table.add_column("Description")
-        for i, c in enumerate(cmds, 1):
-            table.add_row(
-                str(i),
-                _format_command_name(c),
-                getattr(c, "module", "") or "",
-                getattr(c, "entrypoint", "") or "",
-                _shorten(_desc_for(c), 100),
-            )
-        console.print(table)
 
-    asyncio.run(_run())
+        result = []
+        for i, c in enumerate(cmds, 1):
+            result.append(
+                {
+                    "index": i,
+                    "command": _format_command_name(c),
+                    "module": getattr(c, "module", "") or "",
+                    "entrypoint": getattr(c, "entrypoint", "") or "",
+                    "description": _shorten(_desc_for(c), 100),
+                }
+            )
+
+        logger.info(f"Found {len(result)} CLI commands in registry")
+        # Return data for caller to display appropriately
+        return result
+
+    result = asyncio.run(_run())
+    # In a headless module, we just return the data
+    # The caller (e.g., CLI layer) should handle display
 
 
 @hub_app.command("search")
@@ -107,13 +108,11 @@ def hub_search_cmd(
         async with get_session() as session:
             cmds = await _fetch_commands(session)
         if not cmds:
-            console.print(
-                "[bold yellow]No CLI registry entries found in DB.[/bold yellow]\n"
-                "Try:\n"
-                "  • core-admin knowledge migrate-ssot    (if you still have legacy YAML)\n"
-                "  • core-admin knowledge sync            (introspect and populate)\n"
+            logger.warning(
+                "No CLI registry entries found in DB. Try: core-admin knowledge migrate-ssot or core-admin knowledge sync"
             )
             raise typer.Exit(code=2)
+
         term_l = term.lower()
         hits: list[CliCommand] = []
         for c in cmds:
@@ -122,24 +121,28 @@ def hub_search_cmd(
             if term_l in name or (desc and term_l in desc):
                 hits.append(c)
         hits = hits[:limit]
-        if not hits:
-            console.print("[yellow]No matches.[/yellow]")
-            raise typer.Exit(code=0)
-        table = Table(title=f"Hub search: “{term}”")
-        table.add_column("Command", style="cyan")
-        table.add_column("Module", style="magenta")
-        table.add_column("Entrypoint", style="green")
-        table.add_column("Description", style="white")
-        for c in hits:
-            table.add_row(
-                _format_command_name(c),
-                getattr(c, "module", "") or "",
-                getattr(c, "entrypoint", "") or "",
-                _shorten(_desc_for(c), 100),
-            )
-        console.print(table)
 
-    asyncio.run(_run())
+        if not hits:
+            logger.info(f"No matches found for term: {term}")
+            raise typer.Exit(code=0)
+
+        result = []
+        for c in hits:
+            result.append(
+                {
+                    "command": _format_command_name(c),
+                    "module": getattr(c, "module", "") or "",
+                    "entrypoint": getattr(c, "entrypoint", "") or "",
+                    "description": _shorten(_desc_for(c), 100),
+                }
+            )
+
+        logger.info(f"Found {len(result)} matches for term: {term}")
+        return result
+
+    result = asyncio.run(_run())
+    # In a headless module, we just return the data
+    # The caller (e.g., CLI layer) should handle display
 
 
 @hub_app.command("whereis")
@@ -159,29 +162,39 @@ def hub_whereis_cmd(
         async with get_session() as session:
             cmds = await _fetch_commands(session)
         if not cmds:
-            console.print(
-                "[bold yellow]No CLI registry in DB.[/bold yellow] "
-                "Run [bold]core-admin knowledge sync[/bold] first."
+            logger.warning(
+                "No CLI registry in DB. Run core-admin knowledge sync first."
             )
             raise typer.Exit(code=2)
+
         matches = [c for c in cmds if _format_command_name(c) == command]
         if not matches:
             matches = [c for c in cmds if _format_command_name(c).endswith(command)]
+
         if not matches:
-            console.print("[yellow]No such command in registry.[/yellow]")
+            logger.warning(f"No such command in registry: {command}")
             raise typer.Exit(code=1)
+
         c = matches[0]
         path = (
             _module_file(getattr(c, "module", "") or "")
             if getattr(c, "module", None)
             else None
         )
-        console.print(f"[bold]Command:[/bold] {_format_command_name(c)}")
-        console.print(f"[bold]Module:[/bold]  {getattr(c, 'module', '') or '—'}")
-        console.print(f"[bold]Entrypoint:[/bold] {getattr(c, 'entrypoint', '') or '—'}")
-        console.print(f"[bold]File:[/bold]    {(path if path else '—')}")
 
-    asyncio.run(_run())
+        result = {
+            "command": _format_command_name(c),
+            "module": getattr(c, "module", "") or "—",
+            "entrypoint": getattr(c, "entrypoint", "") or "—",
+            "file": str(path) if path else "—",
+        }
+
+        logger.info(f"Found command details for: {command}")
+        return result
+
+    result = asyncio.run(_run())
+    # In a headless module, we just return the data
+    # The caller (e.g., CLI layer) should handle display
 
 
 @hub_app.command("doctor")
@@ -195,14 +208,16 @@ def hub_doctor_cmd() -> None:
             try:
                 cmds = await _fetch_commands(session)
                 if cmds:
-                    console.print(f"✅ CLI registry entries in DB: {len(cmds)}")
+                    logger.info(f"CLI registry entries in DB: {len(cmds)}")
                 else:
                     ok = False
-                    console.print("❌ No CLI registry entries in DB.")
-                    console.print("   → Run: core-admin knowledge sync")
+                    logger.warning(
+                        "No CLI registry entries in DB. Run: core-admin knowledge sync"
+                    )
             except Exception as e:
                 ok = False
-                console.print(f"❌ DB error while reading CLI registry: {e}")
+                logger.error(f"DB error while reading CLI registry: {e}")
+
         snapshots = [
             settings.MIND / "knowledge" / "cli_registry.yaml",
             settings.MIND / "knowledge" / "resource_manifest.yaml",
@@ -210,15 +225,23 @@ def hub_doctor_cmd() -> None:
         ]
         missing = [p for p in snapshots if not p.exists()]
         if missing:
-            console.print("⚠️  Missing YAML exports:")
+            logger.warning("Missing YAML exports:")
             for p in missing:
-                console.print(f"   • {p}")
-            console.print("   → Run: core-admin knowledge export-ssot")
+                logger.warning(f"  • {p}")
+            logger.warning("Run: core-admin knowledge export-ssot")
         else:
-            console.print("✅ YAML exports present.")
-        console.print(
-            "\nTip: run [bold]core-admin knowledge canary --skip-tests[/bold] before big ops."
-        )
-        raise typer.Exit(code=0 if ok else 1)
+            logger.info("YAML exports present.")
 
-    asyncio.run(_run())
+        logger.info("Tip: run core-admin knowledge canary --skip-tests before big ops.")
+
+        result = {
+            "ok": ok,
+            "cli_registry_count": len(cmds) if "cmds" in locals() else 0,
+            "missing_yaml_exports": [str(p) for p in missing],
+        }
+
+        return result
+
+    result = asyncio.run(_run())
+    # In a headless module, we just return the data
+    # The caller (e.g., CLI layer) should handle display

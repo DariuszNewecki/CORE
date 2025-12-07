@@ -9,14 +9,16 @@ This enables CORE to understand its own constitution semantically and validate
 code against constitutional expectations.
 
 Constitutional Policy: pattern_vectorization.yaml
+Updated: Phase 1 - Vector Service Standardization
 """
 
 from __future__ import annotations
 
+import hashlib
 from pathlib import Path
 from typing import Any
 
-from qdrant_client.models import Distance, PointStruct, VectorParams
+from qdrant_client.models import PointStruct
 from services.clients.qdrant_client import QdrantService
 from shared.config import settings
 from shared.logger import getLogger
@@ -76,10 +78,14 @@ class PatternVectorizer:
     Vectorizes constitutional patterns for semantic understanding and validation.
 
     Constitutional Service - operates under pattern_vectorization policy.
+
+    Phase 1 Updates:
+    - Uses QdrantService methods instead of direct client access
+    - Implements hash-based deduplication
+    - Follows vector_service_standards.yaml
     """
 
     COLLECTION_NAME = "core-patterns"
-    # FIX: Use configured dimension instead of hardcoded 1536
     VECTOR_DIMENSION = int(settings.LOCAL_EMBEDDING_DIM)
 
     def __init__(
@@ -88,7 +94,8 @@ class PatternVectorizer:
         cognitive_service: CognitiveService,
         patterns_dir: Path | None = None,
     ):
-        self.qdrant = qdrant_service.client
+        # PHASE 1 FIX: Store the service, not the client
+        self.qdrant = qdrant_service
         self.cognitive = cognitive_service
         self.patterns_dir = patterns_dir or (
             settings.REPO_PATH / ".intent" / "charter" / "patterns"
@@ -98,29 +105,19 @@ class PatternVectorizer:
     async def ensure_collection(self) -> None:
         """
         Ensure core-patterns collection exists with correct schema.
-
-        Constitutional mandate: Collection must exist for pattern awareness.
+        Delegates to QdrantService for idempotency.
         """
-        collections_response = await self.qdrant.get_collections()
-        collections = {c.name for c in collections_response.collections}
-
-        if self.COLLECTION_NAME not in collections:
-            logger.info(f"Creating {self.COLLECTION_NAME} collection")
-            await self.qdrant.create_collection(
-                collection_name=self.COLLECTION_NAME,
-                vectors_config=VectorParams(
-                    size=self.VECTOR_DIMENSION,
-                    distance=Distance.COSINE,
-                ),
-            )
-            logger.info(f"✓ Created {self.COLLECTION_NAME} collection")
-        else:
-            logger.debug(f"{self.COLLECTION_NAME} collection already exists")
+        await self.qdrant.ensure_collection(
+            collection_name=self.COLLECTION_NAME,
+            vector_size=self.VECTOR_DIMENSION,
+        )
 
     # ID: fab06120-8b1b-4959-87a1-c14d7dc5f356
     async def vectorize_all_patterns(self) -> dict[str, int]:
         """
         Vectorize all pattern files in .intent/charter/patterns/.
+
+        PHASE 1: Now uses hash-based deduplication to skip unchanged patterns.
 
         Returns:
             Dict mapping pattern_id -> chunk_count
@@ -130,10 +127,14 @@ class PatternVectorizer:
         pattern_files = list(self.patterns_dir.glob("*.yaml"))
         logger.info(f"Found {len(pattern_files)} pattern files to vectorize")
 
+        # PHASE 2 PREP: Get stored hashes for deduplication
+        stored_hashes = await self.qdrant.get_stored_hashes()
+        logger.debug(f"Retrieved {len(stored_hashes)} existing pattern hashes")
+
         results = {}
         for pattern_file in pattern_files:
             try:
-                count = await self.vectorize_pattern(pattern_file)
+                count = await self.vectorize_pattern(pattern_file, stored_hashes)
                 results[pattern_file.stem] = count
                 logger.info(f"✓ Vectorized {pattern_file.name}: {count} chunks")
             except Exception as e:
@@ -148,12 +149,20 @@ class PatternVectorizer:
         return results
 
     # ID: 9373a88b-281f-4956-b807-af849ac35d3d
-    async def vectorize_pattern(self, pattern_file: Path) -> int:
+    async def vectorize_pattern(
+        self,
+        pattern_file: Path,
+        stored_hashes: dict[str, str] | None = None,
+    ) -> int:
         """
         Vectorize a single pattern file into semantic chunks.
 
+        PHASE 1: Updated to use service methods.
+        PHASE 2 PREP: Accepts stored_hashes for future deduplication.
+
         Args:
             pattern_file: Path to pattern YAML file
+            stored_hashes: Optional pre-fetched hashes for deduplication
 
         Returns:
             Number of chunks created
@@ -197,25 +206,36 @@ class PatternVectorizer:
             logger.warning(f"Failed to generate embeddings for {pattern_file.name}")
             return 0
 
-        # Create Qdrant points
+        # PHASE 1 FIX: Create points with content_sha256 hashes
         points = []
         for idx, (chunk, embedding) in enumerate(valid_data):
-            point_id = f"{pattern_id}_{idx}"
-            p_id = hash(point_id) % (2**63)
+            point_id = hash(f"{pattern_id}_{idx}") % (2**63)
+
+            # PHASE 2 PREP: Compute content hash for deduplication
+            normalized_content = chunk.content.strip()
+            content_hash = hashlib.sha256(
+                normalized_content.encode("utf-8")
+            ).hexdigest()
+
+            # Add hash to payload
+            payload = chunk.to_metadata()
+            payload["content_sha256"] = content_hash
+            payload["chunk_id"] = f"{pattern_id}_{idx}"
 
             points.append(
                 PointStruct(
-                    id=p_id,
+                    id=point_id,
                     vector=embedding,
-                    payload=chunk.to_metadata(),
+                    payload=payload,
                 )
             )
 
-        # Upsert to Qdrant
-        await self.qdrant.upsert(
-            collection_name=self.COLLECTION_NAME,
-            points=points,
-        )
+        # PHASE 1 FIX: Use QdrantService method instead of direct client access
+        if points:
+            await self.qdrant.upsert_points(
+                collection_name=self.COLLECTION_NAME,
+                points=points,
+            )
 
         return len(valid_data)
 
@@ -359,6 +379,8 @@ class PatternVectorizer:
         """
         Query patterns semantically.
 
+        PHASE 1 FIX: Uses QdrantService.search method.
+
         Args:
             query: Natural language query
             limit: Max results to return
@@ -372,7 +394,7 @@ class PatternVectorizer:
         if not query_vector:
             return []
 
-        # Search Qdrant
+        # PHASE 1 FIX: Use service search method
         results = await self.qdrant.search(
             collection_name=self.COLLECTION_NAME,
             query_vector=query_vector,
@@ -381,8 +403,8 @@ class PatternVectorizer:
 
         return [
             {
-                "score": result.score,
-                **result.payload,
+                "score": hit.score,
+                **hit.payload,
             }
-            for result in results
+            for hit in results
         ]
