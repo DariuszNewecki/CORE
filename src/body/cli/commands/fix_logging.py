@@ -2,14 +2,18 @@
 """
 Automated remediation for logging standards violations.
 Converts console.print, console.status, and print() to logger calls.
+Converts f-strings in logger calls to lazy % formatting.
 
 Constitutional Rules Enforced:
 - LOG-001: Logic layers must use logger, not Rich Console.
+- LOG-003: No f-strings in logger calls (use lazy % formatting).
+- LOG-004: Replace console.status() with logger.info().
 - CLI Layer Exemption: src/body/cli/** MAY use Rich Console.
 """
 
 from __future__ import annotations
 
+import ast
 import re
 from pathlib import Path
 
@@ -64,7 +68,10 @@ class LoggingFixer:
             # Universal Ban on print() (except scripts, checked in _is_exempted)
             content = self._fix_print_calls(content, is_cli_layer)
 
-            # 2. If changes made, ensure logger import exists
+            # 2. Fix f-strings in logger calls (LOG-003)
+            content = self._fix_logger_fstrings(content)
+
+            # 3. If changes made, ensure logger import exists
             if content != original:
                 content = self._ensure_logger_import(content)
 
@@ -186,6 +193,137 @@ class LoggingFixer:
                 fixed_lines.append(line)
 
         return "\n".join(fixed_lines)
+
+    # ID: 9a8b7c6d-5e4f-3a2b-1c0d-e9f8a7b6c5d4
+    def _fix_logger_fstrings(self, content: str) -> str:
+        """
+        Convert f-strings in logger calls to lazy % formatting (LOG-003).
+
+        Examples:
+            logger.info(f"Processing {item}")
+            → logger.info("Processing %s", item)
+
+            logger.error(f"Failed: {e}")
+            → logger.error("Failed: %s", e)
+
+            logger.debug(f"Count: {len(items)} items")
+            → logger.debug("Count: %s items", len(items))
+        """
+        try:
+            tree = ast.parse(content)
+        except SyntaxError:
+            # If file has syntax errors, skip f-string fixing
+            return content
+
+        # Track all f-string conversions to make
+        replacements = []
+
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Call):
+                continue
+
+            # Check if this is a logger.method() call
+            if not (
+                isinstance(node.func, ast.Attribute)
+                and isinstance(node.func.value, ast.Name)
+                and node.func.value.id == "logger"
+                and node.func.attr
+                in ("debug", "info", "warning", "error", "critical", "exception")
+            ):
+                continue
+
+            # Check if first argument is an f-string
+            if not node.args:
+                continue
+
+            first_arg = node.args[0]
+            if not isinstance(first_arg, ast.JoinedStr):
+                continue
+
+            # We have an f-string in a logger call!
+            # Extract the line and convert it
+            line_no = first_arg.lineno
+            replacements.append((line_no, first_arg))
+
+        if not replacements:
+            return content
+
+        # Apply replacements line by line
+        lines = content.split("\n")
+        for line_no, fstring_node in replacements:
+            if line_no < 1 or line_no > len(lines):
+                continue
+
+            line_idx = line_no - 1
+            original_line = lines[line_idx]
+
+            # Convert the f-string
+            converted = self._convert_fstring_to_lazy(original_line, fstring_node)
+            if converted and converted != original_line:
+                lines[line_idx] = converted
+
+        return "\n".join(lines)
+
+    # ID: 8b7c6d5e-4f3a-2b1c-0d9e-f8a7b6c5d4e3
+    def _convert_fstring_to_lazy(self, line: str, fstring_node: ast.JoinedStr) -> str:
+        """
+        Convert a single f-string to lazy % formatting.
+
+        This uses AST to properly extract format values while preserving
+        the surrounding code structure.
+        """
+        # Build the format string and collect arguments
+        format_parts = []
+        args = []
+
+        for value in fstring_node.values:
+            if isinstance(value, ast.Constant):
+                # Plain string part
+                format_parts.append(value.value)
+            elif isinstance(value, ast.FormattedValue):
+                # Variable/expression to be formatted
+                format_parts.append("%s")
+                # Extract the source code for this expression
+                try:
+                    args.append(ast.unparse(value.value))
+                except Exception:
+                    # Fallback: just use a placeholder
+                    args.append("...")
+
+        # Build the new format string
+        new_format_str = "".join(format_parts)
+
+        # Build the new logger call
+        # Find the logger method name in the line
+        logger_match = re.search(
+            r"logger\.(debug|info|warning|error|critical|exception)\s*\(",
+            line,
+        )
+        if not logger_match:
+            return line
+
+        # Find where the f-string starts and ends in the line
+        fstring_pattern = r'f"[^"]*"'
+        fstring_match = re.search(fstring_pattern, line)
+        if not fstring_match:
+            # Try single quotes
+            fstring_pattern = r"f'[^']*'"
+            fstring_match = re.search(fstring_pattern, line)
+
+        if not fstring_match:
+            return line
+
+        # Extract everything before and after the f-string
+        before = line[: fstring_match.start()]
+        after = line[fstring_match.end() :]
+
+        # Build the new line
+        if args:
+            new_line = f'{before}"{new_format_str}", {", ".join(args)}{after}'
+        else:
+            new_line = f'{before}"{new_format_str}"{after}'
+
+        return new_line
 
     # ID: b8c9d0e1-f2a3-4567-b890-8901234567b2
     def _is_exempted_file(self, file_path: Path) -> bool:

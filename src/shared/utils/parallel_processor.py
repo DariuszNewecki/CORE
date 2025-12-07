@@ -40,7 +40,8 @@ class ThrottledParallelProcessor:
         self.concurrency_limit = settings.CORE_MAX_CONCURRENT_REQUESTS
         self.description = description
         logger.info(
-            f"ThrottledParallelProcessor initialized with concurrency limit: {self.concurrency_limit}"
+            "ThrottledParallelProcessor initialized with concurrency limit: %s",
+            self.concurrency_limit,
         )
 
     async def _process_items_async(
@@ -56,10 +57,10 @@ class ThrottledParallelProcessor:
 
         tasks = [asyncio.create_task(_worker(item)) for item in items]
 
-        with console.status(f"[bold cyan]{self.description}[/bold cyan]"):
-            for task in asyncio.as_completed(tasks):
-                result = await task
-                results.append(result)
+        logger.info("%s", self.description)
+        for task in asyncio.as_completed(tasks):
+            result = await task
+            results.append(result)
 
         return results
 

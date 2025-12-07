@@ -3,10 +3,14 @@
 Provides functionality for the audit module.
 
 Refactored to be stateless and pure async (logic layer).
-Now HEADLESS: Returns data, does not print (LOG-001 compliance).
+Now HEADLESS: Returns data, does not console.print(LOG-001 compliance).
 """
 
 from __future__ import annotations
+
+from shared.logger import getLogger
+
+logger = getLogger(__name__)
 
 from mind.governance.auditor import ConstitutionalAuditor
 from shared.context import CoreContext
