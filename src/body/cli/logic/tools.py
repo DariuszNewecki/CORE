@@ -6,6 +6,10 @@ This is the new, governed home for logic from standalone scripts.
 
 from __future__ import annotations
 
+from shared.logger import getLogger
+
+logger = getLogger(__name__)
+
 import sys
 from pathlib import Path
 
@@ -47,10 +51,12 @@ def rewire_imports_cli(
 
     logger.info("--- Re-wiring Complete ---")
     if dry_run:
-        logger.info(f"DRY RUN: Found {total_changes} potential import changes to make.")
+        logger.info(
+            "DRY RUN: Found %s potential import changes to make.", total_changes
+        )
         logger.info("Run with '--write' to apply them.")
     else:
-        logger.info(f"APPLIED: Made {total_changes} import changes.")
+        logger.info("APPLIED: Made %s import changes.", total_changes)
 
     logger.info("--- NEXT STEPS ---")
     logger.info(
@@ -97,7 +103,7 @@ def export_context_cmd(
         if e.code != 0:
             raise typer.Exit(e.code)
     except Exception as e:
-        logger.error(f"Export failed: {e}")
+        logger.error("Export failed: %s", e)
         raise typer.Exit(1)
     finally:
         sys.argv = original_argv

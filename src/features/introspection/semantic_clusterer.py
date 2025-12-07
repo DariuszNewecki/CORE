@@ -12,7 +12,6 @@ from pathlib import Path
 import numpy as np
 import typer
 from dotenv import load_dotenv
-
 from shared.logger import getLogger
 
 try:
@@ -36,7 +35,7 @@ def run_clustering(input_path: Path, output: Path, n_clusters: int):
         raise RuntimeError("scikit-learn is not installed for clustering.")
     logger.info("🚀 Starting semantic clustering process...")
     output.parent.mkdir(parents=True, exist_ok=True)
-    logger.info(f"   -> Loading vectors from {input_path}...")
+    logger.info("   -> Loading vectors from %s...", input_path)
     vectors = []
     capability_keys = []
     with input_path.open("r", encoding="utf-8") as f:
@@ -47,7 +46,7 @@ def run_clustering(input_path: Path, output: Path, n_clusters: int):
                     vectors.append(record["vector"])
                     capability_keys.append(record["payload"]["symbol"])
     if not vectors:
-        logger.error(f"❌ No valid vector data found in {input_path}.")
+        logger.error("❌ No valid vector data found in %s.", input_path)
         raise ValueError(f"No valid vector data found in {input_path}.")
     logger.info(
         f"   -> Loaded {len(vectors)} vectors for clustering into {n_clusters} domains."

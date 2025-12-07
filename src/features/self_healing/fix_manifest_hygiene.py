@@ -32,7 +32,7 @@ def run_fix_manifest_hygiene(
     dry_run = not write
     logger.info("Starting manifest hygiene check for misplaced capabilities...")
     if not DOMAINS_DIR.is_dir():
-        logger.error(f"Domains directory not found at: {DOMAINS_DIR}")
+        logger.error("Domains directory not found at: %s", DOMAINS_DIR)
         raise typer.Exit(code=1)
     all_domain_files = {p.stem: p for p in DOMAINS_DIR.glob("*.yaml")}
     changes_to_make: dict[str, dict[str, Any]] = {}
@@ -79,7 +79,7 @@ def run_fix_manifest_hygiene(
                             f"   -> Could not find a manifest file for domain '{correct_domain}' to move '{cap['key']}'."
                         )
         except Exception as e:
-            logger.error(f"Error processing {file_path.name}: {e}")
+            logger.error("Error processing {file_path.name}: %s", e)
     if not changes_to_make:
         logger.info("Manifest hygiene is perfect. No misplaced capabilities found.")
         return
@@ -98,7 +98,7 @@ def run_fix_manifest_hygiene(
             )
             logger.info(f"  - Updated {Path(path_str).name}")
         except Exception as e:
-            logger.info(f"  - Failed to update {Path(path_str).name}: {e}")
+            logger.info("  - Failed to update {Path(path_str).name}: %s", e)
 
 
 if __name__ == "__main__":

@@ -10,7 +10,6 @@ from pathlib import Path
 
 import typer
 import yaml
-
 from features.introspection.knowledge_graph_service import KnowledgeGraphBuilder
 from shared.logger import getLogger
 
@@ -40,7 +39,7 @@ def initialize_repository(
     """
     Analyzes an external repository and scaffolds a minimal `.intent/` constitution.
     """
-    logger.info(f"🚀 Starting analysis of repository at: {path}")
+    logger.info("🚀 Starting analysis of repository at: %s", path)
     logger.info("   -> Step 1: Building Knowledge Graph of the target repository...")
     try:
         builder = KnowledgeGraphBuilder(root_path=path)

@@ -9,7 +9,6 @@ from __future__ import annotations
 from pathlib import Path
 
 import yaml
-
 from shared.logger import getLogger
 from shared.models import CapabilityMeta
 
@@ -35,5 +34,5 @@ def load_manifest_capabilities(
                     if isinstance(key, str):
                         capabilities[key] = CapabilityMeta(key=key)
         except (OSError, yaml.YAMLError) as e:
-            logger.warning(f"Could not parse manifest at {manifest_path}: {e}")
+            logger.warning("Could not parse manifest at {manifest_path}: %s", e)
     return capabilities

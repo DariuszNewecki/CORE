@@ -68,7 +68,7 @@ def _orchestrate_review(
     output_path: Path,
     no_send: bool,
 ):
-    logger.info(f"🤖 Orchestrating review for: {bundle_name}...")
+    logger.info("🤖 Orchestrating review for: %s...", bundle_name)
     try:
         prompt_path = settings.get_path(f"mind.prompts.{prompt_key}")
         review_prompt_template = prompt_path.read_text(encoding="utf-8")
@@ -77,7 +77,7 @@ def _orchestrate_review(
             f"❌ Review prompt '{prompt_key}' not found in meta.yaml. Cannot proceed."
         )
         raise typer.Exit(code=1)
-    logger.info(f"   -> Loaded review prompt: {prompt_key}")
+    logger.info("   -> Loaded review prompt: %s", prompt_key)
     logger.info("   -> Bundling files for review...")
     files_to_bundle = file_gatherer_fn()
     bundle_content = _get_bundle_content(files_to_bundle, settings.REPO_PATH)
@@ -85,12 +85,12 @@ def _orchestrate_review(
     bundle_output_path = settings.REPO_PATH / "reports" / f"{bundle_name}_bundle.txt"
     bundle_output_path.parent.mkdir(parents=True, exist_ok=True)
     bundle_output_path.write_text(bundle_content, encoding="utf-8")
-    logger.info(f"   -> Saved review bundle to: {bundle_output_path}")
+    logger.info("   -> Saved review bundle to: %s", bundle_output_path)
     final_prompt = f"{review_prompt_template}\n\n{bundle_content}"
     if no_send:
         output_path.parent.mkdir(parents=True, exist_ok=True)
         output_path.write_text(final_prompt, encoding="utf-8")
-        logger.info(f"✅ Full prompt bundle for manual review saved to: {output_path}")
+        logger.info("✅ Full prompt bundle for manual review saved to: %s", output_path)
         raise typer.Exit()
     logger.info("   -> Sending bundle to LLM for analysis. This may take a moment...")
     cognitive_service = CognitiveService(settings.REPO_PATH)
@@ -105,7 +105,7 @@ def _orchestrate_review(
     review_feedback = asyncio.run(run_async_review())
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(review_feedback, encoding="utf-8")
-    logger.info(f"✅ Successfully received feedback and saved to: {output_path}")
+    logger.info("✅ Successfully received feedback and saved to: %s", output_path)
     logger.info(f"\n--- {bundle_name.replace('_', ' ').title()} Review Summary ---")
     logger.info(Markdown(review_feedback))
 
@@ -171,7 +171,7 @@ def code_review(
             )
             logger.info(Markdown(review_feedback))
         except FileNotFoundError:
-            logger.error(f"❌ Error: File not found at '{file_path}'")
+            logger.error("❌ Error: File not found at '%s'", file_path)
             raise typer.Exit(code=1)
         except Exception as e:
             logger.error(

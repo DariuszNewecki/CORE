@@ -10,6 +10,7 @@ from __future__ import annotations
 from typing import Any
 
 from shared.logger import getLogger
+
 from will.orchestration.cognitive_service import CognitiveService
 
 logger = getLogger(__name__)
@@ -53,7 +54,7 @@ class ReconnaissanceAgent:
             )
             return (relevant_symbols, sorted(list(relevant_files)))
         except Exception as e:
-            logger.warning(f"Semantic search for context failed: {e}")
+            logger.warning("Semantic search for context failed: %s", e)
             return ([], [])
 
     # ID: c4f6267a-2c91-4dd6-929e-967cc2794cfb
@@ -61,7 +62,7 @@ class ReconnaissanceAgent:
         """
         Analyzes a goal, queries the graph, and generates a surgical context report.
         """
-        logger.info(f"🔬 Conducting reconnaissance for goal: '{goal}'")
+        logger.info("🔬 Conducting reconnaissance for goal: '%s'", goal)
         target_symbols, relevant_files = await self._find_relevant_symbols_and_files(
             goal
         )
@@ -98,7 +99,7 @@ class ReconnaissanceAgent:
             "\n---\n**Conclusion:** The analysis is complete. Use this information to form a precise plan."
         )
         report = "\n".join(report_parts)
-        logger.info(f"   -> Generated Surgical Context Report:\n{report}")
+        logger.info("   -> Generated Surgical Context Report:\n%s", report)
         return report
 
     def _find_callers(self, symbol_name: str | None) -> list[dict]:

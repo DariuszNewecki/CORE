@@ -7,6 +7,10 @@ Wraps existing Qdrant client for context building.
 
 from __future__ import annotations
 
+from shared.logger import getLogger
+
+logger = getLogger(__name__)
+
 import logging
 from typing import Any
 
@@ -41,7 +45,7 @@ class VectorProvider:
         Returns:
             List of similar items with name, path, score, summary
         """
-        logger.info(f"Searching Qdrant for: '{query}' (top {top_k})")
+        logger.info("Searching Qdrant for: '{query}' (top %s)", top_k)
 
         if not self.qdrant:
             logger.warning("No Qdrant client - returning empty results")
@@ -62,7 +66,7 @@ class VectorProvider:
             return await self.search_by_embedding(query_vector, top_k, collection)
 
         except Exception as e:
-            logger.error(f"Qdrant search failed: {e}")
+            logger.error("Qdrant search failed: %s", e)
             return []
 
     # ID: b946488a-5c28-4ff0-b010-b1235e954b66
@@ -79,7 +83,7 @@ class VectorProvider:
         Returns:
             List of similar items
         """
-        logger.debug(f"Searching by embedding (top {top_k})")
+        logger.debug("Searching by embedding (top %s)", top_k)
 
         if not self.qdrant:
             return []
@@ -137,7 +141,7 @@ class VectorProvider:
         try:
             return await self.qdrant.get_vector_by_id(symbol_id)
         except Exception as e:
-            logger.error(f"Failed to get symbol embedding: {e}")
+            logger.error("Failed to get symbol embedding: %s", e)
             return None
 
     # ID: 41bfcc74-0d0e-48b0-ab18-6b2000548ff0
@@ -154,7 +158,7 @@ class VectorProvider:
         Returns:
             List of neighbor symbols
         """
-        logger.debug(f"Finding neighbors for: {symbol_name}")
+        logger.debug("Finding neighbors for: %s", symbol_name)
 
         if not self.qdrant:
             return []

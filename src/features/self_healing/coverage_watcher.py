@@ -138,7 +138,7 @@ class CoverageWatcher:
             )
             return datetime.now() - last_time < timedelta(hours=cooldown_hours)
         except Exception as e:
-            logger.debug(f"Could not check cooldown: {e}")
+            logger.debug("Could not check cooldown: %s", e)
         return False
 
     def _record_compliant_state(self) -> None:
@@ -149,7 +149,7 @@ class CoverageWatcher:
                 state.update(existing)
             self.state_file.write_text(json.dumps(state, indent=2))
         except Exception as e:
-            logger.debug(f"Could not record state: {e}")
+            logger.debug("Could not record state: %s", e)
 
     def _record_remediation(self, violation: CoverageViolation, result: dict) -> None:
         try:
@@ -186,7 +186,7 @@ class CoverageWatcher:
             state["remediation_history"] = state["remediation_history"][-10:]
             self.state_file.write_text(json.dumps(state, indent=2))
         except Exception as e:
-            logger.debug(f"Could not record remediation: {e}")
+            logger.debug("Could not record remediation: %s", e)
 
 
 # ID: 547d5f4c-c028-4386-975a-02cf7792ee85

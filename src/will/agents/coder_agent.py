@@ -204,7 +204,7 @@ class CoderAgent:
                             code=current_code,
                         )
 
-                logger.info(f"  -> ✅ Pattern validation passed: {pattern_id}")
+                logger.info("  -> ✅ Pattern validation passed: %s", pattern_id)
 
                 # PHASE 2: Constitutional & Runtime Validation
                 validation_result = await validate_code_async(

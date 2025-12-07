@@ -29,7 +29,7 @@ async def _async_reconcile():
     logger.info("Reconciling capabilities from CLI registry to database...")
 
     if not CLI_REGISTRY_PATH.exists():
-        logger.error(f"CLI Registry not found at {CLI_REGISTRY_PATH}")
+        logger.error("CLI Registry not found at %s", CLI_REGISTRY_PATH)
         raise typer.Exit(code=1)
 
     registry = yaml.safe_load(CLI_REGISTRY_PATH.read_text("utf-8"))
@@ -74,7 +74,7 @@ async def _async_reconcile():
                 if result.rowcount > 0:
                     linked_count += 1
 
-    logger.info(f"Successfully linked {linked_count} capabilities.")
+    logger.info("Successfully linked %s capabilities.", linked_count)
 
 
 # ID: b43fc6d4-413b-47f2-8a0c-7860836913ab

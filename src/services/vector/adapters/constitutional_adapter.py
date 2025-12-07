@@ -81,11 +81,11 @@ class ConstitutionalAdapter:
             List of VectorizableItems from all files
         """
         if not directory.exists():
-            logger.warning(f"Directory not found: {directory}")
+            logger.warning("Directory not found: %s", directory)
             return []
 
         yaml_files = list(directory.glob("*.yaml"))
-        logger.info(f"Processing {len(yaml_files)} {doc_type} files from {directory}")
+        logger.info("Processing {len(yaml_files)} {doc_type} files from %s", directory)
 
         all_items: list[VectorizableItem] = []
 
@@ -95,9 +95,9 @@ class ConstitutionalAdapter:
                 all_items.extend(items)
                 logger.debug(f"✓ {yaml_file.name}: {len(items)} chunks")
             except Exception as e:
-                logger.error(f"✗ Failed to process {yaml_file.name}: {e}")
+                logger.error("✗ Failed to process {yaml_file.name}: %s", e)
 
-        logger.info(f"Generated {len(all_items)} items from {doc_type} files")
+        logger.info("Generated {len(all_items)} items from %s files", doc_type)
         return all_items
 
     def _file_to_items(self, yaml_file: Path, doc_type: str) -> list[VectorizableItem]:

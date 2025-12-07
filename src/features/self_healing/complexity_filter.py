@@ -11,7 +11,6 @@ from pathlib import Path
 from typing import Any
 
 from radon.visitors import ComplexityVisitor
-
 from shared.logger import getLogger
 
 logger = getLogger(__name__)
@@ -61,7 +60,7 @@ class ComplexityFilter:
                 "complexity": visitor.complexity,
             }
         except Exception as e:
-            logger.warning(f"Could not analyze complexity for {file_path}: {e}")
+            logger.warning("Could not analyze complexity for {file_path}: %s", e)
             return {
                 "should_attempt": False,
                 "reason": "Failed to analyze complexity",

@@ -34,7 +34,7 @@ def _load_policy_yaml(logical_path: str) -> dict[str, Any]:
                 fallback_path = fallback_path.with_suffix(".yaml")
 
             if fallback_path.exists():
-                logger.info(f"Found policy at fallback path: {fallback_path}")
+                logger.info("Found policy at fallback path: %s", fallback_path)
                 path = fallback_path
             else:
                 raise ValueError(msg)
@@ -45,7 +45,7 @@ def _load_policy_yaml(logical_path: str) -> dict[str, Any]:
             raise ValueError(f"Policy file must be a dictionary: {path}")
         return data
     except Exception as e:
-        logger.error(f"Failed to load policy '{logical_path}': {e}")
+        logger.error("Failed to load policy '{logical_path}': %s", e)
         raise ValueError(f"Failed to load policy '{logical_path}': {e}") from e
 
 

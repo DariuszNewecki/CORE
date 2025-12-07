@@ -28,7 +28,7 @@ async def validate_code_async(
     """Validate a file's code by routing it to the appropriate validation pipeline."""
     classification = get_file_classification(file_path)
     if not quiet:
-        logger.debug(f"Validation: Classifying '{file_path}' as '{classification}'.")
+        logger.debug("Validation: Classifying '{file_path}' as '%s'.", classification)
     final_code = code
     violations = []
     if classification == "python":

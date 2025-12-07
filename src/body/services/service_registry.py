@@ -204,7 +204,7 @@ class ServiceRegistry:
             else:
                 self._instances[name] = service_class()
 
-            logger.debug(f"Lazily initialized dynamic service: {name}")
+            logger.debug("Lazily initialized dynamic service: %s", name)
 
         return self._instances[name]
 

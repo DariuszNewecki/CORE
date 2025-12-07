@@ -27,13 +27,13 @@ diagnostics_app = typer.Typer(help="Deep diagnostic and integrity checks.")
 
 async def _async_find_clusters(context: CoreContext, n_clusters: int):
     """Async helper that contains the core logic for the command."""
-    logger.info(f"Finding semantic clusters with n_clusters={n_clusters}...")
+    logger.info("Finding semantic clusters with n_clusters=%s...", n_clusters)
 
     if context.qdrant_service is None and context.registry:
         try:
             context.qdrant_service = await context.registry.get_qdrant_service()
         except Exception as e:
-            logger.error(f"Failed to initialize QdrantService: {e}")
+            logger.error("Failed to initialize QdrantService: %s", e)
             return
 
     clusters = await find_semantic_clusters(

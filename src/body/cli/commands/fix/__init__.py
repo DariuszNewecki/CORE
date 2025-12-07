@@ -135,6 +135,12 @@ COMMAND_CONFIG = {
         "confirmation": True,
         "category": "governance",
     },
+    "imports": {
+        "timeout": 120,
+        "dangerous": False,
+        "confirmation": False,
+        "category": "formatting",
+    },
 }
 
 
@@ -238,6 +244,7 @@ from . import (  # noqa: E402,F401
     docstrings,
     fix_ir,  # Covers ir_triage, ir_log
     handler_discovery,
+    imports,  # ADDED: Covers import sorting and grouping
     list_commands,
     metadata,  # Covers ids, tags, policy-ids, duplicate-ids, purge-legacy-tags
 )

@@ -14,7 +14,6 @@ from pathlib import Path
 from typing import Any
 
 import yaml
-
 from shared.ast_utility import (
     FunctionCallVisitor,
     calculate_structural_hash,
@@ -104,7 +103,7 @@ class KnowledgeGraphBuilder:
                 ):
                     self._process_symbol(node, file_path, source_lines)
         except Exception as e:
-            logger.error(f"Failed to process file {file_path}: {e}")
+            logger.error("Failed to process file {file_path}: %s", e)
 
     def _determine_domain(self, file_path: Path) -> str:
         """Determines the architectural domain of a file."""

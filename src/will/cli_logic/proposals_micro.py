@@ -29,7 +29,7 @@ logger = getLogger(__name__)
 # ID: a80cb627-643e-42d0-ad6c-006303438f15
 async def micro_propose(context: CoreContext, goal: str) -> Path | None:
     """Uses an agent to create a safe, auto-approvable plan for a goal."""
-    logger.info(f"🤖 Generating micro-proposal for goal: '[cyan]{goal}[/cyan]'")
+    logger.info("🤖 Generating micro-proposal for goal: '[cyan]%s[/cyan]'", goal)
     cognitive_service = context.cognitive_service
     planner = MicroPlannerAgent(cognitive_service)
     plan = await planner.create_micro_plan(goal)
@@ -90,7 +90,7 @@ async def _micro_apply(context: CoreContext, proposal_path: Path):
         plan_dicts = proposal_data.get("plan", [])
         plan = [ExecutionTask(**task) for task in plan_dicts]
     except Exception as e:
-        logger.info(f"[bold red]❌ Error loading proposal file: {e}[/bold red]")
+        logger.info("[bold red]❌ Error loading proposal file: %s[/bold red]", e)
         raise typer.Exit(code=1)
     action_logger.log_event(
         "a1.apply.started",
@@ -131,5 +131,5 @@ async def _micro_apply(context: CoreContext, proposal_path: Path):
                 "duration_sec": round(duration, 2),
             },
         )
-        logger.info(f"[bold red]❌ Error during plan execution: {e}[/bold red]")
+        logger.info("[bold red]❌ Error during plan execution: %s[/bold red]", e)
         raise typer.Exit(code=1)

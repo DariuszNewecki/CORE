@@ -153,7 +153,7 @@ class AtomicActionsChecker:
                 )
             )
         except Exception as e:
-            logger.error(f"Error checking {file_path}: {e}")
+            logger.error("Error checking {file_path}: %s", e)
 
         return violations, action_count
 

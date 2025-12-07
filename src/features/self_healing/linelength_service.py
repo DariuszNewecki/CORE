@@ -31,7 +31,7 @@ async def _async_fix_line_lengths(
     )
     prompt_template_path = settings.MIND / "prompts" / "fix_line_length.prompt"
     if not prompt_template_path.exists():
-        logger.error(f"Prompt not found at {prompt_template_path}. Cannot proceed.")
+        logger.error("Prompt not found at %s. Cannot proceed.", prompt_template_path)
         raise typer.Exit(code=1)
     prompt_template = prompt_template_path.read_text(encoding="utf-8")
     fixer_client = await cognitive_service.aget_client_for_role("CodeStyleFixer")
@@ -75,7 +75,7 @@ async def _async_fix_line_lengths(
                         f"Skipping {file_path.name}: AI-generated code failed validation."
                     )
         except Exception as e:
-            logger.error(f"Could not process {file_path.name}: {e}")
+            logger.error("Could not process {file_path.name}: %s", e)
 
     if dry_run:
         logger.info("Dry Run Summary:")

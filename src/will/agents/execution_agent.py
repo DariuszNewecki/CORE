@@ -82,7 +82,7 @@ class _ExecutionAgent:
                                 "  -> ⚠️ Validation failed, but captured draft code for crate."
                             )
 
-                        logger.error(f"Code generation failed: {e}")
+                        logger.error("Code generation failed: %s", e)
                         raise  # Re-raise to stop execution but keep the plan modified
 
                     except Exception as e:

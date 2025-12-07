@@ -13,7 +13,6 @@ import time
 from typing import Any
 
 import httpx
-
 from shared.config import settings
 from shared.logger import getLogger
 
@@ -141,7 +140,7 @@ class BaseLLMClient:
                 error_message = f"Request failed (attempt {attempt + 1}/{len(backoff_delays) + 1}) for {api_url}: {type(e).__name__} - {e}"
                 if attempt < len(backoff_delays):
                     wait_time = backoff_delays[attempt] + random.uniform(0, 0.5)
-                    logger.warning(f"{error_message}. Retrying in {wait_time:.1f}s...")
+                    logger.warning("%s. Retrying in {wait_time:.1f}s...", error_message)
                     await asyncio.sleep(wait_time)
                     continue
                 logger.error(f"Final attempt failed: {error_message}", exc_info=True)
@@ -173,7 +172,7 @@ class BaseLLMClient:
                     error_message += f"\nResponse body: {e.response.text}"
                 if attempt < len(backoff_delays):
                     wait_time = backoff_delays[attempt] + random.uniform(0, 0.5)
-                    logger.warning(f"{error_message}. Retrying in {wait_time:.1f}s...")
+                    logger.warning("%s. Retrying in {wait_time:.1f}s...", error_message)
                     time.sleep(wait_time)
                     continue
                 logger.error(

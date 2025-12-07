@@ -30,7 +30,7 @@ async def find_semantic_clusters(
             "scikit-learn is not installed. Cannot perform clustering. Please run 'poetry install --with dev'."
         )
         return []
-    logger.info(f"Finding {n_clusters} semantic clusters using K-Means...")
+    logger.info("Finding %s semantic clusters using K-Means...", n_clusters)
     try:
         all_points = await qdrant_service.get_all_vectors()
         if not all_points:
@@ -45,7 +45,7 @@ async def find_semantic_clusters(
         if not vectors:
             logger.warning("No valid vectors with symbol payloads found.")
             return []
-        logger.info(f"Clustering {len(vectors)} vectors into {n_clusters} domains...")
+        logger.info("Clustering {len(vectors)} vectors into %s domains...", n_clusters)
         vector_array = np.array(vectors, dtype=np.float32)
         kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init="auto")
         labels = kmeans.fit_predict(vector_array)

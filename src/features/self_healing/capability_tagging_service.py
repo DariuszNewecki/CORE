@@ -117,7 +117,7 @@ async def _async_tag_capabilities(
                     {"symbol_id": symbol_uuid, "capability_id": capability_id},
                 )
 
-                logger.info(f"   → Linked '{new_info['name']}' to '{suggested_name}'")
+                logger.info("   → Linked '{new_info['name']}' to '%s'", suggested_name)
 
         await session.commit()
 

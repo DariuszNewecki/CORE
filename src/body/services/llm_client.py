@@ -7,7 +7,6 @@ A dedicated, asynchronous client for interacting with LLM APIs.
 from __future__ import annotations
 
 import httpx
-
 from shared.logger import getLogger
 
 logger = getLogger(__name__)
@@ -71,5 +70,5 @@ class LLMClient:
                 )
                 raise
             except Exception as e:
-                logger.error(f"An unexpected error occurred during LLM request: {e}")
+                logger.error("An unexpected error occurred during LLM request: %s", e)
                 raise

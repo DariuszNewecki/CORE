@@ -41,9 +41,9 @@ class PatternValidator:
                     data = yaml.safe_load(f)
                     category = data.get("id", pattern_file.stem)
                     patterns[category] = data
-                    logger.info(f"Loaded pattern spec: {category}")
+                    logger.info("Loaded pattern spec: %s", category)
             except Exception as e:
-                logger.error(f"Failed to load {pattern_file}: {e}")
+                logger.error("Failed to load {pattern_file}: %s", e)
         return patterns
 
     # ID: 52ab1565-5e61-4a61-a0eb-c4785cde6372

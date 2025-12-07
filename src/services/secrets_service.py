@@ -110,7 +110,7 @@ class SecretsService:
             },
         )
         await db.commit()
-        logger.info(f"Secret '{key}' stored successfully (encrypted)")
+        logger.info("Secret '%s' stored successfully (encrypted)", key)
 
     # ID: 57544a15-6f61-4058-b5ea-280618781666
     async def get_secret(
@@ -160,7 +160,7 @@ class SecretsService:
         await db.commit()
         if result.rowcount == 0:
             raise SecretNotFoundError(key)
-        logger.info(f"Secret '{key}' deleted")
+        logger.info("Secret '%s' deleted", key)
 
     # ID: 90950eb7-628f-4ec1-8e22-3c697a4b6642
     async def list_secrets(self, db: AsyncSession) -> list[dict]:
@@ -194,9 +194,9 @@ class SecretsService:
         """
         try:
             old_value = await self.get_secret(db, key, audit_context="rotation")
-            logger.info(f"Rotating secret '{key}' (old value archived)")
+            logger.info("Rotating secret '%s' (old value archived)", key)
         except SecretNotFoundError:
-            logger.warning(f"Rotating secret '{key}' (no previous value)")
+            logger.warning("Rotating secret '%s' (no previous value)", key)
         await self.set_secret(
             db,
             key,
@@ -222,7 +222,7 @@ class SecretsService:
                 {"role": context or "system", "content": f"Accessed secret: {key}"},
             )
         except Exception as e:
-            logger.error(f"Failed to audit secret access: {e}")
+            logger.error("Failed to audit secret access: %s", e)
 
     @staticmethod
     # ID: a5c634df-816c-4843-a94a-1e2ffc92b998
@@ -258,7 +258,7 @@ class SecretsService:
                     description=f"Migrated from {env_name}",
                 )
                 migrated[env_name] = db_key
-                logger.info(f"Migrated {env_name} → {db_key}")
+                logger.info("Migrated {env_name} → %s", db_key)
         return migrated
 
 

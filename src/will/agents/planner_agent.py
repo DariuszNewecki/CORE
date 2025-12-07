@@ -11,6 +11,7 @@ from __future__ import annotations
 from shared.config import settings
 from shared.logger import getLogger
 from shared.models import ExecutionTask, PlanExecutionError
+
 from will.agents.base_planner import build_planning_prompt, parse_and_validate_plan
 from will.orchestration.cognitive_service import CognitiveService
 
@@ -49,7 +50,7 @@ class PlannerAgent:
                 try:
                     return parse_and_validate_plan(response_text)
                 except PlanExecutionError as e:
-                    logger.warning(f"Plan creation attempt {attempt + 1} failed: {e}")
+                    logger.warning("Plan creation attempt {attempt + 1} failed: %s", e)
                     if attempt == max_retries - 1:
                         raise PlanExecutionError(
                             "Failed to create a valid plan after max retries."

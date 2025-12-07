@@ -7,6 +7,10 @@ Records packet metadata to context_packets table.
 
 from __future__ import annotations
 
+from shared.logger import getLogger
+
+logger = getLogger(__name__)
+
 import json
 import logging
 from datetime import datetime
@@ -97,7 +101,7 @@ class ContextDatabase:
             return True
 
         except Exception as e:
-            logger.error(f"Failed to save packet metadata: {e}")
+            logger.error("Failed to save packet metadata: %s", e)
             # Rollback is handled by the context manager in the service layer
             return False
 
@@ -114,7 +118,7 @@ class ContextDatabase:
             row = result.mappings().first()
             return dict(row) if row else None
         except Exception as e:
-            logger.error(f"Failed to retrieve packet: {e}")
+            logger.error("Failed to retrieve packet: %s", e)
             return None
 
     # ID: d41d234d-1624-47c8-bd8d-e04447695879
@@ -129,7 +133,7 @@ class ContextDatabase:
             result = await self.db.execute(query, {"task_id": task_id})
             return [dict(row) for row in result.mappings().all()]
         except Exception as e:
-            logger.error(f"Failed to retrieve packets for task: {e}")
+            logger.error("Failed to retrieve packets for task: %s", e)
             return []
 
     # ID: aa5231a1-c123-426c-992e-930766d51db5
@@ -144,7 +148,7 @@ class ContextDatabase:
             result = await self.db.execute(query, {"limit": limit})
             return [dict(row) for row in result.mappings().all()]
         except Exception as e:
-            logger.error(f"Failed to retrieve recent packets: {e}")
+            logger.error("Failed to retrieve recent packets: %s", e)
             return []
 
     # ID: 01878af8-e1ee-4a13-9c23-d03723ddc268
@@ -166,5 +170,5 @@ class ContextDatabase:
             row = result.mappings().first()
             return dict(row) if row else {}
         except Exception as e:
-            logger.error(f"Failed to retrieve stats: {e}")
+            logger.error("Failed to retrieve stats: %s", e)
             return {}

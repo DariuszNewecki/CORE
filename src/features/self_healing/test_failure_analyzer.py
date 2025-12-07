@@ -13,6 +13,10 @@ This context is then used to guide test fixing iterations.
 
 from __future__ import annotations
 
+from shared.logger import getLogger
+
+logger = getLogger(__name__)
+
 import logging
 import re
 from dataclasses import dataclass
@@ -181,7 +185,7 @@ class TestFailureAnalyzer:
                 full_context=context,
             )
         except Exception as e:
-            logger.warning(f"Failed to parse failure line: {failure_line}: {e}")
+            logger.warning("Failed to parse failure line: {failure_line}: %s", e)
             return None
 
     def _extract_assertion_values(

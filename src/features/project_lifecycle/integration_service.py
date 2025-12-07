@@ -68,5 +68,5 @@ async def integrate_changes(context: CoreContext, commit_message: str):
         git_service.commit(commit_message)
         logger.info("Successfully integrated and committed changes.")
     except Exception as e:
-        logger.error(f"Integration process failed: {e}")
+        logger.error("Integration process failed: %s", e)
         raise typer.Exit(code=1)

@@ -10,7 +10,6 @@ import subprocess
 
 import typer
 from dotenv import load_dotenv
-
 from services.config_service import config_service
 from shared.config import settings
 from shared.logger import getLogger
@@ -35,7 +34,7 @@ async def chat(
             "❌ The 'chat' command requires LLMs to be enabled. Check 'LLM_ENABLED' in the database."
         )
         raise typer.Exit(code=1)
-    logger.info(f"Translating user goal: '{user_input}'")
+    logger.info("Translating user goal: '%s'", user_input)
     try:
         help_text_result = subprocess.run(
             ["poetry", "run", "core-admin", "--help"],
@@ -67,7 +66,7 @@ async def chat(
         else:
             raise KeyError("AI response missing 'command' or 'error' key.")
     except (json.JSONDecodeError, KeyError) as e:
-        logger.error(f"Failed to parse the AI's translation: {e}")
+        logger.error("Failed to parse the AI's translation: %s", e)
         typer.echo("The AI returned a response I couldn't understand. Raw response:")
         typer.echo(response_text)
         raise typer.Exit(code=1)

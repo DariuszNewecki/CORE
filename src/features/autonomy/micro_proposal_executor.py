@@ -68,7 +68,7 @@ class MicroProposalExecutor:
                 raise ValueError("Micro-proposal policy is empty or invalid")
             return policy
         except ValueError as e:
-            logger.error(f"Failed to load micro-proposal policy: {e}")
+            logger.error("Failed to load micro-proposal policy: %s", e)
             raise
 
     def _check_safe_actions(self, action: str) -> CheckResult:
@@ -249,5 +249,5 @@ class MicroProposalExecutor:
                 return False
             return True
         except Exception as e:
-            logger.error(f"Failed to apply micro-proposal: {e}")
+            logger.error("Failed to apply micro-proposal: %s", e)
             return False

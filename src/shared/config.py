@@ -69,9 +69,9 @@ class Settings(BaseSettings):
         env_file = REPO_ROOT / self._get_env_file_name(core_env)
         if env_file.exists():
             load_dotenv(env_file, override=True)
-            logger.debug(f"Loaded environment file: {env_file}")
+            logger.debug("Loaded environment file: %s", env_file)
         else:
-            logger.warning(f"Environment file not found: {env_file}, using defaults")
+            logger.warning("Environment file not found: %s, using defaults", env_file)
         super().__init__(**values)
         if (self.REPO_PATH / ".intent" / "meta.yaml").exists():
             self._load_meta_config()
@@ -159,7 +159,7 @@ class Settings(BaseSettings):
 try:
     settings = Settings()
 except (RuntimeError, FileNotFoundError) as e:
-    logger.critical(f"FATAL ERROR during settings initialization: {e}")
+    logger.critical("FATAL ERROR during settings initialization: %s", e)
     raise
 
 

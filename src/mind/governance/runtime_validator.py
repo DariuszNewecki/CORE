@@ -50,7 +50,7 @@ class RuntimeValidatorService:
         """
         with tempfile.TemporaryDirectory() as tmpdir:
             canary_path = Path(tmpdir) / "canary_repo"
-            logger.info(f"Creating canary test environment at {canary_path}...")
+            logger.info("Creating canary test environment at %s...", canary_path)
             try:
                 shutil.copytree(
                     self.repo_root, canary_path, ignore=self.ignore_patterns

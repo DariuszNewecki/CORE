@@ -147,7 +147,7 @@ async def run_import(dry_run: bool) -> None:
         dry_run: If True, prints actions without executing them.
     """
     if not EXPORT_DIR.exists():
-        logger.error(f"Export directory not found: {EXPORT_DIR}. Cannot import.")
+        logger.error("Export directory not found: %s. Cannot import.", EXPORT_DIR)
         return
 
     # Load all YAML documents
@@ -169,7 +169,7 @@ async def run_import(dry_run: bool) -> None:
         logger.info("-- DRY RUN: The following actions would be taken --")
         for name, doc in docs.items():
             count = len(_get_items_from_doc(doc, name))
-            logger.info(f"  - Upsert {count} {name}.")
+            logger.info("  - Upsert {count} %s.", name)
         return
 
     async with get_session() as session:

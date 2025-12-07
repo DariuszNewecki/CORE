@@ -8,6 +8,10 @@ using the EmbeddingPayload schema.
 
 from __future__ import annotations
 
+from shared.logger import getLogger
+
+logger = getLogger(__name__)
+
 import logging
 import uuid
 from collections.abc import Sequence
@@ -291,7 +295,7 @@ class QdrantService:
                 collection_name=collection_name, points=points, wait=wait
             )
         except Exception as e:
-            logger.error(f"Failed to upsert points to {collection_name}: {e}")
+            logger.error("Failed to upsert points to {collection_name}: %s", e)
             raise
 
     # ID: bc27e697-1f06-4afe-bdb0-1edbfa248b71
@@ -316,7 +320,7 @@ class QdrantService:
                 score_threshold=score_threshold,
             )
         except Exception as e:
-            logger.error(f"Search failed in {collection_name}: {e}")
+            logger.error("Search failed in {collection_name}: %s", e)
             raise
 
     # ID: 65a738fe-3ed6-49e3-8377-c529d33447d9

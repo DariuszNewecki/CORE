@@ -33,7 +33,7 @@ class ResourceSelector:
         """
         role = next((r for r in roles if r.role == role_name), None)
         if not role:
-            logger.error(f"Role '{role_name}' not found in Mind")
+            logger.error("Role '%s' not found in Mind", role_name)
             return None
         if role.assigned_resource:
             resource = next(
@@ -46,10 +46,10 @@ class ResourceSelector:
                 return resource
         qualified = [r for r in resources if ResourceSelector._is_qualified(r, role)]
         if not qualified:
-            logger.error(f"No qualified resources for role '{role_name}'")
+            logger.error("No qualified resources for role '%s'", role_name)
             return None
         best = min(qualified, key=ResourceSelector._score_resource)
-        logger.info(f"Selected '{best.name}' for '{role_name}' (lowest cost)")
+        logger.info("Selected '{best.name}' for '%s' (lowest cost)", role_name)
         return best
 
     @staticmethod

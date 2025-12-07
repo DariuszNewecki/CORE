@@ -43,5 +43,5 @@ def get_unassigned_symbols() -> list[dict[str, Any]]:
     try:
         return asyncio.run(_async_get())
     except Exception as e:
-        logger.error(f"Error processing knowledge graph: {e}")
+        logger.error("Error processing knowledge graph: %s", e)
         return []

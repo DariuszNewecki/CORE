@@ -8,11 +8,11 @@ from __future__ import annotations
 import ast
 from pathlib import Path
 
+from shared.logger import getLogger
+from shared.models import AuditFinding, AuditSeverity
 from sqlalchemy import select
 
 from mind.governance.checks.base_check import BaseCheck
-from shared.logger import getLogger
-from shared.models import AuditFinding, AuditSeverity
 
 logger = getLogger(__name__)
 
@@ -101,7 +101,7 @@ class RespectCliRegistryCheck(BaseCheck):
                         if subcommand and subcommand not in registered:
                             findings.append(self._finding(file_path, node.lineno, cmd))
             except Exception as e:
-                logger.debug(f"Failed to parse {file_path}: {e}")
+                logger.debug("Failed to parse {file_path}: %s", e)
 
         return findings
 

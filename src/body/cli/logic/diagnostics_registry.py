@@ -33,11 +33,11 @@ def manifest_hygiene(ctx: typer.Context):
     if errors:
         logger.error(f"{len(errors)} CRITICAL errors found:")
         for f in errors:
-            logger.error(f"  {f}")
+            logger.error("  %s", f)
     if warnings := [f for f in findings if f.severity == AuditSeverity.WARNING]:
         logger.warning(f"{len(warnings)} warnings found:")
         for f in warnings:
-            logger.warning(f"  {f}")
+            logger.warning("  %s", f)
     raise typer.Exit(code=1 if errors else 0)
 
 
@@ -63,7 +63,7 @@ def cli_registry():
         return
 
     if not schema_path.exists():
-        logger.error(f"CLI registry schema not found: {schema_path}")
+        logger.error("CLI registry schema not found: %s", schema_path)
         raise typer.Exit(1)
 
     registry_content = registry_path.read_text("utf-8")
@@ -73,12 +73,12 @@ def cli_registry():
     validator = jsonschema.Draft202012Validator(schema)
     errors = sorted(validator.iter_errors(registry), key=lambda e: e.path)
     if errors:
-        logger.error(f"CLI registry failed validation against {schema_rel}")
+        logger.error("CLI registry failed validation against %s", schema_rel)
         for idx, err in enumerate(errors, 1):
             loc = "/".join(map(str, err.path)) or "(root)"
-            logger.error(f"  {idx}. at {loc}: {err.message}")
+            logger.error("  {idx}. at %s: {err.message}", loc)
         raise typer.Exit(1)
-    logger.info(f"CLI registry is valid: {registry_rel}")
+    logger.info("CLI registry is valid: %s", registry_rel)
 
 
 # ID: de787795-39e8-414a-9ea7-bd3d4bf22ef6

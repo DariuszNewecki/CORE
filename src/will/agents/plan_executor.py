@@ -44,7 +44,7 @@ class PlanExecutor:
     async def execute_plan(self, plan: list[ExecutionTask]):
         """Executes the entire plan by dispatching each task to its handler."""
         for i, task in enumerate(plan, 1):
-            logger.info(f"--- Executing Step {i}/{len(plan)}: {task.step} ---")
+            logger.info("--- Executing Step %s/{len(plan)}: {task.step} ---", i)
             handler = self.action_registry.get_handler(task.action)
             if not handler:
                 logger.warning(

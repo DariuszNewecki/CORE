@@ -226,7 +226,7 @@ class ArchitecturalContextBuilder:
             embedding = await self.cognitive_service.get_embedding_for_code(goal)
 
             # Step 2: Search Qdrant for similar symbols with layer filter
-            logger.debug(f"Searching for similar symbols in layer: {layer}")
+            logger.debug("Searching for similar symbols in layer: %s", layer)
             # Note: Qdrant filter syntax - adjust if your payload structure differs
             from qdrant_client import models as qm
 
@@ -301,7 +301,7 @@ class ArchitecturalContextBuilder:
                     # Read the actual code from the file
                     full_path = self.repo_root / file_path
                     if not full_path.exists():
-                        logger.warning(f"File not found: {full_path}")
+                        logger.warning("File not found: %s", full_path)
                         continue
 
                     with open(full_path, encoding="utf-8") as f:
@@ -331,7 +331,7 @@ class ArchitecturalContextBuilder:
                     )
 
                 except Exception as e:
-                    logger.warning(f"Failed to read code for {qualname}: {e}")
+                    logger.warning("Failed to read code for {qualname}: %s", e)
                     continue
 
             logger.info(f"Found {len(examples)} similar code examples")

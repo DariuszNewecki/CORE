@@ -86,7 +86,7 @@ class FileHandler:
                 )
             abs_file_path.parent.mkdir(parents=True, exist_ok=True)
             abs_file_path.write_text(pending_op["code"], encoding="utf-8")
-            logger.info(f"Wrote to {file_rel_path}")
+            logger.info("Wrote to %s", file_rel_path)
             return {
                 "status": "success",
                 "message": f"Wrote to {file_rel_path}",

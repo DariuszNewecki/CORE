@@ -54,7 +54,7 @@ class CoverageAnalyzer:
                     module_coverage[file_path] = round(percent, 2)
                 return module_coverage
         except Exception as e:
-            logger.debug(f"Could not get module coverage: {e}")
+            logger.debug("Could not get module coverage: %s", e)
         return {}
 
     # ID: bb8cacda-c4fd-49bc-aee7-fcb87fb653de
@@ -100,7 +100,7 @@ class CoverageAnalyzer:
                     "complexity_score": imports + classes + functions,
                 }
             except Exception as e:
-                logger.debug(f"Could not analyze {py_file}: {e}")
+                logger.debug("Could not analyze {py_file}: %s", e)
         return module_info
 
     # ID: 23b0e191-9a5e-4399-b502-6a15975746d3
@@ -168,5 +168,5 @@ class CoverageAnalyzer:
                             "lines_covered": int(parts[1]) - int(parts[2]),
                         }
         except Exception as e:
-            logger.debug(f"Failed to parse coverage output: {e}")
+            logger.debug("Failed to parse coverage output: %s", e)
         return None

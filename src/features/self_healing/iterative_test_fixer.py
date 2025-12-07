@@ -305,4 +305,4 @@ class IterativeTestFixer:
         debug_dir.mkdir(parents=True, exist_ok=True)
         artifact_path = debug_dir / filename
         artifact_path.write_text(content, encoding="utf-8")
-        logger.debug(f"Saved debug artifact: {artifact_path}")
+        logger.debug("Saved debug artifact: %s", artifact_path)

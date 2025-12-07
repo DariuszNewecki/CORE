@@ -58,7 +58,7 @@ def purge_legacy_tags(dry_run: bool = True) -> int:
 
     total_lines_removed = 0
     for file_path_str, line_numbers_to_delete in files_to_fix.items():
-        logger.info(f"Processing file: {file_path_str}")
+        logger.info("Processing file: %s", file_path_str)
         file_path = settings.REPO_PATH / file_path_str
 
         # Your critical insight: sort line numbers in reverse to avoid index shifting
@@ -66,7 +66,7 @@ def purge_legacy_tags(dry_run: bool = True) -> int:
 
         if dry_run:
             for line_num in sorted_line_numbers:
-                logger.info(f"   -> [DRY RUN] Would delete line {line_num}")
+                logger.info("   -> [DRY RUN] Would delete line %s", line_num)
                 total_lines_removed += 1
             continue
 
@@ -82,6 +82,6 @@ def purge_legacy_tags(dry_run: bool = True) -> int:
             file_path.write_text("\n".join(lines) + "\n", "utf-8")
             logger.info(f"   -> Purged {len(sorted_line_numbers)} legacy tag(s).")
         except Exception as e:
-            logger.error(f"Error processing {file_path_str}: {e}")
+            logger.error("Error processing {file_path_str}: %s", e)
 
     return total_lines_removed
