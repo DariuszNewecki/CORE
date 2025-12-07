@@ -1,10 +1,10 @@
 name: Governance Checks
 
 on:
-  schedule:
-    - cron: "15 2 * * *"   # 02:15 UTC nightly
+  #  schedule:
+  #    - cron: "15 2 * * *"   # 02:15 UTC nightly
   pull_request:
-    branches: [ main ]
+    branches: [main]
   workflow_dispatch:
 
 permissions:

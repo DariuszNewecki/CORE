@@ -1,4 +1,0 @@
-[21:55:26] INFO     INFO:services.git_service:GitService initialized for path /opt/dev/CORE
-
-🚨 CONFIRM DANGEROUS OPERATION
-   This will modify your codebase. Continue? [y/n]:
