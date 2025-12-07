@@ -11,13 +11,14 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from features.self_healing.full_project_remediation import FullProjectRemediationService
 from mind.governance.audit_context import AuditorContext
 from shared.logger import getLogger
+from will.orchestration.cognitive_service import CognitiveService
+
+from features.self_healing.full_project_remediation import FullProjectRemediationService
 from src.features.self_healing.single_file_remediation import (
     EnhancedSingleFileRemediationService,
 )
-from will.orchestration.cognitive_service import CognitiveService
 
 logger = getLogger(__name__)
 
@@ -48,7 +49,7 @@ async def remediate_coverage_enhanced(
 
     # --- SINGLE FILE MODE ----------------------------------------------------
     if file_path:
-        logger.info(f"Starting enhanced single-file remediation for {file_path}")
+        logger.info("Starting enhanced single-file remediation for %s", file_path)
 
         if use_enhanced:
             service = EnhancedSingleFileRemediationService(

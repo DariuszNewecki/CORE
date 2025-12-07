@@ -53,7 +53,7 @@ def run_tests(silent: bool = True) -> dict[str, str]:
     except subprocess.TimeoutExpired:
         result["stderr"] = f"Test run timed out after {timeout}s."
         result["summary"] = "⏰ Timeout"
-        logger.error(f"Pytest run timed out after {timeout}s.")
+        logger.error("Pytest run timed out after %ss.", timeout)
     except FileNotFoundError:
         result["stderr"] = "pytest is not installed or not found in PATH."
         result["summary"] = "❌ Pytest not available"

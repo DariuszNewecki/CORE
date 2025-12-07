@@ -7,6 +7,10 @@ Caches packets by task spec hash to avoid rebuilding identical contexts.
 
 from __future__ import annotations
 
+from shared.logger import getLogger
+
+logger = getLogger(__name__)
+
 import logging
 from datetime import UTC, datetime
 from pathlib import Path
@@ -61,7 +65,7 @@ class ContextCache:
             logger.debug(f"Cache hit: {cache_key[:8]}")
             return packet
         except Exception as e:
-            logger.error(f"Failed to load cache: {e}")
+            logger.error("Failed to load cache: %s", e)
             return None
 
     # ID: 37ec4f3d-e3a9-4a48-bd9f-396d81674875
@@ -79,7 +83,7 @@ class ContextCache:
             # Downgraded to DEBUG
             logger.debug(f"Cached packet: {cache_key[:8]}")
         except Exception as e:
-            logger.error(f"Failed to cache packet: {e}")
+            logger.error("Failed to cache packet: %s", e)
 
     # ID: 246e0f98-8d6f-4e14-9642-8b05ff6fc80d
     def invalidate(self, cache_key: str) -> None:
@@ -111,7 +115,7 @@ class ContextCache:
                 logger.debug(f"Removed expired cache: {cache_file.stem}")
 
         if removed > 0:
-            logger.info(f"Cleared {removed} expired cache entries")
+            logger.info("Cleared %s expired cache entries", removed)
 
         return removed
 
@@ -128,7 +132,7 @@ class ContextCache:
             cache_file.unlink()
             removed += 1
 
-        logger.info(f"Cleared all {removed} cache entries")
+        logger.info("Cleared all %s cache entries", removed)
         return removed
 
     def _get_age_hours(self, file_path: Path) -> float:

@@ -37,11 +37,11 @@ def generate_maps(
     """
     Generates an alias map from clustering results to a YAML file.
     """
-    logger.info(f"Generating alias map from {input_path}...")
+    logger.info("Generating alias map from %s...", input_path)
     try:
         proposed_domains = json.loads(input_path.read_text("utf-8"))
     except (json.JSONDecodeError, FileNotFoundError) as e:
-        logger.error(f"Failed to load or parse input file: {e}")
+        logger.error("Failed to load or parse input file: %s", e)
         raise typer.Exit(code=1)
     alias_map = {"aliases": proposed_domains}
     output.parent.mkdir(parents=True, exist_ok=True)
@@ -49,7 +49,7 @@ def generate_maps(
     logger.info(
         f"Successfully generated alias map with {len(proposed_domains)} entries."
     )
-    logger.info(f"   -> Saved to: {output}")
+    logger.info("   -> Saved to: %s", output)
 
 
 if __name__ == "__main__":

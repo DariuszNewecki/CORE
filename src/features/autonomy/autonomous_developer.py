@@ -73,8 +73,8 @@ async def develop_from_goal(
     Runs the full, end-to-end autonomous development cycle for a given goal.
     """
     try:
-        logger.info(f"🚀 Initiating autonomous development cycle for goal: '{goal}'")
-        logger.info(f"   -> Output mode: {output_mode}")
+        logger.info("🚀 Initiating autonomous development cycle for goal: '%s'", goal)
+        logger.info("   -> Output mode: %s", output_mode)
 
         # --- CONTEXT GATHERING (Phase 2 Upgrade) ---
         # Instead of simple search, we build a full ContextPackage
@@ -121,7 +121,7 @@ async def develop_from_goal(
             )
         except Exception as e:
             execution_message = f"Execution failed: {str(e)}"
-            logger.warning(f"Plan execution had issues: {e}")
+            logger.warning("Plan execution had issues: %s", e)
 
         # Handle crate mode: extract generated files
         if output_mode == "crate":

@@ -47,9 +47,9 @@ class PatternChecker:
                     data = yaml.safe_load(f)
                     category = data.get("id", pattern_file.stem)
                     patterns[category] = data
-                    logger.info(f"Loaded pattern spec: {category}")
+                    logger.info("Loaded pattern spec: %s", category)
             except Exception as e:
-                logger.error(f"Failed to load {pattern_file}: {e}")
+                logger.error("Failed to load {pattern_file}: %s", e)
 
         return patterns
 
@@ -95,7 +95,7 @@ class PatternChecker:
 
         checker = checkers.get(category)
         if not checker:
-            logger.error(f"Unknown category: {category}")
+            logger.error("Unknown category: %s", category)
             return []
 
         return checker()

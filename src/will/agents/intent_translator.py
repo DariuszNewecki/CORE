@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from shared.config import settings
 from shared.logger import getLogger
+
 from will.orchestration.cognitive_service import CognitiveService
 from will.orchestration.prompt_pipeline import PromptPipeline
 
@@ -37,11 +38,11 @@ class IntentTranslator:
         Takes a user's natural language input and translates it into a
         structured goal for the PlannerAgent.
         """
-        logger.info(f"Translating user intent: '{user_input}'")
+        logger.info("Translating user intent: '%s'", user_input)
         client = self.cognitive_service.get_client_for_role("IntentTranslator")
         final_prompt = self.prompt_pipeline.process(
             self.prompt_template.format(user_input=user_input)
         )
         structured_goal = client.make_request(final_prompt, user_id="intent_translator")
-        logger.info(f"Translated goal: '{structured_goal}'")
+        logger.info("Translated goal: '%s'", structured_goal)
         return structured_goal

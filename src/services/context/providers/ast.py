@@ -4,6 +4,10 @@
 
 from __future__ import annotations
 
+from shared.logger import getLogger
+
+logger = getLogger(__name__)
+
 import ast
 import copy
 import logging
@@ -48,7 +52,7 @@ class ASTProvider:
             source = full_path.read_text(encoding="utf-8")
             return ast.parse(source, filename=str(file_path))
         except (OSError, SyntaxError, UnicodeDecodeError) as e:
-            logger.error(f"Failed to read or parse AST for {file_path}: {e}")
+            logger.error("Failed to read or parse AST for {file_path}: %s", e)
             return None
 
     # ID: e81360dc-3fa1-4196-9e21-cd6cf9636455
@@ -67,7 +71,7 @@ class ASTProvider:
     # ID: 3825937d-cf44-48bd-b344-3cb2c03dad2f
     def get_signature(self, file_path: str | Path, symbol_name: str) -> str | None:
         """Extract function/class signature from a file."""
-        logger.debug(f"Extracting signature for {symbol_name} in {file_path}")
+        logger.debug("Extracting signature for {symbol_name} in %s", file_path)
         tree = self._get_ast_tree(Path(file_path))
         return self.get_signature_from_tree(tree, symbol_name) if tree else None
 
@@ -87,7 +91,7 @@ class ASTProvider:
     # ID: 5f4ad62e-e2d9-405e-bb00-ae24b5e5e32e
     def get_dependencies(self, file_path: str | Path) -> list[str]:
         """Extract import dependencies from a file."""
-        logger.debug(f"Extracting dependencies from {file_path}")
+        logger.debug("Extracting dependencies from %s", file_path)
         tree = self._get_ast_tree(Path(file_path))
         return self.get_dependencies_from_tree(tree) if tree else []
 
@@ -103,6 +107,6 @@ class ASTProvider:
     # ID: ae4e8872-feb6-4ff5-bdad-3b4864a58a07
     def get_parent_scope(self, file_path: str | Path, line_number: int) -> str | None:
         """Find parent class/function at a given line in a file."""
-        logger.debug(f"Finding parent scope at {file_path}:{line_number}")
+        logger.debug("Finding parent scope at {file_path}:%s", line_number)
         tree = self._get_ast_tree(Path(file_path))
         return self.get_parent_scope_from_tree(tree, line_number) if tree else None

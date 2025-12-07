@@ -67,7 +67,7 @@ async def inspect_duplicates_async(context: CoreContext, threshold: float):
         logger.error("Error: Context not initialized for inspect duplicates")
         raise ValueError("Context not initialized for inspect duplicates")
 
-    logger.info(f"Running semantic duplication check with threshold: {threshold}...")
+    logger.info("Running semantic duplication check with threshold: %s...", threshold)
 
     auditor_context = AuditorContext(context.git_service.repo_path)
     await auditor_context.load_knowledge_graph()
@@ -82,7 +82,7 @@ async def inspect_duplicates_async(context: CoreContext, threshold: float):
             if context.cognitive_service:
                 context.cognitive_service._qdrant_service = qdrant_service
         except Exception as e:
-            logger.warning(f"Warning: Could not initialize Qdrant service: {e}")
+            logger.warning("Warning: Could not initialize Qdrant service: %s", e)
 
     if not qdrant_service and context.cognitive_service:
         qdrant_service = getattr(context.cognitive_service, "_qdrant_service", None)
@@ -110,7 +110,7 @@ async def inspect_duplicates_async(context: CoreContext, threshold: float):
             all_symbols_in_cluster.add(f.context["symbol_a"])
             all_symbols_in_cluster.add(f.context["symbol_b"])
 
-        logger.info(f"Cluster #{i} ({len(all_symbols_in_cluster)} related symbols):")
+        logger.info("Cluster #%s ({len(all_symbols_in_cluster)} related symbols):", i)
         for finding in cluster:
             logger.info(
                 f"  {finding.context['symbol_a']} <-> {finding.context['symbol_b']}: "

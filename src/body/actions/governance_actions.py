@@ -9,7 +9,6 @@ from __future__ import annotations
 import uuid
 
 import yaml
-
 from shared.logger import getLogger
 from shared.models import PlanExecutionError, TaskParams
 
@@ -53,7 +52,7 @@ class CreateProposalHandler(ActionHandler):
         )
         proposal_path.parent.mkdir(parents=True, exist_ok=True)
         proposal_path.write_text(yaml_content, encoding="utf-8")
-        logger.info(f"🏛️  Created constitutional proposal: {proposal_filename}")
+        logger.info("🏛️  Created constitutional proposal: %s", proposal_filename)
         if context.git_service.is_git_repo():
             context.git_service.add(str(proposal_path))
             context.git_service.commit(

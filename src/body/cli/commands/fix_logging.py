@@ -226,6 +226,7 @@ class LoggingFixer:
             # Match: logger.info(f"Started {task_id}")
             pattern = r'(logger\.\w+)\(f"([^"]*)\{(\w+)\}([^"]*)"\)'
 
+            # ID: 15472448-834e-41da-8c6d-349343a072a8
             def replace_fstring(match):
                 logger_call = match.group(1)  # logger.info
                 before_text = match.group(2)  # "Started "

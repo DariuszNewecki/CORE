@@ -97,7 +97,7 @@ class SimpleTestGenerator:
                     "reason": f"Test failed: {error[:200]}",
                 }
         except Exception as e:
-            logger.error(f"Error generating test for {symbol_name}: {e}")
+            logger.error("Error generating test for {symbol_name}: %s", e)
             return {
                 "status": "failed",
                 "test_code": None,
@@ -126,7 +126,7 @@ class SimpleTestGenerator:
                         return "\n".join(lines[start:end])
             return None
         except Exception as e:
-            logger.debug(f"Failed to extract {symbol_name}: {e}")
+            logger.debug("Failed to extract {symbol_name}: %s", e)
             return None
 
     async def _generate_test_code(
@@ -143,7 +143,7 @@ class SimpleTestGenerator:
             # REFACTORED: Use shared utility
             return extract_python_code_from_response(response)
         except Exception as e:
-            logger.error(f"LLM request failed: {e}")
+            logger.error("LLM request failed: %s", e)
             return None
 
     async def _try_run_test(self, test_code: str, symbol_name: str) -> tuple[bool, str]:

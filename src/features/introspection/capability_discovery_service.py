@@ -254,5 +254,5 @@ async def sync_capabilities_to_db(
         upserted_count += 1
 
     await db.commit()
-    logger.info(f"Synced {upserted_count} capabilities to DB")
+    logger.info("Synced %s capabilities to DB", upserted_count)
     return upserted_count, []

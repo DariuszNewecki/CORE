@@ -23,7 +23,7 @@ async def _sync_domains():
     """
     domains_path = settings.MIND / "knowledge" / "domains.yaml"
     if not domains_path.exists():
-        logger.error(f"Constitutional domains file not found at {domains_path}")
+        logger.error("Constitutional domains file not found at %s", domains_path)
         raise typer.Exit(code=1)
 
     content = yaml.safe_load(domains_path.read_text("utf-8"))
@@ -62,7 +62,7 @@ async def _sync_domains():
                 )
                 upserted_count += 1
 
-    logger.info(f"Successfully synced {upserted_count} domains to the database.")
+    logger.info("Successfully synced %s domains to the database.", upserted_count)
 
 
 # ID: 5bee5341-7f72-430e-b310-f174af37de20

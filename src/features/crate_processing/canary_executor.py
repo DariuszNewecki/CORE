@@ -128,7 +128,7 @@ class CanaryExecutor:
         passed = len(violations) == 0
 
         if not passed:
-            logger.warning(f"Canary checks failed: {violations}")
+            logger.warning("Canary checks failed: %s", violations)
         else:
             logger.info("Canary checks passed.")
 

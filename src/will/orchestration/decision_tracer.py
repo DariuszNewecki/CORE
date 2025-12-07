@@ -106,5 +106,5 @@ class DecisionTracer:
                 f,
                 indent=2,
             )
-        logger.info(f"Decision trace saved: {trace_file}")
+        logger.info("Decision trace saved: %s", trace_file)
         return trace_file

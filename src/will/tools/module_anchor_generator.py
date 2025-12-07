@@ -69,16 +69,16 @@ class ModuleAnchorGenerator:
         existing = [c.name for c in collections_response.collections]
 
         if ANCHOR_COLLECTION in existing:
-            logger.info(f"Collection {ANCHOR_COLLECTION} already exists")
+            logger.info("Collection %s already exists", ANCHOR_COLLECTION)
             return
 
-        logger.info(f"Creating collection: {ANCHOR_COLLECTION}")
+        logger.info("Creating collection: %s", ANCHOR_COLLECTION)
         await self.qdrant.client.recreate_collection(
             collection_name=ANCHOR_COLLECTION,
             vectors_config=qm.VectorParams(size=768, distance=qm.Distance.COSINE),
             on_disk_payload=True,
         )
-        logger.info(f"✅ Collection {ANCHOR_COLLECTION} created")
+        logger.info("✅ Collection %s created", ANCHOR_COLLECTION)
 
     # ID: 32cc2cc0-8cd3-4e22-85fa-3b680cb38200
     async def generate_all_anchors(self) -> dict[str, Any]:
@@ -100,9 +100,9 @@ class ModuleAnchorGenerator:
             try:
                 await self._generate_layer_anchor(layer_name, layer_purpose)
                 results["anchors_created"] += 1
-                logger.info(f"  ✅ {layer_name}/")
+                logger.info("  ✅ %s/", layer_name)
             except Exception as e:
-                logger.error(f"  ❌ {layer_name}/: {e}")
+                logger.error("  ❌ {layer_name}/: %s", e)
                 results["errors"].append({"module": layer_name, "error": str(e)})
 
         # Generate module-level anchors
@@ -114,9 +114,9 @@ class ModuleAnchorGenerator:
             try:
                 await self._generate_module_anchor(module_path, module_info)
                 results["anchors_created"] += 1
-                logger.info(f"  ✅ {module_path}")
+                logger.info("  ✅ %s", module_path)
             except Exception as e:
-                logger.error(f"  ❌ {module_path}: {e}")
+                logger.error("  ❌ {module_path}: %s", e)
                 results["errors"].append({"module": str(module_path), "error": str(e)})
 
         logger.info("\n" + "=" * 60)

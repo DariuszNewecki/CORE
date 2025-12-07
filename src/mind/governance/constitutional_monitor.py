@@ -17,9 +17,10 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Protocol
 
-from mind.governance.audit_context import AuditorContext
 from shared.logger import getLogger
 from shared.utils.header_tools import _HeaderTools
+
+from mind.governance.audit_context import AuditorContext
 
 logger = getLogger(__name__)
 
@@ -139,7 +140,7 @@ class ConstitutionalMonitor:
                         )
                     )
             except Exception as e:
-                logger.warning(f"Could not process {file_path_str}: {e}")
+                logger.warning("Could not process {file_path_str}: %s", e)
         compliant = len(all_py_files) - len(violation_objects)
         logger.info(
             f"Header audit complete: {len(violation_objects)} violations across {len(all_py_files)} files"
@@ -184,13 +185,15 @@ class ConstitutionalMonitor:
                     )
                     failed_count += 1
             except Exception as e:
-                logger.error(f"Failed to remediate {violation.file_path}: {e}")
+                logger.error("Failed to remediate {violation.file_path}: %s", e)
                 failed_count += 1
         if fixed_count > 0 and self.knowledge_builder:
             logger.info("🧠 Rebuilding knowledge graph to reflect all changes...")
             asyncio.run(self.knowledge_builder.build_and_sync())
             logger.info("✅ Knowledge graph successfully updated.")
-        logger.info(f"Remediation complete: {fixed_count} fixed, {failed_count} failed")
+        logger.info(
+            "Remediation complete: {fixed_count} fixed, %s failed", failed_count
+        )
         return RemediationResult(
             success=failed_count == 0,
             fixed_count=fixed_count,
@@ -228,5 +231,5 @@ class ConstitutionalMonitor:
                 logger.debug(f"No changes needed for {violation.file_path}")
                 return True
         except Exception as e:
-            logger.error(f"Failed to fix header in {violation.file_path}: {e}")
+            logger.error("Failed to fix header in {violation.file_path}: %s", e)
             return False

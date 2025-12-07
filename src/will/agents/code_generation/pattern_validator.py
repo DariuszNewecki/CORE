@@ -248,10 +248,10 @@ CRITICAL: This executes autonomous operations.
             # Just check basic Python validity
             try:
                 ast.parse(code)
-                logger.info(f"  -> {pattern_id} validated (basic syntax check only)")
+                logger.info("  -> %s validated (basic syntax check only)", pattern_id)
                 return (True, [])
             except SyntaxError as e:
-                logger.warning(f"  -> Syntax error in {pattern_id}: {e}")
+                logger.warning("  -> Syntax error in {pattern_id}: %s", e)
                 return (False, [{"message": f"Syntax error: {e}", "severity": "error"}])
 
         # Full pattern validation for stateful code

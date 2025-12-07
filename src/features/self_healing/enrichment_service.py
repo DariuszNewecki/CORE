@@ -74,7 +74,7 @@ async def _enrich_single_symbol(
         await asyncio.sleep(delay)
         return {"uuid": symbol_uuid, "description": description}
     except Exception as e:
-        logger.error(f"Failed to enrich symbol '{symbol.get('symbol_path')}': {e}")
+        logger.error("Failed to enrich symbol '{symbol.get('symbol_path')}': %s", e)
         return {"uuid": symbol_uuid, "description": "error.processing_failed"}
 
 

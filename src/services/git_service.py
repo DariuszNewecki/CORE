@@ -34,7 +34,9 @@ class GitService:
         """Runs a git command and returns stdout; raises RuntimeError on failure."""
         try:
             effective_cwd = cwd or self.repo_path
-            logger.debug(f"Running git command: {' '.join(command)} in {effective_cwd}")
+            logger.debug(
+                "Running git command: {' '.join(command)} in %s", effective_cwd
+            )
             result = subprocess.run(
                 ["git", *command],
                 cwd=effective_cwd,
@@ -45,7 +47,7 @@ class GitService:
             return result.stdout.strip()
         except subprocess.CalledProcessError as e:
             msg = e.stderr or e.stdout or ""
-            logger.error(f"Git command failed: {msg}")
+            logger.error("Git command failed: %s", msg)
             raise RuntimeError(f"Git command failed: {msg}") from e
 
     # ID: ec16988c-6830-408c-a31c-e6799c430b08
@@ -105,7 +107,7 @@ class GitService:
                 logger.info("No changes staged to commit.")
                 return
             self._run_command(["commit", "-m", message])
-            logger.info(f"Committed changes with message: '{message}'")
+            logger.info("Committed changes with message: '%s'", message)
         except RuntimeError as e:
             emsg = (str(e) or "").lower()
             if "nothing to commit" in emsg or "no changes added to commit" in emsg:

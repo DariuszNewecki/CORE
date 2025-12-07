@@ -22,7 +22,7 @@ logger = getLogger(__name__)
 
 async def _async_export(qdrant_service: QdrantService, output_path: Path):
     """The core async logic for exporting vectors."""
-    logger.info(f"Exporting all vectors to {output_path}...")
+    logger.info("Exporting all vectors to %s...", output_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     try:
         all_vectors: list[qm.Record] = await qdrant_service.get_all_vectors()
@@ -44,7 +44,7 @@ async def _async_export(qdrant_service: QdrantService, output_path: Path):
                 f.write(json.dumps(line_data) + "\n")
                 count += 1
 
-        logger.info(f"Successfully exported {count} vectors.")
+        logger.info("Successfully exported %s vectors.", count)
     except Exception as e:
         logger.error(f"Failed to export vectors: {e}", exc_info=True)
         raise typer.Exit(code=1)

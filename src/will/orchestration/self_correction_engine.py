@@ -126,7 +126,7 @@ async def attempt_correction(
                 logger.info(f"Generated symbol hints: {len(symbol_hints)} chars")
 
         except Exception as e:
-            logger.warning(f"SymbolFinder failed: {e}")
+            logger.warning("SymbolFinder failed: %s", e)
 
     # Construct the prompt
     violations_json = json.dumps(violations, indent=2)

@@ -123,7 +123,7 @@ def hub_search_cmd(
         hits = hits[:limit]
 
         if not hits:
-            logger.info(f"No matches found for term: {term}")
+            logger.info("No matches found for term: %s", term)
             raise typer.Exit(code=0)
 
         result = []
@@ -137,7 +137,7 @@ def hub_search_cmd(
                 }
             )
 
-        logger.info(f"Found {len(result)} matches for term: {term}")
+        logger.info("Found {len(result)} matches for term: %s", term)
         return result
 
     result = asyncio.run(_run())
@@ -172,7 +172,7 @@ def hub_whereis_cmd(
             matches = [c for c in cmds if _format_command_name(c).endswith(command)]
 
         if not matches:
-            logger.warning(f"No such command in registry: {command}")
+            logger.warning("No such command in registry: %s", command)
             raise typer.Exit(code=1)
 
         c = matches[0]
@@ -189,7 +189,7 @@ def hub_whereis_cmd(
             "file": str(path) if path else "—",
         }
 
-        logger.info(f"Found command details for: {command}")
+        logger.info("Found command details for: %s", command)
         return result
 
     result = asyncio.run(_run())
@@ -216,7 +216,7 @@ def hub_doctor_cmd() -> None:
                     )
             except Exception as e:
                 ok = False
-                logger.error(f"DB error while reading CLI registry: {e}")
+                logger.error("DB error while reading CLI registry: %s", e)
 
         snapshots = [
             settings.MIND / "knowledge" / "cli_registry.yaml",
@@ -227,7 +227,7 @@ def hub_doctor_cmd() -> None:
         if missing:
             logger.warning("Missing YAML exports:")
             for p in missing:
-                logger.warning(f"  • {p}")
+                logger.warning("  • %s", p)
             logger.warning("Run: core-admin knowledge export-ssot")
         else:
             logger.info("YAML exports present.")

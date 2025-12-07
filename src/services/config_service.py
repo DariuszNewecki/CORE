@@ -19,11 +19,11 @@ from __future__ import annotations
 
 from typing import Any
 
+from shared.logger import getLogger
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from services.secrets_service import get_secrets_service
-from shared.logger import getLogger
 
 logger = getLogger(__name__)
 
@@ -138,7 +138,7 @@ class ConfigService:
         )
         await self.db.commit()
         self._cache[key] = value
-        logger.info(f"Config '{key}' set to '{value}'")
+        logger.info("Config '{key}' set to '%s'", value)
 
     # ID: 831360f5-139d-444c-8fa6-f6833e30e86d
     async def reload(self) -> None:
@@ -197,7 +197,7 @@ async def bootstrap_config_from_env() -> None:
                     description=f"Bootstrapped from {env_key}",
                 )
                 migrated += 1
-        logger.info(f"Bootstrapped {migrated} config values from .env to database")
+        logger.info("Bootstrapped %s config values from .env to database", migrated)
 
 
 # ID: 3dfbf86d-dcd2-4f05-ad86-15277a6c24ac

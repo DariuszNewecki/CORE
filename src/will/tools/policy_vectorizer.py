@@ -87,10 +87,10 @@ class PolicyVectorizer:
             existing = [c.name for c in collections_response.collections]
 
             if POLICY_COLLECTION in existing:
-                logger.info(f"Collection {POLICY_COLLECTION} already exists")
+                logger.info("Collection %s already exists", POLICY_COLLECTION)
                 return
 
-            logger.info(f"Creating collection: {POLICY_COLLECTION}")
+            logger.info("Creating collection: %s", POLICY_COLLECTION)
 
             # Create collection with 768-dim vectors
             await self.qdrant.client.recreate_collection(
@@ -101,7 +101,7 @@ class PolicyVectorizer:
                 ),
                 on_disk_payload=True,
             )
-            logger.info(f"✅ Collection {POLICY_COLLECTION} created")
+            logger.info("✅ Collection %s created", POLICY_COLLECTION)
 
         except Exception as e:
             logger.error(f"Failed to initialize collection: {e}", exc_info=True)
@@ -401,7 +401,7 @@ class PolicyVectorizer:
         Returns:
             List of relevant policy chunks with scores
         """
-        logger.info(f"Searching policies for: {query}")
+        logger.info("Searching policies for: %s", query)
 
         # Generate embedding for query
         query_embedding = await self.cognitive_service.get_embedding_for_code(query)

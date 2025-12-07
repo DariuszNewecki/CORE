@@ -9,7 +9,6 @@ from __future__ import annotations
 import sys
 
 from dotenv import load_dotenv
-
 from shared.logger import getLogger
 from shared.utils.subprocess_utils import run_poetry_command
 
@@ -35,9 +34,9 @@ def introspection():
     for name, command in tools_to_run:
         try:
             run_poetry_command(f"Running {name}...", command)
-            logger.info(f"✅ {name} completed successfully.")
+            logger.info("✅ %s completed successfully.", name)
         except Exception:
-            logger.error(f"❌ {name} failed.")
+            logger.error("❌ %s failed.", name)
             all_passed = False
     logger.info("🧠 Introspection cycle completed.")
     return all_passed

@@ -76,7 +76,7 @@ class ProposalService:
         """Loads the operator's private key from disk."""
         key_path = self.repo_root / settings.KEY_STORAGE_DIR / "private.key"
         if not key_path.exists():
-            logger.error(f"Private key not found at {key_path}.")
+            logger.error("Private key not found at %s.", key_path)
             raise FileNotFoundError("Private key not found.")
         return serialization.load_pem_private_key(key_path.read_bytes(), password=None)
 
@@ -153,12 +153,12 @@ class ProposalService:
         for sig in proposal.get("signatures", []):
             identity = sig.get("identity")
             if sig.get("token") != expected_token:
-                logger.warning(f"Stale signature from '{identity}'.")
+                logger.warning("Stale signature from '%s'.", identity)
                 continue
 
             pem = self.approver_keys.get(identity)
             if not pem:
-                logger.warning(f"No public key found for '{identity}'.")
+                logger.warning("No public key found for '%s'.", identity)
                 continue
 
             try:
@@ -169,10 +169,10 @@ class ProposalService:
                     base64.b64decode(sig["signature_b64"]),
                     expected_token.encode("utf-8"),
                 )
-                logger.info(f"Valid signature from '{identity}'.")
+                logger.info("Valid signature from '%s'.", identity)
                 valid += 1
             except Exception:
-                logger.warning(f"Verification failed for '{identity}'.")
+                logger.warning("Verification failed for '%s'.", identity)
 
         return valid
 
@@ -236,7 +236,7 @@ class ProposalService:
             live_target_path.write_text(proposal.get("content", ""), encoding="utf-8")
 
             proposal_path.unlink()
-            logger.info(f"Successfully approved and applied '{proposal_name}'.")
+            logger.info("Successfully approved and applied '%s'.", proposal_name)
         else:
             if findings:
                 logger.error("Canary Audit Findings:")
@@ -278,10 +278,10 @@ def _safe_proposal_action(action_desc: str, action_func: Callable) -> None:
     try:
         action_func()
     except (FileNotFoundError, ValueError, PermissionError, ChildProcessError) as e:
-        logger.error(f"{e}")
+        logger.error("%s", e)
         raise typer.Exit(code=1)
     except Exception as e:
-        logger.error(f"Unexpected error: {e}")
+        logger.error("Unexpected error: %s", e)
         raise typer.Exit(code=1)
 
 

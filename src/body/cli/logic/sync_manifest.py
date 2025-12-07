@@ -28,7 +28,7 @@ async def _async_sync_manifest():
     logger.info("Synchronizing project manifest with database...")
 
     if not MANIFEST_PATH.exists():
-        logger.error(f"Manifest file not found at {MANIFEST_PATH}")
+        logger.error("Manifest file not found at %s", MANIFEST_PATH)
         raise typer.Exit(code=1)
 
     logger.debug("Fetching all public symbols from the database...")
@@ -40,7 +40,7 @@ async def _async_sync_manifest():
             )
             public_symbol_keys = [row[0] for row in result]
     except Exception as e:
-        logger.error(f"Database query failed: {e}")
+        logger.error("Database query failed: %s", e)
         raise typer.Exit(code=1)
 
     logger.info(f"Found {len(public_symbol_keys)} public capabilities to declare.")

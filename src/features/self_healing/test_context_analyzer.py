@@ -114,7 +114,7 @@ class TestContextAnalyzer:
         Returns:
             Rich context about the module
         """
-        logger.info(f"Analyzing module: {module_path}")
+        logger.info("Analyzing module: %s", module_path)
         full_path = self.repo_root / module_path
         if not full_path.exists():
             raise FileNotFoundError(f"Module not found: {full_path}")
@@ -122,7 +122,7 @@ class TestContextAnalyzer:
         try:
             tree = ast.parse(source_code)
         except SyntaxError as e:
-            logger.error(f"Failed to parse {module_path}: {e}")
+            logger.error("Failed to parse {module_path}: %s", e)
             raise
         module_name = full_path.stem
         import_path = (
@@ -322,7 +322,7 @@ class TestContextAnalyzer:
                         ),
                     }
         except Exception as e:
-            logger.warning(f"Could not get coverage for {module_path}: {e}")
+            logger.warning("Could not get coverage for {module_path}: %s", e)
         return {"coverage": 0.0, "uncovered_lines": [], "uncovered_functions": []}
 
     def _map_lines_to_functions(
@@ -342,7 +342,7 @@ class TestContextAnalyzer:
                         uncovered_funcs.append(node.name)
             return list(set(uncovered_funcs))
         except Exception as e:
-            logger.warning(f"Could not map lines to functions: {e}")
+            logger.warning("Could not map lines to functions: %s", e)
             return []
 
     def _find_similar_test_examples(
@@ -373,7 +373,7 @@ class TestContextAnalyzer:
                         }
                     )
             except Exception as e:
-                logger.debug(f"Could not analyze {test_file}: {e}")
+                logger.debug("Could not analyze {test_file}: %s", e)
                 continue
         examples.sort(key=lambda x: x["similarity"], reverse=True)
         return examples[:3]

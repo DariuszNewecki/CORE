@@ -4,6 +4,10 @@
 
 from __future__ import annotations
 
+from shared.logger import getLogger
+
+logger = getLogger(__name__)
+
 import ast
 import json
 import logging
@@ -53,7 +57,7 @@ def _parse_python_file(filepath: str) -> list[dict]:
                 )
         return symbols
     except Exception as e:
-        logger.error(f"Failed to parse {filepath}: {e}")
+        logger.error("Failed to parse {filepath}: %s", e)
         return []
 
 
@@ -92,7 +96,7 @@ class ContextBuilder:
             with open(kg_path, encoding="utf-8") as f:
                 return json.load(f)
         except (json.JSONDecodeError, OSError) as e:
-            logger.error(f"Failed to load knowledge_graph.json: {e}")
+            logger.error("Failed to load knowledge_graph.json: %s", e)
             return {"symbols": {}}
 
     # ID: 6565818e-0b0e-4aff-a9b8-069289c7f9a8
@@ -178,7 +182,7 @@ class ContextBuilder:
 
         traversal_depth = scope.get("traversal_depth", 0)
         if traversal_depth > 0 and self._knowledge_graph.get("symbols") and items:
-            logger.info(f"Traversing knowledge graph to depth {traversal_depth}.")
+            logger.info("Traversing knowledge graph to depth %s.", traversal_depth)
             related_items = self._traverse_graph(
                 list(items), traversal_depth, max_items - len(items)
             )
@@ -274,10 +278,10 @@ class ContextBuilder:
 
         full_path = Path.cwd() / target_file_str
         if not full_path.exists():
-            logger.warning(f"File not found: {full_path}")
+            logger.warning("File not found: %s", full_path)
             return items
 
-        logger.info(f"FORCE-ADDING CODE ITEM for '{target_symbol}'")
+        logger.info("FORCE-ADDING CODE ITEM for '%s'", target_symbol)
 
         symbols = _parse_python_file(str(full_path))
         for sym in symbols:
@@ -292,7 +296,7 @@ class ContextBuilder:
                     "signature": sym.get("signature", ""),
                 }
                 items.append(item)
-                logger.info(f"Added CODE item with content: {target_symbol}")
+                logger.info("Added CODE item with content: %s", target_symbol)
                 break
         return items
 

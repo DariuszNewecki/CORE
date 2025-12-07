@@ -104,7 +104,7 @@ class AuditorContext:
                 f"Knowledge graph artifact with {len(self.symbols_list)} symbols saved to {artifact_path}"
             )
         except Exception as e:
-            logger.warning(f"Failed to save knowledge graph artifact: {e}")
+            logger.warning("Failed to save knowledge graph artifact: %s", e)
 
     def _load_policies(self) -> dict[str, Any]:
         """

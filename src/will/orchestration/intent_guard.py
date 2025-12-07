@@ -106,7 +106,7 @@ class IntentGuard:
                 self.intent_path / "charter" / "constitution" / "precedence_rules.yaml"
             )
             if not path.exists():
-                logger.warning(f"Precedence rules not found at {path}")
+                logger.warning("Precedence rules not found at %s", path)
                 return mapping
 
             data = load_yaml_file(path)
@@ -124,7 +124,7 @@ class IntentGuard:
 
             return mapping
         except Exception as e:
-            logger.error(f"Failed to load precedence rules: {e}")
+            logger.error("Failed to load precedence rules: %s", e)
             return {}
 
     def _load_policies(self):
@@ -174,7 +174,7 @@ class IntentGuard:
                             )
 
             except Exception as e:
-                logger.error(f"Failed to load policy file {policy_file}: {e}")
+                logger.error("Failed to load policy file {policy_file}: %s", e)
 
     # ID: ed5b3736-dd99-4f36-bae6-43f44eb1390c
     def check_transaction(
@@ -343,7 +343,9 @@ class IntentGuard:
                     source_policy="safety_framework",
                 )
         except Exception as e:
-            logger.error(f"Error checking constitutional integrity for {path_str}: {e}")
+            logger.error(
+                "Error checking constitutional integrity for {path_str}: %s", e
+            )
         return None
 
     def _check_policy_rules(self, path: Path, path_str: str) -> list[ViolationReport]:
@@ -354,7 +356,7 @@ class IntentGuard:
                 if self._matches_pattern(path_str, rule.pattern):
                     violations.extend(self._apply_rule_action(rule, path_str))
             except Exception as e:
-                logger.error(f"Error applying rule '{rule.name}' to {path_str}: {e}")
+                logger.error("Error applying rule '{rule.name}' to {path_str}: %s", e)
         return violations
 
     def _apply_rule_action(
@@ -372,7 +374,7 @@ class IntentGuard:
                 )
             ]
         elif rule.action == "warn":
-            logger.warning(f"Policy warning for {path_str}: {rule.description}")
+            logger.warning("Policy warning for %s: {rule.description}", path_str)
         return []
 
     def _matches_pattern(self, path: str, pattern: str) -> bool:

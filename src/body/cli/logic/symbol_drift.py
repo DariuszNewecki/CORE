@@ -38,7 +38,7 @@ async def _run_drift_analysis():
             db_symbol_paths = {row[0] for row in result}
         logger.info(f"Found {len(db_symbol_paths)} symbols in the database.")
     except Exception as e:
-        logger.error(f"Database query failed: {e}")
+        logger.error("Database query failed: %s", e)
         logger.info("Please ensure your database is running and accessible.")
         return
 
@@ -61,7 +61,7 @@ async def _run_drift_analysis():
             "These symbols exist in the DB but NOT in the source code. They should be pruned."
         )
         for symbol in ghost_symbols_in_db:
-            logger.warning(f"  - {symbol}")
+            logger.warning("  - %s", symbol)
         logger.info(
             "Diagnosis: The `sync-knowledge` command is failing to delete obsolete symbols from the database."
         )
@@ -72,7 +72,7 @@ async def _run_drift_analysis():
             "These symbols exist in the code but NOT in the DB. They need to be synchronized."
         )
         for symbol in new_symbols_in_code:
-            logger.info(f"  - {symbol}")
+            logger.info("  - %s", symbol)
 
     logger.info(
         "Next Step: This report confirms a bug in the sync logic. Please proceed with fixing the `run_sync_with_db` function."

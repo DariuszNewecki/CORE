@@ -28,7 +28,7 @@ def keygen(
     ),
 ) -> None:
     """Intent: Generate a new Ed25519 key pair and print an approver YAML block."""
-    logger.info(f"🔑 Generating new key pair for identity: {identity}")
+    logger.info("🔑 Generating new key pair for identity: %s", identity)
     key_storage_dir = settings.REPO_PATH / settings.KEY_STORAGE_DIR
     key_storage_dir.mkdir(parents=True, exist_ok=True)
     private_key_path = key_storage_dir / "private.key"
@@ -50,7 +50,7 @@ def keygen(
         encoding=serialization.Encoding.PEM,
         format=serialization.PublicFormat.SubjectPublicKeyInfo,
     )
-    logger.info(f"\n✅ Private key saved securely to: {private_key_path}")
+    logger.info("\n✅ Private key saved securely to: %s", private_key_path)
     logger.info(
         "\n📋 Add the following YAML block to '.intent/constitution/approvers.yaml' under 'approvers':\n"
     )

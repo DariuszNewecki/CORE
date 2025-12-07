@@ -133,7 +133,7 @@ class AccumulativeTestService:
                         symbols.append(node.name)
             return symbols
         except Exception as e:
-            logger.error(f"Failed to parse {file_path}: {e}")
+            logger.error("Failed to parse {file_path}: %s", e)
             return []
 
     def _write_test_file(self, source_file: str, successful_tests: list[dict]) -> Path:

@@ -78,7 +78,7 @@ class EnhancedTestGenerator:
             (debug_dir / filename).write_text(content, encoding="utf-8")
             logger.info(f"Saved debug artifact: {debug_dir / filename}")
         except Exception as e:
-            logger.warning(f"Failed to save debug artifact: {e}")
+            logger.warning("Failed to save debug artifact: %s", e)
 
     # ID: d4ab8d19-d4cc-49bd-b288-70399f892072
     async def generate_test(
@@ -280,7 +280,9 @@ class EnhancedTestGenerator:
 
                 # Re-run tests after fixes
                 if fixed_count > 0:
-                    logger.info(f"Re-running tests after fixing {fixed_count} tests...")
+                    logger.info(
+                        "Re-running tests after fixing %s tests...", fixed_count
+                    )
 
                     # Read the modified file
                     test_file_path = settings.REPO_PATH / test_file
@@ -293,7 +295,7 @@ class EnhancedTestGenerator:
                         ast.parse(modified_code)
 
                     except Exception as e:
-                        logger.error(f"Test file corrupted after fixes: {e}")
+                        logger.error("Test file corrupted after fixes: %s", e)
                         return {
                             "status": "tests_created_with_failures",
                             "test_file": test_file,
@@ -336,7 +338,7 @@ class EnhancedTestGenerator:
                         logger.info(
                             f"Final results: {final_passed}/{final_total} tests pass ({final_rate:.0f}%)"
                         )
-                        logger.info(f"Improvement: +{improvement} passing tests")
+                        logger.info("Improvement: +%s passing tests", improvement)
                         return {
                             "status": "tests_created_with_failures",
                             "test_file": test_file,
@@ -365,12 +367,12 @@ class EnhancedTestGenerator:
             complexity_check = self.complexity_filter.should_attempt(full_path)
 
             if not complexity_check["should_attempt"]:
-                logger.warning(f"Skipping {module_path} due to complexity filter")
+                logger.warning("Skipping %s due to complexity filter", module_path)
                 return False
 
             return True
         except Exception as exc:
-            logger.warning(f"Complexity check failed for {module_path}: {exc}")
+            logger.warning("Complexity check failed for {module_path}: %s", exc)
             return False
 
     async def _generate_initial_code(

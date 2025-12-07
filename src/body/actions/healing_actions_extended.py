@@ -44,9 +44,9 @@ class FixUnusedImportsHandler(ActionHandler):
                     "--exit-zero",
                 ],
             )
-            logger.info(f"Fixed unused imports in {target_path}")
+            logger.info("Fixed unused imports in %s", target_path)
         except Exception as e:
-            logger.error(f"Failed to fix imports: {e}")
+            logger.error("Failed to fix imports: %s", e)
             raise
 
 
@@ -76,9 +76,9 @@ class RemoveDeadCodeHandler(ActionHandler):
                     "--exit-zero",
                 ],
             )
-            logger.info(f"Removed dead code in {target_path}")
+            logger.info("Removed dead code in %s", target_path)
         except Exception as e:
-            logger.error(f"Failed to remove dead code: {e}")
+            logger.error("Failed to remove dead code: %s", e)
             raise
 
 
@@ -106,7 +106,7 @@ class EnforceLineLengthHandler(ActionHandler):
             await _async_fix_line_lengths(files_to_fix, dry_run=False)
             logger.info(f"Fixed line lengths in {len(files_to_fix)} files")
         except Exception as e:
-            logger.error(f"Failed to fix line lengths: {e}")
+            logger.error("Failed to fix line lengths: %s", e)
             raise
 
 
@@ -126,9 +126,9 @@ class AddPolicyIDsHandler(ActionHandler):
 
         try:
             count = add_missing_policy_ids(dry_run=False)
-            logger.info(f"Added policy IDs to {count} files")
+            logger.info("Added policy IDs to %s files", count)
         except Exception as e:
-            logger.error(f"Failed to add policy IDs: {e}")
+            logger.error("Failed to add policy IDs: %s", e)
             raise
 
 
@@ -150,7 +150,7 @@ class SortImportsHandler(ActionHandler):
                 f"Sorting imports in {target_path}",
                 ["ruff", "check", target_path, "--fix", "--select", "I", "--exit-zero"],
             )
-            logger.info(f"Sorted imports in {target_path}")
+            logger.info("Sorted imports in %s", target_path)
         except Exception as e:
-            logger.error(f"Failed to sort imports: {e}")
+            logger.error("Failed to sort imports: %s", e)
             raise

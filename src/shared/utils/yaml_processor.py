@@ -72,23 +72,25 @@ class YAMLProcessor:
             OSError: If file system errors occur during reading
         """
         if not file_path.exists():
-            logger.debug(f"YAML file not found (non-error): {file_path}")
+            logger.debug("YAML file not found (non-error): %s", file_path)
             return None
         try:
-            logger.debug(f"Loading YAML from: {file_path}")
+            logger.debug("Loading YAML from: %s", file_path)
             with file_path.open("r", encoding="utf-8") as f:
                 content = self.yaml.load(f)
             if content is None:
-                logger.warning(f"YAML file is empty: {file_path}")
+                logger.warning("YAML file is empty: %s", file_path)
                 return {}
             if not isinstance(content, dict):
                 raise ValueError(
                     f"YAML root must be a mapping (dict), got {type(content).__name__}: {file_path}"
                 )
-            logger.debug(f"Successfully loaded YAML: {file_path} ({len(content)} keys)")
+            logger.debug(
+                "Successfully loaded YAML: %s ({len(content)} keys)", file_path
+            )
             return content
         except Exception as e:
-            logger.error(f"YAML parsing failed for {file_path}: {e}")
+            logger.error("YAML parsing failed for {file_path}: %s", e)
             raise ValueError(
                 f"Failed to parse constitutional YAML {file_path}: {e}"
             ) from e
@@ -133,12 +135,12 @@ class YAMLProcessor:
         """
         file_path.parent.mkdir(parents=True, exist_ok=True)
         try:
-            logger.debug(f"Dumping YAML to: {file_path}")
+            logger.debug("Dumping YAML to: %s", file_path)
             with file_path.open("w", encoding="utf-8") as f:
                 self.yaml.dump(data, f)
-            logger.debug(f"Successfully wrote YAML: {file_path}")
+            logger.debug("Successfully wrote YAML: %s", file_path)
         except Exception as e:
-            logger.error(f"YAML write failed for {file_path}: {e}")
+            logger.error("YAML write failed for {file_path}: %s", e)
             raise OSError(
                 f"Failed to write constitutional YAML {file_path}: {e}"
             ) from e

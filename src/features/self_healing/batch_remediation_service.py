@@ -130,9 +130,9 @@ class BatchRemediationService:
             complexity_check = self.complexity_filter.should_attempt(file_path)
             if complexity_check["should_attempt"]:
                 filtered.append((file_path, coverage))
-                logger.debug(f"Accepted {file_path}: {complexity_check['reason']}")
+                logger.debug("Accepted %s: {complexity_check['reason']}", file_path)
             else:
-                logger.debug(f"Filtered {file_path}: {complexity_check['reason']}")
+                logger.debug("Filtered %s: {complexity_check['reason']}", file_path)
         return filtered
 
     async def _process_file(self, file_path: Path) -> dict[str, Any]:

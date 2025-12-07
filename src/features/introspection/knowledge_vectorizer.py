@@ -95,7 +95,7 @@ async def get_stored_chunks(qdrant_service: QdrantService) -> dict[str, dict]:
         return chunks
 
     except Exception as e:
-        logger.warning(f"Could not retrieve stored chunks from Qdrant: {e}")
+        logger.warning("Could not retrieve stored chunks from Qdrant: %s", e)
         return {}
 
 
@@ -116,10 +116,10 @@ async def sync_existing_vector_ids(
                 symbol_data["vector_id"] = stored_chunks[symbol_key]["point_id"]
                 synced_count += 1
         if synced_count > 0:
-            logger.info(f"Synced {synced_count} existing vector IDs from Qdrant")
+            logger.info("Synced %s existing vector IDs from Qdrant", synced_count)
         return synced_count
     except Exception as e:
-        logger.warning(f"Could not sync existing vector IDs from Qdrant: {e}")
+        logger.warning("Could not sync existing vector IDs from Qdrant: %s", e)
         return 0
 
 
@@ -166,7 +166,7 @@ async def process_vectorization_task(
     symbol_data = symbols_map.get(symbol_key)
 
     if not symbol_data:
-        logger.error(f"Symbol '{symbol_key}' not found in symbols_map.")
+        logger.error("Symbol '%s' not found in symbols_map.", symbol_key)
         return False, None
 
     try:
@@ -178,7 +178,7 @@ async def process_vectorization_task(
         payload = _prepare_vectorization_payload(symbol_data, source_code, cap_key)
 
         if dry_run:
-            logger.info(f"[DRY RUN] Would vectorize '{cap_key}' (chunk: {symbol_key})")
+            logger.info("[DRY RUN] Would vectorize '{cap_key}' (chunk: %s)", symbol_key)
             update_data = {"vector_id": f"dry_run_{symbol_key}"}
             return True, update_data
 
@@ -203,9 +203,9 @@ async def process_vectorization_task(
         )
         return True, update_data
     except Exception as e:
-        logger.error(f"Failed to process capability '{cap_key}': {e}")
+        logger.error("Failed to process capability '{cap_key}': %s", e)
         if not dry_run:
             log_failure(failure_log_path, cap_key, str(e), "knowledge_vectorize")
         if verbose:
-            logger.exception(f"Detailed error for '{cap_key}':")
+            logger.exception("Detailed error for '%s':", cap_key)
         return False, None

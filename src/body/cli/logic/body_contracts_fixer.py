@@ -240,10 +240,10 @@ async def fix_body_ui_violations(
     # --- NEW: Apply Limit ---
     items = list(by_file.items())
     if limit and limit > 0:
-        logger.info(f"Limiting processing to {limit} file(s) (found {total_found}).")
+        logger.info("Limiting processing to {limit} file(s) (found %s).", total_found)
         items = items[:limit]
     else:
-        logger.info(f"Processing all {total_found} file(s).")
+        logger.info("Processing all %s file(s).", total_found)
 
     # --- FIX: Use the directly injected cognitive service from CoreContext ---
     cognitive = core_context.cognitive_service

@@ -68,7 +68,7 @@ class CrateCreationService:
 
         try:
             crate_path.mkdir(parents=True, exist_ok=False)
-            logger.info(f"Created crate directory: {crate_id}")
+            logger.info("Created crate directory: %s", crate_id)
 
             manifest = self._create_manifest(
                 crate_id=crate_id,  # Pass crate_id here
@@ -197,7 +197,7 @@ class CrateCreationService:
             file_path = crate_path / relative_path
             file_path.parent.mkdir(parents=True, exist_ok=True)
             file_path.write_text(content, encoding="utf-8")
-            logger.debug(f"Wrote payload file: {relative_path}")
+            logger.debug("Wrote payload file: %s", relative_path)
 
     # ID: a6a343bb-a193-4fa1-9f98-68d528676616
     def validate_payload_paths(self, payload_files: dict[str, str]) -> list[str]:

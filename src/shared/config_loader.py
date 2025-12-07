@@ -34,7 +34,7 @@ def load_yaml_file(file_path: Path) -> dict[str, Any]:
         ValueError: If the file format is unsupported or parsing fails.
     """
     if not file_path.exists():
-        logger.error(f"Config file not found: {file_path}")
+        logger.error("Config file not found: %s", file_path)
         raise FileNotFoundError(f"Config file not found: {file_path}")
     try:
         content = file_path.read_text(encoding="utf-8")
@@ -46,8 +46,8 @@ def load_yaml_file(file_path: Path) -> dict[str, Any]:
             logger.error(f"Unsupported file type: {file_path.suffix}")
             raise ValueError(f"Unsupported config file type: {file_path}")
     except (yaml.YAMLError, json.JSONDecodeError) as e:
-        logger.error(f"Error parsing config {file_path}: {e}")
+        logger.error("Error parsing config {file_path}: %s", e)
         raise ValueError(f"Invalid config format in {file_path}") from e
     except UnicodeDecodeError as e:
-        logger.error(f"Encoding error in {file_path}: {e}")
+        logger.error("Encoding error in {file_path}: %s", e)
         raise ValueError(f"Encoding error in config {file_path}") from e

@@ -44,7 +44,7 @@ class AnthropicProvider(AIProvider):
         }
 
         # Detailed logging for debugging (redacting key)
-        logger.debug(f"Anthropic Req: {endpoint} | Model: {self.model_name}")
+        logger.debug("Anthropic Req: %s | Model: {self.model_name}", endpoint)
 
         async with httpx.AsyncClient(timeout=self.timeout) as client:
             response = await client.post(endpoint, headers=self.headers, json=payload)

@@ -122,7 +122,7 @@ class TestExtractor:
             return None
 
         except Exception as e:
-            logger.warning(f"Failed to extract test function {test_name}: {e}")
+            logger.warning("Failed to extract test function {test_name}: %s", e)
             return None
 
     @staticmethod
@@ -143,7 +143,7 @@ class TestExtractor:
             try:
                 ast.parse(new_function_code)
             except SyntaxError as e:
-                logger.error(f"New function code has syntax error: {e}")
+                logger.error("New function code has syntax error: %s", e)
                 return False
 
             # Find the function
@@ -160,7 +160,7 @@ class TestExtractor:
                         try:
                             ast.parse(new_content)
                         except SyntaxError as e:
-                            logger.error(f"Replacement would corrupt file: {e}")
+                            logger.error("Replacement would corrupt file: %s", e)
                             return False
 
                         file_path.write_text(new_content, encoding="utf-8")
@@ -181,7 +181,9 @@ class TestExtractor:
                                 try:
                                     ast.parse(new_content)
                                 except SyntaxError as e:
-                                    logger.error(f"Replacement would corrupt file: {e}")
+                                    logger.error(
+                                        "Replacement would corrupt file: %s", e
+                                    )
                                     return False
 
                                 file_path.write_text(new_content, encoding="utf-8")
@@ -193,7 +195,7 @@ class TestExtractor:
             return replaced
 
         except Exception as e:
-            logger.error(f"Failed to replace test function {test_name}: {e}")
+            logger.error("Failed to replace test function {test_name}: %s", e)
             return False
 
 
@@ -239,7 +241,7 @@ class SingleTestFixer:
                 "final_error": str (if unfixable),
             }
         """
-        logger.info(f"Attempting to fix test: {test_name}")
+        logger.info("Attempting to fix test: %s", test_name)
 
         # Extract the test function
         test_code = self.extractor.extract_test_function(test_file, test_name)
@@ -291,24 +293,24 @@ class SingleTestFixer:
                 try:
                     ast.parse(fixed_code)
                 except SyntaxError as e:
-                    logger.warning(f"Fixed code has syntax error: {e}")
+                    logger.warning("Fixed code has syntax error: %s", e)
                     continue
 
                 # Apply the fix
                 if not self.extractor.replace_test_function(
                     test_file, test_name, fixed_code
                 ):
-                    logger.warning(f"Could not apply fix to {test_name}")
+                    logger.warning("Could not apply fix to %s", test_name)
                     continue
 
-                logger.info(f"Successfully applied fix to {test_name}")
+                logger.info("Successfully applied fix to %s", test_name)
                 return {
                     "status": "fixed",
                     "attempts": attempt + 1,
                 }
 
             except Exception as e:
-                logger.error(f"Error during fix attempt: {e}")
+                logger.error("Error during fix attempt: %s", e)
                 continue
 
         # Failed to fix after max attempts

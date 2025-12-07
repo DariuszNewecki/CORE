@@ -13,7 +13,6 @@ modelled in capabilities.
 from __future__ import annotations
 
 import yaml
-
 from shared.config import settings
 from shared.logger import getLogger
 from shared.path_utils import get_repo_root
@@ -105,7 +104,7 @@ class Scaffolder:
         target_file = self.project_root / relative_path
         target_file.parent.mkdir(parents=True, exist_ok=True)
         target_file.write_text(content, encoding="utf-8")
-        logger.info(f"   -> 📄 Wrote agent-generated file: {relative_path}")
+        logger.info("   -> 📄 Wrote agent-generated file: %s", relative_path)
 
 
 def _create_new_project(

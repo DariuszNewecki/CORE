@@ -107,7 +107,7 @@ class FileNavigator:
                 )
                 entries.append(entry)
         except PermissionError:
-            logger.warning(f"Permission denied listing {path}")
+            logger.warning("Permission denied listing %s", path)
 
         # Sort: Directories first, then files
         entries.sort(key=lambda x: (x.type != "dir", x.name))
@@ -148,5 +148,5 @@ class FileNavigator:
         except UnicodeDecodeError:
             return f"Error: File {path} appears to be binary or non-UTF-8."
         except Exception as e:
-            logger.error(f"Error reading {path}: {e}")
+            logger.error("Error reading {path}: %s", e)
             raise

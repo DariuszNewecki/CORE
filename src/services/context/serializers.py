@@ -7,6 +7,10 @@ Handles serialization, deserialization, and token counting.
 
 from __future__ import annotations
 
+from shared.logger import getLogger
+
+logger = getLogger(__name__)
+
 import hashlib
 import json
 import logging
@@ -38,7 +42,7 @@ class ContextSerializer:
             yaml.safe_dump(packet, f, default_flow_style=False, sort_keys=False)
 
         # Downgraded to DEBUG
-        logger.debug(f"Wrote packet to {output_path}")
+        logger.debug("Wrote packet to %s", output_path)
 
     @staticmethod
     # ID: dbc3018c-e19a-4928-adba-f2ab712a77f5
@@ -55,7 +59,7 @@ class ContextSerializer:
             packet = yaml.safe_load(f)
 
         # Downgraded to DEBUG
-        logger.debug(f"Loaded packet from {input_path}")
+        logger.debug("Loaded packet from %s", input_path)
         return packet
 
     @staticmethod

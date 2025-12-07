@@ -5,6 +5,10 @@ Verifies the integrity of exported YAML files by checking their digests.
 
 from __future__ import annotations
 
+from shared.logger import getLogger
+
+logger = getLogger(__name__)
+
 import logging
 
 from shared.config import settings
@@ -23,7 +27,7 @@ def run_verify() -> bool:
         bool: True if all digests are valid, False otherwise.
     """
     if not EXPORT_DIR.exists():
-        logger.error(f"Export directory not found: {EXPORT_DIR}. Cannot verify.")
+        logger.error("Export directory not found: %s. Cannot verify.", EXPORT_DIR)
         return False
 
     logger.info("Verifying digests of exported YAML files...")
@@ -39,7 +43,7 @@ def run_verify() -> bool:
     for filename in files_to_check:
         path = EXPORT_DIR / filename
         if not path.exists():
-            logger.warning(f"SKIP: {filename} does not exist.")
+            logger.warning("SKIP: %s does not exist.", filename)
             continue
 
         doc = read_yaml(path)
@@ -47,16 +51,16 @@ def run_verify() -> bool:
         expected_digest = doc.get("digest")
 
         if not expected_digest:
-            logger.error(f"FAIL: {filename} is missing a digest.")
+            logger.error("FAIL: %s is missing a digest.", filename)
             all_ok = False
             continue
 
         actual_digest = compute_digest(items)
 
         if expected_digest == actual_digest:
-            logger.info(f"PASS: {filename} digest is valid.")
+            logger.info("PASS: %s digest is valid.", filename)
         else:
-            logger.error(f"FAIL: {filename} digest mismatch!")
+            logger.error("FAIL: %s digest mismatch!", filename)
             all_ok = False
 
     if all_ok:

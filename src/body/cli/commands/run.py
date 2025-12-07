@@ -127,5 +127,5 @@ async def _develop(
             "   -> Run 'git status' to see changes and 'core-admin submit changes' to integrate."
         )
     else:
-        logger.error(f"Goal execution failed: {message}")
+        logger.error("Goal execution failed: %s", message)
         raise typer.Exit(code=1)

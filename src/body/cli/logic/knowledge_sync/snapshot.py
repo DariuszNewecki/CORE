@@ -85,7 +85,7 @@ async def run_snapshot(env: str | None, note: str | None) -> None:
     who = getpass.getuser()
     env = env or "dev"
 
-    logger.info(f"Creating a new snapshot of the database in '{EXPORT_DIR}'...")
+    logger.info("Creating a new snapshot of the database in '%s'...", EXPORT_DIR)
 
     # Fetch all data
     caps, syms, links, north = await asyncio.gather(
@@ -140,4 +140,4 @@ async def run_snapshot(env: str | None, note: str | None) -> None:
 
     logger.info("Snapshot complete.")
     for filename, sha in digests:
-        logger.debug(f"Wrote '{filename}' with digest: {sha}")
+        logger.debug("Wrote '{filename}' with digest: %s", sha)

@@ -60,7 +60,7 @@ class SymbolFinder:
         if not clean_query or len(clean_query) < 3:
             return []
 
-        logger.debug(f"SymbolFinder: Searching for '{clean_query}'")
+        logger.debug("SymbolFinder: Searching for '%s'", clean_query)
 
         async with get_session() as session:
             # Search against qualname (e.g. "ActionHandler") and module path
@@ -101,7 +101,7 @@ class SymbolFinder:
                     f"SymbolFinder: Found {len(locations)} matches for '{clean_query}'"
                 )
             else:
-                logger.debug(f"SymbolFinder: No matches found for '{clean_query}'")
+                logger.debug("SymbolFinder: No matches found for '%s'", clean_query)
 
             return locations
 

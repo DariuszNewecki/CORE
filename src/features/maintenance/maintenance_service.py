@@ -83,8 +83,8 @@ def rewire_imports(dry_run: bool = True) -> int:
                     logger.info(
                         f"Change detected in: {file_path.relative_to(settings.REPO_PATH)}"
                     )
-                    logger.info(f"  - {line}")
-                    logger.info(f"  + {modified_line}")
+                    logger.info("  - %s", line)
+                    logger.info("  + %s", modified_line)
                     new_lines.append(modified_line)
                     file_was_changed = True
                     total_changes += 1
@@ -95,6 +95,6 @@ def rewire_imports(dry_run: bool = True) -> int:
                 file_path.write_text("\n".join(new_lines) + "\n", encoding="utf-8")
 
         except Exception as e:
-            logger.error(f"Error processing {file_path}: {e}")
+            logger.error("Error processing {file_path}: %s", e)
 
     return total_changes

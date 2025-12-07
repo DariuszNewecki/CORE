@@ -54,7 +54,7 @@ class ActionLogger:
             with self.log_path.open("a", encoding="utf-8") as f:
                 f.write(json.dumps(log_entry) + "\n")
         except Exception as e:
-            logger.error(f"Failed to write to action log at {self.log_path}: {e}")
+            logger.error("Failed to write to action log at {self.log_path}: %s", e)
 
 
 action_logger = ActionLogger()

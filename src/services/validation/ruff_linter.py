@@ -82,7 +82,7 @@ def fix_and_lint_code_with_ruff(
         logger.error("Failed to parse Ruff's JSON output.")
         return (code, [])
     except Exception as e:
-        logger.error(f"An unexpected error occurred during Ruff execution: {e}")
+        logger.error("An unexpected error occurred during Ruff execution: %s", e)
         return (code, [])
     finally:
         if os.path.exists(tmp_file_path):

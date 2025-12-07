@@ -147,7 +147,7 @@ class VectorIndexService:
         valid_pairs = []
         for item, emb in zip(items, embeddings):
             if isinstance(emb, Exception):
-                logger.warning(f"Failed to embed {item.item_id}: {emb}")
+                logger.warning("Failed to embed {item.item_id}: %s", emb)
                 continue
             if emb is not None:
                 valid_pairs.append((item, emb))

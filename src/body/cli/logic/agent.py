@@ -11,7 +11,6 @@ import textwrap
 from typing import Any
 
 import typer
-
 from features.project_lifecycle.scaffolding_service import Scaffolder
 from shared.context import CoreContext
 from shared.logger import getLogger
@@ -37,7 +36,7 @@ async def scaffold_new_application(
     context: CoreContext, project_name: str, goal: str, initialize_git: bool = False
 ) -> tuple[bool, str]:
     """Uses an LLM to plan and generate a new, multi-file application."""
-    logger.info(f"🌱 Starting to scaffold new application '{project_name}'...")
+    logger.info("🌱 Starting to scaffold new application '%s'...", project_name)
     cognitive_service = context.cognitive_service
     await cognitive_service.initialize()
     prompt_template = textwrap.dedent(
@@ -96,8 +95,8 @@ async def agent_scaffold(
     ),
 ):
     """Uses an LLM agent to autonomously scaffold a new application."""
-    logger.info(f"🤖 Invoking Agent to scaffold application '{name}'...")
-    logger.info(f"   -> Goal: '{goal}'")
+    logger.info("🤖 Invoking Agent to scaffold application '%s'...", name)
+    logger.info("   -> Goal: '%s'", goal)
     core_context: CoreContext = ctx.obj
     success, message = await scaffold_new_application(
         context=core_context, project_name=name, goal=goal, initialize_git=git_init

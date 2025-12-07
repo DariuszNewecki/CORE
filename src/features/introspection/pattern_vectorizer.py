@@ -136,9 +136,9 @@ class PatternVectorizer:
             try:
                 count = await self.vectorize_pattern(pattern_file, stored_hashes)
                 results[pattern_file.stem] = count
-                logger.info(f"✓ Vectorized {pattern_file.name}: {count} chunks")
+                logger.info("✓ Vectorized {pattern_file.name}: %s chunks", count)
             except Exception as e:
-                logger.error(f"✗ Failed to vectorize {pattern_file.name}: {e}")
+                logger.error("✗ Failed to vectorize {pattern_file.name}: %s", e)
                 results[pattern_file.stem] = 0
 
         total_chunks = sum(results.values())
