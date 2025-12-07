@@ -51,7 +51,7 @@ jsonschema = "^4"
 httpx = "^0.28.0"
 
 # Code Quality Tools
-black = "^24"
+black = "^25"
 radon = "^5.1.0"
 sqlparse = "^0.5.3"
 
@@ -98,7 +98,7 @@ aiosqlite = "^0.21.0"
 # Code Quality
 pre-commit = "^3.7.1"
 mypy = "^1.11"
-ruff = "^0.6.0"
+ruff = "^0.14.8"
 
 # Documentation
 sphinx = "^7.0"
@@ -161,7 +161,6 @@ ignore = [
     "C408",  # Allow dict() calls
     "C414",  # Allow list() in sorted()
     "N806",  # Allow uppercase variable names
-    "UP038", # Allow isinstance with tuple (more readable than | syntax)
     "F841",  # Allow unused local variables (sometimes intentional)
 ]
 
