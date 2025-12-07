@@ -7,10 +7,12 @@ from __future__ import annotations
 import asyncio
 
 import numpy as np
+from sqlalchemy import text
+
 from services.clients.qdrant_client import QdrantService
 from services.database.session_manager import get_session
 from shared.logger import getLogger
-from sqlalchemy import text
+
 
 logger = getLogger(__name__)
 

@@ -10,12 +10,14 @@ import json
 import jsonschema
 import typer
 import yaml
+
 from mind.governance.checks.domain_placement import DomainPlacementCheck
 from mind.governance.checks.legacy_tag_check import LegacyTagCheck
 from shared.config import settings
 from shared.context import CoreContext
 from shared.logger import getLogger
 from shared.models import AuditSeverity
+
 
 logger = getLogger(__name__)
 

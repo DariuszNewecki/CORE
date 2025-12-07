@@ -10,9 +10,8 @@ and the 'linkage.assign_ids' check.
 
 from __future__ import annotations
 
-from shared.models import AuditFinding
-
 from mind.governance.checks.base_check import BaseCheck
+from shared.models import AuditFinding
 
 
 # ID: 3adcb244-bd0a-45a8-98a7-6bf58f1fda42

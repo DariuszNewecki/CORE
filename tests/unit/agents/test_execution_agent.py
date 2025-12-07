@@ -8,6 +8,7 @@ from __future__ import annotations
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+
 from shared.models import ExecutionTask, PlanExecutionError, TaskParams
 from will.agents.execution_agent import _ExecutionAgent
 

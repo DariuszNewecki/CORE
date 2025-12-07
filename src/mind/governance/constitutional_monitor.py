@@ -17,10 +17,10 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Protocol
 
+from mind.governance.audit_context import AuditorContext
 from shared.logger import getLogger
 from shared.utils.header_tools import _HeaderTools
 
-from mind.governance.audit_context import AuditorContext
 
 logger = getLogger(__name__)
 

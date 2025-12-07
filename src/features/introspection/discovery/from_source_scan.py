@@ -11,6 +11,7 @@ from pathlib import Path
 
 from shared.models import CapabilityMeta
 
+
 CAPABILITY_PATTERN = re.compile(r"#\s*CAPABILITY:\s*(\S+)")
 
 

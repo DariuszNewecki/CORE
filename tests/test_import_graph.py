@@ -6,6 +6,7 @@ import pkgutil
 
 import pytest
 
+
 # --- START OF FIX ---
 # This is the final, correct architectural map.
 # It reflects that core utilities like KnowledgeService and SecretsService

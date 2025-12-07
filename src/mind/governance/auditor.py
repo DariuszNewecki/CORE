@@ -14,11 +14,6 @@ import time
 from collections.abc import MutableMapping
 from typing import Any
 
-from shared.activity_logging import activity_run, log_activity
-from shared.logger import getLogger
-from shared.models import AuditFinding, AuditSeverity
-from shared.path_utils import get_repo_root
-
 from mind.governance import checks
 from mind.governance.audit_context import AuditorContext
 from mind.governance.audit_postprocessor import (
@@ -28,6 +23,11 @@ from mind.governance.audit_postprocessor import (
 from mind.governance.audit_reporter import AuditRunReporter
 from mind.governance.audit_types import AuditCheckResult
 from mind.governance.checks.base_check import BaseCheck
+from shared.activity_logging import activity_run, log_activity
+from shared.logger import getLogger
+from shared.models import AuditFinding, AuditSeverity
+from shared.path_utils import get_repo_root
+
 
 logger = getLogger(__name__)
 

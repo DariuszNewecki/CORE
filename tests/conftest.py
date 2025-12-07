@@ -21,10 +21,12 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 
+
 REPO_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(REPO_ROOT / "src"))
 
 from shared.config import settings
+
 
 # Set the environment to TEST. The actual .env file is now loaded inside the fixture.
 os.environ.setdefault("CORE_ENV", "TEST")

@@ -4,6 +4,7 @@
 
 from unittest.mock import MagicMock, patch
 
+
 # Import from source module
 try:
     from mind.governance.checks.file_checks import *

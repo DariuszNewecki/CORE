@@ -11,10 +11,12 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
-# Import the actual module to test
-import body.cli.commands.coverage as coverage
 import pytest
 import typer
+
+# Import the actual module to test
+import body.cli.commands.coverage as coverage
+
 
 # -----------------------------------------------------------------------------
 # Fixtures

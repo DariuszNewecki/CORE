@@ -12,6 +12,7 @@ from typing import Any
 
 import yaml
 
+
 Violation = dict[str, Any]
 
 

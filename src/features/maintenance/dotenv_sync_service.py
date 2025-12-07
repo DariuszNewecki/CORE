@@ -6,12 +6,14 @@ from __future__ import annotations
 
 from typing import Any
 
+from sqlalchemy import func
+from sqlalchemy.dialects.postgresql import insert as pg_insert
+
 from services.database.models import RuntimeSetting
 from services.database.session_manager import get_session
 from shared.config import settings
 from shared.logger import getLogger
-from sqlalchemy import func
-from sqlalchemy.dialects.postgresql import insert as pg_insert
+
 
 logger = getLogger(__name__)
 

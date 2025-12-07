@@ -11,14 +11,16 @@ from __future__ import annotations
 
 from typing import Any
 
+from sqlalchemy import update
+
 from services.database.models import Task
 from services.database.session_manager import get_session
 from shared.context import CoreContext
 from shared.logger import getLogger
 from shared.models import PlanExecutionError
-from sqlalchemy import update
 from will.agents.execution_agent import _ExecutionAgent
 from will.agents.planner_agent import PlannerAgent
+
 
 # DEPRECATED: from will.agents.reconnaissance_agent import ReconnaissanceAgent
 

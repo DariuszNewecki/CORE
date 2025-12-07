@@ -31,6 +31,7 @@ from shared.utils.common_knowledge import (
     safe_truncate,
 )
 
+
 __all__ = [
     "normalize_whitespace",
     "normalize_text",

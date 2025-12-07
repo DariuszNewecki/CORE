@@ -18,12 +18,14 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
+from sqlalchemy import text
+
 from services.knowledge.knowledge_service import KnowledgeService
 from shared.config import settings
 from shared.logger import getLogger
-from sqlalchemy import text
 from will.agents.tagger_agent import CapabilityTaggerAgent
 from will.orchestration.cognitive_service import CognitiveService
+
 
 logger = getLogger(__name__)
 REPO_ROOT = settings.REPO_PATH

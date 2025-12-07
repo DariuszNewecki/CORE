@@ -11,20 +11,7 @@ from __future__ import annotations
 import time
 
 import typer
-from features.introspection.sync_service import run_sync_with_db
-from features.introspection.vectorization_service import run_vectorize
-from features.project_lifecycle.definition_service import _define_new_symbols
-from features.self_healing.code_style_service import format_code
-from features.self_healing.docstring_service import fix_docstrings
-from features.self_healing.sync_vectors import main_async as sync_vectors_async
 from rich.console import Console
-from services.vector.adapters.constitutional_adapter import ConstitutionalAdapter
-from services.vector.vector_index_service import VectorIndexService
-from shared.action_types import ActionResult
-from shared.activity_logging import activity_run
-from shared.cli_utils import core_command
-from shared.config import settings
-from shared.context import CoreContext
 
 # --- Internal Logic Imports ---
 from body.cli.commands.fix.code_style import fix_headers_internal
@@ -36,6 +23,20 @@ from body.cli.logic.duplicates import inspect_duplicates_async  # async version
 
 # --- Shared Utilities ---
 from body.cli.workflows.dev_sync_reporter import DevSyncReporter
+from features.introspection.sync_service import run_sync_with_db
+from features.introspection.vectorization_service import run_vectorize
+from features.project_lifecycle.definition_service import _define_new_symbols
+from features.self_healing.code_style_service import format_code
+from features.self_healing.docstring_service import fix_docstrings
+from features.self_healing.sync_vectors import main_async as sync_vectors_async
+from services.vector.adapters.constitutional_adapter import ConstitutionalAdapter
+from services.vector.vector_index_service import VectorIndexService
+from shared.action_types import ActionResult
+from shared.activity_logging import activity_run
+from shared.cli_utils import core_command
+from shared.config import settings
+from shared.context import CoreContext
+
 
 console = Console()
 
@@ -512,7 +513,6 @@ async def dev_sync_command(
 
 @dev_sync_app.command("fix-logging")
 @core_command(dangerous=True, confirmation=True)
-# ID: d1e2f3a4-b5c6-7890-456789abcdef
 # ID: 0958b077-78bb-40ff-92bb-8a94f41a36db
 async def fix_logging_command(
     ctx: typer.Context,  # ADDED: Required by @core_command

@@ -11,7 +11,9 @@ import json
 import typer
 from rich.console import Console
 from rich.table import Table
+
 from shared.config import settings
+
 
 console = Console()
 

@@ -6,6 +6,7 @@ from __future__ import annotations
 
 from shared.logger import getLogger
 
+
 logger = getLogger(__name__)
 
 import ast
@@ -19,6 +20,7 @@ from typing import Any
 import yaml
 
 from .serializers import ContextSerializer
+
 
 logger = logging.getLogger(__name__)
 

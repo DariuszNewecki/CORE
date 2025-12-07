@@ -12,7 +12,6 @@ from mind.governance.checks.base_check import BaseCheck
 from shared.models import AuditFinding, AuditSeverity
 
 
-# ID: g7h8i9j0-k1l2-4m3n-4o5p-6q7r8s9t0u1v
 # ID: dca11664-1e80-4fc9-84e0-41e169f5a6ae
 class GovernedDbWriteCheck(BaseCheck):
     policy_rule_ids = ["db.write_via_governed_cli"]

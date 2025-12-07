@@ -4,6 +4,7 @@
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
+
 # Import from source module
 try:
     from features.self_healing.enrichment_service import *

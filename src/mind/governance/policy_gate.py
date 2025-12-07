@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from fnmatch import fnmatch
 from pathlib import Path
 
+
 try:
     # Prefer your shared exception if present
     from shared.exceptions import PolicyViolation  # type: ignore

@@ -7,9 +7,10 @@ Refactored to use the Constitutional CLI Framework (@core_command).
 from __future__ import annotations
 
 import typer
-from shared.cli_utils import core_command
 
 from body.cli.logic.knowledge_sync import run_diff, run_import, run_snapshot, run_verify
+from shared.cli_utils import core_command
+
 
 mind_app = typer.Typer(
     help="Commands to manage the Working Mind (DB-as-SSOT).", no_args_is_help=True

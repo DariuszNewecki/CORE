@@ -12,7 +12,6 @@ from mind.governance.checks.base_check import BaseCheck
 from shared.models import AuditFinding, AuditSeverity
 
 
-# ID: p6q7r8s9-t0u1-1v2w-3x4y-5z6a7b8c9d0e
 # ID: 599dcb6a-e809-498c-a319-67121529b34c
 class ReasoningTraceCheck(BaseCheck):
     policy_rule_ids = ["agent.reasoning.trace_required"]

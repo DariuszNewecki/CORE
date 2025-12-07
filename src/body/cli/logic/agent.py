@@ -11,9 +11,11 @@ import textwrap
 from typing import Any
 
 import typer
+
 from features.project_lifecycle.scaffolding_service import Scaffolder
 from shared.context import CoreContext
 from shared.logger import getLogger
+
 
 logger = getLogger(__name__)
 agent_app = typer.Typer(help="Directly invoke autonomous agent capabilities.")

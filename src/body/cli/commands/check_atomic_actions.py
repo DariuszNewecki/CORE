@@ -15,8 +15,10 @@ import json
 from pathlib import Path
 
 import typer
+
 from shared.cli_utils import core_command
 from shared.logger import getLogger
+
 
 logger = getLogger(__name__)
 

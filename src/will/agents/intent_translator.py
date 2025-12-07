@@ -10,9 +10,9 @@ from __future__ import annotations
 
 from shared.config import settings
 from shared.logger import getLogger
-
 from will.orchestration.cognitive_service import CognitiveService
 from will.orchestration.prompt_pipeline import PromptPipeline
+
 
 logger = getLogger(__name__)
 

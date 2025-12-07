@@ -11,4 +11,5 @@ from __future__ import annotations
 
 from body.cli.workflows.dev_sync_reporter import DevSyncReporter
 
+
 __all__ = ["DevSyncReporter"]

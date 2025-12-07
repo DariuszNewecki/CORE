@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING
 
 from shared.models import PlanExecutionError
 
+
 if TYPE_CHECKING:
     from shared.models import TaskParams
 

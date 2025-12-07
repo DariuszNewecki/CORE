@@ -16,6 +16,7 @@ from shared.models import PlanExecutionError
 from will.agents.base_planner import parse_and_validate_plan
 from will.orchestration.cognitive_service import CognitiveService
 
+
 logger = getLogger(__name__)
 
 

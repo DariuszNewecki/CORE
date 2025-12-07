@@ -11,6 +11,7 @@ import re
 from shared.config import settings
 from shared.logger import getLogger
 
+
 logger = getLogger(__name__)
 
 # This map defines the OLD python import paths to the NEW python import paths.

@@ -14,8 +14,10 @@ import typer
 import yaml
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ed25519
+
 from shared.config import settings
 from shared.logger import getLogger
+
 
 logger = getLogger(__name__)
 log = logger  # keep tests and tools happy

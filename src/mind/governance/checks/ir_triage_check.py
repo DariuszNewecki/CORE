@@ -10,7 +10,6 @@ from shared.config import settings
 from shared.models import AuditFinding, AuditSeverity
 
 
-# ID: l2m3n4o5-p6q7-7r8s-9t0u-1v2w3x4y5z6a
 # ID: 6a1ab18f-4330-4e4a-8358-33c2ebe29fd0
 class IRTriageCheck(BaseCheck):
     policy_rule_ids = ["ir.triage_required"]

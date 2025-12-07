@@ -16,4 +16,5 @@ from __future__ import annotations
 
 from .constitutional_adapter import ConstitutionalAdapter
 
+
 __all__ = ["ConstitutionalAdapter"]

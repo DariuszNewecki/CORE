@@ -29,6 +29,7 @@ from shared.atomic_action import atomic_action
 from shared.config import settings
 from shared.logger import getLogger
 
+
 logger = getLogger(__name__)
 
 

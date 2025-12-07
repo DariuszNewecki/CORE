@@ -5,6 +5,7 @@ Updated to test against the ActionResult contract (the new standard).
 """
 
 import pytest
+
 from body.cli.commands.fix.metadata import fix_ids_internal
 
 # CHANGED: Import ActionResult from action_types, not CommandResult from cli_types

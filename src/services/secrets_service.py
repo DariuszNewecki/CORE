@@ -16,10 +16,12 @@ import os
 from datetime import datetime
 
 from cryptography.fernet import Fernet, InvalidToken
-from shared.exceptions import SecretNotFoundError
-from shared.logger import getLogger
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from shared.exceptions import SecretNotFoundError
+from shared.logger import getLogger
+
 
 logger = getLogger(__name__)
 

@@ -14,6 +14,7 @@ from __future__ import annotations
 
 from shared.logger import getLogger
 
+
 logger = getLogger(__name__)
 
 from collections.abc import Iterable
@@ -22,10 +23,11 @@ from dataclasses import dataclass, field
 from rich.console import Console
 from rich.table import Table
 from rich.text import Text
+
+from mind.governance.audit_types import AuditCheckResult
 from shared.activity_logging import ActivityRun, log_activity
 from shared.models import AuditSeverity
 
-from mind.governance.audit_types import AuditCheckResult
 
 # Use Console for user-facing report output (CLI Exemption)
 console = Console()

@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from shared.logger import getLogger
 
+
 logger = getLogger(__name__)
 
 import logging
@@ -14,6 +15,7 @@ import logging
 from shared.config import settings
 
 from .utils import compute_digest, read_yaml
+
 
 logger = logging.getLogger(__name__)
 EXPORT_DIR = settings.REPO_PATH / ".intent" / "mind_export"

@@ -6,6 +6,7 @@ import pytest
 
 from services.context.providers.ast import ASTProvider
 
+
 # --- Sample Code Snippets for Testing ---
 
 SIMPLE_FUNCTION_CODE = """

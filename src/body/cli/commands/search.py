@@ -9,10 +9,11 @@ from __future__ import annotations
 import typer
 from rich.console import Console
 from rich.table import Table
+
+from body.cli.logic.hub import hub_search_cmd
 from shared.cli_utils import core_command
 from shared.context import CoreContext
 
-from body.cli.logic.hub import hub_search_cmd
 
 console = Console()
 search_app = typer.Typer(

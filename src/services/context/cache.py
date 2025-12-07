@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from shared.logger import getLogger
 
+
 logger = getLogger(__name__)
 
 import logging
@@ -17,6 +18,7 @@ from pathlib import Path
 from typing import Any
 
 from .serializers import ContextSerializer
+
 
 logger = logging.getLogger(__name__)
 

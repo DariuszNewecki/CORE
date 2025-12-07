@@ -16,12 +16,14 @@ from pathlib import Path
 from typing import Any
 
 import typer
-from features.self_healing.linelength_service import fix_line_lengths
 from rich.console import Console
+
+from features.self_healing.linelength_service import fix_line_lengths
 from shared.cli_utils import async_command
 from shared.config import settings
 from shared.context import CoreContext
 from shared.logger import getLogger
+
 
 logger = getLogger(__name__)
 console = Console()

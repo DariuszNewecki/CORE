@@ -24,6 +24,7 @@ from shared.context import CoreContext
 from shared.logger import getLogger
 from shared.utils.embedding_utils import normalize_text
 
+
 if TYPE_CHECKING:
     from will.orchestration.cognitive_service import CognitiveService
 

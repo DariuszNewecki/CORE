@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from services.database.session_manager import get_db_session
 from services.knowledge.knowledge_service import KnowledgeService
 
+
 router = APIRouter(prefix="/knowledge")
 
 

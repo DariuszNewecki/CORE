@@ -6,6 +6,7 @@ from typer.testing import CliRunner
 from body.cli.admin_cli import app
 from services.repositories.db.status_service import StatusReport
 
+
 runner = CliRunner()
 
 

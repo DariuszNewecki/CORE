@@ -7,6 +7,7 @@ import pytest
 from mind.governance.checks.naming_conventions import NamingConventionsCheck
 from shared.models import AuditSeverity
 
+
 # A realistic, minimal policy for testing purposes.
 # We will modify this in specific tests to check edge cases.
 TEST_POLICY = {

@@ -17,6 +17,7 @@ from typing import Any
 from shared.action_types import ActionImpact
 from shared.logger import getLogger
 
+
 logger = getLogger(__name__)
 
 

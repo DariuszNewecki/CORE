@@ -12,13 +12,15 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import typer
-from features.introspection.pattern_vectorizer import PatternVectorizer
 from rich.console import Console
 from rich.table import Table
+
+from features.introspection.pattern_vectorizer import PatternVectorizer
 from shared.action_types import ActionImpact, ActionResult
 from shared.atomic_action import atomic_action
 from shared.cli_utils import async_command
 from shared.config import settings
+
 
 if TYPE_CHECKING:
     from services.clients.qdrant_client import QdrantService

@@ -14,9 +14,11 @@ from pathlib import Path
 import typer
 from rich.panel import Panel
 from rich.table import Table
+
 from shared.cli_utils import core_command
 
 from . import console, fix_app
+
 
 # Re-export for use in this module
 __all__ = [

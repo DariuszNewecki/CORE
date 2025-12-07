@@ -20,6 +20,8 @@ import asyncio
 from pathlib import Path
 from typing import Any
 
+from sqlalchemy import select
+
 from services.config_service import ConfigService
 from services.database.models import CognitiveRole, LlmResource
 from services.database.session_manager import get_session
@@ -29,8 +31,8 @@ from services.llm.providers.base import AIProvider
 from services.llm.providers.ollama import OllamaProvider
 from services.llm.providers.openai import OpenAIProvider
 from shared.logger import getLogger
-from sqlalchemy import select
 from will.agents.resource_selector import ResourceSelector
+
 
 logger = getLogger(__name__)
 

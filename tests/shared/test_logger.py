@@ -2,6 +2,7 @@ import logging
 from unittest.mock import MagicMock, patch
 
 import pytest
+
 from shared.logger import configure_root_logger, getLogger, reconfigure_log_level
 
 

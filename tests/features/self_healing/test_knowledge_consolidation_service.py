@@ -4,6 +4,7 @@
 
 from unittest.mock import MagicMock, patch
 
+
 # Import from source module
 try:
     from features.self_healing.knowledge_consolidation_service import *

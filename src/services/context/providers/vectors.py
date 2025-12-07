@@ -9,10 +9,12 @@ from __future__ import annotations
 
 from shared.logger import getLogger
 
+
 logger = getLogger(__name__)
 
 import logging
 from typing import Any
+
 
 logger = logging.getLogger(__name__)
 

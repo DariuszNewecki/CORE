@@ -9,13 +9,12 @@ from typing import TYPE_CHECKING
 
 from shared.logger import getLogger
 from shared.utils.parsing import extract_python_code_from_response
-
 from will.orchestration.self_correction_engine import attempt_correction
+
 
 if TYPE_CHECKING:
     from mind.governance.audit_context import AuditorContext
     from shared.models import ExecutionTask
-
     from will.orchestration.cognitive_service import CognitiveService
     from will.orchestration.decision_tracer import DecisionTracer
 

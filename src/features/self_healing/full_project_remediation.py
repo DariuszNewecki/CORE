@@ -18,12 +18,12 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from features.self_healing.coverage_analyzer import CoverageAnalyzer
 from mind.governance.audit_context import AuditorContext
 from shared.config import settings
 from shared.logger import getLogger
 from will.orchestration.cognitive_service import CognitiveService
 
-from features.self_healing.coverage_analyzer import CoverageAnalyzer
 
 logger = getLogger(__name__)
 

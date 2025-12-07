@@ -12,11 +12,13 @@ import json
 from collections.abc import Iterable
 from pathlib import Path
 
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from shared.config_loader import load_yaml_file
 from shared.logger import getLogger
 from shared.models import CapabilityMeta
-from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncSession
+
 
 logger = getLogger(__name__)
 

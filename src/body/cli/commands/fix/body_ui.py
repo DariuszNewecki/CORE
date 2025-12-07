@@ -16,14 +16,15 @@ from __future__ import annotations
 
 import typer
 from rich.console import Console
+
+from body.cli.logic.body_contracts_fixer import fix_body_ui_violations
 from shared.activity_logging import activity_run, log_activity
 from shared.cli_utils import core_command
 from shared.context import CoreContext
 
-from body.cli.logic.body_contracts_fixer import fix_body_ui_violations
-
 # Import the parent app to register this command
 from . import fix_app
+
 
 console = Console()
 

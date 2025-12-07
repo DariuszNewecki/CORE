@@ -17,6 +17,7 @@ from shared.logger import getLogger
 from will.orchestration.cognitive_service import CognitiveService
 from will.orchestration.prompt_pipeline import PromptPipeline
 
+
 logger = getLogger(__name__)
 
 

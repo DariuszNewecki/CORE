@@ -12,15 +12,15 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+from features.self_healing.coverage_analyzer import CoverageAnalyzer
+from features.self_healing.single_file_remediation import (
+    EnhancedSingleFileRemediationService,
+)
 from mind.governance.audit_context import AuditorContext
 from shared.config import settings
 from shared.logger import getLogger
 from will.orchestration.cognitive_service import CognitiveService
 
-from features.self_healing.coverage_analyzer import CoverageAnalyzer
-from features.self_healing.single_file_remediation import (
-    EnhancedSingleFileRemediationService,
-)
 
 logger = getLogger(__name__)
 

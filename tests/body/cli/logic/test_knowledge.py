@@ -6,6 +6,7 @@ from unittest.mock import patch
 
 import pytest
 
+
 try:
     from body.cli.logic.knowledge import find_common_knowledge
 

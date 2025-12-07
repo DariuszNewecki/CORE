@@ -14,9 +14,9 @@ from typing import TYPE_CHECKING
 
 from shared.logger import getLogger
 
+
 if TYPE_CHECKING:
     from shared.models import ExecutionTask
-
     from will.orchestration.intent_guard import IntentGuard
 
 logger = getLogger(__name__)

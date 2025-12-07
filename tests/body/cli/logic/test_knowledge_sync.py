@@ -2,6 +2,7 @@
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+
 from body.cli.logic.knowledge_sync.snapshot import (
     fetch_capabilities,
     fetch_links,

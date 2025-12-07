@@ -10,6 +10,7 @@ import ast
 from pathlib import Path
 from typing import Any
 
+
 Violation = dict[str, Any]
 
 

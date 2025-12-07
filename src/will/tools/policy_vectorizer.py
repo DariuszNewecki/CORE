@@ -24,8 +24,8 @@ from typing import Any
 from services.clients.qdrant_client import QdrantService
 from shared.logger import getLogger
 from shared.utils.yaml_processor import strict_yaml_processor
-
 from will.orchestration.cognitive_service import CognitiveService
+
 
 logger = getLogger(__name__)
 
@@ -455,7 +455,6 @@ async def vectorize_policies_command(repo_root: Path) -> dict[str, Any]:
         Vectorization results summary
     """
     from services.clients.qdrant_client import QdrantService
-
     from will.orchestration.cognitive_service import CognitiveService
 
     # Initialize services

@@ -19,11 +19,13 @@ from pathlib import Path
 from typing import Any
 
 from qdrant_client.models import PointStruct
+
 from services.clients.qdrant_client import QdrantService
 from shared.config import settings
 from shared.logger import getLogger
 from shared.utils.yaml_processor import strict_yaml_processor
 from will.orchestration.cognitive_service import CognitiveService
+
 
 logger = getLogger(__name__)
 

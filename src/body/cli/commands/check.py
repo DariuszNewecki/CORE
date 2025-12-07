@@ -13,15 +13,16 @@ import typer
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
+
+from body.cli.logic.audit import lint, run_audit_workflow, test_system
+from body.cli.logic.body_contracts_checker import check_body_contracts
+from body.cli.logic.diagnostics import policy_coverage
 from shared.action_types import ActionResult
 from shared.cli_utils import core_command
 from shared.context import CoreContext
 from shared.logger import getLogger
 from shared.models import AuditFinding, AuditSeverity
 
-from body.cli.logic.audit import lint, run_audit_workflow, test_system
-from body.cli.logic.body_contracts_checker import check_body_contracts
-from body.cli.logic.diagnostics import policy_coverage
 
 logger = getLogger(__name__)
 console = Console()

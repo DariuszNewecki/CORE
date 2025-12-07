@@ -8,11 +8,12 @@ from __future__ import annotations
 import ast
 from pathlib import Path
 
-from shared.logger import getLogger
-from shared.models import AuditFinding, AuditSeverity
 from sqlalchemy import select
 
 from mind.governance.checks.base_check import BaseCheck
+from shared.logger import getLogger
+from shared.models import AuditFinding, AuditSeverity
+
 
 logger = getLogger(__name__)
 

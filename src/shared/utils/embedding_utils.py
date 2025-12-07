@@ -18,6 +18,7 @@ import numpy as np
 from shared.logger import getLogger
 from shared.utils.common_knowledge import normalize_text
 
+
 logger = getLogger(__name__)
 DEFAULT_CHUNK_SIZE = 512
 DEFAULT_CHUNK_OVERLAP = 50

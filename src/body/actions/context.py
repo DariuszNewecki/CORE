@@ -8,13 +8,13 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
+
 if TYPE_CHECKING:
     from body.services.git_service import GitService
     from mind.governance.audit_context import AuditorContext
     from services.storage.file_handler import FileHandler
 
 
-# ID: 2b3c4d5e-6f7a-8b9c-0d1e2f3a4b5c
 @dataclass
 # ID: 11693175-bbaf-4a96-b97e-d3c53a6bc1f9
 class PlanExecutorContext:

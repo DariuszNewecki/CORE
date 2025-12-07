@@ -10,6 +10,7 @@ Provides:
 from __future__ import annotations
 
 import typer
+
 from features.self_healing.code_style_service import format_code
 from features.self_healing.header_service import _run_header_fix_cycle
 from shared.action_types import ActionImpact, ActionResult
@@ -41,7 +42,6 @@ def format_code_cmd(ctx: typer.Context) -> None:
     console.print("[green]✅ Code formatting completed[/green]")
 
 
-# ID: fix_headers_internal_v1
 @atomic_action(
     action_id="fix.headers",
     intent="Ensure all Python files have constitutionally compliant headers",

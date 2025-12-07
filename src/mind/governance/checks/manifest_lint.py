@@ -9,6 +9,7 @@ from __future__ import annotations
 from mind.governance.checks.base_check import BaseCheck
 from shared.models import AuditFinding, AuditSeverity
 
+
 # Define placeholder strings as a constant for clarity.
 # In the future, this could be loaded from the policy file itself.
 PLACEHOLDER_SUBSTRINGS = {"tbd", "n/a", "auto-added"}

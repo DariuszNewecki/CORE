@@ -8,4 +8,5 @@ from __future__ import annotations
 
 from .test_generation.generator import EnhancedTestGenerator
 
+
 __all__ = ["EnhancedTestGenerator"]

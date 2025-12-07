@@ -6,9 +6,11 @@ Provides an AIProvider implementation for Anthropic (Claude) APIs.
 from __future__ import annotations
 
 import httpx
+
 from shared.logger import getLogger
 
 from .base import AIProvider
+
 
 logger = getLogger(__name__)
 

@@ -15,11 +15,12 @@ import time
 from pathlib import Path
 
 from rich.console import Console
+
+from body.cli.logic.atomic_actions_checker import AtomicActionsChecker
 from shared.action_types import ActionImpact, ActionResult
 from shared.atomic_action import atomic_action
 from shared.logger import getLogger
 
-from body.cli.logic.atomic_actions_checker import AtomicActionsChecker
 
 logger = getLogger(__name__)
 console = Console()

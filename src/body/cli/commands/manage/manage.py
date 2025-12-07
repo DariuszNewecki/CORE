@@ -10,19 +10,7 @@ Refactored to use the Constitutional CLI Framework (@core_command).
 from __future__ import annotations
 
 import typer
-from features.introspection.capability_discovery_service import sync_capabilities_to_db
-from features.introspection.export_vectors import export_vectors
-from features.maintenance.dotenv_sync_service import run_dotenv_sync
-from features.maintenance.migration_service import run_ssot_migration
-from features.project_lifecycle.definition_service import _define_new_symbols
-from features.project_lifecycle.scaffolding_service import create_new_project
-from mind.governance.key_management_service import keygen
 from rich.console import Console
-from services.database.session_manager import get_session
-from shared.cli_utils import core_command
-from shared.config import settings
-from shared.context import CoreContext
-from shared.logger import getLogger
 
 from body.cli.logic.byor import initialize_repository
 from body.cli.logic.db import export_data, migrate_db
@@ -34,10 +22,23 @@ from body.cli.logic.proposal_service import (
 )
 from body.cli.logic.sync import sync_knowledge_base
 from body.cli.logic.sync_manifest import sync_manifest
+from features.introspection.capability_discovery_service import sync_capabilities_to_db
+from features.introspection.export_vectors import export_vectors
+from features.maintenance.dotenv_sync_service import run_dotenv_sync
+from features.maintenance.migration_service import run_ssot_migration
+from features.project_lifecycle.definition_service import _define_new_symbols
+from features.project_lifecycle.scaffolding_service import create_new_project
+from mind.governance.key_management_service import keygen
+from services.database.session_manager import get_session
+from shared.cli_utils import core_command
+from shared.config import settings
+from shared.context import CoreContext
+from shared.logger import getLogger
 
 from .patterns import patterns_sub_app
 from .policies import policies_sub_app
 from .vectors import app as vectors_sub_app
+
 
 console = Console()
 logger = getLogger(__name__)

@@ -10,6 +10,7 @@ from mind.governance.checks.legacy_tag_check import LegacyTagCheck
 from shared.config import settings
 from shared.logger import getLogger
 
+
 logger = getLogger(__name__)
 
 

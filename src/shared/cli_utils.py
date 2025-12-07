@@ -19,6 +19,7 @@ from shared.action_types import ActionResult
 from shared.context import CoreContext
 from shared.logger import getLogger
 
+
 # CLI Utilities are allowed to use Console for interaction
 console = Console(log_time=False, log_path=False)
 logger = getLogger(__name__)

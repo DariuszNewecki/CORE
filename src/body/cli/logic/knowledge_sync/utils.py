@@ -38,7 +38,6 @@ def compute_digest(items: list[dict[str, Any]]) -> str:
     return "sha256:" + hashlib.sha256(payload).hexdigest()
 
 
-# ID: 915326c0-141c-83d4-fe10-2e46-ddae48f4-9813cce0001f0ea091b3c86d5595bf2f
 # ID: b91d073b-f19b-42ce-b6a9-afe7594a10a5
 def write_yaml(path: Path, items: list[dict[str, Any]], exported_at: str) -> str:
     """Writes a list of items to a YAML file, including version, timestamp, and digest."""

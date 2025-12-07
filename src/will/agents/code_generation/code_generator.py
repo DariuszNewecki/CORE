@@ -12,9 +12,9 @@ from shared.config import get_path_or_none
 from shared.logger import getLogger
 from shared.utils.parsing import extract_python_code_from_response
 
+
 if TYPE_CHECKING:
     from shared.models import ExecutionTask
-
     from will.orchestration.cognitive_service import CognitiveService
     from will.orchestration.decision_tracer import DecisionTracer
     from will.orchestration.prompt_pipeline import PromptPipeline

@@ -9,6 +9,7 @@ Provides:
 from __future__ import annotations
 
 import typer
+
 from features.self_healing.docstring_service import fix_docstrings
 from shared.cli_utils import core_command
 from shared.context import CoreContext

@@ -18,6 +18,7 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import UUID as pgUUID
 from sqlalchemy.orm import declarative_base
 
+
 Base = declarative_base()
 
 

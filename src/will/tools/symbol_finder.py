@@ -19,10 +19,12 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
+from sqlalchemy import or_, select
+
 from services.database.models import Symbol
 from services.database.session_manager import get_session
 from shared.logger import getLogger
-from sqlalchemy import or_, select
+
 
 logger = getLogger(__name__)
 

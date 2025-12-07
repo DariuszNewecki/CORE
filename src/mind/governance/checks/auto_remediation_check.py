@@ -12,10 +12,10 @@ from mind.governance.checks.base_check import BaseCheck
 from shared.logger import getLogger
 from shared.models import AuditFinding, AuditSeverity
 
+
 logger = getLogger(__name__)
 
 
-# ID: h8i9j0k1-l2m3-4n4o-5p6q-7r8s9t0u1v2w
 # ID: 6a68225c-4494-44e7-b036-c481669dc537
 class AutoRemediationCheck(BaseCheck):
     policy_rule_ids = ["coverage.auto_remediation"]

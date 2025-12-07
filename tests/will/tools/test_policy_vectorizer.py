@@ -2,6 +2,7 @@ import sys
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
+
 # Mock the async dependencies to make them sync for testing
 sys.modules["services.clients.qdrant_client"] = MagicMock()
 sys.modules["shared.logger"] = MagicMock()

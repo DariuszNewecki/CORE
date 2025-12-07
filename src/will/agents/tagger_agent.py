@@ -16,8 +16,8 @@ from services.knowledge.knowledge_service import KnowledgeService
 from shared.config import settings
 from shared.logger import getLogger
 from shared.utils.parallel_processor import ThrottledParallelProcessor
-
 from will.orchestration.cognitive_service import CognitiveService
+
 
 logger = getLogger(__name__)
 

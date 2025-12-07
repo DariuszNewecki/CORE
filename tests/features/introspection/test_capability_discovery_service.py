@@ -4,6 +4,7 @@
 
 from unittest.mock import MagicMock
 
+
 # Import from source module
 try:
     from features.introspection.capability_discovery_service import *

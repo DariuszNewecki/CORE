@@ -7,6 +7,7 @@ atomic action framework.
 """
 
 import pytest
+
 from shared.action_types import ActionImpact, ActionResult
 from shared.atomic_action import get_action_metadata
 

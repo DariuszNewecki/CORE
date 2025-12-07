@@ -12,9 +12,11 @@ import asyncio
 import re
 
 import typer
+
 from services.knowledge_service import KnowledgeService
 from shared.config import settings
 from shared.logger import getLogger
+
 
 logger = getLogger(__name__)
 REPO_ROOT = settings.REPO_PATH

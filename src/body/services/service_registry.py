@@ -14,11 +14,13 @@ from pathlib import Path
 # Type checking imports only (no runtime cost)
 from typing import TYPE_CHECKING, Any
 
+from sqlalchemy import text
+
 from mind.governance.audit_context import AuditorContext
 from services.database.session_manager import get_session
 from shared.config import settings
 from shared.logger import getLogger
-from sqlalchemy import text
+
 
 if TYPE_CHECKING:
     from services.clients.qdrant_client import QdrantService
@@ -148,7 +150,6 @@ class ServiceRegistry:
 
         return self._instances["cognitive_service"]
 
-    # ID: get_auditor_context_factory
     # ID: bc12f62c-2336-4dd0-abf6-4e4f2d95cb26
     async def get_auditor_context(self) -> AuditorContext:
         """

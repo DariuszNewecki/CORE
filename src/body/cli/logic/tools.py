@@ -8,17 +8,20 @@ from __future__ import annotations
 
 from shared.logger import getLogger
 
+
 logger = getLogger(__name__)
 
 import sys
 from pathlib import Path
 
-import shared.logger
 import typer
+
+import shared.logger
 from features.maintenance.maintenance_service import rewire_imports
 
 # Import the moved script module
 from features.maintenance.scripts import context_export
+
 
 logger = shared.logger.getLogger(__name__)
 

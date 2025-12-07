@@ -11,7 +11,9 @@ from pathlib import Path
 from typing import Any
 
 from radon.visitors import ComplexityVisitor
+
 from shared.logger import getLogger
+
 
 logger = getLogger(__name__)
 COMPLEXITY_THRESHOLDS = {"SIMPLE": 5, "MODERATE": 15, "COMPLEX": 50}

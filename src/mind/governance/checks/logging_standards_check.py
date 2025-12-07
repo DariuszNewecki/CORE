@@ -9,15 +9,14 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
+from mind.governance.checks.base_check import BaseCheck
 from shared.logger import getLogger
 from shared.models import AuditFinding, AuditSeverity
 
-from mind.governance.checks.base_check import BaseCheck
 
 logger = getLogger(__name__)
 
 
-# ID: f8e7d6c5-b4a3-9281-c0d1-e2f3g4h5i6j7
 # ID: 88e5ab7a-5f4d-401d-abf6-280a27e653eb
 class LoggingStandardsCheck(BaseCheck):
     """Validates that code follows constitutional logging standards."""
