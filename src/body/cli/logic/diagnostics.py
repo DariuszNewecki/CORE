@@ -12,34 +12,28 @@ import asyncio
 import typer
 from features.introspection.audit_unassigned_capabilities import get_unassigned_symbols
 from features.introspection.graph_analysis_service import find_semantic_clusters
-from rich.console import Console
-from rich.table import Table
-from rich.tree import Tree
 from shared.config import settings
 from shared.context import CoreContext
+from shared.logger import getLogger
 from shared.utils.constitutional_parser import get_all_constitutional_paths
 
 # Import extracted logic
 from .diagnostics_policy import policy_coverage
 from .diagnostics_registry import check_legacy_tags, cli_registry, manifest_hygiene
 
-console = Console()
+logger = getLogger(__name__)
 diagnostics_app = typer.Typer(help="Deep diagnostic and integrity checks.")
 
 
 async def _async_find_clusters(context: CoreContext, n_clusters: int):
     """Async helper that contains the core logic for the command."""
-    console.print(
-        f"🚀 Finding semantic clusters with [bold cyan]n_clusters={n_clusters}[/bold cyan]..."
-    )
+    logger.info(f"Finding semantic clusters with n_clusters={n_clusters}...")
 
     if context.qdrant_service is None and context.registry:
         try:
             context.qdrant_service = await context.registry.get_qdrant_service()
         except Exception as e:
-            console.print(
-                f"[bold red]❌ Failed to initialize QdrantService: {e}[/bold red]"
-            )
+            logger.error(f"Failed to initialize QdrantService: {e}")
             return
 
     clusters = await find_semantic_clusters(
@@ -47,26 +41,13 @@ async def _async_find_clusters(context: CoreContext, n_clusters: int):
     )
 
     if not clusters:
-        console.print("⚠️  No clusters found.")
+        logger.warning("No clusters found.")
         return
 
-    console.print(f"✅ Found {len(clusters)} clusters. Displaying all, sorted by size.")
+    logger.info(f"Found {len(clusters)} clusters.")
 
-    for i, cluster in enumerate(clusters):
-        if not cluster:
-            continue
-
-        table = Table(
-            title=f"Semantic Cluster #{i + 1} ({len(cluster)} symbols)",
-            show_header=True,
-            header_style="bold magenta",
-        )
-        table.add_column("Symbol Key", style="cyan", no_wrap=True)
-
-        for symbol_key in sorted(cluster):
-            table.add_row(symbol_key)
-
-        console.print(table)
+    # Return clusters for further processing if needed
+    return clusters
 
 
 @diagnostics_app.command(
@@ -85,14 +66,14 @@ def find_clusters_command_sync(
     asyncio.run(_async_find_clusters(core_context, n_clusters))
 
 
-def _add_cli_nodes(tree_node: Tree, cli_app: typer.Typer):
+def _add_cli_nodes(cli_app: typer.Typer):
+    """Build CLI structure without UI dependencies."""
+    structure = []
     for cmd_info in sorted(cli_app.registered_commands, key=lambda c: c.name or ""):
         if not cmd_info.name:
             continue
         help_text = cmd_info.help.split("\n")[0] if cmd_info.help else ""
-        tree_node.add(
-            f"[bold yellow]⚡ {cmd_info.name}[/bold yellow] [dim]- {help_text}[/dim]"
-        )
+        structure.append({"type": "command", "name": cmd_info.name, "help": help_text})
     for group_info in sorted(cli_app.registered_groups, key=lambda g: g.name or ""):
         if not group_info.name:
             continue
@@ -101,10 +82,15 @@ def _add_cli_nodes(tree_node: Tree, cli_app: typer.Typer):
             if group_info.typer_instance.info.help
             else ""
         )
-        branch = tree_node.add(
-            f"[cyan]📂 {group_info.name}[/cyan] [dim]- {help_text}[/dim]"
+        structure.append(
+            {
+                "type": "group",
+                "name": group_info.name,
+                "help": help_text,
+                "children": _add_cli_nodes(group_info.typer_instance),
+            }
         )
-        _add_cli_nodes(branch, group_info.typer_instance)
+    return structure
 
 
 @diagnostics_app.command(
@@ -112,16 +98,11 @@ def _add_cli_nodes(tree_node: Tree, cli_app: typer.Typer):
 )
 # ID: 30a6dcde-a174-48de-8f0f-327cbafec340
 def cli_tree():
-    """Builds and displays the CLI command tree."""
+    """Builds and returns the CLI command tree structure."""
     from body.cli.admin_cli import app as main_app
 
-    console.print("[bold cyan]🚀 Building CLI Command Tree...[/bold cyan]")
-    tree = Tree(
-        "[bold magenta]🏛️ CORE Admin CLI Commands[/bold magenta]",
-        guide_style="bold bright_blue",
-    )
-    _add_cli_nodes(tree, main_app)
-    console.print(tree)
+    logger.info("Building CLI Command Tree...")
+    return _add_cli_nodes(main_app)
 
 
 @diagnostics_app.command(
@@ -129,13 +110,10 @@ def cli_tree():
 )
 # ID: 993e903f-d239-44bf-95ec-1eb0422094cd
 def debug_meta_paths():
-    """A diagnostic tool that prints all file paths indexed in meta.yaml."""
-    console.print(
-        "[bold yellow]--- Auditor's Interpretation of meta.yaml ---[/bold yellow]"
-    )
+    """A diagnostic tool that returns all file paths indexed in meta.yaml."""
+    logger.info("Getting auditor's interpretation of meta.yaml...")
     required_paths = get_all_constitutional_paths(settings._meta_config, settings.MIND)
-    for path in sorted(list(required_paths)):
-        console.print(path)
+    return sorted(list(required_paths))
 
 
 @diagnostics_app.command(
@@ -145,21 +123,11 @@ def debug_meta_paths():
 def unassigned_symbols():
     unassigned = get_unassigned_symbols()
     if not unassigned:
-        console.print(
-            "[bold green]✅ Success! All governable symbols have an assigned ID tag.[/bold green]"
-        )
-        return
-    console.print(
-        f"\n[bold red]❌ Found {len(unassigned)} symbols with no assigned ID:[/bold red]"
-    )
-    table = Table(title="Untagged Symbols ('Orphaned Logic')")
-    table.add_column("Symbol Key", style="cyan", no_wrap=True)
-    table.add_column("File", style="yellow")
-    table.add_column("Line", style="magenta")
-    for symbol in sorted(unassigned, key=lambda s: s["key"]):
-        table.add_row(symbol["key"], symbol["file"], str(symbol["line_number"]))
-    console.print(table)
-    console.print("\n[bold]Action Required:[/bold] Run 'knowledge sync' to assign IDs.")
+        logger.info("Success! All governable symbols have an assigned ID tag.")
+        return []
+
+    logger.warning(f"Found {len(unassigned)} symbols with no assigned ID")
+    return unassigned
 
 
 # Register commands extracted to other modules

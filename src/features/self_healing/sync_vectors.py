@@ -18,7 +18,6 @@ from collections.abc import Iterable
 import typer
 from qdrant_client import AsyncQdrantClient
 from qdrant_client.http.models import PointIdsList
-from rich.console import Console
 from services.clients.qdrant_client import QdrantService
 from services.database.session_manager import get_session
 from shared.config import settings
@@ -26,7 +25,6 @@ from shared.logger import getLogger
 from sqlalchemy import text
 
 logger = getLogger(__name__)
-console = Console()
 
 
 # ============================================================================
@@ -115,30 +113,26 @@ async def _prune_orphaned_vectors(
     orphaned_ids = list(qdrant_ids - db_vector_ids)
 
     if not orphaned_ids:
-        logger.info("   [green]✓[/green] No orphaned vectors found in Qdrant.")
+        logger.info("No orphaned vectors found in Qdrant.")
         return 0
 
-    logger.info(
-        f"   [yellow]⚠[/yellow] Found {len(orphaned_ids)} orphaned vector(s) in Qdrant."
-    )
+    logger.info(f"Found {len(orphaned_ids)} orphaned vector(s) in Qdrant.")
 
     if dry_run:
-        logger.info("      [dim](Would delete from Qdrant)[/dim]")
+        logger.debug("Would delete from Qdrant")
         for point_id in orphaned_ids[:10]:
-            logger.info(f"        - {point_id}")
+            logger.debug(f"  - {point_id}")
         if len(orphaned_ids) > 10:
-            logger.info(f"        - ... and {len(orphaned_ids) - 10} more.")
+            logger.debug(f"  - ... and {len(orphaned_ids) - 10} more.")
         return len(orphaned_ids)
 
     # Actually delete
-    logger.info(f"      Deleting {len(orphaned_ids)} orphaned vector(s) from Qdrant...")
+    logger.info(f"Deleting {len(orphaned_ids)} orphaned vector(s) from Qdrant...")
     await client.delete(
         collection_name=settings.QDRANT_COLLECTION_NAME,
         points_selector=PointIdsList(points=orphaned_ids),
     )
-    logger.info(
-        f"      [green]✓[/green] Deleted {len(orphaned_ids)} orphaned vector(s)."
-    )
+    logger.info(f"Deleted {len(orphaned_ids)} orphaned vector(s).")
 
     return len(orphaned_ids)
 
@@ -193,27 +187,23 @@ async def _prune_dangling_links(
     ]
 
     if not dangling_links:
-        logger.info("   [green]✓[/green] No dangling links found in PostgreSQL.")
+        logger.info("No dangling links found in PostgreSQL.")
         return 0
 
-    logger.info(
-        f"   [yellow]⚠[/yellow] Found {len(dangling_links)} dangling link(s) in PostgreSQL."
-    )
+    logger.info(f"Found {len(dangling_links)} dangling link(s) in PostgreSQL.")
 
     if dry_run:
-        logger.info("      [dim](Would delete from PostgreSQL)[/dim]")
+        logger.debug("Would delete from PostgreSQL")
         for symbol_id, vector_id in dangling_links[:10]:
-            logger.info(f"        - symbol_id={symbol_id}, vector_id={vector_id}")
+            logger.debug(f"  - symbol_id={symbol_id}, vector_id={vector_id}")
         if len(dangling_links) > 10:
-            logger.info(f"        - ... and {len(dangling_links) - 10} more.")
+            logger.debug(f"  - ... and {len(dangling_links) - 10} more.")
         return len(dangling_links)
 
     # Actually delete
-    logger.info(
-        f"      Deleting {len(dangling_links)} dangling link(s) from PostgreSQL..."
-    )
+    logger.info(f"Deleting {len(dangling_links)} dangling link(s) from PostgreSQL...")
     deleted_count = await _delete_dangling_links(dangling_links)
-    logger.info(f"      [green]✓[/green] Deleted {deleted_count} dangling link(s).")
+    logger.info(f"Deleted {deleted_count} dangling link(s).")
 
     return deleted_count
 
@@ -231,13 +221,13 @@ async def _async_sync_vectors(
 
     Returns (orphans_pruned, dangling_pruned) counts.
     """
-    logger.info("[bold cyan]🔄 Starting vector synchronization...[/bold cyan]")
+    logger.info("Starting vector synchronization...")
 
     if dry_run:
-        logger.info("   [yellow]DRY RUN MODE: No changes will be made.[/yellow]\n")
+        logger.info("DRY RUN MODE: No changes will be made.")
 
     # Step 0: Load all data
-    logger.info("[bold]Phase 0: Loading current state...[/bold]")
+    logger.info("Phase 0: Loading current state...")
 
     # Use injected service or create new one if missing
     if qdrant_service is None:
@@ -245,41 +235,37 @@ async def _async_sync_vectors(
     else:
         client = qdrant_service.client
 
-    logger.info("   → Fetching vector IDs from Qdrant...")
+    logger.info("Fetching vector IDs from Qdrant...")
     qdrant_ids = await _fetch_all_qdrant_ids(client)
-    logger.info(f"      Found {len(qdrant_ids)} vectors in Qdrant.")
+    logger.info(f"Found {len(qdrant_ids)} vectors in Qdrant.")
 
-    logger.info("   → Fetching vector links from PostgreSQL...")
+    logger.info("Fetching vector links from PostgreSQL...")
     db_vector_ids = await _fetch_db_vector_ids()
     db_links = await _fetch_db_links()
-    logger.info(f"      Found {len(db_vector_ids)} valid vector IDs in PostgreSQL.")
-    logger.info(f"      Found {len(db_links)} total symbol-vector links.\n")
+    logger.info(f"Found {len(db_vector_ids)} valid vector IDs in PostgreSQL.")
+    logger.info(f"Found {len(db_links)} total symbol-vector links.")
 
     # Step 1: Prune orphaned vectors from Qdrant
-    logger.info("[bold]Phase 1: Pruning orphaned vectors from Qdrant...[/bold]")
+    logger.info("Phase 1: Pruning orphaned vectors from Qdrant...")
     orphans_pruned = await _prune_orphaned_vectors(
         client, qdrant_ids, db_vector_ids, dry_run
     )
 
     # Step 2: Prune dangling links from PostgreSQL
-    logger.info("\n[bold]Phase 2: Pruning dangling links from PostgreSQL...[/bold]")
+    logger.info("Phase 2: Pruning dangling links from PostgreSQL...")
     dangling_pruned = await _prune_dangling_links(db_links, qdrant_ids, dry_run)
 
     # Summary
-    logger.info("\n[bold cyan]📊 Synchronization Summary[/bold cyan]")
-    logger.info(f"   • Orphaned vectors pruned: {orphans_pruned}")
-    logger.info(f"   • Dangling links pruned: {dangling_pruned}")
+    logger.info("Synchronization Summary")
+    logger.info(f"  • Orphaned vectors pruned: {orphans_pruned}")
+    logger.info(f"  • Dangling links pruned: {dangling_pruned}")
 
     if orphans_pruned == 0 and dangling_pruned == 0:
-        logger.info(
-            "\n[bold green]✅ Vector store is perfectly synchronized![/bold green]"
-        )
+        logger.info("Vector store is perfectly synchronized!")
     elif dry_run:
-        logger.info(
-            "\n[bold yellow]⚠ Issues found. Run with --write to fix them.[/bold yellow]"
-        )
+        logger.info("Issues found. Run with --write to fix them.")
     else:
-        logger.info("\n[bold green]✅ Synchronization complete![/bold green]")
+        logger.info("Synchronization complete!")
 
     return (orphans_pruned, dangling_pruned)
 

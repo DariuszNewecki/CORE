@@ -9,14 +9,13 @@ import asyncio
 import json
 from typing import Any
 
-from rich.console import Console
-
 from shared.config import settings
+from shared.logger import getLogger
 
 from .snapshot import fetch_capabilities, fetch_links, fetch_northstar, fetch_symbols
 from .utils import _get_diff_links_key, canonicalize, read_yaml
 
-console = Console()
+logger = getLogger(__name__)
 EXPORT_DIR = settings.REPO_PATH / ".intent" / "mind_export"
 
 
@@ -59,20 +58,22 @@ def diff_sets(
 
 
 # ID: b12e8b4a-a760-436a-9529-3919081a1a43
-async def run_diff(as_json: bool) -> None:
-    """Compares database state with exported YAML files and outputs differences.
+async def run_diff(as_json: bool) -> dict[str, Any] | None:
+    """Compares database state with exported YAML files and returns differences.
 
     Args:
-        as_json: If True, outputs the diff as JSON; otherwise, uses human-readable format.
+        as_json: If True, returns the diff as JSON string; otherwise returns dict.
+
+    Returns:
+        Dictionary with diff results, JSON string if as_json=True, or None if export dir not found.
     """
     if not EXPORT_DIR.exists():
-        console.print(
-            f"[bold red]Export directory not found: {EXPORT_DIR}. "
-            "Please run 'snapshot' first.[/bold red]"
+        logger.error(
+            f"Export directory not found: {EXPORT_DIR}. Please run 'snapshot' first."
         )
-        return
+        return None
 
-    console.print("🔄 Comparing database state with exported YAML files...")
+    logger.info("Comparing database state with exported YAML files...")
 
     db_caps, db_syms, db_links, db_north = await asyncio.gather(
         fetch_capabilities(), fetch_symbols(), fetch_links(), fetch_northstar()
@@ -95,26 +96,5 @@ async def run_diff(as_json: bool) -> None:
     }
 
     if as_json:
-        console.print(json.dumps(output, indent=2))
-    else:
-        console.print("\n[bold]Diff Summary (Database <-> Files):[/bold]")
-        for k, v in output.items():
-            if k == "northstar":
-                status = (
-                    "[red]Changed[/red]" if v["changed"] else "[green]No change[/green]"
-                )
-                console.print(f"  - [cyan]{k.capitalize()}[/cyan]: {status}")
-                continue
-
-            counts = (
-                f"DB-only: {len(v['only_db'])}, "
-                f"File-only: {len(v['only_file'])}, "
-                f"Changed: {len(v['changed'])}"
-            )
-            is_clean = not any(v.values())
-            status = (
-                "[green]Clean[/green]"
-                if is_clean
-                else "[yellow]Drift detected[/yellow]"
-            )
-            console.print(f"  - [cyan]{k.capitalize()}[/cyan]: {status} ({counts})")
+        return json.dumps(output, indent=2)
+    return output

@@ -30,6 +30,7 @@ console = Console()
 
 @fix_app.command("body-ui", help="Fix Body-layer UI contract violations.")
 @core_command(dangerous=True, confirmation=True)
+# ID: 1eadbb5a-298c-4dc4-a03b-05e7af670c6b
 async def fix_body_ui_command(
     ctx: typer.Context,
     write: bool = typer.Option(

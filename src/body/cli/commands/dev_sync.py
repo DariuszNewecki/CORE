@@ -4,12 +4,6 @@ Dev sync workflow orchestrator.
 
 Replaces the Makefile's dev-sync target with a governed Python workflow.
 Refactored to use direct service calls (Internal Orchestration) instead of subprocesses.
-
-Constitutional alignment:
-- dev_sync_command is the workflow/CLI layer and is the ONLY place where
-  multi-step terminal UI (progress banners, spinners) is rendered.
-- Underlying services and atomic actions are expected to be headless and
-  return structured results (ActionResult or equivalent).
 """
 
 from __future__ import annotations
@@ -35,6 +29,7 @@ from shared.context import CoreContext
 # --- Internal Logic Imports ---
 from body.cli.commands.fix.code_style import fix_headers_internal
 from body.cli.commands.fix.metadata import fix_ids_internal
+from body.cli.commands.fix_logging import LoggingFixer  # ADDED: Import the fixer
 from body.cli.logic.audit import lint
 from body.cli.logic.body_contracts_checker import check_body_contracts
 from body.cli.logic.duplicates import inspect_duplicates_async  # async version
@@ -91,7 +86,35 @@ async def dev_sync_command(
         if not result.ok:
             raise typer.Exit(1)
 
-        # 3. Fix Docstrings (Service Call)
+        # 3. Fix Logging Standards (NEW: LOG-001, LOG-004)
+        try:
+            start = time.time()
+            with console.status("[cyan]Fixing logging violations...[/cyan]"):
+                fixer = LoggingFixer(settings.REPO_PATH, dry_run=dry_run)
+                fix_stats = fixer.fix_all()
+
+            reporter.record_result(
+                ActionResult(
+                    action_id="fix.logging",
+                    ok=True,
+                    data=fix_stats,
+                    duration_sec=time.time() - start,
+                ),
+                phase,
+            )
+        except Exception as e:
+            reporter.record_result(
+                ActionResult(
+                    action_id="fix.logging",
+                    ok=False,
+                    data={"error": str(e)},
+                ),
+                phase,
+            )
+            # Non-critical, continue
+            console.print("[yellow]⚠ Logging fix issues, continuing...[/yellow]")
+
+        # 4. Fix Docstrings (Service Call)
         try:
             start = time.time()
             with console.status("[cyan]Fixing docstrings...[/cyan]"):
@@ -117,7 +140,7 @@ async def dev_sync_command(
             )
             raise typer.Exit(1)
 
-        # 4. Code Style (Service Call - Sync)
+        # 5. Code Style (Service Call - Sync)
         try:
             start = time.time()
             with console.status("[cyan]Formatting code...[/cyan]"):
@@ -150,7 +173,7 @@ async def dev_sync_command(
         # =================================================================
         phase = reporter.start_phase("Quality Checks")
 
-        # 5. Lint (Service Call - Sync)
+        # 6. Lint (Service Call - Sync)
         try:
             start = time.time()
             with console.status("[cyan]Running linter...[/cyan]"):
@@ -242,7 +265,7 @@ async def dev_sync_command(
         # =================================================================
         phase = reporter.start_phase("Database Sync")
 
-        # 6. Vector Sync (Service Call)
+        # 7. Vector Sync (Service Call)
         try:
             start = time.time()
             with console.status("[cyan]Synchronizing vectors...[/cyan]"):
@@ -272,7 +295,7 @@ async def dev_sync_command(
             )
             raise typer.Exit(1)
 
-        # 7. Sync Knowledge (Service Call)
+        # 8. Sync Knowledge (Service Call)
         try:
             start = time.time()
             if write:
@@ -300,12 +323,23 @@ async def dev_sync_command(
             )
             raise typer.Exit(1)
 
-        # 8. Define Symbols (Service Call)
+        # 9. Define Symbols (Service Call)
         try:
             start = time.time()
             with console.status("[cyan]Defining symbols...[/cyan]"):
                 ctx_service = core_context.context_service
-                # Headless service: no UI, no ActionResult; just do the work
+                # The factory initializes these as None; we must inject the live instances
+                if not ctx_service.cognitive_service:
+                    ctx_service.cognitive_service = core_context.cognitive_service
+
+                # Also update the vector provider inside context service if needed
+                if not ctx_service.vector_provider.qdrant:
+                    ctx_service.vector_provider.qdrant = core_context.qdrant_service
+                if not ctx_service.vector_provider.cognitive_service:
+                    ctx_service.vector_provider.cognitive_service = (
+                        core_context.cognitive_service
+                    )
+                # Call the new atomic action
                 await _define_new_symbols(ctx_service)
 
             reporter.record_result(
@@ -334,7 +368,7 @@ async def dev_sync_command(
         # =================================================================
         phase = reporter.start_phase("Vectorization")
 
-        # 9. Sync Constitutional Vectors (Policies/Patterns)
+        # 10. Sync Constitutional Vectors (Policies/Patterns)
         try:
             start = time.time()
             with console.status("[cyan]Syncing constitutional vectors...[/cyan]"):
@@ -342,8 +376,9 @@ async def dev_sync_command(
 
                 # Policies
                 policy_items = adapter.policies_to_items()
+                # FIX: Pass the QdrantService instance, NOT .client
                 policy_service = VectorIndexService(
-                    core_context.qdrant_service.client,
+                    core_context.qdrant_service,
                     "core_policies",
                 )
                 await policy_service.ensure_collection()
@@ -352,8 +387,9 @@ async def dev_sync_command(
 
                 # Patterns
                 pattern_items = adapter.patterns_to_items()
+                # FIX: Pass the QdrantService instance, NOT .client
                 pattern_service = VectorIndexService(
-                    core_context.qdrant_service.client,
+                    core_context.qdrant_service,
                     "core-patterns",
                 )
                 await pattern_service.ensure_collection()
@@ -385,7 +421,7 @@ async def dev_sync_command(
             )
             console.print(f"[yellow]⚠ Constitutional sync warning: {e}[/yellow]")
 
-        # 10. Vectorize Knowledge Graph (Service Call)
+        # 11. Vectorize Knowledge Graph (Service Call)
         try:
             start = time.time()
             with console.status("[cyan]Vectorizing knowledge graph...[/cyan]"):
@@ -420,7 +456,7 @@ async def dev_sync_command(
         # =================================================================
         phase = reporter.start_phase("Code Analysis")
 
-        # 11. Duplicates
+        # 12. Duplicates
         try:
             start = time.time()
             with console.status("[cyan]Detecting duplicate code...[/cyan]"):
@@ -466,6 +502,7 @@ async def dev_sync_command(
                 "manage.define-symbols",
                 "inspect.duplicates",
                 "manage.vectors.sync",
+                "fix.logging",  # ADDED: Non-critical
             ]
         ]
 
@@ -476,35 +513,34 @@ async def dev_sync_command(
 @dev_sync_app.command("fix-logging")
 @core_command(dangerous=True, confirmation=True)
 # ID: d1e2f3a4-b5c6-7890-456789abcdef
+# ID: 0958b077-78bb-40ff-92bb-8a94f41a36db
 async def fix_logging_command(
-    ctx: typer.Context,
     write: bool = typer.Option(
-        False,
-        "--write",
-        help="Apply fixes (default is dry-run)",
+        False, "--write/--dry-run", help="Apply fixes (default: dry-run)"
     ),
 ) -> None:
-    """Fix logging standards violations automatically."""
-    from pathlib import Path
+    """
+    Fix logging standards violations (LOG-001, LOG-004).
 
-    from body.cli.commands.fix_logging import run_fix
+    Converts console.print/status to logger calls in logic layers.
+    """
+    from body.cli.commands.fix_logging import LoggingFixer
 
     dry_run = not write
+    fixer = LoggingFixer(settings.REPO_PATH, dry_run=dry_run)
 
-    console.print("\n[bold cyan]🔧 Logging Standards Fixer[/bold cyan]\n")
+    console.print("[bold cyan]Fixing Logging Violations[/bold cyan]")
+    console.print(f"Mode: {'DRY RUN' if dry_run else 'WRITE'}")
 
-    if dry_run:
-        console.print(
-            "[yellow]Running in DRY-RUN mode. Use --write to apply changes.[/yellow]\n"
-        )
+    result = fixer.fix_all()
 
-    result = run_fix(Path(settings.REPO_PATH), dry_run=dry_run)
-
-    console.print("\n[bold]Summary:[/bold]")
+    console.print("\n[bold]Results:[/bold]")
     console.print(f"  Files modified: {result['files_modified']}")
     console.print(f"  Fixes applied: {result['fixes_applied']}")
 
     if dry_run:
-        console.print("\n[yellow]Use --write to apply these changes.[/yellow]")
+        console.print(
+            "\n[yellow]DRY RUN complete. Use --write to apply changes.[/yellow]"
+        )
     else:
-        console.print("\n[green]✓ Fixes applied successfully![/green]")
+        console.print("\n[green]✓ Logging fixes applied successfully.[/green]")

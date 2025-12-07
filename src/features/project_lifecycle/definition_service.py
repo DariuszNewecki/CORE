@@ -1,5 +1,4 @@
 # src/features/project_lifecycle/definition_service.py
-
 """Services for defining capability keys for symbols (headless, no UI).
 
 This module is part of the Body/Services layer and MUST remain headless:
@@ -18,7 +17,8 @@ from typing import Any
 
 from services.context import ContextService
 from services.database.session_manager import get_session
-from shared.action_types import ActionResult
+from shared.action_types import ActionImpact, ActionResult
+from shared.atomic_action import atomic_action
 from shared.config import settings
 from shared.logger import getLogger
 from shared.utils.parallel_processor import ThrottledParallelProcessor
@@ -84,7 +84,7 @@ async def define_single_symbol(
 
     try:
         # Build context package (cached for speed)
-        packet = await context_service.build_for_task(task_spec, use_cache=True)
+        packet = await context_service.build_for_task(task_spec, use_cache=False)
 
         source_code = ""
         similar_capabilities_str = "No similar capabilities found."
@@ -188,6 +188,13 @@ async def update_definitions_in_db(definitions: list[dict[str, Any]]) -> None:
     logger.info("Database definitions updated successfully.")
 
 
+@atomic_action(
+    action_id="manage.define-symbols",
+    intent="Define capabilities for untagged public symbols",
+    impact=ActionImpact.WRITE_DATA,
+    policies=["symbol_identification", "data_governance"],
+    category="management",
+)
 async def _define_new_symbols(context_service: ContextService) -> ActionResult:
     """
     Orchestrate the autonomous capability-definition process for undefined symbols.
@@ -225,7 +232,7 @@ async def _define_new_symbols(context_service: ContextService) -> ActionResult:
                     "error_definitions": 0,
                 },
                 duration_sec=duration,
-                impact="read-only",
+                impact=ActionImpact.READ_ONLY,
             )
 
         async with get_session() as session:
@@ -262,7 +269,9 @@ async def _define_new_symbols(context_service: ContextService) -> ActionResult:
         )
 
         duration = time.time() - start
-        impact = "write-data" if valid_definitions else "read-only"
+        impact = (
+            ActionImpact.WRITE_DATA if valid_definitions else ActionImpact.READ_ONLY
+        )
 
         return ActionResult(
             action_id="manage.define-symbols",
@@ -285,5 +294,5 @@ async def _define_new_symbols(context_service: ContextService) -> ActionResult:
             ok=False,
             data={"error": str(e)},
             duration_sec=duration,
-            impact="unknown",
+            impact=ActionImpact.READ_ONLY,
         )

@@ -1,15 +1,15 @@
 # src/body/cli/logic/body_contracts_fixer.py
-"""
-Headless fixer for Body-layer contract violations.
-"""
+"""Headless fixer for Body-layer contract violations."""
 
 from __future__ import annotations
 
 import textwrap
+import time
 from pathlib import Path
 from typing import Any
 
-from shared.action_types import ActionResult
+from shared.action_types import ActionImpact, ActionResult
+from shared.atomic_action import atomic_action
 from shared.config import settings
 from shared.context import CoreContext
 from shared.logger import getLogger
@@ -18,7 +18,6 @@ from shared.utils.parallel_processor import ThrottledParallelProcessor
 from body.cli.logic.body_contracts_checker import check_body_contracts
 
 logger = getLogger(__name__)
-
 
 _BODY_UI_FIX_PROMPT = textwrap.dedent(
     """
@@ -160,15 +159,26 @@ async def _process_single_file(
     }
 
 
+# ID: f6e2405b-bc87-41b2-8e3c-36928ff588fa
+@atomic_action(
+    action_id="fix.body-ui",
+    intent="Autonomously fix Body UI violations using LLM",
+    impact=ActionImpact.WRITE_CODE,
+    policies=["body_contracts", "agent_governance"],
+    category="fixers",
+)
+# ID: d3dd3dcc-2f74-4e88-865c-bc44f6f420cd
 async def fix_body_ui_violations(
     core_context: CoreContext,
     write: bool = False,
     repo_root: Path | None = None,
-    limit: int | None = None,  # <--- NEW: Limit parameter
+    limit: int | None = None,
 ) -> ActionResult:
     """
     Use an LLM (via CoreContext) to automatically fix Body UI/env violations.
     """
+    start_time = time.time()
+
     if repo_root is None:
         repo_root = Path(settings.REPO_PATH)
 
@@ -190,6 +200,8 @@ async def fix_body_ui_violations(
                 "dry_run": not write,
                 "per_file": [],
             },
+            duration_sec=time.time() - start_time,
+            impact=ActionImpact.READ_ONLY,
         )
 
     # 2) Filter to the rules we actually fix here
@@ -219,6 +231,8 @@ async def fix_body_ui_violations(
                 "dry_run": not write,
                 "per_file": [],
             },
+            duration_sec=time.time() - start_time,
+            impact=ActionImpact.READ_ONLY,
         )
 
     total_found = len(by_file)
@@ -238,6 +252,7 @@ async def fix_body_ui_violations(
             action_id="fix.body-ui",
             ok=False,
             data={"error": "CognitiveService not available in context"},
+            duration_sec=time.time() - start_time,
         )
 
     agent = await cognitive.aget_client_for_role("CodeReviewer")
@@ -246,6 +261,7 @@ async def fix_body_ui_violations(
     processor = ThrottledParallelProcessor(description="Fixing Body UI violations...")
 
     # Define worker with bound arguments
+    # ID: 0f3ccbb3-6ea0-452c-9d8f-b1bd21b2b89f
     async def worker(item):
         return await _process_single_file(item, agent, write)
 
@@ -255,10 +271,9 @@ async def fix_body_ui_violations(
     # Calculate stats
     files_modified = sum(1 for res in per_file_results if res.get("modified"))
 
-    ok = True
     return ActionResult(
         action_id="fix.body-ui",
-        ok=ok,
+        ok=True,
         data={
             "files_found": total_found,  # Report total available
             "files_processed": len(per_file_results),  # Report actual processed
@@ -266,4 +281,6 @@ async def fix_body_ui_violations(
             "dry_run": not write,
             "per_file": per_file_results,
         },
+        duration_sec=time.time() - start_time,
+        impact=ActionImpact.WRITE_CODE if write else ActionImpact.READ_ONLY,
     )

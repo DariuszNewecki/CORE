@@ -7,12 +7,10 @@ from collections import defaultdict
 
 from mind.governance.audit_context import AuditorContext
 from mind.governance.checks.legacy_tag_check import LegacyTagCheck
-from rich.console import Console
 from shared.config import settings
 from shared.logger import getLogger
 
 logger = getLogger(__name__)
-console = Console()
 
 
 # ID: 5b7a5950-e534-4fb8-ad13-f9e6ad555643
@@ -31,9 +29,7 @@ def purge_legacy_tags(dry_run: bool = True) -> int:
     all_findings = check.execute()
 
     if not all_findings:
-        logger.info(
-            "[bold green]✅ No legacy tags found anywhere in the project.[/bold green]"
-        )
+        logger.info("No legacy tags found anywhere in the project.")
         return 0
 
     # --- THIS IS THE CRITICAL AMENDMENT ---
@@ -47,12 +43,12 @@ def purge_legacy_tags(dry_run: bool = True) -> int:
 
     if not src_findings:
         logger.info(
-            f"[bold yellow]🔍 Found {len(all_findings)} total legacy tag(s) in non-code files, but none in 'src/'. No automated action taken.[/bold yellow]"
+            f"Found {len(all_findings)} total legacy tag(s) in non-code files, but none in 'src/'. No automated action taken."
         )
         return 0
 
     logger.info(
-        f"[bold]🔍 Found {len(all_findings)} total legacy tag(s). Purging the {len(src_findings)} found in 'src/'...[/bold]"
+        f"Found {len(all_findings)} total legacy tag(s). Purging the {len(src_findings)} found in 'src/'..."
     )
 
     # Group findings by file path to process one file at a time
@@ -62,7 +58,7 @@ def purge_legacy_tags(dry_run: bool = True) -> int:
 
     total_lines_removed = 0
     for file_path_str, line_numbers_to_delete in files_to_fix.items():
-        logger.info(f"🔧 Processing file: [cyan]{file_path_str}[/cyan]")
+        logger.info(f"Processing file: {file_path_str}")
         file_path = settings.REPO_PATH / file_path_str
 
         # Your critical insight: sort line numbers in reverse to avoid index shifting
@@ -84,10 +80,8 @@ def purge_legacy_tags(dry_run: bool = True) -> int:
                     total_lines_removed += 1
 
             file_path.write_text("\n".join(lines) + "\n", "utf-8")
-            logger.info(f"   -> ✅ Purged {len(sorted_line_numbers)} legacy tag(s).")
+            logger.info(f"   -> Purged {len(sorted_line_numbers)} legacy tag(s).")
         except Exception as e:
-            logger.info(
-                f"   -> [bold red]❌ Error processing {file_path_str}: {e}[/bold red]"
-            )
+            logger.error(f"Error processing {file_path_str}: {e}")
 
     return total_lines_removed

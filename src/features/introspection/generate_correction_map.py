@@ -13,13 +13,9 @@ from pathlib import Path
 
 import typer
 import yaml
-from rich.console import Console
 from shared.logger import getLogger
 
 logger = getLogger(__name__)
-
-
-console = Console()
 
 
 # ID: ebc34284-fdea-4077-8265-5a69bf74f44f
@@ -41,7 +37,7 @@ def generate_maps(
     """
     Generates an alias map from clustering results to a YAML file.
     """
-    logger.info(f"🗺️  Generating alias map from [bold cyan]{input_path}[/bold cyan]...")
+    logger.info(f"Generating alias map from {input_path}...")
     try:
         proposed_domains = json.loads(input_path.read_text("utf-8"))
     except (json.JSONDecodeError, FileNotFoundError) as e:
@@ -51,9 +47,9 @@ def generate_maps(
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(yaml.dump(alias_map, indent=2, sort_keys=True), "utf-8")
     logger.info(
-        f"✅ Successfully generated alias map with {len(proposed_domains)} entries."
+        f"Successfully generated alias map with {len(proposed_domains)} entries."
     )
-    logger.info(f"   -> Saved to: [bold green]{output}[/bold green]")
+    logger.info(f"   -> Saved to: {output}")
 
 
 if __name__ == "__main__":

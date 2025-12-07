@@ -9,12 +9,15 @@ import asyncio
 import numpy as np
 from services.clients.qdrant_client import QdrantService
 from services.database.session_manager import get_session
+from shared.logger import getLogger
 from sqlalchemy import text
+
+logger = getLogger(__name__)
 
 
 # ID: dfe4cf3f-0c40-4306-beb7-174a6683cdcf
 async def verify():
-    print("🧪 Verifying Vector Distinctness...")
+    logger.info("Verifying Vector Distinctness...")
     qdrant = QdrantService()
 
     async with get_session() as s:
@@ -31,7 +34,7 @@ async def verify():
         ids = {r.qualname: str(r.id) for r in res}
 
     if len(ids) != 2:
-        print("❌ Could not find symbols in DB. Did you sync?")
+        logger.error("Could not find symbols in DB. Did you sync?")
         return
 
     # Fetch vectors
@@ -41,14 +44,14 @@ async def verify():
     # Calculate Similarity
     similarity = np.dot(v1, v2) / (np.linalg.norm(v1) * np.linalg.norm(v2))
 
-    print(f"\nTarget 1: feature ({ids['feature']})")
-    print(f"Target 2: vectorize_patterns_cmd ({ids['vectorize_patterns_cmd']})")
-    print(f"Cosine Similarity: {similarity:.6f}")
+    logger.info(f"Target 1: feature ({ids['feature']})")
+    logger.info(f"Target 2: vectorize_patterns_cmd ({ids['vectorize_patterns_cmd']})")
+    logger.info(f"Cosine Similarity: {similarity:.6f}")
 
     if similarity < 0.999:
-        print("\n✅ VERIFIED: Vectors are distinct. The fix worked.")
+        logger.info("VERIFIED: Vectors are distinct. The fix worked.")
     else:
-        print("\n❌ FAILURE: Vectors are still identical.")
+        logger.error("FAILURE: Vectors are still identical.")
 
 
 if __name__ == "__main__":

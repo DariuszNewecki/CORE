@@ -58,35 +58,42 @@ class VectorizationPayload:
 async def get_stored_chunks(qdrant_service: QdrantService) -> dict[str, dict]:
     """
     Return mapping: chunk_id (symbol_key) -> {hash, rev, point_id, capability}
+
+    PHASE 1 FIX: Uses scroll_all_points() service method instead of manual pagination.
     """
     logger.info("Checking Qdrant for already vectorized chunks...")
     chunks: dict[str, dict] = {}
-    next_offset = None
+
     try:
-        while True:
-            # Assumes qdrant_service.client is an AsyncQdrantClient
-            stored_points, next_offset = await qdrant_service.client.scroll(
-                collection_name=qdrant_service.collection_name,
-                limit=DEFAULT_PAGE_SIZE,
-                offset=next_offset,
-                with_payload=True,
-                with_vectors=False,
-            )
-            for point in stored_points:
-                payload = point.payload or {}
-                cid = payload.get("chunk_id")
-                if not cid:
-                    continue
-                chunks[cid] = {
-                    "hash": payload.get("content_sha256"),
-                    "rev": payload.get("model_rev"),
-                    "point_id": str(point.id),
-                    "capability": (payload.get("capability_tags") or [None])[0],
-                }
-            if not next_offset or len(chunks) >= MAX_SCROLL_LIMIT:
+        # PHASE 1: Use service method for complete collection scanning
+        stored_points = await qdrant_service.scroll_all_points(
+            with_payload=True,
+            with_vectors=False,
+        )
+
+        for point in stored_points:
+            payload = point.payload or {}
+            cid = payload.get("chunk_id")
+            if not cid:
+                continue
+            chunks[cid] = {
+                "hash": payload.get("content_sha256"),
+                "rev": payload.get("model_rev"),
+                "point_id": str(point.id),
+                "capability": (payload.get("capability_tags") or [None])[0],
+            }
+
+            # Stop if we hit the safety limit
+            if len(chunks) >= MAX_SCROLL_LIMIT:
+                logger.warning(
+                    f"Reached MAX_SCROLL_LIMIT of {MAX_SCROLL_LIMIT} chunks, "
+                    "stopping scan"
+                )
                 break
+
         logger.info(f"Found {len(chunks)} chunks already in Qdrant")
         return chunks
+
     except Exception as e:
         logger.warning(f"Could not retrieve stored chunks from Qdrant: {e}")
         return {}

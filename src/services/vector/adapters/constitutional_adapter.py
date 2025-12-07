@@ -14,6 +14,7 @@ Constitutional Alignment: dry_by_design, separation_of_concerns
 
 from __future__ import annotations
 
+import hashlib
 from pathlib import Path
 from typing import Any
 
@@ -125,6 +126,10 @@ class ConstitutionalAdapter:
         items = []
         for idx, chunk in enumerate(chunks):
             item_id = f"{doc_id}_{chunk['section_type']}_{idx}"
+            content = chunk["content"].strip()
+
+            # CALCULATE HASH for deduplication
+            content_hash = hashlib.sha256(content.encode("utf-8")).hexdigest()
 
             payload = {
                 "doc_id": doc_id,
@@ -135,12 +140,13 @@ class ConstitutionalAdapter:
                 "section_type": chunk["section_type"],
                 "section_path": chunk["section_path"],
                 "severity": chunk.get("severity", "error"),
+                "content_sha256": content_hash,  # <--- Added for smart sync
             }
 
             items.append(
                 VectorizableItem(
                     item_id=item_id,
-                    text=chunk["content"],
+                    text=content,
                     payload=payload,
                 )
             )

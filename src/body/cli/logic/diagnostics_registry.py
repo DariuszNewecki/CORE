@@ -12,12 +12,12 @@ import typer
 import yaml
 from mind.governance.checks.domain_placement import DomainPlacementCheck
 from mind.governance.checks.legacy_tag_check import LegacyTagCheck
-from rich.console import Console
 from shared.config import settings
 from shared.context import CoreContext
+from shared.logger import getLogger
 from shared.models import AuditSeverity
 
-console = Console()
+logger = getLogger(__name__)
 
 
 # ID: d90abaa5-8336-4f11-bd52-8d1088f037da
@@ -27,19 +27,17 @@ def manifest_hygiene(ctx: typer.Context):
     check = DomainPlacementCheck(core_context.auditor_context)
     findings = check.execute()
     if not findings:
-        console.print(
-            "[bold green]✅ All capabilities correctly placed in domain manifests[/bold green]"
-        )
+        logger.info("All capabilities correctly placed in domain manifests")
         raise typer.Exit(code=0)
     errors = [f for f in findings if f.severity == AuditSeverity.ERROR]
     if errors:
-        console.print(f"[bold red]🚨 {len(errors)} CRITICAL errors found:[/bold red]")
+        logger.error(f"{len(errors)} CRITICAL errors found:")
         for f in errors:
-            console.print(f"  [red]{f}[/red]")
+            logger.error(f"  {f}")
     if warnings := [f for f in findings if f.severity == AuditSeverity.WARNING]:
-        console.print(f"[bold yellow]⚠️  {len(warnings)} warnings found:[/bold yellow]")
+        logger.warning(f"{len(warnings)} warnings found:")
         for f in warnings:
-            console.print(f"  [yellow]{f}[/yellow]")
+            logger.warning(f"  {f}")
     raise typer.Exit(code=1 if errors else 0)
 
 
@@ -59,18 +57,13 @@ def cli_registry():
     schema_path = (settings.REPO_PATH / schema_rel).resolve()
 
     if not registry_path.exists():
-        typer.secho(
-            "INFO: Legacy CLI registry not found (this is expected after SSOT migration).",
-            fg=typer.colors.CYAN,
+        logger.info(
+            "Legacy CLI registry not found (this is expected after SSOT migration)."
         )
         return
 
     if not schema_path.exists():
-        typer.secho(
-            f"ERROR: CLI registry schema not found: {schema_path}",
-            err=True,
-            fg=typer.colors.RED,
-        )
+        logger.error(f"CLI registry schema not found: {schema_path}")
         raise typer.Exit(1)
 
     registry_content = registry_path.read_text("utf-8")
@@ -80,44 +73,29 @@ def cli_registry():
     validator = jsonschema.Draft202012Validator(schema)
     errors = sorted(validator.iter_errors(registry), key=lambda e: e.path)
     if errors:
-        typer.secho(
-            f"❌ CLI registry failed validation against {schema_rel}",
-            err=True,
-            fg=typer.colors.RED,
-        )
+        logger.error(f"CLI registry failed validation against {schema_rel}")
         for idx, err in enumerate(errors, 1):
             loc = "/".join(map(str, err.path)) or "(root)"
-            typer.secho(
-                f"  {idx}. at {loc}: {err.message}", err=True, fg=typer.colors.RED
-            )
+            logger.error(f"  {idx}. at {loc}: {err.message}")
         raise typer.Exit(1)
-    typer.secho(f"✅ CLI registry is valid: {registry_rel}", fg=typer.colors.GREEN)
+    logger.info(f"CLI registry is valid: {registry_rel}")
 
 
 # ID: de787795-39e8-414a-9ea7-bd3d4bf22ef6
 def check_legacy_tags(ctx: typer.Context):
     """Runs only the LegacyTagCheck to find obsolete capability tags."""
-    from rich.table import Table
-
     core_context: CoreContext = ctx.obj
 
-    # We can run this synchronously since the check itself is synchronous
-    console.print("[bold cyan]🚀 Running standalone legacy tag check...[/bold cyan]")
+    logger.info("Running standalone legacy tag check...")
     check = LegacyTagCheck(core_context.auditor_context)
     findings = check.execute()
     if not findings:
-        console.print("[bold green]✅ Success! No legacy tags found.[/bold green]")
+        logger.info("Success! No legacy tags found.")
         return
 
-    console.print(
-        f"\n[bold red]❌ Found {len(findings)} instance(s) of legacy tags:[/bold red]"
-    )
-    table = Table(title="Obsolete Tag Violations")
-    table.add_column("File Path", style="cyan", no_wrap=True)
-    table.add_column("Line", style="magenta")
-    table.add_column("Message", style="red")
+    logger.error(f"Found {len(findings)} instance(s) of legacy tags:")
     for finding in findings:
-        table.add_row(finding.file_path, str(finding.line_number), finding.message)
-
-    console.print(table)
+        logger.error(
+            f"  File: {finding.file_path}, Line: {finding.line_number}, Message: {finding.message}"
+        )
     raise typer.Exit(code=1)

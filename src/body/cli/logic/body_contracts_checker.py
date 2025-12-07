@@ -19,11 +19,13 @@ This checker is intentionally conservative and file-path aware:
 from __future__ import annotations
 
 import ast
+import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from shared.action_types import ActionResult
+from shared.action_types import ActionImpact, ActionResult
+from shared.atomic_action import atomic_action
 from shared.config import settings
 from shared.logger import getLogger
 
@@ -31,12 +33,14 @@ logger = getLogger(__name__)
 
 
 @dataclass
+# ID: 00f8abb3-bdf4-4bf0-ac23-579e539ddd3b
 class Violation:
     rule_id: str
     message: str
     file: Path
     line: int | None = None
 
+    # ID: 0b558899-1ebe-4119-b67e-38f2aa06f618
     def to_dict(self) -> dict[str, Any]:
         return {
             "rule_id": self.rule_id,
@@ -258,6 +262,15 @@ def _check_os_environ(path: Path, tree: ast.AST) -> list[Violation]:
     return violations
 
 
+# ID: 0c64e50f-f972-4027-893f-5702662871b5
+@atomic_action(
+    action_id="check.body-contracts",
+    intent="Validate Body layer headless contract compliance",
+    impact=ActionImpact.READ_ONLY,
+    policies=["body_contracts"],
+    category="checks",
+)
+# ID: ad55c8fb-3c0d-4d32-9ea0-7b4b773360b3
 async def check_body_contracts(
     repo_root: Path | None = None,
 ) -> ActionResult:
@@ -273,6 +286,8 @@ async def check_body_contracts(
               - violations: List[dict]
               - rules_triggered: Set of rule_ids
     """
+    start_time = time.time()
+
     if repo_root is None:
         repo_root = Path(settings.REPO_PATH)
 
@@ -329,4 +344,6 @@ async def check_body_contracts(
             "violations": violation_dicts,
             "rules_triggered": rules_triggered,
         },
+        duration_sec=time.time() - start_time,
+        impact=ActionImpact.READ_ONLY,
     )

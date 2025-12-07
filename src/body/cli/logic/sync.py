@@ -9,36 +9,33 @@ from __future__ import annotations
 import asyncio
 
 import typer
-from rich.console import Console
-
 from features.introspection.sync_service import run_sync_with_db
+from shared.logger import getLogger
 
-console = Console()
+logger = getLogger(__name__)
 
 
 async def _async_sync_knowledge(write: bool):
     """Core async logic for the sync command."""
-    console.print(
-        "[bold cyan]🚀 Synchronizing codebase state with database using temp table strategy...[/bold cyan]"
+    logger.info(
+        "🚀 Synchronizing codebase state with database using temp table strategy..."
     )
 
     if not write:
-        console.print(
-            "\n[bold yellow]💧 Dry Run: This command no longer supports a dry run due to its database-centric logic.[/bold yellow]"
+        logger.warning(
+            "💧 Dry Run: This command no longer supports a dry run due to its database-centric logic."
         )
-        console.print("   Run with '--write' to execute the synchronization.")
+        logger.info("   Run with '--write' to execute the synchronization.")
         return
 
     stats = await run_sync_with_db()
 
-    console.print("\n--- Knowledge Sync Summary ---")
-    console.print(f"   Scanned from code:  [cyan]{stats['scanned']}[/cyan] symbols")
-    console.print(f"   New symbols added:  [green]{stats['inserted']}[/green]")
-    console.print(f"   Existing symbols updated: [yellow]{stats['updated']}[/yellow]")
-    console.print(f"   Obsolete symbols removed: [red]{stats['deleted']}[/red]")
-    console.print(
-        "\n[bold green]✅ Database is now synchronized with the codebase.[/bold green]"
-    )
+    logger.info("--- Knowledge Sync Summary ---")
+    logger.info(f"   Scanned from code:  {stats['scanned']} symbols")
+    logger.info(f"   New symbols added:  {stats['inserted']}")
+    logger.info(f"   Existing symbols updated: {stats['updated']}")
+    logger.info(f"   Obsolete symbols removed: {stats['deleted']}")
+    logger.info("✅ Database is now synchronized with the codebase.")
 
 
 # ID: 89517800-0799-476e-8078-a184519a76a1

@@ -9,13 +9,12 @@ import asyncio
 
 import typer
 import yaml
-from rich.console import Console
-from sqlalchemy import text
-
 from services.database.session_manager import get_session
 from shared.config import settings
+from shared.logger import getLogger
+from sqlalchemy import text
 
-console = Console()
+logger = getLogger(__name__)
 
 
 async def _sync_domains():
@@ -24,18 +23,14 @@ async def _sync_domains():
     """
     domains_path = settings.MIND / "knowledge" / "domains.yaml"
     if not domains_path.exists():
-        console.print(
-            f"[bold red]❌ Error: Constitutional domains file not found at {domains_path}[/bold red]"
-        )
+        logger.error(f"Constitutional domains file not found at {domains_path}")
         raise typer.Exit(code=1)
 
     content = yaml.safe_load(domains_path.read_text("utf-8"))
     domains_to_sync = content.get("domains", [])
 
     if not domains_to_sync:
-        console.print(
-            "[yellow]⚠️  No domains found in domains.yaml. Nothing to sync.[/yellow]"
-        )
+        logger.warning("No domains found in domains.yaml. Nothing to sync.")
         return
 
     upserted_count = 0
@@ -67,9 +62,7 @@ async def _sync_domains():
                 )
                 upserted_count += 1
 
-    console.print(
-        f"[bold green]✅ Successfully synced {upserted_count} domains to the database.[/bold green]"
-    )
+    logger.info(f"Successfully synced {upserted_count} domains to the database.")
 
 
 # ID: 5bee5341-7f72-430e-b310-f174af37de20

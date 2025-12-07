@@ -15,15 +15,13 @@ from typing import Any
 
 from qdrant_client import AsyncQdrantClient
 from qdrant_client.http import models as qm
-
 from shared.config import settings
 from shared.models import EmbeddingPayload
 from shared.time import now_iso
 
 logger = logging.getLogger(__name__)
 
-# Track configurations we've already logged, to avoid duplicate INFO lines when the
-# same QdrantService configuration is constructed multiple times in the same process.
+# Track configurations we've already logged
 _SEEN_QDRANT_CONFIGS: set[tuple[str, str, int]] = set()
 
 
@@ -32,21 +30,21 @@ def _uuid5_from_text(text: str) -> str:
     return str(uuid.uuid5(uuid.NAMESPACE_URL, text))
 
 
-# ID: 3e1fe4a8-df09-4c95-a8b4-52f862e11fda
+# ID: 3e0fae9f-2236-4307-9f43-2fe602ae9b36
 class VectorNotFoundError(RuntimeError):
     """Raised when a requested vector cannot be retrieved from Qdrant."""
 
     pass
 
 
-# ID: ad8ec393-f281-4462-a766-d46a59b0d85c
+# ID: fdb86b16-1d2e-40e3-a590-063d4ce005b9
 class InvalidPayloadError(ValueError):
     """Raised when embedding payload validation fails."""
 
     pass
 
 
-# ID: a1e22945-e73a-4873-bab2-5b3993507dd7
+# ID: f989ede8-a90b-4d20-bce7-730ccc0108ee
 class QdrantService:
     """Handles all interactions with the Qdrant vector database."""
 
@@ -75,7 +73,6 @@ class QdrantService:
 
         config_key = (self.url, self.collection_name, self.vector_size)
         if config_key not in _SEEN_QDRANT_CONFIGS:
-            # First time we see this particular config -> log at INFO
             logger.info(
                 "QdrantService initialized: url=%s, collection=%s, dim=%s",
                 self.url,
@@ -83,36 +80,32 @@ class QdrantService:
                 self.vector_size,
             )
             _SEEN_QDRANT_CONFIGS.add(config_key)
-        else:
-            # Subsequent constructions with the same config are expected in some
-            # CLI paths; keep this at DEBUG to avoid noisy duplicate INFO lines.
-            logger.debug(
-                "QdrantService reused configuration: url=%s, collection=%s, dim=%s",
-                self.url,
-                self.collection_name,
-                self.vector_size,
-            )
 
-    # ID: c7ded463-863f-4730-819d-8e3991980462
-    async def ensure_collection(self) -> None:
+    # ID: b3049399-2d95-4af2-ae34-c150555595d3
+    async def ensure_collection(
+        self, collection_name: str | None = None, vector_size: int | None = None
+    ) -> None:
         """Idempotently create collection if missing."""
+        target_name = collection_name or self.collection_name
+        target_size = vector_size or self.vector_size
+
         try:
             collections_response = await self.client.get_collections()
             existing_collections = [c.name for c in collections_response.collections]
 
-            if self.collection_name in existing_collections:
-                logger.debug("Collection %s already exists", self.collection_name)
+            if target_name in existing_collections:
+                logger.debug("Collection %s already exists", target_name)
                 return
 
             logger.info(
                 "Creating Qdrant collection %s (dim=%s, distance=cosine)",
-                self.collection_name,
-                self.vector_size,
+                target_name,
+                target_size,
             )
             await self.client.recreate_collection(
-                collection_name=self.collection_name,
+                collection_name=target_name,
                 vectors_config=qm.VectorParams(
-                    size=self.vector_size,
+                    size=target_size,
                     distance=qm.Distance.COSINE,
                 ),
                 on_disk_payload=True,
@@ -123,8 +116,7 @@ class QdrantService:
             )
             raise
 
-    # New canonical symbol-aligned method
-    # ID: b8393fbc-2ec4-403a-8b57-b3e9209d8bed
+    # ID: d8089d3c-9110-4759-9a18-8df2fb827e92
     async def upsert_symbol_vector(
         self,
         point_id_str: str,
@@ -171,7 +163,7 @@ class QdrantService:
         )
         return point_id_str
 
-    # ID: 69cf555d-0149-4616-88e4-821b88c2a87d
+    # ID: 98614945-4d37-4cff-9977-bd59ae8c550d
     async def upsert_capability_vector(
         self,
         point_id_str: str,
@@ -180,15 +172,14 @@ class QdrantService:
     ) -> str:
         """
         Deprecated alias for upsert_symbol_vector.
-
-        Kept for backward compatibility; prefer upsert_symbol_vector instead.
+        Kept for backward compatibility.
         """
         logger.debug(
             "upsert_capability_vector is deprecated; use upsert_symbol_vector instead."
         )
         return await self.upsert_symbol_vector(point_id_str, vector, payload_data)
 
-    # ID: a149a699-a66f-4be2-8787-24e7cf6d05bb
+    # ID: 4a4561cb-79aa-4aa2-bc77-d259999e3e18
     async def get_all_vectors(self) -> list[qm.Record]:
         """Fetch all points with vectors and payloads from the collection."""
         try:
@@ -208,7 +199,7 @@ class QdrantService:
             logger.error("Failed to retrieve all vectors: %s", e)
             return []
 
-    # ID: f0c9a635-8a27-4f7c-a05b-465639de440a
+    # ID: 7f84df15-9515-4631-93c6-9700b2e578f6
     async def get_vector_by_id(self, point_id: str) -> list[float]:
         """
         Retrieve a single vector by its point ID.
@@ -231,41 +222,31 @@ class QdrantService:
             raise VectorNotFoundError(f"Vector not found for point {point_id}")
 
         rec = records[0]
-
-        # --- START OF FIX ---
-        # This block implements the "triple-check" to robustly find the vector
-        # regardless of the qdrant-client's response format.
-
-        # 1. Try direct .vector attribute (common case)
+        # Robust vector extraction
         vec = getattr(rec, "vector", None)
         if isinstance(vec, (list, tuple)):
             return [float(v) for v in vec]
 
-        # 2. Try .vectors dictionary (for named vectors)
+        # Check named vectors if needed
         vectors_obj = getattr(rec, "vectors", None)
         if isinstance(vectors_obj, dict) and vectors_obj:
-            if self.vector_name and self.vector_name in vectors_obj:
-                chosen = vectors_obj[self.vector_name]
-            else:
-                first_key = sorted(vectors_obj.keys())[0]
-                chosen = vectors_obj[first_key]
+            first_key = sorted(vectors_obj.keys())[0]
+            chosen = vectors_obj.get(self.vector_name) or vectors_obj[first_key]
             if isinstance(chosen, (list, tuple)):
                 return [float(v) for v in chosen]
 
-        # 3. Fallback: try converting the Record object to a dict
+        # Fallback dictionary access
         try:
             rec_dict = dict(rec)
             vec_from_dict = rec_dict.get("vector")
             if isinstance(vec_from_dict, (list, tuple)):
                 return [float(v) for v in vec_from_dict]
         except Exception:
-            # This can fail if the Record object is not dict-convertible; ignore.
             pass
-        # --- END OF FIX ---
 
         raise VectorNotFoundError(f"No valid vector found for point {point_id}")
 
-    # ID: 272f9fe7-aa22-4ce7-8c74-94de5bec249b
+    # ID: c1fdf49b-a4f3-4e5f-9f63-2c1a05b6a33c
     async def search_similar(
         self,
         query_vector: Sequence[float],
@@ -292,3 +273,173 @@ class QdrantService:
                 e,
             )
             return []
+
+    # ========================================================================
+    # NEW HELPER METHODS FOR VECTOR SERVICE STANDARDIZATION
+    # ========================================================================
+
+    # ID: 6e07e45f-5abc-40ac-8a0a-68c2d6a85bf8
+    async def upsert_points(
+        self, collection_name: str, points: list[qm.PointStruct], wait: bool = True
+    ) -> None:
+        """
+        Generic safe upsert for points.
+        Used by pattern and policy vectorizers to insert into specific collections.
+        """
+        try:
+            await self.client.upsert(
+                collection_name=collection_name, points=points, wait=wait
+            )
+        except Exception as e:
+            logger.error(f"Failed to upsert points to {collection_name}: {e}")
+            raise
+
+    # ID: bc27e697-1f06-4afe-bdb0-1edbfa248b71
+    async def search(
+        self,
+        collection_name: str,
+        query_vector: list[float],
+        limit: int = 5,
+        query_filter: qm.Filter | None = None,
+        score_threshold: float | None = None,
+    ) -> list[qm.ScoredPoint]:
+        """
+        Generic safe search wrapper.
+        Used by pattern and policy vectorizers to search specific collections.
+        """
+        try:
+            return await self.client.search(
+                collection_name=collection_name,
+                query_vector=query_vector,
+                limit=limit,
+                query_filter=query_filter,
+                score_threshold=score_threshold,
+            )
+        except Exception as e:
+            logger.error(f"Search failed in {collection_name}: {e}")
+            raise
+
+    # ID: 65a738fe-3ed6-49e3-8377-c529d33447d9
+    async def scroll_all_points(
+        self,
+        with_payload: bool = True,
+        with_vectors: bool = False,
+        page_size: int = 10_000,
+        collection_name: str | None = None,
+    ) -> list[qm.Record]:
+        """
+        Scroll through ALL points in the collection with proper pagination.
+        Handles pagination automatically and returns all points.
+        """
+        target_collection = collection_name or self.collection_name
+        all_points: list[qm.Record] = []
+        offset: str | None = None
+
+        while True:
+            try:
+                points, offset = await self.client.scroll(
+                    collection_name=target_collection,
+                    limit=page_size,
+                    offset=offset,
+                    with_payload=with_payload,
+                    with_vectors=with_vectors,
+                )
+
+                if not points:
+                    break
+
+                all_points.extend(points)
+
+                if offset is None:
+                    break
+
+            except Exception as e:
+                logger.error(
+                    "Failed to scroll collection %s at offset %s: %s",
+                    target_collection,
+                    offset,
+                    e,
+                )
+                raise
+
+        return all_points
+
+    # ID: 51ea2c61-7b6f-4f6a-94d3-ea7ac08e130f
+    async def delete_points(
+        self,
+        point_ids: list[str],
+        wait: bool = True,
+        collection_name: str | None = None,
+    ) -> int:
+        """
+        Delete multiple points by ID with validation and logging.
+        """
+        target_collection = collection_name or self.collection_name
+
+        if not point_ids:
+            return 0
+
+        try:
+            logger.info(
+                "Deleting %d points from %s",
+                len(point_ids),
+                target_collection,
+            )
+
+            await self.client.delete(
+                collection_name=target_collection,
+                points_selector=qm.PointIdsList(points=point_ids),
+                wait=wait,
+            )
+
+            return len(point_ids)
+
+        except Exception as e:
+            logger.error(
+                "Failed to delete points from %s: %s",
+                target_collection,
+                e,
+            )
+            raise
+
+    # ID: 86b61a51-a4af-40f4-af4b-a788019d1eb1
+    async def get_stored_hashes(
+        self, collection_name: str | None = None
+    ) -> dict[str, str]:
+        """
+        Retrieve all point IDs and their content_sha256 hashes.
+        Enables hash-based deduplication to check if content has changed.
+        """
+        target_collection = collection_name or self.collection_name
+        logger.debug("Fetching stored hashes from %s", target_collection)
+
+        hashes: dict[str, str] = {}
+        offset: str | None = None
+
+        while True:
+            try:
+                points, offset = await self.client.scroll(
+                    collection_name=target_collection,
+                    limit=10_000,
+                    offset=offset,
+                    with_payload=["content_sha256"],
+                    with_vectors=False,
+                )
+
+                for point in points:
+                    if point.payload and "content_sha256" in point.payload:
+                        hashes[str(point.id)] = point.payload["content_sha256"]
+
+                if offset is None:
+                    break
+
+            except Exception as e:
+                logger.warning(
+                    "Could not retrieve hashes from %s: %s",
+                    target_collection,
+                    e,
+                )
+                # Return partial results rather than failing completely
+                break
+
+        return hashes

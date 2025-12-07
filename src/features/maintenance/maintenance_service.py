@@ -8,12 +8,10 @@ from __future__ import annotations
 
 import re
 
-from rich.console import Console
 from shared.config import settings
 from shared.logger import getLogger
 
 logger = getLogger(__name__)
-console = Console()
 
 # This map defines the OLD python import paths to the NEW python import paths.
 REWIRE_MAP = {
@@ -83,10 +81,10 @@ def rewire_imports(dry_run: bool = True) -> int:
 
                 if modified_line != line:
                     logger.info(
-                        f"\n📝 Change detected in: [yellow]{file_path.relative_to(settings.REPO_PATH)}[/yellow]"
+                        f"Change detected in: {file_path.relative_to(settings.REPO_PATH)}"
                     )
                     logger.info(f"  - {line}")
-                    logger.info(f"  + [green]{modified_line}[/green]")
+                    logger.info(f"  + {modified_line}")
                     new_lines.append(modified_line)
                     file_was_changed = True
                     total_changes += 1
@@ -97,6 +95,6 @@ def rewire_imports(dry_run: bool = True) -> int:
                 file_path.write_text("\n".join(new_lines) + "\n", encoding="utf-8")
 
         except Exception as e:
-            logger.info(f"❌ Error processing {file_path}: {e}")
+            logger.error(f"Error processing {file_path}: {e}")
 
     return total_changes

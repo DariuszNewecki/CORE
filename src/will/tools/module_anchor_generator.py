@@ -11,6 +11,7 @@ Constitutional Alignment:
 - reason_with_purpose: Placement decisions based on semantic similarity
 
 Phase 1 Goal: Fix 45% → 90%+ semantic placement
+Phase 1 Update: Uses QdrantService.upsert_points() service method
 """
 
 from __future__ import annotations
@@ -166,7 +167,11 @@ class ModuleAnchorGenerator:
         return None
 
     async def _generate_layer_anchor(self, layer_name: str, layer_purpose: str) -> None:
-        """Generate anchor for architectural layer."""
+        """
+        Generate anchor for architectural layer.
+
+        PHASE 1: Uses upsert_points() service method instead of direct client access.
+        """
         from qdrant_client.models import PointStruct
 
         description = f"Layer: {layer_name}\n\nPurpose: {layer_purpose}\n\nThis is a top-level architectural layer in CORE's Mind-Body-Will structure."
@@ -187,14 +192,20 @@ class ModuleAnchorGenerator:
             },
         )
 
-        await self.qdrant.client.upsert(
-            collection_name=ANCHOR_COLLECTION, points=[point]
+        # PHASE 1: Use service method
+        await self.qdrant.upsert_points(
+            points=[point],
+            collection_name=ANCHOR_COLLECTION,
         )
 
     async def _generate_module_anchor(
         self, module_path: Path, module_info: dict[str, Any]
     ) -> None:
-        """Generate anchor for specific module with rich descriptions."""
+        """
+        Generate anchor for specific module with rich descriptions.
+
+        PHASE 1: Uses upsert_points() service method instead of direct client access.
+        """
         from qdrant_client.models import PointStruct
 
         layer = module_info["layer"]
@@ -235,8 +246,10 @@ class ModuleAnchorGenerator:
             },
         )
 
-        await self.qdrant.client.upsert(
-            collection_name=ANCHOR_COLLECTION, points=[point]
+        # PHASE 1: Use service method
+        await self.qdrant.upsert_points(
+            points=[point],
+            collection_name=ANCHOR_COLLECTION,
         )
 
     # ID: a19384a4-0138-4bb3-b0c5-b024150d1b54
@@ -252,6 +265,7 @@ class ModuleAnchorGenerator:
         if not embedding:
             return []
 
+        # PHASE 1: Direct client search is acceptable (no service method yet)
         # Search ALL modules directly
         module_results = await self.qdrant.client.search(
             collection_name=ANCHOR_COLLECTION,

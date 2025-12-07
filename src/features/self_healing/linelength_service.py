@@ -11,8 +11,6 @@ import asyncio
 from pathlib import Path
 
 import typer
-from rich.progress import track
-
 from mind.governance.audit_context import AuditorContext
 from shared.config import settings
 from shared.context import CoreContext
@@ -49,13 +47,14 @@ async def _async_fix_line_lengths(
         except Exception:
             continue
     if not files_with_long_lines:
-        logger.info("✅ No files with long lines found. Nothing to do.")
+        logger.info("No files with long lines found. Nothing to do.")
         return
     logger.info(f"Found {len(files_with_long_lines)} file(s) with long lines to fix.")
+
     modification_plan = {}
-    for file_path in track(
-        files_with_long_lines, description="Asking AI to refactor files..."
-    ):
+
+    logger.debug("Asking AI to refactor files...")
+    for file_path in files_with_long_lines:
         try:
             original_content = file_path.read_text(encoding="utf-8")
             final_prompt = prompt_template.replace("{source_code}", original_content)
@@ -77,19 +76,19 @@ async def _async_fix_line_lengths(
                     )
         except Exception as e:
             logger.error(f"Could not process {file_path.name}: {e}")
+
     if dry_run:
-        typer.secho("\n💧 Dry Run Summary:", bold=True)
+        logger.info("Dry Run Summary:")
         for file_path in sorted(modification_plan.keys()):
-            typer.secho(
-                f"  - Would fix line lengths in: {file_path.relative_to(REPO_ROOT)}",
-                fg=typer.colors.YELLOW,
+            logger.info(
+                f"  - Would fix line lengths in: {file_path.relative_to(REPO_ROOT)}"
             )
     else:
-        logger.info("\n💾 Writing changes to disk...")
+        logger.info("Writing changes to disk...")
         for file_path, new_code in modification_plan.items():
             file_path.write_text(new_code, "utf-8")
             logger.info(
-                f"   -> ✅ Fixed line lengths in {file_path.relative_to(REPO_ROOT)}"
+                f"   -> Fixed line lengths in {file_path.relative_to(REPO_ROOT)}"
             )
 
 

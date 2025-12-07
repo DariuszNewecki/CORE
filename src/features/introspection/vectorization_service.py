@@ -60,28 +60,31 @@ async def _fetch_existing_vector_links() -> dict[str, str]:
 
 
 async def _get_stored_vector_hashes(qdrant_service: QdrantService) -> dict[str, str]:
-    """Fetches all point IDs and their content hashes from Qdrant."""
+    """
+    Fetches all point IDs and their content hashes from Qdrant.
+
+    PHASE 1 FIX: Uses scroll_all_points() service method instead of manual pagination.
+    """
     hashes = {}
-    offset = None
+
     try:
-        while True:
-            points, next_offset = await qdrant_service.client.scroll(
-                collection_name=qdrant_service.collection_name,
-                limit=1000,
-                offset=offset,
-                with_payload=["content_sha256"],
-                with_vectors=False,
-            )
-            for point in points:
-                if point.payload and "content_sha256" in point.payload:
-                    hashes[str(point.id)] = point.payload.get("content_sha256")
-            if not next_offset:
-                break
-            offset = next_offset
+        # PHASE 1: Use service method for complete collection scanning
+        points = await qdrant_service.scroll_all_points(
+            with_payload=True,
+            with_vectors=False,
+        )
+
+        for point in points:
+            if point.payload and "content_sha256" in point.payload:
+                hashes[str(point.id)] = point.payload.get("content_sha256")
+
+        logger.debug(f"Retrieved {len(hashes)} content hashes from Qdrant")
+
     except Exception as e:
         logger.warning(
             "Could not retrieve hashes from Qdrant (will re-vectorize all): %s", e
         )
+
     return hashes
 
 

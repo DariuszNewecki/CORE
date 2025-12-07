@@ -11,11 +11,9 @@ import shutil
 import subprocess
 
 import typer
-from rich.console import Console
 from shared.logger import getLogger
 
 logger = getLogger(__name__)
-console = Console()
 bootstrap_app = typer.Typer(
     help="Commands for project bootstrapping and initial setup."
 )
@@ -53,16 +51,14 @@ LABELS_TO_ENSURE = [
 def _run_gh_command(command: list[str], ignore_errors: bool = False):
     """Helper to run a 'gh' command and handle errors."""
     if not shutil.which("gh"):
-        logger.info(
-            "[bold red]❌ 'gh' (GitHub CLI) command not found in your PATH.[/bold red]"
-        )
-        logger.info("   -> Please install it to use this feature.")
+        logger.error("'gh' (GitHub CLI) command not found in your PATH.")
+        logger.info("Please install it to use this feature.")
         raise typer.Exit(code=1)
     try:
         subprocess.run(command, check=True, capture_output=True, text=True)
     except subprocess.CalledProcessError as e:
         if not ignore_errors:
-            logger.info(f"[bold red]Error running gh command: {e.stderr}[/bold red]")
+            logger.error(f"Error running gh command: {e.stderr}")
             raise typer.Exit(code=1)
 
 
@@ -74,8 +70,8 @@ def bootstrap_issues(
     ),
 ):
     """Creates a standard set of starter issues for the project on GitHub."""
-    logger.info("[bold cyan]🚀 Bootstrapping standard GitHub issues...[/bold cyan]")
-    logger.info("   -> Ensuring required labels exist...")
+    logger.info("Bootstrapping standard GitHub issues...")
+    logger.info("Ensuring required labels exist...")
     for label in LABELS_TO_ENSURE:
         cmd = [
             "gh",
@@ -90,7 +86,7 @@ def bootstrap_issues(
         if repo:
             cmd.extend(["--repo", repo])
         _run_gh_command(cmd, ignore_errors=True)
-    logger.info(f"   -> Creating {len(ISSUES_TO_CREATE)} starter issues...")
+    logger.info(f"Creating {len(ISSUES_TO_CREATE)} starter issues...")
     for issue in ISSUES_TO_CREATE:
         cmd = [
             "gh",
@@ -106,6 +102,4 @@ def bootstrap_issues(
         if repo:
             cmd.extend(["--repo", repo])
         _run_gh_command(cmd)
-    logger.info(
-        "[bold green]✅ Successfully created starter issues on GitHub.[/bold green]"
-    )
+    logger.info("Successfully created starter issues on GitHub.")

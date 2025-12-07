@@ -8,8 +8,6 @@ using K-Means clustering on their vector embeddings.
 from __future__ import annotations
 
 import numpy as np
-from rich.console import Console
-
 from services.clients.qdrant_client import QdrantService
 from shared.logger import getLogger
 
@@ -18,7 +16,6 @@ try:
 except ImportError:
     KMeans = None
 logger = getLogger(__name__)
-console = Console()
 
 
 # ID: a38ed737-0757-4a63-9797-e55969255ce3
