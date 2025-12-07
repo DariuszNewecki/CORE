@@ -1,179 +1,185 @@
 # CORE Philosophy
 
-CORE is built on one foundational belief:
+CORE is founded on a single governing belief:
 
-> **Software should be able to understand itself, protect itself, and evolve safely — without losing structure or intent.**
+> **Software should understand itself, protect itself, and evolve safely — without losing structure, intent, or identity.**
 
-This philosophy drives every design decision, from architecture to governance to how AI agents are allowed to operate.
-
----
-
-## 🧠 1. Governed Intelligence Over Raw Autonomy
-
-Unconstrained AI-generated code is dangerous.
-It can:
-
-* introduce regressions,
-* break assumptions,
-* violate architectural boundaries,
-* create hidden dependencies,
-* and leave no audit trail.
-
-CORE solves this by **governing autonomy**, not disabling it.
-
-Every autonomous action must:
-
-* Pass constitutional audits
-* Respect domain boundaries
-* Follow policies defined in `.intent/`
-* Provide a traceable, reproducible trail
-* Be correct, safe, and explainable
-
-AI is allowed to act — but only inside a strict, validated, rule-driven system.
+This philosophy is the north star that shapes every architectural decision, every governance rule, and every permitted action within the system. It defines *why* CORE exists and *what kind of intelligence* it is allowed to embody.
 
 ---
 
-## 🧩 2. Mind–Body–Will as a Philosophical Model
+# 🧠 1. Governed Intelligence, Not Unbounded Autonomy
 
-CORE models itself on a tripartite system inspired by both cognitive science and constitutional design.
+Unrestricted AI-generated code is dangerous. It leads to:
 
-### **Mind** (Governance)
+* architectural drift,
+* invisible coupling,
+* silent regressions,
+* loss of structural coherence,
+* and systems that cannot explain themselves.
 
-* Defines rules, boundaries, and policies
-* Stores knowledge of the system
+CORE does **not** pursue raw autonomy.
+Instead, it embraces **governed intelligence** — autonomy bounded by constitutional rules, auditable processes, and strict safety guarantees.
+
+Every autonomous act must:
+
+* obey `.intent/` policies,
+* respect domain boundaries,
+* leave a traceable record,
+* pass constitutional audits,
+* maintain explainability.
+
+CORE grants power only where governance exists.
+
+---
+
+# 🧩 2. The Mind–Body–Will Model
+
+CORE models itself on a tripartite structure inspired by cognitive science and constitutional systems:
+
+## **Mind — Governance & Knowledge**
+
+* Defines boundaries and allowed behaviors
 * Enforces structure and safety
-* Vetoes unsafe evolution
+* Stores system-wide knowledge
+* Acts as the immutable rule layer
 
-### **Body** (Execution)
+## **Body — Deterministic Execution**
 
-* Executes plans
-* Validates outputs
-* Enforces formatting, linting, tests
-* Integrates changes into the codebase
+* Performs work without agency
+* Runs audits, tests, formatters, validations
+* Applies approved changes to the filesystem
 
-### **Will** (Agents)
+## **Will — Reasoning & Planning**
 
-* Generates plans
-* Produces code and tests
-* Suggests improvements
-* Proposes refactors
+* Generates ideas and refactor plans
+* Performs LLM-based reasoning
+* Proposes changes but cannot enforce them
 
-This model keeps reasoning (Will), execution (Body), and authority (Mind) cleanly separated.
+This separation ensures that reasoning cannot directly mutate the system.
+All change flows through governance.
 
 ---
 
-## 🧱 3. Constitution as the Source of Truth (The `.intent/` Directory)
+# 🧱 3. The Constitution (`.intent/`) as Source of Truth
 
-Traditional projects rely on:
+Where most projects rely on:
 
-* scattered documentation,
 * tribal knowledge,
-* ad-hoc style guides,
-* oral tradition.
+* ad-hoc conventions,
+* outdated documents,
+* informal rules,
 
-These decay over time.
+CORE uses a **constitutional layer**.
 
-CORE instead uses a **constitutional layer** — `.intent/` — that:
+`.intent/` is the authoritative definition of:
 
-* encodes system rules
-* defines capabilities
-* describes architectural domains
-* stores policies and schemas
-* acts as a self-knowledge root
+* system principles,
+* architectural boundaries,
+* domains and capabilities,
+* allowed operations,
+* schemas and policies.
 
-Everything else — agents, audits, CLI, code — must follow `.intent/`.
-
-If the constitution says **no**, CORE cannot do it.
+If the constitution forbids an action, it *cannot happen*. Not by humans, not by AI.
 
 ---
 
-## 🔍 4. Radical Traceability
+# 🔍 4. Radical Traceability
 
+A self-understanding system must track its own structure.
 In CORE:
 
-* Every function has a stable ID
-* Every ID maps to a capability
-* Every capability is discoverable
-* Every change is auditable
-* Every action produces metadata
+* every function receives a stable ID,
+* every ID maps to a capability,
+* every capability belongs to a domain,
+* every change is auditable,
+* every action produces metadata.
 
-This makes CORE **transparent to itself**.
-It cannot forget how something was done, why it was done, or what parts of the system were affected.
+CORE never loses track of:
 
-Traceability is not optional — it is structural.
+* what changed,
+* why it changed,
+* who (or what) changed it,
+* and how it affects the whole.
+
+Traceability is not a feature — it is a law.
 
 ---
 
-## 🔄 5. Autonomous Evolution Without Drift
+# 🔄 5. Drift Prevention & Autonomous Refinement
 
-Software entropy is the silent killer of long-lived systems.
-Over time, architecture erodes.
+Left alone, software decays.
+Entropy erodes architecture over time.
 
-CORE prevents entropy by ensuring:
+CORE prevents this by:
 
-* Mandatory audits
-* Mandatory capability tagging
-* Mandatory domain checks
-* Mandatory validation
+* enforcing architectural boundaries,
+* running constant audits,
+* mandating capability tagging,
+* validating intent alignment,
+* detecting duplication and inconsistencies.
 
-and by letting the system:
+But CORE does more than prevent decay.
+It can:
 
 * detect its own drift,
 * propose corrections,
-* generate tests,
-* and remediate itself.
+* generate refactors,
+* write tests,
+* remediate inconsistencies.
 
-This leads to a system that **improves itself** instead of decaying.
-
----
-
-## 🧬 6. Local Knowledge, No External Dependence
-
-CORE does not depend on external sources of truth.
-Its knowledge lives in:
-
-* the code,
-* the constitution,
-* the knowledge graph,
-* the vector store.
-
-This allows CORE to:
-
-* be portable,
-* be offline-capable,
-* reason about itself without cloud dependencies,
-* operate in restricted environments.
-
-The system can be moved between machines without losing memory.
+This turns entropy into improvement.
 
 ---
 
-## 🛡 7. Humans as the Ultimate Governance Authority
+# 🧬 6. Local Knowledge, Zero External Dependence
 
-AI can propose changes.
-AI can generate code.
-AI can remediate issues.
-AI can plan tests.
+CORE is designed to function without cloud dependence.
+Its memory lives entirely in:
 
-But **AI cannot approve constitutional changes**.
-AI cannot bypass:
+* the codebase,
+* the `.intent/` constitution,
+* the PostgreSQL knowledge store,
+* the Qdrant vector index.
 
-* signature requirements,
-* proposal workflows,
-* canary checks,
-* human ratification.
+This grants:
 
-CORE is designed so that *humans remain in control of the rules*, while the system handles the complexity of reasoning and execution.
+* portability,
+* reproducibility,
+* offline autonomy,
+* explainability.
+
+CORE carries its own mind wherever it goes.
 
 ---
 
-## 🎯 8. CORE’s North Star
+# 🛡 7. Humans Remain the Ultimate Authority
 
-The North Star of CORE can be summarized in one sentence:
+AI may:
+
+* propose changes,
+* reason about architecture,
+* generate code,
+* plan refactors.
+
+But AI may **not**:
+
+* approve constitutional edits,
+* bypass audits,
+* skip canary checks,
+* self-authorize structural mutations.
+
+The system enforces that **governance is human-owned**, even when execution is autonomous.
+
+---
+
+# 🎯 8. CORE’s North Star
+
+The purpose of CORE can be expressed simply:
 
 > **A system that knows what it is, why it exists, what is allowed, and how to evolve safely.**
 
-This is achieved by unifying five elements:
+Its structure unifies:
 
 1. Governance (Mind)
 2. Reasoning (Will)
@@ -181,16 +187,78 @@ This is achieved by unifying five elements:
 4. Knowledge (Symbols + Capabilities)
 5. Constitutional Enforcement (`.intent/`)
 
-Together, they make CORE a system that does not drift, does not forget, and does not act without oversight.
+Together, these create a system that does not drift, does not forget, and does not act blindly.
 
 ---
 
-## 📚 Next
+# 🧩 9. Cognitive Patterns and the Irritation Heuristic
+
+As CORE evolved, it became clear that autonomous systems require a way to *sense* where improvement is needed.
+Human architects do this naturally: they feel **tension** — irritation — when something is off.
+
+### **9.1 The Human Analogue**
+
+Experienced engineers detect:
+
+* incoherent patterns,
+* noise in structure,
+* asymmetric logic,
+* conceptual drift,
+* missing elegance.
+
+This discomfort is not emotion.
+It is cognition — the brain flagging structural misalignment.
+
+### **9.2 The Machine Analogue**
+
+CORE models this through signals such as:
+
+* governance violations,
+* capability mismatches,
+* complexity hotspots,
+* semantic vector anomalies,
+* inconsistent metadata,
+* pattern deviations.
+
+These form a **tension score** — the machine’s way of approximating architectural irritation.
+
+### **9.3 Why It Belongs in Philosophy**
+
+This heuristic shapes CORE’s worldview:
+
+> A system should feel when something is wrong — and move toward coherence.
+
+It bridges the gap between human architectural intuition and machine-driven refinement.
+
+### **9.4 Relation to A3 Autonomy**
+
+The Irritation Heuristic lays the philosophical foundation for:
+
+* autonomous refactor proposal,
+* drift detection,
+* structural prioritization,
+* tension-driven improvement.
+
+It is the moment where CORE begins to choose *what to fix next*.
+
+### **9.5 Formal Definition**
+
+See:
+
+```
+docs/patterns/IRRITATION_HEURISTIC.md
+```
+
+for the doctrinal pattern entry.
+
+---
+
+# 📚 Next Steps
 
 Continue with:
 
-* [Architecture](02_ARCHITECTURE.md)
-* [Governance](03_GOVERNANCE.md)
-* [Autonomy Ladder](05-autonomy-ladder.md)
+* **Architecture** (`02_ARCHITECTURE.md`)
+* **Governance** (`03_GOVERNANCE.md`)
+* **Autonomy Ladder** (`05-autonomy-ladder.md`)
 
-These will show you how the philosophy becomes concrete engineering.
+These documents show how CORE's philosophy becomes concrete engineering and real autonomous behavior.

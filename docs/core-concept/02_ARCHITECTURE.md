@@ -1,11 +1,17 @@
 # CORE System Architecture
 
-CORE is an autonomous software engineer built on the **Mind–Body–Will cognitive architecture**.
-This document reflects the **modern A2-ready architecture**, including the **Service Registry**, **Database-as-SSOT**, and **strict Dependency Injection**.
+This document defines the **authoritative, A2‑ready architectural model** of CORE, based on the canonical **Mind–Body–Will cognitive framework**. It is written in a formal and enduring style, suitable for inclusion in CORE's doctrinal documentation.
+
+The architecture described here reflects:
+
+* **Service Registry–based infrastructure management**
+* **Database as Single Source of Truth (SSOT)**
+* **Strict Dependency Injection (DI)**
+* **Governed execution and reasoning pathways**
 
 ---
 
-# 1. High-Level Design
+# 1. High‑Level Design
 
 ```mermaid
 graph TD
@@ -15,94 +21,99 @@ graph TD
     Body -->|Updates| Mind
 ```
 
-CORE maintains alignment between **intent**, **reasoning**, and **execution** through continuous governance.
+CORE maintains alignment between **intent**, **reasoning**, and **execution** through continuous governance. Every system evolution flows from the Mind, through the Will, into the Body, and finally returns updated knowledge back to the Mind.
 
 ---
 
-## 1.1 The Architectural Trinity
+# 1.1 The Architectural Trinity
 
-### 🏛️ Mind — Governance, State & Knowledge
+## 🏛️ Mind — Governance, State, and Knowledge
 
 **Location:** `.intent/` + PostgreSQL
 
-**Role:** Memory, governance, and global system state.
+**Purpose:** Define what CORE *is allowed* to be. The Mind holds the immutable laws and the mutable state of the system.
 
 **Key Components:**
 
-* **ConstitutionalAuditor** — enforces policies & architectural rules.
-* **KnowledgeService** — interface to the Knowledge Graph.
-* **PostgreSQL (SSOT)** — canonical store for symbols, capabilities, policies, secrets.
+* **ConstitutionalAuditor** — enforces rules, prevents drift, blocks unsafe evolution.
+* **KnowledgeService** — interface to the Knowledge Graph and symbol metadata.
+* **PostgreSQL (SSOT)** — canonical store for all system knowledge.
 
 **Principle:**
-**The Database is the Single Source of Truth (SSOT)** for system knowledge.
-`.intent/` defines the *laws*. The DB reflects the *current state*.
+
+> **The Database is the Single Source of Truth (SSOT).**
+
+`.intent/` defines the *law*. The database captures the *world as it currently exists*.
 
 ---
 
-### 🦾 Body — Deterministic Execution Layer
+## 🦾 Body — Deterministic Execution Layer
 
-**Location:** `src/body/` + `src/services/` + `src/features/`
+**Location:** `src/body/`, `src/services/`, `src/features/`
 
-**Role:** Executes tasks deterministically.
+**Purpose:** Execute work deterministically, predictably, and without agency.
 
 **Key Components:**
 
-* **ServiceRegistry** — singleton manager for infrastructure (LLMs, Git, Qdrant, DB, etc.).
-* **ActionRegistry** — maps intent strings (e.g., "create_file") to executable actions.
-* **FileHandler** — safe, staged file I/O using the Pending Writes pattern.
-* **CLI (`core-admin`)** — governance entrypoint for audits, fixes, development, sync.
+* **ServiceRegistry** — the sole authority for constructing and providing infrastructure services.
+* **ActionRegistry** — maps intent identifiers to executable atomic actions.
+* **FileHandler** — safe file I/O using staging and validation.
+* **core-admin CLI** — governance entrypoint for audits, diagnostics, fixes, development cycles.
 
-The Body **does not reason**.
-It executes.
+The Body does **not** reason.
+It simply executes instructions under strict governance.
 
 ---
 
-### 🧠 Will — Reasoning & Cognitive Layer
+## 🧠 Will — Cognitive and Reasoning Layer
 
 **Location:** `src/will/`
 
-**Role:** Planning, reasoning, code generation, and self-correction.
+**Purpose:** Planning, decomposition, reasoning, generation, validation, and self‑correction.
+The Will is the only layer permitted to use LLMs.
 
 **Key Components:**
 
-* **CognitiveService** — LLM orchestration and provider abstraction.
-* **PlannerAgent** — decomposes high-level goals.
-* **Micro-Planner** — fine-grained reasoning.
-* **CoderAgent** — writes, validates, and self-corrects code.
-* **Reviewer & Deduction Agents** — ensure code quality and intent alignment.
+* **CognitiveService** — orchestrates LLM calls and selects providers.
+* **PlannerAgent** — decomposes goals into executable plans.
+* **Micro‑Planner** — performs fine‑grained reasoning loops.
+* **CoderAgent** — generates and validates code changes.
+* **Reviewer & Deduction Agents** — ensure coherence, correctness, and alignment.
 
-The Will **must obey the Mind** and can act *only* through the Body.
+**Constraint:**
+
+> The Will must obey the Mind and act only through the Body.
 
 ---
 
-# 2. Detailed Component View
+# 2. Detailed Component Model
 
-## 2.1 Service Layer (Infrastructure)
+## 2.1 Infrastructure Services
 
-All infrastructure adapters live in `src/services/` and are instantiated **exclusively** through the **ServiceRegistry**.
+All infrastructure adapters (LLMs, DB, Qdrant, Git, Secrets, Config, etc.) live in `src/services/` and are instantiated **exclusively** through the **ServiceRegistry**.
 
-**Core Singleton Services:**
+**Core Services:**
 
-* **ConfigService** — loads runtime configuration (DB + env).
-* **SecretsService** — handles encryption/decryption of API keys using Fernet.
-* **QdrantService** — vector storage for embeddings & semantic search.
-* **GitService** — wrapper for safe Git operations.
-* **LLM Registry** — runtime model discovery & provider orchestration.
-* **Database Session Manager** — async SQLAlchemy interface.
+* **ConfigService** — loads and validates runtime configuration.
+* **SecretsService** — manages encrypted secrets (Fernet‑based).
+* **QdrantService** — embedding storage and semantic search.
+* **GitService** — safe Git operations under governance.
+* **LLM Provider Registry** — runtime model discovery and orchestration.
+* **Database Session Manager** — async SQLAlchemy engine and session factory.
 
-These are **never** instantiated directly elsewhere.
+**Rule:** No service may be instantiated outside the registry.
 
 ---
 
 ## 2.2 Dependency Injection Strategy
 
-CORE enforces strict **Dependency Injection** to avoid "split-brain" infrastructure states.
+CORE enforces strict DI to maintain global coherence and avoid duplicated infrastructure instances.
 
-**Key Rules:**
+### Rules
 
-1. **The ServiceRegistry is the only place services are instantiated.**
-2. **CoreContext** injects the registry into commands, agents, and feature pipelines.
-3. Commands & agents request services **Just-In-Time (JIT)**.
+1. **The ServiceRegistry constructs all services.**
+2. **CoreContext delivers these services to commands, features, and agents.**
+3. **Consumers request services Just‑In‑Time (JIT).**
 
 **Example:**
 
@@ -110,132 +121,137 @@ CORE enforces strict **Dependency Injection** to avoid "split-brain" infrastruct
 qdrant = await context.registry.get_qdrant_service()
 ```
 
-**Outcome:**
-No duplicates, no stale connections, no conflicting resources.
+Outcome: no split‑brain infrastructure, no conflicting engines, no stale connections.
 
 ---
 
 ## 2.3 The Knowledge Loop
 
-CORE maintains self-awareness via a continuous closed-loop process:
+CORE maintains system self‑awareness using a closed knowledge loop:
 
-1. **Introspection** — `SymbolScanner` parses every Python file in `src/`.
-2. **Sync** — `KnowledgeService` updates the `core.symbols` table.
-3. **Vectorize** — embeddings are generated and written to Qdrant.
-4. **Retrieval** — agents query semantic memory to:
+1. **Introspection** — `SymbolScanner` analyzes Python modules.
+2. **Sync** — symbols, capabilities, and metadata are written to PostgreSQL.
+3. **Vectorization** — embeddings stored in Qdrant enable semantic reasoning.
+4. **Retrieval & Use** — agents leverage semantic memory to:
 
-   * find patterns,
-   * reuse code,
    * detect inconsistencies,
-   * generate governed fixes.
+   * perform reuse analysis,
+   * guide refactoring,
+   * generate governed code fixes.
 
-This pipeline enables autonomous reasoning grounded in the real system structure.
+This loop grounds reasoning in the system’s actual structure.
 
 ---
 
 # 3. Governance Model
 
-All system evolution must follow the **Constitutional Workflow**.
+CORE evolves through a governed workflow enforced by constitutional law.
 
 ## 3.1 Proposal Phase
 
-Human or agent creates a **proposal crate**:
+A human or agent submits a **proposal crate** containing:
 
-* describes intent,
-* includes planned modifications,
-* contains initial code generation.
+* description of change intent,
+* planned modifications,
+* initial generated code.
 
 ## 3.2 Audit Phase
 
 The **ConstitutionalAuditor** validates:
 
-* policies,
-* dependencies,
-* architectural boundaries,
-* capabilities & symbol metadata,
+* policy compliance,
+* domain boundaries,
+* capability metadata,
+* potential drift or duplication,
 * missing tests,
-* duplication,
-* security rules.
+* safety and structure of changes.
 
-If any audit fails → crate rejected.
+Crates failing audit are rejected immediately.
 
 ## 3.3 Canary Phase
 
-The system applies changes to a **temporary directory** and:
+Changes are applied to a temporary environment and subjected to:
 
-* runs Black, Ruff, and pytest,
-* performs introspection & knowledge sync simulation.
+* formatting checks (Black, Ruff),
+* full pytest suite,
+* knowledge sync simulation.
 
 ## 3.4 Commitment Phase
 
-Only if **all** checks pass:
+Only after *all* checks succeed:
 
 * changes are written to disk,
-* knowledge is updated,
-* the system evolves safely.
+* introspection updates system knowledge,
+* the system’s state evolves safely.
 
-Nothing bypasses this process.
+Nothing bypasses this workflow.
 
 ---
 
-# 4. Mind–Body–Will (Full Context)
+# 4. Mind–Body–Will in Context
 
 ## 4.1 Mind — `.intent/`
 
-Holds:
+Defines:
 
-* principles,
+* constitutional principles,
 * policies,
-* governance contracts,
 * schemas,
-* constitutional rules,
-* runtime requirements.
+* governance contracts,
+* runtime constraints.
 
-It defines what CORE **is allowed** to be.
+This layer defines what CORE is **allowed** to be.
+
+---
 
 ## 4.2 Body — `src/`
 
 Implements:
 
-* deterministic tooling,
-* feature domains,
-* validation pipeline,
-* operational workflows.
+* deterministic services,
+* operational workflows,
+* checks,
+* audits,
+* feature domains.
+
+This layer performs the work.
+
+---
 
 ## 4.3 Will — `src/will/`
 
 Implements:
 
-* planning,
 * reasoning,
-* generation,
-* alignment,
-* self-correction.
+* planning,
+* code generation,
+* validation,
+* self‑correction.
 
-The Will cannot write code outside of governed pathways.
+The Will cannot modify the system except through governed channels enforced by the Mind.
 
 ---
 
 # 5. Why This Architecture Works
 
-CORE maintains:
+CORE achieves:
 
-* **alignment** between intent and implementation,
-* **controlled reasoning** via Mind-enforced guardrails,
-* **auditable evolution** via the crate model,
-* **explicit knowledge** through PostgreSQL + Qdrant,
-* **safe change paths** through constitutional audits.
+* **Persistent alignment** between intent and implementation,
+* **Governed reasoning** via constitutional guardrails,
+* **Auditable evolution** using crate‑based change management,
+* **Explicit knowledge** stored in DB + vector memory,
+* **Safe self‑improvement** through closed governance loops.
 
-The Mind–Body–Will model is the foundation of safe autonomous development.
+The Mind–Body–Will model forms the foundation for **safe, autonomous code evolution**.
 
 ---
 
 # 6. Next Steps
 
-Continue with:
+Recommended readings:
 
 * **Governance Model (`03_GOVERNANCE.md`)**
 * **Philosophy (`01_PHILOSOPHY.md`)**
-* **Developer Cheat Sheet** — concise atomic references
+* **Developer Cheat Sheet** (compact operational reference)
 
-This architecture enables CORE to function as a **governed, self-improving software engineer**.
+This architecture defines CORE’s evolution from A2‑level autonomy toward governed, self‑maintaining development.
