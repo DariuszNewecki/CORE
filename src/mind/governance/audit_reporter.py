@@ -12,6 +12,10 @@ Responsibilities:
 
 from __future__ import annotations
 
+from shared.logger import getLogger
+
+logger = getLogger(__name__)
+
 from collections.abc import Iterable
 from dataclasses import dataclass, field
 
@@ -68,10 +72,10 @@ class AuditRunReporter:
     # ID: c3b86fe8-f82a-4af4-be0b-0aef027dcaf2
     def print_header(self) -> None:
         console.rule("[bold]CORE Audit Run[/bold]")
-        console.print("[bold]Workflow[/bold] : check.audit")
-        console.print(f"[bold]Repo[/bold]     : {self.repo_path}")
-        console.print(f"[bold]Run ID[/bold]   : {self.run.run_id}")
-        console.print("-")
+        logger.info("Workflow : check.audit")
+        logger.info("Repo     : %s", self.repo_path)
+        logger.info("Run ID   : %s", self.run.run_id)
+        logger.info("-")
 
     # ---------- Phases ----------
 
@@ -94,13 +98,13 @@ class AuditRunReporter:
             return
 
         for phase in self.phases:
-            console.print(f"[bold][Phase][/bold] {phase.name}")
+            logger.info("[Phase] %s", phase.name)
             if phase.details:
                 for key, value in phase.details.items():
-                    console.print(f"  • {key}: {value}")
+                    logger.info("  • %s: %s", key, value)
             if phase.duration_sec is not None:
-                console.print(f"  • Duration: {phase.duration_sec:.2f}s")
-            console.print()
+                logger.info("  • Duration: %.2fs", phase.duration_sec)
+            logger.info("")  # FIXED: Empty string for blank line
 
     # ---------- Checks ----------
 
@@ -146,7 +150,7 @@ class AuditRunReporter:
     def print_checks_table(self) -> None:
         """Render a table of all check results."""
         if not self.check_results:
-            console.print("[italic]No checks recorded.[/italic]")
+            logger.info("No checks recorded.")
             return
 
         table = Table(show_header=True, header_style="bold")
@@ -171,11 +175,9 @@ class AuditRunReporter:
                 status_text,
             )
 
-        console.print(
-            f"[bold][Phase][/bold] Running checks ({self.total_checks} total)"
-        )
-        console.print(table)
-        console.print()
+        logger.info("[bold][Phase][/bold] Running checks (%s total)", self.total_checks)
+        console.print(table)  # FIXED: Use console for Rich table
+        logger.info("")  # FIXED: Empty string for blank line
 
     # ---------- Summary ----------
 
@@ -183,8 +185,8 @@ class AuditRunReporter:
     def print_summary(self) -> None:
         """Render a summary block with counts and suggested next steps."""
         if not self.check_results:
-            console.print("[bold]Summary[/bold]")
-            console.print("  No checks were executed.")
+            logger.info("Summary")
+            logger.info("  No checks were executed.")
             console.rule()
             return
 
@@ -199,29 +201,29 @@ class AuditRunReporter:
                 severities.append(r.max_severity)
         highest_severity = max(severities) if severities else None
 
-        console.print("[bold][Summary][/bold]")
-        console.print(f"  Total checks      : {total}")
-        console.print(f"  Checks with issues: {len(with_issues)}")
-        console.print(f"  Total findings    : {findings_total}")
+        logger.info("[Summary]")
+        logger.info("  Total checks      : %s", total)
+        logger.info("  Checks with issues: %s", len(with_issues))
+        logger.info("  Total findings    : %s", findings_total)
         if highest_severity:
-            console.print(f"  Highest severity  : {highest_severity.name}")
-        console.print()
+            logger.info("  Highest severity  : %s", highest_severity.name)
+        logger.info("")  # FIXED: Empty string for blank line
 
         offenders = sorted(with_issues, key=lambda r: r.findings_count, reverse=True)[
             :5
         ]
         if offenders:
-            console.print("  Key offenders:")
+            logger.info("  Key offenders:")
             for r in offenders:
-                console.print(f"    - {r.name}: {r.findings_count} findings")
-            console.print()
+                logger.info("    - %s: %s findings", r.name, r.findings_count)
+            logger.info("")  # FIXED: Empty string for blank line
 
         hints = _collect_fix_hints(offenders)
         if hints:
-            console.print("  Suggested next steps:")
+            logger.info("  Suggested next steps:")
             for cmd in hints:
-                console.print(f"    - Run: [bold]{cmd}[/bold]")
-            console.print()
+                logger.info("    - Run: %s", cmd)
+            logger.info("")  # FIXED: Empty string for blank line
 
         console.rule()
 

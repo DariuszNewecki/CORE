@@ -515,6 +515,7 @@ async def dev_sync_command(
 # ID: d1e2f3a4-b5c6-7890-456789abcdef
 # ID: 0958b077-78bb-40ff-92bb-8a94f41a36db
 async def fix_logging_command(
+    ctx: typer.Context,  # ADDED: Required by @core_command
     write: bool = typer.Option(
         False, "--write/--dry-run", help="Apply fixes (default: dry-run)"
     ),

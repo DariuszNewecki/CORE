@@ -27,7 +27,7 @@ _BODY_UI_FIX_PROMPT = textwrap.dedent(
     ----
     - Remove ALL terminal UI from the given module:
       - No Rich imports or usage
-      - No print() or input()
+      - No console.print() or input()
       - No direct os.environ / os.environ[...] access
     - Preserve the module's behavior as a HEADLESS Body-layer service/logic.
 
@@ -36,7 +36,7 @@ _BODY_UI_FIX_PROMPT = textwrap.dedent(
     CORE governance rules for Body code:
     - Body modules MUST be headless:
       - No Rich UI (Console, Progress, status, etc.)
-      - No print() / input() calls
+      - No console.print() / input() calls
     - Configuration must come from shared.config.settings, not os.environ.
     - Logging MUST use shared.logger.getLogger(__name__).
 
@@ -44,7 +44,7 @@ _BODY_UI_FIX_PROMPT = textwrap.dedent(
     ------------
     1. Remove or refactor any Rich / console imports and usage.
        - If the module needs observability, use logger.debug/info/warning/error.
-    2. Remove or refactor print() / input() calls.
+    2. Remove or refactor console.print() / input() calls.
        - Replace with logger.info/debug where appropriate, or return values.
     3. Replace os.environ[...] or os.environ.get(...) with settings access
        (e.g., shared.config.settings or an injected config object) when possible.
