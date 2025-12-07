@@ -52,7 +52,7 @@ httpx = "^0.28.0"
 
 # Code Quality Tools
 black = "^25"
-radon = "^5.1.0"
+radon = "^6.0.1"
 sqlparse = "^0.5.3"
 
 # Vector Database
