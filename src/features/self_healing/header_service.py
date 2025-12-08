@@ -130,7 +130,7 @@ def _run_header_fix_cycle(dry_run: bool, all_py_files: list[str]):
         if i % 20 == 0:
             logger.debug("Header analysis progress: %d/%d", i, len(all_py_files))
 
-        file_path = REPO_ROOT / file_path_str
+        file_path = settings.paths.repo_root / file_path_str
         try:
             original_content = file_path.read_text(encoding="utf-8")
             header = _HeaderTools.parse(original_content)
@@ -165,7 +165,7 @@ def _run_header_fix_cycle(dry_run: bool, all_py_files: list[str]):
     else:
         logger.info("Writing changes to disk...")
         for file_path_str, new_code in files_to_fix.items():
-            (REPO_ROOT / file_path_str).write_text(new_code, "utf-8")
+            (settings.paths.repo_root / file_path_str).write_text(new_code, "utf-8")
         logger.info("   -> All header fixes have been applied.")
         logger.info("Rebuilding knowledge graph to reflect all changes...")
         builder = KnowledgeGraphBuilder(REPO_ROOT)

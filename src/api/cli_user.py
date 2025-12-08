@@ -28,6 +28,7 @@ app = typer.Typer(
 
 
 @app.callback(invoke_without_command=True)
+# ID: 074eed95-8960-4ecb-be78-dfa5dc28a5e8
 def main(
     ctx: typer.Context,
     message: str = typer.Argument(None, help="Your message to CORE"),
@@ -64,6 +65,7 @@ def main(
         raise typer.Exit(1)
 
 
+# ID: b227fe46-0209-4c3e-a0f9-0febd31dca33
 async def handle_message(message: str) -> None:
     """
     Async handler for user messages.
@@ -73,7 +75,7 @@ async def handle_message(message: str) -> None:
     Args:
         message: User's natural language query
     """
-    from will.agents.conversational_agent import create_conversational_agent
+    from will.agents.conversational import create_conversational_agent
 
     print("🤖 CORE is thinking...\n")
 
