@@ -30,6 +30,7 @@ from body.cli.commands.dev_sync import dev_sync_app
 from body.cli.commands.develop import develop_app
 from body.cli.commands.fix import fix_app
 from body.cli.commands.inspect_patterns import inspect_patterns
+from body.cli.commands.manage import manage
 from body.cli.interactive import launch_interactive_menu
 from body.cli.logic import audit
 from body.cli.logic.tools import tools_app
@@ -46,7 +47,6 @@ from shared.config import settings
 from shared.context import CoreContext
 from shared.logger import getLogger
 from shared.models import PlannerConfig
-from src.body.cli.commands.manage import manage
 
 
 console = Console()

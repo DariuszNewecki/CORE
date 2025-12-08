@@ -22,9 +22,9 @@ from services.knowledge.knowledge_service import KnowledgeService
 from services.storage.file_handler import FileHandler
 from shared.config import settings
 from shared.context import CoreContext
+from shared.errors import register_exception_handlers
 from shared.logger import getLogger, reconfigure_log_level
 from shared.models import PlannerConfig
-from src.shared.errors import register_exception_handlers
 
 
 logger = getLogger(__name__)

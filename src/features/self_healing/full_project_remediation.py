@@ -53,7 +53,7 @@ class FullProjectRemediationService:
     def __init__(
         self, cognitive_service: CognitiveService, auditor_context: AuditorContext
     ):
-        from src.features.self_healing.test_generation.test_generator import (
+        from features.self_healing.test_generation.test_generator import (
             EnhancedTestGenerator as TestGenerator,
         )
 

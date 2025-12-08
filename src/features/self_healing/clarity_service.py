@@ -24,7 +24,7 @@ async def _async_fix_clarity(context: CoreContext, file_path: Path, dry_run: boo
     cognitive_service = context.cognitive_service
 
     prompt_template = (
-        settings.MIND / "prompts" / "refactor_for_clarity.prompt"
+        settings.MIND / "mind/prompts" / "refactor_for_clarity.prompt"
     ).read_text()
     original_code = file_path.read_text("utf-8")
 

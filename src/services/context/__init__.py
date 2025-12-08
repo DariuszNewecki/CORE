@@ -15,7 +15,7 @@ Key components:
 - Database: Metadata persistence
 
 Usage:
-    from src.services.context import ContextService
+    from services.context import ContextService
 
     service = ContextService(db, qdrant, config)
     packet = await service.build_for_task(task_spec)

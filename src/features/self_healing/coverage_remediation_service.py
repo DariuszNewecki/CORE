@@ -12,11 +12,11 @@ from pathlib import Path
 from typing import Any
 
 from features.self_healing.full_project_remediation import FullProjectRemediationService
-from mind.governance.audit_context import AuditorContext
-from shared.logger import getLogger
-from src.features.self_healing.single_file_remediation import (
+from features.self_healing.single_file_remediation import (
     EnhancedSingleFileRemediationService,
 )
+from mind.governance.audit_context import AuditorContext
+from shared.logger import getLogger
 from will.orchestration.cognitive_service import CognitiveService
 
 

@@ -10,7 +10,7 @@ This module provides:
      human visibility without polluting audit_ignore_policy.yaml.
 
 Usage (programmatic):
-    from src.mind.governance.audit_postprocessor import (
+    from mind.governance.audit_postprocessor import (
         EntryPointAllowList,
         apply_entry_point_downgrade_and_report,
     )
