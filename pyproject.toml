@@ -113,6 +113,7 @@ mkdocs-material = "^9.7.0"
 
 [tool.poetry.scripts]
 core-admin = "body.cli.admin_cli:app"
+core = "api.cli_user:app"
 
 [tool.black]
 line-length = 88
