@@ -20,6 +20,7 @@ from services.database.session_manager import get_session
 logger = logging.getLogger(__name__)
 
 
+# ID: ab444c41-7865-495e-8206-282b89721ff9
 class DBProvider:
     """Provides symbol data from database.
 
@@ -123,6 +124,7 @@ class DBProvider:
                 self._format_symbol_as_context_item(row) for row in result.mappings()
             ]
 
+    # ID: 8d66977c-34ed-4001-b900-ef38505e2ced
     async def get_related_symbols(self, symbol_id: str, depth: int) -> list[dict]:
         """Fetch related symbols by traversing the knowledge graph."""
         if depth == 0:
@@ -232,6 +234,7 @@ class DBProvider:
 
         return exact_matches
 
+    # ID: 8d9cc3b2-e486-4abe-9130-4b561a213d3e
     async def get_symbols_for_scope(
         self,
         scope: dict[str, Any],
@@ -298,6 +301,7 @@ class DBProvider:
             logger.error("DB query for scope failed: %s", e, exc_info=True)
             return []
 
+    # ID: 6bc17186-c4ec-4cf1-9d9c-b74e8568f96f
     async def get_symbol_by_name(self, name: str) -> dict[str, Any] | None:
         """Look up a symbol by its fully-qualified name (qualname)."""
         try:

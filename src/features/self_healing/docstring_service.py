@@ -52,7 +52,7 @@ async def _async_fix_docstrings(context: CoreContext, dry_run: bool):
                 final_prompt, user_id="docstring_writer_agent"
             )
             if new_docstring_content:
-                file_path = REPO_ROOT / symbol["file_path"]
+                file_path = settings.paths.repo_root / symbol["file_path"]
                 if file_path not in modification_plan:
                     modification_plan[file_path] = []
                 modification_plan[file_path].append(

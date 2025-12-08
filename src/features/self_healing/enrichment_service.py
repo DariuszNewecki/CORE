@@ -47,9 +47,7 @@ async def _enrich_single_symbol(
         source_code = extract_source_code(REPO_ROOT, symbol)
         if not source_code:
             return {"uuid": symbol_uuid, "description": "error.code_not_found"}
-        prompt_template = (
-            REPO_ROOT / ".intent/mind/prompts/enrich_symbol.prompt"
-        ).read_text("utf-8")
+        prompt_template = (settings.paths.prompt("enrich_symbol")).read_text("utf-8")
         final_prompt = prompt_template.format(
             symbol_path=symbol["symbol_path"],
             file_path=symbol["file_path"],

@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import yaml
 from dotenv import load_dotenv
@@ -14,6 +14,10 @@ from pydantic import PrivateAttr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from shared.logger import getLogger
+
+
+if TYPE_CHECKING:
+    from shared.path_resolver import PathResolver
 
 
 logger = getLogger(__name__)
@@ -47,6 +51,8 @@ class Settings(BaseSettings):
         env_file=None, env_file_encoding="utf-8", extra="allow", case_sensitive=True
     )
     _meta_config: dict[str, Any] = PrivateAttr(default_factory=dict)
+    _path_resolver: PathResolver | None = PrivateAttr(default=None)
+
     REPO_PATH: Path = REPO_ROOT
     MIND: Path = REPO_PATH / ".intent"
     BODY: Path = REPO_PATH / "src"
@@ -93,6 +99,8 @@ class Settings(BaseSettings):
         self.MIND = repo_path / ".intent"
         self.BODY = repo_path / "src"
         self._load_meta_config()
+        # Invalidate path resolver cache when repo path changes
+        self._path_resolver = None
 
     def _load_meta_config(self):
         meta_path = self.REPO_PATH / ".intent" / "meta.yaml"
@@ -112,8 +120,62 @@ class Settings(BaseSettings):
             return json.loads(content) or {}
         raise ValueError(f"Unsupported config file type: {file_path}")
 
+    # =========================================================================
+    # NEW: PathResolver Interface
+    # =========================================================================
+
+    @property
+    # ID: b9f3cdd1-bb43-4159-9b5f-8e1b3fa0ed2e
+    def paths(self) -> PathResolver:
+        """
+        Unified interface for all file system paths in CORE.
+
+        This is the ONLY way to access file paths. No hardcoded path construction
+        should exist anywhere else in the codebase.
+
+        Examples:
+            >>> settings.paths.proposals_dir
+            PosixPath('/opt/dev/CORE/.intent/proposals')
+
+            >>> settings.paths.prompt("refactor_outlier")
+            PosixPath('/opt/dev/CORE/.intent/mind/prompts/refactor_outlier.prompt')
+
+            >>> settings.paths.list_prompts()
+            ['refactor_outlier', 'planner', 'code_reviewer', ...]
+
+        Constitutional Principle:
+            All path access MUST go through this interface to maintain consistency
+            and eliminate scattered hardcoded path construction.
+        """
+        if self._path_resolver is None:
+            # Lazy initialization - only create when first accessed
+            from shared.path_resolver import PathResolver
+
+            self._path_resolver = PathResolver(
+                repo_root=self.REPO_PATH, meta=self._meta_config
+            )
+
+            # Validate structure on first access
+            errors = self._path_resolver.validate_structure()
+            if errors:
+                logger.warning(
+                    "Path structure validation found issues: %s", "; ".join(errors)
+                )
+
+        return self._path_resolver
+
+    # =========================================================================
+    # LEGACY: Keep existing methods for backward compatibility
+    # =========================================================================
+
     # ID: c5d53841-226f-403c-891e-20d723f8b28e
     def get_path(self, logical_path: str) -> Path:
+        """
+        LEGACY: Get path from meta.yaml logical path.
+
+        NOTE: Prefer using settings.paths.* for new code.
+        This method is kept for backward compatibility.
+        """
         keys = logical_path.split(".")
         value: Any = self._meta_config
         try:
@@ -131,6 +193,8 @@ class Settings(BaseSettings):
 
     # ID: defdb6ae-211b-4ca7-abda-3582519cc6e3
     def find_logical_path_for_file(self, filename: str) -> str:
+        """LEGACY: Find logical path for a filename in meta.yaml."""
+
         def _search(d: Any) -> str | None:
             if isinstance(d, dict):
                 for _, v in d.items():
@@ -148,6 +212,7 @@ class Settings(BaseSettings):
 
     # ID: ce3d8a38-9dd7-4467-a921-2576d9a3d3eb
     def load(self, logical_path: str) -> dict[str, Any]:
+        """LEGACY: Load file content from meta.yaml logical path."""
         file_path = self.get_path(logical_path)
         try:
             return self._load_file_content(file_path)
@@ -166,6 +231,7 @@ except (RuntimeError, FileNotFoundError) as e:
 
 # ID: c920ea8e-ecae-48f4-8fd4-c1dda9a506e7
 def get_path_or_none(logical_path: str) -> Path | None:
+    """LEGACY: Get path or None if not found."""
     try:
         if "settings" not in globals() or settings is None:
             return None

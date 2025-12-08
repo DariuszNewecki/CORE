@@ -115,7 +115,7 @@ def fix_line_lengths(
     if file_path:
         files_to_scan.append(file_path)
     else:
-        src_dir = REPO_ROOT / "src"
+        src_dir = settings.paths.repo_root / "src"
         files_to_scan.extend(src_dir.rglob("*.py"))
     asyncio.run(
         _async_fix_line_lengths(context.cognitive_service, files_to_scan, dry_run)

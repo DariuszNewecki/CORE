@@ -39,7 +39,7 @@ def _get_capabilities_from_code(code: str) -> list[str]:
 
 def _propose_constitutional_amendment(proposal_plan: dict[str, Any]):
     """Creates a formal proposal file for a constitutional amendment."""
-    proposal_dir = REPO_ROOT / ".intent" / "proposals"
+    proposal_dir = settings.paths.proposals_dir
     proposal_dir.mkdir(exist_ok=True)
     target_file_name = Path(proposal_plan["target_path"]).stem
     proposal_id = str(uuid.uuid4())[:8]
@@ -108,10 +108,12 @@ async def _async_complexity_outliers(
     for file_rel_path in outlier_files:
         try:
             logger.info("--- Processing: %s ---", file_rel_path)
-            source_code = (REPO_ROOT / file_rel_path).read_text(encoding="utf-8")
+            source_code = (settings.paths.repo_root / file_rel_path).read_text(
+                encoding="utf-8"
+            )
             logger.info("Asking RefactoringArchitect for a plan...")
             prompt_template = (
-                (settings.MIND / "prompts" / "refactor_outlier.prompt")
+                (settings.paths.prompt("refactor_outlier"))
                 .read_text(encoding="utf-8")
                 .replace("{source_code}", source_code)
             )
@@ -145,9 +147,9 @@ async def _async_complexity_outliers(
                 continue
 
             logger.info("Applying validated and formatted refactoring...")
-            (REPO_ROOT / file_rel_path).unlink()
+            (settings.paths.repo_root / file_rel_path).unlink()
             for path, code in final_code_to_write.items():
-                (REPO_ROOT / path).write_text(code, encoding="utf-8")
+                (settings.paths.repo_root / path).write_text(code, encoding="utf-8")
             logger.info(
                 "Refactoring applied. Run 'make check' to validate the new code state and fix any manifest drift."
             )

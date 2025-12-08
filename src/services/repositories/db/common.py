@@ -16,6 +16,7 @@ from sqlalchemy import text
 
 # CORRECTED IMPORT: Now points to the single source of truth for sessions.
 from services.database.session_manager import get_session
+from shared.config import settings
 
 
 # This robust function finds the project root without relying on the global settings object.
@@ -29,7 +30,7 @@ def _get_repo_root_for_migration() -> pathlib.Path:
 
 
 REPO_ROOT = _get_repo_root_for_migration()
-META_YAML_PATH = REPO_ROOT / ".intent" / "meta.yaml"
+META_YAML_PATH = settings.paths.intent_root / "meta.yaml"
 
 
 # ID: 80ae5adf-d9cc-432e-b962-369b8992c700
@@ -41,7 +42,7 @@ def load_policy() -> dict:
 
         # The data_governance policy is at the top level under policies
         db_policy_path_str = meta_config["charter"]["policies"]["data_governance"]
-        db_policy_path = REPO_ROOT / ".intent" / db_policy_path_str
+        db_policy_path = settings.paths.intent_root / db_policy_path_str
 
         with db_policy_path.open("r", encoding="utf-8") as f:
             return yaml.safe_load(f) or {}

@@ -19,7 +19,7 @@ from shared.logger import getLogger
 
 logger = getLogger(__name__)
 REPO_ROOT = settings.REPO_PATH
-DOMAINS_DIR = REPO_ROOT / ".intent" / "mind" / "knowledge" / "domains"
+DOMAINS_DIR = settings.paths.mind_root / "knowledge" / "domains"
 
 
 # ID: edab7454-cab8-4e9a-bdaa-dc8b314f1fd8

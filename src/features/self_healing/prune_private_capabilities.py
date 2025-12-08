@@ -59,7 +59,7 @@ def main(
             file_path_str = symbol.get("file")
             if not file_path_str:
                 continue
-            file_path = REPO_ROOT / file_path_str
+            file_path = settings.paths.repo_root / file_path_str
             line_num = symbol.get("line_number", 0)
             if file_path not in files_to_modify:
                 if file_path.exists():
