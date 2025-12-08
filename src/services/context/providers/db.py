@@ -20,7 +20,6 @@ from services.database.session_manager import get_session
 logger = logging.getLogger(__name__)
 
 
-# ID: b0a16299-e125-421a-a4c1-a95f41b8c022
 class DBProvider:
     """Provides symbol data from database.
 
@@ -43,10 +42,7 @@ class DBProvider:
         self.db_service = db_service
 
     def _format_symbol_as_context_item(self, row) -> dict:
-        """
-        Helper to convert a database row from core.symbols into the
-        standard context item dictionary format.
-        """
+        """Convert a database row into standard context item format."""
         if not row:
             return {}
 
@@ -67,41 +63,46 @@ class DBProvider:
             },
         }
 
-    # ID: 55c25e2c-8998-49db-bec1-beab8ea81c49
-    async def get_related_symbols(self, symbol_id: str, depth: int) -> list[dict]:
-        """
-        Fetches related symbols by traversing the knowledge graph within the database.
-        """
-        if depth == 0:
-            return []
+    def _build_module_pattern(self, pattern: str, pattern_type: str) -> str:
+        """Convert file path pattern to SQL LIKE module pattern."""
+        if pattern_type == "include":
+            module_pattern = (
+                pattern.replace("src/", "").replace("/", "").replace(".py", "")
+            )
+            if not module_pattern.endswith("%"):
+                module_pattern += "%"
+            return module_pattern
+        else:  # root pattern
+            return pattern.replace("src/", "").replace("/", ".").rstrip(".") + "%"
 
-        logger.info("Graph traversal for symbol %s to depth %s", symbol_id, depth)
+    def _should_exclude_file(self, file_path: str, exclude_patterns: list) -> bool:
+        """Check if file path matches any exclude pattern."""
+        return any(fnmatch(file_path, pattern) for pattern in exclude_patterns)
+
+    async def _execute_graph_traversal_query(
+        self, symbol_id: str, depth: int
+    ) -> list[dict]:
+        """Execute recursive graph traversal query."""
         recursive_query = text(
             """
             WITH RECURSIVE symbol_graph AS (
-                -- Anchor member: the starting symbol
                 SELECT id, qualname, calls, 0 as depth
                 FROM core.symbols
                 WHERE id = :symbol_id
 
                 UNION ALL
 
-                -- Recursive member: find callers and callees
                 SELECT s.id, s.qualname, s.calls, sg.depth + 1
                 FROM core.symbols s, symbol_graph sg
                 WHERE sg.depth < :depth AND (
-                    -- s is a callee of sg (a dependency)
                     s.qualname = ANY(SELECT jsonb_array_elements_text(sg.calls))
-                    OR
-                    -- s is a caller of sg (a dependent)
-                    EXISTS (
+                    OR EXISTS (
                         SELECT 1
                         FROM jsonb_array_elements_text(s.calls) AS elem
                         WHERE elem ->> 0 = sg.qualname
                     )
                 )
             )
-            -- Select the final set of related symbols, excluding the start symbol
             SELECT s.*
             FROM core.symbols s
             JOIN (
@@ -113,27 +114,124 @@ class DBProvider:
         """
         )
 
-        try:
-            async with get_session() as db:
-                result = await db.execute(
-                    recursive_query,
-                    {"symbol_id": symbol_id, "depth": depth},
-                )
-                related_symbols = [
-                    self._format_symbol_as_context_item(row)
-                    for row in result.mappings()
-                ]
+        async with get_session() as db:
+            result = await db.execute(
+                recursive_query,
+                {"symbol_id": symbol_id, "depth": depth},
+            )
+            return [
+                self._format_symbol_as_context_item(row) for row in result.mappings()
+            ]
 
+    async def get_related_symbols(self, symbol_id: str, depth: int) -> list[dict]:
+        """Fetch related symbols by traversing the knowledge graph."""
+        if depth == 0:
+            return []
+
+        logger.info("Graph traversal for symbol %s to depth %s", symbol_id, depth)
+
+        try:
+            related_symbols = await self._execute_graph_traversal_query(
+                symbol_id, depth
+            )
             logger.info(
                 "Found %d related symbols via graph traversal.",
                 len(related_symbols),
             )
             return related_symbols
-        except Exception as e:  # pragma: no cover - defensive
+        except Exception as e:
             logger.error("Graph traversal query failed: %s", e, exc_info=True)
             return []
 
-    # ID: 03bc6c96-7ad3-4b08-9faa-d281289807b7
+    def _build_query_patterns(self, scope: dict[str, Any]) -> list[tuple[str, int]]:
+        """Build SQL LIKE patterns from scope definition."""
+        roots = scope.get("roots", [])
+        includes = scope.get("include", [])
+        query_parts = []
+
+        for include in includes:
+            module_pattern = self._build_module_pattern(include, "include")
+            query_parts.append((module_pattern, 1))
+
+        for root in roots:
+            module_pattern = self._build_module_pattern(root, "root")
+            query_parts.append((module_pattern, 2))
+
+        if not query_parts:
+            query_parts = [("%", 3)]
+
+        return sorted(query_parts, key=lambda x: x[1])
+
+    async def _fetch_symbols_for_pattern(
+        self,
+        pattern: str,
+        priority: int,
+        max_items: int,
+        current_count: int,
+        seen_ids: set,
+        exclude_patterns: list,
+    ) -> tuple[list[dict], int, set]:
+        """Fetch symbols matching a specific pattern."""
+        if current_count >= max_items:
+            return [], current_count, seen_ids
+
+        limit = 100 if priority == 1 else max_items - current_count
+        symbols = []
+
+        async with get_session() as db:
+            stmt = (
+                select(Symbol)
+                .where(Symbol.is_public, Symbol.module.like(pattern))
+                .limit(limit)
+            )
+            result = await db.execute(stmt)
+            rows = result.scalars().all()
+
+            for row in rows:
+                if row.id in seen_ids:
+                    continue
+
+                seen_ids.add(row.id)
+                file_path = f"src/{row.module.replace('.', '/')}.py"
+
+                if self._should_exclude_file(file_path, exclude_patterns):
+                    continue
+
+                symbols.append(self._format_symbol_as_context_item(row))
+                current_count += 1
+
+                if current_count >= max_items:
+                    break
+
+        return symbols, current_count, seen_ids
+
+    async def _try_exact_symbol_matches(
+        self, includes: list[str]
+    ) -> list[dict[str, Any]]:
+        """
+        Attempt exact symbol name lookups for include patterns.
+
+        If a pattern looks like a symbol name (no paths, no wildcards),
+        try finding it as an exact qualname match.
+
+        Returns:
+            List of exact matches found
+        """
+        exact_matches = []
+
+        for pattern in includes:
+            # Skip patterns that look like paths or wildcards
+            if "/" in pattern or "*" in pattern or "%" in pattern:
+                continue
+
+            # Try exact lookup
+            match = await self.get_symbol_by_name(pattern)
+            if match:
+                logger.info(f"Found exact symbol match: {pattern}")
+                exact_matches.append(match)
+
+        return exact_matches
+
     async def get_symbols_for_scope(
         self,
         scope: dict[str, Any],
@@ -142,76 +240,66 @@ class DBProvider:
         """
         Retrieve symbols matching a given scope definition.
 
-        Scope keys:
-            - roots: list of module roots (e.g. ["src/shared/"])
-            - include: list of specific include patterns
-            - exclude: list of file path patterns to exclude
+        Strategy:
+        1. First, try exact symbol name matches for simple patterns
+        2. Then do fuzzy module pattern matching for remaining quota
+        3. Prioritize exact matches at the front of results
         """
         try:
-            roots = scope.get("roots", [])
             includes = scope.get("include", [])
             excludes = scope.get("exclude", [])
-            query_parts: list[tuple[str, int]] = []
 
-            for include in includes:
-                module_pattern = (
-                    include.replace("src/", "").replace("/", ".").replace(".py", "")
+            # NEW: Try exact symbol matches first
+            exact_matches = await self._try_exact_symbol_matches(includes)
+
+            if exact_matches:
+                logger.info(f"Prioritizing {len(exact_matches)} exact symbol matches")
+
+            # Calculate remaining quota for fuzzy search
+            remaining_quota = max_items - len(exact_matches)
+
+            # Build patterns for fuzzy module search
+            query_patterns = self._build_query_patterns(scope)
+
+            # Collect additional symbols via fuzzy search
+            fuzzy_symbols = []
+            seen_symbol_ids = {item["metadata"]["symbol_id"] for item in exact_matches}
+            current_count = len(exact_matches)
+
+            for pattern, priority in query_patterns:
+                (
+                    symbols,
+                    current_count,
+                    seen_symbol_ids,
+                ) = await self._fetch_symbols_for_pattern(
+                    pattern,
+                    priority,
+                    max_items,
+                    current_count,
+                    seen_symbol_ids,
+                    excludes,
                 )
-                if not module_pattern.endswith("%"):
-                    module_pattern += "%"
-                query_parts.append((module_pattern, 1))
+                fuzzy_symbols.extend(symbols)
 
-            for root in roots:
-                module_pattern = (
-                    root.replace("src/", "").replace("/", ".").rstrip(".") + "%"
-                )
-                query_parts.append((module_pattern, 2))
+                if current_count >= max_items:
+                    break
 
-            if not query_parts:
-                query_parts = [("%", 3)]
-
-            all_symbols: list[dict[str, Any]] = []
-            seen_symbol_ids: set[Any] = set()
-
-            async with get_session() as db:
-                for pattern, priority in sorted(query_parts, key=lambda x: x[1]):
-                    if len(all_symbols) >= max_items:
-                        break
-
-                    limit = 100 if priority == 1 else max_items - len(all_symbols)
-                    stmt = (
-                        select(Symbol)
-                        .where(Symbol.is_public, Symbol.module.like(pattern))
-                        .limit(limit)
-                    )
-                    result = await db.execute(stmt)
-                    rows = result.scalars().all()
-
-                    for row in rows:
-                        if row.id in seen_symbol_ids:
-                            continue
-                        seen_symbol_ids.add(row.id)
-
-                        file_path = "src/" + row.module.replace(".", "/") + ".py"
-                        if any(fnmatch(file_path, exc) for exc in excludes):
-                            continue
-
-                        all_symbols.append(self._format_symbol_as_context_item(row))
+            # Combine: exact matches first, then fuzzy results
+            all_symbols = exact_matches + fuzzy_symbols
 
             logger.info(
-                "Retrieved %d symbols from DB (prioritized by scope).",
+                "Retrieved %d symbols from DB (%d exact, %d fuzzy).",
                 len(all_symbols),
+                len(exact_matches),
+                len(fuzzy_symbols),
             )
             return all_symbols
-        except Exception as e:  # pragma: no cover - defensive
+        except Exception as e:
             logger.error("DB query for scope failed: %s", e, exc_info=True)
             return []
 
-    # ID: 83f8df77-84cd-498a-b798-e674fe2dc1cf
     async def get_symbol_by_name(self, name: str) -> dict[str, Any] | None:
-        """
-        Look up a symbol by its fully-qualified name (qualname).
-        """
+        """Look up a symbol by its fully-qualified name (qualname)."""
         try:
             async with get_session() as db:
                 stmt = select(Symbol).where(Symbol.qualname == name).limit(1)
@@ -219,6 +307,6 @@ class DBProvider:
                 row = result.scalars().first()
 
             return self._format_symbol_as_context_item(row) if row else None
-        except Exception as e:  # pragma: no cover - defensive
+        except Exception as e:
             logger.error("Symbol lookup failed: %s", e, exc_info=True)
             return None
