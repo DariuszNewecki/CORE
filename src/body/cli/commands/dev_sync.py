@@ -17,7 +17,6 @@ from rich.console import Console
 from body.cli.commands.fix.code_style import fix_headers_internal
 from body.cli.commands.fix.metadata import fix_ids_internal
 from body.cli.commands.fix_logging import LoggingFixer
-from body.cli.logic.audit import lint
 from body.cli.logic.body_contracts_checker import check_body_contracts
 from body.cli.logic.duplicates import inspect_duplicates_async
 
@@ -29,6 +28,7 @@ from features.project_lifecycle.definition_service import _define_new_symbols
 from features.self_healing.code_style_service import format_code
 from features.self_healing.docstring_service import fix_docstrings
 from features.self_healing.sync_vectors import main_async as sync_vectors_async
+from mind.enforcement.audit import lint
 from shared.action_types import ActionResult
 from shared.activity_logging import activity_run
 from shared.cli_utils import core_command

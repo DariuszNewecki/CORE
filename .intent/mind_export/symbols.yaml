@@ -1,5 +1,5 @@
 version: 1
-exported_at: '2025-12-10T12:36:03.154703+00:00'
+exported_at: '2025-12-10T12:54:01.042622+00:00'
 items:
 - id: 355aeaf3-9c21-50c9-8ee0-8aa69febfb9b
   symbol_path: src/will/agents/code_generation/correction_engine.py::CorrectionEngine.attempt_constitutional_correction
@@ -1593,9 +1593,9 @@ items:
   ast_signature: TBD
   fingerprint: 2f82b07262a1a49b138d674390c7ec1be4d7aef2eb8deabc1305e6704b82bc22
   state: discovered
-- id: 7d9dcad7-73ea-541b-a269-2b6911de39ec
-  symbol_path: src/body/cli/logic/log_audit.py::log_audit
-  module: body.cli.logic.log_audit
+- id: 674bc506-fda1-58ed-b2aa-d3122c71ec43
+  symbol_path: src/mind/enforcement/log_audit.py::log_audit
+  module: mind.enforcement.log_audit
   qualname: log_audit
   kind: function
   ast_signature: TBD
@@ -4313,9 +4313,9 @@ items:
   ast_signature: TBD
   fingerprint: 86a5baf05c324fd6ff37dc5e70f7995a0ab1603596768d2d0ad43c762cc9d323
   state: discovered
-- id: d675fb81-14b4-5fcb-ab3e-891fcc16dda9
-  symbol_path: src/body/cli/logic/audit.py::run_audit_workflow
-  module: body.cli.logic.audit
+- id: 8aaba783-c6dd-5f9e-afbd-cc7c15ef8cc9
+  symbol_path: src/mind/enforcement/audit.py::run_audit_workflow
+  module: mind.enforcement.audit
   qualname: run_audit_workflow
   kind: function
   ast_signature: TBD
@@ -5689,9 +5689,9 @@ items:
   ast_signature: TBD
   fingerprint: aea3cb6670fb1565ee6523eec4b6a237cb1a0bd114d9ec22b3a78fec046679b3
   state: discovered
-- id: 8845ff3c-f046-5556-84be-b599bce87674
-  symbol_path: src/body/cli/logic/guard_cli.py::register_guard
-  module: body.cli.logic.guard_cli
+- id: dced5f31-b3eb-5ec0-ae35-8b18b4cf2eeb
+  symbol_path: src/mind/enforcement/guard_cli.py::register_guard
+  module: mind.enforcement.guard_cli
   qualname: register_guard
   kind: function
   ast_signature: TBD
@@ -6001,9 +6001,9 @@ items:
   ast_signature: TBD
   fingerprint: b760c4da960c7b5357963f87686fc4b30dab074d29759d5d61b88a22c6428698
   state: discovered
-- id: 668b00c5-b248-560c-9548-688960a01526
-  symbol_path: src/body/cli/logic/audit.py::lint
-  module: body.cli.logic.audit
+- id: 15dc1829-3a79-5be4-b00f-792b157a00f0
+  symbol_path: src/mind/enforcement/audit.py::lint
+  module: mind.enforcement.audit
   qualname: lint
   kind: function
   ast_signature: TBD
@@ -6609,9 +6609,9 @@ items:
   ast_signature: TBD
   fingerprint: c8dffd0c7ea82cd957e888a67f352f7d12e644119a7ee24fd469a815c39e4e76
   state: discovered
-- id: 12ca2672-c29e-5d0b-943f-be60900364f3
-  symbol_path: src/body/cli/logic/audit.py::test_system
-  module: body.cli.logic.audit
+- id: ea400f3e-a690-5910-821e-510ddfd11c51
+  symbol_path: src/mind/enforcement/audit.py::test_system
+  module: mind.enforcement.audit
   qualname: test_system
   kind: function
   ast_signature: TBD
@@ -7017,9 +7017,9 @@ items:
   ast_signature: TBD
   fingerprint: d5d9d2e0392715c0446696c6902fe0cb769b087d43fc931323aefab5c08886c1
   state: discovered
-- id: 4619cb85-d467-522a-9a38-2572bd23bced
-  symbol_path: src/body/cli/logic/list_audits.py::list_audits
-  module: body.cli.logic.list_audits
+- id: efb35a7d-0bcd-5e32-92cf-91501858afeb
+  symbol_path: src/mind/enforcement/list_audits.py::list_audits
+  module: mind.enforcement.list_audits
   qualname: list_audits
   kind: function
   ast_signature: TBD
@@ -8353,4 +8353,4 @@ items:
   ast_signature: TBD
   fingerprint: ff8ac2fe0e0bbab8493979dda240faec9abc2d0d3fea22f88f1a8919172712fc
   state: discovered
-digest: sha256:0dea415ae0607f3deffa19a9093ea2db1d174eba5450c57842bacd82a6ccba28
+digest: sha256:b752826ce55cbf0d2e7f345c90ce453278ad597a955e70924745c847685e6e2e

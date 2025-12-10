@@ -1,4 +1,4 @@
-# src/body/cli/logic/guard.py
+# src/mind/enforcement/guard.py
 
 """
 Intent: Governance/validation guard commands exposed to the operator.

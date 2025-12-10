@@ -14,11 +14,11 @@ from rich.console import Console
 import body.cli.logic.status as status_logic
 from body.cli.logic.diagnostics import cli_tree, find_clusters_command_sync
 from body.cli.logic.duplicates import inspect_duplicates_async
-from body.cli.logic.guard_cli import register_guard
 from body.cli.logic.knowledge import find_common_knowledge
 from body.cli.logic.symbol_drift import inspect_symbol_drift
 from body.cli.logic.vector_drift import inspect_vector_drift
 from features.self_healing.test_target_analyzer import TestTargetAnalyzer
+from mind.enforcement.guard_cli import register_guard
 from shared.cli_utils import core_command
 from shared.context import CoreContext
 

@@ -32,11 +32,11 @@ from body.cli.commands.fix import fix_app
 from body.cli.commands.inspect_patterns import inspect_patterns
 from body.cli.commands.manage import manage
 from body.cli.interactive import launch_interactive_menu
-from body.cli.logic import audit
 from body.cli.logic.tools import tools_app
 
 # New Architecture: Registry
 from body.services.service_registry import service_registry
+from mind.enforcement import audit
 from shared.config import settings
 from shared.context import CoreContext
 from shared.infrastructure.context import cli as context_cli
