@@ -1,5 +1,5 @@
 version: 1
-exported_at: '2025-11-24T19:50:52.031418+00:00'
+exported_at: '2025-12-10T12:36:03.154703+00:00'
 items:
 - symbol_id: c43e1db1-bb49-5cc0-bab3-cc23aa016fef
   capability_id: 0091e933-a158-4d3b-b44e-be522e99f7e0
@@ -21,14 +21,9 @@ items:
   confidence: 1.0
   source: manual
   verified: true
-- symbol_id: 87ea0764-968e-5566-9ef0-290f7b9a2967
-  capability_id: ddf4b3d4-bc93-459d-9aff-8f372afac594
-  confidence: 1.0
-  source: manual
-  verified: true
 - symbol_id: 9c24d3f5-73e4-5590-a452-6f262a127027
   capability_id: ed2c6f13-96f7-45d9-b879-b12dbefa5d2c
   confidence: 1.0
   source: manual
   verified: true
-digest: sha256:66d7914f54799a6ca9a80dd7914c1fad4650c62f43c5377ad461a8ae2c542584
+digest: sha256:5412f33399fbe6de39055ffae3a1b2bd9de16f4bccd1210ffbf83a11c05350fb
