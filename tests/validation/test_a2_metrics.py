@@ -220,9 +220,7 @@ class ValidationReport:
         status_icon = (
             "✅"
             if recommendation == "PROCEED"
-            else "⚠️"
-            if recommendation == "REFINE"
-            else "❌"
+            else "⚠️" if recommendation == "REFINE" else "❌"
         )
 
         md = f"""# Phase 0 Validation Report

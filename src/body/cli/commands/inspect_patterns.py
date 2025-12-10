@@ -141,9 +141,7 @@ def inspect_patterns(
             rate_color = (
                 "green"
                 if success_rate >= 80
-                else "yellow"
-                if success_rate >= 50
-                else "red"
+                else "yellow" if success_rate >= 50 else "red"
             )
 
             table.add_row(

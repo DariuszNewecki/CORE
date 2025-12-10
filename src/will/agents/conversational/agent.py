@@ -34,7 +34,7 @@ from shared.infrastructure.context.builder import ContextBuilder
 from shared.logger import getLogger
 from will.orchestration.cognitive_service import CognitiveService
 
-from .conversational_agent_helpers import (
+from .helpers import (
     _build_llm_prompt,
     _create_task_spec,
     _extract_keywords,

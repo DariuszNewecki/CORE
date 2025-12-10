@@ -13,7 +13,7 @@ from shared.logger import getLogger
 
 
 if TYPE_CHECKING:
-    from .conversational_agent import ConversationalAgent
+    from .agent import ConversationalAgent
 
 logger = getLogger(__name__)
 
@@ -34,7 +34,7 @@ async def create_conversational_agent() -> ConversationalAgent:
     from body.services.service_registry import service_registry
     from shared.infrastructure.context.providers import DBProvider, VectorProvider
 
-    from .conversational_agent import ConversationalAgent
+    from .agent import ConversationalAgent
 
     # Get or create CognitiveService from registry (singleton pattern)
     cognitive_service = await service_registry.get_cognitive_service()
