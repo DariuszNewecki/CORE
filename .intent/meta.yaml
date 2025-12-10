@@ -14,10 +14,16 @@ charter:
     safety_framework: "charter/policies/safety_framework.yaml"
     agent_governance: "charter/policies/agent_governance.yaml"
     code_standards: "charter/policies/code_standards.yaml"
+    code_execution_policy: "charter/policies/code_execution_policy.yaml"
+    code_purity: "charter/policies/code_purity.yaml"
     dependency_injection_policy: "charter/policies/dependency_injection_policy.yaml"
     data_governance: "charter/policies/data_governance.yaml"
+    logging_standards: "charter/policies/logging_standards.yaml"
+    observability: "charter/policies/observability.yaml"
     operations: "charter/policies/operations.yaml"
+    pattern_vectorization: "charter/policies/pattern_vectorization.yaml"
     quality_assurance: "charter/policies/quality_assurance.yaml"
+    risk_classification_policy: "charter/policies/risk_classification_policy.yaml"
     decorator_governance: "charter/policies/decorator_governance.yaml"
 
   patterns:
@@ -46,6 +52,8 @@ charter:
       intent_bundle_schema: "charter/schemas/constitutional/intent_bundle_schema.json"
       intent_crate_schema: "charter/schemas/constitutional/intent_crate_schema.json"
       proposal_schema: "charter/schemas/constitutional/proposal_schema.json"
+    core:
+      action_result_schema: "charter/schemas/core/action_result_schema.json"
     data:
       database_policy_schema: "charter/schemas/data/database_policy_schema.json"
       database_schema: "charter/schemas/data/database_schema.yaml"
@@ -59,6 +67,7 @@ charter:
     operations:
       canary_policy_schema: "charter/schemas/operations/canary_policy_schema.json"
       config_schema: "charter/schemas/operations/config_schema.yaml"
+      conversational_context_bundle_schema: "charter/schemas/operations/conversational_context_bundle_schema.yaml"
       runtime_requirements_schema: "charter/schemas/operations/runtime_requirements_schema.json"
       workflows_policy_schema: "charter/schemas/operations/workflows_policy_schema.json"
 
