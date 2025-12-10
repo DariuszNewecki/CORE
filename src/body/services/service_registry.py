@@ -17,13 +17,13 @@ from typing import TYPE_CHECKING, Any
 from sqlalchemy import text
 
 from mind.governance.audit_context import AuditorContext
-from services.database.session_manager import get_session
 from shared.config import settings
+from shared.infrastructure.database.session_manager import get_session
 from shared.logger import getLogger
 
 
 if TYPE_CHECKING:
-    from services.clients.qdrant_client import QdrantService
+    from shared.infrastructure.clients.qdrant_client import QdrantService
     from will.orchestration.cognitive_service import CognitiveService
 
 logger = getLogger(__name__)
@@ -85,7 +85,7 @@ class ServiceRegistry:
         if "qdrant" not in self._instances:
             logger.debug("Lazy-loading QdrantService...")
             # Local import to prevent slow startup for non-vector commands
-            from services.clients.qdrant_client import QdrantService
+            from shared.infrastructure.clients.qdrant_client import QdrantService
 
             # Phase 1: Construct (lightweight, no I/O)
             instance = QdrantService(

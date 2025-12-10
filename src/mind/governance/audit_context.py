@@ -15,9 +15,10 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-# 👇 NEW IMPORT: Read from DB
-from services.knowledge.knowledge_service import KnowledgeService
 from shared.config import settings
+
+# 👇 NEW IMPORT: Read from DB
+from shared.infrastructure.knowledge.knowledge_service import KnowledgeService
 from shared.logger import getLogger
 from shared.models import AuditFinding
 

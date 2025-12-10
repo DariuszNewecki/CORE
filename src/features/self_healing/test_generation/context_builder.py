@@ -11,10 +11,14 @@ import ast
 from pathlib import Path
 
 from features.self_healing.test_context_analyzer import ModuleContext
-from services.context import ContextBuilder
-from services.context.providers import ASTProvider, DBProvider, VectorProvider
-from services.database.session_manager import get_session
 from shared.config import settings
+from shared.infrastructure.context import ContextBuilder
+from shared.infrastructure.context.providers import (
+    ASTProvider,
+    DBProvider,
+    VectorProvider,
+)
+from shared.infrastructure.database.session_manager import get_session
 from shared.logger import getLogger
 
 

@@ -12,8 +12,8 @@ import asyncio
 from body.actions.context import PlanExecutorContext
 from body.actions.registry import ActionRegistry
 from mind.governance.audit_context import AuditorContext
-from services.git_service import GitService
-from services.storage.file_handler import FileHandler
+from shared.infrastructure.git_service import GitService
+from shared.infrastructure.storage.file_handler import FileHandler
 from shared.logger import getLogger
 from shared.models import ExecutionTask, PlanExecutionError, PlannerConfig
 

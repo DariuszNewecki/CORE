@@ -15,8 +15,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from services.clients.qdrant_client import QdrantService
 from shared.config import settings
+from shared.infrastructure.clients.qdrant_client import QdrantService
 from shared.logger import getLogger
 from shared.models import ExecutionTask
 from will.agents.code_generation import (

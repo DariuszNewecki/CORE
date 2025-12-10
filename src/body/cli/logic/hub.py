@@ -17,9 +17,9 @@ import typer
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from services.database.models import CliCommand
-from services.database.session_manager import get_session
 from shared.config import settings
+from shared.infrastructure.database.models import CliCommand
+from shared.infrastructure.database.session_manager import get_session
 from shared.logger import getLogger
 
 

@@ -10,9 +10,9 @@ from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from features.autonomy.autonomous_developer import develop_from_goal
-from services.database.models import Task
-from services.database.session_manager import get_db_session
 from shared.context import CoreContext
+from shared.infrastructure.database.models import Task
+from shared.infrastructure.database.session_manager import get_db_session
 
 
 router = APIRouter()

@@ -18,7 +18,7 @@ from sqlalchemy import text
 
 from mind.governance.audit_types import AuditCheckMetadata
 from mind.governance.checks.base_check import BaseCheck
-from services.database.session_manager import get_session
+from shared.infrastructure.database.session_manager import get_session
 from shared.models import AuditFinding, AuditSeverity
 
 

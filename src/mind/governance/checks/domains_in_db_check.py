@@ -22,7 +22,7 @@ class DomainsInDbCheck(BaseCheck):
 
         # Load domains from DB
         try:
-            from services.database.session_manager import get_session
+            from shared.infrastructure.database.session_manager import get_session
 
             async def _get_domains():
                 async with get_session() as db:

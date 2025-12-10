@@ -11,8 +11,8 @@ from pathlib import Path
 
 import typer
 
-from services.clients.qdrant_client import QdrantService
-from services.knowledge_service import KnowledgeService
+from shared.infrastructure.clients.qdrant_client import QdrantService
+from shared.infrastructure.knowledge_service import KnowledgeService
 from shared.logger import getLogger
 from will.orchestration.cognitive_service import CognitiveService
 

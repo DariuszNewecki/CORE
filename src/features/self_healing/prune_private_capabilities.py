@@ -13,8 +13,8 @@ import re
 
 import typer
 
-from services.knowledge_service import KnowledgeService
 from shared.config import settings
+from shared.infrastructure.knowledge_service import KnowledgeService
 from shared.logger import getLogger
 
 

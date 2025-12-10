@@ -23,11 +23,11 @@ from typing import Any
 
 from sqlalchemy import text
 
-from services.context import ContextService
-from services.database.session_manager import get_session
 from shared.action_types import ActionImpact, ActionResult
 from shared.atomic_action import atomic_action
 from shared.config import settings
+from shared.infrastructure.context import ContextService
+from shared.infrastructure.database.session_manager import get_session
 from shared.logger import getLogger
 from shared.utils.parallel_processor import ThrottledParallelProcessor
 

@@ -9,8 +9,8 @@ import asyncio
 import numpy as np
 from sqlalchemy import text
 
-from services.clients.qdrant_client import QdrantService
-from services.database.session_manager import get_session
+from shared.infrastructure.clients.qdrant_client import QdrantService
+from shared.infrastructure.database.session_manager import get_session
 from shared.logger import getLogger
 
 

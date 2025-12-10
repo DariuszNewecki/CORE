@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import json
 
-from services.database.models import CognitiveRole, LlmResource
+from shared.infrastructure.database.models import CognitiveRole, LlmResource
 from shared.logger import getLogger
 
 

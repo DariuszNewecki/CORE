@@ -10,8 +10,8 @@ from __future__ import annotations
 import asyncio
 from typing import Any
 
-from services.knowledge.knowledge_service import KnowledgeService
 from shared.config import settings
+from shared.infrastructure.knowledge.knowledge_service import KnowledgeService
 from shared.logger import getLogger
 
 

@@ -17,9 +17,11 @@ import asyncio
 
 import typer
 
-from services.clients.qdrant_client import QdrantService
-from services.vector.adapters.constitutional_adapter import ConstitutionalAdapter
-from services.vector.vector_index_service import VectorIndexService
+from shared.infrastructure.clients.qdrant_client import QdrantService
+from shared.infrastructure.vector.adapters.constitutional_adapter import (
+    ConstitutionalAdapter,
+)
+from shared.infrastructure.vector.vector_index_service import VectorIndexService
 from shared.logger import getLogger
 
 

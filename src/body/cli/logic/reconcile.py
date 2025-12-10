@@ -12,8 +12,8 @@ import typer
 import yaml
 from sqlalchemy import text
 
-from services.repositories.db.engine import get_session
 from shared.config import settings
+from shared.infrastructure.repositories.db.engine import get_session
 from shared.logger import getLogger
 
 

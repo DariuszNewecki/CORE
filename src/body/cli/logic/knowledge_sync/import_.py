@@ -10,7 +10,8 @@ from typing import Any
 from sqlalchemy import text
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
-from services.database.models import (
+from shared.config import settings
+from shared.infrastructure.database.models import (
     Capability,
     CognitiveRole,
     LlmResource,
@@ -18,8 +19,7 @@ from services.database.models import (
     Symbol,
     SymbolCapabilityLink,
 )
-from services.database.session_manager import get_session
-from shared.config import settings
+from shared.infrastructure.database.session_manager import get_session
 from shared.logger import getLogger
 
 from .utils import _get_items_from_doc, compute_digest, read_yaml

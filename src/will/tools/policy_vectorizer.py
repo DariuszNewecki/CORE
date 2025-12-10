@@ -21,7 +21,7 @@ import hashlib
 from pathlib import Path
 from typing import Any
 
-from services.clients.qdrant_client import QdrantService
+from shared.infrastructure.clients.qdrant_client import QdrantService
 from shared.logger import getLogger
 from shared.universal import get_deterministic_id
 from shared.utils.yaml_processor import strict_yaml_processor
@@ -490,7 +490,7 @@ async def vectorize_policies_command(repo_root: Path) -> dict[str, Any]:
     Returns:
         Vectorization results summary
     """
-    from services.clients.qdrant_client import QdrantService
+    from shared.infrastructure.clients.qdrant_client import QdrantService
     from will.orchestration.cognitive_service import CognitiveService
 
     # Initialize services

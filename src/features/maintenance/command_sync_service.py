@@ -12,8 +12,8 @@ import typer
 from sqlalchemy import delete
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
-from services.database.models import CliCommand
-from services.database.session_manager import get_session
+from shared.infrastructure.database.models import CliCommand
+from shared.infrastructure.database.session_manager import get_session
 from shared.logger import getLogger
 
 

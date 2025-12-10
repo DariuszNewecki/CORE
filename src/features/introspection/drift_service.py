@@ -12,7 +12,7 @@ from features.introspection.discovery.from_manifest import (
     load_manifest_capabilities,
 )
 from features.introspection.drift_detector import detect_capability_drift
-from services.knowledge.knowledge_service import KnowledgeService
+from shared.infrastructure.knowledge.knowledge_service import KnowledgeService
 from shared.models import CapabilityMeta, DriftReport
 
 

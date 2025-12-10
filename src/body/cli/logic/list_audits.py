@@ -10,7 +10,7 @@ import asyncio
 import typer
 from sqlalchemy import text
 
-from services.database.session_manager import get_session
+from shared.infrastructure.database.session_manager import get_session
 
 
 # ID: 09c55085-1d89-46c2-a663-b4e1f2c2c0b5

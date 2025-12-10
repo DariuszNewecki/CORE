@@ -21,8 +21,8 @@ from dataclasses import dataclass
 
 from sqlalchemy import or_, select
 
-from services.database.models import Symbol
-from services.database.session_manager import get_session
+from shared.infrastructure.database.models import Symbol
+from shared.infrastructure.database.session_manager import get_session
 from shared.logger import getLogger
 
 

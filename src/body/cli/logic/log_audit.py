@@ -10,7 +10,7 @@ import asyncio
 import typer
 from sqlalchemy import text
 
-from services.database.session_manager import get_session
+from shared.infrastructure.database.session_manager import get_session
 
 from .common import git_commit_sha
 
