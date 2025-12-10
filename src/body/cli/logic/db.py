@@ -11,9 +11,9 @@ import typer
 import yaml
 from sqlalchemy import text
 
-from services.database.session_manager import get_session
-from services.repositories.db.migration_service import migrate_db
 from shared.config import settings
+from shared.infrastructure.database.session_manager import get_session
+from shared.infrastructure.repositories.db.migration_service import migrate_db
 from shared.logger import getLogger
 
 from .sync_domains import sync_domains

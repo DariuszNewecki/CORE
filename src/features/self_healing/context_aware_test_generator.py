@@ -17,8 +17,8 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
-from services.context.service import ContextService
 from shared.config import settings
+from shared.infrastructure.context.service import ContextService
 from shared.logger import getLogger
 from shared.utils.parsing import extract_python_code_from_response
 from will.orchestration.cognitive_service import CognitiveService

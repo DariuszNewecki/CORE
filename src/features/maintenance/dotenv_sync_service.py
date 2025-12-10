@@ -9,9 +9,9 @@ from typing import Any
 from sqlalchemy import func
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
-from services.database.models import RuntimeSetting
-from services.database.session_manager import get_session
 from shared.config import settings
+from shared.infrastructure.database.models import RuntimeSetting
+from shared.infrastructure.database.session_manager import get_session
 from shared.logger import getLogger
 
 

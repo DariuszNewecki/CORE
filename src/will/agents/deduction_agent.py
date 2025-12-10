@@ -9,8 +9,8 @@ from pathlib import Path
 
 import yaml
 
-from services.database.models import CognitiveRole, LlmResource
 from shared.config import settings
+from shared.infrastructure.database.models import CognitiveRole, LlmResource
 from shared.logger import getLogger
 
 

@@ -25,8 +25,8 @@ class RespectCliRegistryCheck(BaseCheck):
     # --- START OF FIX: Make _get_registered an async method ---
     async def _get_registered(self) -> set[str]:
         """Asynchronously fetches the set of registered command names from the database."""
-        from services.database.models import CliCommand
-        from services.database.session_manager import get_session
+        from shared.infrastructure.database.models import CliCommand
+        from shared.infrastructure.database.session_manager import get_session
 
         async with get_session() as db:
             result = await db.execute(select(CliCommand.name))

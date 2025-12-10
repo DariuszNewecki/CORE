@@ -30,7 +30,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from services.context.builder import ContextBuilder
+from shared.infrastructure.context.builder import ContextBuilder
 from shared.logger import getLogger
 from will.orchestration.cognitive_service import CognitiveService
 

@@ -89,8 +89,8 @@ async def _develop(
 
     # Simplified config check - context already has what we need ideally,
     # but keeping logic similar to original for now
-    from services.config_service import ConfigService
-    from services.database.session_manager import get_session
+    from shared.infrastructure.config_service import ConfigService
+    from shared.infrastructure.database.session_manager import get_session
 
     async with get_session() as session:
         config = await ConfigService.create(session)

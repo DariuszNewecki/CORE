@@ -9,8 +9,8 @@ import asyncio
 
 from sqlalchemy import text
 
-from services.database.session_manager import get_session
 from shared.config import settings
+from shared.infrastructure.database.session_manager import get_session
 from shared.logger import getLogger
 
 

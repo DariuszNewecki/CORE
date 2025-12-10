@@ -85,7 +85,9 @@ class ConstitutionalAuditor:
             if check_class.__name__ == "DuplicationCheck":
                 if qdrant_service is None:
                     try:
-                        from services.clients.qdrant_client import QdrantService
+                        from shared.infrastructure.clients.qdrant_client import (
+                            QdrantService,
+                        )
 
                         qdrant_service = QdrantService()
                     except Exception as e:

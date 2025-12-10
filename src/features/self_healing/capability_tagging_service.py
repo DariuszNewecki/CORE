@@ -20,8 +20,8 @@ from typing import Any
 
 from sqlalchemy import text
 
-from services.knowledge.knowledge_service import KnowledgeService
 from shared.config import settings
+from shared.infrastructure.knowledge.knowledge_service import KnowledgeService
 from shared.logger import getLogger
 from will.agents.tagger_agent import CapabilityTaggerAgent
 from will.orchestration.cognitive_service import CognitiveService

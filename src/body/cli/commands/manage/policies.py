@@ -15,11 +15,11 @@ import time
 import typer
 from rich.console import Console
 
-from services.clients.qdrant_client import QdrantService
 from shared.action_types import ActionImpact, ActionResult
 from shared.atomic_action import atomic_action
 from shared.cli_utils import async_command
 from shared.config import settings
+from shared.infrastructure.clients.qdrant_client import QdrantService
 from shared.logger import getLogger
 from will.orchestration.cognitive_service import CognitiveService
 from will.tools.policy_vectorizer import PolicyVectorizer

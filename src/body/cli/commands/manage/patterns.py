@@ -23,7 +23,7 @@ from shared.config import settings
 
 
 if TYPE_CHECKING:
-    from services.clients.qdrant_client import QdrantService
+    from shared.infrastructure.clients.qdrant_client import QdrantService
     from will.orchestration.cognitive_service import CognitiveService
 
 console = Console()
@@ -121,7 +121,7 @@ async def vectorize_patterns_cmd() -> None:
 
     Constitutional: CLI is allowed to instantiate services per DI policy exclusions.
     """
-    from services.clients.qdrant_client import QdrantService
+    from shared.infrastructure.clients.qdrant_client import QdrantService
     from will.orchestration.cognitive_service import CognitiveService
 
     console.print("[cyan]Vectorizing constitutional patterns...[/cyan]\n")
@@ -249,7 +249,7 @@ async def query_pattern_cmd(
         core-admin manage patterns query "what does atomic_actions require?"
         core-admin manage patterns query "workflow orchestration rules"
     """
-    from services.clients.qdrant_client import QdrantService
+    from shared.infrastructure.clients.qdrant_client import QdrantService
     from will.orchestration.cognitive_service import CognitiveService
 
     console.print(f'[cyan]Querying patterns: "{query}"[/cyan]\n')

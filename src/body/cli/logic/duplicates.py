@@ -13,10 +13,10 @@ import networkx as nx
 
 from mind.governance.audit_context import AuditorContext
 from mind.governance.checks.duplication_check import DuplicationCheck
-from services.clients.qdrant_client import (
+from shared.context import CoreContext
+from shared.infrastructure.clients.qdrant_client import (
     QdrantService,
 )
-from shared.context import CoreContext
 from shared.logger import getLogger
 from shared.models import AuditFinding
 

@@ -13,9 +13,9 @@ from typing import Any
 
 from sqlalchemy import update
 
-from services.database.models import Task
-from services.database.session_manager import get_session
 from shared.context import CoreContext
+from shared.infrastructure.database.models import Task
+from shared.infrastructure.database.session_manager import get_session
 from shared.logger import getLogger
 from shared.models import PlanExecutionError
 from will.agents.execution_agent import _ExecutionAgent

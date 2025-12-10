@@ -11,8 +11,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from services.clients.qdrant_client import QdrantService
 from shared.config import settings
+from shared.infrastructure.clients.qdrant_client import QdrantService
 from shared.logger import getLogger
 from shared.utils.embedding_utils import normalize_text, sha256_hex
 from will.orchestration.cognitive_service import CognitiveService

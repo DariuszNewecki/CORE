@@ -12,13 +12,13 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from services.llm.client import LLMClient
-from services.llm.client_orchestrator import ClientOrchestrator
+from shared.infrastructure.llm.client import LLMClient
+from shared.infrastructure.llm.client_orchestrator import ClientOrchestrator
 from shared.logger import getLogger
 
 
 if TYPE_CHECKING:
-    from services.clients.qdrant_client import QdrantService
+    from shared.infrastructure.clients.qdrant_client import QdrantService
 
 logger = getLogger(__name__)
 

@@ -29,10 +29,10 @@ from features.maintenance.migration_service import run_ssot_migration
 from features.project_lifecycle.definition_service import _define_new_symbols
 from features.project_lifecycle.scaffolding_service import create_new_project
 from mind.governance.key_management_service import keygen
-from services.database.session_manager import get_session
 from shared.cli_utils import core_command
 from shared.config import settings
 from shared.context import CoreContext
+from shared.infrastructure.database.session_manager import get_session
 from shared.logger import getLogger
 
 from .patterns import patterns_sub_app

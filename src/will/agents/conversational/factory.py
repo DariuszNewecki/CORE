@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from services.context.builder import ContextBuilder
+from shared.infrastructure.context.builder import ContextBuilder
 from shared.logger import getLogger
 
 
@@ -32,7 +32,7 @@ async def create_conversational_agent() -> ConversationalAgent:
         Fully initialized ConversationalAgent
     """
     from body.services.service_registry import service_registry
-    from services.context.providers import DBProvider, VectorProvider
+    from shared.infrastructure.context.providers import DBProvider, VectorProvider
 
     from .conversational_agent import ConversationalAgent
 

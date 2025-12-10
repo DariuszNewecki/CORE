@@ -11,11 +11,11 @@ from dotenv import load_dotenv
 
 from features.autonomy.autonomous_developer import develop_from_goal
 from features.introspection.vectorization_service import run_vectorize
+from shared.context import CoreContext
 
 # FIX: Import Class and Session Manager, not the helper function
-from services.config_service import ConfigService
-from services.database.session_manager import get_session
-from shared.context import CoreContext
+from shared.infrastructure.config_service import ConfigService
+from shared.infrastructure.database.session_manager import get_session
 from shared.logger import getLogger
 from will.agents.coder_agent import CoderAgent
 from will.agents.execution_agent import _ExecutionAgent

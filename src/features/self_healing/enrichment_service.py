@@ -11,9 +11,9 @@ from typing import Any
 from sqlalchemy import text
 
 from features.introspection.knowledge_helpers import extract_source_code
-from services.clients.qdrant_client import QdrantService
-from services.database.session_manager import get_session
 from shared.config import settings
+from shared.infrastructure.clients.qdrant_client import QdrantService
+from shared.infrastructure.database.session_manager import get_session
 from shared.logger import getLogger
 from shared.utils.parallel_processor import ThrottledParallelProcessor
 from shared.utils.parsing import extract_json_from_response

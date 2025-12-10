@@ -8,7 +8,7 @@ from __future__ import annotations
 import typer
 from sqlalchemy import text
 
-from services.database.session_manager import get_session
+from shared.infrastructure.database.session_manager import get_session
 
 
 async def _audit_queries(limit: int):

@@ -12,8 +12,8 @@ import re
 from pathlib import Path
 from typing import Any
 
-from services.knowledge.knowledge_service import KnowledgeService
 from shared.config import settings
+from shared.infrastructure.knowledge.knowledge_service import KnowledgeService
 from shared.logger import getLogger
 from shared.utils.parallel_processor import ThrottledParallelProcessor
 from will.orchestration.cognitive_service import CognitiveService

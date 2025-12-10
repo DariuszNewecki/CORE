@@ -14,11 +14,12 @@ from pathlib import Path
 # Type checking
 from typing import TYPE_CHECKING
 
-# Services
-from services.clients.qdrant_client import QdrantService
-from services.database.session_manager import get_session
 from shared.config import settings
 from shared.context import CoreContext
+
+# Services
+from shared.infrastructure.clients.qdrant_client import QdrantService
+from shared.infrastructure.database.session_manager import get_session
 
 # We use logger for system output
 from shared.logger import getLogger
@@ -229,7 +230,7 @@ async def run_vectorize(
     failure_log_path = settings.REPO_PATH / "logs" / "vectorization_failures.log"
 
     # 1. Config check
-    from services.config_service import ConfigService
+    from shared.infrastructure.config_service import ConfigService
 
     async with get_session() as session:
         config = await ConfigService.create(session)

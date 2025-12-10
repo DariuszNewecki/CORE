@@ -23,9 +23,9 @@ from features.self_healing.id_tagging_service import assign_missing_ids
 from features.self_healing.policy_id_service import add_missing_policy_ids
 from features.self_healing.purge_legacy_tags_service import purge_legacy_tags
 from features.self_healing.sync_vectors import main_async as sync_vectors_async
-from services.database.session_manager import get_session
 from shared.cli_utils import core_command
 from shared.context import CoreContext
+from shared.infrastructure.database.session_manager import get_session
 
 from . import (
     COMMAND_CONFIG,

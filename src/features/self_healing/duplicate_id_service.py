@@ -11,8 +11,8 @@ from collections import defaultdict
 from sqlalchemy import text
 
 from mind.governance.checks.id_uniqueness_check import IdUniquenessCheck
-from services.database.session_manager import get_session
 from shared.config import settings
+from shared.infrastructure.database.session_manager import get_session
 from shared.logger import getLogger
 
 

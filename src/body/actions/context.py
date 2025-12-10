@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from body.services.git_service import GitService
     from mind.governance.audit_context import AuditorContext
-    from services.storage.file_handler import FileHandler
+    from shared.infrastructure.storage.file_handler import FileHandler
 
 
 @dataclass

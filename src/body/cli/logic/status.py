@@ -7,8 +7,8 @@ Shows DB connectivity and migration status.
 
 from __future__ import annotations
 
-from services.repositories.db.status_service import StatusReport
-from services.repositories.db.status_service import status as db_status
+from shared.infrastructure.repositories.db.status_service import StatusReport
+from shared.infrastructure.repositories.db.status_service import status as db_status
 
 
 # ID: 3f7fa8bb-6b0a-4e3b-9e9b-4adf1e2f0c11

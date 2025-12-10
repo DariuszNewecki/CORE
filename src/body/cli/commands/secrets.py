@@ -14,8 +14,6 @@ import time
 import typer
 from rich.table import Table
 
-from services.database.session_manager import get_session
-from services.secrets_service import get_secrets_service
 from shared.action_types import ActionImpact, ActionResult
 from shared.atomic_action import atomic_action
 from shared.cli_utils import (
@@ -28,6 +26,8 @@ from shared.cli_utils import (
     display_warning,
 )
 from shared.exceptions import SecretNotFoundError, SecretsError
+from shared.infrastructure.database.session_manager import get_session
+from shared.infrastructure.secrets_service import get_secrets_service
 
 
 # Audit context tags for observability / governance

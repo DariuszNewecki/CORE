@@ -22,9 +22,9 @@ from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import text
 
-from services.clients.qdrant_client import QdrantService
-from services.database.session_manager import get_session
 from shared.config import settings
+from shared.infrastructure.clients.qdrant_client import QdrantService
+from shared.infrastructure.database.session_manager import get_session
 from shared.logger import getLogger
 from will.tools.module_anchor_generator import ModuleAnchorGenerator
 from will.tools.policy_vectorizer import PolicyVectorizer
@@ -365,7 +365,7 @@ class ArchitecturalContextBuilder:
             ],
             "features": [
                 "from __future__ import annotations",
-                "from services.database.session_manager import get_session",
+                "from shared.infrastructure.database.session_manager import get_session",
                 "from shared.logger import getLogger",
             ],
             "will": [

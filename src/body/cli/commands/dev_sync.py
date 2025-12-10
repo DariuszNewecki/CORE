@@ -29,13 +29,15 @@ from features.project_lifecycle.definition_service import _define_new_symbols
 from features.self_healing.code_style_service import format_code
 from features.self_healing.docstring_service import fix_docstrings
 from features.self_healing.sync_vectors import main_async as sync_vectors_async
-from services.vector.adapters.constitutional_adapter import ConstitutionalAdapter
-from services.vector.vector_index_service import VectorIndexService
 from shared.action_types import ActionResult
 from shared.activity_logging import activity_run
 from shared.cli_utils import core_command
 from shared.config import settings
 from shared.context import CoreContext
+from shared.infrastructure.vector.adapters.constitutional_adapter import (
+    ConstitutionalAdapter,
+)
+from shared.infrastructure.vector.vector_index_service import VectorIndexService
 
 
 console = Console()

@@ -11,10 +11,10 @@ from pathlib import Path
 
 from sqlalchemy import select
 
-from services.database.models import CognitiveRole, LlmResource
-from services.database.session_manager import get_session
-from services.llm.client import LLMClient
-from services.llm.client_registry import LLMClientRegistry
+from shared.infrastructure.database.models import CognitiveRole, LlmResource
+from shared.infrastructure.database.session_manager import get_session
+from shared.infrastructure.llm.client import LLMClient
+from shared.infrastructure.llm.client_registry import LLMClientRegistry
 from shared.logger import getLogger
 from will.agents.resource_selector import ResourceSelector
 

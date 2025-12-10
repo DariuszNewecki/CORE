@@ -20,7 +20,7 @@ import ast
 from pathlib import Path
 from typing import Any
 
-from services.clients.qdrant_client import QdrantService
+from shared.infrastructure.clients.qdrant_client import QdrantService
 from shared.logger import getLogger
 from shared.universal import get_deterministic_id
 from will.orchestration.cognitive_service import CognitiveService
@@ -326,7 +326,7 @@ class ModuleAnchorGenerator:
 # ID: 229b44b7-ed04-45f3-8045-b992aa018c18
 async def generate_anchors_command(repo_root: Path) -> dict[str, Any]:
     """CLI command wrapper for anchor generation."""
-    from services.clients.qdrant_client import QdrantService
+    from shared.infrastructure.clients.qdrant_client import QdrantService
     from will.orchestration.cognitive_service import CognitiveService
 
     qdrant_service = QdrantService()

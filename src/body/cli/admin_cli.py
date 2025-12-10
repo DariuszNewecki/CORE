@@ -37,14 +37,14 @@ from body.cli.logic.tools import tools_app
 
 # New Architecture: Registry
 from body.services.service_registry import service_registry
-from services.context import cli as context_cli
-from services.context.service import ContextService
-from services.database.session_manager import get_session
-from services.git_service import GitService
-from services.knowledge.knowledge_service import KnowledgeService
-from services.storage.file_handler import FileHandler
 from shared.config import settings
 from shared.context import CoreContext
+from shared.infrastructure.context import cli as context_cli
+from shared.infrastructure.context.service import ContextService
+from shared.infrastructure.database.session_manager import get_session
+from shared.infrastructure.git_service import GitService
+from shared.infrastructure.knowledge.knowledge_service import KnowledgeService
+from shared.infrastructure.storage.file_handler import FileHandler
 from shared.logger import getLogger
 from shared.models import PlannerConfig
 

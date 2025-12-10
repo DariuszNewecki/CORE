@@ -20,9 +20,9 @@ from qdrant_client import AsyncQdrantClient
 from qdrant_client.http.models import PointIdsList
 from sqlalchemy import text
 
-from services.clients.qdrant_client import QdrantService
-from services.database.session_manager import get_session
 from shared.config import settings
+from shared.infrastructure.clients.qdrant_client import QdrantService
+from shared.infrastructure.database.session_manager import get_session
 from shared.logger import getLogger
 
 
