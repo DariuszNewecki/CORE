@@ -1,4 +1,5 @@
-# src/body/cli/logic/log_audit.py
+# src/mind/enforcement/log_audit.py
+
 """
 Provides functionality for the log_audit module.
 """
@@ -10,9 +11,8 @@ import asyncio
 import typer
 from sqlalchemy import text
 
+from body.cli.logic.common import git_commit_sha
 from shared.infrastructure.database.session_manager import get_session
-
-from .common import git_commit_sha
 
 
 # ID: 90625b7b-b201-458d-84a3-895835a005c0

@@ -1,4 +1,5 @@
-# src/body/cli/logic/guard_cli.py
+# src/mind/enforcement/guard_cli.py
+
 """
 CLI-facing guard registration helpers.
 """
@@ -12,11 +13,10 @@ from typing import Any
 
 import typer
 
+from body.cli.logic.cli_utils import should_fail
 from features.introspection.drift_detector import write_report
 from features.introspection.drift_service import run_drift_analysis_async
-
-from .cli_utils import should_fail
-from .guard import _print_pretty, _ux_defaults
+from mind.enforcement.guard import _print_pretty, _ux_defaults
 
 
 __all__ = ["register_guard"]

@@ -1,9 +1,10 @@
-# src/body/cli/logic/audit.py
+# src/mind/enforcement/audit.py
+
 """
 Provides functionality for the audit module.
 
 Refactored to be stateless and pure async (logic layer).
-Now HEADLESS: Returns data, does not console.print(LOG-001 compliance).
+Now HEADLESS: Returns data, does not logger.info(LOG-001 compliance).
 """
 
 from __future__ import annotations
