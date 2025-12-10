@@ -61,7 +61,7 @@ class PathResolver:
         # Cache resolved paths for performance
         self._cache: dict[str, Path] = {}
 
-        logger.debug(f"PathResolver initialized with root: {repo_root}")
+        logger.debug("PathResolver initialized with root: %s", repo_root)
 
     # =========================================================================
     # CORE DIRECTORIES

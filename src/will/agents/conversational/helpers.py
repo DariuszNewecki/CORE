@@ -1,12 +1,17 @@
+# src/will/agents/conversational/helpers.py
+
 """
 Helper functions for ConversationalAgent.
 Contains pure functions extracted from the main agent class.
 """
 
+from __future__ import annotations
+
 import re
 from typing import Any
 
 from shared.logger import getLogger
+from shared.universal import get_deterministic_id
 
 
 logger = getLogger(__name__)
@@ -30,8 +35,12 @@ def _create_task_spec(user_message: str, extract_keywords_func) -> dict[str, Any
     # Future: Use local embedding model for semantic search
     keywords = extract_keywords_func(user_message)
 
+    # FIX: Use deterministic ID for stable task caching across restarts
+    # We use the deterministic int, masked to 32-bit hex for a readable ID
+    task_hash = get_deterministic_id(user_message)
+
     return {
-        "task_id": f"chat-{hash(user_message) & 0xFFFFFFFF:08x}",
+        "task_id": f"chat-{task_hash & 0xFFFFFFFF:08x}",
         "task_type": "conversational",
         "summary": user_message,
         "privacy": "local_only",
@@ -78,7 +87,7 @@ def _extract_keywords(message: str) -> list[str]:
     file_paths = re.findall(r"\b(?:src/)?[\w/]+\.py\b", message)
     keywords.extend(file_paths)
 
-    logger.debug(f"Extracted keywords: {keywords}")
+    logger.debug("Extracted keywords: %s", keywords)
     return keywords
 
 

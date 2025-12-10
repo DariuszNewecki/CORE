@@ -137,3 +137,10 @@ entry_point_patterns:
     match:
       name_regex: "^(main|run|start|execute)$"
       type: "function"
+
+  - name: "settings_properties"
+    description: "Properties on the Settings object are entry points for configuration."
+    entry_point_type: "config_property"
+    match:
+      module_path_contains: "shared.config"
+      type: "function"

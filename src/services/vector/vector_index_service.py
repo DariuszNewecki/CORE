@@ -4,6 +4,7 @@ Unified Vector Indexing Service - Constitutional Infrastructure
 
 Phase 1: Uses QdrantService for upsert operations.
 Updated: Implements Smart Deduplication using content hashes.
+Fixed: Corrected logging string formatting.
 """
 
 from __future__ import annotations
@@ -17,6 +18,7 @@ from services.clients.qdrant_client import QdrantService
 from shared.config import settings
 from shared.logger import getLogger
 from shared.models.vector_models import IndexResult, VectorizableItem
+from shared.universal import get_deterministic_id
 from shared.utils.embedding_utils import build_embedder_from_env
 
 
@@ -82,8 +84,8 @@ class VectorIndexService:
         skipped_count = 0
 
         for item in items:
-            # Calculate the point ID deterministically (same as QdrantService logic)
-            point_id = str(hash(item.item_id) % (2**63))
+            # Calculate the point ID deterministically using stable hash
+            point_id = str(get_deterministic_id(item.item_id))
 
             new_hash = item.payload.get("content_sha256")
 
@@ -109,7 +111,7 @@ class VectorIndexService:
             return [
                 IndexResult(
                     item_id=item.item_id,
-                    point_id=hash(item.item_id) % (2**63),
+                    point_id=get_deterministic_id(item.item_id),
                     vector_dim=self.vector_dim,
                 )
                 for item in items
@@ -148,7 +150,8 @@ class VectorIndexService:
         valid_pairs = []
         for item, emb in zip(items, embeddings):
             if isinstance(emb, Exception):
-                logger.warning("Failed to embed {item.item_id}: %s", emb)
+                # FIX: Correct logging format to show item ID and exception message
+                logger.warning("Failed to embed %s: %s", item.item_id, emb)
                 continue
             if emb is not None:
                 valid_pairs.append((item, emb))
@@ -159,7 +162,8 @@ class VectorIndexService:
         # Step 3: Create Qdrant points
         points = []
         for item, embedding in valid_pairs:
-            point_id = hash(item.item_id) % (2**63)
+            # Use stable hash
+            point_id = get_deterministic_id(item.item_id)
 
             payload = {
                 **item.payload,
@@ -193,7 +197,7 @@ class VectorIndexService:
         results = [
             IndexResult(
                 item_id=item.item_id,
-                point_id=hash(item.item_id) % (2**63),
+                point_id=get_deterministic_id(item.item_id),
                 vector_dim=self.vector_dim,
             )
             for item, _ in valid_pairs

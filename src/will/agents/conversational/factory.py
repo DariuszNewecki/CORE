@@ -1,3 +1,5 @@
+# src/will/agents/conversational/factory.py
+
 """
 Factory function for creating ConversationalAgent instances.
 """
@@ -48,7 +50,7 @@ async def create_conversational_agent() -> ConversationalAgent:
         )
         logger.info("Vector search enabled via Qdrant")
     except Exception as e:
-        logger.warning(f"Qdrant not available: {e}. Context search will be limited")
+        logger.warning("Qdrant not available: %s. Context search will be limited", e)
 
     # Create DBProvider - it handles sessions internally
     db_provider = DBProvider()

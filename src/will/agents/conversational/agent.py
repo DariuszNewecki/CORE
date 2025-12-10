@@ -1,3 +1,5 @@
+# src/will/agents/conversational/agent.py
+
 """
 ConversationalAgent - End-user interface to CORE's capabilities.
 
@@ -86,7 +88,7 @@ class ConversationalAgent:
 
         Example:
             >>> response = await agent.process_message("what does ContextBuilder do?")
-            >>> print(response)
+            >>> logger.info(response)
             ContextBuilder is responsible for extracting minimal context packages...
         """
         logger.info(f"Processing user message: {user_message[:100]}...")

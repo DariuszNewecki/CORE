@@ -16,10 +16,10 @@ from rich.console import Console
 # --- Internal Logic Imports ---
 from body.cli.commands.fix.code_style import fix_headers_internal
 from body.cli.commands.fix.metadata import fix_ids_internal
-from body.cli.commands.fix_logging import LoggingFixer  # ADDED: Import the fixer
+from body.cli.commands.fix_logging import LoggingFixer
 from body.cli.logic.audit import lint
 from body.cli.logic.body_contracts_checker import check_body_contracts
-from body.cli.logic.duplicates import inspect_duplicates_async  # async version
+from body.cli.logic.duplicates import inspect_duplicates_async
 
 # --- Shared Utilities ---
 from body.cli.workflows.dev_sync_reporter import DevSyncReporter
@@ -76,23 +76,27 @@ async def dev_sync_command(
         phase = reporter.start_phase("Code Fixers")
 
         # 1. Fix IDs
+        console.print("[cyan]Assigning stable IDs...[/cyan]")
         result = await fix_ids_internal(write=write)
         reporter.record_result(result, phase)
         if not result.ok:
             raise typer.Exit(1)
 
         # 2. Fix Headers
+        console.print("[cyan]Checking file headers...[/cyan]")
         result = await fix_headers_internal(write=write)
         reporter.record_result(result, phase)
         if not result.ok:
             raise typer.Exit(1)
 
-        # 3. Fix Logging Standards (NEW: LOG-001, LOG-004)
+        # 3. Fix Logging Standards
         try:
             start = time.time()
-            with console.status("[cyan]Fixing logging violations...[/cyan]"):
-                fixer = LoggingFixer(settings.REPO_PATH, dry_run=dry_run)
-                fix_stats = fixer.fix_all()
+            console.print("[cyan]Checking logging standards...[/cyan]")
+            # Logging fixer is fast/silent enough to use a spinner if we wanted,
+            # but keeping it consistent with the rest.
+            fixer = LoggingFixer(settings.REPO_PATH, dry_run=dry_run)
+            fix_stats = fixer.fix_all()
 
             reporter.record_result(
                 ActionResult(
@@ -112,14 +116,13 @@ async def dev_sync_command(
                 ),
                 phase,
             )
-            # Non-critical, continue
             console.print("[yellow]⚠ Logging fix issues, continuing...[/yellow]")
 
-        # 4. Fix Docstrings (Service Call)
+        # 4. Fix Docstrings
         try:
             start = time.time()
-            with console.status("[cyan]Fixing docstrings...[/cyan]"):
-                await fix_docstrings(context=core_context, write=write)
+            console.print("[cyan]Checking docstrings...[/cyan]")
+            await fix_docstrings(context=core_context, write=write)
 
             reporter.record_result(
                 ActionResult(
@@ -141,13 +144,11 @@ async def dev_sync_command(
             )
             raise typer.Exit(1)
 
-        # 5. Code Style (Service Call - Sync)
+        # 5. Code Style
         try:
             start = time.time()
-            with console.status("[cyan]Formatting code...[/cyan]"):
-                # NOTE: format_code currently always applies changes.
-                # It is guarded by @core_command(dangerous=True) at this CLI level.
-                format_code()  # Sync function
+            console.print("[cyan]Formatting code...[/cyan]")
+            format_code()  # Sync function
 
             reporter.record_result(
                 ActionResult(
@@ -174,11 +175,11 @@ async def dev_sync_command(
         # =================================================================
         phase = reporter.start_phase("Quality Checks")
 
-        # 6. Lint (Service Call - Sync)
+        # 6. Lint
         try:
             start = time.time()
-            with console.status("[cyan]Running linter...[/cyan]"):
-                lint()
+            console.print("[cyan]Running linter...[/cyan]")
+            lint()
 
             reporter.record_result(
                 ActionResult(
@@ -208,8 +209,8 @@ async def dev_sync_command(
 
         try:
             start = time.time()
-            with console.status("[cyan]Checking Body contracts...[/cyan]"):
-                contracts_result = await check_body_contracts()
+            console.print("[cyan]Checking Body contracts...[/cyan]")
+            contracts_result = await check_body_contracts()
 
             # Attach timing to the ActionResult
             contracts_result.duration_sec = time.time() - start  # type: ignore[attr-defined]
@@ -219,11 +220,12 @@ async def dev_sync_command(
             violations = data.get("violations", []) or []
             rules = data.get("rules_triggered", []) or []
 
-            console.print(
-                f"[bold cyan]Body Contracts:[/bold cyan] "
-                f"{len(violations)} violation(s), "
-                f"rules: {', '.join(rules) if rules else 'none'}"
-            )
+            if violations:
+                console.print(
+                    f"[bold cyan]Body Contracts:[/bold cyan] "
+                    f"{len(violations)} violation(s), "
+                    f"rules: {', '.join(rules) if rules else 'none'}"
+                )
 
             # Print first few violations so we see where to start
             for v in violations[:10]:
@@ -266,15 +268,15 @@ async def dev_sync_command(
         # =================================================================
         phase = reporter.start_phase("Database Sync")
 
-        # 7. Vector Sync (Service Call)
+        # 7. Vector Sync
         try:
             start = time.time()
-            with console.status("[cyan]Synchronizing vectors...[/cyan]"):
-                orphans, dangling = await sync_vectors_async(
-                    write=write,
-                    dry_run=dry_run,
-                    qdrant_service=core_context.qdrant_service,
-                )
+            console.print("[cyan]Synchronizing vectors (cleaning orphans)...[/cyan]")
+            orphans, dangling = await sync_vectors_async(
+                write=write,
+                dry_run=dry_run,
+                qdrant_service=core_context.qdrant_service,
+            )
 
             reporter.record_result(
                 ActionResult(
@@ -296,12 +298,12 @@ async def dev_sync_command(
             )
             raise typer.Exit(1)
 
-        # 8. Sync Knowledge (Service Call)
+        # 8. Sync Knowledge
         try:
             start = time.time()
             if write:
-                with console.status("[cyan]Syncing knowledge to database...[/cyan]"):
-                    stats = await run_sync_with_db()
+                console.print("[cyan]Syncing knowledge to database...[/cyan]")
+                stats = await run_sync_with_db()
                 reporter.record_result(
                     ActionResult(
                         action_id="manage.sync-knowledge",
@@ -324,24 +326,25 @@ async def dev_sync_command(
             )
             raise typer.Exit(1)
 
-        # 9. Define Symbols (Service Call)
+        # 9. Define Symbols
         try:
             start = time.time()
-            with console.status("[cyan]Defining symbols...[/cyan]"):
-                ctx_service = core_context.context_service
-                # The factory initializes these as None; we must inject the live instances
-                if not ctx_service.cognitive_service:
-                    ctx_service.cognitive_service = core_context.cognitive_service
+            console.print("[cyan]Defining symbols...[/cyan]")
 
-                # Also update the vector provider inside context service if needed
-                if not ctx_service.vector_provider.qdrant:
-                    ctx_service.vector_provider.qdrant = core_context.qdrant_service
-                if not ctx_service.vector_provider.cognitive_service:
-                    ctx_service.vector_provider.cognitive_service = (
-                        core_context.cognitive_service
-                    )
-                # Call the new atomic action
-                await _define_new_symbols(ctx_service)
+            ctx_service = core_context.context_service
+            # The factory initializes these as None; we must inject the live instances
+            if not ctx_service.cognitive_service:
+                ctx_service.cognitive_service = core_context.cognitive_service
+
+            # Also update the vector provider inside context service if needed
+            if not ctx_service.vector_provider.qdrant:
+                ctx_service.vector_provider.qdrant = core_context.qdrant_service
+            if not ctx_service.vector_provider.cognitive_service:
+                ctx_service.vector_provider.cognitive_service = (
+                    core_context.cognitive_service
+                )
+
+            await _define_new_symbols(ctx_service)
 
             reporter.record_result(
                 ActionResult(
@@ -372,30 +375,29 @@ async def dev_sync_command(
         # 10. Sync Constitutional Vectors (Policies/Patterns)
         try:
             start = time.time()
-            with console.status("[cyan]Syncing constitutional vectors...[/cyan]"):
-                adapter = ConstitutionalAdapter()
+            console.print("[cyan]Syncing constitutional vectors...[/cyan]")
 
-                # Policies
-                policy_items = adapter.policies_to_items()
-                # FIX: Pass the QdrantService instance, NOT .client
-                policy_service = VectorIndexService(
-                    core_context.qdrant_service,
-                    "core_policies",
-                )
-                await policy_service.ensure_collection()
-                if not dry_run:
-                    await policy_service.index_items(policy_items)
+            adapter = ConstitutionalAdapter()
 
-                # Patterns
-                pattern_items = adapter.patterns_to_items()
-                # FIX: Pass the QdrantService instance, NOT .client
-                pattern_service = VectorIndexService(
-                    core_context.qdrant_service,
-                    "core-patterns",
-                )
-                await pattern_service.ensure_collection()
-                if not dry_run:
-                    await pattern_service.index_items(pattern_items)
+            # Policies
+            policy_items = adapter.policies_to_items()
+            policy_service = VectorIndexService(
+                core_context.qdrant_service,
+                "core_policies",
+            )
+            await policy_service.ensure_collection()
+            if not dry_run:
+                await policy_service.index_items(policy_items)
+
+            # Patterns
+            pattern_items = adapter.patterns_to_items()
+            pattern_service = VectorIndexService(
+                core_context.qdrant_service,
+                "core-patterns",
+            )
+            await pattern_service.ensure_collection()
+            if not dry_run:
+                await pattern_service.index_items(pattern_items)
 
             reporter.record_result(
                 ActionResult(
@@ -422,15 +424,15 @@ async def dev_sync_command(
             )
             console.print(f"[yellow]⚠ Constitutional sync warning: {e}[/yellow]")
 
-        # 11. Vectorize Knowledge Graph (Service Call)
+        # 11. Vectorize Knowledge Graph
         try:
             start = time.time()
-            with console.status("[cyan]Vectorizing knowledge graph...[/cyan]"):
-                await run_vectorize(
-                    context=core_context,
-                    dry_run=dry_run,
-                    force=False,
-                )
+            console.print("[cyan]Vectorizing knowledge graph...[/cyan]")
+            await run_vectorize(
+                context=core_context,
+                dry_run=dry_run,
+                force=False,
+            )
 
             reporter.record_result(
                 ActionResult(
@@ -460,11 +462,11 @@ async def dev_sync_command(
         # 12. Duplicates
         try:
             start = time.time()
-            with console.status("[cyan]Detecting duplicate code...[/cyan]"):
-                await inspect_duplicates_async(
-                    context=core_context,
-                    threshold=0.96,
-                )
+            console.print("[cyan]Detecting duplicate code...[/cyan]")
+            await inspect_duplicates_async(
+                context=core_context,
+                threshold=0.96,
+            )
 
             reporter.record_result(
                 ActionResult(
@@ -503,7 +505,7 @@ async def dev_sync_command(
                 "manage.define-symbols",
                 "inspect.duplicates",
                 "manage.vectors.sync",
-                "fix.logging",  # ADDED: Non-critical
+                "fix.logging",
             ]
         ]
 
@@ -515,7 +517,7 @@ async def dev_sync_command(
 @core_command(dangerous=True, confirmation=True)
 # ID: 0958b077-78bb-40ff-92bb-8a94f41a36db
 async def fix_logging_command(
-    ctx: typer.Context,  # ADDED: Required by @core_command
+    ctx: typer.Context,
     write: bool = typer.Option(
         False, "--write/--dry-run", help="Apply fixes (default: dry-run)"
     ),

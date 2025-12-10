@@ -22,6 +22,7 @@ from typing import Any
 
 from services.clients.qdrant_client import QdrantService
 from shared.logger import getLogger
+from shared.universal import get_deterministic_id
 from will.orchestration.cognitive_service import CognitiveService
 from will.tools.module_descriptor import ModuleDescriptor
 
@@ -180,8 +181,11 @@ class ModuleAnchorGenerator:
         if not embedding:
             raise ValueError(f"Failed to generate embedding for layer {layer_name}")
 
+        # FIX: Use deterministic ID
+        point_id = get_deterministic_id(f"layer_{layer_name}")
+
         point = PointStruct(
-            id=hash(f"layer_{layer_name}") % (2**63),
+            id=point_id,
             vector=embedding,
             payload={
                 "type": "layer",
@@ -231,8 +235,11 @@ class ModuleAnchorGenerator:
         if not embedding:
             raise ValueError(f"Failed to generate embedding for module {module_path}")
 
+        # FIX: Use deterministic ID
+        point_id = get_deterministic_id(f"module_{module_path}")
+
         point = PointStruct(
-            id=hash(f"module_{module_path}") % (2**63),
+            id=point_id,
             vector=embedding,
             payload={
                 "type": "module",
