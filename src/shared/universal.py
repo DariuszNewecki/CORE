@@ -26,6 +26,7 @@ from __future__ import annotations
 from shared.utils.common_knowledge import (
     collapse_blank_lines,
     ensure_trailing_newline,
+    get_deterministic_id,
     normalize_text,
     normalize_whitespace,
     safe_truncate,
@@ -38,4 +39,5 @@ __all__ = [
     "collapse_blank_lines",
     "ensure_trailing_newline",
     "safe_truncate",
+    "get_deterministic_id",
 ]

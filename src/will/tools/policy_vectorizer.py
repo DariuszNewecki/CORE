@@ -23,6 +23,7 @@ from typing import Any
 
 from services.clients.qdrant_client import QdrantService
 from shared.logger import getLogger
+from shared.universal import get_deterministic_id
 from shared.utils.yaml_processor import strict_yaml_processor
 from will.orchestration.cognitive_service import CognitiveService
 
@@ -133,7 +134,7 @@ class PolicyVectorizer:
         await self.initialize_collection()
 
         # PHASE 2 PREP: Get stored hashes for deduplication
-        stored_hashes = await self.qdrant.get_stored_hashes()
+        stored_hashes = await self.qdrant.get_stored_hashes(POLICY_COLLECTION)
         logger.debug(f"Retrieved {len(stored_hashes)} existing policy hashes")
 
         # Discover policy files
@@ -155,10 +156,13 @@ class PolicyVectorizer:
                 )
                 results["policies_vectorized"] += 1
                 results["chunks_created"] += policy_result["chunks"]
-                logger.info(
-                    f"  ✅ {policy_file.name}: "
-                    f"{policy_result['chunks']} chunks vectorized"
-                )
+
+                count = policy_result["chunks"]
+                if count > 0:
+                    logger.info("  ✅ {policy_file.name}: %s chunks vectorized", count)
+                else:
+                    logger.debug(f"  Skipped {policy_file.name} (unchanged)")
+
             except Exception as e:
                 logger.error(f"  ❌ {policy_file.name}: {e}", exc_info=True)
                 results["errors"].append(
@@ -207,13 +211,42 @@ class PolicyVectorizer:
         # Parse policy into semantic chunks
         chunks = self._extract_policy_chunks(policy_data, policy_id, policy_file.name)
 
-        # Vectorize and store each chunk
-        for chunk in chunks:
+        # Deduplicate chunks
+        valid_chunks = []
+        if stored_hashes:
+            for chunk in chunks:
+                chunk_id = f"{chunk['policy_id']}_{chunk['type']}_{chunk.get('rule_id', 'unknown')}"
+
+                # Calculate deterministic ID for checking
+                point_id = str(get_deterministic_id(chunk_id))
+
+                # Calculate content hash
+                normalized_content = chunk["content"].strip()
+                content_hash = hashlib.sha256(
+                    normalized_content.encode("utf-8")
+                ).hexdigest()
+
+                # Check if this point exists and hash matches
+                if (
+                    point_id in stored_hashes
+                    and stored_hashes[point_id] == content_hash
+                ):
+                    continue
+
+                valid_chunks.append(chunk)
+        else:
+            valid_chunks = chunks
+
+        if not valid_chunks:
+            return {"policy_id": policy_id, "chunks": 0}
+
+        # Vectorize and store each new/changed chunk
+        for chunk in valid_chunks:
             await self._store_policy_chunk(chunk)
 
         return {
             "policy_id": policy_id,
-            "chunks": len(chunks),
+            "chunks": len(valid_chunks),
         }
 
     def _extract_policy_chunks(
@@ -362,8 +395,11 @@ class PolicyVectorizer:
         # Store in Qdrant using CORE's client API
         from qdrant_client.models import PointStruct
 
+        # Calculate deterministic ID
+        point_id = get_deterministic_id(chunk_id)
+
         point = PointStruct(
-            id=hash(chunk_id) % (2**63),  # Convert to int ID
+            id=point_id,
             vector=embedding,
             payload={
                 "policy_id": chunk["policy_id"],
@@ -378,7 +414,7 @@ class PolicyVectorizer:
 
         # PHASE 1: Direct client upsert (acceptable during transition)
         # TODO Phase 1 Day 4: Replace with service method when available
-        await self.qdrant.client.upsert(
+        await self.qdrant.upsert_points(
             collection_name=POLICY_COLLECTION,
             points=[point],
         )

@@ -9,7 +9,7 @@
 # vectorizers used inconsistent patterns for hashing, client access, and payloads.
 
 policy_id: vector_service_standards
-version: "1.0.0"
+version: "1.1.0" # Bumped version for Deterministic ID amendment
 status: foundational
 category: infrastructure
 layer: body
@@ -43,6 +43,37 @@ philosophy: |
 # =============================================================================
 
 requirements:
+  deterministic_id_generation:
+    mandate: |
+      Qdrant Point IDs MUST be deterministic and stable across process restarts.
+      Using Python's built-in `hash()` function for persistent IDs is PROHIBITED
+      because it is randomized per process (salted).
+
+    implementation:
+      - "Use `shared.universal.get_deterministic_id(string)` for integer IDs"
+      - "Use `uuid.uuid5` for UUIDs (if needed)"
+      - "Input to ID generation must be a stable unique identifier (e.g., symbol path)"
+
+    prohibited:
+      - "hash(str) -> Randomized per run"
+      - "uuid.uuid4() -> Random every time"
+      - "random.randint() -> Random"
+
+    validation:
+      - "Code review must reject `hash()` usage for DB IDs"
+      - "Vectors must remain accessible across server restarts"
+
+    examples:
+      compliant: |
+        from shared.universal import get_deterministic_id
+
+        # Stable across runs
+        point_id = get_deterministic_id(item.item_id)
+
+      non_compliant: |
+        # VIOLATION: Changes every time python restarts
+        point_id = hash(item.item_id)
+
   mandatory_hashing:
     mandate: |
       ALL vectorization operations MUST compute and store content hashes
@@ -443,6 +474,11 @@ enforcement:
       severity: "error"
       check: "Grep for '.client.' usage outside service file"
 
+    - id: "vector.deterministic_ids"
+      description: "No use of built-in hash() for IDs"
+      severity: "error"
+      check: "Scan for hash() calls in vectorizers"
+
     - id: "vector.typed_payloads"
       description: "All payloads use typed classes"
       severity: "error"
@@ -458,6 +494,7 @@ enforcement:
     - "Direct client access in new code"
     - "Raw dict payloads in new code"
     - "Orphaned vectors > 0 in production"
+    - "Use of non-deterministic hashing"
 
 # =============================================================================
 # TOOLING & AUTOMATION

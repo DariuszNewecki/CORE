@@ -20,6 +20,17 @@ charter:
     quality_assurance: "charter/policies/quality_assurance.yaml"
     decorator_governance: "charter/policies/decorator_governance.yaml"
 
+  patterns:
+    agent_patterns: "charter/patterns/agent_patterns.yaml"
+    atomic_actions: "charter/patterns/atomic_actions.yaml"
+    body_contracts: "charter/patterns/body_contracts.yaml"
+    command_patterns: "charter/patterns/command_patterns.yaml"
+    irritation_heuristic: "charter/patterns/irritation_heuristic.yaml"
+    service_patterns: "charter/patterns/service_patterns.yaml"
+    user_interface: "charter/patterns/user_interface.yaml"
+    vector_service_standards: "charter/patterns/vector_service_standards.yaml"
+    workflow_patterns: "charter/patterns/workflow_patterns.yaml"
+
   schemas:
     policy_schema: "charter/schemas/policy_schema.json"
     agent:
@@ -64,12 +75,7 @@ mind:
     domain_definitions: "mind/knowledge/domain_definitions.yaml"
     project_structure: "mind/knowledge/project_structure.yaml"
     entry_point_patterns: "mind/knowledge/entry_point_patterns.yaml"
-    # The following are now DB-resident and managed via SSOT logic
-    # cli_registry: REMOVED
-    # resource_manifest: REMOVED
-    # cognitive_roles: REMOVED
   mind_export:
-    # Exports are still valid artifacts for backup/restore
     cognitive_roles: "mind_export/cognitive_roles.yaml"
     resource_manifest: "mind_export/resource_manifest.yaml"
     capabilities: "mind_export/capabilities.yaml"

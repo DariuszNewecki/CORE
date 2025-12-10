@@ -23,6 +23,7 @@ from qdrant_client.models import PointStruct
 from services.clients.qdrant_client import QdrantService
 from shared.config import settings
 from shared.logger import getLogger
+from shared.universal import get_deterministic_id
 from shared.utils.yaml_processor import strict_yaml_processor
 from will.orchestration.cognitive_service import CognitiveService
 
@@ -130,7 +131,7 @@ class PatternVectorizer:
         logger.info(f"Found {len(pattern_files)} pattern files to vectorize")
 
         # PHASE 2 PREP: Get stored hashes for deduplication
-        stored_hashes = await self.qdrant.get_stored_hashes()
+        stored_hashes = await self.qdrant.get_stored_hashes(self.COLLECTION_NAME)
         logger.debug(f"Retrieved {len(stored_hashes)} existing pattern hashes")
 
         results = {}
@@ -138,9 +139,12 @@ class PatternVectorizer:
             try:
                 count = await self.vectorize_pattern(pattern_file, stored_hashes)
                 results[pattern_file.stem] = count
-                logger.info("✓ Vectorized {pattern_file.name}: %s chunks", count)
+                if count > 0:
+                    logger.info("✓ Vectorized %s: %s chunks", pattern_file.name, count)
+                else:
+                    logger.debug("Skipped %s (unchanged)", pattern_file.name)
             except Exception as e:
-                logger.error("✗ Failed to vectorize {pattern_file.name}: %s", e)
+                logger.error("✗ Failed to vectorize %s: %s", pattern_file.name, e)
                 results[pattern_file.stem] = 0
 
         total_chunks = sum(results.values())
@@ -188,8 +192,40 @@ class PatternVectorizer:
             logger.warning(f"No chunks generated for {pattern_file.name}")
             return 0
 
+        # Filter chunks that haven't changed
+        valid_chunks = []
+        if stored_hashes:
+            for idx, chunk in enumerate(chunks):
+                # Calculate deterministic ID for checking
+                chunk_id_str = f"{pattern_id}_{idx}"
+                point_id = str(get_deterministic_id(chunk_id_str))
+
+                # Calculate content hash
+                normalized_content = chunk.content.strip()
+                content_hash = hashlib.sha256(
+                    normalized_content.encode("utf-8")
+                ).hexdigest()
+
+                # Check if this point exists and hash matches
+                if (
+                    point_id in stored_hashes
+                    and stored_hashes[point_id] == content_hash
+                ):
+                    continue
+
+                valid_chunks.append((idx, chunk))
+        else:
+            valid_chunks = list(enumerate(chunks))
+
+        if not valid_chunks:
+            return 0
+
+        logger.info(
+            f"Processing {len(valid_chunks)} new/changed chunks for {pattern_file.name}"
+        )
+
         # Generate embeddings using cognitive service
-        chunk_texts = [chunk.content for chunk in chunks]
+        chunk_texts = [chunk.content for _, chunk in valid_chunks]
 
         import asyncio
 
@@ -199,21 +235,16 @@ class PatternVectorizer:
         embeddings = await asyncio.gather(*embedding_tasks)
 
         # Filter out None results from failed embeddings
-        valid_data = []
-        for chunk, emb in zip(chunks, embeddings):
-            if emb is not None:
-                valid_data.append((chunk, emb))
-
-        if not valid_data:
-            logger.warning(f"Failed to generate embeddings for {pattern_file.name}")
-            return 0
-
-        # PHASE 1 FIX: Create points with content_sha256 hashes
         points = []
-        for idx, (chunk, embedding) in enumerate(valid_data):
-            point_id = hash(f"{pattern_id}_{idx}") % (2**63)
+        for (idx, chunk), embedding in zip(valid_chunks, embeddings):
+            if not embedding:
+                continue
 
-            # PHASE 2 PREP: Compute content hash for deduplication
+            # Calculate deterministic ID
+            chunk_id_str = f"{pattern_id}_{idx}"
+            point_id = get_deterministic_id(chunk_id_str)
+
+            # Calculate content hash
             normalized_content = chunk.content.strip()
             content_hash = hashlib.sha256(
                 normalized_content.encode("utf-8")
@@ -222,7 +253,7 @@ class PatternVectorizer:
             # Add hash to payload
             payload = chunk.to_metadata()
             payload["content_sha256"] = content_hash
-            payload["chunk_id"] = f"{pattern_id}_{idx}"
+            payload["chunk_id"] = chunk_id_str
 
             points.append(
                 PointStruct(
@@ -239,7 +270,7 @@ class PatternVectorizer:
                 points=points,
             )
 
-        return len(valid_data)
+        return len(points)
 
     def _chunk_pattern(
         self,

@@ -7,6 +7,11 @@ Wraps existing database service for context building.
 
 from __future__ import annotations
 
+from shared.logger import getLogger
+
+
+logger = getLogger(__name__)
+
 import logging
 from fnmatch import fnmatch
 from typing import Any
@@ -229,7 +234,7 @@ class DBProvider:
             # Try exact lookup
             match = await self.get_symbol_by_name(pattern)
             if match:
-                logger.info(f"Found exact symbol match: {pattern}")
+                logger.info("Found exact symbol match: %s", pattern)
                 exact_matches.append(match)
 
         return exact_matches

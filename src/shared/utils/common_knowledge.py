@@ -9,6 +9,8 @@ used across CORE. These helpers feed the curated surface exposed through the
 
 from __future__ import annotations
 
+import hashlib
+
 
 # ID: 88db4d40-e91a-4d5e-b627-c215ea063f2e
 def normalize_whitespace(text: str) -> str:
@@ -65,3 +67,20 @@ def safe_truncate(text: str, max_chars: int) -> str:
 
     cut = text[:max_chars].rsplit(" ", 1)[0]
     return cut + "…"
+
+
+# ID: 8a9b7c6d-5e4f-3a2b-1c0d-e9f8a7b6c5d4
+def get_deterministic_id(text: str) -> int:
+    """
+    Generate a stable 64-bit unsigned integer ID from text using SHA-256.
+
+    This REPLACES Python's built-in hash() function for persistent data,
+    as hash() is randomized per process. This function ensures that the
+    same text always results in the same Qdrant Point ID.
+
+    Returns:
+        int: A persistent ID in range [0, 2^63 - 1] (safe for Qdrant/Postgres).
+    """
+    hex_hash = hashlib.sha256(text.encode("utf-8")).hexdigest()
+    # Take first 16 chars (64 bits) and mod to ensure positive signed 64-bit integer
+    return int(hex_hash[:16], 16) % (2**63)

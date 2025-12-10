@@ -1,4 +1,5 @@
 # src/api/cli_user.py
+
 """
 End-user conversational interface to CORE.
 
@@ -11,6 +12,8 @@ Constitutional boundaries:
 - All proposals validated by Mind governance
 - All execution via Body atomic actions
 """
+
+from __future__ import annotations
 
 import asyncio
 
@@ -47,21 +50,21 @@ def main(
         return
 
     if not message:
-        print("Usage: core <message>")
-        print('Example: core "what does ContextBuilder do?"')
+        logger.info("Usage: core <message>")
+        logger.info('Example: core "what does ContextBuilder do?"')
         raise typer.Exit(1)
 
-    logger.info(f"User message: {message}")
+    logger.info("User message: %s", message)
 
     # Run async handler
     try:
         asyncio.run(handle_message(message))
     except KeyboardInterrupt:
-        print("\n\n⚠️  Interrupted by user")
+        logger.info("\n\n⚠️  Interrupted by user")
         raise typer.Exit(130)
     except Exception as e:
         logger.error(f"Failed to process message: {e}", exc_info=True)
-        print(f"\n❌ Error: {e}")
+        logger.info("\n❌ Error: %s", e)
         raise typer.Exit(1)
 
 
@@ -77,7 +80,7 @@ async def handle_message(message: str) -> None:
     """
     from will.agents.conversational import create_conversational_agent
 
-    print("🤖 CORE is thinking...\n")
+    logger.info("🤖 CORE is thinking...\n")
 
     # Create agent with all dependencies
     agent = await create_conversational_agent()
@@ -86,10 +89,10 @@ async def handle_message(message: str) -> None:
     response = await agent.process_message(message)
 
     # Display response
-    print("─" * 70)
-    print(response)
-    print("─" * 70)
-    print()
+    logger.info("─" * 70)
+    logger.info(response)
+    logger.info("─" * 70)
+    logger.info()
 
 
 if __name__ == "__main__":
