@@ -938,7 +938,7 @@ items:
   fingerprint: 257d08c8807b5b4519d5a9d61c963852aaf72d36b8dd54a69d6ddf81c97c312d
   state: discovered
 - id: ba7dcb37-0074-542f-99ef-3ebaacec5278
-  symbol_path: src/services/context/reuse.py::ReuseAnalysis
+  symbol_path: src/shared/infrastructure/context/reuse.py::ReuseAnalysis
   module: services.context.reuse
   qualname: ReuseAnalysis
   kind: class
@@ -2002,7 +2002,7 @@ items:
   fingerprint: 546ba0bf444f40f2600cf665382d4e16b0f62cda4df94f8bb4d6f3d7c26e401a
   state: discovered
 - id: 07a254d3-3577-5e4d-88c8-fd452b3b7733
-  symbol_path: src/services/context/reuse.py::ReuseAnalysis.as_dict
+  symbol_path: src/shared/infrastructure/context/reuse.py::ReuseAnalysis.as_dict
   module: services.context.reuse
   qualname: ReuseAnalysis.as_dict
   kind: function
@@ -3002,7 +3002,7 @@ items:
   fingerprint: 7d62a17c3732420552d506ed940490788a861c8907fbd12f3b40aaa88a96dff7
   state: discovered
 - id: 88553e71-5e1c-52b8-b207-4a1d09627b7a
-  symbol_path: src/services/context/reuse.py::ReuseFinder
+  symbol_path: src/shared/infrastructure/context/reuse.py::ReuseFinder
   module: services.context.reuse
   qualname: ReuseFinder
   kind: class
@@ -3202,7 +3202,7 @@ items:
   fingerprint: 834c380a3970443b2dd3e35528a15218a6fc9b38eebcd953aa23d96b70bc58c9
   state: discovered
 - id: 314c5a54-e17a-556f-9ad4-ae9eeb4bb6a2
-  symbol_path: src/services/context/reuse.py::ReuseFinder.analyze_task
+  symbol_path: src/shared/infrastructure/context/reuse.py::ReuseFinder.analyze_task
   module: services.context.reuse
   qualname: ReuseFinder.analyze_task
   kind: function
@@ -4226,7 +4226,7 @@ items:
   fingerprint: a922c860c7d5db38cda53ff6d2319073711e8c58d36f2b75c8ea4b005c7ac5c1
   state: discovered
 - id: 87ea0764-968e-5566-9ef0-290f7b9a2967
-  symbol_path: src/services/context/reuse.py::ReuseFinder.summarize_for_prompt
+  symbol_path: src/shared/infrastructure/context/reuse.py::ReuseFinder.summarize_for_prompt
   module: services.context.reuse
   qualname: ReuseFinder.summarize_for_prompt
   kind: function

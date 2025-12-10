@@ -23,15 +23,17 @@ class ReuseComplianceCheck(BaseCheck):
     # ID: a3de7c56-6470-4cf4-a845-2315d32547ee
     def execute(self) -> list[AuditFinding]:
         findings = []
-        reuse_module_path = self.repo_root / "src/services/context/reuse.py"
+        reuse_module_path = (
+            self.repo_root / "src/shared/infrastructure/context/reuse.py"
+        )
 
         if not reuse_module_path.exists():
             findings.append(
                 AuditFinding(
                     check_id="reuse.before_new_code",
                     severity=AuditSeverity.ERROR,
-                    message="Reuse infrastructure missing. 'src/services/context/reuse.py' not found.",
-                    file_path="src/services/context/reuse.py",
+                    message="Reuse infrastructure missing. 'src/shared/infrastructure/context/reuse.py' not found.",
+                    file_path="src/shared/infrastructure/context/reuse.py",
                 )
             )
             return findings
@@ -49,8 +51,8 @@ class ReuseComplianceCheck(BaseCheck):
                     AuditFinding(
                         check_id="reuse.before_new_code",
                         severity=AuditSeverity.ERROR,
-                        message="ReuseFinder class missing in 'src/services/context/reuse.py'.",
-                        file_path="src/services/context/reuse.py",
+                        message="ReuseFinder class missing in 'src/shared/infrastructure/context/reuse.py'.",
+                        file_path="src/shared/infrastructure/context/reuse.py",
                     )
                 )
         except Exception as e:
@@ -59,7 +61,7 @@ class ReuseComplianceCheck(BaseCheck):
                     check_id="reuse.before_new_code",
                     severity=AuditSeverity.ERROR,
                     message=f"Failed to parse reuse module: {e}",
-                    file_path="src/services/context/reuse.py",
+                    file_path="src/shared/infrastructure/context/reuse.py",
                 )
             )
 
