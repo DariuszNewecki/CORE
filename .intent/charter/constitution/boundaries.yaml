@@ -1,0 +1,149 @@
+# .intent/charter/constitution/boundaries.yaml
+version: "3.0.0"
+type: "constitutional_boundaries"
+domain: "boundaries"
+
+principles:
+  database_ssot:
+    statement: "The database is the single source of truth for all persistent state"
+    rationale: "Prevents split-brain scenarios where state exists in multiple authoritative locations"
+    scope:
+      - "src/body/core/database.py"
+      - "src/body/services/**"
+      - "alembic/versions/**"
+    enforcement:
+      method: "architectural_validation"
+      parameters:
+        patterns_prohibited: ["filesystem_state_persistence", "config_file_as_source_of_truth", "arbitrary_metadata_storage"]
+        audit_trail: true
+
+  mind_body_will_separation:
+    statement: "Mind layer is human-authored, Body layer executes, Will layer orchestrates"
+    rationale: "Separates human constitutional authority from AI execution capability"
+    scope:
+      - ".intent/**"
+      - "src/mind/**"
+      - "src/body/**"
+      - "src/will/**"
+    enforcement:
+      method: "layer_boundary_check"
+      parameters:
+        patterns_prohibited: ["will_parsing_intent_yaml", "body_writing_to_intent", "ai_modifying_constitution"]
+        require_layer_separation: true
+
+  constitutional_supremacy:
+    statement: "Constitutional rules override all other considerations including performance"
+    rationale: "Ensures AI operates within human-defined boundaries at all times"
+    scope:
+      - "all_operations"
+    enforcement:
+      method: "pre_execution_validation"
+      parameters:
+        validate_before_execution: true
+        block_on_violation: true
+        no_bypass_allowed: true
+
+  transparency_and_auditability:
+    statement: "All autonomous actions must be logged with full context"
+    rationale: "Enables human oversight, debugging, and accountability"
+    scope:
+      - "all_autonomous_actions"
+    enforcement:
+      method: "audit_logging"
+      parameters:
+        fields_required: ["who", "what", "when", "why", "result"]
+        audit_log_append_only: true
+
+  no_autonomous_constitutional_amendment:
+    statement: "AI agents cannot modify governance rules"
+    rationale: "Preserves human authority over system governance"
+    scope:
+      - ".intent/charter/constitution/**"
+    enforcement:
+      method: "path_match"
+      parameters:
+        patterns: [".intent/charter/constitution/**"]
+        action: "block_all_writes"
+
+  no_headless_critical_operations:
+    statement: "Critical operations cannot run without human supervision"
+    rationale: "Prevents dangerous automated operations"
+    scope:
+      - "schema_migration"
+      - "production_deployment"
+      - "governance_modification"
+    enforcement:
+      method: "execution_context_check"
+      parameters:
+        require_interactive_session: true
+        require_human_confirmation: true
+
+  no_audit_log_deletion:
+    statement: "Audit logs are append-only and cannot be deleted"
+    rationale: "Ensures accountability and forensic capability"
+    scope:
+      - "audit_logs"
+    enforcement:
+      method: "storage_policy"
+      parameters:
+        allow_append: true
+        allow_delete: false
+        tamper_detection: true
+
+  no_privilege_escalation:
+    statement: "Agents cannot expand their own capabilities"
+    rationale: "Prevents security breaches through self-modification"
+    scope:
+      - "agent_capabilities"
+    enforcement:
+      method: "capability_verification"
+      parameters:
+        capabilities_immutable: true
+        require_human_approval_for_changes: true
+
+  rollback_capability_required:
+    statement: "All autonomous changes must be reversible"
+    rationale: "Enables recovery from mistakes"
+    scope:
+      - "all_autonomous_actions"
+    enforcement:
+      method: "version_control_check"
+      parameters:
+        require_git_tracking: true
+        require_rollback_plan: true
+
+  fail_safe_defaults:
+    statement: "Unknown operations default to requiring human approval"
+    rationale: "Conservative approach to new scenarios"
+    scope:
+      - "unknown_actions"
+      - "ambiguous_situations"
+    enforcement:
+      method: "default_policy"
+      parameters:
+        default_action: "require_human_approval"
+        err_on_side_of_caution: true
+
+  defense_in_depth:
+    statement: "Multiple validation layers protect critical operations"
+    rationale: "Single points of failure are unacceptable for governance"
+    scope:
+      - "all_critical_operations"
+    enforcement:
+      method: "multi_layer_validation"
+      parameters:
+        layers: ["pre_generation_validation", "post_generation_validation", "runtime_validation"]
+        require_all_pass: true
+
+  circuit_breaker_protection:
+    statement: "Infinite loops and runaway processes must be prevented"
+    rationale: "Protects system resources and prevents denial of service"
+    scope:
+      - "autonomous_workflows"
+      - "self_healing_agents"
+    enforcement:
+      method: "execution_limits"
+      parameters:
+        max_iterations: 10
+        timeout_seconds: 300
+        on_limit: "halt_and_alert"

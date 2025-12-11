@@ -60,7 +60,7 @@ patterns:
                 # 5. Return structured decision
 
       prompt_management:
-        - "Prompts stored in .intent/mind/prompts/{agent_name}.md"
+        - "Prompts stored in .intent/mind/prompts/{agent_name}.prompt"
         - "Use Jinja2 templating with ContextPackage"
         - "Include few-shot examples in prompts"
         - "Version prompts (track in git)"

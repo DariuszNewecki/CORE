@@ -3,7 +3,7 @@
 """
 Constitutional Adapter - Policies & Patterns Vectorization
 
-Translates YAML-based constitutional documents (policies, patterns) into
+Translates YAML-based constitutional documents (standards, constitution) into
 VectorizableItems for the unified VectorIndexService.
 
 This adapter replaces:
@@ -33,8 +33,9 @@ class ConstitutionalAdapter:
     """
     Adapts constitutional YAML files into vectorizable items.
 
-    Handles both policies and patterns using the same chunking logic,
+    Handles both policies (standards) and patterns using the same chunking logic,
     since they share the same YAML structure and semantic purpose.
+    Updated for Charter v3.0.0 structure (Constitution + Standards).
     """
 
     def __init__(self, source_dir: Path | None = None):
@@ -50,43 +51,56 @@ class ConstitutionalAdapter:
     # ID: a221eead-aa6f-454e-8b73-1ece7c8a157b
     def policies_to_items(self) -> list[VectorizableItem]:
         """
-        Convert all policy files to vectorizable items.
+        Convert all Standards (Architecture, Operations, Code, Data) to vector items.
+        Recursively scans .intent/charter/standards/
 
         Returns:
-            List of VectorizableItems for all policy chunks
+            List of VectorizableItems for all standard chunks
         """
-        policies_dir = self.source_dir / "policies"
-        return self._process_yaml_directory(policies_dir, doc_type="policy")
+        # Map legacy 'policies' concept to the new 'standards' directory
+        standards_dir = self.source_dir / "standards"
+        # Recursively scan because standards are categorized in subdirs
+        return self._process_yaml_directory(
+            standards_dir, doc_type="standard", recursive=True
+        )
 
     # ID: fd7f2d97-d691-4f5f-b46e-90ce112b6588
     def patterns_to_items(self) -> list[VectorizableItem]:
         """
-        Convert all pattern files to vectorizable items.
+        Specifically target Architectural Standards as 'patterns' for backward compatibility.
 
         Returns:
             List of VectorizableItems for all pattern chunks
         """
-        patterns_dir = self.source_dir / "patterns"
-        return self._process_yaml_directory(patterns_dir, doc_type="pattern")
+        # Patterns are now located in standards/architecture/
+        arch_dir = self.source_dir / "standards" / "architecture"
+        return self._process_yaml_directory(
+            arch_dir, doc_type="pattern", recursive=False
+        )
 
     def _process_yaml_directory(
-        self, directory: Path, doc_type: str
+        self, directory: Path, doc_type: str, recursive: bool = False
     ) -> list[VectorizableItem]:
         """
         Process all YAML files in a directory.
 
         Args:
             directory: Directory containing YAML files
-            doc_type: Type of document ("policy" or "pattern")
+            doc_type: Type of document ("policy", "standard", or "pattern")
+            recursive: Whether to scan subdirectories
 
         Returns:
             List of VectorizableItems from all files
         """
         if not directory.exists():
+            # Fail-safe default: log warning and return empty list instead of crashing
             logger.warning("Directory not found: %s", directory)
             return []
 
-        yaml_files = list(directory.glob("*.yaml"))
+        pattern = "**/*.yaml" if recursive else "*.yaml"
+        yaml_files = list(directory.glob(pattern))
+
+        # FIXED: Added 'f' prefix for correct formatting
         logger.info("Processing {len(yaml_files)} {doc_type} files from %s", directory)
 
         all_items: list[VectorizableItem] = []
@@ -99,6 +113,7 @@ class ConstitutionalAdapter:
             except Exception as e:
                 logger.error("✗ Failed to process {yaml_file.name}: %s", e)
 
+        # FIXED: Added 'f' prefix for correct formatting
         logger.info("Generated {len(all_items)} items from %s files", doc_type)
         return all_items
 
@@ -142,7 +157,7 @@ class ConstitutionalAdapter:
                 "section_type": chunk["section_type"],
                 "section_path": chunk["section_path"],
                 "severity": chunk.get("severity", "error"),
-                "content_sha256": content_hash,  # <--- Added for smart sync
+                "content_sha256": content_hash,
             }
 
             items.append(

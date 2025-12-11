@@ -306,3 +306,27 @@ audit_checks:
       tool: "fix_header"
       prompt_path: ".intent/mind/prompts/fix_header.prompt"
       mode: "suggest_or_write"
+
+# === MODULE SIZE & COMPLEXITY ===
+module_size_limits:
+  - id: code_standards.max_file_lines
+    statement: "Python modules MUST NOT exceed 400 lines."
+    rationale: >
+      Files exceeding 400 lines violate single responsibility and
+      atomic action principles. They contain multiple concerns that
+      should be separated into distinct modules.
+    enforcement: error
+    exceptions:
+      - "Database model files (models.py) - inherent complexity"
+      - "Generated code with @generated marker"
+      - "Integration test files orchestrating multiple scenarios"
+
+  - id: code_standards.max_function_lines
+    statement: "Functions MUST NOT exceed 50 lines."
+    rationale: >
+      Long functions are hard to test, understand, and reuse.
+      Extract helper functions or split into atomic actions.
+    enforcement: warning
+    exceptions:
+      - "Main entry points that orchestrate workflow steps"
+      - "CLI command handlers (thin wrappers allowed up to 75 lines)"

@@ -2,6 +2,7 @@
 """Services for defining capability keys for symbols (headless, no UI).
 
 ENHANCED VERSION with:
+- Robust JSON parsing for LLM responses
 - Symbol tier filtering (skip infrastructure)
 - Incremental processing (limit + cooldown)
 - Caching enabled for performance
@@ -10,8 +11,7 @@ ENHANCED VERSION with:
 This module is part of the Body/Services layer and MUST remain headless:
 - No Rich Console, no terminal UI.
 - Only logging via the shared logger.
-- Intended to be orchestrated by workflow/CLI layers (e.g. dev-sync),
-  which own all terminal UI and reporting.
+- Intended to be orchestrated by workflow/CLI layers (e.g. dev-sync).
 """
 
 from __future__ import annotations
@@ -30,6 +30,7 @@ from shared.infrastructure.context import ContextService
 from shared.infrastructure.database.session_manager import get_session
 from shared.logger import getLogger
 from shared.utils.parallel_processor import ThrottledParallelProcessor
+from shared.utils.parsing import extract_json_from_response
 
 
 logger = getLogger(__name__)
@@ -41,22 +42,6 @@ async def get_undefined_symbols(
 ) -> list[dict[str, Any]]:
     """
     Fetch symbols that need capability definition (with smart filtering).
-
-    ENHANCED: Now filters by tier and limits batch size to prevent
-    expensive re-processing of infrastructure symbols.
-
-    Args:
-        tier_filter: Only return symbols with this tier ('capability', 'infrastructure', None for unclassified)
-        limit: Maximum symbols to return (default 50 to prevent runaway costs)
-
-    Returns:
-        A list of dicts with at least:
-        - id
-        - symbol_path
-        - qualname
-        - module
-        - symbol_tier
-        - vector_id (may be None)
     """
     async with get_session() as session:
         # Build WHERE conditions
@@ -129,9 +114,6 @@ async def get_undefined_symbols(
 async def mark_symbol_attempt(symbol_id: int):
     """
     Record that we attempted to define a symbol.
-
-    This prevents infinite retries on symbols that consistently fail
-    by enforcing a 1-hour cooldown between attempts.
     """
     async with get_session() as session:
         await session.execute(
@@ -157,10 +139,7 @@ async def define_single_symbol(
     Use an LLM (via ContextService) to generate a capability key
     for a single symbol, using semantic context.
 
-    ENHANCED: Now uses caching and tracks attempts.
-
-    Returns:
-        {"id": <symbol_id>, "key": <capability_key or error_code>}
+    ENHANCED: Uses robust JSON parsing for LLM response.
     """
     symbol_path = symbol.get("symbol_path", "")
     file_path, symbol_name = (
@@ -178,7 +157,7 @@ async def define_single_symbol(
     }
 
     try:
-        # ENHANCED: Cache enabled for performance (was use_cache=False)
+        # Build context
         packet = await context_service.build_for_task(task_spec, use_cache=True)
 
         source_code = ""
@@ -197,11 +176,10 @@ async def define_single_symbol(
                     similar_keys.append(item.get("name", ""))
 
         if not source_code:
-            # Mark attempt to prevent infinite retries
             await mark_symbol_attempt(symbol["id"])
-
-            logger.debug(
-                "No source code found in context for symbol '%s'",
+            # LOGGING FIX: Changed from DEBUG to WARNING to see why it fails
+            logger.warning(
+                "❌ No source code found in context for symbol '%s' (Check context builder config/traversal)",
                 symbol.get("symbol_path"),
             )
             return {"id": symbol["id"], "key": "error.code_not_found"}
@@ -229,29 +207,51 @@ async def define_single_symbol(
             user_id="definer_agent",
         )
 
-        # Extract key from response
-        match = re.search(r"([a-z0-9_]+\.[a-z0-9_.]+[a-z0-9_]+)", raw_response)
-        if match:
-            cleaned_key = match.group(1).strip()
-        else:
-            cleaned_key = (
-                raw_response.strip().replace("`", "").replace("'", "").replace('"', "")
-            )
+        # FIX: Robust Parsing Strategy
+        cleaned_key = ""
 
-        # Allow existing keys (enables multiple symbols -> one capability)
-        if cleaned_key in existing_keys:
-            pass  # This is valid reuse, not an error
+        # Strategy 1: Try to extract and parse JSON
+        try:
+            json_data = extract_json_from_response(raw_response)
+            if json_data and "suggested_capability" in json_data:
+                cleaned_key = json_data["suggested_capability"].strip()
+        except Exception:
+            pass  # Fallback to regex
+
+        # Strategy 2: Fallback to Regex if JSON parsing failed
+        if not cleaned_key:
+            # Look for a dot-notation key (minimum 2 parts)
+            match = re.search(r"([a-z0-9_]+\.[a-z0-9_.]*[a-z0-9_]+)", raw_response)
+            if match:
+                cleaned_key = match.group(1).strip()
+            else:
+                # Last resort: just clean the raw string
+                cleaned_key = (
+                    raw_response.strip()
+                    .replace("`", "")
+                    .replace("'", "")
+                    .replace('"', "")
+                    .replace("{", "")
+                    .replace("}", "")
+                )
+
+        # Validation: Ensure it looks like a key
+        if not cleaned_key or "." not in cleaned_key or " " in cleaned_key:
+            # LOGGING FIX: Log raw response to debug format issues
+            logger.warning(
+                "❌ Invalid key generated: '%s'. LLM Response: {raw_response[:100]}...",
+                cleaned_key,
+            )
+            await mark_symbol_attempt(symbol["id"])
+            return {"id": symbol["id"], "key": "error.invalid_format"}
 
         return {"id": symbol["id"], "key": cleaned_key}
 
-    except Exception as e:  # pragma: no cover
-        # Mark attempt even on error
+    except Exception as e:
         await mark_symbol_attempt(symbol["id"])
-
+        # LOGGING FIX: Log exception details
         logger.warning(
-            "Definition failed for symbol '%s': %s",
-            symbol.get("symbol_path"),
-            e,
+            f"❌ Definition failed for symbol '{symbol.get('symbol_path')}': {e}"
         )
         return {"id": symbol["id"], "key": "error.processing_failed"}
 
@@ -260,9 +260,6 @@ async def define_single_symbol(
 async def update_definitions_in_db(definitions: list[dict[str, Any]]) -> None:
     """
     Update the 'key' column for symbols in the database.
-
-    Args:
-        definitions: List of {"id": <symbol_id>, "key": <capability_key>}
     """
     if not definitions:
         return
@@ -296,34 +293,13 @@ async def update_definitions_in_db(definitions: list[dict[str, Any]]) -> None:
 async def _define_new_symbols(context_service: ContextService) -> ActionResult:
     """
     Orchestrate the autonomous capability-definition process for undefined symbols.
-
-    ENHANCED VERSION:
-    - Filters out infrastructure symbols (no LLM needed)
-    - Processes max 50 symbols per run (prevents runaway costs)
-    - Uses caching for performance
-    - Tracks attempts to prevent infinite retries
-
-    This function:
-      - Finds symbols without a key.
-      - Uses the ContextService + LLM to propose capability keys.
-      - Persists valid definitions to the database.
-
-    It is intentionally HEADLESS:
-      - No Rich UI, no console printing.
-      - Only structured logging via the shared logger.
-      - Intended to be wrapped by higher-level workflows (e.g. dev-sync),
-        which own terminal UI and progress reporting.
-
-    Returns:
-        ActionResult describing the outcome of the definition run.
     """
     start = time.time()
 
     try:
-        # ENHANCED: Filter out infrastructure, limit batch size
         undefined_symbols = await get_undefined_symbols(
-            tier_filter=None,  # Get unclassified symbols (not infrastructure)
-            limit=50,  # Process max 50 per run
+            tier_filter=None,
+            limit=50,
         )
         undefined_count = len(undefined_symbols)
 
@@ -357,11 +333,9 @@ async def _define_new_symbols(context_service: ContextService) -> ActionResult:
             existing_keys=existing_keys,
         )
 
-        # Process in parallel
         processor = ThrottledParallelProcessor(description="Defining symbols...")
         definitions = await processor.run_async(undefined_symbols, worker_fn)
 
-        # Filter out errors
         valid_definitions = [
             d for d in definitions if d.get("key") and not d["key"].startswith("error.")
         ]
@@ -394,7 +368,7 @@ async def _define_new_symbols(context_service: ContextService) -> ActionResult:
             impact=impact,
         )
 
-    except Exception as e:  # pragma: no cover
+    except Exception as e:
         duration = time.time() - start
         logger.error("Error while defining new symbols: %s", e)
         return ActionResult(

@@ -4,14 +4,8 @@
 
 from __future__ import annotations
 
-from shared.logger import getLogger
-
-
-logger = getLogger(__name__)
-
 import ast
 import json
-import logging
 import uuid
 from datetime import UTC, datetime
 from pathlib import Path
@@ -19,17 +13,19 @@ from typing import Any
 
 import yaml
 
+from shared.logger import getLogger
+
 from .serializers import ContextSerializer
 
 
-logger = logging.getLogger(__name__)
+logger = getLogger(__name__)
 
 
-# --- START OF FINAL FIX: Correctly parse ALL symbols, including methods ---
+# --- START OF FINAL FIX: Correctly parse ALL symbols with QUALIFIED NAMES ---
 def _parse_python_file(filepath: str) -> list[dict]:
     """
     Parses a Python file and extracts metadata for ALL functions and classes,
-    including methods nested within classes.
+    including methods nested within classes, with fully qualified names.
     """
     try:
         with open(filepath, encoding="utf-8") as f:
@@ -37,27 +33,56 @@ def _parse_python_file(filepath: str) -> list[dict]:
         tree = ast.parse(source, filename=filepath)
 
         symbols = []
-        # The fix is to use ast.walk(), which traverses the entire tree,
-        # instead of iterating over tree.body, which only contains top-level nodes.
-        for node in ast.walk(tree):
-            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
-                # We can add further filtering here if needed, but for now,
-                # we want to find ALL symbols to ensure the context is complete.
+
+        # ID: ee3ca2f7-14eb-4638-912f-9ae5ccd5cca4
+        class ScopeTracker(ast.NodeVisitor):
+            def __init__(self):
+                self.stack = []
+                self.symbols = []
+
+            # ID: 3fb44c15-11e2-4e04-8f1e-a2a1a424a5f9
+            def visit_ClassDef(self, node):
+                self._add_symbol(node)
+                self.stack.append(node.name)
+                self.generic_visit(node)
+                self.stack.pop()
+
+            # ID: 38330a09-27bd-43fb-80d7-5e7b4aa7b7de
+            def visit_FunctionDef(self, node):
+                self._add_symbol(node)
+                self.generic_visit(node)
+
+            # ID: 28b325b5-ac96-4043-a890-829608125fab
+            def visit_AsyncFunctionDef(self, node):
+                self._add_symbol(node)
+                self.generic_visit(node)
+
+            def _add_symbol(self, node):
+                if self.stack:
+                    qualname = f"{'.'.join(self.stack)}.{node.name}"
+                else:
+                    qualname = node.name
+
                 signature = ast.get_source_segment(source, node).split("\n")[0]
                 lines = source.splitlines()
                 end_lineno = getattr(node, "end_lineno", node.lineno)
                 code = "\n".join(lines[node.lineno - 1 : end_lineno])
                 docstring = ast.get_docstring(node) or ""
 
-                symbols.append(
+                self.symbols.append(
                     {
                         "name": node.name,
+                        "qualname": qualname,
                         "signature": signature,
                         "code": code,
                         "docstring": docstring,
                     }
                 )
-        return symbols
+
+        visitor = ScopeTracker()
+        visitor.visit(tree)
+        return visitor.symbols
+
     except Exception as e:
         logger.error("Failed to parse {filepath}: %s", e)
         return []
@@ -172,16 +197,19 @@ class ContextBuilder:
         scope = packet["scope"]
         max_items = packet["constraints"]["max_items"]
 
+        # 1. Collect Seed Items
         if self.db:
             seed_items = await self.db.get_symbols_for_scope(scope, max_items // 2)
             items.extend(seed_items)
 
+        # 2. Collect Vector Items
         if self.vectors and task_spec.get("summary"):
             vec_items = await self.vectors.search_similar(
                 task_spec["summary"], top_k=max_items // 3
             )
             items.extend(vec_items)
 
+        # 3. Traverse Graph
         traversal_depth = scope.get("traversal_depth", 0)
         if traversal_depth > 0 and self._knowledge_graph.get("symbols") and items:
             logger.info("Traversing knowledge graph to depth %s.", traversal_depth)
@@ -190,8 +218,15 @@ class ContextBuilder:
             )
             items.extend(related_items)
 
-        items = await self._force_add_code_item(items, task_spec)
+        # 4. Force Add Target Code (CRITICAL FIX: PREPEND to ensure survival)
+        # We process this last to ensure we have the target, but we insert at 0
+        forced_items = await self._force_add_code_item(task_spec)
+        if forced_items:
+            # Prepend forced items so they are always the first items in the context
+            # This protects them from being chopped off by max_items limit
+            items = forced_items + items
 
+        # 5. Deduplicate
         seen_keys = set()
         unique_items = []
         for item in items:
@@ -266,28 +301,27 @@ class ContextBuilder:
             "source": "db_graph_traversal",
         }
 
-    async def _force_add_code_item(self, items: list, task_spec: dict) -> list:
+    async def _force_add_code_item(self, task_spec: dict) -> list[dict]:
+        """
+        Loads the specific target symbol source code.
+        Returns a list containing the code item (or empty if not found).
+        """
         target_file_str = task_spec.get("target_file")
         target_symbol = task_spec.get("target_symbol")
         if not target_file_str or not target_symbol:
-            return items
-
-        if any(
-            i.get("item_type") == "code" and i.get("name") == target_symbol
-            for i in items
-        ):
-            return items
+            return []
 
         full_path = Path.cwd() / target_file_str
         if not full_path.exists():
             logger.warning("File not found: %s", full_path)
-            return items
+            return []
 
         logger.info("FORCE-ADDING CODE ITEM for '%s'", target_symbol)
 
         symbols = _parse_python_file(str(full_path))
         for sym in symbols:
-            if sym["name"] == target_symbol:
+            # Check both simple name AND qualified name
+            if sym["name"] == target_symbol or sym.get("qualname") == target_symbol:
                 item = {
                     "name": sym["name"],
                     "path": target_file_str,
@@ -297,16 +331,22 @@ class ContextBuilder:
                     "source": "builtin_ast",
                     "signature": sym.get("signature", ""),
                 }
-                items.append(item)
                 logger.info("Added CODE item with content: %s", target_symbol)
-                break
-        return items
+                return [item]
+
+        logger.warning(
+            "Target symbol '{target_symbol}' not found in %s", target_file_str
+        )
+        return []
 
     def _apply_constraints(self, items: list, constraints: dict) -> list:
         max_items = constraints.get("max_items", 50)
         max_tokens = constraints.get("max_tokens", 100000)
+
+        # Simple truncation
         if len(items) > max_items:
             items = items[:max_items]
+
         total = 0
         filtered = []
         for item in items:

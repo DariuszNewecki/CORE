@@ -1,0 +1,299 @@
+# .intent/charter/constitution/GLOBAL-DOCUMENT-META-SCHEMA.yaml
+version: "1.0.0"
+id: "global_document_meta_schema"
+type: "constitutional_meta_schema"
+title: "Global .intent Document Meta-Schema"
+status: active
+
+description: >
+  Defines the canonical header structure, schema resolution rules, and
+  non-negotiable invariants for ALL .intent documents. Any YAML file under
+  .intent/** that does not comply with this meta-schema MUST be treated as
+  invalid Mind content.
+
+  This meta-schema intentionally does NOT enumerate all document types.
+  Supported document kinds emerge from the set of JSON schemas present under
+  .intent/charter/schemas/** and from documents that successfully validate
+  against them.
+
+# ============================================================================
+# 1. SCOPE OF APPLICATION
+# ============================================================================
+scope:
+  applies_to:
+    - ".intent/**/*.yaml"
+    - ".intent/**/*.yml"
+  excludes:
+    # These paths must NOT contain mutable runtime state either; they are
+    # excluded from this meta-schema only because they are handled by separate
+    # security / key management / export policies.
+    - ".intent/keys/**"
+    - ".intent/mind_export/**"
+    - ".intent/proposals/**"
+
+  intent: >
+    All remaining YAML/YML files under .intent/** are considered part of the
+    Mind and MUST conform to this meta-schema and pass validation against a
+    concrete JSON schema.
+
+# ============================================================================
+# 2. GLOBAL HEADER SCHEMA (APPLIES TO ALL .intent DOCUMENTS)
+# ============================================================================
+header_schema:
+  description: >
+    Header fields that EVERY .intent YAML MUST define at the top level.
+    These fields allow governance, review, and validation to be applied
+    uniformly across all document families.
+
+  required_fields:
+    - id
+    - version
+    - title
+    - type
+    - status
+    - owners
+    - review
+    - schema_id
+
+  fields:
+    id:
+      type: string
+      description: "Stable identifier for the document (not a content hash)."
+      pattern: "^[a-z0-9_.-]+$"
+      examples:
+        - "safety_framework"
+        - "code_standards"
+        - "agent_patterns"
+
+    version:
+      type: string
+      description: "Semantic version of this document."
+      pattern: "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+      examples:
+        - "1.0.0"
+        - "2.1.3"
+
+    title:
+      type: string
+      description: "Human-readable title for the document."
+      max_length: 200
+
+    type:
+      type: string
+      description: >
+        Logical document kind. This meta-schema does NOT validate the exact
+        list of possible values. The value MUST be stable and used consistently
+        across the project.
+
+        Recommended naming convention (examples, not enforced here):
+          - constitutional_authority
+          - constitutional_boundaries
+          - standard_operations
+          - standard_architecture
+          - pattern_agent
+          - config_runtime_requirements
+          - config_context_policy
+          - knowledge_domains
+          - registry_prompts
+      pattern: "^[a-z]+(_[a-z0-9]+)*$"
+
+    status:
+      type: string
+      description: "Lifecycle status of this document."
+      allowed_values:
+        - "active"
+        - "draft"
+        - "deprecated"
+        - "experimental"
+      default: "active"
+
+    owners:
+      type: object
+      description: "RACI-style ownership for this document."
+      required_fields:
+        - accountable
+      fields:
+        accountable:
+          type: string
+          description: "Single role or named person ultimately accountable."
+          examples:
+            - "Core Maintainer"
+            - "Governance Lead"
+        responsible:
+          type: array
+          description: "Roles or people responsible for day-to-day maintenance."
+          items:
+            type: string
+          default: []
+
+    review:
+      type: object
+      description: "Review cadence and traceability."
+      required_fields:
+        - frequency
+      fields:
+        frequency:
+          type: string
+          description: "Expected review frequency (e.g. '6 months', '12 months')."
+        last_reviewed:
+          type: string
+          format: "date"
+          required: false
+        next_review_due:
+          type: string
+          format: "date"
+          required: false
+
+    tags:
+      type: array
+      required: false
+      description: "Optional classification tags (e.g. ['safety', 'agent', 'runtime'])."
+      items:
+        type: string
+
+    schema_id:
+      type: string
+      description: >
+        Logical identifier of the JSON schema that validates this document.
+        The validator resolves this identifier into an actual schema file
+        under .intent/charter/schemas/**. The set of supported schema_ids
+        is NOT enumerated in this meta-schema.
+      pattern: "^[a-z0-9_.-]+$"
+      examples:
+        - "constitution.authority.v1"
+        - "standard.operations.safety.v2"
+        - "config.runtime_requirements.v1"
+        - "pattern.agent_architecture.v1"
+
+    $schema:
+      type: string
+      required: false
+      description: >
+        Optional direct pointer to a JSON schema resource (JSON-Schema style).
+        If present, it SHOULD be a relative path under .intent/charter/schemas/**.
+      examples:
+        - "charter/schemas/constitution.authority.v1.schema.json"
+        - "charter/schemas/standard.operations.safety.v2.schema.json"
+
+# ============================================================================
+# 3. SCHEMA RESOLUTION RULES
+# ============================================================================
+schema_resolution:
+  description: >
+    Defines how the validator resolves which JSON schema to use for a given
+    .intent document. The resolution mechanism is implemented in code using
+    these rules.
+
+  precedence_order:
+    - "$schema"
+    - "schema_id"
+
+  mechanisms:
+    - method: "explicit_path"
+      description: "Use the $schema field as a direct relative path."
+      field: "$schema"
+      allowed_prefixes:
+        - "charter/schemas/"
+      behavior:
+        - "If $schema is present, resolve it relative to get_repo_root()/.intent."
+        - "If the target file does not exist -> validation error."
+
+    - method: "schema_id_mapping"
+      description: "Map schema_id to a schema file path by convention."
+      field: "schema_id"
+      mapping_pattern: "charter/schemas/{schema_id}.schema.json"
+      examples:
+        - schema_id: "constitution.authority.v1"
+          resolved_path: ".intent/charter/schemas/constitution.authority.v1.schema.json"
+
+# ============================================================================
+# 4. INVARIANTS ABOUT .intent (NO RUNTIME STATE)
+# ============================================================================
+invariants:
+  description: >
+    Non-negotiable rules that define what may exist under .intent/**.
+    These are enforced by IntentGuard and by CI.
+
+  rules:
+    - id: "mind.no_runtime_state"
+      statement: >
+        No mutable runtime state, logs, or execution by-products may be stored
+        under .intent/**. The Mind contains only law, standards, schemas,
+        registries, and curated knowledge.
+      rationale: >
+        Prevents drift between declarative intent and runtime behaviour, and
+        ensures that .intent remains a purely declarative, reviewable SSOT.
+      enforcement: "error"
+
+    - id: "mind.header_required"
+      statement: >
+        Every YAML/YML file under .intent/** (except explicitly excluded paths)
+        MUST provide all required header fields defined in header_schema.
+      rationale: >
+        Ensures that every document in the Mind is attributable, versioned,
+        reviewable, and schema-bound.
+      enforcement: "error"
+
+    - id: "mind.schema_required"
+      statement: >
+        Every YAML/YML file under .intent/** (except explicitly excluded paths)
+        MUST provide either schema_id or $schema and MUST successfully validate
+        against the resolved JSON schema.
+      rationale: >
+        Ensures that all .intent documents are self-describing and machine-
+        checkable; prevents undocumented or ad-hoc Mind content.
+      enforcement: "error"
+
+# ============================================================================
+# 5. VALIDATOR CONTRACT
+# ============================================================================
+validator_contract:
+  description: >
+    Defines the expected behaviour of the validator that enforces this
+    meta-schema. The exact function name is an implementation detail; this
+    section captures the contract.
+
+  function_name: "shared.schemas.validate_intent_document"  # suggested name
+  responsibilities:
+    - "Load YAML document from disk."
+    - "Check presence and shape of header fields according to header_schema."
+    - "Resolve target JSON schema using schema_resolution."
+    - "Run JSON-schema validation on the full document."
+    - "Return (is_valid: bool, errors: list[str])."
+
+  ci_behavior:
+    on_failure: "fail"
+    description: >
+      Any invalid .intent document MUST block merge/deploy. CI pipelines
+      MUST include a step that validates all .intent YAML files.
+
+  runtime_behavior:
+    on_failure: "block_or_readonly"
+    description: >
+      If a critical .intent document fails validation at startup, CORE MUST
+      either refuse to start or enter a restricted/readonly mode with an
+      explicit operator warning.
+
+# ============================================================================
+# 6. NOTES & EXTENSIBILITY
+# ============================================================================
+notes: |
+  - This meta-schema does NOT define the internal content structure of each
+    document type (e.g. principles for constitution, rules for standards,
+    patterns for architecture). Those structures are defined in their own
+    JSON schemas under .intent/charter/schemas/**.
+
+  - To introduce a new .intent document kind:
+      1) Create a new JSON schema file under .intent/charter/schemas/**.
+      2) Choose a unique schema_id for it.
+      3) In the document header, set:
+           type: <your_logical_kind>
+           schema_id: <your_schema_id>
+         (optionally also set $schema to the explicit path).
+      4) Ensure the document passes validation.
+
+  - Any YAML/YML file under .intent/** that:
+      * lacks the required header fields, OR
+      * cannot resolve a schema via $schema or schema_id, OR
+      * fails JSON-schema validation
+    MUST be treated as invalid Mind content and rejected by CI and runtime.
