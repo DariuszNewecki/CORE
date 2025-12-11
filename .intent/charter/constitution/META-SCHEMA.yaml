@@ -1,0 +1,239 @@
+# .intent/charter/constitution/META-SCHEMA.yaml
+version: "3.0.0"
+type: "meta_constitutional_schema"
+description: |
+  Defines the canonical structure ALL constitutional documents must follow.
+  Every .intent/charter/constitution/*.yaml file is validated against this schema.
+
+canonical_document_structure:
+  description: "Every constitutional document follows this exact structure"
+
+  required_fields:
+    - version
+    - type
+    - domain
+    - principles
+
+  optional_fields:
+    - metadata
+    - references
+
+  max_nesting_depth: 5
+
+  template: |
+    version: "X.Y.Z"
+    type: "constitutional_<domain>"
+    domain: "authority|boundaries|risk|enforcement"
+
+    principles:
+      <principle_id>:
+        statement: "..."
+        rationale: "..."
+        scope:
+          - "path_pattern|action_type"
+        enforcement:
+          method: "validator_function"
+          parameters: {}
+
+principle_schema:
+  description: "Every principle follows this structure"
+
+  principle_id:
+    format: "lowercase_snake_case"
+    pattern: "^[a-z][a-z0-9_]*$"
+    examples:
+      - "database_ssot"
+      - "human_approval_required"
+      - "audit_all_actions"
+
+  statement:
+    type: "string"
+    description: "Clear, imperative declaration of the rule"
+    max_length: 200
+    required: true
+    examples:
+      - "The database is the single source of truth"
+      - "Critical paths require human approval before modification"
+      - "All autonomous actions must be logged"
+
+  rationale:
+    type: "string"
+    description: "Why this principle exists (for human understanding)"
+    max_length: 500
+    required: true
+    examples:
+      - "Prevents split-brain scenarios and ensures state consistency"
+      - "Maintains human authority over system architecture"
+
+  scope:
+    type: "list[string]"
+    description: "Where this principle applies (paths, actions, contexts)"
+    required: true
+    min_items: 1
+    examples:
+      - ["src/body/core/database.py", "alembic/versions/*"]
+      - ["schema_migration", "config_change"]
+      - ["elevated_risk", "critical_risk"]
+
+  enforcement:
+    type: "object"
+    description: "How to validate compliance with this principle"
+    required: true
+    required_fields:
+      - method
+      - parameters
+
+    method:
+      type: "string"
+      description: "Validation mechanism to use"
+      allowed_values:
+        - "path_match"
+        - "action_classification"
+        - "boundary_check"
+        - "risk_calculation"
+        - "audit_verification"
+        - "architectural_validation"
+        - "layer_boundary_check"
+        - "pre_execution_validation"
+        - "audit_logging"
+        - "execution_context_check"
+        - "storage_policy"
+        - "capability_verification"
+        - "version_control_check"
+        - "default_policy"
+        - "multi_layer_validation"
+        - "execution_limits"
+        - "pattern_validation"
+        - "behavioral_verification"
+
+    parameters:
+      type: "object"
+      description: "Configuration for the enforcement method"
+      examples:
+        path_match:
+          patterns: [".intent/**", "src/mind/**"]
+          action: "block_autonomous"
+        action_classification:
+          allowed_actions: ["format_code", "fix_docstring"]
+          prohibited_actions: ["schema_migration"]
+          require: "validation_only"
+        risk_calculation:
+          risk_score: 7
+          approval: "human_confirmation_required"
+          characteristics:
+            - "affects_multiple_components"
+
+document_types:
+  authority:
+    description: "Defines who can make which decisions"
+    domain: "authority"
+    type_prefix: "constitutional_authority"
+    principle_categories:
+      - human_required
+      - autonomous_allowed
+      - conditional
+
+  boundaries:
+    description: "Immutable architectural constraints"
+    domain: "boundaries"
+    type_prefix: "constitutional_boundaries"
+    principle_categories:
+      - immutable
+      - prohibited
+      - required
+
+  risk:
+    description: "How to classify operational risk"
+    domain: "risk"
+    type_prefix: "constitutional_risk"
+    principle_categories:
+      - routine
+      - standard
+      - elevated
+      - critical
+
+  enforcement:
+    description: "How governance is validated and enforced"
+    domain: "enforcement"
+    type_prefix: "constitutional_enforcement"
+    principle_categories:
+      - pre_execution
+      - post_execution
+      - continuous
+
+validation_rules:
+  structural:
+    - "All documents must have required fields: version, type, domain, principles"
+    - "principles must be a dict, not a list"
+    - "Each principle must have: statement, rationale, scope, enforcement"
+    - "Maximum nesting depth is defined by max_nesting_depth"
+    - "No arbitrary keys allowed outside optional_fields"
+    - "principle_id must match pattern defined in principle_schema"
+
+  semantic:
+    - "principle_id must be unique within document"
+    - "scope must contain at least one item"
+    - "enforcement.method must be from allowed_values list"
+    - "enforcement.parameters must be a non-empty object"
+    - "statement length must not exceed max_length"
+    - "rationale length must not exceed max_length"
+
+  cross_document:
+    - "Referenced documents in references field must exist"
+    - "Referenced principles must exist in target documents"
+    - "domain field must match one of defined document_types"
+    - "type field should match type_prefix for domain"
+
+examples:
+  minimal_valid_document:
+    version: "3.0.0"
+    type: "constitutional_authority"
+    domain: "authority"
+    principles:
+      human_approval_for_intent:
+        statement: "Modifications to .intent/ require human approval"
+        rationale: "Preserves constitutional supremacy"
+        scope:
+          - ".intent/**"
+        enforcement:
+          method: "path_match"
+          parameters:
+            patterns: [".intent/**"]
+            action: "block_autonomous"
+
+  full_valid_document:
+    version: "3.0.0"
+    type: "constitutional_boundaries"
+    domain: "boundaries"
+    metadata:
+      author: "Darek"
+      created: "2025-01-15"
+      last_modified: "2025-01-15"
+    principles:
+      database_is_ssot:
+        statement: "The database is the single source of truth"
+        rationale: "Prevents split-brain scenarios and ensures state consistency"
+        scope:
+          - "src/body/core/database.py"
+          - "src/body/services/**"
+        enforcement:
+          method: "audit_verification"
+          parameters:
+            check: "no_filesystem_state_duplication"
+            audit_trail: true
+      mind_body_will_separation:
+        statement: "Will queries Body, Body loads Mind, Mind is human-authored"
+        rationale: "Separates AI execution from human authority"
+        scope:
+          - "src/will/**"
+          - "src/body/**"
+          - ".intent/**"
+        enforcement:
+          method: "boundary_check"
+          parameters:
+            prohibited_patterns:
+              - "will_layer_parsing_yaml"
+              - "body_layer_writing_intent"
+    references:
+      - "authority.yaml#human_approval_for_intent"
+      - "risk.yaml#critical_paths"

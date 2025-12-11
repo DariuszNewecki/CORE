@@ -92,7 +92,7 @@ async def handle_message(message: str) -> None:
     logger.info("─" * 70)
     logger.info(response)
     logger.info("─" * 70)
-    logger.info()
+    logger.info("")
 
 
 if __name__ == "__main__":

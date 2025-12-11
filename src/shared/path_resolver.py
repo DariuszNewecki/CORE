@@ -82,7 +82,7 @@ class PathResolver:
     @property
     # ID: f7e26b82-5235-4996-b9ef-c63368a1ac26
     def charter_root(self) -> Path:
-        """Root of .intent/charter/ (constitution, policies, patterns)."""
+        """Root of .intent/charter/ (constitution, standards, schemas)."""
         return self._intent_root / "charter"
 
     @property
@@ -90,6 +90,102 @@ class PathResolver:
     def mind_root(self) -> Path:
         """Root of .intent/mind/ (knowledge, config, IR)."""
         return self._intent_root / "mind"
+
+    # =========================================================================
+    # CONSTITUTION & STANDARDS (Charter v3.0.0)
+    # =========================================================================
+
+    @property
+    # ID: a020e1cc-d6ab-4578-a37c-c58e4aa26585
+    def constitution_dir(self) -> Path:
+        """Directory containing high-level constitutional definitions."""
+        return self.charter_root / "constitution"
+
+    @property
+    # ID: b90d46b3-39be-4027-8bb4-b747e06a74ca
+    def standards_root(self) -> Path:
+        """Root of the Standards hierarchy (architecture, code, operations, etc.)."""
+        return self.charter_root / "standards"
+
+    @property
+    # ID: dd6f3759-9f4b-47fc-9e12-bc0e47544cf3
+    def policies_dir(self) -> Path:
+        """
+        [LEGACY SHIM] Maps legacy 'policies' requests to the Standards root.
+        This allows existing code to find policies (now standards) within the new structure.
+        """
+        return self.standards_root
+
+    @property
+    # ID: e5a7ba49-2e77-42cb-8496-f95a0da63a10
+    def patterns_dir(self) -> Path:
+        """
+        [LEGACY SHIM] Maps legacy 'patterns' requests to Architecture Standards.
+        """
+        return self.standards_root / "architecture"
+
+    # ID: 27d157c2-2eb5-4a09-9904-c60f86af1bfc
+    def policy(self, name: str) -> Path:
+        """
+        Get path to a specific policy (standard) file.
+        Searches recursively in the standards directory.
+
+        Args:
+            name: Policy name (without .yaml extension)
+
+        Returns:
+            Path to policy YAML file
+
+        Raises:
+            FileNotFoundError: If policy doesn't exist
+        """
+        # Recursive search because standards are nested (operations/safety.yaml, etc.)
+        matches = list(self.policies_dir.rglob(f"{name}.yaml"))
+
+        if not matches:
+            available = self.list_policies()
+            raise FileNotFoundError(
+                f"Policy/Standard '{name}' not found in {self.policies_dir}. "
+                f"Available standards: {', '.join(available)}"
+            )
+
+        # Return the first match (assuming names are unique across standards)
+        return matches[0]
+
+    # ID: 86299442-b2ae-45e1-8de0-c87345d8951b
+    def list_policies(self) -> list[str]:
+        """
+        List all available policies (standards).
+        Scans recursively through standards directory.
+
+        Returns:
+            List of policy names (without .yaml extension)
+        """
+        if not self.policies_dir.exists():
+            return []
+
+        return [p.stem for p in self.policies_dir.rglob("*.yaml")]
+
+    # ID: db237a05-9649-4882-b982-37d989b3a4ba
+    def pattern(self, name: str) -> Path:
+        """
+        Get path to a specific pattern file.
+
+        Args:
+            name: Pattern name (without .yaml extension)
+
+        Returns:
+            Path to pattern YAML file
+        """
+        return self.patterns_dir / f"{name}.yaml"
+
+    # ID: 631ade1f-a080-4f33-852e-d8b5ef9888bd
+    def list_patterns(self) -> list[str]:
+        """List all available patterns (architecture standards)."""
+        if not self.patterns_dir.exists():
+            return []
+
+        return [p.stem for p in self.patterns_dir.glob("*.yaml")]
 
     # =========================================================================
     # PROPOSALS
@@ -162,85 +258,6 @@ class PathResolver:
             return []
 
         return [p.stem for p in self.prompts_dir.glob("*.prompt")]
-
-    # =========================================================================
-    # POLICIES
-    # =========================================================================
-
-    @property
-    # ID: dd6f3759-9f4b-47fc-9e12-bc0e47544cf3
-    def policies_dir(self) -> Path:
-        """Directory containing constitutional policies."""
-        return self.charter_root / "policies"
-
-    # ID: 27d157c2-2eb5-4a09-9904-c60f86af1bfc
-    def policy(self, name: str) -> Path:
-        """
-        Get path to a specific policy file.
-
-        Args:
-            name: Policy name (without .yaml extension)
-
-        Returns:
-            Path to policy YAML file
-
-        Raises:
-            FileNotFoundError: If policy doesn't exist
-        """
-        policy_path = self.policies_dir / f"{name}.yaml"
-
-        if not policy_path.exists():
-            available = self.list_policies()
-            raise FileNotFoundError(
-                f"Policy '{name}' not found at {policy_path}. "
-                f"Available policies: {', '.join(available)}"
-            )
-
-        return policy_path
-
-    # ID: 86299442-b2ae-45e1-8de0-c87345d8951b
-    def list_policies(self) -> list[str]:
-        """
-        List all available policies.
-
-        Returns:
-            List of policy names (without .yaml extension)
-        """
-        if not self.policies_dir.exists():
-            return []
-
-        return [p.stem for p in self.policies_dir.glob("*.yaml")]
-
-    # =========================================================================
-    # PATTERNS
-    # =========================================================================
-
-    @property
-    # ID: e5a7ba49-2e77-42cb-8496-f95a0da63a10
-    def patterns_dir(self) -> Path:
-        """Directory containing architectural patterns."""
-        return self.charter_root / "patterns"
-
-    # ID: db237a05-9649-4882-b982-37d989b3a4ba
-    def pattern(self, name: str) -> Path:
-        """
-        Get path to a specific pattern file.
-
-        Args:
-            name: Pattern name (without .yaml extension)
-
-        Returns:
-            Path to pattern YAML file
-        """
-        return self.patterns_dir / f"{name}.yaml"
-
-    # ID: 631ade1f-a080-4f33-852e-d8b5ef9888bd
-    def list_patterns(self) -> list[str]:
-        """List all available patterns."""
-        if not self.patterns_dir.exists():
-            return []
-
-        return [p.stem for p in self.patterns_dir.glob("*.yaml")]
 
     # =========================================================================
     # SCHEMAS
@@ -337,8 +354,8 @@ class PathResolver:
             (self.mind_root, ".intent/mind/"),
             (self.proposals_dir, ".intent/proposals/"),
             (self.prompts_dir, "prompts directory"),
-            (self.policies_dir, "policies directory"),
-            (self.patterns_dir, "patterns directory"),
+            (self.constitution_dir, "constitution directory"),  # Updated
+            (self.standards_root, "standards directory"),  # Updated
         ]
 
         for path, name in required_dirs:
