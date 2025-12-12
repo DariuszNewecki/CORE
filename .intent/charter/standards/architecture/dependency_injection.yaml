@@ -1,9 +1,22 @@
-# .intent/charter/policies/dependency_injection_policy.yaml
-policy_id: "b9b2b1b8-4e62-4b20-8cb4-8b4f0c9d8e21"
-id: dependency_injection_policy
+# .intent/charter/standards/architecture/dependency_injection.yaml
+id: standard_architecture_dependency_injection
 version: "1.0.0"
-title: "Dependency Injection Policy"
+title: "Architecture Standard – Dependency Injection"
+type: "standard_architecture"
 status: active
+
+owners:
+  accountable: "Architecture Owner"
+  responsible:
+    - "Core Maintainer"
+
+review:
+  frequency: "12 months"
+
+schema_id: "standard.architecture.dependency_injection"
+
+policy_id: "b9b2b1b8-4e62-4b20-8cb4-8b4f0c9d8e21"
+
 purpose: >
   Canonical rules for dependency injection in CORE. Ensures that major services
   are wired through explicit constructors or factories, avoiding hidden globals

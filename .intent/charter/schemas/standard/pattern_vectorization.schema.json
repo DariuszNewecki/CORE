@@ -1,0 +1,1071 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "schema_id": "standard.operations.pattern_vectorization",
+  "version": "1.0.0",
+  "title": "Operations Standard \u2013 Pattern Vectorization",
+  "description": "Validates pattern_vectorization.yaml with constitutional rigor and structural flexibility",
+  "type": "object",
+  "required": [
+    "id",
+    "version",
+    "title",
+    "type",
+    "status",
+    "owners",
+    "review",
+    "schema_id",
+    "policy_id",
+    "category",
+    "layer",
+    "depends_on",
+    "philosophy",
+    "requirements",
+    "vector_collection",
+    "validation_workflow",
+    "integration",
+    "implementation",
+    "success_criteria",
+    "governance",
+    "references"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9_.-]+$"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "title": {
+      "type": "string",
+      "maxLength": 200
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "draft",
+        "deprecated",
+        "experimental"
+      ]
+    },
+    "owners": {
+      "type": "object",
+      "required": [
+        "accountable"
+      ],
+      "properties": {
+        "accountable": {
+          "type": "string"
+        },
+        "responsible": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "review": {
+      "type": "object",
+      "required": [
+        "frequency"
+      ],
+      "properties": {
+        "frequency": {
+          "type": "string"
+        },
+        "last_reviewed": {
+          "type": "string",
+          "format": "date"
+        },
+        "next_review_due": {
+          "type": "string",
+          "format": "date"
+        }
+      },
+      "additionalProperties": false
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "$schema": {
+      "type": "string",
+      "description": "Optional JSON Schema reference"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "standard_operations"
+      ]
+    },
+    "schema_id": {
+      "type": "string",
+      "const": "standard.operations.pattern_vectorization"
+    },
+    "policy_id": {
+      "type": "string"
+    },
+    "category": {
+      "type": "string"
+    },
+    "layer": {
+      "type": "string"
+    },
+    "depends_on": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1
+    },
+    "philosophy": {
+      "type": "string",
+      "minLength": 10
+    },
+    "requirements": {
+      "type": "object",
+      "properties": {
+        "pattern_understanding": {
+          "type": "object",
+          "properties": {
+            "mandate": {
+              "type": "string",
+              "minLength": 10
+            },
+            "implementation": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "minItems": 1
+            },
+            "validation": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "minItems": 1
+            }
+          },
+          "required": [
+            "mandate",
+            "implementation",
+            "validation"
+          ],
+          "additionalProperties": false
+        },
+        "semantic_validation": {
+          "type": "object",
+          "properties": {
+            "mandate": {
+              "type": "string"
+            },
+            "implementation": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "minItems": 1
+            },
+            "validation": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "minItems": 1
+            }
+          },
+          "required": [
+            "mandate",
+            "implementation",
+            "validation"
+          ],
+          "additionalProperties": false
+        },
+        "constitutional_audit": {
+          "type": "object",
+          "properties": {
+            "mandate": {
+              "type": "string",
+              "minLength": 10
+            },
+            "implementation": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "minItems": 1
+            },
+            "validation": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "minItems": 1
+            }
+          },
+          "required": [
+            "mandate",
+            "implementation",
+            "validation"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "pattern_understanding",
+        "semantic_validation",
+        "constitutional_audit"
+      ],
+      "additionalProperties": false
+    },
+    "vector_collection": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "purpose": {
+          "type": "string"
+        },
+        "collection_schema": {
+          "type": "object",
+          "properties": {
+            "vector_dimension": {
+              "type": "integer"
+            },
+            "distance_metric": {
+              "type": "string"
+            },
+            "metadata_schema": {
+              "type": "object",
+              "properties": {
+                "pattern_id": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "required": {
+                      "type": "boolean"
+                    },
+                    "description": {
+                      "type": "string"
+                    },
+                    "example": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "required",
+                    "description",
+                    "example"
+                  ],
+                  "additionalProperties": false
+                },
+                "pattern_version": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "required": {
+                      "type": "boolean"
+                    },
+                    "description": {
+                      "type": "string"
+                    },
+                    "example": {
+                      "type": "string",
+                      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "required",
+                    "description",
+                    "example"
+                  ],
+                  "additionalProperties": false
+                },
+                "pattern_category": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "required": {
+                      "type": "boolean"
+                    },
+                    "description": {
+                      "type": "string"
+                    },
+                    "values": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "minItems": 1
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "required",
+                    "description",
+                    "values"
+                  ],
+                  "additionalProperties": false
+                },
+                "section_type": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "required": {
+                      "type": "boolean"
+                    },
+                    "description": {
+                      "type": "string"
+                    },
+                    "values": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "minItems": 1
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "required",
+                    "description",
+                    "values"
+                  ],
+                  "additionalProperties": false
+                },
+                "section_path": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "required": {
+                      "type": "boolean"
+                    },
+                    "description": {
+                      "type": "string"
+                    },
+                    "example": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "required",
+                    "description",
+                    "example"
+                  ],
+                  "additionalProperties": false
+                },
+                "applies_to": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "required": {
+                      "type": "boolean"
+                    },
+                    "description": {
+                      "type": "string"
+                    },
+                    "example": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "minItems": 1
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "required",
+                    "description",
+                    "example"
+                  ],
+                  "additionalProperties": false
+                },
+                "severity": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "required": {
+                      "type": "boolean"
+                    },
+                    "description": {
+                      "type": "string"
+                    },
+                    "values": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "minItems": 1
+                    },
+                    "default": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "required",
+                    "description",
+                    "values",
+                    "default"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "pattern_id",
+                "pattern_version",
+                "pattern_category",
+                "section_type",
+                "section_path",
+                "applies_to",
+                "severity"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "vector_dimension",
+            "distance_metric",
+            "metadata_schema"
+          ],
+          "additionalProperties": false
+        },
+        "chunking_strategy": {
+          "type": "object",
+          "properties": {
+            "approach": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string",
+              "minLength": 10
+            },
+            "chunk_boundaries": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "minItems": 1
+            },
+            "chunk_metadata": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "minItems": 1
+            },
+            "example": {
+              "type": "object",
+              "properties": {
+                "pattern_file": {
+                  "type": "string"
+                },
+                "chunks": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "content": {
+                        "type": "string"
+                      },
+                      "metadata": {
+                        "type": "object",
+                        "properties": {
+                          "section_type": {
+                            "type": "string"
+                          },
+                          "section_path": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "section_type",
+                          "section_path"
+                        ],
+                        "additionalProperties": true
+                      }
+                    },
+                    "required": [
+                      "content",
+                      "metadata"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "minItems": 1
+                }
+              },
+              "required": [
+                "pattern_file",
+                "chunks"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "approach",
+            "description",
+            "chunk_boundaries",
+            "chunk_metadata",
+            "example"
+          ],
+          "additionalProperties": false
+        },
+        "update_policy": {
+          "type": "object",
+          "properties": {
+            "trigger": {
+              "type": "string"
+            },
+            "action": {
+              "type": "string"
+            },
+            "validation": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "trigger",
+            "action",
+            "validation"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "name",
+        "purpose",
+        "collection_schema",
+        "chunking_strategy",
+        "update_policy"
+      ],
+      "additionalProperties": false
+    },
+    "validation_workflow": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "steps": {
+          "type": "object",
+          "properties": {
+            "1_load_pattern": {
+              "type": "object",
+              "properties": {
+                "action": {
+                  "type": "string"
+                },
+                "input": {
+                  "type": "string"
+                },
+                "output": {
+                  "type": "string"
+                },
+                "query_example": {
+                  "type": "string",
+                  "minLength": 10
+                }
+              },
+              "required": [
+                "action",
+                "input",
+                "output",
+                "query_example"
+              ],
+              "additionalProperties": false
+            },
+            "2_query_code": {
+              "type": "object",
+              "properties": {
+                "action": {
+                  "type": "string"
+                },
+                "input": {
+                  "type": "string"
+                },
+                "output": {
+                  "type": "string"
+                },
+                "query_example": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "action",
+                "input",
+                "output",
+                "query_example"
+              ],
+              "additionalProperties": false
+            },
+            "3_semantic_compare": {
+              "type": "object",
+              "properties": {
+                "action": {
+                  "type": "string"
+                },
+                "method": {
+                  "type": "string"
+                },
+                "logic": {
+                  "type": "string",
+                  "minLength": 10
+                }
+              },
+              "required": [
+                "action",
+                "method",
+                "logic"
+              ],
+              "additionalProperties": false
+            },
+            "4_report_violations": {
+              "type": "object",
+              "properties": {
+                "action": {
+                  "type": "string"
+                },
+                "format": {
+                  "type": "array",
+                  "items": {
+                    "oneOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "violation_id": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "violation_id"
+                        ],
+                        "additionalProperties": false,
+                        "description": "Variant with fields: violation_id"
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "pattern_reference": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "pattern_reference"
+                        ],
+                        "additionalProperties": false,
+                        "description": "Variant with fields: pattern_reference"
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "code_location": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "code_location"
+                        ],
+                        "additionalProperties": false,
+                        "description": "Variant with fields: code_location"
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "expected": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "expected"
+                        ],
+                        "additionalProperties": false,
+                        "description": "Variant with fields: expected"
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "actual": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "actual"
+                        ],
+                        "additionalProperties": false,
+                        "description": "Variant with fields: actual"
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "remediation": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "remediation"
+                        ],
+                        "additionalProperties": false,
+                        "description": "Variant with fields: remediation"
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "severity": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "severity"
+                        ],
+                        "additionalProperties": false,
+                        "description": "Variant with fields: severity"
+                      }
+                    ]
+                  },
+                  "minItems": 1
+                }
+              },
+              "required": [
+                "action",
+                "format"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "1_load_pattern",
+            "2_query_code",
+            "3_semantic_compare",
+            "4_report_violations"
+          ],
+          "additionalProperties": false
+        },
+        "example_validation": {
+          "type": "object",
+          "properties": {
+            "pattern_requirement": {
+              "type": "string"
+            },
+            "code_query": {
+              "type": "string"
+            },
+            "semantic_check": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "minItems": 1
+            },
+            "violation_if": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "minItems": 1
+            },
+            "report": {
+              "type": "object",
+              "properties": {
+                "violation_id": {
+                  "type": "string"
+                },
+                "pattern_reference": {
+                  "type": "string"
+                },
+                "code_location": {
+                  "type": "string"
+                },
+                "expected": {
+                  "type": "string"
+                },
+                "actual": {
+                  "type": "string"
+                },
+                "remediation": {
+                  "type": "string"
+                },
+                "severity": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "violation_id",
+                "pattern_reference",
+                "code_location",
+                "expected",
+                "actual",
+                "remediation",
+                "severity"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "pattern_requirement",
+            "code_query",
+            "semantic_check",
+            "violation_if",
+            "report"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "name",
+        "steps",
+        "example_validation"
+      ],
+      "additionalProperties": false
+    },
+    "integration": {
+      "type": "object",
+      "properties": {
+        "with_vectorization_service": {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string"
+            },
+            "implementation": {
+              "type": "string",
+              "minLength": 10
+            }
+          },
+          "required": [
+            "action",
+            "implementation"
+          ],
+          "additionalProperties": false
+        },
+        "with_audit_system": {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string"
+            },
+            "implementation": {
+              "type": "string",
+              "minLength": 10
+            }
+          },
+          "required": [
+            "action",
+            "implementation"
+          ],
+          "additionalProperties": false
+        },
+        "with_knowledge_graph": {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string"
+            },
+            "queries": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "minItems": 1
+            }
+          },
+          "required": [
+            "action",
+            "queries"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "with_vectorization_service",
+        "with_audit_system",
+        "with_knowledge_graph"
+      ],
+      "additionalProperties": false
+    },
+    "implementation": {
+      "type": "object",
+      "properties": {
+        "phase_1_foundation": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        },
+        "phase_2_validation": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        },
+        "phase_3_automation": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        }
+      },
+      "required": [
+        "phase_1_foundation",
+        "phase_2_validation",
+        "phase_3_automation"
+      ],
+      "additionalProperties": false
+    },
+    "success_criteria": {
+      "type": "object",
+      "properties": {
+        "pattern_awareness": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        },
+        "semantic_validation": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        },
+        "constitutional_audit": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        }
+      },
+      "required": [
+        "pattern_awareness",
+        "semantic_validation",
+        "constitutional_audit"
+      ],
+      "additionalProperties": false
+    },
+    "governance": {
+      "type": "object",
+      "properties": {
+        "pattern_authority": {
+          "type": "object",
+          "properties": {
+            "source": {
+              "type": "string"
+            },
+            "immutability": {
+              "type": "string"
+            },
+            "versioning": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "source",
+            "immutability",
+            "versioning"
+          ],
+          "additionalProperties": false
+        },
+        "validation_authority": {
+          "type": "object",
+          "properties": {
+            "source": {
+              "type": "string"
+            },
+            "enforcement": {
+              "type": "string"
+            },
+            "escalation": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "source",
+            "enforcement",
+            "escalation"
+          ],
+          "additionalProperties": false
+        },
+        "override_policy": {
+          "type": "object",
+          "properties": {
+            "allowed": {
+              "type": "boolean"
+            },
+            "rationale": {
+              "type": "string"
+            },
+            "exception": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "allowed",
+            "rationale",
+            "exception"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "pattern_authority",
+        "validation_authority",
+        "override_policy"
+      ],
+      "additionalProperties": false
+    },
+    "references": {
+      "type": "object",
+      "properties": {
+        "related_policies": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        },
+        "related_patterns": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        }
+      },
+      "required": [
+        "related_policies",
+        "related_patterns"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

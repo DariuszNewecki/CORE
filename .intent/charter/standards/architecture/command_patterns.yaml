@@ -1,7 +1,20 @@
-# .intent/charter/patterns/command_patterns.yaml
-id: command_patterns
+# .intent/charter/standards/architecture/command_patterns.yaml
+id: standard_architecture_command_patterns
 version: "1.0.0"
-title: "CLI Command Patterns"
+title: "Architecture Standard – Command Patterns"
+type: "standard_architecture"
+status: active
+
+owners:
+  accountable: "Architecture Owner"
+  responsible:
+    - "Core Maintainer"
+
+review:
+  frequency: "12 months"
+
+schema_id: "standard.architecture.command_patterns"
+
 description: |
   Defines the canonical patterns for all CORE CLI commands.
   Every command MUST follow one of these patterns to ensure consistency,

@@ -1,7 +1,20 @@
-# .intent/charter/patterns/agent_patterns.yaml
-id: agent_patterns
+# .intent/charter/standards/architecture/agent_patterns.yaml
+id: standard_architecture_agent_patterns
 version: "1.0.0"
-title: "Agent Architecture Patterns"
+title: "Architecture Standard – Agent Patterns"
+type: "standard_architecture"
+status: active
+
+owners:
+  accountable: "Governance Lead"
+  responsible:
+    - "Core Maintainer"
+
+review:
+  frequency: "12 months"
+
+schema_id: "standard.architecture.agent_patterns"
+
 description: |
   Defines canonical patterns for autonomous agents in CORE's Will layer.
   Agents transform context into decisions through LLM-powered reasoning

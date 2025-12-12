@@ -1,17 +1,21 @@
 # .intent/mind/config/runtime_requirements.yaml
-# Schema: charter/schemas/operations/runtime_requirements_schema.json
-
-id: runtime_requirements
-version: 2
+version: "1.0.0"
+id: "mind_config_runtime_requirements"
 title: "Runtime Requirements"
+type: "config_runtime_requirements"
 status: active
 
 owners:
-  accountable: "Platform SRE"
-  responsible: ["Core Maintainer"]
+  accountable: "Governance Lead"
+  responsible:
+    - "Core Maintainer"
 
 review:
-  frequency: "6 months"
+  frequency: "12 months"
+
+schema_id: "config.runtime_requirements"
+$schema: "charter/schemas/config.runtime_requirements.schema.json"
+
 
 variables:
   # ======================================================================

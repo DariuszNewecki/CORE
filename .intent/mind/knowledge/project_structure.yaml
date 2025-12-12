@@ -1,7 +1,19 @@
 # .intent/mind/knowledge/project_structure.yaml
-id: project_structure
-version: "2.0.0"
-title: "Architectural Blueprint & Entry Points"
+id: knowledge_project_structure
+version: "1.0.0"
+title: "CORE Project Structure Knowledge"
+type: "knowledge_project_structure"
+status: active
+
+owners:
+  accountable: "Governance Lead"
+  responsible:
+    - "Core Maintainer"
+
+review:
+  frequency: "12 months"
+
+schema_id: "knowledge.project_structure"
 
 # === ARCHITECTURAL DOMAINS ===
 architectural_domains:

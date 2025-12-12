@@ -1,13 +1,21 @@
-# .intent/charter/policies/decorator_governance.yaml
-#
-# Constitutional Policy: Decorator Governance
-#
-# Defines WHEN and HOW decorators must be applied to make CORE.NG autonomous
-# in generating correctly decorated code without human intervention.
+# .intent/charter/standards/architecture/decorator_governance.yaml
+id: standard_architecture_decorator_governance
+version: "1.0.0"
+title: "Architecture Standard – Decorator Governance"
+type: "standard_architecture"
+status: active
+
+owners:
+  accountable: "Architecture Owner"
+  responsible:
+    - "Core Maintainer"
+
+review:
+  frequency: "12 months"
+
+schema_id: "standard.architecture.decorator_governance"
 
 policy_id: decorator_governance
-version: "1.0.0"
-status: active
 category: code_generation
 layer: mind
 

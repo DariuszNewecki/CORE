@@ -1,0 +1,187 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "schema_id": "standard.architecture.decorator_governance",
+  "version": "1.0.0",
+  "title": "Decorator Governance Standard Schema",
+  "description": "Validates decorator_governance.yaml with constitutional rigor and structural flexibility",
+  "type": "object",
+  "required": [
+    "id",
+    "version",
+    "title",
+    "type",
+    "status",
+    "owners",
+    "review",
+    "schema_id",
+    "policy_id",
+    "category",
+    "layer",
+    "philosophy",
+    "whitelisted_decorators",
+    "application_rules",
+    "autonomous_generation",
+    "storage_strategy",
+    "migration",
+    "enforcement",
+    "examples"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9_.-]+$"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "title": {
+      "type": "string",
+      "maxLength": 200
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "standard_architecture"
+      ]
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "draft",
+        "deprecated",
+        "experimental"
+      ]
+    },
+    "owners": {
+      "type": "object",
+      "required": [
+        "accountable"
+      ],
+      "properties": {
+        "accountable": {
+          "type": "string"
+        },
+        "responsible": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "review": {
+      "type": "object",
+      "required": [
+        "frequency"
+      ],
+      "properties": {
+        "frequency": {
+          "type": "string"
+        },
+        "last_reviewed": {
+          "type": "string",
+          "format": "date"
+        },
+        "next_review_due": {
+          "type": "string",
+          "format": "date"
+        }
+      },
+      "additionalProperties": false
+    },
+    "schema_id": {
+      "type": "string",
+      "const": "standard.architecture.decorator_governance"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "$schema": {
+      "type": "string"
+    },
+    "policy_id": {
+      "type": "string"
+    },
+    "category": {
+      "type": "string"
+    },
+    "layer": {
+      "type": "string"
+    },
+    "philosophy": {
+      "type": "string"
+    },
+    "whitelisted_decorators": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "application_rules": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "rule_id",
+          "statement"
+        ],
+        "additionalProperties": true
+      }
+    },
+    "autonomous_generation": {
+      "type": "object",
+      "properties": {
+        "decision_tree": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "condition",
+              "actions"
+            ],
+            "properties": {
+              "condition": {
+                "type": "string"
+              },
+              "actions": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string"
+                }
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "parameter_inference": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "storage_strategy": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "migration": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "enforcement": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "examples": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      }
+    }
+  },
+  "additionalProperties": false
+}

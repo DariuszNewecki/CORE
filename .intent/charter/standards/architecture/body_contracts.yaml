@@ -1,7 +1,20 @@
-# .intent/charter/patterns/body_contracts.yaml
-id: body_contracts
-version: "1.1.0"
-title: "Body Layer Execution Contract"
+# .intent/charter/standards/architecture/body_contracts.yaml
+id: standard_architecture_body_contracts
+version: "1.0.0"
+title: "Architecture Standard – Body Contracts"
+type: "standard_architecture"
+status: active
+
+owners:
+  accountable: "Architecture Owner"
+  responsible:
+    - "Core Maintainer"
+
+review:
+  frequency: "12 months"
+
+schema_id: "standard.architecture.body_contracts"
+
 description: |
   Defines cross-cutting behavioral rules for all Body-layer code:
   services, actions, and helpers. This file does NOT define

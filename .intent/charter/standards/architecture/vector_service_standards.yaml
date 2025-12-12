@@ -1,16 +1,21 @@
-# .intent/charter/policies/vector_service_standards.yaml
-#
-# Constitutional Policy: Vector Service Standards
-#
-# Establishes mandatory standards for all Qdrant vector database interactions
-# across CORE. Ensures consistency, deduplication, and proper service layer usage.
-#
-# This policy prevents the fragmentation discovered in 2025-12-06 where different
-# vectorizers used inconsistent patterns for hashing, client access, and payloads.
+# .intent/charter/standards/architecture/vector_service_standards.yaml
+id: standard_architecture_vector_service_standards
+version: "1.0.0"
+title: "Architecture Standard – Vector Service Standards"
+type: "standard_architecture"
+status: active
+
+owners:
+  accountable: "Architecture Owner"
+  responsible:
+    - "Core Maintainer"
+
+review:
+  frequency: "12 months"
+
+schema_id: "standard.architecture.vector_service_standards"
 
 policy_id: vector_service_standards
-version: "1.1.0" # Bumped version for Deterministic ID amendment
-status: foundational
 category: infrastructure
 layer: body
 depends_on:

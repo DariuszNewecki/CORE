@@ -1,4 +1,15 @@
-# .intent/charter/schemas/operations/conversational_context_bundle_schema.yaml
+status: active
+
+owners:
+  accountable: "Governance Lead"
+  responsible:
+    - "Core Maintainer"
+
+review:
+  frequency: "12 months"
+
+schema_id: "schema.operations.conversational_context_bundle"
+
 id: schema.operations.conversational_context_bundle
 version: "1.0.0"
 title: "Conversational Context Bundle Schema"

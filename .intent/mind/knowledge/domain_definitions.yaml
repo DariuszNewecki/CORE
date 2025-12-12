@@ -1,7 +1,20 @@
 # .intent/mind/knowledge/domain_definitions.yaml
-id: domain_definitions
-version: "2.0.0"
-title: "Project Identity & Capability Domains"
+id: knowledge_domain_definitions
+version: "1.0.0"
+title: "CORE Domain Definitions"
+type: "knowledge_domain_definitions"
+status: active
+
+owners:
+  accountable: "Governance Lead"
+  responsible:
+    - "Core Maintainer"
+
+review:
+  frequency: "12 months"
+
+schema_id: "knowledge.domain_definitions"
+
 
 # === PROJECT IDENTITY ===
 project:

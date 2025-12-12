@@ -1,2 +1,16 @@
-version: 2
-domains: []
+# .intent/knowledge/domains.yaml
+id: knowledge_domains
+version: "1.0.0"
+title: "CORE Knowledge Domains"
+type: "knowledge_domains"
+status: active
+
+owners:
+  accountable: "Governance Lead"
+  responsible:
+    - "Core Maintainer"
+
+review:
+  frequency: "12 months"
+
+schema_id: "knowledge.domains"

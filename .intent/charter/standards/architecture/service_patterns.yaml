@@ -1,7 +1,20 @@
-# .intent/charter/patterns/service_patterns.yaml
-id: service_patterns
-version: "1.1.0"
-title: "Service Architecture Patterns"
+# .intent/charter/standards/architecture/service_patterns.yaml
+id: standard_architecture_service_patterns
+version: "1.0.0"
+title: "Architecture Standard – Service Patterns"
+type: "standard_architecture"
+status: active
+
+owners:
+  accountable: "Architecture Owner"
+  responsible:
+    - "Core Maintainer"
+
+review:
+  frequency: "12 months"
+
+schema_id: "standard.architecture.service_patterns"
+
 description: |
   Defines canonical patterns for all infrastructure and body-layer services in CORE.
   Services manage stateful resources (DB, vectors, LLMs) and provide

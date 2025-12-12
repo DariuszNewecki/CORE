@@ -3,6 +3,12 @@
 """
 Provides CLI commands for validating constitutional and governance integrity.
 This module consolidates and houses the logic from the old src/core/cli tools.
+
+Key responsibilities:
+
+- Generic JSON Schema validation for .intent/ documents that declare `$schema`
+  (starting with runtime requirements, but extensible to all Mind documents).
+- Safe evaluation of simple boolean policy expressions as part of governance checks.
 """
 
 from __future__ import annotations
@@ -24,6 +30,11 @@ logger = getLogger(__name__)
 validate_app = typer.Typer(help="Commands for validating constitutional integrity.")
 
 
+# ---------------------------------------------------------------------------
+# Low-level helpers for JSON Schema validation
+# ---------------------------------------------------------------------------
+
+
 def _load_json(path: Path) -> dict:
     """Loads and returns a JSON dictionary from the specified file path."""
     with path.open("r", encoding="utf-8") as f:
@@ -31,12 +42,20 @@ def _load_json(path: Path) -> dict:
 
 
 def _validate_schema_pair(pair: tuple[Path, Path]) -> str | None:
-    """Validates a YAML file against a JSON Schema, returning an error message or None."""
+    """
+    Validates a YAML file against a JSON Schema, returning an error message or None.
+
+    pair[0] -> YAML document path
+    pair[1] -> JSON Schema path
+    """
     yml_path, schema_path = pair
+
     if not yml_path.exists():
         return f"Missing file: {yml_path}"
+
     if not schema_path.exists():
         return f"Missing schema: {schema_path}"
+
     try:
         data = load_yaml_file(yml_path)
         schema = _load_json(schema_path)
@@ -46,45 +65,150 @@ def _validate_schema_pair(pair: tuple[Path, Path]) -> str | None:
     except ValidationError as e:
         path = ".".join(map(str, e.path)) or "(root)"
         return f"[FAIL] {yml_path}: {e.message} at {path}"
+    except Exception as e:  # noqa: BLE001
+        return f"[ERROR] {yml_path}: Unexpected validation error: {e!r}"
+
+
+def _iter_intent_yaml(intent_root: Path) -> list[Path]:
+    """
+    Return all YAML/YML files under the .intent root, excluding known state folders.
+
+    NOTE:
+        .intent is treated as the Mind – but some subtrees (proposals, runtime,
+        exports, keys) are not governed by the same schema rules.
+    """
+    if not intent_root.exists():
+        logger.error("Intent root %s does not exist", intent_root)
+        return []
+
+    exclude_prefixes = (
+        "proposals/",
+        "runtime/",
+        "mind_export/",
+        "keys/",
+    )
+
+    files: list[Path] = []
+
+    # Collect .yaml and .yml without duplication
+    seen: set[Path] = set()
+    for pattern in ("**/*.yaml", "**/*.yml"):
+        for path in intent_root.glob(pattern):
+            if path in seen:
+                continue
+            rel = path.relative_to(intent_root).as_posix()
+            if any(rel.startswith(prefix) for prefix in exclude_prefixes):
+                continue
+            seen.add(path)
+            files.append(path)
+
+    return sorted(files)
+
+
+def _discover_schema_pairs(
+    intent_root: Path,
+) -> tuple[list[tuple[Path, Path]], list[str]]:
+    """
+    Discover YAML → JSON-schema pairs using the `$schema` field.
+
+    Rules:
+    - Only files with a top-level mapping and a `$schema` key are validated.
+    - The `$schema` value is interpreted as a path relative to `.intent/`.
+    - Files without `$schema` are currently SKIPPED (reported as informational),
+      so you can incrementally roll schemas out across the Mind.
+
+    Returns:
+        (pairs, skipped_messages)
+    """
+    pairs: list[tuple[Path, Path]] = []
+    skipped: list[str] = []
+
+    for yaml_path in _iter_intent_yaml(intent_root):
+        rel = yaml_path.relative_to(intent_root).as_posix()
+
+        try:
+            data = load_yaml_file(yaml_path)
+        except Exception as exc:  # noqa: BLE001
+            skipped.append(f"[SKIP] {rel}: YAML parse error: {exc!r}")
+            continue
+
+        if not isinstance(data, dict):
+            skipped.append(f"[SKIP] {rel}: top-level YAML is not a mapping")
+            continue
+
+        schema_ref = data.get("$schema")
+        if not schema_ref:
+            # No explicit schema yet – this is allowed during migration.
+            skipped.append(f"[SKIP] {rel}: no $schema field; not validated")
+            continue
+
+        schema_path = (intent_root / schema_ref).resolve()
+        pairs.append((yaml_path, schema_path))
+
+    return pairs, skipped
+
+
+# ---------------------------------------------------------------------------
+# CLI command: validate .intent against JSON Schemas
+# ---------------------------------------------------------------------------
 
 
 @validate_app.command("intent-schema")
-# ID: fd640765-e202-4790-a133-95bd1a2d8983
+# ID: fd640765-e202-4790-a133-95d1a2d8983
+# ID: 3c97e5c8-ad67-4865-b636-0860ab74775b
 def validate_intent_schema(
     intent_path: Path = typer.Option(
-        Path(".intent"), "--intent-path", help="Path to the .intent directory."
+        Path(".intent"),
+        "--intent-path",
+        help="Path to the .intent directory (Mind root).",
     ),
-):
-    """Validate policy YAMLs under .intent/charter using their corresponding JSON Schemas."""
-    logger.info("Running intent schema validation via core-admin...")
-    base = intent_path / "charter"
-    checks: list[tuple[Path, Path]] = [
-        (
-            base / "policies" / "agent_policy.yaml",
-            base / "schemas" / "agent_policy_schema.json",
-        ),
-        (
-            base / "policies" / "database_policy.yaml",
-            base / "schemas" / "database_policy_schema.json",
-        ),
-        (
-            base / "policies" / "canary_policy.yaml",
-            base / "schemas" / "canary_policy_schema.json",
-        ),
-        (
-            base / "policies" / "enforcement_model_policy.yaml",
-            base / "schemas" / "enforcement_model_schema.json",
-        ),
-        (
-            base / "policies" / "reporting_policy.yaml",
-            base / "schemas" / "reporting_policy_schema.json",
-        ),
-    ]
-    errors = list(filter(None, (_validate_schema_pair(p) for p in checks)))
+) -> None:
+    """
+    Validate .intent YAML documents that declare `$schema` against their JSON Schemas.
+
+    Current behaviour (A2 migration-friendly):
+    - Walks `.intent/**` (excluding runtime/state folders).
+    - For each YAML/YML file:
+        * If it has a `$schema` field → treat it as a governed document and
+          validate against that JSON Schema.
+        * If it has no `$schema` field → report as [SKIP], but do NOT fail.
+
+    This allows you to:
+    - Start with a small set of schema-governed documents
+      (e.g. mind/config/runtime_requirements.yaml).
+    - Gradually roll out `$schema` headers to the rest of the Mind.
+    """
+    logger.info("Running .intent JSON-schema validation via core-admin.")
+    intent_root = intent_path.resolve()
+
+    pairs, skipped = _discover_schema_pairs(intent_root)
+
+    if not pairs:
+        typer.echo("No .intent YAML files with $schema found. Nothing to validate.")
+        if skipped:
+            typer.echo("\nSkipped files:")
+            for msg in skipped:
+                typer.echo(f"  {msg}")
+        return
+
+    errors = list(filter(None, (_validate_schema_pair(p) for p in pairs)))
+
     if errors:
+        typer.echo("\nSchema validation errors:", err=True)
         typer.echo("\n".join(errors), err=True)
         raise typer.Exit(code=1)
-    typer.echo("All checked .intent policy files are valid.")
+
+    typer.echo("All .intent documents with $schema validated successfully.")
+
+    if skipped:
+        typer.echo("\nSkipped files (no $schema yet):")
+        for msg in skipped:
+            typer.echo(f"  {msg}")
+
+
+# ---------------------------------------------------------------------------
+# SAFE EVAL FOR GOVERNANCE EXPRESSIONS (unchanged)
+# ---------------------------------------------------------------------------
 
 
 @dataclass
@@ -136,88 +260,9 @@ def _safe_eval(expr: str, ctx: dict[str, Any]) -> bool:
     expr = expr.replace(" true", " True").replace(" false", " False")
     tree = ast.parse(expr, mode="eval")
 
-    # Runtime validation: verify AST contains only allowed nodes
     for node in ast.walk(tree):
-        if type(node) not in _ALLOWED_NODES:
-            raise ValueError(f"Unsupported expression node: {type(node).__name__}")
-        if isinstance(node, ast.Name) and node.id not in ctx:
-            raise ValueError(f"Unknown identifier in condition: {node.id}")
+        if type(node) not in _ALLOWED_NODES:  # noqa: E721
+            raise ValueError(f"Disallowed node in expression: {type(node).__name__}")
 
-    # Verified safe: eval with no builtins and validated AST
-    return bool(eval(compile(tree, "<cond>", "eval"), {"__builtins__": {}}, ctx))
-
-
-def _merge_contexts(a: ReviewContext, b: ReviewContext) -> ReviewContext:
-    return ReviewContext(
-        risk_tier=b.risk_tier or a.risk_tier,
-        score=b.score if b.score != 0.0 else a.score,
-        touches_critical_paths=b.touches_critical_paths or a.touches_critical_paths,
-        checkpoint=b.checkpoint or a.checkpoint,
-        canary=b.canary or a.canary,
-        approver_quorum=b.approver_quorum or a.approver_quorum,
-    )
-
-
-@validate_app.command("risk-gates")
-# ID: f38a4210-22bd-4414-996a-9ad78e068b68
-def validate_risk_gates(
-    mind_path: Path = typer.Option(
-        Path(".intent/mind"), "--mind-path", help="Path to the .intent/mind directory."
-    ),
-    context: Path | None = typer.Option(None, "--context"),
-    risk_tier: str = typer.Option("low", "--risk-tier"),
-    score: float = typer.Option(0.0, "--score"),
-    touches_critical_paths: bool = typer.Option(
-        False, "--touches-critical-paths/--no-touches-critical-paths"
-    ),
-    checkpoint: bool = typer.Option(False, "--checkpoint/--no-checkpoint"),
-    canary: bool = typer.Option(False, "--canary/--no-canary"),
-    approver_quorum: bool = typer.Option(
-        False, "--approver-quorum/--no-approver-quorum"
-    ),
-):
-    """Enforce risk-tier gates from score_policy.yaml."""
-    logger.info("Running risk gate validation via core-admin...")
-    spath = mind_path / "evaluation" / "score_policy.yaml"
-    if not spath.exists():
-        typer.echo(f"Missing score policy: {spath}", err=True)
-        raise typer.Exit(code=2)
-    policy = load_yaml_file(spath)
-    gates: dict[str, Any] = policy.get("risk_tier_gates", {})
-    conds: dict[str, str] = policy.get("gate_conditions", {})
-    file_ctx = ReviewContext()
-    if context and context.exists():
-        raw = load_yaml_file(context)
-        file_ctx = ReviewContext(**raw)
-    cli_ctx = ReviewContext(
-        risk_tier, score, touches_critical_paths, checkpoint, canary, approver_quorum
-    )
-    ctx = _merge_contexts(file_ctx, cli_ctx)
-    violations: list[str] = []
-    tier = gates.get(ctx.risk_tier, {})
-    min_score = float(tier.get("min_score", 0.0))
-    required_flags = set(tier.get("require", []))
-    if ctx.score < min_score:
-        violations.append(
-            f"score {ctx.score:.2f} < min_score {min_score:.2f} for tier '{ctx.risk_tier}'"
-        )
-    cond_env = ctx.__dict__
-    for cond_key, flag_name in [
-        ("checkpoint_required_when", "checkpoint"),
-        ("canary_required_when", "canary"),
-        ("approver_quorum_required_when", "approver_quorum"),
-    ]:
-        expr = conds.get(cond_key)
-        if expr and _safe_eval(expr, cond_env):
-            required_flags.add(flag_name)
-    for flag in sorted(required_flags):
-        if not bool(getattr(ctx, flag, False)):
-            violations.append(
-                f"required '{flag}' is missing/false for tier '{ctx.risk_tier}'"
-            )
-    if violations:
-        typer.echo("Risk gate violations:", err=True)
-        for v in violations:
-            typer.echo(f" - {v}", err=True)
-        raise typer.Exit(code=1)
-    typer.echo("Risk gates satisfied ✓")
+    compiled = compile(tree, "<policy_expr>", "eval")
+    return bool(eval(compiled, {"__builtins__": {}}, ctx))

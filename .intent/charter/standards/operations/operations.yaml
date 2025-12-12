@@ -1,9 +1,22 @@
-# .intent/charter/policies/operations.yaml
-policy_id: "a3e1b0c4-9f8d-4a7b-8c1d-6e5f4a3b2c1d"
-id: operations
-version: "2.1.0"
-title: "System Operations & Workflows"
+# .intent/charter/standards/operations/operations.yaml
+id: standard_operations_general
+version: "1.0.0"
+title: "Operations Standard – General Operational Rules"
+type: "standard_operations"
 status: active
+
+owners:
+  accountable: "Platform SRE"
+  responsible:
+    - "Core Maintainer"
+
+review:
+  frequency: "12 months"
+
+schema_id: "standard.operations.general"
+
+policy_id: "a3e1b0c4-9f8d-4a7b-8c1d-6e5f4a3b2c1d"
+
 purpose: >
   Unified operational policies for workflows, canary deployments, incident response,
   intent crates, and developer fastpaths.

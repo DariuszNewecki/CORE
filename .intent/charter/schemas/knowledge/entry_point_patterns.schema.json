@@ -1,0 +1,232 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "schema_id": "knowledge.entry_point_patterns",
+  "version": "1.0.0",
+  "title": "CORE Entry Point Patterns Schema",
+  "description": "Validates entry_point_patterns.yaml with proper match pattern variants",
+  "type": "object",
+  "required": [
+    "id",
+    "version",
+    "title",
+    "type",
+    "status",
+    "owners",
+    "review",
+    "schema_id",
+    "entry_point_patterns"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9_.-]+$"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "title": {
+      "type": "string",
+      "maxLength": 200
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "knowledge_entry_point_patterns"
+      ]
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "draft",
+        "deprecated",
+        "experimental"
+      ]
+    },
+    "owners": {
+      "type": "object",
+      "required": [
+        "accountable"
+      ],
+      "properties": {
+        "accountable": {
+          "type": "string"
+        },
+        "responsible": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "review": {
+      "type": "object",
+      "required": [
+        "frequency"
+      ],
+      "properties": {
+        "frequency": {
+          "type": "string"
+        },
+        "last_reviewed": {
+          "type": "string",
+          "format": "date"
+        },
+        "next_review_due": {
+          "type": "string",
+          "format": "date"
+        }
+      },
+      "additionalProperties": false
+    },
+    "schema_id": {
+      "type": "string",
+      "const": "knowledge.entry_point_patterns"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "$schema": {
+      "type": "string"
+    },
+    "entry_point_patterns": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "description": "Pattern with name_regex (with or without module_path)",
+            "type": "object",
+            "required": [
+              "name",
+              "description",
+              "entry_point_type",
+              "match"
+            ],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "entry_point_type": {
+                "type": "string"
+              },
+              "match": {
+                "type": "object",
+                "required": [
+                  "name_regex",
+                  "type"
+                ],
+                "properties": {
+                  "type": {
+                    "type": "string"
+                  },
+                  "name_regex": {
+                    "type": "string"
+                  },
+                  "module_path_contains": {
+                    "type": "string"
+                  },
+                  "is_public_function": {
+                    "type": "boolean"
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "additionalProperties": false
+          },
+          {
+            "description": "Pattern with module_path but no name_regex",
+            "type": "object",
+            "required": [
+              "name",
+              "description",
+              "entry_point_type",
+              "match"
+            ],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "entry_point_type": {
+                "type": "string"
+              },
+              "match": {
+                "type": "object",
+                "required": [
+                  "module_path_contains",
+                  "type"
+                ],
+                "properties": {
+                  "type": {
+                    "type": "string"
+                  },
+                  "module_path_contains": {
+                    "type": "string"
+                  },
+                  "is_public_function": {
+                    "type": "boolean"
+                  }
+                },
+                "additionalProperties": false,
+                "not": {
+                  "required": [
+                    "name_regex"
+                  ]
+                }
+              }
+            },
+            "additionalProperties": false
+          },
+          {
+            "description": "Tag-based pattern matching",
+            "type": "object",
+            "required": [
+              "name",
+              "description",
+              "entry_point_type",
+              "match"
+            ],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "entry_point_type": {
+                "type": "string"
+              },
+              "match": {
+                "type": "object",
+                "required": [
+                  "has_capability_tag"
+                ],
+                "properties": {
+                  "has_capability_tag": {
+                    "type": "boolean"
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "additionalProperties": false
+          }
+        ]
+      },
+      "minItems": 1
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,9 +1,22 @@
-# .intent/charter/policies/code_standards.yaml
-policy_id: "aaa0a228-125d-4013-bfed-c1b58cec0f66" # From original code_style_policy
-id: code_standards
-version: "2.4.0" # Version bump for reuse-first rule
-title: "Comprehensive Code Quality & Standards"
+# .intent/charter/standards/code_standards.yaml
+id: standard_code_general
+version: "1.0.0"
+title: "Code Standard – General Coding Rules"
+type: "standard_code"
 status: active
+
+owners:
+  accountable: "Code Quality Owner"
+  responsible:
+    - "Core Maintainer"
+
+review:
+  frequency: "12 months"
+
+schema_id: "standard.code.general"
+
+policy_id: "aaa0a228-125d-4013-bfed-c1b58cec0f66" # From original code_style_policy
+
 purpose: >
   Unified standards for code quality, style, naming, and refactoring patterns.
   Ensures consistent, maintainable, and safe code across the entire codebase.

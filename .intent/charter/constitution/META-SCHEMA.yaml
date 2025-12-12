@@ -1,6 +1,20 @@
 # .intent/charter/constitution/META-SCHEMA.yaml
+id: constitution_meta_schema
 version: "3.0.0"
+title: "Constitutional Document Meta-Schema"
 type: "meta_constitutional_schema"
+status: active
+
+owners:
+  accountable: "Governance Lead"
+  responsible:
+    - "Core Maintainer"
+
+review:
+  frequency: "12 months"
+
+schema_id: "constitution.meta"
+
 description: |
   Defines the canonical structure ALL constitutional documents must follow.
   Every .intent/charter/constitution/*.yaml file is validated against this schema.
@@ -98,68 +112,6 @@ principle_schema:
         - "audit_logging"
         - "execution_context_check"
         - "storage_policy"
-        - "capability_verification"
-        - "version_control_check"
-        - "default_policy"
-        - "multi_layer_validation"
-        - "execution_limits"
-        - "pattern_validation"
-        - "behavioral_verification"
-
-    parameters:
-      type: "object"
-      description: "Configuration for the enforcement method"
-      examples:
-        path_match:
-          patterns: [".intent/**", "src/mind/**"]
-          action: "block_autonomous"
-        action_classification:
-          allowed_actions: ["format_code", "fix_docstring"]
-          prohibited_actions: ["schema_migration"]
-          require: "validation_only"
-        risk_calculation:
-          risk_score: 7
-          approval: "human_confirmation_required"
-          characteristics:
-            - "affects_multiple_components"
-
-document_types:
-  authority:
-    description: "Defines who can make which decisions"
-    domain: "authority"
-    type_prefix: "constitutional_authority"
-    principle_categories:
-      - human_required
-      - autonomous_allowed
-      - conditional
-
-  boundaries:
-    description: "Immutable architectural constraints"
-    domain: "boundaries"
-    type_prefix: "constitutional_boundaries"
-    principle_categories:
-      - immutable
-      - prohibited
-      - required
-
-  risk:
-    description: "How to classify operational risk"
-    domain: "risk"
-    type_prefix: "constitutional_risk"
-    principle_categories:
-      - routine
-      - standard
-      - elevated
-      - critical
-
-  enforcement:
-    description: "How governance is validated and enforced"
-    domain: "enforcement"
-    type_prefix: "constitutional_enforcement"
-    principle_categories:
-      - pre_execution
-      - post_execution
-      - continuous
 
 validation_rules:
   structural:
@@ -184,56 +136,40 @@ validation_rules:
     - "domain field must match one of defined document_types"
     - "type field should match type_prefix for domain"
 
-examples:
-  minimal_valid_document:
-    version: "3.0.0"
-    type: "constitutional_authority"
+document_types:
+  authority:
+    description: "Defines who may decide what, and under which conditions"
     domain: "authority"
-    principles:
-      human_approval_for_intent:
-        statement: "Modifications to .intent/ require human approval"
-        rationale: "Preserves constitutional supremacy"
-        scope:
-          - ".intent/**"
-        enforcement:
-          method: "path_match"
-          parameters:
-            patterns: [".intent/**"]
-            action: "block_autonomous"
+    type_prefix: "constitutional_authority"
+    principle_categories:
+      - human_approval_required
+      - autonomous_allowed
+      - conditional_autonomy
 
-  full_valid_document:
-    version: "3.0.0"
-    type: "constitutional_boundaries"
+  boundaries:
+    description: "Defines immutable constitutional boundaries and separation of concerns"
     domain: "boundaries"
-    metadata:
-      author: "Darek"
-      created: "2025-01-15"
-      last_modified: "2025-01-15"
-    principles:
-      database_is_ssot:
-        statement: "The database is the single source of truth"
-        rationale: "Prevents split-brain scenarios and ensures state consistency"
-        scope:
-          - "src/body/core/database.py"
-          - "src/body/services/**"
-        enforcement:
-          method: "audit_verification"
-          parameters:
-            check: "no_filesystem_state_duplication"
-            audit_trail: true
-      mind_body_will_separation:
-        statement: "Will queries Body, Body loads Mind, Mind is human-authored"
-        rationale: "Separates AI execution from human authority"
-        scope:
-          - "src/will/**"
-          - "src/body/**"
-          - ".intent/**"
-        enforcement:
-          method: "boundary_check"
-          parameters:
-            prohibited_patterns:
-              - "will_layer_parsing_yaml"
-              - "body_layer_writing_intent"
-    references:
-      - "authority.yaml#human_approval_for_intent"
-      - "risk.yaml#critical_paths"
+    type_prefix: "constitutional_boundaries"
+    principle_categories:
+      - data_integrity
+      - separation_of_concerns
+      - transparency_and_auditability
+
+  risk:
+    description: "Defines risk tiers, critical paths, and gating mechanisms"
+    domain: "risk"
+    type_prefix: "constitutional_risk"
+    principle_categories:
+      - routine
+      - standard
+      - elevated
+      - critical
+
+  enforcement:
+    description: "Defines how governance is validated and enforced"
+    domain: "enforcement"
+    type_prefix: "constitutional_enforcement"
+    principle_categories:
+      - pre_execution
+      - post_execution
+      - continuous

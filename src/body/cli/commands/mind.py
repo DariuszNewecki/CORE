@@ -75,3 +75,41 @@ def verify_command(ctx: typer.Context) -> None:
     """CLI wrapper for the verification logic."""
     if not run_verify():
         raise typer.Exit(code=1)
+
+
+@mind_app.command(
+    "validate-meta",
+    help="Validate all .intent documents against GLOBAL-DOCUMENT-META-SCHEMA.",
+)
+@core_command(dangerous=False, requires_context=False)
+# ID: 78901abc-def2-3456-7890-abcdef234567
+def validate_meta_command(ctx: typer.Context) -> None:
+    """Validate .intent documents against META-SCHEMA."""
+    from mind.governance.meta_validator import MetaValidator
+    from shared.logger import getLogger
+
+    logger = getLogger(__name__)
+
+    logger.info("Validating .intent documents against META-SCHEMA...")
+
+    validator = MetaValidator()
+    report = validator.validate_all_documents()
+
+    logger.info("\n📊 Validation Report:")
+    logger.info(f"  Documents checked: {report.documents_checked}")
+    logger.info(f"  Valid: {report.documents_valid}")
+    logger.info(f"  Invalid: {report.documents_invalid}")
+
+    if report.warnings:
+        logger.warning(f"\n⚠️  Warnings ({len(report.warnings)}):")
+        for warning in report.warnings:
+            logger.warning(f"  {warning.document}: {warning.message}")
+
+    if report.errors:
+        logger.error(f"\n❌ Errors ({len(report.errors)}):")
+        for error in report.errors:
+            field_str = f" [{error.field}]" if error.field else ""
+            logger.error(f"  {error.document}{field_str}: {error.message}")
+        raise typer.Exit(1)
+
+    logger.info("\n✅ All .intent documents valid")

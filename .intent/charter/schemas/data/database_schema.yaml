@@ -1,4 +1,20 @@
-version: 1
+# .intent/charter/schemas/data/database_schema.yaml
+id: schema_data_database
+version: "1.0.0"
+title: "CORE Data / Database Schema Definition"
+type: "schema_data"
+status: active
+
+owners:
+  accountable: "Data Architect"
+  responsible:
+    - "Core Maintainer"
+
+review:
+  frequency: "12 months"
+
+schema_id: "schema.data.database"
+
 description: >
   Initial schema for CORE's operational database.
   Stores auditable history of events, not constitutional truth.

@@ -1,8 +1,20 @@
-# ContextPackage Policy
-# Constitutional governance for LLM context
-# Last modified: 2025-11-11
+# .intent/context/policy.yaml
+id: context_policy
+title: "Runtime Context Policy"
+type: "context_policy"
+status: active
 
-version: "0.1"
+owners:
+  accountable: "Governance Lead"
+  responsible:
+    - "Core Maintainer"
+
+review:
+  frequency: "12 months"
+
+schema_id: "context.policy"
+
+version: "0.1.0"
 policy_type: "context_governance"
 
 privacy:

@@ -1,4 +1,19 @@
 # .intent/meta.yaml
+id: intent_meta_registry
+title: "CORE Intent Meta Registry"
+type: "meta_registry"
+status: active
+
+owners:
+  accountable: "Governance Lead"
+  responsible:
+    - "Core Maintainer"
+
+review:
+  frequency: "12 months"
+
+schema_id: "meta.registry"
+
 version: "2.0.0" # A2 Autonomy Achievement - Autonomous Code Generation
 
 charter:
@@ -83,7 +98,7 @@ charter:
       canary_policy_schema: "charter/schemas/operations/canary_policy_schema.json"
       config_schema: "charter/schemas/operations/config_schema.yaml"
       conversational_context_bundle_schema: "charter/schemas/operations/conversational_context_bundle_schema.yaml"
-      runtime_requirements_schema: "charter/schemas/operations/runtime_requirements_schema.json"
+      runtime_requirements_schema: "charter/schemas/config.runtime_requirements.schema.json"
       workflows_policy_schema: "charter/schemas/operations/workflows_policy_schema.json"
 
 mind:

@@ -1,16 +1,22 @@
-# .intent/charter/policies/pattern_vectorization.yaml
-#
-# Constitutional Policy: Pattern Vectorization and Semantic Validation
-#
-# Establishes how CORE understands, internalizes, and validates against
-# its own architectural patterns through semantic vector embeddings.
-#
-# This policy enables CORE to know what it should be (patterns) and
-# check what it is (code), reporting the constitutional delta.
+# .intent/charter/standards/operations/pattern_vectorization.yaml
+id: standard_operations_pattern_vectorization
+version: "1.0.0"
+title: "Operations Standard – Pattern Vectorization"
+type: "standard_operations"
+status: active
+
+owners:
+  accountable: "Governance Lead"
+  responsible:
+    - "Core Maintainer"
+
+review:
+  frequency: "12 months"
+
+schema_id: "standard.operations.pattern_vectorization"
 
 policy_id: pattern_vectorization
-version: "1.0.0"
-status: foundational
+
 category: governance
 layer: mind
 depends_on:

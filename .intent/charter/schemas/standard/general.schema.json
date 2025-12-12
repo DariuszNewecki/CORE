@@ -1,0 +1,432 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "schema_id": "standard.operations.general",
+  "version": "1.0.0",
+  "title": "Operations Standard \u2013 General Operational Rules",
+  "description": "Validates operations.yaml with constitutional rigor and structural flexibility",
+  "type": "object",
+  "required": [
+    "id",
+    "version",
+    "title",
+    "type",
+    "status",
+    "owners",
+    "review",
+    "schema_id",
+    "policy_id",
+    "purpose",
+    "intent_crates",
+    "integration_workflow",
+    "self_healing_routines",
+    "canary",
+    "dev_fastpath",
+    "incident_response",
+    "runtime_rules"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9_.-]+$"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "title": {
+      "type": "string",
+      "maxLength": 200
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "draft",
+        "deprecated",
+        "experimental"
+      ]
+    },
+    "owners": {
+      "type": "object",
+      "required": [
+        "accountable"
+      ],
+      "properties": {
+        "accountable": {
+          "type": "string"
+        },
+        "responsible": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "review": {
+      "type": "object",
+      "required": [
+        "frequency"
+      ],
+      "properties": {
+        "frequency": {
+          "type": "string"
+        },
+        "last_reviewed": {
+          "type": "string",
+          "format": "date"
+        },
+        "next_review_due": {
+          "type": "string",
+          "format": "date"
+        }
+      },
+      "additionalProperties": false
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "$schema": {
+      "type": "string",
+      "description": "Optional JSON Schema reference"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "standard_operations"
+      ]
+    },
+    "schema_id": {
+      "type": "string",
+      "const": "standard.operations.general"
+    },
+    "policy_id": {
+      "type": "string"
+    },
+    "purpose": {
+      "type": "string",
+      "minLength": 10
+    },
+    "intent_crates": {
+      "type": "object",
+      "properties": {
+        "validation": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "rule": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "enforcement": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "rule",
+              "description",
+              "enforcement"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 1
+        },
+        "lifecycle": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "rule": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "enforcement": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "rule",
+              "description",
+              "enforcement"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 1
+        }
+      },
+      "required": [
+        "validation",
+        "lifecycle"
+      ],
+      "additionalProperties": false
+    },
+    "integration_workflow": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "command": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "continues_on_failure": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "command",
+          "description",
+          "continues_on_failure"
+        ],
+        "additionalProperties": false
+      },
+      "minItems": 1
+    },
+    "self_healing_routines": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "command": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "command",
+              "description"
+            ],
+            "additionalProperties": false,
+            "description": "Variant with fields: command, description, id"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "command": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "trigger": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "command",
+              "description",
+              "trigger"
+            ],
+            "additionalProperties": false,
+            "description": "Variant with fields: command, description, id, trigger"
+          }
+        ]
+      },
+      "minItems": 1
+    },
+    "canary": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "scope": {
+          "type": "object",
+          "properties": {
+            "paths": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "minItems": 1
+            },
+            "modes": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "minItems": 1
+            }
+          },
+          "required": [
+            "paths",
+            "modes"
+          ],
+          "additionalProperties": false
+        },
+        "abort_conditions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        },
+        "metrics": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "threshold": {
+                "type": "integer"
+              },
+              "direction": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "name",
+              "threshold",
+              "direction"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 1
+        }
+      },
+      "required": [
+        "enabled",
+        "scope",
+        "abort_conditions",
+        "metrics"
+      ],
+      "additionalProperties": false
+    },
+    "dev_fastpath": {
+      "type": "object",
+      "properties": {
+        "thresholds": {
+          "type": "object",
+          "properties": {
+            "max_changed_files": {
+              "type": "integer"
+            },
+            "allow_intent_changes": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "max_changed_files",
+            "allow_intent_changes"
+          ],
+          "additionalProperties": false
+        },
+        "required_checks": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        },
+        "disallowed_paths": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        }
+      },
+      "required": [
+        "thresholds",
+        "required_checks",
+        "disallowed_paths"
+      ],
+      "additionalProperties": false
+    },
+    "incident_response": {
+      "type": "object",
+      "properties": {
+        "severity_levels": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        },
+        "response_rules": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "statement": {
+                "type": "string"
+              },
+              "enforcement": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "statement",
+              "enforcement"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 1
+        }
+      },
+      "required": [
+        "severity_levels",
+        "response_rules"
+      ],
+      "additionalProperties": false
+    },
+    "runtime_rules": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "statement": {
+            "type": "string"
+          },
+          "enforcement": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "statement",
+          "enforcement"
+        ],
+        "additionalProperties": false
+      },
+      "minItems": 1
+    }
+  },
+  "additionalProperties": false
+}

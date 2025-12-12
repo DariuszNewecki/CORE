@@ -1,9 +1,22 @@
-# .intent/charter/policies/data_governance.yaml
-policy_id: "1fb8949c-02db-486a-8b9d-556191456de3"  # From database_policy
-id: data_governance
-version: "2.0.1" # Version bump for enhanced detection metadata
-title: "Data Management & Knowledge Source Governance"
+# .intent/charter/standards/data/governance.yaml
+id: standard_data_governance
+version: "1.0.0"
+title: "Data Standard – Data Governance"
+type: "standard_data"
 status: active
+
+owners:
+  accountable: "Data Architect"
+  responsible:
+    - "Core Maintainer"
+
+review:
+  frequency: "12 months"
+
+schema_id: "standard.data.governance"
+
+policy_id: "1fb8949c-02db-486a-8b9d-556191456de3"  # From database_policy
+
 purpose: >
   Unified governance for database as Single Source of Truth, secrets management,
   and knowledge source integrity.
