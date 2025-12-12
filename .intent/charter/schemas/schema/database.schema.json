@@ -1,0 +1,400 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "schema_id": "schema.data.database",
+  "version": "1.0.0",
+  "title": "CORE Data / Database Schema Definition",
+  "description": "Validates database_schema.yaml with constitutional rigor and structural flexibility",
+  "type": "object",
+  "required": [
+    "id",
+    "version",
+    "title",
+    "type",
+    "status",
+    "owners",
+    "review",
+    "schema_id",
+    "description",
+    "tables",
+    "migrations"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9_.-]+$"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "title": {
+      "type": "string",
+      "maxLength": 200
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "draft",
+        "deprecated",
+        "experimental"
+      ]
+    },
+    "owners": {
+      "type": "object",
+      "required": [
+        "accountable"
+      ],
+      "properties": {
+        "accountable": {
+          "type": "string"
+        },
+        "responsible": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "review": {
+      "type": "object",
+      "required": [
+        "frequency"
+      ],
+      "properties": {
+        "frequency": {
+          "type": "string"
+        },
+        "last_reviewed": {
+          "type": "string",
+          "format": "date"
+        },
+        "next_review_due": {
+          "type": "string",
+          "format": "date"
+        }
+      },
+      "additionalProperties": false
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "$schema": {
+      "type": "string",
+      "description": "Optional JSON Schema reference"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "schema_data"
+      ]
+    },
+    "schema_id": {
+      "type": "string",
+      "const": "schema.data.database"
+    },
+    "description": {
+      "type": "string",
+      "minLength": 10
+    },
+    "tables": {
+      "type": "object",
+      "properties": {
+        "capabilities": {
+          "type": "object",
+          "properties": {
+            "description": {
+              "type": "string",
+              "minLength": 10
+            },
+            "columns": {
+              "type": "array",
+              "items": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "type": {
+                        "type": "string"
+                      },
+                      "constraints": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        },
+                        "minItems": 1
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "type",
+                      "constraints"
+                    ],
+                    "additionalProperties": false,
+                    "description": "Variant with fields: constraints, name, type"
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "type": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "type"
+                    ],
+                    "additionalProperties": false,
+                    "description": "Variant with fields: name, type"
+                  }
+                ]
+              },
+              "minItems": 1
+            }
+          },
+          "required": [
+            "description",
+            "columns"
+          ],
+          "additionalProperties": false
+        },
+        "capability_history": {
+          "type": "object",
+          "properties": {
+            "description": {
+              "type": "string"
+            },
+            "columns": {
+              "type": "array",
+              "items": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "type": {
+                        "type": "string"
+                      },
+                      "constraints": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        },
+                        "minItems": 1
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "type",
+                      "constraints"
+                    ],
+                    "additionalProperties": false,
+                    "description": "Variant with fields: constraints, name, type"
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "type": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "type"
+                    ],
+                    "additionalProperties": false,
+                    "description": "Variant with fields: name, type"
+                  }
+                ]
+              },
+              "minItems": 1
+            }
+          },
+          "required": [
+            "description",
+            "columns"
+          ],
+          "additionalProperties": false
+        },
+        "cli_runs": {
+          "type": "object",
+          "properties": {
+            "description": {
+              "type": "string"
+            },
+            "columns": {
+              "type": "array",
+              "items": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "type": {
+                        "type": "string"
+                      },
+                      "constraints": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        },
+                        "minItems": 1
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "type",
+                      "constraints"
+                    ],
+                    "additionalProperties": false,
+                    "description": "Variant with fields: constraints, name, type"
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "type": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "type"
+                    ],
+                    "additionalProperties": false,
+                    "description": "Variant with fields: name, type"
+                  }
+                ]
+              },
+              "minItems": 1
+            }
+          },
+          "required": [
+            "description",
+            "columns"
+          ],
+          "additionalProperties": false
+        },
+        "audits": {
+          "type": "object",
+          "properties": {
+            "description": {
+              "type": "string"
+            },
+            "columns": {
+              "type": "array",
+              "items": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "type": {
+                        "type": "string"
+                      },
+                      "constraints": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        },
+                        "minItems": 1
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "type",
+                      "constraints"
+                    ],
+                    "additionalProperties": false,
+                    "description": "Variant with fields: constraints, name, type"
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "type": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "type"
+                    ],
+                    "additionalProperties": false,
+                    "description": "Variant with fields: name, type"
+                  }
+                ]
+              },
+              "minItems": 1
+            }
+          },
+          "required": [
+            "description",
+            "columns"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "capabilities",
+        "capability_history",
+        "cli_runs",
+        "audits"
+      ],
+      "additionalProperties": false
+    },
+    "migrations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "approved_by": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "description",
+          "created_at",
+          "approved_by"
+        ],
+        "additionalProperties": false
+      },
+      "minItems": 1
+    }
+  },
+  "additionalProperties": false
+}

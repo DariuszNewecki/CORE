@@ -1,19 +1,19 @@
-# .intent/charter/policies/code_execution_policy.yaml
-# Constitutional policy for safe code execution
-# Based on defense-in-depth security model used by Google, Kubernetes, and other security-conscious orgs
-
-id: code_execution_policy
+# .intent/charter/standards/operations/code_execution.yaml
+id: standard_operations_code_execution
 version: "1.0.0"
-title: "Safe Code Execution Policy"
+title: "Operations Standard – Code Execution Governance"
+type: "standard_operations"
 status: active
 
 owners:
-  accountable: "Security & Governance Lead"
-  responsible: ["Core Maintainer", "Security Reviewer"]
+  accountable: "Platform SRE"
+  responsible:
+    - "Core Maintainer"
 
 review:
-  frequency: "quarterly"
-  last_reviewed: "2025-01-01"
+  frequency: "12 months"
+
+schema_id: "standard.operations.code_execution"
 
 philosophy: |
   Dangerous code execution primitives (eval, exec, compile, __import__) are ALLOWED

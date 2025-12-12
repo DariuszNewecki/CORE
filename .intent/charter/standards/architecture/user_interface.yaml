@@ -1,7 +1,20 @@
-# .intent/charter/patterns/user_interface.yaml
-id: user_interface_pattern
+# .intent/charter/standards/architecture/user_interface.yaml
+id: standard_architecture_user_interface
 version: "1.0.0"
-title: "End-User Conversational Interface Pattern"
+title: "Architecture Standard – User Interface"
+type: "standard_architecture"
+status: active
+
+owners:
+  accountable: "Architecture Owner"
+  responsible:
+    - "Core Maintainer"
+
+review:
+  frequency: "12 months"
+
+schema_id: "standard.architecture.user_interface"
+
 description: |
   Defines how end users interact with CORE through conversational interface,
   distinct from operator tooling.
@@ -13,7 +26,6 @@ description: |
   This pattern establishes the architectural boundaries and governance
   for conversational interaction with CORE.
 
-status: foundational
 category: interface
 layer: api
 

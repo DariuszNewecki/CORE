@@ -1,7 +1,20 @@
-id: core.northstar
+# .intent/mind/northstar.yaml
+id: mind_northstar
 version: "1.0.0"
+title: "CORE North Star"
+type: "mind_northstar"
+status: active
 
-title: "CORE NorthStar Definition"
+owners:
+  accountable: "Governance Lead"
+  responsible:
+    - "Core Maintainer"
+
+review:
+  frequency: "12 months"
+
+schema_id: "mind.northstar"
+
 
 description: >
   This file defines how CORE maintains, validates, and evolves its NorthStar mission.
@@ -23,8 +36,8 @@ storage:
 
 governance:
   update_requires:
-    - constitutional: "northstar.update_rule"
-    - process: "proposal_approval"
+    constitutional: "northstar.update_rule"
+    process: "proposal_approval"
   description: >
     Any modification to the mission must follow a formal path:
     - A proposal must be created

@@ -1,6 +1,19 @@
 # .intent/mind/knowledge/entry_point_patterns.yaml
-# Entry point patterns for orphaned logic detection
-# These patterns identify functions that are legitimate entry points and should not be flagged as orphaned
+id: knowledge_entry_point_patterns
+version: "1.0.0"
+title: "CORE Entry Point Patterns"
+type: "knowledge_entry_point_patterns"
+status: active
+
+owners:
+  accountable: "Governance Lead"
+  responsible:
+    - "Core Maintainer"
+
+review:
+  frequency: "12 months"
+
+schema_id: "knowledge.entry_point_patterns"
 
 entry_point_patterns:
   - name: "python_magic_method"

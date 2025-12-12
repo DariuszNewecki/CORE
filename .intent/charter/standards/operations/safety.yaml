@@ -1,8 +1,22 @@
-policy_id: "05ffbf34-2e0e-4069-b77e-473923537077"  # Kept from safety_policy
-id: safety_framework
-version: "2.0.1"  # Version bump for enhanced detection metadata
-title: "Safety & Constitutional Protection Framework"
+# .intent/charter/standards/operations/safety.yaml
+id: standard_operations_safety
+version: "1.0.0"
+title: "Operations Standard – Safety Framework"
+type: "standard_operations"
 status: active
+
+owners:
+  accountable: "Safety Owner"
+  responsible:
+    - "Core Maintainer"
+
+review:
+  frequency: "12 months"
+
+schema_id: "standard.operations.safety"
+
+policy_id: "05ffbf34-2e0e-4069-b77e-473923537077"  # Kept from safety_policy
+
 purpose: >
   The single source of truth for all safety, security, and constitutional
   boundary protection. Merges safety_policy, intent_guard, and enforcement_model.

@@ -1,0 +1,560 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "schema_id": "standard.architecture.decorator_governance",
+  "version": "1.0.0",
+  "title": "Architecture Standard \u2013 Decorator Governance",
+  "description": "Validates decorator_governance.yaml with constitutional rigor and structural flexibility",
+  "type": "object",
+  "required": [
+    "id",
+    "version",
+    "title",
+    "type",
+    "status",
+    "owners",
+    "review",
+    "schema_id",
+    "policy_id",
+    "category",
+    "layer",
+    "philosophy",
+    "whitelisted_decorators",
+    "application_rules",
+    "autonomous_generation",
+    "storage_strategy",
+    "migration",
+    "enforcement",
+    "examples"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9_.-]+$"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "title": {
+      "type": "string",
+      "maxLength": 200
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "draft",
+        "deprecated",
+        "experimental"
+      ]
+    },
+    "owners": {
+      "type": "object",
+      "required": [
+        "accountable"
+      ],
+      "properties": {
+        "accountable": {
+          "type": "string"
+        },
+        "responsible": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "review": {
+      "type": "object",
+      "required": [
+        "frequency"
+      ],
+      "properties": {
+        "frequency": {
+          "type": "string"
+        },
+        "last_reviewed": {
+          "type": "string",
+          "format": "date"
+        },
+        "next_review_due": {
+          "type": "string",
+          "format": "date"
+        }
+      },
+      "additionalProperties": false
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "$schema": {
+      "type": "string",
+      "description": "Optional JSON Schema reference"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "standard_architecture"
+      ]
+    },
+    "schema_id": {
+      "type": "string",
+      "const": "standard.architecture.decorator_governance"
+    },
+    "policy_id": {
+      "type": "string"
+    },
+    "category": {
+      "type": "string"
+    },
+    "layer": {
+      "type": "string"
+    },
+    "philosophy": {
+      "type": "string",
+      "minLength": 10
+    },
+    "whitelisted_decorators": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "application_rules": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "rule_id",
+          "statement"
+        ],
+        "properties": {
+          "rule_id": {
+            "type": "string"
+          },
+          "statement": {
+            "type": "string"
+          },
+          "applies_to": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "description": {
+            "type": "string"
+          },
+          "examples": {
+            "type": "array"
+          },
+          "implementation_requirements": {},
+          "structure": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "signature": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "guarantees": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "parameters": {},
+          "exit_codes": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "architecture": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "example_implementation": {
+            "type": "string"
+          },
+          "characteristics": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "example_skeleton": {
+            "type": "string"
+          },
+          "order": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "reasoning": {
+            "type": "string"
+          },
+          "violation_example": {
+            "type": "string"
+          },
+          "correct_example": {
+            "type": "string"
+          },
+          "fix": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "additionalProperties": true
+      },
+      "minItems": 1
+    },
+    "autonomous_generation": {
+      "type": "object",
+      "properties": {
+        "decision_tree": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "condition": {
+                "type": "string"
+              },
+              "actions": {
+                "type": "object",
+                "properties": {
+                  "1": {
+                    "type": "string"
+                  },
+                  "2": {
+                    "type": "string"
+                  },
+                  "3": {
+                    "type": "string"
+                  },
+                  "4": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": true
+              }
+            },
+            "additionalProperties": true
+          },
+          "minItems": 1
+        },
+        "parameter_inference": {
+          "type": "object",
+          "properties": {
+            "dangerous_parameter": {
+              "type": "object",
+              "properties": {
+                "analyze": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "minItems": 1
+                },
+                "conservative_default": {
+                  "type": "boolean"
+                },
+                "reasoning": {
+                  "type": "string",
+                  "minLength": 10
+                }
+              },
+              "additionalProperties": true
+            },
+            "action_id_parameter": {
+              "type": "object",
+              "properties": {
+                "pattern": {
+                  "type": "string"
+                },
+                "examples": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "minItems": 1
+                },
+                "generation": {
+                  "type": "object",
+                  "properties": {
+                    "verb": {
+                      "type": "string"
+                    },
+                    "noun": {
+                      "type": "string"
+                    }
+                  },
+                  "additionalProperties": true
+                }
+              },
+              "additionalProperties": true
+            },
+            "impact_parameter": {
+              "type": "object",
+              "properties": {
+                "determine_by": {
+                  "type": "string"
+                },
+                "mapping": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "minItems": 1
+                }
+              },
+              "additionalProperties": true
+            }
+          },
+          "required": [
+            "dangerous_parameter",
+            "action_id_parameter",
+            "impact_parameter"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "decision_tree",
+        "parameter_inference"
+      ],
+      "additionalProperties": false
+    },
+    "storage_strategy": {
+      "type": "object",
+      "properties": {
+        "current_state": {
+          "type": "object",
+          "properties": {
+            "location": {
+              "type": "string"
+            },
+            "reason": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "location",
+            "reason"
+          ],
+          "additionalProperties": false
+        },
+        "future_state": {
+          "type": "object",
+          "properties": {
+            "metadata_storage": {
+              "type": "string",
+              "minLength": 10
+            },
+            "generation_workflow": {
+              "type": "string",
+              "minLength": 10
+            },
+            "benefit": {
+              "type": "string",
+              "minLength": 10
+            }
+          },
+          "required": [
+            "metadata_storage",
+            "generation_workflow",
+            "benefit"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "current_state",
+        "future_state"
+      ],
+      "additionalProperties": false
+    },
+    "migration": {
+      "type": "object",
+      "properties": {
+        "phase_1_current": {
+          "type": "object",
+          "properties": {
+            "state": {
+              "type": "string"
+            },
+            "capability": {
+              "type": "string"
+            },
+            "limitation": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "state",
+            "capability",
+            "limitation"
+          ],
+          "additionalProperties": false
+        },
+        "phase_2_enhanced_policies": {
+          "type": "object",
+          "properties": {
+            "state": {
+              "type": "string"
+            },
+            "capability": {
+              "type": "string"
+            },
+            "limitation": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "state",
+            "capability",
+            "limitation"
+          ],
+          "additionalProperties": false
+        },
+        "phase_3_db_storage": {
+          "type": "object",
+          "properties": {
+            "state": {
+              "type": "string"
+            },
+            "capability": {
+              "type": "string"
+            },
+            "benefit": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "state",
+            "capability",
+            "benefit"
+          ],
+          "additionalProperties": false
+        },
+        "phase_4_autonomous": {
+          "type": "object",
+          "properties": {
+            "state": {
+              "type": "string"
+            },
+            "capability": {
+              "type": "string"
+            },
+            "goal": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "state",
+            "capability",
+            "goal"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "phase_1_current",
+        "phase_2_enhanced_policies",
+        "phase_3_db_storage",
+        "phase_4_autonomous"
+      ],
+      "additionalProperties": false
+    },
+    "enforcement": {
+      "type": "object",
+      "properties": {
+        "audits": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "check": {
+                "type": "string"
+              },
+              "severity": {
+                "type": "string"
+              },
+              "auto_fix": {
+                "type": "boolean"
+              },
+              "fix_action": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": true
+          },
+          "minItems": 1
+        },
+        "constitutional_compliance": {
+          "type": "object",
+          "properties": {
+            "principle": {
+              "type": "string"
+            },
+            "violation": {
+              "type": "string"
+            },
+            "exemption": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "principle",
+            "violation",
+            "exemption"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "audits",
+        "constitutional_compliance"
+      ],
+      "additionalProperties": false
+    },
+    "examples": {
+      "type": "object",
+      "properties": {
+        "correct_cli_command": {
+          "type": "string",
+          "minLength": 10
+        },
+        "correct_dangerous_command": {
+          "type": "string",
+          "minLength": 10
+        },
+        "correct_atomic_action": {
+          "type": "string",
+          "minLength": 10
+        },
+        "wrong_decorator_order": {
+          "type": "string",
+          "minLength": 10
+        },
+        "forbidden_metadata_decorator": {
+          "type": "string",
+          "minLength": 10
+        }
+      },
+      "required": [
+        "correct_cli_command",
+        "correct_dangerous_command",
+        "correct_atomic_action",
+        "wrong_decorator_order",
+        "forbidden_metadata_decorator"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

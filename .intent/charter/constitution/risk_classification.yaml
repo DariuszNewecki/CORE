@@ -1,6 +1,20 @@
 # .intent/charter/constitution/risk_classification.yaml
+id: constitutional_risk_classification
 version: "3.0.0"
+title: "Constitutional Risk Classification & Tiers"
 type: "constitutional_risk"
+status: active
+
+owners:
+  accountable: "Governance Lead"
+  responsible:
+    - "Core Maintainer"
+
+review:
+  frequency: "12 months"
+
+schema_id: "constitution.risk"
+
 domain: "risk"
 
 principles:
@@ -93,14 +107,3 @@ principles:
         elevated: "interface_modification config_change agent_capability_addition"
         standard: "code_generation refactoring test_generation"
         routine: "format_code fix_docstring run_linter"
-
-  combined_classification:
-    statement: "Final risk is maximum of path risk and action risk"
-    rationale: "Even safe actions on critical paths require elevated scrutiny"
-    scope:
-      - "all_operations"
-    enforcement:
-      method: "risk_calculation"
-      parameters:
-        formula: "MAX(path_risk, action_risk)"
-        conservative_bias: true

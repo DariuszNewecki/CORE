@@ -1,4 +1,19 @@
 # .intent/mind/config/local_mode.yaml
+id: config_local_mode
+version: "1.0.0"
+title: "Local Mode Configuration"
+type: "config_local_mode"
+status: active
+
+owners:
+  accountable: "Platform SRE"
+  responsible:
+    - "Core Maintainer"
+
+review:
+  frequency: "12 months"
+
+schema_id: "config.local_mode"
 
 mode: local_fallback
 apis:

@@ -1,8 +1,22 @@
-# .intent/charter/policies/observability.yaml
-policy_id: "observability"
+# .intent/charter/standards/operations/observability.yaml
+id: standard_operations_observability
 version: "1.0.0"
-title: "Observability & System Health Framework"
+title: "Operations Standard – Observability"
+type: "standard_operations"
 status: active
+
+owners:
+  accountable: "Platform SRE"
+  responsible:
+    - "Core Maintainer"
+
+review:
+  frequency: "12 months"
+
+schema_id: "standard.operations.observability"
+
+policy_id: "observability"
+
 purpose: >
   Establish comprehensive observability for CORE's autonomous operations.
   Without observability, we operate blind. With it, we can see, learn, and improve.

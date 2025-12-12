@@ -1,20 +1,21 @@
-# .intent/charter/patterns/atomic_actions.yaml
-#
-# Constitutional Pattern: Atomic Actions
-#
-# Defines the fundamental building blocks of CORE's operational model.
-# All autonomous operations, whether checks, fixes, or transformations,
-# are constitutional atomic actions that compose into workflows.
-#
-# This pattern establishes:
-# - The universal contract for all actions
-# - How actions compose into workflows
-# - Constitutional governance of execution
-# - The Mind-Body-Will boundary for operations
+# .intent/charter/standards/architecture/atomic_actions.yaml
+id: standard_architecture_atomic_actions
+version: "1.0.0"
+title: "Architecture Standard – Atomic Actions"
+type: "standard_architecture"
+status: active
+
+owners:
+  accountable: "Governance Lead"
+  responsible:
+    - "Core Maintainer"
+
+review:
+  frequency: "12 months"
+
+schema_id: "standard.architecture.atomic_actions"
 
 pattern_id: atomic_actions
-version: "1.0.1"
-status: foundational
 category: orchestration
 layer: mind
 

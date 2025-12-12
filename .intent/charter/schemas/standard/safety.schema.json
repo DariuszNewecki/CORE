@@ -1,0 +1,334 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "schema_id": "standard.operations.safety",
+  "version": "1.0.0",
+  "title": "Operations Standard \u2013 Safety Framework",
+  "description": "Validates safety.yaml with constitutional rigor and structural flexibility",
+  "type": "object",
+  "required": [
+    "id",
+    "version",
+    "title",
+    "type",
+    "status",
+    "owners",
+    "review",
+    "schema_id",
+    "policy_id",
+    "purpose",
+    "constitutional_boundaries",
+    "enforcement_levels",
+    "safety_rules"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9_.-]+$"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "title": {
+      "type": "string",
+      "maxLength": 200
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "draft",
+        "deprecated",
+        "experimental"
+      ]
+    },
+    "owners": {
+      "type": "object",
+      "required": [
+        "accountable"
+      ],
+      "properties": {
+        "accountable": {
+          "type": "string"
+        },
+        "responsible": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "review": {
+      "type": "object",
+      "required": [
+        "frequency"
+      ],
+      "properties": {
+        "frequency": {
+          "type": "string"
+        },
+        "last_reviewed": {
+          "type": "string",
+          "format": "date"
+        },
+        "next_review_due": {
+          "type": "string",
+          "format": "date"
+        }
+      },
+      "additionalProperties": false
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "$schema": {
+      "type": "string",
+      "description": "Optional JSON Schema reference"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "standard_operations"
+      ]
+    },
+    "schema_id": {
+      "type": "string",
+      "const": "standard.operations.safety"
+    },
+    "policy_id": {
+      "type": "string"
+    },
+    "purpose": {
+      "type": "string",
+      "minLength": 10
+    },
+    "constitutional_boundaries": {
+      "type": "object",
+      "properties": {
+        "immutable_charter": {
+          "type": "object",
+          "properties": {
+            "statement": {
+              "type": "string"
+            },
+            "enforcement": {
+              "type": "string"
+            },
+            "protected_paths": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "minItems": 1
+            }
+          },
+          "required": [
+            "statement",
+            "enforcement",
+            "protected_paths"
+          ],
+          "additionalProperties": false
+        },
+        "single_active_constitution": {
+          "type": "object",
+          "properties": {
+            "statement": {
+              "type": "string",
+              "minLength": 10
+            },
+            "enforcement": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "statement",
+            "enforcement"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "immutable_charter",
+        "single_active_constitution"
+      ],
+      "additionalProperties": false
+    },
+    "enforcement_levels": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "type": "object",
+          "properties": {
+            "description": {
+              "type": "string"
+            },
+            "ci_behavior": {
+              "type": "string"
+            },
+            "runtime_behavior": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "description",
+            "ci_behavior",
+            "runtime_behavior"
+          ],
+          "additionalProperties": false
+        },
+        "warn": {
+          "type": "object",
+          "properties": {
+            "description": {
+              "type": "string"
+            },
+            "ci_behavior": {
+              "type": "string"
+            },
+            "runtime_behavior": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "description",
+            "ci_behavior",
+            "runtime_behavior"
+          ],
+          "additionalProperties": false
+        },
+        "info": {
+          "type": "object",
+          "properties": {
+            "description": {
+              "type": "string"
+            },
+            "ci_behavior": {
+              "type": "string"
+            },
+            "runtime_behavior": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "description",
+            "ci_behavior",
+            "runtime_behavior"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "error",
+        "warn",
+        "info"
+      ],
+      "additionalProperties": false
+    },
+    "safety_rules": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "statement": {
+                "type": "string"
+              },
+              "enforcement": {
+                "type": "string"
+              },
+              "protected_paths": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "minItems": 1
+              }
+            },
+            "required": [
+              "id",
+              "statement",
+              "enforcement",
+              "protected_paths"
+            ],
+            "additionalProperties": false,
+            "description": "Variant with fields: enforcement, id, protected_paths, statement"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "statement": {
+                "type": "string"
+              },
+              "enforcement": {
+                "type": "string"
+              },
+              "detection": {
+                "type": "object",
+                "properties": {
+                  "method": {
+                    "type": "string"
+                  },
+                  "patterns": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "minItems": 1
+                  }
+                },
+                "required": [
+                  "method",
+                  "patterns"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "id",
+              "statement",
+              "enforcement",
+              "detection"
+            ],
+            "additionalProperties": false,
+            "description": "Variant with fields: detection, enforcement, id, statement"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "statement": {
+                "type": "string"
+              },
+              "enforcement": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "statement",
+              "enforcement"
+            ],
+            "additionalProperties": false,
+            "description": "Variant with fields: enforcement, id, statement"
+          }
+        ]
+      },
+      "minItems": 1
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,667 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "schema_id": "meta.registry",
+  "version": "1.0.0",
+  "title": "CORE Intent Meta Registry",
+  "description": "Validates meta.yaml",
+  "type": "object",
+  "required": [
+    "id",
+    "version",
+    "title",
+    "type",
+    "status",
+    "owners",
+    "review",
+    "schema_id",
+    "charter",
+    "mind"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9_.-]+$"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "title": {
+      "type": "string",
+      "maxLength": 200
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "draft",
+        "deprecated",
+        "experimental"
+      ]
+    },
+    "owners": {
+      "type": "object",
+      "required": [
+        "accountable"
+      ],
+      "properties": {
+        "accountable": {
+          "type": "string"
+        },
+        "responsible": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "review": {
+      "type": "object",
+      "required": [
+        "frequency"
+      ],
+      "properties": {
+        "frequency": {
+          "type": "string"
+        },
+        "last_reviewed": {
+          "type": "string",
+          "format": "date"
+        },
+        "next_review_due": {
+          "type": "string",
+          "format": "date"
+        }
+      },
+      "additionalProperties": false
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "$schema": {
+      "type": "string",
+      "description": "Optional JSON Schema reference"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "meta_registry"
+      ]
+    },
+    "schema_id": {
+      "type": "string",
+      "const": "meta.registry"
+    },
+    "charter": {
+      "type": "object",
+      "properties": {
+        "constitution": {
+          "type": "object",
+          "properties": {
+            "active_version": {
+              "type": "string"
+            },
+            "governance_framework": {
+              "type": "string"
+            },
+            "precedence_rules": {
+              "type": "string"
+            },
+            "approvers": {
+              "type": "string"
+            },
+            "critical_paths": {
+              "type": "string"
+            },
+            "immutable_principles": {
+              "type": "string"
+            },
+            "risk_classification": {
+              "type": "string"
+            },
+            "authority": {
+              "type": "string"
+            },
+            "boundaries": {
+              "type": "string"
+            },
+            "meta_schema": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "active_version",
+            "governance_framework",
+            "precedence_rules",
+            "approvers",
+            "critical_paths",
+            "immutable_principles",
+            "risk_classification",
+            "authority",
+            "boundaries",
+            "meta_schema"
+          ],
+          "additionalProperties": false
+        },
+        "policies": {
+          "type": "object",
+          "properties": {
+            "safety_framework": {
+              "type": "string"
+            },
+            "code_execution_policy": {
+              "type": "string"
+            },
+            "observability": {
+              "type": "string"
+            },
+            "operations": {
+              "type": "string"
+            },
+            "pattern_vectorization": {
+              "type": "string"
+            },
+            "quality_assurance": {
+              "type": "string"
+            },
+            "agent_governance": {
+              "type": "string"
+            },
+            "decorator_governance": {
+              "type": "string"
+            },
+            "dependency_injection_policy": {
+              "type": "string"
+            },
+            "code_standards": {
+              "type": "string"
+            },
+            "code_purity": {
+              "type": "string"
+            },
+            "logging_standards": {
+              "type": "string"
+            },
+            "data_governance": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "safety_framework",
+            "code_execution_policy",
+            "observability",
+            "operations",
+            "pattern_vectorization",
+            "quality_assurance",
+            "agent_governance",
+            "decorator_governance",
+            "dependency_injection_policy",
+            "code_standards",
+            "code_purity",
+            "logging_standards",
+            "data_governance"
+          ],
+          "additionalProperties": false
+        },
+        "patterns": {
+          "type": "object",
+          "properties": {
+            "agent_patterns": {
+              "type": "string"
+            },
+            "atomic_actions": {
+              "type": "string"
+            },
+            "body_contracts": {
+              "type": "string"
+            },
+            "command_patterns": {
+              "type": "string"
+            },
+            "irritation_heuristic": {
+              "type": "string"
+            },
+            "service_patterns": {
+              "type": "string"
+            },
+            "user_interface": {
+              "type": "string"
+            },
+            "vector_service_standards": {
+              "type": "string"
+            },
+            "workflow_patterns": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "agent_patterns",
+            "atomic_actions",
+            "body_contracts",
+            "command_patterns",
+            "irritation_heuristic",
+            "service_patterns",
+            "user_interface",
+            "vector_service_standards",
+            "workflow_patterns"
+          ],
+          "additionalProperties": false
+        },
+        "schemas": {
+          "type": "object",
+          "properties": {
+            "policy_schema": {
+              "type": "string"
+            },
+            "agent": {
+              "type": "object",
+              "properties": {
+                "agent_policy_schema": {
+                  "type": "string"
+                },
+                "cognitive_roles_schema": {
+                  "type": "string"
+                },
+                "micro_proposal_policy_schema": {
+                  "type": "string"
+                },
+                "resource_manifest_policy_schema": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "agent_policy_schema",
+                "cognitive_roles_schema",
+                "micro_proposal_policy_schema",
+                "resource_manifest_policy_schema"
+              ],
+              "additionalProperties": false
+            },
+            "code": {
+              "type": "object",
+              "properties": {
+                "capability_tag_schema": {
+                  "type": "string"
+                },
+                "dependency_injection_policy_schema": {
+                  "type": "string"
+                },
+                "knowledge_graph_entry_schema": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "capability_tag_schema",
+                "dependency_injection_policy_schema",
+                "knowledge_graph_entry_schema"
+              ],
+              "additionalProperties": false
+            },
+            "constitutional": {
+              "type": "object",
+              "properties": {
+                "intent_bundle_schema": {
+                  "type": "string"
+                },
+                "intent_crate_schema": {
+                  "type": "string"
+                },
+                "proposal_schema": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "intent_bundle_schema",
+                "intent_crate_schema",
+                "proposal_schema"
+              ],
+              "additionalProperties": false
+            },
+            "core": {
+              "type": "object",
+              "properties": {
+                "action_result_schema": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "action_result_schema"
+              ],
+              "additionalProperties": false
+            },
+            "data": {
+              "type": "object",
+              "properties": {
+                "database_policy_schema": {
+                  "type": "string"
+                },
+                "database_schema": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "database_policy_schema",
+                "database_schema"
+              ],
+              "additionalProperties": false
+            },
+            "governance": {
+              "type": "object",
+              "properties": {
+                "available_actions_policy_schema": {
+                  "type": "string"
+                },
+                "cli_registry_schema": {
+                  "type": "string"
+                },
+                "enforcement_model_schema": {
+                  "type": "string"
+                },
+                "intent_guard_schema": {
+                  "type": "string"
+                },
+                "reporting_policy_schema": {
+                  "type": "string"
+                },
+                "risk_classification_policy_schema": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "available_actions_policy_schema",
+                "cli_registry_schema",
+                "enforcement_model_schema",
+                "intent_guard_schema",
+                "reporting_policy_schema",
+                "risk_classification_policy_schema"
+              ],
+              "additionalProperties": false
+            },
+            "operations": {
+              "type": "object",
+              "properties": {
+                "canary_policy_schema": {
+                  "type": "string"
+                },
+                "config_schema": {
+                  "type": "string"
+                },
+                "conversational_context_bundle_schema": {
+                  "type": "string"
+                },
+                "runtime_requirements_schema": {
+                  "type": "string"
+                },
+                "workflows_policy_schema": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "canary_policy_schema",
+                "config_schema",
+                "conversational_context_bundle_schema",
+                "runtime_requirements_schema",
+                "workflows_policy_schema"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "policy_schema",
+            "agent",
+            "code",
+            "constitutional",
+            "core",
+            "data",
+            "governance",
+            "operations"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "constitution",
+        "policies",
+        "patterns",
+        "schemas"
+      ],
+      "additionalProperties": false
+    },
+    "mind": {
+      "type": "object",
+      "properties": {
+        "project_manifest": {
+          "type": "string"
+        },
+        "northstar": {
+          "type": "string"
+        },
+        "config": {
+          "type": "object",
+          "properties": {
+            "local_mode": {
+              "type": "string"
+            },
+            "runtime_requirements": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "local_mode",
+            "runtime_requirements"
+          ],
+          "additionalProperties": false
+        },
+        "ir": {
+          "type": "object",
+          "properties": {
+            "incident_log": {
+              "type": "string"
+            },
+            "triage_log": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "incident_log",
+            "triage_log"
+          ],
+          "additionalProperties": false
+        },
+        "knowledge": {
+          "type": "object",
+          "properties": {
+            "domain_definitions": {
+              "type": "string"
+            },
+            "project_structure": {
+              "type": "string"
+            },
+            "entry_point_patterns": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "domain_definitions",
+            "project_structure",
+            "entry_point_patterns"
+          ],
+          "additionalProperties": false
+        },
+        "mind_export": {
+          "type": "object",
+          "properties": {
+            "cognitive_roles": {
+              "type": "string"
+            },
+            "resource_manifest": {
+              "type": "string"
+            },
+            "capabilities": {
+              "type": "string"
+            },
+            "symbols": {
+              "type": "string"
+            },
+            "links": {
+              "type": "string"
+            },
+            "northstar": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "cognitive_roles",
+            "resource_manifest",
+            "capabilities",
+            "symbols",
+            "links",
+            "northstar"
+          ],
+          "additionalProperties": false
+        },
+        "prompts": {
+          "type": "object",
+          "properties": {
+            "capability_consolidator": {
+              "type": "string"
+            },
+            "capability_definer": {
+              "type": "string"
+            },
+            "code_peer_review": {
+              "type": "string"
+            },
+            "constitutional_review": {
+              "type": "string"
+            },
+            "coverage_strategy": {
+              "type": "string"
+            },
+            "create_file_planner": {
+              "type": "string"
+            },
+            "docs_clarity_review": {
+              "type": "string"
+            },
+            "enrich_symbol": {
+              "type": "string"
+            },
+            "fix_capability_manifest": {
+              "type": "string"
+            },
+            "fix_function_docstring": {
+              "type": "string"
+            },
+            "fix_header": {
+              "type": "string"
+            },
+            "fix_line_length": {
+              "type": "string"
+            },
+            "goal_assessor": {
+              "type": "string"
+            },
+            "intent_translator": {
+              "type": "string"
+            },
+            "micro_planner": {
+              "type": "string"
+            },
+            "module_docstring_writer": {
+              "type": "string"
+            },
+            "new_capability_generator": {
+              "type": "string"
+            },
+            "planner_agent": {
+              "type": "string"
+            },
+            "refactor_for_clarity": {
+              "type": "string"
+            },
+            "refactor_outlier": {
+              "type": "string"
+            },
+            "standard_task_generator": {
+              "type": "string"
+            },
+            "test_fixer": {
+              "type": "string"
+            },
+            "test_generator": {
+              "type": "string"
+            },
+            "vectorizer": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "capability_consolidator",
+            "capability_definer",
+            "code_peer_review",
+            "constitutional_review",
+            "coverage_strategy",
+            "create_file_planner",
+            "docs_clarity_review",
+            "enrich_symbol",
+            "fix_capability_manifest",
+            "fix_function_docstring",
+            "fix_header",
+            "fix_line_length",
+            "goal_assessor",
+            "intent_translator",
+            "micro_planner",
+            "module_docstring_writer",
+            "new_capability_generator",
+            "planner_agent",
+            "refactor_for_clarity",
+            "refactor_outlier",
+            "standard_task_generator",
+            "test_fixer",
+            "test_generator",
+            "vectorizer"
+          ],
+          "additionalProperties": false
+        },
+        "context": {
+          "type": "object",
+          "properties": {
+            "schema": {
+              "type": "string"
+            },
+            "policy": {
+              "type": "string"
+            },
+            "domains": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "schema",
+            "policy",
+            "domains"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "project_manifest",
+        "northstar",
+        "config",
+        "ir",
+        "knowledge",
+        "mind_export",
+        "prompts",
+        "context"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

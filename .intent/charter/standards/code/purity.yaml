@@ -1,9 +1,22 @@
-# .intent/charter/policies/code_purity.yaml
-policy_id: "73394e37-41db-4391-93e8-6ced1a61735f"
-id: code_purity
-version: "1.2.0"
-title: "Code Purity and Pollution Prevention"
+# .intent/charter/standards/code/purity.yaml
+id: standard_code_purity
+version: "1.0.0"
+title: "Code Standard – Purity & Side Effects"
+type: "standard_code"
 status: active
+
+owners:
+  accountable: "Code Quality Owner"
+  responsible:
+    - "Core Maintainer"
+
+review:
+  frequency: "12 months"
+
+schema_id: "standard.code.purity"
+
+policy_id: "73394e37-41db-4391-93e8-6ced1a61735f"
+
 purpose: >
   Define the strict boundary between Code (Logic/Safety) and Database (Metadata/State).
   Ensures the codebase remains clean, readable, and free of "Split-Brain" metadata configuration.

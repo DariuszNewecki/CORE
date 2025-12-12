@@ -1,8 +1,20 @@
-# .intent/charter/patterns/irritation_heuristic.yaml
-id: "irritation_heuristic"
+# .intent/charter/standards/architecture/irritation_heuristic.yaml
+id: standard_architecture_irritation_heuristic
 version: "1.0.0"
-title: "Irritation Heuristic"
-status: "foundational"
+title: "Architecture Standard – Irritation Heuristic"
+type: "standard_architecture"
+status: active
+
+owners:
+  accountable: "Governance Lead"
+  responsible:
+    - "Core Maintainer"
+
+review:
+  frequency: "12 months"
+
+schema_id: "standard.architecture.irritation_heuristic"
+
 category: "cognitive_pattern"
 
 description: |

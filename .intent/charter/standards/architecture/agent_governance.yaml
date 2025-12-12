@@ -1,9 +1,20 @@
-# .intent/charter/policies/agent_governance.yaml
-policy_id: "18f048cb-b084-4faa-ac62-17fca55fed77"
-id: agent_governance
-version: "2.1.0"
-title: "Agent Behavior & Autonomous Action Governance"
+# .intent/charter/standards/architecture/agent_governance.yaml
+id: standard_architecture_agent_governance
+version: "1.0.0"
+title: "Architecture Standard – Agent Governance"
+type: "standard_architecture"
 status: active
+
+owners:
+  accountable: "Governance Lead"
+  responsible:
+    - "Core Maintainer"
+
+review:
+  frequency: "12 months"
+
+schema_id: "standard.architecture.agent_governance"
+
 purpose: >
   Define how CORE’s agents may act, what they are forbidden to do, and how
   autonomous behavior is constrained by the constitution.

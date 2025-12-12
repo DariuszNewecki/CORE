@@ -1,7 +1,20 @@
-# .intent/charter/patterns/workflow_patterns.yaml
-id: workflow_patterns
-version: "1.0.1"
-title: "Workflow Orchestration Patterns"
+# .intent/charter/standards/architecture/workflow_patterns.yaml
+id: standard_architecture_workflow_patterns
+version: "1.0.0"
+title: "Architecture Standard – Workflow Patterns"
+type: "standard_architecture"
+status: active
+
+owners:
+  accountable: "Architecture Owner"
+  responsible:
+    - "Core Maintainer"
+
+review:
+  frequency: "12 months"
+
+schema_id: "standard.architecture.workflow_patterns"
+
 description: |
   Defines canonical patterns for multi-step workflows in CORE.
   Workflows compose commands, agents, and services into reliable

@@ -1,0 +1,381 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "schema_id": "standard.operations.quality_assurance",
+  "version": "1.0.0",
+  "title": "Operations Standard \u2013 Quality Assurance",
+  "description": "Validates quality_assurance.yaml with constitutional rigor and structural flexibility",
+  "type": "object",
+  "required": [
+    "id",
+    "version",
+    "title",
+    "type",
+    "status",
+    "owners",
+    "review",
+    "schema_id",
+    "policy_id",
+    "purpose",
+    "audit_exceptions",
+    "coverage_requirements",
+    "autonomous_remediation",
+    "evaluation_framework",
+    "risk_tier_gates",
+    "audit_checklist"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9_.-]+$"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "title": {
+      "type": "string",
+      "maxLength": 200
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "draft",
+        "deprecated",
+        "experimental"
+      ]
+    },
+    "owners": {
+      "type": "object",
+      "required": [
+        "accountable"
+      ],
+      "properties": {
+        "accountable": {
+          "type": "string"
+        },
+        "responsible": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "review": {
+      "type": "object",
+      "required": [
+        "frequency"
+      ],
+      "properties": {
+        "frequency": {
+          "type": "string"
+        },
+        "last_reviewed": {
+          "type": "string",
+          "format": "date"
+        },
+        "next_review_due": {
+          "type": "string",
+          "format": "date"
+        }
+      },
+      "additionalProperties": false
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "$schema": {
+      "type": "string",
+      "description": "Optional JSON Schema reference"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "standard_operations"
+      ]
+    },
+    "schema_id": {
+      "type": "string",
+      "const": "standard.operations.quality_assurance"
+    },
+    "policy_id": {
+      "type": "string"
+    },
+    "purpose": {
+      "type": "string",
+      "minLength": 10
+    },
+    "audit_exceptions": {
+      "type": "object",
+      "properties": {
+        "symbol_ignores": {
+          "type": "array",
+          "items": {}
+        }
+      },
+      "additionalProperties": false
+    },
+    "coverage_requirements": {
+      "type": "object",
+      "properties": {
+        "minimum_threshold": {
+          "type": "integer"
+        },
+        "target_threshold": {
+          "type": "integer"
+        },
+        "critical_paths": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        },
+        "exclusions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        },
+        "rules": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "statement": {
+                "type": "string"
+              },
+              "enforcement": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "statement",
+              "enforcement"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 1
+        }
+      },
+      "required": [
+        "minimum_threshold",
+        "target_threshold",
+        "critical_paths",
+        "exclusions",
+        "rules"
+      ],
+      "additionalProperties": false
+    },
+    "autonomous_remediation": {
+      "type": "object",
+      "properties": {
+        "trigger_conditions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        },
+        "phases": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "phase": {
+                "type": "string"
+              },
+              "actions": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "minItems": 1
+              }
+            },
+            "required": [
+              "phase",
+              "actions"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 1
+        }
+      },
+      "required": [
+        "trigger_conditions",
+        "phases"
+      ],
+      "additionalProperties": false
+    },
+    "evaluation_framework": {
+      "type": "object",
+      "properties": {
+        "strategy": {
+          "type": "string"
+        },
+        "criteria": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "weight": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "id",
+              "description",
+              "weight"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 1
+        },
+        "thresholds": {
+          "type": "object",
+          "properties": {
+            "pass": {
+              "type": "number"
+            },
+            "warn": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "pass",
+            "warn"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "strategy",
+        "criteria",
+        "thresholds"
+      ],
+      "additionalProperties": false
+    },
+    "risk_tier_gates": {
+      "type": "object",
+      "properties": {
+        "medium": {
+          "type": "object",
+          "properties": {
+            "min_score": {
+              "type": "number"
+            },
+            "require": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "minItems": 1
+            }
+          },
+          "required": [
+            "min_score",
+            "require"
+          ],
+          "additionalProperties": false
+        },
+        "high": {
+          "type": "object",
+          "properties": {
+            "min_score": {
+              "type": "number"
+            },
+            "require": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "minItems": 1
+            }
+          },
+          "required": [
+            "min_score",
+            "require"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "medium",
+        "high"
+      ],
+      "additionalProperties": false
+    },
+    "audit_checklist": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "item": {
+                "type": "string"
+              },
+              "required": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "id",
+              "item",
+              "required"
+            ],
+            "additionalProperties": false,
+            "description": "Variant with fields: id, item, required"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "item": {
+                "type": "string"
+              },
+              "applies_when": {
+                "type": "string"
+              },
+              "severity": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "item",
+              "applies_when",
+              "severity"
+            ],
+            "additionalProperties": false,
+            "description": "Variant with fields: applies_when, id, item, severity"
+          }
+        ]
+      },
+      "minItems": 1
+    }
+  },
+  "additionalProperties": false
+}

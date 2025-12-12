@@ -1,0 +1,187 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "schema_id": "mind.northstar",
+  "version": "1.0.0",
+  "title": "Mind NorthStar Schema",
+  "description": "Validates the structure and governance rules for CORE's NorthStar mission document.",
+
+  "type": "object",
+  "required": [
+    "id",
+    "version",
+    "title",
+    "type",
+    "status",
+    "owners",
+    "review",
+    "schema_id",
+    "description",
+    "storage",
+    "governance",
+    "validation"
+  ],
+
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9_.-]+$"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "title": {
+      "type": "string",
+      "maxLength": 200
+    },
+    "type": {
+      "type": "string",
+      "enum": ["mind_northstar"]
+    },
+    "status": {
+      "type": "string",
+      "enum": ["active", "draft", "deprecated", "experimental"]
+    },
+    "owners": {
+      "type": "object",
+      "required": ["accountable"],
+      "properties": {
+        "accountable": {
+          "type": "string"
+        },
+        "responsible": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "review": {
+      "type": "object",
+      "required": ["frequency"],
+      "properties": {
+        "frequency": {
+          "type": "string"
+        },
+        "last_reviewed": {
+          "type": "string",
+          "format": "date"
+        },
+        "next_review_due": {
+          "type": "string",
+          "format": "date"
+        }
+      },
+      "additionalProperties": false
+    },
+    "schema_id": {
+      "type": "string",
+      "const": "mind.northstar"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "$schema": {
+      "type": "string",
+      "description": "Optional JSON Schema reference"
+    },
+    "description": {
+      "type": "string",
+      "minLength": 10
+    },
+    "storage": {
+      "type": "object",
+      "required": ["source", "type", "fields"],
+      "properties": {
+        "source": {
+          "type": "string",
+          "pattern": "^db:core\\.[a-z_]+$"
+        },
+        "type": {
+          "type": "string",
+          "enum": ["single-row"]
+        },
+        "fields": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["name", "type", "required", "description"],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "type": {
+                "type": "string"
+              },
+              "required": {
+                "type": "boolean"
+              },
+              "description": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "governance": {
+      "type": "object",
+      "required": ["update_requires", "description"],
+      "properties": {
+        "update_requires": {
+          "type": "object",
+          "properties": {
+            "constitutional": {
+              "type": "string"
+            },
+            "process": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        "description": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "validation": {
+      "type": "object",
+      "required": ["max_length", "min_length", "forbids", "description"],
+      "properties": {
+        "max_length": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "min_length": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "forbids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "description": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+
+  "additionalProperties": false
+}

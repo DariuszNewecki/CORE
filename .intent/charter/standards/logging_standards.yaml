@@ -1,11 +1,20 @@
-# .intent/charter/policies/logging_standards.yaml
-#
-# Constitutional Policy: Logging Standards
-# This policy defines the immutable rules for all logging behavior in CORE.
-
-id: logging_standards
+# .intent/charter/standards/logging_standards.yaml
+id: standard_logging
 version: "1.0.0"
-title: "Logging Standards and Consistency Policy"
+title: "Operations Standard – Logging & Observability"
+type: "standard_logging"
+status: active
+
+owners:
+  accountable: "Platform SRE"
+  responsible:
+    - "Core Maintainer"
+
+review:
+  frequency: "12 months"
+
+schema_id: "standard.logging"
+
 category: code_quality
 severity: error
 

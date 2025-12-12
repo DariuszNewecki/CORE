@@ -2,298 +2,427 @@
 """
 Meta-Constitutional Validator.
 
-Validates that all constitutional documents follow the canonical schema defined
-in META-SCHEMA.yaml. All validation rules are loaded dynamically from the schema
-rather than being hard-coded.
+Validates ALL .intent documents against GLOBAL-DOCUMENT-META-SCHEMA.yaml
+and their respective JSON schemas via schema_id resolution.
 """
 
 from __future__ import annotations
 
+import json
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 import yaml
+from jsonschema import ValidationError as JsonSchemaValidationError
+from jsonschema import validate as json_validate
 
 from shared.logger import getLogger
+from shared.path_utils import get_repo_root
 
 
 logger = getLogger(__name__)
 
 
 @dataclass
-# ID: 84f33759-1121-4d2f-817b-f95084f1fde4
 class ValidationError:
     """A single validation error or warning."""
 
     document: str
-    principle_id: str | None
     error_type: str
     message: str
-    severity: str
+    severity: str = "error"
+    field: str | None = None
 
 
 @dataclass
-# ID: 83d9098a-55b6-401c-8090-1cf3cfad3152
 class ValidationReport:
-    """Complete validation report for constitution."""
+    """Complete validation report for .intent documents."""
 
     valid: bool
     errors: list[ValidationError]
     warnings: list[ValidationError]
     documents_checked: int
-    principles_validated: int
+    documents_valid: int
+    documents_invalid: int
 
 
-# ID: 45ef1a23-323e-4d2d-9c41-94534ddac330
 class MetaValidator:
     """
-    Validates constitutional documents against META-SCHEMA.
+    Validates .intent documents against GLOBAL-DOCUMENT-META-SCHEMA.
 
-    All validation rules are loaded from META-SCHEMA.yaml to ensure
-    the validator itself respects constitutional supremacy.
+    Phase 1: Validates header structure
+    Phase 2: Validates against JSON schemas via schema_id resolution
     """
 
-    def __init__(self, constitution_path: Path = Path(".intent/charter/constitution")):
+    # ID: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+    def __init__(self, intent_root: Path | None = None):
         """
-        Initialize meta-validator.
+        Initialize validator with .intent root.
 
         Args:
-            constitution_path: Path to constitution directory
+            intent_root: Path to .intent directory, defaults to repo_root/.intent
         """
-        self.constitution_path = constitution_path
+        self.intent_root = intent_root or get_repo_root() / ".intent"
         self.meta_schema = self._load_meta_schema()
         self.errors: list[ValidationError] = []
         self.warnings: list[ValidationError] = []
-        self.documents_checked = 0
-        self.principles_validated = 0
+        self.schema_cache: dict[str, dict[str, Any]] = {}
 
-    def _load_meta_schema(self) -> dict:
-        """Load META-SCHEMA.yaml as source of truth."""
-        meta_file = self.constitution_path / "META-SCHEMA.yaml"
-        if not meta_file.exists():
-            raise FileNotFoundError(f"META-SCHEMA.yaml not found at {meta_file}")
-
-        schema = yaml.safe_load(meta_file.read_text())
-        logger.info(f"📋 Loaded META-SCHEMA v{schema.get('version', 'unknown')}")
-        return schema
-
-    @property
-    # ID: 10638e03-f1c4-4851-9187-55a5ca3ff86a
-    def required_document_fields(self) -> set[str]:
-        """Extract required fields from META-SCHEMA."""
-        fields = self.meta_schema["canonical_document_structure"]
-        return set(fields["required_fields"])
-
-    @property
-    # ID: 993beda8-d7b7-40ac-a165-1225c196384b
-    def optional_document_fields(self) -> set[str]:
-        """Extract optional fields from META-SCHEMA."""
-        fields = self.meta_schema["canonical_document_structure"]
-        return set(fields["optional_fields"])
-
-    @property
-    # ID: 480ae02f-c580-4d82-a912-9493752bb742
-    def max_nesting_depth(self) -> int:
-        """Extract max nesting depth from META-SCHEMA."""
-        structure = self.meta_schema["canonical_document_structure"]
-        return structure["max_nesting_depth"]
-
-    # ID: 57411273-37db-4a7a-80ac-6872d01d6594
-    def validate_constitution(self) -> ValidationReport:
+    # ID: b2c3d4e5-f678-90ab-cdef-123456789012
+    def _load_meta_schema(self) -> dict[str, Any]:
         """
-        Validate all constitutional documents.
+        Load GLOBAL-DOCUMENT-META-SCHEMA.yaml.
 
         Returns:
-            ValidationReport with status and errors/warnings
-        """
-        logger.info("🔍 Validating constitutional structure...")
+            Loaded meta-schema dictionary
 
+        Raises:
+            FileNotFoundError: If META-SCHEMA not found
+        """
+        meta_path = (
+            self.intent_root / "charter/constitution/GLOBAL-DOCUMENT-META-SCHEMA.yaml"
+        )
+        if not meta_path.exists():
+            raise FileNotFoundError(f"META-SCHEMA not found: {meta_path}")
+
+        with open(meta_path) as f:
+            schema = yaml.safe_load(f)
+
+        logger.info(f"Loaded GLOBAL-DOCUMENT-META-SCHEMA v{schema.get('version')}")
+        return schema
+
+    # ID: c3d4e5f6-7890-abcd-ef12-34567890abcd
+    def validate_all_documents(self) -> ValidationReport:
+        """
+        Scan and validate all .intent YAML documents.
+
+        Returns:
+            ValidationReport with results
+        """
         self.errors.clear()
         self.warnings.clear()
-        self.documents_checked = 0
-        self.principles_validated = 0
+        self.schema_cache.clear()
 
-        yaml_files = list(self.constitution_path.glob("*.yaml"))
+        scope = self.meta_schema["scope"]
+        excludes = [p.replace(".intent/", "") for p in scope["excludes"]]
 
-        for yaml_file in yaml_files:
-            if "META" in yaml_file.name.upper():
+        documents_checked = 0
+        documents_valid = 0
+        documents_invalid = 0
+
+        # Find all YAML files
+        for yaml_file in self.intent_root.rglob("*.yaml"):
+            rel_path = yaml_file.relative_to(self.intent_root)
+
+            # Check exclusions
+            if any(str(rel_path).startswith(ex) for ex in excludes):
+                logger.debug(f"Skipping excluded: {rel_path}")
                 continue
 
-            self._validate_document(yaml_file)
-            self.documents_checked += 1
+            documents_checked += 1
+            is_valid = self._validate_document(yaml_file, rel_path)
 
-        valid = len(self.errors) == 0
+            if is_valid:
+                documents_valid += 1
+            else:
+                documents_invalid += 1
+
+        # Also check .yml files
+        for yml_file in self.intent_root.rglob("*.yml"):
+            rel_path = yml_file.relative_to(self.intent_root)
+
+            if any(str(rel_path).startswith(ex) for ex in excludes):
+                continue
+
+            documents_checked += 1
+            is_valid = self._validate_document(yml_file, rel_path)
+
+            if is_valid:
+                documents_valid += 1
+            else:
+                documents_invalid += 1
 
         return ValidationReport(
-            valid=valid,
+            valid=len(self.errors) == 0,
             errors=self.errors,
             warnings=self.warnings,
-            documents_checked=self.documents_checked,
-            principles_validated=self.principles_validated,
+            documents_checked=documents_checked,
+            documents_valid=documents_valid,
+            documents_invalid=documents_invalid,
         )
 
-    def _validate_document(self, yaml_file: Path):
-        """Validate a single constitutional document."""
+    # ID: d4e5f678-90ab-cdef-1234-567890abcdef
+    def _validate_document(self, doc_path: Path, rel_path: Path) -> bool:
+        """
+        Validate single document.
+
+        Args:
+            doc_path: Absolute path to document
+            rel_path: Relative path from .intent root
+
+        Returns:
+            True if valid, False otherwise
+        """
+        doc_errors_before = len(self.errors)
+
+        # Load document
         try:
-            content = yaml.safe_load(yaml_file.read_text())
+            with open(doc_path) as f:
+                doc = yaml.safe_load(f)
         except Exception as e:
             self._add_error(
-                document=yaml_file.name,
+                document=str(rel_path),
                 error_type="parse_error",
                 message=f"Failed to parse YAML: {e}",
             )
-            return
+            return False
 
-        self._validate_document_fields(yaml_file.name, content)
-
-        if "principles" in content:
-            self._validate_principles(yaml_file.name, content["principles"])
-
-        self._validate_nesting_depth(yaml_file.name, content)
-
-    def _validate_document_fields(self, doc_name: str, content: dict):
-        """Validate required document fields."""
-        if not isinstance(content, dict):
+        if not isinstance(doc, dict):
             self._add_error(
-                document=doc_name,
+                document=str(rel_path),
                 error_type="invalid_structure",
                 message="Document must be a YAML dictionary",
             )
+            return False
+
+        # Validate required header fields
+        self._validate_required_fields(str(rel_path), doc)
+
+        # Validate field constraints
+        self._validate_field_constraints(str(rel_path), doc)
+
+        # Validate against JSON schema (Phase 2)
+        self._validate_against_json_schema(str(rel_path), doc)
+
+        # Check if new errors were added
+        return len(self.errors) == doc_errors_before
+
+    # ID: e5f67890-abcd-ef12-3456-7890abcdef12
+    def _validate_required_fields(self, doc_name: str, doc: dict):
+        """
+        Validate all required header fields are present.
+
+        Args:
+            doc_name: Document name for error reporting
+            doc: Document dictionary
+        """
+        required = self.meta_schema["header_schema"]["required_fields"]
+
+        for field in required:
+            if field not in doc:
+                self._add_error(
+                    document=doc_name,
+                    error_type="missing_required_field",
+                    message=f"Missing required field: {field}",
+                    field=field,
+                )
+
+    # ID: f6789abc-def1-2345-6789-0abcdef12345
+    def _validate_field_constraints(self, doc_name: str, doc: dict):
+        """
+        Validate field patterns and constraints.
+
+        Args:
+            doc_name: Document name for error reporting
+            doc: Document dictionary
+        """
+        fields = self.meta_schema["header_schema"]["fields"]
+
+        # Validate id pattern
+        if "id" in doc:
+            pattern = fields["id"]["pattern"]
+            if not re.match(pattern, doc["id"]):
+                self._add_error(
+                    document=doc_name,
+                    error_type="invalid_pattern",
+                    message=f"id '{doc['id']}' does not match pattern {pattern}",
+                    field="id",
+                )
+
+        # Validate version pattern
+        if "version" in doc:
+            pattern = fields["version"]["pattern"]
+            if not re.match(pattern, doc["version"]):
+                self._add_error(
+                    document=doc_name,
+                    error_type="invalid_pattern",
+                    message=f"version '{doc['version']}' does not match pattern {pattern}",
+                    field="version",
+                )
+
+        # Validate status enum
+        if "status" in doc:
+            allowed = fields["status"]["allowed_values"]
+            if doc["status"] not in allowed:
+                self._add_error(
+                    document=doc_name,
+                    error_type="invalid_value",
+                    message=f"status '{doc['status']}' not in allowed values: {allowed}",
+                    field="status",
+                )
+
+        # Validate type pattern
+        if "type" in doc:
+            pattern = fields["type"]["pattern"]
+            if not re.match(pattern, doc["type"]):
+                self._add_error(
+                    document=doc_name,
+                    error_type="invalid_pattern",
+                    message=f"type '{doc['type']}' does not match pattern {pattern}",
+                    field="type",
+                )
+
+        # Validate owners structure
+        if "owners" in doc:
+            if not isinstance(doc["owners"], dict):
+                self._add_error(
+                    document=doc_name,
+                    error_type="invalid_structure",
+                    message="owners must be a dictionary",
+                    field="owners",
+                )
+            elif "accountable" not in doc["owners"]:
+                self._add_error(
+                    document=doc_name,
+                    error_type="missing_required_field",
+                    message="owners.accountable is required",
+                    field="owners.accountable",
+                )
+
+        # Validate review structure
+        if "review" in doc:
+            if not isinstance(doc["review"], dict):
+                self._add_error(
+                    document=doc_name,
+                    error_type="invalid_structure",
+                    message="review must be a dictionary",
+                    field="review",
+                )
+            elif "frequency" not in doc["review"]:
+                self._add_error(
+                    document=doc_name,
+                    error_type="missing_required_field",
+                    message="review.frequency is required",
+                    field="review.frequency",
+                )
+
+        # Validate schema_id pattern
+        if "schema_id" in doc:
+            pattern = fields["schema_id"]["pattern"]
+            if not re.match(pattern, doc["schema_id"]):
+                self._add_error(
+                    document=doc_name,
+                    error_type="invalid_pattern",
+                    message=f"schema_id '{doc['schema_id']}' does not match pattern {pattern}",
+                    field="schema_id",
+                )
+
+    # ID: 789abcde-f012-3456-789a-bcdef0123456
+    def _resolve_schema(self, schema_id: str) -> dict[str, Any] | None:
+        """
+        Resolve JSON schema by schema_id.
+
+        Args:
+            schema_id: Schema identifier to resolve
+
+        Returns:
+            Schema dictionary if found, None otherwise
+        """
+        # Check cache first
+        if schema_id in self.schema_cache:
+            return self.schema_cache[schema_id]
+
+        schemas_root = self.intent_root / "charter/schemas"
+
+        # Search all .schema.json files
+        for schema_file in schemas_root.rglob("*.schema.json"):
+            try:
+                with open(schema_file) as f:
+                    schema = json.load(f)
+
+                # Match on internal schema_id field
+                if schema.get("schema_id") == schema_id:
+                    logger.debug(
+                        f"Resolved {schema_id} -> {schema_file.relative_to(self.intent_root)}"
+                    )
+                    self.schema_cache[schema_id] = schema
+                    return schema
+            except Exception as e:
+                logger.warning(f"Failed to load schema {schema_file}: {e}")
+                continue
+
+        return None
+
+    # ID: 89abcdef-0123-4567-89ab-cdef01234567
+    def _validate_against_json_schema(self, doc_name: str, doc: dict):
+        """
+        Validate document against its JSON schema.
+
+        Args:
+            doc_name: Document name for error reporting
+            doc: Document dictionary
+        """
+        if "schema_id" not in doc:
+            return  # Already caught by required fields check
+
+        schema_id = doc["schema_id"]
+        schema = self._resolve_schema(schema_id)
+
+        if schema is None:
+            # Only warn, not error - allows gradual schema rollout
+            self._add_error(
+                document=doc_name,
+                error_type="schema_not_found",
+                message=f"No JSON schema found for schema_id: {schema_id}",
+                field="schema_id",
+                severity="warning",
+            )
             return
 
-        missing = self.required_document_fields - set(content.keys())
-        if missing:
+        # Validate against JSON schema
+        try:
+            json_validate(instance=doc, schema=schema)
+            logger.debug(f"Document {doc_name} validated against {schema_id}")
+        except JsonSchemaValidationError as e:
+            # Extract meaningful error info
+            error_path = ".".join(str(p) for p in e.path) if e.path else "root"
             self._add_error(
                 document=doc_name,
-                error_type="missing_fields",
-                message=f"Missing required fields: {missing}",
+                error_type="schema_validation_failed",
+                message=f"JSON schema validation failed at {error_path}: {e.message}",
+                field=error_path if error_path != "root" else None,
             )
 
-    def _validate_principles(self, doc_name: str, principles: dict):
-        """Validate all principles in document."""
-        if not isinstance(principles, dict):
-            self._add_error(
-                document=doc_name,
-                error_type="invalid_principles",
-                message="principles must be a dictionary",
-            )
-            return
-
-        for principle_id, principle_data in principles.items():
-            self._validate_principle(doc_name, principle_id, principle_data)
-            self.principles_validated += 1
-
-    def _validate_principle(self, doc_name: str, principle_id: str, data: dict):
-        """Validate a single principle."""
-        if not isinstance(data, dict):
-            self._add_error(
-                document=doc_name,
-                principle_id=principle_id,
-                error_type="invalid_principle_structure",
-                message="Principle must be a dictionary",
-            )
-
-    def _validate_nesting_depth(
-        self, doc_name: str, content: Any, current_depth: int = 0
-    ):
-        """Validate maximum nesting depth."""
-        if current_depth > self.max_nesting_depth:
-            self._add_error(
-                document=doc_name,
-                error_type="excessive_nesting",
-                message=f"Nesting depth exceeds maximum of {self.max_nesting_depth}",
-            )
-            return
-
-        if isinstance(content, dict):
-            for value in content.values():
-                self._validate_nesting_depth(doc_name, value, current_depth + 1)
-        elif isinstance(content, list):
-            for item in content:
-                self._validate_nesting_depth(doc_name, item, current_depth)
-
+    # ID: 67890abc-def1-2345-6789-0abcdef12345
     def _add_error(
         self,
         document: str,
         error_type: str,
         message: str,
-        principle_id: str | None = None,
+        field: str | None = None,
+        severity: str = "error",
     ):
-        """Add a validation error."""
-        self.errors.append(
-            ValidationError(
-                document=document,
-                principle_id=principle_id,
-                error_type=error_type,
-                message=message,
-                severity="error",
-            )
+        """
+        Add validation error.
+
+        Args:
+            document: Document path
+            error_type: Error type identifier
+            message: Human-readable error message
+            field: Optional field name
+            severity: "error" or "warning"
+        """
+        error = ValidationError(
+            document=document,
+            error_type=error_type,
+            message=message,
+            field=field,
+            severity=severity,
         )
 
-    def _add_warning(
-        self,
-        document: str,
-        error_type: str,
-        message: str,
-        principle_id: str | None = None,
-    ):
-        """Add a validation warning."""
-        self.warnings.append(
-            ValidationError(
-                document=document,
-                principle_id=principle_id,
-                error_type=error_type,
-                message=message,
-                severity="warning",
-            )
-        )
-
-
-# ID: ecf86eed-2f06-4688-9dd2-3fac2586096d
-def format_validation_report(report: ValidationReport) -> str:
-    """
-    Format validation report for console output.
-
-    Args:
-        report: ValidationReport to format
-
-    Returns:
-        Formatted string ready for printing
-    """
-    lines = []
-    lines.append("=" * 80)
-    lines.append("CONSTITUTIONAL META-VALIDATION REPORT")
-    lines.append("=" * 80)
-    lines.append("")
-
-    status = "✅ VALID" if report.valid else "❌ INVALID"
-    lines.append(f"Status: {status}")
-    lines.append(f"Documents Checked: {report.documents_checked}")
-    lines.append(f"Principles Validated: {report.principles_validated}")
-    lines.append(f"Errors: {len(report.errors)}")
-    lines.append(f"Warnings: {len(report.warnings)}")
-    lines.append("")
-
-    if report.errors:
-        lines.append("❌ ERRORS")
-        lines.append("-" * 80)
-        for error in report.errors:
-            location = error.document
-            if error.principle_id:
-                location += f" → {error.principle_id}"
-            lines.append(f"\n{location}")
-            lines.append(f"  Type: {error.error_type}")
-            lines.append(f"  Message: {error.message}")
-        lines.append("")
-
-    lines.append("=" * 80)
-    return "\n".join(lines)
-
-
-if __name__ == "__main__":
-    validator = MetaValidator()
-    report = validator.validate_constitution()
-    logger.info(format_validation_report(report))
-
-    exit(0 if report.valid else 1)
+        if severity == "error":
+            self.errors.append(error)
+        else:
+            self.warnings.append(error)

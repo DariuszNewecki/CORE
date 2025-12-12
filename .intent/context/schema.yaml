@@ -1,8 +1,20 @@
-# ContextPackage Schema v0.2
-# Constitutional definition of all LLM input context
-# Last modified: 2025-11-14
+# .intent/context/schema.yaml
+id: context_schema
+title: "Runtime Context Package Schema"
+type: "context_schema"
+status: active
 
-version: "0.2"
+owners:
+  accountable: "Governance Lead"
+  responsible:
+    - "Core Maintainer"
+
+review:
+  frequency: "12 months"
+
+schema_id: "context.schema"
+
+version: "0.2.0"
 schema_type: "context_package"
 
 required_fields:
