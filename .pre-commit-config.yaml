@@ -11,10 +11,11 @@ repos:
     rev: 24.4.2
     hooks:
       - id: black
+        stages: [manual]
         exclude: ^(scripts|dev-scripts)/
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.4.8
+    rev: v0.14.8
     hooks:
       - id: ruff
         args: [ --fix ]

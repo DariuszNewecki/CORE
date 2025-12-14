@@ -14,6 +14,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
+from shared.config import settings
 from shared.config_loader import load_yaml_file
 from shared.logger import getLogger
 
@@ -22,7 +23,7 @@ logger = getLogger(__name__)
 
 
 @dataclass
-# ID: a986a205-2e20-4feb-8926-69177de51d5f
+# ID: 7ae2a59e-e1f5-4b75-9969-71be1ccbec6a
 class PolicyRule:
     """Structured representation of a policy rule."""
 
@@ -34,7 +35,7 @@ class PolicyRule:
     source_policy: str = "unknown"
 
     @classmethod
-    # ID: bdfca32e-ad2e-449e-87e2-c3aa76f4335d
+    # ID: d66ce31f-9efe-4c1d-a127-6a51699df421
     def from_dict(cls, data: dict, source: str = "unknown") -> PolicyRule:
         """Create PolicyRule from dictionary data."""
         return cls(
@@ -48,7 +49,7 @@ class PolicyRule:
 
 
 @dataclass
-# ID: 042e36e7-f168-4fb4-8c0d-665d669d9e4d
+# ID: aa955039-69d6-4766-bbdb-8fdf4ff625ee
 class ViolationReport:
     """Detailed violation report with context."""
 
@@ -60,14 +61,14 @@ class ViolationReport:
     source_policy: str | None = None
 
 
-# ID: bd28b7bc-8ff5-4c58-b1e8-78fbccd61e73
+# ID: 61fd7791-1b1c-4e83-ae8d-4ef686d2281a
 class ConstitutionalViolationError(Exception):
     """Raised when code generation violates constitutional policies."""
 
     pass
 
 
-# ID: 8be64ae4-477d-4166-b7bf-bbb7a77a4c6c
+# ID: af558ebb-97bd-4b81-9de2-740acdfc3b1a
 class IntentGuard:
     """
     Central enforcement engine for CORE's safety and governance policies.
@@ -77,22 +78,17 @@ class IntentGuard:
     def __init__(self, repo_path: Path):
         """Initialize IntentGuard with repository path and load all policies."""
         self.repo_path = Path(repo_path).resolve()
-        self.intent_path = self.repo_path / ".intent"
-        self.proposals_path = self.intent_path / "proposals"
-        self.policies_path = self.intent_path / "charter" / "policies"
-
-        # Load precedence hierarchy first
+        #        self.intent_path = self.repo_path / ".intent"
+        self.intent_path = settings.paths.intent_root
+        self.proposals_path = settings.paths.proposals_dir
+        self.policies_path = settings.paths.policies_dir
         self.precedence_map = self._load_precedence_rules()
-
         self.rules: list[PolicyRule] = []
         self._load_policies()
-
-        # Sort rules by precedence (Level 1 is highest priority / lowest integer)
-        # We default to 999 for unknown policies so they are checked last
         self.rules.sort(key=lambda r: self.precedence_map.get(r.source_policy, 999))
-
         logger.info(
-            f"IntentGuard initialized with {len(self.rules)} rules (sorted by precedence)."
+            "IntentGuard initialized with %s rules (sorted by precedence).",
+            len(self.rules),
         )
 
     def _load_precedence_rules(self) -> dict[str, int]:
@@ -103,16 +99,12 @@ class IntentGuard:
         """
         mapping = {}
         try:
-            path = (
-                self.intent_path / "charter" / "constitution" / "precedence_rules.yaml"
-            )
+            path = settings.paths.constitution_dir / "precedence_rules.yaml"
             if not path.exists():
                 logger.warning("Precedence rules not found at %s", path)
                 return mapping
-
             data = load_yaml_file(path)
             hierarchy = data.get("policy_hierarchy", [])
-
             for entry in hierarchy:
                 level = entry.get("level", 999)
                 if "policy" in entry:
@@ -122,7 +114,6 @@ class IntentGuard:
                     for p in entry["policies"]:
                         name = p.replace(".yaml", "")
                         mapping[name] = level
-
             return mapping
         except Exception as e:
             logger.error("Failed to load precedence rules: %s", e)
@@ -131,14 +122,12 @@ class IntentGuard:
     def _load_policies(self):
         """Load rules from all YAML files in the `.intent/charter/policies/` directory."""
         if not self.policies_path.is_dir():
-            logger.warning(f"Policies directory not found: {self.policies_path}")
+            logger.warning("Policies directory not found: %s", self.policies_path)
             return
-        for policy_file in self.policies_path.glob("*.yaml"):
+        for policy_file in self.policies_path.rglob("*.yaml"):
             policy_name = policy_file.stem
             try:
                 content = load_yaml_file(policy_file)
-
-                # Handle standard "rules" list
                 if (
                     content
                     and "rules" in content
@@ -149,8 +138,6 @@ class IntentGuard:
                             self.rules.append(
                                 PolicyRule.from_dict(rule_data, source=policy_name)
                             )
-
-                # Handle "safety_rules" (safety_framework.yaml)
                 if (
                     content
                     and "safety_rules" in content
@@ -161,8 +148,6 @@ class IntentGuard:
                             self.rules.append(
                                 PolicyRule.from_dict(rule_data, source=policy_name)
                             )
-
-                # Handle "agent_rules" (agent_governance.yaml)
                 if (
                     content
                     and "agent_rules" in content
@@ -173,11 +158,10 @@ class IntentGuard:
                             self.rules.append(
                                 PolicyRule.from_dict(rule_data, source=policy_name)
                             )
-
             except Exception as e:
                 logger.error("Failed to load policy file {policy_file}: %s", e)
 
-    # ID: ed5b3736-dd99-4f36-bae6-43f44eb1390c
+    # ID: b4d5c82c-d19f-4026-89a3-13ee3ffb200e
     def check_transaction(
         self, proposed_paths: list[str]
     ) -> tuple[bool, list[ViolationReport]]:
@@ -196,20 +180,14 @@ class IntentGuard:
         is_valid = len(violations) == 0
         return (is_valid, violations)
 
-    # ID: 7fc7c3b5-5eb2-4ead-90c6-03c36f08b3d5
+    # ID: 86791f7d-277d-4c89-82b0-b1a29471a60d
     async def validate_generated_code(
-        self,
-        code: str,
-        pattern_id: str,
-        component_type: str,
-        target_path: str,
+        self, code: str, pattern_id: str, component_type: str, target_path: str
     ) -> tuple[bool, list[ViolationReport]]:
         """
         Validate generated code against pattern requirements.
         """
         violations = []
-
-        # Pattern-specific validation
         if pattern_id == "inspect_pattern":
             violations.extend(self._validate_inspect_pattern(code, target_path))
         elif pattern_id == "action_pattern":
@@ -218,13 +196,10 @@ class IntentGuard:
             violations.extend(self._validate_check_pattern(code, target_path))
         elif pattern_id == "run_pattern":
             violations.extend(self._validate_run_pattern(code, target_path))
-
-        # Constitutional checks for the target path
         path_violations = self._check_single_path(
             self.repo_path / target_path, target_path
         )
         violations.extend(path_violations)
-
         is_valid = len(violations) == 0
         return (is_valid, violations)
 
@@ -380,7 +355,6 @@ class IntentGuard:
 
     def _matches_pattern(self, path: str, pattern: str) -> bool:
         """Check if a path matches a given glob pattern."""
-        # Add simple glob matching if needed, or use Path.match
         if not pattern:
             return False
         return Path(path).match(pattern)

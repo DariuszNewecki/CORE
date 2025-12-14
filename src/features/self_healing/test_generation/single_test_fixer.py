@@ -1,4 +1,5 @@
 # src/features/self_healing/test_generation/single_test_fixer.py
+
 """
 Single Test Fixer - fixes individual failing tests with focused LLM prompts.
 
@@ -21,12 +22,12 @@ from will.orchestration.prompt_pipeline import PromptPipeline
 logger = getLogger(__name__)
 
 
-# ID: 5f199b14-ac7b-4f67-9d51-cd5a48e7ef36
+# ID: 13a03b46-5cbe-46ea-824a-5a8e506fb7fb
 class TestFailureParser:
     """Parses pytest output to extract individual test failures."""
 
     @staticmethod
-    # ID: a7e986ee-8e61-42fc-9c6c-406045d7528e
+    # ID: c12c580d-786f-42a0-b29d-525ffdf81db0
     def parse_failures(pytest_output: str) -> list[dict[str, Any]]:
         """
         Extract structured failure info from pytest output.
@@ -42,41 +43,27 @@ class TestFailureParser:
         }
         """
         failures = []
-
-        # Pattern: FAILED tests/path/test_file.py::TestClass::test_name - Error
-        failed_pattern = r"FAILED ([\w/\.]+::[\w:]+) - (.+)"
-
+        failed_pattern = "FAILED ([\\w/\\.]+::[\\w:]+) - (.+)"
         for match in re.finditer(failed_pattern, pytest_output):
             test_path = match.group(1)
             error_type = match.group(2)
-
-            # Extract just the test function name
             parts = test_path.split("::")
             test_name = parts[-1] if parts else "unknown"
-
-            # Try to find the full error details in the output
-            # Look for section starting with test_path
-            section_pattern = rf"_{{{len(parts[-1])}_}} {test_name} _{{{len(parts[-1])}_}}(.*?)(?=_{{{10,}}}|$)"
+            section_pattern = f"_{{{len(parts[-1])}_}} {test_name} _{{{len(parts[-1])}_}}(.*?)(?=_{{{(10,)}}}|$)"
             section_match = re.search(section_pattern, pytest_output, re.DOTALL)
-
             full_traceback = section_match.group(1).strip() if section_match else ""
-
-            # Extract error message (first line after "E ")
             error_message = ""
             line_number = None
-
             for line in full_traceback.split("\n"):
                 if line.strip().startswith("E "):
                     error_message = line.strip()[2:]
                     if not error_message or error_message.startswith("AssertionError"):
                         continue
                     break
-                # Look for line numbers
                 if "test_" in line and ".py:" in line:
-                    line_match = re.search(r":(\d+):", line)
+                    line_match = re.search(":(\\d+):", line)
                     if line_match:
                         line_number = int(line_match.group(1))
-
             failures.append(
                 {
                     "test_name": test_name,
@@ -87,16 +74,15 @@ class TestFailureParser:
                     "full_traceback": full_traceback,
                 }
             )
-
         return failures
 
 
-# ID: 388a158f-d5fb-4610-83a8-b296ecd78b8a
+# ID: fc61a613-0357-40e0-ba52-9082ff874b8a
 class TestExtractor:
     """Extracts individual test functions from test files."""
 
     @staticmethod
-    # ID: 17d6d08d-3d33-4fd9-903a-7d9037d590c6
+    # ID: 7f3249d6-5e80-45ea-9e25-19e4e42030d0
     def extract_test_function(file_path: Path, test_name: str) -> str | None:
         """
         Extract the source code of a specific test function.
@@ -106,28 +92,21 @@ class TestExtractor:
         try:
             content = file_path.read_text(encoding="utf-8")
             tree = ast.parse(content)
-
             for node in ast.walk(tree):
-                # Check functions
                 if isinstance(node, ast.FunctionDef) and node.name == test_name:
                     return ast.get_source_segment(content, node)
-
-                # Check methods in classes
                 if isinstance(node, ast.ClassDef):
                     for item in node.body:
                         if isinstance(item, ast.FunctionDef) and item.name == test_name:
-                            # Include the class context
                             class_source = ast.get_source_segment(content, node)
                             return class_source
-
             return None
-
         except Exception as e:
             logger.warning("Failed to extract test function {test_name}: %s", e)
             return None
 
     @staticmethod
-    # ID: 33346d3c-54cf-44e1-9afd-e6808cf13a78
+    # ID: b3943163-5281-4ec4-a75e-180ce9dee743
     def replace_test_function(
         file_path: Path, test_name: str, new_function_code: str
     ) -> bool:
@@ -139,36 +118,25 @@ class TestExtractor:
         try:
             content = file_path.read_text(encoding="utf-8")
             tree = ast.parse(content)
-
-            # Validate the new function code first
             try:
                 ast.parse(new_function_code)
             except SyntaxError as e:
                 logger.error("New function code has syntax error: %s", e)
                 return False
-
-            # Find the function
             replaced = False
             for node in ast.walk(tree):
                 if isinstance(node, ast.FunctionDef) and node.name == test_name:
-                    # Get the original source
                     original = ast.get_source_segment(content, node)
                     if original:
-                        # Replace it
                         new_content = content.replace(original, new_function_code, 1)
-
-                        # Validate the new content is still valid Python
                         try:
                             ast.parse(new_content)
                         except SyntaxError as e:
                             logger.error("Replacement would corrupt file: %s", e)
                             return False
-
                         file_path.write_text(new_content, encoding="utf-8")
                         replaced = True
                         break
-
-                # Check in classes
                 if isinstance(node, ast.ClassDef):
                     for item in node.body:
                         if isinstance(item, ast.FunctionDef) and item.name == test_name:
@@ -177,8 +145,6 @@ class TestExtractor:
                                 new_content = content.replace(
                                     original, new_function_code, 1
                                 )
-
-                                # Validate before writing
                                 try:
                                     ast.parse(new_content)
                                 except SyntaxError as e:
@@ -186,21 +152,18 @@ class TestExtractor:
                                         "Replacement would corrupt file: %s", e
                                     )
                                     return False
-
                                 file_path.write_text(new_content, encoding="utf-8")
                                 replaced = True
                                 break
                     if replaced:
                         break
-
             return replaced
-
         except Exception as e:
             logger.error("Failed to replace test function {test_name}: %s", e)
             return False
 
 
-# ID: f39a1cca-6d78-49c6-9255-43241760cdbe
+# ID: bf2b0925-d12c-49f5-ae16-0dd3cb9d06f8
 class SingleTestFixer:
     """
     Fixes individual failing tests using focused LLM prompts.
@@ -208,17 +171,13 @@ class SingleTestFixer:
     Strategy: One test, one error, one focused fix.
     """
 
-    def __init__(
-        self,
-        cognitive_service: CognitiveService,
-        max_attempts: int = 3,
-    ):
+    def __init__(self, cognitive_service: CognitiveService, max_attempts: int = 3):
         self.cognitive = cognitive_service
         self.max_attempts = max_attempts
         self.parser = TestFailureParser()
         self.extractor = TestExtractor()
 
-    # ID: 4efe30c2-d120-4e2a-abde-32e8d834cb34
+    # ID: 8adb4bee-9216-47a3-9d96-ec9714bb5daf
     async def fix_test(
         self,
         test_file: Path,
@@ -243,32 +202,22 @@ class SingleTestFixer:
             }
         """
         logger.info("Attempting to fix test: %s", test_name)
-
-        # Extract the test function
         test_code = self.extractor.extract_test_function(test_file, test_name)
         if not test_code:
             return {
                 "status": "error",
                 "error": f"Could not extract test function {test_name}",
             }
-
-        # Get source context if available
         source_context = ""
         if source_file and source_file.exists():
             try:
-                source_context = source_file.read_text(encoding="utf-8")[
-                    :2000
-                ]  # First 2000 chars
+                source_context = source_file.read_text(encoding="utf-8")[:2000]
             except Exception:
                 pass
-
-        # Attempt fixes
         for attempt in range(self.max_attempts):
             logger.info(
-                f"Fix attempt {attempt + 1}/{self.max_attempts} for {test_name}"
+                "Fix attempt %s/%s for %s", attempt + 1, self.max_attempts, test_name
             )
-
-            # Build focused prompt
             prompt = self._build_fix_prompt(
                 test_name=test_name,
                 test_code=test_code,
@@ -276,45 +225,30 @@ class SingleTestFixer:
                 source_context=source_context,
                 attempt=attempt,
             )
-
-            # Get LLM fix
             try:
                 llm_client = await self.cognitive.aget_client_for_role("Coder")
                 response = await llm_client.make_request_async(
                     prompt, user_id="test_fixer"
                 )
-
-                # Extract fixed code
                 fixed_code = self._extract_fixed_code(response)
                 if not fixed_code:
                     logger.warning("Could not extract fixed code from LLM response")
                     continue
-
-                # Validate it's parseable Python
                 try:
                     ast.parse(fixed_code)
                 except SyntaxError as e:
                     logger.warning("Fixed code has syntax error: %s", e)
                     continue
-
-                # Apply the fix
                 if not self.extractor.replace_test_function(
                     test_file, test_name, fixed_code
                 ):
                     logger.warning("Could not apply fix to %s", test_name)
                     continue
-
                 logger.info("Successfully applied fix to %s", test_name)
-                return {
-                    "status": "fixed",
-                    "attempts": attempt + 1,
-                }
-
+                return {"status": "fixed", "attempts": attempt + 1}
             except Exception as e:
                 logger.error("Error during fix attempt: %s", e)
                 continue
-
-        # Failed to fix after max attempts
         return {
             "status": "unfixable",
             "attempts": self.max_attempts,
@@ -330,65 +264,18 @@ class SingleTestFixer:
         attempt: int,
     ) -> str:
         """Build a focused prompt for fixing this specific test."""
-
         error_msg = failure_info.get("error_message", "Unknown error")
         traceback = failure_info.get("full_traceback", "")
-
-        base_prompt = f"""You are a test fixing specialist. Fix this ONE failing test.
-
-TEST FUNCTION: {test_name}
-FAILURE TYPE: {failure_info.get('failure_type', 'Unknown')}
-
-ERROR MESSAGE:
-{error_msg}
-
-CURRENT TEST CODE:
-```python
-{test_code}
-```
-
-FAILURE DETAILS:
-{traceback[:500]}
-
-SOURCE CODE CONTEXT (if relevant):
-{source_context[:500] if source_context else "Not available"}
-
-YOUR TASK:
-1. Analyze why this specific test is failing
-2. Fix the test to be correct and meaningful
-3. Output ONLY the fixed test function (complete, ready to replace)
-
-CRITICAL RULES:
-- Output the COMPLETE test function, including decorator and docstring
-- The test must be valid Python
-- The test should test something meaningful
-- If the test has wrong expectations, fix the assertion
-- If the test data is problematic, fix the data
-- Keep the same function name: {test_name}
-
-RESPOND WITH:
-```python
-def {test_name}(...):
-    # Fixed test here
-```
-
-DO NOT include explanations, just the fixed code.
-"""
-
-        # Process through prompt pipeline
+        base_prompt = f"You are a test fixing specialist. Fix this ONE failing test.\n\nTEST FUNCTION: {test_name}\nFAILURE TYPE: {failure_info.get('failure_type', 'Unknown')}\n\nERROR MESSAGE:\n{error_msg}\n\nCURRENT TEST CODE:\n```python\n{test_code}\n```\n\nFAILURE DETAILS:\n{traceback[:500]}\n\nSOURCE CODE CONTEXT (if relevant):\n{(source_context[:500] if source_context else 'Not available')}\n\nYOUR TASK:\n1. Analyze why this specific test is failing\n2. Fix the test to be correct and meaningful\n3. Output ONLY the fixed test function (complete, ready to replace)\n\nCRITICAL RULES:\n- Output the COMPLETE test function, including decorator and docstring\n- The test must be valid Python\n- The test should test something meaningful\n- If the test has wrong expectations, fix the assertion\n- If the test data is problematic, fix the data\n- Keep the same function name: {test_name}\n\nRESPOND WITH:\n```python\ndef {test_name}(...):\n    # Fixed test here\n```\n\nDO NOT include explanations, just the fixed code.\n"
         pipeline = PromptPipeline(repo_path=settings.REPO_PATH)
         return pipeline.process(base_prompt)
 
     def _extract_fixed_code(self, llm_response: str) -> str | None:
         """Extract the fixed test function from LLM response."""
-        # Look for code fence
-        match = re.search(r"```python\s*\n(.*?)\n```", llm_response, re.DOTALL)
+        match = re.search("```python\\s*\\n(.*?)\\n```", llm_response, re.DOTALL)
         if match:
             return match.group(1).strip()
-
-        # Look for code without fence
         lines = llm_response.strip().split("\n")
         if lines[0].strip().startswith("def "):
             return llm_response.strip()
-
         return None

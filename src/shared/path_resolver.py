@@ -194,8 +194,15 @@ class PathResolver:
     @property
     # ID: f1e0459b-ae68-4788-af26-9fbef74f719a
     def proposals_dir(self) -> Path:
-        """Directory containing constitutional change proposals."""
-        return self._intent_root / "proposals"
+        """
+        Directory containing constitutional change proposals.
+
+        Proposals are operational artefacts (mutable, workflow-managed) and therefore
+        live under work/, not under .intent/ (constitution-only).
+        """
+        proposals = self.work_dir / "proposals"
+        proposals.mkdir(parents=True, exist_ok=True)
+        return proposals
 
     # ID: 741fdbef-133b-4f84-961f-310311c67cc5
     def proposal(self, proposal_id: str) -> Path:
@@ -218,8 +225,9 @@ class PathResolver:
     # ID: d0ba9710-94d2-4ad5-9b96-47f84c98b644
     def prompts_dir(self) -> Path:
         """Directory containing LLM prompt templates."""
-        prompts_rel = self._meta.get("mind", {}).get("prompts_dir", "mind/prompts")
-        return self._intent_root / prompts_rel
+        # Prompts are operational code, not constitutional policy
+        # They live in src/mind/prompts, not .intent/
+        return self._repo_root / "src" / "mind" / "prompts"
 
     # ID: d3463541-f011-4eb0-bc98-799962936786
     def prompt(self, name: str) -> Path:
@@ -352,7 +360,7 @@ class PathResolver:
             (self.intent_root, ".intent/"),
             (self.charter_root, ".intent/charter/"),
             (self.mind_root, ".intent/mind/"),
-            (self.proposals_dir, ".intent/proposals/"),
+            (self.proposals_dir, ".work/proposals/"),
             (self.prompts_dir, "prompts directory"),
             (self.constitution_dir, "constitution directory"),  # Updated
             (self.standards_root, "standards directory"),  # Updated

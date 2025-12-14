@@ -20,7 +20,7 @@ except ImportError:
 logger = getLogger(__name__)
 
 
-# ID: a38ed737-0757-4a63-9797-e55969255ce3
+# ID: ae8922bb-df0c-4edb-a34f-a7114d70faab
 async def find_semantic_clusters(
     qdrant_service: QdrantService, n_clusters: int = 15
 ) -> list[list[str]]:
@@ -54,9 +54,9 @@ async def find_semantic_clusters(
         clusters: list[list[str]] = [[] for _ in range(n_clusters)]
         for i, label in enumerate(labels):
             clusters[label].append(symbol_keys[i])
-        logger.info(f"Found {len(clusters)} semantic clusters.")
+        logger.info("Found %s semantic clusters.", len(clusters))
         clusters.sort(key=len, reverse=True)
         return [c for c in clusters if c]
     except Exception as e:
-        logger.error(f"Failed to find semantic clusters: {e}", exc_info=True)
+        logger.error("Failed to find semantic clusters: %s", e, exc_info=True)
         return []

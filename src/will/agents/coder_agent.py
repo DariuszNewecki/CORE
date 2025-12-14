@@ -1,4 +1,5 @@
 # src/will/agents/coder_agent.py
+
 """
 Provides the CoderAgent, a specialist AI agent responsible for orchestrating
 code generation, validation, and self-correction tasks within the CORE system.
@@ -36,11 +37,10 @@ from will.tools.policy_vectorizer import PolicyVectorizer
 
 if TYPE_CHECKING:
     from mind.governance.audit_context import AuditorContext
-
 logger = getLogger(__name__)
 
 
-# ID: 77a4efd7-1a64-460d-a478-031611786403
+# ID: 49ca36f8-1ec9-4ca2-9364-8c42c90c8673
 class CodeGenerationError(Exception):
     """Raised when code generation fails, carrying the invalid code for debugging."""
 
@@ -49,7 +49,7 @@ class CodeGenerationError(Exception):
         self.code = code
 
 
-# ID: e1d31b9b-a273-45a9-afef-62d0336db1c9
+# ID: 917038e4-682f-4d7f-ad13-f5ab7835abc1
 class CoderAgent:
     """
     Orchestrates code generation with constitutional governance.
@@ -79,24 +79,17 @@ class CoderAgent:
         self.auditor_context = auditor_context
         self.repo_root = settings.REPO_PATH
         self.tracer = DecisionTracer()
-
-        # Load agent behavior config
         try:
             agent_policy = settings.load("charter.policies.agent_governance")
         except Exception:
             agent_policy = {}
-
         agent_behavior = agent_policy.get("execution_agent", {})
         self.max_correction_attempts = agent_behavior.get("max_correction_attempts", 2)
-
-        # Initialize specialist components
         intent_guard = IntentGuard(self.repo_root)
         self.pattern_validator = PatternValidator(intent_guard)
         self.correction_engine = CorrectionEngine(
             cognitive_service, auditor_context, self.tracer
         )
-
-        # Initialize semantic infrastructure if available
         context_builder = None
         if qdrant_service:
             try:
@@ -106,7 +99,6 @@ class CoderAgent:
                 module_anchor_generator = ModuleAnchorGenerator(
                     self.repo_root, cognitive_service, qdrant_service
                 )
-                # A2 ENHANCED: Pass cognitive_service and qdrant_service for code examples
                 context_builder = ArchitecturalContextBuilder(
                     policy_vectorizer,
                     module_anchor_generator,
@@ -118,20 +110,16 @@ class CoderAgent:
                 )
             except Exception as e:
                 logger.warning(
-                    f"Failed to initialize Semantic Infrastructure: {e}. "
-                    "Falling back to standard generation."
+                    "Failed to initialize Semantic Infrastructure: %s. Falling back to standard generation.",
+                    e,
                 )
-
         self.code_generator = CodeGenerator(
             cognitive_service, prompt_pipeline, self.tracer, context_builder
         )
 
-    # ID: 284cb9fb-2dfb-4017-949e-647ed1fc1951
+    # ID: 93180737-45fb-49ca-9e75-4521c7792204
     async def generate_and_validate_code_for_task(
-        self,
-        task: ExecutionTask,
-        high_level_goal: str,
-        context_str: str,
+        self, task: ExecutionTask, high_level_goal: str, context_str: str
     ) -> str:
         """
         Main entry point: generates code and validates it through multiple phases.
@@ -148,30 +136,22 @@ class CoderAgent:
             CodeGenerationError: If generation or validation fails
         """
         try:
-            # Infer pattern requirements
             pattern_id = self.pattern_validator.infer_pattern_id(task)
             component_type = self.pattern_validator.infer_component_type(task)
             pattern_requirements = self.pattern_validator.get_pattern_requirements(
                 pattern_id
             )
-
-            # Generate initial code
             current_code = await self.code_generator.generate_code(
                 task, high_level_goal, context_str, pattern_id, pattern_requirements
             )
-
-            # Validation loop with self-correction
             for attempt in range(self.max_correction_attempts + 1):
                 logger.info("  -> Validation attempt %s...", attempt + 1)
-
-                # PHASE 1: Pattern Validation
                 (
                     pattern_approved,
                     pattern_violations,
                 ) = await self.pattern_validator.validate_code(
                     current_code, pattern_id, component_type, task.params.file_path
                 )
-
                 if not pattern_approved:
                     if attempt >= self.max_correction_attempts:
                         self.tracer.save_trace()
@@ -179,7 +159,6 @@ class CoderAgent:
                             f"Pattern violations after {self.max_correction_attempts + 1} attempts",
                             code=current_code,
                         )
-
                     logger.warning(
                         "  -> ⚠️ Pattern violations found. Attempting correction..."
                     )
@@ -193,7 +172,6 @@ class CoderAgent:
                             high_level_goal,
                         )
                     )
-
                     if correction_result.get("status") == "success":
                         current_code = correction_result["code"]
                         continue
@@ -203,35 +181,26 @@ class CoderAgent:
                             f"Pattern correction failed: {correction_result.get('message')}",
                             code=current_code,
                         )
-
                 logger.info("  -> ✅ Pattern validation passed: %s", pattern_id)
-
-                # PHASE 2: Constitutional & Runtime Validation
                 validation_result = await validate_code_async(
                     task.params.file_path,
                     current_code,
                     auditor_context=self.auditor_context,
                 )
-
                 if validation_result["status"] == "clean":
                     logger.info("  -> ✅ Constitutional validation passed.")
                     self.tracer.save_trace()
                     return validation_result["code"]
-
                 if attempt >= self.max_correction_attempts:
                     self.tracer.save_trace()
                     raise CodeGenerationError(
                         f"Constitutional validation failed after {self.max_correction_attempts + 1} attempts.",
                         code=current_code,
                     )
-
                 logger.warning(
                     "  -> ⚠️ Constitutional violations found. Attempting self-correction."
                 )
-
-                # Extract runtime errors if present
                 runtime_error = self._extract_runtime_error(validation_result)
-
                 correction_result = (
                     await self.correction_engine.attempt_constitutional_correction(
                         task,
@@ -241,7 +210,6 @@ class CoderAgent:
                         runtime_error,
                     )
                 )
-
                 if correction_result.get("status") == "success":
                     logger.info("  -> ✅ Self-correction generated a potential fix.")
                     current_code = correction_result["code"]
@@ -251,12 +219,10 @@ class CoderAgent:
                         f"Self-correction failed: {correction_result.get('message')}",
                         code=current_code,
                     )
-
             self.tracer.save_trace()
             raise CodeGenerationError(
                 "Could not produce valid code after all attempts.", code=current_code
             )
-
         except Exception as e:
             self.tracer.save_trace()
             raise

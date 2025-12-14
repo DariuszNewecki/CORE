@@ -1,4 +1,5 @@
 # src/body/services/service_registry.py
+
 """
 Provides a centralized, lazily-initialized service registry for CORE.
 This acts as the authoritative Dependency Injection container, ensuring
@@ -10,8 +11,6 @@ from __future__ import annotations
 import asyncio
 import importlib
 from pathlib import Path
-
-# Type checking imports only (no runtime cost)
 from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import text
@@ -25,11 +24,10 @@ from shared.logger import getLogger
 if TYPE_CHECKING:
     from shared.infrastructure.clients.qdrant_client import QdrantService
     from will.orchestration.cognitive_service import CognitiveService
-
 logger = getLogger(__name__)
 
 
-# ID: 759b0e12-7d25-4bbb-93ad-2a9a8738f99f
+# ID: fde25013-c11d-4c42-86e2-243ddd3ae10b
 class ServiceRegistry:
     """
     A singleton service locator and DI container.
@@ -45,7 +43,7 @@ class ServiceRegistry:
     _instances: dict[str, Any] = {}
     _service_map: dict[str, str] = {}
     _initialized = False
-    _init_flags: dict[str, bool] = {}  # Track which services are initialized
+    _init_flags: dict[str, bool] = {}
     _lock = asyncio.Lock()
 
     def __init__(self, repo_path: Path | None = None):
@@ -67,7 +65,7 @@ class ServiceRegistry:
                 self._initialized = True
             except Exception as e:
                 logger.critical(
-                    f"Failed to initialize ServiceRegistry from DB: {e}", exc_info=True
+                    "Failed to initialize ServiceRegistry from DB: %s", e, exc_info=True
                 )
                 self._initialized = False
 
@@ -84,20 +82,15 @@ class ServiceRegistry:
         """
         if "qdrant" not in self._instances:
             logger.debug("Lazy-loading QdrantService...")
-            # Local import to prevent slow startup for non-vector commands
             from shared.infrastructure.clients.qdrant_client import QdrantService
 
-            # Phase 1: Construct (lightweight, no I/O)
             instance = QdrantService(
-                url=settings.QDRANT_URL,
-                collection_name=settings.QDRANT_COLLECTION_NAME,
+                url=settings.QDRANT_URL, collection_name=settings.QDRANT_COLLECTION_NAME
             )
             self._instances["qdrant"] = instance
-            self._init_flags["qdrant"] = False  # Mark as needing init
+            self._init_flags["qdrant"] = False
 
-    # --- Explicit Factories for Core Infrastructure ---
-
-    # ID: 8ebb81b4-2339-4755-849c-888096781db2
+    # ID: 8e8fc0c0-11df-4bd8-b365-15c255075d04
     async def get_qdrant_service(self) -> QdrantService:
         """
         Authoritative, lazy, singleton access to Qdrant.
@@ -108,13 +101,10 @@ class ServiceRegistry:
         if "qdrant" not in self._instances:
             async with self._lock:
                 self._ensure_qdrant_instance()
-
-            # Phase 2: Initialize (outside lock, async I/O allowed)
             self._init_flags["qdrant"] = True
-
         return self._instances["qdrant"]
 
-    # ID: d01e52c3-5f2b-457e-babf-6df52e95bcfd
+    # ID: e87e3db8-9a2f-4bed-b41e-3ebea0f3b8ef
     async def get_cognitive_service(self) -> CognitiveService:
         """
         Creates CognitiveService, injecting the singleton QdrantService.
@@ -127,30 +117,20 @@ class ServiceRegistry:
                     logger.debug("Lazy-loading CognitiveService...")
                     from will.orchestration.cognitive_service import CognitiveService
 
-                    # DI Rule: We inject the Qdrant dependency here.
-                    # CRITICAL FIX: Do not call get_qdrant_service() here as it re-acquires lock.
-                    # Instead, use internal helper since we already hold the lock.
                     self._ensure_qdrant_instance()
                     qdrant = self._instances["qdrant"]
-
-                    # Phase 1: Construct (lightweight, no I/O)
                     instance = CognitiveService(
                         repo_path=self.repo_path, qdrant_service=qdrant
                     )
                     self._instances["cognitive_service"] = instance
-                    self._init_flags["cognitive_service"] = (
-                        False  # Mark as needing init
-                    )
-
-            # Phase 2: Initialize (outside lock, async I/O allowed)
+                    self._init_flags["cognitive_service"] = False
             if not self._init_flags.get("cognitive_service"):
                 logger.debug("Initializing CognitiveService (loading Mind from DB)...")
                 await self._instances["cognitive_service"].initialize()
                 self._init_flags["cognitive_service"] = True
-
         return self._instances["cognitive_service"]
 
-    # ID: bc12f62c-2336-4dd0-abf6-4e4f2d95cb26
+    # ID: 8f882e11-9bff-4225-9208-12660aa7c3a3
     async def get_auditor_context(self) -> AuditorContext:
         """
         Singleton factory for AuditorContext.
@@ -160,55 +140,38 @@ class ServiceRegistry:
             async with self._lock:
                 if "auditor_context" not in self._instances:
                     logger.debug("Lazy-loading AuditorContext...")
-                    # Initialize with the repo_path bound to this registry
                     instance = AuditorContext(self.repo_path)
                     self._instances["auditor_context"] = instance
                     self._init_flags["auditor_context"] = False
-
-            # Phase 2: Initialize if needed
             if not self._init_flags.get("auditor_context"):
-                # AuditorContext might have async init in the future
-                # For now, mark as initialized
                 self._init_flags["auditor_context"] = True
-
         return self._instances["auditor_context"]
 
-    # --- Dynamic Service Resolution (Legacy/Plugin Support) ---
-
-    # ID: 7a6471d3-f8df-442f-bd72-2df8727dd47a
+    # ID: 4df97396-6692-426f-a2cc-e6d29b8cefc2
     async def get_service(self, name: str) -> Any:
         """
         Lazily initializes and returns a singleton instance of a dynamic service.
         Used for services defined in the database 'runtime_services' table.
         """
-        # Prefer explicit factories if they exist
         if name == "qdrant":
             return await self.get_qdrant_service()
         if name == "cognitive_service":
             return await self.get_cognitive_service()
         if name == "auditor_context":
             return await self.get_auditor_context()
-
         if not self._initialized:
             await self._initialize_from_db()
-
         if name not in self._instances:
             if name not in self._service_map:
                 raise ValueError(f"Service '{name}' not found in registry.")
-
             class_path = self._service_map[name]
             service_class = self._import_class(class_path)
-
-            # Basic DI based on convention
             if name in ["knowledge_service", "auditor"]:
                 self._instances[name] = service_class(self.repo_path)
             else:
                 self._instances[name] = service_class()
-
             logger.debug("Lazily initialized dynamic service: %s", name)
-
         return self._instances[name]
 
 
-# Global instance for simple access where DI isn't possible yet
 service_registry = ServiceRegistry()

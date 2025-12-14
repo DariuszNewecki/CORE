@@ -41,7 +41,6 @@ async def test_get_cognitive_service_injects_dependencies(registry):
         "will.orchestration.cognitive_service.CognitiveService"
     ) as MockCognitive:
         with patch("services.clients.qdrant_client.QdrantService") as MockQdrant:
-
             # Act: Request the dependent service
             cog_service = await registry.get_cognitive_service()
 

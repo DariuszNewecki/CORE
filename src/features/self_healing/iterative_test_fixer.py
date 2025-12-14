@@ -29,7 +29,7 @@ from will.orchestration.validation_pipeline import validate_code_async
 logger = getLogger(__name__)
 
 
-# ID: 557c4191-5dfc-4b5c-bb31-0bc6e1f389a3
+# ID: f270d71c-5ff1-474e-aed9-6a3c24b59df0
 class IterativeTestFixer:
     """
     Generates and iteratively fixes tests based on failure analysis.
@@ -72,7 +72,7 @@ class IterativeTestFixer:
         """Default prompt for fixing tests."""
         return "# Test Fixing Task\n\nYou previously generated tests, but some failed. Your task is to fix ONLY the failing tests while keeping passing tests unchanged.\n\n## Original Test Code\n```python\n{original_test_code}\n```\n\n## Test Results\n{test_results}\n\n## Failure Analysis\n{failure_summary}\n\n## Your Task\n1. Analyze why each test failed\n2. Fix ONLY the failing tests\n3. Keep all passing tests exactly the same\n4. Output the complete corrected test file\n\n## Common Fixes\n- **AssertionError (values don't match)**: Update expected value to match actual\n- **Off-by-one errors**: Adjust counts/indices\n- **Empty vs None**: Check if function returns empty list [] vs None\n- **Extra/missing items**: Verify list lengths and contents\n- **Type errors**: Ensure correct types in assertions\n\n## Critical Rules\n- Do NOT modify passing tests\n- Output complete, valid Python code\n- Use same imports and structure\n- Single code block with ```python\n\nGenerate the corrected test file now.\n"
 
-    # ID: 511f0b00-6d6c-4894-8875-f4b80a72eafa
+    # ID: db735374-1dbd-423c-a2d6-b576a5b1839d
     async def generate_with_retry(
         self,
         module_context: ModuleContext,
@@ -94,14 +94,11 @@ class IterativeTestFixer:
         """
         best_result = None
         best_passed = 0
-
         logger.info(
             "Iterative Test Generation: Starting (max %d attempts)", self.max_attempts
         )
-
         for attempt in range(1, self.max_attempts + 1):
             logger.info("Attempt %d/%d", attempt, self.max_attempts)
-
             if attempt == 1:
                 result = await self._generate_initial(
                     module_context, test_file, goal, target_coverage
@@ -110,27 +107,20 @@ class IterativeTestFixer:
                 result = await self._fix_based_on_failures(
                     module_context, test_file, best_result, attempt
                 )
-
             if not result or result.get("status") == "failed":
                 logger.warning("Attempt %d failed to generate valid tests", attempt)
                 continue
-
             test_results = result.get("test_result", {})
             passed = test_results.get("passed_count", 0)
             total = test_results.get("total_count", 0)
-
             logger.info("Results: %d/%d tests passed", passed, total)
-
             if passed > best_passed:
                 best_passed = passed
                 best_result = result
-
             if test_results.get("passed", False):
                 logger.info("All tests passed!")
                 return result
-
             logger.info("%d tests need fixing", total - passed)
-
         logger.warning(
             "Iterative generation finished. Best result: %d tests passing", best_passed
         )
@@ -150,7 +140,7 @@ class IterativeTestFixer:
                 return {"status": "failed", "error": "No code generated"}
             return await self._validate_and_run(test_file, test_code)
         except Exception as e:
-            logger.error(f"Initial generation failed: {e}", exc_info=True)
+            logger.error("Initial generation failed: %s", e, exc_info=True)
             return {"status": "failed", "error": str(e)}
 
     async def _fix_based_on_failures(
@@ -184,7 +174,7 @@ class IterativeTestFixer:
                 return {"status": "failed", "error": "No code generated in fix"}
             return await self._validate_and_run(test_file, test_code)
         except Exception as e:
-            logger.error(f"Fix attempt {attempt} failed: {e}", exc_info=True)
+            logger.error("Fix attempt %s failed: %s", attempt, e, exc_info=True)
             return {"status": "failed", "error": str(e)}
 
     async def _validate_and_run(self, test_file: str, test_code: str) -> dict[str, Any]:

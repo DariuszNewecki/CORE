@@ -18,7 +18,6 @@ from shared.context import CoreContext
 from shared.logger import getLogger
 from shared.utils.constitutional_parser import get_all_constitutional_paths
 
-# Import extracted logic
 from .diagnostics_policy import policy_coverage
 from .diagnostics_registry import check_legacy_tags, cli_registry, manifest_hygiene
 
@@ -30,25 +29,19 @@ diagnostics_app = typer.Typer(help="Deep diagnostic and integrity checks.")
 async def _async_find_clusters(context: CoreContext, n_clusters: int):
     """Async helper that contains the core logic for the command."""
     logger.info("Finding semantic clusters with n_clusters=%s...", n_clusters)
-
     if context.qdrant_service is None and context.registry:
         try:
             context.qdrant_service = await context.registry.get_qdrant_service()
         except Exception as e:
             logger.error("Failed to initialize QdrantService: %s", e)
             return
-
     clusters = await find_semantic_clusters(
         qdrant_service=context.qdrant_service, n_clusters=n_clusters
     )
-
     if not clusters:
         logger.warning("No clusters found.")
         return
-
-    logger.info(f"Found {len(clusters)} clusters.")
-
-    # Return clusters for further processing if needed
+    logger.info("Found %s clusters.", len(clusters))
     return clusters
 
 
@@ -56,7 +49,7 @@ async def _async_find_clusters(context: CoreContext, n_clusters: int):
     "find-clusters",
     help="Finds and displays all semantic capability clusters, sorted by size.",
 )
-# ID: fb7f9a46-4053-4a2b-bbcb-b937ffa55909
+# ID: 91856850-423f-4c27-90c3-e06f56a3841a
 def find_clusters_command_sync(
     ctx: typer.Context,
     n_clusters: int = typer.Option(
@@ -98,7 +91,7 @@ def _add_cli_nodes(cli_app: typer.Typer):
 @diagnostics_app.command(
     "cli-tree", help="Displays a hierarchical tree view of all available CLI commands."
 )
-# ID: 30a6dcde-a174-48de-8f0f-327cbafec340
+# ID: dd914ffc-2b27-43e5-a6a6-20695cb7e778
 def cli_tree():
     """Builds and returns the CLI command tree structure."""
     from body.cli.admin_cli import app as main_app
@@ -110,7 +103,7 @@ def cli_tree():
 @diagnostics_app.command(
     "debug-meta", help="Prints the auditor's view of all required constitutional files."
 )
-# ID: 993e903f-d239-44bf-95ec-1eb0422094cd
+# ID: 59eb1e73-3e51-470c-8f1c-1c7c2142013d
 def debug_meta_paths():
     """A diagnostic tool that returns all file paths indexed in meta.yaml."""
     logger.info("Getting auditor's interpretation of meta.yaml...")
@@ -121,31 +114,26 @@ def debug_meta_paths():
 @diagnostics_app.command(
     "unassigned-symbols", help="Finds symbols without a universal # ID tag."
 )
-# ID: 6e1b1104-fd07-4865-88bd-d376da96c0f4
+# ID: b39297a7-26db-47a6-a2d0-f2780cca9bb1
 def unassigned_symbols():
     unassigned = get_unassigned_symbols()
     if not unassigned:
         logger.info("Success! All governable symbols have an assigned ID tag.")
         return []
-
-    logger.warning(f"Found {len(unassigned)} symbols with no assigned ID")
+    logger.warning("Found %s symbols with no assigned ID", len(unassigned))
     return unassigned
 
 
-# Register commands extracted to other modules
 diagnostics_app.command(
     "policy-coverage", help="Audits the constitution for policy coverage and integrity."
 )(policy_coverage)
-
 diagnostics_app.command(
     "manifest-hygiene",
     help="Checks for capabilities declared in the wrong domain manifest file.",
 )(manifest_hygiene)
-
 diagnostics_app.command(
     "cli-registry", help="Validates the CLI registry against its constitutional schema."
 )(cli_registry)
-
 diagnostics_app.command("legacy-tags", help="Scans the codebase for obsolete tags.")(
     check_legacy_tags
 )

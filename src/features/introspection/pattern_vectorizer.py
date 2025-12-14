@@ -1,4 +1,5 @@
 # src/features/introspection/pattern_vectorizer.py
+
 """
 Pattern Vectorization Service
 
@@ -31,7 +32,7 @@ from will.orchestration.cognitive_service import CognitiveService
 logger = getLogger(__name__)
 
 
-# ID: 5d963ba8-0988-4433-9111-a0ecedd0ef0d
+# ID: da5ef4a5-7913-46d9-aab5-5aa985255a5c
 class PatternChunk:
     """
     A semantic chunk of a constitutional pattern.
@@ -60,7 +61,7 @@ class PatternChunk:
         self.applies_to = applies_to or []
         self.severity = severity
 
-    # ID: a40e5d42-b3d5-4a2f-8e2e-a11cfec6fa9f
+    # ID: 386b7dc4-0dd3-46a5-b241-de878fbc97a2
     def to_metadata(self) -> dict[str, Any]:
         """Convert to Qdrant metadata format."""
         return {
@@ -71,11 +72,11 @@ class PatternChunk:
             "section_path": self.section_path,
             "applies_to": self.applies_to,
             "severity": self.severity,
-            "content": self.content,  # Store for retrieval
+            "content": self.content,
         }
 
 
-# ID: c90138f0-3728-4876-8553-8656f12812a8
+# ID: b444f603-4d22-4556-88e5-124651b86a02
 class PatternVectorizer:
     """
     Vectorizes constitutional patterns for semantic understanding and validation.
@@ -97,25 +98,23 @@ class PatternVectorizer:
         cognitive_service: CognitiveService,
         patterns_dir: Path | None = None,
     ):
-        # PHASE 1 FIX: Store the service, not the client
         self.qdrant = qdrant_service
         self.cognitive = cognitive_service
-        self.patterns_dir = patterns_dir or (
-            settings.REPO_PATH / ".intent" / "charter" / "patterns"
+        self.patterns_dir = (
+            patterns_dir or settings.REPO_PATH / ".intent" / "charter" / "patterns"
         )
 
-    # ID: 8d9f7fc3-b55a-485d-9b6d-9fcf0d30c5c3
+    # ID: 822d1ba3-c18a-4870-bcbc-b10eb831ef00
     async def ensure_collection(self) -> None:
         """
         Ensure core-patterns collection exists with correct schema.
         Delegates to QdrantService for idempotency.
         """
         await self.qdrant.ensure_collection(
-            collection_name=self.COLLECTION_NAME,
-            vector_size=self.VECTOR_DIMENSION,
+            collection_name=self.COLLECTION_NAME, vector_size=self.VECTOR_DIMENSION
         )
 
-    # ID: fab06120-8b1b-4959-87a1-c14d7dc5f356
+    # ID: 8c051a57-4d3f-44df-bea6-547a611bb8c1
     async def vectorize_all_patterns(self) -> dict[str, int]:
         """
         Vectorize all pattern files in .intent/charter/patterns/.
@@ -126,14 +125,10 @@ class PatternVectorizer:
             Dict mapping pattern_id -> chunk_count
         """
         await self.ensure_collection()
-
         pattern_files = list(self.patterns_dir.glob("*.yaml"))
-        logger.info(f"Found {len(pattern_files)} pattern files to vectorize")
-
-        # PHASE 2 PREP: Get stored hashes for deduplication
+        logger.info("Found %s pattern files to vectorize", len(pattern_files))
         stored_hashes = await self.qdrant.get_stored_hashes(self.COLLECTION_NAME)
-        logger.debug(f"Retrieved {len(stored_hashes)} existing pattern hashes")
-
+        logger.debug("Retrieved %s existing pattern hashes", len(stored_hashes))
         results = {}
         for pattern_file in pattern_files:
             try:
@@ -146,19 +141,15 @@ class PatternVectorizer:
             except Exception as e:
                 logger.error("✗ Failed to vectorize %s: %s", pattern_file.name, e)
                 results[pattern_file.stem] = 0
-
         total_chunks = sum(results.values())
         logger.info(
-            f"✓ Vectorized {len(results)} patterns, {total_chunks} total chunks"
+            "✓ Vectorized %s patterns, %s total chunks", len(results), total_chunks
         )
-
         return results
 
-    # ID: 9373a88b-281f-4956-b807-af849ac35d3d
+    # ID: da6def3c-6397-4dea-84cc-7a803c8bcbc6
     async def vectorize_pattern(
-        self,
-        pattern_file: Path,
-        stored_hashes: dict[str, str] | None = None,
+        self, pattern_file: Path, stored_hashes: dict[str, str] | None = None
     ) -> int:
         """
         Vectorize a single pattern file into semantic chunks.
@@ -173,103 +164,66 @@ class PatternVectorizer:
         Returns:
             Number of chunks created
         """
-        logger.debug(f"Vectorizing pattern: {pattern_file.name}")
-
-        # Load pattern YAML using CORE's processor
+        logger.debug("Vectorizing pattern: %s", pattern_file.name)
         pattern_data = strict_yaml_processor.load(pattern_file)
-
-        # Extract metadata
         pattern_id = pattern_data.get("pattern_id", pattern_file.stem)
         pattern_version = pattern_data.get("version", "1.0.0")
         pattern_category = pattern_data.get("category", "general")
-
-        # Chunk the pattern
         chunks = self._chunk_pattern(
             pattern_id, pattern_version, pattern_category, pattern_data
         )
-
         if not chunks:
-            logger.warning(f"No chunks generated for {pattern_file.name}")
+            logger.warning("No chunks generated for %s", pattern_file.name)
             return 0
-
-        # Filter chunks that haven't changed
         valid_chunks = []
         if stored_hashes:
             for idx, chunk in enumerate(chunks):
-                # Calculate deterministic ID for checking
                 chunk_id_str = f"{pattern_id}_{idx}"
                 point_id = str(get_deterministic_id(chunk_id_str))
-
-                # Calculate content hash
                 normalized_content = chunk.content.strip()
                 content_hash = hashlib.sha256(
                     normalized_content.encode("utf-8")
                 ).hexdigest()
-
-                # Check if this point exists and hash matches
                 if (
                     point_id in stored_hashes
                     and stored_hashes[point_id] == content_hash
                 ):
                     continue
-
                 valid_chunks.append((idx, chunk))
         else:
             valid_chunks = list(enumerate(chunks))
-
         if not valid_chunks:
             return 0
-
         logger.info(
-            f"Processing {len(valid_chunks)} new/changed chunks for {pattern_file.name}"
+            "Processing %s new/changed chunks for %s",
+            len(valid_chunks),
+            pattern_file.name,
         )
-
-        # Generate embeddings using cognitive service
         chunk_texts = [chunk.content for _, chunk in valid_chunks]
-
         import asyncio
 
         embedding_tasks = [
             self.cognitive.get_embedding_for_code(text) for text in chunk_texts
         ]
         embeddings = await asyncio.gather(*embedding_tasks)
-
-        # Filter out None results from failed embeddings
         points = []
         for (idx, chunk), embedding in zip(valid_chunks, embeddings):
             if not embedding:
                 continue
-
-            # Calculate deterministic ID
             chunk_id_str = f"{pattern_id}_{idx}"
             point_id = get_deterministic_id(chunk_id_str)
-
-            # Calculate content hash
             normalized_content = chunk.content.strip()
             content_hash = hashlib.sha256(
                 normalized_content.encode("utf-8")
             ).hexdigest()
-
-            # Add hash to payload
             payload = chunk.to_metadata()
             payload["content_sha256"] = content_hash
             payload["chunk_id"] = chunk_id_str
-
-            points.append(
-                PointStruct(
-                    id=point_id,
-                    vector=embedding,
-                    payload=payload,
-                )
-            )
-
-        # PHASE 1 FIX: Use QdrantService method instead of direct client access
+            points.append(PointStruct(id=point_id, vector=embedding, payload=payload))
         if points:
             await self.qdrant.upsert_points(
-                collection_name=self.COLLECTION_NAME,
-                points=points,
+                collection_name=self.COLLECTION_NAME, points=points
             )
-
         return len(points)
 
     def _chunk_pattern(
@@ -285,8 +239,6 @@ class PatternVectorizer:
         Strategy: Each top-level section and meaningful subsection becomes a chunk.
         """
         chunks = []
-
-        # Chunk philosophy
         if "philosophy" in pattern_data:
             chunks.append(
                 PatternChunk(
@@ -298,8 +250,6 @@ class PatternVectorizer:
                     content=pattern_data["philosophy"],
                 )
             )
-
-        # Chunk requirements
         if "requirements" in pattern_data:
             for req_name, req_data in pattern_data["requirements"].items():
                 if isinstance(req_data, dict) and "mandate" in req_data:
@@ -312,7 +262,6 @@ class PatternVectorizer:
                             )
                         else:
                             content += f"Implementation: {impl}"
-
                     chunks.append(
                         PatternChunk(
                             pattern_id=pattern_id,
@@ -324,8 +273,6 @@ class PatternVectorizer:
                             severity="error",
                         )
                     )
-
-        # Chunk validation rules
         if "validation_rules" in pattern_data:
             for rule in pattern_data["validation_rules"]:
                 if isinstance(rule, dict) and "rule" in rule:
@@ -333,7 +280,6 @@ class PatternVectorizer:
                     content += f"Description: {rule.get('description', '')}\n"
                     content += f"Severity: {rule.get('severity', 'error')}\n"
                     content += f"Enforcement: {rule.get('enforcement', 'runtime')}"
-
                     chunks.append(
                         PatternChunk(
                             pattern_id=pattern_id,
@@ -345,14 +291,11 @@ class PatternVectorizer:
                             severity=rule.get("severity", "error"),
                         )
                     )
-
-        # Chunk examples
         if "examples" in pattern_data:
             for example_name, example_data in pattern_data["examples"].items():
                 if isinstance(example_data, dict):
                     content = f"Example: {example_name}\n"
                     content += strict_yaml_processor.dump_yaml(example_data)
-
                     chunks.append(
                         PatternChunk(
                             pattern_id=pattern_id,
@@ -363,8 +306,6 @@ class PatternVectorizer:
                             content=content,
                         )
                     )
-
-        # Chunk migration phases
         if "migration" in pattern_data:
             migration = pattern_data["migration"]
             if "phases" in migration:
@@ -372,7 +313,6 @@ class PatternVectorizer:
                     if isinstance(phase_data, list):
                         content = f"Migration Phase: {phase_name}\n"
                         content += "\n".join(f"- {item}" for item in phase_data)
-
                         chunks.append(
                             PatternChunk(
                                 pattern_id=pattern_id,
@@ -383,8 +323,6 @@ class PatternVectorizer:
                                 content=content,
                             )
                         )
-
-        # Chunk generic patterns list
         if "patterns" in pattern_data and isinstance(pattern_data["patterns"], list):
             for pat in pattern_data["patterns"]:
                 if isinstance(pat, dict) and "pattern_id" in pat:
@@ -393,7 +331,6 @@ class PatternVectorizer:
                     content += f"Purpose: {pat.get('purpose')}\n"
                     if "implementation_requirements" in pat:
                         content += f"Requirements: {pat['implementation_requirements']}"
-
                     chunks.append(
                         PatternChunk(
                             pattern_id=pattern_id,
@@ -404,10 +341,9 @@ class PatternVectorizer:
                             content=content,
                         )
                     )
-
         return chunks
 
-    # ID: 3db91262-a701-42f3-a911-67acf0323a43
+    # ID: dcd6d244-c869-4b50-8956-11e9ee8331b0
     async def query_pattern(self, query: str, limit: int = 5) -> list[dict[str, Any]]:
         """
         Query patterns semantically.
@@ -421,23 +357,10 @@ class PatternVectorizer:
         Returns:
             List of matching pattern chunks with metadata
         """
-        # Generate query embedding using cognitive service
         query_vector = await self.cognitive.get_embedding_for_code(query)
-
         if not query_vector:
             return []
-
-        # PHASE 1 FIX: Use service search method
         results = await self.qdrant.search(
-            collection_name=self.COLLECTION_NAME,
-            query_vector=query_vector,
-            limit=limit,
+            collection_name=self.COLLECTION_NAME, query_vector=query_vector, limit=limit
         )
-
-        return [
-            {
-                "score": hit.score,
-                **hit.payload,
-            }
-            for hit in results
-        ]
+        return [{"score": hit.score, **hit.payload} for hit in results]

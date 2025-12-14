@@ -76,9 +76,9 @@ async def test_build_packet():
     logger.info("Testing load...")
     loaded = await service.load_packet("TEST_001")
     assert loaded is not None, "Failed to load packet"
-    assert (
-        loaded["header"]["packet_id"] == packet["header"]["packet_id"]
-    ), "Packet mismatch"
+    assert loaded["header"]["packet_id"] == packet["header"]["packet_id"], (
+        "Packet mismatch"
+    )
 
     logger.info("✓ Load test passed")
 

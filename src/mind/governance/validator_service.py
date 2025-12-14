@@ -12,7 +12,6 @@ from shared.logger import getLogger
 
 
 logger = getLogger(__name__)
-
 import fnmatch
 from dataclasses import dataclass
 from enum import Enum
@@ -23,7 +22,7 @@ from typing import Any
 import yaml
 
 
-# ID: efb81ac5-5520-4cf3-8292-3b6bf049cb24
+# ID: 9a021d9a-929d-4047-afaa-dc9787d92d48
 class RiskTier(Enum):
     """Risk classification for operations."""
 
@@ -33,7 +32,7 @@ class RiskTier(Enum):
     CRITICAL = 10
 
 
-# ID: d761610e-b880-4838-85cf-50a9ca2266a7
+# ID: 50d2f68f-9762-421f-bfeb-14cc31a33cb7
 class ApprovalType(Enum):
     """Approval mechanism required."""
 
@@ -44,7 +43,7 @@ class ApprovalType(Enum):
 
 
 @dataclass
-# ID: 3ea9a7f3-3cb9-43bd-af28-a9129e5386c7
+# ID: 8ef911d6-c71d-4af7-977c-c6e2e44a522e
 class GovernanceDecision:
     """Result of governance validation."""
 
@@ -55,7 +54,7 @@ class GovernanceDecision:
     violations: list[str]
 
 
-# ID: 1d4ff5ea-dae6-4eed-b576-7418c71480a9
+# ID: 20d58174-52af-405a-8ee7-043f5b43f914
 class ConstitutionalValidator:
     """
     Enforces constitutional governance by validating operations against Mind layer.
@@ -70,25 +69,18 @@ class ConstitutionalValidator:
     def _load_constitution(self):
         """Load all constitutional YAML files into memory."""
         logger.info("📜 Loading constitutional governance...")
-
-        # Load authority rules
         authority_file = self.constitution_path / "authority.yaml"
         if authority_file.exists():
             self._constitution["authority"] = yaml.safe_load(authority_file.read_text())
-
-        # Load boundaries
         boundaries_file = self.constitution_path / "boundaries.yaml"
         if boundaries_file.exists():
             self._constitution["boundaries"] = yaml.safe_load(
                 boundaries_file.read_text()
             )
-
-        # Load risk classification
         risk_file = self.constitution_path / "risk_classification.yaml"
         if risk_file.exists():
             self._constitution["risk"] = yaml.safe_load(risk_file.read_text())
-
-        logger.info(f"✅ Constitution loaded: {len(self._constitution)} documents")
+        logger.info("✅ Constitution loaded: %s documents", len(self._constitution))
         self._build_lookup_tables()
 
     def _build_lookup_tables(self):
@@ -98,31 +90,24 @@ class ConstitutionalValidator:
         self._prohibited_actions: set[str] = set()
         self._risk_by_path: dict[str, RiskTier] = {}
         self._risk_by_action: dict[str, RiskTier] = {}
-
-        # Extract from authority document
         if "authority" in self._constitution:
             auth = self._constitution["authority"]
             for principle_id, principle in auth.get("principles", {}).items():
                 scope = principle.get("scope", [])
                 enforcement = principle.get("enforcement", {})
                 params = enforcement.get("parameters", {})
-
-                # Build action lists (handle both list and space-separated string formats)
                 if "actions_allowed" in params:
                     actions = params["actions_allowed"]
                     if isinstance(actions, list):
                         self._autonomous_actions.update(actions)
                     elif isinstance(actions, str):
                         self._autonomous_actions.update(actions.split())
-
                 if "actions_prohibited" in params:
                     actions = params["actions_prohibited"]
                     if isinstance(actions, list):
                         self._prohibited_actions.update(actions)
                     elif isinstance(actions, str):
                         self._prohibited_actions.update(actions.split())
-
-                # Build path lists from patterns parameter (list format)
                 if "patterns" in params:
                     patterns = params["patterns"]
                     if isinstance(patterns, list):
@@ -132,15 +117,11 @@ class ConstitutionalValidator:
                                 or "constitutional" in principle_id
                             ):
                                 self._critical_paths.add(pattern)
-
-        # Extract from risk document
         if "risk" in self._constitution:
             risk = self._constitution["risk"]
             for principle_id, principle in risk.get("principles", {}).items():
                 enforcement = principle.get("enforcement", {})
                 params = enforcement.get("parameters", {})
-
-                # Handle space-separated string format for paths
                 if "critical" in params:
                     paths = params["critical"]
                     if isinstance(paths, str):
@@ -149,7 +130,6 @@ class ConstitutionalValidator:
                     elif isinstance(paths, list):
                         for path in paths:
                             self._risk_by_path[path] = RiskTier.CRITICAL
-
                 if "elevated" in params:
                     paths = params["elevated"]
                     if isinstance(paths, str):
@@ -158,7 +138,6 @@ class ConstitutionalValidator:
                     elif isinstance(paths, list):
                         for path in paths:
                             self._risk_by_path[path] = RiskTier.ELEVATED
-
                 if "standard" in params:
                     paths = params["standard"]
                     if isinstance(paths, str):
@@ -167,7 +146,6 @@ class ConstitutionalValidator:
                     elif isinstance(paths, list):
                         for path in paths:
                             self._risk_by_path[path] = RiskTier.STANDARD
-
                 if "routine" in params:
                     paths = params["routine"]
                     if isinstance(paths, str):
@@ -176,8 +154,6 @@ class ConstitutionalValidator:
                     elif isinstance(paths, list):
                         for path in paths:
                             self._risk_by_path[path] = RiskTier.ROUTINE
-
-                # Handle space-separated string format for actions
                 if "actions_critical" in params or "critical" in params:
                     actions_key = (
                         "actions_critical"
@@ -191,7 +167,6 @@ class ConstitutionalValidator:
                     elif isinstance(actions, list):
                         for action in actions:
                             self._risk_by_action[action] = RiskTier.CRITICAL
-
                 if "actions_elevated" in params or "elevated" in params:
                     actions_key = (
                         "actions_elevated"
@@ -205,7 +180,6 @@ class ConstitutionalValidator:
                     elif isinstance(actions, list):
                         for action in actions:
                             self._risk_by_action[action] = RiskTier.ELEVATED
-
                 if "actions_standard" in params or "standard" in params:
                     actions_key = (
                         "actions_standard"
@@ -219,7 +193,6 @@ class ConstitutionalValidator:
                     elif isinstance(actions, list):
                         for action in actions:
                             self._risk_by_action[action] = RiskTier.STANDARD
-
                 if "actions_routine" in params or "routine" in params:
                     actions_key = (
                         "actions_routine" if "actions_routine" in params else "routine"
@@ -231,58 +204,50 @@ class ConstitutionalValidator:
                     elif isinstance(actions, list):
                         for action in actions:
                             self._risk_by_action[action] = RiskTier.ROUTINE
-
-        logger.info(f"   📊 Indexed: {len(self._critical_paths)} critical paths")
+        logger.info("   📊 Indexed: %s critical paths", len(self._critical_paths))
         logger.info(
-            f"   📊 Indexed: {len(self._autonomous_actions)} autonomous actions"
+            "   📊 Indexed: %s autonomous actions", len(self._autonomous_actions)
         )
-        logger.info(f"   📊 Indexed: {len(self._risk_by_path)} path risk mappings")
-        logger.info(f"   📊 Indexed: {len(self._risk_by_action)} action risk mappings")
+        logger.info("   📊 Indexed: %s path risk mappings", len(self._risk_by_path))
+        logger.info("   📊 Indexed: %s action risk mappings", len(self._risk_by_action))
 
-    # ID: 5e7fcaac-7b10-4ef5-a99d-8ec84bdb9ac6
+    # ID: 93e97860-42f9-4605-94f8-1987bcf5343b
     def reload_constitution(self):
         """Reload constitution from disk. Called by human operators after edits."""
         self._constitution.clear()
         self._load_constitution()
-        # Clear all cached results
         self.is_path_critical.cache_clear()
         self.classify_risk.cache_clear()
         logger.info("🔄 Constitution reloaded")
 
     @lru_cache(maxsize=1024)
-    # ID: e2eda695-290e-4e2a-8f57-9231cd8b4db5
+    # ID: 8ba370b8-7196-488d-9073-bff294a4d64a
     def is_path_critical(self, filepath: str) -> bool:
         """Check if path is in critical_paths requiring human approval."""
         return self._match_any_pattern(filepath, self._critical_paths)
 
     @lru_cache(maxsize=1024)
-    # ID: aa693786-c317-4dcf-9ddf-ccf1b6a337c0
+    # ID: bc1c3a49-105e-443f-896e-46099ba1c274
     def is_action_autonomous(self, action: str) -> bool:
         """Check if action is allowed for autonomous execution."""
         return action in self._autonomous_actions
 
     @lru_cache(maxsize=1024)
-    # ID: eeb87bf4-2092-44ae-80da-ec5ae5adbde6
+    # ID: 53a1a9ff-03d0-49bf-9857-325b4b94b677
     def is_action_prohibited(self, action: str) -> bool:
         """Check if action is explicitly prohibited."""
         return action in self._prohibited_actions
 
-    # ID: 746e5c0e-cf3a-42ab-bce1-1185e757b256
+    # ID: bd51dd23-d36c-4eb8-8dc8-df8c6214fb0d
     def is_boundary_violation(self, action: str, context: dict[str, Any]) -> list[str]:
         """Check if action violates immutable boundaries."""
         violations = []
-
         if "boundaries" not in self._constitution:
             return violations
-
         boundaries = self._constitution["boundaries"]
-
-        # Check each boundary principle
         for principle_id, principle in boundaries.get("principles", {}).items():
             enforcement = principle.get("enforcement", {})
             params = enforcement.get("parameters", {})
-
-            # Check prohibited patterns (handle both list and space-separated)
             if "patterns_prohibited" in params:
                 patterns = params["patterns_prohibited"]
                 if isinstance(patterns, list):
@@ -297,7 +262,6 @@ class ConstitutionalValidator:
                             violations.append(
                                 f"boundary_violation:{principle_id}:{pattern}"
                             )
-
         return violations
 
     def _matches_prohibition_pattern(
@@ -307,21 +271,16 @@ class ConstitutionalValidator:
         action_lower = action.lower()
         pattern_lower = pattern.lower()
         filepath = context.get("filepath", "")
-
-        # Pattern matching rules
         if "intent" in pattern_lower and ".intent/" in filepath:
             return True
-
         if "bypass" in pattern_lower and "bypass" in action_lower:
             return True
-
         if "audit" in pattern_lower and "delete" in action_lower:
             return True
-
         return False
 
     @lru_cache(maxsize=512)
-    # ID: 31ffffdf-13bd-47c4-93cf-a87793074137
+    # ID: 18fa2148-c919-4799-88ed-13cb61516481
     def classify_risk(self, filepath: str, action: str) -> RiskTier:
         """
         Classify operation risk based on path and action.
@@ -329,30 +288,22 @@ class ConstitutionalValidator:
         """
         path_risk = self._classify_path_risk(filepath)
         action_risk = self._classify_action_risk(action)
-
-        # Return maximum risk (more conservative)
         return max(path_risk, action_risk, key=lambda x: x.value)
 
     def _classify_path_risk(self, filepath: str) -> RiskTier:
         """Classify risk based on file path."""
-        # Check against indexed patterns
         for pattern, risk in self._risk_by_path.items():
             if self._match_pattern(filepath, pattern):
                 return risk
-
-        # Default to elevated if unknown
         return RiskTier.ELEVATED
 
     def _classify_action_risk(self, action: str) -> RiskTier:
         """Classify risk based on action type."""
-        # Direct lookup
         if action in self._risk_by_action:
             return self._risk_by_action[action]
-
-        # Default to standard if unknown
         return RiskTier.STANDARD
 
-    # ID: 9d640d49-cc9b-47bd-b292-73a1da6ce1e3
+    # ID: 60939e24-a359-4396-9ad9-18bdd2ad426d
     def can_execute_autonomously(
         self, filepath: str, action: str, context: dict[str, Any] | None = None
     ) -> GovernanceDecision:
@@ -363,8 +314,6 @@ class ConstitutionalValidator:
         context = context or {}
         context["filepath"] = filepath
         violations = []
-
-        # Check boundary violations first
         boundary_violations = self.is_boundary_violation(action, context)
         if boundary_violations:
             return GovernanceDecision(
@@ -374,8 +323,6 @@ class ConstitutionalValidator:
                 rationale="Constitutional boundary violation",
                 violations=boundary_violations,
             )
-
-        # Check if action is explicitly prohibited
         if self.is_action_prohibited(action):
             return GovernanceDecision(
                 allowed=False,
@@ -384,11 +331,7 @@ class ConstitutionalValidator:
                 rationale=f"Action '{action}' is constitutionally prohibited",
                 violations=[f"prohibited_action:{action}"],
             )
-
-        # Classify risk
         risk = self.classify_risk(filepath, action)
-
-        # Determine approval type based on risk
         if risk == RiskTier.ROUTINE:
             return GovernanceDecision(
                 allowed=True,
@@ -397,7 +340,6 @@ class ConstitutionalValidator:
                 rationale="Routine operation, safe for autonomous execution",
                 violations=[],
             )
-
         elif risk == RiskTier.STANDARD:
             return GovernanceDecision(
                 allowed=True,
@@ -406,7 +348,6 @@ class ConstitutionalValidator:
                 rationale="Standard operation, requires constitutional validation",
                 violations=[],
             )
-
         elif risk == RiskTier.ELEVATED:
             return GovernanceDecision(
                 allowed=False,
@@ -415,8 +356,7 @@ class ConstitutionalValidator:
                 rationale="Elevated risk, requires human confirmation",
                 violations=[],
             )
-
-        else:  # CRITICAL
+        else:
             return GovernanceDecision(
                 allowed=False,
                 risk_tier=risk,
@@ -434,14 +374,10 @@ class ConstitutionalValidator:
         return any(self._match_pattern(path, pattern) for pattern in patterns)
 
 
-# ============================================================================
-# GLOBAL INSTANCE (Singleton Pattern)
-# ============================================================================
-
 _validator_instance: ConstitutionalValidator | None = None
 
 
-# ID: 426b58b8-1127-4c8d-ab35-d6ad8f144a0c
+# ID: bb0cd5d6-4e09-4531-9da1-e3ebc8bbb3ac
 def get_validator() -> ConstitutionalValidator:
     """Get or create global validator instance."""
     global _validator_instance
@@ -450,37 +386,32 @@ def get_validator() -> ConstitutionalValidator:
     return _validator_instance
 
 
-# ID: 19c0136c-c8f0-4fef-b351-d42e5be7b853
+# ID: 233e79f4-3e4e-410c-a1e6-6e15d2e1ed69
 def reload_constitution():
     """Reload constitution. Called by operators after editing .intent/."""
     validator = get_validator()
     validator.reload_constitution()
 
 
-# ============================================================================
-# CONVENIENCE API (What AI Agents Call)
-# ============================================================================
-
-
-# ID: 7e94fb14-f39f-4ce9-9f9a-4a3681d12338
+# ID: 68b55dc7-ae11-43c8-8d00-86c7bd4a6a28
 def is_path_critical(filepath: str) -> bool:
     """Check if path requires human approval."""
     return get_validator().is_path_critical(filepath)
 
 
-# ID: 220518e6-387e-4abf-90ac-3489439b5011
+# ID: 066efefd-373f-49ce-8b25-fce30fbd3447
 def is_action_autonomous(action: str) -> bool:
     """Check if action is allowed autonomously."""
     return get_validator().is_action_autonomous(action)
 
 
-# ID: 6ac4e5db-b661-4814-b8c1-9766ccbe167b
+# ID: af479369-925b-452f-b59f-5167f9280411
 def classify_risk(filepath: str, action: str) -> RiskTier:
     """Classify operation risk."""
     return get_validator().classify_risk(filepath, action)
 
 
-# ID: cb13877d-4655-45e7-9296-706834294bae
+# ID: 9f1f43b2-fb0c-4728-bec8-32a245d6f51b
 def can_execute_autonomously(
     filepath: str, action: str, context: dict[str, Any] | None = None
 ) -> GovernanceDecision:
@@ -488,18 +419,11 @@ def can_execute_autonomously(
     return get_validator().can_execute_autonomously(filepath, action, context)
 
 
-# ============================================================================
-# TESTING/DEBUG
-# ============================================================================
-
 if __name__ == "__main__":
-    # Test the validator
     validator = get_validator()
-
     logger.info("\n" + "=" * 80)
     logger.info("CONSTITUTIONAL VALIDATOR TEST")
     logger.info("=" * 80)
-
     test_cases = [
         ("src/body/commands/fix.py", "fix_docstring"),
         ("src/mind/governance/validator_service.py", "format_code"),
@@ -509,16 +433,14 @@ if __name__ == "__main__":
         ("tests/test_core.py", "generate_tests"),
         ("src/body/core/database.py", "refactoring"),
     ]
-
     for filepath, action in test_cases:
         decision = can_execute_autonomously(filepath, action, {"filepath": filepath})
         logger.info("\n📋 Action: %s", action)
         logger.info("   Path: %s", filepath)
-        logger.info(f"   Risk: {decision.risk_tier.name}")
-        logger.info(f"   Allowed: {decision.allowed}")
-        logger.info(f"   Approval: {decision.approval_type.value}")
-        logger.info(f"   Rationale: {decision.rationale}")
+        logger.info("   Risk: %s", decision.risk_tier.name)
+        logger.info("   Allowed: %s", decision.allowed)
+        logger.info("   Approval: %s", decision.approval_type.value)
+        logger.info("   Rationale: %s", decision.rationale)
         if decision.violations:
-            logger.info(f"   Violations: {decision.violations}")
-
+            logger.info("   Violations: %s", decision.violations)
     logger.info("\n" + "=" * 80)

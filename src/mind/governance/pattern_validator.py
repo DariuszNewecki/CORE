@@ -1,4 +1,5 @@
 # src/mind/governance/pattern_validator.py
+
 """
 Constitutional Pattern Validator.
 """
@@ -11,17 +12,14 @@ from pathlib import Path
 import yaml
 
 from shared.logger import getLogger
-
-# Import shared models
 from shared.models.pattern_graph import PatternValidationResult, PatternViolation
 
 
 logger = getLogger(__name__)
-
 _NO_DEFAULT = object()
 
 
-# ID: 7f13c397-c10f-4b3e-bb09-19e4357f8a95
+# ID: f6ae3ea9-7397-4065-83b0-a0e933b1504e
 class PatternValidator:
     """
     Validates code against constitutional design patterns.
@@ -35,7 +33,7 @@ class PatternValidator:
     def _load_patterns(self) -> dict:
         patterns = {}
         if not self.patterns_dir.exists():
-            logger.warning(f"Patterns directory not found: {self.patterns_dir}")
+            logger.warning("Patterns directory not found: %s", self.patterns_dir)
             return patterns
         for pattern_file in self.patterns_dir.glob("*_patterns.yaml"):
             try:
@@ -48,7 +46,7 @@ class PatternValidator:
                 logger.error("Failed to load {pattern_file}: %s", e)
         return patterns
 
-    # ID: 52ab1565-5e61-4a61-a0eb-c4785cde6372
+    # ID: 58b885fe-8a95-4a55-98ae-b68b26a8c128
     async def validate(
         self, code: str, pattern_id: str, component_type: str = "command"
     ) -> PatternValidationResult:
@@ -70,9 +68,7 @@ class PatternValidator:
                     severity="error",
                 )
             )
-
         passed = len([v for v in violations if v.severity == "error"]) == 0
-
         return PatternValidationResult(
             pattern_id=pattern_id, passed=passed, violations=violations
         )

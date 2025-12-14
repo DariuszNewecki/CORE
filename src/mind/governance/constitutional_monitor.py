@@ -25,14 +25,14 @@ from shared.utils.header_tools import _HeaderTools
 logger = getLogger(__name__)
 
 
-# ID: c5cb0280-d917-4098-a200-43de6a15de29
+# ID: e6f558e7-0ce7-41c8-9612-82a0c2c3f0ab
 class KnowledgeGraphBuilderProtocol(Protocol):
-    # ID: f9b3a36a-3c6e-4eff-a645-48c5c5135573
+    # ID: 28aecdd5-ffb5-4924-9828-55adfce438a2
     async def build_and_sync(self) -> None: ...
 
 
 @dataclass
-# ID: e0d28190-86da-4719-9a2d-a38dcedadfa1
+# ID: 9da005f9-65db-4d26-acf3-2e8b79f5c39f
 class Violation:
     """Represents a single constitutional violation."""
 
@@ -44,7 +44,7 @@ class Violation:
 
 
 @dataclass
-# ID: c909253f-28a4-4b29-9c50-cb4b30df3dba
+# ID: 835e78b0-af57-4a86-a29a-5bfc4dc7fbbe
 class AuditReport:
     """Results of a constitutional audit."""
 
@@ -54,13 +54,13 @@ class AuditReport:
     compliant_files: int
 
     @property
-    # ID: c603c676-9db7-4c0f-99d8-06a581270f22
+    # ID: dc6f0026-b443-4cb0-89a5-5fae9680241b
     def has_violations(self) -> bool:
         return len(self.violations) > 0
 
 
 @dataclass
-# ID: 2eb4e4cf-9dbe-4806-8618-4e819ac6b89a
+# ID: da9e01ed-6964-489d-b516-91d068e5c73e
 class RemediationResult:
     """Results of constitutional remediation."""
 
@@ -70,7 +70,7 @@ class RemediationResult:
     error: str | None = None
 
 
-# ID: 40dae6d4-c0e7-45a6-bd53-4768a19aff60
+# ID: 92f0a6fd-f647-4248-9776-26f2eefc9b1c
 class ConstitutionalMonitor:
     """
     Mind-layer orchestrator for constitutional compliance and remediation.
@@ -94,9 +94,9 @@ class ConstitutionalMonitor:
         self.repo_path = Path(repo_path)
         self.auditor = AuditorContext(self.repo_path)
         self.knowledge_builder = knowledge_builder
-        logger.info(f"ConstitutionalMonitor initialized for {self.repo_path}")
+        logger.info("ConstitutionalMonitor initialized for %s", self.repo_path)
 
-    # ID: 25eeb765-56da-4101-86e4-65d9fb4ea68b
+    # ID: dae8dd95-0ac1-4a96-8ef8-92a4326499b1
     def audit_headers(self) -> AuditReport:
         """
         Audit all Python files for header compliance.
@@ -109,7 +109,7 @@ class ConstitutionalMonitor:
             str(p.relative_to(self.repo_path))
             for p in (self.repo_path / "src").rglob("*.py")
         ]
-        logger.info(f"Scanning {len(all_py_files)} files for header compliance...")
+        logger.info("Scanning %s files for header compliance...", len(all_py_files))
         violation_objects = []
         for file_path_str in all_py_files:
             file_path = self.repo_path / file_path_str
@@ -143,7 +143,9 @@ class ConstitutionalMonitor:
                 logger.warning("Could not process {file_path_str}: %s", e)
         compliant = len(all_py_files) - len(violation_objects)
         logger.info(
-            f"Header audit complete: {len(violation_objects)} violations across {len(all_py_files)} files"
+            "Header audit complete: %s violations across %s files",
+            len(violation_objects),
+            len(all_py_files),
         )
         return AuditReport(
             policy_category="header_compliance",
@@ -152,7 +154,7 @@ class ConstitutionalMonitor:
             compliant_files=compliant,
         )
 
-    # ID: 585abcab-4b96-4889-ba96-0b408db0755a
+    # ID: 9245ffe5-a981-4fd3-818c-7efd7171c189
     def remediate_violations(self, audit_report: AuditReport) -> RemediationResult:
         """
         Trigger autonomous remediation for constitutional violations.
@@ -167,7 +169,7 @@ class ConstitutionalMonitor:
             logger.info("No violations to remediate")
             return RemediationResult(success=True, fixed_count=0, failed_count=0)
         logger.info(
-            f"Starting remediation for {len(audit_report.violations)} violations..."
+            "Starting remediation for %s violations...", len(audit_report.violations)
         )
         fixed_count = 0
         failed_count = 0
@@ -181,7 +183,7 @@ class ConstitutionalMonitor:
                         failed_count += 1
                 else:
                     logger.warning(
-                        f"No remediation handler for {violation.remediation_handler}"
+                        "No remediation handler for %s", violation.remediation_handler
                     )
                     failed_count += 1
             except Exception as e:
@@ -225,10 +227,10 @@ class ConstitutionalMonitor:
             corrected_code = _HeaderTools.reconstruct(header)
             if corrected_code != original_content:
                 file_path.write_text(corrected_code, "utf-8")
-                logger.info(f"Fixed header in {violation.file_path}")
+                logger.info("Fixed header in %s", violation.file_path)
                 return True
             else:
-                logger.debug(f"No changes needed for {violation.file_path}")
+                logger.debug("No changes needed for %s", violation.file_path)
                 return True
         except Exception as e:
             logger.error("Failed to fix header in {violation.file_path}: %s", e)

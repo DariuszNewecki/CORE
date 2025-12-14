@@ -22,7 +22,7 @@ REPO_ROOT = settings.REPO_PATH
 DOMAINS_DIR = settings.paths.mind_root / "knowledge" / "domains"
 
 
-# ID: edab7454-cab8-4e9a-bdaa-dc8b314f1fd8
+# ID: 186b49f2-f06a-49b6-95f7-0e7fd097c94e
 def run_fix_manifest_hygiene(
     write: bool = typer.Option(
         False, "--write", help="Apply fixes to the manifest files."
@@ -74,11 +74,16 @@ def run_fix_manifest_hygiene(
                             "tags", []
                         ).append(cap)
                         logger.info(
-                            f"   -> Planning to move '{cap['key']}' from '{file_path.name}' to '{correct_file_path.name}'"
+                            "   -> Planning to move '%s' from '%s' to '%s'",
+                            cap["key"],
+                            file_path.name,
+                            correct_file_path.name,
                         )
                     else:
                         logger.warning(
-                            f"   -> Could not find a manifest file for domain '{correct_domain}' to move '{cap['key']}'."
+                            "   -> Could not find a manifest file for domain '%s' to move '%s'.",
+                            correct_domain,
+                            cap["key"],
                         )
         except Exception as e:
             logger.error("Error processing {file_path.name}: %s", e)
@@ -89,7 +94,9 @@ def run_fix_manifest_hygiene(
         logger.info("-- DRY RUN: The following manifest changes would be applied --")
         for path_str, change in changes_to_make.items():
             logger.info(
-                f"  - File to {change['action']}: {Path(path_str).relative_to(REPO_ROOT)}"
+                "  - File to %s: %s",
+                change["action"],
+                Path(path_str).relative_to(REPO_ROOT),
             )
         return
     logger.info("Applying manifest hygiene fixes...")
@@ -98,7 +105,7 @@ def run_fix_manifest_hygiene(
             Path(path_str).write_text(
                 yaml.dump(change["content"], indent=2, sort_keys=False), "utf-8"
             )
-            logger.info(f"  - Updated {Path(path_str).name}")
+            logger.info("  - Updated %s", Path(path_str).name)
         except Exception as e:
             logger.info("  - Failed to update {Path(path_str).name}: %s", e)
 

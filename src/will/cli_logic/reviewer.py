@@ -37,7 +37,7 @@ def _get_bundle_content(files_to_bundle: list[Path], root_dir: Path) -> str:
                 bundle_parts.append(f"\n--- END OF FILE ./{rel_path} ---\n\n")
             except ValueError:
                 logger.warning(
-                    f"Could not determine relative path for {file_path}. Skipping."
+                    "Could not determine relative path for %s. Skipping.", file_path
                 )
     return "".join(bundle_parts)
 
@@ -76,14 +76,14 @@ def _orchestrate_review(
         review_prompt_template = prompt_path.read_text(encoding="utf-8")
     except FileNotFoundError:
         logger.error(
-            f"❌ Review prompt '{prompt_key}' not found in meta.yaml. Cannot proceed."
+            "❌ Review prompt '%s' not found in meta.yaml. Cannot proceed.", prompt_key
         )
         raise typer.Exit(code=1)
     logger.info("   -> Loaded review prompt: %s", prompt_key)
     logger.info("   -> Bundling files for review...")
     files_to_bundle = file_gatherer_fn()
     bundle_content = _get_bundle_content(files_to_bundle, settings.REPO_PATH)
-    logger.info(f"   -> Bundled {len(files_to_bundle)} files.")
+    logger.info("   -> Bundled %s files.", len(files_to_bundle))
     bundle_output_path = settings.REPO_PATH / "reports" / f"{bundle_name}_bundle.txt"
     bundle_output_path.parent.mkdir(parents=True, exist_ok=True)
     bundle_output_path.write_text(bundle_content, encoding="utf-8")
@@ -98,7 +98,7 @@ def _orchestrate_review(
     cognitive_service = CognitiveService(settings.REPO_PATH)
     reviewer = cognitive_service.get_client_for_role("SecurityAnalyst")
 
-    # ID: fcd538e0-a244-4d3d-8219-b65a4920453c
+    # ID: 3b45b426-4966-45d9-9500-5faa0c8a4192
     async def run_async_review():
         return await reviewer.make_request_async(
             final_prompt, user_id=f"{bundle_name}_reviewer"
@@ -108,11 +108,11 @@ def _orchestrate_review(
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(review_feedback, encoding="utf-8")
     logger.info("✅ Successfully received feedback and saved to: %s", output_path)
-    logger.info(f"\n--- {bundle_name.replace('_', ' ').title()} Review Summary ---")
+    logger.info("\n--- %s Review Summary ---", bundle_name.replace("_", " ").title())
     logger.info(Markdown(review_feedback))
 
 
-# ID: 9b8c0610-8aa8-4442-9ee4-3d00a9c5d43d
+# ID: b2729014-bda7-41fb-82b4-7093610495ee
 def peer_review(
     output: Path = typer.Option(
         Path("reports/constitutional_review.md"), "--output", "-o"
@@ -129,7 +129,7 @@ def peer_review(
     )
 
 
-# ID: 5cf671e5-cec3-4a99-819f-8247d3bb54d0
+# ID: 46cc1fc6-2617-4448-9840-ec9eb8cdf64a
 def docs_clarity_audit(
     output: Path = typer.Option(
         Path("reports/docs_clarity_review.md"), "--output", "-o"
@@ -142,7 +142,7 @@ def docs_clarity_audit(
     )
 
 
-# ID: eb28c6be-2ddb-4593-b49e-e74aa518c02a
+# ID: 30a6ecd2-6d50-41a8-8e57-f5c511aea291
 def code_review(
     file_path: Path = typer.Argument(
         ..., exists=True, dir_okay=False, resolve_path=True
@@ -152,7 +152,8 @@ def code_review(
 
     async def _async_code_review():
         logger.info(
-            f"🤖 Submitting '{file_path.relative_to(settings.REPO_PATH)}' for AI peer review..."
+            "🤖 Submitting '%s' for AI peer review...",
+            file_path.relative_to(settings.REPO_PATH),
         )
         try:
             source_code = file_path.read_text(encoding="utf-8")
@@ -177,7 +178,8 @@ def code_review(
             raise typer.Exit(code=1)
         except Exception as e:
             logger.error(
-                f"❌ An unexpected error occurred during peer review: {e}",
+                "❌ An unexpected error occurred during peer review: %s",
+                e,
                 exc_info=True,
             )
             raise typer.Exit(code=1)

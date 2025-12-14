@@ -18,14 +18,13 @@ from shared.logger import getLogger
 
 
 logger = getLogger(__name__)
-
 app = typer.Typer(
     name="fix-governed", help="Fix code issues with governance validation"
 )
 
 
 @app.command()
-# ID: 708a68c9-a9fc-4b2e-963d-d248b22998c0
+# ID: e8309edb-d090-4e12-a953-50b7c0755b51
 def docstrings(
     paths: list[str] = typer.Argument(..., help="Paths to fix"),
     dry_run: bool = typer.Option(False, help="Show what would be fixed"),
@@ -38,21 +37,15 @@ def docstrings(
         dry_run: If True, show changes without applying them
     """
     logger.info("🔍 Checking governance approval...")
-
     blocked_files = _check_governance_for_paths(paths, "fix_docstring", dry_run)
-
     if blocked_files:
         _report_blocked_files(blocked_files)
-
         if len(blocked_files) == len(paths):
             logger.info("\n🚫 All files blocked. No actions taken.")
             raise typer.Exit(1)
-
         allowed_count = len(paths) - len(blocked_files)
         logger.info("\n✅ Proceeding with %s allowed files...", allowed_count)
-
     allowed_paths = [p for p in paths if not any(p == bf[0] for bf in blocked_files)]
-
     _execute_fix_docstrings(allowed_paths, dry_run)
 
 
@@ -71,16 +64,13 @@ def _check_governance_for_paths(
         List of (filepath, decision) tuples for blocked files
     """
     blocked_files = []
-
     for path_str in paths:
         decision = can_execute_autonomously(
             filepath=path_str, action=action, context={"dry_run": dry_run}
         )
-
         if not decision.allowed:
             blocked_files.append((path_str, decision))
             logger.warning("🚫 Governance blocked: %s - {decision.rationale}", path_str)
-
     return blocked_files
 
 
@@ -104,8 +94,7 @@ def _execute_fix_docstrings(paths: list[str], dry_run: bool):
         paths: List of allowed file paths
         dry_run: Whether to actually apply changes
     """
-    # Placeholder - integrate with your existing FixService
-    logger.info(f"Would fix docstrings in {len(paths)} files")
+    logger.info("Would fix docstrings in %s files", len(paths))
     if dry_run:
         logger.info("(Dry run - no changes made)")
 

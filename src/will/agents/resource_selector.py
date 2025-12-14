@@ -16,7 +16,7 @@ from shared.logger import getLogger
 logger = getLogger(__name__)
 
 
-# ID: af302ce4-362f-49a2-aca3-3ffeee3d6254
+# ID: 208f325a-f664-4f3d-9ad3-7b481e1414f9
 class ResourceSelector:
     """
     Stateless rule applier: Given roles and resources from Mind,
@@ -24,7 +24,7 @@ class ResourceSelector:
     """
 
     @staticmethod
-    # ID: 109b0a0a-86ec-46e0-b824-a62ca45d8bc9
+    # ID: 3398db27-785f-4e20-bf33-bd962c8ef8c8
     def select_resource_for_role(
         role_name: str, roles: list[CognitiveRole], resources: list[LlmResource]
     ) -> LlmResource | None:
@@ -42,7 +42,7 @@ class ResourceSelector:
             )
             if resource:
                 logger.info(
-                    f"Using assigned resource '{resource.name}' for '{role_name}'"
+                    "Using assigned resource '%s' for '%s'", resource.name, role_name
                 )
                 return resource
         qualified = [r for r in resources if ResourceSelector._is_qualified(r, role)]

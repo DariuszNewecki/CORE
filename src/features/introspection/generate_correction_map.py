@@ -20,7 +20,7 @@ from shared.logger import getLogger
 logger = getLogger(__name__)
 
 
-# ID: ebc34284-fdea-4077-8265-5a69bf74f44f
+# ID: 58cc1c15-5bd9-401e-9bf2-8b64d1550631
 def generate_maps(
     input_path: Path = typer.Option(
         "reports/proposed_domains.json",
@@ -49,7 +49,7 @@ def generate_maps(
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(yaml.dump(alias_map, indent=2, sort_keys=True), "utf-8")
     logger.info(
-        f"Successfully generated alias map with {len(proposed_domains)} entries."
+        "Successfully generated alias map with %s entries.", len(proposed_domains)
     )
     logger.info("   -> Saved to: %s", output)
 

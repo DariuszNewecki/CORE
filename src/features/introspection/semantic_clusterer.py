@@ -26,7 +26,7 @@ app = typer.Typer(
 )
 
 
-# ID: 106bb2e2-15d6-42db-abc0-6b05d280b053
+# ID: 41c7d272-0d0d-4d84-9d99-984e9a698bd2
 def run_clustering(input_path: Path, output: Path, n_clusters: int):
     """
     Loads exported vectors, runs K-Means clustering, and saves the proposed
@@ -51,7 +51,9 @@ def run_clustering(input_path: Path, output: Path, n_clusters: int):
         logger.error("❌ No valid vector data found in %s.", input_path)
         raise ValueError(f"No valid vector data found in {input_path}.")
     logger.info(
-        f"   -> Loaded {len(vectors)} vectors for clustering into {n_clusters} domains."
+        "   -> Loaded %s vectors for clustering into %s domains.",
+        len(vectors),
+        n_clusters,
     )
     X = np.array(vectors)
     kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init="auto")
@@ -64,7 +66,9 @@ def run_clustering(input_path: Path, output: Path, n_clusters: int):
     with output.open("w", encoding="utf-8") as f:
         json.dump(proposed_domains, f, indent=2, sort_keys=True)
     logger.info(
-        f"✅ Successfully generated domain proposals for {len(proposed_domains)} capabilities and saved to {output}"
+        "✅ Successfully generated domain proposals for %s capabilities and saved to %s",
+        len(proposed_domains),
+        output,
     )
 
 

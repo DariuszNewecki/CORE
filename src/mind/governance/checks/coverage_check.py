@@ -1,19 +1,17 @@
 # src/mind/governance/checks/coverage_check.py
 """
 Constitutional enforcement of test coverage requirements.
-
-Verifies that the codebase meets the coverage requirements defined in the
-quality_assurance policy.
+Verifies compliance with 'coverage.minimum_threshold' and 'coverage.no_untested_commits'.
 """
 
 from __future__ import annotations
 
 import json
+from fnmatch import fnmatch
+from pathlib import Path
 from typing import Any
 
 from mind.governance.audit_context import AuditorContext
-
-# Import the BaseCheck to inherit from it
 from mind.governance.checks.base_check import BaseCheck
 from shared.logger import getLogger
 from shared.models import AuditFinding, AuditSeverity
@@ -22,94 +20,85 @@ from shared.models import AuditFinding, AuditSeverity
 logger = getLogger(__name__)
 
 
-# ID: f09915fb-02c8-49d4-b5c5-19cd5e955df4
-# Inherit from BaseCheck
 # ID: 365e9a78-c99e-4b36-82a8-6a1ba5e08fd4
 class CoverageGovernanceCheck(BaseCheck):
     """
     Enforces constitutional test coverage requirements.
-
-    This check verifies that:
-    1. Overall coverage meets the minimum threshold.
-    2. Critical paths meet their specific higher thresholds.
-    3. No significant coverage regressions have occurred.
+    Ref: standard_operations_quality_assurance
     """
 
-    # Fulfills the contract from BaseCheck. These are the primary rules in the
-    # quality_assurance policy that this check is responsible for enforcing.
     policy_rule_ids = [
         "coverage.minimum_threshold",
         "coverage.no_untested_commits",
     ]
 
     def __init__(self, context: AuditorContext) -> None:
-        """Initializes the check using the context provided by BaseCheck."""
         super().__init__(context)
-        # Get the policy from the shared context instead of loading it manually.
+        # Load SSOT from Context
         policy = self.context.policies.get("quality_assurance", {})
         coverage_cfg = policy.get("coverage_requirements", {})
 
-        self.minimum_threshold: float = coverage_cfg.get("minimum_threshold", 75.0)
+        self.minimum_threshold: float = float(
+            coverage_cfg.get("minimum_threshold", 75.0)
+        )
         self.critical_paths: list[str] = coverage_cfg.get("critical_paths", [])
         self.exclusions: list[str] = coverage_cfg.get("exclusions", [])
 
-    # ID: a8126c8d-f9b8-40d5-a098-4aa5065f656c
-    # The original was async, we keep it that way assuming the auditor can handle it.
     # ID: e11f1d23-6432-4b99-80a7-b246b5123c50
     async def execute(self) -> list[AuditFinding]:
-        """
-        Executes the coverage check and returns audit findings.
-        """
         findings: list[AuditFinding] = []
 
         coverage_data = self._measure_coverage()
+
+        # If no data, we cannot enforce. Flag as WARNING (Missing Evidence).
         if not coverage_data:
-            return [
+            findings.append(
                 AuditFinding(
-                    check_id="coverage.minimum_threshold",
-                    severity=AuditSeverity.ERROR,
-                    message="Failed to measure test coverage",
-                    file_path="N/A",
-                    context={"error": "Could not run pytest coverage"},
+                    check_id="coverage.data_missing",
+                    severity=AuditSeverity.WARNING,
+                    message="Coverage data (coverage.json) not found. Cannot verify compliance.",
+                    file_path="coverage.json",
+                    context={
+                        "suggestion": "Run `core-admin check tests` to generate data."
+                    },
                 )
-            ]
+            )
+            return findings
 
         overall_coverage = coverage_data.get("overall_percent", 0.0)
 
-        # 1) Enforce coverage.minimum_threshold
+        # 1) Enforce Minimum Threshold
         if overall_coverage < self.minimum_threshold:
             findings.append(
                 AuditFinding(
                     check_id="coverage.minimum_threshold",
                     severity=AuditSeverity.ERROR,
                     message=(
-                        f"Coverage {overall_coverage}% below constitutional minimum "
-                        f"{self.minimum_threshold}%"
+                        f"Coverage {overall_coverage}% is below constitutional minimum "
+                        f"of {self.minimum_threshold}%."
                     ),
-                    file_path="N/A",
+                    file_path="coverage.json",
                     context={
                         "current": overall_coverage,
                         "required": self.minimum_threshold,
                         "delta": overall_coverage - self.minimum_threshold,
-                        "action": "Trigger autonomous remediation",
                     },
                 )
             )
 
-        # 2) Enforce critical path thresholds
-        for path_spec in self._iter_critical_path_specs():
+        # 2) Enforce Critical Paths
+        for path_spec in self.critical_paths:
             path_pattern, required = self._parse_path_spec(path_spec)
             actual = self._get_path_coverage(coverage_data, path_pattern)
+
             if actual is not None and actual < required:
                 findings.append(
                     AuditFinding(
-                        # Structured check_id to show it's a specific violation
-                        # of the minimum threshold rule.
                         check_id="coverage.minimum_threshold.critical_path",
                         severity=AuditSeverity.ERROR,
                         message=(
                             f"Critical path '{path_pattern}' coverage {actual}% "
-                            f"below required {required}%"
+                            f"below required {required}%."
                         ),
                         file_path=path_pattern,
                         context={
@@ -120,7 +109,7 @@ class CoverageGovernanceCheck(BaseCheck):
                     )
                 )
 
-        # 3) Enforce coverage.no_untested_commits (regression check)
+        # 3) Enforce Regression
         regression = self._check_regression(coverage_data)
         if regression:
             findings.append(regression)
@@ -128,135 +117,96 @@ class CoverageGovernanceCheck(BaseCheck):
         return findings
 
     def _measure_coverage(self) -> dict[str, Any] | None:
-        """
-        Loads existing coverage data from coverage.json.
-
-        IMPORTANT:
-        - This no longer runs pytest itself.
-        - It assumes some other command (e.g. `core-admin coverage.check`,
-          `fix coverage`, or a direct pytest run with --cov-report=json)
-          has already produced coverage.json in the repo root.
-        """
+        """Loads coverage data from coverage.json (produced by pytest-cov)."""
         coverage_json = self.repo_root / "coverage.json"
 
         if not coverage_json.exists():
-            logger.warning(
-                "CoverageGovernanceCheck: coverage.json not found under %s; "
-                "skipping coverage enforcement and returning no data.",
-                self.repo_root,
-            )
             return None
 
         try:
             data = json.loads(coverage_json.read_text())
-        except Exception as exc:  # noqa: BLE001
-            logger.error(
-                "CoverageGovernanceCheck: failed to parse coverage.json: %s", exc
-            )
+            totals = data.get("totals", {})
+            return {
+                "overall_percent": float(totals.get("percent_covered", 0) or 0),
+                "lines_covered": int(totals.get("covered_lines", 0) or 0),
+                "lines_total": int(totals.get("num_statements", 0) or 0),
+                "files": data.get("files", {}),
+                "timestamp": data.get("meta", {}).get("timestamp"),
+            }
+        except Exception as exc:
+            logger.error("Failed to parse coverage.json: %s", exc)
             return None
 
-        totals = data.get("totals", {})
-        return {
-            "overall_percent": float(totals.get("percent_covered", 0) or 0),
-            "lines_covered": int(totals.get("covered_lines", 0) or 0),
-            "lines_total": int(totals.get("num_statements", 0) or 0),
-            "files": data.get("files", {}),
-            "timestamp": data.get("meta", {}).get("timestamp"),
-        }
-
-    def _parse_term_output(self, output: str) -> dict[str, Any] | None:
-        """Fallback parser for terminal coverage output."""
-        try:
-            for line in output.splitlines():
-                if line.startswith("TOTAL"):
-                    parts = line.split()
-                    if len(parts) >= 4:
-                        percent_str = parts[-1].rstrip("%")
-                        percent = float(percent_str)
-                        total_lines = int(parts[1])
-                        missed_lines = int(parts[2])
-                        covered_lines = total_lines - missed_lines
-                        return {
-                            "overall_percent": percent,
-                            "lines_total": total_lines,
-                            "lines_covered": covered_lines,
-                        }
-        except Exception as exc:  # noqa: BLE001
-            logger.debug("Failed to parse coverage output: %s", exc)
-        return None
-
-    def _iter_critical_path_specs(self) -> list[str]:
-        """Returns the list of critical path specifications."""
-        return list(self.critical_paths or [])
-
     def _parse_path_spec(self, spec: str) -> tuple[str, float]:
-        """Parses a path specification like 'src/core/**/*.py: 85%'."""
+        """Parses 'src/core/**/*.py: 85%' into ('src/core/**/*.py', 85.0)."""
         parts = spec.split(":", maxsplit=1)
         path = parts[0].strip()
         percent_str = parts[1].strip().rstrip("%") if len(parts) > 1 else "0"
-        required = float(percent_str or 0)
-        return path, required
+        return path, float(percent_str or 0)
 
     def _get_path_coverage(
         self, coverage_data: dict[str, Any], pattern: str
     ) -> float | None:
-        """Gets coverage percentage for files matching a pattern."""
-        from fnmatch import fnmatch
-
+        """Calculates aggregated coverage for files matching a glob pattern."""
         files = coverage_data.get("files", {})
         if not files:
             return None
-        total_lines, covered_lines = 0, 0
+
+        total_lines = 0
+        covered_lines = 0
+
         for file_path, file_data in files.items():
             if fnmatch(file_path, pattern):
                 summary = file_data.get("summary", {})
                 total_lines += int(summary.get("num_statements", 0) or 0)
                 covered_lines += int(summary.get("covered_lines", 0) or 0)
+
         if total_lines == 0:
             return None
-        return round(covered_lines / total_lines * 100, 2)
+
+        return round((covered_lines / total_lines) * 100, 2)
 
     def _check_regression(self, coverage_data: dict[str, Any]) -> AuditFinding | None:
-        """Checks for significant coverage regressions."""
-        # Use self.repo_root from BaseCheck for consistency
-        history_file = self.repo_root / "work" / "testing" / "coverage_history.json"
-        if not history_file.exists():
-            self._save_coverage_history(coverage_data)
-            return None
+        """Checks if coverage has dropped significantly (>5%) since last run."""
+        history_file = self.repo_root / ".intent/mind/history/coverage_history.json"
+
         try:
-            history = json.loads(history_file.read_text())
-            last_run = history.get("last_run", {})
-            last_percent = float(last_run.get("overall_percent", 0) or 0)
-            current_percent = float(coverage_data.get("overall_percent", 0) or 0)
-            delta = current_percent - last_percent
-            self._save_coverage_history(coverage_data)
-            if delta < -5.0:
-                # This finding correctly uses the constitutional rule ID.
-                return AuditFinding(
-                    check_id="coverage.no_untested_commits",
-                    severity=AuditSeverity.ERROR,
-                    message=f"Significant coverage regression: {abs(delta):.1f}% drop",
-                    file_path="N/A",
-                    context={
-                        "previous": last_percent,
-                        "current": current_percent,
-                        "delta": delta,
-                    },
+            if history_file.exists():
+                history = json.loads(history_file.read_text())
+                last_percent = float(
+                    history.get("last_run", {}).get("overall_percent", 0)
                 )
-        except Exception as exc:  # noqa: BLE001
-            logger.debug("Could not check coverage regression: %s", exc)
+                current_percent = float(coverage_data.get("overall_percent", 0))
+                delta = current_percent - last_percent
+
+                self._save_coverage_history(history_file, coverage_data)
+
+                if delta < -5.0:
+                    return AuditFinding(
+                        check_id="coverage.no_untested_commits",
+                        severity=AuditSeverity.ERROR,
+                        message=f"Significant coverage regression: {abs(delta):.1f}% drop.",
+                        file_path="N/A",
+                        context={"previous": last_percent, "current": current_percent},
+                    )
+            else:
+                self._save_coverage_history(history_file, coverage_data)
+
+        except Exception as exc:
+            logger.warning("Coverage regression check failed: %s", exc)
+
         return None
 
-    def _save_coverage_history(self, coverage_data: dict[str, Any]) -> None:
-        """Saves coverage data to history file for regression tracking."""
+    def _save_coverage_history(
+        self, history_file: Path, coverage_data: dict[str, Any]
+    ) -> None:
+        """Persists current coverage state for future regression checks."""
         try:
-            # Use self.repo_root from BaseCheck for consistency
-            history_file = self.repo_root / "work" / "testing" / "coverage_history.json"
             history_file.parent.mkdir(parents=True, exist_ok=True)
             history = {
                 "last_run": coverage_data,
                 "updated_at": coverage_data.get("timestamp"),
             }
             history_file.write_text(json.dumps(history, indent=2))
-        except Exception as exc:  # noqa: BLE001
-            logger.debug("Could not save coverage history: %s", exc)
+        except Exception as exc:
+            logger.warning("Could not save coverage history: %s", exc)

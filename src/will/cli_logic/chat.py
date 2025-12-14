@@ -23,7 +23,7 @@ logger = getLogger(__name__)
 load_dotenv()
 
 
-# ID: 034f20de-56bb-4b25-aa48-d68a21de43cd
+# ID: e28b1579-1e68-40e2-9583-6774d0e8e48f
 async def chat(
     user_input: str = typer.Argument(..., help="Your goal in natural language."),
 ):
@@ -73,8 +73,8 @@ async def chat(
         typer.echo(response_text)
         raise typer.Exit(code=1)
     except subprocess.CalledProcessError as e:
-        logger.error(f"Failed to generate CLI help text: {e.stderr}")
+        logger.error("Failed to generate CLI help text: %s", e.stderr)
         raise typer.Exit(code=1)
     except Exception as e:
-        logger.error(f"An unexpected error occurred: {e}", exc_info=True)
+        logger.error("An unexpected error occurred: %s", e, exc_info=True)
         raise typer.Exit(code=1)

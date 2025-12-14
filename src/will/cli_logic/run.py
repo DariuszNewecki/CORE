@@ -12,8 +12,6 @@ from dotenv import load_dotenv
 from features.autonomy.autonomous_developer import develop_from_goal
 from features.introspection.vectorization_service import run_vectorize
 from shared.context import CoreContext
-
-# FIX: Import Class and Session Manager, not the helper function
 from shared.infrastructure.config_service import ConfigService
 from shared.infrastructure.database.session_manager import get_session
 from shared.logger import getLogger
@@ -29,7 +27,6 @@ run_app = typer.Typer(
 )
 
 
-# ID: ca0e111a-4d71-42db-bbc7-540e6ea756a0
 async def _develop(
     context: CoreContext, goal: str | None = None, from_file: Path | None = None
 ):
@@ -44,12 +41,9 @@ async def _develop(
     else:
         goal_content = goal.strip() if goal else ""
     load_dotenv()
-
-    # FIX: Instantiate ConfigService with a session
     async with get_session() as session:
         config = await ConfigService.create(session)
         llm_enabled = await config.get_bool("LLM_ENABLED", default=False)
-
     if not llm_enabled:
         logger.error("❌ The 'develop' command requires LLMs to be enabled.")
         raise typer.Exit(code=1)
@@ -79,23 +73,19 @@ async def _develop(
         raise typer.Exit(code=1)
 
 
-# ID: 0c28ad61-1da0-4764-9dbd-ca38ffd90efa
 async def _vectorize_capabilities(
     context: CoreContext, dry_run: bool = True, force: bool = False
 ):
     """The CLI wrapper for the database-driven vectorization process."""
     logger.info("🚀 Starting capability vectorization process...")
-
-    # FIX: Instantiate ConfigService with a session
     async with get_session() as session:
         config = await ConfigService.create(session)
         llm_enabled = await config.get_bool("LLM_ENABLED", default=False)
-
     if not llm_enabled:
         logger.error("❌ LLMs must be enabled to generate embeddings.")
         raise typer.Exit(code=1)
     try:
         await run_vectorize(context=context, dry_run=dry_run, force=force)
     except Exception as e:
-        logger.error(f"❌ Orchestration failed: {e}", exc_info=True)
+        logger.error("❌ Orchestration failed: %s", e, exc_info=True)
         raise typer.Exit(code=1)

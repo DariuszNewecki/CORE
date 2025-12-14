@@ -22,7 +22,7 @@ logger = getLogger(__name__)
 REPO_ROOT = settings.REPO_PATH
 
 
-# ID: 8b4c4e45-0236-4af1-9d76-1483e8b96a4a
+# ID: a89bad59-de22-43f7-b70c-60446902e923
 def main(
     write: bool = typer.Option(
         False, "--write", help="Apply fixes and remove tags from source files."
@@ -51,7 +51,8 @@ def main(
             )
             return
         logger.info(
-            f"Found {len(private_symbols_with_tags)} private symbol(s) with capability tags."
+            "Found %s private symbol(s) with capability tags.",
+            len(private_symbols_with_tags),
         )
         files_to_modify = {}
         tag_pattern = re.compile("^\\s*#\\s*CAPABILITY:\\s*\\S+\\s*$", re.IGNORECASE)
@@ -68,7 +69,9 @@ def main(
                     ).splitlines()
                 else:
                     logger.warning(
-                        f"File not found for symbol {symbol['symbol_path']}: {file_path}"
+                        "File not found for symbol %s: %s",
+                        symbol["symbol_path"],
+                        file_path,
                     )
                     continue
             tag_line_index = line_num - 2
@@ -76,7 +79,9 @@ def main(
                 line_to_check = files_to_modify[file_path][tag_line_index]
                 if tag_pattern.match(line_to_check):
                     logger.info(
-                        f"   -> Planning to remove tag for '{symbol['name']}' in {file_path_str}"
+                        "   -> Planning to remove tag for '%s' in %s",
+                        symbol["name"],
+                        file_path_str,
                     )
                     files_to_modify[file_path][tag_line_index] = "__DELETE_THIS_LINE__"
         if dry_run:
@@ -89,7 +94,7 @@ def main(
                 + "\n"
             )
             file_path.write_text(new_content, "utf-8")
-            logger.info(f"  - ✅ Pruned tags from {file_path.relative_to(REPO_ROOT)}")
+            logger.info("  - ✅ Pruned tags from %s", file_path.relative_to(REPO_ROOT))
 
     asyncio.run(_async_main())
 

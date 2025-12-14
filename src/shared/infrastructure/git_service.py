@@ -20,7 +20,7 @@ from shared.logger import getLogger
 logger = getLogger(__name__)
 
 
-# ID: 195434df-adc5-4e68-bb84-8962b1c5ec9c
+# ID: 4c70a9c7-ee57-40d7-80af-470c19223c21
 class GitService:
     """Provides basic git operations for agents and services."""
 
@@ -29,7 +29,7 @@ class GitService:
         Initializes the GitService and validates the repository path.
         """
         self.repo_path = Path(repo_path).resolve()
-        logger.info(f"GitService initialized for path {self.repo_path}")
+        logger.info("GitService initialized for path %s", self.repo_path)
 
     def _run_command(self, command: list[str], cwd: Path | None = None) -> str:
         """Runs a git command and returns stdout; raises RuntimeError on failure."""
@@ -51,17 +51,17 @@ class GitService:
             logger.error("Git command failed: %s", msg)
             raise RuntimeError(f"Git command failed: {msg}") from e
 
-    # ID: ec16988c-6830-408c-a31c-e6799c430b08
+    # ID: 06b9d4c8-a43e-4430-9f34-08d45747674a
     def init(self, path: Path):
         """Initializes a new Git repository at the specified path."""
         self._run_command(["init"], cwd=path)
 
-    # ID: 5aeb7647-95cc-405f-b941-f52d4dd9ac81
+    # ID: cc819226-e33c-4559-a2d6-88d5d9e0ddaa
     def get_current_commit(self) -> str:
         """Returns the hash of the current HEAD commit."""
         return self._run_command(["rev-parse", "HEAD"])
 
-    # ID: 7caf2626-1af7-40fb-ad83-c44f4816b054
+    # ID: 62355f31-f9eb-4ac1-984e-eea556b29f31
     def get_staged_files(self) -> list[str]:
         """Returns a list of files that are currently staged for commit."""
         try:
@@ -74,30 +74,27 @@ class GitService:
         except RuntimeError:
             return []
 
-    # ID: e00621cc-976b-4418-857c-9c9783a09c0c
+    # ID: e506910f-2fc8-41ac-8f77-4dd79da1e6c6
     def is_git_repo(self) -> bool:
         """Returns True if a '.git' directory exists."""
         return (self.repo_path / ".git").exists()
 
-    # ID: 9375ce45-24db-4e25-885b-6d268a7c1324
+    # ID: 715fe14e-e905-4032-9721-35bc67639ed7
     def status_porcelain(self) -> str:
         """Returns the porcelain status output."""
         return self._run_command(["status", "--porcelain"])
 
-    # ID: ba274efa-20af-4e82-9886-20f132465125
+    # ID: db520983-cdb8-4b99-a1d9-60467128b6dc
     def add_all(self) -> None:
         """Stages all changes, including untracked files."""
         self._run_command(["add", "-A"])
 
-    # --- FIX: Added missing add() method ---
-    # ID: ac30b490-2ee4-41ae-93c6-a06ad5a72db0
+    # ID: 823668c8-17fc-4472-9d37-b22735b8d018
     def add(self, path: str | Path) -> None:
         """Stages a specific file."""
         self._run_command(["add", str(path)])
 
-    # ---------------------------------------
-
-    # ID: f95573be-ebc4-4d48-bc3c-0187edb982ef
+    # ID: 3acb0e63-e71b-4eba-a5ed-88e8e4eec35d
     def commit(self, message: str) -> None:
         """
         Commits staged changes with the provided message.

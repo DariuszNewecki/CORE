@@ -17,7 +17,7 @@ from shared.logger import getLogger
 logger = getLogger(__name__)
 
 
-# ID: 89c44112-a689-4285-a069-194cb334fa72
+# ID: 72f18eea-652f-4098-8ddd-211a346c95fd
 class ActionLogger:
     """Handles writing structured JSON events to the CORE_ACTION_LOG_PATH."""
 
@@ -31,11 +31,11 @@ class ActionLogger:
             self.log_path.parent.mkdir(parents=True, exist_ok=True)
         except (ValueError, AttributeError) as e:
             logger.error(
-                f"ActionLogger failed to initialize: {e}. Logging will be disabled."
+                "ActionLogger failed to initialize: %s. Logging will be disabled.", e
             )
             self.log_path = None
 
-    # ID: 513dbaf6-e0dc-4d6f-b090-e7767e3ad7cb
+    # ID: 45f05bd1-dc47-4dfc-9117-709dff10741e
     def log_event(self, event_type: str, details: dict[str, Any]):
         """
         Writes a single, timestamped event to the action log file.

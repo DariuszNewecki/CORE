@@ -19,7 +19,7 @@ from shared.logger import getLogger
 logger = getLogger(__name__)
 
 
-# ID: 5dbad212-bdc3-4a5a-aac3-5ef302c156b2
+# ID: c70526bd-08f2-4c9b-b014-f4c548e188c6
 def run_tests(silent: bool = True) -> dict[str, str]:
     """Executes pytest on the tests/ directory and returns a structured result."""
     logger.info("🧪 Running tests with pytest...")
@@ -33,12 +33,7 @@ def run_tests(silent: bool = True) -> dict[str, str]:
     repo_root = Path(__file__).resolve().parents[2]
     tests_path = repo_root / "tests"
     cmd = ["pytest", str(tests_path), "--tb=short", "-q"]
-
-    # Use settings instead of direct env var access for consistency
-    timeout = settings.model_extra.get(
-        "TEST_RUNNER_TIMEOUT", 300
-    )  # Default 5 mins for full suite
-
+    timeout = settings.model_extra.get("TEST_RUNNER_TIMEOUT", 300)
     try:
         proc = subprocess.run(
             cmd, capture_output=True, text=True, check=False, timeout=timeout
@@ -48,9 +43,9 @@ def run_tests(silent: bool = True) -> dict[str, str]:
         result["stderr"] = proc.stderr.strip()
         result["summary"] = _summarize(proc.stdout)
         if not silent:
-            logger.info(f"Pytest stdout:\n{proc.stdout}")
+            logger.info("Pytest stdout:\n%s", proc.stdout)
             if proc.stderr:
-                logger.warning(f"Pytest stderr:\n{proc.stderr}")
+                logger.warning("Pytest stderr:\n%s", proc.stderr)
     except subprocess.TimeoutExpired:
         result["stderr"] = f"Test run timed out after {timeout}s."
         result["summary"] = "⏰ Timeout"
@@ -63,11 +58,11 @@ def run_tests(silent: bool = True) -> dict[str, str]:
         result["stderr"] = str(e)
         result["summary"] = "❌ Test run error"
         logger.error(
-            f"An unexpected error occurred during test run: {e}", exc_info=True
+            "An unexpected error occurred during test run: %s", e, exc_info=True
         )
     _log_test_result(result)
     _store_failure_if_any(result)
-    logger.info(f"🏁 Test run complete. Summary: {result['summary']}")
+    logger.info("🏁 Test run complete. Summary: %s", result["summary"])
     return result
 
 
@@ -89,7 +84,7 @@ def _log_test_result(data: dict[str, str]):
             f.write(json.dumps(data) + "\n")
     except Exception as e:
         logger.warning(
-            f"Failed to write to persistent test log file: {e}", exc_info=True
+            "Failed to write to persistent test log file: %s", e, exc_info=True
         )
 
 
@@ -108,4 +103,4 @@ def _store_failure_if_any(data: dict[str, str]):
         elif failure_path.exists():
             failure_path.unlink(missing_ok=True)
     except Exception as e:
-        logger.warning(f"Could not save test failure data: {e}", exc_info=True)
+        logger.warning("Could not save test failure data: %s", e, exc_info=True)

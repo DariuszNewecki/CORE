@@ -43,11 +43,11 @@ async def _enrich_single_symbol(
     """Uses an AI to generate a description for a single symbol."""
     symbol_uuid = str(symbol["id"])
     try:
-        logger.debug(f"Enriching symbol: {symbol.get('symbol_path')}")
+        logger.debug("Enriching symbol: %s", symbol.get("symbol_path"))
         source_code = extract_source_code(REPO_ROOT, symbol)
         if not source_code:
             return {"uuid": symbol_uuid, "description": "error.code_not_found"}
-        prompt_template = (settings.paths.prompt("enrich_symbol")).read_text("utf-8")
+        prompt_template = settings.paths.prompt("enrich_symbol").read_text("utf-8")
         final_prompt = prompt_template.format(
             symbol_path=symbol["symbol_path"],
             file_path=symbol["file_path"],
@@ -82,7 +82,7 @@ async def _update_descriptions_in_db(descriptions: list[dict[str, str]]):
     if not descriptions:
         return
     logger.info(
-        f"Attempting to update {len(descriptions)} descriptions in the database..."
+        "Attempting to update %s descriptions in the database...", len(descriptions)
     )
     async with get_session() as session:
         async with session.begin():
@@ -93,7 +93,7 @@ async def _update_descriptions_in_db(descriptions: list[dict[str, str]]):
     logger.info("Database update transaction completed.")
 
 
-# ID: 6de29497-ccd7-4098-a970-a6b21191c6e2
+# ID: 78078aae-3e69-4e5e-bd86-5c046a63314c
 async def enrich_symbols(
     cognitive_service: CognitiveService, qdrant_service: QdrantService, dry_run: bool
 ):
@@ -102,7 +102,7 @@ async def enrich_symbols(
     if not symbols_to_enrich:
         logger.info("✅ No symbols with placeholder descriptions found.")
         return
-    logger.info(f"   -> Found {len(symbols_to_enrich)} symbols to enrich...")
+    logger.info("   -> Found %s symbols to enrich...", len(symbols_to_enrich))
     processor = ThrottledParallelProcessor(description="Enriching symbols...")
     worker_fn = partial(
         _enrich_single_symbol,
@@ -118,11 +118,12 @@ async def enrich_symbols(
     if dry_run:
         logger.info("-- DRY RUN: The following descriptions would be written --")
         for d in valid_descriptions[:10]:
-            logger.info(f"  - Symbol ID {d['uuid']} -> '{d['description']}'")
+            logger.info("  - Symbol ID %s -> '%s'", d["uuid"], d["description"])
         if len(valid_descriptions) > 10:
-            logger.info(f"  - ... and {len(valid_descriptions) - 10} more.")
+            logger.info("  - ... and %s more.", len(valid_descriptions) - 10)
         return
     await _update_descriptions_in_db(valid_descriptions)
     logger.info(
-        f"   -> Successfully enriched {len(valid_descriptions)} symbols in the database."
+        "   -> Successfully enriched %s symbols in the database.",
+        len(valid_descriptions),
     )

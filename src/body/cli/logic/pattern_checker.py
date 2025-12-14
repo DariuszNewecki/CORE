@@ -13,23 +13,16 @@ from typing import Any
 import yaml
 
 from shared.logger import getLogger
-
-# Import shared models
 from shared.models.pattern_graph import PatternValidationResult as PatternCheckResult
 from shared.models.pattern_graph import PatternViolation
 
 
 logger = getLogger(__name__)
-
 _NO_DEFAULT = object()
 
 
-# ID: fbe66643-f8ca-4010-b2bd-88965600cdc1
+# ID: 8836a382-38c3-47af-b38c-852a54cd5674
 class PatternChecker:
-    # ... (Rest of class remains unchanged)
-    # Update usages of PatternViolation constructor to match new signature if needed
-    # The dataclass is flexible enough to handle key-word args matching attributes.
-
     def __init__(self, repo_root: Path):
         self.repo_root = repo_root
         self.patterns_dir = repo_root / ".intent" / "charter" / "patterns"
@@ -38,11 +31,9 @@ class PatternChecker:
     def _load_patterns(self) -> dict[str, dict]:
         """Load all pattern specifications."""
         patterns = {}
-
         if not self.patterns_dir.exists():
-            logger.warning(f"Patterns directory not found: {self.patterns_dir}")
+            logger.warning("Patterns directory not found: %s", self.patterns_dir)
             return patterns
-
         for pattern_file in self.patterns_dir.glob("*_patterns.yaml"):
             try:
                 with open(pattern_file) as f:
@@ -52,40 +43,29 @@ class PatternChecker:
                     logger.info("Loaded pattern spec: %s", category)
             except Exception as e:
                 logger.error("Failed to load {pattern_file}: %s", e)
-
         return patterns
 
-    # ID: 10ecb6a4-d32a-43da-a3c7-e83f40d14207
+    # ID: daa3364f-46d1-42c0-918b-f9ff5574e667
     def check_all(self) -> PatternCheckResult:
         """
         Check all code for pattern compliance.
         """
         violations = []
-
-        # Check CLI commands
         violations.extend(self._check_commands())
-
-        # Check services
         violations.extend(self._check_services())
-
-        # Check agents
         violations.extend(self._check_agents())
-
-        # Check workflows (Makefile)
         violations.extend(self._check_workflows())
-
         total = len(violations) + sum(1 for v in violations if v.severity != "error")
         compliant = total - len([v for v in violations if v.severity == "error"])
-
         return PatternCheckResult(
-            pattern_id="all",  # Placeholder
-            passed=(compliant == total),
+            pattern_id="all",
+            passed=compliant == total,
             violations=violations,
             total_components=total,
             compliant=compliant,
         )
 
-    # ID: 5a9ef162-a329-4b5a-9452-6ae7b1c200a7
+    # ID: ec0edf76-e1bd-4b57-89d2-159c745188e4
     def check_category(self, category: str) -> list[PatternViolation]:
         """Check specific pattern category."""
         checkers = {
@@ -94,57 +74,47 @@ class PatternChecker:
             "agents": self._check_agents,
             "workflows": self._check_workflows,
         }
-
         checker = checkers.get(category)
         if not checker:
             logger.error("Unknown category: %s", category)
             return []
-
         return checker()
 
     def _check_commands(self) -> list[PatternViolation]:
         """Check CLI commands against command patterns."""
         violations = []
         commands_dir = self.repo_root / "src" / "body" / "cli" / "commands"
-
         if not commands_dir.exists():
             return violations
-
         for py_file in commands_dir.rglob("*.py"):
             if py_file.name.startswith("_"):
                 continue
-
             violations.extend(self._check_command_file(py_file))
-
         return violations
 
     def _check_command_file(self, file_path: Path) -> list[PatternViolation]:
         """Check a single command file."""
         violations = []
-
         try:
             with open(file_path) as f:
                 tree = ast.parse(f.read())
-
             for node in ast.walk(tree):
                 if isinstance(node, ast.FunctionDef):
                     if self._is_cli_command(node):
                         violations.extend(
                             self._validate_command_pattern(file_path, node)
                         )
-
         except SyntaxError as e:
             violations.append(
                 PatternViolation(
                     file_path=str(file_path),
                     component_name=file_path.stem,
-                    pattern_id="command_pattern",  # Mapped from expected_pattern
+                    pattern_id="command_pattern",
                     violation_type="syntax_error",
                     message=f"Syntax error: {e}",
                     severity="error",
                 )
             )
-
         return violations
 
     def _is_cli_command(self, node: ast.FunctionDef) -> bool:
@@ -176,14 +146,12 @@ class PatternChecker:
                 )
             )
             return violations
-
         if pattern_declared.startswith("inspect"):
             violations.extend(self._validate_inspect_pattern(file_path, node))
         elif pattern_declared.startswith("action"):
             violations.extend(self._validate_action_pattern(file_path, node))
         elif pattern_declared.startswith("check"):
             violations.extend(self._validate_check_pattern(file_path, node))
-
         return violations
 
     def _get_declared_pattern(self, node: ast.FunctionDef) -> str | None:
@@ -231,7 +199,6 @@ class PatternChecker:
     ) -> list[PatternViolation]:
         violations = []
         has_write = self._has_parameter(node, "write")
-
         if not has_write:
             violations.append(
                 PatternViolation(
@@ -245,9 +212,7 @@ class PatternChecker:
                 )
             )
             return violations
-
         default_val = self._get_parameter_default(node, "write")
-
         if default_val is _NO_DEFAULT:
             violations.append(
                 PatternViolation(
@@ -272,7 +237,6 @@ class PatternChecker:
                     severity="error",
                 )
             )
-
         return violations
 
     def _validate_check_pattern(
@@ -308,7 +272,6 @@ class PatternChecker:
             if arg.arg == param_name:
                 param_idx = i
                 break
-
         if param_idx is not None:
             defaults_count = len(node.args.defaults)
             args_count = len(node.args.args)
@@ -319,13 +282,11 @@ class PatternChecker:
             if isinstance(default_node, ast.Constant):
                 return default_node.value
             return f"<{type(default_node).__name__}>"
-
         kw_param_idx = None
         for i, arg in enumerate(node.args.kwonlyargs):
             if arg.arg == param_name:
                 kw_param_idx = i
                 break
-
         if kw_param_idx is not None:
             default_node = node.args.kw_defaults[kw_param_idx]
             if default_node is None:
@@ -333,7 +294,6 @@ class PatternChecker:
             if isinstance(default_node, ast.Constant):
                 return default_node.value
             return f"<{type(default_node).__name__}>"
-
         return None
 
     def _check_services(self) -> list[PatternViolation]:
@@ -346,22 +306,16 @@ class PatternChecker:
         return []
 
 
-# ID: 023a67d8-1485-4f02-9686-b83d75426d21
+# ID: 8065de9c-3e1e-4a0a-9f49-2eca7633613f
 def format_violations(violations: list[PatternViolation], verbose: bool = False) -> str:
     if not violations:
         return "✅ No pattern violations found!"
-
     lines = [f"\n❌ Found {len(violations)} pattern violations:\n"]
-
-    # Sort key needs to handle None values in file_path
     sorted_violations = sorted(violations, key=lambda v: str(v.file_path))
-
-    # Group by file
     by_file: dict[str, list[PatternViolation]] = {}
     for v in sorted_violations:
         path = str(v.file_path) if v.file_path else "unknown"
         by_file.setdefault(path, []).append(v)
-
     for file_path, file_violations in by_file.items():
         lines.append(f"\n📄 {file_path}:")
         for v in file_violations:
@@ -372,5 +326,4 @@ def format_violations(violations: list[PatternViolation], verbose: bool = False)
             lines.append(f"      {v.message}")
             if verbose and v.line_number:
                 lines.append(f"      Line {v.line_number}")
-
     return "\n".join(lines)

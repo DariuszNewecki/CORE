@@ -230,7 +230,7 @@ class CodeExtractor:
                     continue
 
                 # It looks like a broken multi-line start; convert to triple quotes
-                new_line = f"{prefix_part}{string_prefix}{q*3}{content}"
+                new_line = f"{prefix_part}{string_prefix}{q * 3}{content}"
                 new_lines.append(new_line)
                 in_broken_string = True
                 quote_char = q

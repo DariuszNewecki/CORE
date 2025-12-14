@@ -1,10 +1,15 @@
 # src/body/cli/logic/diagnostics_policy.py
+
 """
 Logic for constitutional policy coverage auditing.
 """
 
 from __future__ import annotations
 
+from shared.logger import getLogger
+
+
+logger = getLogger(__name__)
 import logging
 from typing import Any
 
@@ -19,13 +24,13 @@ logger = logging.getLogger(__name__)
 def _log_policy_coverage_summary(summary: dict[str, Any]) -> None:
     """Log a compact summary of policy coverage metrics."""
     logger.info("Constitutional Policy Coverage Summary")
-    logger.info(f"Policies Seen: {summary.get('policies_seen', 0)}")
-    logger.info(f"Rules Found: {summary.get('rules_found', 0)}")
-    logger.info(f"Rules (direct): {summary.get('rules_direct', 0)}")
-    logger.info(f"Rules (bound): {summary.get('rules_bound', 0)}")
-    logger.info(f"Rules (inferred): {summary.get('rules_inferred', 0)}")
-    logger.info(f"Uncovered Rules (all): {summary.get('uncovered_rules', 0)}")
-    logger.info(f"Uncovered ERROR Rules: {summary.get('uncovered_error_rules', 0)}")
+    logger.info("Policies Seen: %s", summary.get("policies_seen", 0))
+    logger.info("Rules Found: %s", summary.get("rules_found", 0))
+    logger.info("Rules (direct): %s", summary.get("rules_direct", 0))
+    logger.info("Rules (bound): %s", summary.get("rules_bound", 0))
+    logger.info("Rules (inferred): %s", summary.get("rules_inferred", 0))
+    logger.info("Uncovered Rules (all): %s", summary.get("uncovered_rules", 0))
+    logger.info("Uncovered ERROR Rules: %s", summary.get("uncovered_error_rules", 0))
 
 
 def _log_policy_coverage_table(records: list[dict[str, Any]]) -> None:
@@ -33,7 +38,6 @@ def _log_policy_coverage_table(records: list[dict[str, Any]]) -> None:
     if not records:
         logger.warning("No policy rules discovered; nothing to display.")
         return
-
     logger.info("Policy Rules Coverage")
     sorted_records = sorted(
         records,
@@ -43,7 +47,6 @@ def _log_policy_coverage_table(records: list[dict[str, Any]]) -> None:
             r.get("rule_id", ""),
         ),
     )
-
     for rec in sorted_records:
         policy = rec.get("policy_id", "")
         rule_id = rec.get("rule_id", "")
@@ -52,8 +55,12 @@ def _log_policy_coverage_table(records: list[dict[str, Any]]) -> None:
         covered = rec.get("covered", False)
         covered_str = "Yes" if covered else "No"
         logger.info(
-            f"Policy: {policy}, Rule ID: {rule_id}, Enforcement: {enforcement}, "
-            f"Coverage: {coverage}, Covered?: {covered_str}"
+            "Policy: %s, Rule ID: %s, Enforcement: %s, Coverage: %s, Covered?: %s",
+            policy,
+            rule_id,
+            enforcement,
+            coverage,
+            covered_str,
         )
 
 
@@ -62,18 +69,18 @@ def _log_uncovered_policy_rules(records: list[dict[str, Any]]) -> None:
     uncovered = [r for r in records if not r.get("covered", False)]
     if not uncovered:
         return
-
     logger.warning("Uncovered Policy Rules")
     for rec in uncovered:
         logger.warning(
-            f"Policy: {rec.get('policy_id', '')}, "
-            f"Rule ID: {rec.get('rule_id', '')}, "
-            f"Enforcement: {rec.get('enforcement', '')}, "
-            f"Coverage: {rec.get('coverage', 'none')}"
+            "Policy: %s, Rule ID: %s, Enforcement: %s, Coverage: %s",
+            rec.get("policy_id", ""),
+            rec.get("rule_id", ""),
+            rec.get("enforcement", ""),
+            rec.get("coverage", "none"),
         )
 
 
-# ID: 25d4e8f9-ae1e-424e-972d-2dcb74f918b7
+# ID: 6eb5c3ca-cbbf-48d1-82a5-de01df839b6f
 def policy_coverage():
     """
     Runs a meta-audit on all .intent/charter/policies/ to ensure they are
@@ -82,17 +89,14 @@ def policy_coverage():
     logger.info("Running Constitutional Policy Coverage Audit...")
     service = PolicyCoverageService()
     report = service.run()
-
-    logger.info(f"Report ID: {report.report_id}")
-
+    logger.info("Report ID: %s", report.report_id)
     _log_policy_coverage_summary(report.summary)
     _log_policy_coverage_table(report.records)
-
     if report.summary.get("uncovered_rules", 0) > 0:
         _log_uncovered_policy_rules(report.records)
-
     if report.exit_code != 0:
-        logger.error(f"Policy coverage audit failed with exit code: {report.exit_code}")
+        logger.error(
+            "Policy coverage audit failed with exit code: %s", report.exit_code
+        )
         raise typer.Exit(code=report.exit_code)
-
     logger.info("All active policies are backed by implemented or inferred checks.")

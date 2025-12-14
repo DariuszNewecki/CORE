@@ -21,7 +21,7 @@ from shared.models import ExecutionTask, PlanExecutionError, PlannerConfig
 logger = getLogger(__name__)
 
 
-# ID: 4ff2e88c-7029-4353-93f7-f34bddbb25e7
+# ID: c87abb8b-1424-4bd5-b85b-94c013db5eeb
 class PlanExecutor:
     """
     A service that takes a list of ExecutionTasks and orchestrates their
@@ -41,7 +41,7 @@ class PlanExecutor:
         )
         asyncio.create_task(self.context.auditor_context.load_knowledge_graph())
 
-    # ID: 0251465e-dd7f-4ab2-8c3a-703b1c74acdb
+    # ID: 322ea945-c32f-4f6a-8c26-640f7c38b6b3
     async def execute_plan(self, plan: list[ExecutionTask]):
         """Executes the entire plan by dispatching each task to its handler."""
         for i, task in enumerate(plan, 1):
@@ -49,7 +49,7 @@ class PlanExecutor:
             handler = self.action_registry.get_handler(task.action)
             if not handler:
                 logger.warning(
-                    f"Skipping task: No handler found for action '{task.action}'."
+                    "Skipping task: No handler found for action '%s'.", task.action
                 )
                 continue
             await self._execute_task_with_timeout(task, handler)
@@ -65,7 +65,10 @@ class PlanExecutor:
             raise PlanExecutionError(f"Task '{task.step}' timed out after {timeout}s")
         except Exception as e:
             logger.error(
-                f"Error executing action '{task.action}' for step '{task.step}': {e}",
+                "Error executing action '%s' for step '%s': %s",
+                task.action,
+                task.step,
+                e,
                 exc_info=True,
             )
             raise PlanExecutionError(f"Step '{task.step}' failed: {e}") from e

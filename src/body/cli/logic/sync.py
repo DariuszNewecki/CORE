@@ -1,4 +1,5 @@
 # src/body/cli/logic/sync.py
+
 """
 Implements the 'knowledge sync' command, the single source of truth for
 synchronizing the codebase state (IDs) with the database.
@@ -22,25 +23,22 @@ async def _async_sync_knowledge(write: bool):
     logger.info(
         "🚀 Synchronizing codebase state with database using temp table strategy..."
     )
-
     if not write:
         logger.warning(
             "💧 Dry Run: This command no longer supports a dry run due to its database-centric logic."
         )
         logger.info("   Run with '--write' to execute the synchronization.")
         return
-
     stats = await run_sync_with_db()
-
     logger.info("--- Knowledge Sync Summary ---")
-    logger.info(f"   Scanned from code:  {stats['scanned']} symbols")
-    logger.info(f"   New symbols added:  {stats['inserted']}")
-    logger.info(f"   Existing symbols updated: {stats['updated']}")
-    logger.info(f"   Obsolete symbols removed: {stats['deleted']}")
+    logger.info("   Scanned from code:  %s symbols", stats["scanned"])
+    logger.info("   New symbols added:  %s", stats["inserted"])
+    logger.info("   Existing symbols updated: %s", stats["updated"])
+    logger.info("   Obsolete symbols removed: %s", stats["deleted"])
     logger.info("✅ Database is now synchronized with the codebase.")
 
 
-# ID: 89517800-0799-476e-8078-a184519a76a1
+# ID: 3234fb7f-f5d6-4111-b926-455657955794
 def sync_knowledge_base(
     write: bool = typer.Option(
         False, "--write", help="Apply the changes to the database."

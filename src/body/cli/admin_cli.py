@@ -19,6 +19,7 @@ from body.cli.commands import (
     coverage,
     enrich,
     fix,
+    governance,
     inspect,
     mind,
     run,
@@ -82,17 +83,18 @@ core_context = CoreContext(
 
 def _build_context_service() -> ContextService:
     """
-    Factory for ContextService, wired at the CLI composition root.
-    Uses the registry to ensure singletons are used.
+    Factory for ContextService.
+
+    ContextService is dependency-aware and resolves heavy services
+    lazily via the ServiceRegistry when first used.
     """
-    # NOTE: In a fully async CLI, we would await these.
-    # For now, ContextService will fetch them lazily if passed as None.
     return ContextService(
-        qdrant_client=None,  # Lazy load via registry inside service if needed
-        cognitive_service=None,  # Lazy load via registry
+        qdrant_client=None,
+        cognitive_service=None,
         config={},
         project_root=str(settings.REPO_PATH),
         session_factory=get_session,
+        service_registry=service_registry,  # ← inject registry
     )
 
 
@@ -107,6 +109,7 @@ def register_all_commands(app_instance: typer.Typer) -> None:
     app_instance.add_typer(coverage.coverage_app, name="coverage")
     app_instance.add_typer(enrich.enrich_app, name="enrich")
     app_instance.add_typer(fix_app, name="fix")
+    app_instance.add_typer(governance.governance_app, name="governance")
     app_instance.add_typer(inspect.inspect_app, name="inspect")
     app_instance.add_typer(manage.manage_app, name="manage")
     app_instance.add_typer(mind.mind_app, name="mind")
@@ -131,6 +134,7 @@ def register_all_commands(app_instance: typer.Typer) -> None:
         coverage,
         enrich,
         fix,
+        governance,
         inspect,
         manage,
         run,

@@ -21,7 +21,7 @@ from shared.logger import getLogger
 logger = getLogger(__name__)
 
 
-# ID: c331da07-35ce-4164-a355-b25fd992a577
+# ID: daa32cb8-bfde-4ff4-9774-01df0a0929e7
 class BaseLLMClient:
     """
     Base class for LLM clients, handling common request logic for Chat and Embedding APIs.
@@ -120,11 +120,11 @@ class BaseLLMClient:
                 return response_data["choices"][0]["message"]["content"]
         except (KeyError, IndexError, ValueError) as e:
             logger.error(
-                f"Could not parse response for task '{task_type}': {response_data}"
+                "Could not parse response for task '%s': %s", task_type, response_data
             )
             raise ValueError(f"Invalid API response structure: {e}") from e
 
-    # ID: d7a61457-359b-44d0-b202-eaca16e75000
+    # ID: 1cf4fb51-6706-40cc-9ea7-43a0c6689d33
     async def make_request_async(
         self, prompt: str, user_id: str = "core_system", task_type: str = "chat"
     ) -> Any:
@@ -145,16 +145,16 @@ class BaseLLMClient:
                     logger.warning("%s. Retrying in {wait_time:.1f}s...", error_message)
                     await asyncio.sleep(wait_time)
                     continue
-                logger.error(f"Final attempt failed: {error_message}", exc_info=True)
+                logger.error("Final attempt failed: %s", error_message, exc_info=True)
                 raise
 
-    # ID: 65cb9db0-aae7-4924-9a2f-571a9068c8de
+    # ID: fed37b8f-d1bc-42cf-930f-b5c48521fe08
     async def get_embedding(self, text: str) -> list[float]:
         return await self.make_request_async(
             prompt=text, user_id="embedding_service", task_type="embedding"
         )
 
-    # ID: ad1e20a5-44c2-4e8e-920c-58e6349a699b
+    # ID: 9a6593cc-7079-4b59-bcc2-5601b27e19b5
     def make_request_sync(
         self, prompt: str, user_id: str = "core_system", task_type: str = "chat"
     ) -> Any:
@@ -178,6 +178,6 @@ class BaseLLMClient:
                     time.sleep(wait_time)
                     continue
                 logger.error(
-                    f"Final sync attempt failed: {error_message}", exc_info=True
+                    "Final sync attempt failed: %s", error_message, exc_info=True
                 )
                 raise

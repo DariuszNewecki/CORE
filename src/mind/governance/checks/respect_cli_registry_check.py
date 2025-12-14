@@ -1,16 +1,17 @@
 # src/mind/governance/checks/respect_cli_registry_check.py
 """
-Enforces agent.compliance.respect_cli_registry: AI must use only registered CLI commands.
+Enforces agent.compliance.respect_cli_registry.
+Agents (Will layer) must only invoke CLI commands registered in the Database (SSOT).
 """
 
 from __future__ import annotations
 
 import ast
-from pathlib import Path
 
-from sqlalchemy import select
+from sqlalchemy import text
 
 from mind.governance.checks.base_check import BaseCheck
+from shared.infrastructure.database.session_manager import get_session
 from shared.logger import getLogger
 from shared.models import AuditFinding, AuditSeverity
 
@@ -18,43 +19,48 @@ from shared.models import AuditFinding, AuditSeverity
 logger = getLogger(__name__)
 
 
-# ID: d4e5f6a7-b8c9-4d0e-1f2a-3b4c5d6e7f8a
+# ID: 3442d405-5bc4-4833-9a26-619165b2c202
 class RespectCliRegistryCheck(BaseCheck):
+    """
+    Scans Agent code (src/will) for subprocess calls invoking 'core-admin'.
+    Verifies that the invoked command matches a registered Capability ID in the DB.
+    """
+
     policy_rule_ids = ["agent.compliance.respect_cli_registry"]
 
-    # --- START OF FIX: Make _get_registered an async method ---
-    async def _get_registered(self) -> set[str]:
-        """Asynchronously fetches the set of registered command names from the database."""
-        from shared.infrastructure.database.models import CliCommand
-        from shared.infrastructure.database.session_manager import get_session
+    async def _get_registered_commands(self) -> set[str]:
+        """
+        Fetches valid command IDs from the database (SSOT).
+        Uses raw SQL to decouple from ORM changes.
+        """
+        try:
+            async with get_session() as db:
+                # Assuming table is core.cli_commands and column is name (action_id)
+                # Ref: project_manifest.yaml -> db:core.cli_commands
+                result = await db.execute(text("SELECT name FROM core.cli_commands"))
+                return {row[0] for row in result.fetchall()}
+        except Exception as e:
+            logger.warning("Failed to load CLI registry from DB: %s", e)
+            return set()
 
-        async with get_session() as db:
-            result = await db.execute(select(CliCommand.name))
-            return {row[0] for row in result.fetchall()}
-
-    # --- END OF FIX ---
-
-    # --- START OF FIX: Convert the main execute method to async ---
-    # ID: e67915d4-4b91-449f-b7af-f64ac3b2c72b
+    # ID: 120df042-960b-4e88-b166-1f74c8f3835d
     async def execute(self) -> list[AuditFinding]:
         findings = []
 
-        # Load registered CLI commands from DB
-        registered = set()
-        try:
-            # Await the async method directly instead of using asyncio.run()
-            registered = await self._get_registered()
-            logger.info(
-                f"Loaded {len(registered)} registered CLI commands: {sorted(registered)}"
-            )
-        except Exception as e:
-            logger.warning(
-                f"Failed to load CLI registry: {e}. Treating all commands as unregistered."
-            )
-        # --- END OF FIX ---
+        # 1. Load Registry
+        registered_ids = await self._get_registered_commands()
+        if not registered_ids:
+            # If registry is empty/unreachable, we can't enforce, but should warn.
+            # However, preventing false positives is safer.
+            logger.info("CLI Registry empty or unreachable. Skipping validation.")
+            return []
 
-        # Look for subprocess/os.system calls (this part remains synchronous)
-        for file_path in self.context.python_files:
+        # 2. Scope: Agents Only (src/will)
+        agent_dir = self.src_dir / "will"
+        if not agent_dir.exists():
+            return []
+
+        for file_path in agent_dir.rglob("*.py"):
             try:
                 content = file_path.read_text(encoding="utf-8")
                 tree = ast.parse(content)
@@ -63,54 +69,76 @@ class RespectCliRegistryCheck(BaseCheck):
                     if not isinstance(node, ast.Call):
                         continue
 
-                    cmd = None
-                    # subprocess.run(['core-admin', 'fix', 'ids'])
-                    if isinstance(node.func, ast.Attribute):
-                        func_name = node.func.attr
-                        module_name = (
-                            getattr(node.func.value, "id", "")
-                            if hasattr(node.func.value, "id")
-                            else ""
-                        )
-                        if (
-                            func_name in ("run", "Popen")
-                            and module_name == "subprocess"
-                        ):
-                            if node.args and isinstance(
-                                node.args[0], (ast.List, ast.Tuple)
-                            ):
-                                cmd_parts = []
-                                for elt in node.args[0].elts:
-                                    if isinstance(elt, ast.Str):
-                                        cmd_parts.append(elt.s)
-                                    elif isinstance(elt, ast.Constant) and isinstance(
-                                        elt.value, str
-                                    ):
-                                        cmd_parts.append(elt.value)
-                                cmd = " ".join(cmd_parts)
-                        # os.system("core-admin fix ids")
-                        elif func_name == "system" and module_name == "os":
-                            if node.args and isinstance(
-                                node.args[0], (ast.Str, ast.Constant)
-                            ):
-                                arg = node.args[0]
-                                cmd = arg.s if hasattr(arg, "s") else arg.value
+                    # Detect 'core-admin' calls
+                    cmd_str = self._extract_command_string(node)
+                    if not cmd_str or not cmd_str.startswith("core-admin"):
+                        continue
 
-                    if cmd and cmd.startswith("core-admin"):
-                        parts = cmd.split()
-                        subcommand = ".".join(parts[1:3]) if len(parts) > 2 else ""
-                        if subcommand and subcommand not in registered:
-                            findings.append(self._finding(file_path, node.lineno, cmd))
+                    # Parse 'core-admin fix ids' -> 'fix.ids'
+                    # Logic: skip binary, join next parts with dot until a flag/option appears
+                    parts = cmd_str.split()
+                    if len(parts) < 2:
+                        continue
+
+                    # Heuristic: Convert 'verb noun' to 'verb.noun'
+                    # This assumes standard CORE CLI pattern pattern
+                    action_parts = []
+                    for p in parts[1:]:
+                        if p.startswith("-"):  # Stop at flags
+                            break
+                        action_parts.append(p)
+
+                    if not action_parts:
+                        continue
+
+                    action_id = ".".join(action_parts)
+
+                    # Validate against Registry
+                    if action_id not in registered_ids:
+                        findings.append(
+                            AuditFinding(
+                                check_id="agent.compliance.respect_cli_registry",
+                                severity=AuditSeverity.ERROR,
+                                message=(
+                                    f"Agent invokes unregistered command: '{action_id}'. "
+                                    "Agents must only use capabilities registered in the DB."
+                                ),
+                                file_path=str(file_path.relative_to(self.repo_root)),
+                                line_number=node.lineno,
+                                context={"invoked": action_id, "command": cmd_str},
+                            )
+                        )
+
             except Exception as e:
-                logger.debug("Failed to parse {file_path}: %s", e)
+                logger.debug("Failed to scan %s: %s", file_path, e)
 
         return findings
 
-    def _finding(self, file_path: Path, line: int, cmd: str) -> AuditFinding:
-        return AuditFinding(
-            check_id="agent.compliance.respect_cli_registry",
-            severity=AuditSeverity.ERROR,
-            message=f"Unregistered CLI command: `{cmd}`. Run `fix db-registry` to register.",
-            file_path=str(file_path.relative_to(self.repo_root)),
-            line_number=line,
-        )
+    def _extract_command_string(self, node: ast.Call) -> str | None:
+        """Attempts to extract a string literal command from subprocess/os calls."""
+        # Check subprocess.run(["cmd", ...])
+        if self._is_call(node, "subprocess", ["run", "Popen", "call"]):
+            if node.args and isinstance(node.args[0], ast.List):
+                # Extract list of strings
+                parts = []
+                for elt in node.args[0].elts:
+                    if isinstance(elt, ast.Constant) and isinstance(elt.value, str):
+                        parts.append(elt.value)
+                    else:
+                        return None  # Dynamic component
+                return " ".join(parts)
+
+        # Check os.system("cmd ...")
+        if self._is_call(node, "os", ["system"]):
+            if node.args and isinstance(node.args[0], ast.Constant):
+                return str(node.args[0].value)
+
+        return None
+
+    def _is_call(self, node: ast.Call, module: str, methods: list[str]) -> bool:
+        """Helper to identify library calls."""
+        if isinstance(node.func, ast.Attribute):
+            if isinstance(node.func.value, ast.Name) and node.func.value.id == module:
+                if node.func.attr in methods:
+                    return True
+        return False

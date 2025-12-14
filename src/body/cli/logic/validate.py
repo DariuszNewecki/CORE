@@ -74,15 +74,15 @@ def _iter_intent_yaml(intent_root: Path) -> list[Path]:
     Return all YAML/YML files under the .intent root, excluding known state folders.
 
     NOTE:
-        .intent is treated as the Mind – but some subtrees (proposals, runtime,
-        exports, keys) are not governed by the same schema rules.
+        .intent is treated as the Mind, but some subtrees (runtime, exports, keys)
+        are operational/stateful and are not governed by the same schema rules.
+        Constitutional proposals are stored under work/proposals (not under .intent).
     """
     if not intent_root.exists():
         logger.error("Intent root %s does not exist", intent_root)
         return []
 
     exclude_prefixes = (
-        "proposals/",
         "runtime/",
         "mind_export/",
         "keys/",

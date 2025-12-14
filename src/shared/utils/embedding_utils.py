@@ -24,11 +24,11 @@ DEFAULT_CHUNK_SIZE = 512
 DEFAULT_CHUNK_OVERLAP = 50
 
 
-# ID: bcda4057-1723-4561-ba27-6ba7237ab7e4
+# ID: 0c956ad0-a9d9-4cdf-bc8d-af9bccc4e30c
 class Embeddable(Protocol):
     """Defines the interface for any service that can create embeddings."""
 
-    # ID: d8081706-92a9-4a15-beb3-5a7a5f54aeef
+    # ID: 3ace367e-4136-4dd0-95b9-ec75462ff78d
     async def get_embedding(self, text: str) -> list[float]: ...
 
 
@@ -38,7 +38,7 @@ class _Adapter:
     def __init__(self, service):
         self._service = service
 
-    # ID: 2c4afbf8-98d6-489f-a6e8-b01dafa7310b
+    # ID: f6d67bd8-83e2-42d5-81d3-07c668642568
     async def get_embedding(self, text: str) -> list[float]:
         return await self._service.get_embedding(text)
 
@@ -56,13 +56,13 @@ def _chunk_text(text: str, chunk_size: int, chunk_overlap: int) -> list[str]:
     return chunks
 
 
-# ID: 5e1666c2-1788-4610-89be-2056f51c8e09
+# ID: 76aee7d7-fe49-4271-87b8-01fc9b074028
 def sha256_hex(text: str) -> str:
     """Computes the SHA256 hex digest for a string."""
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
-# ID: 5fa5389d-3512-4579-9ff7-ee97bc744b71
+# ID: c3c32fe7-d434-43c6-b6a2-647afe213b4e
 class EmbeddingService:
     """
     Provider-aware embedding client that conforms to the Embeddable protocol.
@@ -123,9 +123,9 @@ class EmbeddingService:
             self._payload = lambda text: {"model": self.model, "input": text}
             self._extract = lambda data: (data.get("data") or [{}])[0].get("embedding")
         self.timeout = timeout
-        logger.info(f"EmbeddingService initialized for API at {self.base}")
+        logger.info("EmbeddingService initialized for API at %s", self.base)
 
-    # ID: cf9b7923-3230-4681-8c1d-b5600fb37dca
+    # ID: b0db34ef-e89a-4910-b264-8e939cc14f9a
     async def get_embedding(self, text: str) -> list[float]:
         """Return a single embedding vector for the given text."""
         url = f"{self.base}{self.endpoint}"
@@ -134,7 +134,7 @@ class EmbeddingService:
             resp = await client.post(url, json=payload, headers=self.headers)
         if resp.status_code != 200:
             logger.error(
-                f"HTTP error from embedding API: {resp.status_code} - {resp.text}"
+                "HTTP error from embedding API: %s - %s", resp.status_code, resp.text
             )
             raise RuntimeError(f"Embedding API HTTP {resp.status_code}")
         data = resp.json()
@@ -145,7 +145,7 @@ class EmbeddingService:
         return vec
 
 
-# ID: dd4844fa-0993-4bd4-9bf4-8ca720e6f91e
+# ID: 14fd20cf-3101-4970-84b0-942ea9fffda3
 def build_embedder_from_env() -> Embeddable:
     """
     Factory: builds an Embeddable using environment variables.
@@ -154,7 +154,7 @@ def build_embedder_from_env() -> Embeddable:
     return _Adapter(EmbeddingService())
 
 
-# ID: dcb4acde-a396-48c0-8167-76041d114cc7
+# ID: 31b34c50-e03b-4839-b588-d2a0c76a9004
 async def chunk_and_embed(
     embedder: Embeddable,
     text: str,

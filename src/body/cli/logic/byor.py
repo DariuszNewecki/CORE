@@ -22,7 +22,7 @@ TEMPLATES_DIR = (
 )
 
 
-# ID: f7272b83-c01a-4849-98da-07bd87ce3bf2
+# ID: 8b2ee927-9c35-4125-b291-22669733e531
 def initialize_repository(
     path: Path = typer.Argument(
         ...,
@@ -48,10 +48,11 @@ def initialize_repository(
         graph = builder.build()
         total_symbols = len(graph.get("symbols", {}))
         logger.info(
-            f"   -> ✅ Knowledge Graph built successfully. Found {total_symbols} symbols."
+            "   -> ✅ Knowledge Graph built successfully. Found %s symbols.",
+            total_symbols,
         )
     except Exception as e:
-        logger.error(f"   -> ❌ Failed to build Knowledge Graph: {e}", exc_info=True)
+        logger.error("   -> ❌ Failed to build Knowledge Graph: %s", e, exc_info=True)
         raise typer.Exit(code=1)
     logger.info("   -> Step 2: Generating starter constitution from analysis...")
     domains = builder.domain_map

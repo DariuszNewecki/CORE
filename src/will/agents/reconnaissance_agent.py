@@ -16,7 +16,7 @@ from will.orchestration.cognitive_service import CognitiveService
 logger = getLogger(__name__)
 
 
-# ID: 95a1c3e0-d1fe-4a45-b85d-183967c80ae2
+# ID: e9f23596-37c2-46eb-9ba1-1ab31680a083
 class ReconnaissanceAgent:
     """Queries the knowledge graph to build a focused context for a task."""
 
@@ -48,16 +48,17 @@ class ReconnaissanceAgent:
                     if symbol_data := self.symbols.get(symbol_key):
                         relevant_symbols.append(symbol_data)
                         relevant_files.add(symbol_data.get("file"))
-            logger.info(f"   -> Found relevant files: {list(relevant_files)}")
+            logger.info("   -> Found relevant files: %s", list(relevant_files))
             logger.info(
-                f"   -> Found relevant symbols: {[s.get('key') for s in relevant_symbols]}"
+                "   -> Found relevant symbols: %s",
+                [s.get("key") for s in relevant_symbols],
             )
             return (relevant_symbols, sorted(list(relevant_files)))
         except Exception as e:
             logger.warning("Semantic search for context failed: %s", e)
             return ([], [])
 
-    # ID: c4f6267a-2c91-4dd6-929e-967cc2794cfb
+    # ID: aacddb51-6409-4485-a9f5-997ee7d6d005
     async def generate_report(self, goal: str) -> str:
         """
         Analyzes a goal, queries the graph, and generates a surgical context report.

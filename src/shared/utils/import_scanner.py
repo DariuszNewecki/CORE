@@ -15,7 +15,7 @@ from shared.logger import getLogger
 logger = getLogger(__name__)
 
 
-# ID: b32768b2-8ff1-4d6c-a8a0-2f7bc5fdccab
+# ID: eba232a5-650f-4b18-ab04-e5a86e590d09
 def scan_imports_for_file(file_path: Path) -> list[str]:
     """
     Parse a Python file and extract all imported module paths.
@@ -38,5 +38,5 @@ def scan_imports_for_file(file_path: Path) -> list[str]:
                 if node.module:
                     imports.append(node.module)
     except Exception as e:
-        logger.warning(f"Failed to scan imports for {file_path}: {e}", exc_info=True)
+        logger.warning("Failed to scan imports for %s: %s", file_path, e, exc_info=True)
     return imports

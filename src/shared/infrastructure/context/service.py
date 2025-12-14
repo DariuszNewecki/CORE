@@ -41,6 +41,7 @@ class ContextService:
         config: dict[str, Any] | None = None,
         project_root: str = ".",
         session_factory: SessionFactory | None = None,
+        service_registry: Any | None = None,
     ):
         """Initialize context service with dependencies.
 
@@ -51,11 +52,13 @@ class ContextService:
             project_root: Project root directory.
             session_factory: Callable that returns an async DB session context
                 manager. If None, DB persistence and stats are skipped.
+            service_registry: ServiceRegistry for lazy service resolution.
         """
         self.config = config or {}
         self.project_root = Path(project_root)
         self.cognitive_service = cognitive_service
         self._session_factory = session_factory
+        self._service_registry = service_registry
 
         # Initialize providers without a database session.
         self.db_provider = DBProvider()
@@ -151,8 +154,7 @@ class ContextService:
                 )
         else:
             logger.debug(
-                "No session_factory configured; skipping DB persistence "
-                "for packet %s",
+                "No session_factory configured; skipping DB persistence for packet %s",
                 packet["header"]["packet_id"],
             )
 

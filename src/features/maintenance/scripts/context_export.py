@@ -449,7 +449,7 @@ def to_yaml(data: Any, indent: int = 0) -> str:
         for item in data:
             v = to_yaml(item, indent + 1)
             lines.append(
-                f"{sp}- {v if '\n' not in v else '\n' + '  ' * (indent+1) + v}"
+                f"{sp}- {v if '\n' not in v else '\n' + '  ' * (indent + 1) + v}"
             )
         return "\n".join(lines) if lines else "[]"
     if isinstance(data, dict):
@@ -457,7 +457,7 @@ def to_yaml(data: Any, indent: int = 0) -> str:
         for k, v in data.items():
             val = to_yaml(v, indent + 1)
             if "\n" in val:
-                lines.append(f"{sp}{k}:\n{ '  ' * (indent+1)}{val}")
+                lines.append(f"{sp}{k}:\n{'  ' * (indent + 1)}{val}")
             else:
                 lines.append(f"{sp}{k}: {val}")
         return "\n".join(lines) if lines else "{}"

@@ -1,20 +1,21 @@
 # src/mind/governance/checks/knowledge_source_check.py
 """
-Compares DB single-source-of-truth tables with their (legacy) YAML exports,
-enforcing the database SSOT rules from the data_governance policy.
+Compares DB single-source-of-truth tables with legacy YAML files to detect drift.
+Enforces data_governance policy (Knowledge Integrity).
 """
 
 from __future__ import annotations
 
 from mind.governance.checks.base_check import BaseCheck
-
-# Import our new engine
 from mind.governance.checks.knowledge_differ import KnowledgeDiffer
 from shared.infrastructure.database.session_manager import get_session
+from shared.logger import getLogger
 from shared.models import AuditFinding, AuditSeverity
 
 
-# The configuration remains part of the check, as it's specific to this audit.
+logger = getLogger(__name__)
+
+# Config defines the mapping between DB Tables (SSOT) and Legacy Files
 TABLE_CONFIGS = {
     "cli_registry": {
         "rule_id": "db.cli_registry_in_db",
@@ -43,11 +44,13 @@ TABLE_CONFIGS = {
 # ID: 81d6e8ed-a6f6-444c-acda-9064896c5111
 class KnowledgeSourceCheck(BaseCheck):
     """
-    Ensures the database is the Single Source of Truth by detecting drift
-    or the presence of legacy YAML knowledge files.
+    Ensures that if legacy knowledge files exist, they match the Database (SSOT).
+    Drift indicates a 'Split-Brain' scenario which is a critical violation.
+
+    Note: FileChecks.py may also flag the existence of these files as an error,
+    but this check specifically validates *data integrity* before they are removed.
     """
 
-    # Fulfills the contract from BaseCheck.
     policy_rule_ids = [
         "db.ssot_for_operational_data",
         "db.cli_registry_in_db",
@@ -55,21 +58,49 @@ class KnowledgeSourceCheck(BaseCheck):
         "db.cognitive_roles_in_db",
     ]
 
-    # No __init__ needed, we'll create the differ inside execute.
-
     # ID: b846d3ab-5762-4bc8-9dfc-f3fa060da29c
     async def execute(self) -> list[AuditFinding]:
-        """
-        Executes the SSOT check by using the KnowledgeDiffer to compare
-        each configured artifact and generating findings for any drift.
-        """
         findings: list[AuditFinding] = []
-        async with get_session() as session:
-            differ = KnowledgeDiffer(session, self.repo_root)
-            for config in TABLE_CONFIGS.values():
-                result = await differ.compare(config)
-                if result["status"] == "failed":
-                    findings.extend(self._create_findings_from_result(result, config))
+
+        # Use a fresh session for the check logic
+        # Note: Mind layer is permitted to access infrastructure directly for audit purposes
+        try:
+            async with get_session() as session:
+                differ = KnowledgeDiffer(session, self.repo_root)
+
+                for config_name, config in TABLE_CONFIGS.items():
+                    try:
+                        result = await differ.compare(config)
+
+                        if result["status"] == "failed":
+                            findings.extend(
+                                self._create_findings_from_result(result, config)
+                            )
+                        elif result["status"] == "error":
+                            # Handle DB/YAML read errors reported by Differ
+                            findings.append(
+                                AuditFinding(
+                                    check_id=config["rule_id"],
+                                    severity=AuditSeverity.WARNING,
+                                    message=f"SSOT Check Error for {config_name}: {result.get('error')}",
+                                    file_path=str(config["yaml_paths"][0]),
+                                )
+                            )
+
+                    except Exception as e:
+                        logger.error("Knowledge diff failed for %s: %s", config_name, e)
+                        findings.append(
+                            AuditFinding(
+                                check_id="db.ssot_for_operational_data",
+                                severity=AuditSeverity.ERROR,
+                                message=f"Internal error auditing {config_name}: {e}",
+                                file_path="N/A",
+                            )
+                        )
+        except Exception as e:
+            logger.error("Failed to acquire DB session for KnowledgeSourceCheck: %s", e)
+            # Fail open or closed? If DB is down, we probably have bigger problems.
+
         return findings
 
     def _create_findings_from_result(
@@ -79,40 +110,42 @@ class KnowledgeSourceCheck(BaseCheck):
         findings = []
         diff = result.get("diff", {})
         rule_id = config["rule_id"]
-        yaml_path = str(result["yaml_path"].relative_to(self.repo_root))
 
+        # Safe path resolution
+        try:
+            yaml_path = str(result["yaml_path"].relative_to(self.repo_root))
+        except (AttributeError, ValueError):
+            yaml_path = config["yaml_paths"][0]
+
+        # 1. Missing in DB (Critical: File has data DB doesn't)
         if diff.get("missing_in_db"):
-            keys = ", ".join(diff["missing_in_db"])
+            keys = ", ".join(sorted(diff["missing_in_db"]))
             findings.append(
                 AuditFinding(
                     check_id=rule_id,
                     severity=AuditSeverity.ERROR,
-                    message=f"SSOT Violation: Entries exist in legacy file '{yaml_path}' but are missing from the database: {keys}",
+                    message=(
+                        f"SSOT Violation (Data Loss Risk): Legacy file contains entries missing "
+                        f"from Database: [{keys}]. Run `core-admin manage database sync-knowledge`."
+                    ),
                     file_path=yaml_path,
+                    context={"missing_keys": diff["missing_in_db"]},
                 )
             )
 
+        # 2. Mismatched Data (Critical: Split Brain)
         if diff.get("mismatched"):
-            keys = ", ".join([m["key"] for m in diff["mismatched"]])
+            keys = ", ".join(sorted([m["key"] for m in diff["mismatched"]]))
             findings.append(
                 AuditFinding(
                     check_id=rule_id,
                     severity=AuditSeverity.ERROR,
-                    message=f"SSOT Violation: Entries in legacy file '{yaml_path}' are out of sync with the database: {keys}",
+                    message=(
+                        f"SSOT Violation (Split Brain): Data mismatch between Legacy file and Database "
+                        f"for keys: [{keys}]. Database is authoritative."
+                    ),
                     file_path=yaml_path,
                     context={"mismatches": diff["mismatched"]},
-                )
-            )
-
-        # If the file exists but the diff is empty, it means the file is a redundant but in-sync copy.
-        # This can be a WARNING to encourage its removal.
-        if not findings:
-            findings.append(
-                AuditFinding(
-                    check_id=rule_id,
-                    severity=AuditSeverity.WARNING,
-                    message=f"SSOT Redundancy: Legacy file '{yaml_path}' exists. It should be removed as the DB is the SSOT.",
-                    file_path=yaml_path,
                 )
             )
 

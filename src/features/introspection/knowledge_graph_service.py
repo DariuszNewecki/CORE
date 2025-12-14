@@ -30,7 +30,7 @@ from shared.logger import getLogger
 logger = getLogger(__name__)
 
 
-# ID: 2e165ce4-0685-4157-b1da-89fdc2caa5f2
+# ID: b64ba9c9-f55c-4a24-bc2d-d8c2fa04b43e
 class KnowledgeGraphBuilder:
     """
     Scans the source code to build a comprehensive in-memory knowledge graph.
@@ -70,12 +70,12 @@ class KnowledgeGraphBuilder:
         except (FileNotFoundError, yaml.YAMLError):
             return []
 
-    # ID: bd4866df-2036-4de5-ba12-781dd867fbdf
+    # ID: 75c969e0-5c7c-4f58-9a46-62815947d77a
     def build(self) -> dict[str, Any]:
         """
         Executes the full build process for the knowledge graph and returns it.
         """
-        logger.info(f"Building knowledge graph for repository at: {self.root_path}")
+        logger.info("Building knowledge graph for repository at: %s", self.root_path)
         for py_file in self.src_dir.rglob("*.py"):
             self._scan_file(py_file)
         knowledge_graph = {
@@ -89,7 +89,9 @@ class KnowledgeGraphBuilder:
         output_path.parent.mkdir(parents=True, exist_ok=True)
         output_path.write_text(json.dumps(knowledge_graph, indent=2))
         logger.info(
-            f"Knowledge graph artifact with {len(self.symbols)} symbols saved to {output_path}"
+            "Knowledge graph artifact with %s symbols saved to %s",
+            len(self.symbols),
+            output_path,
         )
         return knowledge_graph
 

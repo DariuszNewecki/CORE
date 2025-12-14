@@ -82,7 +82,7 @@ async def _async_fix_docstrings(context: CoreContext, dry_run: bool):
                 patches.sort(key=lambda p: p["line_number"], reverse=True)
                 for patch in patches:
                     indent_space = " " * (patch["indent"] + 4)
-                    docstring = f'{indent_space}"""{patch['docstring']}"""'
+                    docstring = f'{indent_space}"""{patch["docstring"]}"""'
                     lines.insert(patch["line_number"], docstring)
                 file_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
                 logger.info(

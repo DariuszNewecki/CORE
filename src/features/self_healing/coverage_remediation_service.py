@@ -1,4 +1,5 @@
 # src/features/self_healing/coverage_remediation_service.py
+
 """
 Enhanced coverage remediation service with configurable generator selection.
 
@@ -23,7 +24,7 @@ from will.orchestration.cognitive_service import CognitiveService
 logger = getLogger(__name__)
 
 
-# ID: 9aa0a5f2-ca66-41dc-9d54-f7815cea3bbd
+# ID: 32606196-d12a-4480-9add-51b26f30ee22
 async def remediate_coverage_enhanced(
     cognitive_service: CognitiveService,
     auditor_context: AuditorContext,
@@ -46,11 +47,8 @@ async def remediate_coverage_enhanced(
     Returns:
         Remediation results and metrics.
     """
-
-    # --- SINGLE FILE MODE ----------------------------------------------------
     if file_path:
         logger.info("Starting enhanced single-file remediation for %s", file_path)
-
         if use_enhanced:
             service = EnhancedSingleFileRemediationService(
                 cognitive_service=cognitive_service,
@@ -59,7 +57,7 @@ async def remediate_coverage_enhanced(
                 max_complexity=max_complexity,
             )
             logger.info(
-                f"Using EnhancedTestGenerator (max_complexity={max_complexity})"
+                "Using EnhancedTestGenerator (max_complexity=%s)", max_complexity
             )
         else:
             from features.self_healing.single_file_remediation import (
@@ -72,20 +70,14 @@ async def remediate_coverage_enhanced(
                 file_path=file_path,
             )
             logger.info("Using original TestGenerator")
-
         return await service.remediate()
-
-    # --- FULL PROJECT MODE ---------------------------------------------------
     logger.info("Starting full-project remediation (using original implementation)")
     service = FullProjectRemediationService(cognitive_service, auditor_context)
-
     if target_coverage is not None:
         service.config["minimum_threshold"] = target_coverage
-
     return await service.remediate()
 
 
-# ID: 4ad14f63-98b2-4f9e-9e13-6e7e900ad2b1
 async def _remediate_coverage(
     cognitive_service: CognitiveService,
     auditor_context: AuditorContext,

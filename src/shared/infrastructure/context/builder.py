@@ -5,7 +5,6 @@
 from __future__ import annotations
 
 import ast
-import json
 import uuid
 from datetime import UTC, datetime
 from pathlib import Path
@@ -13,6 +12,7 @@ from typing import Any
 
 import yaml
 
+from shared.infrastructure.knowledge.knowledge_service import KnowledgeService
 from shared.logger import getLogger
 
 from .serializers import ContextSerializer
@@ -21,7 +21,6 @@ from .serializers import ContextSerializer
 logger = getLogger(__name__)
 
 
-# --- START OF FINAL FIX: Correctly parse ALL symbols with QUALIFIED NAMES ---
 def _parse_python_file(filepath: str) -> list[dict]:
     """
     Parses a Python file and extracts metadata for ALL functions and classes,
@@ -31,28 +30,27 @@ def _parse_python_file(filepath: str) -> list[dict]:
         with open(filepath, encoding="utf-8") as f:
             source = f.read()
         tree = ast.parse(source, filename=filepath)
-
         symbols = []
 
-        # ID: ee3ca2f7-14eb-4638-912f-9ae5ccd5cca4
+        # ID: 7ac392a5-996c-45e5-ad32-e31ce9911f14
         class ScopeTracker(ast.NodeVisitor):
             def __init__(self):
                 self.stack = []
                 self.symbols = []
 
-            # ID: 3fb44c15-11e2-4e04-8f1e-a2a1a424a5f9
+            # ID: 417ad0a2-1644-4f2b-b24d-15e80f2d89a3
             def visit_ClassDef(self, node):
                 self._add_symbol(node)
                 self.stack.append(node.name)
                 self.generic_visit(node)
                 self.stack.pop()
 
-            # ID: 38330a09-27bd-43fb-80d7-5e7b4aa7b7de
+            # ID: be71d623-a2d1-4f47-bbd8-46c2fff089de
             def visit_FunctionDef(self, node):
                 self._add_symbol(node)
                 self.generic_visit(node)
 
-            # ID: 28b325b5-ac96-4043-a890-829608125fab
+            # ID: 45746cbb-6f2d-406a-a970-c325e1cad78f
             def visit_AsyncFunctionDef(self, node):
                 self._add_symbol(node)
                 self.generic_visit(node)
@@ -62,13 +60,11 @@ def _parse_python_file(filepath: str) -> list[dict]:
                     qualname = f"{'.'.join(self.stack)}.{node.name}"
                 else:
                     qualname = node.name
-
                 signature = ast.get_source_segment(source, node).split("\n")[0]
                 lines = source.splitlines()
                 end_lineno = getattr(node, "end_lineno", node.lineno)
                 code = "\n".join(lines[node.lineno - 1 : end_lineno])
                 docstring = ast.get_docstring(node) or ""
-
                 self.symbols.append(
                     {
                         "name": node.name,
@@ -82,16 +78,12 @@ def _parse_python_file(filepath: str) -> list[dict]:
         visitor = ScopeTracker()
         visitor.visit(tree)
         return visitor.symbols
-
     except Exception as e:
-        logger.error("Failed to parse {filepath}: %s", e)
+        logger.error("Failed to parse %s: %s", filepath, e)
         return []
 
 
-# --- END OF FINAL FIX ---
-
-
-# ID: 67d2b587-1115-41a1-8bfd-6911901a9f32
+# ID: e90e2005-1f52-47e2-a456-46bdd1532a44
 class ContextBuilder:
     def __init__(self, db_provider, vector_provider, ast_provider, config):
         self.db = db_provider
@@ -100,7 +92,8 @@ class ContextBuilder:
         self.config = config or {}
         self.version = "0.2.0"
         self.policy = self._load_policy()
-        self._knowledge_graph = self._load_knowledge_graph()
+        # Knowledge graph will be loaded fresh from DB on each build
+        self._knowledge_graph = {"symbols": {}}
 
     def _load_policy(self) -> dict[str, Any]:
         policy_path = Path(".intent/context/policy.yaml")
@@ -109,31 +102,30 @@ class ContextBuilder:
                 return yaml.safe_load(f)
         return {}
 
-    def _load_knowledge_graph(self) -> dict[str, Any]:
-        """Loads the knowledge graph from its canonical JSON file."""
-        kg_path = Path("knowledge_graph.json")
-        if not kg_path.exists():
-            kg_path = Path("reports/knowledge_graph.json")
-            if not kg_path.exists():
-                logger.warning(
-                    "knowledge_graph.json not found. Graph traversal will be disabled."
-                )
-                return {"symbols": {}}
+    async def _load_knowledge_graph_from_db(self) -> dict[str, Any]:
+        """Loads the knowledge graph from database (SSOT)."""
         try:
-            with open(kg_path, encoding="utf-8") as f:
-                return json.load(f)
-        except (json.JSONDecodeError, OSError) as e:
-            logger.error("Failed to load knowledge_graph.json: %s", e)
+            knowledge_service = KnowledgeService()
+            graph = await knowledge_service.get_graph()
+            logger.info(
+                "Loaded knowledge graph with %s symbols from DB",
+                len(graph.get("symbols", {})),
+            )
+            return graph
+        except Exception as e:
+            logger.error("Failed to load knowledge graph from DB: %s", e)
             return {"symbols": {}}
 
-    # ID: 6565818e-0b0e-4aff-a9b8-069289c7f9a8
+    # ID: be34f105-e983-4c0e-9e20-79603db377a3
     async def build_for_task(self, task_spec: dict[str, Any]) -> dict[str, Any]:
         start_time = datetime.now(UTC)
-        logger.info(f"Building context for task {task_spec.get('task_id')}")
+        logger.info("Building context for task %s", task_spec.get("task_id"))
+
+        # Load fresh knowledge graph from DB (SSOT)
+        self._knowledge_graph = await self._load_knowledge_graph_from_db()
 
         packet_id = str(uuid.uuid4())
         created_at = start_time.isoformat()
-
         scope_spec = task_spec.get("scope", {})
         packet = {
             "header": {
@@ -167,15 +159,11 @@ class ContextBuilder:
                 "packet_hash": "",
             },
         }
-
         context_items = await self._collect_context(packet, task_spec)
         context_items = self._apply_constraints(context_items, packet["constraints"])
-
         for item in context_items:
             item["tokens_est"] = self._estimate_item_tokens(item)
-
         packet["context"] = context_items
-
         duration_ms = int((datetime.now(UTC) - start_time).total_seconds() * 1000)
         packet["provenance"]["build_stats"] = {
             "duration_ms": duration_ms,
@@ -186,9 +174,11 @@ class ContextBuilder:
         packet["provenance"]["cache_key"] = ContextSerializer.compute_cache_key(
             task_spec
         )
-
         logger.info(
-            f"Built packet {packet_id} with {len(context_items)} items in {duration_ms}ms"
+            "Built packet %s with %s items in %sms",
+            packet_id,
+            len(context_items),
+            duration_ms,
         )
         return packet
 
@@ -196,20 +186,14 @@ class ContextBuilder:
         items = []
         scope = packet["scope"]
         max_items = packet["constraints"]["max_items"]
-
-        # 1. Collect Seed Items
         if self.db:
             seed_items = await self.db.get_symbols_for_scope(scope, max_items // 2)
             items.extend(seed_items)
-
-        # 2. Collect Vector Items
         if self.vectors and task_spec.get("summary"):
             vec_items = await self.vectors.search_similar(
                 task_spec["summary"], top_k=max_items // 3
             )
             items.extend(vec_items)
-
-        # 3. Traverse Graph
         traversal_depth = scope.get("traversal_depth", 0)
         if traversal_depth > 0 and self._knowledge_graph.get("symbols") and items:
             logger.info("Traversing knowledge graph to depth %s.", traversal_depth)
@@ -217,16 +201,9 @@ class ContextBuilder:
                 list(items), traversal_depth, max_items - len(items)
             )
             items.extend(related_items)
-
-        # 4. Force Add Target Code (CRITICAL FIX: PREPEND to ensure survival)
-        # We process this last to ensure we have the target, but we insert at 0
         forced_items = await self._force_add_code_item(task_spec)
         if forced_items:
-            # Prepend forced items so they are always the first items in the context
-            # This protects them from being chopped off by max_items limit
             items = forced_items + items
-
-        # 5. Deduplicate
         seen_keys = set()
         unique_items = []
         for item in items:
@@ -234,7 +211,6 @@ class ContextBuilder:
             if key not in seen_keys:
                 seen_keys.add(key)
                 unique_items.append(item)
-
         return unique_items
 
     def _traverse_graph(
@@ -242,20 +218,16 @@ class ContextBuilder:
     ) -> list[dict]:
         if not self._knowledge_graph.get("symbols"):
             return []
-
         all_symbols = self._knowledge_graph["symbols"]
         related_symbol_keys = set()
-
         queue = {
             item.get("metadata", {}).get("symbol_path")
             for item in seed_items
             if item.get("metadata", {}).get("symbol_path")
         }
-
         for _ in range(depth):
             if not queue or len(related_symbol_keys) >= limit:
                 break
-
             next_queue = set()
             for symbol_key in queue:
                 symbol_data = all_symbols.get(symbol_key)
@@ -264,7 +236,6 @@ class ContextBuilder:
                         if callee_name not in related_symbol_keys:
                             related_symbol_keys.add(callee_name)
                             next_queue.add(callee_name)
-
                 for caller_key, caller_data in all_symbols.items():
                     if symbol_key and symbol_key.split("::")[-1] in caller_data.get(
                         "calls", []
@@ -273,31 +244,66 @@ class ContextBuilder:
                             related_symbol_keys.add(caller_key)
                             next_queue.add(caller_key)
             queue = next_queue
-
         related_items = []
         for key in list(related_symbol_keys)[:limit]:
             symbol_data = all_symbols.get(key) or self._find_symbol_by_qualname(key)
             if symbol_data:
                 related_items.append(self._format_symbol_as_context_item(symbol_data))
-
-        logger.info(f"Found {len(related_items)} related symbols via graph traversal.")
+        logger.info("Found %s related symbols via graph traversal.", len(related_items))
         return related_items
 
     def _find_symbol_by_qualname(self, qualname: str) -> dict | None:
         """Finds a symbol in the knowledge graph by its qualified name."""
         for symbol in self._knowledge_graph.get("symbols", {}).values():
-            if symbol.get("qualname") == qualname:
+            symbol_name = symbol.get("name")
+            if symbol_name == qualname:
                 return symbol
         return None
 
     def _format_symbol_as_context_item(self, symbol_data: dict) -> dict:
-        """Formats a symbol dictionary from the knowledge graph into a context item."""
+        """Formats a symbol dictionary from the knowledge graph into a context item.
+
+        The DB view returns:
+        - 'name' (this is the qualname like "ContextCache.get")
+        - 'symbol_path' (like "src/path/file.py::ContextCache.get")
+        - NOT 'qualname' (that's only in the table, not the view)
+        """
+        # symbol_path format: "src/path/file.py::Class.method"
+        symbol_path = symbol_data.get("symbol_path", "")
+        name = symbol_data.get("name", "")  # This is the qualname from the view
+
+        # Extract file path from symbol_path (before the ::)
+        file_path_raw = None
+        if "::" in symbol_path:
+            file_path_raw = symbol_path.split("::")[0]
+
+        content = None
+        signature = str(symbol_data.get("parameters", []))
+
+        if file_path_raw and name:
+            full_path = Path.cwd() / file_path_raw
+            if full_path.exists():
+                try:
+                    symbols = _parse_python_file(str(full_path))
+
+                    for sym in symbols:
+                        # Match against the parsed qualname
+                        if sym.get("qualname") == name or sym["name"] == name:
+                            content = sym["code"]
+                            signature = sym.get("signature", signature)
+                            break
+                except Exception as e:
+                    logger.warning(
+                        "Failed to parse %s for symbol %s: %s", file_path_raw, name, e
+                    )
+
         return {
-            "name": symbol_data.get("qualname"),
-            "path": symbol_data.get("file_path"),
-            "item_type": "symbol",
-            "signature": str(symbol_data.get("parameters", [])),
-            "summary": symbol_data.get("intent") or symbol_data.get("docstring"),
+            "name": name,
+            "path": file_path_raw,
+            "item_type": "code" if content else "symbol",
+            "content": content,
+            "signature": signature,
+            "summary": symbol_data.get("intent") or symbol_data.get("docstring", ""),
             "source": "db_graph_traversal",
         }
 
@@ -308,26 +314,49 @@ class ContextBuilder:
         """
         target_file_str = task_spec.get("target_file")
         target_symbol = task_spec.get("target_symbol")
+
+        logger.info(
+            "DEBUG _force_add_code_item: target_file=%s, target_symbol=%s",
+            target_file_str,
+            target_symbol,
+        )
+
         if not target_file_str or not target_symbol:
+            logger.info("DEBUG: Missing target_file or target_symbol, returning empty")
             return []
 
         full_path = Path.cwd() / target_file_str
+
+        logger.info(
+            "DEBUG: Checking if file exists: %s (exists=%s)",
+            full_path,
+            full_path.exists(),
+        )
+
         if not full_path.exists():
             logger.warning("File not found: %s", full_path)
             return []
 
         logger.info("FORCE-ADDING CODE ITEM for '%s'", target_symbol)
-
         symbols = _parse_python_file(str(full_path))
+
+        logger.info("DEBUG: Parsed %d symbols from file", len(symbols))
+        for i, sym in enumerate(symbols[:5]):  # Show first 5
+            logger.info(
+                "  DEBUG symbol %d: name=%s, qualname=%s",
+                i,
+                sym.get("name"),
+                sym.get("qualname"),
+            )
+
         for sym in symbols:
-            # Check both simple name AND qualified name
             if sym["name"] == target_symbol or sym.get("qualname") == target_symbol:
                 item = {
                     "name": sym["name"],
                     "path": target_file_str,
                     "item_type": "code",
                     "content": sym["code"],
-                    "summary": sym["docstring"][:200],
+                    "summary": sym["docstring"][:200] if sym["docstring"] else "",
                     "source": "builtin_ast",
                     "signature": sym.get("signature", ""),
                 }
@@ -335,18 +364,19 @@ class ContextBuilder:
                 return [item]
 
         logger.warning(
-            "Target symbol '{target_symbol}' not found in %s", target_file_str
+            "Target symbol '%s' not found in %s", target_symbol, target_file_str
+        )
+        logger.info(
+            "DEBUG: Available symbols in file: %s",
+            [s.get("qualname") for s in symbols[:10]],
         )
         return []
 
     def _apply_constraints(self, items: list, constraints: dict) -> list:
         max_items = constraints.get("max_items", 50)
         max_tokens = constraints.get("max_tokens", 100000)
-
-        # Simple truncation
         if len(items) > max_items:
             items = items[:max_items]
-
         total = 0
         filtered = []
         for item in items:
