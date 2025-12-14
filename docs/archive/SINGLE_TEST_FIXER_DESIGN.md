@@ -74,7 +74,7 @@ class SingleTestFixer:
     """
     Fixes individual failing tests using focused LLM prompts.
     """
-    
+
     def __init__(
         self,
         cognitive_service: CognitiveService,
@@ -82,7 +82,7 @@ class SingleTestFixer:
     ):
         self.cognitive = cognitive_service
         self.max_attempts = max_attempts
-    
+
     async def fix_test(
         self,
         test_file: Path,
@@ -92,7 +92,7 @@ class SingleTestFixer:
     ) -> dict:
         """
         Fix a single failing test.
-        
+
         Returns:
             {
                 "status": "fixed" | "unfixable" | "error",
@@ -114,11 +114,11 @@ execution_result = await self.executor.execute_test(...)
 if execution_result.get("status") == "failed":
     # Parse failures
     failures = self._parse_test_failures(execution_result)
-    
+
     # Try to fix each one
     fixer = SingleTestFixer(self.cognitive)
     fixed_count = 0
-    
+
     for failure in failures:
         fix_result = await fixer.fix_test(
             test_file=test_file,
@@ -126,13 +126,13 @@ if execution_result.get("status") == "failed":
             failure_info=failure,
             source_file=module_path,
         )
-        
+
         if fix_result["status"] == "fixed":
             fixed_count += 1
-    
+
     # Re-run tests
     final_result = await self.executor.execute_test(...)
-    
+
     if final_result.get("status") == "success":
         return {
             "status": "success",

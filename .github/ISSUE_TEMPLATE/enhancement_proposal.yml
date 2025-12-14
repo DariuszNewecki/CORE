@@ -60,4 +60,3 @@ body:
     attributes:
       label: Additional Context
       description: "Add any other context, mockups, or references that might be helpful."
---- END OF FILE .github/ISSUE_TEMPLATE/enhancement_proposal.yml ---
