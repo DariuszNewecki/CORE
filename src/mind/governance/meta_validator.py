@@ -26,6 +26,7 @@ logger = getLogger(__name__)
 
 
 @dataclass
+# ID: 4b2799ff-a6fe-43b4-9993-74eac90423fc
 class ValidationError:
     """A single validation error or warning."""
 
@@ -37,6 +38,7 @@ class ValidationError:
 
 
 @dataclass
+# ID: 27ecb7d7-df65-414b-a55a-9b7c1b5afad2
 class ValidationReport:
     """Complete validation report for .intent documents."""
 
@@ -48,6 +50,7 @@ class ValidationReport:
     documents_invalid: int
 
 
+# ID: db00c12f-fcf1-44cf-8a42-a806404216fb
 class MetaValidator:
     """
     Validates .intent documents against GLOBAL-DOCUMENT-META-SCHEMA.
@@ -118,7 +121,7 @@ class MetaValidator:
 
             # Check exclusions
             if any(str(rel_path).startswith(ex) for ex in excludes):
-                logger.debug(f"Skipping excluded: {rel_path}")
+                logger.debug("Skipping excluded: %s", rel_path)
                 continue
 
             documents_checked += 1
@@ -350,7 +353,7 @@ class MetaValidator:
                     self.schema_cache[schema_id] = schema
                     return schema
             except Exception as e:
-                logger.warning(f"Failed to load schema {schema_file}: {e}")
+                logger.warning("Failed to load schema {schema_file}: %s", e)
                 continue
 
         return None
@@ -384,7 +387,7 @@ class MetaValidator:
         # Validate against JSON schema
         try:
             json_validate(instance=doc, schema=schema)
-            logger.debug(f"Document {doc_name} validated against {schema_id}")
+            logger.debug("Document {doc_name} validated against %s", schema_id)
         except JsonSchemaValidationError as e:
             # Extract meaningful error info
             error_path = ".".join(str(p) for p in e.path) if e.path else "root"

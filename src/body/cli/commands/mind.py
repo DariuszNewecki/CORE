@@ -109,7 +109,7 @@ def validate_meta_command(ctx: typer.Context) -> None:
         logger.error(f"\n❌ Errors ({len(report.errors)}):")
         for error in report.errors:
             field_str = f" [{error.field}]" if error.field else ""
-            logger.error(f"  {error.document}{field_str}: {error.message}")
+            logger.error("  {error.document}%s: {error.message}", field_str)
         raise typer.Exit(1)
 
     logger.info("\n✅ All .intent documents valid")

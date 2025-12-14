@@ -1,0 +1,415 @@
+# .intent/charter/constitution/PATTERN-STRUCTURE.yaml
+#
+# Pattern Document Structure Standard
+#
+# Defines the specific structure and requirements for pattern documents
+# that establish reusable architectural and behavioral templates.
+#
+# Patterns differ from policies: they are descriptive templates that
+# show "how to do something well" rather than prescriptive rules that
+# enforce "how it must be done."
+
+id: pattern_structure_standard
+version: "2.0.0"
+title: "Pattern Document Structure Standard"
+type: "constitutional_standard"
+status: active
+
+owners:
+  accountable: "Architecture Lead"
+  responsible:
+    - "Core Maintainer"
+
+review:
+  frequency: "12 months"
+
+schema_id: "pattern.structure"
+
+# ============================================================================
+# PURPOSE & SCOPE
+# ============================================================================
+
+purpose: >
+  Establishes the canonical structure for pattern documents that define
+  reusable architectural templates, behavioral patterns, and implementation
+  guidelines.
+
+  Patterns are descriptive documents that capture proven solutions to
+  recurring problems. They guide implementation but are less prescriptive
+  than policies.
+
+scope:
+  applies_to:
+    - ".intent/charter/standards/architecture/**/*.yaml"
+    - "Any document of type: pattern_*"
+
+  examples:
+    - "agent_patterns.yaml - AI agent design patterns"
+    - "workflow_patterns.yaml - Common workflow structures"
+    - "service_patterns.yaml - Service architecture templates"
+    - "command_patterns.yaml - CLI command structures"
+
+# ============================================================================
+# PATTERN VS POLICY
+# ============================================================================
+
+pattern_vs_policy:
+  description: "Key differences between patterns and policies"
+
+  patterns:
+    nature: "Descriptive - templates and examples"
+    purpose: "Show how to implement well"
+    tone: "Guidance and recommendations"
+    enforcement: "Optional - followed by choice"
+    examples:
+      - "Agent should follow request → plan → execute flow"
+      - "Services can use dependency injection for flexibility"
+      - "Commands may validate inputs before execution"
+
+  policies:
+    nature: "Prescriptive - rules and requirements"
+    purpose: "Enforce what must be done"
+    tone: "Requirements and constraints"
+    enforcement: "Mandatory - checked by auditors"
+    examples:
+      - "Agents MUST NOT write to .intent/charter/**"
+      - "Services MUST receive dependencies through constructor"
+      - "Commands MUST validate dangerous operations"
+
+  overlap:
+    description: "Patterns may include enforceable rules"
+    guidance: >
+      When a pattern includes rules that MUST be followed, those rules
+      should be extracted into the rules array and enforced like policies.
+
+      Use patterns for templates, use rules for enforcement.
+
+# ============================================================================
+# PATTERN DOCUMENT STRUCTURE
+# ============================================================================
+
+canonical_structure:
+  description: >
+    Pattern documents follow a similar header to policies but focus on
+    templates, examples, and implementation guidance.
+
+  required_sections:
+    header:
+      description: "Standard document header (per GLOBAL-DOCUMENT-META-SCHEMA)"
+      required_fields:
+        - id
+        - version
+        - title
+        - type
+        - status
+        - owners
+        - review
+        - schema_id
+
+      notes:
+        - "type SHOULD start with 'pattern_' (e.g. pattern_agent, pattern_workflow)"
+        - "schema_id MUST be 'rules.structure' if document contains enforceable rules"
+        - "schema_id MAY be 'pattern.structure' if purely descriptive"
+
+    intent:
+      type: string
+      description: "What problem does this pattern solve?"
+      max_length: 500
+      required: true
+      example: >
+        Establishes consistent agent behavior patterns to ensure predictable,
+        auditable, and safe autonomous operations.
+
+    context:
+      type: string
+      description: "When should this pattern be used?"
+      max_length: 1000
+      required: true
+      example: >
+        Use when implementing AI agents that need to balance autonomy
+        with safety constraints and human oversight.
+
+    patterns:
+      type: array
+      description: "The actual pattern definitions"
+      required: true
+
+      item_schema:
+        required_fields:
+          - id
+          - name
+          - description
+          - structure
+
+        optional_fields:
+          - applicability
+          - examples
+          - anti_patterns
+          - related_patterns
+          - implementation_notes
+
+  optional_sections:
+    rules:
+      type: array
+      description: "Enforceable rules extracted from patterns (follows RULES-STRUCTURE.yaml)"
+      required: false
+
+      when_to_include:
+        - "Pattern includes MUST/SHALL requirements"
+        - "Pattern violations would compromise system integrity"
+        - "Pattern defines safety-critical constraints"
+
+      example: |
+        # agent_patterns.yaml might include:
+        rules:
+          - id: agent.must_use_registry
+            category: agent_governance
+            statement: "Agents MUST route all tool calls through CLI registry"
+            enforcement: error
+
+    consequences:
+      type: object
+      description: "Trade-offs and implications of using this pattern"
+      fields:
+        benefits:
+          type: array
+          items: string
+        drawbacks:
+          type: array
+          items: string
+        performance_impact: string
+
+    related_documents:
+      type: object
+      description: "Links to related policies, patterns, or schemas"
+
+# ============================================================================
+# PATTERN CATEGORIES
+# ============================================================================
+
+pattern_categories:
+  architectural:
+    description: "High-level system structure patterns"
+    examples:
+      - "service_patterns.yaml - Service design templates"
+      - "layer_contracts.yaml - Layer separation patterns"
+      - "dependency_injection.yaml - DI patterns"
+
+    common_pattern_types:
+      - "Service architecture"
+      - "Module organization"
+      - "Dependency management"
+      - "Interface design"
+
+  behavioral:
+    description: "Runtime behavior and interaction patterns"
+    examples:
+      - "agent_patterns.yaml - Agent behavior templates"
+      - "workflow_patterns.yaml - Workflow structures"
+      - "command_patterns.yaml - CLI command patterns"
+
+    common_pattern_types:
+      - "Request/response flows"
+      - "State management"
+      - "Error handling"
+      - "Event processing"
+
+  implementation:
+    description: "Code-level implementation patterns"
+    examples:
+      - "atomic_actions.yaml - Atomic operation patterns"
+      - "decorator_governance.yaml - Decorator usage"
+
+    common_pattern_types:
+      - "Function composition"
+      - "Error handling"
+      - "Resource management"
+      - "Concurrency patterns"
+
+# ============================================================================
+# EXAMPLES
+# ============================================================================
+
+examples:
+  descriptive_pattern:
+    description: "Pattern without enforceable rules (purely guidance)"
+    content: |
+      id: workflow_basic_pattern
+      version: "1.0.0"
+      title: "Basic Workflow Pattern"
+      type: "pattern_workflow"
+      status: active
+
+      owners:
+        accountable: "Architecture Lead"
+
+      review:
+        frequency: "12 months"
+
+      schema_id: "pattern.structure"
+
+      intent: >
+        Provides a basic template for implementing workflows with
+        clear phases and error handling.
+
+      context: >
+        Use when building multi-step processes that need consistent
+        structure and error recovery.
+
+      patterns:
+        - id: basic_workflow
+          name: "Three-Phase Workflow"
+          description: >
+            Separate workflows into prepare, execute, and finalize phases
+            with explicit error boundaries.
+
+          structure: |
+            def workflow():
+                try:
+                    # Phase 1: Prepare
+                    context = prepare()
+
+                    # Phase 2: Execute
+                    result = execute(context)
+
+                    # Phase 3: Finalize
+                    return finalize(result)
+
+                except Exception as e:
+                    cleanup()
+                    raise
+
+          applicability:
+            - "Multi-step operations"
+            - "Operations requiring cleanup"
+            - "Workflows with multiple failure points"
+
+          anti_patterns:
+            - "Mixing phases without clear boundaries"
+            - "Skipping cleanup on errors"
+            - "Implicit state management"
+
+      consequences:
+        benefits:
+          - "Clear phase separation"
+          - "Explicit error handling"
+          - "Easy to test each phase"
+
+        drawbacks:
+          - "More boilerplate than inline approach"
+          - "May be overkill for simple operations"
+
+  pattern_with_rules:
+    description: "Pattern that includes enforceable requirements"
+    content: |
+      id: agent_behavior_patterns
+      version: "2.0.0"
+      title: "Agent Behavior Patterns"
+      type: "pattern_agent"
+      status: active
+
+      owners:
+        accountable: "AI Safety Lead"
+
+      review:
+        frequency: "6 months"
+
+      schema_id: "rules.structure"  # Has enforceable rules!
+
+      intent: >
+        Defines safe and predictable behavior patterns for autonomous agents.
+
+      context: >
+        Use when implementing agents that need to balance autonomy with
+        safety and human oversight.
+
+      patterns:
+        - id: request_plan_execute
+          name: "Request-Plan-Execute Pattern"
+          description: >
+            Agent receives request, creates plan, gets approval, then executes.
+
+          structure: |
+            async def agent_workflow(request):
+                # 1. Understand request
+                intent = analyze_request(request)
+
+                # 2. Create plan
+                plan = create_plan(intent)
+
+                # 3. Get approval (if needed)
+                if requires_approval(plan):
+                    await get_human_approval(plan)
+
+                # 4. Execute
+                result = await execute_plan(plan)
+
+                # 5. Report
+                return create_report(result)
+
+          applicability:
+            - "All autonomous agent implementations"
+            - "Operations affecting system state"
+            - "Tasks requiring human oversight"
+
+      # Enforceable rules extracted from patterns
+      rules:
+        - id: agent.must_create_plan
+          category: agent_governance
+          statement: >
+            Agents MUST create an explicit plan before executing
+            any non-trivial operation.
+          enforcement: error
+          rationale: >
+            Explicit plans enable human review and audit trails.
+
+        - id: agent.must_get_approval
+          category: agent_governance
+          statement: >
+            Agents MUST obtain approval for elevated-risk operations
+            before execution.
+          enforcement: error
+          scope: ["elevated_risk", "critical_risk"]
+
+# ============================================================================
+# BEST PRACTICES
+# ============================================================================
+
+best_practices:
+  pattern_design:
+    - "Focus on one problem per pattern"
+    - "Provide concrete code examples"
+    - "Explain when NOT to use the pattern"
+    - "Link to related patterns"
+    - "Show both structure and implementation"
+
+  extracting_rules:
+    - "If pattern says MUST/SHALL → extract to rules array"
+    - "If pattern says SHOULD/MAY → keep in pattern description"
+    - "Safety constraints → always extract to rules"
+    - "Performance tips → keep in consequences"
+
+  documentation:
+    - "Use real code examples, not pseudocode"
+    - "Explain the 'why' not just the 'how'"
+    - "Document trade-offs explicitly"
+    - "Keep examples focused and minimal"
+
+# ============================================================================
+# MIGRATION NOTES
+# ============================================================================
+
+migration_notes:
+  v1_to_v2:
+    description: "Migrating pattern documents to v2.0 structure"
+
+    key_changes:
+      - "Add schema_id field"
+      - "Extract MUST/SHALL requirements to rules array"
+      - "Restructure pattern definitions to use consistent schema"
+      - "Add consequences section for trade-offs"
+
+    backward_compatibility:
+      description: >
+        Patterns without rules array are valid in v2.x.
+        Only patterns with enforceable requirements need rules array.
