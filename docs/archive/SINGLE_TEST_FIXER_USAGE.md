@@ -30,7 +30,7 @@ for failure in failures:
         failure_info=failure,
         source_file=Path("src/shared/logger.py"),
     )
-    
+
     if result["status"] == "fixed":
         print(f"✓ Fixed {failure['test_name']} in {result['attempts']} attempts")
     else:
@@ -58,7 +58,7 @@ Identifying failures: 4 tests failed
 Fixing test 1: test_get_logger_with_different_names
   → Attempt 1: Success! ✓
   ↓
-Fixing test 2: test_reconfigure_log_level_case_insensitive  
+Fixing test 2: test_reconfigure_log_level_case_insensitive
   → Attempt 1: Success! ✓
   ↓
 Fixing test 3: test_auto_configure_called_on_import

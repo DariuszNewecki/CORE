@@ -102,7 +102,7 @@ CREATE TABLE IF NOT EXISTS core.capabilities (
 
     -- NOTE: 'entry_points' array removed in v2.2 to prevent split-brain.
     -- Use core.symbol_capability_links instead.
-    
+
     dependencies jsonb DEFAULT '[]'::jsonb,  -- Required capability names
     test_coverage numeric(5,2),              -- 0-100%
 
@@ -790,10 +790,10 @@ DO $$
 BEGIN
     -- Check if the legacy 'entry_points' column still exists
     IF EXISTS (
-        SELECT 1 
-        FROM information_schema.columns 
-        WHERE table_schema = 'core' 
-          AND table_name = 'capabilities' 
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_schema = 'core'
+          AND table_name = 'capabilities'
           AND column_name = 'entry_points'
     ) THEN
         RAISE NOTICE 'Legacy entry_points column found. Migrating data...';
@@ -816,7 +816,7 @@ BEGIN
 
         -- 2. Drop the column to enforce 3rd Normal Form
         ALTER TABLE core.capabilities DROP COLUMN entry_points;
-        
+
         RAISE NOTICE 'Migration complete. Legacy column dropped.';
     END IF;
 END$$;
