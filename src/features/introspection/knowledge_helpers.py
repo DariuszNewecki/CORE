@@ -18,7 +18,7 @@ from shared.logger import getLogger
 logger = getLogger(__name__)
 
 
-# ID: 82ad3bee-9b28-43aa-9f38-142e3af7ec47
+# ID: 1068de52-6bbb-43b9-a22c-cd2e6dc2a833
 def extract_source_code(repo_root: Path, symbol_data: dict[str, Any]) -> str | None:
     """
     Extracts the source code for a symbol using its database record.
@@ -35,7 +35,9 @@ def extract_source_code(repo_root: Path, symbol_data: dict[str, Any]) -> str | N
     file_path = repo_root / file_system_path_str
     if not file_path.exists():
         logger.warning(
-            f"Source file not found for symbol {symbol_path_str} at expected path {file_path}"
+            "Source file not found for symbol %s at expected path %s",
+            symbol_path_str,
+            file_path,
         )
         return None
     symbol_name = symbol_path_str.split("::")[-1]
@@ -49,13 +51,13 @@ def extract_source_code(repo_root: Path, symbol_data: dict[str, Any]) -> str | N
                     return ast.get_source_segment(content, node)
     except Exception as e:
         logger.warning(
-            f"AST parsing failed for {file_path} while seeking {symbol_name}: {e}"
+            "AST parsing failed for %s while seeking %s: %s", file_path, symbol_name, e
         )
         return None
     return None
 
 
-# ID: 368f80e8-e843-48bc-a56e-871b94bc5f5e
+# ID: 0bfeee2b-fe81-4abe-bb51-f2b0b6a74af9
 def log_failure(failure_log_path: Path, key: str, message: str, category: str) -> None:
     """Append a failure line to the given log file path. Ensures parent exists."""
     failure_log_path.parent.mkdir(parents=True, exist_ok=True)

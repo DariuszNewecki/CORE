@@ -33,7 +33,7 @@ def _extract_json_from_response(text: str) -> Any:
     return json.loads(text)
 
 
-# ID: 4ff4866f-edc9-4b89-b789-c03f6123454d
+# ID: d3bdf128-7f90-401d-aab8-3f985fd70fb8
 async def scaffold_new_application(
     context: CoreContext, project_name: str, goal: str, initialize_git: bool = False
 ) -> tuple[bool, str]:
@@ -53,7 +53,7 @@ async def scaffold_new_application(
         file_structure = _extract_json_from_response(response_text)
         if not isinstance(file_structure, dict):
             raise ValueError("LLM did not return a valid JSON object of files.")
-        logger.info(f"   -> LLM planned a structure with {len(file_structure)} files.")
+        logger.info("   -> LLM planned a structure with %s files.", len(file_structure))
         scaffolder = Scaffolder(project_name=project_name)
         scaffolder.scaffold_base_structure()
         for rel_path, content in file_structure.items():
@@ -72,7 +72,8 @@ async def scaffold_new_application(
         if initialize_git:
             git_service = context.git_service
             logger.info(
-                f"   -> Initializing new Git repository in {scaffolder.project_root}..."
+                "   -> Initializing new Git repository in %s...",
+                scaffolder.project_root,
             )
             git_service.init(scaffolder.project_root)
             scoped_git_service = context.git_service.__class__(scaffolder.project_root)
@@ -82,12 +83,12 @@ async def scaffold_new_application(
             )
         return (True, f"✅ Successfully scaffolded '{project_name}'.")
     except Exception as e:
-        logger.error(f"❌ Scaffolding failed: {e}", exc_info=True)
+        logger.error("❌ Scaffolding failed: %s", e, exc_info=True)
         return (False, f"Scaffolding failed: {str(e)}")
 
 
 @agent_app.command("scaffold")
-# ID: 4c97b801-b489-4d9d-8a60-9f40da943929
+# ID: 92a60ec4-ea5d-41b9-a36d-9687f3faaeda
 async def agent_scaffold(
     ctx: typer.Context,
     name: str = typer.Argument(..., help="The directory name for the new application."),

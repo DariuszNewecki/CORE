@@ -23,7 +23,7 @@ from shared.models import CapabilityMeta
 logger = getLogger(__name__)
 
 
-# ID: 7ab95b32-3d81-4094-8b7f-6a4386a68bb7
+# ID: a3e2c0e1-ab3a-4384-ad7d-e65025a70789
 class CapabilityRegistry:
     """
     Holds the canonical capability keys and alias mapping.
@@ -35,7 +35,7 @@ class CapabilityRegistry:
         self.canonical: set[str] = set(canonical)
         self.aliases: dict[str, str] = dict(aliases)
 
-    # ID: c04bc1da-dc61-47e2-ab72-ca2fe4d7b772
+    # ID: 8910cd7d-01b5-4bf4-87ff-b37733a82532
     def resolve(self, tag: str) -> str | None:
         """
         Return canonical capability if `tag` is known, otherwise None.
@@ -105,7 +105,7 @@ def _detect_alias_cycles(aliases: dict[str, str]) -> list[list[str]]:
     stack: set[str] = set()
     cycles: list[list[str]] = []
 
-    # ID: 9eda4fea-f45e-486b-bec5-dc28c8231907
+    # ID: bf3dc676-a603-4087-a7a3-788bcfbd9a1c
     def dfs(node: str, path: list[str]):
         visited.add(node)
         stack.add(node)
@@ -125,7 +125,7 @@ def _detect_alias_cycles(aliases: dict[str, str]) -> list[list[str]]:
     return cycles
 
 
-# ID: 00b0e51d-5808-4525-84c1-60027d5efc12
+# ID: d6bd862e-8278-4967-bf95-e83bdd5ad576
 def load_and_validate_capabilities(intent_dir: Path) -> CapabilityRegistry:
     """
     Loads and validates all canonical capabilities and aliases.
@@ -155,7 +155,7 @@ def load_and_validate_capabilities(intent_dir: Path) -> CapabilityRegistry:
     return CapabilityRegistry(canonical=canonical_tags, aliases=alias_map)
 
 
-# ID: 4902698e-fea7-436b-bd3b-289ab279dd15
+# ID: bbfb9527-fa8e-4b68-b5c4-b38c94133d1e
 def validate_agent_roles(agent_roles: dict, registry: CapabilityRegistry) -> None:
     """Validates agent role configurations against the capability registry."""
     errors: list[str] = []
@@ -177,7 +177,7 @@ def validate_agent_roles(agent_roles: dict, registry: CapabilityRegistry) -> Non
         )
 
 
-# ID: ccb0e95b-03e9-447b-931f-b6a665355392
+# ID: 2b7449f9-dbac-4f09-9948-2be669b42fec
 def collect_code_capabilities(
     root: Path, include_globs: list[str], exclude_globs: list[str], require_kgb: bool
 ) -> dict[str, CapabilityMeta]:
@@ -193,12 +193,12 @@ def collect_code_capabilities(
         return collect_from_source_scan(root, include_globs, exclude_globs)
     except Exception as e:
         logger.warning(
-            f"Capability discovery failed: {e}. Returning empty.", exc_info=True
+            "Capability discovery failed: %s. Returning empty.", e, exc_info=True
         )
         return {}
 
 
-# ID: 8d2e4c1a-5b3f-4a9c-9d8e-7f6a5b4c3d2e
+# ID: ba659030-b38a-4be3-ae9c-fce21f68cd59
 async def sync_capabilities_to_db(
     db: AsyncSession, intent_dir: Path
 ) -> tuple[int, list[str]]:
@@ -210,40 +210,24 @@ async def sync_capabilities_to_db(
         Tuple[int, list[str]]: (count of upserted capabilities, list of errors)
     """
     logger.info("Synchronizing capabilities from constitution to database...")
-
     try:
-        # Reuse the existing validation logic
         registry = load_and_validate_capabilities(intent_dir)
     except FileNotFoundError:
         msg = "No capability tags directory found. Skipping sync."
         logger.warning(msg)
-        return 0, [msg]
+        return (0, [msg])
     except ValueError as e:
         msg = f"Constitution Error: {e}"
         logger.error(msg)
-        return 0, [msg]
-
+        return (0, [msg])
     capabilities_to_sync = list(registry.canonical)
     upserted_count = 0
-
     for cap_name in capabilities_to_sync:
-        # Infer domain from name (e.g. "security.crypto.hashing" -> "security")
         domain = cap_name.split(".")[0] if "." in cap_name else "general"
-        # Generate a readable title from the key
         title = cap_name.replace(".", " ").replace("_", " ").title()
-
-        # Upsert into DB
         stmt = text(
-            """
-            INSERT INTO core.capabilities (name, domain, title, owner, status, tags, updated_at)
-            VALUES (:name, :domain, :title, 'constitution', 'Active', :tags, NOW())
-            ON CONFLICT (domain, name) DO UPDATE SET
-                status = 'Active',
-                updated_at = NOW()
-            RETURNING id
-        """
+            "\n            INSERT INTO core.capabilities (name, domain, title, owner, status, tags, updated_at)\n            VALUES (:name, :domain, :title, 'constitution', 'Active', :tags, NOW())\n            ON CONFLICT (domain, name) DO UPDATE SET\n                status = 'Active',\n                updated_at = NOW()\n            RETURNING id\n        "
         )
-
         await db.execute(
             stmt,
             {
@@ -254,7 +238,6 @@ async def sync_capabilities_to_db(
             },
         )
         upserted_count += 1
-
     await db.commit()
     logger.info("Synced %s capabilities to DB", upserted_count)
-    return upserted_count, []
+    return (upserted_count, [])

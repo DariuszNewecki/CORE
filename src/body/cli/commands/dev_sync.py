@@ -24,7 +24,7 @@ from body.cli.logic.duplicates import inspect_duplicates_async
 from body.cli.workflows.dev_sync_reporter import DevSyncReporter
 from features.introspection.sync_service import run_sync_with_db
 from features.introspection.vectorization_service import run_vectorize
-from features.project_lifecycle.definition_service import _define_new_symbols
+from features.project_lifecycle.definition_service import define_symbols
 from features.self_healing.code_style_service import format_code
 from features.self_healing.docstring_service import fix_docstrings
 from features.self_healing.sync_vectors import main_async as sync_vectors_async
@@ -346,7 +346,7 @@ async def dev_sync_command(
                     core_context.cognitive_service
                 )
 
-            await _define_new_symbols(ctx_service)
+            await define_symbols(ctx_service)
 
             reporter.record_result(
                 ActionResult(

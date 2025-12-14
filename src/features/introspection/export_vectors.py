@@ -32,7 +32,6 @@ async def _async_export(qdrant_service: QdrantService, output_path: Path):
             logger.info("No vectors found in the database to export.")
             return
         count = 0
-
         with output_path.open("w", encoding="utf-8") as f:
             for record in all_vectors:
                 vector_data = record.vector
@@ -45,14 +44,13 @@ async def _async_export(qdrant_service: QdrantService, output_path: Path):
                 }
                 f.write(json.dumps(line_data) + "\n")
                 count += 1
-
         logger.info("Successfully exported %s vectors.", count)
     except Exception as e:
-        logger.error(f"Failed to export vectors: {e}", exc_info=True)
+        logger.error("Failed to export vectors: %s", e, exc_info=True)
         raise typer.Exit(code=1)
 
 
-# ID: fb6e1b5f-5f45-49ae-8cf8-e4645c9c0065
+# ID: c94d2b2e-fde1-4ee8-bfe7-608e5d9bd18a
 def export_vectors(
     ctx: typer.Context,
     output: Path = typer.Option(

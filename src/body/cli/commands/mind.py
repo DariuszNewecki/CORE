@@ -1,4 +1,5 @@
 # src/body/cli/commands/mind.py
+
 """
 Registers the 'mind' command group for managing the Working Mind's SSOT.
 Refactored to use the Constitutional CLI Framework (@core_command).
@@ -22,7 +23,7 @@ mind_app = typer.Typer(
     help="Export the database to canonical YAML files in .intent/mind_export/.",
 )
 @core_command(dangerous=False, requires_context=False)
-# ID: 62323a98-f086-4657-ab80-8a90f77ec944
+# ID: 3a7abdf7-070e-4eb7-9f38-e7bc5d9e5af1
 async def snapshot_command(
     ctx: typer.Context,
     env: str | None = typer.Option(
@@ -40,7 +41,7 @@ async def snapshot_command(
     "diff", help="Compare the live database with the exported YAML files."
 )
 @core_command(dangerous=False, requires_context=False)
-# ID: b49ec83d-b3a8-4337-8ce1-816df68b2e5e
+# ID: 8608caa2-70a3-4859-85d6-8ea28d0f70f6
 async def diff_command(
     ctx: typer.Context,
     as_json: bool = typer.Option(
@@ -55,7 +56,7 @@ async def diff_command(
     "import", help="Import the exported YAML files into the database (idempotent)."
 )
 @core_command(dangerous=True, confirmation=True)
-# ID: c38fd5db-a945-47f6-bff2-f1ffee0ed6bd
+# ID: f893a6e2-05c6-40a2-ae3c-50e8c032b8ef
 async def import_command(
     ctx: typer.Context,
     write: bool = typer.Option(
@@ -70,7 +71,7 @@ async def import_command(
     "verify", help="Recomputes digests for exported files and fails on mismatch."
 )
 @core_command(dangerous=False, requires_context=False)
-# ID: f24f0d57-32ce-41b7-a0d4-d1d563054f94
+# ID: 0cf9ab1e-4a92-482c-b92e-7e74c319cbeb
 def verify_command(ctx: typer.Context) -> None:
     """CLI wrapper for the verification logic."""
     if not run_verify():
@@ -82,34 +83,28 @@ def verify_command(ctx: typer.Context) -> None:
     help="Validate all .intent documents against GLOBAL-DOCUMENT-META-SCHEMA.",
 )
 @core_command(dangerous=False, requires_context=False)
-# ID: 78901abc-def2-3456-7890-abcdef234567
+# ID: eeca852a-b1d6-44c9-bb4f-5cadcd1307a9
 def validate_meta_command(ctx: typer.Context) -> None:
     """Validate .intent documents against META-SCHEMA."""
     from mind.governance.meta_validator import MetaValidator
     from shared.logger import getLogger
 
     logger = getLogger(__name__)
-
     logger.info("Validating .intent documents against META-SCHEMA...")
-
     validator = MetaValidator()
     report = validator.validate_all_documents()
-
     logger.info("\n📊 Validation Report:")
-    logger.info(f"  Documents checked: {report.documents_checked}")
-    logger.info(f"  Valid: {report.documents_valid}")
-    logger.info(f"  Invalid: {report.documents_invalid}")
-
+    logger.info("  Documents checked: %s", report.documents_checked)
+    logger.info("  Valid: %s", report.documents_valid)
+    logger.info("  Invalid: %s", report.documents_invalid)
     if report.warnings:
-        logger.warning(f"\n⚠️  Warnings ({len(report.warnings)}):")
+        logger.warning("\n⚠️  Warnings (%s):", len(report.warnings))
         for warning in report.warnings:
-            logger.warning(f"  {warning.document}: {warning.message}")
-
+            logger.warning("  %s: %s", warning.document, warning.message)
     if report.errors:
-        logger.error(f"\n❌ Errors ({len(report.errors)}):")
+        logger.error("\n❌ Errors (%s):", len(report.errors))
         for error in report.errors:
             field_str = f" [{error.field}]" if error.field else ""
             logger.error("  {error.document}%s: {error.message}", field_str)
         raise typer.Exit(1)
-
     logger.info("\n✅ All .intent documents valid")

@@ -153,9 +153,7 @@ def read_text_head(path: Path, max_bytes: int) -> bytes:
     trailer = b""
     if size > len(data):
         trailer = (
-            f"\n[... TRUNCATED: kept first {len(data)} bytes of {size} ...]\n".encode(
-                "utf-8"
-            )
+            f"\n[... TRUNCATED: kept first {len(data)} bytes of {size} ...]\n".encode()
         )
     return data + trailer
 
@@ -244,9 +242,9 @@ def write_chunks(outdir: Path, entries, max_chunk_bytes: int):
 
     for e in entries:
         block = (
-            f"--- START OF FILE {e['path']} ---\n".encode("utf-8")
+            f"--- START OF FILE {e['path']} ---\n".encode()
             + e["bytes"]
-            + f"\n--- END OF FILE {e['path']} ---\n\n".encode("utf-8")
+            + f"\n--- END OF FILE {e['path']} ---\n\n".encode()
         )
         if len(current) + len(block) > max_chunk_bytes and current:
             flush()
@@ -419,8 +417,8 @@ def main():
         )
         for c in chunk_paths:
             print(f"  - {c}")
-        print(f"Manifest: {outdir/'index.json'}")
-        print(f"Summary : {outdir/'summary.txt'}")
+        print(f"Manifest: {outdir / 'index.json'}")
+        print(f"Summary : {outdir / 'summary.txt'}")
 
 
 if __name__ == "__main__":

@@ -45,8 +45,7 @@ from .helpers import (
 logger = getLogger(__name__)
 
 
-# ID: TBD (will be assigned during dev-sync)
-# ID: c63972c6-5e90-41a8-8f48-1e603617d025
+# ID: a5e19b5b-cb22-43a4-8c76-6d708922408b
 class ConversationalAgent:
     """
     Orchestrates conversational interaction between user and CORE.
@@ -56,9 +55,7 @@ class ConversationalAgent:
     """
 
     def __init__(
-        self,
-        context_builder: ContextBuilder,
-        cognitive_service: CognitiveService,
+        self, context_builder: ContextBuilder, cognitive_service: CognitiveService
     ):
         """
         Initialize conversational agent.
@@ -69,11 +66,9 @@ class ConversationalAgent:
         """
         self.context_builder = context_builder
         self.cognitive_service = cognitive_service
-
         logger.info("ConversationalAgent initialized (Phase 1: read-only)")
 
-    # ID: TBD
-    # ID: 345f2c69-4453-4181-9d77-5fd1c6dfd6e5
+    # ID: f5917f41-6465-4e8e-9a4e-0eb4005e7f5f
     async def process_message(self, user_message: str) -> str:
         """
         Process a user message and return a natural language response.
@@ -91,37 +86,20 @@ class ConversationalAgent:
             >>> logger.info(response)
             ContextBuilder is responsible for extracting minimal context packages...
         """
-        logger.info(f"Processing user message: {user_message[:100]}...")
-
+        logger.info("Processing user message: %s...", user_message[:100])
         try:
-            # Step 1: Build a task spec for context extraction
             task_spec = self._create_task_spec(user_message)
-
-            # Step 2: Extract minimal context using ContextBuilder
             logger.info("Extracting context package...")
             context_package = await self.context_builder.build_for_task(task_spec)
-
-            # Step 3: Build prompt for LLM
             prompt = self._build_llm_prompt(user_message, context_package)
-
-            # Step 4: Send to LLM via CognitiveService
             logger.info("Sending to LLM for analysis...")
-
-            # Get an LLM client for conversational tasks
-            # Use "Planner" role for now - it's general purpose reasoning
             client = await self.cognitive_service.aget_client_for_role("Planner")
-
-            # Make async request
             llm_response = await client.make_request_async(prompt)
-
-            # Step 5: Return response (Phase 1: no parsing, just pass through)
             return llm_response.strip()
-
         except Exception as e:
-            logger.error(f"Failed to process message: {e}", exc_info=True)
+            logger.error("Failed to process message: %s", e, exc_info=True)
             return f"❌ Error processing your message: {str(e)}"
 
-    # ID: TBD
     def _create_task_spec(self, user_message: str) -> dict[str, Any]:
         """
         Convert user message into a ContextBuilder task specification.
@@ -137,7 +115,6 @@ class ConversationalAgent:
         """
         return _create_task_spec(user_message, self._extract_keywords)
 
-    # ID: TBD
     def _extract_keywords(self, message: str) -> list[str]:
         """
         Extract potential symbol names or file paths from user message.
@@ -153,11 +130,8 @@ class ConversationalAgent:
         """
         return _extract_keywords(message)
 
-    # ID: TBD
     def _build_llm_prompt(
-        self,
-        user_message: str,
-        context_package: dict[str, Any],
+        self, user_message: str, context_package: dict[str, Any]
     ) -> str:
         """
         Build the prompt to send to the LLM.
@@ -179,7 +153,6 @@ class ConversationalAgent:
             user_message, context_package, self._format_context_items
         )
 
-    # ID: TBD
     def _format_context_items(self, items: list[dict[str, Any]]) -> str:
         """
         Format context items into readable text for LLM.

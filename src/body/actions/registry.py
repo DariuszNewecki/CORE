@@ -26,7 +26,7 @@ from .validation_actions import ValidateCodeHandler
 logger = getLogger(__name__)
 
 
-# ID: 9b377117-5527-49cb-ae3f-da4e4375e859
+# ID: cfe2b329-83f6-4bb8-8a17-eef2886864b8
 class ActionRegistry:
     """A central registry for all action handlers."""
 
@@ -58,12 +58,12 @@ class ActionRegistry:
             instance = handler_class()
             if instance.name in self._handlers:
                 logger.warning(
-                    f"Duplicate action name '{instance.name}' found. Overwriting."
+                    "Duplicate action name '%s' found. Overwriting.", instance.name
                 )
             self._handlers[instance.name] = instance
-        logger.info(f"ActionRegistry initialized with {len(self._handlers)} handlers.")
+        logger.info("ActionRegistry initialized with %s handlers.", len(self._handlers))
 
-    # ID: 02099ee5-6534-49ba-be58-408d43f86f77
+    # ID: deeeec9e-e8d4-423c-b88f-990fc63521a8
     def get_handler(self, action_name: str) -> ActionHandler | None:
         """Retrieves a handler instance by its action name."""
         return self._handlers.get(action_name)

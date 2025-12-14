@@ -35,6 +35,6 @@ dev_fastpath: true
 
     # This is a critical safety check: local mode must not bypass Git commits
     ignore_validation = config.get("apis", {}).get("git", {}).get("ignore_validation")
-    assert (
-        ignore_validation is False
-    ), "CRITICAL: local_mode.yaml is configured to ignore Git validation."
+    assert ignore_validation is False, (
+        "CRITICAL: local_mode.yaml is configured to ignore Git validation."
+    )

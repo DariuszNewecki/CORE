@@ -28,7 +28,7 @@ console = Console()
 logger = getLogger(__name__)
 
 
-# ID: a80cb627-643e-42d0-ad6c-006303438f15
+# ID: 3d9a264e-86a8-4668-ab9a-2e60b5266ee0
 async def micro_propose(context: CoreContext, goal: str) -> Path | None:
     """Uses an agent to create a safe, auto-approvable plan for a goal."""
     logger.info("🤖 Generating micro-proposal for goal: '[cyan]%s[/cyan]'", goal)
@@ -53,18 +53,19 @@ async def micro_propose(context: CoreContext, goal: str) -> Path | None:
     logger.info(json.dumps(plan, indent=2))
     logger.info("To apply this plan, run:")
     logger.info(
-        f"[bold]poetry run core-admin manage proposals micro-apply {proposal_file}[/bold]"
+        "[bold]poetry run core-admin manage proposals micro-apply %s[/bold]",
+        proposal_file,
     )
     return proposal_file
 
 
-# ID: 7cae35d2-d11f-4bf1-8437-79e0dd046d73
+# ID: 9bed9f2c-6574-4abd-83d6-62792106f4ee
 async def propose_and_apply_autonomously(context: CoreContext, goal: str):
     """
     A single, unified async workflow that proposes a plan and immediately applies it.
     """
     logger.info(
-        f"[bold cyan]🚀 Initiating A1 self-healing for: '{goal}'...[/bold cyan]"
+        "[bold cyan]🚀 Initiating A1 self-healing for: '%s'...[/bold cyan]", goal
     )
     proposal_path = await micro_propose(context, goal)
     if proposal_path and proposal_path.exists():
@@ -74,7 +75,8 @@ async def propose_and_apply_autonomously(context: CoreContext, goal: str):
         await _micro_apply(context=context, proposal_path=proposal_path)
     elif proposal_path:
         logger.info(
-            f"[bold red]❌ Proposal file was not created at {proposal_path}. Aborting.[/bold red]"
+            "[bold red]❌ Proposal file was not created at %s. Aborting.[/bold red]",
+            proposal_path,
         )
         raise typer.Exit(code=1)
     else:
@@ -84,7 +86,7 @@ async def propose_and_apply_autonomously(context: CoreContext, goal: str):
 
 async def _micro_apply(context: CoreContext, proposal_path: Path):
     """Validates and applies a micro-proposal."""
-    logger.info(f"🔵 Loading and applying micro-proposal: {proposal_path.name}")
+    logger.info("🔵 Loading and applying micro-proposal: %s", proposal_path.name)
     start_time = time.monotonic()
     try:
         proposal_content = proposal_path.read_text(encoding="utf-8")

@@ -23,7 +23,7 @@ from shared.logger import getLogger
 logger = getLogger(__name__)
 
 
-# ID: a7dcb476-4497-4280-8419-c7bbc9e967b1
+# ID: 54ebd35a-46b6-4c6c-b36b-5bfedd866b36
 class EmbeddingService:
     """
     Minimal, robust client for OpenAI-compatible or Ollama-compatible embeddings endpoint.
@@ -91,7 +91,9 @@ class EmbeddingService:
             if self.api_type == "ollama_compatible":
                 self._validate_ollama_model_availability(response)
         except Exception as e:
-            logger.error(f"Failed to check embedding server health: {e}", exc_info=True)
+            logger.error(
+                "Failed to check embedding server health: %s", e, exc_info=True
+            )
             raise RuntimeError(f"Embedding server health check failed: {e}") from e
 
     def _get_health_check_endpoint(self) -> str:
@@ -122,7 +124,7 @@ class EmbeddingService:
             )
             raise RuntimeError(f"Model {self.model} not available on server")
 
-    # ID: e780ad79-be52-4400-bdcf-e721034af758
+    # ID: 8f14262e-df4b-4db1-9a4a-34d4ade6f8d8
     async def get_embedding(self, text: str) -> list[float]:
         """
         Return a single embedding vector for the given text.

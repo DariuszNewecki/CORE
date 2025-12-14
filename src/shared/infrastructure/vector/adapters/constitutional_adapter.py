@@ -28,7 +28,7 @@ from shared.utils.yaml_processor import strict_yaml_processor
 logger = getLogger(__name__)
 
 
-# ID: a47c1cf1-c2cb-4895-8409-ad4e7eede118
+# ID: 9ae7859c-1e6e-475d-9889-d4ef4d6c899d
 class ConstitutionalAdapter:
     """
     Adapts constitutional YAML files into vectorizable items.
@@ -45,10 +45,10 @@ class ConstitutionalAdapter:
         Args:
             source_dir: Directory containing YAML files (defaults to charter dir)
         """
-        self.source_dir = source_dir or (settings.REPO_PATH / ".intent" / "charter")
-        logger.debug(f"ConstitutionalAdapter initialized for {self.source_dir}")
+        self.source_dir = source_dir or settings.REPO_PATH / ".intent" / "charter"
+        logger.debug("ConstitutionalAdapter initialized for %s", self.source_dir)
 
-    # ID: a221eead-aa6f-454e-8b73-1ece7c8a157b
+    # ID: d5dd1efe-a106-4bf2-aece-652cd2c44842
     def policies_to_items(self) -> list[VectorizableItem]:
         """
         Convert all Standards (Architecture, Operations, Code, Data) to vector items.
@@ -57,14 +57,12 @@ class ConstitutionalAdapter:
         Returns:
             List of VectorizableItems for all standard chunks
         """
-        # Map legacy 'policies' concept to the new 'standards' directory
         standards_dir = self.source_dir / "standards"
-        # Recursively scan because standards are categorized in subdirs
         return self._process_yaml_directory(
             standards_dir, doc_type="standard", recursive=True
         )
 
-    # ID: fd7f2d97-d691-4f5f-b46e-90ce112b6588
+    # ID: 220fb91c-ad95-46f0-982f-9f9d2567af4b
     def patterns_to_items(self) -> list[VectorizableItem]:
         """
         Specifically target Architectural Standards as 'patterns' for backward compatibility.
@@ -72,7 +70,6 @@ class ConstitutionalAdapter:
         Returns:
             List of VectorizableItems for all pattern chunks
         """
-        # Patterns are now located in standards/architecture/
         arch_dir = self.source_dir / "standards" / "architecture"
         return self._process_yaml_directory(
             arch_dir, doc_type="pattern", recursive=False
@@ -93,27 +90,19 @@ class ConstitutionalAdapter:
             List of VectorizableItems from all files
         """
         if not directory.exists():
-            # Fail-safe default: log warning and return empty list instead of crashing
             logger.warning("Directory not found: %s", directory)
             return []
-
         pattern = "**/*.yaml" if recursive else "*.yaml"
         yaml_files = list(directory.glob(pattern))
-
-        # FIXED: Added 'f' prefix for correct formatting
         logger.info("Processing {len(yaml_files)} {doc_type} files from %s", directory)
-
         all_items: list[VectorizableItem] = []
-
         for yaml_file in yaml_files:
             try:
                 items = self._file_to_items(yaml_file, doc_type)
                 all_items.extend(items)
-                logger.debug(f"✓ {yaml_file.name}: {len(items)} chunks")
+                logger.debug("✓ %s: %s chunks", yaml_file.name, len(items))
             except Exception as e:
                 logger.error("✗ Failed to process {yaml_file.name}: %s", e)
-
-        # FIXED: Added 'f' prefix for correct formatting
         logger.info("Generated {len(all_items)} items from %s files", doc_type)
         return all_items
 
@@ -128,26 +117,16 @@ class ConstitutionalAdapter:
         Returns:
             List of VectorizableItems for this file
         """
-        # Load YAML
         data = strict_yaml_processor.load(yaml_file)
-
-        # Extract document metadata
         doc_id = data.get("id", yaml_file.stem)
         doc_version = data.get("version", "unknown")
         doc_title = data.get("title", doc_id)
-
-        # Chunk the document
         chunks = self._chunk_document(data, doc_id, doc_type)
-
-        # Convert chunks to VectorizableItems
         items = []
         for idx, chunk in enumerate(chunks):
             item_id = f"{doc_id}_{chunk['section_type']}_{idx}"
             content = chunk["content"].strip()
-
-            # CALCULATE HASH for deduplication
             content_hash = hashlib.sha256(content.encode("utf-8")).hexdigest()
-
             payload = {
                 "doc_id": doc_id,
                 "doc_version": doc_version,
@@ -159,15 +138,9 @@ class ConstitutionalAdapter:
                 "severity": chunk.get("severity", "error"),
                 "content_sha256": content_hash,
             }
-
             items.append(
-                VectorizableItem(
-                    item_id=item_id,
-                    text=content,
-                    payload=payload,
-                )
+                VectorizableItem(item_id=item_id, text=content, payload=payload)
             )
-
         return items
 
     def _chunk_document(
@@ -187,8 +160,6 @@ class ConstitutionalAdapter:
             List of chunk dictionaries
         """
         chunks: list[dict[str, Any]] = []
-
-        # Universal chunking: title + purpose
         if "title" in data and "purpose" in data:
             chunks.append(
                 {
@@ -197,8 +168,6 @@ class ConstitutionalAdapter:
                     "content": f"{data['title']}\n\n{data['purpose']}",
                 }
             )
-
-        # Pattern-specific: philosophy
         if "philosophy" in data:
             chunks.append(
                 {
@@ -207,8 +176,6 @@ class ConstitutionalAdapter:
                     "content": data["philosophy"],
                 }
             )
-
-        # Pattern-specific: requirements
         if "requirements" in data and isinstance(data["requirements"], dict):
             for req_name, req_data in data["requirements"].items():
                 if isinstance(req_data, dict) and "mandate" in req_data:
@@ -221,7 +188,6 @@ class ConstitutionalAdapter:
                             )
                         else:
                             content += f"Implementation: {impl}"
-
                     chunks.append(
                         {
                             "section_type": "requirement",
@@ -230,15 +196,12 @@ class ConstitutionalAdapter:
                             "severity": "error",
                         }
                     )
-
-        # Policy-specific: rules
         if "rules" in data and isinstance(data["rules"], list):
             for rule in data["rules"]:
                 if isinstance(rule, dict) and "statement" in rule:
                     content = f"Rule: {rule.get('id', 'unknown')}\n"
                     content += f"Statement: {rule['statement']}\n"
                     content += f"Enforcement: {rule.get('enforcement', 'error')}"
-
                     chunks.append(
                         {
                             "section_type": "rule",
@@ -247,8 +210,6 @@ class ConstitutionalAdapter:
                             "severity": rule.get("enforcement", "error"),
                         }
                     )
-
-        # Pattern-specific: validation rules
         if "validation_rules" in data and isinstance(data["validation_rules"], list):
             for rule in data["validation_rules"]:
                 if isinstance(rule, dict) and "rule" in rule:
@@ -256,7 +217,6 @@ class ConstitutionalAdapter:
                     content += f"Description: {rule.get('description', '')}\n"
                     content += f"Severity: {rule.get('severity', 'error')}\n"
                     content += f"Enforcement: {rule.get('enforcement', 'runtime')}"
-
                     chunks.append(
                         {
                             "section_type": "validation_rule",
@@ -265,14 +225,11 @@ class ConstitutionalAdapter:
                             "severity": rule.get("severity", "error"),
                         }
                     )
-
-        # Pattern-specific: examples
         if "examples" in data and isinstance(data["examples"], dict):
             for example_name, example_data in data["examples"].items():
                 if isinstance(example_data, dict):
                     content = f"Example: {example_name}\n"
                     content += strict_yaml_processor.dump_yaml(example_data)
-
                     chunks.append(
                         {
                             "section_type": "example",
@@ -280,5 +237,4 @@ class ConstitutionalAdapter:
                             "content": content,
                         }
                     )
-
         return chunks

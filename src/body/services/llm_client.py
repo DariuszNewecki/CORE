@@ -14,7 +14,7 @@ from shared.logger import getLogger
 logger = getLogger(__name__)
 
 
-# ID: d9ede63d-d619-4f0c-91fa-bdb29df8401a
+# ID: a1cdeb8d-ae98-4891-9b10-c8a571d55443
 class LLMClient:
     """A wrapper for making asynchronous API calls to a specific LLM."""
 
@@ -27,7 +27,7 @@ class LLMClient:
         self.http_timeout = http_timeout
         self.base_url = api_url
 
-    # ID: 6bcc449a-4d3e-4c58-bc83-4eedc1fe4926
+    # ID: e2ceb072-9dbd-4379-bc08-28f7b2df3922
     async def make_request(
         self,
         prompt: str,
@@ -52,7 +52,7 @@ class LLMClient:
         async with httpx.AsyncClient(timeout=self.http_timeout) as client:
             try:
                 logger.debug(
-                    f"Making request to {self.api_url} with model {self.model_name}"
+                    "Making request to %s with model %s", self.api_url, self.model_name
                 )
                 response = await client.post(
                     self.api_url, headers=headers, json=payload
@@ -68,7 +68,9 @@ class LLMClient:
                 return content.strip()
             except httpx.HTTPStatusError as e:
                 logger.error(
-                    f"HTTP error occurred: {e.response.status_code} - {e.response.text}"
+                    "HTTP error occurred: %s - %s",
+                    e.response.status_code,
+                    e.response.text,
                 )
                 raise
             except Exception as e:

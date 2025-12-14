@@ -1,19 +1,17 @@
 # src/mind/governance/checks/domain_placement.py
 """
-A constitutional audit check to ensure capabilities are declared in the
-correct domain manifest file, enforcing the 'structural_compliance' rule.
+A constitutional audit check to enforce Architectural Domain Placement.
+Verifies that source code resides in valid architectural domains defined in
+project_structure.yaml and domain_definitions.yaml.
 """
 
 from __future__ import annotations
 
-from pathlib import Path
-from typing import Any
+import yaml
 
-from mind.governance.audit_context import AuditorContext
 from mind.governance.checks.base_check import BaseCheck
 from shared.logger import getLogger
 from shared.models import AuditFinding, AuditSeverity
-from shared.utils.yaml_processor import yaml_processor
 
 
 logger = getLogger(__name__)
@@ -22,83 +20,98 @@ logger = getLogger(__name__)
 # ID: 0cd8ad5a-ed46-4f18-8335-f95b747d6164
 class DomainPlacementCheck(BaseCheck):
     """
-    Validates that capability keys declared in a domain manifest file
-    match the domain of that file, contributing to the 'structural_compliance' rule.
+    Validates that source code files obey the Project Structure contracts.
 
-    Example:
-        - File: .intent/mind/knowledge/domains/core.yaml
-        - Capability key: "core.introspection.analyze_code" ✅ OK
-        - Capability key: "llm.router.select_model"        ❌ Wrong domain
+    1. Features must reside in 'src/features/<valid_domain>/'.
+    2. Valid domains are defined in 'domain_definitions.yaml'.
+    3. Top-level src directories must match 'architectural_domains' in 'project_structure.yaml'.
     """
 
-    # Fulfills the contract from BaseCheck.
     policy_rule_ids = [
         "structural_compliance",
     ]
 
-    def __init__(self, context: AuditorContext) -> None:
-        super().__init__(context)
-        # self.context is set by the parent class.
-        self.domains_dir: Path = self.context.mind_path / "knowledge" / "domains"
-
     # ID: 7eb75aef-6463-450d-8088-e9a64e3d85c8
     def execute(self) -> list[AuditFinding]:
-        """
-        Runs the check by scanning all domain manifests for misplaced capabilities.
-        """
         findings: list[AuditFinding] = []
 
-        if not self.domains_dir.is_dir():
-            # No domain manifests present yet – nothing to validate.
-            return findings
-
-        for domain_file in sorted(self.domains_dir.glob("*.yaml")):
-            findings.extend(self._check_domain_file(domain_file))
-
-        return findings
-
-    def _check_domain_file(self, domain_file: Path) -> list[AuditFinding]:
-        """Validate a single domain manifest file."""
-        findings: list[AuditFinding] = []
-        domain_name = domain_file.stem
+        # 1. Load Valid Architectural Domains (api, core, features, services)
+        # Ref: .intent/mind/knowledge/project_structure.yaml
+        struct_path = self.context.mind_path / "knowledge/project_structure.yaml"
+        if not struct_path.exists():
+            return []  # Can't enforce if definition missing
 
         try:
-            manifest_content: dict[str, Any] | None = yaml_processor.load(domain_file)
-        except Exception as exc:
-            logger.warning("Failed to load domain manifest %s: %s", domain_file, exc)
+            struct_data = yaml.safe_load(struct_path.read_text())
+            arch_domains = {
+                d["path"]: d["domain"]
+                for d in struct_data.get("architectural_domains", [])
+            }
+        except Exception as e:
+            logger.error("Failed to load project_structure.yaml: %s", e)
+            return []
+
+        # 2. Load Valid Business Domains (governance, quality, etc.)
+        # Ref: .intent/mind/knowledge/domain_definitions.yaml
+        biz_def_path = self.context.mind_path / "knowledge/domain_definitions.yaml"
+        valid_biz_domains = set()
+        if biz_def_path.exists():
+            try:
+                biz_data = yaml.safe_load(biz_def_path.read_text())
+                valid_biz_domains = {
+                    d["name"] for d in biz_data.get("capability_domains", [])
+                }
+            except Exception as e:
+                logger.error("Failed to load domain_definitions.yaml: %s", e)
+
+        # 3. Audit Source Tree
+        # We assume src/ is the root of the body
+        if not self.src_dir.exists():
             return findings
 
-        if not manifest_content:
-            return findings
-
-        capabilities = manifest_content.get("tags", [])
-        if not isinstance(capabilities, list):
-            return findings
-
-        for cap in capabilities:
-            if not isinstance(cap, dict):
+        for item in self.src_dir.iterdir():
+            if (
+                not item.is_dir()
+                or item.name.startswith("__")
+                or item.name.startswith(".")
+            ):
                 continue
-            cap_key = cap.get("key")
-            if not cap_key or not isinstance(cap_key, str):
-                continue
 
-            if not cap_key.startswith(f"{domain_name}."):
+            rel_path = f"src/{item.name}"
+
+            # Check 1: Is this a valid top-level architectural domain?
+            if rel_path not in arch_domains:
                 findings.append(
                     AuditFinding(
-                        # Standardized check_id for better traceability.
-                        check_id="structural_compliance.domain_placement",
+                        check_id="structural_compliance.unknown_arch_domain",
                         severity=AuditSeverity.ERROR,
-                        message=(
-                            f"Capability '{cap_key}' is misplaced in '{domain_file.name}'. "
-                            f"It should be declared in '{cap_key.split('.')[0]}.yaml'."
-                        ),
-                        file_path=str(domain_file.relative_to(self.repo_root)),
-                        context={
-                            "domain_file": domain_file.name,
-                            "expected_domain": cap_key.split(".")[0],
-                            "actual_domain": domain_name,
-                        },
+                        message=f"Directory 'src/{item.name}' is not a valid architectural domain.",
+                        file_path=str(item.relative_to(self.repo_root)),
+                        context={"valid_paths": list(arch_domains.keys())},
                     )
                 )
+                continue
+
+            # Check 2: If it's 'features', are subdirectories valid business domains?
+            if item.name == "features" and valid_biz_domains:
+                for feature_dir in item.iterdir():
+                    if not feature_dir.is_dir() or feature_dir.name.startswith("__"):
+                        continue
+
+                    if feature_dir.name not in valid_biz_domains:
+                        findings.append(
+                            AuditFinding(
+                                check_id="structural_compliance.unknown_business_domain",
+                                severity=AuditSeverity.ERROR,
+                                message=(
+                                    f"Feature '{feature_dir.name}' is not a registered Business Domain. "
+                                    "Define it in domain_definitions.yaml first."
+                                ),
+                                file_path=str(feature_dir.relative_to(self.repo_root)),
+                                context={
+                                    "valid_domains": sorted(list(valid_biz_domains))
+                                },
+                            )
+                        )
 
         return findings

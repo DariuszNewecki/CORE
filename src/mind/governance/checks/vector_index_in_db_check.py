@@ -21,25 +21,13 @@ class VectorIndexInDbCheck(BaseCheck):
         findings = []
 
         # Load vector indexes from DB
-        try:
-            from shared.infrastructure.database.session_manager import get_session
-
-            async def _get_indexes():
-                async with get_session() as db:
-                    result = await db.execute("SELECT name FROM vector_indexes")
-                    return {row[0] for row in result.fetchall()}
-
-            import asyncio
-
-            registered = asyncio.run(_get_indexes())
-        except Exception:
-            registered = set()
+        registered = self._get_registered_indexes()
 
         # Scan code for vector index usage
         for file_path in self.context.python_files:
             try:
                 content = file_path.read_text(encoding="utf-8")
-                tree = ast.parse(content)
+                tree = ast.parse(content, filename=str(file_path))
 
                 for node in ast.walk(tree):
                     if isinstance(node, ast.Call):
@@ -47,16 +35,36 @@ class VectorIndexInDbCheck(BaseCheck):
                             isinstance(node.func, ast.Attribute)
                             and node.func.attr == "get_vector_index"
                         ):
-                            if node.args and isinstance(node.args[0], ast.Str):
-                                index = node.args[0].s
-                                if index not in registered:
+                            if node.args and isinstance(node.args[0], ast.Constant):
+                                index = node.args[0].value
+                                if isinstance(index, str) and index not in registered:
                                     findings.append(
                                         self._finding(file_path, node.lineno, index)
                                     )
-            except Exception:
-                pass
+            except Exception as e:
+                findings.append(
+                    AuditFinding(
+                        check_id="db.vector_index_in_db",
+                        severity=AuditSeverity.WARNING,
+                        message=f"Parse error in {file_path.name}: {e}",
+                        file_path=str(file_path.relative_to(self.repo_root)),
+                        line_number=1,
+                    )
+                )
 
         return findings
+
+    def _get_registered_indexes(self) -> set[str]:
+        """Fetch registered vector indexes from database."""
+        try:
+            from shared.infrastructure.database.session_manager import SessionManager
+
+            with SessionManager().sync_session() as db:
+                result = db.execute("SELECT name FROM vector_indexes")
+                return {row[0] for row in result.fetchall()}
+        except Exception as e:
+            # Return empty set if DB unavailable - prevents blocking audit
+            return set()
 
     def _finding(self, file_path: Path, line: int, index: str) -> AuditFinding:
         return AuditFinding(

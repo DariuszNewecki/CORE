@@ -23,7 +23,7 @@ from .providers.base import AIProvider
 logger = getLogger(__name__)
 
 
-# ID: 3bbee275-19fe-4823-a424-33c41b25d52d
+# ID: 7a329240-1a5e-440b-9c8a-65ad427b5e65
 class LLMClient:
     """
     A client that uses a provider strategy to interact with an LLM API.
@@ -39,7 +39,7 @@ class LLMClient:
         self._last_request_time: float = 0
 
     @classmethod
-    # ID: c9aaf69f-39ba-42b4-aa9a-96c07e8e8588
+    # ID: b93deaf4-7da3-4c67-a4b1-e2a9ae1afeea
     async def create(
         cls, db: AsyncSession, provider: AIProvider, resource_name: str
     ) -> LLMClient:
@@ -71,7 +71,10 @@ class LLMClient:
         max_concurrent = await resource_config.get_max_concurrent()
         instance._semaphore = asyncio.Semaphore(max_concurrent)
         logger.info(
-            f"Initialized LLMClient for {resource_name} (model={provider.model_name}, max_concurrent={max_concurrent})"
+            "Initialized LLMClient for %s (model=%s, max_concurrent=%s)",
+            resource_name,
+            provider.model_name,
+            max_concurrent,
         )
         return instance
 
@@ -83,7 +86,7 @@ class LLMClient:
             time_since_last = now - self._last_request_time
             if time_since_last < rate_limit:
                 wait_time = rate_limit - time_since_last
-                logger.debug(f"Rate limiting: waiting {wait_time:.2f}s")
+                logger.debug("Rate limiting: waiting %ss", wait_time)
                 await asyncio.sleep(wait_time)
             self._last_request_time = asyncio.get_event_loop().time()
 
@@ -111,16 +114,16 @@ class LLMClient:
                     if attempt < len(backoff_delays):
                         wait_time = backoff_delays[attempt] + random.uniform(0, 0.5)
                         logger.warning(
-                            f"{error_message}. Retrying in {wait_time:.1f}s..."
+                            "%s. Retrying in %ss...", error_message, wait_time
                         )
                         await asyncio.sleep(wait_time)
                         continue
                     logger.error(
-                        f"Final attempt failed: {error_message}", exc_info=True
+                        "Final attempt failed: %s", error_message, exc_info=True
                     )
                     raise
 
-    # ID: 94b27523-b60f-4ce3-a5df-ea2b98b19835
+    # ID: 32e259f1-415f-4f2e-9d49-08071b12ceba
     async def make_request_async(
         self, prompt: str, user_id: str = "core_system"
     ) -> str:
@@ -129,13 +132,13 @@ class LLMClient:
             self.provider.chat_completion, prompt, user_id
         )
 
-    # ID: f740d19b-ee4d-41ec-82c1-80049d22e872
+    # ID: 7e13b689-e8ae-48ac-819b-44f8d3b97e22
     async def get_embedding(self, text: str) -> list[float]:
         """Gets an embedding using the configured provider with retries."""
         return await self._request_with_retry(self.provider.get_embedding, text)
 
 
-# ID: 141f3410-1bd3-485f-a69d-827b0876af78
+# ID: f0962c2a-eb02-4ef6-856f-413472d3a699
 async def create_llm_client_for_role(
     db: AsyncSession, cognitive_role: str
 ) -> LLMClient:

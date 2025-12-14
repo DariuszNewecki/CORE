@@ -17,19 +17,23 @@ from shared.logger import getLogger
 logger = getLogger(__name__)
 
 
-# ID: e10a3e1f-de3d-49d7-a378-fc00b89ab3fa
+# ID: 69085115-da2d-4649-948c-690b61eb1751
 def register_exception_handlers(app):
     """Registers custom exception handlers with the FastAPI application."""
 
     @app.exception_handler(StarletteHTTPException)
-    # ID: 49273af2-dd45-4e08-9695-d372ff56948c
+    # ID: 12d85f80-7154-4bbc-a209-5bcf64b1455f
     async def http_exception_handler(request: Request, exc: StarletteHTTPException):
         """
         Handles FastAPI's built-in HTTP exceptions to ensure consistent
         JSON error responses.
         """
         logger.warning(
-            f"HTTP Exception: {exc.status_code} {exc.detail} for request: {request.method} {request.url.path}"
+            "HTTP Exception: %s %s for request: %s %s",
+            exc.status_code,
+            exc.detail,
+            request.method,
+            request.url.path,
         )
         return JSONResponse(
             status_code=exc.status_code,
@@ -37,7 +41,7 @@ def register_exception_handlers(app):
         )
 
     @app.exception_handler(Exception)
-    # ID: bcb88b79-942f-4057-8998-d977165e156d
+    # ID: cd3d5242-3238-4f47-9224-6b7fd4365503
     async def unhandled_exception_handler(request: Request, exc: Exception):
         """
         Catches any unhandled exception, logs the full traceback internally,
@@ -45,7 +49,7 @@ def register_exception_handlers(app):
         This is a critical security measure to prevent leaking stack traces.
         """
         logger.exception(
-            f"Unhandled exception for request: {request.method} {request.url.path}"
+            "Unhandled exception for request: %s %s", request.method, request.url.path
         )
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

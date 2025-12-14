@@ -25,7 +25,7 @@ logger = getLogger(__name__)
 
 
 @dataclass
-# ID: 707ac6e0-f83a-4b4e-ae45-f0d42989d0dd
+# ID: 373bbf3b-d13e-468d-813b-5fb8de77bb59
 class GovernanceContext:
     """Context information for governance decisions."""
 
@@ -35,7 +35,7 @@ class GovernanceContext:
     additional_context: dict[str, Any] | None = None
 
 
-# ID: 390cb462-61a1-4a45-9c79-3a7295526d8d
+# ID: dd255352-e203-47e2-9e33-d19cf4317e62
 class GovernanceMixin:
     """
     Mixin that adds constitutional governance to any agent.
@@ -51,7 +51,7 @@ class GovernanceMixin:
                 # ... proceed with action
     """
 
-    # ID: 7a454566-64ca-4011-9269-5b9bcfda00bb
+    # ID: e97f31ce-2c86-4b11-b271-68bd8208d7d1
     async def check_governance(
         self,
         filepath: str,
@@ -75,11 +75,8 @@ class GovernanceMixin:
         gov_context["filepath"] = filepath
         if agent_id:
             gov_context["agent_id"] = agent_id
-
         decision = can_execute_autonomously(filepath, action, gov_context)
-
         self._log_governance_decision(filepath, action, decision)
-
         return decision
 
     def _log_governance_decision(
@@ -88,7 +85,9 @@ class GovernanceMixin:
         """Log governance decision for audit trail."""
         if decision.allowed:
             logger.info(
-                f"✅ Governance: {action} on {filepath}",
+                "✅ Governance: %s on %s",
+                action,
+                filepath,
                 extra={
                     "governance_decision": "allowed",
                     "risk_tier": decision.risk_tier.name,
@@ -99,7 +98,9 @@ class GovernanceMixin:
             )
         else:
             logger.warning(
-                f"🚫 Governance: {action} on {filepath} - BLOCKED",
+                "🚫 Governance: %s on %s - BLOCKED",
+                action,
+                filepath,
                 extra={
                     "governance_decision": "blocked",
                     "risk_tier": decision.risk_tier.name,
@@ -110,7 +111,7 @@ class GovernanceMixin:
                 },
             )
 
-    # ID: 451f21b0-30b0-484d-8db4-fd4fb1a7edd5
+    # ID: e6c46fa0-3a89-4354-892d-9be7ae047e68
     def format_governance_response(self, decision: GovernanceDecision) -> str:
         """Format governance decision for user display."""
         if decision.allowed:
@@ -118,17 +119,14 @@ class GovernanceMixin:
                 return "✅ Action approved for autonomous execution"
             elif decision.approval_type == ApprovalType.VALIDATION_ONLY:
                 return "✅ Action approved (will validate after execution)"
-
         emoji = "⚠️" if decision.risk_tier == RiskTier.ELEVATED else "🚫"
         msg = f"{emoji} Action blocked by constitutional governance\n"
         msg += f"   Reason: {decision.rationale}\n"
         msg += f"   Risk Level: {decision.risk_tier.name}\n"
         approval_display = decision.approval_type.value.replace("_", " ")
         msg += f"   Required: {approval_display.title()}"
-
         if decision.violations:
             msg += "\n   Violations:\n"
             for violation in decision.violations:
                 msg += f"      • {violation}\n"
-
         return msg

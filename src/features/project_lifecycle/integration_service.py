@@ -16,7 +16,7 @@ from shared.logger import getLogger
 logger = getLogger(__name__)
 
 
-# ID: 469268e9-e747-4e6d-8aa5-c058e4dcaf9a
+# ID: 22c20758-700f-46d1-9c39-43f2280ba73a
 async def integrate_changes(context: CoreContext, commit_message: str):
     """
     Orchestrates the full, non-destructive, and intelligent integration of code changes
@@ -35,12 +35,15 @@ async def integrate_changes(context: CoreContext, commit_message: str):
         if not staged_files:
             logger.info("No changes found to integrate. Working directory is clean.")
             return
-        logger.info(f"   -> Staged {len(staged_files)} file(s) for integration.")
+        logger.info("   -> Staged %s file(s) for integration.", len(staged_files))
         workflow_policy = settings.load("charter.policies.operations.workflows_policy")
         integration_steps = workflow_policy.get("integration_workflow", [])
         for i, step in enumerate(integration_steps, 1):
             logger.info(
-                f"\nStep {i + 1}/{len(integration_steps) + 2}: {step['description']}"
+                "\nStep %s/%s: %s",
+                i + 1,
+                len(integration_steps) + 2,
+                step["description"],
             )
             command_parts = step["command"].split()
             process = subprocess.run(
@@ -51,7 +54,7 @@ async def integrate_changes(context: CoreContext, commit_message: str):
             if process.stderr:
                 logger.warning(process.stderr)
             if process.returncode != 0:
-                logger.error(f"Step '{step['id']}' failed.")
+                logger.error("Step '%s' failed.", step["id"])
                 if not step.get("continues_on_failure", False):
                     logger.error(
                         "Integration halted. Please fix the error above, then re-run the command."
@@ -65,7 +68,9 @@ async def integrate_changes(context: CoreContext, commit_message: str):
         if workflow_failed:
             raise Exception("Workflow halted due to a failed step.")
         logger.info(
-            f"\nStep {len(integration_steps) + 2}/{len(integration_steps) + 2}: Committing all changes..."
+            "\nStep %s/%s: Committing all changes...",
+            len(integration_steps) + 2,
+            len(integration_steps) + 2,
         )
         git_service.commit(commit_message)
         logger.info("Successfully integrated and committed changes.")

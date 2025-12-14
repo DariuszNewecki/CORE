@@ -11,7 +11,6 @@ from shared.logger import getLogger
 
 
 logger = getLogger(__name__)
-
 import logging
 from typing import Any
 
@@ -19,7 +18,7 @@ from typing import Any
 logger = logging.getLogger(__name__)
 
 
-# ID: f1cfae96-7321-4cab-be1e-f393dc8df33c
+# ID: cd6237eb-1ab0-4488-95df-31092411019c
 class VectorProvider:
     """Provides semantic search via Qdrant."""
 
@@ -33,7 +32,7 @@ class VectorProvider:
         self.qdrant = qdrant_client
         self.cognitive_service = cognitive_service
 
-    # ID: 604998db-001a-480b-8265-820666ae7f49
+    # ID: 3ca68418-6be2-4068-b05d-56c4b1191b3d
     async def search_similar(
         self, query: str, top_k: int = 10, collection: str = "code_symbols"
     ) -> list[dict[str, Any]]:
@@ -48,30 +47,23 @@ class VectorProvider:
             List of similar items with name, path, score, summary
         """
         logger.info("Searching Qdrant for: '{query}' (top %s)", top_k)
-
         if not self.qdrant:
             logger.warning("No Qdrant client - returning empty results")
             return []
-
         if not self.cognitive_service:
             logger.warning("No CognitiveService - cannot generate embeddings")
             return []
-
         try:
-            # Generate embedding for the query text
             query_vector = await self.cognitive_service.get_embedding_for_code(query)
             if not query_vector:
                 logger.warning("Failed to generate query embedding")
                 return []
-
-            # Search using the embedding
             return await self.search_by_embedding(query_vector, top_k, collection)
-
         except Exception as e:
             logger.error("Qdrant search failed: %s", e)
             return []
 
-    # ID: b946488a-5c28-4ff0-b010-b1235e954b66
+    # ID: 90847657-c290-48cf-9b3a-429f37b26786
     async def search_by_embedding(
         self, embedding: list[float], top_k: int = 10, collection: str = "code_symbols"
     ) -> list[dict[str, Any]]:
@@ -86,23 +78,16 @@ class VectorProvider:
             List of similar items
         """
         logger.debug("Searching by embedding (top %s)", top_k)
-
         if not self.qdrant:
             return []
-
         try:
             results = await self.qdrant.search_similar(
-                query_vector=embedding,
-                limit=top_k,
-                with_payload=True,
+                query_vector=embedding, limit=top_k, with_payload=True
             )
-
             items = []
             for hit in results:
                 payload = hit.get("payload", {})
                 score = hit.get("score", 0.0)
-
-                # Extract meaningful fields from payload
                 items.append(
                     {
                         "name": payload.get(
@@ -119,15 +104,13 @@ class VectorProvider:
                         },
                     }
                 )
-
-            logger.info(f"Found {len(items)} similar items from Qdrant")
+            logger.info("Found %s similar items from Qdrant", len(items))
             return items
-
         except Exception as e:
-            logger.error(f"Qdrant embedding search failed: {e}", exc_info=True)
+            logger.error("Qdrant embedding search failed: %s", e, exc_info=True)
             return []
 
-    # ID: 6907b4cb-2cec-4bfb-9fe1-c112c76ce155
+    # ID: 96844a9d-5c4c-4c98-b245-b329e344973c
     async def get_symbol_embedding(self, symbol_id: str) -> list[float] | None:
         """Get embedding for a symbol by its vector ID.
 
@@ -139,14 +122,13 @@ class VectorProvider:
         """
         if not self.qdrant:
             return None
-
         try:
             return await self.qdrant.get_vector_by_id(symbol_id)
         except Exception as e:
             logger.error("Failed to get symbol embedding: %s", e)
             return None
 
-    # ID: 41bfcc74-0d0e-48b0-ab18-6b2000548ff0
+    # ID: 8ae4adb2-18a5-4f06-a0c9-0e6c5b0996a2
     async def get_neighbors(
         self, symbol_name: str, max_distance: float = 0.5, top_k: int = 10
     ) -> list[dict[str, Any]]:
@@ -161,11 +143,7 @@ class VectorProvider:
             List of neighbor symbols
         """
         logger.debug("Finding neighbors for: %s", symbol_name)
-
         if not self.qdrant:
             return []
-
-        # This requires looking up the symbol's vector first
-        # Skipping for now - needs symbol->vector_id mapping from DB
         logger.warning("get_neighbors not yet implemented - needs DB integration")
         return []

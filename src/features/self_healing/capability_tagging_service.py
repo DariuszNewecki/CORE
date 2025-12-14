@@ -29,8 +29,6 @@ from will.orchestration.cognitive_service import CognitiveService
 
 logger = getLogger(__name__)
 REPO_ROOT = settings.REPO_PATH
-
-# Async DB session factory type
 SessionFactory = Callable[[], Any]
 
 
@@ -47,89 +45,49 @@ async def _async_tag_capabilities(
     This function registers capability links in the DB using the injected session_factory.
     It NO LONGER writes # ID tags to source files (that is handled by 'fix ids').
     """
-
     agent = CapabilityTaggerAgent(cognitive_service, knowledge_service)
-
     suggestions = await agent.suggest_and_apply_tags(
         file_path=file_path.as_posix() if file_path else None
     )
-
     if not suggestions:
         logger.info("No new public capabilities to register.")
         return
-
-    # DRY RUN
     if dry_run:
         logger.info("-- DRY RUN: Would register the following capability links --")
         for key, info in suggestions.items():
             logger.info(
-                f"  • Symbol {info['name']} -> Capability '{info['suggestion']}'"
+                "  • Symbol %s -> Capability '%s'", info["name"], info["suggestion"]
             )
         return
-
     logger.info(
-        f"Linking {len(suggestions)} symbols to capabilities in the database..."
+        "Linking %s symbols to capabilities in the database...", len(suggestions)
     )
-
-    # ------------- DB OPERATION THROUGH INJECTED SESSION ---------------- #
     async with session_factory() as session:
         async with session.begin():
             for _, new_info in suggestions.items():
                 suggested_name = new_info["suggestion"]
-                symbol_uuid = new_info["key"]  # Use the existing ID from the symbol
-
-                # ---------------- Register Capability ----------------------- #
+                symbol_uuid = new_info["key"]
                 domain = (
                     suggested_name.split(".")[0] if "." in suggested_name else "general"
                 )
-
-                # Upsert capability and get its ID
                 cap_upsert_sql = text(
-                    """
-                    INSERT INTO core.capabilities
-                        (name, domain, title, owner, status, tags, created_at, updated_at)
-                    VALUES
-                        (:name, :domain, :name, 'system', 'Active', '[]'::jsonb, now(), now())
-                    ON CONFLICT (domain, name)
-                    DO UPDATE SET updated_at = now()
-                    RETURNING id;
-                    """
+                    "\n                    INSERT INTO core.capabilities\n                        (name, domain, title, owner, status, tags, created_at, updated_at)\n                    VALUES\n                        (:name, :domain, :name, 'system', 'Active', '[]'::jsonb, now(), now())\n                    ON CONFLICT (domain, name)\n                    DO UPDATE SET updated_at = now()\n                    RETURNING id;\n                    "
                 )
-
                 result = await session.execute(
-                    cap_upsert_sql,
-                    {"name": suggested_name, "domain": domain},
+                    cap_upsert_sql, {"name": suggested_name, "domain": domain}
                 )
                 capability_id = result.scalar_one()
-
-                # ---------------- Link Symbol to Capability ---------------- #
-                # This replaces the old 'entry_points' array update
                 link_sql = text(
-                    """
-                    INSERT INTO core.symbol_capability_links
-                        (symbol_id, capability_id, confidence, source, verified, created_at)
-                    VALUES
-                        (:symbol_id, :capability_id, 1.0, 'llm-classified', true, now())
-                    ON CONFLICT (symbol_id, capability_id, source) DO NOTHING;
-                    """
+                    "\n                    INSERT INTO core.symbol_capability_links\n                        (symbol_id, capability_id, confidence, source, verified, created_at)\n                    VALUES\n                        (:symbol_id, :capability_id, 1.0, 'llm-classified', true, now())\n                    ON CONFLICT (symbol_id, capability_id, source) DO NOTHING;\n                    "
                 )
-
                 await session.execute(
-                    link_sql,
-                    {"symbol_id": symbol_uuid, "capability_id": capability_id},
+                    link_sql, {"symbol_id": symbol_uuid, "capability_id": capability_id}
                 )
-
                 logger.info("   → Linked '{new_info['name']}' to '%s'", suggested_name)
-
         await session.commit()
 
 
-# ------------------------------------------------------------------------------
-# EXTERNAL PUBLIC ENTRYPOINTS — used by CLI / fix workflows
-# ------------------------------------------------------------------------------
-
-
-# ID: 7216f125-bffe-4e4a-9d0a-2596e9e864bb
+# ID: ba923fe1-b7d4-415c-8a96-40e0bed1e401
 def main_sync(
     session_factory: SessionFactory,
     cognitive_service: CognitiveService,
@@ -139,7 +97,6 @@ def main_sync(
 ) -> None:
     """Synchronous wrapper for capability tagging."""
     effective_dry_run = dry_run or not write
-
     asyncio.run(
         _async_tag_capabilities(
             cognitive_service=cognitive_service,
@@ -151,7 +108,7 @@ def main_sync(
     )
 
 
-# ID: 528c806f-ba48-4153-8864-7c1ff270e710
+# ID: 7f2a55a8-c88e-4ef9-a6e9-62849bc53837
 async def main_async(
     session_factory: SessionFactory,
     cognitive_service: CognitiveService,
@@ -161,7 +118,6 @@ async def main_async(
 ) -> None:
     """Async wrapper used by `fix all` workflows."""
     effective_dry_run = dry_run or not write
-
     await _async_tag_capabilities(
         cognitive_service=cognitive_service,
         knowledge_service=knowledge_service,

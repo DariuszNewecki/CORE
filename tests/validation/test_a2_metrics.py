@@ -220,13 +220,15 @@ class ValidationReport:
         status_icon = (
             "✅"
             if recommendation == "PROCEED"
-            else "⚠️" if recommendation == "REFINE" else "❌"
+            else "⚠️"
+            if recommendation == "REFINE"
+            else "❌"
         )
 
         md = f"""# Phase 0 Validation Report
 
 **Status**: {status_icon} {recommendation}
-**Generated**: {self.generated_at.strftime('%Y-%m-%d %H:%M:%S')}
+**Generated**: {self.generated_at.strftime("%Y-%m-%d %H:%M:%S")}
 
 ---
 
@@ -237,7 +239,7 @@ using existing CORE infrastructure (no semantic enhancements).
 
 **Results**:
 - **Total Tasks**: {self.total_tasks}
-- **Successful Tasks**: {self.successful_tasks} ({self.successful_tasks/self.total_tasks*100:.1f}%)
+- **Successful Tasks**: {self.successful_tasks} ({self.successful_tasks / self.total_tasks * 100:.1f}%)
 - **Recommendation**: **{recommendation}**
 
 ---
@@ -246,10 +248,10 @@ using existing CORE infrastructure (no semantic enhancements).
 
 | Metric | Result | Threshold | Status |
 |--------|--------|-----------|--------|
-| **Constitutional Compliance** | {self.constitutional_compliance_rate*100:.1f}% | ≥70% | {'✅ PASS' if self.constitutional_compliance_rate >= 0.70 else '❌ FAIL'} |
-| **Semantic Placement** | {self.semantic_placement_accuracy*100:.1f}% | ≥80% | {'✅ PASS' if self.semantic_placement_accuracy >= 0.80 else '❌ FAIL'} |
-| **Execution Success** | {self.execution_success_rate*100:.1f}% | ≥50% | {'✅ PASS' if self.execution_success_rate >= 0.50 else '❌ FAIL'} |
-| Test Coverage | {self.test_coverage_rate*100:.1f}% | N/A | ℹ️ INFO |
+| **Constitutional Compliance** | {self.constitutional_compliance_rate * 100:.1f}% | ≥70% | {"✅ PASS" if self.constitutional_compliance_rate >= 0.70 else "❌ FAIL"} |
+| **Semantic Placement** | {self.semantic_placement_accuracy * 100:.1f}% | ≥80% | {"✅ PASS" if self.semantic_placement_accuracy >= 0.80 else "❌ FAIL"} |
+| **Execution Success** | {self.execution_success_rate * 100:.1f}% | ≥50% | {"✅ PASS" if self.execution_success_rate >= 0.50 else "❌ FAIL"} |
+| Test Coverage | {self.test_coverage_rate * 100:.1f}% | N/A | ℹ️ INFO |
 
 ### Threshold Analysis
 
@@ -259,7 +261,7 @@ using existing CORE infrastructure (no semantic enhancements).
         if self.constitutional_compliance_rate < 0.70:
             gap = (0.70 - self.constitutional_compliance_rate) * 100
             md += f"""
-**Constitutional Compliance: {self.constitutional_compliance_rate*100:.1f}% (need 70%)**
+**Constitutional Compliance: {self.constitutional_compliance_rate * 100:.1f}% (need 70%)**
 - Gap: {gap:.1f} percentage points
 - Issue: LLMs struggling with docstrings, type hints, or syntax
 - Implication: This is an LLM quality/prompting issue, not context issue
@@ -269,7 +271,7 @@ using existing CORE infrastructure (no semantic enhancements).
         if self.semantic_placement_accuracy < 0.80:
             gap = (0.80 - self.semantic_placement_accuracy) * 100
             md += f"""
-**Semantic Placement: {self.semantic_placement_accuracy*100:.1f}% (need 80%)**
+**Semantic Placement: {self.semantic_placement_accuracy * 100:.1f}% (need 80%)**
 - Gap: {gap:.1f} percentage points
 - Issue: Code placed in wrong modules/layers
 - Implication: Could benefit from semantic infrastructure (anchors, module context)
@@ -279,7 +281,7 @@ using existing CORE infrastructure (no semantic enhancements).
         if self.execution_success_rate < 0.50:
             gap = (0.50 - self.execution_success_rate) * 100
             md += f"""
-**Execution Success: {self.execution_success_rate*100:.1f}% (need 50%)**
+**Execution Success: {self.execution_success_rate * 100:.1f}% (need 50%)**
 - Gap: {gap:.1f} percentage points
 - Issue: Generated code has runtime errors
 - Implication: Major implementation issues, may need prompt refinement
@@ -314,9 +316,9 @@ using existing CORE infrastructure (no semantic enhancements).
 
 | Difficulty | Success Rate | Expected | Status |
 |------------|--------------|----------|--------|
-| **Simple** | {self.simple_success_rate*100:.1f}% | ~90% | {'✅' if self.simple_success_rate >= 0.80 else '❌'} |
-| **Medium** | {self.medium_success_rate*100:.1f}% | ~70% | {'✅' if self.medium_success_rate >= 0.60 else '❌'} |
-| **Complex** | {self.complex_success_rate*100:.1f}% | ~50% | {'✅' if self.complex_success_rate >= 0.40 else '❌'} |
+| **Simple** | {self.simple_success_rate * 100:.1f}% | ~90% | {"✅" if self.simple_success_rate >= 0.80 else "❌"} |
+| **Medium** | {self.medium_success_rate * 100:.1f}% | ~70% | {"✅" if self.medium_success_rate >= 0.60 else "❌"} |
+| **Complex** | {self.complex_success_rate * 100:.1f}% | ~50% | {"✅" if self.complex_success_rate >= 0.40 else "❌"} |
 
 ### Difficulty Analysis
 """
@@ -414,15 +416,15 @@ using existing CORE infrastructure (no semantic enhancements).
             md += f"""### ✅ PROCEED TO PHASE 1
 
 **Rationale**:
-- Constitutional compliance at {self.constitutional_compliance_rate*100:.1f}% (≥70% required)
-- Semantic placement at {self.semantic_placement_accuracy*100:.1f}% (≥80% required)
-- Execution success at {self.execution_success_rate*100:.1f}% (≥50% required)
+- Constitutional compliance at {self.constitutional_compliance_rate * 100:.1f}% (≥70% required)
+- Semantic placement at {self.semantic_placement_accuracy * 100:.1f}% (≥80% required)
+- Execution success at {self.execution_success_rate * 100:.1f}% (≥50% required)
 
 **Expected Impact of Phase 1**:
 Phase 1 (semantic infrastructure) should improve:
-- Semantic placement: {self.semantic_placement_accuracy*100:.1f}% → 95%+ (architectural anchors)
-- Constitutional compliance: {self.constitutional_compliance_rate*100:.1f}% → 85%+ (policy context)
-- Execution success: {self.execution_success_rate*100:.1f}% → 70%+ (better context)
+- Semantic placement: {self.semantic_placement_accuracy * 100:.1f}% → 95%+ (architectural anchors)
+- Constitutional compliance: {self.constitutional_compliance_rate * 100:.1f}% → 85%+ (policy context)
+- Execution success: {self.execution_success_rate * 100:.1f}% → 70%+ (better context)
 
 **Next Steps**:
 1. Document these baseline results
@@ -441,11 +443,11 @@ could push us over the line.
 **Issues Identified**:
 """
             if self.constitutional_compliance_rate < 0.70:
-                md += f"- Constitutional compliance at {self.constitutional_compliance_rate*100:.1f}% (need 70%)\n"
+                md += f"- Constitutional compliance at {self.constitutional_compliance_rate * 100:.1f}% (need 70%)\n"
             if self.semantic_placement_accuracy < 0.80:
-                md += f"- Semantic placement at {self.semantic_placement_accuracy*100:.1f}% (need 80%)\n"
+                md += f"- Semantic placement at {self.semantic_placement_accuracy * 100:.1f}% (need 80%)\n"
             if self.execution_success_rate < 0.50:
-                md += f"- Execution success at {self.execution_success_rate*100:.1f}% (need 50%)\n"
+                md += f"- Execution success at {self.execution_success_rate * 100:.1f}% (need 50%)\n"
 
             md += """
 **Recommended Actions**:
@@ -467,10 +469,10 @@ to close the gap, as the issues are fundamental rather than context-related.
 **Critical Issues**:
 """
             if self.constitutional_compliance_rate < 0.50:
-                md += f"- Constitutional compliance at {self.constitutional_compliance_rate*100:.1f}% (critical)\n"
+                md += f"- Constitutional compliance at {self.constitutional_compliance_rate * 100:.1f}% (critical)\n"
                 md += "  → LLM cannot reliably produce compliant code\n"
             if self.execution_success_rate < 0.30:
-                md += f"- Execution success at {self.execution_success_rate*100:.1f}% (critical)\n"
+                md += f"- Execution success at {self.execution_success_rate * 100:.1f}% (critical)\n"
                 md += "  → Generated code has fundamental errors\n"
 
             md += """

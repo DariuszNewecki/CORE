@@ -22,7 +22,7 @@ logger = getLogger(__name__)
 
 
 @dataclass
-# ID: 40e7eabc-d098-45c9-bfce-ab5f1a252d4d
+# ID: 10af153b-2b02-46ee-b06e-07afe2c5e69b
 class CoverageViolation:
     """Represents a coverage violation that needs remediation."""
 
@@ -34,7 +34,7 @@ class CoverageViolation:
     auto_remediate: bool = True
 
 
-# ID: 586c3b59-fe2d-4cfb-ba25-c13fd74b8336
+# ID: c75a7281-9bb9-4c03-8dcf-2eb38c36f9a8
 class CoverageWatcher:
     """
     Monitors test coverage and triggers autonomous remediation when violations occur.
@@ -48,7 +48,7 @@ class CoverageWatcher:
         self.state_file = settings.REPO_PATH / "work" / "testing" / "watcher_state.json"
         self.state_file.parent.mkdir(parents=True, exist_ok=True)
 
-    # ID: 1379872b-e1b3-4446-b298-a652a811a8df
+    # ID: c0b0acc5-7030-458a-9b5e-45d03e9fe8ee
     async def check_and_remediate(
         self, context: CoreContext, auto_remediate: bool = True
     ) -> dict:
@@ -63,9 +63,9 @@ class CoverageWatcher:
             return {"status": "compliant", "action": "none", "findings": []}
         violation = self._analyze_findings(findings)
         logger.warning("Constitutional Violation Detected")
-        logger.info(f"   Current: {violation.current_coverage}%")
-        logger.info(f"   Required: {violation.required_coverage}%")
-        logger.info(f"   Gap: {abs(violation.delta):.1f}%")
+        logger.info("   Current: %s%", violation.current_coverage)
+        logger.info("   Required: %s%", violation.required_coverage)
+        logger.info("   Gap: %s%", abs(violation.delta))
         if not auto_remediate:
             logger.warning("Auto-remediation disabled - manual intervention required")
             return {
@@ -96,7 +96,7 @@ class CoverageWatcher:
                 logger.warning("Partial remediation - some violations remain")
                 return {"status": "partial_remediation", "compliant": False}
         except Exception as e:
-            logger.error(f"Remediation failed: {e}", exc_info=True)
+            logger.error("Remediation failed: %s", e, exc_info=True)
             return {"status": "remediation_failed", "error": str(e)}
 
     def _analyze_findings(self, findings: list) -> CoverageViolation:
@@ -189,7 +189,7 @@ class CoverageWatcher:
             logger.debug("Could not record remediation: %s", e)
 
 
-# ID: 547d5f4c-c028-4386-975a-02cf7792ee85
+# ID: 1aa4e4ef-2362-44b7-8aae-7d6af69cb799
 async def watch_and_remediate(
     context: CoreContext, auto_remediate: bool = True
 ) -> dict:

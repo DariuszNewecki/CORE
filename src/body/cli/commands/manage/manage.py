@@ -26,7 +26,7 @@ from features.introspection.capability_discovery_service import sync_capabilitie
 from features.introspection.export_vectors import export_vectors
 from features.maintenance.dotenv_sync_service import run_dotenv_sync
 from features.maintenance.migration_service import run_ssot_migration
-from features.project_lifecycle.definition_service import _define_new_symbols
+from features.project_lifecycle.definition_service import define_symbols
 from features.project_lifecycle.scaffolding_service import create_new_project
 from mind.governance.key_management_service import keygen
 from shared.cli_utils import core_command
@@ -315,4 +315,4 @@ async def define_symbols_command(
         ctx_service.vector_provider.cognitive_service = core_context.cognitive_service
 
     # Run the actual symbol definition with a fully wired context service
-    await _define_new_symbols(ctx_service)
+    await define_symbols(ctx_service)

@@ -1,4 +1,5 @@
 # src/will/orchestration/decision_tracer.py
+
 """Records and explains autonomous decision-making chains."""
 
 from __future__ import annotations
@@ -16,7 +17,7 @@ logger = getLogger(__name__)
 
 
 @dataclass
-# ID: c5518b4f-a138-407b-87b3-f036880b765b
+# ID: 1204c0b0-4a00-4dad-81d7-19b0156edcad
 class Decision:
     """A single decision point in the autonomy chain."""
 
@@ -30,7 +31,7 @@ class Decision:
     confidence: float
 
 
-# ID: 8d1ec1ce-07be-47e2-b2c2-c806a7e8d179
+# ID: ed96d75e-a5ea-4b93-a822-3cbbf5b889df
 class DecisionTracer:
     """Traces and explains autonomous decision chains."""
 
@@ -40,7 +41,7 @@ class DecisionTracer:
         self.trace_dir = Path("reports/decisions")
         self.trace_dir.mkdir(parents=True, exist_ok=True)
 
-    # ID: 26d6bd8f-fa12-4d32-b9de-26dbf3f2f940
+    # ID: d259527d-5f1e-4778-8499-fa23fd49e7f5
     def record(
         self,
         agent: str,
@@ -64,21 +65,23 @@ class DecisionTracer:
         )
         self.decisions.append(decision)
         logger.info(
-            f"[{agent}] {decision_type}: {chosen_action} (confidence: {confidence:.2f})"
+            "[%s] %s: %s (confidence: %s)",
+            agent,
+            decision_type,
+            chosen_action,
+            confidence,
         )
 
-    # ID: 902aaaba-e3d9-4b8d-9f23-5291869bcee0
+    # ID: 41368e0d-a41f-483c-9be6-14216c98a96c
     def explain_chain(self) -> str:
         """Generate human-readable explanation of the decision chain."""
         if not self.decisions:
             return "No decisions recorded yet."
-
         lines = [
             "=== CORE Decision Chain ===\n",
             f"Session: {self.session_id}",
             f"Total decisions: {len(self.decisions)}\n",
         ]
-
         for i, d in enumerate(self.decisions, 1):
             lines.append(f"\n[{i}] {d.agent} - {d.decision_type}")
             lines.append(f"    Time: {d.timestamp}")
@@ -91,10 +94,9 @@ class DecisionTracer:
             lines.append(f"    Confidence: {d.confidence:.0%}")
             if d.context:
                 lines.append(f"    Context: {json.dumps(d.context, indent=8)}")
-
         return "\n".join(lines)
 
-    # ID: dbf6f1e6-cf88-42a8-9841-63da6e053269
+    # ID: aa09fa09-8f93-496a-bea9-62d220708268
     def save_trace(self):
         """Save decision trace to file."""
         trace_file = self.trace_dir / f"trace_{self.session_id}.json"

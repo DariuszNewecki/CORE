@@ -193,12 +193,12 @@ def _apply_fixes_to_function(
         action_id = _infer_action_id(function_name)
 
         decorator_lines = [
-            f'{" " * indent}@atomic_action(\n',
+            f"{' ' * indent}@atomic_action(\n",
             f'{" " * (indent + 4)}action_id="{action_id}",\n',
             f'{" " * (indent + 4)}intent="Atomic action for {function_name}",\n',
-            f'{" " * (indent + 4)}impact=ActionImpact.WRITE_CODE,\n',
+            f"{' ' * (indent + 4)}impact=ActionImpact.WRITE_CODE,\n",
             f'{" " * (indent + 4)}policies=["atomic_actions"],\n',
-            f'{" " * indent})\n',
+            f"{' ' * indent})\n",
         ]
         lines[func_line_idx:func_line_idx] = decorator_lines
         func_line_idx += len(decorator_lines)

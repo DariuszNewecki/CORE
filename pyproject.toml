@@ -139,6 +139,8 @@ extend-exclude = [
     "logs",
     "sandbox",
     "pending_writes",
+    "scripts",
+    "dev-scripts",
 ]
 
 [tool.ruff.lint]

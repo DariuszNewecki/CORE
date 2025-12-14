@@ -29,7 +29,8 @@ async def _async_fix_line_lengths(
 ):
     """Async core logic for finding and fixing all line length violations."""
     logger.info(
-        f"Scanning {len(files_to_process)} files for lines longer than 100 characters..."
+        "Scanning %s files for lines longer than 100 characters...",
+        len(files_to_process),
     )
     prompt_template_path = settings.MIND / "prompts" / "fix_line_length.prompt"
     if not prompt_template_path.exists():
@@ -51,10 +52,8 @@ async def _async_fix_line_lengths(
     if not files_with_long_lines:
         logger.info("No files with long lines found. Nothing to do.")
         return
-    logger.info(f"Found {len(files_with_long_lines)} file(s) with long lines to fix.")
-
+    logger.info("Found %s file(s) with long lines to fix.", len(files_with_long_lines))
     modification_plan = {}
-
     logger.debug("Asking AI to refactor files...")
     for file_path in files_with_long_lines:
         try:
@@ -74,27 +73,27 @@ async def _async_fix_line_lengths(
                     modification_plan[file_path] = validation_result["code"]
                 else:
                     logger.warning(
-                        f"Skipping {file_path.name}: AI-generated code failed validation."
+                        "Skipping %s: AI-generated code failed validation.",
+                        file_path.name,
                     )
         except Exception as e:
             logger.error("Could not process {file_path.name}: %s", e)
-
     if dry_run:
         logger.info("Dry Run Summary:")
         for file_path in sorted(modification_plan.keys()):
             logger.info(
-                f"  - Would fix line lengths in: {file_path.relative_to(REPO_ROOT)}"
+                "  - Would fix line lengths in: %s", file_path.relative_to(REPO_ROOT)
             )
     else:
         logger.info("Writing changes to disk...")
         for file_path, new_code in modification_plan.items():
             file_path.write_text(new_code, "utf-8")
             logger.info(
-                f"   -> Fixed line lengths in {file_path.relative_to(REPO_ROOT)}"
+                "   -> Fixed line lengths in %s", file_path.relative_to(REPO_ROOT)
             )
 
 
-# ID: 3b56560b-f4d7-4418-9ca8-fd8154744621
+# ID: 38f408b5-3490-4fb8-8bf4-c09b33ed5af8
 def fix_line_lengths(
     context: CoreContext,
     file_path: Path | None = typer.Argument(

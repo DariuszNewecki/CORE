@@ -1,7 +1,7 @@
 # src/mind/governance/checks/capability_coverage.py
 """
-A constitutional audit check to ensure that all capabilities declared in the
-project manifest are implemented in the database, enforcing the 'knowledge.database_ssot' rule.
+Ensures knowledge integrity between the Mind (YAML) and the Database (SSOT).
+Enforces 'knowledge.database_ssot' by verifying capability alignment.
 """
 
 from __future__ import annotations
@@ -9,63 +9,75 @@ from __future__ import annotations
 import yaml
 
 from mind.governance.checks.base_check import BaseCheck
+from shared.logger import getLogger
 from shared.models import AuditFinding, AuditSeverity
+
+
+logger = getLogger(__name__)
 
 
 # ID: 92f0b3ec-48d7-49f0-aace-2c894186a46f
 class CapabilityCoverageCheck(BaseCheck):
     """
-    Verifies that every capability in the manifest has a corresponding
-    implementation entry in the database's symbols table.
+    Verifies that capabilities declared in the Mind (domain_definitions.yaml)
+    are correctly mirrored in the Database SSOT.
     """
 
     policy_rule_ids = ["knowledge.database_ssot"]
 
     # ID: e0730fb8-2616-42b2-915b-48f30ff4ac17
     def execute(self) -> list[AuditFinding]:
-        """
-        Runs the check and returns a list of findings for any violations.
-        """
         findings: list[AuditFinding] = []
 
-        manifest_path = self.context.mind_path / "project_manifest.yaml"
-        if not manifest_path.exists():
+        # 1. Resolve Path to Domain Definitions (The Read-Only Mirror)
+        domain_def_path = self.context.mind_path / "knowledge/domain_definitions.yaml"
+
+        if not domain_def_path.exists():
             findings.append(
                 AuditFinding(
-                    check_id="structural_compliance.manifest.missing",
+                    check_id="knowledge.database_ssot",
                     severity=AuditSeverity.ERROR,
-                    message=(
-                        "The project_manifest.yaml file is missing from .intent/mind/."
-                    ),
-                    file_path=str(manifest_path.relative_to(self.context.repo_path)),
+                    message="The domain_definitions.yaml mirror is missing.",
+                    file_path=str(domain_def_path.relative_to(self.context.repo_path)),
                 )
             )
             return findings
 
-        with open(manifest_path, encoding="utf-8") as f:
-            manifest_content = yaml.safe_load(f)
+        # 2. Extract Declared Capability Domains from YAML
+        try:
+            with open(domain_def_path, encoding="utf-8") as f:
+                content = yaml.safe_load(f)
 
-        declared_capabilities: set[str] = set(manifest_content.get("capabilities", []))
+            # Per domain_definitions.yaml schema: list of objects with 'name'
+            declared_domains = {
+                d["name"] for d in content.get("capability_domains", []) if "name" in d
+            }
+        except Exception as exc:
+            logger.error("Failed to parse domain definitions: %s", exc)
+            return findings
 
-        # SSOT-correct logic: The database is the source of truth.
-        implemented_capabilities: set[str] = {
-            s["capability"]
-            for s in self.context.knowledge_graph.get("symbols", {}).values()
-            if s.get("capability")
+        # 3. Extract Implemented Domains from Database (Operational SSOT)
+        # self.context.knowledge_graph is the bridge to the DB
+        implemented_symbols = self.context.knowledge_graph.get("symbols", {}).values()
+
+        # We check which domains are actually associated with symbols in the DB
+        implemented_domains: set[str] = {
+            s.get("domain") for s in implemented_symbols if s.get("domain")
         }
 
-        missing_implementations = declared_capabilities - implemented_capabilities
+        # 4. Find Drift (Drift = Declared in YAML but missing from DB)
+        missing_in_db = declared_domains - implemented_domains
 
-        for cap_key in sorted(missing_implementations):
+        for domain in sorted(missing_in_db):
             findings.append(
                 AuditFinding(
                     check_id="knowledge.database_ssot",
                     severity=AuditSeverity.ERROR,
                     message=(
-                        f"Violation of 'knowledge.database_ssot': Capability '{cap_key}' "
-                        "is declared in the manifest but has no implementation in the database (SSOT)."
+                        f"Operational Drift: Domain '{domain}' is declared in "
+                        "domain_definitions.yaml but has no symbols in the Database SSOT."
                     ),
-                    file_path=str(manifest_path.relative_to(self.context.repo_path)),
+                    file_path=str(domain_def_path.relative_to(self.context.repo_path)),
                 )
             )
 

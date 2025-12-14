@@ -21,7 +21,7 @@ logger = getLogger(__name__)
 
 
 @dataclass
-# ID: 59a37e53-cff3-451b-b007-e67294a938bc
+# ID: 5a5fabd4-5e30-48c6-ad4d-5702abbb22e8
 class MicroProposal:
     """Internal data structure for a micro-proposal with target file, action, and content."""
 
@@ -31,7 +31,7 @@ class MicroProposal:
     validation_report_id: str | None = None
 
 
-# ID: a681a59e-70b7-43a9-a35e-228ca254d055
+# ID: 91fbe5a7-9add-46b5-9443-c9759e49fa28
 class MicroProposalExecutor:
     """
     Validates and applies micro-proposals for safe, autonomous changes as defined
@@ -192,7 +192,7 @@ class MicroProposalExecutor:
             path=None,
         )
 
-    # ID: b539d219-51aa-4123-9cd8-d77ffb209a4c
+    # ID: 8e521e21-2ee8-4890-8e1a-be92893f4d61
     def validate_proposal(self, proposal: MicroProposal) -> list[CheckResult]:
         """
         Validate a micro-proposal against safe_actions, safe_paths, and
@@ -206,7 +206,9 @@ class MicroProposalExecutor:
         """
         results = []
         logger.debug(
-            f"Validating micro-proposal for action '{proposal.action}' on '{proposal.file_path}'"
+            "Validating micro-proposal for action '%s' on '%s'",
+            proposal.action,
+            proposal.file_path,
         )
         results.append(self._check_safe_actions(proposal.action))
         results.append(self._check_safe_paths(proposal.file_path))
@@ -214,13 +216,14 @@ class MicroProposalExecutor:
         errors = [r for r in results if r.severity == "error"]
         if errors:
             logger.error(
-                f"Micro-proposal validation failed: {[(r.rule_id, r.message) for r in errors]}"
+                "Micro-proposal validation failed: %s",
+                [(r.rule_id, r.message) for r in errors],
             )
         else:
             logger.info("Micro-proposal passed all validation checks")
         return results
 
-    # ID: 945fb9c6-6789-415c-9412-64b57e03fd8f
+    # ID: d9dcf58e-224a-4971-bab0-750913c3c3e8
     async def apply_proposal(self, proposal: MicroProposal) -> bool:
         """
         Apply a validated micro-proposal by executing the specified action.
@@ -238,15 +241,15 @@ class MicroProposalExecutor:
         try:
             if proposal.action == "autonomy.self_healing.format_code":
                 Path(proposal.file_path).write_text(proposal.content, encoding="utf-8")
-                logger.info(f"Applied format_code to {proposal.file_path}")
+                logger.info("Applied format_code to %s", proposal.file_path)
             elif proposal.action == "autonomy.self_healing.fix_docstrings":
                 Path(proposal.file_path).write_text(proposal.content, encoding="utf-8")
-                logger.info(f"Applied fix_docstrings to {proposal.file_path}")
+                logger.info("Applied fix_docstrings to %s", proposal.file_path)
             elif proposal.action == "autonomy.self_healing.fix_headers":
                 Path(proposal.file_path).write_text(proposal.content, encoding="utf-8")
-                logger.info(f"Applied fix_headers to {proposal.file_path}")
+                logger.info("Applied fix_headers to %s", proposal.file_path)
             else:
-                logger.error(f"Unsupported action: {proposal.action}")
+                logger.error("Unsupported action: %s", proposal.action)
                 return False
             return True
         except Exception as e:

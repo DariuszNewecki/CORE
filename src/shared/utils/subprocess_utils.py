@@ -19,7 +19,7 @@ logger = getLogger(__name__)
 console = Console()
 
 
-# ID: 1bb2303c-98bf-4f96-84c4-99ce75c8f044
+# ID: f555860f-aeb3-4a20-92ff-eee51b7f4501
 def run_poetry_command(description: str, command: list[str]):
     """Helper to run a command via Poetry, log it, and handle errors."""
     POETRY_EXECUTABLE = shutil.which("poetry")
@@ -35,11 +35,11 @@ def run_poetry_command(description: str, command: list[str]):
         if result.stdout:
             logger.info(result.stdout)
         if result.stderr:
-            logger.info(f"[yellow]{result.stderr}[/yellow]")
+            logger.info("[yellow]%s[/yellow]", result.stderr)
     except subprocess.CalledProcessError as e:
-        logger.error(f"\n❌ Command failed: {' '.join(full_command)}")
+        logger.error("\n❌ Command failed: %s", " ".join(full_command))
         if e.stdout:
             logger.info(e.stdout)
         if e.stderr:
-            logger.info(f"[bold red]{e.stderr}[/bold red]")
+            logger.info("[bold red]%s[/bold red]", e.stderr)
         raise typer.Exit(code=1)

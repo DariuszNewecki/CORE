@@ -1,4 +1,5 @@
 # src/api/main_governance_patch.py
+
 """
 Governance Integration Patch for FastAPI Lifespan.
 
@@ -15,7 +16,7 @@ from shared.logger import getLogger
 logger = getLogger(__name__)
 
 
-# ID: 5eeaa03d-dc6f-4c9d-af9e-72644bdcd710
+# ID: 47d49349-577d-4c8a-864f-4037f2c1b026
 def initialize_governance():
     """
     Initialize constitutional governance system.
@@ -27,33 +28,14 @@ def initialize_governance():
         ConstitutionalValidator instance
     """
     logger.info("📜 Loading constitutional governance...")
-
     try:
         validator = get_validator()
         logger.info("✅ Constitutional governance ready")
-        logger.info(f"   📊 Indexed: {len(validator._critical_paths)} critical paths")
+        logger.info("   📊 Indexed: %s critical paths", len(validator._critical_paths))
         logger.info(
-            f"   📊 Indexed: {len(validator._autonomous_actions)} autonomous actions"
+            "   📊 Indexed: %s autonomous actions", len(validator._autonomous_actions)
         )
         return validator
     except Exception as e:
         logger.error("❌ Failed to load constitution: %s", e)
         raise
-
-
-# === INTEGRATION INSTRUCTIONS ===
-#
-# In your src/api/main.py, add to the lifespan function after line 180:
-#
-# @asynccontextmanager
-# async def lifespan(app: FastAPI):
-#     logger.info("🚀 Starting CORE system...")
-#
-#     # ... existing code ...
-#
-#     # ADD THIS:
-#     from api.main_governance_patch import initialize_governance
-#     validator = initialize_governance()
-#     app.state.governance_validator = validator
-#
-#     # ... rest of existing code ...

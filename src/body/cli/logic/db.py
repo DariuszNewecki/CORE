@@ -1,4 +1,5 @@
 # src/body/cli/logic/db.py
+
 """
 Registers the top-level 'db' command group for managing the CORE operational database.
 """
@@ -35,14 +36,14 @@ async def _export_domains():
             )
         )
         domains_data = [dict(row._mapping) for row in result]
-
     output_path = settings.MIND / "knowledge" / "domains.yaml"
-
     output_path.parent.mkdir(parents=True, exist_ok=True)
     yaml_content = {"version": 2, "domains": domains_data}
     output_path.write_text(yaml.dump(yaml_content, indent=2, sort_keys=False), "utf-8")
     logger.info(
-        f"Wrote {len(domains_data)} domains to {output_path.relative_to(settings.REPO_PATH)}"
+        "Wrote %s domains to %s",
+        len(domains_data),
+        output_path.relative_to(settings.REPO_PATH),
     )
 
 
@@ -50,20 +51,11 @@ async def _export_vector_metadata():
     """Fetches vector metadata from the DB and writes it to a report."""
     logger.info("Exporting vector metadata from database to YAML...")
     async with get_session() as session:
-        # --- START OF FIX: Corrected the SQL query to use a JOIN ---
         result = await session.execute(
             text(
-                """
-                SELECT s.id as uuid, s.symbol_path, l.vector_id
-                FROM core.symbols s
-                JOIN core.symbol_vector_links l ON s.id = l.symbol_id
-                ORDER BY s.symbol_path;
-                """
+                "\n                SELECT s.id as uuid, s.symbol_path, l.vector_id\n                FROM core.symbols s\n                JOIN core.symbol_vector_links l ON s.id = l.symbol_id\n                ORDER BY s.symbol_path;\n                "
             )
         )
-        # --- END OF FIX ---
-
-        # Convert UUIDs to strings for YAML serialization
         vector_data = []
         for row in result:
             row_dict = dict(row._mapping)
@@ -72,19 +64,20 @@ async def _export_vector_metadata():
             if "vector_id" in row_dict and row_dict["vector_id"] is not None:
                 row_dict["vector_id"] = str(row_dict["vector_id"])
             vector_data.append(row_dict)
-
     output_path = settings.REPO_PATH / "reports" / "vector_metadata_export.yaml"
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(yaml.dump(vector_data, indent=2, sort_keys=False), "utf-8")
     logger.info(
-        f"Wrote metadata for {len(vector_data)} vectors to {output_path.relative_to(settings.REPO_PATH)}"
+        "Wrote metadata for %s vectors to %s",
+        len(vector_data),
+        output_path.relative_to(settings.REPO_PATH),
     )
 
 
 @db_app.command(
     "export", help="Export operational data from the database to read-only files."
 )
-# ID: abcb819a-2a07-4c8e-a56e-3368478ce245
+# ID: 86554413-b670-4c62-80eb-31bab9a05edf
 def export_data():
     """Exports DB tables to their canonical, read-only YAML file representations."""
     logger.info("Exporting operational data from Database to files...")

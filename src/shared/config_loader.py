@@ -18,7 +18,7 @@ from shared.logger import getLogger
 logger = getLogger(__name__)
 
 
-# ID: 7c39612e-da89-47b1-8b80-131aeec8d4fb
+# ID: 97127c0c-a130-4dd4-9ced-16ef0952b06c
 def load_yaml_file(file_path: Path) -> dict[str, Any]:
     """
     Loads a YAML or JSON config file safely, with consistent error handling.
@@ -44,7 +44,7 @@ def load_yaml_file(file_path: Path) -> dict[str, Any]:
         elif file_path.suffix == ".json":
             return json.loads(content) or {}
         else:
-            logger.error(f"Unsupported file type: {file_path.suffix}")
+            logger.error("Unsupported file type: %s", file_path.suffix)
             raise ValueError(f"Unsupported config file type: {file_path}")
     except (yaml.YAMLError, json.JSONDecodeError) as e:
         logger.error("Error parsing config {file_path}: %s", e)

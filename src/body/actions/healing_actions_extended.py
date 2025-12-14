@@ -19,22 +19,23 @@ from shared.utils.subprocess_utils import run_poetry_command
 logger = getLogger(__name__)
 
 
-# ID: e0db6619-74fe-42dc-af04-b209f047bc34
+# ID: f8eb9212-6de9-40a0-b8cb-d24b0e070c99
 class FixUnusedImportsHandler(ActionHandler):
     """Handles the 'autonomy.self_healing.fix_imports' action."""
 
     @property
-    # ID: ed495f91-3d7e-4a43-ba1b-4b130ff2691f
+    # ID: 13174a6a-53b2-4842-8f7c-b4825e6d71b7
     def name(self) -> str:
         return "autonomy.self_healing.fix_imports"
 
-    # ID: a93c2b29-4d68-4e28-ab39-6995010099c8
+    # ID: 5707c979-4387-4aed-8fc5-d4b8d76177ec
     async def execute(self, params: TaskParams, context: PlanExecutorContext):
         """Removes unused imports using ruff via the sanctioned linter service."""
         target_path = params.file_path or "src/"
+        logger.info("🔄 Starting unused import cleanup in %s", target_path)
         try:
             run_poetry_command(
-                f"Fixing unused imports in {target_path}",
+                "",  # Removed UI progress string — now silent + logged
                 [
                     "ruff",
                     "check",
@@ -45,28 +46,29 @@ class FixUnusedImportsHandler(ActionHandler):
                     "--exit-zero",
                 ],
             )
-            logger.info("Fixed unused imports in %s", target_path)
+            logger.info("✅ Fixed unused imports in %s", target_path)
         except Exception as e:
             logger.error("Failed to fix imports: %s", e)
             raise
 
 
-# ID: 4d3424b8-7a82-42a3-b0b9-bc904516e68b
+# ID: 359cd37f-b375-4527-8225-27bb4b2a2dd4
 class RemoveDeadCodeHandler(ActionHandler):
     """Handles the 'autonomy.self_healing.remove_dead_code' action."""
 
     @property
-    # ID: 3d8a8c30-07c8-4ce8-84ab-3117e529327b
+    # ID: 99bb6e53-b777-4b73-894f-8414ee878fd0
     def name(self) -> str:
         return "autonomy.self_healing.remove_dead_code"
 
-    # ID: e5388c75-452e-4d9e-8ff5-87e4fa9afd6e
+    # ID: 8ab547f6-f904-4277-b9ae-5dc3305696f6
     async def execute(self, params: TaskParams, context: PlanExecutorContext):
         """Removes unreachable code using ruff via the sanctioned linter service."""
         target_path = params.file_path or "src/"
+        logger.info("🔄 Starting dead code removal in %s", target_path)
         try:
             run_poetry_command(
-                f"Removing dead code in {target_path}",
+                "",  # Removed UI progress string
                 [
                     "ruff",
                     "check",
@@ -77,22 +79,22 @@ class RemoveDeadCodeHandler(ActionHandler):
                     "--exit-zero",
                 ],
             )
-            logger.info("Removed dead code in %s", target_path)
+            logger.info("✅ Removed dead code in %s", target_path)
         except Exception as e:
             logger.error("Failed to remove dead code: %s", e)
             raise
 
 
-# ID: 20798537-ddac-4b71-91b6-c0f4365d3b7e
+# ID: 5a5a4107-2176-4eee-8009-43b694d90e79
 class EnforceLineLengthHandler(ActionHandler):
     """Handles the 'autonomy.self_healing.fix_line_length' action."""
 
     @property
-    # ID: 30f35751-59ff-439f-92bb-f0d890ca0a69
+    # ID: 327aa8c6-4278-4787-ad38-f5a3975190aa
     def name(self) -> str:
         return "autonomy.self_healing.fix_line_length"
 
-    # ID: c63f6873-e502-4742-92a8-60fe07f79fc8
+    # ID: 651596fc-aa1c-4aa0-ab49-a49f2106b788
     async def execute(self, params: TaskParams, context: PlanExecutorContext):
         """Enforces line length limit using existing service."""
         from features.self_healing.linelength_service import _async_fix_line_lengths
@@ -100,58 +102,66 @@ class EnforceLineLengthHandler(ActionHandler):
         target_path = params.file_path
         if target_path:
             files_to_fix = [Path(settings.REPO_PATH) / target_path]
+            logger.info("🔄 Enforcing line length in specific file: %s", target_path)
         else:
             src_dir = settings.REPO_PATH / "src"
             files_to_fix = list(src_dir.rglob("*.py"))
+            logger.info(
+                "🔄 Enforcing line length across all %s Python files", len(files_to_fix)
+            )
         try:
             await _async_fix_line_lengths(files_to_fix, dry_run=False)
-            logger.info(f"Fixed line lengths in {len(files_to_fix)} files")
+            logger.info(
+                "✅ Line length enforcement completed (%s files)", len(files_to_fix)
+            )
         except Exception as e:
             logger.error("Failed to fix line lengths: %s", e)
             raise
 
 
-# ID: 339be393-24de-4c3b-b808-096b277496a9
+# ID: 1a87107a-3285-4379-a4c1-99759e6008da
 class AddPolicyIDsHandler(ActionHandler):
     """Handles the 'autonomy.self_healing.add_policy_ids' action."""
 
     @property
-    # ID: f2704a83-05b9-4f10-b8be-1d8157b9327c
+    # ID: 7361de44-485b-4840-8523-1f216eeda664
     def name(self) -> str:
         return "autonomy.self_healing.add_policy_ids"
 
-    # ID: 202434d6-46d1-4caf-a1e9-62e4d57bcb7c
+    # ID: 21ff3678-1432-456e-9c2d-f631381247fe
     async def execute(self, params: TaskParams, context: PlanExecutorContext):
         """Adds missing UUIDs to policy files using existing service."""
         from features.self_healing.policy_id_service import add_missing_policy_ids
 
+        logger.info("🔄 Starting policy ID addition cycle...")
         try:
             count = add_missing_policy_ids(dry_run=False)
-            logger.info("Added policy IDs to %s files", count)
+            logger.info("✅ Added policy IDs to %s files", count)
         except Exception as e:
             logger.error("Failed to add policy IDs: %s", e)
             raise
 
 
-# ID: a505cf51-1aa3-4be5-92c2-b496d702d200
+# ID: 3b1881df-c5e9-495a-9d27-372a0e9b93ef
 class SortImportsHandler(ActionHandler):
     """Handles the 'autonomy.self_healing.sort_imports' action."""
 
     @property
-    # ID: 79e5f989-1b8d-42c6-9d5a-63c165f60602
+    # ID: 9d2a1ed7-a022-42ce-9cba-517a744ed059
     def name(self) -> str:
         return "autonomy.self_healing.sort_imports"
 
-    # ID: fd4ca499-e735-41c7-b220-5e11a05e8323
+    # ID: c5e0961f-968f-4613-9fe3-dfb2b8ef13a0
     async def execute(self, params: TaskParams, context: PlanExecutorContext):
         """Sorts imports according to style policy using ruff via the sanctioned linter service."""
         target_path = params.file_path or "src/"
+        logger.info("🔄 Starting import sorting in %s", target_path)
         try:
             run_poetry_command(
-                f"Sorting imports in {target_path}",
+                "",  # Removed UI progress string
                 ["ruff", "check", target_path, "--fix", "--select", "I", "--exit-zero"],
             )
-            logger.info("Sorted imports in %s", target_path)
+            logger.info("✅ Sorted imports in %s", target_path)
         except Exception as e:
             logger.error("Failed to sort imports: %s", e)
             raise

@@ -21,7 +21,7 @@ from shared.logger import getLogger
 logger = getLogger(__name__)
 
 
-# ID: 2f9f8357-a513-4277-8c05-8922d73370ae
+# ID: 2b075104-ab91-4ea3-931b-a9be87d56799
 class CoverageAnalyzer:
     """
     Analyzes test coverage and module structure for prioritization.
@@ -30,7 +30,7 @@ class CoverageAnalyzer:
     def __init__(self):
         self.repo_path = settings.REPO_PATH
 
-    # ID: 52977558-71c7-4589-b9e3-f78d1b371938
+    # ID: 168e0d67-a382-48a5-9dd5-79eeb9656cfa
     def get_module_coverage(self) -> dict[str, float]:
         """
         Gets current coverage percentage for each module.
@@ -58,7 +58,7 @@ class CoverageAnalyzer:
             logger.debug("Could not get module coverage: %s", e)
         return {}
 
-    # ID: bb8cacda-c4fd-49bc-aee7-fcb87fb653de
+    # ID: 12e50464-4e37-48a6-a738-5def4ee46de1
     def analyze_codebase(self) -> dict[str, Any]:
         """
         Analyzes codebase structure to identify testing priorities.
@@ -104,7 +104,7 @@ class CoverageAnalyzer:
                 logger.debug("Could not analyze {py_file}: %s", e)
         return module_info
 
-    # ID: 23b0e191-9a5e-4399-b502-6a15975746d3
+    # ID: 09b41c82-55e9-494b-8387-bd92eeff3509
     def measure_coverage(self) -> dict[str, Any] | None:
         """
         Runs pytest with coverage and returns parsed results.
@@ -144,7 +144,7 @@ class CoverageAnalyzer:
             logger.error("Coverage measurement timed out after 5 minutes")
             return None
         except Exception as e:
-            logger.error(f"Failed to measure coverage: {e}", exc_info=True)
+            logger.error("Failed to measure coverage: %s", e, exc_info=True)
             return None
 
     def _parse_term_output(self, output: str) -> dict[str, Any] | None:

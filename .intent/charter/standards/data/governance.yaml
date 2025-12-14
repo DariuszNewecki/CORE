@@ -100,6 +100,16 @@ knowledge_integrity:
       - "src/features/introspection/knowledge_graph_service.py"
       - "src/features/governance/checks/knowledge_source_check.py"
 
+  # --- AMENDMENT START: Symbols / Capability Semantics ---
+  - id: knowledge.symbols_key_is_label
+    statement: "core.symbols.key MUST be treated as a non-unique capability label. Multiple symbols MAY share the same key."
+    enforcement: error
+
+  - id: knowledge.capability_mapping_ssot_is_links
+    statement: "Symbol-to-capability mapping SSOT MUST be core.symbol_capability_links (and core.capabilities). core.symbols.key is a convenience label only."
+    enforcement: error
+  # --- AMENDMENT END: Symbols / Capability Semantics ---
+
 # === RETENTION & BACKUP ===
 retention:
   audit_runs_days: 180

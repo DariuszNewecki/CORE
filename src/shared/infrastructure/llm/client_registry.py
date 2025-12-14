@@ -25,7 +25,7 @@ from shared.logger import getLogger
 logger = getLogger(__name__)
 
 
-# ID: 73176353-f439-4aa3-bea6-be2b907aa0e3
+# ID: e6871b0c-f0a1-4c57-ba37-cd45013ebb0a
 class CachedConfigService:
     """
     A ConfigService impersonator that serves values from a static cache.
@@ -35,7 +35,7 @@ class CachedConfigService:
     def __init__(self, cache: dict[str, Any]):
         self._cache = cache
 
-    # ID: 67de48ce-a1f4-462f-99be-2d34ed31711c
+    # ID: 43f0d3fb-bb09-4e3b-a5c9-e04508f2597e
     async def get(
         self, key: str, default: str | None = None, required: bool = False
     ) -> str | None:
@@ -46,12 +46,12 @@ class CachedConfigService:
             return default
         return val
 
-    # ID: e373f8cd-a149-46c5-9382-a35b3875fe23
+    # ID: 65acad9a-50bf-48d0-b3d0-c1846c2911fc
     async def get_secret(self, key: str, audit_context: str | None = None) -> str:
         raise NotImplementedError("CachedConfigService does not support secrets")
 
 
-# ID: 92a5f45c-cc8f-4d98-af41-302c6b128e1c
+# ID: 9e2b3cb3-fd84-4071-9423-ce0cc38a060b
 class LLMClientRegistry:
     """
     Body: Manages LLM client lifecycle without decision-making.
@@ -72,7 +72,7 @@ class LLMClientRegistry:
         self._clients: dict[str, LLMClient] = {}
         self._init_lock = asyncio.Lock()
 
-    # ID: 23b25c3c-e14b-40a4-bd2f-1ae41f813499
+    # ID: f8ada660-100e-4ea3-a1d5-acdd27a8d0df
     async def get_or_create_client(
         self, resource: LlmResource, provider_factory: callable
     ) -> LLMClient:
@@ -92,38 +92,28 @@ class LLMClientRegistry:
         """
         async with self._init_lock:
             if resource.name in self._clients:
-                logger.debug(f"Returning cached client for {resource.name}")
+                logger.debug("Returning cached client for %s", resource.name)
                 return self._clients[resource.name]
-
-            logger.info(f"Creating new client for {resource.name}")
+            logger.info("Creating new client for %s", resource.name)
             provider = await provider_factory(resource)
-
-            # FIX: Load config into memory to avoid Session lifecycle issues
-            # We perform a read-only sync of config values needed for client behavior
-            # (timeouts, concurrency limits) so the client doesn't need an active DB connection
             async with get_session() as session:
                 real_config_service = await ConfigService.create(session)
-                # Copy the cache so we can close the session safely
                 config_cache = dict(real_config_service._cache)
-
-            # Use the cached service wrapper to satisfy LLMResourceConfig interface
             cached_service = CachedConfigService(config_cache)
-            # We suppress type checking here because CachedConfigService duck-types ConfigService
-            resource_config = LLMResourceConfig(cached_service, resource.name)  # type: ignore
-
+            resource_config = LLMResourceConfig(cached_service, resource.name)
             client = LLMClient(provider, resource_config)
-
-            # Initialize semaphore based on config now, while we have the cache
             max_concurrent = await resource_config.get_max_concurrent()
             client._semaphore = asyncio.Semaphore(max_concurrent)
-
             logger.info(
-                f"Initialized LLMClient for {resource.name} (model={provider.model_name}, max_concurrent={max_concurrent})"
+                "Initialized LLMClient for %s (model=%s, max_concurrent=%s)",
+                resource.name,
+                provider.model_name,
+                max_concurrent,
             )
             self._clients[resource.name] = client
             return client
 
-    # ID: 9725a2e8-decb-482e-b7a3-18728e3c1c01
+    # ID: b76b4c50-45bc-490f-a8e1-9e4d45231d15
     def get_cached_client(self, resource_name: str) -> LLMClient | None:
         """
         Simple lookup for cached client.
@@ -139,7 +129,7 @@ class LLMClientRegistry:
         """
         return self._clients.get(resource_name)
 
-    # ID: 18efb3c8-3bfb-4622-8459-ffcc2f9c5a7d
+    # ID: 78b961fb-593c-4a05-8307-76e4f584417d
     def clear_cache(self) -> None:
         """
         Clear all cached clients.
@@ -149,10 +139,10 @@ class LLMClientRegistry:
         - Resource cleanup
         - Configuration changes requiring fresh clients
         """
-        logger.info(f"Clearing {len(self._clients)} cached clients")
+        logger.info("Clearing %s cached clients", len(self._clients))
         self._clients.clear()
 
-    # ID: 91a0c580-cb8f-48fa-a28d-bfe5c72dec8f
+    # ID: 3ed4248a-f3cb-4388-ad1e-d65511e13fc8
     def get_cached_resource_names(self) -> list[str]:
         """
         Get list of resource names currently in cache.

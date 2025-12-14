@@ -27,7 +27,7 @@ logger = getLogger(__name__)
 
 
 @dataclass
-# ID: d4c8f7e3-9b2a-4d1e-8f5c-6a3e7b9c0d1f
+# ID: d06f140e-d783-4434-a1fe-555183d03d7d
 class AtomicActionViolation:
     """Violation of atomic action pattern contract."""
 
@@ -41,7 +41,7 @@ class AtomicActionViolation:
 
 
 @dataclass
-# ID: a7e9c4f2-1b3d-4e8a-9c5f-2d6e8a7b3c4f
+# ID: 196f33b6-63ec-4f1f-90d7-1ee0bbca85b2
 class AtomicActionCheckResult:
     """Results from atomic action pattern checking."""
 
@@ -50,21 +50,21 @@ class AtomicActionCheckResult:
     violations: list[AtomicActionViolation]
 
     @property
-    # ID: 81ba177c-21aa-4f81-afdc-f27f890e7995
+    # ID: cdd70707-6399-4303-9954-e81e848b577a
     def compliance_rate(self) -> float:
         """Calculate compliance percentage."""
         if self.total_actions == 0:
             return 100.0
-        return (self.compliant_actions / self.total_actions) * 100.0
+        return self.compliant_actions / self.total_actions * 100.0
 
     @property
-    # ID: d6c7e5d9-65f0-412c-bfd0-58e4107213e0
+    # ID: a6aed230-51c5-45e4-a1a9-d7454b8fd695
     def has_errors(self) -> bool:
         """Check if any error-level violations exist."""
         return any(v.severity == "error" for v in self.violations)
 
 
-# ID: 8f3e7b2c-4d5a-9e1f-6c8b-7a9d4e2f5b6c
+# ID: dc1fd1d6-683c-421f-b9fb-39a85772c389
 class AtomicActionsChecker:
     """
     Validates code compliance with atomic actions pattern.
@@ -81,7 +81,7 @@ class AtomicActionsChecker:
         self.repo_root = repo_root
         self.src_dir = repo_root / "src"
 
-    # ID: 9d4e6f8a-7c5b-4e2a-8f3d-6b7c9e4a5f8d
+    # ID: d5b8dc17-dbdd-4b84-acc1-da52a274ed48
     def check_all(self) -> AtomicActionCheckResult:
         """
         Check all atomic actions in the codebase.
@@ -92,27 +92,22 @@ class AtomicActionsChecker:
         violations = []
         total_actions = 0
         compliant_actions = 0
-
-        # Check all Python files in src/
         if not self.src_dir.exists():
-            logger.warning(f"Source directory not found: {self.src_dir}")
+            logger.warning("Source directory not found: %s", self.src_dir)
             return AtomicActionCheckResult(
                 total_actions=0, compliant_actions=0, violations=[]
             )
-
         for py_file in self.src_dir.rglob("*.py"):
             if py_file.name.startswith("_") and py_file.name != "__init__.py":
                 continue
             if "test" in str(py_file):
                 continue
-
             file_violations, file_actions = self._check_file(py_file)
             violations.extend(file_violations)
             total_actions += file_actions
             compliant_actions += file_actions - len(
                 [v for v in file_violations if v.severity == "error"]
             )
-
         return AtomicActionCheckResult(
             total_actions=total_actions,
             compliant_actions=compliant_actions,
@@ -128,13 +123,10 @@ class AtomicActionsChecker:
         """
         violations = []
         action_count = 0
-
         try:
             with open(file_path, encoding="utf-8") as f:
                 source = f.read()
                 tree = ast.parse(source)
-
-            # Find all async function definitions that might be atomic actions
             for node in ast.walk(tree):
                 if isinstance(node, ast.AsyncFunctionDef):
                     if self._is_atomic_action_candidate(node):
@@ -142,7 +134,6 @@ class AtomicActionsChecker:
                         violations.extend(
                             self._validate_atomic_action(file_path, node, source)
                         )
-
         except SyntaxError as e:
             violations.append(
                 AtomicActionViolation(
@@ -155,8 +146,7 @@ class AtomicActionsChecker:
             )
         except Exception as e:
             logger.error("Error checking {file_path}: %s", e)
-
-        return violations, action_count
+        return (violations, action_count)
 
     def _is_atomic_action_candidate(self, node: ast.AsyncFunctionDef) -> bool:
         """
@@ -167,24 +157,17 @@ class AtomicActionsChecker:
         - Have @atomic_action decorator
         - Return ActionResult type annotation
         """
-        # Check for _internal suffix
         if node.name.endswith("_internal"):
             return True
-
-        # Check for @atomic_action decorator
         if self._has_atomic_action_decorator(node):
             return True
-
-        # Check for ActionResult return type
         if self._returns_action_result(node):
             return True
-
         return False
 
     def _has_atomic_action_decorator(self, node: ast.AsyncFunctionDef) -> bool:
         """Check if function has @atomic_action decorator."""
         for decorator in node.decorator_list:
-            # Handle both @atomic_action and @atomic_action(...)
             if isinstance(decorator, ast.Name) and decorator.id == "atomic_action":
                 return True
             if isinstance(decorator, ast.Call):
@@ -197,16 +180,11 @@ class AtomicActionsChecker:
         """Check if function is annotated to return ActionResult."""
         if not node.returns:
             return False
-
-        # Handle simple case: -> ActionResult
         if isinstance(node.returns, ast.Name):
             return node.returns.id == "ActionResult"
-
-        # Handle subscript case: -> ActionResult[Something]
         if isinstance(node.returns, ast.Subscript):
             if isinstance(node.returns.value, ast.Name):
                 return node.returns.value.id == "ActionResult"
-
         return False
 
     def _validate_atomic_action(
@@ -222,8 +200,6 @@ class AtomicActionsChecker:
         4. Should declare ActionImpact
         """
         violations = []
-
-        # Rule 1: action_must_have_decorator
         if not self._has_atomic_action_decorator(node):
             violations.append(
                 AtomicActionViolation(
@@ -236,8 +212,6 @@ class AtomicActionsChecker:
                     suggested_fix="Add @atomic_action decorator with action_id, intent, impact, and policies",
                 )
             )
-
-        # Rule 2: action_must_return_result
         if not self._returns_action_result(node):
             violations.append(
                 AtomicActionViolation(
@@ -250,18 +224,13 @@ class AtomicActionsChecker:
                     suggested_fix="Add '-> ActionResult' return type annotation",
                 )
             )
-
-        # Rule 3: decorator_must_have_metadata
         if self._has_atomic_action_decorator(node):
             decorator_violations = self._validate_decorator_metadata(
                 file_path, node, source
             )
             violations.extend(decorator_violations)
-
-        # Rule 4: result_must_be_structured (check return statements)
         result_violations = self._validate_return_statements(file_path, node)
         violations.extend(result_violations)
-
         return violations
 
     def _validate_decorator_metadata(
@@ -277,43 +246,34 @@ class AtomicActionsChecker:
         - policies: List of policy IDs this action validates
         """
         violations = []
-
         decorator = None
         for dec in node.decorator_list:
             if isinstance(dec, ast.Call):
                 if isinstance(dec.func, ast.Name) and dec.func.id == "atomic_action":
                     decorator = dec
                     break
-
         if not decorator:
-            return violations  # Not using decorator syntax with arguments
-
-        # Extract keyword arguments
+            return violations
         decorator_args = {}
         for keyword in decorator.keywords:
             if isinstance(keyword.value, ast.Constant):
                 decorator_args[keyword.arg] = keyword.value.value
             elif isinstance(keyword.value, ast.Attribute):
-                # Handle ActionImpact.WRITE_METADATA style
                 decorator_args[keyword.arg] = (
                     f"{keyword.value.value.id}.{keyword.value.attr}"
                 )
             elif isinstance(keyword.value, ast.List):
-                # Handle policies list
                 decorator_args[keyword.arg] = [
                     elt.value
                     for elt in keyword.value.elts
                     if isinstance(elt, ast.Constant)
                 ]
-
-        # Check required fields
         required_fields = {
             "action_id": "Unique identifier for this action",
             "intent": "Clear statement of purpose",
             "impact": "ActionImpact classification",
             "policies": "List of constitutional policies validated",
         }
-
         for field, description in required_fields.items():
             if field not in decorator_args:
                 violations.append(
@@ -327,8 +287,6 @@ class AtomicActionsChecker:
                         suggested_fix=f"Add {field}=... to @atomic_action decorator",
                     )
                 )
-
-        # Validate action_id format (dot notation)
         if "action_id" in decorator_args:
             action_id = decorator_args["action_id"]
             if not isinstance(action_id, str) or "." not in action_id:
@@ -343,7 +301,6 @@ class AtomicActionsChecker:
                         suggested_fix="Use category.name format for action_id",
                     )
                 )
-
         return violations
 
     def _validate_return_statements(
@@ -357,11 +314,8 @@ class AtomicActionsChecker:
         - data is a dictionary literal (not a variable)
         """
         violations = []
-
-        # Find all return statements
         for child in ast.walk(node):
             if isinstance(child, ast.Return) and child.value:
-                # Check if returning ActionResult(...) call
                 if isinstance(child.value, ast.Call):
                     if isinstance(child.value.func, ast.Name):
                         if child.value.func.id == "ActionResult":
@@ -370,7 +324,6 @@ class AtomicActionsChecker:
                                     file_path, node.name, child, child.lineno
                                 )
                             )
-
         return violations
 
     def _validate_action_result_call(
@@ -382,17 +335,12 @@ class AtomicActionsChecker:
     ) -> list[AtomicActionViolation]:
         """Validate ActionResult(...) constructor call."""
         violations = []
-
         call = return_node.value
         if not isinstance(call, ast.Call):
             return violations
-
-        # Extract keyword arguments
         result_args = {}
         for keyword in call.keywords:
             result_args[keyword.arg] = keyword.value
-
-        # Check required fields
         required_fields = ["action_id", "ok", "data"]
         for field in required_fields:
             if field not in result_args:
@@ -407,8 +355,6 @@ class AtomicActionsChecker:
                         suggested_fix=f"Add {field}=... to ActionResult constructor",
                     )
                 )
-
-        # Validate data is a dict
         if "data" in result_args:
             data_value = result_args["data"]
             if not isinstance(data_value, ast.Dict):
@@ -423,25 +369,20 @@ class AtomicActionsChecker:
                         suggested_fix="Use data={...} with explicit key-value pairs",
                     )
                 )
-
         return violations
 
 
-# ID: 5b8e7a4c-3d9f-6e2a-8c7b-4a5d9f3e6b8c
+# ID: 88cd5c3d-aece-498a-935f-df133086a948
 def format_atomic_action_violations(
     violations: list[AtomicActionViolation], verbose: bool = False
 ) -> str:
     """Format atomic action violations for display."""
     if not violations:
         return "✅ All atomic actions follow constitutional pattern!"
-
     lines = [f"\n❌ Found {len(violations)} atomic action pattern violations:\n"]
-
-    # Group by file
     by_file: dict[Path, list[AtomicActionViolation]] = {}
     for v in violations:
         by_file.setdefault(v.file_path, []).append(v)
-
     for file_path, file_violations in sorted(by_file.items()):
         rel_path = (
             file_path.relative_to(Path.cwd())
@@ -449,17 +390,14 @@ def format_atomic_action_violations(
             else file_path
         )
         lines.append(f"\n📄 {rel_path}:")
-
         for v in file_violations:
             severity_icon = {"error": "❌", "warning": "⚠️", "info": "ℹ️"}[v.severity]
             lines.append(f"  {severity_icon} {v.function_name}:")
             lines.append(f"      Rule: {v.rule_id}")
             lines.append(f"      {v.message}")
-
             if verbose:
                 if v.line_number:
                     lines.append(f"      Line: {v.line_number}")
                 if v.suggested_fix:
                     lines.append(f"      Fix: {v.suggested_fix}")
-
     return "\n".join(lines)

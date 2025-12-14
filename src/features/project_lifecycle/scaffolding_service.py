@@ -22,7 +22,7 @@ from shared.path_utils import get_repo_root
 logger = getLogger(__name__)
 
 
-# ID: 8c9696e3-7a4e-4a6a-9a1e-5a34e8a5b06a
+# ID: b2a71e87-f72f-4868-8e63-9538096af12e
 class Scaffolder:
     """
     Handles filesystem operations to create a new CORE-governed project
@@ -34,7 +34,6 @@ class Scaffolder:
         self.profile = profile
         self.workspace = settings.REPO_PATH.parent
         self.project_root = self.workspace / project_name
-
         repo_root = get_repo_root()
         self.starter_kit_path = (
             repo_root / "starter_kits" / "project_profiles" / profile
@@ -44,22 +43,19 @@ class Scaffolder:
                 f"Starter kit profile '{profile}' not found at {self.starter_kit_path}"
             )
 
-    # ID: 5bb9dca0-ebfc-420f-ab6b-88f8b03831a5
+    # ID: 882f22a6-a1f3-4a31-8967-09f8b9d763ab
     def scaffold_base_structure(self) -> None:
         """Creates the base project structure, including tests and CI directories."""
-        logger.info(f"💾 Creating project structure at {self.project_root}...")
+        logger.info("💾 Creating project structure at %s...", self.project_root)
         if self.project_root.exists():
             raise FileExistsError(f"Directory '{self.project_root}' already exists.")
-
         self.project_root.mkdir(parents=True, exist_ok=True)
         (self.project_root / "src").mkdir()
         (self.project_root / "tests").mkdir()
         (self.project_root / ".github" / "workflows").mkdir(parents=True, exist_ok=True)
         (self.project_root / "reports").mkdir()
-
         intent_dir = self.project_root / ".intent"
         intent_dir.mkdir()
-
         constitutional_files_to_copy = [
             "principles.yaml",
             "project_manifest.yaml",
@@ -71,12 +67,10 @@ class Scaffolder:
             if source_path.exists():
                 target_path = intent_dir / filename
                 target_path.write_bytes(source_path.read_bytes())
-
         readme_template = self.starter_kit_path / "README.md"
         if readme_template.exists():
             target_path = intent_dir / "README.md"
             target_path.write_bytes(readme_template.read_bytes())
-
         for template_path in self.starter_kit_path.glob("*.template"):
             content = template_path.read_text(encoding="utf-8").format(
                 project_name=self.name
@@ -87,20 +81,17 @@ class Scaffolder:
                 else template_path.name.replace(".template", "")
             )
             (self.project_root / target_name).write_text(content, encoding="utf-8")
-
         manifest_path = intent_dir / "project_manifest.yaml"
         if manifest_path.exists():
             manifest_data = yaml.safe_load(manifest_path.read_text(encoding="utf-8"))
             if manifest_data:
                 manifest_data["name"] = self.name
                 manifest_path.write_text(
-                    yaml.dump(manifest_data, indent=2),
-                    encoding="utf-8",
+                    yaml.dump(manifest_data, indent=2), encoding="utf-8"
                 )
+        logger.info("   -> ✅ Base structure for '%s' created successfully.", self.name)
 
-        logger.info(f"   -> ✅ Base structure for '{self.name}' created successfully.")
-
-    # ID: 7a9df125-ef0b-4c81-b150-82594b288bdc
+    # ID: badd73be-d36f-44a8-a4f9-6c3d9b025b80
     def write_file(self, relative_path: str, content: str) -> None:
         """Writes content to a file within the new project's directory, creating parent directories as needed."""
         target_file = self.project_root / relative_path
@@ -110,9 +101,7 @@ class Scaffolder:
 
 
 def _create_new_project(
-    name: str,
-    profile: str = "default",
-    dry_run: bool = True,
+    name: str, profile: str = "default", dry_run: bool = True
 ) -> None:
     """
     Domain-level operation to scaffold a new CORE-governed project.
@@ -128,44 +117,39 @@ def _create_new_project(
     """
     scaffolder = Scaffolder(project_name=name, profile=profile)
     logger.info(
-        f"🚀 Scaffolding new CORE application: '{name}' using '{profile}' profile."
+        "🚀 Scaffolding new CORE application: '%s' using '%s' profile.", name, profile
     )
-
     if dry_run:
         logger.info(
-            "💧 Dry Run Mode: no files will be written. "
-            f"Would create project '{name}' in '{scaffolder.workspace}/' "
-            f"with the '{profile}' starter kit."
+            "💧 Dry Run Mode: no files will be written. Would create project '%s' in '%s/' with the '%s' starter kit.",
+            name,
+            scaffolder.workspace,
+            profile,
         )
         return
-
     try:
         scaffolder.scaffold_base_structure()
-
-        # Optional README from template
         readme_template_path = scaffolder.starter_kit_path / "README.md.template"
         if readme_template_path.exists():
             readme_content = readme_template_path.read_text(encoding="utf-8").format(
                 project_name=name
             )
             scaffolder.write_file("README.md", readme_content)
-
     except FileExistsError:
-        # Let the CLI layer decide how to present this to the user.
         logger.error(
-            f"❌ Cannot scaffold project '{name}': destination already exists "
-            f"at {scaffolder.project_root}"
+            "❌ Cannot scaffold project '%s': destination already exists at %s",
+            name,
+            scaffolder.project_root,
         )
         raise
-    except Exception as e:  # noqa: BLE001
+    except Exception as e:
         logger.error(
-            f"❌ Unexpected error while scaffolding project '{name}': {e}",
+            "❌ Unexpected error while scaffolding project '%s': %s",
+            name,
+            e,
             exc_info=True,
         )
         raise
 
 
-# Backwards-compatible public alias.
-# CLI and other callers continue to use `create_new_project`, but the
-# auditor only sees `_create_new_project` as the actual implementation.
 create_new_project = _create_new_project

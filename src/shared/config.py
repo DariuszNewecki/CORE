@@ -135,7 +135,7 @@ class Settings(BaseSettings):
 
         Examples:
             >>> settings.paths.proposals_dir
-            PosixPath('/opt/dev/CORE/.intent/proposals')
+            PosixPath('/opt/dev/CORE/work/proposals')
 
             >>> settings.paths.prompt("refactor_outlier")
             PosixPath('/opt/dev/CORE/.intent/mind/prompts/refactor_outlier.prompt')

@@ -18,7 +18,7 @@ from sqlalchemy import text
 
 from mind.governance.audit_types import AuditCheckMetadata
 from mind.governance.checks.base_check import BaseCheck
-from shared.infrastructure.database.session_manager import get_session
+from shared.infrastructure.database.session_manager import SessionManager
 from shared.models import AuditFinding, AuditSeverity
 
 
@@ -93,20 +93,14 @@ class VectorServiceStandardsCheck(BaseCheck):
 
         # Files allowed to use direct client access
         allowed_files = {
-            self.src_dir
-            / "services"
-            / "clients"
-            / "qdrant_client.py",  # The service itself
-            self.src_dir
-            / "services"
-            / "vector"
-            / "vector_index_service.py",  # Infrastructure service
+            self.src_dir / "services" / "clients" / "qdrant_client.py",
+            self.src_dir / "services" / "vector" / "vector_index_service.py",
         }
 
         # Scan all Python files
         for py_file in self.src_dir.rglob("*.py"):
             if py_file in allowed_files:
-                continue  # Skip allowed files
+                continue
 
             try:
                 content = py_file.read_text(encoding="utf-8")
@@ -124,8 +118,6 @@ class VectorServiceStandardsCheck(BaseCheck):
 
                             # Only flag forbidden methods
                             if method_name in forbidden_methods:
-                                parent_name = self._get_name_from_node(node.value.value)
-
                                 findings.append(
                                     AuditFinding(
                                         check_id="vector.service_usage",
@@ -147,8 +139,7 @@ class VectorServiceStandardsCheck(BaseCheck):
                                         },
                                     )
                                 )
-            except Exception as e:
-                # Skip files that can't be parsed (syntax errors, etc.)
+            except Exception:
                 continue
 
         return findings
@@ -171,25 +162,14 @@ class VectorServiceStandardsCheck(BaseCheck):
         """
         findings: list[AuditFinding] = []
 
-        # Check if we have any vectors at all
         try:
-            import asyncio
+            with SessionManager().sync_session() as session:
+                result = session.execute(
+                    text("SELECT COUNT(*) FROM core.symbol_vector_links")
+                )
+                link_count = result.scalar()
 
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-
-            # ID: 1cbcf51e-ac68-4a6c-94a7-33308d919950
-            async def check_links():
-                async with get_session() as session:
-                    result = await session.execute(
-                        text("SELECT COUNT(*) FROM core.symbol_vector_links")
-                    )
-                    return result.scalar()
-
-            link_count = loop.run_until_complete(check_links())
-            loop.close()
-
-            if link_count > 0:
+            if link_count and link_count > 0:
                 findings.append(
                     AuditFinding(
                         check_id="vector.hash_present",
@@ -206,9 +186,15 @@ class VectorServiceStandardsCheck(BaseCheck):
                         },
                     )
                 )
-        except Exception:
-            # If we can't check, skip silently
-            pass
+        except Exception as e:
+            findings.append(
+                AuditFinding(
+                    check_id="vector.hash_present",
+                    severity=AuditSeverity.WARNING,
+                    message=f"Failed to check vector link count: {e}",
+                    file_path="N/A",
+                )
+            )
 
         return findings
 

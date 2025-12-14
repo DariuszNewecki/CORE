@@ -160,3 +160,4 @@ def check_patterns_cmd(
     else:
         if not quiet:
             typer.echo("\n✅ All pattern checks passed!")
+        raise typer.Exit(code=0)

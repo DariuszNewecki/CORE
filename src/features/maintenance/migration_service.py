@@ -1,4 +1,5 @@
 # src/features/maintenance/migration_service.py
+
 """
 Provides a one-time migration service to populate the SSOT database from legacy
 file-based sources (.intent/mind/project_manifest.yaml and AST scan).
@@ -30,21 +31,17 @@ async def _migrate_capabilities_from_manifest() -> list[dict[str, Any]]:
             "Warning: project_manifest.yaml not found. No capabilities to migrate."
         )
         return []
-
     content = yaml.safe_load(manifest_path.read_text("utf-8")) or {}
     capability_keys = content.get("capabilities", [])
-
     unique_clean_keys = set()
     for key in capability_keys:
         clean_key = key.replace("`", "").strip()
         if clean_key:
             unique_clean_keys.add(clean_key)
-
     migrated_caps = []
     for clean_key in sorted(list(unique_clean_keys)):
         domain = clean_key.split(".")[0] if "." in clean_key else "general"
         title = clean_key.split(".")[-1].replace("_", " ").capitalize()
-
         migrated_caps.append(
             {
                 "id": uuid.uuid5(uuid.NAMESPACE_DNS, clean_key),
@@ -66,7 +63,6 @@ async def _migrate_symbols_from_ast() -> list[dict[str, Any]]:
 
     scanner = SymbolScanner()
     code_symbols = await asyncio.to_thread(scanner.scan)
-
     migrated_syms = []
     for symbol_data in code_symbols:
         migrated_syms.append(
@@ -84,54 +80,41 @@ async def _migrate_symbols_from_ast() -> list[dict[str, Any]]:
     return migrated_syms
 
 
-# ID: cd2c3cf5-54ec-493c-b11f-d8bb6eae7a0f
+# ID: 7038f63f-b52c-48ea-a03d-5c18f4f38129
 async def run_ssot_migration(dry_run: bool):
     """Orchestrates the full one-time migration from files to the SSOT database."""
     logger.info("Starting one-time migration of knowledge from files to database...")
-
     capabilities = await _migrate_capabilities_from_manifest()
     symbols = await _migrate_symbols_from_ast()
-
     if dry_run:
         logger.info("-- DRY RUN: The following actions would be taken --")
         logger.info(
-            f"  - Insert {len(capabilities)} unique capabilities from project_manifest.yaml."
+            "  - Insert %s unique capabilities from project_manifest.yaml.",
+            len(capabilities),
         )
-        logger.info(f"  - Insert {len(symbols)} symbols from source code scan.")
+        logger.info("  - Insert %s symbols from source code scan.", len(symbols))
         return
-
     async with get_session() as session:
         async with session.begin():
             logger.info("  -> Deleting existing data from tables...")
             await session.execute(text("DELETE FROM core.symbol_capability_links;"))
             await session.execute(text("DELETE FROM core.symbols;"))
             await session.execute(text("DELETE FROM core.capabilities;"))
-
-            logger.info(f"  -> Inserting {len(capabilities)} capabilities...")
+            logger.info("  -> Inserting %s capabilities...", len(capabilities))
             if capabilities:
                 await session.execute(
                     text(
-                        """
-                    INSERT INTO core.capabilities (id, name, title, objective, owner, domain, tags, status)
-                    VALUES (:id, :name, :title, :objective, :owner, :domain, :tags, :status)
-                """
+                        "\n                    INSERT INTO core.capabilities (id, name, title, objective, owner, domain, tags, status)\n                    VALUES (:id, :name, :title, :objective, :owner, :domain, :tags, :status)\n                "
                     ),
                     capabilities,
                 )
-
-            logger.info(f"  -> Inserting {len(symbols)} symbols...")
+            logger.info("  -> Inserting %s symbols...", len(symbols))
             if symbols:
-                # Insert symbols one by one to handle potential duplicates gracefully if any slip through
                 insert_stmt = text(
-                    """
-                    INSERT INTO core.symbols (id, module, qualname, kind, ast_signature, fingerprint, state, symbol_path)
-                    VALUES (:id, :module, :qualname, :kind, :ast_signature, :fingerprint, :state, :symbol_path)
-                    ON CONFLICT (symbol_path) DO NOTHING;
-                """
+                    "\n                    INSERT INTO core.symbols (id, module, qualname, kind, ast_signature, fingerprint, state, symbol_path)\n                    VALUES (:id, :module, :qualname, :kind, :ast_signature, :fingerprint, :state, :symbol_path)\n                    ON CONFLICT (symbol_path) DO NOTHING;\n                "
                 )
                 for symbol in symbols:
                     await session.execute(insert_stmt, symbol)
-
     logger.info("✅ One-time migration complete.")
     logger.info(
         "Run 'core-admin mind snapshot' to create the first export from the database."

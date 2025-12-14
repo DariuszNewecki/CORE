@@ -65,9 +65,7 @@ class PromptPipeline:
             try:
                 content = abs_path.read_text(encoding="utf-8")
                 return (
-                    f"\n--- CONTEXT: {file_path} ---\n"
-                    f"{content}\n"
-                    f"--- END CONTEXT ---\n"
+                    f"\n--- CONTEXT: {file_path} ---\n{content}\n--- END CONTEXT ---\n"
                 )
             except Exception as e:
                 return f"\n❌ Could not read {file_path}: {str(e)}\n"
@@ -95,9 +93,7 @@ class PromptPipeline:
             try:
                 content = abs_path.read_text(encoding="utf-8")
                 return (
-                    f"\n--- INCLUDED: {file_path} ---\n"
-                    f"{content}\n"
-                    f"--- END INCLUDE ---\n"
+                    f"\n--- INCLUDED: {file_path} ---\n{content}\n--- END INCLUDE ---\n"
                 )
             except Exception as e:
                 return f"\n❌ Could not read {file_path}: {str(e)}\n"
@@ -151,9 +147,7 @@ class PromptPipeline:
         else:
             value_str = str(value)
 
-        return (
-            f"\n--- MANIFEST: {field} ---\n" f"{value_str}\n" f"--- END MANIFEST ---\n"
-        )
+        return f"\n--- MANIFEST: {field} ---\n{value_str}\n--- END MANIFEST ---\n"
 
     def _inject_manifest(self, prompt: str) -> str:
         """

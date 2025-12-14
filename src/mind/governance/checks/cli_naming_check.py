@@ -1,25 +1,27 @@
 # src/mind/governance/checks/cli_naming_check.py
 """
-Enforces symbols.cli_async_helpers_private: Async CLI helpers must be private.
-
-CONSTITUTIONAL COMPLIANCE:
-- Uses knowledge_graph from AuditorContext (DB SSOT)
-- Distinguishes between entry points and helpers based on capability assignment and call graph
+Enforces symbols.cli_async_helpers_private.
+Async orchestration helpers in CLI logic must be private and ungoverned.
 """
 
 from __future__ import annotations
 
 from mind.governance.checks.base_check import BaseCheck
+from shared.logger import getLogger
 from shared.models import AuditFinding, AuditSeverity
+
+
+logger = getLogger(__name__)
 
 
 # ID: 58eda072-18cf-4fc5-ac41-8a122d62a434
 class CliNamingCheck(BaseCheck):
     """
-    Scans CLI logic modules to ensure async helper functions are private (start with '_').
+    Enforces that async functions in src/body/cli/logic/:
+    1. Must start with '_' (underscore).
+    2. Must NOT have a Capability ID.
 
-    CORRECTED: Now uses knowledge graph (DB SSOT) instead of filesystem scanning.
-    Distinguishes between entry points (can be public) and helpers (must be private).
+    Ref: standard_code_general (symbols.cli_async_helpers_private)
     """
 
     policy_rule_ids = ["symbols.cli_async_helpers_private"]
@@ -27,39 +29,47 @@ class CliNamingCheck(BaseCheck):
     # ID: 0a6fd53b-fbc4-4147-a847-e03e5c71ca8f
     def execute(self) -> list[AuditFinding]:
         findings = []
-
-        # SSOT: Query knowledge graph from database, not filesystem
         symbols = self.context.knowledge_graph.get("symbols", {})
 
         for symbol_key, symbol_data in symbols.items():
-            # Only check async functions in cli/logic namespace
+            # 1. Filter Scope: Must be async function in body/cli/logic
             if not self._is_cli_logic_async_function(symbol_data):
                 continue
 
-            function_name = symbol_data.get("name", "")
+            name = symbol_data.get("name", "")
+            file_path = symbol_data.get("file_path", "")
+            line = symbol_data.get("line_number", 0)
 
-            # Skip if already private (starts with '_')
-            if function_name.startswith("_"):
-                continue
-
-            # Determine if this is an entry point or a helper
-            if self._is_entry_point(symbol_data, symbols):
-                continue  # Entry points can be public
-
-            # This is a helper - must be private
-            findings.append(
-                AuditFinding(
-                    check_id="symbols.cli_async_helpers_private",
-                    severity=AuditSeverity.ERROR,
-                    message=(
-                        f"Public async function '{function_name}' found in CLI logic. "
-                        f"Async CLI helpers must be private (prefix with '_'). "
-                        f"Entry points should have capabilities assigned or be called by commands."
-                    ),
-                    file_path=symbol_data.get("file_path", ""),
-                    line_number=symbol_data.get("line_number", 0),
+            # 2. Check Naming (Must start with '_')
+            if not name.startswith("_"):
+                findings.append(
+                    AuditFinding(
+                        check_id="symbols.cli_async_helpers_private",
+                        severity=AuditSeverity.ERROR,
+                        message=(
+                            f"Public async function '{name}' in CLI logic. "
+                            "Async orchestration helpers must be private (prefix with '_')."
+                        ),
+                        file_path=file_path,
+                        line_number=line,
+                    )
                 )
-            )
+
+            # 3. Check Capabilities (Must NOT have ID)
+            # The rule states: "MUST NOT receive capability IDs"
+            if symbol_data.get("capability"):
+                findings.append(
+                    AuditFinding(
+                        check_id="symbols.cli_async_helpers_private",
+                        severity=AuditSeverity.ERROR,
+                        message=(
+                            f"Async CLI helper '{name}' has a Capability ID. "
+                            "Orchestration helpers must remain ungoverned implementation details."
+                        ),
+                        file_path=file_path,
+                        line_number=line,
+                    )
+                )
 
         return findings
 
@@ -72,29 +82,5 @@ class CliNamingCheck(BaseCheck):
             return False
 
         file_path = symbol_data.get("file_path", "")
+        # Strict scope enforcement based on Rule ID definition
         return "src/body/cli/logic/" in file_path
-
-    def _is_entry_point(self, symbol_data: dict, all_symbols: dict) -> bool:
-        """
-        Determine if a function is an entry point rather than a helper.
-
-        Entry points are identified by:
-        1. Having a capability assignment (registered in manifest)
-        2. Being called by other functions (has inbound references)
-        3. Having decorators that indicate registration (@command, etc.)
-        """
-        # Check 1: Has capability assignment
-        if symbol_data.get("capability"):
-            return True
-
-        # Check 2: Has callers (referenced by other symbols)
-        symbol_key = symbol_data.get("qualified_name", "")
-        for other_symbol in all_symbols.values():
-            calls = other_symbol.get("calls", [])
-            if symbol_key in calls:
-                return True
-
-        # Check 3: Has registration decorators (future enhancement)
-        # Could check symbol_data.get("decorators", []) for @command, @register_command, etc.
-
-        return False

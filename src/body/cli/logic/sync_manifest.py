@@ -28,11 +28,9 @@ async def _async_sync_manifest():
     to make it the single source of truth for all declared capabilities.
     """
     logger.info("Synchronizing project manifest with database...")
-
     if not MANIFEST_PATH.exists():
         logger.error("Manifest file not found at %s", MANIFEST_PATH)
         raise typer.Exit(code=1)
-
     logger.debug("Fetching all public symbols from the database...")
     public_symbol_keys = []
     try:
@@ -44,26 +42,19 @@ async def _async_sync_manifest():
     except Exception as e:
         logger.error("Database query failed: %s", e)
         raise typer.Exit(code=1)
-
-    logger.info(f"Found {len(public_symbol_keys)} public capabilities to declare.")
-
+    logger.info("Found %s public capabilities to declare.", len(public_symbol_keys))
     yaml_handler = YAML()
     yaml_handler.indent(mapping=2, sequence=4, offset=2)
-
     with MANIFEST_PATH.open("r", encoding="utf-8") as f:
         manifest_data = yaml_handler.load(f)
-
     manifest_data["capabilities"] = public_symbol_keys
-
-    logger.debug(f"Updating {MANIFEST_PATH.relative_to(settings.REPO_PATH)}...")
-
+    logger.debug("Updating %s...", MANIFEST_PATH.relative_to(settings.REPO_PATH))
     with MANIFEST_PATH.open("w", encoding="utf-8") as f:
         yaml_handler.dump(manifest_data, f)
-
     logger.info("Manifest synchronization complete.")
 
 
-# ID: 75f39f4a-e65c-4616-bbf8-eba561e2c04b
+# ID: fd8e5164-0a37-45e7-8701-7a1935d99d88
 def sync_manifest():
     """Synchronizes project_manifest.yaml with the public capabilities in the database."""
     asyncio.run(_async_sync_manifest())

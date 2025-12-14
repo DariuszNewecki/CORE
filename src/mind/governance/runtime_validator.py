@@ -22,7 +22,7 @@ logger = getLogger(__name__)
 console = Console()
 
 
-# ID: 5b29cb98-514b-4887-a51f-b5eff79fe624
+# ID: 0cbf9038-fa70-4ea4-ae13-b478552f9d79
 class RuntimeValidatorService:
     """A service to test code changes in an isolated environment."""
 
@@ -37,10 +37,9 @@ class RuntimeValidatorService:
             ".ruff_cache",
             "work",
         )
-        # Load timeout from config, default to 60 seconds for safety
         self.test_timeout = settings.model_extra.get("TEST_RUNNER_TIMEOUT", 60)
 
-    # ID: 98669e0a-8295-408c-ab06-740690de43af
+    # ID: 548eb332-6e28-4e75-a967-d499ad86fd2c
     async def run_tests_in_canary(
         self, file_path_str: str, new_code_content: str
     ) -> tuple[bool, str]:
@@ -61,19 +60,14 @@ class RuntimeValidatorService:
                 target_file.parent.mkdir(parents=True, exist_ok=True)
                 target_file.write_text(new_code_content, encoding="utf-8")
                 logger.info("Running test suite in canary environment...")
-
                 proc = await asyncio.create_subprocess_exec(
                     "poetry",
                     "run",
                     "pytest",
-                    # Run only relevant tests to save time if possible,
-                    # but default to full suite to be safe.
-                    # Could filter by file_path_str if it's a test file or has a known companion.
                     cwd=canary_path,
                     stdout=asyncio.subprocess.PIPE,
                     stderr=asyncio.subprocess.PIPE,
                 )
-
                 try:
                     stdout, stderr = await asyncio.wait_for(
                         proc.communicate(), timeout=self.test_timeout
@@ -85,7 +79,6 @@ class RuntimeValidatorService:
                         False,
                         f"Tests timed out after {self.test_timeout} seconds.",
                     )
-
                 if proc.returncode == 0:
                     logger.info("✅ Canary tests PASSED.")
                     return (True, "All tests passed in the isolated environment.")
@@ -94,5 +87,5 @@ class RuntimeValidatorService:
                     error_details = f"Pytest failed with exit code {proc.returncode}.\n\nSTDOUT:\n{stdout.decode()}\n\nSTDERR:\n{stderr.decode()}"
                     return (False, error_details)
             except Exception as e:
-                logger.error(f"Error during canary test run: {e}", exc_info=True)
+                logger.error("Error during canary test run: %s", e, exc_info=True)
                 return (False, f"An unexpected exception occurred: {str(e)}")

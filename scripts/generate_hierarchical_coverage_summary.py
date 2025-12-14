@@ -69,7 +69,7 @@ def generate_hierarchical_summary(repo_root: Path):
     lines.append("")
     lines.append(f"- **Total policies**: {total_policies}")
     lines.append(
-        f"- **Fully enforced**: {fully_enforced_policies} ({100*fully_enforced_policies//max(total_policies,1)}%)"
+        f"- **Fully enforced**: {fully_enforced_policies} ({100 * fully_enforced_policies // max(total_policies, 1)}%)"
     )
     lines.append(f"- **Partially enforced**: {partially_enforced_policies}")
     lines.append(
@@ -97,7 +97,7 @@ def generate_hierarchical_summary(repo_root: Path):
 
         lines.append(f"### {status_icon} {policy_short}")
         lines.append(f"**Full path**: `{policy}`  ")
-        lines.append(f"**Enforcement**: {enforced}/{total} rules ({int(100*rate)}%)")
+        lines.append(f"**Enforcement**: {enforced}/{total} rules ({int(100 * rate)}%)")
         lines.append("")
 
         # Sort rules: non-enforced first (gaps), then by rule_id

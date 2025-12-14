@@ -1,4 +1,5 @@
 # src/will/tools/module_anchor_generator.py
+
 """
 Module Anchor Generator - Phase 1 Component
 
@@ -28,11 +29,7 @@ from will.tools.module_descriptor import ModuleDescriptor
 
 
 logger = getLogger(__name__)
-
-# Collection name for module anchors
 ANCHOR_COLLECTION = "core_module_anchors"
-
-# Architectural layers in CORE
 LAYERS = {
     "mind": "Constitutional governance, policies, and validation rules",
     "body": "Pure execution - CLI commands, actions, no decision-making",
@@ -45,7 +42,7 @@ LAYERS = {
 }
 
 
-# ID: 53e91db6-3e5a-4b9f-9f3a-c7635ad41a00
+# ID: a82c9417-3f62-4441-8985-522b89e1c90d
 class ModuleAnchorGenerator:
     """Generates semantic anchors for architectural modules."""
 
@@ -59,20 +56,18 @@ class ModuleAnchorGenerator:
         self.src_dir = self.repo_root / "src"
         self.cognitive_service = cognitive_service
         self.qdrant = qdrant_service
-        logger.info(f"ModuleAnchorGenerator initialized for {self.src_dir}")
+        logger.info("ModuleAnchorGenerator initialized for %s", self.src_dir)
 
-    # ID: 419623b4-afd7-4648-969d-c345f653f268
+    # ID: 22e1df4d-2609-4e8e-a486-a604581e161b
     async def initialize_collection(self) -> None:
         """Create Qdrant collection for module anchors if it doesn't exist."""
         from qdrant_client import models as qm
 
         collections_response = await self.qdrant.client.get_collections()
         existing = [c.name for c in collections_response.collections]
-
         if ANCHOR_COLLECTION in existing:
             logger.info("Collection %s already exists", ANCHOR_COLLECTION)
             return
-
         logger.info("Creating collection: %s", ANCHOR_COLLECTION)
         await self.qdrant.client.recreate_collection(
             collection_name=ANCHOR_COLLECTION,
@@ -81,21 +76,16 @@ class ModuleAnchorGenerator:
         )
         logger.info("✅ Collection %s created", ANCHOR_COLLECTION)
 
-    # ID: 32cc2cc0-8cd3-4e22-85fa-3b680cb38200
+    # ID: ebf164c4-36b7-4f7e-9a39-186124a598fa
     async def generate_all_anchors(self) -> dict[str, Any]:
         """Generate anchors for all modules in the codebase."""
         logger.info("=" * 60)
         logger.info("PHASE 1: MODULE ANCHOR GENERATION")
         logger.info("=" * 60)
-
         if not self.src_dir.exists():
             return {"success": False, "error": "Source directory not found"}
-
         await self.initialize_collection()
-
         results = {"success": True, "anchors_created": 0, "errors": []}
-
-        # Generate layer-level anchors
         logger.info("\n📍 Generating layer-level anchors...")
         for layer_name, layer_purpose in LAYERS.items():
             try:
@@ -105,12 +95,9 @@ class ModuleAnchorGenerator:
             except Exception as e:
                 logger.error("  ❌ {layer_name}/: %s", e)
                 results["errors"].append({"module": layer_name, "error": str(e)})
-
-        # Generate module-level anchors
         logger.info("\n📍 Generating module-level anchors...")
         modules = self._discover_modules()
-        logger.info(f"Found {len(modules)} modules to anchor\n")
-
+        logger.info("Found %s modules to anchor\n", len(modules))
         for module_path, module_info in modules.items():
             try:
                 await self._generate_module_anchor(module_path, module_info)
@@ -119,25 +106,21 @@ class ModuleAnchorGenerator:
             except Exception as e:
                 logger.error("  ❌ {module_path}: %s", e)
                 results["errors"].append({"module": str(module_path), "error": str(e)})
-
         logger.info("\n" + "=" * 60)
         logger.info("✅ ANCHOR GENERATION COMPLETE")
-        logger.info(f"   Anchors: {results['anchors_created']}")
+        logger.info("   Anchors: %s", results["anchors_created"])
         logger.info("=" * 60)
-
         return results
 
     def _discover_modules(self) -> dict[Path, dict[str, Any]]:
         """Discover all modules (directories with Python files)."""
         modules = {}
-
         for layer_name in LAYERS.keys():
             layer_dir = self.src_dir / layer_name
             if not layer_dir.exists():
                 continue
-
             for item in layer_dir.rglob("*"):
-                if item.is_dir() and not item.name.startswith("_"):
+                if item.is_dir() and (not item.name.startswith("_")):
                     py_files = list(item.glob("*.py"))
                     if py_files:
                         relative_path = item.relative_to(self.src_dir)
@@ -147,7 +130,6 @@ class ModuleAnchorGenerator:
                             "file_count": len(py_files),
                             "python_files": [f.name for f in py_files[:5]],
                         }
-
         return modules
 
     def _extract_module_docstring(self, module_dir: Path) -> str | None:
@@ -155,7 +137,6 @@ class ModuleAnchorGenerator:
         init_file = module_dir / "__init__.py"
         if not init_file.exists():
             return None
-
         try:
             content = init_file.read_text(encoding="utf-8")
             tree = ast.parse(content)
@@ -164,7 +145,6 @@ class ModuleAnchorGenerator:
                     return tree.body[0].value.value
         except Exception:
             pass
-
         return None
 
     async def _generate_layer_anchor(self, layer_name: str, layer_purpose: str) -> None:
@@ -176,14 +156,10 @@ class ModuleAnchorGenerator:
         from qdrant_client.models import PointStruct
 
         description = f"Layer: {layer_name}\n\nPurpose: {layer_purpose}\n\nThis is a top-level architectural layer in CORE's Mind-Body-Will structure."
-
         embedding = await self.cognitive_service.get_embedding_for_code(description)
         if not embedding:
             raise ValueError(f"Failed to generate embedding for layer {layer_name}")
-
-        # FIX: Use deterministic ID
         point_id = get_deterministic_id(f"layer_{layer_name}")
-
         point = PointStruct(
             id=point_id,
             vector=embedding,
@@ -195,11 +171,8 @@ class ModuleAnchorGenerator:
                 "description": description,
             },
         )
-
-        # PHASE 1: Use service method
         await self.qdrant.upsert_points(
-            points=[point],
-            collection_name=ANCHOR_COLLECTION,
+            points=[point], collection_name=ANCHOR_COLLECTION
         )
 
     async def _generate_module_anchor(
@@ -214,13 +187,9 @@ class ModuleAnchorGenerator:
 
         layer = module_info["layer"]
         files = module_info["python_files"]
-
-        # Use ModuleDescriptor for rich descriptions
         module_description = ModuleDescriptor.generate(
             str(module_path), module_path.name, layer, files
         )
-
-        # Build full description
         parts = [
             f"Module: {module_path}",
             f"Architectural Layer: {layer}",
@@ -230,14 +199,10 @@ class ModuleAnchorGenerator:
             f"\nExample Files: {', '.join(files[:3])}",
         ]
         description = "\n".join(parts)
-
         embedding = await self.cognitive_service.get_embedding_for_code(description)
         if not embedding:
             raise ValueError(f"Failed to generate embedding for module {module_path}")
-
-        # FIX: Use deterministic ID
         point_id = get_deterministic_id(f"module_{module_path}")
-
         point = PointStruct(
             id=point_id,
             vector=embedding,
@@ -252,37 +217,28 @@ class ModuleAnchorGenerator:
                 "example_files": files,
             },
         )
-
-        # PHASE 1: Use service method
         await self.qdrant.upsert_points(
-            points=[point],
-            collection_name=ANCHOR_COLLECTION,
+            points=[point], collection_name=ANCHOR_COLLECTION
         )
 
-    # ID: a19384a4-0138-4bb3-b0c5-b024150d1b54
+    # ID: 6198547e-ae81-4ac1-9c04-f459ce5a93e2
     async def find_best_placement(
         self, code_description: str, limit: int = 3
     ) -> list[dict[str, Any]]:
         """Find best placement for code based on semantic similarity."""
-        logger.info(f"Finding placement for: {code_description[:50]}...")
-
+        logger.info("Finding placement for: %s...", code_description[:50])
         embedding = await self.cognitive_service.get_embedding_for_code(
             code_description
         )
         if not embedding:
             return []
-
-        # PHASE 1: Direct client search is acceptable (no service method yet)
-        # Search ALL modules directly
         module_results = await self.qdrant.client.search(
             collection_name=ANCHOR_COLLECTION,
             query_vector=embedding,
             limit=limit * 2,
             query_filter={"must": [{"key": "type", "match": {"value": "module"}}]},
         )
-
         if not module_results:
-            # Fallback to layers
             layer_results = await self.qdrant.client.search(
                 collection_name=ANCHOR_COLLECTION,
                 query_vector=embedding,
@@ -301,7 +257,6 @@ class ModuleAnchorGenerator:
                 }
                 for hit in layer_results
             ]
-
         placements = [
             {
                 "score": hit.score,
@@ -314,16 +269,16 @@ class ModuleAnchorGenerator:
             }
             for hit in module_results[:limit]
         ]
-
         logger.info(
-            f"Found {len(placements)} module placements "
-            f"(best: {placements[0]['path']}, score: {placements[0]['score']:.3f})"
+            "Found %s module placements (best: %s, score: %s)",
+            len(placements),
+            placements[0]["path"],
+            placements[0]["score"],
         )
         return placements
 
 
-# CLI integration
-# ID: 229b44b7-ed04-45f3-8045-b992aa018c18
+# ID: d302e11c-67da-4c3a-b0fc-6295cb450f06
 async def generate_anchors_command(repo_root: Path) -> dict[str, Any]:
     """CLI command wrapper for anchor generation."""
     from shared.infrastructure.clients.qdrant_client import QdrantService
@@ -334,7 +289,6 @@ async def generate_anchors_command(repo_root: Path) -> dict[str, Any]:
         repo_path=repo_root, qdrant_service=qdrant_service
     )
     await cognitive_service.initialize()
-
     generator = ModuleAnchorGenerator(repo_root, cognitive_service, qdrant_service)
     return await generator.generate_all_anchors()
 
@@ -345,8 +299,7 @@ if __name__ == "__main__":
 
     repo_root = Path.cwd() if len(sys.argv) == 1 else Path(sys.argv[1])
     result = asyncio.run(generate_anchors_command(repo_root))
-
     logger.info("\nAnchor generation complete!")
-    logger.info(f"  Anchors: {result['anchors_created']}")
+    logger.info("  Anchors: %s", result["anchors_created"])
     if result.get("errors"):
-        logger.info(f"  Errors: {len(result['errors'])}")
+        logger.info("  Errors: %s", len(result["errors"]))

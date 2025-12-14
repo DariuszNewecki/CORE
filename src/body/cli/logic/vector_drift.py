@@ -1,4 +1,5 @@
 # src/body/cli/logic/vector_drift.py
+
 """Provides functionality for the vector_drift module."""
 
 from __future__ import annotations
@@ -34,17 +35,14 @@ async def _fetch_qdrant_point_ids(qdrant_service: QdrantService) -> set[str]:
 
     PHASE 1 FIX: Uses scroll_all_points() service method instead of direct client access.
     """
-    # PHASE 1: Use service method for paginated scanning
     points = await qdrant_service.scroll_all_points(
-        with_payload=False,
-        with_vectors=False,
+        with_payload=False, with_vectors=False
     )
-
     all_ids = {str(p.id) for p in points}
     return all_ids
 
 
-# ID: 87360a13-844e-4528-a444-5677e7c83841
+# ID: fc322479-d062-486a-b2cc-636cd2eb7a86
 async def inspect_vector_drift(context: CoreContext) -> dict:
     """
     Verifies synchronization between PostgreSQL and Qdrant using the
@@ -60,8 +58,6 @@ async def inspect_vector_drift(context: CoreContext) -> dict:
             - error: Error message if any
     """
     logger.info("Verifying synchronization between PostgreSQL and Qdrant...")
-
-    # === JIT INJECTION ===
     if context.qdrant_service is None and context.registry:
         try:
             context.qdrant_service = await context.registry.get_qdrant_service()
@@ -69,12 +65,10 @@ async def inspect_vector_drift(context: CoreContext) -> dict:
             error_msg = f"Failed to initialize QdrantService: {e}"
             logger.error(error_msg)
             return {"error": error_msg, "status": "error"}
-
     if not context.qdrant_service:
         error_msg = "QdrantService not available in context."
         logger.error(error_msg)
         return {"error": error_msg, "status": "error"}
-
     try:
         postgres_ids, qdrant_ids = await asyncio.gather(
             _fetch_postgres_vector_ids(),
@@ -84,13 +78,10 @@ async def inspect_vector_drift(context: CoreContext) -> dict:
         error_msg = f"Error connecting to a database: {e}"
         logger.error(error_msg)
         return {"error": error_msg, "status": "error"}
-
-    logger.info(f"Found {len(postgres_ids)} linked vector IDs in PostgreSQL.")
-    logger.info(f"Found {len(qdrant_ids)} point IDs in Qdrant.")
-
+    logger.info("Found %s linked vector IDs in PostgreSQL.", len(postgres_ids))
+    logger.info("Found %s point IDs in Qdrant.", len(qdrant_ids))
     missing_in_qdrant = sorted(postgres_ids - qdrant_ids)
     orphans_in_qdrant = sorted(qdrant_ids - postgres_ids)
-
     result = {
         "postgres_count": len(postgres_ids),
         "qdrant_count": len(qdrant_ids),
@@ -98,23 +89,21 @@ async def inspect_vector_drift(context: CoreContext) -> dict:
         "orphans_in_qdrant": orphans_in_qdrant,
         "status": (
             "synchronized"
-            if not missing_in_qdrant and not orphans_in_qdrant
+            if not missing_in_qdrant and (not orphans_in_qdrant)
             else "drift_detected"
         ),
     }
-
-    if not missing_in_qdrant and not orphans_in_qdrant:
+    if not missing_in_qdrant and (not orphans_in_qdrant):
         logger.info(
             "Perfect synchronization. PostgreSQL and Qdrant are perfectly aligned."
         )
     else:
         if missing_in_qdrant:
             logger.warning(
-                f"Found {len(missing_in_qdrant)} vector IDs missing in Qdrant"
+                "Found %s vector IDs missing in Qdrant", len(missing_in_qdrant)
             )
         if orphans_in_qdrant:
             logger.warning(
-                f"Found {len(orphans_in_qdrant)} orphaned point IDs in Qdrant"
+                "Found %s orphaned point IDs in Qdrant", len(orphans_in_qdrant)
             )
-
     return result

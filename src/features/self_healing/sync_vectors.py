@@ -1,4 +1,5 @@
 # src/features/self_healing/sync_vectors.py
+
 """
 Atomic vector synchronization between PostgreSQL and Qdrant.
 
@@ -29,11 +30,6 @@ from shared.logger import getLogger
 logger = getLogger(__name__)
 
 
-# ============================================================================
-# SHARED UTILITIES
-# ============================================================================
-
-
 async def _fetch_all_qdrant_ids(client: AsyncQdrantClient) -> set[str]:
     """
     Fetch all point IDs from the configured Qdrant collection.
@@ -42,23 +38,19 @@ async def _fetch_all_qdrant_ids(client: AsyncQdrantClient) -> set[str]:
     """
     all_ids: set[str] = set()
     offset: str | None = None
-
     while True:
         points, offset = await client.scroll(
             collection_name=settings.QDRANT_COLLECTION_NAME,
-            limit=10_000,
+            limit=10000,
             with_payload=False,
             with_vectors=False,
             offset=offset,
         )
         if not points:
             break
-
         all_ids.update(str(point.id) for point in points)
-
         if offset is None:
             break
-
     return all_ids
 
 
@@ -86,19 +78,10 @@ async def _fetch_db_links() -> list[tuple[str, str]]:
     async with get_session() as session:
         result = await session.execute(
             text(
-                """
-                SELECT symbol_id::text, vector_id::text
-                FROM core.symbol_vector_links
-                WHERE vector_id IS NOT NULL
-                """
+                "\n                SELECT symbol_id::text, vector_id::text\n                FROM core.symbol_vector_links\n                WHERE vector_id IS NOT NULL\n                "
             )
         )
         return [(row[0], row[1]) for row in result]
-
-
-# ============================================================================
-# PHASE 1: PRUNE ORPHANED VECTORS FROM QDRANT
-# ============================================================================
 
 
 async def _prune_orphaned_vectors(
@@ -113,40 +96,27 @@ async def _prune_orphaned_vectors(
     Returns the count of orphaned vectors found (and deleted if not dry_run).
     """
     orphaned_ids = list(qdrant_ids - db_vector_ids)
-
     if not orphaned_ids:
         logger.info("No orphaned vectors found in Qdrant.")
         return 0
-
-    logger.info(f"Found {len(orphaned_ids)} orphaned vector(s) in Qdrant.")
-
+    logger.info("Found %s orphaned vector(s) in Qdrant.", len(orphaned_ids))
     if dry_run:
         logger.debug("Would delete from Qdrant")
         for point_id in orphaned_ids[:10]:
             logger.debug("  - %s", point_id)
         if len(orphaned_ids) > 10:
-            logger.debug(f"  - ... and {len(orphaned_ids) - 10} more.")
+            logger.debug("  - ... and %s more.", len(orphaned_ids) - 10)
         return len(orphaned_ids)
-
-    # Actually delete
-    logger.info(f"Deleting {len(orphaned_ids)} orphaned vector(s) from Qdrant...")
+    logger.info("Deleting %s orphaned vector(s) from Qdrant...", len(orphaned_ids))
     await client.delete(
         collection_name=settings.QDRANT_COLLECTION_NAME,
         points_selector=PointIdsList(points=orphaned_ids),
     )
-    logger.info(f"Deleted {len(orphaned_ids)} orphaned vector(s).")
-
+    logger.info("Deleted %s orphaned vector(s).", len(orphaned_ids))
     return len(orphaned_ids)
 
 
-# ============================================================================
-# PHASE 2: PRUNE DANGLING LINKS FROM POSTGRESQL
-# ============================================================================
-
-
-async def _delete_dangling_links(
-    dangling_links: Iterable[tuple[str, str]],
-) -> int:
+async def _delete_dangling_links(dangling_links: Iterable[tuple[str, str]]) -> int:
     """
     Delete dangling links from core.symbol_vector_links.
 
@@ -157,25 +127,17 @@ async def _delete_dangling_links(
         for symbol_id, vector_id in dangling_links:
             await session.execute(
                 text(
-                    """
-                    DELETE FROM core.symbol_vector_links
-                    WHERE symbol_id = :symbol_id
-                      AND vector_id = :vector_id::uuid
-                    """
+                    "\n                    DELETE FROM core.symbol_vector_links\n                    WHERE symbol_id = :symbol_id\n                      AND vector_id = :vector_id::uuid\n                    "
                 ),
                 {"symbol_id": symbol_id, "vector_id": vector_id},
             )
             count += 1
-
         await session.commit()
-
     return count
 
 
 async def _prune_dangling_links(
-    db_links: list[tuple[str, str]],
-    qdrant_ids: set[str],
-    dry_run: bool,
+    db_links: list[tuple[str, str]], qdrant_ids: set[str], dry_run: bool
 ) -> int:
     """
     Find and delete DB links pointing to non-existent Qdrant vectors.
@@ -187,32 +149,21 @@ async def _prune_dangling_links(
         for symbol_id, vector_id in db_links
         if vector_id not in qdrant_ids
     ]
-
     if not dangling_links:
         logger.info("No dangling links found in PostgreSQL.")
         return 0
-
-    logger.info(f"Found {len(dangling_links)} dangling link(s) in PostgreSQL.")
-
+    logger.info("Found %s dangling link(s) in PostgreSQL.", len(dangling_links))
     if dry_run:
         logger.debug("Would delete from PostgreSQL")
         for symbol_id, vector_id in dangling_links[:10]:
             logger.debug("  - symbol_id={symbol_id}, vector_id=%s", vector_id)
         if len(dangling_links) > 10:
-            logger.debug(f"  - ... and {len(dangling_links) - 10} more.")
+            logger.debug("  - ... and %s more.", len(dangling_links) - 10)
         return len(dangling_links)
-
-    # Actually delete
-    logger.info(f"Deleting {len(dangling_links)} dangling link(s) from PostgreSQL...")
+    logger.info("Deleting %s dangling link(s) from PostgreSQL...", len(dangling_links))
     deleted_count = await _delete_dangling_links(dangling_links)
     logger.info("Deleted %s dangling link(s).", deleted_count)
-
     return deleted_count
-
-
-# ============================================================================
-# MAIN SYNC LOGIC
-# ============================================================================
 
 
 async def _async_sync_vectors(
@@ -224,60 +175,40 @@ async def _async_sync_vectors(
     Returns (orphans_pruned, dangling_pruned) counts.
     """
     logger.info("Starting vector synchronization...")
-
     if dry_run:
         logger.info("DRY RUN MODE: No changes will be made.")
-
-    # Step 0: Load all data
     logger.info("Phase 0: Loading current state...")
-
-    # Use injected service or create new one if missing
     if qdrant_service is None:
         client = AsyncQdrantClient(url=settings.QDRANT_URL)
     else:
         client = qdrant_service.client
-
     logger.info("Fetching vector IDs from Qdrant...")
     qdrant_ids = await _fetch_all_qdrant_ids(client)
-    logger.info(f"Found {len(qdrant_ids)} vectors in Qdrant.")
-
+    logger.info("Found %s vectors in Qdrant.", len(qdrant_ids))
     logger.info("Fetching vector links from PostgreSQL...")
     db_vector_ids = await _fetch_db_vector_ids()
     db_links = await _fetch_db_links()
-    logger.info(f"Found {len(db_vector_ids)} valid vector IDs in PostgreSQL.")
-    logger.info(f"Found {len(db_links)} total symbol-vector links.")
-
-    # Step 1: Prune orphaned vectors from Qdrant
+    logger.info("Found %s valid vector IDs in PostgreSQL.", len(db_vector_ids))
+    logger.info("Found %s total symbol-vector links.", len(db_links))
     logger.info("Phase 1: Pruning orphaned vectors from Qdrant...")
     orphans_pruned = await _prune_orphaned_vectors(
         client, qdrant_ids, db_vector_ids, dry_run
     )
-
-    # Step 2: Prune dangling links from PostgreSQL
     logger.info("Phase 2: Pruning dangling links from PostgreSQL...")
     dangling_pruned = await _prune_dangling_links(db_links, qdrant_ids, dry_run)
-
-    # Summary
     logger.info("Synchronization Summary")
     logger.info("  • Orphaned vectors pruned: %s", orphans_pruned)
     logger.info("  • Dangling links pruned: %s", dangling_pruned)
-
     if orphans_pruned == 0 and dangling_pruned == 0:
         logger.info("Vector store is perfectly synchronized!")
     elif dry_run:
         logger.info("Issues found. Run with --write to fix them.")
     else:
         logger.info("Synchronization complete!")
-
     return (orphans_pruned, dangling_pruned)
 
 
-# ============================================================================
-# PUBLIC ENTRY POINTS
-# ============================================================================
-
-
-# ID: 8f4a3c21-9b7e-4d2f-a8c3-5e1f9a2b3c4d
+# ID: 2ba0085c-70d8-4a2f-b3f5-a41479fba562
 def main_sync(
     write: bool = typer.Option(
         False,
@@ -285,9 +216,7 @@ def main_sync(
         help="Permanently fix synchronization issues. Without this, runs in dry-run mode.",
     ),
     dry_run: bool = typer.Option(
-        False,
-        "--dry-run",
-        help="Show what would be changed without making changes.",
+        False, "--dry-run", help="Show what would be changed without making changes."
     ),
 ) -> None:
     """
@@ -305,7 +234,7 @@ def main_sync(
     asyncio.run(_async_sync_vectors(dry_run=effective_dry_run))
 
 
-# ID: 2c5d8f91-4a7b-3e6c-9d1f-8b2a4c7e5f3d
+# ID: 45b243cb-5331-464d-a50d-13a1310e672a
 async def main_async(
     write: bool = False,
     dry_run: bool = False,

@@ -1,4 +1,5 @@
 # src/will/tools/architectural_context_builder.py
+
 """
 Architectural Context Builder - A2 Enhanced
 
@@ -32,12 +33,11 @@ from will.tools.policy_vectorizer import PolicyVectorizer
 
 if TYPE_CHECKING:
     from will.orchestration.cognitive_service import CognitiveService
-
 logger = getLogger(__name__)
 
 
 @dataclass
-# ID: 5e8d4c3b-2a1f-9e8d-7c6b-5a4f3e2d1c0b
+# ID: 1e498d9d-3f23-45a4-8816-a293c5d070de
 class CodeExample:
     """Represents a successful code implementation example."""
 
@@ -49,11 +49,10 @@ class CodeExample:
 
 
 @dataclass
-# ID: 01cbdead-5514-408a-9a70-2ea2bc5f83ff
+# ID: 4132cf73-dafe-40f7-b15c-54d82dc198ba
 class ArchitecturalContext:
     """Rich context for code generation with A2 enhancements."""
 
-    # Original fields
     goal: str
     target_layer: str
     layer_purpose: str
@@ -62,8 +61,6 @@ class ArchitecturalContext:
     placement_confidence: str
     best_module_path: str
     placement_score: float
-
-    # A2 NEW: Enhanced context fields
     similar_examples: list[CodeExample] = field(default_factory=list)
     typical_dependencies: list[str] = field(default_factory=list)
     placement_reasoning: str = ""
@@ -71,7 +68,7 @@ class ArchitecturalContext:
     anti_patterns: list[str] = field(default_factory=list)
 
 
-# ID: 8c5f4d91-3e7a-4b9f-8a1f-9d2c3e4f5a6b
+# ID: ecbb2cd5-4cdd-42db-9d3f-10663a2c1787
 class ArchitecturalContextBuilder:
     """
     Builds rich architectural context for code generation.
@@ -103,14 +100,11 @@ class ArchitecturalContextBuilder:
         self.cognitive_service = cognitive_service
         self.qdrant_service = qdrant_service
         self.repo_root = settings.REPO_PATH
-
         logger.info("ArchitecturalContextBuilder (A2 Enhanced) initialized")
 
-    # ID: 7b4c3d2e-1f0a-4b5c-8d9e-6f7a8b9c0d1e
+    # ID: 30e6b4d7-051a-48e6-b3e4-92e9689d268d
     async def build_context(
-        self,
-        goal: str,
-        target_file: str | None = None,
+        self, goal: str, target_file: str | None = None
     ) -> ArchitecturalContext:
         """
         Build comprehensive architectural context for code generation.
@@ -124,47 +118,25 @@ class ArchitecturalContextBuilder:
         Returns:
             Structured architectural context with A2 enhancements
         """
-        logger.info(f"Building A2 context for: {goal[:50]}...")
-
-        # Step 1: Search for relevant constitutional policies
+        logger.info("Building A2 context for: %s...", goal[:50])
         logger.debug("Searching policies...")
-        policies = await self.policy_vectorizer.search_policies(
-            query=goal,
-            limit=5,
-        )
-
-        # Step 2: Find best architectural placement
+        policies = await self.policy_vectorizer.search_policies(query=goal, limit=5)
         logger.debug("Finding placement...")
         placements = await self.anchor_generator.find_best_placement(
-            code_description=goal,
-            limit=3,
+            code_description=goal, limit=3
         )
-
         if not placements:
             raise ValueError("No placement found for goal")
-
         best_placement = placements[0]
-
-        # Step 3: Extract layer info
         layer = best_placement["layer"]
         layer_patterns = self._get_layer_patterns(layer)
-
-        # Step 4: Determine confidence
         confidence = "high" if best_placement["score"] > 0.5 else "medium"
-
-        # A2 NEW - Step 5: Find similar code examples
         logger.debug("Finding similar code examples...")
         similar_examples = await self._find_similar_examples(
-            goal=goal,
-            layer=layer,
-            module_path=best_placement["path"],
+            goal=goal, layer=layer, module_path=best_placement["path"]
         )
-
-        # A2 NEW - Step 6: Extract typical dependencies
         logger.debug("Analyzing typical dependencies...")
         typical_deps = self._get_typical_dependencies(layer)
-
-        # A2 NEW - Step 7: Generate placement reasoning
         logger.debug("Generating placement reasoning...")
         reasoning = self._generate_placement_reasoning(
             goal=goal,
@@ -172,15 +144,14 @@ class ArchitecturalContextBuilder:
             best_placement=best_placement,
             alternative_placements=placements[1:] if len(placements) > 1 else [],
         )
-
-        # A2 NEW - Step 8: Identify anti-patterns
         anti_patterns = self._get_anti_patterns(layer)
-
         logger.info(
-            f"A2 Context built: layer={layer}, confidence={confidence}, "
-            f"policies={len(policies)}, examples={len(similar_examples)}"
+            "A2 Context built: layer=%s, confidence=%s, policies=%s, examples=%s",
+            layer,
+            confidence,
+            len(policies),
+            len(similar_examples),
         )
-
         return ArchitecturalContext(
             goal=goal,
             target_layer=layer,
@@ -190,7 +161,6 @@ class ArchitecturalContextBuilder:
             placement_confidence=confidence,
             best_module_path=best_placement["path"],
             placement_score=best_placement["score"],
-            # A2 NEW fields
             similar_examples=similar_examples,
             typical_dependencies=typical_deps,
             placement_reasoning=reasoning,
@@ -198,10 +168,7 @@ class ArchitecturalContextBuilder:
         )
 
     async def _find_similar_examples(
-        self,
-        goal: str,
-        layer: str,
-        module_path: str,
+        self, goal: str, layer: str, module_path: str
     ) -> list[CodeExample]:
         """
         A2 NEW: Find similar code implementations for reference.
@@ -220,37 +187,25 @@ class ArchitecturalContextBuilder:
         if not self.cognitive_service or not self.qdrant_service:
             logger.debug("Cognitive/Qdrant services not available, skipping examples")
             return []
-
         try:
-            # Step 1: Generate embedding for the goal
-            logger.debug(f"Generating embedding for goal: {goal[:50]}...")
+            logger.debug("Generating embedding for goal: %s...", goal[:50])
             embedding = await self.cognitive_service.get_embedding_for_code(goal)
-
-            # Step 2: Search Qdrant for similar symbols with layer filter
             logger.debug("Searching for similar symbols in layer: %s", layer)
-            # Note: Qdrant filter syntax - adjust if your payload structure differs
             from qdrant_client import models as qm
 
             layer_filter = qm.Filter(
                 must=[
                     qm.FieldCondition(
-                        key="metadata.layer",
-                        match=qm.MatchValue(value=layer),
+                        key="metadata.layer", match=qm.MatchValue(value=layer)
                     )
                 ]
             )
-
             search_results = await self.qdrant_service.search_similar(
-                query_vector=embedding,
-                limit=10,  # Get more candidates
-                filter_=layer_filter,
+                query_vector=embedding, limit=10, filter_=layer_filter
             )
-
             if not search_results:
                 logger.debug("No similar symbols found in vector search")
                 return []
-
-            # Step 3: Extract symbol IDs from search results
             symbol_ids = []
             score_map = {}
             for result in search_results:
@@ -259,68 +214,38 @@ class ArchitecturalContextBuilder:
                 if symbol_id:
                     symbol_ids.append(symbol_id)
                     score_map[symbol_id] = result.get("score", 0.0)
-
             if not symbol_ids:
                 logger.debug("No valid symbol IDs in search results")
                 return []
-
-            # Step 4: Query DB for symbol details
-            logger.debug(f"Fetching details for {len(symbol_ids)} symbols from DB")
+            logger.debug("Fetching details for %s symbols from DB", len(symbol_ids))
             async with get_session() as session:
-                # Build query to get symbol details
                 placeholders = ",".join([f":id{i}" for i in range(len(symbol_ids))])
                 query = text(
-                    f"""
-                    SELECT
-                        id,
-                        qualname,
-                        file_path,
-                        docstring,
-                        start_line,
-                        end_line
-                    FROM core.symbols
-                    WHERE id IN ({placeholders})
-                    AND symbol_type IN ('function', 'class', 'method')
-                    ORDER BY file_path
-                """
+                    f"\n                    SELECT\n                        id,\n                        qualname,\n                        file_path,\n                        docstring,\n                        start_line,\n                        end_line\n                    FROM core.symbols\n                    WHERE id IN ({placeholders})\n                    AND symbol_type IN ('function', 'class', 'method')\n                    ORDER BY file_path\n                "
                 )
-
                 params = {f"id{i}": str(sid) for i, sid in enumerate(symbol_ids)}
                 result = await session.execute(query, params)
                 symbols = result.fetchall()
-
             if not symbols:
                 logger.debug("No symbol details found in database")
                 return []
-
-            # Step 5: Read code snippets from files
             examples = []
-            for symbol in symbols[:5]:  # Limit to top 5
+            for symbol in symbols[:5]:
                 symbol_id, qualname, file_path, docstring, start_line, end_line = symbol
-
                 try:
-                    # Read the actual code from the file
                     full_path = self.repo_root / file_path
                     if not full_path.exists():
                         logger.warning("File not found: %s", full_path)
                         continue
-
                     with open(full_path, encoding="utf-8") as f:
                         lines = f.readlines()
-
-                    # Extract the code snippet
                     if start_line and end_line:
-                        # Adjust for 1-based indexing
                         snippet_lines = lines[start_line - 1 : end_line]
                         code_snippet = "".join(snippet_lines)
                     else:
-                        # Fallback: read first 20 lines
                         code_snippet = "".join(lines[:20])
-
-                    # Truncate if too long
                     if len(code_snippet) > 500:
                         code_snippet = code_snippet[:500] + "\n    # ... (truncated)"
-
                     examples.append(
                         CodeExample(
                             file_path=file_path,
@@ -330,16 +255,13 @@ class ArchitecturalContextBuilder:
                             similarity_score=score_map.get(str(symbol_id), 0.0),
                         )
                     )
-
                 except Exception as e:
                     logger.warning("Failed to read code for {qualname}: %s", e)
                     continue
-
-            logger.info(f"Found {len(examples)} similar code examples")
+            logger.info("Found %s similar code examples", len(examples))
             return examples
-
         except Exception as e:
-            logger.error(f"Error finding similar examples: {e}", exc_info=True)
+            logger.error("Error finding similar examples: %s", e, exc_info=True)
             return []
 
     def _get_typical_dependencies(self, layer: str) -> list[str]:
@@ -385,7 +307,6 @@ class ArchitecturalContextBuilder:
                 "from shared.config import settings",
             ],
         }
-
         return dependencies.get(layer, [])
 
     def _generate_placement_reasoning(
@@ -408,13 +329,9 @@ class ArchitecturalContextBuilder:
             Reasoning explanation
         """
         reasoning_parts = []
-
-        # Explain why this layer was chosen
         reasoning_parts.append(
             f"This code belongs in the '{layer}' layer because: {best_placement['purpose']}"
         )
-
-        # Add confidence context
         score = best_placement["score"]
         if score > 0.7:
             reasoning_parts.append(
@@ -428,14 +345,11 @@ class ArchitecturalContextBuilder:
             reasoning_parts.append(
                 f"The semantic match is weak (score: {score:.2f}), review carefully."
             )
-
-        # Mention alternatives if they exist
         if alternative_placements:
             alt_layers = [p.get("layer", "unknown") for p in alternative_placements]
             reasoning_parts.append(
                 f"Alternative layers considered: {', '.join(alt_layers[:2])}"
             )
-
         return " ".join(reasoning_parts)
 
     def _get_anti_patterns(self, layer: str) -> list[str]:
@@ -482,7 +396,6 @@ class ArchitecturalContextBuilder:
                 "DO NOT hardcode connection parameters",
             ],
         }
-
         return anti_patterns.get(layer, [])
 
     def _get_layer_patterns(self, layer: str) -> list[str]:
@@ -533,10 +446,9 @@ class ArchitecturalContextBuilder:
                 "Error handling and retry logic",
             ],
         }
-
         return patterns.get(layer, [])
 
-    # ID: 6e5d4c3b-2a1f-9e8d-7c6b-5a4f3e2d1c0b
+    # ID: d0674508-1b50-42f5-b632-084d488898ed
     def format_for_prompt(self, context: ArchitecturalContext) -> str:
         """
         Format context into prompt-ready string.
@@ -550,23 +462,17 @@ class ArchitecturalContextBuilder:
             Formatted string for LLM prompt
         """
         parts = []
-
-        # Header
         parts.append("# Architectural Context (A2 Enhanced)")
         parts.append("")
         parts.append(f"**Goal**: {context.goal}")
         parts.append(f"**Target Layer**: {context.target_layer}")
         parts.append(f"**Placement Confidence**: {context.placement_confidence}")
         parts.append("")
-
-        # A2 NEW: Placement reasoning
         if context.placement_reasoning:
             parts.append("## Why This Placement?")
             parts.append("")
             parts.append(context.placement_reasoning)
             parts.append("")
-
-        # Constitutional guidance
         if context.relevant_policies:
             parts.append("## Constitutional Requirements")
             parts.append("")
@@ -575,8 +481,6 @@ class ArchitecturalContextBuilder:
             for i, policy in enumerate(context.relevant_policies[:3], 1):
                 parts.append(f"{i}. {policy['content'][:150]}")
             parts.append("")
-
-        # Layer patterns
         parts.append("## Layer Patterns")
         parts.append("")
         parts.append(
@@ -588,8 +492,6 @@ class ArchitecturalContextBuilder:
             for pattern in context.layer_patterns:
                 parts.append(f"- {pattern}")
             parts.append("")
-
-        # A2 NEW: Typical dependencies
         if context.typical_dependencies:
             parts.append("## Typical Imports")
             parts.append("")
@@ -599,8 +501,6 @@ class ArchitecturalContextBuilder:
                 parts.append(dep)
             parts.append("```")
             parts.append("")
-
-        # A2 NEW: Similar examples
         if context.similar_examples:
             parts.append("## Similar Implementations")
             parts.append("")
@@ -615,19 +515,14 @@ class ArchitecturalContextBuilder:
                 parts.append(example.code_snippet[:300] + "...")
                 parts.append("```")
                 parts.append("")
-
-        # A2 NEW: Anti-patterns
         if context.anti_patterns:
             parts.append("## Anti-Patterns (AVOID THESE)")
             parts.append("")
             for anti in context.anti_patterns:
                 parts.append(f"- ❌ {anti}")
             parts.append("")
-
-        # Target location
         parts.append("## Target Location")
         parts.append("")
         parts.append(f"Place code in: `{context.best_module_path}`")
         parts.append("")
-
         return "\n".join(parts)

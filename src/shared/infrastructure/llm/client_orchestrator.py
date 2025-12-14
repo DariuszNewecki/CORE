@@ -37,7 +37,7 @@ from will.agents.resource_selector import ResourceSelector
 logger = getLogger(__name__)
 
 
-# ID: 82bf854c-619c-4f81-815f-b94c8d0a1696
+# ID: 8669d3dc-7233-4b19-a749-120e88f91dee
 class ClientOrchestrator:
     """
     Will: Orchestrates LLM client selection and provisioning.
@@ -66,10 +66,9 @@ class ClientOrchestrator:
         self._roles: list[CognitiveRole] = []
         self._client_registry = LLMClientRegistry()
         self._init_lock = asyncio.Lock()
-        # Cache for non-secret config to avoid DB thrashing
         self._config_cache: dict[str, Any] = {}
 
-    # ID: afff714a-8e04-4c35-97c7-11bda8507c92
+    # ID: 519d53bf-45e0-40f3-ba63-47d09369bf46
     async def initialize(self) -> None:
         """
         Load Mind state: Read roles and resources from database.
@@ -80,27 +79,27 @@ class ClientOrchestrator:
             try:
                 logger.info("ClientOrchestrator: Loading Mind state from database...")
                 async with get_session() as session:
-                    # Pre-load config cache for efficiency
                     temp_config = await ConfigService.create(session)
                     self._config_cache = temp_config._cache
-
                     res_result = await session.execute(select(LlmResource))
                     role_result = await session.execute(select(CognitiveRole))
                     self._resources = list(res_result.scalars().all())
                     self._roles = list(role_result.scalars().all())
                 self._loaded = True
                 logger.info(
-                    f"ClientOrchestrator loaded {len(self._resources)} resources and {len(self._roles)} roles from Mind"
+                    "ClientOrchestrator loaded %s resources and %s roles from Mind",
+                    len(self._resources),
+                    len(self._roles),
                 )
             except Exception as e:
                 logger.warning(
-                    f"Failed to load Mind state from database ({e}); using empty lists"
+                    "Failed to load Mind state from database (%s); using empty lists", e
                 )
                 self._resources = []
                 self._roles = []
                 self._loaded = True
 
-    # ID: cabc9e05-454e-4ac3-87e6-5d017c1d1d31
+    # ID: f401ea0f-3702-4839-9696-0cb0b74d5be7
     async def get_client_for_role(self, role_name: str) -> LLMClient:
         """
         Will: Decide which resource to use for a role, then get client.
@@ -109,7 +108,6 @@ class ClientOrchestrator:
             await self.initialize()
         if not self._resources or not self._roles:
             raise RuntimeError("Resources and roles not initialized (Mind not loaded)")
-
         resource = ResourceSelector.select_resource_for_role(
             role_name, self._roles, self._resources
         )
@@ -118,10 +116,12 @@ class ClientOrchestrator:
                 f"No compatible resource found for role '{role_name}' (Mind does not have a suitable resource configured)"
             )
         logger.debug(
-            f"Orchestrator: Selected resource '{resource.name}' for role '{role_name}'"
+            "Orchestrator: Selected resource '%s' for role '%s'",
+            resource.name,
+            role_name,
         )
 
-        # ID: fd5528a7-7e30-47af-9741-ca1a17fd555d
+        # ID: 2a87a79b-31b2-4781-bc20-61edb061f044
         async def provider_factory(res: LlmResource) -> AIProvider:
             return await self._create_provider_for_resource(res)
 
@@ -144,30 +144,18 @@ class ClientOrchestrator:
             raise ValueError(
                 f"Resource '{resource.name}' is missing env_prefix (Mind misconfiguration)"
             )
-
-        # Use a fresh session for secret retrieval to ensure connection safety
         async with get_session() as session:
-            # Rehydrate config service with cached non-secrets + new session for secrets
             config = ConfigService(session, self._config_cache)
-
-            # --- UPDATED LOGIC: STRICT DATABASE CONFIGURATION ---
             api_url = await config.get(f"{prefix}_API_URL")
-
-            # Fail fast if missing from DB
             if not api_url:
                 raise ValueError(
-                    f"Configuration '{prefix}_API_URL' is missing from the Database. "
-                    f"Run 'poetry run core-admin manage dotenv sync --write' to populate "
-                    "runtime settings from your .env file."
+                    f"Configuration '{prefix}_API_URL' is missing from the Database. Run 'poetry run core-admin manage dotenv sync --write' to populate runtime settings from your .env file."
                 )
-
             model_name = await config.get(f"{prefix}_MODEL_NAME")
             if not model_name:
                 raise ValueError(
-                    f"Configuration '{prefix}_MODEL_NAME' is missing from the Database. "
-                    f"Run 'poetry run core-admin manage dotenv sync --write'."
+                    f"Configuration '{prefix}_MODEL_NAME' is missing from the Database. Run 'poetry run core-admin manage dotenv sync --write'."
                 )
-
             api_key = None
             try:
                 api_key = await config.get_secret(
@@ -175,37 +163,28 @@ class ClientOrchestrator:
                     audit_context=f"client_orchestrator:{resource.name}",
                 )
             except KeyError:
-                # Fallback for non-secret API keys (rare) or local models
                 pass
-
-        # --- Provider Selection Logic ---
-
-        # 1. Anthropic (Claude)
         if "anthropic" in api_url.lower():
-            logger.info(f"Creating AnthropicProvider for {resource.name}")
+            logger.info("Creating AnthropicProvider for %s", resource.name)
             from shared.infrastructure.llm.providers.anthropic import AnthropicProvider
 
             return AnthropicProvider(
                 api_url=api_url, model_name=model_name, api_key=api_key
             )
-
-        # 2. Ollama / Local
         if "ollama" in resource.name.lower() or "11434" in api_url:
-            logger.info(f"Creating OllamaProvider for {resource.name}")
+            logger.info("Creating OllamaProvider for %s", resource.name)
             return OllamaProvider(
                 api_url=api_url, model_name=model_name, api_key=api_key
             )
-
-        # 3. Default to OpenAI (works for DeepSeek, OpenAI, Azure, etc.)
-        logger.info(f"Creating OpenAIProvider for {resource.name}")
+        logger.info("Creating OpenAIProvider for %s", resource.name)
         return OpenAIProvider(api_url=api_url, model_name=model_name, api_key=api_key)
 
-    # ID: aae28476-3d3f-428a-a01a-6ae302e119a4
+    # ID: 63a49187-d85e-4f35-beda-491ed4f9810b
     def get_cached_resource_names(self) -> list[str]:
         """Get list of currently cached resource names."""
         return self._client_registry.get_cached_resource_names()
 
-    # ID: 1b744485-8a18-46cf-9037-04a0fffa4c9b
+    # ID: f58fc05c-b73f-4a00-995c-40c5f526bc83
     async def clear_cache(self) -> None:
         """Clear all cached clients."""
         logger.info("Orchestrator: Clearing client cache")

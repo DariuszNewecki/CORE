@@ -17,7 +17,7 @@ from shared.logger import getLogger
 logger = getLogger(__name__)
 
 
-# ID: aff5b0e2-b430-4700-adcc-eecf90da25e6
+# ID: e3291d01-7675-4c22-9454-05a31107893d
 def aggregate_manifests(repo_root: Path) -> dict[str, Any]:
     """
     Finds all domain-specific capability definition YAML files and merges them.
@@ -48,7 +48,7 @@ def aggregate_manifests(repo_root: Path) -> dict[str, Any]:
     if search_dir.is_dir():
         for domain_file in sorted(search_dir.glob("*.yaml")):
             manifests_found += 1
-            logger.debug(f"   -> Loading capabilities from: {domain_file.name}")
+            logger.debug("   -> Loading capabilities from: %s", domain_file.name)
             try:
                 domain_manifest = yaml.safe_load(domain_file.read_text()) or {}
                 if "tags" in domain_manifest and isinstance(
@@ -57,11 +57,11 @@ def aggregate_manifests(repo_root: Path) -> dict[str, Any]:
                     all_capabilities.extend(domain_manifest["tags"])
             except yaml.YAMLError as e:
                 logger.error(
-                    f"   -> ❌ Skipping invalid YAML file: {domain_file.name} - {e}"
+                    "   -> ❌ Skipping invalid YAML file: %s - %s", domain_file.name, e
                 )
                 continue
     logger.debug(
-        f"   -> Aggregated capabilities from {manifests_found} domain manifests."
+        "   -> Aggregated capabilities from %s domain manifests.", manifests_found
     )
     monolith_path = repo_root / ".intent" / "project_manifest.yaml"
     monolith_data = {}

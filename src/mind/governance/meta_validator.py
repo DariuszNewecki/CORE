@@ -1,4 +1,5 @@
 # src/mind/governance/meta_validator.py
+
 """
 Meta-Constitutional Validator.
 
@@ -26,7 +27,7 @@ logger = getLogger(__name__)
 
 
 @dataclass
-# ID: 4b2799ff-a6fe-43b4-9993-74eac90423fc
+# ID: 5b932327-7774-4121-8ce9-a30c9c6b4906
 class ValidationError:
     """A single validation error or warning."""
 
@@ -38,7 +39,7 @@ class ValidationError:
 
 
 @dataclass
-# ID: 27ecb7d7-df65-414b-a55a-9b7c1b5afad2
+# ID: 1bf5c973-bd55-43c1-bdb4-1558fa44bdb8
 class ValidationReport:
     """Complete validation report for .intent documents."""
 
@@ -50,7 +51,7 @@ class ValidationReport:
     documents_invalid: int
 
 
-# ID: db00c12f-fcf1-44cf-8a42-a806404216fb
+# ID: 9d0ace72-0ee5-41e5-b9df-3adc58c11835
 class MetaValidator:
     """
     Validates .intent documents against GLOBAL-DOCUMENT-META-SCHEMA.
@@ -59,7 +60,6 @@ class MetaValidator:
     Phase 2: Validates against JSON schemas via schema_id resolution
     """
 
-    # ID: a1b2c3d4-e5f6-7890-abcd-ef1234567890
     def __init__(self, intent_root: Path | None = None):
         """
         Initialize validator with .intent root.
@@ -73,7 +73,6 @@ class MetaValidator:
         self.warnings: list[ValidationError] = []
         self.schema_cache: dict[str, dict[str, Any]] = {}
 
-    # ID: b2c3d4e5-f678-90ab-cdef-123456789012
     def _load_meta_schema(self) -> dict[str, Any]:
         """
         Load GLOBAL-DOCUMENT-META-SCHEMA.yaml.
@@ -89,14 +88,12 @@ class MetaValidator:
         )
         if not meta_path.exists():
             raise FileNotFoundError(f"META-SCHEMA not found: {meta_path}")
-
         with open(meta_path) as f:
             schema = yaml.safe_load(f)
-
-        logger.info(f"Loaded GLOBAL-DOCUMENT-META-SCHEMA v{schema.get('version')}")
+        logger.info("Loaded GLOBAL-DOCUMENT-META-SCHEMA v%s", schema.get("version"))
         return schema
 
-    # ID: c3d4e5f6-7890-abcd-ef12-34567890abcd
+    # ID: 22fbbd9e-9659-418c-8b87-03ab66e1fafc
     def validate_all_documents(self) -> ValidationReport:
         """
         Scan and validate all .intent YAML documents.
@@ -107,46 +104,32 @@ class MetaValidator:
         self.errors.clear()
         self.warnings.clear()
         self.schema_cache.clear()
-
         scope = self.meta_schema["scope"]
         excludes = [p.replace(".intent/", "") for p in scope["excludes"]]
-
         documents_checked = 0
         documents_valid = 0
         documents_invalid = 0
-
-        # Find all YAML files
         for yaml_file in self.intent_root.rglob("*.yaml"):
             rel_path = yaml_file.relative_to(self.intent_root)
-
-            # Check exclusions
             if any(str(rel_path).startswith(ex) for ex in excludes):
                 logger.debug("Skipping excluded: %s", rel_path)
                 continue
-
             documents_checked += 1
             is_valid = self._validate_document(yaml_file, rel_path)
-
             if is_valid:
                 documents_valid += 1
             else:
                 documents_invalid += 1
-
-        # Also check .yml files
         for yml_file in self.intent_root.rglob("*.yml"):
             rel_path = yml_file.relative_to(self.intent_root)
-
             if any(str(rel_path).startswith(ex) for ex in excludes):
                 continue
-
             documents_checked += 1
             is_valid = self._validate_document(yml_file, rel_path)
-
             if is_valid:
                 documents_valid += 1
             else:
                 documents_invalid += 1
-
         return ValidationReport(
             valid=len(self.errors) == 0,
             errors=self.errors,
@@ -156,7 +139,6 @@ class MetaValidator:
             documents_invalid=documents_invalid,
         )
 
-    # ID: d4e5f678-90ab-cdef-1234-567890abcdef
     def _validate_document(self, doc_path: Path, rel_path: Path) -> bool:
         """
         Validate single document.
@@ -169,8 +151,6 @@ class MetaValidator:
             True if valid, False otherwise
         """
         doc_errors_before = len(self.errors)
-
-        # Load document
         try:
             with open(doc_path) as f:
                 doc = yaml.safe_load(f)
@@ -181,7 +161,6 @@ class MetaValidator:
                 message=f"Failed to parse YAML: {e}",
             )
             return False
-
         if not isinstance(doc, dict):
             self._add_error(
                 document=str(rel_path),
@@ -189,20 +168,11 @@ class MetaValidator:
                 message="Document must be a YAML dictionary",
             )
             return False
-
-        # Validate required header fields
         self._validate_required_fields(str(rel_path), doc)
-
-        # Validate field constraints
         self._validate_field_constraints(str(rel_path), doc)
-
-        # Validate against JSON schema (Phase 2)
         self._validate_against_json_schema(str(rel_path), doc)
-
-        # Check if new errors were added
         return len(self.errors) == doc_errors_before
 
-    # ID: e5f67890-abcd-ef12-3456-7890abcdef12
     def _validate_required_fields(self, doc_name: str, doc: dict):
         """
         Validate all required header fields are present.
@@ -212,7 +182,6 @@ class MetaValidator:
             doc: Document dictionary
         """
         required = self.meta_schema["header_schema"]["required_fields"]
-
         for field in required:
             if field not in doc:
                 self._add_error(
@@ -222,7 +191,6 @@ class MetaValidator:
                     field=field,
                 )
 
-    # ID: f6789abc-def1-2345-6789-0abcdef12345
     def _validate_field_constraints(self, doc_name: str, doc: dict):
         """
         Validate field patterns and constraints.
@@ -232,8 +200,6 @@ class MetaValidator:
             doc: Document dictionary
         """
         fields = self.meta_schema["header_schema"]["fields"]
-
-        # Validate id pattern
         if "id" in doc:
             pattern = fields["id"]["pattern"]
             if not re.match(pattern, doc["id"]):
@@ -243,8 +209,6 @@ class MetaValidator:
                     message=f"id '{doc['id']}' does not match pattern {pattern}",
                     field="id",
                 )
-
-        # Validate version pattern
         if "version" in doc:
             pattern = fields["version"]["pattern"]
             if not re.match(pattern, doc["version"]):
@@ -254,8 +218,6 @@ class MetaValidator:
                     message=f"version '{doc['version']}' does not match pattern {pattern}",
                     field="version",
                 )
-
-        # Validate status enum
         if "status" in doc:
             allowed = fields["status"]["allowed_values"]
             if doc["status"] not in allowed:
@@ -265,8 +227,6 @@ class MetaValidator:
                     message=f"status '{doc['status']}' not in allowed values: {allowed}",
                     field="status",
                 )
-
-        # Validate type pattern
         if "type" in doc:
             pattern = fields["type"]["pattern"]
             if not re.match(pattern, doc["type"]):
@@ -276,8 +236,6 @@ class MetaValidator:
                     message=f"type '{doc['type']}' does not match pattern {pattern}",
                     field="type",
                 )
-
-        # Validate owners structure
         if "owners" in doc:
             if not isinstance(doc["owners"], dict):
                 self._add_error(
@@ -293,8 +251,6 @@ class MetaValidator:
                     message="owners.accountable is required",
                     field="owners.accountable",
                 )
-
-        # Validate review structure
         if "review" in doc:
             if not isinstance(doc["review"], dict):
                 self._add_error(
@@ -310,8 +266,6 @@ class MetaValidator:
                     message="review.frequency is required",
                     field="review.frequency",
                 )
-
-        # Validate schema_id pattern
         if "schema_id" in doc:
             pattern = fields["schema_id"]["pattern"]
             if not re.match(pattern, doc["schema_id"]):
@@ -322,7 +276,6 @@ class MetaValidator:
                     field="schema_id",
                 )
 
-    # ID: 789abcde-f012-3456-789a-bcdef0123456
     def _resolve_schema(self, schema_id: str) -> dict[str, Any] | None:
         """
         Resolve JSON schema by schema_id.
@@ -333,32 +286,26 @@ class MetaValidator:
         Returns:
             Schema dictionary if found, None otherwise
         """
-        # Check cache first
         if schema_id in self.schema_cache:
             return self.schema_cache[schema_id]
-
         schemas_root = self.intent_root / "charter/schemas"
-
-        # Search all .schema.json files
         for schema_file in schemas_root.rglob("*.schema.json"):
             try:
                 with open(schema_file) as f:
                     schema = json.load(f)
-
-                # Match on internal schema_id field
                 if schema.get("schema_id") == schema_id:
                     logger.debug(
-                        f"Resolved {schema_id} -> {schema_file.relative_to(self.intent_root)}"
+                        "Resolved %s -> %s",
+                        schema_id,
+                        schema_file.relative_to(self.intent_root),
                     )
                     self.schema_cache[schema_id] = schema
                     return schema
             except Exception as e:
                 logger.warning("Failed to load schema {schema_file}: %s", e)
                 continue
-
         return None
 
-    # ID: 89abcdef-0123-4567-89ab-cdef01234567
     def _validate_against_json_schema(self, doc_name: str, doc: dict):
         """
         Validate document against its JSON schema.
@@ -368,13 +315,10 @@ class MetaValidator:
             doc: Document dictionary
         """
         if "schema_id" not in doc:
-            return  # Already caught by required fields check
-
+            return
         schema_id = doc["schema_id"]
         schema = self._resolve_schema(schema_id)
-
         if schema is None:
-            # Only warn, not error - allows gradual schema rollout
             self._add_error(
                 document=doc_name,
                 error_type="schema_not_found",
@@ -383,13 +327,10 @@ class MetaValidator:
                 severity="warning",
             )
             return
-
-        # Validate against JSON schema
         try:
             json_validate(instance=doc, schema=schema)
             logger.debug("Document {doc_name} validated against %s", schema_id)
         except JsonSchemaValidationError as e:
-            # Extract meaningful error info
             error_path = ".".join(str(p) for p in e.path) if e.path else "root"
             self._add_error(
                 document=doc_name,
@@ -398,7 +339,6 @@ class MetaValidator:
                 field=error_path if error_path != "root" else None,
             )
 
-    # ID: 67890abc-def1-2345-6789-0abcdef12345
     def _add_error(
         self,
         document: str,
@@ -424,7 +364,6 @@ class MetaValidator:
             field=field,
             severity=severity,
         )
-
         if severity == "error":
             self.errors.append(error)
         else:

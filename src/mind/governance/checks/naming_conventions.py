@@ -1,7 +1,7 @@
 # src/mind/governance/checks/naming_conventions.py
 """
-A constitutional audit check to enforce file and symbol naming conventions
-as defined in the code_standards.yaml policy.
+A constitutional audit check to enforce file and symbol naming conventions.
+Aligns with code_standards.yaml v2.0 (Flat Rules Structure).
 """
 
 from __future__ import annotations
@@ -23,91 +23,87 @@ logger = getLogger(__name__)
 class NamingConventionsCheck(BaseCheck):
     """
     Ensures that file names match the patterns defined in the constitution.
-    This check is fully dynamic and reads all configuration from the policy file.
+    Dynamically loads rules from code_standards.yaml where category='naming'.
     """
 
-    # Fallback: at least one rule id so the check is linkable in governance
-    policy_rule_ids = ["intent.policy_file_naming"]
+    # Explicitly declared IDs from code_standards.yaml v2.0
+    policy_rule_ids = [
+        "intent.policy_file_naming",
+        "intent.policy_schema_naming",
+        "intent.artifact_schema_naming",
+        "intent.prompt_file_naming",
+        "intent.proposal_file_naming",
+        "code.python_module_naming",
+        "code.python_test_module_naming",
+    ]
 
     def __init__(self, context: AuditorContext) -> None:
         super().__init__(context)
 
-        # Ensure we respect the repo_root provided by the AuditorContext.
-        # This is critical for tests that run in a temporary directory.
-        if getattr(self.context, "repo_root", None) is not None:
-            self.repo_root = Path(self.context.repo_root)
+        # Load Flat Rules from code_standards (v2 Structure)
+        policy_data = self.context.policies.get("code_standards", {})
+        all_rules = policy_data.get("rules", [])
 
-        code_standards_policy = self.context.policies.get("code_standards", {})
-        self.naming_policy: dict[str, Any] = code_standards_policy.get(
-            "naming_conventions", {}
-        )
+        # Filter for naming rules
+        self.naming_rules = [r for r in all_rules if r.get("category") == "naming"]
 
-        # --- Dynamic Constitutional Linkage ---
-        # Collect all rule IDs so the check can be traced back to specific policy rules.
-        all_rule_ids: list[str] = []
-        for rules in self.naming_policy.values():
-            if isinstance(rules, list):
-                for rule in rules:
-                    if isinstance(rule, dict) and rule.get("id"):
-                        all_rule_ids.append(rule["id"])
-
-        # If we found rule ids in the policy, expose them; otherwise keep the fallback.
-        self.policy_rule_ids = all_rule_ids or self.policy_rule_ids
+        if not self.naming_rules:
+            logger.warning(
+                "NamingConventionsCheck: No rules with category='naming' found in code_standards.yaml."
+            )
 
     # ID: 6bebb819-1073-4163-8b70-09c2c374f6c8
     def execute(self) -> list[AuditFinding]:
         """
-        Runs the check by iterating through policy rules and scanning the
-        repository file system for violations.
+        Runs the check by iterating through loaded naming rules.
         """
         findings: list[AuditFinding] = []
 
-        if not self.naming_policy:
-            return findings
-
-        for category, rules in self.naming_policy.items():
-            if not isinstance(rules, list):
-                continue
-
-            for rule in rules:
-                if not isinstance(rule, dict):
-                    continue
-                findings.extend(self._process_rule(rule, category))
+        for rule in self.naming_rules:
+            findings.extend(self._process_rule(rule))
 
         return findings
 
-    # --- START OF FIX ---
     def _get_files_for_rule(self, rule: dict[str, Any]) -> list[Path]:
         """
         Gets all files that a rule applies to, respecting its scope and exclusions.
-        This function encapsulates the file-gathering logic.
         """
         scope_glob = rule.get("scope")
         if not scope_glob:
             return []
 
+        # Handle scope being a list or string
+        if isinstance(scope_glob, list):
+            scopes = scope_glob
+        else:
+            scopes = [scope_glob]
+
         exclusions = rule.get("exclusions", [])
         if not isinstance(exclusions, (list, tuple, set)):
             exclusions = [exclusions]
-        exclusions = list(exclusions)
 
-        candidate_files: list[Path] = []
-        for file_path in self.repo_root.glob(scope_glob):
-            if not file_path.is_file():
-                continue
+        candidate_files: set[Path] = set()
 
-            # Check against exclusion patterns.
-            is_excluded = False
-            for ex_pattern in exclusions:
-                if file_path.name == ex_pattern or file_path.match(ex_pattern):
-                    is_excluded = True
-                    break
-            if not is_excluded:
-                candidate_files.append(file_path)
+        for pat in scopes:
+            # Recursive globbing handled by pathlib if '**' is in pattern
+            for file_path in self.repo_root.glob(pat):
+                if not file_path.is_file():
+                    continue
 
-        return candidate_files
+                # Check exclusions
+                is_excluded = False
+                for ex_pattern in exclusions:
+                    # Match name or full path match
+                    if file_path.name == ex_pattern or file_path.match(ex_pattern):
+                        is_excluded = True
+                        break
 
-    def _process_rule(self, rule: dict[str, Any], category: str) -> list[AuditFinding]:
+                if not is_excluded:
+                    candidate_files.add(file_path)
+
+        return list(candidate_files)
+
+    def _process_rule(self, rule: dict[str, Any]) -> list[AuditFinding]:
         """Processes a single naming convention rule against its scoped files."""
         findings: list[AuditFinding] = []
 
@@ -126,17 +122,17 @@ class NamingConventionsCheck(BaseCheck):
             )
             return findings
 
+        # Map 'warn' -> WARNING, 'error' -> ERROR
+        sev_str = enforcement.upper()
+        if sev_str == "WARN":
+            sev_str = "WARNING"
+
         try:
-            severity = AuditSeverity[enforcement.upper()]
+            severity = AuditSeverity[sev_str]
         except KeyError:
-            logger.warning(
-                "Unknown enforcement level '%s' for naming rule '%s'; defaulting to WARN",
-                enforcement,
-                rule_id,
-            )
             severity = AuditSeverity.WARNING
 
-        # Use the dedicated helper to get only the files this rule applies to.
+        # Validate files
         for file_path in self._get_files_for_rule(rule):
             if not compiled_pattern.match(file_path.name):
                 findings.append(
@@ -144,12 +140,9 @@ class NamingConventionsCheck(BaseCheck):
                         check_id=rule_id,
                         severity=severity,
                         message=(
-                            f"File name '{file_path.name}' violates naming "
-                            f"convention '{rule_id}'. Expected pattern: {pattern_str}"
+                            f"Naming Violation: '{file_path.name}' does not match pattern '{pattern_str}'."
                         ),
                         file_path=str(file_path.relative_to(self.repo_root)),
                     )
                 )
         return findings
-
-    # --- END OF FIX ---

@@ -16,7 +16,6 @@ from will.agents.plan_executor import PlanExecutor
 
 if TYPE_CHECKING:
     from mind.governance.audit_context import AuditorContext
-
 logger = getLogger(__name__)
 
 
@@ -34,7 +33,7 @@ class _ExecutionAgent:
         self.executor = plan_executor
         self.auditor_context = auditor_context
 
-    # ID: ad9268be-ba8e-44b4-ac6d-b73dcaac63a1
+    # ID: 28cde0e5-3236-4e29-888a-c68d615ae588
     async def execute_plan(
         self, high_level_goal: str, plan: list[ExecutionTask]
     ) -> tuple[bool, str]:
@@ -53,8 +52,6 @@ class _ExecutionAgent:
                 for path, content in self.executor.context.file_content_cache.items():
                     context_str += f"\n--- Contents of {path} ---\n{content}\n"
                 context_str += "--- END CONTEXT ---\n"
-
-            # Phase 1: Generate Code for all steps
             for task in plan:
                 if (
                     task.action
@@ -62,7 +59,8 @@ class _ExecutionAgent:
                     and task.params.code is None
                 ):
                     logger.info(
-                        f"  -> Delegating code generation for step: '{task.step}' to CoderAgent..."
+                        "  -> Delegating code generation for step: '%s' to CoderAgent...",
+                        task.step,
                     )
                     try:
                         validated_code = (
@@ -72,35 +70,30 @@ class _ExecutionAgent:
                         )
                         task.params.code = validated_code
                         logger.info(
-                            f"  -> ✅ CoderAgent returned validated code for '{task.step}'."
+                            "  -> ✅ CoderAgent returned validated code for '%s'.",
+                            task.step,
                         )
                     except CodeGenerationError as e:
-                        # Capture the invalid code so we can still crate it for manual fix
                         if e.code:
                             task.params.code = e.code
                             logger.warning(
                                 "  -> ⚠️ Validation failed, but captured draft code for crate."
                             )
-
                         logger.error("Code generation failed: %s", e)
-                        raise  # Re-raise to stop execution but keep the plan modified
-
+                        raise
                     except Exception as e:
                         logger.error(
-                            f"Code generation failed for step '{task.step}': {e}"
+                            "Code generation failed for step '%s': %s", task.step, e
                         )
                         raise
-
-            # Phase 2: Execute Plan
             logger.info("--- Handing off fully prepared plan to Executor ---")
             await self.executor.execute_plan(plan)
             return (True, "✅ Plan executed successfully.")
-
         except (PlanExecutionError, CodeGenerationError) as e:
             return (False, f"Plan execution failed: {str(e)}")
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             logger.error(
-                f"An unexpected error occurred during execution: {e}", exc_info=True
+                "An unexpected error occurred during execution: %s", e, exc_info=True
             )
             return (
                 False,

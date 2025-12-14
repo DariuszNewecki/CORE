@@ -22,7 +22,7 @@ from will.agents.resource_selector import ResourceSelector
 logger = getLogger(__name__)
 
 
-# ID: 2fb8d9cc-689c-4c94-bf33-ccdbfa32e3e7
+# ID: 68d48c41-09f8-449a-9a28-1d9a3d20101e
 class CognitiveOrchestrator:
     """
     Will: Decides which resource to use for which role.
@@ -36,7 +36,7 @@ class CognitiveOrchestrator:
         self._client_registry = LLMClientRegistry()
         self._loaded = False
 
-    # ID: 8e126b7b-e30d-4747-a30e-ca1577228b7e
+    # ID: 18a2986d-296b-4388-b2b1-8796d85b5ee2
     async def initialize(self) -> None:
         """Load Mind (roles and resources from DB)."""
         if self._loaded:
@@ -49,10 +49,10 @@ class CognitiveOrchestrator:
             self._roles = list(role_result.scalars().all())
         self._loaded = True
         logger.info(
-            f"Loaded {len(self._resources)} resources, {len(self._roles)} roles"
+            "Loaded %s resources, %s roles", len(self._resources), len(self._roles)
         )
 
-    # ID: 939dcb1b-26d8-4de9-bf51-148f575e0ed7
+    # ID: a16f98de-17d6-4787-9d94-ab4bf63bc96f
     async def get_client_for_role(self, role_name: str) -> LLMClient:
         """
         Will: Decide which resource to use, then get client from registry.
@@ -66,7 +66,7 @@ class CognitiveOrchestrator:
             raise RuntimeError(f"No resource found for role '{role_name}'")
         from will.orchestration.cognitive_service import CognitiveService
 
-        # ID: 2933e250-250a-4bb8-ba46-c3badc55211e
+        # ID: aec81806-c12d-4f9c-9ca0-d159f3c124ff
         def provider_factory(r):
             return CognitiveService._create_provider_for_resource_static(r)
 

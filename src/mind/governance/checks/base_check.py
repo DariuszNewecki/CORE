@@ -1,13 +1,16 @@
 # src/mind/governance/checks/base_check.py
+
 """
 Provides a shared base class for all constitutional audit checks to inherit from.
 """
 
 from __future__ import annotations
 
+from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, ClassVar
 
 from shared.logger import getLogger
+from shared.models import AuditFinding  # Enforce return type contract
 
 
 logger = getLogger(__name__)
@@ -16,17 +19,15 @@ if TYPE_CHECKING:
     from mind.governance.audit_context import AuditorContext
 
 
-# ID: 2cb0374b-a487-4dce-bab1-c2ee8a693b0a
-class BaseCheck:
+# ID: 2a274998-e17b-498a-be66-0bf2af8b7394
+class BaseCheck(ABC):
     """
     A base class for audit checks, providing a shared context and requiring
     subclasses to declare the constitutional rules they enforce.
+
+    Enforces the 'governance_check' entry point pattern via abstract execute().
     """
 
-    # --- CONSTITUTIONAL ENFORCEMENT CONTRACT ---
-    # Every subclass MUST override this attribute to declare which specific
-    # policy rule IDs it is responsible for enforcing. This creates a traceable
-    # link between the constitution (the law) and the checks (the enforcement).
     policy_rule_ids: ClassVar[list[str]] = []
 
     def __init__(self, context: AuditorContext):
@@ -39,9 +40,19 @@ class BaseCheck:
         self.intent_path = context.intent_path
         self.src_dir = context.src_dir
 
-        # Future enhancement: You could add logic here to validate that
-        # subclasses have indeed overridden `policy_rule_ids`.
+        # Enforce Policy Integrity: Checks must declare what they enforce
         if not self.policy_rule_ids:
-            logger.info(
-                f"Warning: Check '{self.__class__.__name__}' does not enforce any policy rules."
+            logger.warning(
+                "Check '%s' does not enforce any policy rules. "
+                "This may violate policy_integrity.yaml.",
+                self.__class__.__name__,
             )
+
+    @abstractmethod
+    # ID: fbe633a1-3dda-4d78-be07-e6bf4399ecc6
+    def execute(self) -> list[AuditFinding]:
+        """
+        The constitutional contract for all Governance Checks.
+        Must return a list of findings (empty if compliant).
+        """
+        pass
