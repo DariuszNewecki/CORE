@@ -1,152 +1,72 @@
-# .intent/meta.yaml
 id: intent_meta_registry
-title: "CORE Intent Meta Registry"
-type: "meta_registry"
+title: CORE Intent Meta Registry
+type: meta_registry
 status: active
-
 owners:
-  accountable: "Governance Lead"
+  accountable: Governance Lead
   responsible:
-    - "Core Maintainer"
-
+  - Core Maintainer
 review:
-  frequency: "12 months"
-
-schema_id: "meta.registry"
-
-version: "2.0.0" # A2 Autonomy Achievement - Autonomous Code Generation
-
+  frequency: 12 months
+schema_id: meta.registry
+version: 2.2.0
+updated_at: '2025-12-12T22:30:00.000000+00:00'
 charter:
   constitution:
-    active_version: "charter/constitution/ACTIVE"
-    governance_framework: "charter/constitution/governance_framework.yaml"
-    precedence_rules: "charter/constitution/precedence_rules.yaml"
-    approvers: "charter/constitution/approvers.yaml"
-    critical_paths: "charter/constitution/critical_paths.yaml"
-    immutable_principles: "charter/constitution/immutable_principles.yaml"
-    # Added based on tree output
-    risk_classification: "charter/constitution/risk_classification.yaml"
-    authority: "charter/constitution/authority.yaml"
-    boundaries: "charter/constitution/boundaries.yaml"
-    meta_schema: "charter/constitution/META-SCHEMA.yaml"
-
-  # MAPPING: Legacy "Policies" -> New "Standards"
-  # Keys are preserved where possible for ID compatibility,
-  # but paths point to the new standards/ hierarchy.
-  policies:
-    # Operations
-    safety_framework: "charter/standards/operations/safety.yaml"
-    code_execution_policy: "charter/standards/operations/code_execution.yaml"
-    observability: "charter/standards/operations/observability.yaml"
-    operations: "charter/standards/operations/operations.yaml"
-    pattern_vectorization: "charter/standards/operations/pattern_vectorization.yaml"
-    quality_assurance: "charter/standards/operations/quality_assurance.yaml"
-
-    # Architecture (formerly separate or mixed)
-    agent_governance: "charter/standards/architecture/agent_governance.yaml"
-    decorator_governance: "charter/standards/architecture/decorator_governance.yaml"
-    dependency_injection_policy: "charter/standards/architecture/dependency_injection.yaml"
-
-    # Code & Data
-    code_standards: "charter/standards/code_standards.yaml"
-    code_purity: "charter/standards/code/purity.yaml"
-    logging_standards: "charter/standards/logging_standards.yaml"
-    data_governance: "charter/standards/data/governance.yaml"
-
-    # Note: risk_classification_policy moved to Constitution
-
-  # MAPPING: Legacy "Patterns" -> Architecture Standards
-  patterns:
-    agent_patterns: "charter/standards/architecture/agent_patterns.yaml"
-    atomic_actions: "charter/standards/architecture/atomic_actions.yaml"
-    body_contracts: "charter/standards/architecture/body_contracts.yaml"
-    command_patterns: "charter/standards/architecture/command_patterns.yaml"
-    irritation_heuristic: "charter/standards/architecture/irritation_heuristic.yaml"
-    service_patterns: "charter/standards/architecture/service_patterns.yaml"
-    user_interface: "charter/standards/architecture/user_interface.yaml"
-    vector_service_standards: "charter/standards/architecture/vector_service_standards.yaml"
-    workflow_patterns: "charter/standards/architecture/workflow_patterns.yaml"
-
+    GLOBAL-DOCUMENT-META-SCHEMA: charter/constitution/GLOBAL-DOCUMENT-META-SCHEMA.yaml
+    META-SCHEMA: charter/constitution/META-SCHEMA.yaml
+    authority: charter/constitution/authority.yaml
+    boundaries: charter/constitution/boundaries.yaml
+    risk_classification: charter/constitution/risk_classification.yaml
   schemas:
-    policy_schema: "charter/schemas/policy_schema.json"
-    agent:
-      agent_policy_schema: "charter/schemas/agent/agent_policy_schema.json"
-      cognitive_roles_schema: "charter/schemas/agent/cognitive_roles_schema.json"
-      micro_proposal_policy_schema: "charter/schemas/agent/micro_proposal_policy_schema.json"
-      resource_manifest_policy_schema: "charter/schemas/agent/resource_manifest_policy_schema.json"
-    code:
-      capability_tag_schema: "charter/schemas/code/capability_tag_schema.json"
-      dependency_injection_policy_schema: "charter/schemas/code/dependency_injection_policy_schema.json"
-      knowledge_graph_entry_schema: "charter/schemas/code/knowledge_graph_entry_schema.json"
-    constitutional:
-      intent_bundle_schema: "charter/schemas/constitutional/intent_bundle_schema.json"
-      intent_crate_schema: "charter/schemas/constitutional/intent_crate_schema.json"
-      proposal_schema: "charter/schemas/constitutional/proposal_schema.json"
-    core:
-      action_result_schema: "charter/schemas/core/action_result_schema.json"
     data:
-      database_policy_schema: "charter/schemas/data/database_policy_schema.json"
-      database_schema: "charter/schemas/data/database_schema.yaml"
-    governance:
-      available_actions_policy_schema: "charter/schemas/governance/available_actions_policy_schema.json"
-      cli_registry_schema: "charter/schemas/governance/cli_registry_schema.json"
-      enforcement_model_schema: "charter/schemas/governance/enforcement_model_schema.json"
-      intent_guard_schema: "charter/schemas/governance/intent_guard_schema.json"
-      reporting_policy_schema: "charter/schemas/governance/reporting_policy_schema.json"
-      risk_classification_policy_schema: "charter/schemas/governance/risk_classification_policy_schema.json"
+      database_schema: charter/schemas/data/database_schema.yaml
     operations:
-      canary_policy_schema: "charter/schemas/operations/canary_policy_schema.json"
-      config_schema: "charter/schemas/operations/config_schema.yaml"
-      conversational_context_bundle_schema: "charter/schemas/operations/conversational_context_bundle_schema.yaml"
-      runtime_requirements_schema: "charter/schemas/config.runtime_requirements.schema.json"
-      workflows_policy_schema: "charter/schemas/operations/workflows_policy_schema.json"
-
+      config_schema: charter/schemas/operations/config_schema.yaml
+      conversational_context_bundle_schema: charter/schemas/operations/conversational_context_bundle_schema.yaml
+  standards:
+    architecture:
+      agent_governance: charter/standards/architecture/agent_governance.yaml
+      agent_patterns: charter/standards/architecture/agent_patterns.yaml
+      atomic_actions: charter/standards/architecture/atomic_actions.yaml
+      body_contracts: charter/standards/architecture/body_contracts.yaml
+      command_patterns: charter/standards/architecture/command_patterns.yaml
+      decorator_governance: charter/standards/architecture/decorator_governance.yaml
+      dependency_injection: charter/standards/architecture/dependency_injection.yaml
+      irritation_heuristic: charter/standards/architecture/irritation_heuristic.yaml
+      layer_contracts: charter/standards/architecture/layer_contracts.yaml
+      service_patterns: charter/standards/architecture/service_patterns.yaml
+      user_interface: charter/standards/architecture/user_interface.yaml
+      vector_service_standards: charter/standards/architecture/vector_service_standards.yaml
+      workflow_patterns: charter/standards/architecture/workflow_patterns.yaml
+    code:
+      purity: charter/standards/code/purity.yaml
+    code_standards: charter/standards/code_standards.yaml
+    data:
+      governance: charter/standards/data/governance.yaml
+    logging_standards: charter/standards/logging_standards.yaml
+    operations:
+      code_execution: charter/standards/operations/code_execution.yaml
+      observability: charter/standards/operations/observability.yaml
+      operations: charter/standards/operations/operations.yaml
+      pattern_vectorization: charter/standards/operations/pattern_vectorization.yaml
+      quality_assurance: charter/standards/operations/quality_assurance.yaml
+      safety: charter/standards/operations/safety.yaml
+    policy_integrity: charter/standards/policy_integrity.yaml
 mind:
-  project_manifest: "mind/project_manifest.yaml"
-  northstar: "mind/northstar.yaml"
   config:
-    local_mode: "mind/config/local_mode.yaml"
-    runtime_requirements: "mind/config/runtime_requirements.yaml"
+    local_mode: mind/config/local_mode.yaml
+    runtime_requirements: mind/config/runtime_requirements.yaml
   ir:
-    incident_log: "mind/ir/incident_log.yaml"
-    triage_log: "mind/ir/triage_log.yaml"
+    triage_log: mind/ir/triage_log.yaml
   knowledge:
-    domain_definitions: "mind/knowledge/domain_definitions.yaml"
-    project_structure: "mind/knowledge/project_structure.yaml"
-    entry_point_patterns: "mind/knowledge/entry_point_patterns.yaml"
-  mind_export:
-    cognitive_roles: "mind_export/cognitive_roles.yaml"
-    resource_manifest: "mind_export/resource_manifest.yaml"
-    capabilities: "mind_export/capabilities.yaml"
-    symbols: "mind_export/symbols.yaml"
-    links: "mind_export/links.yaml"
-    northstar: "mind_export/northstar.yaml"
-  prompts:
-    capability_consolidator: "mind/prompts/capability_consolidator.prompt"
-    capability_definer: "mind/prompts/capability_definer.prompt"
-    code_peer_review: "mind/prompts/code_peer_review.prompt"
-    constitutional_review: "mind/prompts/constitutional_review.prompt"
-    coverage_strategy: "mind/prompts/coverage_strategy.prompt"
-    create_file_planner: "mind/prompts/create_file_planner.prompt"
-    docs_clarity_review: "mind/prompts/docs_clarity_review.prompt"
-    enrich_symbol: "mind/prompts/enrich_symbol.prompt"
-    fix_capability_manifest: "mind/prompts/fix_capability_manifest.prompt"
-    fix_function_docstring: "mind/prompts/fix_function_docstring.prompt"
-    fix_header: "mind/prompts/fix_header.prompt"
-    fix_line_length: "mind/prompts/fix_line_length.prompt"
-    goal_assessor: "mind/prompts/goal_assessor.prompt"
-    intent_translator: "mind/prompts/intent_translator.prompt"
-    micro_planner: "mind/prompts/micro_planner.prompt"
-    module_docstring_writer: "mind/prompts/module_docstring_writer.prompt"
-    new_capability_generator: "mind/prompts/new_capability_generator.prompt"
-    planner_agent: "mind/prompts/planner_agent.prompt"
-    refactor_for_clarity: "mind/prompts/refactor_for_clarity.prompt"
-    refactor_outlier: "mind/prompts/refactor_outlier.prompt"
-    standard_task_generator: "mind/prompts/standard_task_generator.prompt"
-    test_fixer: "mind/prompts/test_fixer.prompt"
-    test_generator: "mind/prompts/test_generator.prompt"
-    vectorizer: "mind/prompts/vectorizer.prompt"
-  context:
-    schema: "context/schema.yaml"
-    policy: "context/policy.yaml"
-    domains: "knowledge/domains.yaml"
+    domain_definitions: mind/knowledge/domain_definitions.yaml
+    entry_point_patterns: mind/knowledge/entry_point_patterns.yaml
+    project_structure: mind/knowledge/project_structure.yaml
+  northstar: mind/northstar.yaml
+  project_manifest: mind/project_manifest.yaml
+context:
+  policy: context/policy.yaml
+  schema: context/schema.yaml
+knowledge:
+  domains: knowledge/domains.yaml

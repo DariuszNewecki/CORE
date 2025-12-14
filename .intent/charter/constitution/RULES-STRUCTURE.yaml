@@ -1,0 +1,558 @@
+# .intent/charter/constitution/RULES-STRUCTURE.yaml
+#
+# Universal Rules Structure Standard
+#
+# Defines the canonical "rules" array format for ALL .intent documents
+# that contain enforceable, auditable, or checkable content.
+#
+# This is the Big Boys pattern (Kubernetes/AWS/OPA style):
+# - Flat array structure (not nested by category)
+# - Categories as properties (not structure)
+# - Parser-friendly (never breaks when new categories added)
+# - Self-documenting (clear separation of metadata vs enforcement)
+
+id: rules_structure_standard
+version: "2.0.0"
+title: "Universal Rules Structure Standard"
+type: "constitutional_standard"
+status: active
+
+owners:
+  accountable: "Governance Lead"
+  responsible:
+    - "Core Maintainer"
+
+review:
+  frequency: "12 months"
+
+schema_id: "rules.structure"
+
+# ============================================================================
+# PURPOSE & SCOPE
+# ============================================================================
+
+purpose: >
+  Establishes the canonical structure for ALL .intent documents that define
+  enforceable rules, auditable checks, or validatable constraints.
+
+  This standard ensures:
+  - Consistent rule discovery across all document types
+  - Parser-friendly structure that never breaks with new categories
+  - Clear separation between metadata and enforcement content
+  - Industry alignment with Kubernetes, AWS, and OPA patterns
+
+scope:
+  applies_to:
+    - "Constitutional documents (authority.yaml, boundaries.yaml, risk_classification.yaml)"
+    - "Policy standards (code_standards.yaml, logging_standards.yaml, data_governance.yaml)"
+    - "Architectural patterns (agent_patterns.yaml, workflow_patterns.yaml, service_patterns.yaml)"
+    - "Operational standards (operations.yaml, safety.yaml, observability.yaml)"
+    - "Schemas with validation rules (any schema defining checkable constraints)"
+
+  does_not_apply_to:
+    - "Pure metadata documents (document that only describe, not enforce)"
+    - "Registry documents (lists without enforcement rules)"
+    - "Configuration files (runtime config without governance rules)"
+    - "Knowledge bases (informational content without checks)"
+
+# ============================================================================
+# CANONICAL STRUCTURE
+# ============================================================================
+
+canonical_structure:
+  description: >
+    Documents containing enforceable rules MUST use a single flat 'rules'
+    array at the top level. All rules exist in this array regardless of
+    their category, type, or enforcement level.
+
+  schema_resolution:
+    description: >
+      CRITICAL: How schema_id is used in documents with enforceable rules.
+      This prevents validator drift and parser confusion.
+
+    rule: >
+      The document's schema_id identifies the DOCUMENT STRUCTURE schema
+      (e.g., policy.structure, pattern.structure).
+
+      Each item in the rules[] array conforms to THIS standard
+      (rules.structure) regardless of the document type.
+
+    example: |
+      # code_standards.yaml
+      schema_id: "policy.structure"     # ← Document structure
+
+      rules:  # ← Each item conforms to rules.structure
+        - id: style.linter_required
+          statement: "..."
+          enforcement: error
+
+    validation: >
+      Validators MUST:
+      1. Validate document header against document's schema_id
+      2. Validate each rules[] item against rules.structure
+      3. Reject documents with schema_id mismatch
+
+  required_format:
+    rules:
+      type: array
+      description: "Flat array of ALL enforceable rules in this document"
+      required: true
+      location: "Top-level field in document"
+
+      item_schema:
+        description: "Each rule in the array MUST follow this schema"
+
+        required_fields:
+          id:
+            type: string
+            description: "Unique identifier for this rule within the constitutional scope"
+            pattern: "^[a-z][a-z0-9._-]*$"
+            examples:
+              - "style.linter_required"
+              - "agent.compliance.no_write_intent"
+              - "safety.immutable_constitution"
+              - "di.constructor_injection_preferred"
+            notes:
+              - "Must be globally unique across all .intent documents"
+              - "Use dot notation for hierarchical organization"
+              - "Lowercase with underscores, dots, or hyphens only"
+
+          statement:
+            type: string
+            description: "Clear, imperative declaration of what must be true"
+            max_length: 500
+            examples:
+              - "All changes MUST pass ruff (lint) before merge."
+              - "Agents MUST NOT write directly to '.intent/charter/**'."
+              - "Services SHOULD receive dependencies through __init__ constructor."
+            notes:
+              - "Use MUST/SHOULD/MAY keywords (RFC 2119 style)"
+              - "Be specific and actionable"
+              - "Focus on the requirement, not the implementation"
+
+          enforcement:
+            type: string
+            description: "Severity/priority level for this rule"
+            allowed_values:
+              - "error"    # Blocking violation - must be fixed
+              - "warn"     # Non-blocking but should be addressed
+              - "warning"  # Alias for warn
+              - "info"     # Informational only
+            examples:
+              - "error"
+              - "warn"
+            notes:
+              - "Use 'error' for constitutional requirements"
+              - "Use 'warn' for best practices"
+              - "Use 'info' for guidance/documentation"
+
+        recommended_fields:
+          category:
+            type: string
+            description: "High-level grouping for this rule"
+            pattern: "^[a-z][a-z0-9_]*$"
+            examples:
+              - "style"
+              - "safety"
+              - "agent_governance"
+              - "dependency_injection"
+              - "naming"
+              - "capabilities"
+            notes:
+              - "Use consistent categories across documents"
+              - "Categories are properties, not structure"
+              - "Parsers filter by category, don't navigate structure"
+
+          subcategory:
+            type: string
+            description: "Optional fine-grained grouping within category"
+            pattern: "^[a-z][a-z0-9_]*$"
+            examples:
+              - "intent"    # Within naming category
+              - "code"      # Within naming category
+              - "compliance" # Within agent category
+            notes:
+              - "Use when category alone is too broad"
+              - "Helps organize large rule sets"
+
+        optional_fields:
+          scope:
+            type: "string | array"
+            description: "Where this rule applies (paths, file patterns, contexts)"
+            examples:
+              - "src/**/*.py"
+              - [".intent/charter/**", ".intent/mind/**"]
+              - ["elevated_risk", "critical_risk"]
+            notes:
+              - "Use glob patterns for file paths"
+              - "Can be single string or array of strings"
+
+          details:
+            type: object
+            description: "Additional context, examples, rationale, or configuration"
+            examples:
+              - example: "# src/module.py\n\"\"\"Module docstring\"\"\""
+              - rationale: "Prevents split-brain scenarios"
+              - exceptions: ["Generated code", "Test fixtures"]
+            notes:
+              - "Freeform object for rule-specific metadata"
+              - "Use for examples, rationale, exceptions, etc"
+
+          rationale:
+            type: string
+            description: "Why this rule exists (for human understanding)"
+            max_length: 1000
+            examples:
+              - "Files exceeding 400 lines violate single responsibility principle"
+              - "Prevents agents from modifying their own constraints"
+
+          exceptions:
+            type: array
+            description: "Documented exceptions to this rule"
+            items:
+              type: string
+            examples:
+              - ["Database model files (models.py)", "Generated code with @generated marker"]
+
+# ============================================================================
+# DEPRECATED LEGACY FORMAT
+# ============================================================================
+
+deprecated_format:
+  description: >
+    The following nested structures are DEPRECATED and will be removed
+    in version 3.0.0 of this standard.
+
+  legacy_patterns:
+    - section_name: "style_rules"
+      replacement: "rules array with category='style'"
+      deprecated_since: "v2.0.0"
+      removal_target: "v3.0.0"
+
+    - section_name: "naming_conventions"
+      replacement: "rules array with category='naming', subcategory='code|intent'"
+      deprecated_since: "v2.0.0"
+      removal_target: "v3.0.0"
+
+    - section_name: "capability_rules"
+      replacement: "rules array with category='capabilities'"
+      deprecated_since: "v2.0.0"
+      removal_target: "v3.0.0"
+
+    - section_name: "agent_rules"
+      replacement: "rules array with category='agent_governance'"
+      deprecated_since: "v2.0.0"
+      removal_target: "v3.0.0"
+
+    - section_name: "safety_rules"
+      replacement: "rules array with category='safety'"
+      deprecated_since: "v2.0.0"
+      removal_target: "v3.0.0"
+
+  why_deprecated:
+    - "Parsers must know every possible section name (fragile)"
+    - "Adding new categories breaks existing parsers"
+    - "Inconsistent: some sections are lists, some are nested dicts"
+    - "Not aligned with industry standards (Kubernetes, AWS, OPA)"
+    - "Harder to maintain and evolve"
+
+# ============================================================================
+# MIGRATION PATH
+# ============================================================================
+
+migration_timeline:
+  v2_x:
+    status: "Current - Backward Compatible"
+    description: >
+      Both formats are supported. Parsers and auditors MUST handle
+      both flat 'rules' array and legacy nested sections.
+    policy_enforcement:
+      - "New documents SHOULD use flat rules array"
+      - "Existing documents MAY continue using legacy format"
+      - "No warnings issued for legacy format"
+
+  v3_0:
+    status: "Future - Deprecation Warnings"
+    target_date: "2026-Q2"
+    description: >
+      Legacy format is officially deprecated. Parsers MUST emit
+      warnings when encountering nested sections.
+    policy_enforcement:
+      - "All NEW documents MUST use flat rules array"
+      - "Existing documents SHOULD migrate to new format"
+      - "Warnings issued for legacy format"
+      - "Tools provided to auto-migrate legacy documents"
+
+  v4_0:
+    status: "Future - Breaking Change"
+    target_date: "2026-Q4"
+    description: >
+      Legacy format is removed. Only flat rules array supported.
+    policy_enforcement:
+      - "ALL documents MUST use flat rules array"
+      - "Legacy format rejected by validators"
+      - "Breaking change - major version bump"
+
+migration_tools:
+  description: "Tools to help migrate from legacy to new format"
+
+  auto_migration_script:
+    path: "scripts/migrate_rules_format.py"
+    usage: "python3 scripts/migrate_rules_format.py --file POLICY.yaml"
+    capabilities:
+      - "Detects legacy nested sections"
+      - "Extracts rules and adds category/subcategory properties"
+      - "Consolidates into single flat rules array"
+      - "Preserves all rule metadata and properties"
+      - "Creates backup before modifying"
+
+  validation_check:
+    command: "core-admin governance validate-structure"
+    description: "Checks all .intent documents for compliance with this standard"
+
+# ============================================================================
+# INDUSTRY ALIGNMENT
+# ============================================================================
+
+industry_patterns:
+  description: >
+    This standard aligns with established patterns from major platforms
+    that have proven effective at scale.
+
+  kubernetes:
+    pattern: "Flat resource definitions with labels/annotations for grouping"
+    example: |
+      # All Pods have flat spec, regardless of purpose
+      apiVersion: v1
+      kind: Pod
+      metadata:
+        labels:
+          app: nginx        # ← Category as property
+          tier: frontend    # ← Not nested structure
+      spec:
+        containers: [...]   # ← Flat list
+
+    lesson: "Labels (categories) are properties, not structural nesting"
+
+  aws_iam:
+    pattern: "Flat Statement array with Effect/Resource properties"
+    example: |
+      {
+        "Statement": [      # ← Flat array
+          {
+            "Effect": "Deny",      # ← Category as property
+            "Action": "s3:Delete",  # ← Not nested by service
+            "Resource": "*"
+          }
+        ]
+      }
+
+    lesson: "Single Statement array, categorized by properties"
+
+  opa_rego:
+    pattern: "Flat rule definitions with metadata as properties"
+    example: |
+      package kubernetes.admission
+
+      deny[msg] {              # ← Flat rule
+        input.kind == "Pod"    # ← Scope as property
+        not secure(input)
+        msg := "Pod must be secure"
+      }
+
+    lesson: "Rules are flat, context is in properties"
+
+# ============================================================================
+# EXAMPLES
+# ============================================================================
+
+examples:
+  minimal_policy:
+    description: "Minimal valid policy with rules"
+    content: |
+      id: example_policy
+      version: "2.0.0"
+      title: "Example Policy"
+      type: "standard"
+      status: active
+      owners:
+        accountable: "Team Lead"
+      review:
+        frequency: "12 months"
+      schema_id: "rules.structure"
+
+      rules:
+        - id: example.rule_one
+          statement: "All code MUST pass linting"
+          enforcement: error
+
+        - id: example.rule_two
+          statement: "Functions SHOULD have docstrings"
+          enforcement: warn
+
+  full_featured_rule:
+    description: "Rule with all optional fields"
+    content: |
+      - id: style.linter_required
+        category: style
+        subcategory: quality
+        statement: "All changes MUST pass ruff (lint) before merge."
+        enforcement: error
+        scope: ["src/**/*.py", "tests/**/*.py"]
+        rationale: >
+          Linting catches common bugs and enforces consistent code style,
+          reducing review burden and improving code quality.
+        exceptions:
+          - "Generated code with @generated marker"
+          - "Third-party vendored code"
+        details:
+          fix_command: "ruff check --fix src/ tests/"
+          documentation: "https://docs.astral.sh/ruff/"
+
+  migrated_policy:
+    description: "Before and after migration from legacy format"
+    before: |
+      # LEGACY FORMAT (v1.x)
+      style_rules:
+        - id: style.linter_required
+          statement: "..."
+
+      naming_conventions:
+        code:
+          - id: code.python_module_naming
+            statement: "..."
+        intent:
+          - id: intent.policy_file_naming
+            statement: "..."
+
+    after: |
+      # NEW FORMAT (v2.x)
+      rules:
+        - id: style.linter_required
+          category: style
+          statement: "..."
+
+        - id: code.python_module_naming
+          category: naming
+          subcategory: code
+          statement: "..."
+
+        - id: intent.policy_file_naming
+          category: naming
+          subcategory: intent
+          statement: "..."
+
+# ============================================================================
+# PARSER IMPLEMENTATION GUIDANCE
+# ============================================================================
+
+parser_guidance:
+  description: "How parsers and auditors should handle rules"
+
+  loading_rules:
+    v2_backward_compatible: |
+      # Support both formats during v2.x
+      rules = []
+
+      # Try new format first (preferred)
+      if "rules" in document and isinstance(document["rules"], list):
+          rules = document["rules"]
+
+      # Fallback to legacy format
+      else:
+          # Check all known legacy sections
+          for section in ["style_rules", "agent_rules", "naming_conventions"]:
+              if section in document:
+                  if isinstance(document[section], list):
+                      rules.extend(document[section])
+                  elif isinstance(document[section], dict):
+                      # Handle nested structure (like naming_conventions)
+                      for subsection, subrules in document[section].items():
+                          if isinstance(subrules, list):
+                              rules.extend(subrules)
+
+      return rules
+
+    v3_with_warnings: |
+      # Emit warnings for legacy format in v3.x
+      if "rules" in document:
+          return document["rules"]
+
+      # Legacy format detected
+      logger.warning(
+          f"Document {document_path} uses deprecated legacy format. "
+          f"Migrate to 'rules' array by 2026-Q4. "
+          f"See RULES-STRUCTURE.yaml for migration guide."
+      )
+      # ... then load from legacy sections
+
+    v4_strict: |
+      # Only accept new format in v4.x
+      if "rules" not in document:
+          raise ValidationError(
+              f"Document {document_path} missing required 'rules' array. "
+              f"Legacy formats removed in v4.0. "
+              f"See RULES-STRUCTURE.yaml migration guide."
+          )
+      return document["rules"]
+
+  filtering_by_category:
+    example: |
+      # Filter rules by category
+      all_rules = document.get("rules", [])
+      style_rules = [r for r in all_rules if r.get("category") == "style"]
+
+      # Filter by category and subcategory
+      code_naming_rules = [
+          r for r in all_rules
+          if r.get("category") == "naming"
+          and r.get("subcategory") == "code"
+      ]
+
+# ============================================================================
+# VALIDATION RULES
+# ============================================================================
+
+validation_rules:
+  document_level:
+    - "Documents with enforceable content MUST have a 'rules' array"
+    - "The 'rules' field MUST be an array (not dict, not null)"
+    - "Empty rules array is valid (document may be informational)"
+
+  rule_level:
+    - "Each rule MUST have: id, statement, enforcement"
+    - "Rule id MUST be unique within constitutional scope (all .intent docs)"
+    - "Rule id MUST match pattern: ^[a-z][a-z0-9._-]*$"
+    - "Statement MUST be non-empty string, max 500 characters"
+    - "Enforcement MUST be one of: error, warn, warning, info"
+    - "Category, if present, MUST match pattern: ^[a-z][a-z0-9_]*$"
+
+  cross_document:
+    - "Rule IDs MUST be globally unique across all .intent documents"
+    - "Categories SHOULD be consistent across documents (use standard names)"
+    - "Referenced schemas in 'details' SHOULD exist"
+
+# ============================================================================
+# BENEFITS
+# ============================================================================
+
+benefits:
+  parser_robustness:
+    - "Parsers never break when new categories are added"
+    - "Single code path for all rule types"
+    - "No special handling for nested structures"
+
+  maintainability:
+    - "Easy to add new rules without structural changes"
+    - "Categories emerge naturally from usage patterns"
+    - "No coordination needed to add new rule types"
+
+  tooling:
+    - "Coverage tools can count rules consistently"
+    - "Migration tools can normalize formats automatically"
+    - "Validation tools have single rule schema"
+
+  developer_experience:
+    - "Clear, predictable structure"
+    - "Industry-standard pattern (familiar to developers)"
+    - "Self-documenting (categories visible in each rule)"

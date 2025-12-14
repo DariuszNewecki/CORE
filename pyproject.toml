@@ -14,7 +14,6 @@ packages = [
     { include = "body", from = "src" },
     { include = "features", from = "src" },
     { include = "mind", from = "src" },
-    { include = "services", from = "src" },
     { include = "shared", from = "src" },
     { include = "will", from = "src" },
 ]

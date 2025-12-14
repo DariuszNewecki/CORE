@@ -1,0 +1,709 @@
+# .intent/charter/constitution/CONSTITUTION-STRUCTURE.yaml
+#
+# Constitutional Document Structure Standard
+#
+# Defines the structure for constitutional documents that establish
+# fundamental governance principles, authority boundaries, and risk frameworks.
+#
+# Constitutional documents use PRINCIPLES (not rules) to define the
+# foundational constraints and authorities that govern the entire system.
+
+id: constitution_structure_standard
+version: "2.0.0"
+title: "Constitutional Document Structure Standard"
+type: "constitutional_standard"
+status: active
+
+owners:
+  accountable: "Governance Lead"
+  responsible:
+    - "Core Maintainer"
+
+review:
+  frequency: "12 months"
+
+schema_id: "constitution.meta"
+
+# ============================================================================
+# PURPOSE & SCOPE
+# ============================================================================
+
+purpose: >
+  Establishes the canonical structure for constitutional documents that define
+  the foundational governance framework: authority (who decides what),
+  boundaries (what's immutable), and risk classification (what requires oversight).
+
+  Constitutional documents establish the META-GOVERNANCE layer - they govern
+  how governance itself works. They are more foundational than policies.
+
+scope:
+  applies_to:
+    - ".intent/charter/constitution/*.yaml"
+    - "Documents with type: constitutional_*"
+
+  specific_domains:
+    authority:
+      file: "authority.yaml"
+      purpose: "Defines who may decide what, and under which conditions"
+      examples:
+        - "Which operations require human approval"
+        - "What agents can do autonomously"
+        - "Escalation paths for decisions"
+
+    boundaries:
+      file: "boundaries.yaml"
+      purpose: "Defines immutable system boundaries and separation of concerns"
+      examples:
+        - "Mind/Body/Will layer separation"
+        - "Database as single source of truth"
+        - "Constitution immutability requirements"
+
+    risk_classification:
+      file: "risk_classification.yaml"
+      purpose: "Defines risk tiers and gating mechanisms"
+      examples:
+        - "Routine operations (autonomous)"
+        - "Elevated risk (validation required)"
+        - "Critical risk (human approval required)"
+
+# ============================================================================
+# PRINCIPLES VS RULES
+# ============================================================================
+
+principles_vs_rules:
+  description: >
+    Constitutional documents use PRINCIPLES while policies use RULES.
+    These are different governance paradigms for different purposes.
+
+  principles:
+    used_in: "Constitutional documents (authority, boundaries, risk)"
+    nature: "Foundational constraints and authorities"
+    structure: "Declarative statements with enforcement methods"
+    granularity: "Coarse-grained (system-level)"
+    stability: "Very stable - rarely change"
+    examples:
+      - "The database is the single source of truth"
+      - "Critical paths require human approval"
+      - "Constitution files are immutable"
+
+    paradigm: |
+      Principles answer: "What are the fundamental truths of the system?"
+      They define WHAT must be true, not HOW to check it.
+
+  rules:
+    used_in: "Policies and patterns (code_standards, logging_standards, etc)"
+    nature: "Specific requirements and checks"
+    structure: "Flat array with categories"
+    granularity: "Fine-grained (code-level)"
+    stability: "More dynamic - evolve with practices"
+    examples:
+      - "All code MUST pass ruff linting"
+      - "Functions SHOULD have docstrings"
+      - "Modules MUST use snake_case naming"
+
+    paradigm: |
+      Rules answer: "How must the code be written?"
+      They define HOW to implement principles in practice.
+
+  relationship:
+    description: "Principles inform rules, rules implement principles"
+    example: |
+      PRINCIPLE (boundaries.yaml):
+        "The database is the single source of truth for operational state"
+
+      RULE (data_governance.yaml):
+        "Services MUST NOT cache operational data beyond request scope"
+
+      The rule implements the principle at the code level.
+
+  when_to_use_which:
+    use_principles:
+      - "Defining system-level invariants"
+      - "Establishing authority and approval flows"
+      - "Setting risk boundaries and classifications"
+      - "Declaring architectural constraints"
+
+    use_rules:
+      - "Enforcing code quality standards"
+      - "Checking naming conventions"
+      - "Validating operational procedures"
+      - "Implementing principle-derived checks"
+
+# ============================================================================
+# CONSTITUTIONAL DOCUMENT STRUCTURE
+# ============================================================================
+
+canonical_structure:
+  description: >
+    Constitutional documents follow a principles-based structure that
+    differs from the rules-based structure used by policies.
+
+  required_sections:
+    header:
+      description: "Standard document header (per GLOBAL-DOCUMENT-META-SCHEMA)"
+      required_fields:
+        - id
+        - version
+        - title
+        - type
+        - status
+        - owners
+        - review
+        - schema_id
+
+      notes:
+        - "type MUST start with 'constitutional_' (e.g. constitutional_authority)"
+        - "schema_id MUST be 'constitution.meta'"
+
+    domain:
+      type: string
+      description: "Constitutional domain this document governs"
+      required: true
+      allowed_values:
+        - "authority"
+        - "boundaries"
+        - "risk"
+        - "enforcement"
+
+      notes:
+        - "Each domain addresses a different aspect of system governance"
+        - "Documents should focus on single domain"
+
+    principles:
+      type: object
+      description: "Named principles that constitute this domain's governance"
+      required: true
+      structure: "Dict of principle_id -> principle definition"
+
+      principle_schema:
+        required_fields:
+          - statement
+          - rationale
+          - scope
+          - enforcement
+
+        fields:
+          statement:
+            type: string
+            max_length: 200
+            description: "Clear, imperative declaration of the principle"
+            examples:
+              - "The database is the single source of truth"
+              - "Critical operations require human approval"
+              - "Constitution files are immutable without human review"
+
+          rationale:
+            type: string
+            max_length: 500
+            description: "Why this principle exists and what it protects"
+            examples:
+              - "Prevents split-brain scenarios and ensures state consistency"
+              - "Maintains human authority over system architecture changes"
+
+          scope:
+            type: array
+            items: string
+            min_items: 1
+            description: "Where/when this principle applies"
+            examples:
+              - ["src/shared/infrastructure/database.py", "alembic/versions/*"]
+              - ["schema_migration", "config_change", "constitutional_amendment"]
+              - ["elevated_risk", "critical_risk"]
+
+          enforcement:
+            type: object
+            required_fields:
+              - method
+              - parameters
+
+            description: "How to validate compliance with this principle"
+
+            method:
+              type: string
+              description: "Validation mechanism to use"
+              allowed_values:
+                - "path_match"              # File path pattern matching
+                - "action_classification"   # Operation type checking
+                - "boundary_check"          # Layer violation detection
+                - "risk_calculation"        # Risk tier assessment
+                - "audit_verification"      # Audit log validation
+                - "architectural_validation" # Structural integrity check
+
+              examples:
+                path_match: |
+                  enforcement:
+                    method: path_match
+                    parameters:
+                      patterns: [".intent/charter/**"]
+                      action: deny_write
+
+                risk_calculation: |
+                  enforcement:
+                    method: risk_calculation
+                    parameters:
+                      tier_threshold: elevated
+                      approval_type: human_confirmation
+
+  optional_sections:
+    references:
+      type: object
+      description: "Cross-references to related constitutional documents"
+      example: |
+        references:
+          depends_on:
+            - boundaries.yaml  # Authority depends on boundaries being clear
+          informs:
+            - risk_classification.yaml  # Authority informs risk decisions
+
+    metadata:
+      type: object
+      description: "Additional context about this constitutional domain"
+
+# ============================================================================
+# CONSTITUTIONAL DOMAINS
+# ============================================================================
+
+domains:
+  authority:
+    purpose: "Defines decision-making authority and approval requirements"
+
+    key_concepts:
+      - "Approval types (autonomous, validation_only, human_confirmation, human_review)"
+      - "Authority levels (routine, standard, elevated, critical)"
+      - "Escalation paths"
+      - "Delegation rules"
+
+    typical_principles:
+      - principle_id: "human_approval_required"
+        when: "Critical operations affecting system integrity"
+
+      - principle_id: "autonomous_allowed"
+        when: "Routine operations within tested boundaries"
+
+      - principle_id: "validation_required"
+        when: "Standard operations with automated safeguards"
+
+    relationship_to_risk:
+      description: "Authority principles reference risk tiers to determine approval level"
+      example: |
+        # In authority.yaml
+        critical_operations:
+          statement: "Critical-risk operations require human review"
+          scope: ["critical_risk"]  # References risk tier
+
+  boundaries:
+    purpose: "Defines immutable architectural boundaries and separations"
+
+    key_concepts:
+      - "Mind/Body/Will layer separation"
+      - "Single source of truth (database)"
+      - "Immutability requirements"
+      - "Transparency and auditability"
+
+    typical_principles:
+      - principle_id: "database_ssot"
+        purpose: "Ensure operational state consistency"
+
+      - principle_id: "mind_immutability"
+        purpose: "Protect constitutional integrity"
+
+      - principle_id: "layer_separation"
+        purpose: "Maintain clean architecture"
+
+    why_boundaries_matter:
+      - "Prevent architectural erosion"
+      - "Enable autonomous operation within safe limits"
+      - "Make system behavior predictable"
+      - "Support audit and verification"
+
+  risk_classification:
+    purpose: "Defines risk tiers and their associated constraints"
+
+    risk_tiers:
+      routine:
+        value: 1
+        approval: autonomous
+        description: "Well-tested operations with no system impact"
+        examples:
+          - "Read operations"
+          - "Logging"
+          - "Status checks"
+
+      standard:
+        value: 3
+        approval: validation_only
+        description: "Common operations with automated safeguards"
+        examples:
+          - "Code generation with tests"
+          - "Configuration updates"
+          - "Non-critical file modifications"
+
+      elevated:
+        value: 7
+        approval: human_confirmation
+        description: "Operations with potential system impact"
+        examples:
+          - "Database schema changes"
+          - "Infrastructure modifications"
+          - "Dependency updates"
+
+      critical:
+        value: 10
+        approval: human_review
+        description: "Operations affecting core system integrity"
+        examples:
+          - "Constitutional amendments"
+          - "Security policy changes"
+          - "Production deployments"
+
+    risk_calculation:
+      factors:
+        - "Scope of impact (local vs system-wide)"
+        - "Reversibility (easy rollback vs permanent)"
+        - "Blast radius (files affected, services impacted)"
+        - "Historical safety record"
+
+# ============================================================================
+# ENFORCEMENT MECHANISMS
+# ============================================================================
+
+enforcement:
+  description: >
+    Constitutional principles are enforced through multiple mechanisms
+    at different system layers.
+
+  mechanisms:
+    validator_service:
+      component: "mind.governance.validator_service"
+      purpose: "Pre-execution validation of operations against principles"
+      how_it_works: |
+        1. Operation requested (e.g. file write, schema change)
+        2. ValidatorService loads relevant principles
+        3. Applies enforcement methods to classify risk
+        4. Returns GovernanceDecision (approved/denied/escalate)
+
+      example: |
+        decision = validator.validate_operation(
+            action="modify_file",
+            target=".intent/charter/authority.yaml"
+        )
+        # Returns: HUMAN_REVIEW_REQUIRED (matches principle)
+
+    intent_guard:
+      component: "mind.governance.intent_guard"
+      purpose: "Runtime protection of constitutional boundaries"
+      how_it_works: |
+        1. Monitors file system operations
+        2. Intercepts writes to protected paths
+        3. Validates against boundary principles
+        4. Blocks violations before they occur
+
+      example: |
+        # Attempt to write to constitution
+        # IntentGuard intercepts and checks boundaries.yaml
+        # Finds: "Constitution files are immutable"
+        # Result: Operation blocked
+
+    constitutional_audit:
+      component: "mind.governance.auditor"
+      purpose: "Periodic verification of principle compliance"
+      how_it_works: |
+        1. Scans codebase for principle violations
+        2. Checks audit logs for unapproved operations
+        3. Verifies boundary integrity
+        4. Reports compliance status
+
+      example: |
+        # Audit checks database_ssot principle
+        # Finds: Service caching operational state
+        # Reports: Boundary violation
+
+  integration:
+    description: "How constitutional enforcement integrates with policy enforcement"
+
+    layers:
+      constitutional_layer:
+        level: "System-level"
+        enforces: "Principles"
+        when: "Pre-execution, runtime guards"
+        examples: ["ValidatorService", "IntentGuard"]
+
+      policy_layer:
+        level: "Code-level"
+        enforces: "Rules"
+        when: "Post-commit, CI checks"
+        examples: ["Auditor", "Linters", "Tests"]
+
+    relationship: |
+      Constitutional principles set boundaries →
+      Policies implement those boundaries →
+      Checks verify policy compliance
+
+# ============================================================================
+# EXAMPLES
+# ============================================================================
+
+examples:
+  minimal_constitutional_document:
+    description: "Simplest valid constitutional document"
+    content: |
+      id: example_constitution
+      version: "1.0.0"
+      title: "Example Constitutional Domain"
+      type: "constitutional_example"
+      status: active
+
+      owners:
+        accountable: "Governance Lead"
+
+      review:
+        frequency: "12 months"
+
+      schema_id: "constitution.meta"
+
+      domain: "boundaries"
+
+      principles:
+        example_boundary:
+          statement: "Configuration must be stored in database"
+          rationale: "Ensures single source of truth for runtime config"
+          scope:
+            - "src/**/*.py"
+          enforcement:
+            method: "architectural_validation"
+            parameters:
+              check: "no_file_based_config"
+
+  authority_example:
+    description: "Authority domain with approval requirements"
+    content: |
+      id: authority_framework
+      version: "2.0.0"
+      title: "Constitutional Authority Framework"
+      type: "constitutional_authority"
+      status: active
+
+      owners:
+        accountable: "Governance Lead"
+
+      review:
+        frequency: "12 months"
+
+      schema_id: "constitution.meta"
+
+      domain: "authority"
+
+      principles:
+        critical_operations_require_approval:
+          statement: "Critical-risk operations require human review before execution"
+          rationale: "Maintains human authority over system-critical changes"
+          scope:
+            - "critical_risk"
+          enforcement:
+            method: "risk_calculation"
+            parameters:
+              risk_threshold: critical
+              approval_type: human_review
+              approver_roles: ["core_maintainer", "governance_lead"]
+
+        routine_operations_autonomous:
+          statement: "Routine-risk operations may execute autonomously"
+          rationale: "Enables efficient operation within safe boundaries"
+          scope:
+            - "routine_risk"
+          enforcement:
+            method: "risk_calculation"
+            parameters:
+              risk_threshold: routine
+              approval_type: autonomous
+
+      references:
+        depends_on:
+          - risk_classification.yaml
+
+  boundaries_example:
+    description: "Boundaries domain with immutability requirements"
+    content: |
+      id: constitutional_boundaries
+      version: "2.0.0"
+      title: "Constitutional Boundaries"
+      type: "constitutional_boundaries"
+      status: active
+
+      owners:
+        accountable: "Architecture Lead"
+
+      review:
+        frequency: "12 months"
+
+      schema_id: "constitution.meta"
+
+      domain: "boundaries"
+
+      principles:
+        database_single_source_of_truth:
+          statement: "The database is the single source of truth for operational state"
+          rationale: "Prevents split-brain scenarios and ensures state consistency"
+          scope:
+            - "src/**/*.py"
+            - "alembic/versions/**"
+          enforcement:
+            method: "architectural_validation"
+            parameters:
+              validators:
+                - "no_file_based_state"
+                - "no_in_memory_persistence"
+
+        constitution_immutable:
+          statement: "Constitution files cannot be modified without human-in-the-loop amendment"
+          rationale: "Prevents autonomous agents from modifying their own constraints"
+          scope:
+            - ".intent/charter/constitution/**"
+          enforcement:
+            method: "path_match"
+            parameters:
+              patterns: [".intent/charter/constitution/**"]
+              action: deny_write
+              exceptions: ["human_approved_amendments"]
+
+# ============================================================================
+# AMENDMENT PROCESS
+# ============================================================================
+
+amendment_process:
+  description: >
+    Constitutional principles are more stable than policy rules.
+    Amending the constitution requires formal process.
+
+  procedure:
+    step_1:
+      task: "Identify need for amendment"
+      criteria:
+        - "Existing principle is blocking legitimate operations"
+        - "New system capability requires new principle"
+        - "Principle conflicts with operational reality"
+
+    step_2:
+      task: "Draft amendment proposal"
+      requirements:
+        - "Clear statement of what changes"
+        - "Rationale for change"
+        - "Impact analysis"
+        - "Backward compatibility plan"
+
+    step_3:
+      task: "Review and approval"
+      approvers:
+        - "Governance Lead (required)"
+        - "Architecture Lead (for boundaries)"
+        - "Core Maintainers (quorum)"
+
+    step_4:
+      task: "Implementation"
+      actions:
+        - "Update constitutional document"
+        - "Bump version (major for breaking changes)"
+        - "Update dependent policies"
+        - "Communicate change"
+
+    step_5:
+      task: "Validation"
+      checks:
+        - "Audit passes with new principle"
+        - "No policy conflicts"
+        - "System operates correctly"
+
+  versioning:
+    major_bump:
+      when: "Breaking change to existing principle"
+      example: "Changing approval requirement from validation to human_review"
+
+    minor_bump:
+      when: "New principle added, existing unchanged"
+      example: "Adding new boundary for new system component"
+
+    patch_bump:
+      when: "Clarification or documentation only"
+      example: "Improving rationale text, fixing typos"
+
+# ============================================================================
+# VALIDATION CHECKLIST
+# ============================================================================
+
+validation_checklist:
+  header:
+    - "[ ] Document has all required header fields"
+    - "[ ] type starts with 'constitutional_'"
+    - "[ ] schema_id is 'constitution.meta'"
+    - "[ ] version follows semver (X.Y.Z)"
+
+  content:
+    - "[ ] domain field specifies authority|boundaries|risk|enforcement"
+    - "[ ] principles is a dict (not list)"
+    - "[ ] Each principle has: statement, rationale, scope, enforcement"
+    - "[ ] Principle IDs are unique within document"
+    - "[ ] Statements are clear and imperative"
+    - "[ ] Rationale explains WHY, not HOW"
+    - "[ ] Scope defines WHERE/WHEN principle applies"
+    - "[ ] Enforcement method is valid and has required parameters"
+
+  quality:
+    - "[ ] Principles are foundational (not implementation details)"
+    - "[ ] Scope is neither too broad nor too narrow"
+    - "[ ] Enforcement is implementable"
+    - "[ ] No conflicts with other constitutional principles"
+    - "[ ] Cross-references are accurate"
+
+# ============================================================================
+# BEST PRACTICES
+# ============================================================================
+
+best_practices:
+  principle_design:
+    - "Make principles timeless and foundational"
+    - "Focus on WHAT must be true, not HOW to check it"
+    - "Keep principles coarse-grained (system-level)"
+    - "Avoid implementation details"
+    - "Ensure principles are independently valuable"
+
+  scope_definition:
+    - "Be specific about where principle applies"
+    - "Use path patterns for file-based boundaries"
+    - "Use action types for behavioral constraints"
+    - "Document exceptions explicitly"
+
+  enforcement_specification:
+    - "Choose simplest effective enforcement method"
+    - "Provide all parameters needed for validation"
+    - "Consider performance implications"
+    - "Enable audit and verification"
+
+  maintenance:
+    - "Review constitutional documents annually"
+    - "Propose amendments through formal process"
+    - "Communicate changes broadly"
+    - "Maintain backward compatibility when possible"
+
+# ============================================================================
+# RELATIONSHIP TO OTHER STANDARDS
+# ============================================================================
+
+relationships:
+  to_rules_structure:
+    description: "Constitutional principles inform policy rules"
+    example: |
+      PRINCIPLE (boundaries.yaml):
+        database_single_source_of_truth
+
+      RULE (data_governance.yaml):
+        db.no_file_based_state
+
+      The rule implements the principle
+
+  to_policy_structure:
+    description: "Policies implement constitutional principles at code level"
+    flow: "Constitution → Policies → Code"
+
+  to_pattern_structure:
+    description: "Patterns show how to implement principles effectively"
+    example: "Agent patterns show how to respect authority principles"
