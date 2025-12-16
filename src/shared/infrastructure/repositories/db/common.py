@@ -1,5 +1,5 @@
 # src/shared/infrastructure/repositories/db/common.py
-
+# ID: infra.repo.db.common
 """
 Provides common utilities for database-related CLI commands.
 """
@@ -40,15 +40,37 @@ def load_policy() -> dict:
         with META_YAML_PATH.open("r", encoding="utf-8") as f:
             meta_config = yaml.safe_load(f)
 
-        # The data_governance policy is at the top level under policies
-        db_policy_path_str = meta_config["charter"]["policies"]["data_governance"]
+        # Attempt to resolve path using new v2.2 structure (standards) first, then legacy (policies)
+        db_policy_path_str = None
+
+        # Path 1: New Standards Structure (charter -> standards -> data -> governance)
+        try:
+            db_policy_path_str = meta_config["charter"]["standards"]["data"][
+                "governance"
+            ]
+        except KeyError:
+            pass
+
+        # Path 2: Legacy Policy Structure (charter -> policies -> data_governance)
+        if not db_policy_path_str:
+            try:
+                db_policy_path_str = meta_config["charter"]["policies"][
+                    "data_governance"
+                ]
+            except KeyError:
+                pass
+
+        if not db_policy_path_str:
+            raise KeyError("Could not find data governance policy path in meta.yaml")
+
         db_policy_path = settings.paths.intent_root / db_policy_path_str
 
         with db_policy_path.open("r", encoding="utf-8") as f:
             return yaml.safe_load(f) or {}
+
     except (FileNotFoundError, KeyError) as e:
         raise FileNotFoundError(
-            f"Could not locate database policy via meta.yaml. Ensure it's correctly indexed. Original error: {e}"
+            f"Could not locate database policy via meta.yaml. Ensure it's correctly indexed under 'charter.standards.data.governance'. Original error: {e}"
         ) from e
     except yaml.YAMLError as e:
         raise ValueError(

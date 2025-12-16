@@ -21,10 +21,19 @@ logger = getLogger(__name__)
 
 async def _get_symbol_creation_dates() -> dict[str, str]:
     """Queries the database to get the creation timestamp for each symbol UUID."""
-    async with get_session() as session:
-        # Select the correct 'id' column
-        result = await session.execute(text("SELECT id, created_at FROM core.symbols"))
-        return {str(row.id): row.created_at.isoformat() for row in result}
+    try:
+        async with get_session() as session:
+            # Select the correct 'id' column
+            result = await session.execute(
+                text("SELECT id, created_at FROM core.symbols")
+            )
+            return {str(row.id): row.created_at.isoformat() for row in result}
+    except Exception as e:
+        logger.warning(
+            "Could not fetch symbol creation dates from DB (%s). Assuming first found is original.",
+            e,
+        )
+        return {}
 
 
 # ID: 5891cbbe-ae62-4743-92fa-2e204ca5fa13
@@ -38,11 +47,11 @@ async def resolve_duplicate_ids(dry_run: bool = True) -> int:
     logger.info("Scanning for duplicate UUIDs...")
 
     # 1. Discover duplicates using the existing auditor check
-    # Use local import to avoid circular dependency issues at module level
     from mind.governance.audit_context import AuditorContext
 
     context = AuditorContext(settings.REPO_PATH)
     uniqueness_check = IdUniquenessCheck(context)
+
     findings = uniqueness_check.execute()
 
     duplicates = [f for f in findings if f.check_id == "linkage.duplicate_ids"]
@@ -59,24 +68,56 @@ async def resolve_duplicate_ids(dry_run: bool = True) -> int:
     files_to_modify: dict[str, list[tuple[int, str]]] = defaultdict(list)
 
     for finding in duplicates:
-        locations_str = finding.context.get("locations", "")
-        # The UUID is in the message: "Duplicate ID tag found: {uuid}"
-        duplicate_uuid = finding.message.split(": ")[-1]
+        locations_str = finding.context.get("locations")
+
+        # Robustly handle missing locations
+        if not locations_str:
+            logger.warning(
+                "Finding '%s' has no location data. Skipping.", finding.message
+            )
+            continue
+
+        # FIX: Prefer extracting UUID from context (structured) over message (fragile)
+        duplicate_uuid = finding.context.get("uuid")
+
+        # Fallback to message parsing (legacy support)
+        if not duplicate_uuid:
+            # Try to grab the first part after "Duplicate ID collision: "
+            # Message format: "Duplicate ID collision: {uuid}. This ID is..."
+            try:
+                parts = finding.message.split("Duplicate ID collision: ")
+                if len(parts) > 1:
+                    duplicate_uuid = parts[1].split(".")[0].strip()
+            except IndexError:
+                pass
+
+        if not duplicate_uuid:
+            logger.warning("Could not extract UUID from finding: %s", finding.message)
+            continue
 
         locations = []
         for loc in locations_str.split(", "):
-            path, line = loc.rsplit(":", 1)
-            locations.append((path, int(line)))
+            loc = loc.strip()
+            if not loc:
+                continue
+
+            try:
+                path, line = loc.rsplit(":", 1)
+                locations.append((path, int(line)))
+            except ValueError:
+                logger.warning("Skipping malformed location string: '%s'", loc)
+                continue
+
+        if not locations:
+            continue
 
         # Find the original symbol (the one created first)
         original_location = None
 
-        # Check if we have creation date info for this UUID
         if duplicate_uuid in symbol_creation_dates:
-            # Assume the first location for a given UUID is the original if we have DB info
             original_location = locations[0]
         else:
-            # Fallback for symbols not yet in DB: assume first found is original
+            # Fallback: assume first found is original
             original_location = locations[0]
 
         logger.info(
@@ -108,15 +149,32 @@ async def resolve_duplicate_ids(dry_run: bool = True) -> int:
     logger.info("Applying fixes...")
     for file_str, changes in files_to_modify.items():
         file_path = settings.REPO_PATH / file_str
+        if not file_path.exists():
+            logger.warning("File %s does not exist. Skipping.", file_str)
+            continue
+
         content = file_path.read_text("utf-8")
         lines = content.splitlines()
 
         for line_num, old_uuid in changes:
             new_uuid = str(uuid.uuid4())
             line_index = line_num - 1
-            if old_uuid in lines[line_index]:
-                lines[line_index] = lines[line_index].replace(old_uuid, new_uuid)
-                logger.info("  - Replaced ID in %s:%s", file_str, line_num)
+
+            if 0 <= line_index < len(lines):
+                if old_uuid in lines[line_index]:
+                    lines[line_index] = lines[line_index].replace(old_uuid, new_uuid)
+                    logger.info(
+                        "  - Replaced ID in %s:%s -> %s", file_str, line_num, new_uuid
+                    )
+                else:
+                    logger.warning(
+                        "  - ID %s not found in %s:%s (line changed?)",
+                        old_uuid,
+                        file_str,
+                        line_num,
+                    )
+            else:
+                logger.warning("  - Line %s out of bounds in %s", line_num, file_str)
 
         file_path.write_text("\n".join(lines) + "\n", "utf-8")
 

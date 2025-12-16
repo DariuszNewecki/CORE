@@ -1,0 +1,86 @@
+# .intent/charter/standards/architecture/event_schema_standard.yaml
+id: standard_architecture_events
+version: "1.0.0"
+title: "Architecture Standard – Event Schema"
+type: "standard_architecture"
+status: active
+
+owners:
+  accountable: "Architecture Owner"
+  responsible:
+    - "Core Maintainer"
+
+review:
+  frequency: "12 months"
+
+schema_id: "standard.architecture.events"
+
+purpose: >
+  Establishes the canonical schema for all system events (Audit, Governance,
+  Operational). Decouples the "Body" (emitters) from the "Will" (agents/monitors).
+
+rules:
+  - id: events.cloudevents_compliance
+    statement: "All system events MUST conform to the CloudEvents 1.0 specification structure."
+    enforcement: error
+
+  - id: events.topic_naming
+    statement: "Event types MUST follow the pattern 'core.<domain>.<entity>.<verb>'."
+    enforcement: error
+    examples:
+      - "core.governance.audit.failed"
+      - "core.agent.thought.created"
+      - "core.system.file.modified"
+
+  - id: events.payload_immutability
+    statement: "Event payloads MUST be treated as immutable once emitted."
+    enforcement: error
+
+structure:
+  envelope:
+    required_fields:
+      - name: id
+        type: uuid
+        description: "Unique event identifier"
+      - name: source
+        type: uri
+        description: "System component that generated the event (e.g., 'service:intent_guard')"
+      - name: specversion
+        type: string
+        default: "1.0"
+      - name: type
+        type: string
+        description: "The event topic (e.g., 'core.governance.violation')"
+      - name: datacontenttype
+        type: string
+        default: "application/json"
+      - name: time
+        type: iso8601
+      - name: data
+        type: object
+        description: "The domain-specific payload"
+
+  standard_payloads:
+    violation_event:
+      type: "core.governance.violation"
+      data:
+        rule_id: string
+        severity: string
+        resource_path: string
+        message: string
+
+    audit_event:
+      type: "core.governance.audit.completed"
+      data:
+        audit_id: uuid
+        passed: boolean
+        violations_count: integer
+        duration_ms: integer
+
+    agent_state_event:
+      type: "core.agent.state.changed"
+      data:
+        agent_id: string
+        task_id: string
+        old_state: string
+        new_state: string

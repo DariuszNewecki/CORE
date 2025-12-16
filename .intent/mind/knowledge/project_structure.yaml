@@ -37,6 +37,11 @@ architectural_domains:
     description: "Cross-cutting infrastructure services."
     allowed_imports: [services, shared]
 
+  - domain: mind
+    path: src/mind
+    description: "The Conscience. Governance, enforcement, and constitutional logic."
+    allowed_imports: [mind, shared]
+
 # === ENTRY POINT PATTERNS ===
 entry_point_patterns:
   - name: "python_magic_method"

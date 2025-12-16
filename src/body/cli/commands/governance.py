@@ -261,7 +261,7 @@ def _ensure_coverage_map(repo_root: Path) -> Path:
     return coverage_map_path
 
 
-# ID: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+# ID: aa9fb647-e5c5-481b-91e8-959b3be7a74b
 @governance_app.command("coverage")
 @core_command(dangerous=False, requires_context=False)
 # ID: 0753d0ea-9942-431f-b013-5ee5d09eb782

@@ -1,16 +1,18 @@
-# CORE — The Self‑Improving System Architect
+# CORE — The Last Programmer You Will Ever Need
 
-> **Where Intelligence Lives.**
+> **Where Governance Lives. Where Intelligence Is Constrained.**
 
-[![Status: A2 Achieved](https://img.shields.io/badge/status-A2%20Achieved-brightgreen.svg)](#-project-status)
+[![Status: A2 Achieved](https://img.shields.io/badge/status-A2%20Achieved-brightgreen.svg)](#-project-status-a2-autonomy-achieved)
 [![Constitutional Governance](https://img.shields.io/badge/governance-Constitutional-blue.svg)](#-constitutional-governance)
 [![Documentation](https://img.shields.io/badge/docs-GitHub%20Pages-blue)](https://dariusznewecki.github.io/CORE/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![codecov](https://codecov.io/gh/DariuszNewecki/CORE/graph/badge.svg)](https://codecov.io/gh/DariuszNewecki/CORE)
 
-CORE is a **self‑governing, constitutionally aligned AI development system** capable of planning, writing, validating, and evolving software **autonomously and safely**. It is designed for environments where **trust, traceability, and governance matter as much as raw capability**.
+CORE is a **constitutionally governed AI development system** that enables humans to plan, build, validate, and evolve software **without losing accountability, traceability, or control**.
 
-Built on **industry-standard governance patterns** (Kubernetes, AWS, OPA), CORE demonstrates how AI agents can operate with **bounded autonomy** - powerful yet provably constrained by human-defined constitutional principles.
+It is designed for environments where **trust and governance matter as much as raw capability**, and where AI must be **powerful—but provably bounded** by human-authored constraints.
+
+---
 
 ## See It In Action
 
@@ -20,87 +22,110 @@ Built on **industry-standard governance patterns** (Kubernetes, AWS, OPA), CORE 
 
 ---
 
+## Why CORE Exists
+
+Modern systems fail less because code is hard to write, and more because **intent gets lost**:
+
+* Architecture drifts from implementation
+* Documentation rots
+* Decisions lose their rationale
+* Ownership becomes unclear
+* No one can explain **why** the system behaves the way it does
+
+AI accelerates this problem unless governance becomes **structural**.
+
+CORE exists to prevent **unowned complexity**.
+It does not replace humans. It replaces **technical gatekeeping, translation loss, and unmanaged drift**.
+
+---
+
 ## 🏛️ Project Status: A2 Autonomy Achieved
 
-**CORE has achieved Level 2 Autonomy (A2): Autonomous Code Generation**
+**CORE has achieved Level 2 Autonomy (A2): Governed Code Generation**
 
 ### Current Capabilities
 
-* ✅ **A0 (Self-Awareness)**: 513 symbols vectorized, 66 module anchors, knowledge graph operational
-* ✅ **A1 (Self-Healing)**: Automatic docstrings, headers, imports, formatting, constitutional compliance
-* ✅ **A2 (Code Generation)**: 70-80% success rate on autonomous code generation with constitutional governance
-* 🎯 **A3 (Strategic Refactoring)**: Next frontier - multi-file architectural improvements
+* ✅ **A0 (Self-Awareness)**: knowledge graph operational (symbols + module anchors)
+* ✅ **A1 (Self-Healing)**: automatic repairs (docstrings, headers, imports, formatting, compliance)
+* ✅ **A2 (Governed Code Generation)**: autonomous code generation under constitutional governance
+* 🎯 **A3 (Strategic Refactoring)**: next frontier — multi-file architectural improvements
 
 ### Live Metrics (v2.0.0)
 
-**Constitutional Governance:**
+**Governance:**
+
 * 32 constitutional policies documented
-* 60+ rules actively enforced (40.5% enforcement coverage, targeting 50%+)
-* 100% enforcement: agent_governance, dependency_injection, code_execution
-* Auto-regenerating coverage reports (Big Boys pattern: kubectl, git, docker)
+* 60+ rules actively enforced (40.5% enforcement coverage; targeting 50%+)
+* 100% enforcement: `agent_governance`, `dependency_injection`, `code_execution`
 
-**Autonomous Capabilities:**
-* **Code Generation Success Rate**: 70-80% (up from 0%)
-* **Semantic Placement Accuracy**: 100% (up from 45%)
-* **Knowledge Graph**: 513 symbols, 66 module anchors, 73 policy chunks vectorized
-* **Test Coverage**: 48-51% (constitutional requirement: 75%)
+**Autonomy:**
 
-**Recent Achievements (v2.0 Migration):**
-* ✅ **Constitutional Modernization**: Migrated to industry-standard flat rules structure
-* ✅ **Complete Documentation**: 4 constitutional standards following Kubernetes patterns
-* ✅ **Progressive Disclosure UX**: Coverage reports show gaps first, not overwhelming detail
-* ✅ **Parser Robustness**: Auto-discovery of rules, never breaks with new categories
-* ✅ **Backward Compatible**: Supports both v1 (nested) and v2 (flat) formats during transition
+* Code generation success: **70–80%**
+* Semantic placement accuracy: **100%**
+* Knowledge graph: 513 symbols, 66 module anchors, 73 policy chunks vectorized
+* Test coverage: **48–51%** (constitutional target: 75%)
 
 ---
 
 ## 🧠 What Is CORE?
 
-Traditional systems drift: architecture diverges from implementation; design documents rot; no one has the full picture.
-
-CORE fixes this by making **the architecture machine‑readable and enforceable**.
+CORE fixes drift by making **architecture machine-readable and enforceable**.
 
 It is built on the **Mind–Body–Will** model:
 
 ### 🧠 Mind — The Constitution & State (`.intent/`, PostgreSQL)
 
-* The **Constitution** defines immutable laws: structure, policies, schemas, allowed dependencies.
-* The **Database** stores every symbol, capability, and relation as the **Single Source of Truth**.
-* **Semantic Infrastructure**: Policies, symbols, and architectural context vectorized for AI reasoning.
-* **Governance Framework**: Industry-aligned (Kubernetes/AWS/OPA) constitutional governance.
+* **Constitution** defines immutable laws: structure, policies, schemas, allowed dependencies
+* **Database** stores symbols, capabilities, and relations as the **Single Source of Truth**
+* **Semantic infrastructure** enables AI reasoning about architecture and constraints
+
+This is where **responsibility lives**.
 
 ### 🏗️ Body — The Machinery (`src/body/`, `src/services/`)
 
-* Provides deterministic tools: auditing, filesystem operations, code parsing, git control.
-* A centralized **Service Registry** ensures clean lifecycle management and singleton resources.
-* **Constitutional Auditor** enforces governance rules and tracks violations.
-* **45 specialized checkers** validate compliance across the codebase.
+* Deterministic tooling: auditing, filesystem ops, code parsing, git control
+* Central **Service Registry** for lifecycle management and singleton resources
+* **Constitutional Auditor** enforces governance rules and tracks violations
+* 45 specialized checkers validate compliance across the codebase
+
+This is where rules are **enforced**.
 
 ### ⚡ Will — The Reasoning Layer (`src/will/`)
 
-* AI Agents that plan, write, and review code autonomously.
-* Agents never act freely: **every action is pre‑validated** against the Constitution.
-* **Context-Aware Code Generation**: Rich semantic context enables accurate, policy-compliant code.
-* **Bounded Autonomy**: Agents operate in defined "autonomy lanes" with explicit permissions.
+* AI agents that plan, write, review, and improve code
+* Agents never act freely: **every action is validated** against the Constitution
+* “Bounded autonomy lanes” define explicit permissions and limits
 
-This creates a system that can **understand itself**, detect deviations, and evolve safely.
+This is where intelligence **works**, not decides.
+
+---
+
+## Two Roles, One Authority
+
+CORE is designed around role separation.
+
+* **CORE-admin**: defines governance (via policy layer / future Policy Editor), owns constraints and evolution
+* **End-User**: chats only; can request actions **only within governance**
+
+Chat is not the capability surface.
+**Governance is the capability surface.**
 
 ---
 
 ## 🏛️ Governance Architecture
 
-CORE implements a **two-paradigm governance system** following industry best practices:
+CORE implements a governance stack with progressive disclosure:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │              CONSTITUTIONAL LAYER                           │
 │        (Principles - System-Level Governance)               │
 │                                                             │
-│  authority.yaml          → Who decides what                 │
-│  boundaries.yaml         → What's immutable                 │
+│  authority.yaml           → Who decides what                │
+│  boundaries.yaml          → What’s immutable                │
 │  risk_classification.yaml → What needs oversight            │
 │                                                             │
-│  Paradigm: Foundational, coarse-grained, very stable       │
+│  Paradigm: Foundational, coarse-grained, very stable        │
 └──────────────────────────┬──────────────────────────────────┘
                            │
                            ↓
@@ -108,12 +133,12 @@ CORE implements a **two-paradigm governance system** following industry best pra
 │                  POLICY LAYER                               │
 │           (Rules - Code-Level Enforcement)                  │
 │                                                             │
-│  code_standards.yaml     → 17/31 enforced (54%) 🆕          │
-│  logging_standards.yaml  → Ready to migrate                 │
-│  data_governance.yaml    → Ready to migrate                 │
-│  agent_governance.yaml   → 5/5 enforced (100%) ✅           │
+│  code_standards.yaml      → Enforced requirements           │
+│  logging_standards.yaml   → Operational standards           │
+│  data_governance.yaml     → Data & integrity rules          │
+│  agent_governance.yaml    → Autonomy bounds                 │
 │                                                             │
-│  Paradigm: Implementation-specific, fine-grained, dynamic   │
+│  Paradigm: Fine-grained, implementation-specific, dynamic    │
 └──────────────────────────┬──────────────────────────────────┘
                            │
                            ↓
@@ -121,146 +146,67 @@ CORE implements a **two-paradigm governance system** following industry best pra
 │              ENFORCEMENT LAYER                              │
 │        (Checkers - Continuous Verification)                 │
 │                                                             │
-│  45 checkers × 60+ rules = 40.5% coverage                  │
-│  Auto-discovery via flat rules array                        │
-│  Progressive disclosure UX (like kubectl/git/docker)        │
+│  Checkers × Rules = measurable enforcement coverage          │
+│  Auto-discovery via flat rules array                         │
+│  Progressive disclosure output (kubectl/git/docker pattern)  │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-### Two Governance Paradigms
-
-**Principles (Constitutional - System Level)**
-* Foundational invariants (authority, boundaries, risk)
-* Coarse-grained, very stable
-* Example: *"The database is the single source of truth"*
-* Defined in: `authority.yaml`, `boundaries.yaml`, `risk_classification.yaml`
-
-**Rules (Policies - Code Level)**
-* Implementation requirements (code quality, operations)
-* Fine-grained, more dynamic
-* Example: *"All code MUST pass ruff linting"*
-* Defined in: `code_standards.yaml`, `logging_standards.yaml`, etc.
-
-**Relationship**: Principles set boundaries → Policies implement boundaries → Checkers verify compliance
+**Relationship:** Principles set boundaries → Policies implement boundaries → Checkers verify compliance.
 
 ---
 
 ## 📚 Constitutional Documentation
 
-CORE provides **complete governance documentation** following industry standards (Kubernetes, AWS, OPA):
+CORE includes governance documentation aligned to industry-grade patterns:
 
-| Document | Purpose | Status |
-|----------|---------|--------|
-| **[GLOBAL-DOCUMENT-META-SCHEMA](/.intent/charter/constitution/GLOBAL-DOCUMENT-META-SCHEMA.yaml)** | Universal header requirements for all .intent documents | ✅ Active |
-| **[CONSTITUTION-STRUCTURE](/.intent/charter/constitution/CONSTITUTION-STRUCTURE.yaml)** | Principles-based system governance (authority, boundaries, risk) | 🆕 v2.0 |
-| **[RULES-STRUCTURE](/.intent/charter/constitution/RULES-STRUCTURE.yaml)** | Universal standard for enforceable rules (flat array pattern) | 🆕 v2.0 |
-| **[POLICY-STRUCTURE](/.intent/charter/constitution/POLICY-STRUCTURE.yaml)** | Code quality and operational policies | 🆕 v2.0 |
-| **[PATTERN-STRUCTURE](/.intent/charter/constitution/PATTERN-STRUCTURE.yaml)** | Architectural and behavioral patterns | 🆕 v2.0 |
+| Document                                                                                          | Purpose                                                          | Status   |
+| ------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- | -------- |
+| **[GLOBAL-DOCUMENT-META-SCHEMA](/.intent/charter/constitution/GLOBAL-DOCUMENT-META-SCHEMA.yaml)** | Universal header requirements for all `.intent` documents        | ✅ Active |
+| **[CONSTITUTION-STRUCTURE](/.intent/charter/constitution/CONSTITUTION-STRUCTURE.yaml)**           | Principles-based system governance (authority, boundaries, risk) | 🆕 v2.0  |
+| **[RULES-STRUCTURE](/.intent/charter/constitution/RULES-STRUCTURE.yaml)**                         | Universal standard for enforceable rules (flat array pattern)    | 🆕 v2.0  |
+| **[POLICY-STRUCTURE](/.intent/charter/constitution/POLICY-STRUCTURE.yaml)**                       | Standards for code-level policies                                | 🆕 v2.0  |
+| **[PATTERN-STRUCTURE](/.intent/charter/constitution/PATTERN-STRUCTURE.yaml)**                     | Standards for architectural and behavioral patterns              | 🆕 v2.0  |
 
-**Key Innovation**: Flat rules array pattern (not nested sections)
-* ✅ Parser-friendly - never breaks when new categories added
-* ✅ Industry-aligned - matches Kubernetes, AWS IAM, OPA/Rego
-* ✅ Extensible - add categories without code changes
-* ✅ Self-documenting - categories visible in each rule
+**Key innovation:** the **flat rules array** pattern.
+
+* Parser-friendly (no category-driven breakage)
+* Extensible (new categories without code changes)
+* Self-documenting (categories visible in each rule)
 
 ---
 
-## 🔒 Constitutional Governance (Industry-Aligned)
+## 🔒 Constitutional Governance
 
-CORE's governance system implements **bounded AI autonomy** through constitutional constraints:
+CORE’s key claim is not “AI can code.”
+It is:
 
-### Core Principles
+> **AI can code safely when governance is explicit, enforced, and auditable.**
 
-1. **Human Authority**: Critical operations require human approval
-2. **Immutable Boundaries**: Constitution cannot be modified by AI agents
-3. **Continuous Audit**: All operations validated against governance rules
-4. **Semantic Understanding**: AI agents reason about their own constraints
-5. **Progressive Disclosure**: Show actionable info, not overwhelming detail
+CORE enforces:
 
-### Governance in Action
+1. **Human authority** for critical operations
+2. **Immutable boundaries** (Constitution cannot be modified by agents)
+3. **Continuous audit** against policies and principles
+4. **Semantic understanding of constraints** (agents reason about rules)
+5. **Progressive disclosure** (actionable outputs first)
 
-**Check enforcement coverage:**
-```bash
-core-admin governance coverage --format hierarchical
-```
-
-**Output shows:**
-- Top gaps per policy (actionable)
-- Category breakdown (scannable)
-- Migration progress (v1 → v2 flat structure)
-- Links to full details (progressive disclosure)
-
-**Example output:**
-```
-### ⚠️ code_standards.yaml 🆕
-**Enforcement**: 17/31 rules (54%)
-**Format**: New (flat rules array) ✨
-
-**Top gaps** (highest priority):
-- ❌ `code.python_module_naming` (error) - snake_case enforcement
-- ❌ `code.python_test_module_naming` (error) - test_ prefix
-- ❌ `header_compliance` (error) - file headers
-
-**Enforcement by category**:
-- capabilities: 4/4 rules (100%) ✅
-- style: 3/7 rules (43%)
-- naming: 1/10 rules (10%)
-
-📋 Full rule list: `core-admin governance coverage --policy code_standards`
-```
-
-### Enforcement Architecture
-
-**Constitutional Layer** (ValidatorService, IntentGuard)
-- Pre-execution validation against principles
-- Runtime protection of boundaries
-- Risk tier assessment
-
-**Policy Layer** (Auditor + 45 Checkers)
-- Post-commit compliance verification
-- Coverage tracking and reporting
-- Auto-remediation for simple violations
-
-**Result**: AI agents that are powerful yet provably bounded by human-defined constraints.
+CORE does not prevent bad decisions.
+It prevents **unowned decisions**.
 
 ---
 
 ## 🎯 The Autonomy Ladder
 
-CORE progresses through defined autonomy levels:
-
 ```
 A0: Self-Awareness          ✅ Knowledge graph, symbol vectorization
-A1: Self-Healing            ✅ Autonomous fixes for drift, formatting, compliance
-A2: Code Generation         ✅ Create new features with constitutional governance
+A1: Self-Healing            ✅ Autonomous fixes for drift, compliance
+A2: Governed Code Generation ✅ New features under constitutional governance
 A3: Strategic Refactoring   🎯 Multi-file architectural improvements
-A4: Self-Replication        🔮 Write CORE.NG from scratch based on functionality
+A4: Self-Replication        🔮 CORE writes CORE.NG from declared intent
 ```
 
-**Current Focus**: Reaching 50%+ enforcement coverage and A3 capabilities
-
----
-
-## 🎓 Academic Contribution
-
-CORE demonstrates **practical constitutional AI governance** at scale:
-
-* ✅ **Working implementation** of bounded AI autonomy (not theoretical)
-* ✅ **Industry-aligned patterns** (Kubernetes, AWS, OPA) applied to AI safety
-* ✅ **Semantic policy understanding** - AI agents reason about their own constraints
-* ✅ **Verifiable compliance** - continuous audit with coverage metrics
-* ✅ **Open source** - reproducible research for AI safety community
-* ✅ **Production-grade** - 60,000+ lines, 513 symbols, 32 policies
-
-**Suitable for presentation at**:
-- AI Safety conferences (demonstrating bounded autonomy)
-- Software Engineering research (constitutional software patterns)
-- Autonomous Systems symposia (self-governing systems)
-
-**Key Research Questions Addressed**:
-1. Can AI agents operate safely within constitutional bounds?
-2. How do we make governance rules machine-understandable?
-3. What enforcement coverage is needed for safe autonomy?
+**Current focus:** reach 50%+ enforcement coverage and unlock A3 safely.
 
 ---
 
@@ -276,12 +222,11 @@ Run a minimal walkthrough: create an API, break a rule, and watch CORE catch it.
 
 🌐 **[https://dariusznewecki.github.io/CORE/](https://dariusznewecki.github.io/CORE/)**
 
-* **What is CORE?** – Foundations & philosophy
-* **Architecture** – Mind/Body/Will, Service Registry, Knowledge Graph
-* **Governance** – Constitutional framework and enforcement
-* **Autonomy Ladder** – From self-awareness to self-replication
-* **Roadmap** – Towards A3, A4, and full autonomous delivery
-* **Contributing** – How to collaborate
+* Foundations & philosophy
+* Architecture (Mind/Body/Will)
+* Governance and enforcement model
+* Autonomy ladder and roadmap
+* Contributing
 
 ---
 
@@ -319,89 +264,17 @@ poetry run core-admin chat "create a CLI command that validates JSON files"
 
 ## 🛠️ Common Commands
 
-| Command                                | Description                                      |
-| -------------------------------------- | ------------------------------------------------ |
-| `make check`                           | Run Lint, Test, Audit (full governance pipeline) |
-| `core-admin fix all`                   | Autonomous repair: headers, metadata, formatting |
-| `core-admin governance coverage`       | Show enforcement coverage (progressive disclosure)|
-| `core-admin check audit`               | Run constitutional compliance audit              |
-| `core-admin inspect status`            | Check DB, migrations, and registry health        |
-| `core-admin run develop`               | Execute autonomous, governed coding task         |
-
----
-
-## 📊 Success Metrics
-
-From initial implementation to A2 achievement:
-
-| Metric | Initial | Current | Target |
-|--------|---------|---------|--------|
-| Code generation success | 0% | **70-80%** | 90%+ |
-| Semantic placement accuracy | 45% | **100%** | 100% |
-| Test generation success | 0% | **70-80%** | 90%+ |
-| Knowledge graph symbols | 0 | **513** | 1000+ |
-| Policy chunks vectorized | 0 | **73** | 100+ |
-| Enforcement coverage | - | **40.5%** | **50%+** |
-| Policies at 100% enforcement | 0 | **3** | **10+** |
-
-All improvements driven by constitutional governance and semantic infrastructure.
-
----
-
-## 🗺️ Roadmap
-
-### Short-term (Q1 2026)
-- 🎯 Reach 50%+ enforcement coverage
-- 🎯 Migrate remaining policies to v2.0 flat structure
-- 🎯 Achieve A3: Strategic multi-file refactoring
-- 🎯 Present to AI safety research community
-
-### Medium-term (Q2-Q3 2026)
-- 🔮 75% enforcement coverage (constitutional requirement)
-- 🔮 Self-healing test generation
-- 🔮 Autonomous architectural improvements
-- 🔮 Academic paper on constitutional AI governance
-
-### Long-term (Q4 2026+)
-- 🌟 A4: Self-replication (CORE writes CORE.NG)
-- 🌟 Full autonomous feature delivery
-- 🌟 Industry adoption of constitutional patterns
-- 🌟 Open-source AI safety toolkit
-
----
-
-## 🤝 Contributing
-
-CORE welcomes contributions! Areas of particular interest:
-
-1. **New Constitutional Checkers**: Increase enforcement coverage
-2. **Policy Migration**: Help migrate remaining policies to v2.0 flat structure
-3. **Documentation**: Improve guides, examples, worked demonstrations
-4. **Research**: Academic collaboration on constitutional AI governance
-5. **Testing**: Expand test coverage toward 75% constitutional requirement
-
-See **[CONTRIBUTING.md](CONTRIBUTING.md)** for guidelines.
+| Command                          | Description                                        |
+| -------------------------------- | -------------------------------------------------- |
+| `make check`                     | Run lint, tests, and constitutional audit          |
+| `core-admin fix all`             | Autonomous repair: headers, metadata, formatting   |
+| `core-admin governance coverage` | Show enforcement coverage (progressive disclosure) |
+| `core-admin check audit`         | Run constitutional compliance audit                |
+| `core-admin inspect status`      | Check DB, migrations, and registry health          |
+| `core-admin run develop`         | Execute an autonomous governed coding task         |
 
 ---
 
 ## 📄 License
 
 Licensed under the **MIT License**. See `LICENSE`.
-
----
-
-## 🙏 Acknowledgments
-
-CORE builds on ideas from:
-- **Constitutional AI** (Anthropic) - AI alignment through principles
-- **Kubernetes** - Governance patterns and API conventions
-- **AWS IAM** - Policy structure and enforcement
-- **OPA/Rego** - Declarative policy language
-
-Special thanks to the AI safety research community for foundational work on bounded autonomy.
-
----
-
-**Built with ❤️ by developers who believe AI should be powerful AND safe.**
-
-*"The best way to predict the future is to build it — constitutionally."*

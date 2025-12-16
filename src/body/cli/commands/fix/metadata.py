@@ -17,8 +17,6 @@ from pathlib import Path
 
 import typer
 
-# NOTE: The old sync wrapper `tag_unassigned_capabilities` was removed.
-# We now import the new async entry point directly.
 from features.self_healing.capability_tagging_service import (
     main_async as tag_capabilities_async,
 )
@@ -30,8 +28,6 @@ from shared.action_types import (
     ActionImpact,
     ActionResult,
 )
-
-# CHANGED: Import core_command instead of async_command
 from shared.atomic_action import atomic_action
 from shared.cli_utils import core_command
 from shared.context import CoreContext
@@ -98,7 +94,6 @@ async def fix_ids_internal(write: bool = False) -> ActionResult:
     policies=["symbol_identification", "atomic_actions"],
     category="fixers",
 )
-# Note: confirmation=False because IDs are low-risk and essential for system health.
 # ID: 6c95448b-f539-4f22-9f44-51052ab5f51e
 async def assign_ids_command(
     ctx: typer.Context,
@@ -109,8 +104,6 @@ async def assign_ids_command(
     """
     CLI wrapper for fix ids command.
     """
-    # @core_command handles the async loop and safety checks.
-    # We return the ActionResult so the framework can print the standard success message.
     with console.status("[cyan]Assigning missing IDs...[/cyan]"):
         return await fix_ids_internal(write=write)
 
@@ -129,7 +122,6 @@ async def purge_legacy_tags_command(
     ),
 ) -> None:
     """Remove obsolete tag formats from Python files."""
-    # Logic preserved, but manual confirmation check removed (handled by decorator)
     removed_count = purge_legacy_tags(dry_run=not write)
 
     mode = "removed" if write else "would be removed (dry-run)"
@@ -178,10 +170,8 @@ async def fix_tags_command(
     """
     Automatically tag untagged capabilities using the AI naming agent.
     """
-    # Dependency Injection via Framework
     core_context: CoreContext = ctx.obj
 
-    # Call service using new architecture (injecting session factory)
     await tag_capabilities_async(
         session_factory=get_session,
         cognitive_service=core_context.cognitive_service,
@@ -189,6 +179,47 @@ async def fix_tags_command(
         write=write,
         dry_run=not write,
     )
+
+
+# NEW: Atomic Action Wrapper for Duplicate IDs
+@atomic_action(
+    action_id="fix.duplicate_ids",
+    intent="Resolve duplicate ID conflicts by regenerating UUIDs",
+    impact=ActionImpact.WRITE_METADATA,
+    policies=["id_uniqueness_check"],
+    category="fixers",
+)
+# ID: 60d8c8e6-6c3a-46cb-91ca-a0a399b5c5d3
+async def fix_duplicate_ids_internal(write: bool = False) -> ActionResult:
+    """
+    Core logic for fixing duplicate IDs.
+    Wraps legacy service in proper Atomic Action pattern.
+    """
+    start_time = time.time()
+    try:
+        # resolve_duplicate_ids is synchronous logic, running in thread if needed
+        # But looking at the error "coroutine was never awaited", it IS async.
+        # We await it here.
+        resolved_count = await resolve_duplicate_ids(dry_run=not write)
+
+        return ActionResult(
+            action_id="fix.duplicate_ids",
+            ok=True,
+            data={
+                "resolved_count": resolved_count,
+                "mode": "write" if write else "dry-run",
+            },
+            duration_sec=time.time() - start_time,
+            impact=ActionImpact.WRITE_METADATA,
+        )
+    except Exception as e:
+        return ActionResult(
+            action_id="fix.duplicate_ids",
+            ok=False,
+            data={"error": str(e)},
+            duration_sec=time.time() - start_time,
+            logs=[f"Error resolving duplicates: {e}"],
+        )
 
 
 @fix_app.command(
@@ -203,12 +234,9 @@ async def fix_duplicate_ids_command(
     write: bool = typer.Option(
         False, "--write", help="Apply the changes to resolve duplicate IDs."
     ),
-) -> None:
+) -> ActionResult:
     """Detect and resolve duplicate IDs in Python files."""
-    resolved = resolve_duplicate_ids(dry_run=not write)
 
-    if resolved == 0:
-        console.print("[green]✅ No duplicate IDs found[/green]")
-    else:
-        mode = "resolved" if write else "would be resolved (dry-run)"
-        console.print(f"[bold green]Duplicate IDs {mode}: {resolved}[/bold green]")
+    # Delegate to atomic action
+    with console.status("[cyan]Resolving duplicate IDs...[/cyan]"):
+        return await fix_duplicate_ids_internal(write=write)
