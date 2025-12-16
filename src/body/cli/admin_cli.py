@@ -29,6 +29,9 @@ from body.cli.commands import (
 )
 from body.cli.commands.dev_sync import dev_sync_app
 from body.cli.commands.develop import develop_app
+
+# NEW: Import the refactored diagnostics command group
+from body.cli.commands.diagnostics import app as diagnostics_app
 from body.cli.commands.fix import fix_app
 from body.cli.commands.inspect_patterns import inspect_patterns
 from body.cli.commands.manage import manage
@@ -125,6 +128,9 @@ def register_all_commands(app_instance: typer.Typer) -> None:
         check_atomic_actions.atomic_actions_group, name="atomic-actions"
     )
     app_instance.add_typer(tools_app, name="tools")
+
+    # NEW: Register the diagnostics group
+    app_instance.add_typer(diagnostics_app, name="diagnostics")
 
     # Pattern diagnostics
     app_instance.command(name="inspect-patterns")(inspect_patterns)

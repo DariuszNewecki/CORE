@@ -68,6 +68,7 @@ class IdUniquenessCheck(BaseCheck):
                 # so it shows up in code reviews/IDE for all affected files.
 
                 locations_fmt = [f"{path}:{line_num}" for path, line_num in locations]
+                all_locations_str = ", ".join(locations_fmt)
 
                 for file_path, line_num in locations:
                     # Identify 'other' locations to help the user resolve it
@@ -88,7 +89,12 @@ class IdUniquenessCheck(BaseCheck):
                             ),
                             file_path=file_path,
                             line_number=line_num,
-                            context={"uuid": found_uuid, "collision_peers": others},
+                            # FIX: Added 'locations' key which is required by duplicate_id_service
+                            context={
+                                "uuid": found_uuid,
+                                "collision_peers": others,
+                                "locations": all_locations_str,
+                            },
                         )
                     )
 

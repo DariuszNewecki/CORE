@@ -40,16 +40,26 @@ class NamingConventionsCheck(BaseCheck):
     def __init__(self, context: AuditorContext) -> None:
         super().__init__(context)
 
-        # Load Flat Rules from code_standards (v2 Structure)
+        # Load Policy Data
         policy_data = self.context.policies.get("code_standards", {})
-        all_rules = policy_data.get("rules", [])
 
-        # Filter for naming rules
+        # 1. Try V2 Format (Flat 'rules' array)
+        all_rules = policy_data.get("rules", [])
         self.naming_rules = [r for r in all_rules if r.get("category") == "naming"]
+
+        # 2. Fallback to Legacy Format (nested 'naming_conventions' dict)
+        if not self.naming_rules:
+            legacy_section = policy_data.get("naming_conventions", {})
+            if isinstance(legacy_section, dict):
+                # Flatten the nested dictionary structure
+                # naming_conventions: { "code": [...], "intent": [...] }
+                for subcategory, rules_list in legacy_section.items():
+                    if isinstance(rules_list, list):
+                        self.naming_rules.extend(rules_list)
 
         if not self.naming_rules:
             logger.warning(
-                "NamingConventionsCheck: No rules with category='naming' found in code_standards.yaml."
+                "NamingConventionsCheck: No naming rules found in code_standards.yaml (checked v2 'rules' and v1 'naming_conventions')."
             )
 
     # ID: 6bebb819-1073-4163-8b70-09c2c374f6c8

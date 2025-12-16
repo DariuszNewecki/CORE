@@ -15,7 +15,7 @@ from rich.panel import Panel
 from rich.table import Table
 
 from body.cli.logic.body_contracts_checker import check_body_contracts
-from body.cli.logic.diagnostics import policy_coverage
+from body.cli.logic.diagnostics_policy import policy_coverage
 from mind.enforcement.audit import lint, run_audit_workflow, test_system
 from shared.action_types import ActionResult
 from shared.cli_utils import core_command

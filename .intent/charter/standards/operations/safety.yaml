@@ -82,3 +82,34 @@ safety_rules:
   - id: safety.change_must_be_logged
     statement: "Every file change must be preceded by a log entry with IntentBundle ID."
     enforcement: error
+
+# === EMERGENCY OVERRIDE PROTOCOLS ===
+emergency_protocols:
+  break_glass:
+    description: >
+      Protocol to bypass IntentGuard in the event of a governance deadlock
+      (e.g., a bug in the guard prevents patching the guard).
+
+    conditions:
+      - "System is in a deadlock state where standard governance cannot execute."
+      - "Standard recovery (git revert) is impossible or insufficient."
+
+    mechanism:
+      command: "core-admin emergency-override --reason '<incident_ticket>'"
+      requirements:
+        - "Physical/Local Console access (cannot be run via Agent/Remote)."
+        - "Environment variable CORE_EMERGENCY_TOKEN must be set."
+
+    audit_consequences:
+      - "Logs a CRITICAL audit event: core.governance.emergency_override."
+      - "System enters 'Post-Mortem Lockdown' mode."
+      - "All autonomous agents are suspended until 'core-admin resume' is issued."
+
+    post_mortem_lockdown:
+      description: "State enforced after a break-glass event."
+      restrictions:
+        - "No new autonomous tasks."
+        - "Only manual CLI commands allowed."
+      exit_criteria:
+        - "Manual verification of system integrity."
+        - "Formal incident report filed."

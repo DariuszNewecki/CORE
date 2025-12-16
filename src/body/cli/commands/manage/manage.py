@@ -1,8 +1,8 @@
 # src/body/cli/commands/manage/manage.py
-
+# ID: cli.commands.manage.manage
 """
 Core logic for the 'manage' command group.
-Handles DB, dotenv, projects, proposals, keys, patterns, and policies.
+Handles DB, dotenv, projects, proposals, keys, patterns, policies, and emergency protocols.
 
 Refactored to use the Constitutional CLI Framework (@core_command).
 """
@@ -35,6 +35,7 @@ from shared.context import CoreContext
 from shared.infrastructure.database.session_manager import get_session
 from shared.logger import getLogger
 
+from .emergency import app as emergency_sub_app
 from .patterns import patterns_sub_app
 from .policies import policies_sub_app
 from .vectors import app as vectors_sub_app
@@ -270,6 +271,11 @@ manage_app.add_typer(policies_sub_app, name="policies")
 # === VECTORS SUB-COMMANDS ====================================================
 
 manage_app.add_typer(vectors_sub_app, name="vectors")
+
+
+# === EMERGENCY SUB-COMMANDS ==================================================
+
+manage_app.add_typer(emergency_sub_app, name="emergency")
 
 
 # === DEFINE SYMBOLS ==========================================================

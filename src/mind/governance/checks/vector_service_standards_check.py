@@ -18,7 +18,9 @@ from sqlalchemy import text
 
 from mind.governance.audit_types import AuditCheckMetadata
 from mind.governance.checks.base_check import BaseCheck
-from shared.infrastructure.database.session_manager import SessionManager
+
+# FIX: Replaced deleted SessionManager with get_session
+from shared.infrastructure.database.session_manager import get_session
 from shared.models import AuditFinding, AuditSeverity
 
 
@@ -47,15 +49,16 @@ class VectorServiceStandardsCheck(BaseCheck):
     ]
 
     # ID: 84317b88-9277-4e83-a24a-e936447ed9b1
-    def execute(self) -> list[AuditFinding]:
+    async def execute(self) -> list[AuditFinding]:
         """Run all vector service standards checks."""
         findings: list[AuditFinding] = []
 
         # Check 1: Direct client access patterns
         findings.extend(self._check_direct_client_access())
 
-        # Check 2: Hash coverage (requires async, so we note it)
-        findings.extend(self._check_hash_coverage_note())
+        # Check 2: Hash coverage (requires async DB access)
+        # FIX: Added await for async database call
+        findings.extend(await self._check_hash_coverage_note())
 
         # Check 3: Sync integrity (requires async, so we note it)
         findings.extend(self._check_sync_integrity_note())
@@ -153,18 +156,19 @@ class VectorServiceStandardsCheck(BaseCheck):
             return f"{parent}.{node.attr}"
         return ""
 
-    def _check_hash_coverage_note(self) -> list[AuditFinding]:
+    async def _check_hash_coverage_note(self) -> list[AuditFinding]:
         """
         Note that hash coverage should be checked via CLI.
 
-        This check can't run async Qdrant queries, so it creates an
-        informational finding directing users to the CLI command.
+        This check performs a lightweight DB query to see if we have vector links.
         """
         findings: list[AuditFinding] = []
 
         try:
-            with SessionManager().sync_session() as session:
-                result = session.execute(
+            link_count = 0
+            # FIX: Use 'async with' for context managers, not 'async for'
+            async with get_session() as session:
+                result = await session.execute(
                     text("SELECT COUNT(*) FROM core.symbol_vector_links")
                 )
                 link_count = result.scalar()

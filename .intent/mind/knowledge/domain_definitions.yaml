@@ -1,6 +1,6 @@
 # .intent/mind/knowledge/domain_definitions.yaml
 id: knowledge_domain_definitions
-version: "1.0.0"
+version: "1.2.0"
 title: "CORE Domain Definitions"
 type: "knowledge_domain_definitions"
 status: active
@@ -38,7 +38,29 @@ principles:
   - id: evolvable_structure
     description: "System must be designed to evolve safely with formal amendment process."
 
-  # ... ALL 12 original principles remain
+  - id: single_source_of_truth
+    description: "The Database (Mind) is the authoritative state; the Filesystem (Body) is a projection."
+
+  - id: headless_body
+    description: "Business logic (Body) executes silently; User Interface (Will) handles all interaction."
+
+  - id: atomic_composability
+    description: "Complex behaviors must be composed of small, verifiable, atomic actions."
+
+  - id: constitutional_supremacy
+    description: "Governance rules override performance, convenience, and agent autonomy."
+
+  - id: radical_observability
+    description: "Every autonomous action must be logged, traceable, and auditable."
+
+  - id: reuse_over_reinvention
+    description: "Search the Knowledge Graph for existing capabilities before creating new ones."
+
+  - id: human_intent_authority
+    description: "Agents optimize execution, but Humans hold the monopoly on Intent and Purpose."
+
+  - id: defense_in_depth
+    description: "Safety is enforced at multiple layers (Linting, Static Analysis, Runtime Guard, Audit)."
 
 # === CAPABILITY DOMAINS ===
 capability_domains:
@@ -57,3 +79,23 @@ capability_domains:
   - name: operations
     owner: "Platform SRE"
     description: "System workflows, deployment, and incident response"
+
+  - name: self_healing
+    owner: "Core Maintainer"
+    description: "Autonomous repair, code correction, and system recovery workflows."
+
+  - name: introspection
+    owner: "Governance Lead"
+    description: "System self-analysis, drift detection, and knowledge graphing."
+
+  - name: maintenance
+    owner: "Platform SRE"
+    description: "Routine system hygiene, database management, and migrations."
+
+  - name: project_lifecycle
+    owner: "Core Maintainer"
+    description: "Project initialization, scaffolding, and integration workflows."
+
+  - name: crate_processing
+    owner: "Platform SRE"
+    description: "Processing of change crates and canary deployments."

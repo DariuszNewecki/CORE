@@ -305,8 +305,7 @@ class ConstitutionalAuditor:
         Returns:
             List[dict] of findings (as_dict), consistent with prior behavior.
         """
-        # CRITICAL: Initialize MindService before running any checks
-        await self.context.initialize()
+        # REMOVED: await self.context.initialize() - Context is already initialized
 
         with activity_run("constitutional_audit"):
             # Discover checks first so we can construct AuditRunReporter correctly.

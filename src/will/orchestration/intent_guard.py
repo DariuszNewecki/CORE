@@ -1,12 +1,12 @@
 # src/will/orchestration/intent_guard.py
-
+# ID: orchestration.intent_guard
 """
 IntentGuard — CORE's Constitutional Enforcement Module
 Enforces safety, structure, and intent alignment for all file changes.
 Loads governance rules from .intent/policies/*.yaml and prevents unauthorized
 self-modifications of the CORE constitution.
 
-Updated to enforce Policy Precedence (Medium #2).
+Updated to enforce Policy Precedence (Medium #2) and Emergency Override (Crate 4).
 """
 
 from __future__ import annotations
@@ -20,6 +20,9 @@ from shared.logger import getLogger
 
 
 logger = getLogger(__name__)
+
+# This file indicates the system is in Emergency Mode (Break Glass Protocol)
+EMERGENCY_LOCK_FILE = Path(".intent/mind/.emergency_override")
 
 
 @dataclass
@@ -173,6 +176,25 @@ class IntentGuard:
             - is_valid: True ONLY if no violations found
             - violations: List of violation reports (empty if valid)
         """
+        # --- EMERGENCY OVERRIDE CHECK ---
+        if EMERGENCY_LOCK_FILE.exists():
+            reason = "Unknown"
+            try:
+                content = EMERGENCY_LOCK_FILE.read_text().strip()
+                if "|" in content:
+                    _, reason = content.split("|", 1)
+            except Exception:
+                pass
+
+            logger.critical(
+                "INTENT GUARD BYPASSED (EMERGENCY MODE). Reason: %s. Allowing access to: %s",
+                reason,
+                proposed_paths,
+            )
+            # In emergency mode, we return Valid with NO violations.
+            return (True, [])
+        # --------------------------------
+
         violations = []
         for path_str in proposed_paths:
             path = (self.repo_path / path_str).resolve()
@@ -187,6 +209,14 @@ class IntentGuard:
         """
         Validate generated code against pattern requirements.
         """
+        # --- EMERGENCY OVERRIDE CHECK ---
+        if EMERGENCY_LOCK_FILE.exists():
+            logger.critical(
+                "CODE VALIDATION BYPASSED (EMERGENCY MODE). Target: %s", target_path
+            )
+            return (True, [])
+        # --------------------------------
+
         violations = []
         if pattern_id == "inspect_pattern":
             violations.extend(self._validate_inspect_pattern(code, target_path))

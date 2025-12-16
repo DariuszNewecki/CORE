@@ -1,3 +1,4 @@
+# .intent/meta.yaml
 id: intent_meta_registry
 title: CORE Intent Meta Registry
 type: meta_registry
@@ -9,8 +10,8 @@ owners:
 review:
   frequency: 12 months
 schema_id: meta.registry
-version: 2.2.0
-updated_at: '2025-12-12T22:30:00.000000+00:00'
+version: 2.3.0
+updated_at: '2025-12-16T10:30:00.000000+00:00'
 charter:
   constitution:
     GLOBAL-DOCUMENT-META-SCHEMA: charter/constitution/GLOBAL-DOCUMENT-META-SCHEMA.yaml
@@ -20,6 +21,7 @@ charter:
     risk_classification: charter/constitution/risk_classification.yaml
   schemas:
     data:
+      agent_memory_schema: charter/schemas/data/agent_memory_schema.yaml # NEW
       database_schema: charter/schemas/data/database_schema.yaml
     operations:
       config_schema: charter/schemas/operations/config_schema.yaml
@@ -33,9 +35,11 @@ charter:
       command_patterns: charter/standards/architecture/command_patterns.yaml
       decorator_governance: charter/standards/architecture/decorator_governance.yaml
       dependency_injection: charter/standards/architecture/dependency_injection.yaml
+      event_schema: charter/standards/architecture/event_schema_standard.yaml # NEW
       irritation_heuristic: charter/standards/architecture/irritation_heuristic.yaml
       layer_contracts: charter/standards/architecture/layer_contracts.yaml
       service_patterns: charter/standards/architecture/service_patterns.yaml
+      tool_definitions: charter/standards/architecture/tool_definition_standard.yaml # NEW
       user_interface: charter/standards/architecture/user_interface.yaml
       vector_service_standards: charter/standards/architecture/vector_service_standards.yaml
       workflow_patterns: charter/standards/architecture/workflow_patterns.yaml
@@ -52,6 +56,7 @@ charter:
       pattern_vectorization: charter/standards/operations/pattern_vectorization.yaml
       quality_assurance: charter/standards/operations/quality_assurance.yaml
       safety: charter/standards/operations/safety.yaml
+      secrets_management: charter/standards/operations/secrets_management.yaml # NEW
     policy_integrity: charter/standards/policy_integrity.yaml
 mind:
   config:
