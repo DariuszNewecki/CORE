@@ -7,7 +7,7 @@ Enforces 'operations.runtime.env_vars_defined' with support for conditional requ
 from __future__ import annotations
 
 import os
-from typing import Any
+from typing import Any, ClassVar
 
 from mind.governance.audit_context import AuditorContext
 from mind.governance.checks.base_check import BaseCheck
@@ -25,7 +25,7 @@ class EnvironmentChecks(BaseCheck):
     Respects 'required_when' conditions to support different runtime modes (e.g., Local vs Prod).
     """
 
-    policy_rule_ids = ["operations.runtime.env_vars_defined"]
+    policy_rule_ids: ClassVar[list[str]] = ["operations.runtime.env_vars_defined"]
 
     def __init__(self, context: AuditorContext) -> None:
         super().__init__(context)

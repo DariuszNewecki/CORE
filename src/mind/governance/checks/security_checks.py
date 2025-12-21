@@ -11,7 +11,7 @@ import ast
 import fnmatch
 import re
 from pathlib import Path
-from typing import Any
+from typing import Any, ClassVar
 
 from mind.governance.audit_context import AuditorContext
 from mind.governance.checks.base_check import BaseCheck
@@ -30,7 +30,10 @@ class SecurityChecks(BaseCheck):
     """
 
     # Safe fallback
-    policy_rule_ids = ["secrets.no_hardcoded_secrets", "safety.no_dangerous_execution"]
+    policy_rule_ids: ClassVar[list[str]] = [
+        "secrets.no_hardcoded_secrets",
+        "safety.no_dangerous_execution",
+    ]
 
     def __init__(self, context: AuditorContext):
         """Initializes the check and dynamically discovers the rules it must enforce."""

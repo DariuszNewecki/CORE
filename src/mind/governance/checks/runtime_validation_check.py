@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import ast
 from pathlib import Path
+from typing import ClassVar
 
 from mind.governance.checks.base_check import BaseCheck
 from shared.logger import getLogger
@@ -38,7 +39,9 @@ class RuntimeValidationCheck(BaseCheck):
     Verifies that such usage is preceded by explicit runtime checks/assertions.
     """
 
-    policy_rule_ids = ["agent.execution.require_runtime_validation"]
+    policy_rule_ids: ClassVar[list[str]] = [
+        "agent.execution.require_runtime_validation"
+    ]
 
     # ID: 37a6aaf1-d9ca-4b8d-9fdf-fb107a679a21
     def execute(self) -> list[AuditFinding]:

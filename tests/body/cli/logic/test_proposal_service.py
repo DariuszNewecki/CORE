@@ -125,7 +125,8 @@ class TestProposalServiceApprove:
         "body.cli.logic.proposal_service.ProposalService._run_canary_audit",
         new_callable=AsyncMock,
     )
-    def test_approve_happy_path(
+    @pytest.mark.asyncio
+    async def test_approve_happy_path(
         self, mock_canary: AsyncMock, mock_archive: MagicMock, service: ProposalService
     ):
         mock_canary.return_value = (True, [])
@@ -133,7 +134,7 @@ class TestProposalServiceApprove:
         yaml_processor.dump(STANDARD_PROPOSAL, service.proposals_dir / proposal_name)
         service.sign(proposal_name, TEST_IDENTITY)
 
-        service.approve(proposal_name)
+        await service.approve(proposal_name)
 
         target_path = service.repo_root / STANDARD_PROPOSAL["target_path"]
         assert target_path.exists()
@@ -141,17 +142,19 @@ class TestProposalServiceApprove:
         mock_archive.assert_called_once()
         mock_canary.assert_awaited_once()
 
-    def test_approve_fails_on_quorum(self, service: ProposalService):
+    @pytest.mark.asyncio
+    async def test_approve_fails_on_quorum(self, service: ProposalService):
         proposal_name = "cr-no-quorum.yaml"
         yaml_processor.dump(STANDARD_PROPOSAL, service.proposals_dir / proposal_name)
         with pytest.raises(PermissionError, match="Quorum not met"):
-            service.approve(proposal_name)
+            await service.approve(proposal_name)
 
     @patch(
         "body.cli.logic.proposal_service.ProposalService._run_canary_audit",
         new_callable=AsyncMock,
     )
-    def test_approve_fails_on_canary_audit(
+    @pytest.mark.asyncio
+    async def test_approve_fails_on_canary_audit(
         self, mock_canary: AsyncMock, service: ProposalService
     ):
         mock_canary.return_value = (False, [MagicMock()])
@@ -159,4 +162,4 @@ class TestProposalServiceApprove:
         yaml_processor.dump(STANDARD_PROPOSAL, service.proposals_dir / proposal_name)
         service.sign(proposal_name, TEST_IDENTITY)
         with pytest.raises(ChildProcessError, match="Canary audit failed"):
-            service.approve(proposal_name)
+            await service.approve(proposal_name)

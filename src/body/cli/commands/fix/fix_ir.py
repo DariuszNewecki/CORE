@@ -48,12 +48,12 @@ def _ensure_ir_file(path: Path, content: str, label: str) -> None:
 
     if path.exists():
         logger.info("%s already exists at %s", label, path)
-        console.print("[yellow]ℹ %s already exists.[/yellow]", label)
+        console.print(f"[yellow]INFO {label} already exists.[/yellow]")
         return
 
     path.write_text(content, encoding="utf-8")
     logger.info("Created %s at %s", label, path)
-    console.print("[green]✅ Created %s[/green]", label)
+    console.print(f"[green]✅ Created {label}[/green]")
 
 
 def _run_ir_fix(path: Path, content: str, label: str, write: bool) -> None:

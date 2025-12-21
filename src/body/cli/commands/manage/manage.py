@@ -1,5 +1,4 @@
 # src/body/cli/commands/manage/manage.py
-# ID: cli.commands.manage.manage
 """
 Core logic for the 'manage' command group.
 Handles DB, dotenv, projects, proposals, keys, patterns, policies, and emergency protocols.
@@ -55,11 +54,122 @@ db_sub_app = typer.Typer(
     help="Manage the database schema and data.",
     no_args_is_help=True,
 )
-db_sub_app.command("migrate")(migrate_db)
-db_sub_app.command("export")(export_data)
-db_sub_app.command("sync-knowledge")(sync_knowledge_base)
-db_sub_app.command("sync-manifest")(sync_manifest)
-db_sub_app.command("export-vectors")(export_vectors)
+
+# --- FIXED: Explicit wrappers for database commands to handle async/sync correctly ---
+
+
+@db_sub_app.command("migrate")
+@core_command(dangerous=True, confirmation=True)
+# ID: 1b89ff66-1969-45b1-bc1e-3121a5e6edbd
+def migrate_db_command(ctx: typer.Context):
+    """Run database migrations."""
+    migrate_db()
+
+
+@db_sub_app.command("export")
+@core_command(dangerous=False)
+# ID: 4c17004b-e93a-4609-a216-75448ae1deb1
+def export_data_command(
+    ctx: typer.Context,
+    output_dir: str = typer.Option("backups", help="Output directory"),
+):
+    """Export database data."""
+    export_data(output_dir)
+
+
+@db_sub_app.command("sync-knowledge")
+@core_command(dangerous=True, confirmation=True)
+# ID: 7673f8b7-22d2-42fa-ba1d-a6d05e5cb423
+async def sync_knowledge_command(
+    ctx: typer.Context,
+    write: bool = typer.Option(
+        False, "--write", help="Commit changes to DB (required)"
+    ),
+):
+    """Synchronize codebase structure to the database knowledge graph."""
+    if not write:
+        console.print(
+            "[yellow]Dry run: Knowledge sync requires --write to persist changes.[/yellow]"
+        )
+        return
+
+    # This was the cause of the RuntimeWarning: it must be awaited
+    await sync_knowledge_base()
+
+
+@db_sub_app.command("export-vectors")
+@core_command(dangerous=False)
+# ID: 4b437a5f-3bab-478c-8b8c-ee93df922bd5
+async def export_vectors_command(
+    ctx: typer.Context,
+    output_path: str = typer.Option("vectors.json", help="Output file path"),
+):
+    """Export vector data."""
+    await export_vectors(output_path)
+
+
+@db_sub_app.command("cleanup-memory")
+@core_command(dangerous=True, confirmation=True)
+# ID: 9d773f7b-4e04-4cd3-abc9-c9e7c3d28485
+async def cleanup_memory_command(
+    ctx: typer.Context,
+    dry_run: bool = typer.Option(
+        True,
+        "--dry-run/--write",
+        help="Preview what would be deleted (default) or actually delete.",
+    ),
+    days_episodes: int = typer.Option(
+        30, "--days-episodes", help="Retain episodes for this many days."
+    ),
+    days_reflections: int = typer.Option(
+        90, "--days-reflections", help="Retain reflections for this many days."
+    ),
+) -> None:
+    """Clean up old agent memory entries (episodes, decisions, reflections)."""
+    from features.self_healing import MemoryCleanupService
+
+    console.print(f"[cyan]Running memory cleanup (dry_run={dry_run})...[/cyan]")
+
+    # Get database service
+    db_service = settings.get("database")  # Or however you get your db service
+
+    cleanup_service = MemoryCleanupService(db_service=db_service)
+
+    result = await cleanup_service.cleanup_old_memories(
+        days_to_keep_episodes=days_episodes,
+        days_to_keep_reflections=days_reflections,
+        dry_run=dry_run,
+    )
+
+    if result.ok:
+        console.print(
+            f"[green]Memory cleanup {'would delete' if dry_run else 'deleted'}:[/green]"
+        )
+        console.print(f"  Episodes: {result.data['episodes_deleted']}")
+        console.print(f"  Decisions: {result.data['decisions_deleted']}")
+        console.print(f"  Reflections: {result.data['reflections_deleted']}")
+    else:
+        console.print(f"[red]Error: {result.data['error']}[/red]")
+
+
+@db_sub_app.command("sync-manifest")
+@core_command(dangerous=True, confirmation=True)
+# ID: a67d0a9a-f909-4e54-9afb-545edec329db
+async def sync_manifest_command(
+    ctx: typer.Context,
+    write: bool = typer.Option(
+        False, "--write", help="Apply changes to the project manifest."
+    ),
+) -> None:
+    """Synchronize project_manifest.yaml with public symbols in the DB."""
+    if not write:
+        console.print(
+            "[yellow]Dry run: Manifest sync requires --write to persist changes.[/yellow]"
+        )
+        return
+
+    # Call the async logic function
+    await sync_manifest()
 
 
 @db_sub_app.command(
@@ -202,7 +312,7 @@ def project_new_command(
     except FileExistsError as e:
         console.print(f"[bold red]❌ {e}[/bold red]")
         raise typer.Exit(code=1)
-    except Exception as e:  # noqa: BLE001
+    except Exception as e:
         logger.error("Unexpected error in project_new_command", exc_info=True)
         console.print(f"[bold red]❌ Unexpected error: {e}[/bold red]")
         raise typer.Exit(code=1)
@@ -224,10 +334,10 @@ proposals_sub_app.command("sign")(proposals_sign)
 
 
 @proposals_sub_app.command("approve")
-# ID: 9d773f7b-4e04-4cd3-abc9-c9e7c3d28485
+# ID: f8971f15-5c5f-41e2-b661-eb9725c2d224
 @core_command(dangerous=True, confirmation=True)
 # ID: 3dfb9cc6-c571-451b-a0af-1db40c250cfc
-def approve_command_wrapper(
+async def approve_command_wrapper(
     ctx: typer.Context,
     proposal_name: str = typer.Argument(
         ...,
@@ -242,7 +352,7 @@ def approve_command_wrapper(
         return
 
     core_context: CoreContext = ctx.obj
-    proposals_approve(context=core_context, proposal_name=proposal_name)
+    await proposals_approve(context=core_context, proposal_name=proposal_name)
 
 
 manage_app.add_typer(proposals_sub_app, name="proposals")

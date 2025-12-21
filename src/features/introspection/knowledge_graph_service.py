@@ -48,15 +48,32 @@ class KnowledgeGraphBuilder:
     def _load_domain_map(self) -> dict[str, str]:
         """Loads the architectural domain map from the constitution."""
         try:
+            # Tries to load source_structure.yaml first, often used for broad mapping
             structure_path = (
                 self.intent_dir / "mind" / "knowledge" / "source_structure.yaml"
             )
-            structure = yaml.safe_load(structure_path.read_text("utf-8"))
-            return {
-                str(self.src_dir / d.get("path", "").replace("src/", "")): d["domain"]
-                for d in structure.get("structure", [])
-            }
-        except (FileNotFoundError, yaml.YAMLError, KeyError):
+            if not structure_path.exists():
+                # Fallback to project_structure.yaml if source_structure is missing
+                structure_path = (
+                    self.intent_dir / "mind" / "knowledge" / "project_structure.yaml"
+                )
+
+            if structure_path.exists():
+                structure = yaml.safe_load(structure_path.read_text("utf-8"))
+                # If checking project_structure.yaml, keys might be under 'architectural_domains'
+                items = structure.get("structure", []) or structure.get(
+                    "architectural_domains", []
+                )
+                return {
+                    str(self.src_dir / d.get("path", "").replace("src/", "")): d.get(
+                        "domain"
+                    )
+                    for d in items
+                    if "path" in d and "domain" in d
+                }
+            return {}
+        except (yaml.YAMLError, KeyError, Exception) as e:
+            logger.warning("Failed to load domain map: %s", e)
             return {}
 
     def _load_entry_point_patterns(self) -> list[dict[str, Any]]:
@@ -76,8 +93,11 @@ class KnowledgeGraphBuilder:
         Executes the full build process for the knowledge graph and returns it.
         """
         logger.info("Building knowledge graph for repository at: %s", self.root_path)
+        # Reset symbols on rebuild
+        self.symbols = {}
         for py_file in self.src_dir.rglob("*.py"):
             self._scan_file(py_file)
+
         knowledge_graph = {
             "metadata": {
                 "generated_at": datetime.now(UTC).isoformat(),
@@ -85,9 +105,12 @@ class KnowledgeGraphBuilder:
             },
             "symbols": self.symbols,
         }
+
+        # Save artifact for reporting/debugging
         output_path = settings.REPO_PATH / "reports" / "knowledge_graph.json"
         output_path.parent.mkdir(parents=True, exist_ok=True)
         output_path.write_text(json.dumps(knowledge_graph, indent=2))
+
         logger.info(
             "Knowledge graph artifact with %s symbols saved to %s",
             len(self.symbols),
@@ -107,33 +130,75 @@ class KnowledgeGraphBuilder:
                 ):
                     self._process_symbol(node, file_path, source_lines)
         except Exception as e:
-            logger.error("Failed to process file {file_path}: %s", e)
+            logger.error("Failed to process file %s: %s", file_path, e)
 
     def _determine_domain(self, file_path: Path) -> str:
-        """Determines the architectural domain of a file."""
+        """
+        Determines the architectural domain of a file.
+
+        Logic:
+        1. If inside `src/features/<subdir>`, the domain is <subdir>.
+        2. Otherwise, falls back to the architectural domain map.
+        """
+        try:
+            rel_path = file_path.relative_to(self.root_path)
+        except ValueError:
+            rel_path = file_path
+
+        parts = rel_path.parts
+
+        # 1. Feature Sub-domains (Priority for Operational Drift check)
+        # Structure matches: src/features/<domain_name>/...
+        # We look for index of 'features' and take the next part
+        if "features" in parts:
+            try:
+                idx = parts.index("features")
+                # Ensure there is a folder after 'features'
+                if idx + 1 < len(parts):
+                    candidate = parts[idx + 1]
+                    # Exclude files directly in features/ like __init__.py
+                    if not candidate.endswith(".py"):
+                        return candidate
+            except ValueError:
+                pass
+
+        # 2. Architectural Domains (Fallback from map)
+        # This handles high-level domains like 'api', 'core', 'mind', 'shared'
         abs_file_path = file_path.resolve()
         for domain_path, domain_name in self.domain_map.items():
             if str(abs_file_path).startswith(str(Path(domain_path).resolve())):
                 return domain_name
+
         return "unknown"
 
     def _process_symbol(self, node: ast.AST, file_path: Path, source_lines: list[str]):
         """Extracts all relevant data from a symbol AST node."""
         if not hasattr(node, "name"):
             return
+
         rel_path = file_path.relative_to(self.root_path)
         symbol_path_key = f"{rel_path}::{node.name}"
+
         metadata = parse_metadata_comment(node, source_lines)
         docstring = (extract_docstring(node) or "").strip()
+
         call_visitor = FunctionCallVisitor()
         call_visitor.visit(node)
+
+        # Determine domain dynamically based on file location
+        domain = self._determine_domain(file_path)
+
         symbol_data = {
             "uuid": symbol_path_key,
+            # If # ID tag exists, use it as the primary key reference if needed,
+            # though usually uuid field here is the path-key.
+            # The SyncService often reconciles this with the # ID tag.
             "key": metadata.get("capability"),
             "symbol_path": symbol_path_key,
             "name": node.name,
             "type": type(node).__name__,
             "file_path": str(rel_path),
+            "domain": domain,  # <--- CRITICAL FIX: Domain assignment
             "is_public": not node.name.startswith("_"),
             "title": node.name.replace("_", " ").title(),
             "description": docstring.split("\n")[0] if docstring else None,

@@ -1,0 +1,159 @@
+{
+  "id": "standard_operations_safety",
+  "version": "1.1.3",
+  "title": "Operations Standard – Safety Framework",
+  "type": "standard_operations",
+  "status": "active",
+  "owners": {
+    "accountable": "Safety Owner",
+    "responsible": [
+      "Core Maintainer"
+    ]
+  },
+  "review": {
+    "frequency": "12 months"
+  },
+  "schema_id": "policy.structure",
+  "policy_id": "05ffbf34-2e0e-4069-b77e-473923537077",
+  "purpose": "The single source of truth for safety, security, and constitutional boundary protection. Defines immutable assets, forbidden behaviors, and mandatory provenance guarantees.\n",
+  "rules": [
+    {
+      "id": "safety.charter_immutable",
+      "statement": "Charter files under .intent/charter/** MUST NOT be modified without a formal constitutional amendment.",
+      "enforcement": "error",
+      "protected_paths": [
+        ".intent/charter/**"
+      ]
+    },
+    {
+      "id": "safety.immutable_constitution",
+      "statement": "Constitutional documents MUST NOT be modified outside formal amendment process.",
+      "enforcement": "error",
+      "protected_paths": [
+        ".intent/charter/constitution/**"
+      ],
+      "rationale": "Constitution defines the system's fundamental governance rules. Modifications bypass democratic process and create governance chaos.\n"
+    },
+    {
+      "id": "safety.immutable_core_mission",
+      "statement": "Core mission definition files MUST NOT be modified without human-in-the-loop amendment.",
+      "enforcement": "error",
+      "protected_paths": [
+        "mind/knowledge/domain_definitions.yaml",
+        "mind_export/northstar.yaml"
+      ]
+    },
+    {
+      "id": "safety.no_autonomous_core_modification",
+      "statement": "Core orchestration and governance engines MUST NOT be modified autonomously.",
+      "enforcement": "error",
+      "protected_paths": [
+        "src/core/main.py",
+        "src/core/intent_guard.py"
+      ]
+    },
+    {
+      "id": "safety.deny_core_loop_edit",
+      "statement": "Autonomous agents MUST NOT modify the core autonomy loop implementation.",
+      "enforcement": "error",
+      "protected_paths": [
+        "src/features/self_healing/autonomy_loop.py",
+        "src/will/agents/**"
+      ],
+      "rationale": "Core autonomy loop is the execution engine for autonomous operations. Self-modification creates unbounded recursion and loss of governance.\n"
+    },
+    {
+      "id": "safety.no_dangerous_execution_primitives",
+      "statement": "Source code MUST NOT contain dangerous execution primitives.",
+      "enforcement": "error",
+      "detection": {
+        "method": "ast_call_scan",
+        "patterns": [
+          "eval\\(",
+          "exec\\(",
+          "subprocess\\.(run|Popen|call)\\([^)]*shell\\s*=\\s*True"
+        ]
+      }
+    },
+    {
+      "id": "safety.no_dangerous_execution",
+      "statement": "Code MUST NOT use eval(), exec(), or shell=True subprocess calls.",
+      "enforcement": "error",
+      "detection": {
+        "method": "ast_call_scan",
+        "patterns": [
+          "eval\\(",
+          "exec\\(",
+          "subprocess\\.(run|Popen|call)\\([^)]*shell\\s*=\\s*True"
+        ]
+      },
+      "rationale": "Dynamic code execution bypasses static analysis and creates arbitrary code execution vulnerabilities.\n"
+    },
+    {
+      "id": "safety.change_must_be_logged",
+      "statement": "Every file modification MUST be preceded by an audit log entry containing an IntentBundle identifier.",
+      "enforcement": "error"
+    }
+  ],
+  "enforcement_levels": {
+    "error": {
+      "description": "Critical violation. Blocks merge, deploy, and runtime execution.",
+      "ci_behavior": "fail",
+      "runtime_behavior": "block"
+    },
+    "warn": {
+      "description": "Non-critical issue. Reported but does not block.",
+      "ci_behavior": "pass_with_warnings",
+      "runtime_behavior": "log_and_continue"
+    },
+    "info": {
+      "description": "Informational finding. No action required.",
+      "ci_behavior": "ignore",
+      "runtime_behavior": "ignore"
+    }
+  },
+  "intentguard_deny_rules": [
+    {
+      "id": "deny_domain_definitions",
+      "pattern": "mind/knowledge/domain_definitions.yaml",
+      "severity": "error",
+      "description": "Domain definitions are core mission assets."
+    },
+    {
+      "id": "deny_northstar",
+      "pattern": "mind_export/northstar.yaml",
+      "severity": "error",
+      "description": "Northstar mission file requires human amendment."
+    },
+    {
+      "id": "deny_core_main",
+      "pattern": "src/core/main.py",
+      "severity": "error",
+      "description": "Core orchestration entry point is immutable."
+    },
+    {
+      "id": "deny_intent_guard",
+      "pattern": "src/core/intent_guard.py",
+      "severity": "error",
+      "description": "IntentGuard cannot modify itself."
+    },
+    {
+      "id": "deny_autonomy_loop",
+      "pattern": "src/features/self_healing/autonomy_loop.py",
+      "severity": "error",
+      "description": "Autonomy loop cannot modify itself."
+    }
+  ],
+  "emergency_protocols": {
+    "break_glass": {
+      "description": "Emergency override mechanism for governance deadlock or system recovery.\n",
+      "mechanism": {
+        "command": "core-admin emergency-override --reason '<incident_ticket>'"
+      },
+      "consequences": [
+        "CRITICAL audit event recorded.",
+        "All autonomous agents suspended."
+      ]
+    }
+  }
+}

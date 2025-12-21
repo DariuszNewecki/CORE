@@ -1,13 +1,19 @@
 # src/mind/governance/checks/import_rules.py
 """
-Enforces structural_compliance: Code must obey architectural layer boundaries.
-defined in project_structure.yaml.
+Enforces dependency injection and layer boundary rules from Constitution.
+
+Constitutional Rules Enforced:
+- di.no_global_session_import: No direct global session imports in features/services
+- Mind/Body/Will layer separation
+- Architectural domain boundaries per project_structure.json
 """
 
 from __future__ import annotations
 
 import ast
+import json
 from pathlib import Path
+from typing import ClassVar
 
 import yaml
 
@@ -24,33 +30,57 @@ logger = getLogger(__name__)
 class ImportRulesCheck(BaseCheck):
     """
     Ensures that code files only import modules from their allowed architectural domains.
-    Ref: .intent/mind/knowledge/project_structure.yaml
+
+    Enforces constitutional rules:
+    - di.no_global_session_import (error)
+    - Mind/Body/Will layer separation boundaries
+    - Architectural domain boundaries per project_structure.json
+
+    Ref: .intent/charter/standards/architecture/dependency_injection.json
+    Ref: .intent/charter/constitution/boundaries.json
+    Ref: .intent/mind/knowledge/project_structure.json
     """
 
-    policy_rule_ids = ["structural_compliance"]
+    # Constitutional rule IDs this check enforces
+    policy_rule_ids: ClassVar[list[str]] = [
+        "di.no_global_session_import",
+        "structural_compliance.import_violation",
+    ]
 
     def __init__(self, context: AuditorContext):
         super().__init__(context)
         self.domain_map: dict[str, str] = {}  # path_prefix -> domain_name
-        self.allowed_imports: dict[
-            str, set[str]
-        ] = {}  # domain_name -> set(allowed_domains)
+        self.allowed_imports: dict[str, set[str]] = (
+            {}
+        )  # domain_name -> set(allowed_domains)
         self._load_rules_from_ssot()
 
     def _load_rules_from_ssot(self):
-        """Loads architectural domains from project_structure.yaml."""
-        struct_path = self.context.mind_path / "knowledge/project_structure.yaml"
+        """Loads architectural domains from project_structure (JSON first, then YAML)."""
+        json_struct = self.context.mind_path / "knowledge/project_structure.json"
+        yaml_struct = self.context.mind_path / "knowledge/project_structure.yaml"
 
-        if not struct_path.exists():
+        data = None
+        if json_struct.exists():
+            try:
+                data = json.loads(json_struct.read_text(encoding="utf-8"))
+            except Exception as e:
+                logger.error("Failed to parse project_structure.json: %s", e)
+
+        if data is None and yaml_struct.exists():
+            try:
+                data = yaml.safe_load(yaml_struct.read_text(encoding="utf-8"))
+            except Exception as e:
+                logger.error("Failed to parse project_structure.yaml: %s", e)
+
+        if not data:
             logger.warning(
-                "project_structure.yaml missing. Import rules cannot be enforced."
+                "Project structure SSOT missing. Import rules cannot be enforced."
             )
             return
 
         try:
-            data = yaml.safe_load(struct_path.read_text(encoding="utf-8"))
             domains = data.get("architectural_domains", [])
-
             for d in domains:
                 path = d.get("path")  # e.g., "src/features"
                 name = d.get("domain")  # e.g., "features"
@@ -60,15 +90,16 @@ class ImportRulesCheck(BaseCheck):
                     self.domain_map[path] = name
                     # A domain can always import from itself
                     self.allowed_imports[name] = set(allowed) | {name}
-
         except Exception as e:
-            logger.error("Failed to load import rules: %s", e)
+            logger.error("Data error in project structure: %s", e)
 
     # ID: f1a7dedb-d5e4-442d-8957-b7f974778bc5
     def execute(self) -> list[AuditFinding]:
-        """Runs the check by scanning all source files."""
+        """
+        Runs the check by scanning all source files.
+        Standardized to 'execute' for Atomic Action compliance.
+        """
         findings = []
-        # Use src_dir for scanning
         for file_path in self.src_dir.rglob("*.py"):
             findings.extend(self._check_file_imports(file_path))
         return findings
@@ -77,42 +108,47 @@ class ImportRulesCheck(BaseCheck):
         """Validates imports for a single file."""
         findings = []
 
-        # 1. Determine Domain of Current File
-        # We need relative path from repo root to match "src/..." keys
         try:
             rel_path = file_path.relative_to(self.repo_root)
-            rel_path_str = str(rel_path).replace("\\", "/")  # Normalize separators
+            rel_path_str = str(rel_path).replace("\\", "/")
         except ValueError:
-            return []  # Outside repo?
+            return []
 
         file_domain = self._get_domain_for_path(rel_path_str)
         if not file_domain:
-            # File is not in a governed domain (e.g. scripts root), skip checks
             return []
 
         allowed = self.allowed_imports.get(file_domain, set())
-
-        # 2. Scan Imports
         imports = self._scan_imports(file_path)
 
-        # 3. Validate
         for module in imports:
-            # Determine domain of the imported module
-            # Logic: If 'features.x', domain is 'features'.
-            # If 'shared.logger', domain is 'shared'.
-            root_module = module.split(".")[0]
+            # 1. Check for prohibited global session import
+            if self._is_global_session_import(module, file_domain):
+                findings.append(
+                    AuditFinding(
+                        check_id="di.no_global_session_import",
+                        severity=AuditSeverity.ERROR,
+                        message=(
+                            f"Illegal import: '{module}' violates di.no_global_session_import. "
+                            f"Features and services MUST NOT directly import global session."
+                        ),
+                        file_path=rel_path_str,
+                        line_number=1,
+                        context={
+                            "source_domain": file_domain,
+                            "imported_module": module,
+                        },
+                    )
+                )
+                continue
 
-            # Identify if this root_module corresponds to a known internal domain
-            # We map back: find if any domain name matches this root_module
-            # This relies on the convention that src/<name> maps to module <name>
+            # 2. Check for domain boundary violations
+            root_module = module.split(".")[0]
             target_domain = None
 
-            # Check if this module is one of our managed domains
             if root_module in self.allowed_imports:
                 target_domain = root_module
 
-            # If it's 3rd party (e.g., 'os', 'fastapi'), target_domain is None.
-            # We only police internal boundaries.
             if target_domain and target_domain not in allowed:
                 findings.append(
                     AuditFinding(
@@ -123,7 +159,7 @@ class ImportRulesCheck(BaseCheck):
                             f"(Domain: '{target_domain}'). Allowed: {sorted(list(allowed))}."
                         ),
                         file_path=rel_path_str,
-                        line_number=1,  # Todo: pass line numbers from scan
+                        line_number=1,
                         context={
                             "source_domain": file_domain,
                             "target_domain": target_domain,
@@ -133,6 +169,19 @@ class ImportRulesCheck(BaseCheck):
                 )
 
         return findings
+
+    def _is_global_session_import(self, module: str, file_domain: str) -> bool:
+        """Detect if this is a prohibited global session import."""
+        if file_domain not in ("features", "services"):
+            return False
+
+        prohibited_patterns = [
+            "shared.database.get_session",
+            "database.get_session",
+            "core.database.get_session",
+            "shared.infrastructure.database.session_manager.get_session",
+        ]
+        return any(module.startswith(pattern) for pattern in prohibited_patterns)
 
     def _scan_imports(self, file_path: Path) -> list[str]:
         """Extracts all imported module paths from a file."""
@@ -146,18 +195,8 @@ class ImportRulesCheck(BaseCheck):
                     for alias in node.names:
                         imports.append(alias.name)
                 elif isinstance(node, ast.ImportFrom):
-                    if node.module:
-                        if node.level == 0:
-                            # Absolute import: from shared.logger import ...
-                            imports.append(node.module)
-                        else:
-                            # Relative import: from ..shared import ...
-                            # We construct the absolute path to check boundaries
-                            # Simplification: Treat relative imports as "Internal to Domain" usually,
-                            # but strictly we should resolve them.
-                            # For now, we skip verifying relative imports as they usually imply
-                            # staying within the same package tree.
-                            pass
+                    if node.module and node.level == 0:
+                        imports.append(node.module)
         except Exception as e:
             logger.debug("Failed to parse imports for %s: %s", file_path, e)
 
@@ -165,7 +204,6 @@ class ImportRulesCheck(BaseCheck):
 
     def _get_domain_for_path(self, path_str: str) -> str | None:
         """Matches file path to longest specific domain path."""
-        # e.g., src/features/auth/login.py -> matches src/features -> 'features'
         best_match = None
         longest_prefix = 0
 

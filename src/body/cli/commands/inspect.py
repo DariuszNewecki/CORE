@@ -158,11 +158,11 @@ async def vector_drift_command(ctx: typer.Context) -> None:
 @inspect_app.command("common-knowledge")
 @core_command(dangerous=False)
 # ID: bf926e9a-3106-4697-8d96-ade3fb3cad22
-def common_knowledge_cmd(ctx: typer.Context) -> None:
+async def common_knowledge_cmd(ctx: typer.Context) -> None:
     """
     Finds structurally identical helper functions that can be consolidated.
     """
-    find_common_knowledge()
+    await find_common_knowledge()
 
 
 @inspect_app.command("test-targets")

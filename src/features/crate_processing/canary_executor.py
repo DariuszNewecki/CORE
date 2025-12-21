@@ -4,7 +4,7 @@
 Canary Policy Enforcement.
 
 This module enforces the canary deployment rules defined in
-.intent/charter/policies/operations.yaml.
+.intent/charter/policies/operations.json.
 
 It acts as a bridge between raw runtime signals (AuditFindings, Test Results)
 and the constitutional thresholds defined in the Mind.

@@ -9,6 +9,7 @@ from __future__ import annotations
 import ast
 import statistics
 from pathlib import Path
+from typing import ClassVar
 
 
 # External dependency: radon
@@ -34,7 +35,7 @@ class HealthChecks(BaseCheck):
     """
 
     # Explicitly link to the specific rules in code_standards.yaml
-    policy_rule_ids = [
+    policy_rule_ids: ClassVar[list[str]] = [
         "code_standards.max_file_lines",
         "code_standards.max_function_lines",
         # "complexity.max_cognitive_complexity" # Implicit in health_standards

@@ -84,7 +84,7 @@ async def scaffold_new_application(
         return (True, f"✅ Successfully scaffolded '{project_name}'.")
     except Exception as e:
         logger.error("❌ Scaffolding failed: %s", e, exc_info=True)
-        return (False, f"Scaffolding failed: {str(e)}")
+        return (False, f"Scaffolding failed: {e!s}")
 
 
 @agent_app.command("scaffold")

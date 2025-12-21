@@ -1,5 +1,4 @@
 # src/will/agents/planner_agent.py
-
 """
 The PlannerAgent is responsible for decomposing a high-level user goal
 into a concrete, step-by-step execution plan that can be carried out
@@ -8,6 +7,10 @@ by the ExecutionAgent.
 
 from __future__ import annotations
 
+import random  # NEW: For randomized cleanup trigger
+
+from body.services.service_registry import ServiceRegistry  # NEW: Import registry
+from features.self_healing import MemoryCleanupService  # NEW: Import cleanup service
 from shared.config import settings
 from shared.logger import getLogger
 from shared.models import ExecutionTask, PlanExecutionError
@@ -36,6 +39,23 @@ class PlannerAgent:
         """
         Creates an execution plan from a user goal and a reconnaissance report.
         """
+        # NEW: Random memory cleanup (10% chance) before planning
+        if random.random() < 0.1:
+            try:
+                cleanup_service = MemoryCleanupService(
+                    db_service=ServiceRegistry.get("db")
+                )
+                result = await cleanup_service.cleanup_old_memories(dry_run=False)
+                if result.ok:
+                    logger.debug(
+                        "Memory cleanup completed: %d episodes, %d decisions, %d reflections deleted",
+                        result.data["episodes_deleted"],
+                        result.data["decisions_deleted"],
+                        result.data["reflections_deleted"],
+                    )
+            except Exception as e:
+                logger.warning("Memory cleanup failed (non-critical): %s", e)
+
         max_retries = settings.model_extra.get("CORE_MAX_RETRIES", 3)
         prompt = build_planning_prompt(
             goal, self.prompt_template, reconnaissance_report

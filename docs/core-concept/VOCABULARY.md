@@ -1,217 +1,160 @@
 # CORE Vocabulary
 
-**Version:** v0.3
-**Status:** Draft
-**Scope:** CORE system only (including `.intent/`)
-**Authority:** Descriptive (non‑normative)
+**Version:** v1.0.0  
+**Status:** Active  
+**Scope:** CORE System (Mind, Body, Will)  
+**Authority:** Normative  
 
 ---
 
 ## 1. Core System Model
 
 ### CORE
+The self-governing system that enforces architectural, governance, and behavioral rules over its own codebase and AI agents.
 
-The self‑governing system that enforces architectural, governance, and behavioral rules over its own codebase and AI agents.
+### Mind (The Conscience)
+The authority and memory layer. It consists of:
+- The **Constitution** (immutable files in `.intent/`)
+- The **Knowledge Graph** (Postgres database)
 
-### Mind
+The Mind defines what is *true* and what is *allowed*.
 
-The declarative authority layer of CORE. It defines what is allowed, required, or forbidden and is implemented primarily through the `.intent/` directory.
+### Body (The Execution)
+The deterministic execution layer (`src/`). It contains concrete implementations such as:
+- CLI commands  
+- Services  
+- Atomic Actions  
 
-### Body
+The Body must be **headless** (no UI) and **stateless** (no hidden memory).
 
-The deterministic execution layer of CORE. It contains the concrete implementation (`src/`) that executes logic strictly within constraints defined by the Mind.
+### Will (The Agency)
+The autonomous reasoning layer (`src/will/`). It consists of Agents that:
+- Perceive context  
+- Reason about goals  
+- Orchestrate Body actions  
 
-### Will
-
-The autonomous reasoning and action layer of CORE. It may propose or initiate actions, but can never bypass the Mind and never execute outside the Body.
+The Will may propose intent, but **only the Mind can validate it**.
 
 ---
 
 ## 2. Intent & Governance
 
 ### Intent
-
-A formal, machine‑readable declaration of rules, standards, policies, or goals that govern CORE behavior.
+A formal declaration of a desired state or rule.
 
 ### Constitution
-
-The highest‑authority intent set in CORE. Constitutional intents are non‑negotiable and override all other intents and implementations.
-
-### Charter
-
-A structured collection of intents grouped by authority and purpose (e.g. constitution, standards, patterns).
-
-### Standard
-
-An intent that defines mandatory structure, format, or behavior within a defined scope.
+The highest-authority intent set (`.intent/charter/constitution/`).  
+It establishes the fundamental laws of the system. Constitutional rules are **non-negotiable** and **immutable** without a formal amendment process.
 
 ### Policy
+A governance document (`.intent/charter/standards/`) defining specific rules for code, data, or operations.  
+Policies are enforced mechanically by Auditors.
 
-An intent that expresses governance decisions, obligations, or prohibitions, typically higher‑level than standards.
-
-### Pattern
-
-An intent that defines an approved structural or behavioral solution to a recurring problem.
+### Crate (Intent Crate)
+A transactional package of changes proposed by an Agent.  
+A crate must pass validation (**Schema**, **Canary**, **Audit**) before being merged into the codebase.
 
 ---
 
 ## 3. Domain & Scope
 
 ### Domain
+A strict architectural boundary that groups related Capabilities.
 
-A bounded semantic and governance area within CORE.
+In the Body implementation, a Domain maps **1:1** to a directory:
+src/features/<domain_name>/
 
-A domain:
+### Infrastructure
+Code providing cross-cutting utility (`src/shared/`, `src/services/`) without business logic.  
+Infrastructure is **exempt from Domain assignment**.
 
-* Defines what a set of intents, code, or capabilities is about
-* Establishes scope boundaries
-* Prevents rule leakage across unrelated areas
-
-Domains are used consistently across `.intent/`, symbols, enforcement logic, and documentation.
+### Trust Zone
+A security boundary defining where dangerous execution primitives (e.g. `eval`, `exec`) are permitted  
+(e.g. `system`, `privileged`, `application`).
 
 ---
 
 ## 4. Identity & Meaning
 
-### ID
-
-A unique, stable identifier used to reference a specific entity unambiguously.
-
-IDs are:
-
-* Mechanical, not semantic
-* Globally unique within their namespace
-* Used for traceability, versioning, and enforcement
-
-IDs do not carry meaning.
+### ID (Capability ID)
+A unique UUID (e.g. `# ID: 1234...`) tagged in source code.  
+Transforms a raw Symbol into a governed Capability.
 
 ### Symbol
-
-A stable, named semantic unit used to anchor meaning across intents, code, and documentation.
-
-Symbols:
-
-* Represent meaning, not identity
-* May be shared across artifacts
-* Are used to express concepts, capabilities, or guarantees
-
-A symbol is not an ID.
+A raw code entity (Function, Class, Module) discovered by scanning the codebase.  
+A Symbol exists in the Body but is not *known* to the Mind until tagged and synced.
 
 ### Capability
+A Symbol explicitly claimed by a Domain via an ID.  
+Capabilities are the units of business logic tracked in the Database SSOT.
 
-A named ability or function that CORE provides or enforces. Capabilities describe what CORE can or must do, not how it is implemented.
+### Anchor
+A stable reference point (usually a UUID comment) allowing the Knowledge Graph to maintain links to code even if files are renamed or moved.
 
 ---
 
 ## 5. Structure & Behavior
 
-### Feature
-
-A coherent, user‑ or system‑facing capability implemented by CORE. A feature may span multiple commands and functions and often maps to one or more capabilities.
-
-### Command
-
-A discrete, invokable operation exposed by the CORE CLI. Commands are user‑facing and orchestrate logic without containing core business rules.
-
-### Function
-
-A deterministic unit of executable logic with a single responsibility. Functions are implementation‑level constructs and are not user‑facing.
+### Service
+A stateless infrastructure component that manages resources (DB, Vector Store, LLM).  
+Services must be **headless** and use **Dependency Injection**.
 
 ### Atomic Action
+A discrete, governed unit of work that returns a structured `ActionResult`.  
+Atomic Actions are the **only** way Agents (Will) may modify the System (Body).
 
-A minimal, deterministic operation with exactly one responsibility and a strict execution contract. Atomic actions produce no uncontrolled side effects and perform no terminal I/O.
+### Orchestrator
+A component that composes multiple Atomic Actions into a workflow.  
+Orchestrators own the **User Interface (UI)** and progress reporting.
 
 ---
 
 ## 6. Enforcement & Compliance
 
-### Enforcement
-
-The mechanical verification and constraint of behavior based on declared intents.
-
-### Rule
-
-An individual enforceable statement within an intent.
-
-### Violation
-
-A detected breach of a rule during inspection, validation, or execution.
-
-### Coverage
-
-A measurable indication of how completely intents are enforced by concrete checks or guards.
-
----
-
-## 7. Knowledge & Authority
-
 ### SSOT (Single Source of Truth)
-
-The authoritative origin of a fact, rule, or definition within CORE.
-
-SSOTs:
-
-* Are explicitly declared
-* Are authoritative and auditable
-* Override all derived or inferred knowledge
-
-### Vector
-
-A structured numerical representation of meaning used for semantic comparison, clustering, and retrieval.
-
-Vectors:
-
-* Represent derived meaning, not authority
-* Are generated from SSOTs
-* Are regenerable and non‑authoritative
-
-Vectors never override SSOTs.
-
-### Knowledge
-
-Structured or derived understanding CORE has about itself, including rules, symbols, domains, and system state.
+The definitive record of state:
+- **Logic:** Filesystem (`src/`)
+- **Metadata & Relationships:** Database (Postgres)
+- **Law:** Constitution (`.intent/`)
 
 ### Drift
+A discrepancy between the Mind (Database / Constitution) and the Body (Filesystem).
 
-A detectable divergence between declared intent (Mind / SSOT) and actual implementation or behavior (Body / Will).
+Examples:
+- A Domain defined in YAML but missing in `src/features/`
+- A Function existing in code but missing its Capability ID in the DB
+
+### Audit
+The mechanical process of comparing the Body against the Mind to detect Drift or Violations.
 
 ---
 
-## 8. Assignment & Authority Matrix
+## 7. Assignment & Authority Matrix
 
-The table below clarifies **who assigns or defines each element** in CORE. This avoids ambiguity between human governance, system generation, and derived artifacts.
+This table defines the source of authority for system elements.
 
-| Element       | Assigned / Defined By             | Notes                                               |
-| ------------- | --------------------------------- | --------------------------------------------------- |
-| Domain        | Human (Architecture / Governance) | Declared explicitly; foundational scoping construct |
-| ID            | System or Human (at creation)     | Must be unique; mechanical, non-semantic            |
-| Symbol        | Human (Intent authors)            | Semantic anchor; may be reused across artifacts     |
-| Capability    | Human (Design / Governance)       | Expresses what CORE provides or enforces            |
-| Intent        | Human (Governance)                | Authoritative declaration                           |
-| Constitution  | Human (System owner)              | Highest authority                                   |
-| Charter       | Human (Governance)                | Organizes intents by authority                      |
-| Standard      | Human (Governance)                | Mandatory rules within scope                        |
-| Policy        | Human (Governance)                | Obligations and prohibitions                        |
-| Pattern       | Human (Architecture)              | Approved solution form                              |
-| Feature       | Human (Design)                    | Groups related behavior                             |
-| Command       | Human (CLI design)                | User-facing invocation                              |
-| Function      | Human (Implementation)            | Deterministic logic unit                            |
-| Atomic Action | Human (Architecture)              | Minimal execution primitive                         |
-| Rule          | Human (Intent authors)            | Enforceable statement                               |
-| Enforcement   | System (Body)                     | Mechanical verification                             |
-| Violation     | System (Body)                     | Detected breach                                     |
-| Coverage      | System (Body)                     | Measured enforcement extent                         |
-| SSOT          | Human or System (Declared)        | Authoritative by designation                        |
-| Vector        | System (Derived)                  | Generated from SSOTs; non-authoritative             |
-| Knowledge     | System (Derived)                  | Aggregated understanding                            |
-| Drift         | System (Detected)                 | Mind–Body divergence indicator                      |
+| Element        | Authority (Who Defines It) | Storage (Where it Lives) |
+|---------------|----------------------------|--------------------------|
+| Constitution  | Human (Founder)             | `.intent/charter/constitution/*.yaml` |
+| Domain        | Human (Architect)           | `.intent/mind/knowledge/domain_definitions.yaml` + `src/features/` |
+| Policy        | Human (Governance)          | `.intent/charter/standards/*.yaml` |
+| Capability    | Human or Agent (Proposer)   | Code (`# ID:` tag) + Database (`core.capabilities`) |
+| Symbol        | Code (Parser)               | Database (`core.symbols`) |
+| Vector        | System (Derived)            | Qdrant (`core_capabilities` collection) |
+| Action Log    | System (Runtime)            | Database (`observability.logs`) |
 
 ---
 
 ## Conceptual Summary
 
-* **ID** answers *which exact thing*
-* **Symbol** answers *what it means*
-* **Domain** answers *where it belongs*
-* **SSOT** defines *what is true*
-* **Vectors** help navigate meaning, never authority
+- **Domains are Directories**  
+  If it is not in `src/features/<name>`, it is not a Domain.
+
+- **Database is the Mind**  
+  If a function is not synced to the DB, the System does not know it exists.
+
+- **IDs Create Reality**  
+  A Symbol becomes a Capability only when it receives a UUID.
+
+- **Agents Are Constrained**  
+  The Will can only act through Atomic Actions defined by the Body.

@@ -6,6 +6,7 @@ from __future__ import annotations
 import ast
 import json
 import uuid
+from pathlib import Path
 from typing import Any
 
 from sqlalchemy import text
@@ -58,7 +59,7 @@ class SymbolVisitor(ast.NodeVisitor):
         if not (is_public and not is_dunder):
             return
 
-        path_components = self.class_stack + [node.name]
+        path_components = [*self.class_stack, node.name]
         symbol_path = f"{self.file_path}::{'.'.join(path_components)}"
         qualname = ".".join(path_components)
 
@@ -89,6 +90,7 @@ class SymbolVisitor(ast.NodeVisitor):
                 "state": "discovered",
                 "is_public": True,
                 "calls": json.dumps(calls),
+                # Domain is injected by Scanner
             }
         )
 
@@ -96,6 +98,34 @@ class SymbolVisitor(ast.NodeVisitor):
 # ID: ca6a48d2-acbe-4ebd-9e06-2a8d0428aa56
 class SymbolScanner:
     """Scans the codebase to extract symbol information."""
+
+    def _determine_domain(self, file_path: Path) -> str:
+        """
+        Determines the architectural domain of a file based on directory structure.
+        Matches src/features/<domain> logic.
+        """
+        parts = file_path.parts
+        if "features" in parts:
+            try:
+                idx = parts.index("features")
+                if idx + 1 < len(parts):
+                    return parts[idx + 1]
+            except ValueError:
+                pass
+
+        # Fallback for core architectural layers
+        if "shared" in parts:
+            return "shared"
+        if "core" in parts:
+            return "core"
+        if "mind" in parts:
+            return "mind"
+        if "body" in parts:
+            return "body"
+        if "will" in parts:
+            return "will"
+
+        return "unknown"
 
     # ID: bab1a94f-8a2d-4c12-95fe-6822f19ba634
     def scan(self) -> list[dict[str, Any]]:
@@ -108,10 +138,21 @@ class SymbolScanner:
                 content = file_path.read_text(encoding="utf-8")
                 tree = ast.parse(content, filename=str(file_path))
                 rel_path_str = str(file_path.relative_to(settings.REPO_PATH))
+
+                # Determine domain for this file
+                domain = self._determine_domain(
+                    file_path.relative_to(settings.REPO_PATH)
+                )
+
                 visitor = SymbolVisitor(rel_path_str)
                 visitor.visit(tree)
-                all_symbols.extend(visitor.symbols)
-            except Exception as exc:  # noqa: BLE001
+
+                # Inject domain into discovered symbols
+                for sym in visitor.symbols:
+                    sym["domain"] = domain
+                    all_symbols.append(sym)
+
+            except Exception as exc:
                 logger.error("Error scanning %s: %s", file_path, exc)
 
         # Deduplicate by symbol_path (last one wins)
@@ -137,6 +178,7 @@ async def run_sync_with_db() -> dict[str, int]:
 
     async with get_session() as session:
         async with session.begin():
+            # Create temp table matching core.symbols structure
             await session.execute(
                 text(
                     """
@@ -148,6 +190,7 @@ async def run_sync_with_db() -> dict[str, int]:
             )
 
             if code_state:
+                # Updated INSERT to include 'domain'
                 insert_stmt = text(
                     """
                     INSERT INTO core_symbols_staging (
@@ -160,7 +203,8 @@ async def run_sync_with_db() -> dict[str, int]:
                         fingerprint,
                         state,
                         is_public,
-                        calls
+                        calls,
+                        domain
                     ) VALUES (
                         :id,
                         :symbol_path,
@@ -171,7 +215,8 @@ async def run_sync_with_db() -> dict[str, int]:
                         :fingerprint,
                         :state,
                         :is_public,
-                        :calls
+                        :calls,
+                        :domain
                     )
                     """
                 )
@@ -203,6 +248,7 @@ async def run_sync_with_db() -> dict[str, int]:
             )
             stats["inserted"] = inserted_result.scalar_one()
 
+            # Updated change detection logic (fingerprint OR domain change)
             updated_result = await session.execute(
                 text(
                     """
@@ -213,6 +259,7 @@ async def run_sync_with_db() -> dict[str, int]:
                     WHERE
                         s.fingerprint != st.fingerprint
                         OR s.calls::text != st.calls::text
+                        OR s.domain != st.domain
                     """
                 )
             )
@@ -229,6 +276,7 @@ async def run_sync_with_db() -> dict[str, int]:
                 )
             )
 
+            # Updated UPDATE statement to include domain
             await session.execute(
                 text(
                     """
@@ -236,6 +284,7 @@ async def run_sync_with_db() -> dict[str, int]:
                     SET
                         fingerprint   = st.fingerprint,
                         calls         = st.calls,
+                        domain        = st.domain,
                         last_modified = NOW(),
                         last_embedded = NULL,
                         updated_at    = NOW()
@@ -244,11 +293,13 @@ async def run_sync_with_db() -> dict[str, int]:
                     AND (
                         core.symbols.fingerprint != st.fingerprint
                         OR core.symbols.calls::text != st.calls::text
+                        OR core.symbols.domain != st.domain
                     );
                     """
                 )
             )
 
+            # Updated INSERT statement to include domain
             await session.execute(
                 text(
                     """
@@ -263,6 +314,7 @@ async def run_sync_with_db() -> dict[str, int]:
                         state,
                         is_public,
                         calls,
+                        domain,
                         created_at,
                         updated_at,
                         last_modified,
@@ -280,6 +332,7 @@ async def run_sync_with_db() -> dict[str, int]:
                         state,
                         is_public,
                         calls,
+                        domain,
                         NOW(),
                         NOW(),
                         NOW(),

@@ -45,7 +45,11 @@ async def micro_propose(context: CoreContext, goal: str) -> Path | None:
         Path(tempfile.gettempdir())
         / f"core-micro-proposal-{proposal['proposal_id']}.json"
     )
-    proposal_file.write_text(json.dumps(proposal, indent=2))
+
+    # <--- FIXED: Delegate write to Body layer via FileHandler
+    content = json.dumps(proposal, indent=2)
+    context.file_handler.write_file(proposal_file, content)
+
     logger.info(
         "[bold green]✅ Safe micro-proposal generated successfully![/bold green]"
     )
@@ -89,7 +93,9 @@ async def _micro_apply(context: CoreContext, proposal_path: Path):
     logger.info("🔵 Loading and applying micro-proposal: %s", proposal_path.name)
     start_time = time.monotonic()
     try:
-        proposal_content = proposal_path.read_text(encoding="utf-8")
+        # <--- FIXED: Delegate read to Body layer via FileHandler
+        proposal_content = context.file_handler.read_file(proposal_path)
+
         proposal_data = json.loads(proposal_content)
         plan_dicts = proposal_data.get("plan", [])
         plan = [ExecutionTask(**task) for task in plan_dicts]

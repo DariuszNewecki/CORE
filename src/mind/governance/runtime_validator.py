@@ -12,14 +12,11 @@ import shutil
 import tempfile
 from pathlib import Path
 
-from rich.console import Console
-
 from shared.config import settings
 from shared.logger import getLogger
 
 
 logger = getLogger(__name__)
-console = Console()
 
 
 # ID: 0cbf9038-fa70-4ea4-ae13-b478552f9d79
@@ -88,4 +85,4 @@ class RuntimeValidatorService:
                     return (False, error_details)
             except Exception as e:
                 logger.error("Error during canary test run: %s", e, exc_info=True)
-                return (False, f"An unexpected exception occurred: {str(e)}")
+                return (False, f"An unexpected exception occurred: {e!s}")

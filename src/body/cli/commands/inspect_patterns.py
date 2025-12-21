@@ -114,7 +114,7 @@ def inspect_patterns(
 
         # Record violation cases
         if had_violations and (
-            not pattern or (patterns_used and list(patterns_used)[0] == pattern)
+            not pattern or (patterns_used and next(iter(patterns_used)) == pattern)
         ):
             violation_cases.append(
                 {
@@ -141,9 +141,7 @@ def inspect_patterns(
             rate_color = (
                 "green"
                 if success_rate >= 80
-                else "yellow"
-                if success_rate >= 50
-                else "red"
+                else "yellow" if success_rate >= 50 else "red"
             )
 
             table.add_row(

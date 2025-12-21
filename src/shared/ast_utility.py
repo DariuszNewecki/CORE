@@ -179,7 +179,7 @@ def parse_metadata_comment(node: ast.AST, source_lines: list[str]) -> dict[str, 
         if line.startswith("#") and "CAPABILITY:" in line.upper():
             try:
                 # split on the first colon to preserve values containing colons
-                prefix, value = line.split(":", 1)
+                _prefix, value = line.split(":", 1)
                 return {"capability": value.strip()}
             except ValueError:
                 pass

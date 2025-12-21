@@ -427,7 +427,7 @@ if __name__ == "__main__":
     test_cases = [
         ("src/body/commands/fix.py", "fix_docstring"),
         ("src/mind/governance/validator_service.py", "format_code"),
-        (".intent/charter/constitution/authority.yaml", "edit_file"),
+        (".intent/charter/constitution/authority.json", "edit_file"),
         ("src/body/services/database.py", "schema_migration"),
         ("docs/README.md", "update_docs"),
         ("tests/test_core.py", "generate_tests"),

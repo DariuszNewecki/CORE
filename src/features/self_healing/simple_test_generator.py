@@ -173,7 +173,7 @@ class SimpleTestGenerator:
                 stderr=asyncio.subprocess.PIPE,
             )
             try:
-                stdout, stderr = await asyncio.wait_for(
+                _stdout, stderr = await asyncio.wait_for(
                     proc.communicate(), timeout=10.0
                 )
             except TimeoutError:

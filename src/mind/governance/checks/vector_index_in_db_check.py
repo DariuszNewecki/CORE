@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import ast
 from pathlib import Path
+from typing import ClassVar
 
 from mind.governance.checks.base_check import BaseCheck
 from shared.models import AuditFinding, AuditSeverity
@@ -14,7 +15,7 @@ from shared.models import AuditFinding, AuditSeverity
 
 # ID: ecf99ad0-883b-42e3-bbec-898ff40a3cc4
 class VectorIndexInDbCheck(BaseCheck):
-    policy_rule_ids = ["db.vector_index_in_db"]
+    policy_rule_ids: ClassVar[list[str]] = ["db.vector_index_in_db"]
 
     # ID: 63b6cc1c-1573-4fff-bdb4-2798c4610ae8
     def execute(self) -> list[AuditFinding]:

@@ -7,6 +7,7 @@ This is a prerequisite check; Agents cannot comply if the tool is missing.
 from __future__ import annotations
 
 import ast
+from typing import ClassVar
 
 from mind.governance.checks.base_check import BaseCheck
 from shared.logger import getLogger
@@ -24,7 +25,7 @@ class ReuseComplianceCheck(BaseCheck):
     Ref: standard_code_general (reuse.before_new_code)
     """
 
-    policy_rule_ids = ["reuse.before_new_code"]
+    policy_rule_ids: ClassVar[list[str]] = ["reuse.before_new_code"]
 
     # ID: a3de7c56-6470-4cf4-a845-2315d32547ee
     def execute(self) -> list[AuditFinding]:

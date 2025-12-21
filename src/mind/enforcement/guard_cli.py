@@ -6,7 +6,6 @@ CLI-facing guard registration helpers.
 
 from __future__ import annotations
 
-import asyncio
 import json
 from pathlib import Path
 from typing import Any
@@ -17,6 +16,7 @@ from body.cli.logic.cli_utils import should_fail
 from features.introspection.drift_detector import write_report
 from features.introspection.drift_service import run_drift_analysis_async
 from mind.enforcement.guard import _print_pretty, _ux_defaults
+from shared.cli_utils import core_command
 
 
 __all__ = ["register_guard"]
@@ -31,8 +31,9 @@ def register_guard(app: typer.Typer) -> None:
     app.add_typer(guard, name="guard")
 
     @guard.command("drift")
+    @core_command(dangerous=False, requires_context=False)
     # ID: 9c69d559-0c4a-4431-918b-14b3d588da91
-    def drift(
+    async def drift(
         root: Path = typer.Option(Path("."), help="Repository root."),
         manifest_path: Path | None = typer.Option(
             None, help="Explicit manifest path (deprecated)."
@@ -47,7 +48,7 @@ def register_guard(app: typer.Typer) -> None:
             fmt = (format or ux["default_format"]).lower()
             fail_policy = (fail_on or ux["default_fail_on"]).lower()
 
-            report = asyncio.run(run_drift_analysis_async(root))
+            report = await run_drift_analysis_async(root)
             report_dict: dict[str, Any] = report.to_dict()
 
             if ux["evidence_json"]:

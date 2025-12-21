@@ -10,6 +10,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from shared.infrastructure.storage.file_handler import FileHandler  # <--- NEW IMPORT
 from shared.logger import getLogger
 
 
@@ -35,11 +36,18 @@ class Decision:
 class DecisionTracer:
     """Traces and explains autonomous decision chains."""
 
-    def __init__(self, session_id: str | None = None):
+    def __init__(
+        self, session_id: str | None = None, file_handler: FileHandler | None = None
+    ):
         self.session_id = session_id or datetime.now().strftime("%Y%m%d_%H%M%S")
         self.decisions: list[Decision] = []
         self.trace_dir = Path("reports/decisions")
-        self.trace_dir.mkdir(parents=True, exist_ok=True)
+
+        # Use injected FileHandler or create a default one (safe default for Body)
+        self.file_handler = file_handler or FileHandler(Path("."))
+
+        # Delegate mkdir to Body layer
+        self.file_handler.ensure_directory(self.trace_dir)
 
     # ID: d259527d-5f1e-4778-8499-fa23fd49e7f5
     def record(
@@ -100,14 +108,17 @@ class DecisionTracer:
     def save_trace(self):
         """Save decision trace to file."""
         trace_file = self.trace_dir / f"trace_{self.session_id}.json"
-        with open(trace_file, "w") as f:
-            json.dump(
-                {
-                    "session_id": self.session_id,
-                    "decisions": [asdict(d) for d in self.decisions],
-                },
-                f,
-                indent=2,
-            )
+
+        content = json.dumps(
+            {
+                "session_id": self.session_id,
+                "decisions": [asdict(d) for d in self.decisions],
+            },
+            indent=2,
+        )
+
+        # Delegate write to Body layer
+        self.file_handler.write_file(trace_file, content)
+
         logger.info("Decision trace saved: %s", trace_file)
         return trace_file

@@ -1,16 +1,24 @@
 # src/mind/governance/checks/auto_remediation_check.py
 """
-Enforces coverage.auto_remediation: AI must auto-remediate coverage gaps.
+Enforces qa.remediation.auto_trigger: coverage gaps must trigger auto-remediation.
+
+Ref: .intent/charter/standards/operations/quality_assurance.json
 """
 
 from __future__ import annotations
 
 import xml.etree.ElementTree as ET
 from pathlib import Path
+from typing import Any, ClassVar
 
 import yaml
 
-from mind.governance.checks.base_check import BaseCheck
+from mind.governance.audit_context import AuditorContext
+from mind.governance.checks.rule_enforcement_check import (
+    EnforcementMethod,
+    RuleEnforcementCheck,
+)
+from shared.config import settings
 from shared.logger import getLogger
 from shared.models import AuditFinding, AuditSeverity
 
@@ -18,55 +26,29 @@ from shared.models import AuditFinding, AuditSeverity
 logger = getLogger(__name__)
 
 
-# ID: 6a68225c-4494-44e7-b036-c481669dc537
-class AutoRemediationCheck(BaseCheck):
-    policy_rule_ids = ["coverage.auto_remediation"]
+# ID: coverage-threshold-enforcement
+# ID: e4d48407-e9ba-421c-afc2-441cb6f1470e
+class CoverageThresholdEnforcement(EnforcementMethod):
+    """
+    Verifies that test coverage meets the constitutional minimum threshold.
+    If coverage drops below minimum, autonomous remediation must be triggered.
+    """
 
-    def _get_constitutional_threshold(self) -> float:
-        """
-        Loads the target coverage threshold from the Constitution (SSOT).
-        Ref: .intent/charter/standards/operations/quality_assurance.yaml
-        """
-        policy_path = Path(
-            ".intent/charter/standards/operations/quality_assurance.yaml"
-        )
-        default_threshold = 80.0
+    def __init__(self, rule_id: str, severity: AuditSeverity = AuditSeverity.ERROR):
+        super().__init__(rule_id, severity)
 
-        if not policy_path.exists():
-            logger.warning(
-                "Constitutional policy file not found at %s. Defaulting to %.1f%%.",
-                policy_path,
-                default_threshold,
-            )
-            return default_threshold
-
-        try:
-            data = yaml.safe_load(policy_path.read_text())
-            # Retrieve 'target_threshold' (80) or 'minimum_threshold' (45/75)
-            # based on the strictness required. Using target_threshold per intent.
-            reqs = data.get("coverage_requirements", {})
-            return float(reqs.get("target_threshold", default_threshold))
-        except Exception as e:
-            logger.error(
-                "Failed to parse policy %s: %s. Defaulting to %.1f%%.",
-                policy_path,
-                e,
-                default_threshold,
-            )
-            return default_threshold
-
-    # ID: 9fd8bfd4-9046-456e-b30b-7d5210ad5d35
-    def execute(self) -> list[AuditFinding]:
-        findings: list[AuditFinding] = []
+    # ID: 18690358-ec6c-4377-bc1b-41493d8cfad2
+    def verify(
+        self, context: AuditorContext, rule_data: dict[str, Any], **kwargs
+    ) -> list[AuditFinding]:
+        findings = []
 
         coverage_file = Path(".coverage")
         report = Path("htmlcov/index.html")
 
         if not coverage_file.exists():
             findings.append(
-                AuditFinding(
-                    check_id="coverage.auto_remediation",
-                    severity=AuditSeverity.ERROR,
+                self._create_finding(
                     message="No coverage data found. Run `fix coverage`.",
                     file_path=str(coverage_file),
                     line_number=1,
@@ -83,8 +65,8 @@ class AutoRemediationCheck(BaseCheck):
             )
             return findings
 
-        # Load SSOT Threshold
-        target_threshold = self._get_constitutional_threshold()
+        # Load SSOT Threshold from policy
+        target_threshold = self._get_constitutional_threshold(context)
 
         try:
             tree = ET.parse(report)
@@ -121,9 +103,7 @@ class AutoRemediationCheck(BaseCheck):
         # Enforce the Constitutional Threshold (SSOT)
         if percent_value < target_threshold:
             findings.append(
-                AuditFinding(
-                    check_id="coverage.auto_remediation",
-                    severity=AuditSeverity.ERROR,
+                self._create_finding(
                     message=(
                         f"Coverage {percent_value:.1f}% is below constitutional target "
                         f"of {target_threshold}%. Run `fix coverage`."
@@ -134,3 +114,62 @@ class AutoRemediationCheck(BaseCheck):
             )
 
         return findings
+
+    def _get_constitutional_threshold(self, context: AuditorContext) -> float:
+        """
+        Loads the target coverage threshold from the Constitution (SSOT).
+        Ref: .intent/charter/standards/operations/quality_assurance.json
+        """
+        policy_path = settings.paths.policy("quality_assurance")
+        default_threshold = 80.0
+
+        if not policy_path.exists():
+            logger.warning(
+                "Constitutional policy file not found at %s. Defaulting to %.1f%%.",
+                policy_path,
+                default_threshold,
+            )
+            return default_threshold
+
+        try:
+            data = yaml.safe_load(policy_path.read_text())
+            # Retrieve 'target_threshold' (80) or 'minimum_threshold' (75)
+            # Look for qa.coverage.target_threshold rule in rules array
+            rules = data.get("rules", [])
+            for rule in rules:
+                if rule.get("id") == "qa.coverage.target_threshold":
+                    # Default to 80% as stated in the rule
+                    return 80.0
+                elif rule.get("id") == "qa.coverage.minimum_threshold":
+                    # Minimum is 75%
+                    return 75.0
+            return default_threshold
+        except Exception as e:
+            logger.error(
+                "Failed to parse policy %s: %s. Defaulting to %.1f%%.",
+                policy_path,
+                e,
+                default_threshold,
+            )
+            return default_threshold
+
+
+# ID: 6a68225c-4494-44e7-b036-c481669dc537
+class AutoRemediationCheck(RuleEnforcementCheck):
+    """
+    Enforces qa.remediation.auto_trigger: coverage gaps must trigger auto-remediation.
+
+    Ref: .intent/charter/standards/operations/quality_assurance.json
+    """
+
+    policy_rule_ids: ClassVar[list[str]] = ["qa.remediation.auto_trigger"]
+
+    policy_file: ClassVar = settings.paths.policy("quality_assurance")
+
+    enforcement_methods: ClassVar[list[EnforcementMethod]] = [
+        CoverageThresholdEnforcement(rule_id="qa.remediation.auto_trigger"),
+    ]
+
+    @property
+    def _is_concrete_check(self) -> bool:
+        return True

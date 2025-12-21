@@ -9,7 +9,6 @@ amendments to the system's constitution.
 
 from __future__ import annotations
 
-import asyncio
 import json
 import re
 import uuid
@@ -159,7 +158,7 @@ async def _async_complexity_outliers(
 
 
 # ID: 453e06ba-139f-427c-bbe3-ff590640b766
-def complexity_outliers(
+async def complexity_outliers(
     context: CoreContext,
     file_path: Path | None = typer.Argument(
         None,
@@ -175,6 +174,4 @@ def complexity_outliers(
     ),
 ):
     """Identifies and refactors complexity outliers to improve separation of concerns."""
-    asyncio.run(
-        _async_complexity_outliers(context.cognitive_service, file_path, dry_run)
-    )
+    await _async_complexity_outliers(context.cognitive_service, file_path, dry_run)

@@ -1,0 +1,133 @@
+{
+  "id": "standard_architecture_irritation_heuristic",
+  "version": "1.0.0",
+  "title": "Architecture Standard – Irritation Heuristic",
+  "type": "standard_architecture",
+  "status": "active",
+  "owners": {
+    "accountable": "Governance Lead",
+    "responsible": [
+      "Core Maintainer"
+    ]
+  },
+  "review": {
+    "frequency": "12 months"
+  },
+  "schema_id": "policy.structure",
+  "category": "cognitive_pattern",
+  "description": "Defines how CORE interprets repeated human irritation or friction\nwith specific parts of the system as a governance-level signal of\nstructural misalignment or drift.\nThe heuristic does not grant permission to change anything by itself;\nit prioritizes investigation and remediation within existing\nconstitutional constraints.\n",
+  "intent": "Convert human qualitative discomfort into a structured, inspectable\nsignal that can guide introspection, refactor proposals, and\nautonomous refinement workflows, without bypassing governance.\n",
+  "motivations": [
+    "Humans detect misalignment and drift before they can fully articulate it.",
+    "AI sees structure but does not feel friction or annoyance.",
+    "Repeated irritation usually indicates deeper architectural or domain issues.",
+    "Using irritation as a signal turns subjective friction into actionable governance input."
+  ],
+  "scope": {
+    "applies_to": [
+      "autonomous refinement (A3)",
+      "refactor planning and proposal generation",
+      "capability and domain audits",
+      "developer experience and ergonomics reviews"
+    ],
+    "does_not_apply_to": [
+      "constitutional changes or policy amendments",
+      "security exceptions",
+      "direct overrides of audit failures",
+      "bypassing canary, test, or review requirements"
+    ]
+  },
+  "signals": {
+    "human_indicators": [
+      "The same file, module, or command repeatedly irritates the human operator.",
+      "A workflow is consistently described as 'heavy', 'confusing', or 'annoying'.",
+      "The human procrastinates touching a certain part of the system.",
+      "The human frequently needs to explain or clarify the same area to others."
+    ],
+    "machine_indicators": [
+      "Frequent audit findings in the same area of the codebase.",
+      "Persistent complexity outliers (e.g., radon, cyclomatic hotspots).",
+      "Repeated test flakiness or fragile fixtures around the same components.",
+      "Semantic clusters (vectors) with high overlap but inconsistent structure.",
+      "Capabilities attached to too many unrelated symbols or domains."
+    ]
+  },
+  "governance": {
+    "role_permissions": {
+      "may_observe": [
+        "human_operator",
+        "planner_agent",
+        "governance_agent",
+        "cognitive_orchestrator"
+      ],
+      "may_act_on_signal": [
+        "planner_agent",
+        "governance_agent",
+        "cognitive_orchestrator"
+      ],
+      "may_define_or_change_policy": [
+        "human_governance_body"
+      ]
+    },
+    "constraints": [
+      "The heuristic may prioritize which areas to introspect or refactor, but may not override constitutional rules.",
+      "The heuristic may not be used to justify skipping audits, tests, or canary phases.",
+      "Refactor proposals derived from irritation must go through the standard proposal → audit → canary → commit workflow.",
+      "Human irritation should be logged and contextualized, not treated as an absolute command."
+    ]
+  },
+  "prioritization_rules": {
+    "description": "When multiple candidate improvements are available, tension\n(irritation) is treated as a prioritization factor, especially when\nsupported by objective machine indicators.\n",
+    "guidelines": [
+      "Prefer addressing areas with both human irritation and machine-confirmed issues (audits, complexity, drift).",
+      "If irritation is reported without machine evidence, schedule introspection and diagnostics first.",
+      "If machine evidence exists without human irritation, treat it as important but not necessarily urgent.",
+      "Do not allow irritation alone to trump security or safety constraints."
+    ]
+  },
+  "actions": {
+    "when_triggered": [
+      "Run targeted introspection on the indicated files, modules, or domains.",
+      "Analyze complexity, duplication, and capability/domain placement.",
+      "Check for misaligned abstractions (modules doing too many things, unclear responsibilities).",
+      "Generate one or more refactor or remediation proposals as crates.",
+      "Link proposals back to the originating irritation signal for traceability."
+    ],
+    "required_metadata": [
+      "source: human|agent",
+      "context: file/module/domain/workflow",
+      "description: free-text explanation of the irritation or friction",
+      "supporting_evidence: audits, metrics, or logs if available",
+      "proposed_next_step: introspect|refactor|document|defer"
+    ]
+  },
+  "risks_and_misuse": [
+    "Using irritation as a shortcut to bypass proper design discussions.",
+    "Allowing a single human’s preferences to dominate architecture without evidence.",
+    "Over-focusing on 'annoying' parts and neglecting critical but quiet risks.",
+    "Treating irritation as permission instead of as a governed signal."
+  ],
+  "relationships": {
+    "related_patterns": [
+      "atomic_actions",
+      "workflow_patterns",
+      "autonomy_ladder"
+    ],
+    "references": {
+      "philosophy_doc": "docs/core-concept/IRRITATION_HEURISTIC.md",
+      "architecture_doc": "docs/core-concept/02_ARCHITECTURE.md"
+    }
+  },
+  "enforcement": {
+    "checks": [
+      "Proposals tagged as irritation-driven must include minimal context and evidence.",
+      "Governance agents should prefer irritation targets that also show objective issues.",
+      "Core audits must ensure irritation-based changes still respect domains, capabilities, and policies."
+    ],
+    "violations": [
+      "Using irritation to justify skipping required governance steps.",
+      "Applying broad, high-impact changes without sufficient evidence.",
+      "Silencing machine signals in favor of purely subjective irritation."
+    ]
+  }
+}

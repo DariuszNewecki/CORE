@@ -20,7 +20,7 @@ def get_all_constitutional_paths(meta_content: dict, intent_dir: Path) -> set[st
         intent_dir: The path to the .intent directory.
 
     Returns:
-        A set of repo-relative paths (e.g., '.intent/charter/policies/safety_policy.yaml').
+        A set of repo-relative paths (e.g., '.intent/charter/policies/safety_policy.json').
     """
     repo_root = intent_dir.parent
     # The path to meta.yaml is known relative to the intent_dir

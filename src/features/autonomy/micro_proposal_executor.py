@@ -8,6 +8,7 @@ enforcing safe_by_default and reason_with_purpose principles.
 
 from __future__ import annotations
 
+import uuid
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -29,6 +30,7 @@ class MicroProposal:
     action: str
     content: str
     validation_report_id: str | None = None
+    intent_bundle_id: str | None = None  # Added for constitutional audit traceability
 
 
 # ID: 91fbe5a7-9add-46b5-9443-c9759e49fa28
@@ -48,7 +50,7 @@ class MicroProposalExecutor:
         """
         self.repo_root = repo_root or get_repo_root()
         self.policy_path = (
-            self.repo_root / ".intent/charter/policies/agent/micro_proposal_policy.yaml"
+            self.repo_root / ".intent/charter/policies/agent/micro_proposal_policy.json"
         )
         self.policy = self._load_policy()
         logger.debug("MicroProposalExecutor initialized")
@@ -238,14 +240,40 @@ class MicroProposalExecutor:
         if any(result.severity == "error" for result in validation_results):
             logger.error("Cannot apply proposal due to validation errors")
             return False
+
+        # Constitutional requirement: Generate and log IntentBundle ID before write operations
+        # This satisfies safety.change_must_be_logged for audit traceability
+        if not proposal.intent_bundle_id:
+            proposal.intent_bundle_id = str(uuid.uuid4())
+
+        logger.info(
+            "Applying micro-proposal with intent_bundle_id: %s",
+            proposal.intent_bundle_id,
+        )
+
         try:
             if proposal.action == "autonomy.self_healing.format_code":
+                logger.info(
+                    "Writing changes for intent_bundle_id: %s to %s",
+                    proposal.intent_bundle_id,
+                    proposal.file_path,
+                )
                 Path(proposal.file_path).write_text(proposal.content, encoding="utf-8")
                 logger.info("Applied format_code to %s", proposal.file_path)
             elif proposal.action == "autonomy.self_healing.fix_docstrings":
+                logger.info(
+                    "Writing changes for intent_bundle_id: %s to %s",
+                    proposal.intent_bundle_id,
+                    proposal.file_path,
+                )
                 Path(proposal.file_path).write_text(proposal.content, encoding="utf-8")
                 logger.info("Applied fix_docstrings to %s", proposal.file_path)
             elif proposal.action == "autonomy.self_healing.fix_headers":
+                logger.info(
+                    "Writing changes for intent_bundle_id: %s to %s",
+                    proposal.intent_bundle_id,
+                    proposal.file_path,
+                )
                 Path(proposal.file_path).write_text(proposal.content, encoding="utf-8")
                 logger.info("Applied fix_headers to %s", proposal.file_path)
             else:

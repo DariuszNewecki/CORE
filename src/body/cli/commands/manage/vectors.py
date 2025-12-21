@@ -13,10 +13,9 @@ Commands:
 
 from __future__ import annotations
 
-import asyncio
-
 import typer
 
+from shared.cli_utils import core_command
 from shared.infrastructure.clients.qdrant_client import QdrantService
 from shared.infrastructure.vector.adapters.constitutional_adapter import (
     ConstitutionalAdapter,
@@ -31,8 +30,9 @@ app = typer.Typer(name="vectors", help="Manage vector collections")
 
 
 @app.command(name="sync")
+@core_command(requires_context=False)
 # ID: d6711ab9-3a79-47df-957a-59ffc52e947f
-def sync_vectors(
+async def sync_vectors(
     target: str = typer.Argument(
         ...,
         help="What to sync: 'policies', 'patterns', or 'all'",
@@ -55,7 +55,7 @@ def sync_vectors(
         core-admin manage vectors sync patterns --dry-run
         core-admin manage vectors sync all
     """
-    asyncio.run(_async_sync_vectors(target, dry_run))
+    await _async_sync_vectors(target, dry_run)
 
 
 async def _async_sync_vectors(target: str, dry_run: bool) -> None:
@@ -140,8 +140,9 @@ async def _async_sync_vectors(target: str, dry_run: bool) -> None:
 
 
 @app.command(name="query")
+@core_command(requires_context=False)
 # ID: 26c63756-eb12-4f88-a46b-b0e43d4760b6
-def query_vectors(
+async def query_vectors(
     collection: str = typer.Argument(
         ...,
         help="Collection to query: 'policies' or 'patterns'",
@@ -156,7 +157,7 @@ def query_vectors(
         core-admin manage vectors query patterns "atomic action requirements"
         core-admin manage vectors query policies "agent rules" --limit 3
     """
-    asyncio.run(_async_query_vectors(collection, query, limit))
+    await _async_query_vectors(collection, query, limit)
 
 
 async def _async_query_vectors(collection: str, query: str, limit: int) -> None:

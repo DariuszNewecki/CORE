@@ -1,0 +1,206 @@
+{
+  "id": "standard_operations_general",
+  "version": "1.0.0",
+  "title": "Operations Standard – General Operational Rules",
+  "type": "standard_operations",
+  "status": "active",
+  "owners": {
+    "accountable": "Platform SRE",
+    "responsible": [
+      "Core Maintainer"
+    ]
+  },
+  "review": {
+    "frequency": "12 months"
+  },
+  "schema_id": "policy.structure",
+  "policy_id": "a3e1b0c4-9f8d-4a7b-8c1d-6e5f4a3b2c1d",
+  "purpose": "Unified operational governance for intent crates, integration workflows, canary deployments, self-healing routines, developer fastpaths, incident response, and runtime safety.\n",
+  "rules": [
+    {
+      "id": "intent.schema_compliance",
+      "statement": "All intent crates MUST pass schema validation against the intent crate schema.",
+      "enforcement": "error",
+      "scope": "intent_crates.validation"
+    },
+    {
+      "id": "intent.canary_required",
+      "statement": "All intent crates MUST pass a canary audit in an isolated environment before application.",
+      "enforcement": "error",
+      "scope": "intent_crates.lifecycle"
+    },
+    {
+      "id": "intent.immutable_history",
+      "statement": "Processed intent crates MUST be moved to accepted or rejected and MUST NOT be modified in place.",
+      "enforcement": "error",
+      "scope": "intent_crates.lifecycle"
+    },
+    {
+      "id": "integration.assign_ids_required",
+      "statement": "Stable UUIDs MUST be assigned to all new public symbols before integration.",
+      "enforcement": "error",
+      "command": "core-admin fix ids --write"
+    },
+    {
+      "id": "integration.duplicate_ids_resolved",
+      "statement": "Duplicate '# ID:' tags MUST be resolved before integration.",
+      "enforcement": "error",
+      "command": "core-admin fix duplicate-ids --write"
+    },
+    {
+      "id": "integration.knowledge_sync_required",
+      "statement": "Codebase state MUST be synchronized with the database SSOT before integration.",
+      "enforcement": "error",
+      "command": "core-admin manage database sync-knowledge --write"
+    },
+    {
+      "id": "integration.tests_must_pass",
+      "statement": "Full test suite MUST pass before integration.",
+      "enforcement": "error",
+      "command": "core-admin check tests"
+    },
+    {
+      "id": "integration.coverage_minimum",
+      "statement": "Test coverage MUST meet or exceed the constitutional minimum (75%).",
+      "enforcement": "error",
+      "command": "core-admin coverage check"
+    },
+    {
+      "id": "integration.audit_required",
+      "statement": "Full constitutional audit MUST pass before integration.",
+      "enforcement": "error",
+      "command": "core-admin check audit"
+    },
+    {
+      "id": "canary.abort_on_audit_error",
+      "statement": "Canary deployment MUST abort if any audit error is detected.",
+      "enforcement": "error",
+      "metric": "audit.errors == 0"
+    },
+    {
+      "id": "canary.abort_on_test_failure",
+      "statement": "Canary deployment MUST abort if any tests fail.",
+      "enforcement": "error",
+      "metric": "tests.failed == 0"
+    },
+    {
+      "id": "dev_fastpath.no_intent_changes",
+      "statement": "Developer fastpath MUST NOT allow changes to intent or governance paths.",
+      "enforcement": "error",
+      "scope": [
+        ".intent/**",
+        "src/system/governance/**"
+      ]
+    },
+    {
+      "id": "ir.triage_required",
+      "statement": "All incidents MUST be triaged within 24 hours with severity and owner assigned.",
+      "enforcement": "error"
+    },
+    {
+      "id": "ir.timeline_required",
+      "statement": "A minimal incident timeline MUST be recorded.",
+      "enforcement": "warn"
+    },
+    {
+      "id": "ir.notifications_required",
+      "statement": "Maintainers MUST be notified for high and critical incidents.",
+      "enforcement": "warn"
+    },
+    {
+      "id": "ir.postmortem_required",
+      "statement": "High and critical incidents REQUIRE a short postmortem with actions and owners.",
+      "enforcement": "warn"
+    },
+    {
+      "id": "operations.runtime.env_vars_defined",
+      "statement": "All required runtime environment variables MUST be set.",
+      "enforcement": "error"
+    }
+  ],
+  "intent_crates": {
+    "description": "Change-management units governing modifications to system intent.",
+    "schema": "intent_crate_schema.json",
+    "lifecycle": [
+      "proposed",
+      "canary",
+      "accepted",
+      "rejected"
+    ]
+  },
+  "integration_workflow": {
+    "steps": [
+      {
+        "id": "linkage.assign_ids",
+        "command": "core-admin fix ids --write"
+      },
+      {
+        "id": "linkage.duplicate_ids",
+        "command": "core-admin fix duplicate-ids --write"
+      },
+      {
+        "id": "ssot.sync_knowledge",
+        "command": "core-admin manage database sync-knowledge --write"
+      },
+      {
+        "id": "quality.test_suite",
+        "command": "core-admin check tests"
+      },
+      {
+        "id": "quality.coverage_check",
+        "command": "core-admin coverage check"
+      },
+      {
+        "id": "governance.audit",
+        "command": "core-admin check audit"
+      }
+    ]
+  },
+  "self_healing_routines": {
+    "available": [
+      {
+        "id": "style.headers",
+        "command": "core-admin fix headers --write"
+      },
+      {
+        "id": "docs.docstrings",
+        "command": "core-admin fix docstrings --write"
+      },
+      {
+        "id": "quality.generate_tests",
+        "command": "core-admin coverage remediate",
+        "trigger": "coverage < 75%"
+      }
+    ]
+  },
+  "canary": {
+    "enabled": true,
+    "environments": [
+      "development",
+      "staging"
+    ],
+    "paths": [
+      "src/**",
+      "cli/**",
+      "agents/**"
+    ]
+  },
+  "dev_fastpath": {
+    "thresholds": {
+      "max_changed_files": 20
+    },
+    "required_checks": [
+      "syntax",
+      "linter",
+      "formatter"
+    ]
+  },
+  "incident_response": {
+    "severity_levels": [
+      "low",
+      "medium",
+      "high",
+      "critical"
+    ]
+  }
+}

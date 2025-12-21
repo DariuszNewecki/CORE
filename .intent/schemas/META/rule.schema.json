@@ -1,0 +1,91 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "schema_id": "schema.rule",
+  "version": "1.0.0",
+  "title": "CORE Rule Schema",
+  "description": "Defines the canonical structure for a single enforceable rule. A rule is atomic, unambiguous, and carries its own severity. Any object presented as a rule MUST validate against this schema.",
+  "type": "object",
+  "required": ["id", "severity", "description", "rationale"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]*(\\.[a-z0-9_]+)*$",
+      "description": "Unique, stable identifier using snake_case segments separated by dots. Digits allowed (e.g., nis2.*)."
+    },
+    "severity": {
+      "type": "string",
+      "enum": ["error", "warning"],
+      "description": "error blocks compliance, warning signals concern."
+    },
+    "description": {
+      "type": "string",
+      "minLength": 10,
+      "description": "Clear, concise statement of the norm."
+    },
+    "rationale": {
+      "type": "string",
+      "minLength": 10,
+      "description": "Purpose and risk mitigated."
+    },
+    "owner": {
+      "type": "string",
+      "description": "Optional owner (may inherit from containing document)."
+    },
+    "review_frequency": {
+      "type": "string",
+      "enum": ["quarterly", "annual", "biennial", "as_needed"],
+      "default": "annual"
+    },
+    "threshold": {
+      "type": "number",
+      "description": "Optional numeric bound for quantitative rules."
+    },
+    "constraints": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["allowlist", "denylist", "ordered_set", "pattern_match"]
+        },
+        "items": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "patterns": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "format_requirement": {
+      "type": "object",
+      "required": ["type", "applies_to"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "flat_list",
+            "filename_pattern",
+            "pattern_match",
+            "uniqueness",
+            "schema_validation"
+          ]
+        },
+        "applies_to": {
+          "type": "string",
+          "enum": ["policies", "rules", "paths", "capability_ids", "charter", "all"]
+        },
+        "pattern": { "type": "string" },
+        "key": { "type": "string" },
+        "schema_ref": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false
+}

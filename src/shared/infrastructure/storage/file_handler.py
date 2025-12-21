@@ -100,4 +100,4 @@ class FileHandler:
                 pending_file.write_text(
                     json.dumps(pending_op, indent=2), encoding="utf-8"
                 )
-            return {"status": "error", "message": f"Failed to write file: {str(e)}"}
+            return {"status": "error", "message": f"Failed to write file: {e!s}"}

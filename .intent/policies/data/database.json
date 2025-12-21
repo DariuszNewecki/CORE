@@ -1,0 +1,140 @@
+{
+  "id": "database",
+  "version": "1.0.0",
+  "title": "CORE Data / Database Definition",
+  "type": "schema_data",
+  "status": "active",
+  "owners": {
+    "accountable": "Data Architect",
+    "responsible": [
+      "Core Maintainer"
+    ]
+  },
+  "review": {
+    "frequency": "12 months"
+  },
+  "schema_id": "schema.data.database",
+  "description": "Initial schema for CORE's operational database. Stores auditable history of events, not constitutional truth.\n",
+  "tables": {
+    "capabilities": {
+      "description": "Current catalog of capabilities with their owners and tags. Mirrors .intent/knowledge/domains but may include runtime metadata.\n",
+      "columns": [
+        {
+          "name": "key",
+          "type": "text",
+          "constraints": [
+            "primary_key"
+          ]
+        },
+        {
+          "name": "title",
+          "type": "text"
+        },
+        {
+          "name": "description",
+          "type": "text"
+        },
+        {
+          "name": "owner",
+          "type": "text"
+        },
+        {
+          "name": "tags",
+          "type": "jsonb"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamptz"
+        }
+      ]
+    },
+    "capability_history": {
+      "description": "Versioned history of capability changes.",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigserial",
+          "constraints": [
+            "primary_key"
+          ]
+        },
+        {
+          "name": "capability_key",
+          "type": "text"
+        },
+        {
+          "name": "change_type",
+          "type": "text"
+        },
+        {
+          "name": "diff",
+          "type": "jsonb"
+        },
+        {
+          "name": "changed_at",
+          "type": "timestamptz"
+        }
+      ]
+    },
+    "cli_runs": {
+      "description": "Each execution of a core-admin command with timestamp and result.\n",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigserial",
+          "constraints": [
+            "primary_key"
+          ]
+        },
+        {
+          "name": "command",
+          "type": "text"
+        },
+        {
+          "name": "args",
+          "type": "jsonb"
+        },
+        {
+          "name": "result",
+          "type": "text"
+        },
+        {
+          "name": "run_at",
+          "type": "timestamptz"
+        }
+      ]
+    },
+    "audits": {
+      "description": "Records every constitutional audit or validation run.\n",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigserial",
+          "constraints": [
+            "primary_key"
+          ]
+        },
+        {
+          "name": "scope",
+          "type": "text"
+        },
+        {
+          "name": "result",
+          "type": "jsonb"
+        },
+        {
+          "name": "run_at",
+          "type": "timestamptz"
+        }
+      ]
+    }
+  },
+  "migrations": [
+    {
+      "id": "0001-initial",
+      "description": "Initial schema creation for capabilities, capability_history, cli_runs, audits.",
+      "created_at": "2025-09-18",
+      "approved_by": "TBD"
+    }
+  ]
+}

@@ -125,7 +125,7 @@ def activity_run(
 
     try:
         yield run
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         duration = time.time() - start_time
         log_activity(
             run,

@@ -7,7 +7,6 @@ principled refactoring of Python code for improved readability and simplicity.
 
 from __future__ import annotations
 
-import asyncio
 from pathlib import Path
 
 from shared.config import settings
@@ -18,8 +17,11 @@ from shared.logger import getLogger
 logger = getLogger(__name__)
 
 
-async def _async_fix_clarity(context: CoreContext, file_path: Path, dry_run: bool):
-    """Async core logic for clarity-focused refactoring."""
+# ID: 8bf2ad74-d73b-4b9d-b711-c0980f773afe
+async def fix_clarity(context: CoreContext, file_path: Path, dry_run: bool):
+    """
+    Refactors the provided file for clarity with optional dry run.
+    """
     logger.info("Analyzing '%s' for clarity improvements...", file_path.name)
     cognitive_service = context.cognitive_service
 
@@ -49,12 +51,3 @@ async def _async_fix_clarity(context: CoreContext, file_path: Path, dry_run: boo
     else:
         file_path.write_text(refactored_code, "utf-8")
         logger.info("Successfully refactored '%s' for clarity.", file_path.name)
-
-
-def _fix_clarity(context: CoreContext, file_path: Path, dry_run: bool) -> None:
-    """
-    Backwards-compatible alias for older callers.
-
-    Prefer using `fix_clarity` directly.
-    """
-    asyncio.run(_async_fix_clarity(context, file_path, dry_run))

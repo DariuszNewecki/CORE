@@ -39,7 +39,9 @@ class PlanExecutor:
             git_service=git_service,
             auditor_context=AuditorContext(file_handler.repo_path),
         )
-        asyncio.create_task(self.context.auditor_context.load_knowledge_graph())
+        self._knowledge_graph_task = asyncio.create_task(
+            self.context.auditor_context.load_knowledge_graph()
+        )
 
     # ID: 322ea945-c32f-4f6a-8c26-640f7c38b6b3
     async def execute_plan(self, plan: list[ExecutionTask]):

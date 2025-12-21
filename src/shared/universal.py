@@ -34,10 +34,10 @@ from shared.utils.common_knowledge import (
 
 
 __all__ = [
-    "normalize_whitespace",
-    "normalize_text",
     "collapse_blank_lines",
     "ensure_trailing_newline",
-    "safe_truncate",
     "get_deterministic_id",
+    "normalize_text",
+    "normalize_whitespace",
+    "safe_truncate",
 ]

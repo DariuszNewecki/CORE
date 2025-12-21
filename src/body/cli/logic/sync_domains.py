@@ -5,8 +5,6 @@ CLI command to synchronize the canonical list of domains to the database.
 
 from __future__ import annotations
 
-import asyncio
-
 import typer
 import yaml
 from sqlalchemy import text
@@ -68,6 +66,6 @@ async def _sync_domains():
 
 
 # ID: 5bee5341-7f72-430e-b310-f174af37de20
-def sync_domains():
+async def sync_domains():
     """Synchronizes the canonical list of domains from .intent/knowledge/domains.yaml to the database."""
-    asyncio.run(_sync_domains())
+    await _sync_domains()

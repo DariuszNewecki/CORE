@@ -11,7 +11,6 @@ Compliance:
 
 from __future__ import annotations
 
-import asyncio
 import json
 
 import typer
@@ -26,19 +25,20 @@ from body.cli.logic.diagnostics_registry import (
     cli_registry,
     manifest_hygiene,
 )
+from shared.cli_utils import core_command
 from shared.context import CoreContext
 from shared.logger import getLogger
 
 
 logger = getLogger(__name__)
-# Help text defines this group's purpose
 app = typer.Typer(help="Deep diagnostic and integrity checks.")
 console = Console()
 
 
 @app.command("find-clusters")
+@core_command()
 # ID: 91856850-423f-4c27-90c3-e06f56a3841a
-def find_clusters_command(
+async def find_clusters_command(
     ctx: typer.Context,
     n_clusters: int = typer.Option(
         25, "--n-clusters", "-n", help="Number of clusters."
@@ -47,21 +47,23 @@ def find_clusters_command(
 ):
     """Finds semantic capability clusters."""
     core_context: CoreContext = ctx.obj
-    clusters = asyncio.run(logic.find_clusters_logic(core_context, n_clusters))
+    clusters = await logic.find_clusters_logic(core_context, n_clusters)
 
     if format == "json":
-        print(json.dumps(clusters, default=str, indent=2))
-    else:
-        # Default human-readable output
-        if not clusters:
-            console.print("[yellow]No clusters found.[/yellow]")
-            return
+        # stdout, machine-readable
+        typer.echo(json.dumps(clusters, default=str, indent=2))
+        return
 
-        console.print(f"[green]Found {len(clusters)} clusters:[/green]")
-        for cluster in clusters:
-            console.print(
-                f"- {cluster.get('topic', 'Unknown')}: {cluster.get('size', 0)} items"
-            )
+    # Default human-readable output (rich)
+    if not clusters:
+        console.print("[yellow]No clusters found.[/yellow]")
+        return
+
+    console.print(f"[green]Found {len(clusters)} clusters:[/green]")
+    for cluster in clusters:
+        console.print(
+            f"- {cluster.get('topic', 'Unknown')}: {cluster.get('size', 0)} items"
+        )
 
 
 @app.command("command-tree")
@@ -78,14 +80,14 @@ def cli_tree_command(
     logger.info("Building CLI Command Tree...")
     tree_data = logic.build_cli_tree_data(main_app)
 
-    # 1. JSON Output
+    # 1. JSON Output (stdout)
     if format == "json":
-        print(json.dumps(tree_data, indent=2))
+        typer.echo(json.dumps(tree_data, indent=2))
         return
 
-    # 2. YAML Output
+    # 2. YAML Output (stdout)
     if format == "yaml":
-        print(yaml.dump(tree_data, sort_keys=False))
+        typer.echo(yaml.dump(tree_data, sort_keys=False))
         return
 
     # 3. Rich Tree Output (Default)
@@ -115,10 +117,11 @@ def debug_meta_command(
     paths = logic.get_meta_paths_logic()
 
     if format == "json":
-        print(json.dumps(paths, indent=2))
-    else:
-        for p in paths:
-            console.print(p)
+        typer.echo(json.dumps(paths, indent=2))
+        return
+
+    for p in paths:
+        console.print(p)
 
 
 @app.command("unassigned-symbols")
@@ -130,7 +133,7 @@ def unassigned_symbols_command(
     unassigned = logic.get_unassigned_symbols_logic()
 
     if format == "json":
-        print(json.dumps(unassigned, indent=2))
+        typer.echo(json.dumps(unassigned, indent=2))
         return
 
     if not unassigned:

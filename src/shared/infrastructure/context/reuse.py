@@ -1,6 +1,6 @@
 # src/shared/infrastructure/context/reuse.py
 
-"""ReuseFinder – light-weight reuse / duplication hints for ContextPackage.
+"""ReuseFinder - light-weight reuse / duplication hints for ContextPackage.
 
 This module does NOT change behavior of the builder or packets yet.
 It provides a small, testable service that:
@@ -92,7 +92,7 @@ class ReuseFinder:
 
         logger.info("Running reuse analysis for %s in %s", target_symbol, target_file)
 
-        # 1) Derive an anchor text – start with a simple description.
+        # 1) Derive an anchor text - start with a simple description.
         anchor_text = f"{target_symbol} in {target_file}"
 
         # Try to upgrade to an AST signature if we can.

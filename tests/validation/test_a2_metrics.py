@@ -220,9 +220,7 @@ class ValidationReport:
         status_icon = (
             "✅"
             if recommendation == "PROCEED"
-            else "⚠️"
-            if recommendation == "REFINE"
-            else "❌"
+            else "⚠️" if recommendation == "REFINE" else "❌"
         )
 
         md = f"""# Phase 0 Validation Report
@@ -251,7 +249,7 @@ using existing CORE infrastructure (no semantic enhancements).
 | **Constitutional Compliance** | {self.constitutional_compliance_rate * 100:.1f}% | ≥70% | {"✅ PASS" if self.constitutional_compliance_rate >= 0.70 else "❌ FAIL"} |
 | **Semantic Placement** | {self.semantic_placement_accuracy * 100:.1f}% | ≥80% | {"✅ PASS" if self.semantic_placement_accuracy >= 0.80 else "❌ FAIL"} |
 | **Execution Success** | {self.execution_success_rate * 100:.1f}% | ≥50% | {"✅ PASS" if self.execution_success_rate >= 0.50 else "❌ FAIL"} |
-| Test Coverage | {self.test_coverage_rate * 100:.1f}% | N/A | ℹ️ INFO |
+| Test Coverage | {self.test_coverage_rate * 100:.1f}% | N/A | INFO |
 
 ### Threshold Analysis
 

@@ -1,4 +1,7 @@
+# tests/shared/test_config.py
+
 import json
+import re
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -237,7 +240,10 @@ class TestSettings:
                     mock_load_content.side_effect = ValueError("Parse error")
 
                     with pytest.raises(
-                        OSError, match="Failed to load or parse file for 'charter.main'"
+                        OSError,
+                        match=re.escape(
+                            "Failed to load or parse file for 'charter.main'"
+                        ),
                     ):
                         settings.load("charter.main")
 

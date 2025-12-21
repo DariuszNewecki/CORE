@@ -84,7 +84,7 @@ class MetaValidator:
             FileNotFoundError: If META-SCHEMA not found
         """
         meta_path = (
-            self.intent_root / "charter/constitution/GLOBAL-DOCUMENT-META-SCHEMA.yaml"
+            self.intent_root / "charter/constitution/GLOBAL-DOCUMENT-META-SCHEMA.json"
         )
         if not meta_path.exists():
             raise FileNotFoundError(f"META-SCHEMA not found: {meta_path}")

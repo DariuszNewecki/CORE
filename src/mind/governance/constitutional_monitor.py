@@ -12,7 +12,6 @@ ID: 8f4a3b2c-9d1e-4f5a-8b2c-3d4e5f6a7b8c
 
 from __future__ import annotations
 
-import asyncio
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Protocol
@@ -155,7 +154,9 @@ class ConstitutionalMonitor:
         )
 
     # ID: 9245ffe5-a981-4fd3-818c-7efd7171c189
-    def remediate_violations(self, audit_report: AuditReport) -> RemediationResult:
+    async def remediate_violations(
+        self, audit_report: AuditReport
+    ) -> RemediationResult:
         """
         Trigger autonomous remediation for constitutional violations.
 
@@ -191,7 +192,7 @@ class ConstitutionalMonitor:
                 failed_count += 1
         if fixed_count > 0 and self.knowledge_builder:
             logger.info("🧠 Rebuilding knowledge graph to reflect all changes...")
-            asyncio.run(self.knowledge_builder.build_and_sync())
+            await self.knowledge_builder.build_and_sync()
             logger.info("✅ Knowledge graph successfully updated.")
         logger.info(
             "Remediation complete: {fixed_count} fixed, %s failed", failed_count

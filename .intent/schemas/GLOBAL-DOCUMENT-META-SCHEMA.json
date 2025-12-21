@@ -1,0 +1,131 @@
+{
+  "version": "1.1.0",
+  "id": "global_document_meta_schema",
+  "type": "schema_meta",
+  "title": "Global .intent Document Meta-Schema",
+  "owners": {
+    "accountable": "Governance Lead",
+    "responsible": ["Core Maintainer"]
+  },
+  "review": {
+    "frequency": "12 months"
+  },
+  "schema_id": "schema.meta.global",
+  "description": "Defines the canonical header structure for ALL .intent documents. Any .intent document under .intent/** that does not comply with this meta-schema MUST be treated as invalid Mind content.\n\nCORE principle: any artifact stored under .intent/** is current/live law by definition.",
+  "scope": {
+    "applies_to": [".intent/**/*.json"],
+    "excludes": [".intent/keys/**", ".intent/mind_export/**", ".intent/proposals/**"],
+    "intent": "All .intent documents under .intent/** are considered part of the Mind and MUST conform to this meta-schema."
+  },
+  "header_schema": {
+    "description": "Header fields that EVERY .intent document MUST define at the top level.",
+    "required_fields": ["id", "version", "title", "type", "owners", "review", "schema_id"],
+    "fields": {
+      "id": {
+        "type": "string",
+        "description": "Stable identifier for the document",
+        "pattern": "^[a-z0-9_.-]+$"
+      },
+      "version": {
+        "type": "string",
+        "description": "Semantic version of this document",
+        "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+      },
+      "title": {
+        "type": "string",
+        "description": "Human-readable title",
+        "maxLength": 200
+      },
+      "type": {
+        "type": "string",
+        "description": "Logical document kind"
+      },
+      "owners": {
+        "type": "object",
+        "description": "Governance accountability",
+        "required_fields": ["accountable"],
+        "fields": {
+          "accountable": {
+            "type": "string",
+            "description": "Role accountable for correctness"
+          },
+          "responsible": {
+            "type": "array",
+            "description": "Roles responsible for maintaining",
+            "items": { "type": "string" }
+          }
+        }
+      },
+      "review": {
+        "type": "object",
+        "description": "Review cadence",
+        "required_fields": ["frequency"],
+        "fields": {
+          "frequency": {
+            "type": "string",
+            "description": "Review frequency (e.g. '12 months')"
+          },
+          "last_reviewed": {
+            "type": "string",
+            "description": "Optional last review date (ISO 8601)"
+          }
+        }
+      },
+      "schema_id": {
+        "type": "string",
+        "description": "Stable schema identifier for resolving validation rules",
+        "pattern": "^[a-z0-9_.-]+$"
+      }
+    }
+  },
+  "schema_resolution": {
+    "description": "Rules for resolving which JSON schema should validate a document",
+    "priority_order": ["$schema", "schema_id"],
+    "rules": {
+      "$schema": {
+        "description": "If present, $schema MUST be a relative path under .intent/charter/schemas/**",
+        "constraints": {
+          "must_start_with": ".intent/charter/schemas/",
+          "must_end_with": ".schema.json"
+        }
+      },
+      "schema_id": {
+        "description": "If $schema is absent, schema_id MUST match a schema_id declared in a JSON schema under .intent/charter/schemas/**",
+        "constraints": {
+          "must_be_unique": true
+        }
+      }
+    }
+  },
+  "invariants": [
+    {
+      "id": "no_absolute_paths",
+      "description": "No .intent document may reference absolute filesystem paths in schema references or scopes.",
+      "enforcement": "static_validation"
+    },
+    {
+      "id": "no_external_schema_urls",
+      "description": "$schema references MUST NOT point to remote URLs. All schema resolution is local and governed.",
+      "enforcement": "static_validation"
+    },
+    {
+      "id": "status_field_optional",
+      "description": "Documents under .intent/** SHOULD NOT contain lifecycle fields such as status. Presence in .intent implies current law. If present, status MUST be 'active'.",
+      "enforcement": "warning_only"
+    }
+  ],
+  "validator_contract": {
+    "description": "Obligations of the validation engine",
+    "responsibilities": [
+      "Load document from disk (JSON canonical)",
+      "Check presence and shape of header fields according to header_schema",
+      "Resolve target JSON schema using schema_resolution",
+      "Run JSON-schema validation on the full document",
+      "Return (is_valid: bool, errors: list[str])"
+    ],
+    "ci_behavior": {
+      "on_failure": "fail",
+      "description": "Any invalid .intent document MUST block merge/deploy."
+    }
+  }
+}

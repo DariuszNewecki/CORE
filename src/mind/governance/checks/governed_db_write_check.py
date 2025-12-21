@@ -1,54 +1,65 @@
 # src/mind/governance/checks/governed_db_write_check.py
 """
 Enforces db.write_via_governed_cli and Repository Pattern.
-Direct DB writes (session.add/commit) are restricted to the Repository/Infrastructure layers.
+Direct DB writes (session.add/commit) are restricted to paths defined in policy.
+
+CONSTITUTIONAL: Reads allowed paths from .intent/ instead of hardcoding.
+
+Ref: .intent/charter/standards/data/governance.json
 """
 
 from __future__ import annotations
 
 import ast
+from fnmatch import fnmatch
+from pathlib import Path
+from typing import Any, ClassVar
 
-from mind.governance.checks.base_check import BaseCheck
+from mind.governance.audit_context import AuditorContext
+from mind.governance.checks.rule_enforcement_check import (
+    EnforcementMethod,
+    RuleEnforcementCheck,
+)
 from shared.logger import getLogger
 from shared.models import AuditFinding, AuditSeverity
 
 
 logger = getLogger(__name__)
 
-# Valid locations for raw DB writes (Architecture Standard)
-ALLOWED_WRITE_SCOPES = [
-    "src/services/repositories",
-    "src/shared/infrastructure/database",
-    # Migrations are special infrastructure
-    "src/shared/infrastructure/migrations",
-]
+GOVERNANCE_POLICY = Path(".intent/charter/standards/data/governance.json")
 
 
-# ID: dca11664-1e80-4fc9-84e0-41e169f5a6ae
-class GovernedDbWriteCheck(BaseCheck):
+# ID: governed-db-write-enforcement
+# ID: a51ecc21-ec92-408c-94ea-b77d93f091f3
+class GovernedDbWriteEnforcement(EnforcementMethod):
     """
     Enforces that direct database mutations via SQLAlchemy session objects
-    only occur within designated Repository or Infrastructure layers.
-    Upper layers must use these services, not write directly.
+    only occur within paths designated by the constitution.
     """
 
-    policy_rule_ids = ["db.write_via_governed_cli"]
+    def __init__(self, rule_id: str, severity: AuditSeverity = AuditSeverity.ERROR):
+        super().__init__(rule_id, severity)
 
-    # ID: 4d237ba8-c2ad-432f-ba7e-6c7e3df7a29e
-    def execute(self) -> list[AuditFinding]:
+    # ID: 567928c6-9709-4bb3-a6cc-4a02df7899e7
+    def verify(
+        self, context: AuditorContext, rule_data: dict[str, Any], **kwargs
+    ) -> list[AuditFinding]:
         findings = []
 
-        for file_path in self.context.python_files:
-            # 1. Scope Check: Is this file allowed to write to DB?
-            is_allowed = False
-            rel_path = str(file_path.relative_to(self.repo_root)).replace("\\", "/")
+        # Load allowed paths from rule_data (constitutional source of truth)
+        allowed_write_paths = rule_data.get("allowed_write_paths", [])
 
-            for scope in ALLOWED_WRITE_SCOPES:
-                if rel_path.startswith(scope):
-                    is_allowed = True
-                    break
+        if not allowed_write_paths:
+            logger.warning(
+                "No allowed_write_paths found in rule db.write_via_governed_cli. "
+                "All DB writes will be flagged!"
+            )
 
-            if is_allowed:
+        for file_path in context.python_files:
+            # 1. Scope Check: Is this file in an allowed path?
+            rel_path = str(file_path.relative_to(context.repo_path)).replace("\\", "/")
+
+            if self._is_path_allowed(rel_path, allowed_write_paths):
                 continue
 
             # 2. AST Scan for Forbidden Writes
@@ -60,8 +71,7 @@ class GovernedDbWriteCheck(BaseCheck):
                     if not isinstance(node, ast.Call):
                         continue
 
-                    # Heuristic: Detect session.add(), session.commit(), etc.
-                    # We look for method calls on an object named 'session' or attributes ending in 'session'
+                    # Detect session.add(), session.commit(), etc.
                     if isinstance(node.func, ast.Attribute):
                         method_name = node.func.attr
 
@@ -91,22 +101,55 @@ class GovernedDbWriteCheck(BaseCheck):
 
                             if is_session_call:
                                 findings.append(
-                                    AuditFinding(
-                                        check_id="db.write_via_governed_cli",
-                                        severity=AuditSeverity.ERROR,
+                                    self._create_finding(
                                         message=(
-                                            f"Direct DB write ('{method_name}') detected outside Repository layer. "
-                                            "Use a Service or Repository."
+                                            f"Direct DB write ('{method_name}') detected outside allowed paths. "
+                                            "Use Repository layer or move to allowed infrastructure path."
                                         ),
                                         file_path=rel_path,
                                         line_number=node.lineno,
-                                        context={
-                                            "layer": "application",
-                                            "allowed_layers": ALLOWED_WRITE_SCOPES,
-                                        },
                                     )
                                 )
+
+            except SyntaxError:
+                # Skip files with syntax errors (they'll be caught by other checks)
+                continue
             except Exception as e:
-                logger.debug("Failed to analyze %s: %s", file_path, e)
+                logger.debug("Error scanning %s: %s", rel_path, e)
+                continue
 
         return findings
+
+    def _is_path_allowed(self, file_path_str: str, allowed_paths: list[str]) -> bool:
+        """
+        Check if file path matches any allowed pattern.
+        Uses glob-style patterns (e.g., "src/shared/infrastructure/**")
+        """
+        for pattern in allowed_paths:
+            if fnmatch(file_path_str, pattern):
+                return True
+        return False
+
+
+# ID: 4d237ba8-c2ad-432f-ba7e-6c7e3df7a29e
+class GovernedDbWriteCheck(RuleEnforcementCheck):
+    """
+    Enforces that direct database mutations via SQLAlchemy session objects
+    only occur within paths designated by the constitution.
+
+    CONSTITUTIONAL PRINCIPLE: Policy defines allowed paths, not code.
+
+    Ref: .intent/charter/standards/data/governance.json
+    """
+
+    policy_rule_ids: ClassVar[list[str]] = ["db.write_via_governed_cli"]
+
+    policy_file: ClassVar[Path] = GOVERNANCE_POLICY
+
+    enforcement_methods: ClassVar[list[EnforcementMethod]] = [
+        GovernedDbWriteEnforcement(rule_id="db.write_via_governed_cli"),
+    ]
+
+    @property
+    def _is_concrete_check(self) -> bool:
+        return True

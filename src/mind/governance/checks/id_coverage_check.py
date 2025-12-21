@@ -1,14 +1,23 @@
 # src/mind/governance/checks/id_coverage_check.py
 """
-Enforces the requirement for Capability IDs on public business logic.
-Respects architectural exemptions defined in layer_contracts.yaml.
+Ensures public symbols in Governance Domains (Features, Core) have '# ID: <uuid>' tags.
+Respects architectural exemptions for Infrastructure, CLI, and API layers.
+
+Ref: .intent/charter/standards/operations/operations.json
+Ref: .intent/charter/standards/architecture/layer_contracts.json
 """
 
 from __future__ import annotations
 
 import ast
+from pathlib import Path
+from typing import Any, ClassVar
 
-from mind.governance.checks.base_check import BaseCheck
+from mind.governance.audit_context import AuditorContext
+from mind.governance.checks.rule_enforcement_check import (
+    EnforcementMethod,
+    RuleEnforcementCheck,
+)
 from shared.ast_utility import find_symbol_id_and_def_line
 from shared.logger import getLogger
 from shared.models import AuditFinding, AuditSeverity
@@ -16,28 +25,29 @@ from shared.models import AuditFinding, AuditSeverity
 
 logger = getLogger(__name__)
 
+OPERATIONS_POLICY = Path(".intent/charter/standards/operations/operations.json")
 
-# ID: 3501ed8c-8366-4ad7-9ab4-7dcf4c045c70
-class IdCoverageCheck(BaseCheck):
+
+# ID: id-coverage-enforcement
+# ID: b55754b7-5f08-47a5-9ea8-e446f03a24d7
+class IdCoverageEnforcement(EnforcementMethod):
     """
-    Ensures public symbols in Governance Domains (Features, Core) have '# ID: <uuid>' tags.
-    Respects architectural exemptions for Infrastructure, CLI, and API layers.
-    Ref: standard_architecture_layer_contracts
+    Verifies that public symbols in business logic layers have ID tags.
+    Respects architectural layer exemptions.
     """
 
-    policy_rule_ids = [
-        "linkage.assign_ids",
-        "symbols.public_capability_id_and_docstring",
-        "architecture.feature_capabilities_required",
-    ]
+    def __init__(self, rule_id: str, severity: AuditSeverity = AuditSeverity.ERROR):
+        super().__init__(rule_id, severity)
 
-    # ID: f69a1a2e-26cd-4cc2-8fdc-7f18e0e77d0c
-    def execute(self) -> list[AuditFinding]:
+    # ID: dfd31a5e-d186-49f2-8ce7-d0c72a9bae9c
+    def verify(
+        self, context: AuditorContext, rule_data: dict[str, Any], **kwargs
+    ) -> list[AuditFinding]:
         findings = []
 
-        for file_path in self.src_dir.rglob("*.py"):
+        for file_path in context.src_dir.rglob("*.py"):
             # Normalize path for checking
-            rel_path = str(file_path.relative_to(self.repo_root)).replace("\\", "/")
+            rel_path = str(file_path.relative_to(context.repo_path)).replace("\\", "/")
 
             # Optimization: Skip test files immediately
             if "tests/" in rel_path or "test_" in file_path.name:
@@ -68,19 +78,13 @@ class IdCoverageCheck(BaseCheck):
 
                     if not id_result.has_id:
                         findings.append(
-                            AuditFinding(
-                                check_id="linkage.assign_ids",
-                                severity=AuditSeverity.ERROR,
+                            self._create_finding(
                                 message=(
                                     f"Public symbol '{node.name}' in business layer requires '# ID: <uuid>'. "
                                     "Run `core-admin fix ids`."
                                 ),
                                 file_path=rel_path,
                                 line_number=id_result.definition_line_num,
-                                context={
-                                    "symbol": node.name,
-                                    "layer": self._get_layer_name(rel_path),
-                                },
                             )
                         )
 
@@ -128,12 +132,27 @@ class IdCoverageCheck(BaseCheck):
 
         return False
 
-    def _get_layer_name(self, file_path: str) -> str:
-        """Helper for context reporting."""
-        if "features/" in file_path:
-            return "Features"
-        if "core/" in file_path:
-            return "Core Orchestration"
-        if "services/" in file_path:
-            return "Domain Services"
-        return "Unknown Layer"
+
+# ID: f69a1a2e-26cd-4cc2-8fdc-7f18e0e77d0c
+class IdCoverageCheck(RuleEnforcementCheck):
+    """
+    Ensures public symbols in Governance Domains (Features, Core) have '# ID: <uuid>' tags.
+    Respects architectural exemptions for Infrastructure, CLI, and API layers.
+
+    Ref: .intent/charter/standards/operations/operations.json
+    Ref: .intent/charter/standards/architecture/layer_contracts.json
+    """
+
+    policy_rule_ids: ClassVar[list[str]] = [
+        "linkage.assign_ids",
+    ]
+
+    policy_file: ClassVar[Path] = OPERATIONS_POLICY
+
+    enforcement_methods: ClassVar[list[EnforcementMethod]] = [
+        IdCoverageEnforcement(rule_id="linkage.assign_ids"),
+    ]
+
+    @property
+    def _is_concrete_check(self) -> bool:
+        return True

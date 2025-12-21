@@ -29,8 +29,8 @@ from shared.logger import getLogger
 logger = getLogger(__name__)
 __all__ = [
     "ConfigService",
-    "bootstrap_config_from_env",
     "LLMResourceConfig",
+    "bootstrap_config_from_env",
     "config_service",
     "get_config_service",
 ]
@@ -190,7 +190,7 @@ async def bootstrap_config_from_env() -> None:
         config = await ConfigService.create(db)
         migrated = 0
         for env_key, db_key in config_mapping.items():
-            if env_key in env_vars and env_vars[env_key]:
+            if env_vars.get(env_key):
                 await config.set(
                     db_key,
                     env_vars[env_key],

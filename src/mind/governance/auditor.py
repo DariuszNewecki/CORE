@@ -1,6 +1,6 @@
 # src/mind/governance/auditor.py
 """
-Constitutional Auditor – The primary orchestration engine for all governance checks.
+Constitutional Auditor - The primary orchestration engine for all governance checks.
 
 Discovers and runs all registered audit checks, coordinating their findings into
 a single, comprehensive report. Emits evidence artifacts for downstream tools.
@@ -30,13 +30,13 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from body.cli.commands.audit_reporter import AuditRunReporter
 from mind.governance import checks
 from mind.governance.audit_context import AuditorContext
 from mind.governance.audit_postprocessor import (
     EntryPointAllowList,
     apply_entry_point_downgrade_and_report,
 )
-from mind.governance.audit_reporter import AuditRunReporter
 from mind.governance.audit_types import AuditCheckMetadata, AuditCheckResult
 from mind.governance.checks.base_check import BaseCheck
 from shared.activity_logging import activity_run, new_activity_run
@@ -233,7 +233,7 @@ class ConstitutionalAuditor:
                         findings_count=1,
                         max_severity=AuditSeverity.ERROR,
                         fix_hint=None,
-                        extra={"exception": str(e)},
+                        context={"exception": str(e)},
                     )
                 )
 
@@ -306,6 +306,7 @@ class ConstitutionalAuditor:
             List[dict] of findings (as_dict), consistent with prior behavior.
         """
         # REMOVED: await self.context.initialize() - Context is already initialized
+        await self.context.load_knowledge_graph()
 
         with activity_run("constitutional_audit"):
             # Discover checks first so we can construct AuditRunReporter correctly.
@@ -366,13 +367,13 @@ class ConstitutionalAuditor:
 
 # Convenience entry point used by CLI layers (if any)
 # ID: 20665dbf-149a-58e7-83dc-a801a2b5abfc
-def test_system(root: Path | None = None) -> list[dict[str, Any]]:
+async def test_system(root: Path | None = None) -> list[dict[str, Any]]:
     """
-    Synchronous wrapper for running the full audit.
+    Async wrapper for running the full audit.
 
     This exists to support CLI layers that operate synchronously.
     """
     repo_root = root or get_repo_root()
     context = AuditorContext(repo_root)
     auditor = ConstitutionalAuditor(context)
-    return asyncio.run(auditor.run_full_audit_async())
+    return await auditor.run_full_audit_async()

@@ -118,10 +118,10 @@ def _detect_alias_cycles(aliases: dict[str, str]) -> list[list[str]]:
         nxt = aliases.get(node)
         if nxt:
             if nxt not in visited:
-                dfs(nxt, path + [nxt])
+                dfs(nxt, [*path, nxt])
             elif nxt in stack and nxt in path:
                 idx = path.index(nxt)
-                cycles.append(path[idx:] + [nxt])
+                cycles.append([*path[idx:], nxt])
         stack.remove(node)
 
     for a in aliases:

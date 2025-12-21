@@ -64,10 +64,10 @@ async def _attempt_correction(
             final_prompt,
             user_id="auto_repair",
         )
-    except Exception as e:  # noqa: BLE001
+    except Exception as e:
         return {
             "status": "error",
-            "message": f"LLM request failed: {str(e)}",
+            "message": f"LLM request failed: {e!s}",
         }
 
     write_blocks = parse_write_blocks(llm_output)
@@ -78,7 +78,7 @@ async def _attempt_correction(
             "message": "LLM did not produce a valid correction in a write block.",
         }
 
-    path, fixed_code = list(write_blocks.items())[0]
+    path, fixed_code = next(iter(write_blocks.items()))
 
     validation_result = await validate_code_async(path, fixed_code, auditor_context)
     if validation_result["status"] == "dirty":

@@ -1,0 +1,213 @@
+{
+  "description": "Defines the required structure for bundles produced by the Conversational\nContext Extractor (CCE). These bundles provide a tightly-scoped snapshot\nof relevant knowledge, symbols, policies, and runtime artefacts for a\nsingle irritation, topic, or investigation. Bundles are deterministic,\nreproducible, and governed by Mind policies.\n",
+  "id": "schema.operations.conversational_context_bundle",
+  "owners": {
+    "accountable": "Governance Lead",
+    "responsible": [
+      "Core Maintainer"
+    ]
+  },
+  "properties": {
+    "created_at": {
+      "description": "ISO8601 timestamp of bundle creation.",
+      "format": "datetime",
+      "type": "string"
+    },
+    "id": {
+      "description": "Unique ID assigned to this bundle (e.g. cc-2025-0001).",
+      "type": "string"
+    },
+    "kind": {
+      "description": "Discriminator identifying this schema.",
+      "enum": [
+        "conversational_context_bundle"
+      ],
+      "type": "string"
+    },
+    "notes": {
+      "description": "Additional machine-generated or human-provided notes.",
+      "nullable": true,
+      "properties": {
+        "remarks": {
+          "nullable": true,
+          "type": "string"
+        },
+        "suspected_violations": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object"
+    },
+    "origin": {
+      "properties": {
+        "irritation_id": {
+          "description": "Optional reference to a recorded irritation event.",
+          "nullable": true,
+          "type": "string"
+        },
+        "source": {
+          "description": "Who or what requested the context.",
+          "enum": [
+            "human",
+            "test",
+            "check",
+            "agent",
+            "system"
+          ],
+          "type": "string"
+        },
+        "topic": {
+          "description": "Human-provided description of what triggered the need for this bundle.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "topic",
+        "source"
+      ],
+      "type": "object"
+    },
+    "policies": {
+      "description": "Relevant constitutional policies governing this context.",
+      "items": {
+        "description": "Path + anchor to policy rule (e.g. .intent/charter/policies/body_contracts.yaml#headless_body).",
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "runtime_artifacts": {
+      "description": "Optional runtime outputs relevant to understanding the irritation.",
+      "nullable": true,
+      "properties": {
+        "audits": {
+          "items": {
+            "properties": {
+              "path": {
+                "type": "string"
+              },
+              "summary": {
+                "description": "High-level audit information relevant to the irritation.",
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "nullable": true,
+          "type": "array"
+        },
+        "logs": {
+          "items": {
+            "properties": {
+              "excerpt": {
+                "description": "A shortened extract from the referenced logfile.",
+                "type": "string"
+              },
+              "path": {
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "nullable": true,
+          "type": "array"
+        },
+        "tests": {
+          "items": {
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "output": {
+                "description": "Failing test output (redacted).",
+                "nullable": true,
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "nullable": true,
+          "type": "array"
+        }
+      },
+      "type": "object"
+    },
+    "scope": {
+      "properties": {
+        "main_command": {
+          "description": "Primary CLI or workflow that produced the logs/behaviour.",
+          "nullable": true,
+          "type": "string"
+        },
+        "repo_root": {
+          "description": "Absolute path to the repository root used for symbol resolution.",
+          "type": "string"
+        },
+        "run_id": {
+          "description": "Optional workflow run identifier for traceability.",
+          "nullable": true,
+          "type": "string"
+        }
+      },
+      "required": [
+        "repo_root"
+      ],
+      "type": "object"
+    },
+    "symbols": {
+      "description": "List of relevant symbols derived from the knowledge graph.",
+      "items": {
+        "properties": {
+          "capability": {
+            "description": "Declared capability ID, if applicable.",
+            "nullable": true,
+            "type": "string"
+          },
+          "file": {
+            "description": "Path to file where symbol is declared.",
+            "type": "string"
+          },
+          "id": {
+            "description": "Stable symbol ID from knowledge graph.",
+            "nullable": true,
+            "type": "string"
+          },
+          "name": {
+            "description": "Fully-qualified symbol name (e.g. shared.logger.configure_root_logger).",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "file"
+        ],
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "version": {
+      "description": "Schema version for forward compatibility.",
+      "type": "string"
+    }
+  },
+  "required": [
+    "kind",
+    "version",
+    "id",
+    "created_at",
+    "origin",
+    "scope",
+    "symbols",
+    "policies"
+  ],
+  "review": {
+    "frequency": "12 months"
+  },
+  "schema_id": "schema.operations.conversational_context_bundle.deprecated",
+  "status": "active",
+  "title": "Conversational Context Bundle Schema",
+  "type": "object",
+  "version": "1.0.0"
+}

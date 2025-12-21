@@ -1,0 +1,151 @@
+{
+  "id": "standard_operations_quality_assurance",
+  "version": "1.0.0",
+  "title": "Operations Standard – Quality Assurance",
+  "type": "standard_operations",
+  "status": "active",
+  "owners": {
+    "accountable": "Quality Owner",
+    "responsible": [
+      "Core Maintainer"
+    ]
+  },
+  "review": {
+    "frequency": "12 months"
+  },
+  "schema_id": "policy.structure",
+  "policy_id": "7d4f8c9a-2e1b-4f6d-9a8c-3b5e7f1d2c4a",
+  "purpose": "Define enforceable quality gates for CORE, including test coverage, autonomous remediation, audit exception handling, and change evaluation.\n",
+  "rules": [
+    {
+      "id": "qa.coverage.minimum_threshold",
+      "statement": "Production code MUST maintain a minimum of 55% test coverage.",
+      "enforcement": "error"
+    },
+    {
+      "id": "qa.coverage.target_threshold",
+      "statement": "The system SHOULD converge toward a target test coverage of 80% or higher.",
+      "enforcement": "warn"
+    },
+    {
+      "id": "qa.coverage.critical_paths",
+      "statement": "Critical code paths MUST meet elevated coverage thresholds as defined by policy.",
+      "enforcement": "error",
+      "scope": [
+        "src/core/**/*.py >= 85%",
+        "src/features/governance/**/*.py >= 85%",
+        "src/features/self_healing/**/*.py >= 80%"
+      ]
+    },
+    {
+      "id": "qa.coverage.no_regression",
+      "statement": "Code changes MUST NOT reduce overall coverage below the minimum threshold without an approved remediation plan.",
+      "enforcement": "error"
+    },
+    {
+      "id": "qa.coverage.exclusions",
+      "statement": "Coverage calculations MUST exclude non-executable or non-critical paths.",
+      "enforcement": "allowed",
+      "scope": [
+        "src/**/__init__.py",
+        "src/**/models.py",
+        "tests/**/*.py",
+        "scripts/**/*.py"
+      ]
+    },
+    {
+      "id": "qa.remediation.auto_trigger",
+      "statement": "If coverage drops below the minimum threshold, autonomous test remediation MUST be triggered.",
+      "enforcement": "error"
+    },
+    {
+      "id": "qa.remediation.trigger_conditions",
+      "statement": "Autonomous remediation MUST trigger when predefined degradation signals are detected.",
+      "enforcement": "error",
+      "conditions": [
+        "coverage < minimum_threshold",
+        "new_uncovered_modules > 3",
+        "coverage_delta < -5%"
+      ]
+    },
+    {
+      "id": "qa.remediation.phased_execution",
+      "statement": "Autonomous remediation MUST execute in defined phases: analysis followed by test generation.",
+      "enforcement": "error"
+    },
+    {
+      "id": "qa.audit.exceptions_explicit",
+      "statement": "Any audit exception MUST be explicitly declared with scope and justification.",
+      "enforcement": "error"
+    },
+    {
+      "id": "qa.audit.exceptions_empty_default",
+      "statement": "The default state for audit exceptions MUST be empty.",
+      "enforcement": "error"
+    },
+    {
+      "id": "qa.change.evaluation_required",
+      "statement": "All changes MUST be evaluated using the weighted quality evaluation framework.",
+      "enforcement": "error"
+    },
+    {
+      "id": "qa.change.evaluation_threshold_pass",
+      "statement": "Changes MUST achieve a minimum evaluation score of 0.7 to be accepted.",
+      "enforcement": "error"
+    },
+    {
+      "id": "qa.change.evaluation_warn",
+      "statement": "Changes scoring between 0.5 and 0.7 SHOULD be flagged for human review.",
+      "enforcement": "warn"
+    },
+    {
+      "id": "qa.risk.medium_gate",
+      "statement": "Medium-risk changes MUST pass checkpoint and canary validation with a minimum score of 0.80.",
+      "enforcement": "error"
+    },
+    {
+      "id": "qa.risk.high_gate",
+      "statement": "High-risk changes MUST pass checkpoint, canary validation, and approver quorum with a minimum score of 0.90.",
+      "enforcement": "error"
+    },
+    {
+      "id": "qa.audit.intent_declared",
+      "statement": "An explicit intent MUST be declared prior to applying a change.",
+      "enforcement": "error"
+    },
+    {
+      "id": "qa.audit.explanation_required",
+      "statement": "All changes MUST include an explanation or justification.",
+      "enforcement": "error"
+    },
+    {
+      "id": "qa.audit.quality_verified",
+      "statement": "Post-change quality verification MUST be performed and recorded.",
+      "enforcement": "error"
+    },
+    {
+      "id": "qa.audit.quorum_evidence",
+      "statement": "Medium and high-risk changes MUST record quorum evidence.",
+      "enforcement": "error",
+      "applies_when": [
+        "risk_tier in ['medium', 'high']"
+      ]
+    }
+  ],
+  "evaluation_framework": {
+    "strategy": "weighted_criteria",
+    "thresholds": {
+      "pass": 0.7,
+      "warn": 0.5
+    },
+    "criteria": {
+      "intent_alignment": 0.4,
+      "structural_compliance": 0.2,
+      "safety": 0.2,
+      "code_quality": 0.2
+    }
+  },
+  "audit_exceptions": {
+    "symbol_ignores": []
+  }
+}

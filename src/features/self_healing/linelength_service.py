@@ -7,7 +7,6 @@ refactor code for better readability by adhering to line length policies.
 
 from __future__ import annotations
 
-import asyncio
 from pathlib import Path
 
 import typer
@@ -94,7 +93,7 @@ async def _async_fix_line_lengths(
 
 
 # ID: 38f408b5-3490-4fb8-8bf4-c09b33ed5af8
-def fix_line_lengths(
+async def fix_line_lengths(
     context: CoreContext,
     file_path: Path | None = typer.Argument(
         None,
@@ -116,6 +115,4 @@ def fix_line_lengths(
     else:
         src_dir = settings.paths.repo_root / "src"
         files_to_scan.extend(src_dir.rglob("*.py"))
-    asyncio.run(
-        _async_fix_line_lengths(context.cognitive_service, files_to_scan, dry_run)
-    )
+    await _async_fix_line_lengths(context.cognitive_service, files_to_scan, dry_run)

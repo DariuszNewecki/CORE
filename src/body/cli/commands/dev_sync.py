@@ -1,9 +1,18 @@
 # src/body/cli/commands/dev_sync.py
+# ID: cli.commands.dev_sync
 """
 Dev sync workflow orchestrator.
 
 Replaces the Makefile's dev-sync target with a governed Python workflow.
 Refactored to use direct service calls (Internal Orchestration) instead of subprocesses.
+
+CONSTITUTIONAL GUARDRail:
+- BODY MUST treat `.intent/` as READ-ONLY.
+- This workflow MUST NOT write to `.intent/` under any circumstances.
+
+NOTE:
+- Legacy Manifest Sync (project_manifest) has been removed from this workflow.
+  Any required state must be derived from SSOT (DB) and/or read-only intent artefacts.
 """
 
 from __future__ import annotations
@@ -64,6 +73,9 @@ async def dev_sync_command(
 
     By default this runs in DRY-RUN mode (no writes).
     Pass --write to apply changes to the repository and related indices.
+
+    GUARDRail:
+    - `.intent/` is read-only for BODY. This workflow does not write to `.intent/`.
     """
     core_context: CoreContext = ctx.obj
     dry_run = not write
@@ -95,8 +107,6 @@ async def dev_sync_command(
         try:
             start = time.time()
             console.print("[cyan]Checking logging standards...[/cyan]")
-            # Logging fixer is fast/silent enough to use a spinner if we wanted,
-            # but keeping it consistent with the rest.
             fixer = LoggingFixer(settings.REPO_PATH, dry_run=dry_run)
             fix_stats = fixer.fix_all()
 
@@ -214,7 +224,6 @@ async def dev_sync_command(
             console.print("[cyan]Checking Body contracts...[/cyan]")
             contracts_result = await check_body_contracts()
 
-            # Attach timing to the ActionResult
             contracts_result.duration_sec = time.time() - start  # type: ignore[attr-defined]
             reporter.record_result(contracts_result, phase)
 
@@ -229,7 +238,6 @@ async def dev_sync_command(
                     f"rules: {', '.join(rules) if rules else 'none'}"
                 )
 
-            # Print first few violations so we see where to start
             for v in violations[:10]:
                 file = v.get("file", "?")
                 line = v.get("line", "?")
@@ -249,7 +257,6 @@ async def dev_sync_command(
                     "[red]❌ Body contracts violations detected. "
                     "See above for details.[/red]"
                 )
-                # Governance failure is a hard stop
                 raise typer.Exit(1)
 
         except Exception as e:
@@ -262,7 +269,6 @@ async def dev_sync_command(
                 ),
                 phase,
             )
-            # If governance layer fails, we stop.
             raise typer.Exit(1)
 
         # =================================================================
@@ -300,7 +306,7 @@ async def dev_sync_command(
             )
             raise typer.Exit(1)
 
-        # 8. Sync Knowledge
+        # 8. Sync Knowledge (Scanning)
         try:
             start = time.time()
             if write:
@@ -328,17 +334,15 @@ async def dev_sync_command(
             )
             raise typer.Exit(1)
 
-        # 9. Define Symbols
+        # 9. Define Symbols (Descriptions)
         try:
             start = time.time()
             console.print("[cyan]Defining symbols...[/cyan]")
 
             ctx_service = core_context.context_service
-            # The factory initializes these as None; we must inject the live instances
             if not ctx_service.cognitive_service:
                 ctx_service.cognitive_service = core_context.cognitive_service
 
-            # Also update the vector provider inside context service if needed
             if not ctx_service.vector_provider.qdrant:
                 ctx_service.vector_provider.qdrant = core_context.qdrant_service
             if not ctx_service.vector_provider.cognitive_service:
@@ -358,7 +362,6 @@ async def dev_sync_command(
                 phase,
             )
         except Exception as e:
-            # Non-blocking, but recorded as a failed action
             reporter.record_result(
                 ActionResult(
                     action_id="manage.define-symbols",
@@ -495,7 +498,6 @@ async def dev_sync_command(
         reporter.print_phases()
         reporter.print_summary()
 
-        # Exit with appropriate code
         critical_failures = [
             r
             for p in reporter.phases

@@ -81,7 +81,6 @@ class IntentGuard:
     def __init__(self, repo_path: Path):
         """Initialize IntentGuard with repository path and load all policies."""
         self.repo_path = Path(repo_path).resolve()
-        #        self.intent_path = self.repo_path / ".intent"
         self.intent_path = settings.paths.intent_root
         self.proposals_path = settings.paths.proposals_dir
         self.policies_path = settings.paths.policies_dir
@@ -96,13 +95,13 @@ class IntentGuard:
 
     def _load_precedence_rules(self) -> dict[str, int]:
         """
-        Load precedence rules from .intent/charter/constitution/precedence_rules.yaml
+        Load precedence rules from .intent/charter/constitution/precedence_rules.json
         Returns:
             dict: Map of policy_name -> level (e.g., {'safety_framework': 1})
         """
         mapping = {}
         try:
-            path = settings.paths.constitution_dir / "precedence_rules.yaml"
+            path = settings.paths.constitution_dir / "precedence_rules.json"
             if not path.exists():
                 logger.warning("Precedence rules not found at %s", path)
                 return mapping
@@ -111,11 +110,11 @@ class IntentGuard:
             for entry in hierarchy:
                 level = entry.get("level", 999)
                 if "policy" in entry:
-                    name = entry["policy"].replace(".yaml", "")
+                    name = entry["policy"].replace(".json", "")
                     mapping[name] = level
                 if "policies" in entry:
                     for p in entry["policies"]:
-                        name = p.replace(".yaml", "")
+                        name = p.replace(".json", "")
                         mapping[name] = level
             return mapping
         except Exception as e:
@@ -127,7 +126,7 @@ class IntentGuard:
         if not self.policies_path.is_dir():
             logger.warning("Policies directory not found: %s", self.policies_path)
             return
-        for policy_file in self.policies_path.rglob("*.yaml"):
+        for policy_file in self.policies_path.rglob("*.json"):
             policy_name = policy_file.stem
             try:
                 content = load_yaml_file(policy_file)

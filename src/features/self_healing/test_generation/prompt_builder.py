@@ -1,6 +1,6 @@
 # src/features/self_healing/test_generation/prompt_builder.py
 """
-PromptBuilder – creates enriched test-generation prompts.
+PromptBuilder - creates enriched test-generation prompts.
 """
 
 from __future__ import annotations

@@ -156,7 +156,7 @@ def handle_command_errors(func: Callable) -> Callable:
         except typer.Exit:
             raise
         except Exception as e:
-            console.print(f"[red]❌ Command failed: {str(e)}[/red]")
+            console.print(f"[red]❌ Command failed: {e!s}[/red]")
             if getattr(settings, "DEBUG", False):
                 console.print("[yellow]Debug traceback:[/yellow]")
                 console.print(traceback.format_exc())
@@ -236,7 +236,7 @@ async def fix_line_lengths_command(
 
 
 # Late imports to register submodules on fix_app
-from . import (  # noqa: E402,F401
+from . import (
     all_commands,
     atomic_actions,
     body_ui,  # <--- CORRECT: Now we import the module we just created
@@ -244,7 +244,7 @@ from . import (  # noqa: E402,F401
     code_style,
     db_tools,  # Covers db_registry, vector_sync
     docstrings,
-    fix_ir,  # Covers ir_triage, ir_log
+    fix_ir,
     handler_discovery,
     imports,  # ADDED: Covers import sorting and grouping
     list_commands,

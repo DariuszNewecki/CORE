@@ -18,7 +18,7 @@ from typing import Any
 class CloudEvent:
     """
     Standard CloudEvent envelope v1.0.
-    See .intent/charter/standards/architecture/event_schema_standard.yaml
+    See .intent/charter/standards/architecture/event_schema_standard.json
     """
 
     type: str  # e.g., 'core.governance.violation'

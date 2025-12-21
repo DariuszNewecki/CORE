@@ -8,7 +8,7 @@ Respects layer_contracts.yaml for architectural exemptions.
 from __future__ import annotations
 
 import re
-from typing import Any
+from typing import Any, ClassVar
 
 import yaml
 
@@ -28,7 +28,7 @@ class OrphanedLogicCheck(BaseCheck):
     Enforces 'intent_alignment'.
     """
 
-    policy_rule_ids = ["intent_alignment"]
+    policy_rule_ids: ClassVar[list[str]] = ["intent_alignment"]
 
     def __init__(self, context: AuditorContext):
         super().__init__(context)
@@ -39,7 +39,7 @@ class OrphanedLogicCheck(BaseCheck):
         """Loads symbol governance rules from layer_contracts.yaml."""
         contract_path = (
             self.context.intent_path
-            / "charter/standards/architecture/layer_contracts.yaml"
+            / "charter/standards/architecture/layer_contracts.json"
         )
         if not contract_path.exists():
             logger.warning("layer_contracts.yaml not found. Using default enforcement.")
