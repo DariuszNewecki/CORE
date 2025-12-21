@@ -9,7 +9,6 @@ for LLM consumption with constitutional governance.
 
 from __future__ import annotations
 
-import asyncio
 import time
 from pathlib import Path
 
@@ -28,13 +27,13 @@ app = typer.Typer(
 
 
 # ---------------------------------------------------------------------------
-# CLI Commands (sync wrappers)
+# CLI Commands
 # ---------------------------------------------------------------------------
 
 
 @app.command("build")
 # ID: 46c0e5a6-9c6e-4e22-a8c5-2a99ee6c7e0d
-def build_cmd(
+async def build_cmd(
     task: str = typer.Option(..., "--task", help="Task ID to build context for"),
     out: Path | None = typer.Option(None, "--out", help="Output file path (optional)"),
 ) -> None:
@@ -43,7 +42,7 @@ def build_cmd(
 
     Creates a validated, redacted context packet suitable for LLM consumption.
     """
-    result = asyncio.run(_build_internal(task, out))
+    result = await _build_internal(task, out)
     if not result.ok:
         raise typer.Exit(code=1)
 
@@ -65,7 +64,7 @@ def validate_cmd(
 
 @app.command("show")
 # ID: 46218ce5-1c51-406b-9492-fb7caf5c3ed2
-def show_cmd(
+async def show_cmd(
     task: str = typer.Option(..., "--task", help="Task ID to show context for"),
 ) -> None:
     """
@@ -73,7 +72,7 @@ def show_cmd(
 
     Displays packet summary without revealing sensitive content.
     """
-    result = asyncio.run(_show_internal(task))
+    result = await _show_internal(task)
     if not result.ok:
         raise typer.Exit(code=1)
 
@@ -106,28 +105,6 @@ async def _build_internal(task: str, out: Path | None) -> ActionResult:
     try:
         # TODO: Wire up actual builder initialization with DB/Qdrant/AST providers
         # For now, this is a stub showing the intended flow
-
-        # Placeholder implementation showing architectural intent:
-        # builder = ContextBuilder(db, qdrant, ast_provider, config)
-        # packet = await builder.build_for_task(task_spec)
-        # validator = ContextValidator()
-        # is_valid, errors = validator.validate(packet)
-        # if not is_valid:
-        #     return ActionResult(
-        #         action_id="context.build",
-        #         ok=False,
-        #         data={"task": task, "errors": errors},
-        #         duration_sec=time.time() - start_time,
-        #         impact=ActionImpact.READ_ONLY,
-        #         warnings=errors,
-        #     )
-        # redactor = ContextRedactor()
-        # packet = redactor.redact(packet)
-        # serializer = ContextSerializer()
-        # output_path = out or Path(f"work/context_packets/{task}/context.yaml")
-        # output_path.parent.mkdir(parents=True, exist_ok=True)
-        # serializer.save(packet, output_path)
-
         return ActionResult(
             action_id="context.build",
             ok=False,
@@ -155,7 +132,7 @@ async def _build_internal(task: str, out: Path | None) -> ActionResult:
             },
             duration_sec=time.time() - start_time,
             impact=ActionImpact.READ_ONLY,
-            warnings=[f"Build failed: {e}"],
+            warnings=[f"Build failed: {e!s}"],
         )
 
 
@@ -166,16 +143,13 @@ def _validate_internal(file: Path) -> None:
     This is a sync helper for the CLI command.
     Does not return ActionResult as it's a validation display function.
     """
-    try:
-        serializer = ContextSerializer()
-        packet = serializer.from_yaml(str(file))
+    serializer = ContextSerializer()
+    packet = serializer.from_yaml(str(file))
 
-        validator = ContextValidator()
-        is_valid, errors = validator.validate(packet)
+    validator = ContextValidator()
+    is_valid, _errors = validator.validate(packet)
 
-        if not is_valid:
-            raise typer.Exit(1)
-    except Exception as e:
+    if not is_valid:
         raise typer.Exit(1)
 
 
@@ -200,25 +174,6 @@ async def _show_internal(task: str) -> ActionResult:
 
     try:
         # Placeholder: when ContextService wiring is complete, this will fetch from DB / disk.
-        # Architectural intent:
-        # context_service = get_context_service()
-        # packet_metadata = await context_service.get_packet_metadata(task)
-        #
-        # if packet_metadata:
-        #     return ActionResult(
-        #         action_id="context.show",
-        #         ok=True,
-        #         data={
-        #             "task": task,
-        #             "packet_id": packet_metadata.packet_id,
-        #             "created_at": packet_metadata.created_at,
-        #             "size_tokens": packet_metadata.size_tokens,
-        #             "context_items": packet_metadata.context_items,
-        #         },
-        #         duration_sec=time.time() - start_time,
-        #         impact=ActionImpact.READ_ONLY,
-        #     )
-
         return ActionResult(
             action_id="context.show",
             ok=False,
@@ -245,5 +200,5 @@ async def _show_internal(task: str) -> ActionResult:
             },
             duration_sec=time.time() - start_time,
             impact=ActionImpact.READ_ONLY,
-            warnings=[f"Show failed: {e}"],
+            warnings=[f"Show failed: {e!s}"],
         )

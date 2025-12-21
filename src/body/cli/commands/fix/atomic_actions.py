@@ -11,6 +11,7 @@ Constitutional Alignment: atomic_actions.yaml
 
 from __future__ import annotations
 
+import asyncio
 import time
 from pathlib import Path
 
@@ -86,15 +87,15 @@ async def fix_atomic_actions_internal(
 
     for file_path, file_violations in violations_by_file.items():
         try:
-            with open(file_path, encoding="utf-8") as f:
-                source = f.read()
+            source = await asyncio.to_thread(file_path.read_text, encoding="utf-8")
 
             modified_source = _fix_file_violations(source, file_violations, file_path)
 
             if modified_source != source:
                 if write:
-                    with open(file_path, "w", encoding="utf-8") as f:
-                        f.write(modified_source)
+                    await asyncio.to_thread(
+                        file_path.write_text, modified_source, encoding="utf-8"
+                    )
                     files_modified += 1
                     logger.info("Fixed %s", file_path)
                 else:

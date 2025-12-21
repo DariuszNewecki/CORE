@@ -94,7 +94,7 @@ async def develop_from_goal(
                 high_level_goal=goal, plan=plan
             )
         except Exception as e:
-            execution_message = f"Execution failed: {str(e)}"
+            execution_message = f"Execution failed: {e!s}"
             logger.warning("Plan execution had issues: %s", e)
         if output_mode == "crate":
             logger.info("   -> Extracting generated files for crate packaging...")

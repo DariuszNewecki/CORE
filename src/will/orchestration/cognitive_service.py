@@ -13,8 +13,8 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from shared.infrastructure.llm.client import LLMClient
-from shared.infrastructure.llm.client_orchestrator import ClientOrchestrator
 from shared.logger import getLogger
+from will.orchestration.client_orchestrator import ClientOrchestrator
 
 
 if TYPE_CHECKING:

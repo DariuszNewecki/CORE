@@ -11,7 +11,6 @@ from shared.infrastructure.repositories.db.status_service import StatusReport
 from shared.infrastructure.repositories.db.status_service import status as db_status
 
 
-# ID: 3f7fa8bb-6b0a-4e3b-9e9b-4adf1e2f0c11
 async def _status_impl() -> None:
     """
     Render a human-readable DB status report to the console.
@@ -29,7 +28,6 @@ async def _status_impl() -> None:
     pass
 
 
-# ID: cfa2326f-ec64-4248-90f3-de723ea252ac
 async def _get_status_report() -> StatusReport:
     """
     Internal helper used by the admin CLI and tests.

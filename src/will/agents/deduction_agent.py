@@ -22,7 +22,7 @@ class DeductionAgent:
     """
     Advises on LLM resource selection for a given role.
     In production it reads policy files; in tests/sandboxes it must be tolerant
-    when those files aren’t present.
+    when those files aren't present.
     """
 
     def __init__(self, repo_path: Path | str):

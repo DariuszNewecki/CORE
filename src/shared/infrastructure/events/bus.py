@@ -8,6 +8,7 @@ Provides a singleton mechanism for decoupling components via events.
 from __future__ import annotations
 
 from collections.abc import Callable
+from typing import ClassVar
 
 from shared.logger import getLogger
 
@@ -25,8 +26,8 @@ class EventBus:
     Synchronous In-Memory Event Bus.
     """
 
-    _instance: EventBus | None = None
-    _subscribers: dict[str, list[EventHandler]] = {}
+    _instance: ClassVar[EventBus | None] = None
+    _subscribers: ClassVar[dict[str, list[EventHandler]]] = {}
 
     @classmethod
     # ID: 50193784-7898-4bfc-9f4b-5daaf58ea9a1

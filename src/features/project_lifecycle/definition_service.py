@@ -1,6 +1,11 @@
 # src/features/project_lifecycle/definition_service.py
 
-"""Provides functionality for the definition_service module."""
+"""
+Symbol definition service - assigns capability keys to public symbols.
+
+CONSTITUTIONAL FIX: Uses SymbolDefinitionRepository with proper transaction boundaries.
+Transaction management at controller level, not service level.
+"""
 
 from __future__ import annotations
 
@@ -9,13 +14,16 @@ import time
 from functools import partial
 from typing import Any
 
-from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.action_types import ActionImpact, ActionResult
 from shared.atomic_action import atomic_action
 from shared.config import settings
 from shared.infrastructure.context.service import ContextService
 from shared.infrastructure.database.session_manager import get_session
+from shared.infrastructure.repositories.symbol_definition_repository import (
+    SymbolDefinitionRepository,
+)
 from shared.logger import getLogger
 from shared.utils.parallel_processor import ThrottledParallelProcessor
 from shared.utils.parsing import extract_json_from_response
@@ -26,40 +34,56 @@ logger = getLogger(__name__)
 
 # ID: b967b43c-3a4d-4b36-855f-12a434c0db4f
 async def get_undefined_symbols(limit: int = 500) -> list[dict[str, Any]]:
+    """
+    Get symbols needing definition, filtering out stale ones.
+
+    CONSTITUTIONAL: Uses Repository and manages transaction boundary.
+    """
+    from pathlib import Path
+
     async with get_session() as session:
-        result = await session.execute(
-            text(
-                """
-                SELECT
-                    id,
-                    symbol_path,
-                    file_path,
-                    qualname,
-                    definition_status,
-                    attempt_count
-                FROM core.symbols
-                WHERE
-                    is_public = TRUE
-                    AND definition_status IN ('pending', 'invalid')
-                    AND health_status != 'broken'
-                    AND (
-                        last_attempt_at IS NULL
-                        OR last_attempt_at < NOW() - INTERVAL '1 hour'
+        repo = SymbolDefinitionRepository(session)
+
+        # Get symbols from repository
+        symbols = await repo.get_undefined_symbols(limit)
+
+        # Validate file existence
+        valid_symbols = []
+        stale_ids = []
+
+        for symbol in symbols:
+            # Check if the module file still exists
+            module_path = symbol.get("file_path") or symbol.get("module", "")
+            if module_path:
+                file_path = Path(module_path)
+                if file_path.exists():
+                    valid_symbols.append(symbol)
+                else:
+                    stale_ids.append(symbol["id"])
+                    logger.debug(
+                        "Skipping stale symbol '%s' - file not found: %s",
+                        symbol.get("symbol_path"),
+                        file_path,
                     )
-                ORDER BY
-                    attempt_count ASC,
-                    last_attempt_at NULLS FIRST,
-                    qualname
-                LIMIT :limit
-                """
-            ),
-            {"limit": limit},
-        )
-        symbols = [dict(row._mapping) for row in result]
+            else:
+                # No file path means we can't validate - include it
+                valid_symbols.append(symbol)
+
+        # Mark stale symbols as broken
+        if stale_ids:
+            await repo.mark_stale_symbols_broken(stale_ids)
+            await session.commit()  # Transaction boundary here
+            logger.info(
+                "Marked %d stale symbols as 'broken' (files not found)", len(stale_ids)
+            )
+
         logger.info(
-            "Found %d symbols needing definition (limit=%d)", len(symbols), limit
+            "Found %d symbols needing definition (limit=%d, filtered=%d stale)",
+            len(valid_symbols),
+            limit,
+            len(stale_ids),
         )
-        return symbols
+        return valid_symbols
 
 
 def _extract_code(packet: dict[str, Any], file_path: str) -> str:
@@ -124,26 +148,24 @@ async def _mark_attempt(
     status: str,
     error: str | None = None,
     key: str | None = None,
+    session: AsyncSession,
 ) -> None:
-    async with get_session() as session:
-        await session.execute(
-            text(
-                """
-                UPDATE core.symbols
-                SET
-                    definition_status = :status,
-                    definition_error = :error,
-                    key = :key,
-                    definition_source = 'llm',
-                    defined_at = CASE WHEN :status = 'defined' THEN NOW() ELSE NULL END,
-                    last_attempt_at = NOW(),
-                    attempt_count = attempt_count + 1
-                WHERE id = :id
-                """
-            ),
-            {"id": symbol_id, "status": status, "error": error, "key": key},
-        )
-        await session.commit()
+    """
+    Mark a symbol definition attempt.
+
+    CONSTITUTIONAL FIX: Uses Repository, no commit (caller manages transaction).
+
+    Args:
+        symbol_id: Symbol ID to update
+        status: New status
+        error: Optional error message
+        key: Optional capability key
+        session: Database session (caller manages transaction boundary)
+    """
+    repo = SymbolDefinitionRepository(session)
+    await repo.mark_attempt(symbol_id, status=status, error=error, key=key)
+
+    # NO COMMIT - caller manages transaction
 
 
 # ID: 912ae5b0-f073-4a3a-9df1-a53cff7da99a
@@ -151,6 +173,11 @@ async def define_single_symbol(
     symbol: dict[str, Any],
     context_service: ContextService,
 ) -> dict[str, Any]:
+    """
+    Use an LLM to generate a capability key for a single symbol.
+
+    CONSTITUTIONAL: Manages transaction boundary at this level.
+    """
     symbol_id = symbol["id"]
     symbol_path = symbol["symbol_path"]
     file_path = symbol["file_path"]
@@ -188,9 +215,16 @@ async def define_single_symbol(
         source_code = _extract_code(packet, file_path)
 
         if not source_code:
-            await _mark_attempt(
-                symbol_id, status="invalid", error="context.code_missing"
-            )
+            # Mark as invalid - commit this error state
+            async with get_session() as session:
+                await _mark_attempt(
+                    symbol_id,
+                    status="invalid",
+                    error="context.code_missing",
+                    session=session,
+                )
+                await session.commit()  # Transaction boundary here
+
             logger.warning("❌ No code extracted for %s", symbol_path)
             return {"id": symbol_id, "key": None}
 
@@ -206,16 +240,39 @@ async def define_single_symbol(
         key = await _attempt(prompt)
 
         if not key or "." not in key or " " in key:
-            await _mark_attempt(symbol_id, status="invalid", error="llm.invalid_format")
+            # Mark as invalid - commit this error state
+            async with get_session() as session:
+                await _mark_attempt(
+                    symbol_id,
+                    status="invalid",
+                    error="llm.invalid_format",
+                    session=session,
+                )
+                await session.commit()  # Transaction boundary here
+
             return {"id": symbol_id, "key": None}
 
-        # IMPORTANT CHANGE:
-        # key is NOT treated as unique. Multiple symbols may share one key.
-        await _mark_attempt(symbol_id, status="defined", key=key)
+        # SUCCESS - commit defined state
+        async with get_session() as session:
+            await _mark_attempt(symbol_id, status="defined", key=key, session=session)
+            await session.commit()  # Transaction boundary here
+
         return {"id": symbol_id, "key": key}
 
     except Exception as exc:
-        await _mark_attempt(symbol_id, status="invalid", error=f"exception:{exc}")
+        # EXCEPTION - commit error state
+        try:
+            async with get_session() as session:
+                await _mark_attempt(
+                    symbol_id,
+                    status="invalid",
+                    error=f"exception:{exc}",
+                    session=session,
+                )
+                await session.commit()  # Transaction boundary here
+        except Exception as commit_exc:
+            logger.error("Failed to mark exception for %s: %s", symbol_id, commit_exc)
+
         logger.exception("❌ Definition failed for %s", symbol_path)
         return {"id": symbol_id, "key": None}
 

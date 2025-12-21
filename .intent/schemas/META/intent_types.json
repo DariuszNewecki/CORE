@@ -1,0 +1,39 @@
+{
+  "$schema": ".intent/schemas/META/registry.schema.json",
+  "id": "meta.intent_types",
+  "version": "1.0.0",
+  "title": "Intent Types Registry",
+  "description": "Routes .intent documents to META schemas based on path globs.",
+  "defaults": {
+    "json_only": true
+  },
+  "types": [
+    {
+      "type": "constitution",
+      "match": [".intent/constitution/*.json"],
+      "exclude": [".intent/constitution/precedence*.json"],
+      "schema": ".intent/schemas/META/constitution.schema.json"
+    },
+    {
+      "type": "precedence",
+      "match": [".intent/constitution/precedence*.json"],
+      "schema": ".intent/schemas/META/precedence.schema.json"
+    },
+    {
+      "type": "standard",
+      "match": [".intent/standards/**/*.json"],
+      "schema": ".intent/schemas/META/standard.schema.json"
+    },
+    {
+      "type": "policy",
+      "match": [".intent/policies/**/*.json"],
+      "schema": ".intent/schemas/META/policy.schema.json",
+      "unique": [
+        { "field": "id", "scope": "global", "code": "intent.policy.duplicate_id" }
+      ],
+      "nested_unique": [
+        { "path": "rules", "field": "id", "scope": "global", "code": "intent.rule.duplicate_id" }
+      ]
+    }
+  ]
+}

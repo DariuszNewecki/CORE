@@ -86,7 +86,7 @@ class LLMCorrectionService:
         except Exception as e:
             return {
                 "status": "error",
-                "message": f"LLM request failed: {str(e)}",
+                "message": f"LLM request failed: {e!s}",
             }
 
         # Extract corrected code with lenient parsing
@@ -188,7 +188,7 @@ class LLMCorrectionService:
         write_blocks = parse_write_blocks(llm_output)
         if write_blocks:
             logger.info("Extracted correction from write block")
-            return list(write_blocks.values())[0]
+            return next(iter(write_blocks.values()))
 
         # Strategy 2: Markdown code fences
         code = self.code_extractor.extract(llm_output)

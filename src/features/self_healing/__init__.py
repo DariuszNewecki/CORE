@@ -1,4 +1,11 @@
 # src/features/self_healing/__init__.py
-"""Provides functionality for the __init__ module."""
+"""Self-healing capabilities for CORE."""
 
 from __future__ import annotations
+
+from .memory_cleanup_service import MemoryCleanupService
+
+
+__all__ = [
+    "MemoryCleanupService",
+]

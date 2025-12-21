@@ -2,19 +2,28 @@
 """
 Enforces caps.id_format: Finds and forbids legacy '# CAPABILITY:' tags.
 Legacy tags violate the current ID schema and must be migrated to '# ID: <uuid>'.
+
+Ref: .intent/charter/standards/code_standards.json
 """
 
 from __future__ import annotations
 
 import re
 from pathlib import Path
+from typing import Any, ClassVar
 
-from mind.governance.checks.base_check import BaseCheck
+from mind.governance.audit_context import AuditorContext
+from mind.governance.checks.rule_enforcement_check import (
+    EnforcementMethod,
+    RuleEnforcementCheck,
+)
 from shared.logger import getLogger
 from shared.models import AuditFinding, AuditSeverity
 
 
 logger = getLogger(__name__)
+
+CODE_STANDARDS_POLICY = Path(".intent/charter/standards/code_standards.json")
 
 # Strict pattern: Start of line (with indent), hash, explicit CAPABILITY keyword
 LEGACY_TAG_PATTERN = re.compile(r"^\s*#\s*CAPABILITY:\s*\S+", re.IGNORECASE)
@@ -36,27 +45,26 @@ EXCLUDE_DIRS = {
 }
 
 
-# ID: 0649c22b-9336-490b-9ffd-25e202924301
-class LegacyTagCheck(BaseCheck):
+# ID: legacy-tag-enforcement
+# ID: fb25a39e-a205-421f-b8c0-056e3935e6ff
+class LegacyTagEnforcement(EnforcementMethod):
     """
     Scans the codebase for legacy '# CAPABILITY:' tags.
-    Ref: standard_code_general (caps.id_format)
     """
 
-    policy_rule_ids = ["caps.id_format"]
+    def __init__(self, rule_id: str, severity: AuditSeverity = AuditSeverity.ERROR):
+        super().__init__(rule_id, severity)
 
-    # ID: 94e602d4-47da-455d-be69-fe7a037bcb2b
-    def execute(self) -> list[AuditFinding]:
+    # ID: bd193121-c494-455d-93ff-4ab85eafedf0
+    def verify(
+        self, context: AuditorContext, rule_data: dict[str, Any], **kwargs
+    ) -> list[AuditFinding]:
         """
         Runs the check by scanning relevant text files for the legacy tag pattern.
         """
         findings = []
 
-        # Optimization: If context has a file list, use it. Otherwise, scan intelligently.
-        # Assuming context might not track all file types we care about (like bash),
-        # we perform a controlled walk.
-
-        files_to_scan = self._get_scannable_files()
+        files_to_scan = self._get_scannable_files(context)
 
         for file_path in files_to_scan:
             try:
@@ -68,18 +76,15 @@ class LegacyTagCheck(BaseCheck):
                     if "CAPABILITY" in line:
                         if LEGACY_TAG_PATTERN.search(line):
                             findings.append(
-                                AuditFinding(
-                                    check_id="caps.id_format",
-                                    severity=AuditSeverity.ERROR,
+                                self._create_finding(
                                     message=(
                                         "Legacy '# CAPABILITY:' tag found. "
                                         "Replace with '# ID: <uuid>' per code standards."
                                     ),
                                     file_path=str(
-                                        file_path.relative_to(self.repo_root)
+                                        file_path.relative_to(context.repo_path)
                                     ),
                                     line_number=i,
-                                    context={"legacy_line": line.strip()},
                                 )
                             )
             except UnicodeDecodeError:
@@ -91,14 +96,14 @@ class LegacyTagCheck(BaseCheck):
 
         return findings
 
-    def _get_scannable_files(self) -> list[Path]:
+    def _get_scannable_files(self, context: AuditorContext) -> list[Path]:
         """
         Generates a list of files to scan, pruning directories efficiently.
         """
         scannable = []
 
         # Walk top-down so we can prune directories
-        for root, dirs, files in self.repo_root.walk():
+        for root, dirs, files in context.repo_path.walk():
             # 1. Prune Excluded Directories in-place
             # This prevents descending into .git, .venv, etc.
             dirs[:] = [d for d in dirs if d not in EXCLUDE_DIRS]
@@ -117,3 +122,24 @@ class LegacyTagCheck(BaseCheck):
                 scannable.append(file_path)
 
         return scannable
+
+
+# ID: 0649c22b-9336-490b-9ffd-25e202924301
+class LegacyTagCheck(RuleEnforcementCheck):
+    """
+    Scans the codebase for legacy '# CAPABILITY:' tags.
+
+    Ref: .intent/charter/standards/code_standards.json
+    """
+
+    policy_rule_ids: ClassVar[list[str]] = ["caps.id_format"]
+
+    policy_file: ClassVar[Path] = CODE_STANDARDS_POLICY
+
+    enforcement_methods: ClassVar[list[EnforcementMethod]] = [
+        LegacyTagEnforcement(rule_id="caps.id_format"),
+    ]
+
+    @property
+    def _is_concrete_check(self) -> bool:
+        return True

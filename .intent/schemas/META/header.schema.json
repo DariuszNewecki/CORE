@@ -1,0 +1,63 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "schema_id": "meta.header",
+  "version": "1.0.0",
+  "title": "CORE Intent Document Header Schema",
+  "description": "Common header shared by constitution, standards, and policies.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "version",
+    "title",
+    "description",
+    "owners",
+    "review"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_.-]*$"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 200
+    },
+    "description": {
+      "type": "string",
+      "minLength": 10
+    },
+    "owners": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["accountable"],
+      "properties": {
+        "accountable": { "type": "string", "minLength": 2 },
+        "responsible": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 2 },
+          "default": []
+        }
+      }
+    },
+    "review": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["frequency"],
+      "properties": {
+        "frequency": { "type": "string", "minLength": 3 },
+        "last_reviewed": { "type": "string", "format": "date" },
+        "next_review_due": { "type": "string", "format": "date" }
+      }
+    },
+    "tags": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  }
+}

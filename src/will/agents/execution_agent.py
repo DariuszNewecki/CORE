@@ -90,12 +90,12 @@ class _ExecutionAgent:
             await self.executor.execute_plan(plan)
             return (True, "✅ Plan executed successfully.")
         except (PlanExecutionError, CodeGenerationError) as e:
-            return (False, f"Plan execution failed: {str(e)}")
+            return (False, f"Plan execution failed: {e!s}")
         except Exception as e:
             logger.error(
                 "An unexpected error occurred during execution: %s", e, exc_info=True
             )
             return (
                 False,
-                f"An unexpected error occurred during plan orchestration: {str(e)}",
+                f"An unexpected error occurred during plan orchestration: {e!s}",
             )

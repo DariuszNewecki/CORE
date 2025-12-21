@@ -19,7 +19,6 @@ must be injected by the caller (CLI or fix workflow).
 
 from __future__ import annotations
 
-import asyncio
 import json
 from collections.abc import Callable
 from pathlib import Path
@@ -131,6 +130,7 @@ async def _async_tag_capabilities(
     )
 
     async with session_factory() as session:
+        # Transaction boundary lives here; session.begin() commits on success automatically.
         async with session.begin():
             for _, new_info in suggestions.items():
                 suggested_name = str(new_info["suggestion"]).strip()
@@ -153,7 +153,6 @@ async def _async_tag_capabilities(
                 if proposed_namespace:
                     tags.append(proposed_namespace)
 
-                # Optional: allow agent to provide a confidence if it supports it.
                 confidence = float(new_info.get("confidence", DEFAULT_LLM_CONFIDENCE))
 
                 cap_upsert_sql = text(
@@ -215,31 +214,8 @@ async def _async_tag_capabilities(
                     namespace,
                 )
 
-        await session.commit()
-
 
 # ID: ba923fe1-b7d4-415c-8a96-40e0bed1e401
-def main_sync(
-    session_factory: SessionFactory,
-    cognitive_service: CognitiveService,
-    knowledge_service: KnowledgeService,
-    write: bool = False,
-    dry_run: bool = False,
-) -> None:
-    """Synchronous wrapper for capability tagging."""
-    effective_dry_run = dry_run or not write
-    asyncio.run(
-        _async_tag_capabilities(
-            cognitive_service=cognitive_service,
-            knowledge_service=knowledge_service,
-            session_factory=session_factory,
-            file_path=None,
-            dry_run=effective_dry_run,
-        )
-    )
-
-
-# ID: 7f2a55a8-c88e-4ef9-a6e9-62849bc53837
 async def main_async(
     session_factory: SessionFactory,
     cognitive_service: CognitiveService,
@@ -247,7 +223,13 @@ async def main_async(
     write: bool = False,
     dry_run: bool = False,
 ) -> None:
-    """Async wrapper used by `fix all` workflows."""
+    """
+    Async wrapper used by governed workflows.
+
+    NOTE:
+    - FEATURES layer does not start event loops.
+    - If a synchronous CLI needs to invoke this, the sync runner must live in Body/CLI.
+    """
     effective_dry_run = dry_run or not write
     await _async_tag_capabilities(
         cognitive_service=cognitive_service,

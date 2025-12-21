@@ -1,0 +1,217 @@
+{
+  "id": "standard_architecture_agent_governance",
+  "version": "1.0.0",
+  "title": "Architecture Standard – Agent Governance",
+  "type": "standard_architecture",
+  "status": "active",
+  "owners": {
+    "accountable": "Governance Lead",
+    "responsible": [
+      "Core Maintainer"
+    ]
+  },
+  "review": {
+    "frequency": "12 months"
+  },
+  "schema_id": "policy.structure",
+  "purpose": "Define how CORE’s agents may act, what they are forbidden to do, and how autonomous behavior is constrained by the constitution.\n",
+  "rules": [
+    {
+      "id": "agent.compliance.no_write_intent",
+      "category": "agent_governance",
+      "statement": "Agents MUST NOT write directly to '.intent/charter/**'.",
+      "enforcement": "error"
+    },
+    {
+      "id": "agent.compliance.respect_cli_registry",
+      "category": "agent_governance",
+      "statement": "All tool invocations MUST route through registered CLI commands.",
+      "enforcement": "error"
+    },
+    {
+      "id": "agent.execution.no_unverified_code",
+      "category": "agent_governance",
+      "statement": "MUST NOT execute/commit code without full validation pipeline.",
+      "enforcement": "error",
+      "cross_references": [
+        {
+          "file": "charter/standards/operations/code_execution.yaml",
+          "rule_id": "agent.execution.no_unverified_code",
+          "note": "Same constraint appears in Ops execution standard; this file is authoritative for agent governance wording."
+        }
+      ]
+    },
+    {
+      "id": "agent.execution.require_runtime_validation",
+      "category": "agent_governance",
+      "statement": "All generated code MUST pass test suite before commit.",
+      "enforcement": "error",
+      "cross_references": [
+        {
+          "file": "charter/standards/operations/code_execution.yaml",
+          "rule_id": "agent.execution.require_runtime_validation",
+          "note": "Operational elaboration exists in Ops execution standard; this file is authoritative for agent governance wording."
+        }
+      ]
+    },
+    {
+      "id": "agent.reasoning.trace_required",
+      "category": "agent_governance",
+      "statement": "MUST produce inspectable trace for non-trivial tasks.",
+      "enforcement": "warn"
+    }
+  ],
+  "autonomy_lanes": {
+    "micro_proposals": {
+      "description": "Low-risk autonomous changes that can auto-approve",
+      "allowed_actions": [
+        "autonomy.self_healing.fix_docstrings",
+        "autonomy.self_healing.format_code",
+        "autonomy.self_healing.fix_headers",
+        "autonomy.self_healing.fix_imports",
+        "autonomy.self_healing.remove_dead_code",
+        "autonomy.self_healing.fix_line_length",
+        "autonomy.self_healing.add_policy_ids",
+        "autonomy.self_healing.sort_imports"
+      ],
+      "velocity_limits": {
+        "max_proposals_per_hour": 10,
+        "max_files_per_day": 50,
+        "breach_behavior": "lock_lane_and_alert"
+      },
+      "safe_paths": [
+        "docs/**/*.md",
+        "tests/**/*.py",
+        "src/**/*.py"
+      ],
+      "forbidden_paths": [
+        ".intent/**",
+        "src/system/governance/**",
+        "src/core/**"
+      ]
+    },
+    "full_amendments": {
+      "description": "Changes requiring human review and quorum",
+      "requires": [
+        "formal_proposal",
+        "approver_signatures",
+        "constitutional_audit",
+        "meet_quorum_requirements"
+      ]
+    }
+  },
+  "planner_actions": [
+    {
+      "name": "create_file",
+      "description": "Create a new file with the specified content.",
+      "parameters": [
+        {
+          "name": "file_path",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "code",
+          "type": "string",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "edit_file",
+      "description": "Replace the entire content of an existing file.",
+      "parameters": [
+        {
+          "name": "file_path",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "code",
+          "type": "string",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "edit_function",
+      "description": "Replace a specific function or method in a file.",
+      "parameters": [
+        {
+          "name": "file_path",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "symbol_name",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "code",
+          "type": "string",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "read_file",
+      "description": "Read the content of a file.",
+      "parameters": [
+        {
+          "name": "file_path",
+          "type": "string",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "list_files",
+      "description": "List files in a directory.",
+      "parameters": [
+        {
+          "name": "file_path",
+          "type": "string",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "delete_file",
+      "description": "Delete a file.",
+      "parameters": [
+        {
+          "name": "file_path",
+          "type": "string",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "create_proposal",
+      "description": "Create a governance proposal.",
+      "parameters": [
+        {
+          "name": "file_path",
+          "type": "string"
+        },
+        {
+          "name": "code",
+          "type": "string"
+        },
+        {
+          "name": "justification",
+          "type": "string"
+        }
+      ]
+    }
+  ],
+  "resource_selection": {
+    "scoring_weights": {
+      "cost": 0.5,
+      "speed": 0.3,
+      "quality": 0.1,
+      "reasoning": 0.1
+    }
+  }
+}

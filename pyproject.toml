@@ -141,15 +141,18 @@ extend-exclude = [
     "pending_writes",
     "scripts",
     "dev-scripts",
+    "tests",
 ]
 
 [tool.ruff.lint]
 select = [
-    "E",   # pycodestyle errors
-    "W",   # pycodestyle warnings
-    "F",   # pyflakes
-    "I",   # isort
-    "UP",  # pyupgrade
+    "E",     # pycodestyle errors
+    "W",     # pycodestyle warnings
+    "F",     # pyflakes
+    "I",     # isort
+    "UP",    # pyupgrade
+    "RUF",   # Ruff-specific rules (includes RUF029 for async)
+    "ASYNC", # flake8-async rules
 ]
 ignore = [
     "E402",  # Module level import not at top of file
@@ -164,8 +167,8 @@ ignore = [
     "C414",  # Allow list() in sorted()
     "N806",  # Allow uppercase variable names
     "F841",  # Allow unused local variables (sometimes intentional)
+    "RUF043",
 ]
-
 [tool.ruff.lint.isort]
 force-single-line = false
 lines-after-imports = 2

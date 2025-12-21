@@ -5,6 +5,9 @@ Unified interface for AI-native development with constitutional governance.
 
 Commands for feature development, bug fixes, refactoring, and test generation
 that automatically create intent crates for safe, autonomous deployment.
+
+CONSTITUTIONAL FIX: Replaced Rich Progress() with logger.debug() progress logs.
+Body layer must be HEADLESS - no UI components like Rich progress indicators.
 """
 
 from __future__ import annotations
@@ -14,7 +17,6 @@ from pathlib import Path
 import typer
 from rich.console import Console
 from rich.panel import Panel
-from rich.progress import Progress, SpinnerColumn, TextColumn
 
 from body.services.crate_creation_service import CrateCreationService
 from body.services.crate_processing_service import process_crates
@@ -132,17 +134,19 @@ async def feature(
         plan_executor=plan_executor,
         auditor_context=context.auditor_context,
     )
-    with Progress(
-        SpinnerColumn(),
-        TextColumn("[progress.description]{task.description}"),
-        console=console,
-    ) as progress:
-        task = progress.add_task("Generating code with AI agents...", total=None)
-        output_mode = "crate" if mode in ("auto", "manual") else "direct"
-        success, result = await develop_from_goal(
-            context, goal, executor_agent, output_mode=output_mode
-        )
-        progress.update(task, completed=True)
+
+    # CONSTITUTIONAL FIX: Use logger.debug() instead of Rich Progress()
+    # Body layer must be headless - no UI components
+    logger.debug("Starting code generation with AI agents...")
+    console.print("\n[dim]Generating code with AI agents...[/dim]")
+
+    output_mode = "crate" if mode in ("auto", "manual") else "direct"
+    success, result = await develop_from_goal(
+        context, goal, executor_agent, output_mode=output_mode
+    )
+
+    logger.debug("Code generation completed: success=%s", success)
+
     if not success:
         console.print("\n[bold red]✗ Code generation failed[/bold red]")
         console.print(f"Error: {result}")

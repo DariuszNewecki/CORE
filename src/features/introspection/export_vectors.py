@@ -7,13 +7,13 @@ to a local JSONL file for analysis, clustering, or backup.
 
 from __future__ import annotations
 
-import asyncio
 import json
 from pathlib import Path
 
 import typer
 from qdrant_client.http import models as qm
 
+from shared.cli_utils import core_command
 from shared.context import CoreContext
 from shared.infrastructure.clients.qdrant_client import QdrantService
 from shared.logger import getLogger
@@ -51,7 +51,9 @@ async def _async_export(qdrant_service: QdrantService, output_path: Path):
 
 
 # ID: c94d2b2e-fde1-4ee8-bfe7-608e5d9bd18a
-def export_vectors(
+@core_command(dangerous=False)
+# ID: a609ada6-bc85-463c-9db4-93c59924c4ef
+async def export_vectors(
     ctx: typer.Context,
     output: Path = typer.Option(
         "reports/vectors_export.jsonl",
@@ -62,4 +64,4 @@ def export_vectors(
 ):
     """Exports all vectors from Qdrant to a JSONL file."""
     core_context: CoreContext = ctx.obj
-    asyncio.run(_async_export(core_context.qdrant_service, output))
+    await _async_export(core_context.qdrant_service, output)

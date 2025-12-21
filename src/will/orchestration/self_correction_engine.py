@@ -116,14 +116,14 @@ async def attempt_correction(
             final_prompt, user_id="auto_repair"
         )
     except Exception as e:
-        return {"status": "error", "message": f"LLM request failed: {str(e)}"}
+        return {"status": "error", "message": f"LLM request failed: {e!s}"}
     write_blocks = parse_write_blocks(llm_output)
     if not write_blocks:
         return {
             "status": "error",
             "message": "LLM did not produce a valid correction in a write block.",
         }
-    path, fixed_code = list(write_blocks.items())[0]
+    path, fixed_code = next(iter(write_blocks.items()))
     validation_result = await validate_code_async(
         path, fixed_code, auditor_context=auditor_context
     )

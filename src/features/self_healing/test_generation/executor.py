@@ -1,6 +1,6 @@
 # src/features/self_healing/test_generation/executor.py
 """
-TestExecutor – runs pytest, returns structured results.
+TestExecutor - runs pytest, returns structured results.
 """
 
 from __future__ import annotations

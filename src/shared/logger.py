@@ -24,9 +24,12 @@ _VALID_LEVELS = frozenset({"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"})
 # Context variable for Activity correlation (Workflow Tracing)
 _current_run_id = contextvars.ContextVar("run_id", default=None)
 
-# Validate level at import time
+# Use a module logger (cannot rely on shared.logger.getLogger yet inside this module)
+_boot_logger = logging.getLogger(__name__)
+
+# Validate level at import time (keep it lightweight; do not rely on rich)
 if _LOG_LEVEL not in _VALID_LEVELS:
-    logging.warning(f"Invalid LOG_LEVEL '{_LOG_LEVEL}'. Using INFO.")
+    _boot_logger.warning("Invalid LOG_LEVEL '%s'. Using INFO.", _LOG_LEVEL)
     _LOG_LEVEL = "INFO"
 
 # ─────────────────────────────────────────────────────────────── Formatters
@@ -41,27 +44,22 @@ class JsonFormatter(logging.Formatter):
 
     # ID: 7602325a-ebe5-4b21-b25f-043650e8fcf4
     def format(self, record: logging.LogRecord) -> str:
-        # Base structured log
         log_record: dict[str, Any] = {
             "timestamp": datetime.fromtimestamp(record.created, tz=UTC).isoformat(),
             "level": record.levelname,
-            "message": record.getMessage(),  # Evaluates % args here
+            "message": record.getMessage(),
             "logger": record.name,
             "module": record.module,
             "line": record.lineno,
         }
 
-        # Inject ContextVar (Activity ID) if present
         run_id = _current_run_id.get()
         if run_id:
             log_record["run_id"] = run_id
 
-        # Include exception info if present (LOG-006)
         if record.exc_info:
             log_record["exception"] = self.formatException(record.exc_info)
 
-        # Merge 'extra' fields into root (LOG-005 compliance)
-        # We skip standard LogRecord attributes to avoid clutter
         standard_attrs = {
             "name",
             "msg",
@@ -90,7 +88,6 @@ class JsonFormatter(logging.Formatter):
             if key not in standard_attrs:
                 log_record[key] = value
 
-        # Handle legacy 'activity' dict from shared.activity_logging if present
         if hasattr(record, "activity"):
             log_record["activity"] = record.activity
 
@@ -116,13 +113,11 @@ def configure_root_logger(
 
     if handlers is None:
         handlers = []
-        # Choose handler based on format type
         if _LOG_FORMAT_TYPE == "json":
             handler = logging.StreamHandler(sys.stdout)
             handler.setFormatter(JsonFormatter())
             handlers.append(handler)
         else:
-            # Human-readable (Development)
             try:
                 from rich.logging import RichHandler
 
@@ -144,7 +139,6 @@ def configure_root_logger(
         force=True,
     )
 
-    # Suppress noisy external libraries
     for lib in ("httpx", "urllib3", "qdrant_client"):
         logging.getLogger(lib).setLevel(logging.WARNING)
 

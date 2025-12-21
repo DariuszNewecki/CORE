@@ -1,0 +1,211 @@
+{
+  "rules": [
+    {
+      "category": "style",
+      "enforcement": "error",
+      "id": "style.linter_required",
+      "statement": "All changes MUST pass ruff (lint) before merge."
+    },
+    {
+      "category": "style",
+      "enforcement": "error",
+      "id": "style.formatter_required",
+      "statement": "All changes MUST be formatted by black; CI runs black --check."
+    },
+    {
+      "category": "style",
+      "enforcement": "error",
+      "id": "style.fail_on_style_in_ci",
+      "statement": "CI MUST fail on style or lint violations (no auto-fixing in CI)."
+    },
+    {
+      "category": "style",
+      "enforcement": "warn",
+      "id": "style.docstrings_public_apis",
+      "statement": "Public APIs MUST have docstrings summarizing intent and parameters."
+    },
+    {
+      "category": "style",
+      "enforcement": "warn",
+      "id": "style.universal_helper_first",
+      "statement": "Before creating new helpers, check shared.universal. Reuse or extend instead of duplicating."
+    },
+    {
+      "category": "style",
+      "enforcement": "warn",
+      "id": "style.capability_id_placement",
+      "statement": "Primary public symbols that represent distinct capabilities MUST have '# ID: <uuid>' tags directly above their definition. Private helpers MUST NOT receive capability IDs.\n"
+    },
+    {
+      "category": "style",
+      "enforcement": "warn",
+      "id": "style.import_order",
+      "statement": "Imports MUST follow grouping/order and avoid unused imports (enforced by linter)."
+    },
+    {
+      "category": "layout",
+      "enforcement": "error",
+      "id": "layout.src_module_header",
+      "scope": [
+        "src/**/*.py"
+      ],
+      "statement": "Every Python module under 'src/' MUST begin with a correct file path comment matching its repo-root location, followed by the module docstring and then the canonical future import. This ordering constitutes the required header block.\n"
+    },
+    {
+      "category": "layout",
+      "enforcement": "warn",
+      "id": "layout.import_grouping",
+      "scope": [
+        "src/**/*.py",
+        "tests/**/*.py"
+      ],
+      "statement": "Imports MUST be grouped in the canonical order: future imports, standard library, third-party packages, then internal modules. Mixed groups or interleaving are forbidden.\n"
+    },
+    {
+      "category": "architecture",
+      "enforcement": "info",
+      "id": "di.policy_reference",
+      "statement": "Dependency Injection rules are defined canonically in 'dependency_injection_policy.yaml'. Auditors and agents MUST treat that policy as the single source of truth and only reference these standards as a high-level summary.\n"
+    },
+    {
+      "category": "refactor",
+      "enforcement": "error",
+      "id": "refactor.requires_tests",
+      "statement": "Any refactor that changes public behavior MUST include tests or proof of equivalence."
+    },
+    {
+      "category": "refactor",
+      "enforcement": "warn",
+      "id": "refactor.update_capabilities",
+      "statement": "When moving symbols, update capability tags and manifests accordingly."
+    },
+    {
+      "category": "refactor",
+      "enforcement": "error",
+      "id": "refactor.audit_after",
+      "statement": "A constitutional audit MUST run after refactors before merge."
+    },
+    {
+      "category": "code_health",
+      "enforcement": "error",
+      "id": "code_standards.max_file_lines",
+      "statement": "Python modules MUST NOT exceed 400 lines."
+    },
+    {
+      "category": "code_health",
+      "enforcement": "warn",
+      "id": "code_standards.max_function_lines",
+      "statement": "Functions MUST NOT exceed 50 lines."
+    },
+    {
+      "category": "async",
+      "enforcement": "error",
+      "exceptions": [
+        "src/main.py",
+        "src/shared/cli_utils.py",
+        "tests/**/*.py"
+      ],
+      "id": "async.no_manual_loop_management",
+      "scope": [
+        "src/features/**/*.py",
+        "src/body/logic/**/*.py",
+        "src/services/**/*.py"
+      ],
+      "statement": "Business logic and Feature modules MUST NOT call 'asyncio.run()'. They must be 'async def' and let the top-level CLI wrapper handle the loop.\n"
+    },
+    {
+      "category": "capability",
+      "enforcement": "error",
+      "id": "caps.id_format",
+      "statement": "Source code linkers MUST use the form '# ID: <uuid>'."
+    },
+    {
+      "category": "capability",
+      "enforcement": "error",
+      "id": "caps.meaningful_description",
+      "statement": "Capability descriptions MUST be specific and non-placeholder."
+    },
+    {
+      "category": "capability",
+      "enforcement": "error",
+      "id": "caps.no_placeholder_text",
+      "statement": "Descriptions such as 'TBD' or 'N/A' are forbidden."
+    },
+    {
+      "category": "capability",
+      "enforcement": "error",
+      "id": "caps.owner_required",
+      "statement": "Active capabilities MUST have an assigned owner (agent/team)."
+    },
+    {
+      "category": "symbols",
+      "enforcement": "error",
+      "id": "symbols.public_capability_id_and_docstring",
+      "scope": [
+        "src/**/*.py"
+      ],
+      "statement": "Public symbols that represent a capability (primary functions/classes not starting with '_') MUST have an '# ID: <uuid>' comment directly above the definition and MUST provide a meaningful docstring describing behavior and guarantees.\n"
+    },
+    {
+      "category": "symbols",
+      "enforcement": "warn",
+      "id": "symbols.private_helpers_no_id_required",
+      "scope": [
+        "src/**/*.py"
+      ],
+      "statement": "Private helpers (functions/classes starting with '_') MUST NOT receive capability IDs. They MAY have docstrings where non-trivial but are not required to.\n"
+    },
+    {
+      "category": "symbols",
+      "enforcement": "error",
+      "id": "symbols.cli_async_helpers_private",
+      "scope": [
+        "src/**/*.py"
+      ],
+      "statement": "Async orchestration helpers used exclusively to bridge CLI commands and domain capabilities MUST be private (their name must start with '_') and MUST NOT receive capability IDs.\n"
+    },
+    {
+      "category": "naming",
+      "enforcement": "error",
+      "id": "intent.policy_file_naming",
+      "statement": "All charter policy files must use snake_case and end with '.yaml'."
+    },
+    {
+      "category": "naming",
+      "enforcement": "error",
+      "id": "intent.policy_schema_naming",
+      "statement": "Schemas for policy files must end with '_policy_schema.json'."
+    },
+    {
+      "category": "naming",
+      "enforcement": "error",
+      "id": "intent.artifact_schema_naming",
+      "statement": "Schemas for non-policy artifacts must end with '_schema.[json|yaml]'."
+    },
+    {
+      "category": "naming",
+      "enforcement": "error",
+      "id": "intent.prompt_file_naming",
+      "statement": "All prompt files must use snake_case and end with '.prompt'."
+    },
+    {
+      "category": "naming",
+      "enforcement": "warn",
+      "id": "intent.proposal_file_naming",
+      "statement": "All proposal files must follow the 'cr-*.yaml' naming convention."
+    },
+    {
+      "category": "naming",
+      "enforcement": "error",
+      "id": "code.python_module_naming",
+      "statement": "All Python source files must use snake_case naming."
+    },
+    {
+      "category": "naming",
+      "enforcement": "error",
+      "id": "code.python_test_module_naming",
+      "statement": "All Python test files must be prefixed with 'test_'."
+    }
+  ],
+  "schema_id": "schema.code.policy"
+}

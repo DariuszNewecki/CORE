@@ -11,7 +11,7 @@ from __future__ import annotations
 import asyncio
 import importlib
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from sqlalchemy import text
 
@@ -40,11 +40,11 @@ class ServiceRegistry:
     - Phase 2 (outside lock): Initialize async resources
     """
 
-    _instances: dict[str, Any] = {}
-    _service_map: dict[str, str] = {}
-    _initialized = False
-    _init_flags: dict[str, bool] = {}
-    _lock = asyncio.Lock()
+    _instances: ClassVar[dict[str, Any]] = {}
+    _service_map: ClassVar[dict[str, str]] = {}
+    _initialized: ClassVar[bool] = False
+    _init_flags: ClassVar[dict[str, bool]] = {}
+    _lock: ClassVar[asyncio.Lock] = asyncio.Lock()
 
     def __init__(self, repo_path: Path | None = None):
         self.repo_path = repo_path or settings.REPO_PATH

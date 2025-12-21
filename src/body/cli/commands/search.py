@@ -75,7 +75,7 @@ async def search_capabilities_cmd(
 @search_app.command("commands")
 @core_command(dangerous=False)
 # ID: cb2f39e0-7b4a-4134-8996-961c4ceaf517
-def search_commands_cmd(
+async def search_commands_cmd(
     ctx: typer.Context,
     term: str = typer.Argument(
         ..., help="Term to search in command names/descriptions."
@@ -85,7 +85,4 @@ def search_commands_cmd(
     """
     Fuzzy search across CLI commands from the registry.
     """
-    # Delegate to logic handler (which might need updating if it uses args)
-    # hub_search_cmd is currently defined in body.cli.logic.hub
-    # We call it directly. It handles its own DB access via session manager.
-    hub_search_cmd(term=term, limit=limit)
+    await hub_search_cmd(term=term, limit=limit)

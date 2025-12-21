@@ -19,7 +19,7 @@ class TestValidateYamlCode:
     def test_invalid_yaml_syntax(self):
         """Test that invalid YAML syntax is detected."""
         code = "key: value\n  invalid: indentation:"
-        result_code, violations = validate_yaml_code(code)
+        _result_code, violations = validate_yaml_code(code)
         assert len(violations) == 1
         assert violations[0]["rule"] == "syntax.yaml"
         assert violations[0]["severity"] == "error"
@@ -27,18 +27,18 @@ class TestValidateYamlCode:
     def test_empty_yaml(self):
         """Test that empty YAML is valid."""
         code = ""
-        result_code, violations = validate_yaml_code(code)
+        _result_code, violations = validate_yaml_code(code)
         assert violations == []
 
     def test_yaml_with_special_chars(self):
         """Test YAML with special characters."""
         code = "message: 'Hello: World!'\npath: /usr/bin"
-        result_code, violations = validate_yaml_code(code)
+        _result_code, violations = validate_yaml_code(code)
         assert violations == []
 
     def test_malformed_yaml(self):
         """Test completely malformed YAML."""
         code = "{{{"
-        result_code, violations = validate_yaml_code(code)
+        _result_code, violations = validate_yaml_code(code)
         assert len(violations) >= 1
         assert violations[0]["severity"] == "error"

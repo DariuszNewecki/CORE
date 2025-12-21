@@ -9,6 +9,7 @@ from __future__ import annotations
 import ast
 import fnmatch
 from pathlib import Path
+from typing import ClassVar
 
 from mind.governance.audit_context import AuditorContext
 from mind.governance.checks.base_check import BaseCheck
@@ -27,7 +28,7 @@ class StyleChecks(BaseCheck):
     """
 
     # Default contract
-    policy_rule_ids = ["style.docstrings_public_apis"]
+    policy_rule_ids: ClassVar[list[str]] = ["style.docstrings_public_apis"]
 
     def __init__(self, context: AuditorContext):
         super().__init__(context)

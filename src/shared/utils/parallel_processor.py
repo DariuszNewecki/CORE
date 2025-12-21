@@ -3,10 +3,6 @@
 """
 Provides a reusable, throttled parallel processor for running async tasks
 concurrently.
-
-UI STANDARDS UPDATE:
-Switched from Progress Bar (track) to Spinner (status) to comply with
-workflow_patterns.yaml visual standards.
 """
 
 from __future__ import annotations
@@ -15,14 +11,11 @@ import asyncio
 from collections.abc import Awaitable, Callable
 from typing import TypeVar
 
-from rich.console import Console
-
 from shared.config import settings
 from shared.logger import getLogger
 
 
 logger = getLogger(__name__)
-console = Console()
 T = TypeVar("T")
 R = TypeVar("R")
 
@@ -35,9 +28,6 @@ class ThrottledParallelProcessor:
     """
 
     def __init__(self, description: str = "Processing items..."):
-        """
-        Initializes the processor.
-        """
         self.concurrency_limit = settings.CORE_MAX_CONCURRENT_REQUESTS
         self.description = description
         logger.info(
@@ -48,9 +38,8 @@ class ThrottledParallelProcessor:
     async def _process_items_async(
         self, items: list[T], worker_fn: Callable[[T], Awaitable[R]]
     ) -> list[R]:
-        """The core async logic for processing items in parallel."""
         semaphore = asyncio.Semaphore(self.concurrency_limit)
-        results = []
+        results: list[R] = []
 
         async def _worker(item: T) -> R:
             async with semaphore:
@@ -58,10 +47,9 @@ class ThrottledParallelProcessor:
 
         tasks = [asyncio.create_task(_worker(item)) for item in items]
 
-        logger.info("%s", self.description)
+        logger.debug("%s", self.description)
         for task in asyncio.as_completed(tasks):
-            result = await task
-            results.append(result)
+            results.append(await task)
 
         return results
 
@@ -69,16 +57,4 @@ class ThrottledParallelProcessor:
     async def run_async(
         self, items: list[T], worker_fn: Callable[[T], Awaitable[R]]
     ) -> list[R]:
-        """
-        Asynchronous entry point to run the worker over all items.
-        """
         return await self._process_items_async(items, worker_fn)
-
-    # ID: 52b37f99-ccf6-44fe-bdae-9286f5330482
-    def run_sync(
-        self, items: list[T], worker_fn: Callable[[T], Awaitable[R]]
-    ) -> list[R]:
-        """
-        Synchronous entry point to run the async worker over all items.
-        """
-        return asyncio.run(self._process_items_async(items, worker_fn))

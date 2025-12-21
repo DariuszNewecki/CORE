@@ -274,7 +274,7 @@ class LoggingTransformer(ast.NodeTransformer):
         format_string = "".join(format_parts)
 
         # Build new call: logger.method("format string", arg1, arg2, ...)
-        new_args = [ast.Constant(value=format_string)] + format_args + node.args[1:]
+        new_args = [ast.Constant(value=format_string), *format_args, *node.args[1:]]
 
         # Create new Call node with same function but new args
         new_call = ast.Call(func=node.func, args=new_args, keywords=node.keywords)

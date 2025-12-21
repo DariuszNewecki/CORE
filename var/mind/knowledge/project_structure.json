@@ -1,0 +1,140 @@
+{
+  "id": "project_structure",
+  "version": "1.0.0",
+  "title": "Project Structure & Entry Points",
+  "type": "knowledge_document",
+  "status": "active",
+  "owners": {
+    "accountable": "Governance Lead",
+    "responsible": [
+      "Core Maintainer"
+    ]
+  },
+  "review": {
+    "frequency": "12 months"
+  },
+  "schema_id": "knowledge.project_structure",
+  "architectural_domains": [
+    {
+      "domain": "api",
+      "path": "src/api",
+      "description": "FastAPI routers only. The HTTP entrypoint.",
+      "allowed_imports": [
+        "api",
+        "core",
+        "features",
+        "services",
+        "shared"
+      ]
+    },
+    {
+      "domain": "core",
+      "path": "src/core",
+      "description": "Orchestration layer. Connects entrypoints to features.",
+      "allowed_imports": [
+        "core",
+        "features",
+        "services",
+        "shared"
+      ]
+    },
+    {
+      "domain": "features",
+      "path": "src/features",
+      "description": "Self-contained business capabilities mapped to DB.",
+      "allowed_imports": [
+        "features",
+        "services",
+        "shared",
+        "core"
+      ]
+    },
+    {
+      "domain": "services",
+      "path": "src/services",
+      "description": "Cross-cutting infrastructure services.",
+      "allowed_imports": [
+        "services",
+        "shared"
+      ]
+    },
+    {
+      "domain": "shared",
+      "path": "src/shared",
+      "description": "Shared primitives and utilities.",
+      "allowed_imports": [
+        "shared"
+      ]
+    }
+  ],
+  "entry_point_patterns": [
+    {
+      "name": "python_magic_method",
+      "description": "Standard Python __dunder__ methods invoked automatically.",
+      "entry_point_type": "magic_method",
+      "match": {
+        "type": "function",
+        "name_regex": "^__.+__$"
+      }
+    },
+    {
+      "name": "capability_implementation",
+      "description": "Any symbol tagged with # ID is treated as a primary capability.",
+      "entry_point_type": "capability",
+      "match": {
+        "has_capability_tag": true
+      }
+    },
+    {
+      "name": "typer_cli_command",
+      "description": "Public functions under src/cli/ registered by Typer.",
+      "entry_point_type": "cli_command",
+      "match": {
+        "module_path_contains": "src/cli/",
+        "type": "function",
+        "is_public_function": true
+      }
+    }
+  ],
+  "file_handlers": [
+    {
+      "type": "python",
+      "extensions": [
+        ".py"
+      ],
+      "parse_as": "ast",
+      "editable": true,
+      "description": "Python source code governed by Body/Mind rules"
+    },
+    {
+      "type": "json",
+      "extensions": [
+        ".json"
+      ],
+      "parse_as": "structured",
+      "editable": false,
+      "description": "JSON constitutional artifacts (read-only at runtime)"
+    },
+    {
+      "type": "yaml",
+      "extensions": [
+        ".yaml",
+        ".yml"
+      ],
+      "parse_as": "structured",
+      "editable": false,
+      "description": "Legacy constitutional artifacts (read-only at runtime)"
+    },
+    {
+      "type": "binary",
+      "extensions": [
+        ".png",
+        ".jpg",
+        ".pdf"
+      ],
+      "parse_as": "none",
+      "editable": false,
+      "description": "Visual artifacts — viewable only"
+    }
+  ]
+}

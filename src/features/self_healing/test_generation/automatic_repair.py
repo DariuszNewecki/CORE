@@ -173,9 +173,11 @@ class MixedQuoteFixer:
             original = line
             stripped = line.strip()
             is_likely_docstring = (
-                stripped.startswith('"""')
-                and stripped.endswith('"""')
-                and (len(stripped) > 6)
+                (
+                    stripped.startswith('"""')
+                    and stripped.endswith('"""')
+                    and (len(stripped) > 6)
+                )
                 or (
                     stripped.startswith("'''")
                     and stripped.endswith("'''")

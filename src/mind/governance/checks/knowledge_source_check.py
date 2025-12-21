@@ -1,13 +1,29 @@
 # src/mind/governance/checks/knowledge_source_check.py
 """
-Compares DB single-source-of-truth tables with legacy YAML files to detect drift.
+Ensures that operational knowledge SSOT exists in the Database and is usable.
+
+Why:
+- YAML-based registries are deprecated.
+- DB is the authoritative runtime source of truth.
+
+This check intentionally avoids referencing legacy YAML artifacts.
 Enforces data_governance policy (Knowledge Integrity).
+
+Ref: .intent/charter/standards/data/governance.json
 """
 
 from __future__ import annotations
 
-from mind.governance.checks.base_check import BaseCheck
-from mind.governance.checks.knowledge_differ import KnowledgeDiffer
+from pathlib import Path
+from typing import Any, ClassVar
+
+from sqlalchemy import text
+
+from mind.governance.audit_context import AuditorContext
+from mind.governance.checks.rule_enforcement_check import (
+    EnforcementMethod,
+    RuleEnforcementCheck,
+)
 from shared.infrastructure.database.session_manager import get_session
 from shared.logger import getLogger
 from shared.models import AuditFinding, AuditSeverity
@@ -15,138 +31,196 @@ from shared.models import AuditFinding, AuditSeverity
 
 logger = getLogger(__name__)
 
-# Config defines the mapping between DB Tables (SSOT) and Legacy Files
-TABLE_CONFIGS = {
-    "cli_registry": {
+GOVERNANCE_POLICY = Path(".intent/charter/standards/data/governance.json")
+
+# DB SSOT tables that must exist and contain records.
+# These replace deprecated YAML sources.
+_SSOT_TABLES = [
+    {
+        "name": "cli_registry",
         "rule_id": "db.cli_registry_in_db",
-        "yaml_paths": [".intent/mind/knowledge/cli_registry.yaml"],
         "table": "core.cli_commands",
-        "yaml_key": "commands",
         "primary_key": "name",
     },
-    "resource_manifest": {
+    {
+        "name": "llm_resources",
         "rule_id": "db.llm_resources_in_db",
-        "yaml_paths": [".intent/mind/knowledge/resource_manifest.yaml"],
         "table": "core.llm_resources",
-        "yaml_key": "llm_resources",
         "primary_key": "name",
     },
-    "cognitive_roles": {
+    {
+        "name": "cognitive_roles",
         "rule_id": "db.cognitive_roles_in_db",
-        "yaml_paths": [".intent/mind/knowledge/cognitive_roles.yaml"],
         "table": "core.cognitive_roles",
-        "yaml_key": "cognitive_roles",
         "primary_key": "role",
     },
-}
+]
+
+
+# ID: knowledge-ssot-enforcement
+# ID: 1aea6ed5-86e9-4034-9ec9-053738e0c65f
+class KnowledgeSSOTEnforcement(EnforcementMethod):
+    """
+    Verifies that operational knowledge exists in DB tables (SSOT).
+    Checks table existence, row counts, and primary key uniqueness.
+    """
+
+    def __init__(self, rule_id: str, severity: AuditSeverity = AuditSeverity.ERROR):
+        super().__init__(rule_id, severity)
+
+    # ID: bf759401-01f8-41b3-854b-77d20331c002
+    def verify(
+        self, context: AuditorContext, rule_data: dict[str, Any], **kwargs
+    ) -> list[AuditFinding]:
+        """
+        Async verification method - checks DB tables.
+        Note: This breaks the sync pattern but is necessary for DB access.
+        """
+        # This is an async check, so we need to handle it specially
+        import asyncio
+
+        try:
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                # Already in async context
+                logger.warning(
+                    "Cannot run KnowledgeSourceCheck in nested async context"
+                )
+                return []
+            else:
+                return loop.run_until_complete(self._verify_async(context, rule_data))
+        except RuntimeError:
+            # No event loop available
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            try:
+                return loop.run_until_complete(self._verify_async(context, rule_data))
+            finally:
+                loop.close()
+
+    async def _verify_async(
+        self, context: AuditorContext, rule_data: dict[str, Any]
+    ) -> list[AuditFinding]:
+        findings = []
+
+        try:
+            async with get_session() as session:
+                for cfg in _SSOT_TABLES:
+                    findings.extend(await self._check_table(session, cfg))
+        except Exception as e:
+            logger.error("Failed DB audit in KnowledgeSourceCheck: %s", e)
+            findings.append(
+                AuditFinding(
+                    check_id=self.rule_id,
+                    severity=self.severity,
+                    message=f"DB SSOT audit failed (session or query error): {e}",
+                    file_path="DB",
+                )
+            )
+
+        return findings
+
+    async def _check_table(self, session, cfg: dict) -> list[AuditFinding]:
+        findings = []
+        table = cfg["table"]
+        pk = cfg["primary_key"]
+        rule_id = cfg["rule_id"]
+        name = cfg["name"]
+
+        # 1) Basic table presence + row count
+        try:
+            count_stmt = text(f"select count(*) as n from {table}")
+            result = await session.execute(count_stmt)
+            row_count = int(result.scalar_one())
+        except Exception as e:
+            findings.append(
+                AuditFinding(
+                    check_id=rule_id,
+                    severity=AuditSeverity.ERROR,
+                    message=f"DB SSOT table check failed for '{name}' ({table}): {e}",
+                    file_path="DB",
+                )
+            )
+            return findings
+
+        if row_count == 0:
+            findings.append(
+                AuditFinding(
+                    check_id=rule_id,
+                    severity=AuditSeverity.ERROR,
+                    message=(
+                        f"DB SSOT table '{table}' is empty. "
+                        "Operational knowledge is missing from the Database (SSOT)."
+                    ),
+                    file_path="DB",
+                    context={"table": table, "rows": row_count},
+                )
+            )
+            return findings
+
+        # 2) Primary key uniqueness sanity check (detect split/duplication)
+        try:
+            dup_stmt = text(
+                f"""
+                select {pk} as key, count(*) as c
+                from {table}
+                group by {pk}
+                having count(*) > 1
+                limit 10
+                """
+            )
+            dup_res = await session.execute(dup_stmt)
+            dups = [{"key": r.key, "count": int(r.c)} for r in dup_res.fetchall()]
+        except Exception as e:
+            findings.append(
+                AuditFinding(
+                    check_id=rule_id,
+                    severity=AuditSeverity.WARNING,
+                    message=f"DB SSOT uniqueness check failed for '{table}.{pk}': {e}",
+                    file_path="DB",
+                )
+            )
+            return findings
+
+        if dups:
+            findings.append(
+                AuditFinding(
+                    check_id=rule_id,
+                    severity=AuditSeverity.ERROR,
+                    message=(
+                        f"DB SSOT integrity violation: duplicate primary keys detected in {table}.{pk}. "
+                        "Database must represent a consistent SSOT."
+                    ),
+                    file_path="DB",
+                    context={"table": table, "primary_key": pk, "duplicates": dups},
+                )
+            )
+
+        return findings
 
 
 # ID: 81d6e8ed-a6f6-444c-acda-9064896c5111
-class KnowledgeSourceCheck(BaseCheck):
+class KnowledgeSourceCheck(RuleEnforcementCheck):
     """
-    Ensures that if legacy knowledge files exist, they match the Database (SSOT).
-    Drift indicates a 'Split-Brain' scenario which is a critical violation.
+    Ensures that operational knowledge SSOT exists in the Database and is usable.
 
-    Note: FileChecks.py may also flag the existence of these files as an error,
-    but this check specifically validates *data integrity* before they are removed.
+    Why:
+    - YAML-based registries are deprecated.
+    - DB is the authoritative runtime source of truth.
+
+    Ref: .intent/charter/standards/data/governance.json
     """
 
-    policy_rule_ids = [
+    policy_rule_ids: ClassVar[list[str]] = [
         "db.ssot_for_operational_data",
-        "db.cli_registry_in_db",
-        "db.llm_resources_in_db",
-        "db.cognitive_roles_in_db",
     ]
 
-    # ID: b846d3ab-5762-4bc8-9dfc-f3fa060da29c
-    async def execute(self) -> list[AuditFinding]:
-        findings: list[AuditFinding] = []
+    policy_file: ClassVar[Path] = GOVERNANCE_POLICY
 
-        # Use a fresh session for the check logic
-        # Note: Mind layer is permitted to access infrastructure directly for audit purposes
-        try:
-            async with get_session() as session:
-                differ = KnowledgeDiffer(session, self.repo_root)
+    enforcement_methods: ClassVar[list[EnforcementMethod]] = [
+        KnowledgeSSOTEnforcement(rule_id="db.ssot_for_operational_data"),
+    ]
 
-                for config_name, config in TABLE_CONFIGS.items():
-                    try:
-                        result = await differ.compare(config)
-
-                        if result["status"] == "failed":
-                            findings.extend(
-                                self._create_findings_from_result(result, config)
-                            )
-                        elif result["status"] == "error":
-                            # Handle DB/YAML read errors reported by Differ
-                            findings.append(
-                                AuditFinding(
-                                    check_id=config["rule_id"],
-                                    severity=AuditSeverity.WARNING,
-                                    message=f"SSOT Check Error for {config_name}: {result.get('error')}",
-                                    file_path=str(config["yaml_paths"][0]),
-                                )
-                            )
-
-                    except Exception as e:
-                        logger.error("Knowledge diff failed for %s: %s", config_name, e)
-                        findings.append(
-                            AuditFinding(
-                                check_id="db.ssot_for_operational_data",
-                                severity=AuditSeverity.ERROR,
-                                message=f"Internal error auditing {config_name}: {e}",
-                                file_path="N/A",
-                            )
-                        )
-        except Exception as e:
-            logger.error("Failed to acquire DB session for KnowledgeSourceCheck: %s", e)
-            # Fail open or closed? If DB is down, we probably have bigger problems.
-
-        return findings
-
-    def _create_findings_from_result(
-        self, result: dict, config: dict
-    ) -> list[AuditFinding]:
-        """Translates a diff result into a list of AuditFinding objects."""
-        findings = []
-        diff = result.get("diff", {})
-        rule_id = config["rule_id"]
-
-        # Safe path resolution
-        try:
-            yaml_path = str(result["yaml_path"].relative_to(self.repo_root))
-        except (AttributeError, ValueError):
-            yaml_path = config["yaml_paths"][0]
-
-        # 1. Missing in DB (Critical: File has data DB doesn't)
-        if diff.get("missing_in_db"):
-            keys = ", ".join(sorted(diff["missing_in_db"]))
-            findings.append(
-                AuditFinding(
-                    check_id=rule_id,
-                    severity=AuditSeverity.ERROR,
-                    message=(
-                        f"SSOT Violation (Data Loss Risk): Legacy file contains entries missing "
-                        f"from Database: [{keys}]. Run `core-admin manage database sync-knowledge`."
-                    ),
-                    file_path=yaml_path,
-                    context={"missing_keys": diff["missing_in_db"]},
-                )
-            )
-
-        # 2. Mismatched Data (Critical: Split Brain)
-        if diff.get("mismatched"):
-            keys = ", ".join(sorted([m["key"] for m in diff["mismatched"]]))
-            findings.append(
-                AuditFinding(
-                    check_id=rule_id,
-                    severity=AuditSeverity.ERROR,
-                    message=(
-                        f"SSOT Violation (Split Brain): Data mismatch between Legacy file and Database "
-                        f"for keys: [{keys}]. Database is authoritative."
-                    ),
-                    file_path=yaml_path,
-                    context={"mismatches": diff["mismatched"]},
-                )
-            )
-
-        return findings
+    @property
+    def _is_concrete_check(self) -> bool:
+        return True

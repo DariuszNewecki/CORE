@@ -71,6 +71,6 @@ async def _run_drift_analysis():
 
 
 # ID: 2ff57ea1-2b62-4c75-9586-10219c51ea13
-def inspect_symbol_drift():
-    """Synchronous Typer wrapper for the async drift analysis logic."""
-    asyncio.run(_run_drift_analysis())
+async def inspect_symbol_drift():
+    """Typer wrapper for the async drift analysis logic."""
+    await _run_drift_analysis()

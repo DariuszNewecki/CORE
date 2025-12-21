@@ -319,8 +319,8 @@ def format_violations(violations: list[PatternViolation], verbose: bool = False)
     for file_path, file_violations in by_file.items():
         lines.append(f"\n📄 {file_path}:")
         for v in file_violations:
-            severity_icon = {"error": "❌", "warning": "⚠️", "info": "ℹ️"}.get(
-                v.severity, "ℹ️"
+            severity_icon = {"error": "❌", "warning": "⚠️", "info": "i"}.get(
+                v.severity, "i"
             )
             lines.append(f"  {severity_icon} {v.component_name} ({v.pattern_id}):")
             lines.append(f"      {v.message}")

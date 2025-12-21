@@ -1,6 +1,9 @@
 # src/api/v1/development_routes.py
 """
 Provides API endpoints for initiating and managing autonomous development cycles.
+
+CONSTITUTIONAL FIX: Uses TaskRepository instead of direct session.add/commit
+to comply with db.write_via_governed_cli rule.
 """
 
 from __future__ import annotations
@@ -11,8 +14,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from features.autonomy.autonomous_developer import develop_from_goal
 from shared.context import CoreContext
-from shared.infrastructure.database.models import Task
 from shared.infrastructure.database.session_manager import get_db_session
+from shared.infrastructure.repositories.task_repository import TaskRepository
 
 
 router = APIRouter()
@@ -34,15 +37,16 @@ async def start_development_cycle(
     """
     Accepts a high-level goal, creates a task record, and starts the
     autonomous development cycle in the background.
+
+    CONSTITUTIONAL: Uses TaskRepository for DB writes (db.write_via_governed_cli).
     """
     core_context: CoreContext = request.app.state.core_context
 
-    new_task = Task(
+    # Use Repository layer instead of direct session writes
+    task_repo = TaskRepository(session)
+    new_task = await task_repo.create(
         intent=payload.goal, assigned_role="AutonomousDeveloper", status="planning"
     )
-    session.add(new_task)
-    await session.commit()
-    await session.refresh(new_task)
 
     background_tasks.add_task(
         develop_from_goal, core_context, payload.goal, task_id=new_task.id

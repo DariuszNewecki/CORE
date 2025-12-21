@@ -15,8 +15,6 @@ Constitutional boundaries:
 
 from __future__ import annotations
 
-import asyncio
-
 import typer
 
 from shared.logger import getLogger
@@ -28,7 +26,7 @@ app = typer.Typer(name="core", help="Chat with CORE about your codebase")
 
 @app.callback(invoke_without_command=True)
 # ID: 261ee005-2111-459b-9058-2f704448cc5b
-def main(
+async def main(
     ctx: typer.Context, message: str = typer.Argument(None, help="Your message to CORE")
 ):
     """
@@ -48,7 +46,7 @@ def main(
         raise typer.Exit(1)
     logger.info("User message: %s", message)
     try:
-        asyncio.run(handle_message(message))
+        await handle_message(message)
     except KeyboardInterrupt:
         logger.info("\n\n⚠️  Interrupted by user")
         raise typer.Exit(130)

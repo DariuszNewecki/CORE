@@ -1,26 +1,36 @@
 # src/mind/governance/checks/trace_check.py
 """
-Enforces agent.reasoning.trace_required: Every reason(...) call must be followed by TRACE: log.
+Enforces agent.reasoning.trace_required: All reason() calls must be followed by TRACE logging.
+
+Ref: .intent/charter/standards/architecture/agent_governance.json
 """
 
 from __future__ import annotations
 
 import ast
-from pathlib import Path
+from typing import Any, ClassVar
 
-from mind.governance.checks.base_check import BaseCheck
-from shared.models import AuditFinding, AuditSeverity
+from mind.governance.audit_context import AuditorContext
+from mind.governance.checks.rule_enforcement_check import (
+    EnforcementMethod,
+    RuleEnforcementCheck,
+)
+from shared.config import settings
+from shared.models import AuditFinding
 
 
-# ID: 599dcb6a-e809-498c-a319-67121529b34c
-class ReasoningTraceCheck(BaseCheck):
-    policy_rule_ids = ["agent.reasoning.trace_required"]
+# ID: trace-enforcement
+# ID: 7a8b9c0d-1e2f-3a4b-5c6d-7e8f9a0b1c2d
+class TraceEnforcement(EnforcementMethod):
+    """Verifies that reason() calls are followed by TRACE logging."""
 
-    # ID: 747497cc-32bd-4f92-9a64-0c94b2b0a0c8
-    def execute(self) -> list[AuditFinding]:
-        findings: list[AuditFinding] = []
+    # ID: ac29a093-8fe2-4e6a-bdc6-2da895972079
+    def verify(
+        self, context: AuditorContext, rule_data: dict[str, Any], **kwargs
+    ) -> list[AuditFinding]:
+        findings = []
 
-        for file_path in self.context.python_files:
+        for file_path in context.python_files:
             try:
                 content = file_path.read_text(encoding="utf-8")
                 tree = ast.parse(content, filename=str(file_path))
@@ -41,26 +51,41 @@ class ReasoningTraceCheck(BaseCheck):
                             found_trace = True
                             break
                     if not found_trace:
-                        findings.append(self._finding(file_path, lineno))
+                        findings.append(
+                            self._create_finding(
+                                message="reason() called without TRACE: log. Add `logger.info('TRACE: ...')`.",
+                                file_path=str(file_path.relative_to(context.repo_path)),
+                                line_number=lineno,
+                            )
+                        )
 
-            except Exception as e:
+            except Exception:
                 findings.append(
-                    AuditFinding(
-                        check_id="agent.reasoning.trace_required",
-                        severity=AuditSeverity.WARNING,
-                        message=f"Parse error in {file_path.name}: {e}",
-                        file_path=str(file_path.relative_to(self.repo_root)),
+                    self._create_finding(
+                        message=f"Parse error in {file_path.name}",
+                        file_path=str(file_path.relative_to(context.repo_path)),
                         line_number=1,
                     )
                 )
 
         return findings
 
-    def _finding(self, file_path: Path, line: int) -> AuditFinding:
-        return AuditFinding(
-            check_id="agent.reasoning.trace_required",
-            severity=AuditSeverity.WARNING,
-            message="reason() called without TRACE: log. Add `logger.info('TRACE: ...')`.",
-            file_path=str(file_path.relative_to(self.repo_root)),
-            line_number=line,
-        )
+
+# ID: 599dcb6a-e809-498c-a319-67121529b34c
+class ReasoningTraceCheck(RuleEnforcementCheck):
+    """
+    Enforces agent.reasoning.trace_required.
+    Ref: .intent/charter/standards/architecture/agent_governance.json
+    """
+
+    policy_rule_ids: ClassVar[list[str]] = ["agent.reasoning.trace_required"]
+
+    policy_file: ClassVar = settings.paths.policy("agent_governance")
+
+    enforcement_methods: ClassVar[list[EnforcementMethod]] = [
+        TraceEnforcement(rule_id="agent.reasoning.trace_required"),
+    ]
+
+    @property
+    def _is_concrete_check(self) -> bool:
+        return True

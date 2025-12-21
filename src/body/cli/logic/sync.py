@@ -7,8 +7,6 @@ synchronizing the codebase state (IDs) with the database.
 
 from __future__ import annotations
 
-import asyncio
-
 import typer
 
 from features.introspection.sync_service import run_sync_with_db
@@ -39,10 +37,10 @@ async def _async_sync_knowledge(write: bool):
 
 
 # ID: 3234fb7f-f5d6-4111-b926-455657955794
-def sync_knowledge_base(
+async def sync_knowledge_base(
     write: bool = typer.Option(
         False, "--write", help="Apply the changes to the database."
     ),
 ):
     """Scans the codebase and syncs all symbols and their IDs to the database."""
-    asyncio.run(_async_sync_knowledge(write))
+    await _async_sync_knowledge(write)

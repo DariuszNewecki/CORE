@@ -1,0 +1,374 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "schema_id": "standard.operations.general",
+  "version": "1.0.0",
+  "title": "Operations Standard – General Operational Rules",
+  "description": "Validates the Operations standard (general) with constitutional rigor and structural flexibility. This standard declares operational rules and structures for integration workflows, self-healing routines, canary behavior, dev fastpath, incident response, and runtime rules. All rule sets MUST use the canonical Rule structure (id, severity, description, rationale).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "version",
+    "title",
+    "type",
+    "owners",
+    "review",
+    "schema_id",
+    "policy_id",
+    "purpose",
+    "intent_crates",
+    "integration_workflow",
+    "self_healing_routines",
+    "canary",
+    "dev_fastpath",
+    "incident_response",
+    "runtime_rules"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9_.-]+$"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "title": {
+      "type": "string",
+      "maxLength": 200
+    },
+    "owners": {
+      "type": "object",
+      "required": [
+        "accountable"
+      ],
+      "properties": {
+        "accountable": {
+          "type": "string"
+        },
+        "responsible": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        }
+      },
+      "additionalProperties": false
+    },
+    "review": {
+      "type": "object",
+      "required": [
+        "frequency"
+      ],
+      "properties": {
+        "frequency": {
+          "type": "string"
+        },
+        "last_reviewed": {
+          "type": "string",
+          "format": "date"
+        },
+        "next_review_due": {
+          "type": "string",
+          "format": "date"
+        }
+      },
+      "additionalProperties": false
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "$schema": {
+      "type": "string",
+      "description": "Optional JSON Schema reference"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "standard_operations"
+      ]
+    },
+    "schema_id": {
+      "type": "string",
+      "const": "standard.operations.general"
+    },
+    "policy_id": {
+      "type": "string",
+      "description": "Identifier linking this standard to a governing policy record (if used)."
+    },
+    "purpose": {
+      "type": "string",
+      "minLength": 10
+    },
+
+    "intent_crates": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "validation",
+        "lifecycle"
+      ],
+      "properties": {
+        "validation": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "schema.rule"
+          },
+          "description": "Rules governing validation of intent crates."
+        },
+        "lifecycle": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "schema.rule"
+          },
+          "description": "Rules governing lifecycle expectations of intent crates."
+        }
+      }
+    },
+
+    "integration_workflow": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Declared steps used for integration workflows. Not rule objects; these are operational steps.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "command",
+          "description",
+          "continues_on_failure"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Stable step identifier."
+          },
+          "command": {
+            "type": "string",
+            "description": "CLI command to execute."
+          },
+          "description": {
+            "type": "string",
+            "description": "Human-readable explanation of the step."
+          },
+          "continues_on_failure": {
+            "type": "boolean",
+            "description": "If true, workflow continues even if this step fails."
+          }
+        }
+      }
+    },
+
+    "self_healing_routines": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Declared self-healing routines. These are operational routines, not rules.",
+      "items": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "command",
+              "description"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "command": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              }
+            },
+            "description": "Routine definition without explicit trigger."
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "command",
+              "description",
+              "trigger"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "command": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "trigger": {
+                "type": "string",
+                "description": "Trigger condition or signal name that activates this routine."
+              }
+            },
+            "description": "Routine definition with explicit trigger."
+          }
+        ]
+      }
+    },
+
+    "canary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "enabled",
+        "scope",
+        "abort_conditions",
+        "metrics"
+      ],
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "scope": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "paths",
+            "modes"
+          ],
+          "properties": {
+            "paths": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string"
+              }
+            },
+            "modes": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "abort_conditions": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        },
+        "metrics": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "name",
+              "threshold",
+              "direction"
+            ],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "threshold": {
+                "type": "integer"
+              },
+              "direction": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+
+    "dev_fastpath": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "thresholds",
+        "required_checks",
+        "disallowed_paths"
+      ],
+      "properties": {
+        "thresholds": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "max_changed_files",
+            "allow_intent_changes"
+          ],
+          "properties": {
+            "max_changed_files": {
+              "type": "integer"
+            },
+            "allow_intent_changes": {
+              "type": "boolean"
+            }
+          }
+        },
+        "required_checks": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        },
+        "disallowed_paths": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+
+    "incident_response": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "severity_levels",
+        "response_rules"
+      ],
+      "properties": {
+        "severity_levels": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        },
+        "response_rules": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "schema.rule"
+          },
+          "description": "Rules governing incident response behavior."
+        }
+      }
+    },
+
+    "runtime_rules": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "schema.rule"
+      },
+      "description": "Rules governing runtime operational behavior."
+    }
+  }
+}

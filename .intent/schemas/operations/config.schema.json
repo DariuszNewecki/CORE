@@ -1,0 +1,24 @@
+{
+  "git": {
+    "ignore_validation": {
+      "default": false,
+      "description": "If true, skips Git pre-write checks. MUST be false in production or fallback modes to maintain rollback safety. Only for emergency recovery.\n",
+      "type": "boolean"
+    }
+  },
+  "id": "schema_operations_config",
+  "owners": {
+    "accountable": "Platform SRE",
+    "responsible": [
+      "Core Maintainer"
+    ]
+  },
+  "review": {
+    "frequency": "12 months"
+  },
+  "schema_id": "schema.operations.config.deprecated",
+  "status": "active",
+  "title": "Operations Configuration Schema",
+  "type": "schema_operations_config",
+  "version": "1.0.0"
+}

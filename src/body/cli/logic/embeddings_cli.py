@@ -27,7 +27,7 @@ app = typer.Typer(
 
 @app.command("vectorize")
 # ID: bd2d47b7-8dce-4e8c-93bd-0c31d0b13be0
-def vectorize_cmd(
+async def vectorize_cmd(
     write: bool = typer.Option(
         False, "--write", help="Persist changes to knowledge graph after run."
     ),
@@ -55,22 +55,21 @@ def vectorize_cmd(
     qdrant = QdrantService()
     targets: set[str] | None = set(cap) if cap else None
     typer.echo("🚀 Starting capability vectorization process (per-chunk idempotent)…")
-    import asyncio
 
-    asyncio.run(
-        run_vectorize(
-            repo_root=repo_root,
-            symbols_map=symbols_map,
-            cognitive_service=cognitive,
-            qdrant_service=qdrant,
-            dry_run=dry_run,
-            verbose=verbose,
-            target_capabilities=targets,
-            flush_every=flush_every,
-        )
+    await run_vectorize(
+        repo_root=repo_root,
+        symbols_map=symbols_map,
+        cognitive_service=cognitive,
+        qdrant_service=qdrant,
+        dry_run=dry_run,
+        verbose=verbose,
+        target_capabilities=targets,
+        flush_every=flush_every,
     )
     if write and (not dry_run):
         ks.save_graph(knowledge)
         typer.echo("📝 Saved updated knowledge graph.")
     else:
-        typer.echo("ℹ️ Not saving graph (use --write and disable --dry-run to persist).")
+        typer.echo(
+            "Info: Not saving graph (use --write and disable --dry-run to persist)."
+        )

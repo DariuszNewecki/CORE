@@ -17,10 +17,11 @@ Updated: Phase 1 - Vector Service Standardization
 
 from __future__ import annotations
 
-import asyncio
 import hashlib
 from pathlib import Path
 from typing import Any
+
+import typer
 
 from shared.infrastructure.clients.qdrant_client import QdrantService
 from shared.logger import getLogger
@@ -398,16 +399,19 @@ async def vectorize_policies_command(repo_root: Path) -> dict[str, Any]:
 
 
 if __name__ == "__main__":
-    import sys
+    # ID: 12039142-f08a-4246-824a-bfc31396af37
+    async def run_cli(
+        repo_root: Path = typer.Argument(
+            Path.cwd(), help="Path to the CORE repository root."
+        ),
+    ) -> None:
+        result = await vectorize_policies_command(repo_root)
+        logger.info("\nVectorization complete!")
+        logger.info("  Policies: %s", result["policies_vectorized"])
+        logger.info("  Chunks: %s", result["chunks_created"])
+        if result.get("errors"):
+            logger.info("  Errors: %s", len(result["errors"]))
+            for error in result["errors"]:
+                logger.info("    - %s: %s", error["file"], error["error"])
 
-    repo_root = Path.cwd()
-    if len(sys.argv) > 1:
-        repo_root = Path(sys.argv[1])
-    result = asyncio.run(vectorize_policies_command(repo_root))
-    logger.info("\nVectorization complete!")
-    logger.info("  Policies: %s", result["policies_vectorized"])
-    logger.info("  Chunks: %s", result["chunks_created"])
-    if result.get("errors"):
-        logger.info("  Errors: %s", len(result["errors"]))
-        for error in result["errors"]:
-            logger.info("    - %s: %s", error["file"], error["error"])
+    typer.run(run_cli)

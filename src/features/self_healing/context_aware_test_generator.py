@@ -116,7 +116,7 @@ class ContextAwareTestGenerator:
                 "reason": f"Test failed: {error[:200]}",
             }
 
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             logger.error("Error generating test for %s: %s", symbol_name, exc)
             return {
                 "status": "failed",
@@ -144,7 +144,7 @@ class ContextAwareTestGenerator:
 
         try:
             return await self.context_service.build_for_task(task_spec, use_cache=True)
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             logger.warning("Failed to build context package: %s", exc)
             # Return minimal context - context is a list
             return {"context": []}
@@ -191,7 +191,7 @@ Requirements:
 - Import like: from {module_path} import {symbol_name}
 - Test the happy path (basic functionality)
 - Use mocks if needed: from unittest.mock import MagicMock, AsyncMock, patch
-- Keep it simple — roughly 5–15 lines
+- Keep it simple - roughly 5-15 lines
 - Do NOT access real databases, HTTP services, or the filesystem directly
 - Output ONLY the test function inside a ```python code block
 
@@ -213,7 +213,7 @@ def test_{symbol_name}():
             )
             # Use shared utility to extract python code from the response
             return extract_python_code_from_response(response)
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             logger.error("LLM request failed: %s", exc)
             return None
 
@@ -242,7 +242,7 @@ def test_{symbol_name}():
                     return "\n".join(lines[start:end])
 
             return None
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             logger.debug(
                 "Failed to extract %s from %s: %s", symbol_name, file_path, exc
             )
@@ -305,7 +305,7 @@ def test_{symbol_name}():
             )
             return False, error
 
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             return False, str(exc)
         finally:
             if temp_path is not None:

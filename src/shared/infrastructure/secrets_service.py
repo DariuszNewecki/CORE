@@ -252,7 +252,7 @@ class SecretsService:
             "LOCAL_EMBEDDING_API_KEY": "embedding.api_key",
         }
         for env_name, db_key in env_to_db_key.items():
-            if env_name in env_vars and env_vars[env_name]:
+            if env_vars.get(env_name):
                 await service.set_secret(
                     db,
                     db_key,

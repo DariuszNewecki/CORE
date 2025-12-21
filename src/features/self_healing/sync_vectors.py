@@ -9,21 +9,27 @@ This tool performs a complete bidirectional sync to ensure consistency:
 
 These operations MUST happen in this order to avoid race conditions.
 Running them together atomically prevents partial sync states.
+
+CONSTITUTIONAL FIX: Uses VectorLinkRepository with proper transaction boundaries.
+Transaction management at controller level, not service level.
 """
 
 from __future__ import annotations
 
-import asyncio
 from collections.abc import Iterable
 
 import typer
 from qdrant_client import AsyncQdrantClient
 from qdrant_client.http.models import PointIdsList
 from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.config import settings
 from shared.infrastructure.clients.qdrant_client import QdrantService
 from shared.infrastructure.database.session_manager import get_session
+from shared.infrastructure.repositories.vector_link_repository import (
+    VectorLinkRepository,
+)
 from shared.logger import getLogger
 
 
@@ -78,7 +84,11 @@ async def _fetch_db_links() -> list[tuple[str, str]]:
     async with get_session() as session:
         result = await session.execute(
             text(
-                "\n                SELECT symbol_id::text, vector_id::text\n                FROM core.symbol_vector_links\n                WHERE vector_id IS NOT NULL\n                "
+                """
+                SELECT symbol_id::text, vector_id::text
+                FROM core.symbol_vector_links
+                WHERE vector_id IS NOT NULL
+                """
             )
         )
         return [(row[0], row[1]) for row in result]
@@ -116,23 +126,25 @@ async def _prune_orphaned_vectors(
     return len(orphaned_ids)
 
 
-async def _delete_dangling_links(dangling_links: Iterable[tuple[str, str]]) -> int:
+async def _delete_dangling_links(
+    dangling_links: Iterable[tuple[str, str]], session: AsyncSession
+) -> int:
     """
     Delete dangling links from core.symbol_vector_links.
 
-    Expects (symbol_id, vector_id_as_text) tuples.
+    CONSTITUTIONAL FIX: Uses Repository, no commit (caller manages transaction).
+
+    Args:
+        dangling_links: List of (symbol_id, vector_id) tuples
+        session: Database session (caller manages transaction boundary)
+
+    Returns:
+        Count of deleted links
     """
-    count = 0
-    async with get_session() as session:
-        for symbol_id, vector_id in dangling_links:
-            await session.execute(
-                text(
-                    "\n                    DELETE FROM core.symbol_vector_links\n                    WHERE symbol_id = :symbol_id\n                      AND vector_id = :vector_id::uuid\n                    "
-                ),
-                {"symbol_id": symbol_id, "vector_id": vector_id},
-            )
-            count += 1
-        await session.commit()
+    repo = VectorLinkRepository(session)
+    count = await repo.delete_dangling_links(list(dangling_links))
+
+    # NO COMMIT - caller manages transaction
     return count
 
 
@@ -141,6 +153,8 @@ async def _prune_dangling_links(
 ) -> int:
     """
     Find and delete DB links pointing to non-existent Qdrant vectors.
+
+    CONSTITUTIONAL: Transaction boundary managed at this controller level.
 
     Returns the count of dangling links found (and deleted if not dry_run).
     """
@@ -156,12 +170,18 @@ async def _prune_dangling_links(
     if dry_run:
         logger.debug("Would delete from PostgreSQL")
         for symbol_id, vector_id in dangling_links[:10]:
-            logger.debug("  - symbol_id={symbol_id}, vector_id=%s", vector_id)
+            logger.debug("  - symbol_id=%s, vector_id=%s", symbol_id, vector_id)
         if len(dangling_links) > 10:
             logger.debug("  - ... and %s more.", len(dangling_links) - 10)
         return len(dangling_links)
+
     logger.info("Deleting %s dangling link(s) from PostgreSQL...", len(dangling_links))
-    deleted_count = await _delete_dangling_links(dangling_links)
+
+    # CONTROLLER MANAGES TRANSACTION BOUNDARY
+    async with get_session() as session:
+        deleted_count = await _delete_dangling_links(dangling_links, session)
+        await session.commit()  # Transaction boundary at controller level
+
     logger.info("Deleted %s dangling link(s).", deleted_count)
     return deleted_count
 
@@ -209,7 +229,7 @@ async def _async_sync_vectors(
 
 
 # ID: 2ba0085c-70d8-4a2f-b3f5-a41479fba562
-def main_sync(
+async def main_sync(
     write: bool = typer.Option(
         False,
         "--write",
@@ -231,7 +251,7 @@ def main_sync(
         poetry run core-admin fix vector-sync --write
     """
     effective_dry_run = dry_run or not write
-    asyncio.run(_async_sync_vectors(dry_run=effective_dry_run))
+    await _async_sync_vectors(dry_run=effective_dry_run)
 
 
 # ID: 45b243cb-5331-464d-a50d-13a1310e672a

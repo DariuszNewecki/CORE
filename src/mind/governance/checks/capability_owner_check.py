@@ -2,43 +2,54 @@
 """
 Enforces Purity: Ensures no legacy '# owner:' tags remain in source code.
 Ownership MUST be defined in the Database (SSOT), not in files.
+
+Ref: .intent/charter/standards/code/purity.json
+Ref: .intent/charter/standards/code_standards.json
 """
 
 from __future__ import annotations
 
-from mind.governance.checks.base_check import BaseCheck
+from typing import Any, ClassVar
+
+from mind.governance.audit_context import AuditorContext
+from mind.governance.checks.rule_enforcement_check import (
+    EnforcementMethod,
+    RuleEnforcementCheck,
+)
+from shared.config import settings
 from shared.models import AuditFinding, AuditSeverity
 
 
-# ID: 3adcb244-bd0a-45a8-98a7-6bf58f1fda42
-class CapabilityOwnerCheck(BaseCheck):
+# ID: no-descriptive-pollution-enforcement
+# ID: 57976a20-6b66-436b-95a0-1bbba3da0f56
+class NoDescriptivePollutionEnforcement(EnforcementMethod):
     """
     Scans for legacy '# owner:' tags and flags them as Constitutional Violations.
-    References: standard_code_purity (Forbidden Pollution)
     """
 
-    policy_rule_ids = ["caps.owner_required", "no_descriptive_pollution"]
+    def __init__(self, rule_id: str, severity: AuditSeverity = AuditSeverity.ERROR):
+        super().__init__(rule_id, severity)
 
-    # ID: 40d50b0f-01cd-43d7-a41a-baf24f153852
-    def execute(self) -> list[AuditFinding]:
-        findings: list[AuditFinding] = []
+    # ID: 86210c03-32c1-4685-976b-2376650ce633
+    def verify(
+        self, context: AuditorContext, rule_data: dict[str, Any], **kwargs
+    ) -> list[AuditFinding]:
+        findings = []
 
         # Scan all python files in src
-        for file_path in self.src_dir.rglob("*.py"):
+        for file_path in context.src_dir.rglob("*.py"):
             try:
                 lines = file_path.read_text(encoding="utf-8").splitlines()
                 for i, line in enumerate(lines, 1):
                     if line.strip().startswith("# owner:"):
                         findings.append(
-                            AuditFinding(
-                                check_id="no_descriptive_pollution",
-                                severity=AuditSeverity.ERROR,
+                            self._create_finding(
                                 message=(
                                     "Forbidden Pollution: '# owner:' tag found. "
                                     "Ownership must be managed via the Database/Manifest, "
                                     "not source comments."
                                 ),
-                                file_path=str(file_path.relative_to(self.repo_root)),
+                                file_path=str(file_path.relative_to(context.repo_path)),
                                 line_number=i,
                             )
                         )
@@ -47,3 +58,26 @@ class CapabilityOwnerCheck(BaseCheck):
                 continue
 
         return findings
+
+
+# ID: 40d50b0f-01cd-43d7-a41a-baf24f153852
+class CapabilityOwnerCheck(RuleEnforcementCheck):
+    """
+    Scans for legacy '# owner:' tags and flags them as Constitutional Violations.
+
+    Ref: .intent/charter/standards/code/purity.json
+    """
+
+    policy_rule_ids: ClassVar[list[str]] = [
+        "purity.no_descriptive_pollution",
+    ]
+
+    policy_file: ClassVar = settings.paths.policy("purity")
+
+    enforcement_methods: ClassVar[list[EnforcementMethod]] = [
+        NoDescriptivePollutionEnforcement(rule_id="purity.no_descriptive_pollution"),
+    ]
+
+    @property
+    def _is_concrete_check(self) -> bool:
+        return True

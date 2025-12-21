@@ -1,76 +1,90 @@
 # src/mind/governance/checks/private_id_check.py
 """
-Enforces symbols.private_helpers_no_id_required.
-Private symbols (starting with '_') are implementation details and MUST NOT
-have Capability IDs, as they are not managed capabilities.
+Enforces symbols.private_helpers_no_id_required: Private helpers must not have ID tags.
+
+Ref: .intent/charter/standards/code_standards.json
 """
 
 from __future__ import annotations
 
 import ast
+import re
+from typing import Any, ClassVar
 
-from mind.governance.checks.base_check import BaseCheck
-from shared.ast_utility import find_symbol_id_and_def_line
-from shared.logger import getLogger
+from mind.governance.audit_context import AuditorContext
+from mind.governance.checks.rule_enforcement_check import (
+    EnforcementMethod,
+    RuleEnforcementCheck,
+)
+from shared.config import settings
 from shared.models import AuditFinding, AuditSeverity
 
 
-logger = getLogger(__name__)
+ID_TAG_REGEX = re.compile(r"#\s*ID:\s*([a-zA-Z0-9_-]+)")
 
 
-# ID: 0b282023-fc61-4fa1-9118-1220a87ce07f
-class PrivateIdCheck(BaseCheck):
-    """
-    Scans for private symbols ('_function', '_Class') that strictly have
-    an assigned '# ID:' tag. This is forbidden as private helpers should
-    remain ungoverned implementation details.
-    Ref: standard_code_general (symbols.private_helpers_no_id_required)
-    """
+# ID: private-id-enforcement
+# ID: 9c0d1e2f-3a4b-5c6d-7e8f-9a0b1c2d3e4f
+class PrivateIdEnforcement(EnforcementMethod):
+    """Verifies that private helpers do not have ID tags."""
 
-    policy_rule_ids = ["symbols.private_helpers_no_id_required"]
-
-    # ID: 0d5f4f67-8c0c-40f7-aa2f-edcee08a1b71
-    def execute(self) -> list[AuditFinding]:
+    # ID: 33914189-4548-42ee-98ce-2adb8ab333fa
+    def verify(
+        self, context: AuditorContext, rule_data: dict[str, Any], **kwargs
+    ) -> list[AuditFinding]:
         findings = []
 
-        for file_path in self.src_dir.rglob("*.py"):
+        for file_path in context.python_files:
             try:
                 content = file_path.read_text(encoding="utf-8")
-                source_lines = content.splitlines()
                 tree = ast.parse(content, filename=str(file_path))
 
-                for node in ast.walk(tree):
-                    if not isinstance(
-                        node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)
-                    ):
-                        continue
+                for node in tree.body:
+                    if isinstance(node, ast.FunctionDef) and node.name.startswith("_"):
+                        # Check if there's an ID tag above this function
+                        start_line = max(1, node.lineno - 3)
+                        lines = content.splitlines()[start_line - 1 : node.lineno]
 
-                    # We only care about Private symbols
-                    if not node.name.startswith("_"):
-                        continue
+                        for i, line in enumerate(lines, start=start_line):
+                            if ID_TAG_REGEX.search(line):
+                                findings.append(
+                                    self._create_finding(
+                                        message=(
+                                            f"Private helper '{node.name}' has an ID tag. "
+                                            "Private helpers must be ungoverned implementation details. "
+                                            "Remove the '# ID:' tag."
+                                        ),
+                                        file_path=str(
+                                            file_path.relative_to(context.repo_path)
+                                        ),
+                                        line_number=i,
+                                    )
+                                )
 
-                    # Skip magic methods (__init__) as they are structural, not helpers
-                    if node.name.startswith("__") and node.name.endswith("__"):
-                        continue
-
-                    # Check if it has an ID tag
-                    id_result = find_symbol_id_and_def_line(node, source_lines)
-
-                    if id_result.has_id:
-                        findings.append(
-                            AuditFinding(
-                                check_id="symbols.private_helpers_no_id_required",
-                                severity=AuditSeverity.WARNING,  # Per policy
-                                message=(
-                                    f"Private symbol '{node.name}' has a Capability ID. "
-                                    "Private helpers must be ungoverned implementation details. Remove the '# ID:' tag."
-                                ),
-                                file_path=str(file_path.relative_to(self.repo_root)),
-                                line_number=id_result.definition_line_num,
-                            )
-                        )
-
-            except Exception as e:
-                logger.debug("Failed to check private IDs in %s: %s", file_path, e)
+            except Exception:
+                pass  # Skip parse errors
 
         return findings
+
+
+# ID: e8f1e7d6-c5b4-4a39-82d1-9e0f8d7c6b5a
+class PrivateIdCheck(RuleEnforcementCheck):
+    """
+    Enforces symbols.private_helpers_no_id_required.
+    Ref: .intent/charter/standards/code_standards.json
+    """
+
+    policy_rule_ids: ClassVar[list[str]] = ["symbols.private_helpers_no_id_required"]
+
+    policy_file: ClassVar = settings.paths.policy("code_standards")
+
+    enforcement_methods: ClassVar[list[EnforcementMethod]] = [
+        PrivateIdEnforcement(
+            rule_id="symbols.private_helpers_no_id_required",
+            severity=AuditSeverity.WARNING,
+        ),
+    ]
+
+    @property
+    def _is_concrete_check(self) -> bool:
+        return True

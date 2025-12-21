@@ -1,5 +1,5 @@
 # src/body/cli/logic/validate.py
-
+# ID: cli.logic.validate
 """
 Provides CLI commands for validating constitutional and governance integrity.
 This module consolidates and houses the logic from the old src/core/cli tools.
@@ -65,7 +65,7 @@ def _validate_schema_pair(pair: tuple[Path, Path]) -> str | None:
     except ValidationError as e:
         path = ".".join(map(str, e.path)) or "(root)"
         return f"[FAIL] {yml_path}: {e.message} at {path}"
-    except Exception as e:  # noqa: BLE001
+    except Exception as e:
         return f"[ERROR] {yml_path}: Unexpected validation error: {e!r}"
 
 
@@ -128,7 +128,7 @@ def _discover_schema_pairs(
 
         try:
             data = load_yaml_file(yaml_path)
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             skipped.append(f"[SKIP] {rel}: YAML parse error: {exc!r}")
             continue
 
@@ -138,7 +138,7 @@ def _discover_schema_pairs(
 
         schema_ref = data.get("$schema")
         if not schema_ref:
-            # No explicit schema yet – this is allowed during migration.
+            # No explicit schema yet - this is allowed during migration.
             skipped.append(f"[SKIP] {rel}: no $schema field; not validated")
             continue
 
@@ -222,6 +222,7 @@ class ReviewContext:
     approver_quorum: bool = False
 
 
+# AST allowlist for safe policy evaluation
 _ALLOWED_NODES = {
     ast.Expression,
     ast.BoolOp,
@@ -242,7 +243,6 @@ _ALLOWED_NODES = {
 }
 
 
-# ID: 7f4e2b91-a3c8-4d29-b5e1-9c8f7a6d4e3b
 def _safe_eval(expr: str, ctx: dict[str, Any]) -> bool:
     """
     Safely evaluate a boolean expression string against a context dictionary using AST validation.
@@ -258,11 +258,18 @@ def _safe_eval(expr: str, ctx: dict[str, Any]) -> bool:
     reviewed for safety. The eval is bounded and cannot execute arbitrary code.
     """
     expr = expr.replace(" true", " True").replace(" false", " False")
+
+    # Layer 2: AST Validation
     tree = ast.parse(expr, mode="eval")
 
     for node in ast.walk(tree):
-        if type(node) not in _ALLOWED_NODES:  # noqa: E721
+        if type(node) not in _ALLOWED_NODES:
             raise ValueError(f"Disallowed node in expression: {type(node).__name__}")
 
+    # Layer 3: Restricted Execution (Sandboxing)
+    # SECURITY: Using compile() on validated AST is safer than eval(str)
+    # SECURITY: __builtins__ is empty to prevent access to globals
     compiled = compile(tree, "<policy_expr>", "eval")
+
+    # SECURITY: context variables only
     return bool(eval(compiled, {"__builtins__": {}}, ctx))

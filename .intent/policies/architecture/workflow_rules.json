@@ -1,0 +1,455 @@
+{
+  "id": "standard_architecture_workflow_rules",
+  "version": "1.0.0",
+  "title": "Architecture Standard – Workflow Patterns",
+  "type": "standard_architecture",
+  "status": "active",
+  "owners": {
+    "accountable": "Architecture Owner",
+    "responsible": [
+      "Core Maintainer"
+    ]
+  },
+  "review": {
+    "frequency": "12 months"
+  },
+  "schema_id": "policy.structure",
+  "description": "Defines canonical patterns for multi-step workflows in CORE.\nWorkflows compose commands, agents, and services into reliable\nend-to-end processes.\n",
+  "ui_contract": {
+    "owner": "workflow_orchestrator_or_cli",
+    "description": "Workflow orchestrators (and top-level CLI commands that invoke them) are the ONLY layer allowed to render terminal UI for multi-step operations. All underlying services and atomic actions MUST be headless and MUST NOT perform their own terminal I/O.\n",
+    "visual_standards": [
+      "primary_feedback: Spinners (console.status)",
+      "secondary_feedback: Structured Logging (logger.info)",
+      "avoid: Progress Bars (track)",
+      "rationale: Spinners maintain a clean, vertical log flow. Progress bars overwrite lines, hiding logs and cluttering CI buffers."
+    ],
+    "rules": [
+      "Nested UI components from called services/actions are forbidden",
+      "Sub-workflows are treated as opaque units: they return results, not UI",
+      "Use 'console.status(...)' for all duration-based operations.",
+      "Do NOT use 'rich.progress.track' or 'Progress()' unless the operation is a user-interactive file download/upload."
+    ]
+  },
+  "patterns": [
+    {
+      "pattern_id": "linear_workflow",
+      "type": "sequential",
+      "purpose": "Execute steps in fixed order with failure handling",
+      "applies_to": [
+        "dev-sync (make command)",
+        "CI pipeline",
+        "Deployment sequence"
+      ],
+      "characteristics": [
+        "Steps execute in strict sequence",
+        "Each step must succeed before next",
+        "Fail fast on errors",
+        "Clear progress indication"
+      ],
+      "implementation_requirements": {
+        "structure": [
+          "Define steps as discrete operations",
+          "Each step has clear success/failure criteria",
+          "Steps are idempotent where possible",
+          "State is checkpointed between steps"
+        ],
+        "error_handling": [
+          "Stop on first failure",
+          "Report which step failed",
+          "Provide clear error message",
+          "Support resume from checkpoint (optional)"
+        ],
+        "progress_tracking": [
+          "Show step number and total",
+          "Indicate step name/purpose",
+          "Show elapsed time",
+          "Estimate time remaining"
+        ]
+      },
+      "makefile_example": "dev-sync: ## Complete development synchronization\n    @echo \"🔄 CORE Development Sync (9 steps)\"\n    @echo \"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\"\n\n    @echo \"📋 Step 1/9: Assigning IDs...\"\n    @$(CORE_ADMIN) fix ids --write || exit 1\n\n    @echo \"📝 Step 2/9: Fixing headers...\"\n    @$(CORE_ADMIN) fix headers --write || exit 1\n\n    @echo \"🎨 Step 3/9: Formatting code...\"\n    @$(CORE_ADMIN) fix code-style || exit 1\n\n    @echo \"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\"\n    @echo \"✅ Dev-sync complete!\"\n\n# Note: || exit 1 ensures fail-fast behavior\n",
+      "python_example": "class LinearWorkflow:\n    \"\"\"Execute steps sequentially with failure handling.\"\"\"\n\n    def __init__(self, steps: List[WorkflowStep]):\n        self._steps = steps\n\n    async def execute(self) -> WorkflowResult:\n        \"\"\"Execute all steps in sequence.\"\"\"\n        results = []\n\n        for i, step in enumerate(self._steps, 1):\n            logger.info(f\"Step {i}/{len(self._steps)}: {step.name}\")\n\n            try:\n                result = await step.execute()\n                results.append(result)\n            except Exception as e:\n                return WorkflowResult(\n                    success=False,\n                    failed_step=i,\n                    error=str(e),\n                    partial_results=results\n                )\n\n        return WorkflowResult(success=True, results=results)\n"
+    },
+    {
+      "pattern_id": "dag_workflow",
+      "type": "dependency_based",
+      "purpose": "Execute steps respecting dependencies, parallelizing where possible",
+      "applies_to": [
+        "Build systems",
+        "Multi-file code generation",
+        "Batch processing with dependencies"
+      ],
+      "characteristics": [
+        "Steps have explicit dependencies",
+        "Independent steps run in parallel",
+        "Respects topological order",
+        "Maximizes throughput"
+      ],
+      "implementation_requirements": {
+        "dependency_declaration": [
+          "Each step declares prerequisites",
+          "Circular dependencies detected at validation",
+          "Missing dependencies reported"
+        ],
+        "execution_strategy": [
+          "Topological sort determines order",
+          "Steps with no pending deps run immediately",
+          "Failed step blocks dependents only",
+          "Independent branches proceed"
+        ],
+        "resource_management": [
+          "Limit parallel execution (max workers)",
+          "Balance CPU vs I/O bound tasks",
+          "Clean up on failure"
+        ]
+      },
+      "example_implementation": "class DAGWorkflow:\n    \"\"\"Execute workflow as directed acyclic graph.\"\"\"\n\n    def __init__(self, steps: Dict[str, WorkflowStep]):\n        self._steps = steps\n        self._graph = self._build_dependency_graph()\n\n    async def execute(self, max_parallel: int = 4) -> WorkflowResult:\n        \"\"\"Execute with dependency-based parallelization.\"\"\"\n\n        # Validate no cycles\n        self._validate_acyclic()\n\n        # Track completion\n        completed = set()\n        failed = set()\n        results = {}\n\n        while len(completed) + len(failed) < len(self._steps):\n            # Find ready steps (deps satisfied)\n            ready = self._get_ready_steps(completed, failed)\n\n            if not ready:\n                break  # Stuck - some step failed\n\n            # Execute in parallel (up to max)\n            batch_results = await self._execute_parallel(\n                ready[:max_parallel]\n            )\n\n            for step_id, result in batch_results.items():\n                if result.success:\n                    completed.add(step_id)\n                    results[step_id] = result\n                else:\n                    failed.add(step_id)\n\n        return WorkflowResult(\n            success=len(failed) == 0,\n            results=results\n        )\n"
+    },
+    {
+      "pattern_id": "saga_workflow",
+      "type": "transactional",
+      "purpose": "Execute workflow with compensating actions for rollback",
+      "applies_to": [
+        "Database migrations",
+        "Multi-service deployments",
+        "Critical constitutional changes"
+      ],
+      "characteristics": [
+        "Each step has compensating action",
+        "Rollback on any failure",
+        "Maintains consistency",
+        "All-or-nothing semantics"
+      ],
+      "implementation_requirements": {
+        "step_definition": [
+          "Forward action: what to do",
+          "Compensating action: how to undo",
+          "Both must be idempotent"
+        ],
+        "execution_flow": {
+          "forward_phase": [
+            "Execute steps in order",
+            "Track successful steps",
+            "Stop on first failure"
+          ],
+          "rollback_phase": [
+            "Execute compensating actions in reverse",
+            "Best effort - log failures but continue",
+            "Restore to consistent state"
+          ]
+        },
+        "audit_trail": [
+          "Log every forward action",
+          "Log every rollback action",
+          "Record final state"
+        ]
+      },
+      "example_implementation": "class SagaWorkflow:\n    \"\"\"Workflow with automatic rollback on failure.\"\"\"\n\n    @dataclass\n    class SagaStep:\n        name: str\n        forward: Callable\n        compensate: Callable\n\n    def __init__(self, steps: List[SagaStep]):\n        self._steps = steps\n\n    async def execute(self) -> WorkflowResult:\n        \"\"\"Execute with automatic rollback on failure.\"\"\"\n        completed = []\n\n        # Forward phase\n        for step in self._steps:\n            try:\n                logger.info(f\"Executing: {step.name}\")\n                await step.forward()\n                completed.append(step)\n            except Exception as e:\n                logger.error(f\"Failed: {step.name}: {e}\")\n\n                # Rollback phase\n                await self._rollback(completed)\n                return WorkflowResult(success=False, error=e)\n\n        return WorkflowResult(success=True)\n\n    async def _rollback(self, completed: List[SagaStep]) -> None:\n        \"\"\"Execute compensating actions in reverse.\"\"\"\n        for step in reversed(completed):\n            try:\n                logger.info(f\"Compensating: {step.name}\")\n                await step.compensate()\n            except Exception as e:\n                logger.error(f\"Compensation failed: {step.name}: {e}\")\n                # Continue rollback despite failure\n"
+    },
+    {
+      "pattern_id": "event_driven_workflow",
+      "type": "reactive",
+      "purpose": "React to events with appropriate workflows",
+      "applies_to": [
+        "File watcher triggers",
+        "Constitutional violations",
+        "Git hooks",
+        "CI/CD triggers"
+      ],
+      "characteristics": [
+        "Event triggers workflow",
+        "Workflow tailored to event type",
+        "Asynchronous execution",
+        "Decoupled components"
+      ],
+      "implementation_requirements": {
+        "event_handling": [
+          "Subscribe to event sources",
+          "Filter relevant events",
+          "Route to appropriate workflow",
+          "Handle events asynchronously"
+        ],
+        "workflow_selection": [
+          "Map event type to workflow",
+          "Extract context from event",
+          "Pass context to workflow"
+        ],
+        "error_handling": [
+          "Failed workflows don't crash system",
+          "Retry transient failures",
+          "Dead letter queue for repeated failures"
+        ]
+      },
+      "example_implementation": "class EventDrivenWorkflowEngine:\n    \"\"\"React to events with appropriate workflows.\"\"\"\n\n    def __init__(self):\n        self._handlers: Dict[str, Callable] = {}\n\n    def register_handler(\n        self,\n        event_type: str,\n        workflow: Callable\n    ) -> None:\n        \"\"\"Register workflow for event type.\"\"\"\n        self._handlers[event_type] = workflow\n\n    async def handle_event(self, event: Event) -> None:\n        \"\"\"Process event with registered workflow.\"\"\"\n        workflow = self._handlers.get(event.type)\n\n        if not workflow:\n            logger.warning(f\"No handler for {event.type}\")\n            return\n\n        try:\n            await workflow(event.data)\n        except Exception as e:\n            logger.error(f\"Workflow failed for {event.type}: {e}\")\n            await self._retry_or_dlq(event, e)\n\n# Usage example\nengine = EventDrivenWorkflowEngine()\n\nengine.register_handler(\n    \"file_modified\",\n    lambda data: run_linter(data[\"file_path\"])\n)\n\nengine.register_handler(\n    \"constitutional_violation\",\n    lambda data: trigger_remediation(data[\"violation\"])\n)\n"
+    },
+    {
+      "pattern_id": "autonomous_workflow",
+      "type": "self_improving",
+      "purpose": "Workflow that improves itself through feedback",
+      "applies_to": [
+        "A2/A3 autonomous development loops",
+        "Self-healing workflows",
+        "Coverage remediation"
+      ],
+      "characteristics": [
+        "Detects its own failures",
+        "Analyzes failure patterns",
+        "Proposes improvements",
+        "Tests improvements",
+        "Adopts successful changes"
+      ],
+      "implementation_requirements": {
+        "feedback_loop": {
+          "1_execute": "Run workflow",
+          "2_measure": "Collect success metrics",
+          "3_analyze": "Identify failure patterns",
+          "4_improve": "Generate improvement proposal",
+          "5_validate": "Test proposal in safe environment",
+          "6_adopt": "Apply if successful"
+        },
+        "constitutional_bounds": [
+          "Improvements must pass policy check",
+          "Human approval for major changes",
+          "Rollback if performance degrades"
+        ],
+        "learning_storage": [
+          "Track success/failure history",
+          "Store learned patterns",
+          "Version workflow strategies"
+        ]
+      },
+      "example_implementation": "class AutonomousWorkflow:\n    \"\"\"Self-improving workflow with feedback loop.\"\"\"\n\n    async def execute_with_learning(\n        self,\n        task: Task\n    ) -> WorkflowResult:\n        \"\"\"Execute and learn from results.\"\"\"\n\n        # Execute current strategy\n        result = await self._execute_current_strategy(task)\n\n        # Record outcome\n        await self._record_outcome(task, result)\n\n        # Check if improvement needed\n        if self._should_improve():\n            # Analyze failures\n            patterns = await self._analyze_failure_patterns()\n\n            # Generate improvement proposal\n            proposal = await self._generate_improvement(patterns)\n\n            # Validate proposal\n            if await self._validate_proposal(proposal):\n                # Test in safe environment\n                if await self._test_improvement(proposal):\n                    # Adopt if successful\n                    await self._adopt_improvement(proposal)\n\n        return result\n\n    async def _generate_improvement(\n        self,\n        patterns: List[FailurePattern]\n    ) -> ImprovementProposal:\n        \"\"\"Use LLM to propose workflow improvements.\"\"\"\n\n        context = ContextPackage(\n            failure_patterns=patterns,\n            current_strategy=self._strategy,\n            success_history=self._history\n        )\n\n        proposal = await self._planner_agent.propose_improvement(\n            context\n        )\n\n        # Constitutional check\n        await self._guard.validate_proposal(proposal)\n\n        return proposal\n"
+    }
+  ],
+  "workflow_composition": {
+    "nesting": {
+      "description": "Workflows can contain sub-workflows",
+      "example": "# dev-sync (linear workflow)\n#   ├─ Phase 1: Code Quality\n#   │   └─ fix code-style (runs black + ruff in parallel - DAG)\n#   ├─ Phase 2: Constitutional\n#   │   └─ check audit (linear sequence of checks)\n#   └─ Phase 3: Knowledge\n#       └─ vectorize (autonomous workflow with learning)\n",
+      "guidelines": [
+        "Sub-workflows are opaque to parent",
+        "Parent only sees success/failure",
+        "Sub-workflow errors propagate up"
+      ]
+    },
+    "conditional_execution": {
+      "description": "Steps can be conditional based on context",
+      "example": "class ConditionalWorkflow:\n    async def execute(self, context: Context) -> WorkflowResult:\n        # Always run\n        await self._step1()\n\n        # Conditional\n        if context.environment == \"production\":\n            await self._run_integration_tests()\n\n        # Conditional with different actions\n        if context.has_schema_changes:\n            await self._run_migration()\n        else:\n            await self._sync_data()\n"
+    }
+  },
+  "activity_tracking": {
+    "purpose": "Make workflows visible and debuggable",
+    "timeline_logging": {
+      "what_to_log": [
+        "Workflow started (name, trigger, context)",
+        "Step started (name, inputs)",
+        "Step completed (duration, result)",
+        "Step failed (error, partial results)",
+        "Workflow completed (duration, summary)"
+      ],
+      "structured_format": "{\n  \"timestamp\": \"2025-01-15T10:30:00Z\",\n  \"workflow_id\": \"dev-sync-abc123\",\n  \"workflow_name\": \"dev-sync\",\n  \"event\": \"step_started\",\n  \"step\": \"fix_headers\",\n  \"step_number\": 2,\n  \"total_steps\": 9,\n  \"context\": {...}\n}\n"
+    },
+    "visualization": [
+      "Timeline view of workflow execution",
+      "Gantt chart for parallel workflows",
+      "Dependency graph for DAG workflows",
+      "Heat map of failure points"
+    ]
+  },
+  "error_handling_strategies": {
+    "retry_policy": {
+      "transient_errors": {
+        "strategy": "Exponential backoff",
+        "max_attempts": 3,
+        "backoff_factor": 2.0
+      },
+      "permanent_errors": {
+        "strategy": "Fail immediately",
+        "notify": "Human operator"
+      }
+    },
+    "partial_success": {
+      "description": "Some workflows can succeed partially",
+      "example": "Batch processing - 95/100 items succeeded",
+      "handling": [
+        "Report which items failed",
+        "Allow retry of failed items only",
+        "Don't re-process successful items"
+      ]
+    },
+    "graceful_degradation": {
+      "description": "Workflow continues with reduced functionality",
+      "example": "Vectorization fails but DB sync continues",
+      "implementation": [
+        "Mark optional steps clearly",
+        "Continue when optional steps fail",
+        "Report degraded functionality"
+      ]
+    }
+  },
+  "circuit_breaker": {
+    "purpose": "Prevent infinite loops in self-healing and auto-remediation workflows",
+    "rationale": "If a fixer and a linter disagree due to configuration mismatch, they could\nfight forever in a loop. The circuit breaker detects this and escalates to\nhuman intervention before wasting resources or masking real issues.\n",
+    "rules": {
+      "max_attempts_per_file": {
+        "limit": 3,
+        "window": "1 hour",
+        "description": "Maximum remediation attempts on same file within time window"
+      },
+      "max_attempts_per_issue": {
+        "limit": 5,
+        "window": "24 hours",
+        "description": "Maximum attempts to fix same issue type globally"
+      }
+    },
+    "detection_criteria": [
+      "Same file modified by auto-fix multiple times",
+      "Same check failing repeatedly after remediation",
+      "Oscillating state (A→B→A→B pattern)",
+      "Resource usage spike from retry loops"
+    ],
+    "actions_on_breach": {
+      "immediate": [
+        {
+          "action": "quarantine",
+          "target": "file or check causing loop",
+          "duration": "24 hours"
+        },
+        {
+          "action": "stop_remediation",
+          "scope": "affected file/check only",
+          "message": "Circuit breaker triggered"
+        }
+      ],
+      "escalation": [
+        {
+          "action": "create_incident_report",
+          "includes": [
+            "File path or check ID",
+            "Number of attempts",
+            "Timeline of changes",
+            "Diff between oscillating states"
+          ]
+        },
+        {
+          "action": "notify_human",
+          "method": "log to incident report",
+          "priority": "medium",
+          "message": "Auto-remediation loop detected, human review required"
+        }
+      ],
+      "recovery": [
+        {
+          "action": "reset_after_window",
+          "description": "Circuit resets automatically after 24 hours"
+        },
+        {
+          "action": "manual_override",
+          "command": "core-admin manage circuit-breaker reset --file <path>",
+          "requires": "Human approval"
+        }
+      ]
+    },
+    "implementation_example": "class CircuitBreaker:\n    def __init__(self, max_attempts=3, window_hours=1):\n        self._attempts = {}  # file_path -> [(timestamp, state_hash), ...]\n\n    def check_and_record(self, file_path: str, state_hash: str) -> bool:\n        \"\"\"Returns False if circuit breaker should trigger.\"\"\"\n        now = datetime.now()\n        cutoff = now - timedelta(hours=self.window_hours)\n\n        # Get recent attempts for this file\n        recent = [\n            (ts, h) for ts, h in self._attempts.get(file_path, [])\n            if ts > cutoff\n        ]\n\n        # Check for oscillation (A→B→A pattern)\n        if len(recent) >= 3:\n            hashes = [h for _, h in recent[-3:]]\n            if hashes[0] == hashes[2] and hashes[0] != hashes[1]:\n                return False  # Oscillation detected\n\n        # Check attempt count\n        if len(recent) >= self.max_attempts:\n            return False  # Too many attempts\n\n        # Record this attempt\n        if file_path not in self._attempts:\n            self._attempts[file_path] = []\n        self._attempts[file_path].append((now, state_hash))\n\n        return True  # OK to proceed\n",
+    "monitoring": {
+      "metrics": [
+        "Circuit breaker trigger count",
+        "Files currently quarantined",
+        "Average time to resolution",
+        "Most frequent trigger patterns"
+      ],
+      "dashboard": [
+        "List of quarantined files",
+        "Recent circuit breaker events",
+        "Oscillation patterns detected"
+      ]
+    },
+    "testing": {
+      "unit_tests": [
+        "Verify trigger after N attempts",
+        "Verify oscillation detection",
+        "Verify time window enforcement"
+      ],
+      "integration_tests": [
+        "Simulate fixer/linter conflict",
+        "Verify quarantine prevents further attempts",
+        "Verify incident report generation"
+      ],
+      "chaos_engineering": [
+        "Intentionally create oscillating fixes",
+        "Verify system doesn't waste resources",
+        "Verify human notification works"
+      ]
+    }
+  },
+  "monitoring_and_observability": {
+    "metrics": [
+      "Workflow execution count",
+      "Success/failure rate",
+      "Average duration",
+      "Step-level durations",
+      "Resource usage"
+    ],
+    "alerting": [
+      "Success rate below threshold",
+      "Duration exceeds baseline",
+      "Repeated failures",
+      "Resource exhaustion"
+    ],
+    "debugging": [
+      "Detailed execution logs",
+      "Checkpoint states",
+      "Input/output at each step",
+      "Replay capability for failed workflows"
+    ]
+  },
+  "testing_workflows": {
+    "unit_tests": [
+      "Test individual steps",
+      "Mock dependencies",
+      "Verify error handling"
+    ],
+    "integration_tests": [
+      "Test full workflow with test data",
+      "Verify step sequencing",
+      "Test rollback mechanisms"
+    ],
+    "chaos_engineering": [
+      "Inject random failures",
+      "Verify recovery mechanisms",
+      "Test timeout handling"
+    ]
+  },
+  "migration_plan": {
+    "phase_1_inventory": [
+      "List all existing workflows (Makefile + Python)",
+      "Identify which pattern each should follow",
+      "Document current behavior"
+    ],
+    "phase_2_standardization": [
+      "Add structured logging to all workflows",
+      "Implement progress tracking",
+      "Add error handling to make targets"
+    ],
+    "phase_3_enhancement": [
+      "Add activity tracking",
+      "Implement workflow visualization",
+      "Add pattern validation to CI"
+    ],
+    "phase_4_autonomy": [
+      "Add learning to autonomous workflows",
+      "Implement improvement proposals",
+      "Enable self-optimization"
+    ]
+  },
+  "rules": [
+    {
+      "id": "workflow.workflow_ui_single_owner",
+      "statement": "Workflows are the single owner of terminal UI for their execution. They MUST NOT delegate UI concerns downward to services/actions, and MUST NOT call UI-producing subroutines.\n",
+      "enforcement": "warn",
+      "data": {
+        "severity": "warning",
+        "enforcement_mechanism": "pattern checks + linting"
+      }
+    }
+  ]
+}

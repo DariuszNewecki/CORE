@@ -78,7 +78,6 @@ class CodeExtractor:
             return content
         return None
 
-    # ID: 5b28a424-8f8d-4a19-9e9c-9a0cbfeee2b6
     def _fallback_extract_python(self, text: str) -> str | None:
         """
         Best-effort extraction for messy responses that defeat the primary extractor.
@@ -116,7 +115,6 @@ class CodeExtractor:
 
         return "\n".join(code_lines).strip()
 
-    # ID: 9d3c6638-4530-4f87-901d-b066a63f9bed
     def _post_process(self, code: str) -> str:
         """
         Light normalization of the extracted snippet.

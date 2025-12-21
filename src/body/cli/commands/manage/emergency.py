@@ -110,4 +110,4 @@ def resume() -> None:
             raise typer.Exit(code=1)
     else:
         logger.warning("No emergency override was active.")
-        typer.echo("ℹ️  No emergency override was active.")
+        typer.echo("Info: No emergency override was active.")

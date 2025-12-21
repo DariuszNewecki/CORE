@@ -4,7 +4,7 @@
 Constitutional checker for atomic actions pattern compliance.
 
 Validates that all atomic actions in CORE follow the universal contract
-defined in .intent/charter/patterns/atomic_actions.yaml
+defined in .intent/charter/patterns/atomic_actions.json
 
 Validation rules (from constitutional pattern):
 1. action_must_return_result: Every atomic action MUST return ActionResult
@@ -391,7 +391,7 @@ def format_atomic_action_violations(
         )
         lines.append(f"\n📄 {rel_path}:")
         for v in file_violations:
-            severity_icon = {"error": "❌", "warning": "⚠️", "info": "ℹ️"}[v.severity]
+            severity_icon = {"error": "❌", "warning": "⚠️", "info": "i"}[v.severity]
             lines.append(f"  {severity_icon} {v.function_name}:")
             lines.append(f"      Rule: {v.rule_id}")
             lines.append(f"      {v.message}")

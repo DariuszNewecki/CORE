@@ -1,0 +1,372 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "schema_id": "standard.operations.quality_assurance",
+  "version": "1.0.0",
+  "title": "Operations Standard – Quality Assurance",
+  "description": "Validates the Quality Assurance operations standard with constitutional rigor and structural flexibility. This standard defines coverage requirements, autonomous remediation behavior, change evaluation rules, risk-tier gates, and audit checklist expectations. All enforceable rule sets MUST use the canonical Rule structure (id, severity, description, rationale).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "version",
+    "title",
+    "type",
+    "owners",
+    "review",
+    "schema_id",
+    "policy_id",
+    "purpose",
+    "audit_exceptions",
+    "coverage_requirements",
+    "autonomous_remediation",
+    "evaluation_framework",
+    "risk_tier_gates",
+    "audit_checklist"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9_.-]+$"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "title": {
+      "type": "string",
+      "maxLength": 200
+    },
+    "owners": {
+      "type": "object",
+      "required": [
+        "accountable"
+      ],
+      "properties": {
+        "accountable": {
+          "type": "string"
+        },
+        "responsible": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        }
+      },
+      "additionalProperties": false
+    },
+    "review": {
+      "type": "object",
+      "required": [
+        "frequency"
+      ],
+      "properties": {
+        "frequency": {
+          "type": "string"
+        },
+        "last_reviewed": {
+          "type": "string",
+          "format": "date"
+        },
+        "next_review_due": {
+          "type": "string",
+          "format": "date"
+        }
+      },
+      "additionalProperties": false
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "$schema": {
+      "type": "string",
+      "description": "Optional JSON Schema reference"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "standard_operations"
+      ]
+    },
+    "schema_id": {
+      "type": "string",
+      "const": "standard.operations.quality_assurance"
+    },
+    "policy_id": {
+      "type": "string",
+      "description": "Identifier linking this standard to a governing policy record (if used)."
+    },
+    "purpose": {
+      "type": "string",
+      "minLength": 10
+    },
+
+    "audit_exceptions": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "symbol_ignores": {
+          "type": "array",
+          "items": {}
+        }
+      }
+    },
+
+    "coverage_requirements": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "minimum_threshold",
+        "target_threshold",
+        "critical_paths",
+        "exclusions",
+        "rules"
+      ],
+      "properties": {
+        "minimum_threshold": {
+          "type": "integer",
+          "description": "Minimum acceptable overall coverage percentage."
+        },
+        "target_threshold": {
+          "type": "integer",
+          "description": "Target overall coverage percentage to converge toward."
+        },
+        "critical_paths": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          },
+          "description": "Critical path patterns / requirements (policy-defined syntax)."
+        },
+        "exclusions": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          },
+          "description": "Coverage exclusion patterns (policy-defined syntax)."
+        },
+        "rules": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "schema.rule"
+          },
+          "description": "Enforceable QA coverage rules expressed in canonical rule form."
+        }
+      }
+    },
+
+    "autonomous_remediation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "trigger_conditions",
+        "phases"
+      ],
+      "properties": {
+        "trigger_conditions": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          },
+          "description": "Signal expressions used to trigger remediation (policy-defined syntax)."
+        },
+        "phases": {
+          "type": "array",
+          "minItems": 1,
+          "description": "Phased remediation execution plan.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "phase",
+              "actions"
+            ],
+            "properties": {
+              "phase": {
+                "type": "string"
+              },
+              "actions": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+
+    "evaluation_framework": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "strategy",
+        "criteria",
+        "thresholds"
+      ],
+      "properties": {
+        "strategy": {
+          "type": "string",
+          "description": "Evaluation strategy identifier (e.g., weighted_criteria)."
+        },
+        "criteria": {
+          "type": "array",
+          "minItems": 1,
+          "description": "Criteria used in evaluation; weights should sum to 1.0 by convention (not enforced here).",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "description",
+              "weight"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "weight": {
+                "type": "number"
+              }
+            }
+          }
+        },
+        "thresholds": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "pass",
+            "warn"
+          ],
+          "properties": {
+            "pass": {
+              "type": "number"
+            },
+            "warn": {
+              "type": "number"
+            }
+          }
+        }
+      }
+    },
+
+    "risk_tier_gates": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "medium",
+        "high"
+      ],
+      "properties": {
+        "medium": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "min_score",
+            "require"
+          ],
+          "properties": {
+            "min_score": {
+              "type": "number"
+            },
+            "require": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "high": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "min_score",
+            "require"
+          ],
+          "properties": {
+            "min_score": {
+              "type": "number"
+            },
+            "require": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+
+    "audit_checklist": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Audit checklist items. These are checklist entries (not canonical rules), but can carry severity / applicability metadata.",
+      "items": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "item",
+              "required"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "item": {
+                "type": "string"
+              },
+              "required": {
+                "type": "boolean"
+              }
+            },
+            "description": "Checklist item with a required flag."
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "item",
+              "applies_when",
+              "severity"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "item": {
+                "type": "string"
+              },
+              "applies_when": {
+                "type": "string"
+              },
+              "severity": {
+                "type": "string"
+              }
+            },
+            "description": "Checklist item with conditional applicability and severity indicator."
+          }
+        ]
+      }
+    }
+  }
+}

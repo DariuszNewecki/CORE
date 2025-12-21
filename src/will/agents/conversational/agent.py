@@ -98,7 +98,7 @@ class ConversationalAgent:
             return llm_response.strip()
         except Exception as e:
             logger.error("Failed to process message: %s", e, exc_info=True)
-            return f"❌ Error processing your message: {str(e)}"
+            return f"❌ Error processing your message: {e!s}"
 
     def _create_task_spec(self, user_message: str) -> dict[str, Any]:
         """

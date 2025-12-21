@@ -1,0 +1,209 @@
+{
+  "id": "standard_architecture_body_contracts",
+  "version": "1.0.0",
+  "title": "Architecture Standard – Body Contracts",
+  "type": "standard_architecture",
+  "status": "active",
+  "owners": {
+    "accountable": "Architecture Owner",
+    "responsible": [
+      "Core Maintainer"
+    ]
+  },
+  "review": {
+    "frequency": "12 months"
+  },
+  "schema_id": "policy.structure",
+  "description": "Defines cross-cutting behavioral rules for all Body-layer code:\nservices, actions, and helpers. This file does NOT define\narchitectural patterns (see service_patterns.yaml) but enforces\nhow Body code must behave so it can be safely orchestrated.\n\nThese contracts ensure:\n- Headless execution (no UI leakage from the Body)\n- Safe-by-default write behavior\n- Predictable result contracts for orchestration\n- Consistent logging and error handling\n- Testability and introspectability\n",
+  "scope": {
+    "applies_to": [
+      "features/*/*_service.py",
+      "features/*/logic/*",
+      "services/*",
+      "body/cli/logic/*",
+      "body/cli/commands/*",
+      "body/*/actions/*"
+    ]
+  },
+  "headless_rules": {
+    "description": "Body layer code MUST be headless.",
+    "rationale": "The Body executes; the Will presents. Body code must be safe to run\nin non-interactive contexts (CI, agents, background jobs) without\ndepending on terminals or humans.\n",
+    "rules": [
+      "No Rich console/progress usage in services or logic modules.",
+      "No print() / input() in Body modules (except explicitly-marked one-off scripts).",
+      "No click/typer prompts in services or logic.",
+      "All user-facing UX lives in workflows/CLI (Will layer).",
+      "Body code MUST be callable without a TTY or interactive environment."
+    ]
+  },
+  "write_semantics": {
+    "description": "Mutating behavior is explicit and safe-by-default.",
+    "rationale": "Autonomous systems must never perform destructive actions without\nexplicit intent. Write behavior must be visible at call sites and\ntrivially discoverable by tools.\n",
+    "rules": [
+      "Parameters controlling side effects MUST default to False (write=False).",
+      "If both write and dry_run are present, they MUST be consistent (dry_run == not write).",
+      "Read-only functions SHOULD NOT expose write/dry_run toggles.",
+      "When write=False or dry_run=True, services MUST NOT perform irreversible operations.",
+      "When write=False, services SHOULD still compute and return what WOULD happen, when feasible.",
+      "Functions that always write MUST be clearly named with an imperative verb (e.g. apply_, persist_, delete_)."
+    ],
+    "naming": {
+      "description": "Make write behavior obvious from the name.",
+      "rules": [
+        "Functions that may write SHOULD include verbs like: sync_, apply_, persist_, update_, delete_, prune_.",
+        "Read-only functions SHOULD use verbs like: get_, list_, load_, compute_, inspect_, check_, validate_."
+      ]
+    }
+  },
+  "action_results": {
+    "description": "High-level operations must expose ActionResult.",
+    "rationale": "Workflows and agents need a universal contract for orchestration,\nreporting, and governance. ActionResult is that contract.\n",
+    "rules": [
+      "Atomic actions orchestrated by workflows MUST return ActionResult.",
+      "Helper functions MAY return plain types but MUST remain easily wrappable.",
+      "ActionResult MUST include action_id, ok, data and SHOULD include duration_sec when meaningful.",
+      "ActionResult.data MUST be JSON-serializable (no raw DB sessions, open files, etc.).",
+      "Impact level (read-only/write-metadata/write-code/write-data) SHOULD be declared where applicable."
+    ],
+    "examples": {
+      "atomic_action": {
+        "description": "An action directly invoked from a workflow/CLI.",
+        "contract": [
+          "async def run(...) -> ActionResult",
+          "action_id like 'fix.headers', 'sync.vectors', 'inspect.duplicates'",
+          "data contains structured counts, lists, and metadata only"
+        ]
+      },
+      "helper_function": {
+        "description": "Narrow Body utility, not directly orchestrated.",
+        "contract": [
+          "May return e.g. List[Symbol], Dict[str, Any], int, etc.",
+          "No terminal output, no user prompts.",
+          "Errors via exceptions, not via UI."
+        ]
+      }
+    }
+  },
+  "logging": {
+    "description": "Use shared logger for observability, not UI.",
+    "rationale": "Logs are for operators and governance; they are not a user interface.\nThey must be structured enough to support introspection and audits.\n",
+    "rules": [
+      "Use shared.logger.getLogger(__name__) for all Body logging.",
+      "INFO: high-level steps, counts, and summary outcomes.",
+      "DEBUG: per-item details and noisy diagnostic information.",
+      "WARNING / ERROR: unexpected failures, misconfigurations, or degraded behavior.",
+      "Avoid WARNING/ERROR inside tight loops; prefer DEBUG to prevent log spam.",
+      "Do not log secrets, raw credentials, or full LLM prompts/responses without masking.",
+      "Log messages SHOULD be actionable (what failed, what to check next)."
+    ]
+  },
+  "error_handling": {
+    "description": "Failures are first-class outcomes, not random explosions.",
+    "rationale": "Autonomous workflows must be able to distinguish between expected\nfailures (e.g. 'not found') and exceptional ones (e.g. 'DB down').\nError handling must be explicit and typed.\n",
+    "rules": [
+      "Body code MUST NOT swallow exceptions silently.",
+      "Known/expected failure modes SHOULD use dedicated exception types (e.g. NotFoundError, ValidationError).",
+      "Unexpected errors MAY bubble up but MUST be logged with context.",
+      "ActionResult-based functions SHOULD capture failures in ok=False and data['error'].",
+      "Do not use bare `except:`; always catch specific exceptions or Exception with a clear log."
+    ],
+    "exception_hierarchy": {
+      "base": "CoreServiceError(Exception)",
+      "categories": [
+        "ConfigurationError - invalid configuration or missing settings",
+        "ConnectionError - external service unavailable",
+        "ValidationError - invalid input or state",
+        "NotFoundError - resource doesn't exist",
+        "ConflictError - resource already exists / version conflict",
+        "PermissionError - operation not allowed by policy"
+      ]
+    }
+  },
+  "side_effects": {
+    "description": "Be explicit about purity and side effects.",
+    "rules": [
+      "Pure transformations (no I/O) SHOULD be implemented as standalone functions or static methods.",
+      "Functions performing I/O or writes MUST document their side effects in docstrings.",
+      "Pure functions MUST NOT perform logging or random number generation.",
+      "Long-running side-effectful operations SHOULD expose progress via ActionResult data, not UI."
+    ],
+    "docstring_expectations": {
+      "pure_function": {
+        "notes": [
+          "Docstring SHOULD state it is pure (no side effects).",
+          "Inputs/outputs SHOULD be fully described."
+        ]
+      },
+      "effectful_function": {
+        "notes": [
+          "Docstring MUST describe what is modified (files, DB tables, collections).",
+          "Docstring SHOULD mention respect for write/dry_run semantics."
+        ]
+      }
+    }
+  },
+  "configuration_access": {
+    "description": "Configuration is centralized and explicit.",
+    "rules": [
+      "Use shared.config.settings for configuration; do NOT read environment variables directly in Body code.",
+      "Access configuration via typed helpers where possible (e.g. settings.get_path(...)).",
+      "Do NOT hardcode environment-specific paths or secrets in Body code.",
+      "Configuration keys used by Body MUST be declared and documented in the configuration service."
+    ]
+  },
+  "dependencies": {
+    "description": "Dependencies are injected, not constructed ad hoc.",
+    "rules": [
+      "Services SHOULD receive dependencies via constructor or explicit parameters (DI style).",
+      "Body code SHOULD NOT create new DB sessions, HTTP clients, or Qdrant clients inline if a service already exists.",
+      "Global mutable state in Body modules is forbidden, except for cached, read-only configuration/mappings."
+    ]
+  },
+  "testing_contract": {
+    "description": "Body code must be easy to test in isolation.",
+    "rules": [
+      "Functions SHOULD avoid reading global state; prefer explicit parameters.",
+      "External interactions (DB, Qdrant, LLMs) MUST be abstracted behind services or interfaces.",
+      "Critical Body functions SHOULD have unit tests covering success and failure paths.",
+      "ActionResult-based functions SHOULD be testable with in-memory or stub dependencies.",
+      "Avoid time.sleep and blocking calls in Body code; use async-friendly patterns."
+    ]
+  },
+  "rules": [
+    {
+      "id": "body.no_ui_imports_in_body",
+      "statement": "Body modules MUST NOT import Rich UI components (Console, Progress, etc.)",
+      "enforcement": "error"
+    },
+    {
+      "id": "body.no_print_or_input_in_body",
+      "statement": "Body modules MUST NOT use print() or input() for user interaction",
+      "enforcement": "error"
+    },
+    {
+      "id": "body.write_defaults_false",
+      "statement": "Any write/modify parameter in Body code MUST default to False",
+      "enforcement": "error"
+    },
+    {
+      "id": "body.atomic_actions_use_actionresult",
+      "statement": "High-level Body actions exposed to workflows MUST return ActionResult",
+      "enforcement": "error"
+    },
+    {
+      "id": "body.actionresult_data_json_safe",
+      "statement": "ActionResult.data MUST only contain JSON-serializable types",
+      "enforcement": "warn"
+    },
+    {
+      "id": "body.no_envvar_access_in_body",
+      "statement": "Body modules MUST NOT call os.environ[...] directly; use shared.config.settings",
+      "enforcement": "warn"
+    },
+    {
+      "id": "body.dependency_injection_preferred",
+      "statement": "Body services SHOULD receive dependencies via constructor, not create them internally",
+      "enforcement": "warn"
+    }
+  ]
+}

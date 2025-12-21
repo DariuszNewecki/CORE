@@ -1,23 +1,29 @@
 # src/shared/infrastructure/vector/adapters/constitutional_adapter.py
 
 """
-Constitutional Adapter - Policies & Patterns Vectorization
+Constitutional Adapter - Constitution/Policies/Standards Vectorization
 
-Translates YAML-based constitutional documents (standards, constitution) into
-VectorizableItems for the unified VectorIndexService.
+Converts constitutional documents (constitution + policies + optional standards)
+into VectorizableItems for VectorIndexService.
 
-This adapter replaces:
-- PolicyVectorizer (will/tools/policy_vectorizer.py)
-- PatternVectorizer (features/introspection/pattern_vectorizer.py)
+Canonical intent layout (SSOT):
+    .intent/
+      constitution/
+      policies/
+      schemas/
+      standards/   (optional; may be empty depending on rollout)
 
-Constitutional Alignment: dry_by_design, separation_of_concerns
+Design principles:
+    - Deterministic path resolution via settings.paths
+    - Stable, canonical document keys based on relative path under the intent root
+    - Explicit doc_type separation: constitution | policy | standard | pattern
 """
 
 from __future__ import annotations
 
 import hashlib
 from pathlib import Path
-from typing import Any
+from typing import Any, ClassVar
 
 from shared.config import settings
 from shared.logger import getLogger
@@ -28,213 +34,427 @@ from shared.utils.yaml_processor import strict_yaml_processor
 logger = getLogger(__name__)
 
 
-# ID: 9ae7859c-1e6e-475d-9889-d4ef4d6c899d
+# ID: bd536b63-ab28-435d-bdd6-bdd4d90b33f0
 class ConstitutionalAdapter:
-    """
-    Adapts constitutional YAML files into vectorizable items.
+    """Adapts constitutional files into vectorizable items."""
 
-    Handles both policies (standards) and patterns using the same chunking logic,
-    since they share the same YAML structure and semantic purpose.
-    Updated for Charter v3.0.0 structure (Constitution + Standards).
-    """
+    _EXTENSIONS: ClassVar[tuple[str, ...]] = (".json", ".yaml", ".yml")
 
-    def __init__(self, source_dir: Path | None = None):
+    def __init__(self, intent_root: Path | None = None):
         """
-        Initialize the adapter.
-
         Args:
-            source_dir: Directory containing YAML files (defaults to charter dir)
+            intent_root: Optional override for .intent root.
+                        Defaults to settings.paths.intent_root.
         """
-        self.source_dir = source_dir or settings.REPO_PATH / ".intent" / "charter"
-        logger.debug("ConstitutionalAdapter initialized for %s", self.source_dir)
-
-    # ID: d5dd1efe-a106-4bf2-aece-652cd2c44842
-    def policies_to_items(self) -> list[VectorizableItem]:
-        """
-        Convert all Standards (Architecture, Operations, Code, Data) to vector items.
-        Recursively scans .intent/charter/standards/
-
-        Returns:
-            List of VectorizableItems for all standard chunks
-        """
-        standards_dir = self.source_dir / "standards"
-        return self._process_yaml_directory(
-            standards_dir, doc_type="standard", recursive=True
+        self.intent_root = (intent_root or settings.paths.intent_root).resolve()
+        logger.debug(
+            "ConstitutionalAdapter initialized (intent_root=%s)", self.intent_root
         )
 
-    # ID: 220fb91c-ad95-46f0-982f-9f9d2567af4b
+    # -------------------------------------------------------------------------
+    # Public conversion APIs
+    # -------------------------------------------------------------------------
+
+    # ID: 7d7f430c-fd4b-4b99-9e35-76a28b93b492
+    def policies_to_items(self) -> list[VectorizableItem]:
+        """Convert all executable governance policies into vector items."""
+        return self._process_dir(
+            self._policies_dir(), doc_type="policy", recursive=True, key_root="policies"
+        )
+
+    # ID: 5beb285c-cec2-4d2b-8107-4c948e62d818
     def patterns_to_items(self) -> list[VectorizableItem]:
         """
-        Specifically target Architectural Standards as 'patterns' for backward compatibility.
+        Convert architecture patterns into vector items.
 
-        Returns:
-            List of VectorizableItems for all pattern chunks
+        Canonical behavior:
+            Treat patterns as a subset of governance policies under policies/architecture.
         """
-        arch_dir = self.source_dir / "standards" / "architecture"
-        return self._process_yaml_directory(
-            arch_dir, doc_type="pattern", recursive=False
+        arch_dir = self._policies_dir() / "architecture"
+        return self._process_dir(
+            arch_dir, doc_type="pattern", recursive=False, key_root="policies"
         )
 
-    def _process_yaml_directory(
-        self, directory: Path, doc_type: str, recursive: bool = False
+    # ID: a048dee6-165e-4f74-bd20-8dcacf87125f
+    def constitution_to_items(self) -> list[VectorizableItem]:
+        """Convert constitution documents into vector items."""
+        return self._process_dir(
+            self._constitution_dir(),
+            doc_type="constitution",
+            recursive=True,
+            key_root="constitution",
+        )
+
+    # Optional: keep standards indexing separate and correctly typed
+    # ID: 6d5a1ee7-ebc0-44cd-bcaf-b30045d73547
+    def standards_to_items(self) -> list[VectorizableItem]:
+        """
+        Convert standards documents into vector items.
+
+        NOTE:
+            Your current canonical tree shows standards/ exists but may be empty.
+            This function is safe to call even when empty.
+        """
+        return self._process_dir(
+            self._standards_dir(),
+            doc_type="standard",
+            recursive=True,
+            key_root="standards",
+        )
+
+    # Backward compat alias: older callers may still use this name
+    # ID: bb43de2b-45e4-4889-aa23-c0bcd965d73d
+    def enforcement_policies_to_items(self) -> list[VectorizableItem]:
+        """Alias for policies_to_items()."""
+        return self.policies_to_items()
+
+    # -------------------------------------------------------------------------
+    # Directory resolution (deterministic; no silent semantic drift)
+    # -------------------------------------------------------------------------
+
+    def _standards_dir(self) -> Path:
+        """Get standards directory (optional)."""
+        return self._require_path("standards_root", "standards")
+
+    def _constitution_dir(self) -> Path:
+        """Get constitution directory."""
+        return self._require_path("constitution_dir", "constitution")
+
+    def _policies_dir(self) -> Path:
+        """Get policies directory."""
+        return self._require_path("policies_root", "policies")
+
+    def _require_path(self, attr_name: str, fallback_name: str) -> Path:
+        """
+        Resolve an intent path deterministically.
+
+        We still provide a fallback for robustness, but we log it as a warning,
+        because in CORE the resolver contract should be the SSOT.
+        """
+        if hasattr(settings, "paths") and hasattr(settings.paths, attr_name):
+            value = getattr(settings.paths, attr_name)
+            if isinstance(value, Path):
+                return value
+            if callable(value):
+                resolved = value()
+                if isinstance(resolved, Path):
+                    return resolved
+
+        fallback = (self.intent_root / fallback_name).resolve()
+        logger.warning(
+            "PathResolver missing '%s'; using fallback path: %s", attr_name, fallback
+        )
+        return fallback
+
+    # -------------------------------------------------------------------------
+    # Processing
+    # -------------------------------------------------------------------------
+
+    def _process_dir(
+        self,
+        directory: Path,
+        *,
+        doc_type: str,
+        recursive: bool = False,
+        key_root: str,
     ) -> list[VectorizableItem]:
-        """
-        Process all YAML files in a directory.
-
-        Args:
-            directory: Directory containing YAML files
-            doc_type: Type of document ("policy", "standard", or "pattern")
-            recursive: Whether to scan subdirectories
-
-        Returns:
-            List of VectorizableItems from all files
-        """
+        """Process directory and convert files to vector items."""
         if not directory.exists():
-            logger.warning("Directory not found: %s", directory)
+            logger.warning("Directory not found for %s: %s", doc_type, directory)
             return []
-        pattern = "**/*.yaml" if recursive else "*.yaml"
-        yaml_files = list(directory.glob(pattern))
-        logger.info("Processing {len(yaml_files)} {doc_type} files from %s", directory)
-        all_items: list[VectorizableItem] = []
-        for yaml_file in yaml_files:
-            try:
-                items = self._file_to_items(yaml_file, doc_type)
-                all_items.extend(items)
-                logger.debug("✓ %s: %s chunks", yaml_file.name, len(items))
-            except Exception as e:
-                logger.error("✗ Failed to process {yaml_file.name}: %s", e)
-        logger.info("Generated {len(all_items)} items from %s files", doc_type)
-        return all_items
 
-    def _file_to_items(self, yaml_file: Path, doc_type: str) -> list[VectorizableItem]:
-        """
-        Convert a single YAML file into vectorizable items.
+        files = self._collect_files(directory, recursive)
+        if not files:
+            logger.info("No %s files found under %s", doc_type, directory)
+            return []
 
-        Args:
-            yaml_file: Path to YAML file
-            doc_type: Type of document ("policy" or "pattern")
+        logger.info("Processing %s %s file(s) from %s", len(files), doc_type, directory)
 
-        Returns:
-            List of VectorizableItems for this file
-        """
-        data = strict_yaml_processor.load(yaml_file)
-        doc_id = data.get("id", yaml_file.stem)
-        doc_version = data.get("version", "unknown")
-        doc_title = data.get("title", doc_id)
-        chunks = self._chunk_document(data, doc_id, doc_type)
-        items = []
-        for idx, chunk in enumerate(chunks):
-            item_id = f"{doc_id}_{chunk['section_type']}_{idx}"
-            content = chunk["content"].strip()
-            content_hash = hashlib.sha256(content.encode("utf-8")).hexdigest()
-            payload = {
-                "doc_id": doc_id,
-                "doc_version": doc_version,
-                "doc_title": doc_title,
-                "doc_type": doc_type,
-                "filename": yaml_file.name,
-                "section_type": chunk["section_type"],
-                "section_path": chunk["section_path"],
-                "severity": chunk.get("severity", "error"),
-                "content_sha256": content_hash,
-            }
-            items.append(
-                VectorizableItem(item_id=item_id, text=content, payload=payload)
-            )
+        items: list[VectorizableItem] = []
+        for file_path in files:
+            items.extend(self._process_file(file_path, doc_type, key_root=key_root))
+
+        logger.info("Generated %s item(s) from %s file(s)", len(items), len(files))
         return items
 
-    def _chunk_document(
-        self, data: dict, doc_id: str, doc_type: str
-    ) -> list[dict[str, Any]]:
+    def _collect_files(self, directory: Path, recursive: bool) -> list[Path]:
+        """Collect JSON/YAML files from directory."""
+        collected: set[Path] = set()
+        for ext in self._EXTENSIONS:
+            if recursive:
+                collected.update(p for p in directory.rglob(f"*{ext}") if p.is_file())
+            else:
+                collected.update(p for p in directory.glob(f"*{ext}") if p.is_file())
+        return sorted(collected)
+
+    def _process_file(
+        self, file_path: Path, doc_type: str, *, key_root: str
+    ) -> list[VectorizableItem]:
+        """Process a single file and convert to vector items."""
+        try:
+            data = strict_yaml_processor.load(file_path)
+            if not isinstance(data, dict):
+                raise ValueError(
+                    f"Expected mapping in {file_path}, got {type(data).__name__}"
+                )
+            return self._data_to_items(data, file_path, doc_type, key_root=key_root)
+        except Exception as exc:
+            logger.exception("Failed to process %s (%s): %s", file_path, doc_type, exc)
+            return []
+
+    def _data_to_items(
+        self,
+        data: dict[str, Any],
+        file_path: Path,
+        doc_type: str,
+        *,
+        key_root: str,
+    ) -> list[VectorizableItem]:
+        """Convert document data to vector items."""
+        # Prefer explicit doc fields if present, but always compute a canonical doc_key.
+        doc_id = self._safe_str(data.get("id")) or file_path.stem
+        doc_version = self._safe_str(data.get("version")) or "unknown"
+        doc_title = self._safe_str(data.get("title")) or doc_id
+
+        doc_key = self._compute_doc_key(file_path, key_root=key_root)
+
+        chunks = self._chunk_document(data)
+        items: list[VectorizableItem] = []
+        for idx, chunk in enumerate(chunks):
+            item = self._chunk_to_item(
+                chunk=chunk,
+                idx=idx,
+                doc_id=doc_id,
+                doc_key=doc_key,
+                doc_version=doc_version,
+                doc_title=doc_title,
+                doc_type=doc_type,
+                file_path=file_path,
+            )
+            if item is not None:
+                items.append(item)
+        return items
+
+    def _compute_doc_key(self, file_path: Path, *, key_root: str) -> str:
         """
-        Chunk a document into semantic sections.
+        Compute canonical document key based on canonical intent layout.
 
-        Strategy: Each meaningful section becomes a chunk for semantic search.
-
-        Args:
-            data: Parsed YAML data
-            doc_id: Document identifier
-            doc_type: Type of document
-
-        Returns:
-            List of chunk dictionaries
+        key_root must be one of: policies | constitution | standards.
+        Returns a stable path-like key without extension, e.g.:
+            policies/code/code_standards
+            constitution/authority
         """
+        root_dir = self.intent_root / key_root
+        try:
+            rel = file_path.resolve().relative_to(root_dir.resolve())
+            rel_no_ext = rel.with_suffix("")
+            return f"{key_root}/{rel_no_ext.as_posix()}"
+        except Exception:
+            # Fallback: still stable-ish, but should not happen in a healthy repo.
+            return f"{key_root}/{file_path.stem}"
+
+    def _chunk_to_item(
+        self,
+        *,
+        chunk: dict[str, Any],
+        idx: int,
+        doc_id: str,
+        doc_key: str,
+        doc_version: str,
+        doc_title: str,
+        doc_type: str,
+        file_path: Path,
+    ) -> VectorizableItem | None:
+        """Convert a chunk to a VectorizableItem."""
+        content = self._safe_str(chunk.get("content", "")).strip()
+        if not content:
+            return None
+
+        section_type = self._safe_str(chunk.get("section_type")) or "section"
+        section_path = self._safe_str(chunk.get("section_path")) or section_type
+
+        # Make item_id stable and collision-resistant across taxonomy.
+        # doc_key already includes policy/constitution/standard prefix and relative path.
+        item_id = f"{doc_key}:{section_type}:{idx}"
+
+        content_hash = hashlib.sha256(content.encode("utf-8")).hexdigest()
+        try:
+            rel_path = file_path.relative_to(settings.REPO_PATH)
+            rel_path_str = str(rel_path).replace("\\", "/")
+        except Exception:
+            rel_path_str = str(file_path).replace("\\", "/")
+
+        payload = {
+            "doc_id": doc_id,
+            "doc_key": doc_key,
+            "doc_version": doc_version,
+            "doc_title": doc_title,
+            "doc_type": doc_type,
+            "filename": file_path.name,
+            "file_path": rel_path_str,
+            "section_type": section_type,
+            "section_path": section_path,
+            "severity": self._safe_str(chunk.get("severity")) or "error",
+            "content_sha256": content_hash,
+        }
+        return VectorizableItem(item_id=item_id, text=content, payload=payload)
+
+    # -------------------------------------------------------------------------
+    # Chunking
+    # -------------------------------------------------------------------------
+
+    def _chunk_document(self, data: dict[str, Any]) -> list[dict[str, Any]]:
+        """Chunk a document into semantic sections."""
         chunks: list[dict[str, Any]] = []
-        if "title" in data and "purpose" in data:
+
+        title = self._safe_str(data.get("title")).strip()
+        purpose = self._safe_str(data.get("purpose")).strip()
+        if title and purpose:
             chunks.append(
                 {
                     "section_type": "purpose",
                     "section_path": "purpose",
-                    "content": f"{data['title']}\n\n{data['purpose']}",
+                    "content": f"{title}\n\n{purpose}",
                 }
             )
-        if "philosophy" in data:
+
+        philosophy = self._safe_str(data.get("philosophy")).strip()
+        if philosophy:
             chunks.append(
                 {
                     "section_type": "philosophy",
                     "section_path": "philosophy",
-                    "content": data["philosophy"],
+                    "content": philosophy,
                 }
             )
-        if "requirements" in data and isinstance(data["requirements"], dict):
-            for req_name, req_data in data["requirements"].items():
-                if isinstance(req_data, dict) and "mandate" in req_data:
-                    content = f"{req_data['mandate']}\n\n"
-                    if "implementation" in req_data:
-                        impl = req_data["implementation"]
-                        if isinstance(impl, list):
-                            content += "Implementation:\n" + "\n".join(
-                                f"- {item}" for item in impl
-                            )
-                        else:
-                            content += f"Implementation: {impl}"
-                    chunks.append(
-                        {
-                            "section_type": "requirement",
-                            "section_path": f"requirements.{req_name}",
-                            "content": content,
-                            "severity": "error",
-                        }
-                    )
-        if "rules" in data and isinstance(data["rules"], list):
-            for rule in data["rules"]:
-                if isinstance(rule, dict) and "statement" in rule:
-                    content = f"Rule: {rule.get('id', 'unknown')}\n"
-                    content += f"Statement: {rule['statement']}\n"
-                    content += f"Enforcement: {rule.get('enforcement', 'error')}"
-                    chunks.append(
-                        {
-                            "section_type": "rule",
-                            "section_path": f"rules.{rule.get('id', 'unknown')}",
-                            "content": content,
-                            "severity": rule.get("enforcement", "error"),
-                        }
-                    )
-        if "validation_rules" in data and isinstance(data["validation_rules"], list):
-            for rule in data["validation_rules"]:
-                if isinstance(rule, dict) and "rule" in rule:
-                    content = f"Rule: {rule['rule']}\n"
-                    content += f"Description: {rule.get('description', '')}\n"
-                    content += f"Severity: {rule.get('severity', 'error')}\n"
-                    content += f"Enforcement: {rule.get('enforcement', 'runtime')}"
-                    chunks.append(
-                        {
-                            "section_type": "validation_rule",
-                            "section_path": f"validation_rules.{rule['rule']}",
-                            "content": content,
-                            "severity": rule.get("severity", "error"),
-                        }
-                    )
-        if "examples" in data and isinstance(data["examples"], dict):
-            for example_name, example_data in data["examples"].items():
-                if isinstance(example_data, dict):
-                    content = f"Example: {example_name}\n"
-                    content += strict_yaml_processor.dump_yaml(example_data)
-                    chunks.append(
-                        {
-                            "section_type": "example",
-                            "section_path": f"examples.{example_name}",
-                            "content": content,
-                        }
-                    )
+
+        requirements = data.get("requirements")
+        if isinstance(requirements, dict):
+            chunks.extend(self._chunk_requirements(requirements))
+
+        rules = data.get("rules")
+        if isinstance(rules, list):
+            chunks.extend(self._chunk_rules(rules))
+
+        validation_rules = data.get("validation_rules")
+        if isinstance(validation_rules, list):
+            chunks.extend(self._chunk_validation_rules(validation_rules))
+
+        examples = data.get("examples")
+        if isinstance(examples, dict):
+            chunks.extend(self._chunk_examples(examples))
+
         return chunks
+
+    def _chunk_requirements(self, requirements: dict[str, Any]) -> list[dict[str, Any]]:
+        """Chunk requirements section."""
+        chunks: list[dict[str, Any]] = []
+        for req_name, req_data in requirements.items():
+            if not isinstance(req_name, str) or not isinstance(req_data, dict):
+                continue
+            mandate = self._safe_str(req_data.get("mandate")).strip()
+            if not mandate:
+                continue
+
+            content = f"{mandate}\n"
+            impl = req_data.get("implementation")
+            if impl is not None:
+                content += "\nImplementation:\n"
+                if isinstance(impl, list):
+                    lines = [self._safe_str(x).strip() for x in impl if x is not None]
+                    lines = [x for x in lines if x]
+                    content += "\n".join(f"- {x}" for x in lines)
+                else:
+                    content += self._safe_str(impl).strip()
+
+            chunks.append(
+                {
+                    "section_type": "requirement",
+                    "section_path": f"requirements.{req_name}",
+                    "content": content,
+                    "severity": "error",
+                }
+            )
+        return chunks
+
+    def _chunk_rules(self, rules: list[Any]) -> list[dict[str, Any]]:
+        """Chunk rules section."""
+        chunks: list[dict[str, Any]] = []
+        for rule in rules:
+            if not isinstance(rule, dict):
+                continue
+            statement = self._safe_str(rule.get("statement")).strip()
+            if not statement:
+                continue
+
+            rule_id = self._safe_str(rule.get("id")) or "unknown"
+            enforcement = self._safe_str(rule.get("enforcement")) or "error"
+            content = (
+                f"Rule: {rule_id}\nStatement: {statement}\nEnforcement: {enforcement}"
+            )
+            chunks.append(
+                {
+                    "section_type": "rule",
+                    "section_path": f"rules.{rule_id}",
+                    "content": content,
+                    "severity": enforcement,
+                }
+            )
+        return chunks
+
+    def _chunk_validation_rules(self, rules: list[Any]) -> list[dict[str, Any]]:
+        """Chunk validation rules section."""
+        chunks: list[dict[str, Any]] = []
+        for rule in rules:
+            if not isinstance(rule, dict):
+                continue
+
+            rule_name = self._safe_str(rule.get("rule")).strip()
+            if not rule_name:
+                continue
+
+            description = self._safe_str(rule.get("description")).strip()
+            severity = self._safe_str(rule.get("severity")) or "error"
+            enforcement = self._safe_str(rule.get("enforcement")) or "runtime"
+            content = (
+                f"Rule: {rule_name}\n"
+                f"Description: {description}\n"
+                f"Severity: {severity}\n"
+                f"Enforcement: {enforcement}"
+            )
+            chunks.append(
+                {
+                    "section_type": "validation_rule",
+                    "section_path": f"validation_rules.{rule_name}",
+                    "content": content,
+                    "severity": severity,
+                }
+            )
+        return chunks
+
+    def _chunk_examples(self, examples: dict[str, Any]) -> list[dict[str, Any]]:
+        """Chunk examples section."""
+        chunks: list[dict[str, Any]] = []
+        for example_name, example_data in examples.items():
+            if not isinstance(example_name, str) or not isinstance(example_data, dict):
+                continue
+            content = (
+                f"Example: {example_name}\n"
+                f"{strict_yaml_processor.dump_yaml(example_data)}"
+            )
+            chunks.append(
+                {
+                    "section_type": "example",
+                    "section_path": f"examples.{example_name}",
+                    "content": content,
+                }
+            )
+        return chunks
+
+    def _safe_str(self, value: Any) -> str:
+        """Safely convert value to string."""
+        if value is None:
+            return ""
+        if isinstance(value, str):
+            return value
+        return str(value)

@@ -18,7 +18,9 @@ Constitutional Alignment:
 
 from __future__ import annotations
 
+import asyncio
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import text
@@ -34,6 +36,11 @@ from will.tools.policy_vectorizer import PolicyVectorizer
 if TYPE_CHECKING:
     from will.orchestration.cognitive_service import CognitiveService
 logger = getLogger(__name__)
+
+
+def _read_file_lines_sync(path: Path) -> list[str]:
+    """Read file lines synchronously (used via asyncio.to_thread)."""
+    return path.read_text(encoding="utf-8").splitlines(keepends=True)
 
 
 @dataclass
@@ -237,8 +244,7 @@ class ArchitecturalContextBuilder:
                     if not full_path.exists():
                         logger.warning("File not found: %s", full_path)
                         continue
-                    with open(full_path, encoding="utf-8") as f:
-                        lines = f.readlines()
+                    lines = await asyncio.to_thread(_read_file_lines_sync, full_path)
                     if start_line and end_line:
                         snippet_lines = lines[start_line - 1 : end_line]
                         code_snippet = "".join(snippet_lines)
@@ -256,7 +262,7 @@ class ArchitecturalContextBuilder:
                         )
                     )
                 except Exception as e:
-                    logger.warning("Failed to read code for {qualname}: %s", e)
+                    logger.warning("Failed to read code for %s: %s", qualname, e)
                     continue
             logger.info("Found %s similar code examples", len(examples))
             return examples

@@ -33,13 +33,13 @@ from .validator import ContextValidator
 
 
 __all__ = [
-    "ContextService",  # Main entry point
     "ContextBuilder",
-    "ContextValidator",
-    "ContextRedactor",
-    "ContextSerializer",
     "ContextCache",
     "ContextDatabase",
+    "ContextRedactor",
+    "ContextSerializer",
+    "ContextService",  # Main entry point
+    "ContextValidator",
 ]
 
 __version__ = "0.2.0"

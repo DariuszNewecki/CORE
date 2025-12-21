@@ -5,8 +5,6 @@ Generates the canonical capability reference documentation from the database.
 
 from __future__ import annotations
 
-import asyncio
-
 from sqlalchemy import text
 
 from shared.config import settings
@@ -63,59 +61,57 @@ def _group_by_domain(capabilities: list[dict]) -> dict[str, list[dict]]:
 
 
 # ID: 2ea63de3-081d-40b3-9386-0d372487aabd
-def main():
+async def main():
     """The main entry point for the documentation generation script."""
+    try:
+        capabilities = await _fetch_capabilities()
+    except Exception as e:
+        logger.error("Error fetching capabilities: %s", e)
+        return
 
-    async def _async_main():
-        try:
-            capabilities = await _fetch_capabilities()
-        except Exception as e:
-            logger.error("Error fetching capabilities: %s", e)
-            return
-
-        if not capabilities:
-            logger.warning(
-                "No capabilities found in the database. Documentation will be empty."
-            )
-            return
-
-        domains = _group_by_domain(capabilities)
-
-        logger.info(
-            "Generating documentation for %d capabilities across %d domains...",
-            len(capabilities),
-            len(domains),
+    if not capabilities:
+        logger.warning(
+            "No capabilities found in the database. Documentation will be empty."
         )
+        return
 
-        md_content = [HEADER.strip(), ""]
+    domains = _group_by_domain(capabilities)
 
-        for domain_name in sorted(domains.keys()):
-            md_content.append(f"## Domain: `{domain_name}`")
-            md_content.append("")
+    logger.info(
+        "Generating documentation for %d capabilities across %d domains...",
+        len(capabilities),
+        len(domains),
+    )
 
-            for cap in sorted(domains[domain_name], key=lambda x: x["capability"]):
-                md_content.append(f"- **`{cap['capability']}`**")
+    md_content = [HEADER.strip(), ""]
 
-                description = cap.get("intent") or "No description provided."
-                md_content.append(f"  - **Description:** {description.strip()}")
+    for domain_name in sorted(domains.keys()):
+        md_content.append(f"## Domain: `{domain_name}`")
+        md_content.append("")
 
-                file_path = cap.get("file")
-                # FIX: Default to 1 since DB doesn't store line numbers for symbols
-                line_number = cap.get("line_number") or 1
-                github_link = f"{GITHUB_URL_BASE}{file_path}#L{line_number}"
-                md_content.append(f"  - **Source:** [{file_path}]({github_link})")
-            md_content.append("")
+        for cap in sorted(domains[domain_name], key=lambda x: x["capability"]):
+            md_content.append(f"- **`{cap['capability']}`**")
 
-        final_text = "\n".join(md_content)
+            description = cap.get("intent") or "No description provided."
+            md_content.append(f"  - **Description:** {description.strip()}")
 
-        OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
-        OUTPUT_PATH.write_text(final_text, encoding="utf-8")
-        logger.info(
-            "Capability reference documentation successfully written to %s", OUTPUT_PATH
-        )
+            file_path = cap.get("file")
+            # FIX: Default to 1 since DB doesn't store line numbers for symbols
+            line_number = cap.get("line_number") or 1
+            github_link = f"{GITHUB_URL_BASE}{file_path}#L{line_number}"
+            md_content.append(f"  - **Source:** [{file_path}]({github_link})")
+        md_content.append("")
 
-    asyncio.run(_async_main())
+    final_text = "\n".join(md_content)
+
+    OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    OUTPUT_PATH.write_text(final_text, encoding="utf-8")
+    logger.info(
+        "Capability reference documentation successfully written to %s", OUTPUT_PATH
+    )
 
 
 if __name__ == "__main__":
-    main()
+    import anyio
+
+    anyio.run(main)

@@ -4,11 +4,12 @@
 AuditorContext: central view of constitutional artifacts and the knowledge graph
 for governance checks and audits.
 
-CONSTITUTIONAL COMPLIANCE FIX:
-- Uses PathResolver for robust directory discovery (Constitution/Standards)
-- Dynamically loads standards from the filesystem (ignoring outdated meta.yaml paths)
+CONSTITUTIONAL COMPLIANCE:
+- Uses PathResolver for robust directory discovery (Constitution/Policies/Standards)
+- Dynamically loads governance artifacts from the filesystem (SSOT: .intent/)
 - Loads Knowledge Graph from Database (SSOT) via KnowledgeService
 - Exposes legacy path attributes (mind_path, charter_path) for compatibility
+- Gracefully handles missing deprecated project_structure.yaml (db.cli_registry_in_db)
 """
 
 from __future__ import annotations
@@ -32,7 +33,7 @@ class AuditorContext:
     """
     Provides access to '.intent' artifacts and the in-memory knowledge graph.
     This version is constitutionally-aware, robust to directory restructuring,
-    and prioritizes filesystem reality over outdated meta.yaml configuration.
+    and prioritizes canonical intent layout as SSOT.
     """
 
     def __init__(self, repo_path: Path):
@@ -42,12 +43,21 @@ class AuditorContext:
         self.src_dir = self.paths.repo_root / "src"
         self.intent_path = self.paths.intent_root
         self.last_findings: list[AuditFinding] = []
+
+        # Governance resources (policies/standards/constitution) loaded from filesystem
         self.policies: dict[str, Any] = self._load_governance_resources()
+
+        # CONSTITUTIONAL FIX: Graceful handling of deprecated project_structure.yaml
+        # This file is being migrated to database (db.cli_registry_in_db rule)
         structure_path = self.paths.mind_root / "knowledge/project_structure.yaml"
         if structure_path.exists():
             self.source_structure = strict_yaml_processor.load_strict(structure_path)
         else:
-            self.source_structure = settings.load("mind.knowledge.project_structure")
+            logger.debug(
+                "project_structure.yaml not found (deprecated), using empty structure"
+            )
+            self.source_structure = {}
+
         self.knowledge_graph: dict[str, Any] = {"symbols": {}}
         self.symbols_list: list = []
         self.symbols_map: dict = {}
@@ -62,7 +72,7 @@ class AuditorContext:
     @property
     # ID: 3b95fd8e-69e9-4909-bbbd-bfc2f8c31c1e
     def charter_path(self) -> Path:
-        """Legacy accessor for .intent/charter directory."""
+        """Legacy accessor for .intent/charter directory (compat shim)."""
         return self.paths.charter_root
 
     # ID: 090d1c13-3389-4f4c-81d0-eadf1c3259b2
@@ -102,40 +112,82 @@ class AuditorContext:
 
     def _load_governance_resources(self) -> dict[str, Any]:
         """
-        Robustly load all governance resources (Policies & Standards).
+        Load governance resources from canonical intent layout.
 
-        Strategy:
-        1. Scan the new 'standards' directory (primary source).
-        2. Scan the legacy 'policies' directory (if it exists).
-        3. Index by both Filename (stem) and Internal ID.
+        Canonical roots (SSOT):
+          - .intent/policies      (primary; typically JSON)
+          - .intent/standards     (optional; JSON/YAML)
+          - .intent/constitution  (optional; JSON/YAML)
 
-        This overrides the brittle meta.yaml mapping.
+        Indexing strategy:
+          - canonical_key: relative path under root, no extension (e.g. 'operations/safety')
+          - stem: filename stem for legacy callers
+          - internal ids: 'id' and 'policy_id' when present
         """
         resources: dict[str, Any] = {}
-        search_roots = [self.paths.standards_root, self.paths.charter_root / "policies"]
-        files_loaded = 0
-        for root in search_roots:
+
+        # ID: 58adcf66-24b7-4f66-9d1a-efda298c95ac
+        def iter_intent_files(root: Path) -> list[Path]:
+            files: list[Path] = []
             if not root.exists():
-                continue
-            for yaml_file in root.rglob("*.yaml"):
+                return files
+            files.extend([p for p in root.rglob("*.json") if p.is_file()])
+            files.extend([p for p in root.rglob("*.yaml") if p.is_file()])
+            files.extend([p for p in root.rglob("*.yml") if p.is_file()])
+            return files
+
+        # ID: 7cf3b7bc-0280-4f8d-8a75-06d127afdc86
+        def canonical_key(root: Path, file_path: Path) -> str:
+            rel = file_path.relative_to(root)
+            return rel.with_suffix("").as_posix()
+
+        # Prefer policies; then standards; then constitution (for checks that want it)
+        search_roots: list[tuple[str, Path]] = [
+            ("policies", self.paths.policies_dir),
+            ("standards", self.paths.standards_root),
+            ("constitution", self.paths.constitution_dir),
+        ]
+
+        files_loaded = 0
+        for root_name, root in search_roots:
+            for file_path in iter_intent_files(root):
                 try:
-                    data = strict_yaml_processor.load_strict(yaml_file)
+                    data = strict_yaml_processor.load_strict(file_path)
                     if not isinstance(data, dict):
                         continue
-                    resources[yaml_file.stem] = data
-                    if "id" in data:
-                        resources[data["id"]] = data
-                    if "policy_id" in data:
-                        resources[data["policy_id"]] = data
+
+                    key = canonical_key(root, file_path)
+                    # Namespacing avoids collisions between policies vs standards vs constitution
+                    namespaced_key = f"{root_name}/{key}"
+
+                    # Canonical handles
+                    resources[namespaced_key] = data
+                    resources[key] = data  # legacy-ish, but still useful in many checks
+                    resources[file_path.stem] = data
+
+                    # Internal ids (common in your policy docs)
+                    doc_id = data.get("id")
+                    if isinstance(doc_id, str) and doc_id:
+                        resources[doc_id] = data
+                    policy_id = data.get("policy_id")
+                    if isinstance(policy_id, str) and policy_id:
+                        resources[policy_id] = data
+
                     files_loaded += 1
                 except Exception as e:
                     logger.debug(
-                        "Skipping unparseable governance file {yaml_file.name}: %s", e
+                        "Skipping unparseable governance file %s: %s", file_path.name, e
                     )
+
         if files_loaded == 0:
-            logger.warning("No governance policies/standards found in charter!")
+            logger.warning(
+                "No governance resources found under .intent/(policies|standards|constitution)."
+            )
         else:
-            logger.info("Loaded %s governance resources.", files_loaded)
+            logger.info(
+                "Loaded %s governance resource file(s) from .intent/", files_loaded
+            )
+
         return resources
 
     @property
@@ -144,9 +196,8 @@ class AuditorContext:
         """Returns Python files ONLY from BODY (src/)."""
         paths: list[Path] = []
         if self.src_dir.exists():
-            for file_path in self.src_dir.rglob("*.py"):
-                paths.append(file_path)
-        return paths
+            paths.extend(self.src_dir.rglob("*.py"))
+        return list(paths)
 
 
 __all__ = ["AuditorContext"]

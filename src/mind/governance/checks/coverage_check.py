@@ -9,7 +9,7 @@ from __future__ import annotations
 import json
 from fnmatch import fnmatch
 from pathlib import Path
-from typing import Any
+from typing import Any, ClassVar
 
 from mind.governance.audit_context import AuditorContext
 from mind.governance.checks.base_check import BaseCheck
@@ -27,7 +27,7 @@ class CoverageGovernanceCheck(BaseCheck):
     Ref: standard_operations_quality_assurance
     """
 
-    policy_rule_ids = [
+    policy_rule_ids: ClassVar[list[str]] = [
         "coverage.minimum_threshold",
         "coverage.no_untested_commits",
     ]

@@ -4,7 +4,7 @@
 Constitutional checker for atomic actions pattern compliance.
 
 This command validates that all atomic actions in CORE follow the universal
-contract defined in .intent/charter/patterns/atomic_actions.yaml
+contract defined in .intent/charter/patterns/atomic_actions.json
 
 Refactored to use the Constitutional CLI Framework (@core_command).
 """

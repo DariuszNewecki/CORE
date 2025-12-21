@@ -1,5 +1,4 @@
 # src/mind/governance/checks/base_check.py
-
 """
 Provides a shared base class for all constitutional audit checks to inherit from.
 """
@@ -28,6 +27,8 @@ class BaseCheck(ABC):
     Enforces the 'governance_check' entry point pattern via abstract execute().
     """
 
+    # Metadata for the Auditor and Coverage Reporter
+    # This must be a list of strings matching rule IDs in .intent
     policy_rule_ids: ClassVar[list[str]] = []
 
     def __init__(self, context: AuditorContext):
@@ -35,7 +36,14 @@ class BaseCheck(ABC):
         Initializes the check with a shared auditor context.
         This common initializer serves the 'dry_by_design' principle.
         """
+        # Canonical attribute used across the codebase
         self.context = context
+
+        # Backwards/compat alias for checks or helpers that still expect this name.
+        # This prevents drift where individual checks invent their own conventions.
+        self.auditor_context = context
+
+        # Commonly used resolved paths
         self.repo_root = context.repo_path
         self.intent_path = context.intent_path
         self.src_dir = context.src_dir
@@ -44,7 +52,7 @@ class BaseCheck(ABC):
         if not self.policy_rule_ids:
             logger.warning(
                 "Check '%s' does not enforce any policy rules. "
-                "This may violate policy_integrity.yaml.",
+                "This may violate policy_integrity.json.",
                 self.__class__.__name__,
             )
 
@@ -55,4 +63,4 @@ class BaseCheck(ABC):
         The constitutional contract for all Governance Checks.
         Must return a list of findings (empty if compliant).
         """
-        pass
+        raise NotImplementedError

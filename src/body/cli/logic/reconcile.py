@@ -2,68 +2,126 @@
 
 """
 Implements the 'knowledge reconcile-from-cli' command to link declared
-capabilities to their implementations in the database using the CLI registry as the map.
+capabilities to their implementations in the database, using the DB-backed
+CLI registry (core.cli_commands) as the authoritative map.
+
+Legacy YAML registry files are deprecated and must not be referenced here.
 """
 
 from __future__ import annotations
 
-import asyncio
-
-import typer
-import yaml
 from sqlalchemy import text
 
-from shared.config import settings
 from shared.infrastructure.repositories.db.engine import get_session
 from shared.logger import getLogger
 
 
 logger = getLogger(__name__)
-CLI_REGISTRY_PATH = (
-    settings.REPO_PATH / ".intent" / "mind" / "knowledge" / "cli_registry.yaml"
-)
 
 
-async def _async_reconcile():
+def _entrypoint_to_symbol_path(entrypoint: str) -> str | None:
     """
-    Reads the CLI registry and updates the 'key' in the symbols table for all
-    symbols that implement a registered command.
+    Converts 'package.module::function' into 'src/package/module.py::function'.
+
+    Returns None for invalid entrypoints.
     """
-    logger.info("Reconciling capabilities from CLI registry to database...")
-    if not CLI_REGISTRY_PATH.exists():
-        logger.error("CLI Registry not found at %s", CLI_REGISTRY_PATH)
-        raise typer.Exit(code=1)
-    registry = yaml.safe_load(CLI_REGISTRY_PATH.read_text("utf-8"))
-    commands = registry.get("commands", [])
-    updates_to_perform = []
-    for command in commands:
-        entrypoint = command.get("entrypoint")
-        capabilities = command.get("implements", [])
-        if not entrypoint or not capabilities:
-            continue
-        module_path, function_name = entrypoint.split("::")
-        file_path_str = "src/" + module_path.replace(".", "/") + ".py"
-        symbol_path = f"{file_path_str}::{function_name}"
-        primary_key = capabilities[0]
-        updates_to_perform.append({"key": primary_key, "symbol_path": symbol_path})
-    if not updates_to_perform:
-        logger.warning("No capabilities with entrypoints found in CLI registry.")
+    if "::" not in entrypoint:
+        return None
+    module_path, function_name = entrypoint.split("::", 1)
+    module_path = (module_path or "").strip()
+    function_name = (function_name or "").strip()
+    if not module_path or not function_name:
+        return None
+    file_path_str = "src/" + module_path.replace(".", "/") + ".py"
+    return f"{file_path_str}::{function_name}"
+
+
+async def _async_reconcile() -> None:
+    """
+    Reads DB CLI registry and updates 'core.symbols.key' for symbols that
+    implement registered commands (only when key is currently NULL).
+    """
+    logger.info("Reconciling capabilities from DB CLI registry to symbols table...")
+
+    fetch_stmt = text(
+        """
+        SELECT
+            name,
+            entrypoint,
+            implements
+        FROM core.cli_commands
+        WHERE entrypoint IS NOT NULL
+        """
+    )
+
+    updates: list[dict[str, str]] = []
+
+    async with get_session() as session:
+        result = await session.execute(fetch_stmt)
+        rows = result.mappings().all()
+
+    if not rows:
+        logger.warning("No CLI commands found in DB registry (core.cli_commands).")
         return
-    logger.info("Found %s capability implementations to link.", len(updates_to_perform))
+
+    for row in rows:
+        entrypoint = row.get("entrypoint")
+        implements = row.get(
+            "implements"
+        )  # may be TEXT, JSON, JSONB, or NULL depending on schema
+        if not entrypoint:
+            continue
+
+        symbol_path = _entrypoint_to_symbol_path(entrypoint)
+        if not symbol_path:
+            continue
+
+        # Implements handling:
+        # - If implements is a list/array -> take first element
+        # - If implements is a string -> treat as single capability
+        # - Otherwise -> skip
+        capability_key: str | None = None
+        if isinstance(implements, list) and implements:
+            first = implements[0]
+            capability_key = first if isinstance(first, str) and first.strip() else None
+        elif isinstance(implements, str) and implements.strip():
+            capability_key = implements.strip()
+
+        if not capability_key:
+            continue
+
+        updates.append({"key": capability_key, "symbol_path": symbol_path})
+
+    if not updates:
+        logger.warning(
+            "No reconcile candidates found (missing implements/entrypoints)."
+        )
+        return
+
+    logger.info("Found %s capability implementations to link.", len(updates))
+
+    update_stmt = text(
+        """
+        UPDATE core.symbols
+        SET key = :key,
+            updated_at = NOW()
+        WHERE symbol_path = :symbol_path
+          AND key IS NULL
+        """
+    )
+
     linked_count = 0
     async with get_session() as session:
         async with session.begin():
-            for update in updates_to_perform:
-                stmt = text(
-                    "\n                    UPDATE core.symbols SET key = :key, updated_at = NOW()\n                    WHERE symbol_path = :symbol_path AND key IS NULL;\n                    "
-                )
-                result = await session.execute(stmt, update)
-                if result.rowcount > 0:
-                    linked_count += 1
-    logger.info("Successfully linked %s capabilities.", linked_count)
+            for u in updates:
+                res = await session.execute(update_stmt, u)
+                if res.rowcount and res.rowcount > 0:
+                    linked_count += int(res.rowcount)
+
+    logger.info("Successfully linked %s capability mappings.", linked_count)
 
 
 # ID: 0bb0702a-9b3b-487a-8049-a1fe9ad7cf41
-def reconcile_from_cli():
-    """Typer-compatible wrapper for the async reconcile logic."""
-    asyncio.run(_async_reconcile())
+async def reconcile_from_cli() -> None:
+    """Typer-compatible async entrypoint."""
+    await _async_reconcile()

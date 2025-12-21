@@ -15,4 +15,4 @@ from .db import DBProvider
 from .vectors import VectorProvider
 
 
-__all__ = ["DBProvider", "VectorProvider", "ASTProvider"]
+__all__ = ["ASTProvider", "DBProvider", "VectorProvider"]

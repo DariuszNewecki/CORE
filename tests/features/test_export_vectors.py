@@ -89,22 +89,29 @@ class TestExportVectors:
             await _async_export(mock_qdrant_service, output_path)
         assert not output_path.exists()
 
-    def test_export_vectors_function(self, tmp_path, mock_typer_context):
+    @pytest.mark.asyncio
+    async def test_export_vectors_function(self, tmp_path, mock_typer_context):
         output_path = tmp_path / "test_vectors.jsonl"
-        with patch("features.introspection.export_vectors._async_export") as mock_async:
-            export_vectors(ctx=mock_typer_context, output=output_path)
-            mock_async.assert_called_once()
-            # Check that the correct qdrant service from the context was passed
-            assert mock_async.call_args[0][0] == mock_typer_context.obj.qdrant_service
-            assert mock_async.call_args[0][1] == output_path
+        with patch(
+            "features.introspection.export_vectors._async_export",
+            new_callable=AsyncMock,
+        ) as mock_async:
+            await export_vectors(ctx=mock_typer_context, output=output_path)
+            mock_async.assert_awaited_once()
+            await_args = mock_async.await_args
+            assert await_args.args[0] == mock_typer_context.obj.qdrant_service
+            assert await_args.args[1] == output_path
 
-    def test_export_vectors_default_output(self, mock_typer_context):
-        with patch("features.introspection.export_vectors._async_export") as mock_async:
-            # Call with the default output path
-            export_vectors(
+    @pytest.mark.asyncio
+    async def test_export_vectors_default_output(self, mock_typer_context):
+        with patch(
+            "features.introspection.export_vectors._async_export",
+            new_callable=AsyncMock,
+        ) as mock_async:
+            await export_vectors(
                 ctx=mock_typer_context, output=Path("reports/vectors_export.jsonl")
             )
-            mock_async.assert_called_once_with(
+            mock_async.assert_awaited_once_with(
                 mock_typer_context.obj.qdrant_service,
                 Path("reports/vectors_export.jsonl"),
             )

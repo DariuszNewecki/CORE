@@ -6,7 +6,6 @@ Provides the canonical, single-source-of-truth service for applying database sch
 
 from __future__ import annotations
 
-import asyncio
 import pathlib
 
 import typer
@@ -63,8 +62,8 @@ async def _run_migrations(apply: bool):
 
 
 # ID: 7bb0c5ee-480b-4d14-9147-853c9f9b25c5
-def migrate_db(
+async def migrate_db(
     apply: bool = typer.Option(False, "--apply", help="Apply pending migrations."),
 ):
     """Initialize DB schema and apply pending migrations."""
-    asyncio.run(_run_migrations(apply))
+    await _run_migrations(apply)

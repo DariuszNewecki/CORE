@@ -68,7 +68,7 @@ class PromptPipeline:
                     f"\n--- CONTEXT: {file_path} ---\n{content}\n--- END CONTEXT ---\n"
                 )
             except Exception as e:
-                return f"\n❌ Could not read {file_path}: {str(e)}\n"
+                return f"\n❌ Could not read {file_path}: {e!s}\n"
         return f"\n❌ File not found: {file_path}\n"
 
     def _inject_context(self, prompt: str) -> str:
@@ -96,7 +96,7 @@ class PromptPipeline:
                     f"\n--- INCLUDED: {file_path} ---\n{content}\n--- END INCLUDE ---\n"
                 )
             except Exception as e:
-                return f"\n❌ Could not read {file_path}: {str(e)}\n"
+                return f"\n❌ Could not read {file_path}: {e!s}\n"
         return f"\n❌ File not found: {file_path}\n"
 
     def _inject_includes(self, prompt: str) -> str:

@@ -11,7 +11,6 @@ from features.introspection.knowledge_graph_service import KnowledgeGraphBuilder
 from shared.models import CapabilityMeta
 
 
-# ID: 12a7fddd-fa62-4dd8-8e1b-54208392a078
 def _collect_from_kgb(root: Path) -> dict[str, CapabilityMeta]:
     """
     Internal helper: use the KnowledgeGraphBuilder to find all capabilities.

@@ -8,8 +8,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
+from body.services.validation.python_validator import validate_python_code_async
 from shared.infrastructure.storage.file_classifier import get_file_classification
-from shared.infrastructure.validation.python_validator import validate_python_code_async
 from shared.infrastructure.validation.yaml_validator import validate_yaml_code
 from shared.logger import getLogger
 

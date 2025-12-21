@@ -4,7 +4,7 @@
 
 from __future__ import annotations
 
-import subprocess
+import asyncio
 
 import typer
 
@@ -46,13 +46,17 @@ async def integrate_changes(context: CoreContext, commit_message: str):
                 step["description"],
             )
             command_parts = step["command"].split()
-            process = subprocess.run(
-                command_parts, capture_output=True, text=True, cwd=settings.REPO_PATH
+            process = await asyncio.create_subprocess_exec(
+                *command_parts,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+                cwd=settings.REPO_PATH,
             )
-            if process.stdout:
-                logger.info(process.stdout)
-            if process.stderr:
-                logger.warning(process.stderr)
+            stdout, stderr = await process.communicate()
+            if stdout:
+                logger.info(stdout.decode())
+            if stderr:
+                logger.warning(stderr.decode())
             if process.returncode != 0:
                 logger.error("Step '%s' failed.", step["id"])
                 if not step.get("continues_on_failure", False):

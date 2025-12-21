@@ -21,6 +21,8 @@ import ast
 from pathlib import Path
 from typing import Any
 
+import typer
+
 from shared.infrastructure.clients.qdrant_client import QdrantService
 from shared.logger import getLogger
 from shared.universal import get_deterministic_id
@@ -294,12 +296,16 @@ async def generate_anchors_command(repo_root: Path) -> dict[str, Any]:
 
 
 if __name__ == "__main__":
-    import asyncio
-    import sys
+    # ID: ad438fa0-9ff5-40fa-8a49-ef2c93d8b373
+    async def run_cli(
+        repo_root: Path = typer.Argument(
+            Path.cwd(), help="Path to the CORE repository root."
+        ),
+    ) -> None:
+        result = await generate_anchors_command(repo_root)
+        logger.info("\nAnchor generation complete!")
+        logger.info("  Anchors: %s", result["anchors_created"])
+        if result.get("errors"):
+            logger.info("  Errors: %s", len(result["errors"]))
 
-    repo_root = Path.cwd() if len(sys.argv) == 1 else Path(sys.argv[1])
-    result = asyncio.run(generate_anchors_command(repo_root))
-    logger.info("\nAnchor generation complete!")
-    logger.info("  Anchors: %s", result["anchors_created"])
-    if result.get("errors"):
-        logger.info("  Errors: %s", len(result["errors"]))
+    typer.run(run_cli)

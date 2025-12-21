@@ -6,8 +6,6 @@ Registers the top-level 'db' command group for managing the CORE operational dat
 
 from __future__ import annotations
 
-import asyncio
-
 import typer
 import yaml
 from sqlalchemy import text
@@ -78,15 +76,12 @@ async def _export_vector_metadata():
     "export", help="Export operational data from the database to read-only files."
 )
 # ID: 86554413-b670-4c62-80eb-31bab9a05edf
-def export_data():
+async def export_data() -> None:
     """Exports DB tables to their canonical, read-only YAML file representations."""
     logger.info("Exporting operational data from Database to files...")
 
-    async def _run_exports():
-        await _export_domains()
-        await _export_vector_metadata()
-
-    asyncio.run(_run_exports())
+    await _export_domains()
+    await _export_vector_metadata()
     logger.info("Export complete.")
 
 
