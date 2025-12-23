@@ -20,7 +20,7 @@ logger = getLogger(__name__)
 class AnthropicProvider(AIProvider):
     """Provider for Anthropic's Messages API."""
 
-    def _prepare_headers(self) -> dict:
+    def _prepare_headers(self) -> dict[str, str]:
         if not self.api_key:
             raise ValueError("Anthropic API requires an API key.")
         clean_key = self.api_key.strip()
@@ -40,14 +40,22 @@ class AnthropicProvider(AIProvider):
             "max_tokens": 4096,
             "messages": [{"role": "user", "content": prompt}],
         }
-        logger.debug("Anthropic Req: %s | Model: {self.model_name}", endpoint)
+
+        # Do not log secrets or partial secrets (API key) under any circumstances.
+        logger.debug("Anthropic Req: %s | Model: %s", endpoint, self.model_name)
+
         async with httpx.AsyncClient(timeout=self.timeout) as client:
             response = await client.post(endpoint, headers=self.headers, json=payload)
+
             if response.status_code == 401:
+                # Explicitly avoid logging x-api-key (even partially).
                 logger.error(
-                    "Anthropic 401. Headers sent: x-api-key=...%s",
-                    self.headers["x-api-key"][-4:],
+                    "Anthropic request unauthorized (401). Verify API key configuration. "
+                    "Endpoint=%s Model=%s",
+                    endpoint,
+                    self.model_name,
                 )
+
             response.raise_for_status()
             data = response.json()
             return data["content"][0]["text"]
