@@ -1,0 +1,250 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "schema_id": "standard.architecture.service_patterns",
+  "version": "1.0.0",
+  "title": "Service Patterns Standard Schema",
+  "description": "Validates service_patterns.yaml with constitutional rigor and structural flexibility",
+  "type": "object",
+  "required": [
+    "id",
+    "version",
+    "title",
+    "type",
+    "status",
+    "owners",
+    "review",
+    "schema_id",
+    "description",
+    "service_contract",
+    "ui_boundary",
+    "write_semantics",
+    "patterns",
+    "service_composition",
+    "error_handling",
+    "testing_patterns",
+    "validation_rules",
+    "migration_checklist"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9_.-]+$"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "title": {
+      "type": "string",
+      "maxLength": 200
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "standard_architecture"
+      ]
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "draft",
+        "deprecated",
+        "experimental"
+      ]
+    },
+    "owners": {
+      "type": "object",
+      "required": [
+        "accountable"
+      ],
+      "properties": {
+        "accountable": {
+          "type": "string"
+        },
+        "responsible": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "review": {
+      "type": "object",
+      "required": [
+        "frequency"
+      ],
+      "properties": {
+        "frequency": {
+          "type": "string"
+        },
+        "last_reviewed": {
+          "type": "string",
+          "format": "date"
+        },
+        "next_review_due": {
+          "type": "string",
+          "format": "date"
+        }
+      },
+      "additionalProperties": false
+    },
+    "schema_id": {
+      "type": "string",
+      "const": "standard.architecture.service_patterns"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "$schema": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "service_contract": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "ui_boundary": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "write_semantics": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "patterns": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "pattern_id",
+          "type",
+          "purpose"
+        ],
+        "properties": {
+          "pattern_id": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "purpose": {
+            "type": "string"
+          },
+          "applies_to": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "lifecycle": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "structure": {
+            "oneOf": [
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              {
+                "type": "object",
+                "additionalProperties": true
+              }
+            ]
+          },
+          "guarantees": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "implementation_requirements": {
+            "oneOf": [
+              {
+                "type": "object",
+                "additionalProperties": true
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            ]
+          },
+          "example_skeleton": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "service_composition": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "error_handling": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "testing_patterns": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "validation_rules": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "rule",
+          "description",
+          "severity",
+          "enforcement"
+        ],
+        "additionalProperties": true
+      }
+    },
+    "migration_checklist": {
+      "type": "object",
+      "properties": {
+        "audit_existing_services": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "refactor_priorities": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "validation": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": false,
+  "id": "service_patterns.schema",
+  "owners": {
+    "accountable": "Governance Lead"
+  },
+  "review": {
+    "frequency": "12 months"
+  }
+}

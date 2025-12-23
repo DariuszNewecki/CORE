@@ -2,27 +2,60 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Database Policy Schema",
   "type": "object",
-  "required": ["id", "version", "title", "engine", "migrations", "rules", "drift"],
+  "required": [
+    "id",
+    "version",
+    "title",
+    "engine",
+    "migrations",
+    "rules",
+    "drift"
+  ],
   "properties": {
-    "id": { "const": "database_policy" },
-    "version": { "type": "string" },
-    "title": { "type": "string" },
+    "id": {
+      "const": "database_policy"
+    },
+    "version": {
+      "type": "string"
+    },
+    "title": {
+      "type": "string"
+    },
     "engine": {
       "type": "object",
-      "required": ["type", "schema"],
+      "required": [
+        "type",
+        "schema"
+      ],
       "properties": {
-        "type": { "type": "string", "enum": ["postgresql"] },
-        "schema": { "type": "string", "minLength": 1 }
+        "type": {
+          "type": "string",
+          "enum": [
+            "postgresql"
+          ]
+        },
+        "schema": {
+          "type": "string",
+          "minLength": 1
+        }
       }
     },
     "migrations": {
       "type": "object",
-      "required": ["directory", "order"],
+      "required": [
+        "directory",
+        "order"
+      ],
       "properties": {
-        "directory": { "type": "string" },
+        "directory": {
+          "type": "string"
+        },
         "order": {
           "type": "array",
-          "items": { "type": "string", "pattern": "^\\d{3}_.+\\.sql$" },
+          "items": {
+            "type": "string",
+            "pattern": "^\\d{3}_.+\\.sql$"
+          },
           "minItems": 1
         }
       }
@@ -32,11 +65,25 @@
       "minItems": 1,
       "items": {
         "type": "object",
-        "required": ["id", "statement", "enforcement"],
+        "required": [
+          "id",
+          "statement",
+          "enforcement"
+        ],
         "properties": {
-          "id": { "type": "string" },
-          "statement": { "type": "string" },
-          "enforcement": { "enum": ["error", "warn", "info"] }
+          "id": {
+            "type": "string"
+          },
+          "statement": {
+            "type": "string"
+          },
+          "enforcement": {
+            "enum": [
+              "error",
+              "warn",
+              "info"
+            ]
+          }
         },
         "additionalProperties": false
       }
@@ -44,32 +91,68 @@
     "retention": {
       "type": "object",
       "properties": {
-        "audit_runs_days": { "type": "integer", "minimum": 1 },
-        "proposals_days": { "type": "integer", "minimum": 1 }
+        "audit_runs_days": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "proposals_days": {
+          "type": "integer",
+          "minimum": 1
+        }
       },
       "additionalProperties": true
     },
     "drift": {
       "type": "object",
-      "required": ["development", "production"],
+      "required": [
+        "development",
+        "production"
+      ],
       "properties": {
-        "development": { "type": "string", "enum": ["warn", "block"] },
-        "production": { "type": "string", "enum": ["warn", "block"] }
+        "development": {
+          "type": "string",
+          "enum": [
+            "warn",
+            "block"
+          ]
+        },
+        "production": {
+          "type": "string",
+          "enum": [
+            "warn",
+            "block"
+          ]
+        }
       }
     },
     "backup_restore": {
       "type": "object",
       "properties": {
-        "cadence": { "type": "string" },
-        "test_restore_quarterly": { "type": "boolean" }
+        "cadence": {
+          "type": "string"
+        },
+        "test_restore_quarterly": {
+          "type": "boolean"
+        }
       }
     },
     "quorum": {
       "type": "object",
       "properties": {
-        "changes_require_critical_paths": { "type": "boolean" }
+        "changes_require_critical_paths": {
+          "type": "boolean"
+        }
       }
     }
   },
-  "additionalProperties": true
+  "additionalProperties": false,
+  "id": "database_policy.schema",
+  "version": "1.0.0",
+  "owners": {
+    "accountable": "Governance Lead"
+  },
+  "review": {
+    "frequency": "12 months"
+  },
+  "schema_id": "meta.schema"
 }

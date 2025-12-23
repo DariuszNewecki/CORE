@@ -1,7 +1,7 @@
 {
   "id": "standard_operations_safety",
   "version": "1.1.3",
-  "title": "Operations Standard – Safety Framework",
+  "title": "Operations Standard \u2013 Safety Framework",
   "type": "standard_operations",
   "status": "active",
   "owners": {
@@ -19,66 +19,84 @@
   "rules": [
     {
       "id": "safety.charter_immutable",
-      "statement": "Charter files under .intent/charter/** MUST NOT be modified without a formal constitutional amendment.",
-      "enforcement": "error",
       "protected_paths": [
         ".intent/charter/**"
-      ]
+      ],
+      "rationale": "Strengthens system governance regarding safety.charter_immutable.",
+      "enforcement": "error",
+      "statement": "Charter files under .intent/charter/** MUST NOT be modified without a formal constitutional amendment.",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: Charter files under .intent/charter/** MUST NOT be modified without a formal constitutional amendment."
+        }
+      }
     },
     {
       "id": "safety.immutable_constitution",
-      "statement": "Constitutional documents MUST NOT be modified outside formal amendment process.",
-      "enforcement": "error",
       "protected_paths": [
         ".intent/charter/constitution/**"
       ],
-      "rationale": "Constitution defines the system's fundamental governance rules. Modifications bypass democratic process and create governance chaos.\n"
+      "rationale": "Constitution defines the system's fundamental governance rules. Modifications bypass democratic process and create governance chaos.\n",
+      "enforcement": "error",
+      "statement": "Constitutional documents MUST NOT be modified outside formal amendment process.",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: Constitutional documents MUST NOT be modified outside formal amendment process."
+        }
+      }
     },
     {
       "id": "safety.immutable_core_mission",
-      "statement": "Core mission definition files MUST NOT be modified without human-in-the-loop amendment.",
-      "enforcement": "error",
       "protected_paths": [
         "mind/knowledge/domain_definitions.yaml",
         "mind_export/northstar.yaml"
-      ]
+      ],
+      "rationale": "Strengthens system governance regarding safety.immutable_core_mission.",
+      "enforcement": "error",
+      "statement": "Core mission definition files MUST NOT be modified without human-in-the-loop amendment.",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: Core mission definition files MUST NOT be modified without human-in-the-loop amendment."
+        }
+      }
     },
     {
       "id": "safety.no_autonomous_core_modification",
-      "statement": "Core orchestration and governance engines MUST NOT be modified autonomously.",
-      "enforcement": "error",
       "protected_paths": [
         "src/core/main.py",
         "src/core/intent_guard.py"
-      ]
+      ],
+      "rationale": "Strengthens system governance regarding safety.no_autonomous_core_modification.",
+      "enforcement": "error",
+      "statement": "Core orchestration and governance engines MUST NOT be modified autonomously.",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: Core orchestration and governance engines MUST NOT be modified autonomously."
+        }
+      }
     },
     {
       "id": "safety.deny_core_loop_edit",
-      "statement": "Autonomous agents MUST NOT modify the core autonomy loop implementation.",
-      "enforcement": "error",
       "protected_paths": [
         "src/features/self_healing/autonomy_loop.py",
         "src/will/agents/**"
       ],
-      "rationale": "Core autonomy loop is the execution engine for autonomous operations. Self-modification creates unbounded recursion and loss of governance.\n"
-    },
-    {
-      "id": "safety.no_dangerous_execution_primitives",
-      "statement": "Source code MUST NOT contain dangerous execution primitives.",
+      "rationale": "Core autonomy loop is the execution engine for autonomous operations. Self-modification creates unbounded recursion and loss of governance.\n",
       "enforcement": "error",
-      "detection": {
-        "method": "ast_call_scan",
-        "patterns": [
-          "eval\\(",
-          "exec\\(",
-          "subprocess\\.(run|Popen|call)\\([^)]*shell\\s*=\\s*True"
-        ]
+      "statement": "Autonomous agents MUST NOT modify the core autonomy loop implementation.",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: Autonomous agents MUST NOT modify the core autonomy loop implementation."
+        }
       }
     },
     {
-      "id": "safety.no_dangerous_execution",
-      "statement": "Code MUST NOT use eval(), exec(), or shell=True subprocess calls.",
-      "enforcement": "error",
+      "id": "safety.no_dangerous_execution_primitives",
       "detection": {
         "method": "ast_call_scan",
         "patterns": [
@@ -87,12 +105,47 @@
           "subprocess\\.(run|Popen|call)\\([^)]*shell\\s*=\\s*True"
         ]
       },
-      "rationale": "Dynamic code execution bypasses static analysis and creates arbitrary code execution vulnerabilities.\n"
+      "rationale": "Strengthens system governance regarding safety.no_dangerous_execution_primitives.",
+      "enforcement": "error",
+      "statement": "Source code MUST NOT contain dangerous execution primitives.",
+      "check": {
+        "engine": "ast_gate",
+        "params": {
+          "check_type": "forbidden_primitives"
+        }
+      }
+    },
+    {
+      "id": "safety.no_dangerous_execution",
+      "detection": {
+        "method": "ast_call_scan",
+        "patterns": [
+          "eval\\(",
+          "exec\\(",
+          "subprocess\\.(run|Popen|call)\\([^)]*shell\\s*=\\s*True"
+        ]
+      },
+      "rationale": "Dynamic code execution bypasses static analysis and creates arbitrary code execution vulnerabilities.\n",
+      "enforcement": "error",
+      "statement": "Code MUST NOT use eval(), exec(), or shell=True subprocess calls.",
+      "check": {
+        "engine": "ast_gate",
+        "params": {
+          "check_type": "forbidden_primitives"
+        }
+      }
     },
     {
       "id": "safety.change_must_be_logged",
+      "rationale": "Strengthens system governance regarding safety.change_must_be_logged.",
+      "enforcement": "error",
       "statement": "Every file modification MUST be preceded by an audit log entry containing an IntentBundle identifier.",
-      "enforcement": "error"
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: Every file modification MUST be preceded by an audit log entry containing an IntentBundle identifier."
+        }
+      }
     }
   ],
   "enforcement_levels": {
@@ -155,5 +208,6 @@
         "All autonomous agents suspended."
       ]
     }
-  }
+  },
+  "additionalProperties": false
 }

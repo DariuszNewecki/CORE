@@ -5,7 +5,9 @@
   "type": "constitutional_boundaries",
   "owners": {
     "accountable": "Governance Lead",
-    "responsible": ["Core Maintainer"]
+    "responsible": [
+      "Core Maintainer"
+    ]
   },
   "review": {
     "frequency": "12 months"
@@ -31,15 +33,43 @@
           ],
           "audit_trail": true
         }
+      },
+      "check": {
+        "engine": "ast_gate",
+        "params": {
+          "patterns_prohibited": [
+            "filesystem_state_persistence",
+            "config_file_as_source_of_truth",
+            "arbitrary_metadata_storage"
+          ],
+          "audit_trail": true
+        }
       }
     },
     "mind_body_will_separation": {
       "statement": "Mind layer is human-authored, Body layer executes, Will layer orchestrates without cross-layer modification",
       "rationale": "Separates human constitutional authority from AI execution capability and prevents self-modification loops",
-      "scope": [".intent/**", "src/mind/**", "src/body/**", "src/will/**"],
+      "scope": [
+        ".intent/**",
+        "src/mind/**",
+        "src/body/**",
+        "src/will/**"
+      ],
       "enforcement": {
         "method": "layer_boundary_check",
         "parameters": {
+          "patterns_prohibited": [
+            "will_parsing_intent_yaml",
+            "body_writing_to_intent",
+            "ai_modifying_constitution",
+            "orchestration_bypassing_boundaries"
+          ],
+          "require_layer_separation": true
+        }
+      },
+      "check": {
+        "engine": "ast_gate",
+        "params": {
           "patterns_prohibited": [
             "will_parsing_intent_yaml",
             "body_writing_to_intent",
@@ -53,10 +83,20 @@
     "constitutional_supremacy": {
       "statement": "Constitutional rules override all other considerations including performance and convenience",
       "rationale": "Ensures AI operates within human-defined boundaries at all times, even if inefficient",
-      "scope": ["all_operations"],
+      "scope": [
+        "all_operations"
+      ],
       "enforcement": {
         "method": "pre_execution_validation",
         "parameters": {
+          "validate_before_execution": true,
+          "block_on_violation": true,
+          "no_bypass_allowed": true
+        }
+      },
+      "check": {
+        "engine": "workflow_gate",
+        "params": {
           "validate_before_execution": true,
           "block_on_violation": true,
           "no_bypass_allowed": true
@@ -66,28 +106,61 @@
     "transparency_and_auditability": {
       "statement": "All autonomous actions must be logged with full context for human review",
       "rationale": "Enables human oversight, debugging, and accountability without requiring real-time approval",
-      "scope": ["all_autonomous_actions"],
+      "scope": [
+        "all_autonomous_actions"
+      ],
       "enforcement": {
         "method": "audit_logging",
         "parameters": {
-          "fields_required": ["who", "what", "when", "why", "result"],
+          "fields_required": [
+            "who",
+            "what",
+            "when",
+            "why",
+            "result"
+          ],
           "audit_log_append_only": true,
           "retention_period_days": 90
+        }
+      },
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: All autonomous actions must be logged with full context for human review"
         }
       }
     },
     "no_autonomous_constitutional_amendment": {
       "statement": "AI agents cannot modify governance rules under any circumstances",
       "rationale": "Preserves human authority over system governance and prevents self-modification",
-      "scope": [".intent/constitution/**"],
+      "scope": [
+        ".intent/constitution/**"
+      ],
       "enforcement": {
         "method": "path_match",
         "parameters": {
-          "patterns": [".intent/constitution/**"],
+          "patterns": [
+            ".intent/constitution/**"
+          ],
           "action": "block_all_writes",
-          "exceptions": ["human_approved_amendments"]
+          "exceptions": [
+            "human_approved_amendments"
+          ]
+        }
+      },
+      "check": {
+        "engine": "glob_gate",
+        "params": {
+          "patterns": [
+            ".intent/constitution/**"
+          ],
+          "action": "block_all_writes",
+          "exceptions": [
+            "human_approved_amendments"
+          ]
         }
       }
     }
-  }
+  },
+  "additionalProperties": false
 }

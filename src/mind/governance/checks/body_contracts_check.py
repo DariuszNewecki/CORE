@@ -27,6 +27,8 @@ Design constraints:
 from __future__ import annotations
 
 import ast
+import asyncio
+import inspect
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, ClassVar
@@ -94,7 +96,6 @@ _WRITE_PARAM_NAMES: tuple[str, ...] = (
 )
 
 # Environment variable access markers
-_ENVVAR_CALLS: tuple[str, ...] = ("getenv",)  # os.getenv
 _ENVVAR_ATTRS: tuple[str, ...] = ("environ",)  # os.environ
 
 # DI preferred heuristic:
@@ -270,7 +271,7 @@ def _analyze_body_contracts(repo_root: Path) -> _AnalysisResult:
                         {"file": rel, "line": node.lineno, "call": node.func.id}
                     )
 
-        # envvar access (os.getenv / os.environ / environ imported)
+        # envvar access markers:
         # 1) os.getenv(...)
         # 2) os.environ.get(...)
         # 3) os.environ["X"] (Subscript)
@@ -278,12 +279,10 @@ def _analyze_body_contracts(repo_root: Path) -> _AnalysisResult:
         for node in ast.walk(tree):
             if isinstance(node, ast.Call):
                 tok = _call_token(node)
-                # getenv()
                 if tok in ("getenv", ".getenv"):
                     envvar_violations.append(
                         {"file": rel, "line": node.lineno, "pattern": tok}
                     )
-                # environ.get(...)
                 if isinstance(node.func, ast.Attribute) and node.func.attr == "get":
                     base = node.func.value
                     if isinstance(base, ast.Attribute) and base.attr in _ENVVAR_ATTRS:
@@ -304,7 +303,6 @@ def _analyze_body_contracts(repo_root: Path) -> _AnalysisResult:
                         )
 
             if isinstance(node, ast.Subscript):
-                # os.environ["X"]
                 val = node.value
                 if isinstance(val, ast.Attribute) and val.attr in _ENVVAR_ATTRS:
                     envvar_violations.append(
@@ -314,7 +312,6 @@ def _analyze_body_contracts(repo_root: Path) -> _AnalysisResult:
                             "pattern": "os.environ[...]",
                         }
                     )
-                # environ["X"]
                 if isinstance(val, ast.Name) and val.id == "environ":
                     envvar_violations.append(
                         {
@@ -354,13 +351,11 @@ def _analyze_body_contracts(repo_root: Path) -> _AnalysisResult:
             init_has_deps = False
             if init_fns:
                 init_args = init_fns[0].args
-                # posonlyargs + args includes "self" typically
                 positional = list(init_args.posonlyargs) + list(init_args.args)
-                # Any extra args beyond self or any kwonly args implies injection
                 if len(positional) > 1 or len(init_args.kwonlyargs) > 0:
                     init_has_deps = True
 
-            # 1) ActionResult returns check (existing)
+            # 1) ActionResult returns check
             for fn in entrypoints:
                 returns = [n for n in ast.walk(fn) if isinstance(n, ast.Return)]
                 if not returns:
@@ -410,7 +405,6 @@ def _analyze_body_contracts(repo_root: Path) -> _AnalysisResult:
                     if not name:
                         continue
                     if any(name.endswith(suf) for suf in _DI_CLASS_SUFFIXES):
-                        # We only warn on likely service instantiation when the class isn't injected.
                         if not init_has_deps:
                             di_preferred_violations.append(
                                 {
@@ -424,7 +418,6 @@ def _analyze_body_contracts(repo_root: Path) -> _AnalysisResult:
                             )
 
             # 3) ActionResult data json-safe: check ActionResult(...) calls inside entrypoints
-            # We only flag "not provably safe" payloads.
             for fn in entrypoints:
                 for node in ast.walk(fn):
                     if not isinstance(node, ast.Call):
@@ -432,12 +425,13 @@ def _analyze_body_contracts(repo_root: Path) -> _AnalysisResult:
                     if _call_name(node) not in _ACTIONRESULT_MARKERS:
                         continue
 
-                    # Inspect common payload keywords; if absent, ignore.
                     payload_nodes: list[tuple[str, ast.AST]] = []
                     for kw in node.keywords:
-                        if kw.arg in ("data", "payload", "result"):
-                            if kw.value is not None:
-                                payload_nodes.append((kw.arg, kw.value))
+                        if (
+                            kw.arg in ("data", "payload", "result")
+                            and kw.value is not None
+                        ):
+                            payload_nodes.append((kw.arg, kw.value))
 
                     for key, val in payload_nodes:
                         if _is_literal_json_safe(val):
@@ -455,7 +449,7 @@ def _analyze_body_contracts(repo_root: Path) -> _AnalysisResult:
                         )
 
         # Heuristic: if a function/method defines write/mutation params, they must default to False.
-        # ID: 3ca6f18c-cc3b-4c1b-985c-113a2a4d5134
+        # ID: 753049d6-9a93-4397-9c1a-273ae4751fa3
         def inspect_fn(fn: ast.FunctionDef, owner: str | None) -> None:
             args = fn.args
             pos_args = list(args.posonlyargs) + list(args.args)
@@ -466,10 +460,7 @@ def _analyze_body_contracts(repo_root: Path) -> _AnalysisResult:
             default_map: dict[str, ast.AST | None] = {}
 
             for i, a in enumerate(pos_args):
-                if i >= start:
-                    default_map[a.arg] = defaults[i - start]
-                else:
-                    default_map[a.arg] = None
+                default_map[a.arg] = defaults[i - start] if i >= start else None
 
             for a, d in zip(kw_args, args.kw_defaults):
                 default_map[a.arg] = d
@@ -530,6 +521,38 @@ def _analyze_body_contracts(repo_root: Path) -> _AnalysisResult:
     )
 
 
+def _run_internal_checker_callable(fn: Any, repo_root: Path) -> Any:
+    """
+    Runs an internal checker callable in a sync-safe way.
+
+    Critical behavior:
+    - If the callable returns a coroutine, it is executed to completion to avoid
+      'coroutine was never awaited' leaks.
+    - This function is intended to be called from a SYNC context (RuleEnforcementCheck.execute),
+      which is typically executed via asyncio.to_thread(...) by the auditor.
+    """
+    try:
+        out = fn()
+    except TypeError:
+        out = fn(repo_root)
+
+    if inspect.iscoroutine(out):
+        # RuleEnforcementCheck.execute is sync; in practice the auditor calls it in a worker thread.
+        # In that context there is no running loop, so asyncio.run is safe.
+        try:
+            asyncio.get_running_loop()
+        except RuntimeError:
+            return asyncio.run(out)
+
+        # If we ever end up inside a running loop (unexpected for this check), fail closed.
+        raise RuntimeError(
+            "Internal body contracts checker returned a coroutine while a loop is running. "
+            "Callers must await it (or ensure this check runs in a worker thread)."
+        )
+
+    return out
+
+
 def _try_internal_checker(repo_root: Path) -> list[dict[str, Any]] | None:
     """
     Attempt to reuse CORE's internal checker, if present.
@@ -563,12 +586,7 @@ def _try_internal_checker(repo_root: Path) -> list[dict[str, Any]] | None:
         return None
 
     try:
-        out = fn()
-    except TypeError:
-        try:
-            out = fn(repo_root)
-        except Exception:
-            return None
+        out = _run_internal_checker_callable(fn, repo_root)
     except Exception:
         return None
 
@@ -595,38 +613,59 @@ class _BodyContractsBaseEnforcement(EnforcementMethod):
     - All findings must be created via self._create_finding(...) to match CORE's AuditFinding API.
     """
 
+    _CACHE_ATTR = "_body_contracts_check_cache"
+
     def _load_analysis(self, context: AuditorContext) -> tuple[str, dict[str, Any]]:
         """
         Returns:
         - mode: 'internal_checker' or 'fallback_ast'
         - payload: normalized evidence payload for this run
+
+        Uses a per-context cache to avoid re-running analysis N times (one per rule).
         """
+        cache = getattr(context, self._CACHE_ATTR, None)
+        if isinstance(cache, dict) and "mode" in cache and "payload" in cache:
+            mode = cache["mode"]
+            payload = cache["payload"]
+            if isinstance(mode, str) and isinstance(payload, dict):
+                return mode, payload
+
         repo_root = context.repo_path
 
         internal = _try_internal_checker(repo_root)
         if internal is not None:
-            return "internal_checker", {
-                "source": "body.cli.logic.body_contracts_checker",
-                "raw_findings": internal,
-            }
+            mode, payload = (
+                "internal_checker",
+                {
+                    "source": "body.cli.logic.body_contracts_checker",
+                    "raw_findings": internal,
+                },
+            )
+            setattr(context, self._CACHE_ATTR, {"mode": mode, "payload": payload})
+            return mode, payload
 
         analysis = _analyze_body_contracts(repo_root)
-        return "fallback_ast", {
-            "source": "ast",
-            "parsed_files": analysis.parsed_files,
-            "parse_errors": analysis.parse_errors,
-            "ui_import_violations": analysis.ui_import_violations,
-            "print_input_violations": analysis.print_input_violations,
-            "actionresult_violations": analysis.actionresult_violations,
-            "write_default_violations": analysis.write_default_violations,
-            "envvar_violations": analysis.envvar_violations,
-            "actionresult_json_violations": analysis.actionresult_json_violations,
-            "di_preferred_violations": analysis.di_preferred_violations,
-        }
+        mode, payload = (
+            "fallback_ast",
+            {
+                "source": "ast",
+                "parsed_files": analysis.parsed_files,
+                "parse_errors": analysis.parse_errors,
+                "ui_import_violations": analysis.ui_import_violations,
+                "print_input_violations": analysis.print_input_violations,
+                "actionresult_violations": analysis.actionresult_violations,
+                "write_default_violations": analysis.write_default_violations,
+                "envvar_violations": analysis.envvar_violations,
+                "actionresult_json_violations": analysis.actionresult_json_violations,
+                "di_preferred_violations": analysis.di_preferred_violations,
+            },
+        )
+        setattr(context, self._CACHE_ATTR, {"mode": mode, "payload": payload})
+        return mode, payload
 
     def _cannot_verify_finding(
         self,
-        context: AuditorContext,
+        *,
         rule_id: str,
         mode: str,
         payload: dict[str, Any],
@@ -656,10 +695,9 @@ class _BodyContractsBaseEnforcement(EnforcementMethod):
         ]
 
 
-# ERROR: body.atomic_actions_use_actionresult
-# ID: e2c2cada-1482-4a8d-a699-6e95d023eefa
+# ID: 2d561b29-88c7-49a9-ab23-36e8ce14f5f2
 class AtomicActionsUseActionResultEnforcement(_BodyContractsBaseEnforcement):
-    # ID: 29fe8dd5-2ee0-42d1-9648-7f6e321a39ee
+    # ID: 67343041-55f9-4c38-820e-26c24571fc9f
     def verify(
         self, context: AuditorContext, rule_data: dict[str, Any], **kwargs: Any
     ) -> list[AuditFinding]:
@@ -685,7 +723,6 @@ class AtomicActionsUseActionResultEnforcement(_BodyContractsBaseEnforcement):
             ]
 
         cannot = self._cannot_verify_finding(
-            context=context,
             rule_id=RULE_ATOMIC_ACTIONS_USE_ACTIONRESULT,
             mode=mode,
             payload=payload,
@@ -707,10 +744,9 @@ class AtomicActionsUseActionResultEnforcement(_BodyContractsBaseEnforcement):
         ]
 
 
-# ERROR: body.no_print_or_input_in_body
-# ID: 240d8b44-d98f-4974-8960-fd7adb037ad4
+# ID: 91812b33-8c4a-47dc-bc4c-acc37adbe42b
 class NoPrintOrInputInBodyEnforcement(_BodyContractsBaseEnforcement):
-    # ID: d9905002-c1e1-4bd3-bd88-efc3a570feac
+    # ID: 8fecb2cd-6158-4426-968f-76fd8180e0f6
     def verify(
         self, context: AuditorContext, rule_data: dict[str, Any], **kwargs: Any
     ) -> list[AuditFinding]:
@@ -736,7 +772,6 @@ class NoPrintOrInputInBodyEnforcement(_BodyContractsBaseEnforcement):
             ]
 
         cannot = self._cannot_verify_finding(
-            context=context,
             rule_id=RULE_NO_PRINT_OR_INPUT_IN_BODY,
             mode=mode,
             payload=payload,
@@ -758,10 +793,9 @@ class NoPrintOrInputInBodyEnforcement(_BodyContractsBaseEnforcement):
         ]
 
 
-# ERROR: body.no_ui_imports_in_body
-# ID: 3367785a-9d44-4e34-aecf-897a30cf2a94
+# ID: 02047f81-4db9-46ea-923b-2703925a022e
 class NoUiImportsInBodyEnforcement(_BodyContractsBaseEnforcement):
-    # ID: 74f1313c-abfa-45ab-8539-177f54283ec0
+    # ID: 00624666-ca75-46ef-8380-d3c33310acfc
     def verify(
         self, context: AuditorContext, rule_data: dict[str, Any], **kwargs: Any
     ) -> list[AuditFinding]:
@@ -787,7 +821,6 @@ class NoUiImportsInBodyEnforcement(_BodyContractsBaseEnforcement):
             ]
 
         cannot = self._cannot_verify_finding(
-            context=context,
             rule_id=RULE_NO_UI_IMPORTS_IN_BODY,
             mode=mode,
             payload=payload,
@@ -809,10 +842,9 @@ class NoUiImportsInBodyEnforcement(_BodyContractsBaseEnforcement):
         ]
 
 
-# ERROR: body.write_defaults_false
-# ID: ec127c1a-c160-4d7c-a922-1c27336fd942
+# ID: a0ce3804-fbb6-4efc-b9a0-61522287d3f7
 class WriteDefaultsFalseEnforcement(_BodyContractsBaseEnforcement):
-    # ID: db728d3f-32de-478d-97e8-927dd6598ebd
+    # ID: ca6c4dbd-af9b-4afd-9c4f-3be87198615b
     def verify(
         self, context: AuditorContext, rule_data: dict[str, Any], **kwargs: Any
     ) -> list[AuditFinding]:
@@ -838,7 +870,6 @@ class WriteDefaultsFalseEnforcement(_BodyContractsBaseEnforcement):
             ]
 
         cannot = self._cannot_verify_finding(
-            context=context,
             rule_id=RULE_WRITE_DEFAULTS_FALSE,
             mode=mode,
             payload=payload,
@@ -860,10 +891,9 @@ class WriteDefaultsFalseEnforcement(_BodyContractsBaseEnforcement):
         ]
 
 
-# WARN: body.no_envvar_access_in_body
-# ID: e11954ac-05fe-4d37-a3fd-29fece8cc906
+# ID: 1f18819d-61c1-4c16-a3ec-a802f61976f6
 class NoEnvvarAccessInBodyEnforcement(_BodyContractsBaseEnforcement):
-    # ID: e544cf5c-f7d9-4bbb-8e67-23c21152d717
+    # ID: 20d046a1-f74c-4432-9692-c16522e1d121
     def verify(
         self, context: AuditorContext, rule_data: dict[str, Any], **kwargs: Any
     ) -> list[AuditFinding]:
@@ -889,7 +919,6 @@ class NoEnvvarAccessInBodyEnforcement(_BodyContractsBaseEnforcement):
             ]
 
         cannot = self._cannot_verify_finding(
-            context=context,
             rule_id=RULE_NO_ENVVAR_ACCESS_IN_BODY,
             mode=mode,
             payload=payload,
@@ -911,10 +940,9 @@ class NoEnvvarAccessInBodyEnforcement(_BodyContractsBaseEnforcement):
         ]
 
 
-# WARN: body.actionresult_data_json_safe
-# ID: 3d6ca2c9-081a-4614-8d30-fec72e06788d
+# ID: a8d8e4c9-ea56-433f-8790-596aea58a332
 class ActionResultDataJsonSafeEnforcement(_BodyContractsBaseEnforcement):
-    # ID: c8150abb-c250-4e0f-ae10-e5215848ea83
+    # ID: 23b8accd-0aaf-47b4-84c5-37cecfed2ef6
     def verify(
         self, context: AuditorContext, rule_data: dict[str, Any], **kwargs: Any
     ) -> list[AuditFinding]:
@@ -940,7 +968,6 @@ class ActionResultDataJsonSafeEnforcement(_BodyContractsBaseEnforcement):
             ]
 
         cannot = self._cannot_verify_finding(
-            context=context,
             rule_id=RULE_ACTIONRESULT_DATA_JSON_SAFE,
             mode=mode,
             payload=payload,
@@ -955,17 +982,19 @@ class ActionResultDataJsonSafeEnforcement(_BodyContractsBaseEnforcement):
             return []
         return [
             self._create_finding(
-                message="Some ActionResult payloads are not provably JSON-safe (use primitives / dict/list literals or serialize explicitly).",
+                message=(
+                    "Some ActionResult payloads are not provably JSON-safe "
+                    "(use primitives / dict/list literals or serialize explicitly)."
+                ),
                 file_path="src/body/actions",
                 details={"mode": mode, "violations": violations[:200]},
             )
         ]
 
 
-# WARN: body.dependency_injection_preferred
-# ID: 8523a2a4-8053-4f9b-8f74-74d60912de68
+# ID: 291e8c99-a735-4df7-939c-ba9462dfc0a0
 class DependencyInjectionPreferredEnforcement(_BodyContractsBaseEnforcement):
-    # ID: fbcee140-cdda-4344-9587-77897017c01b
+    # ID: 8d30d8e3-905b-4679-9fe1-288d531dbb68
     def verify(
         self, context: AuditorContext, rule_data: dict[str, Any], **kwargs: Any
     ) -> list[AuditFinding]:
@@ -991,7 +1020,6 @@ class DependencyInjectionPreferredEnforcement(_BodyContractsBaseEnforcement):
             ]
 
         cannot = self._cannot_verify_finding(
-            context=context,
             rule_id=RULE_DEPENDENCY_INJECTION_PREFERRED,
             mode=mode,
             payload=payload,
@@ -1016,7 +1044,7 @@ class DependencyInjectionPreferredEnforcement(_BodyContractsBaseEnforcement):
 # =============================================================================
 # Check binding
 # =============================================================================
-# ID: 3cdbfb39-4b74-430c-bc81-c1232bc41f9f
+# ID: cc50628a-d803-4c48-9c79-d46c87177bb8
 class BodyContractsCheck(RuleEnforcementCheck):
     """
     Enforces Body contract rules with evidence-backed methods.
@@ -1034,6 +1062,7 @@ class BodyContractsCheck(RuleEnforcementCheck):
         RULE_NO_ENVVAR_ACCESS_IN_BODY,
     ]
 
+    # NOTE: legacy shim is acceptable during migration; RuleEnforcementCheck resolves SSOT.
     policy_file: ClassVar = settings.paths.policy("body_contracts")
 
     enforcement_methods: ClassVar[list[EnforcementMethod]] = [

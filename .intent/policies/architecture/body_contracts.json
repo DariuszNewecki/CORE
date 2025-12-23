@@ -1,7 +1,7 @@
 {
   "id": "standard_architecture_body_contracts",
   "version": "1.0.0",
-  "title": "Architecture Standard – Body Contracts",
+  "title": "Architecture Standard \u2013 Body Contracts",
   "type": "standard_architecture",
   "status": "active",
   "owners": {
@@ -172,38 +172,88 @@
   "rules": [
     {
       "id": "body.no_ui_imports_in_body",
+      "rationale": "Strengthens system governance regarding body.no_ui_imports_in_body.",
+      "enforcement": "error",
       "statement": "Body modules MUST NOT import Rich UI components (Console, Progress, etc.)",
-      "enforcement": "error"
+      "check": {
+        "engine": "ast_gate",
+        "params": {
+          "check_type": "import_boundary"
+        }
+      }
     },
     {
       "id": "body.no_print_or_input_in_body",
+      "rationale": "Strengthens system governance regarding body.no_print_or_input_in_body.",
+      "enforcement": "error",
       "statement": "Body modules MUST NOT use print() or input() for user interaction",
-      "enforcement": "error"
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: Body modules MUST NOT use print() or input() for user interaction"
+        }
+      }
     },
     {
       "id": "body.write_defaults_false",
+      "rationale": "Strengthens system governance regarding body.write_defaults_false.",
+      "enforcement": "error",
       "statement": "Any write/modify parameter in Body code MUST default to False",
-      "enforcement": "error"
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: Any write/modify parameter in Body code MUST default to False"
+        }
+      }
     },
     {
       "id": "body.atomic_actions_use_actionresult",
+      "rationale": "Strengthens system governance regarding body.atomic_actions_use_actionresult.",
+      "enforcement": "error",
       "statement": "High-level Body actions exposed to workflows MUST return ActionResult",
-      "enforcement": "error"
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: High-level Body actions exposed to workflows MUST return ActionResult"
+        }
+      }
     },
     {
       "id": "body.actionresult_data_json_safe",
+      "rationale": "Strengthens system governance regarding body.actionresult_data_json_safe.",
+      "enforcement": "warning",
       "statement": "ActionResult.data MUST only contain JSON-serializable types",
-      "enforcement": "warn"
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: ActionResult.data MUST only contain JSON-serializable types"
+        }
+      }
     },
     {
       "id": "body.no_envvar_access_in_body",
+      "rationale": "Strengthens system governance regarding body.no_envvar_access_in_body.",
+      "enforcement": "warning",
       "statement": "Body modules MUST NOT call os.environ[...] directly; use shared.config.settings",
-      "enforcement": "warn"
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: Body modules MUST NOT call os.environ[...] directly; use shared.config.settings"
+        }
+      }
     },
     {
       "id": "body.dependency_injection_preferred",
+      "rationale": "Strengthens system governance regarding body.dependency_injection_preferred.",
+      "enforcement": "warning",
       "statement": "Body services SHOULD receive dependencies via constructor, not create them internally",
-      "enforcement": "warn"
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: Body services SHOULD receive dependencies via constructor, not create them internally"
+        }
+      }
     }
-  ]
+  ],
+  "additionalProperties": false
 }

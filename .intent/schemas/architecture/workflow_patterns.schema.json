@@ -1,0 +1,874 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "schema_id": "standard.architecture.workflow_patterns",
+  "version": "1.0.0",
+  "title": "Architecture Standard \u2013 Workflow Patterns",
+  "description": "Validates workflow_patterns.yaml with constitutional rigor and structural flexibility",
+  "type": "object",
+  "required": [
+    "id",
+    "version",
+    "title",
+    "type",
+    "status",
+    "owners",
+    "review",
+    "schema_id",
+    "description",
+    "ui_contract",
+    "patterns",
+    "workflow_composition",
+    "activity_tracking",
+    "error_handling_strategies",
+    "circuit_breaker",
+    "monitoring_and_observability",
+    "testing_workflows",
+    "migration_plan",
+    "validation_rules"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9_.-]+$"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "title": {
+      "type": "string",
+      "maxLength": 200
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "draft",
+        "deprecated",
+        "experimental"
+      ]
+    },
+    "owners": {
+      "type": "object",
+      "required": [
+        "accountable"
+      ],
+      "properties": {
+        "accountable": {
+          "type": "string"
+        },
+        "responsible": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "review": {
+      "type": "object",
+      "required": [
+        "frequency"
+      ],
+      "properties": {
+        "frequency": {
+          "type": "string"
+        },
+        "last_reviewed": {
+          "type": "string",
+          "format": "date"
+        },
+        "next_review_due": {
+          "type": "string",
+          "format": "date"
+        }
+      },
+      "additionalProperties": false
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "$schema": {
+      "type": "string",
+      "description": "Optional JSON Schema reference"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "standard_architecture"
+      ]
+    },
+    "schema_id": {
+      "type": "string",
+      "const": "standard.architecture.workflow_patterns"
+    },
+    "description": {
+      "type": "string",
+      "minLength": 10
+    },
+    "ui_contract": {
+      "type": "object",
+      "properties": {
+        "owner": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 10
+        },
+        "visual_standards": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        },
+        "rules": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        }
+      },
+      "required": [
+        "owner",
+        "description",
+        "visual_standards",
+        "rules"
+      ],
+      "additionalProperties": false
+    },
+    "patterns": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "pattern_id",
+          "type",
+          "purpose"
+        ],
+        "properties": {
+          "pattern_id": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "purpose": {
+            "type": "string"
+          },
+          "applies_to": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "description": {
+            "type": "string"
+          },
+          "examples": {
+            "type": "array"
+          },
+          "implementation_requirements": {},
+          "structure": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "signature": {
+            "type": "object"
+          },
+          "guarantees": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "parameters": {},
+          "exit_codes": {
+            "type": "object"
+          },
+          "architecture": {
+            "type": "object"
+          },
+          "example_implementation": {
+            "type": "string"
+          },
+          "characteristics": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "example_skeleton": {
+            "type": "string"
+          },
+          "order": {
+            "type": "object"
+          },
+          "reasoning": {
+            "type": "string"
+          },
+          "violation_example": {
+            "type": "string"
+          },
+          "correct_example": {
+            "type": "string"
+          },
+          "fix": {
+            "type": "object"
+          }
+        },
+        "additionalProperties": true
+      },
+      "minItems": 1
+    },
+    "workflow_composition": {
+      "type": "object",
+      "properties": {
+        "nesting": {
+          "type": "object",
+          "properties": {
+            "description": {
+              "type": "string"
+            },
+            "example": {
+              "type": "string",
+              "minLength": 10
+            },
+            "guidelines": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "minItems": 1
+            }
+          },
+          "required": [
+            "description",
+            "example",
+            "guidelines"
+          ],
+          "additionalProperties": false
+        },
+        "conditional_execution": {
+          "type": "object",
+          "properties": {
+            "description": {
+              "type": "string"
+            },
+            "example": {
+              "type": "string",
+              "minLength": 10
+            }
+          },
+          "required": [
+            "description",
+            "example"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "nesting",
+        "conditional_execution"
+      ],
+      "additionalProperties": false
+    },
+    "activity_tracking": {
+      "type": "object",
+      "properties": {
+        "purpose": {
+          "type": "string"
+        },
+        "timeline_logging": {
+          "type": "object",
+          "properties": {
+            "what_to_log": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "minItems": 1
+            },
+            "structured_format": {
+              "type": "string",
+              "minLength": 10
+            }
+          },
+          "required": [
+            "what_to_log",
+            "structured_format"
+          ],
+          "additionalProperties": false
+        },
+        "visualization": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        }
+      },
+      "required": [
+        "purpose",
+        "timeline_logging",
+        "visualization"
+      ],
+      "additionalProperties": false
+    },
+    "error_handling_strategies": {
+      "type": "object",
+      "properties": {
+        "retry_policy": {
+          "type": "object",
+          "properties": {
+            "transient_errors": {
+              "type": "object",
+              "properties": {
+                "strategy": {
+                  "type": "string"
+                },
+                "max_attempts": {
+                  "type": "integer"
+                },
+                "backoff_factor": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "strategy",
+                "max_attempts",
+                "backoff_factor"
+              ],
+              "additionalProperties": false
+            },
+            "permanent_errors": {
+              "type": "object",
+              "properties": {
+                "strategy": {
+                  "type": "string"
+                },
+                "notify": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "strategy",
+                "notify"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "transient_errors",
+            "permanent_errors"
+          ],
+          "additionalProperties": false
+        },
+        "partial_success": {
+          "type": "object",
+          "properties": {
+            "description": {
+              "type": "string"
+            },
+            "example": {
+              "type": "string"
+            },
+            "handling": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "minItems": 1
+            }
+          },
+          "required": [
+            "description",
+            "example",
+            "handling"
+          ],
+          "additionalProperties": false
+        },
+        "graceful_degradation": {
+          "type": "object",
+          "properties": {
+            "description": {
+              "type": "string"
+            },
+            "example": {
+              "type": "string"
+            },
+            "implementation": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "minItems": 1
+            }
+          },
+          "required": [
+            "description",
+            "example",
+            "implementation"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "retry_policy",
+        "partial_success",
+        "graceful_degradation"
+      ],
+      "additionalProperties": false
+    },
+    "circuit_breaker": {
+      "type": "object",
+      "properties": {
+        "purpose": {
+          "type": "string"
+        },
+        "rationale": {
+          "type": "string",
+          "minLength": 10
+        },
+        "rules": {
+          "type": "object",
+          "properties": {
+            "max_attempts_per_file": {
+              "type": "object",
+              "properties": {
+                "limit": {
+                  "type": "integer"
+                },
+                "window": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "limit",
+                "window",
+                "description"
+              ],
+              "additionalProperties": false
+            },
+            "max_attempts_per_issue": {
+              "type": "object",
+              "properties": {
+                "limit": {
+                  "type": "integer"
+                },
+                "window": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "limit",
+                "window",
+                "description"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "max_attempts_per_file",
+            "max_attempts_per_issue"
+          ],
+          "additionalProperties": false
+        },
+        "detection_criteria": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        },
+        "actions_on_breach": {
+          "type": "object",
+          "properties": {
+            "immediate": {
+              "type": "array",
+              "items": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "action": {
+                        "type": "string"
+                      },
+                      "target": {
+                        "type": "string"
+                      },
+                      "duration": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "action",
+                      "target",
+                      "duration"
+                    ],
+                    "additionalProperties": false,
+                    "description": "Variant with fields: action, duration, target"
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "action": {
+                        "type": "string"
+                      },
+                      "scope": {
+                        "type": "string"
+                      },
+                      "message": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "action",
+                      "scope",
+                      "message"
+                    ],
+                    "additionalProperties": false,
+                    "description": "Variant with fields: action, message, scope"
+                  }
+                ]
+              },
+              "minItems": 1
+            },
+            "escalation": {
+              "type": "array",
+              "items": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "action": {
+                        "type": "string"
+                      },
+                      "includes": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        },
+                        "minItems": 1
+                      }
+                    },
+                    "required": [
+                      "action",
+                      "includes"
+                    ],
+                    "additionalProperties": false,
+                    "description": "Variant with fields: action, includes"
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "action": {
+                        "type": "string"
+                      },
+                      "method": {
+                        "type": "string"
+                      },
+                      "priority": {
+                        "type": "string"
+                      },
+                      "message": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "action",
+                      "method",
+                      "priority",
+                      "message"
+                    ],
+                    "additionalProperties": false,
+                    "description": "Variant with fields: action, message, method, priority"
+                  }
+                ]
+              },
+              "minItems": 1
+            },
+            "recovery": {
+              "type": "array",
+              "items": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "action": {
+                        "type": "string"
+                      },
+                      "description": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "action",
+                      "description"
+                    ],
+                    "additionalProperties": false,
+                    "description": "Variant with fields: action, description"
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "action": {
+                        "type": "string"
+                      },
+                      "command": {
+                        "type": "string"
+                      },
+                      "requires": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "action",
+                      "command",
+                      "requires"
+                    ],
+                    "additionalProperties": false,
+                    "description": "Variant with fields: action, command, requires"
+                  }
+                ]
+              },
+              "minItems": 1
+            }
+          },
+          "required": [
+            "immediate",
+            "escalation",
+            "recovery"
+          ],
+          "additionalProperties": false
+        },
+        "implementation_example": {
+          "type": "string",
+          "minLength": 10
+        },
+        "monitoring": {
+          "type": "object",
+          "properties": {
+            "metrics": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "minItems": 1
+            },
+            "dashboard": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "minItems": 1
+            }
+          },
+          "required": [
+            "metrics",
+            "dashboard"
+          ],
+          "additionalProperties": false
+        },
+        "testing": {
+          "type": "object",
+          "properties": {
+            "unit_tests": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "minItems": 1
+            },
+            "integration_tests": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "minItems": 1
+            },
+            "chaos_engineering": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "minItems": 1
+            }
+          },
+          "required": [
+            "unit_tests",
+            "integration_tests",
+            "chaos_engineering"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "purpose",
+        "rationale",
+        "rules",
+        "detection_criteria",
+        "actions_on_breach",
+        "implementation_example",
+        "monitoring",
+        "testing"
+      ],
+      "additionalProperties": false
+    },
+    "monitoring_and_observability": {
+      "type": "object",
+      "properties": {
+        "metrics": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        },
+        "alerting": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        },
+        "debugging": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        }
+      },
+      "required": [
+        "metrics",
+        "alerting",
+        "debugging"
+      ],
+      "additionalProperties": false
+    },
+    "testing_workflows": {
+      "type": "object",
+      "properties": {
+        "unit_tests": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        },
+        "integration_tests": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        },
+        "chaos_engineering": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        }
+      },
+      "required": [
+        "unit_tests",
+        "integration_tests",
+        "chaos_engineering"
+      ],
+      "additionalProperties": false
+    },
+    "migration_plan": {
+      "type": "object",
+      "properties": {
+        "phase_1_inventory": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        },
+        "phase_2_standardization": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        },
+        "phase_3_enhancement": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        },
+        "phase_4_autonomy": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        }
+      },
+      "required": [
+        "phase_1_inventory",
+        "phase_2_standardization",
+        "phase_3_enhancement",
+        "phase_4_autonomy"
+      ],
+      "additionalProperties": false
+    },
+    "validation_rules": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "rule": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "minLength": 10
+          },
+          "severity": {
+            "type": "string"
+          },
+          "enforcement": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "rule",
+          "description",
+          "severity",
+          "enforcement"
+        ],
+        "additionalProperties": false
+      },
+      "minItems": 1
+    }
+  },
+  "additionalProperties": false,
+  "id": "workflow_patterns.schema",
+  "owners": {
+    "accountable": "Governance Lead"
+  },
+  "review": {
+    "frequency": "12 months"
+  }
+}

@@ -7,9 +7,14 @@
   "type": "object",
   "additionalProperties": false,
   "allOf": [
-    { "$ref": "header.schema.json" }
+    {
+      "$ref": "header.schema.json"
+    }
   ],
-  "required": ["type", "principles"],
+  "required": [
+    "type",
+    "principles"
+  ],
   "properties": {
     "type": {
       "type": "string",
@@ -21,7 +26,10 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["id", "description"],
+        "required": [
+          "id",
+          "description"
+        ],
         "properties": {
           "id": {
             "type": "string",
@@ -40,11 +48,20 @@
     },
     "rules": {
       "type": "array",
-      "items": { "$ref": "rule.schema.json" }
+      "items": {
+        "$ref": "rule.schema.json"
+      }
     },
     "precedence": {
       "type": "string",
       "description": "Optional pointer to a precedence definition document (path or id)."
     }
+  },
+  "id": "constitution.schema",
+  "owners": {
+    "accountable": "Governance Lead"
+  },
+  "review": {
+    "frequency": "12 months"
   }
 }

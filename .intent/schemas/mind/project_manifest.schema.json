@@ -333,5 +333,12 @@
       "minLength": 10
     }
   },
-  "additionalProperties": false
+  "additionalProperties": false,
+  "id": "project_manifest.schema",
+  "owners": {
+    "accountable": "Governance Lead"
+  },
+  "review": {
+    "frequency": "12 months"
+  }
 }

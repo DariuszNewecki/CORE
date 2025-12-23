@@ -7,9 +7,14 @@
   "type": "object",
   "additionalProperties": false,
   "allOf": [
-    { "$ref": "header.schema.json" }
+    {
+      "$ref": "header.schema.json"
+    }
   ],
-  "required": ["type", "rules"],
+  "required": [
+    "type",
+    "rules"
+  ],
   "properties": {
     "type": {
       "type": "string",
@@ -18,26 +23,41 @@
     "scope": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["paths"],
+      "required": [
+        "paths"
+      ],
       "properties": {
         "paths": {
           "type": "array",
           "minItems": 1,
-          "items": { "type": "string" }
+          "items": {
+            "type": "string"
+          }
         },
         "excludes": {
           "type": "array",
-          "items": { "type": "string" }
+          "items": {
+            "type": "string"
+          }
         }
       }
     },
     "rules": {
       "type": "array",
       "minItems": 1,
-      "items": { "$ref": "rule.schema.json" }
+      "items": {
+        "$ref": "rule.schema.json"
+      }
     },
     "notes": {
       "type": "string"
     }
+  },
+  "id": "policy.schema",
+  "owners": {
+    "accountable": "Governance Lead"
+  },
+  "review": {
+    "frequency": "12 months"
   }
 }

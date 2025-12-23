@@ -1,7 +1,7 @@
 {
   "id": "standard_architecture_decorator_governance",
   "version": "1.0.0",
-  "title": "Architecture Standard – Decorator Governance",
+  "title": "Architecture Standard \u2013 Decorator Governance",
   "type": "standard_architecture",
   "status": "active",
   "owners": {
@@ -103,7 +103,6 @@
   "rules": [
     {
       "rule_id": "cli_commands_require_core_decorator",
-      "statement": "All CLI command functions MUST use @core_command decorator",
       "applies_to": [
         "Functions under src/body/cli/**/*.py",
         "Functions decorated with @<app>.command()",
@@ -124,11 +123,11 @@
           "is_dangerous": {
             "determine_by": "semantic analysis of function body",
             "heuristics": [
-              "Contains Path.write_text() → dangerous=True",
-              "Contains Path.unlink() → dangerous=True",
-              "Contains subprocess.run() → dangerous=True",
-              "Only reads data → dangerous=False",
-              "Only queries database → dangerous=False"
+              "Contains Path.write_text() \u2192 dangerous=True",
+              "Contains Path.unlink() \u2192 dangerous=True",
+              "Contains subprocess.run() \u2192 dangerous=True",
+              "Only reads data \u2192 dangerous=False",
+              "Only queries database \u2192 dangerous=False"
             ],
             "default": false,
             "reasoning": "Conservative default: assume safe unless proven otherwise"
@@ -138,11 +137,20 @@
       "fix": {
         "action": "Add @core_command decorator above framework decorator",
         "verification": "Ensure decorator order: @core_command then @app.command()"
+      },
+      "rationale": "Strengthens system governance regarding unspecified requirements.",
+      "id": "decorator_governance.auto_rule_0",
+      "enforcement": "error",
+      "statement": "All CLI command functions MUST use @core_command decorator",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: All CLI command functions MUST use @core_command decorator"
+        }
       }
     },
     {
       "rule_id": "decorator_ordering",
-      "statement": "Decorators MUST appear in constitutional order",
       "order": {
         "1": "Governance contracts (@core_command, @atomic_action)",
         "2": "Framework bindings (@app.command, @pytest.fixture)",
@@ -153,16 +161,34 @@
       "correct_example": "# CORRECT - governance decorator first\n@core_command(dangerous=False)\n@app.command()\ndef my_command(): ...\n",
       "fix": {
         "action": "Reorder decorators according to constitutional precedence"
+      },
+      "rationale": "Strengthens system governance regarding unspecified requirements.",
+      "id": "decorator_governance.auto_rule_1",
+      "enforcement": "error",
+      "statement": "Decorators MUST appear in constitutional order",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: Decorators MUST appear in constitutional order"
+        }
       }
     },
     {
       "rule_id": "no_duplicate_decorators",
-      "statement": "Functions MUST NOT have duplicate decorators",
-      "check": "Scan for @decorator appearing multiple times on same function",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: Functions MUST NOT have duplicate decorators"
+        }
+      },
       "fix": {
         "action": "Remove duplicate, keep first occurrence",
-        "special_case": "If parameters differ, merge intelligently:\n@core_command(dangerous=True)\n@core_command(dangerous=False)\n→ Keep dangerous=True (more restrictive)\n"
-      }
+        "special_case": "If parameters differ, merge intelligently:\n@core_command(dangerous=True)\n@core_command(dangerous=False)\n\u2192 Keep dangerous=True (more restrictive)\n"
+      },
+      "rationale": "Strengthens system governance regarding unspecified requirements.",
+      "id": "decorator_governance.auto_rule_2",
+      "enforcement": "error",
+      "statement": "Functions MUST NOT have duplicate decorators"
     }
   ],
   "autonomous_generation": {
@@ -227,10 +253,10 @@
       "impact_parameter": {
         "determine_by": "AST analysis of function body",
         "mapping": [
-          "No writes → read-only",
-          "Writes comments/IDs → write-metadata",
-          "Modifies code structure → write-code",
-          "Database operations → write-data"
+          "No writes \u2192 read-only",
+          "Writes comments/IDs \u2192 write-metadata",
+          "Modifies code structure \u2192 write-code",
+          "Database operations \u2192 write-data"
         ]
       }
     }
@@ -304,5 +330,6 @@
     "correct_atomic_action": "@atomic_action(\n    action_id=\"fix.ids\",\n    impact=\"write-metadata\",\n    policies=[\"symbol_identification\"]\n)\ndef assign_stable_ids() -> ActionResult:\n    \"\"\"Assign UUIDs to untagged symbols.\"\"\"\n    # implementation\n",
     "wrong_decorator_order": "# VIOLATION: Framework decorator before governance\n@check_app.command(\"audit\")\n@core_command(dangerous=False)\ndef audit() -> None:\n    ...\n",
     "forbidden_metadata_decorator": "# VIOLATION: Metadata belongs in database\n@capability(name=\"audit\", owner=\"team-a\")\n@core_command(dangerous=False)\n@check_app.command(\"audit\")\ndef audit() -> None:\n    ...\n"
-  }
+  },
+  "additionalProperties": false
 }

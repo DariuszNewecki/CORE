@@ -1,7 +1,7 @@
 {
   "id": "standard_architecture_tool_definition",
   "version": "1.0.0",
-  "title": "Architecture Standard – Tool Definitions",
+  "title": "Architecture Standard \u2013 Tool Definitions",
   "type": "standard_architecture",
   "status": "active",
   "owners": {
@@ -18,14 +18,27 @@
   "rules": [
     {
       "id": "tools.explicit_return_contract",
-      "statement": "Tool definitions MUST describe the ActionResult schema, not just 'string'.",
+      "rationale": "LLMs need to know they will receive a JSON object with 'ok' and 'data' fields.",
       "enforcement": "error",
-      "rationale": "LLMs need to know they will receive a JSON object with 'ok' and 'data' fields."
+      "statement": "Tool definitions MUST describe the ActionResult schema, not just 'string'.",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: Tool definitions MUST describe the ActionResult schema, not just 'string'."
+        }
+      }
     },
     {
       "id": "tools.type_mapping_strictness",
+      "rationale": "Strengthens system governance regarding tools.type_mapping_strictness.",
+      "enforcement": "error",
       "statement": "Python types MUST map to the most specific JSON Schema type possible.",
-      "enforcement": "error"
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: Python types MUST map to the most specific JSON Schema type possible."
+        }
+      }
     }
   ],
   "type_mapping": {
@@ -43,8 +56,10 @@
         "items": "mapped type of T"
       },
       "Optional[T]": {
-        "type": "mapped type of T",
-        "nullable": true
+        "type": [
+          "mapped type of T",
+          "null"
+        ]
       },
       "Enum": {
         "type": "string",
@@ -75,5 +90,6 @@
   "action_result_schema": {
     "description": "The universal return format for all Core tools.",
     "structure": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"ok\": { \"type\": \"boolean\", \"description\": \"Did the operation succeed?\" },\n    \"data\": { \"type\": \"object\", \"description\": \"Structured return data\" },\n    \"error\": { \"type\": \"string\", \"description\": \"Error message if ok=false\" }\n  }\n}\n"
-  }
+  },
+  "additionalProperties": false
 }

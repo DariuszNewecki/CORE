@@ -34,12 +34,20 @@
     "status": {
       "type": "string",
       "description": "The current lifecycle status of the capability.",
-      "enum": ["active", "deprecated", "experimental"]
+      "enum": [
+        "active",
+        "deprecated",
+        "experimental"
+      ]
     },
     "risk_level": {
       "type": "string",
       "description": "The assessed risk of invoking this capability (low, medium, or high).",
-      "enum": ["low", "medium", "high"]
+      "enum": [
+        "low",
+        "medium",
+        "high"
+      ]
     },
     "aliases": {
       "type": "array",
@@ -64,5 +72,14 @@
       }
     }
   },
-  "additionalProperties": false
+  "additionalProperties": false,
+  "id": "capability_tag.schema",
+  "version": "1.0.0",
+  "owners": {
+    "accountable": "Governance Lead"
+  },
+  "review": {
+    "frequency": "12 months"
+  },
+  "schema_id": "meta.schema"
 }

@@ -149,8 +149,6 @@ def _analyze_atomic_action_composition(repo_root: Path) -> _ActionCompositionAna
     Evidence-oriented AST analysis of transitive composition.
 
     Scope: src/body/actions/**/*.py
-
-    Returns a structured analysis snapshot suitable for AuditFinding.details/evidence.
     """
     parsed_files = 0
     parse_errors = 0
@@ -276,16 +274,10 @@ class AtomicActionsComposeTransitivelyEnforcement(EnforcementMethod):
                 self._create_finding(
                     message=(
                         "Cannot verify atomic action transitive composition: "
-                        "no parseable src/body/actions Python modules were found."
+                        "no parseable src/body/actions Python modules were found "
+                        f"(parse_errors={analysis.parse_errors})."
                     ),
                     file_path="src/body/actions",
-                    details={
-                        "parsed_files": analysis.parsed_files,
-                        "parse_errors": analysis.parse_errors,
-                        "action_classes": analysis.action_classes,
-                        "entrypoints_scanned": analysis.entrypoints_scanned,
-                        "composition_gateways": list(_COMPOSITION_GATEWAYS),
-                    },
                 )
             ]
 
@@ -298,16 +290,10 @@ class AtomicActionsComposeTransitivelyEnforcement(EnforcementMethod):
                 self._create_finding(
                     message=(
                         "Cannot verify atomic action transitive composition: "
-                        "no action-like classes detected under src/body/actions."
+                        "no action-like classes detected under src/body/actions "
+                        f"(parsed_files={analysis.parsed_files}, parse_errors={analysis.parse_errors})."
                     ),
                     file_path="src/body/actions",
-                    details={
-                        "parsed_files": analysis.parsed_files,
-                        "parse_errors": analysis.parse_errors,
-                        "action_classes": analysis.action_classes,
-                        "entrypoints_scanned": analysis.entrypoints_scanned,
-                        "composition_gateways": list(_COMPOSITION_GATEWAYS),
-                    },
                 )
             ]
 
@@ -322,31 +308,11 @@ class AtomicActionsComposeTransitivelyEnforcement(EnforcementMethod):
             self._create_finding(
                 message=(
                     "Atomic actions do not sufficiently compose transitively. "
-                    "Prefer calling other actions via the standard action execution gateway."
+                    "Prefer calling other actions via the standard action execution gateway. "
+                    f"(composition_ratio={round(ratio, 4)} required_min_ratio={self.MIN_RATIO}; "
+                    f"actions={total_actions}, actions_with_composition={composed_actions})."
                 ),
                 file_path="src/body/actions",
-                details={
-                    "parsed_files": analysis.parsed_files,
-                    "parse_errors": analysis.parse_errors,
-                    "action_classes": total_actions,
-                    "actions_with_composition": composed_actions,
-                    "composition_ratio": round(ratio, 4),
-                    "required_min_ratio": self.MIN_RATIO,
-                    "composition_hits_sample": [
-                        {
-                            "file": h.file,
-                            "line": h.line,
-                            "class": h.owner,
-                            "entrypoint": h.entrypoint,
-                            "gateway": h.gateway,
-                        }
-                        for h in analysis.composition_hits[:25]
-                    ],
-                    "non_composing_actions_sample": analysis.no_composition_actions[
-                        :50
-                    ],
-                    "composition_gateways": list(_COMPOSITION_GATEWAYS),
-                },
             )
         ]
 

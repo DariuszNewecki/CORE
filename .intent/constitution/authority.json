@@ -5,7 +5,9 @@
   "type": "constitutional_authority",
   "owners": {
     "accountable": "Governance Lead",
-    "responsible": ["Core Maintainer"]
+    "responsible": [
+      "Core Maintainer"
+    ]
   },
   "review": {
     "frequency": "12 months"
@@ -16,11 +18,24 @@
     "constitutional_modifications": {
       "statement": "Modifications to constitutional documents require human approval",
       "rationale": "Preserves human authority over governance rules and prevents AI self-amendment",
-      "scope": [".intent/constitution/**"],
+      "scope": [
+        ".intent/constitution/**"
+      ],
       "enforcement": {
         "method": "path_match",
         "parameters": {
-          "patterns": [".intent/constitution/**"],
+          "patterns": [
+            ".intent/constitution/**"
+          ],
+          "action": "block_autonomous"
+        }
+      },
+      "check": {
+        "engine": "glob_gate",
+        "params": {
+          "patterns": [
+            ".intent/constitution/**"
+          ],
           "action": "block_autonomous"
         }
       }
@@ -29,7 +44,7 @@
       "statement": "Modifications to governance and core infrastructure require human approval",
       "rationale": "Protects system integrity and prevents cascading failures",
       "scope": [
-        "src/mind/governance/**",
+        "src/mind/logic/**",
         "src/body/core/database.py",
         "src/will/orchestration/intent_guard.py"
       ],
@@ -37,7 +52,18 @@
         "method": "path_match",
         "parameters": {
           "patterns": [
-            "src/mind/governance/**",
+            "src/mind/logic/**",
+            "src/body/core/database.py",
+            "src/will/orchestration/intent_guard.py"
+          ],
+          "action": "require_human_approval"
+        }
+      },
+      "check": {
+        "engine": "glob_gate",
+        "params": {
+          "patterns": [
+            "src/mind/logic/**",
             "src/body/core/database.py",
             "src/will/orchestration/intent_guard.py"
           ],
@@ -57,6 +83,18 @@
       "enforcement": {
         "method": "action_classification",
         "parameters": {
+          "actions_prohibited": [
+            "schema_migration",
+            "production_deployment",
+            "external_api_integration",
+            "cryptographic_operations"
+          ],
+          "require": "human_approval"
+        }
+      },
+      "check": {
+        "engine": "action_gate",
+        "params": {
           "actions_prohibited": [
             "schema_migration",
             "production_deployment",
@@ -87,16 +125,48 @@
           ],
           "require": "validation_only"
         }
+      },
+      "check": {
+        "engine": "action_gate",
+        "params": {
+          "actions_allowed": [
+            "fix_docstring",
+            "format_code",
+            "fix_lint",
+            "add_type_hints"
+          ],
+          "require": "validation_only"
+        }
       }
     },
     "autonomous_documentation": {
       "statement": "Documentation updates are allowed autonomously",
       "rationale": "Documentation changes in non-constitutional areas are easily reversible and low-risk",
-      "scope": ["docs/**", "README.md", "scripts/**/*.md", "tests/**/*.md"],
+      "scope": [
+        "docs/**",
+        "README.md",
+        "scripts/**/*.md",
+        "tests/**/*.md"
+      ],
       "enforcement": {
         "method": "path_match",
         "parameters": {
-          "patterns": ["docs/**", "README.md", "*.md"],
+          "patterns": [
+            "docs/**",
+            "README.md",
+            "*.md"
+          ],
+          "action": "allow_autonomous"
+        }
+      },
+      "check": {
+        "engine": "glob_gate",
+        "params": {
+          "patterns": [
+            "docs/**",
+            "README.md",
+            "*.md"
+          ],
           "action": "allow_autonomous"
         }
       }
@@ -104,10 +174,26 @@
     "autonomous_testing": {
       "statement": "Test execution and generation are allowed autonomously",
       "rationale": "Testing improves quality without modifying production code",
-      "scope": ["run_tests", "generate_tests", "measure_coverage"],
+      "scope": [
+        "run_tests",
+        "generate_tests",
+        "measure_coverage"
+      ],
       "enforcement": {
         "method": "action_classification",
         "parameters": {
+          "actions_allowed": [
+            "run_tests",
+            "generate_tests",
+            "measure_coverage",
+            "create_fixtures"
+          ],
+          "require": "validation_only"
+        }
+      },
+      "check": {
+        "engine": "action_gate",
+        "params": {
           "actions_allowed": [
             "run_tests",
             "generate_tests",
@@ -138,12 +224,28 @@
           ],
           "require": "audit_only"
         }
+      },
+      "check": {
+        "engine": "action_gate",
+        "params": {
+          "actions_allowed": [
+            "scan_violations",
+            "generate_report",
+            "build_knowledge_graph",
+            "compute_metrics"
+          ],
+          "require": "audit_only"
+        }
       }
     },
     "conditional_code_generation": {
       "statement": "Code generation allowed only when matching architectural patterns",
       "rationale": "Ensures generated code follows established standards",
-      "scope": ["generate_crud", "generate_service", "generate_test"],
+      "scope": [
+        "generate_crud",
+        "generate_service",
+        "generate_test"
+      ],
       "enforcement": {
         "method": "pattern_validation",
         "parameters": {
@@ -151,12 +253,22 @@
           "pattern_source": ".intent/standards/architecture/",
           "on_violation": "block_execution"
         }
+      },
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: Code generation allowed only when matching architectural patterns"
+        }
       }
     },
     "conditional_refactoring": {
       "statement": "Refactoring allowed only when preserving behavior",
       "rationale": "Prevents breaking changes during autonomous operations",
-      "scope": ["extract_method", "rename_symbol", "inline_variable"],
+      "scope": [
+        "extract_method",
+        "rename_symbol",
+        "inline_variable"
+      ],
       "enforcement": {
         "method": "behavioral_verification",
         "parameters": {
@@ -164,7 +276,14 @@
           "require_no_behavioral_change": true,
           "on_violation": "block_execution"
         }
+      },
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: Refactoring allowed only when preserving behavior"
+        }
       }
     }
-  }
+  },
+  "additionalProperties": false
 }

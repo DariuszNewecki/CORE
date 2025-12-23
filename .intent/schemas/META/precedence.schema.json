@@ -7,9 +7,14 @@
   "type": "object",
   "additionalProperties": false,
   "allOf": [
-    { "$ref": "header.schema.json" }
+    {
+      "$ref": "header.schema.json"
+    }
   ],
-  "required": ["type", "policy_hierarchy"],
+  "required": [
+    "type",
+    "policy_hierarchy"
+  ],
   "properties": {
     "type": {
       "type": "string",
@@ -22,7 +27,11 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["level", "description", "policies"],
+        "required": [
+          "level",
+          "description",
+          "policies"
+        ],
         "properties": {
           "level": {
             "type": "integer",
@@ -47,5 +56,12 @@
     "notes": {
       "type": "string"
     }
+  },
+  "id": "precedence.schema",
+  "owners": {
+    "accountable": "Governance Lead"
+  },
+  "review": {
+    "frequency": "12 months"
   }
 }

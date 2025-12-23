@@ -1,7 +1,7 @@
 {
   "id": "standard_operations_observability",
   "version": "1.0.0",
-  "title": "Operations Standard – Observability",
+  "title": "Operations Standard \u2013 Observability",
   "type": "standard_operations",
   "status": "active",
   "owners": {
@@ -371,7 +371,7 @@
         "requirement": "Full trace from decision to outcome"
       },
       {
-        "capability": "Track A2→A3 performance improvements",
+        "capability": "Track A2\u2192A3 performance improvements",
         "requirement": "Historical metrics over time"
       },
       {
@@ -394,21 +394,40 @@
   "rules": [
     {
       "id": "observability.atomic_actions_emit_logs",
-      "statement": "All atomic actions MUST emit structured logs",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: All atomic actions MUST emit structured logs"
+        }
+      },
+      "rationale": "Strengthens system governance regarding observability.atomic_actions_emit_logs.",
       "enforcement": "error",
-      "check": "Grep observability.logs for action_id coverage"
+      "statement": "All atomic actions MUST emit structured logs"
     },
     {
       "id": "observability.cli_commands_valid",
-      "statement": "Observe CLI commands MUST return valid data",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: Observe CLI commands MUST return valid data"
+        }
+      },
+      "rationale": "Strengthens system governance regarding observability.cli_commands_valid.",
       "enforcement": "error",
-      "check": "Test suite for core-admin observe commands"
+      "statement": "Observe CLI commands MUST return valid data"
     },
     {
       "id": "observability.metrics_actionable",
-      "statement": "Metrics MUST be sufficient to answer success criteria questions",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: Metrics MUST be sufficient to answer success criteria questions"
+        }
+      },
+      "rationale": "Strengthens system governance regarding observability.metrics_actionable.",
       "enforcement": "error",
-      "check": "Can answer all success_criteria questions"
+      "statement": "Metrics MUST be sufficient to answer success criteria questions"
     }
-  ]
+  ],
+  "additionalProperties": false
 }

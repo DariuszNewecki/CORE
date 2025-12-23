@@ -4,7 +4,12 @@
   "title": "Intent Crate Manifest",
   "description": "The constitutional schema for a manifest.yaml file within an Intent Crate. This defines a formal, auditable request for change.",
   "type": "object",
-  "required": ["crate_id", "author", "intent", "type"],
+  "required": [
+    "crate_id",
+    "author",
+    "intent",
+    "type"
+  ],
   "properties": {
     "crate_id": {
       "type": "string",
@@ -23,15 +28,27 @@
     "type": {
       "type": "string",
       "description": "The type of change being proposed.",
-      "enum": ["CONSTITUTIONAL_AMENDMENT", "CODE_MODIFICATION"]
+      "enum": [
+        "CONSTITUTIONAL_AMENDMENT",
+        "CODE_MODIFICATION"
+      ]
     },
     "payload_files": {
-        "type": "array",
-        "description": "A list of the files included in this crate that are part of the change.",
-        "items": {
-            "type": "string"
-        }
+      "type": "array",
+      "description": "A list of the files included in this crate that are part of the change.",
+      "items": {
+        "type": "string"
+      }
     }
   },
-  "additionalProperties": false
+  "additionalProperties": false,
+  "id": "intent_crate.schema",
+  "version": "1.0.0",
+  "owners": {
+    "accountable": "Governance Lead"
+  },
+  "review": {
+    "frequency": "12 months"
+  },
+  "schema_id": "meta.schema"
 }

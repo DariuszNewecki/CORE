@@ -1,7 +1,7 @@
 {
   "id": "standard_architecture_user_interface",
   "version": "1.0.0",
-  "title": "Architecture Standard – User Interface",
+  "title": "Architecture Standard \u2013 User Interface",
   "type": "standard_architecture",
   "status": "active",
   "owners": {
@@ -26,7 +26,7 @@
     {
       "id": "constitutional_by_default",
       "statement": "All operations route through governance automatically",
-      "rationale": "End users can't bypass constitutional checks. Everything goes through\nConversationalAgent → Mind → Body, ensuring safety by default.\n"
+      "rationale": "End users can't bypass constitutional checks. Everything goes through\nConversationalAgent \u2192 Mind \u2192 Body, ensuring safety by default.\n"
     },
     {
       "id": "operator_escape_hatch",
@@ -45,13 +45,13 @@
         "binary": "core",
         "location": "src/api/cli_user.py",
         "purpose": "Conversational interface for end users",
-        "routing": "api.cli_user → will.agents.conversational_agent"
+        "routing": "api.cli_user \u2192 will.agents.conversational_agent"
       },
       "operator": {
         "binary": "core-admin",
         "location": "src/body/cli/main.py",
         "purpose": "Direct system access for operators",
-        "routing": "body.cli.main → direct Body/Mind access"
+        "routing": "body.cli.main \u2192 direct Body/Mind access"
       }
     },
     "conversation_flow": [
@@ -186,5 +186,6 @@
     "agent_patterns",
     "conversational_context_extractor",
     "command_patterns"
-  ]
+  ],
+  "additionalProperties": false
 }

@@ -1,7 +1,7 @@
 {
   "id": "standard_architecture_irritation_heuristic",
   "version": "1.0.0",
-  "title": "Architecture Standard – Irritation Heuristic",
+  "title": "Architecture Standard \u2013 Irritation Heuristic",
   "type": "standard_architecture",
   "status": "active",
   "owners": {
@@ -72,7 +72,7 @@
     "constraints": [
       "The heuristic may prioritize which areas to introspect or refactor, but may not override constitutional rules.",
       "The heuristic may not be used to justify skipping audits, tests, or canary phases.",
-      "Refactor proposals derived from irritation must go through the standard proposal → audit → canary → commit workflow.",
+      "Refactor proposals derived from irritation must go through the standard proposal \u2192 audit \u2192 canary \u2192 commit workflow.",
       "Human irritation should be logged and contextualized, not treated as an absolute command."
     ]
   },
@@ -103,7 +103,7 @@
   },
   "risks_and_misuse": [
     "Using irritation as a shortcut to bypass proper design discussions.",
-    "Allowing a single human’s preferences to dominate architecture without evidence.",
+    "Allowing a single human\u2019s preferences to dominate architecture without evidence.",
     "Over-focusing on 'annoying' parts and neglecting critical but quiet risks.",
     "Treating irritation as permission instead of as a governed signal."
   ],
@@ -129,5 +129,6 @@
       "Applying broad, high-impact changes without sufficient evidence.",
       "Silencing machine signals in favor of purely subjective irritation."
     ]
-  }
+  },
+  "additionalProperties": false
 }

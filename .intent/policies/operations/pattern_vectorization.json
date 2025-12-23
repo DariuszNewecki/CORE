@@ -25,8 +25,6 @@
   "rules": [
     {
       "id": "pattern_vectorization.pattern_understanding.required",
-      "statement": "CORE MUST maintain semantic understanding of all constitutional patterns defined in .intent/charter/patterns/ by vectorizing them into the core-patterns collection with section-level chunking and required metadata.\n",
-      "enforcement": "error",
       "scope": [
         ".intent/charter/patterns/**/*.yaml"
       ],
@@ -48,12 +46,19 @@
         "Semantic queries against core-patterns return relevant pattern sections",
         "Semantic search works across pattern concepts",
         "Pattern dependencies are tracked (where declared)"
-      ]
+      ],
+      "rationale": "Strengthens system governance regarding pattern_vectorization.pattern_understanding.required.",
+      "enforcement": "error",
+      "statement": "CORE MUST maintain semantic understanding of all constitutional patterns defined in .intent/charter/patterns/ by vectorizing them into the core-patterns collection with section-level chunking and required metadata.\n",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: CORE MUST maintain semantic understanding of all constitutional patterns defined in .intent/charter/patterns/ by vectorizing them into the core-patterns collection with section-level chunking and required metadata.\n"
+        }
+      }
     },
     {
       "id": "pattern_vectorization.semantic_validation.required",
-      "statement": "CORE MUST be able to validate code against patterns semantically, not just syntactically, by comparing pattern requirement chunks to code structure and reporting violations when similarity and/or structure checks fail.\n",
-      "enforcement": "error",
       "required_behaviors": [
         "Load requirement chunks for a given pattern from core-patterns",
         "Query current code structure from knowledge graph for relevant symbols",
@@ -65,12 +70,19 @@
         "Detect wrong return types (e.g., ActionResult contract violations)",
         "Detect missing required metadata/anchors where applicable",
         "Detect architectural violations expressed in patterns"
-      ]
+      ],
+      "rationale": "Strengthens system governance regarding pattern_vectorization.semantic_validation.required.",
+      "enforcement": "error",
+      "statement": "CORE MUST be able to validate code against patterns semantically, not just syntactically, by comparing pattern requirement chunks to code structure and reporting violations when similarity and/or structure checks fail.\n",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: CORE MUST be able to validate code against patterns semantically, not just syntactically, by comparing pattern requirement chunks to code structure and reporting violations when similarity and/or structure checks fail.\n"
+        }
+      }
     },
     {
       "id": "pattern_vectorization.constitutional_audit.integration_required",
-      "statement": "Constitutional audit MUST include pattern-driven semantic validation and MUST report violations with explicit references to the violated pattern section, plus remediation guidance.\n",
-      "enforcement": "error",
       "required_behaviors": [
         "Audit loads pattern expectations from core-patterns",
         "Audit queries actual code structure from knowledge graph",
@@ -89,12 +101,19 @@
       "validation_criteria": [
         "Violations reference specific pattern sections",
         "Violations are actionable (contain remediation guidance)"
-      ]
+      ],
+      "rationale": "Strengthens system governance regarding pattern_vectorization.constitutional_audit.integration_required.",
+      "enforcement": "error",
+      "statement": "Constitutional audit MUST include pattern-driven semantic validation and MUST report violations with explicit references to the violated pattern section, plus remediation guidance.\n",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: Constitutional audit MUST include pattern-driven semantic validation and MUST report violations with explicit references to the violated pattern section, plus remediation guidance.\n"
+        }
+      }
     },
     {
       "id": "pattern_vectorization.collection.core_patterns.contract",
-      "statement": "The core-patterns vector collection MUST follow defined configuration and metadata schema so that semantic retrieval and validation remain stable and auditable.\n",
-      "enforcement": "error",
       "collection": "core-patterns",
       "vector_dimension": 1536,
       "distance_metric": "cosine",
@@ -161,12 +180,19 @@
           ],
           "default": "error"
         }
+      },
+      "rationale": "Strengthens system governance regarding pattern_vectorization.collection.core_patterns.contract.",
+      "enforcement": "error",
+      "statement": "The core-patterns vector collection MUST follow defined configuration and metadata schema so that semantic retrieval and validation remain stable and auditable.\n",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: The core-patterns vector collection MUST follow defined configuration and metadata schema so that semantic retrieval and validation remain stable and auditable.\n"
+        }
       }
     },
     {
       "id": "pattern_vectorization.chunking.semantic_section.required",
-      "statement": "Pattern vectorization MUST chunk by semantic sections (derived from YAML structure and semantic coherence) and MUST include sufficient context metadata for each chunk.\n",
-      "enforcement": "error",
       "chunking_strategy": "semantic_section",
       "chunk_boundaries": [
         "Top-level keys (e.g., philosophy, requirements, examples)",
@@ -178,31 +204,61 @@
         "Include pattern context in each chunk",
         "Include section hierarchy",
         "Include cross-references when present"
-      ]
+      ],
+      "rationale": "Strengthens system governance regarding pattern_vectorization.chunking.semantic_section.required.",
+      "enforcement": "error",
+      "statement": "Pattern vectorization MUST chunk by semantic sections (derived from YAML structure and semantic coherence) and MUST include sufficient context metadata for each chunk.\n",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: Pattern vectorization MUST chunk by semantic sections (derived from YAML structure and semantic coherence) and MUST include sufficient context metadata for each chunk.\n"
+        }
+      }
     },
     {
       "id": "pattern_vectorization.update_policy.on_file_change",
-      "statement": "Any modification to a pattern YAML file MUST trigger re-vectorization of the entire pattern file and verification that all chunks were updated in core-patterns.\n",
-      "enforcement": "error",
       "trigger": "pattern_file_modified",
       "action": "revectorize_entire_pattern_file",
       "validation_criteria": [
         "All chunks for the pattern are present after update",
         "Updated chunks reflect current pattern version/content"
-      ]
+      ],
+      "rationale": "Strengthens system governance regarding pattern_vectorization.update_policy.on_file_change.",
+      "enforcement": "error",
+      "statement": "Any modification to a pattern YAML file MUST trigger re-vectorization of the entire pattern file and verification that all chunks were updated in core-patterns.\n",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: Any modification to a pattern YAML file MUST trigger re-vectorization of the entire pattern file and verification that all chunks were updated in core-patterns.\n"
+        }
+      }
     },
     {
       "id": "pattern_vectorization.override_policy.disallowed",
+      "rationale": "Strengthens system governance regarding pattern_vectorization.override_policy.disallowed.",
+      "enforcement": "error",
       "statement": "Overrides of constitutional patterns are NOT allowed. Any exemptions MUST be documented in the pattern file itself, not in audit code or runtime flags.\n",
-      "enforcement": "error"
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: Overrides of constitutional patterns are NOT allowed. Any exemptions MUST be documented in the pattern file itself, not in audit code or runtime flags.\n"
+        }
+      }
     },
     {
       "id": "pattern_vectorization.migration.enforcement_mode",
-      "statement": "During migration, pattern violations SHOULD be reported as non-blocking; after migration completion, pattern violations MUST be blocking.\n",
-      "enforcement": "warn",
       "migration_behavior": {
         "during_migration": "report_non_blocking",
         "post_migration": "block_on_violation"
+      },
+      "rationale": "Strengthens system governance regarding pattern_vectorization.migration.enforcement_mode.",
+      "enforcement": "warning",
+      "statement": "During migration, pattern violations SHOULD be reported as non-blocking; after migration completion, pattern violations MUST be blocking.\n",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: During migration, pattern violations SHOULD be reported as non-blocking; after migration completion, pattern violations MUST be blocking.\n"
+        }
       }
     }
   ],
@@ -289,5 +345,6 @@
     "related_patterns": [
       "atomic_actions.yaml"
     ]
-  }
+  },
+  "additionalProperties": false
 }

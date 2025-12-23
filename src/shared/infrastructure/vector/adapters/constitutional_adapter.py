@@ -114,15 +114,15 @@ class ConstitutionalAdapter:
 
     def _standards_dir(self) -> Path:
         """Get standards directory (optional)."""
-        return self._require_path("standards_root", "standards")
+        return (self.intent_root / "standards").resolve()
 
     def _constitution_dir(self) -> Path:
         """Get constitution directory."""
-        return self._require_path("constitution_dir", "constitution")
+        return (self.intent_root / "constitution").resolve()
 
     def _policies_dir(self) -> Path:
         """Get policies directory."""
-        return self._require_path("policies_root", "policies")
+        return (self.intent_root / "policies").resolve()
 
     def _require_path(self, attr_name: str, fallback_name: str) -> Path:
         """

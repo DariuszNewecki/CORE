@@ -1,7 +1,7 @@
 {
   "id": "standard_architecture_layer_contracts",
   "version": "1.0.0",
-  "title": "Architecture Standard — Layer Contracts & Symbol Governance",
+  "title": "Architecture Standard \u2014 Layer Contracts & Symbol Governance",
   "type": "standard_architecture",
   "status": "active",
   "owners": {
@@ -273,7 +273,7 @@
         "name": "Verify Coverage",
         "tasks": [
           "Run audit with verbose mode",
-          "Confirm 92 orphans → ~10 orphans",
+          "Confirm 92 orphans \u2192 ~10 orphans",
           "Review remaining orphans for proper categorization"
         ]
       },
@@ -298,5 +298,6 @@
     "All infrastructure APIs properly exempted via policy",
     "Only genuine orphans (dead code, missing IDs) flagged as errors",
     "Policy can be updated without code changes"
-  ]
+  ],
+  "additionalProperties": false
 }

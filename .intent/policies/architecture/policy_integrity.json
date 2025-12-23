@@ -19,23 +19,41 @@
     {
       "id": "policy.duplicate_rule_id_consistency",
       "category": "governance",
-      "statement": "When the same rule ID appears in multiple charter files, all instances MUST have consistent enforcement level after normalization.\n",
+      "rationale": "Duplicate rule IDs are ALLOWED for intentional cross-referencing (e.g.,\nhigh-level governance statement in one file, detailed implementation in\nanother). However, they must agree on enforcement level to avoid ambiguity\nand conflicting governance outcomes.\n",
       "enforcement": "error",
-      "rationale": "Duplicate rule IDs are ALLOWED for intentional cross-referencing (e.g.,\nhigh-level governance statement in one file, detailed implementation in\nanother). However, they must agree on enforcement level to avoid ambiguity\nand conflicting governance outcomes.\n"
+      "statement": "When the same rule ID appears in multiple charter files, all instances MUST have consistent enforcement level after normalization.\n",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: When the same rule ID appears in multiple charter files, all instances MUST have consistent enforcement level after normalization.\n"
+        }
+      }
     },
     {
       "id": "policy.cross_reference_documented",
       "category": "governance",
+      "rationale": "Without explicit linkage, duplicate rule IDs look accidental. The loader,\nauditor, and human reviewers must be able to tell whether a duplicate is\na governance statement, an implementation specification, or the canonical\ndefinition.\n",
+      "enforcement": "warning",
       "statement": "When a rule ID appears in multiple files, each occurrence MUST declare its role in the cross-reference relationship OR explicitly declare itself as the canonical definition.\n",
-      "enforcement": "warn",
-      "rationale": "Without explicit linkage, duplicate rule IDs look accidental. The loader,\nauditor, and human reviewers must be able to tell whether a duplicate is\na governance statement, an implementation specification, or the canonical\ndefinition.\n"
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: When a rule ID appears in multiple files, each occurrence MUST declare its role in the cross-reference relationship OR explicitly declare itself as the canonical definition.\n"
+        }
+      }
     },
     {
       "id": "policy.partial_enforcement_declared",
       "category": "governance",
+      "rationale": "Transparent partial enforcement prevents false confidence in governance\ncoverage and helps prioritize checker development. This enables reporting\n\"partially_enforced\" instead of binary declared/enforced.\n",
+      "enforcement": "error",
       "statement": "Rules with incomplete checker implementation MUST declare which aspects are enforced and which are not implemented.\n",
-      "enforcement": "info",
-      "rationale": "Transparent partial enforcement prevents false confidence in governance\ncoverage and helps prioritize checker development. This enables reporting\n\"partially_enforced\" instead of binary declared/enforced.\n"
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: Rules with incomplete checker implementation MUST declare which aspects are enforced and which are not implemented.\n"
+        }
+      }
     }
   ],
   "normalization": {
@@ -132,5 +150,6 @@
     "status": "active",
     "effective_date": "2025-12-18",
     "migration_notes": "Converted from legacy nested format to flat rules structure v2.0.0"
-  }
+  },
+  "additionalProperties": false
 }

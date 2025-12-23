@@ -1,0 +1,271 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "schema_id": "knowledge.project_structure",
+  "version": "1.0.0",
+  "title": "CORE Project Structure Knowledge Schema",
+  "description": "Validates project_structure.yaml with proper match pattern variants",
+  "type": "object",
+  "required": [
+    "id",
+    "version",
+    "title",
+    "type",
+    "status",
+    "owners",
+    "review",
+    "schema_id",
+    "architectural_domains",
+    "entry_point_patterns"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9_.-]+$"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "title": {
+      "type": "string",
+      "maxLength": 200
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "knowledge_project_structure"
+      ]
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "draft",
+        "deprecated",
+        "experimental"
+      ]
+    },
+    "owners": {
+      "type": "object",
+      "required": [
+        "accountable"
+      ],
+      "properties": {
+        "accountable": {
+          "type": "string"
+        },
+        "responsible": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "review": {
+      "type": "object",
+      "required": [
+        "frequency"
+      ],
+      "properties": {
+        "frequency": {
+          "type": "string"
+        },
+        "last_reviewed": {
+          "type": "string",
+          "format": "date"
+        },
+        "next_review_due": {
+          "type": "string",
+          "format": "date"
+        }
+      },
+      "additionalProperties": false
+    },
+    "schema_id": {
+      "type": "string",
+      "const": "knowledge.project_structure"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "$schema": {
+      "type": "string"
+    },
+    "architectural_domains": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "domain",
+          "path",
+          "description",
+          "allowed_imports"
+        ],
+        "properties": {
+          "domain": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "allowed_imports": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "minItems": 1
+    },
+    "entry_point_patterns": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "description": "Pattern with name_regex (with or without module_path)",
+            "type": "object",
+            "required": [
+              "name",
+              "description",
+              "entry_point_type",
+              "match"
+            ],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "entry_point_type": {
+                "type": "string"
+              },
+              "match": {
+                "type": "object",
+                "required": [
+                  "name_regex",
+                  "type"
+                ],
+                "properties": {
+                  "type": {
+                    "type": "string"
+                  },
+                  "name_regex": {
+                    "type": "string"
+                  },
+                  "module_path_contains": {
+                    "type": "string"
+                  },
+                  "is_public_function": {
+                    "type": "boolean"
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "additionalProperties": false
+          },
+          {
+            "description": "Pattern with module_path but no name_regex",
+            "type": "object",
+            "required": [
+              "name",
+              "description",
+              "entry_point_type",
+              "match"
+            ],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "entry_point_type": {
+                "type": "string"
+              },
+              "match": {
+                "type": "object",
+                "required": [
+                  "module_path_contains",
+                  "type"
+                ],
+                "properties": {
+                  "type": {
+                    "type": "string"
+                  },
+                  "module_path_contains": {
+                    "type": "string"
+                  },
+                  "is_public_function": {
+                    "type": "boolean"
+                  }
+                },
+                "additionalProperties": false,
+                "not": {
+                  "required": [
+                    "name_regex"
+                  ]
+                }
+              }
+            },
+            "additionalProperties": false
+          },
+          {
+            "description": "Tag-based pattern matching",
+            "type": "object",
+            "required": [
+              "name",
+              "description",
+              "entry_point_type",
+              "match"
+            ],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "entry_point_type": {
+                "type": "string"
+              },
+              "match": {
+                "type": "object",
+                "required": [
+                  "has_capability_tag"
+                ],
+                "properties": {
+                  "has_capability_tag": {
+                    "type": "boolean"
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "additionalProperties": false
+          }
+        ]
+      },
+      "minItems": 1
+    }
+  },
+  "additionalProperties": false,
+  "id": "project_structure.schema",
+  "owners": {
+    "accountable": "Governance Lead"
+  },
+  "review": {
+    "frequency": "12 months"
+  }
+}

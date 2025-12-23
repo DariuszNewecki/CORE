@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LLM Resource Manifest Policy",
+  "description": "Constitutional schema for the policy defining available LLM resources.",
+  "type": "object",
+  "allOf": [
+    {
+      "$ref": "policy_schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "resource_manifest_policy"
+    },
+    "llm_resources": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "provided_capabilities",
+          "env_prefix"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "provided_capabilities": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "env_prefix": {
+            "type": "string"
+          },
+          "performance_metadata": {
+            "type": "object"
+          }
+        }
+      }
+    }
+  },
+  "required": [
+    "llm_resources"
+  ],
+  "additionalProperties": false,
+  "id": "resource_manifest_policy.schema",
+  "version": "1.0.0",
+  "owners": {
+    "accountable": "Governance Lead"
+  },
+  "review": {
+    "frequency": "12 months"
+  },
+  "schema_id": "meta.schema"
+}

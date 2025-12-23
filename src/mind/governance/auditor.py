@@ -9,13 +9,14 @@ Key outputs (legacy, unchanged):
 - reports/audit_findings.json
 - reports/audit_findings.processed.json
 
-New output (evidence, authoritative):
+Authoritative evidence artifact:
 - reports/audit/latest_audit.json
-  Contains executed_checks for *all* checks that were executed, even if they
-  produced zero findings. This enables truthful enforcement coverage reporting.
+  Contains executed_rules for *all* policy rules that were attempted via checks,
+  even if they produced zero findings. executed_checks remains for diagnostics.
 
-CONSTITUTIONAL FIX: Now extracts policy_rule_ids from checks to properly track
-which constitutional rules are enforced, not just which check classes ran.
+FIX (minimal, safe):
+- Track governance coverage by rule IDs AND track diagnostics by check IDs.
+- Always add policy_rule_ids for a check, even when metadata.id exists.
 """
 
 from __future__ import annotations
@@ -55,7 +56,7 @@ SYMBOL_INDEX_FILENAME = "symbol_index.json"
 DOWNGRADE_SEVERITY_TO = "info"
 DEAD_SYMBOL_RULE_IDS = {"linkage.capability.unassigned"}
 
-# New: stable evidence artifact path
+# Evidence artifact path
 AUDIT_EVIDENCE_DIR = REPORTS_DIR / "audit"
 AUDIT_EVIDENCE_FILENAME = "latest_audit.json"
 
@@ -115,6 +116,53 @@ def _maybe_call(
     return False
 
 
+async def _normalize_findings(result: Any) -> list[AuditFinding]:
+    """
+    Normalize a check's execute() return value to List[AuditFinding].
+
+    Handles:
+    - sync returning list[AuditFinding]
+    - async returning list[AuditFinding]
+    - sync returning an awaitable (coroutine) that yields list[AuditFinding]
+    """
+    if inspect.isawaitable(result):
+        result = await result
+
+    if result is None:
+        return []
+
+    if isinstance(result, list):
+        return result
+
+    if isinstance(result, (tuple, set)):
+        return list(result)
+
+    try:
+        return list(result)  # type: ignore[arg-type]
+    except Exception as e:
+        raise TypeError(
+            f"Check returned unsupported findings type: {type(result)!r}"
+        ) from e
+
+
+def _extract_policy_rule_ids(check_cls: type[BaseCheck]) -> list[str]:
+    """
+    Extract policy rule IDs declared by a check.
+
+    Convention:
+      class MyCheck(BaseCheck):
+          policy_rule_ids = ["rule.a", "rule.b"]
+    """
+    rule_ids = getattr(check_cls, "policy_rule_ids", None)
+    if not isinstance(rule_ids, list):
+        return []
+    out: list[str] = []
+    for rid in rule_ids:
+        if isinstance(rid, str) and rid.strip():
+            out.append(rid.strip())
+    return out
+
+
 # ID: 85bb69ce-b22a-490a-8a1d-92a5da7e2646
 class ConstitutionalAuditor:
     """
@@ -143,16 +191,19 @@ class ConstitutionalAuditor:
         self,
         check_classes: list[type[BaseCheck]],
         reporter: AuditRunReporter,
-        executed_ids: set[str],
+        *,
+        executed_rule_ids: set[str],
+        executed_check_ids: set[str],
     ) -> tuple[list[AuditFinding], int]:
         """
         Instantiates and runs all discovered checks, collecting their findings.
 
-        executed_ids is mutated to include:
-        - metadata ids for checks that ran (preferred)
-        - policy_rule_ids from checks (constitutional rules enforced)
-        - fallback to class name if neither metadata nor policy_rule_ids exist
-        - any finding.check_id observed during execution
+        executed_check_ids:
+          - diagnostic identity of executed checks (metadata.id preferred, else class name)
+
+        executed_rule_ids:
+          - policy rule IDs enforced/attempted by executed checks (policy_rule_ids)
+          - plus any finding.check_id observed during execution (legacy compatibility)
         """
         all_findings: list[AuditFinding] = []
 
@@ -160,42 +211,33 @@ class ConstitutionalAuditor:
         qdrant_service = None
 
         for check_class in check_classes:
-            check_instance: BaseCheck | None = None
-
-            # Record executed check identity (even if it yields zero findings)
-            # CONSTITUTIONAL FIX: Extract policy_rule_ids to track which rules are enforced
+            # 1) Diagnostics: check identity
             meta_id = _check_metadata_id(check_class)
-            if meta_id:
-                executed_ids.add(meta_id)
-            elif hasattr(check_class, "policy_rule_ids") and isinstance(
-                check_class.policy_rule_ids, list
-            ):
-                # Add all policy rule IDs this check enforces
-                for rule_id in check_class.policy_rule_ids:
-                    if isinstance(rule_id, str) and rule_id.strip():
-                        executed_ids.add(rule_id.strip())
-            else:
-                executed_ids.add(check_class.__name__)
+            executed_check_ids.add(meta_id or check_class.__name__)
+
+            # 2) Coverage: ALWAYS include policy_rule_ids (even if meta_id exists)
+            for rid in _extract_policy_rule_ids(check_class):
+                executed_rule_ids.add(rid)
 
             start = time.perf_counter()
             try:
-                # Instantiate checks
-                # Some checks may require extra deps; keep behavior compatible with prior versions.
                 try:
-                    check_instance = check_class(self.context)  # type: ignore[call-arg]
+                    check_instance: BaseCheck = check_class(self.context)  # type: ignore[call-arg]
                 except TypeError:
-                    # Backward-compat: checks that expect (context, qdrant_service)
                     check_instance = check_class(self.context, qdrant_service)  # type: ignore[call-arg]
 
+                # Execute (support: async execute, sync execute, sync returning awaitable)
                 if inspect.iscoroutinefunction(check_instance.execute):
-                    findings = await check_instance.execute()
+                    raw = await check_instance.execute()
                 else:
-                    findings = await asyncio.to_thread(check_instance.execute)
+                    raw = await asyncio.to_thread(check_instance.execute)
 
-                # Collect findings + executed ids from findings themselves
+                findings = await _normalize_findings(raw)
+
+                # Legacy compatibility: if findings carry check_id, count them as executed rules
                 for f in findings:
                     if isinstance(f.check_id, str) and f.check_id.strip():
-                        executed_ids.add(f.check_id.strip())
+                        executed_rule_ids.add(f.check_id.strip())
 
                 all_findings.extend(findings)
 
@@ -212,7 +254,6 @@ class ConstitutionalAuditor:
                     exc_info=True,
                 )
 
-                # Produce an auditor-internal finding (keeps system truthful)
                 internal = AuditFinding(
                     check_id="auditor.internal.error",
                     severity="error",
@@ -233,7 +274,6 @@ class ConstitutionalAuditor:
                         findings_count=1,
                         max_severity=AuditSeverity.ERROR,
                         fix_hint=None,
-                        context={"exception": str(e)},
                     )
                 )
 
@@ -269,18 +309,16 @@ class ConstitutionalAuditor:
     def _write_audit_evidence(
         self,
         *,
+        executed_rules: set[str],
         executed_checks: set[str],
         findings_path: Path,
         processed_findings_path: Path,
         passed: bool,
     ) -> Path:
-        """
-        Emit an authoritative evidence record for downstream governance reporting.
-        """
         evidence_path = AUDIT_EVIDENCE_DIR / AUDIT_EVIDENCE_FILENAME
 
         payload: dict[str, Any] = {
-            "schema_version": "0.1.0",
+            "schema_version": "0.2.0",
             "generated_at_utc": _utc_now_iso(),
             "source": "core-admin check audit",
             "repository_commit": _git_commit_sha(get_repo_root()),
@@ -291,6 +329,9 @@ class ConstitutionalAuditor:
                     processed_findings_path.relative_to(get_repo_root())
                 ),
             },
+            # Authoritative for governance coverage
+            "executed_rules": sorted(executed_rules),
+            # Diagnostic / legacy visibility
             "executed_checks": sorted(executed_checks),
         }
 
@@ -299,21 +340,12 @@ class ConstitutionalAuditor:
 
     # ID: 178b5c18-373c-4d39-be91-9c71f37f4a23
     async def run_full_audit_async(self) -> list[dict[str, Any]]:
-        """
-        Run the full constitutional audit and write findings artifacts.
-
-        Returns:
-            List[dict] of findings (as_dict), consistent with prior behavior.
-        """
-        # REMOVED: await self.context.initialize() - Context is already initialized
         await self.context.load_knowledge_graph()
 
         with activity_run("constitutional_audit"):
-            # Discover checks first so we can construct AuditRunReporter correctly.
             check_classes = self._discover_checks()
             total_checks = len(check_classes)
 
-            # FIXED: Create ActivityRun object instead of just a string
             run = new_activity_run("constitutional_audit")
 
             reporter = AuditRunReporter(
@@ -322,26 +354,26 @@ class ConstitutionalAuditor:
                 total_checks=total_checks,
             )
 
-            # Reporter lifecycle is version-dependent across CORE revisions.
-            # Call begin/start/open if present; otherwise no-op.
             _maybe_call(reporter, ("begin", "start", "open"))
 
-            executed_ids: set[str] = set()
+            executed_rule_ids: set[str] = set()
+            executed_check_ids: set[str] = set()
+
             findings, _unassigned = await self._run_all_checks(
-                check_classes, reporter, executed_ids
+                check_classes,
+                reporter,
+                executed_rule_ids=executed_rule_ids,
+                executed_check_ids=executed_check_ids,
             )
 
-            # Call end/finish/close/finalize/complete if present; otherwise no-op.
             _maybe_call(
                 reporter, ("end", "finish", "close", "finalize", "complete"), findings
             )
 
             findings_path = self._write_findings(findings)
 
-            # Build or reuse symbol index if present. Many checks rely on it.
             symbol_index_path = REPORTS_DIR / SYMBOL_INDEX_FILENAME
             if not symbol_index_path.exists():
-                # Keep behavior non-invasive: write an empty symbol index if missing
                 symbol_index_path.write_text(json.dumps({}, indent=2), encoding="utf-8")
 
             processed_path = self._write_processed_findings(
@@ -351,15 +383,17 @@ class ConstitutionalAuditor:
             passed = not any(f.severity == "error" for f in findings)
 
             evidence_path = self._write_audit_evidence(
-                executed_checks=executed_ids,
+                executed_rules=executed_rule_ids,
+                executed_checks=executed_check_ids,
                 findings_path=findings_path,
                 processed_findings_path=processed_path,
                 passed=passed,
             )
             logger.info(
-                "Wrote audit evidence: %s (%d executed checks)",
+                "Wrote audit evidence: %s (%d executed rules, %d executed checks)",
                 evidence_path,
-                len(executed_ids),
+                len(executed_rule_ids),
+                len(executed_check_ids),
             )
 
             return [f.as_dict() for f in findings]
@@ -368,11 +402,6 @@ class ConstitutionalAuditor:
 # Convenience entry point used by CLI layers (if any)
 # ID: 20665dbf-149a-58e7-83dc-a801a2b5abfc
 async def test_system(root: Path | None = None) -> list[dict[str, Any]]:
-    """
-    Async wrapper for running the full audit.
-
-    This exists to support CLI layers that operate synchronously.
-    """
     repo_root = root or get_repo_root()
     context = AuditorContext(repo_root)
     auditor = ConstitutionalAuditor(context)

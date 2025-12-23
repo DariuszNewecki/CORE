@@ -4,7 +4,6 @@
   "version": "1.0.0",
   "title": "Constitutional Boundaries Schema",
   "description": "Validates the structure of boundaries.yaml - defines immutable constitutional boundaries and separation of concerns.",
-
   "type": "object",
   "required": [
     "id",
@@ -18,7 +17,6 @@
     "domain",
     "principles"
   ],
-
   "properties": {
     "id": {
       "type": "string",
@@ -34,15 +32,24 @@
     },
     "type": {
       "type": "string",
-      "enum": ["constitutional_boundaries"]
+      "enum": [
+        "constitutional_boundaries"
+      ]
     },
     "status": {
       "type": "string",
-      "enum": ["active", "draft", "deprecated", "experimental"]
+      "enum": [
+        "active",
+        "draft",
+        "deprecated",
+        "experimental"
+      ]
     },
     "owners": {
       "type": "object",
-      "required": ["accountable"],
+      "required": [
+        "accountable"
+      ],
       "properties": {
         "accountable": {
           "type": "string"
@@ -58,7 +65,9 @@
     },
     "review": {
       "type": "object",
-      "required": ["frequency"],
+      "required": [
+        "frequency"
+      ],
       "properties": {
         "frequency": {
           "type": "string"
@@ -98,7 +107,12 @@
       "patternProperties": {
         "^[a-z][a-z0-9_]*$": {
           "type": "object",
-          "required": ["statement", "rationale", "scope", "enforcement"],
+          "required": [
+            "statement",
+            "rationale",
+            "scope",
+            "enforcement"
+          ],
           "properties": {
             "statement": {
               "type": "string",
@@ -119,7 +133,10 @@
             },
             "enforcement": {
               "type": "object",
-              "required": ["method", "parameters"],
+              "required": [
+                "method",
+                "parameters"
+              ],
               "properties": {
                 "method": {
                   "type": "string",
@@ -160,6 +177,12 @@
       }
     }
   },
-
-  "additionalProperties": false
+  "additionalProperties": false,
+  "id": "boundaries.schema",
+  "owners": {
+    "accountable": "Governance Lead"
+  },
+  "review": {
+    "frequency": "12 months"
+  }
 }
