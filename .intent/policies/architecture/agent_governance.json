@@ -1,7 +1,7 @@
 {
   "id": "standard_architecture_agent_governance",
   "version": "1.0.0",
-  "title": "Architecture Standard – Agent Governance",
+  "title": "Architecture Standard \u2013 Agent Governance",
   "type": "standard_architecture",
   "status": "active",
   "owners": {
@@ -14,51 +14,46 @@
     "frequency": "12 months"
   },
   "schema_id": "policy.structure",
-  "purpose": "Define how CORE’s agents may act, what they are forbidden to do, and how autonomous behavior is constrained by the constitution.\n",
+  "purpose": "Define how CORE\u2019s agents may act, what they are forbidden to do, and how autonomous behavior is constrained by the constitution.\n",
   "rules": [
     {
       "id": "agent.compliance.no_write_intent",
       "category": "agent_governance",
+      "rationale": "Strengthens system governance regarding agent.compliance.no_write_intent.",
+      "enforcement": "error",
       "statement": "Agents MUST NOT write directly to '.intent/charter/**'.",
-      "enforcement": "error"
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: Agents MUST NOT write directly to '.intent/charter/**'."
+        }
+      }
     },
     {
       "id": "agent.compliance.respect_cli_registry",
       "category": "agent_governance",
+      "rationale": "Strengthens system governance regarding agent.compliance.respect_cli_registry.",
+      "enforcement": "error",
       "statement": "All tool invocations MUST route through registered CLI commands.",
-      "enforcement": "error"
-    },
-    {
-      "id": "agent.execution.no_unverified_code",
-      "category": "agent_governance",
-      "statement": "MUST NOT execute/commit code without full validation pipeline.",
-      "enforcement": "error",
-      "cross_references": [
-        {
-          "file": "charter/standards/operations/code_execution.yaml",
-          "rule_id": "agent.execution.no_unverified_code",
-          "note": "Same constraint appears in Ops execution standard; this file is authoritative for agent governance wording."
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: All tool invocations MUST route through registered CLI commands."
         }
-      ]
-    },
-    {
-      "id": "agent.execution.require_runtime_validation",
-      "category": "agent_governance",
-      "statement": "All generated code MUST pass test suite before commit.",
-      "enforcement": "error",
-      "cross_references": [
-        {
-          "file": "charter/standards/operations/code_execution.yaml",
-          "rule_id": "agent.execution.require_runtime_validation",
-          "note": "Operational elaboration exists in Ops execution standard; this file is authoritative for agent governance wording."
-        }
-      ]
+      }
     },
     {
       "id": "agent.reasoning.trace_required",
       "category": "agent_governance",
+      "rationale": "Strengthens system governance regarding agent.reasoning.trace_required.",
+      "enforcement": "warning",
       "statement": "MUST produce inspectable trace for non-trivial tasks.",
-      "enforcement": "warn"
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: MUST produce inspectable trace for non-trivial tasks."
+        }
+      }
     }
   ],
   "autonomy_lanes": {
@@ -213,5 +208,6 @@
       "quality": 0.1,
       "reasoning": 0.1
     }
-  }
+  },
+  "additionalProperties": false
 }

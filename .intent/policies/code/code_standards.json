@@ -1,211 +1,407 @@
 {
+  "id": "code_standards",
+  "version": "2.1.0",
+  "title": "Code Standards Policy",
+  "type": "policy",
+  "schema_id": "meta.policy",
+  "description": "Defines the canonical code quality, layout, naming, and capability standards for the CORE codebase.",
+  "owners": {
+    "accountable": "Governance Lead",
+    "responsible": [
+      "Core Maintainer"
+    ]
+  },
+  "review": {
+    "frequency": "12 months"
+  },
   "rules": [
     {
-      "category": "style",
-      "enforcement": "error",
       "id": "style.linter_required",
-      "statement": "All changes MUST pass ruff (lint) before merge."
+      "rationale": "Maintains code health and prevents common bugs through automated static analysis.",
+      "enforcement": "error",
+      "statement": "All changes MUST pass ruff (lint) before merge.",
+      "check": {
+        "engine": "ast_gate",
+        "params": {
+          "check_type": "linter_compliance"
+        }
+      }
     },
     {
-      "category": "style",
-      "enforcement": "error",
       "id": "style.formatter_required",
-      "statement": "All changes MUST be formatted by black; CI runs black --check."
+      "rationale": "Ensures a uniform visual style across the codebase to reduce cognitive load during review.",
+      "enforcement": "error",
+      "statement": "All changes MUST be formatted by black; CI runs black --check.",
+      "check": {
+        "engine": "ast_gate",
+        "params": {
+          "check_type": "linter_compliance"
+        }
+      }
     },
     {
-      "category": "style",
-      "enforcement": "error",
       "id": "style.fail_on_style_in_ci",
-      "statement": "CI MUST fail on style or lint violations (no auto-fixing in CI)."
+      "rationale": "Prevents malformed or non-compliant code from entering the main branch history.",
+      "enforcement": "error",
+      "statement": "CI MUST fail on style or lint violations (no auto-fixing in CI).",
+      "check": {
+        "engine": "ast_gate",
+        "params": {
+          "check_type": "linter_compliance"
+        }
+      }
     },
     {
-      "category": "style",
-      "enforcement": "warn",
       "id": "style.docstrings_public_apis",
-      "statement": "Public APIs MUST have docstrings summarizing intent and parameters."
+      "rationale": "Enables both humans and autonomous agents to correctly reason about and use capabilities.",
+      "enforcement": "warning",
+      "statement": "Public APIs MUST have docstrings summarizing intent and parameters.",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: Public APIs MUST have docstrings summarizing intent and parameters."
+        }
+      }
     },
     {
-      "category": "style",
-      "enforcement": "warn",
       "id": "style.universal_helper_first",
-      "statement": "Before creating new helpers, check shared.universal. Reuse or extend instead of duplicating."
+      "rationale": "Reduces technical debt and maintenance overhead by centralizing common logic.",
+      "enforcement": "warning",
+      "statement": "Before creating new helpers, check shared.universal. Reuse or extend instead of duplicating.",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: Before creating new helpers, check shared.universal. Reuse or extend instead of duplicating."
+        }
+      }
     },
     {
-      "category": "style",
-      "enforcement": "warn",
       "id": "style.capability_id_placement",
-      "statement": "Primary public symbols that represent distinct capabilities MUST have '# ID: <uuid>' tags directly above their definition. Private helpers MUST NOT receive capability IDs.\n"
+      "rationale": "Creates a stable anchor for linking source code logic to the Single Source of Truth database.",
+      "enforcement": "warning",
+      "statement": "Primary public symbols representing capabilities MUST have '# ID: <uuid>' tags above their definition.",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: Primary public symbols representing capabilities MUST have '# ID: <uuid>' tags above their definition."
+        }
+      }
     },
     {
-      "category": "style",
-      "enforcement": "warn",
       "id": "style.import_order",
-      "statement": "Imports MUST follow grouping/order and avoid unused imports (enforced by linter)."
+      "rationale": "Prevents circular dependencies and makes module dependencies immediately obvious.",
+      "enforcement": "warning",
+      "statement": "Imports MUST follow canonical grouping and ordering as enforced by the linter.",
+      "check": {
+        "engine": "ast_gate",
+        "params": {
+          "check_type": "linter_compliance"
+        }
+      }
     },
     {
-      "category": "layout",
-      "enforcement": "error",
       "id": "layout.src_module_header",
-      "scope": [
-        "src/**/*.py"
-      ],
-      "statement": "Every Python module under 'src/' MUST begin with a correct file path comment matching its repo-root location, followed by the module docstring and then the canonical future import. This ordering constitutes the required header block.\n"
+      "rationale": "Standardizes file identification for automated filesystem tools and knowledge graph builders.",
+      "enforcement": "error",
+      "statement": "Every module under 'src/' MUST begin with a file path comment, module docstring, and future import.",
+      "check": {
+        "engine": "ast_gate",
+        "params": {
+          "check_type": "import_boundary"
+        }
+      }
     },
     {
-      "category": "layout",
-      "enforcement": "warn",
       "id": "layout.import_grouping",
-      "scope": [
-        "src/**/*.py",
-        "tests/**/*.py"
-      ],
-      "statement": "Imports MUST be grouped in the canonical order: future imports, standard library, third-party packages, then internal modules. Mixed groups or interleaving are forbidden.\n"
+      "rationale": "Clear separation of external vs internal dependencies simplifies environment debugging.",
+      "enforcement": "warning",
+      "statement": "Imports MUST be grouped: future, stdlib, third-party, and finally internal modules.",
+      "check": {
+        "engine": "ast_gate",
+        "params": {
+          "check_type": "import_boundary"
+        }
+      }
     },
     {
-      "category": "architecture",
-      "enforcement": "info",
       "id": "di.policy_reference",
-      "statement": "Dependency Injection rules are defined canonically in 'dependency_injection_policy.yaml'. Auditors and agents MUST treat that policy as the single source of truth and only reference these standards as a high-level summary.\n"
+      "rationale": "Establishes a single authoritative source for dependency management to prevent architectural drift.",
+      "enforcement": "warning",
+      "statement": "Dependency Injection rules are defined canonically in 'dependency_injection.json'.",
+      "check": {
+        "engine": "ast_gate",
+        "params": {
+          "check_type": "import_boundary"
+        }
+      }
     },
     {
-      "category": "refactor",
-      "enforcement": "error",
       "id": "refactor.requires_tests",
-      "statement": "Any refactor that changes public behavior MUST include tests or proof of equivalence."
+      "rationale": "Ensures that autonomous or manual structural changes do not introduce functional regressions.",
+      "enforcement": "error",
+      "statement": "Any refactor that changes public behavior MUST include tests or proof of equivalence.",
+      "check": {
+        "engine": "workflow_gate",
+        "params": {
+          "check_type": "test_verification"
+        }
+      }
     },
     {
-      "category": "refactor",
-      "enforcement": "warn",
       "id": "refactor.update_capabilities",
-      "statement": "When moving symbols, update capability tags and manifests accordingly."
+      "rationale": "Maintains synchronization between the executable logic and the system's semantic memory.",
+      "enforcement": "warning",
+      "statement": "When moving symbols, update capability tags and manifests accordingly.",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: When moving symbols, update capability tags and manifests accordingly."
+        }
+      }
     },
     {
-      "category": "refactor",
-      "enforcement": "error",
       "id": "refactor.audit_after",
-      "statement": "A constitutional audit MUST run after refactors before merge."
+      "rationale": "Verifies that new code structures still comply with the system's foundational safety rules.",
+      "enforcement": "error",
+      "statement": "A constitutional audit MUST run after refactors and before merge.",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: A constitutional audit MUST run after refactors and before merge."
+        }
+      }
     },
     {
-      "category": "code_health",
-      "enforcement": "error",
       "id": "code_standards.max_file_lines",
-      "statement": "Python modules MUST NOT exceed 400 lines."
+      "rationale": "Prevents God Objects while allowing necessary complexity for system-critical orchestration and algorithmic density.",
+      "details": {
+        "thresholds": [
+          {
+            "path": "src/will/orchestration/**",
+            "limit": 600
+          },
+          {
+            "path": "src/mind/logic/**",
+            "limit": 600
+          },
+          {
+            "path": "src/features/self_healing/test_generation/**",
+            "limit": 500
+          },
+          {
+            "path": "default",
+            "limit": 400
+          }
+        ]
+      },
+      "enforcement": "error",
+      "statement": "Python modules MUST NOT exceed line limits based on their role: Core/Orchestration (600 lines), Features/Services (400 lines), Utilities (200 lines).",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: Python modules MUST NOT exceed line limits based on their role: Core/Orchestration (600 lines), Features/Services (400 lines), Utilities (200 lines)."
+        }
+      }
     },
     {
-      "category": "code_health",
-      "enforcement": "warn",
       "id": "code_standards.max_function_lines",
-      "statement": "Functions MUST NOT exceed 50 lines."
+      "rationale": "Encourages decomposition of complex logic into smaller, more testable units.",
+      "enforcement": "warning",
+      "statement": "Functions SHOULD NOT exceed 50 lines.",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: Functions SHOULD NOT exceed 50 lines."
+        }
+      }
     },
     {
-      "category": "async",
-      "enforcement": "error",
-      "exceptions": [
-        "src/main.py",
-        "src/shared/cli_utils.py",
-        "tests/**/*.py"
-      ],
       "id": "async.no_manual_loop_management",
-      "scope": [
-        "src/features/**/*.py",
-        "src/body/logic/**/*.py",
-        "src/services/**/*.py"
-      ],
-      "statement": "Business logic and Feature modules MUST NOT call 'asyncio.run()'. They must be 'async def' and let the top-level CLI wrapper handle the loop.\n"
+      "rationale": "Prevents event loop conflicts and ensures async logic is properly integrated into the orchestrator.",
+      "enforcement": "error",
+      "statement": "Business logic and Feature modules MUST NOT call 'asyncio.run()'.",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: Business logic and Feature modules MUST NOT call 'asyncio.run()'."
+        }
+      }
     },
     {
-      "category": "capability",
-      "enforcement": "error",
       "id": "caps.id_format",
-      "statement": "Source code linkers MUST use the form '# ID: <uuid>'."
+      "rationale": "Provides a consistent regex pattern for AST-based linkage and tracking tools.",
+      "enforcement": "error",
+      "statement": "Source code linkers MUST use the form '# ID: <uuid>'.",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: Source code linkers MUST use the form '# ID: <uuid>'."
+        }
+      }
     },
     {
-      "category": "capability",
-      "enforcement": "error",
       "id": "caps.meaningful_description",
-      "statement": "Capability descriptions MUST be specific and non-placeholder."
+      "rationale": "Enables autonomous planners to accurately select capabilities for complex tasks.",
+      "enforcement": "error",
+      "statement": "Capability descriptions MUST be specific and non-placeholder.",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: Capability descriptions MUST be specific and non-placeholder."
+        }
+      }
     },
     {
-      "category": "capability",
-      "enforcement": "error",
       "id": "caps.no_placeholder_text",
-      "statement": "Descriptions such as 'TBD' or 'N/A' are forbidden."
+      "rationale": "Prevents 'ghost capabilities' that degrade system reasoning and documentation quality.",
+      "enforcement": "error",
+      "statement": "Descriptions such as 'TBD' or 'N/A' are forbidden in capability metadata.",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: Descriptions such as 'TBD' or 'N/A' are forbidden in capability metadata."
+        }
+      }
     },
     {
-      "category": "capability",
-      "enforcement": "error",
       "id": "caps.owner_required",
-      "statement": "Active capabilities MUST have an assigned owner (agent/team)."
+      "rationale": "Establishes clear accountability for the lifecycle and correctness of specific logic blocks.",
+      "enforcement": "error",
+      "statement": "Active capabilities MUST have an assigned owner (agent or team).",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: Active capabilities MUST have an assigned owner (agent or team)."
+        }
+      }
     },
     {
-      "category": "symbols",
-      "enforcement": "error",
       "id": "symbols.public_capability_id_and_docstring",
-      "scope": [
-        "src/**/*.py"
-      ],
-      "statement": "Public symbols that represent a capability (primary functions/classes not starting with '_') MUST have an '# ID: <uuid>' comment directly above the definition and MUST provide a meaningful docstring describing behavior and guarantees.\n"
+      "rationale": "Mandatory for symbols that are exposed to external callers or autonomous agents.",
+      "enforcement": "error",
+      "statement": "Public capability symbols MUST have an ID comment and a meaningful docstring.",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: Public capability symbols MUST have an ID comment and a meaningful docstring."
+        }
+      }
     },
     {
-      "category": "symbols",
-      "enforcement": "warn",
       "id": "symbols.private_helpers_no_id_required",
-      "scope": [
-        "src/**/*.py"
-      ],
-      "statement": "Private helpers (functions/classes starting with '_') MUST NOT receive capability IDs. They MAY have docstrings where non-trivial but are not required to.\n"
+      "rationale": "Prevents internal implementation details from being tracked as top-level system capabilities.",
+      "enforcement": "warning",
+      "statement": "Private helpers (starting with '_') MUST NOT receive capability IDs.",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: Private helpers (starting with '_') MUST NOT receive capability IDs."
+        }
+      }
     },
     {
-      "category": "symbols",
-      "enforcement": "error",
       "id": "symbols.cli_async_helpers_private",
-      "scope": [
-        "src/**/*.py"
-      ],
-      "statement": "Async orchestration helpers used exclusively to bridge CLI commands and domain capabilities MUST be private (their name must start with '_') and MUST NOT receive capability IDs.\n"
+      "rationale": "Protects the public API boundary from leaking internal orchestration mechanics.",
+      "enforcement": "error",
+      "statement": "Async orchestration helpers bridging CLI and domain MUST be private.",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: Async orchestration helpers bridging CLI and domain MUST be private."
+        }
+      }
     },
     {
-      "category": "naming",
-      "enforcement": "error",
       "id": "intent.policy_file_naming",
-      "statement": "All charter policy files must use snake_case and end with '.yaml'."
+      "rationale": "Aligns naming with the constitutional mandate for JSON as the machine-readable format for intent.",
+      "enforcement": "error",
+      "statement": "All charter policy files must use snake_case and end with '.json'.",
+      "check": {
+        "engine": "regex_gate",
+        "params": {
+          "check_type": "naming_convention"
+        }
+      }
     },
     {
-      "category": "naming",
-      "enforcement": "error",
       "id": "intent.policy_schema_naming",
-      "statement": "Schemas for policy files must end with '_policy_schema.json'."
+      "rationale": "Allows the validator to deterministically resolve schemas for policy documents.",
+      "enforcement": "error",
+      "statement": "Schemas for policy files must end with '_policy_schema.json'.",
+      "check": {
+        "engine": "glob_gate",
+        "params": {
+          "check_type": "path_restriction"
+        }
+      }
     },
     {
-      "category": "naming",
-      "enforcement": "error",
       "id": "intent.artifact_schema_naming",
-      "statement": "Schemas for non-policy artifacts must end with '_schema.[json|yaml]'."
+      "rationale": "Differentiates implementation schemas from governance policy schemas.",
+      "enforcement": "error",
+      "statement": "Schemas for non-policy artifacts must end with '_schema.[json|yaml]'.",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: Schemas for non-policy artifacts must end with '_schema.[json|yaml]'."
+        }
+      }
     },
     {
-      "category": "naming",
-      "enforcement": "error",
       "id": "intent.prompt_file_naming",
-      "statement": "All prompt files must use snake_case and end with '.prompt'."
+      "rationale": "Standardizes the discovery of cognitive templates for AI agents.",
+      "enforcement": "error",
+      "statement": "All prompt files must use snake_case and end with '.prompt'.",
+      "check": {
+        "engine": "regex_gate",
+        "params": {
+          "check_type": "naming_convention"
+        }
+      }
     },
     {
-      "category": "naming",
-      "enforcement": "warn",
       "id": "intent.proposal_file_naming",
-      "statement": "All proposal files must follow the 'cr-*.yaml' naming convention."
+      "rationale": "Identifies change-request artifacts to prevent accidental application without review.",
+      "enforcement": "warning",
+      "statement": "All proposal files must follow the 'cr-*.yaml' naming convention.",
+      "check": {
+        "engine": "regex_gate",
+        "params": {
+          "check_type": "naming_convention"
+        }
+      }
     },
     {
-      "category": "naming",
-      "enforcement": "error",
       "id": "code.python_module_naming",
-      "statement": "All Python source files must use snake_case naming."
+      "rationale": "Maintains consistency with Python PEP 8 standards and project conventions.",
+      "enforcement": "error",
+      "statement": "All Python source files must use snake_case naming.",
+      "check": {
+        "engine": "regex_gate",
+        "params": {
+          "check_type": "naming_convention"
+        }
+      }
     },
     {
-      "category": "naming",
-      "enforcement": "error",
       "id": "code.python_test_module_naming",
-      "statement": "All Python test files must be prefixed with 'test_'."
+      "rationale": "Ensures reliable discovery by pytest while preventing the misclassification of test-generation logic or utilities.",
+      "scope": [
+        "tests/**/*.py",
+        "src/**/*_test.py"
+      ],
+      "exceptions": [
+        "src/features/self_healing/test_generation/**"
+      ],
+      "enforcement": "error",
+      "statement": "All Python test suites (executable tests) MUST be prefixed with 'test_'.",
+      "check": {
+        "engine": "regex_gate",
+        "params": {
+          "check_type": "naming_convention"
+        }
+      }
     }
   ],
-  "schema_id": "schema.code.policy"
+  "additionalProperties": false
 }

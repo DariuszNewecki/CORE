@@ -4,7 +4,12 @@
   "title": "CORE Proposal (v1)",
   "type": "object",
   "additionalProperties": false,
-  "required": ["target_path", "action", "justification", "content"],
+  "required": [
+    "target_path",
+    "action",
+    "justification",
+    "content"
+  ],
   "properties": {
     "target_path": {
       "type": "string",
@@ -14,7 +19,9 @@
     },
     "action": {
       "type": "string",
-      "enum": ["replace_file"],
+      "enum": [
+        "replace_file"
+      ],
       "description": "Currently only full file replacement is supported."
     },
     "justification": {
@@ -30,24 +37,48 @@
     "signatures": {
       "type": "array",
       "description": "Optional array of signature objects.",
-      "items": { "$ref": "#/$defs/signature" }
+      "items": {
+        "$ref": "#/$defs/signature"
+      }
     }
   },
   "$defs": {
     "signature": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["identity", "signature_b64", "token", "timestamp"],
+      "required": [
+        "identity",
+        "signature_b64",
+        "token",
+        "timestamp"
+      ],
       "properties": {
-        "identity": { "type": "string" },
-        "signature_b64": { "type": "string", "contentEncoding": "base64" },
+        "identity": {
+          "type": "string"
+        },
+        "signature_b64": {
+          "type": "string",
+          "contentEncoding": "base64"
+        },
         "token": {
           "type": "string",
           "pattern": "^core-proposal-v[0-9]+:[a-f0-9]{64}$",
           "$comment": "Allows any version number for the token, e.g., v1, v6."
         },
-        "timestamp": { "type": "string", "format": "date-time" }
+        "timestamp": {
+          "type": "string",
+          "format": "date-time"
+        }
       }
     }
-  }
+  },
+  "id": "proposal.schema",
+  "version": "1.0.0",
+  "owners": {
+    "accountable": "Governance Lead"
+  },
+  "review": {
+    "frequency": "12 months"
+  },
+  "schema_id": "meta.schema"
 }

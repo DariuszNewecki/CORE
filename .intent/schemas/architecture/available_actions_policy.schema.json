@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Available Actions Policy",
+  "description": "Defines the complete set of actions available to the PlannerAgent.",
+  "type": "object",
+  "allOf": [
+    {
+      "$ref": "../policy_schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "available_actions_policy"
+    },
+    "actions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "description",
+          "parameters"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "parameters": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "name",
+                "type",
+                "description",
+                "required"
+              ],
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "type": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                },
+                "required": {
+                  "type": "boolean"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "required": [
+    "actions"
+  ],
+  "additionalProperties": false,
+  "id": "available_actions_policy.schema",
+  "version": "1.0.0",
+  "owners": {
+    "accountable": "Governance Lead"
+  },
+  "review": {
+    "frequency": "12 months"
+  },
+  "schema_id": "meta.schema"
+}

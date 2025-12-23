@@ -1,6 +1,6 @@
 {
   "id": "standard_architecture_command_rules",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "title": "Architecture Standard – Command Patterns",
   "type": "standard_architecture",
   "status": "active",
@@ -235,27 +235,80 @@
     {
       "id": "workflow_composition.chain_action_pattern",
       "category": "workflow_composition",
-      "statement": "Workflows can chain multiple action_pattern commands"
+      "rationale": "Strengthens system governance regarding workflow_composition.chain_action_pattern.",
+      "enforcement": "error",
+      "statement": "Workflows can chain multiple action_pattern commands",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: Workflows can chain multiple action_pattern commands"
+        }
+      }
     },
     {
       "id": "workflow_composition.step_must_succeed",
       "category": "workflow_composition",
-      "statement": "Each step must succeed before proceeding to next"
+      "rationale": "Strengthens system governance regarding workflow_composition.step_must_succeed.",
+      "enforcement": "error",
+      "statement": "Each step must succeed before proceeding to next",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: Each step must succeed before proceeding to next"
+        }
+      }
     },
     {
       "id": "workflow_composition.idempotent",
       "category": "workflow_composition",
-      "statement": "Workflows should be idempotent (safe to re-run)"
+      "rationale": "Strengthens system governance regarding workflow_composition.idempotent.",
+      "enforcement": "error",
+      "statement": "Workflows should be idempotent (safe to re-run)",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: Workflows should be idempotent (safe to re-run)"
+        }
+      }
     },
     {
       "id": "workflow_composition.progress_indication",
       "category": "workflow_composition",
-      "statement": "Workflows should provide clear progress indication"
+      "rationale": "Strengthens system governance regarding workflow_composition.progress_indication.",
+      "enforcement": "error",
+      "statement": "Workflows should provide clear progress indication",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: Workflows should provide clear progress indication"
+        }
+      }
     },
     {
       "id": "workflow_composition.fail_fast",
       "category": "workflow_composition",
-      "statement": "Workflows should fail fast on errors"
+      "rationale": "Strengthens system governance regarding workflow_composition.fail_fast.",
+      "enforcement": "error",
+      "statement": "Workflows should fail fast on errors",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: Workflows should fail fast on errors"
+        }
+      }
+    },
+    {
+      "id": "cli.runtime.single_loop_owner",
+      "category": "cli_runtime",
+      "rationale": "CLI commands must execute deterministically in a single owned event loop. Returning Tasks from sync Typer entrypoints leads to un-awaited execution and loop leakage.",
+      "enforcement": "error",
+      "statement": "CLI commands MUST execute inside a single owned event loop via the CORE runtime boundary. Sync Typer entrypoints MUST NOT return asyncio Task objects or schedule background tasks as the command result.",
+      "check": {
+        "engine": "ast_gate",
+        "params": {
+          "check_type": "no_task_return_from_sync_cli"
+        }
+      }
     }
   ],
   "workflow_composition": {
@@ -330,5 +383,6 @@
       "Include pattern_id in command metadata",
       "Verify with pattern checker before commit"
     ]
-  }
+  },
+  "additionalProperties": false
 }

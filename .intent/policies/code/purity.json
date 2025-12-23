@@ -1,104 +1,105 @@
 {
   "id": "standard_code_purity",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "title": "Code Standard – Purity & Side Effects",
   "type": "standard_code",
   "status": "active",
   "owners": {
     "accountable": "Code Quality Owner",
-    "responsible": [
-      "Core Maintainer"
-    ]
+    "responsible": ["Core Maintainer"]
   },
-  "review": {
-    "frequency": "12 months"
-  },
+  "review": { "frequency": "12 months" },
   "schema_id": "policy.structure",
   "policy_id": "73394e37-41db-4391-93e8-6ced1a61735f",
-  "purpose": "Define the strict boundary between Code (Logic/Safety) and Database (Metadata/State). Ensures the codebase remains clean, readable, and free of \"Split-Brain\" metadata configuration.\n",
-  "core_principle": "Source code is for LOGIC and RUNTIME CONTRACTS.\nDescriptive metadata (Ownership, Relationships, Status) belongs in the Knowledge Graph (DB).\n",
-  "governance_contracts": [
+  "purpose": "Define the strict boundary between Code (Logic/Safety) and Database (Metadata/State). Ensures the codebase remains clean, readable, and free of 'Split-Brain' metadata configuration.",
+  "core_principle": "Source code is for LOGIC and RUNTIME CONTRACTS. Descriptive metadata (Ownership, Relationships, Status) belongs in the Knowledge Graph (DB).",
+  "rules": [
     {
-      "type": "atomic_action_binding",
-      "format": "@atomic_action(action_id='...', impact='...', policies=[...])",
-      "justification": "Required for the 'Will' layer (IntentGuard) to validate safety *before* execution.\nDefines the blast radius (impact) and laws (policies) governing the function.\nWithout this, the function is invisible to the governance engine.\n",
-      "enforcement": "error"
+      "id": "purity.forbidden_decorators",
+      "statement": "Source code MUST NOT contain descriptive metadata decorators: @capability, @meta, or @owner.",
+      "enforcement": "error",
+      "rationale": "Database Schema 'core.capabilities' already stores owner, domain, and status. Storing this in code creates a sync hazard (Split-Brain).",
+      "check": {
+        "engine": "ast_gate",
+        "params": {
+          "check_type": "forbidden_decorators",
+          "forbidden": ["capability", "meta", "owner"],
+          "remediation": "Use 'core-admin manage database' or 'fix docstrings' to update metadata."
+        }
+      }
     },
     {
-      "type": "framework_bindings",
-      "format": "@app.get(...), @command(...), @pytest.fixture(...)",
-      "justification": "Required for framework wiring (FastAPI, Typer, Pytest).",
-      "enforcement": "allowed"
-    }
-  ],
-  "structural_anchors": [
-    {
-      "type": "stable_id",
-      "format": "# ID: <uuid>",
-      "location": "Immediately above function/class definition",
-      "justification": "The database schema uses UUIDs (core.symbols.id) as primary keys.\nCode refactoring (renaming/moving files) breaks these links unless a\nstable ID anchor is present in the source.\n",
-      "enforcement": "error"
-    }
-  ],
-  "forbidden_pollution": [
-    {
-      "type": "descriptive_decorators",
-      "examples": [
-        "@capability(name='...', owner='TeamA')",
-        "@meta(status='active', domain='core')",
-        "@owner('user@example.com')"
-      ],
-      "reason": "Database Schema 'core.capabilities' already stores owner, domain, and status.\nStoring this in code creates a sync hazard (Split-Brain).\n",
-      "alternative": "Use 'core-admin manage database' or 'fix docstrings' to update metadata.",
-      "enforcement": "error"
+      "id": "purity.no_inline_configuration",
+      "statement": "Hardcoding configuration (timeouts, retry limits, API keys) in source code is forbidden.",
+      "enforcement": "warning",
+      "rationale": "Database Schema 'core.runtime_settings' is the SSOT for config. Hardcoding prevents dynamic runtime adjustment and creates security risks.",
+      "check": {
+        "engine": "ast_gate",
+        "params": {
+          "check_type": "forbidden_assignments",
+          "targets": ["CONFIG", "API_KEY", "SECRET_KEY"],
+          "remediation": "Load via ConfigService (backed by core.runtime_settings)."
+        }
+      }
     },
     {
-      "type": "inline_configuration",
-      "examples": [
-        "CONFIG = {'timeout': 300, 'retry': 3}",
-        "API_KEY = 'sk-...'"
-      ],
-      "reason": "Database Schema 'core.runtime_settings' (and SecretsService) is the SSOT for config.\nHardcoding config prevents dynamic runtime adjustment and creates security risks.\n",
-      "alternative": "Load via ConfigService (backed by core.runtime_settings).",
-      "enforcement": "warning"
+      "id": "purity.stable_id_anchor",
+      "statement": "Primary public symbols MUST have a stable ID anchor (# ID: <uuid>) immediately above definition.",
+      "enforcement": "error",
+      "rationale": "The DB uses UUIDs as primary keys. Refactoring (renaming/moving) breaks links unless a stable anchor is present in source.",
+      "check": {
+        "engine": "regex_gate",
+        "params": {
+          "required_patterns": ["^# ID: [0-9a-fA-F]{8}-([0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}"],
+          "location_hint": "preceding_line"
+        }
+      }
+    },
+    {
+      "id": "purity.safety_contract_presence",
+      "statement": "Public state-modifying functions MUST have an @atomic_action decorator.",
+      "enforcement": "error",
+      "rationale": "Required for the 'Will' layer (IntentGuard) to validate safety *before* execution. Defines blast radius and governing policies.",
+      "check": {
+        "engine": "ast_gate",
+        "params": {
+          "check_type": "required_decorator",
+          "target": "atomic_action"
+        }
+      }
+    },
+    {
+      "id": "purity.atomic_action_contract",
+      "statement": "The @atomic_action decorator MUST include 'action_id', 'impact', and 'policies'.",
+      "enforcement": "error",
+      "rationale": "Enables constitutional enforcement BEFORE execution. Without these params, the function is invisible to the governance engine.",
+      "check": {
+        "engine": "ast_gate",
+        "params": {
+          "check_type": "decorator_args",
+          "decorator": "atomic_action",
+          "required_args": ["action_id", "impact", "policies"]
+        }
+      }
+    },
+    {
+      "id": "purity.framework_binding_limits",
+      "statement": "Decorators are restricted to Governance Contracts or explicit Framework Bindings (FastAPI, Typer, Pytest).",
+      "enforcement": "error",
+      "rationale": "Prevents 'Decorator Inflation' where the source code becomes cluttered with non-functional metadata.",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Identify decorators that do not serve a runtime framework purpose or a governance requirement."
+        }
+      }
     }
   ],
   "metadata_strategy": {
-    "source_code": {
-      "contains": "Logic, Flow Control, Runtime Safety Contracts (@atomic_action)",
-      "role": "The Body (Execution)"
-    },
-    "database": {
-      "contains": "Ownership, Capability Definitions, Relationships, Execution History",
-      "schema_ref": "001_consolidated_schema.sql",
-      "role": "The Mind (Memory & Context)"
-    },
-    "docstrings": {
-      "contains": "Human-readable intent, usage examples, reasoning",
-      "role": "Explanation"
-    }
+    "source_code": { "contains": "Logic, Flow Control, Runtime Safety Contracts (@atomic_action)", "role": "The Body (Execution)" },
+    "database": { "contains": "Ownership, Capability Definitions, Relationships, Execution History", "schema_ref": "001_consolidated_schema.sql", "role": "The Mind (Memory & Context)" },
+    "docstrings": { "contains": "Human-readable intent, usage examples, reasoning", "role": "Explanation" }
   },
-  "rules": [
-    {
-      "id": "purity.no_descriptive_pollution",
-      "statement": "Source code MUST NOT contain descriptive metadata decorators (owner/status/domain).",
-      "enforcement": "error",
-      "data": {
-        "check": "Scan for decorators containing static metadata keys (owner, status, domain)",
-        "violation": "Descriptive metadata found in source code",
-        "fix": "Move metadata to Database via 'manage database sync'"
-      }
-    },
-    {
-      "id": "purity.safety_contract_required",
-      "statement": "Public state-modifying functions MUST have @atomic_action.",
-      "enforcement": "error",
-      "data": {
-        "check": "Public state-modifying functions must have @atomic_action",
-        "violation": "Ungoverned execution path detected",
-        "fix": "Apply @atomic_action decorator"
-      }
-    }
-  ],
-  "philosophy": "If the data describes *what* the code is (e.g., \"This is an active capability owned by Bob\"),\nit lives in the Database.\n\nIf the data describes *how* the code behaves safely (e.g., \"This writes data and checks policy X\"),\nit lives in the Code (Decorator).\n"
+  "philosophy": "If the data describes *what* the code is, it lives in the Database. If the data describes *how* the code behaves safely, it lives in the Code (Decorator).",
+  "additionalProperties": false
 }

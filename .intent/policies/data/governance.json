@@ -141,5 +141,6 @@
   "backup_restore": {
     "cadence": "daily",
     "test_restore_quarterly": true
-  }
+  },
+  "additionalProperties": false
 }

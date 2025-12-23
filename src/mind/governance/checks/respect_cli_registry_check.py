@@ -2,7 +2,7 @@
 """
 Enforces agent.compliance.respect_cli_registry: Agents must only invoke registered CLI commands.
 
-Ref: .intent/charter/standards/architecture/agent_governance.json
+Ref: .intent/policies/architecture/agent_governance.json
 """
 
 from __future__ import annotations
@@ -17,7 +17,6 @@ from mind.governance.checks.rule_enforcement_check import (
     EnforcementMethod,
     RuleEnforcementCheck,
 )
-from shared.config import settings
 from shared.infrastructure.database.session_manager import get_session
 from shared.logger import getLogger
 from shared.models import AuditFinding
@@ -26,7 +25,6 @@ from shared.models import AuditFinding
 logger = getLogger(__name__)
 
 
-# ID: respect-cli-registry-enforcement
 # ID: e3f4a5b6-c7d8-4e9f-0a1b-2c3d4e5f6a7b
 class RespectCliRegistryEnforcement(EnforcementMethod):
     """Verifies that Agent code only invokes registered CLI commands."""
@@ -40,16 +38,14 @@ class RespectCliRegistryEnforcement(EnforcementMethod):
             return {row[0] for row in result.fetchall()}
 
     # ID: 405e6834-95ec-4a73-9243-475fe897dfdb
-    def verify(
+    async def verify(
         self, context: AuditorContext, rule_data: dict[str, Any], **kwargs
     ) -> list[AuditFinding]:
         findings = []
 
-        # This check requires async DB access, so we'll do a synchronous wrapper
-        import asyncio
-
         try:
-            registered_commands = asyncio.run(self._get_registered_commands())
+            # CORRECT: Await the coroutine directly in the existing event loop
+            registered_commands = await self._get_registered_commands()
         except Exception as e:
             logger.warning("Failed to fetch registered commands: %s", e)
             return findings
@@ -103,12 +99,10 @@ class RespectCliRegistryEnforcement(EnforcementMethod):
 class RespectCliRegistryCheck(RuleEnforcementCheck):
     """
     Enforces agent.compliance.respect_cli_registry.
-    Ref: .intent/charter/standards/architecture/agent_governance.json
+    Ref: .intent/policies/architecture/agent_governance.json
     """
 
     policy_rule_ids: ClassVar[list[str]] = ["agent.compliance.respect_cli_registry"]
-
-    policy_file: ClassVar = settings.paths.policy("agent_governance")
 
     enforcement_methods: ClassVar[list[EnforcementMethod]] = [
         RespectCliRegistryEnforcement(rule_id="agent.compliance.respect_cli_registry"),

@@ -1,0 +1,670 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "schema_id": "schema.operations.policy",
+  "version": "1.0.0",
+  "title": "Runtime Context Policy",
+  "description": "Validates policy.yaml with constitutional rigor and structural flexibility",
+  "type": "object",
+  "required": [
+    "id",
+    "version",
+    "title",
+    "type",
+    "status",
+    "owners",
+    "review",
+    "schema_id",
+    "policy_type",
+    "privacy",
+    "routing",
+    "redaction",
+    "budgets",
+    "invariants",
+    "audit",
+    "notes"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9_.-]+$"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "title": {
+      "type": "string",
+      "maxLength": 200
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "draft",
+        "deprecated",
+        "experimental"
+      ]
+    },
+    "owners": {
+      "type": "object",
+      "required": [
+        "accountable"
+      ],
+      "properties": {
+        "accountable": {
+          "type": "string"
+        },
+        "responsible": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "review": {
+      "type": "object",
+      "required": [
+        "frequency"
+      ],
+      "properties": {
+        "frequency": {
+          "type": "string"
+        },
+        "last_reviewed": {
+          "type": "string",
+          "format": "date"
+        },
+        "next_review_due": {
+          "type": "string",
+          "format": "date"
+        }
+      },
+      "additionalProperties": false
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "$schema": {
+      "type": "string",
+      "description": "Optional JSON Schema reference"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "context_policy"
+      ]
+    },
+    "schema_id": {
+      "type": "string",
+      "const": "context.policy"
+    },
+    "policy_type": {
+      "type": "string"
+    },
+    "privacy": {
+      "type": "object",
+      "properties": {
+        "description": {
+          "type": "string"
+        },
+        "default_level": {
+          "type": "string"
+        },
+        "forbidden_paths": {
+          "type": "object",
+          "properties": {
+            "description": {
+              "type": "string"
+            },
+            "patterns": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "minItems": 1
+            }
+          },
+          "required": [
+            "description",
+            "patterns"
+          ],
+          "additionalProperties": false
+        },
+        "forbidden_content": {
+          "type": "object",
+          "properties": {
+            "description": {
+              "type": "string"
+            },
+            "patterns": {
+              "type": "array",
+              "items": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "regex": {
+                        "type": "string"
+                      },
+                      "reason": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "regex",
+                      "reason"
+                    ],
+                    "additionalProperties": false,
+                    "description": "Variant with fields: reason, regex"
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "regex": {
+                        "type": "string"
+                      },
+                      "reason": {
+                        "type": "string"
+                      },
+                      "redact_with": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "regex",
+                      "reason",
+                      "redact_with"
+                    ],
+                    "additionalProperties": false,
+                    "description": "Variant with fields: reason, redact_with, regex"
+                  }
+                ]
+              },
+              "minItems": 1
+            }
+          },
+          "required": [
+            "description",
+            "patterns"
+          ],
+          "additionalProperties": false
+        },
+        "sensitive_dirs": {
+          "type": "object",
+          "properties": {
+            "description": {
+              "type": "string"
+            },
+            "paths": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "minItems": 1
+            },
+            "approval_required": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "description",
+            "paths",
+            "approval_required"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "description",
+        "default_level",
+        "forbidden_paths",
+        "forbidden_content",
+        "sensitive_dirs"
+      ],
+      "additionalProperties": false
+    },
+    "routing": {
+      "type": "object",
+      "properties": {
+        "description": {
+          "type": "string"
+        },
+        "remote_allowed_by_default": {
+          "type": "boolean"
+        },
+        "require_remote_approval": {
+          "type": "object",
+          "properties": {
+            "task_types": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "minItems": 1
+            },
+            "reason": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "task_types",
+            "reason"
+          ],
+          "additionalProperties": false
+        },
+        "always_local": {
+          "type": "object",
+          "properties": {
+            "task_types": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "minItems": 1
+            },
+            "reason": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "task_types",
+            "reason"
+          ],
+          "additionalProperties": false
+        },
+        "remote_allowed_if": {
+          "type": "object",
+          "properties": {
+            "conditions": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "minItems": 1
+            }
+          },
+          "required": [
+            "conditions"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "description",
+        "remote_allowed_by_default",
+        "require_remote_approval",
+        "always_local",
+        "remote_allowed_if"
+      ],
+      "additionalProperties": false
+    },
+    "redaction": {
+      "type": "object",
+      "properties": {
+        "description": {
+          "type": "string"
+        },
+        "strategies": {
+          "type": "object",
+          "properties": {
+            "secrets": {
+              "type": "object",
+              "properties": {
+                "action": {
+                  "type": "string"
+                },
+                "log": {
+                  "type": "boolean"
+                },
+                "reason": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "action",
+                "log",
+                "reason"
+              ],
+              "additionalProperties": false
+            },
+            "pii": {
+              "type": "object",
+              "properties": {
+                "action": {
+                  "type": "string"
+                },
+                "replacement": {
+                  "type": "string"
+                },
+                "log": {
+                  "type": "boolean"
+                },
+                "reason": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "action",
+                "replacement",
+                "log",
+                "reason"
+              ],
+              "additionalProperties": false
+            },
+            "large_files": {
+              "type": "object",
+              "properties": {
+                "action": {
+                  "type": "string"
+                },
+                "max_length": {
+                  "type": "integer"
+                },
+                "log": {
+                  "type": "boolean"
+                },
+                "reason": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "action",
+                "max_length",
+                "log",
+                "reason"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "secrets",
+            "pii",
+            "large_files"
+          ],
+          "additionalProperties": false
+        },
+        "mandatory_checks": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        }
+      },
+      "required": [
+        "description",
+        "strategies",
+        "mandatory_checks"
+      ],
+      "additionalProperties": false
+    },
+    "budgets": {
+      "type": "object",
+      "properties": {
+        "description": {
+          "type": "string"
+        },
+        "defaults": {
+          "type": "object",
+          "properties": {
+            "max_tokens": {
+              "type": "integer"
+            },
+            "max_items": {
+              "type": "integer"
+            },
+            "time_budget_seconds": {
+              "type": "integer"
+            },
+            "cost_budget_usd": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "max_tokens",
+            "max_items",
+            "time_budget_seconds",
+            "cost_budget_usd"
+          ],
+          "additionalProperties": false
+        },
+        "by_task_type": {
+          "type": "object",
+          "properties": {
+            "docstring.fix": {
+              "type": "object",
+              "properties": {
+                "max_tokens": {
+                  "type": "integer"
+                },
+                "max_items": {
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "max_tokens",
+                "max_items"
+              ],
+              "additionalProperties": false
+            },
+            "header.fix": {
+              "type": "object",
+              "properties": {
+                "max_tokens": {
+                  "type": "integer"
+                },
+                "max_items": {
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "max_tokens",
+                "max_items"
+              ],
+              "additionalProperties": false
+            },
+            "test.generate": {
+              "type": "object",
+              "properties": {
+                "max_tokens": {
+                  "type": "integer"
+                },
+                "max_items": {
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "max_tokens",
+                "max_items"
+              ],
+              "additionalProperties": false
+            },
+            "code.generate": {
+              "type": "object",
+              "properties": {
+                "max_tokens": {
+                  "type": "integer"
+                },
+                "max_items": {
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "max_tokens",
+                "max_items"
+              ],
+              "additionalProperties": false
+            },
+            "refactor": {
+              "type": "object",
+              "properties": {
+                "max_tokens": {
+                  "type": "integer"
+                },
+                "max_items": {
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "max_tokens",
+                "max_items"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "docstring.fix",
+            "header.fix",
+            "test.generate",
+            "code.generate",
+            "refactor"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "description",
+        "defaults",
+        "by_task_type"
+      ],
+      "additionalProperties": false
+    },
+    "invariants": {
+      "type": "object",
+      "properties": {
+        "description": {
+          "type": "string"
+        },
+        "rules": {
+          "type": "array",
+          "items": {
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "enforcement": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "description",
+                  "enforcement"
+                ],
+                "additionalProperties": false,
+                "description": "Variant with fields: description, enforcement, id"
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "enforcement": {
+                    "type": "string"
+                  },
+                  "forbidden_calls": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "minItems": 1
+                  }
+                },
+                "required": [
+                  "id",
+                  "description",
+                  "enforcement",
+                  "forbidden_calls"
+                ],
+                "additionalProperties": false,
+                "description": "Variant with fields: description, enforcement, forbidden_calls, id"
+              }
+            ]
+          },
+          "minItems": 1
+        }
+      },
+      "required": [
+        "description",
+        "rules"
+      ],
+      "additionalProperties": false
+    },
+    "audit": {
+      "type": "object",
+      "properties": {
+        "description": {
+          "type": "string"
+        },
+        "log_events": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        },
+        "retention": {
+          "type": "object",
+          "properties": {
+            "packet_metadata": {
+              "type": "string"
+            },
+            "redaction_logs": {
+              "type": "string"
+            },
+            "validation_failures": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "packet_metadata",
+            "redaction_logs",
+            "validation_failures"
+          ],
+          "additionalProperties": false
+        },
+        "compliance_checks": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        }
+      },
+      "required": [
+        "description",
+        "log_events",
+        "retention",
+        "compliance_checks"
+      ],
+      "additionalProperties": false
+    },
+    "notes": {
+      "type": "string",
+      "minLength": 10
+    }
+  },
+  "additionalProperties": false,
+  "id": "policy.schema",
+  "owners": {
+    "accountable": "Governance Lead"
+  },
+  "review": {
+    "frequency": "12 months"
+  }
+}

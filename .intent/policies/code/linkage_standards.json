@@ -1,7 +1,7 @@
 {
   "id": "standard_code_linkage",
   "version": "1.0.0",
-  "title": "Code Standard – Linkage and ID Management",
+  "title": "Code Standard \u2013 Linkage and ID Management",
   "type": "standard_code",
   "status": "active",
   "owners": {
@@ -18,8 +18,6 @@
   "rules": [
     {
       "id": "linkage.assign_ids",
-      "statement": "All public functions and methods MUST have unique UUID identifiers.",
-      "enforcement": "error",
       "detection_method": "ast_scan",
       "scope": [
         "src/**/*.py"
@@ -31,16 +29,29 @@
       ],
       "format": "# ID: <uuid4>\ndef function_name():\n    \"\"\"Docstring.\"\"\"\n    pass\n",
       "rationale": "Unique IDs enable tracing, auditing, debugging, and autonomous operations. Without IDs, functions are invisible to governance and analytics.\n",
-      "coverage_target": "100% of public functions"
+      "coverage_target": "100% of public functions",
+      "enforcement": "error",
+      "statement": "All public functions and methods MUST have unique UUID identifiers.",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: All public functions and methods MUST have unique UUID identifiers."
+        }
+      }
     },
     {
       "id": "linkage.duplicate_ids",
-      "statement": "Function IDs MUST be globally unique across the entire codebase.",
-      "enforcement": "critical",
       "detection_method": "ast_scan",
-      "check": "uniqueness_validation",
+      "check": {
+        "engine": "glob_gate",
+        "params": {
+          "check_type": "path_restriction"
+        }
+      },
       "remediation": "Automatic - generate new UUID for duplicates via core-admin dev fix-ids",
-      "rationale": "Duplicate IDs break tracing, auditing, and autonomous operations. Each function must have a unique identifier for reliable governance.\n"
+      "rationale": "Duplicate IDs break tracing, auditing, and autonomous operations. Each function must have a unique identifier for reliable governance.\n",
+      "enforcement": "error",
+      "statement": "Function IDs MUST be globally unique across the entire codebase."
     }
   ],
   "id_format": {
@@ -50,7 +61,7 @@
     "spacing": "No blank lines between ID comment and function",
     "examples": {
       "correct": "# ID: 550e8400-e29b-41d4-a716-446655440000\ndef process_data():\n    \"\"\"Process the data.\"\"\"\n    pass\n",
-      "incorrect": "def process_data():\n    # ID: 550e8400-e29b-41d4-a716-446655440000  # ❌ Wrong location\n    pass\n\n# ID: not-a-uuid  # ❌ Invalid format\ndef process_data():\n    pass\n"
+      "incorrect": "def process_data():\n    # ID: 550e8400-e29b-41d4-a716-446655440000  # \u274c Wrong location\n    pass\n\n# ID: not-a-uuid  # \u274c Invalid format\ndef process_data():\n    pass\n"
     }
   },
   "scope": {
@@ -170,5 +181,6 @@
       "frequency": "quarterly",
       "scope": "Review ID consistency and coverage trends"
     }
-  }
+  },
+  "additionalProperties": false
 }

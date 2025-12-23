@@ -33,37 +33,62 @@
     },
     "type": {
       "type": "string",
-      "enum": ["schema_data"]
+      "enum": [
+        "schema_data"
+      ]
     },
     "status": {
       "type": "string",
-      "enum": ["active", "draft", "deprecated", "experimental"]
+      "enum": [
+        "active",
+        "draft",
+        "deprecated",
+        "experimental"
+      ]
     },
     "owners": {
       "type": "object",
-      "required": ["accountable"],
+      "required": [
+        "accountable"
+      ],
       "properties": {
-        "accountable": { "type": "string" },
+        "accountable": {
+          "type": "string"
+        },
         "responsible": {
           "type": "array",
-          "items": { "type": "string" }
+          "items": {
+            "type": "string"
+          }
         }
       },
       "additionalProperties": false
     },
     "review": {
       "type": "object",
-      "required": ["frequency"],
+      "required": [
+        "frequency"
+      ],
       "properties": {
-        "frequency": { "type": "string" },
-        "last_reviewed": { "type": "string", "format": "date" },
-        "next_review_due": { "type": "string", "format": "date" }
+        "frequency": {
+          "type": "string"
+        },
+        "last_reviewed": {
+          "type": "string",
+          "format": "date"
+        },
+        "next_review_due": {
+          "type": "string",
+          "format": "date"
+        }
       },
       "additionalProperties": false
     },
     "tags": {
       "type": "array",
-      "items": { "type": "string" }
+      "items": {
+        "type": "string"
+      }
     },
     "$schema": {
       "type": "string",
@@ -80,31 +105,55 @@
     "tables": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["capabilities", "capability_history", "cli_runs", "audits"],
+      "required": [
+        "capabilities",
+        "capability_history",
+        "cli_runs",
+        "audits"
+      ],
       "properties": {
-        "capabilities": { "$ref": "#/$defs/table_definition" },
-        "capability_history": { "$ref": "#/$defs/table_definition" },
-        "cli_runs": { "$ref": "#/$defs/table_definition" },
-        "audits": { "$ref": "#/$defs/table_definition" }
+        "capabilities": {
+          "$ref": "#/$defs/table_definition"
+        },
+        "capability_history": {
+          "$ref": "#/$defs/table_definition"
+        },
+        "cli_runs": {
+          "$ref": "#/$defs/table_definition"
+        },
+        "audits": {
+          "$ref": "#/$defs/table_definition"
+        }
       }
     },
     "migrations": {
       "type": "array",
       "minItems": 1,
-      "items": { "$ref": "#/$defs/migration_definition" }
+      "items": {
+        "$ref": "#/$defs/migration_definition"
+      }
     }
   },
   "$defs": {
     "column_definition": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["name", "type"],
+      "required": [
+        "name",
+        "type"
+      ],
       "properties": {
-        "name": { "type": "string" },
-        "type": { "type": "string" },
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
         "constraints": {
           "type": "array",
-          "items": { "type": "string" },
+          "items": {
+            "type": "string"
+          },
           "minItems": 1
         }
       }
@@ -112,27 +161,56 @@
     "table_definition": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["description", "columns"],
+      "required": [
+        "description",
+        "columns"
+      ],
       "properties": {
-        "description": { "type": "string", "minLength": 1 },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
         "columns": {
           "type": "array",
           "minItems": 1,
-          "items": { "$ref": "#/$defs/column_definition" }
+          "items": {
+            "$ref": "#/$defs/column_definition"
+          }
         }
       }
     },
     "migration_definition": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "description", "created_at", "approved_by"],
+      "required": [
+        "id",
+        "description",
+        "created_at",
+        "approved_by"
+      ],
       "properties": {
-        "id": { "type": "string" },
-        "description": { "type": "string" },
-        "created_at": { "type": "string", "format": "date" },
-        "approved_by": { "type": "string" }
+        "id": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date"
+        },
+        "approved_by": {
+          "type": "string"
+        }
       }
     }
   },
-  "additionalProperties": false
+  "additionalProperties": false,
+  "id": "database.schema",
+  "owners": {
+    "accountable": "Governance Lead"
+  },
+  "review": {
+    "frequency": "12 months"
+  }
 }

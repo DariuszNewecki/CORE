@@ -5,7 +5,9 @@
   "type": "constitutional_precedence",
   "owners": {
     "accountable": "Governance Lead",
-    "responsible": ["Core Maintainer"]
+    "responsible": [
+      "Core Maintainer"
+    ]
   },
   "review": {
     "frequency": "12 months"
@@ -37,7 +39,10 @@
       "level": 3,
       "name": "data_governance",
       "description": "Data integrity and architectural boundaries",
-      "principles": ["database_ssot", "transparency_and_auditability"]
+      "principles": [
+        "database_ssot",
+        "transparency_and_auditability"
+      ]
     },
     {
       "level": 4,
@@ -64,5 +69,6 @@
       "rule": "If still unresolved, require human decision",
       "example": "Equally specific principles at same level cannot be autonomously resolved"
     }
-  ]
+  ],
+  "additionalProperties": false
 }

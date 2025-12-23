@@ -10,30 +10,58 @@
   "types": [
     {
       "type": "constitution",
-      "match": [".intent/constitution/*.json"],
-      "exclude": [".intent/constitution/precedence*.json"],
+      "match": [
+        ".intent/constitution/*.json"
+      ],
+      "exclude": [
+        ".intent/constitution/precedence*.json"
+      ],
       "schema": ".intent/schemas/META/constitution.schema.json"
     },
     {
       "type": "precedence",
-      "match": [".intent/constitution/precedence*.json"],
+      "match": [
+        ".intent/constitution/precedence*.json"
+      ],
       "schema": ".intent/schemas/META/precedence.schema.json"
     },
     {
       "type": "standard",
-      "match": [".intent/standards/**/*.json"],
+      "match": [
+        ".intent/standards/**/*.json"
+      ],
       "schema": ".intent/schemas/META/standard.schema.json"
     },
     {
       "type": "policy",
-      "match": [".intent/policies/**/*.json"],
+      "match": [
+        ".intent/policies/**/*.json"
+      ],
       "schema": ".intent/schemas/META/policy.schema.json",
       "unique": [
-        { "field": "id", "scope": "global", "code": "intent.policy.duplicate_id" }
+        {
+          "field": "id",
+          "scope": "global",
+          "code": "intent.policy.duplicate_id"
+        }
       ],
       "nested_unique": [
-        { "path": "rules", "field": "id", "scope": "global", "code": "intent.rule.duplicate_id" }
+        {
+          "path": "rules",
+          "field": "id",
+          "scope": "global",
+          "code": "intent.rule.duplicate_id"
+        }
       ]
     }
-  ]
+  ],
+  "additionalProperties": false,
+  "owners": {
+    "accountable": "Governance Lead"
+  },
+  "review": {
+    "frequency": "12 months"
+  },
+  "type": "schema",
+  "schema_id": "meta.schema"
 }

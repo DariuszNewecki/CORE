@@ -1,7 +1,7 @@
 {
   "id": "standard_logging",
   "version": "2.0.0",
-  "title": "Operations Standard – Logging & Observability",
+  "title": "Operations Standard \u2013 Logging & Observability",
   "type": "standard_logging",
   "status": "active",
   "owners": {
@@ -19,47 +19,93 @@
     {
       "id": "logging.single_logging_system",
       "category": "logging",
-      "statement": "All operational logging MUST use Python's standard logging via shared.logger.getLogger().",
+      "rationale": "Using multiple operational output mechanisms creates timestamp inconsistencies and format fragmentation. The standard logging module provides the required features and integrates with centralized observability.\n",
       "enforcement": "error",
-      "rationale": "Using multiple operational output mechanisms creates timestamp inconsistencies and format fragmentation. The standard logging module provides the required features and integrates with centralized observability.\n"
+      "statement": "All operational logging MUST use Python's standard logging via shared.logger.getLogger().",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: All operational logging MUST use Python's standard logging via shared.logger.getLogger()."
+        }
+      }
     },
     {
       "id": "logging.log_level_usage",
       "category": "logging",
+      "rationale": "Strengthens system governance regarding logging.log_level_usage.",
+      "enforcement": "error",
       "statement": "Log levels MUST be used according to their semantic meaning.",
-      "enforcement": "error"
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: Log levels MUST be used according to their semantic meaning."
+        }
+      }
     },
     {
       "id": "logging.message_format",
       "category": "logging",
+      "rationale": "Strengthens system governance regarding logging.message_format.",
+      "enforcement": "error",
       "statement": "Operational log messages MUST be clear, concise, and consistently formatted.",
-      "enforcement": "error"
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: Operational log messages MUST be clear, concise, and consistently formatted."
+        }
+      }
     },
     {
       "id": "logging.progress_indication",
       "category": "logging",
+      "rationale": "Strengthens system governance regarding logging.progress_indication.",
+      "enforcement": "error",
       "statement": "Progress for long operations MUST be logged at appropriate intervals (operational logging).",
-      "enforcement": "error"
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: Progress for long operations MUST be logged at appropriate intervals (operational logging)."
+        }
+      }
     },
     {
       "id": "logging.structured_logging",
       "category": "logging",
+      "rationale": "Use extra parameter for machine-readable context (must be JSON-serializable).",
+      "enforcement": "warning",
       "statement": "Complex operations SHOULD include structured context.",
-      "enforcement": "warn",
-      "rationale": "Use extra parameter for machine-readable context (must be JSON-serializable)."
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: Complex operations SHOULD include structured context."
+        }
+      }
     },
     {
       "id": "logging.error_logging",
       "category": "logging",
+      "rationale": "Strengthens system governance regarding logging.error_logging.",
+      "enforcement": "error",
       "statement": "Errors MUST be logged with full context and stack traces.",
-      "enforcement": "error"
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: Errors MUST be logged with full context and stack traces."
+        }
+      }
     },
     {
       "id": "logging.cli_command_output",
       "category": "logging",
-      "statement": "CLI commands MUST separate command output from operational logging.",
+      "rationale": "CLI commands have a contract: they must be able to emit machine-readable results to stdout. Operational logs must remain consistent and parseable as logs. Mixing these channels breaks both.\n",
       "enforcement": "error",
-      "rationale": "CLI commands have a contract: they must be able to emit machine-readable results to stdout. Operational logs must remain consistent and parseable as logs. Mixing these channels breaks both.\n"
+      "statement": "CLI commands MUST separate command output from operational logging.",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: CLI commands MUST separate command output from operational logging."
+        }
+      }
     }
   ],
   "logging_principles": {
@@ -195,5 +241,6 @@
     "Python logging documentation: https://docs.python.org/3/library/logging.html",
     "CORE architectural principles: immutable_principles.yaml",
     "Code quality patterns: .intent/charter/patterns/"
-  ]
+  ],
+  "additionalProperties": false
 }

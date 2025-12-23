@@ -5,7 +5,7 @@ Enforces Async-Native architecture.
 Prevents usage of asyncio.run() (or equivalent aliases) in business logic
 to ensure composability and avoid manual event-loop management.
 
-Ref: .intent/charter/standards/code_standards.json
+Ref: .intent/policies/code/code_standards.json
 """
 
 from __future__ import annotations
@@ -18,7 +18,6 @@ from mind.governance.checks.rule_enforcement_check import (
     EnforcementMethod,
     RuleEnforcementCheck,
 )
-from shared.config import settings
 from shared.logger import getLogger
 from shared.models import AuditFinding, AuditSeverity
 
@@ -161,13 +160,10 @@ class AsyncSafetyCheck(RuleEnforcementCheck):
     Prevents usage of asyncio.run() (or equivalent aliases) in business logic
     to ensure composability and avoid manual event-loop management.
 
-    Ref: .intent/charter/standards/code_standards.json
+    Ref: .intent/policies/code/code_standards.json
     """
 
     policy_rule_ids: ClassVar[list[str]] = ["async.no_manual_loop_management"]
-    id: ClassVar[str] = "async.no_manual_loop_management"
-
-    policy_file: ClassVar = settings.paths.policy("code_standards")
 
     enforcement_methods: ClassVar[list[EnforcementMethod]] = [
         AsyncLoopManagementEnforcement(rule_id="async.no_manual_loop_management"),

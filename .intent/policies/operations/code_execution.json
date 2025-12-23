@@ -1,7 +1,7 @@
 {
   "id": "standard_operations_code_execution",
   "version": "2.0.0",
-  "title": "Operations Standard – Code Execution Governance",
+  "title": "Operations Standard \u2013 Code Execution Governance",
   "type": "standard_operations",
   "status": "active",
   "owners": {
@@ -19,31 +19,45 @@
     {
       "id": "agent.execution.no_unverified_code",
       "category": "code_execution",
-      "statement": "Dangerous execution primitives MUST only be used when all required protection layers are present. Partial compliance is not allowed.\n",
-      "enforcement": "error",
       "cross_reference": {
         "role": "implementation_detail",
         "related_file": ".intent/charter/standards/architecture/agent_governance.yaml",
         "related_rule_id": "agent.execution.no_unverified_code",
         "note": "Architecture standard defines governance intent; this file defines operational enforcement and trust zones."
+      },
+      "rationale": "Strengthens system governance regarding agent.execution.no_unverified_code.",
+      "enforcement": "error",
+      "statement": "Dangerous execution primitives MUST only be used when all required protection layers are present. Partial compliance is not allowed.\n",
+      "check": {
+        "engine": "ast_gate",
+        "params": {
+          "check_type": "forbidden_primitives"
+        }
       }
     },
     {
       "id": "agent.execution.require_runtime_validation",
       "category": "code_execution",
-      "statement": "When dangerous execution primitives are used, validation MUST occur at runtime before execution, not only at parse or design time.\n",
-      "enforcement": "error",
       "cross_reference": {
         "role": "implementation_detail",
         "related_file": ".intent/charter/standards/architecture/agent_governance.yaml",
         "related_rule_id": "agent.execution.require_runtime_validation",
         "note": "Architecture standard defines requirement; this file defines enforcement patterns."
+      },
+      "rationale": "Strengthens system governance regarding agent.execution.require_runtime_validation.",
+      "enforcement": "error",
+      "statement": "When dangerous execution primitives are used, validation MUST occur at runtime before execution, not only at parse or design time.\n",
+      "check": {
+        "engine": "ast_gate",
+        "params": {
+          "check_type": "forbidden_primitives"
+        }
       }
     }
   ],
   "trust_zones": {
     "system": {
-      "description": "Constitutional governance layer – highest trust",
+      "description": "Constitutional governance layer \u2013 highest trust",
       "domains": [
         "mind.governance",
         "mind.policies"
@@ -51,7 +65,7 @@
       "rationale": "Required for dynamic constitutional evaluation"
     },
     "privileged": {
-      "description": "CLI and orchestration – elevated trust",
+      "description": "CLI and orchestration \u2013 elevated trust",
       "domains": [
         "body.cli.logic",
         "body.cli.commands",
@@ -60,7 +74,7 @@
       "rationale": "Meta-programming needed for introspection and self-healing"
     },
     "application": {
-      "description": "Features and services – standard trust",
+      "description": "Features and services \u2013 standard trust",
       "domains": [
         "features",
         "services",
@@ -168,5 +182,6 @@
     "status": "active",
     "effective_date": "2025-12-18",
     "migration_notes": "Converted from legacy nested format to flat rules structure v2.0.0"
-  }
+  },
+  "additionalProperties": false
 }

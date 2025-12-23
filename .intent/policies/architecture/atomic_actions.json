@@ -1,7 +1,7 @@
 {
   "id": "standard_architecture_atomic_actions",
   "version": "1.0.0",
-  "title": "Architecture Standard – Atomic Actions",
+  "title": "Architecture Standard \u2013 Atomic Actions",
   "type": "standard_architecture",
   "status": "active",
   "owners": {
@@ -368,38 +368,75 @@
   "rules": [
     {
       "id": "atomic.action_must_return_result",
-      "statement": "Every atomic action MUST return an ActionResult",
+      "rationale": "compile-time type checking",
       "enforcement": "error",
-      "rationale": "compile-time type checking"
+      "statement": "Every atomic action MUST return an ActionResult",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: Every atomic action MUST return an ActionResult"
+        }
+      }
     },
     {
       "id": "atomic.result_must_be_structured",
-      "statement": "ActionResult.data MUST be a dictionary of typed values",
+      "rationale": "runtime validation",
       "enforcement": "error",
-      "rationale": "runtime validation"
+      "statement": "ActionResult.data MUST be a dictionary of typed values",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: ActionResult.data MUST be a dictionary of typed values"
+        }
+      }
     },
     {
       "id": "atomic.workflow_must_declare_intent",
-      "statement": "Every workflow MUST declare its goal and abort policy",
+      "rationale": "workflow registration",
       "enforcement": "error",
-      "rationale": "workflow registration"
+      "statement": "Every workflow MUST declare its goal and abort policy",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: Every workflow MUST declare its goal and abort policy"
+        }
+      }
     },
     {
       "id": "atomic.actions_compose_transitively",
-      "statement": "If A→B and B→C are valid, then A→C MUST be valid",
-      "enforcement": "warn"
+      "rationale": "Strengthens system governance regarding atomic.actions_compose_transitively.",
+      "enforcement": "warning",
+      "statement": "If A\u2192B and B\u2192C are valid, then A\u2192C MUST be valid",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: If A\u2192B and B\u2192C are valid, then A\u2192C MUST be valid"
+        }
+      }
     },
     {
       "id": "atomic.governance_never_bypassed",
-      "statement": "No action can skip constitutional validation",
+      "rationale": "architectural invariant",
       "enforcement": "error",
-      "rationale": "architectural invariant"
+      "statement": "No action can skip constitutional validation",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: No action can skip constitutional validation"
+        }
+      }
     },
     {
       "id": "atomic.action_must_be_headless",
-      "statement": "Atomic actions MUST NOT perform terminal I/O (print, Rich Console/Progress, direct writes to stdout/stderr). All UI rendering is the responsibility of the calling workflow/CLI layer, which consumes ActionResult objects.",
+      "rationale": "static analysis and linting",
       "enforcement": "error",
-      "rationale": "static analysis and linting"
+      "statement": "Atomic actions MUST NOT perform terminal I/O (print, Rich Console/Progress, direct writes to stdout/stderr). All UI rendering is the responsibility of the calling workflow/CLI layer, which consumes ActionResult objects.",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: Atomic actions MUST NOT perform terminal I/O (print, Rich Console/Progress, direct writes to stdout/stderr). All UI rendering is the responsibility of the calling workflow/CLI layer, which consumes ActionResult objects."
+        }
+      }
     }
   ],
   "future_work": {
@@ -436,5 +473,6 @@
       "908477d: Introduce CommandResult pattern",
       "Current: Implement DevSyncReporter workflow orchestration"
     ]
-  }
+  },
+  "additionalProperties": false
 }

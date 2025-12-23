@@ -1,7 +1,7 @@
 {
   "id": "standard_operations_general",
   "version": "1.0.0",
-  "title": "Operations Standard – General Operational Rules",
+  "title": "Operations Standard \u2013 General Operational Rules",
   "type": "standard_operations",
   "status": "active",
   "owners": {
@@ -19,103 +19,222 @@
   "rules": [
     {
       "id": "intent.schema_compliance",
-      "statement": "All intent crates MUST pass schema validation against the intent crate schema.",
+      "scope": "intent_crates.validation",
+      "rationale": "Strengthens system governance regarding intent.schema_compliance.",
       "enforcement": "error",
-      "scope": "intent_crates.validation"
+      "statement": "All intent crates MUST pass schema validation against the intent crate schema.",
+      "check": {
+        "engine": "workflow_gate",
+        "params": {
+          "check_type": "test_verification"
+        }
+      }
     },
     {
       "id": "intent.canary_required",
-      "statement": "All intent crates MUST pass a canary audit in an isolated environment before application.",
+      "scope": "intent_crates.lifecycle",
+      "rationale": "Strengthens system governance regarding intent.canary_required.",
       "enforcement": "error",
-      "scope": "intent_crates.lifecycle"
+      "statement": "All intent crates MUST pass a canary audit in an isolated environment before application.",
+      "check": {
+        "engine": "workflow_gate",
+        "params": {
+          "check_type": "test_verification"
+        }
+      }
     },
     {
       "id": "intent.immutable_history",
-      "statement": "Processed intent crates MUST be moved to accepted or rejected and MUST NOT be modified in place.",
+      "scope": "intent_crates.lifecycle",
+      "rationale": "Strengthens system governance regarding intent.immutable_history.",
       "enforcement": "error",
-      "scope": "intent_crates.lifecycle"
+      "statement": "Processed intent crates MUST be moved to accepted or rejected and MUST NOT be modified in place.",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: Processed intent crates MUST be moved to accepted or rejected and MUST NOT be modified in place."
+        }
+      }
     },
     {
       "id": "integration.assign_ids_required",
-      "statement": "Stable UUIDs MUST be assigned to all new public symbols before integration.",
+      "command": "core-admin fix ids --write",
+      "rationale": "Strengthens system governance regarding integration.assign_ids_required.",
       "enforcement": "error",
-      "command": "core-admin fix ids --write"
+      "statement": "Stable UUIDs MUST be assigned to all new public symbols before integration.",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: Stable UUIDs MUST be assigned to all new public symbols before integration."
+        }
+      }
     },
     {
       "id": "integration.duplicate_ids_resolved",
-      "statement": "Duplicate '# ID:' tags MUST be resolved before integration.",
+      "command": "core-admin fix duplicate-ids --write",
+      "rationale": "Strengthens system governance regarding integration.duplicate_ids_resolved.",
       "enforcement": "error",
-      "command": "core-admin fix duplicate-ids --write"
+      "statement": "Duplicate '# ID:' tags MUST be resolved before integration.",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: Duplicate '# ID:' tags MUST be resolved before integration."
+        }
+      }
     },
     {
       "id": "integration.knowledge_sync_required",
-      "statement": "Codebase state MUST be synchronized with the database SSOT before integration.",
+      "command": "core-admin manage database sync-knowledge --write",
+      "rationale": "Strengthens system governance regarding integration.knowledge_sync_required.",
       "enforcement": "error",
-      "command": "core-admin manage database sync-knowledge --write"
+      "statement": "Codebase state MUST be synchronized with the database SSOT before integration.",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: Codebase state MUST be synchronized with the database SSOT before integration."
+        }
+      }
     },
     {
       "id": "integration.tests_must_pass",
-      "statement": "Full test suite MUST pass before integration.",
+      "command": "core-admin check tests",
+      "rationale": "Strengthens system governance regarding integration.tests_must_pass.",
       "enforcement": "error",
-      "command": "core-admin check tests"
+      "statement": "Full test suite MUST pass before integration.",
+      "check": {
+        "engine": "workflow_gate",
+        "params": {
+          "check_type": "test_verification"
+        }
+      }
     },
     {
       "id": "integration.coverage_minimum",
-      "statement": "Test coverage MUST meet or exceed the constitutional minimum (75%).",
+      "command": "core-admin coverage check",
+      "rationale": "Strengthens system governance regarding integration.coverage_minimum.",
       "enforcement": "error",
-      "command": "core-admin coverage check"
+      "statement": "Test coverage MUST meet or exceed the constitutional minimum (75%).",
+      "check": {
+        "engine": "workflow_gate",
+        "params": {
+          "check_type": "test_verification"
+        }
+      }
     },
     {
       "id": "integration.audit_required",
-      "statement": "Full constitutional audit MUST pass before integration.",
+      "command": "core-admin check audit",
+      "rationale": "Strengthens system governance regarding integration.audit_required.",
       "enforcement": "error",
-      "command": "core-admin check audit"
+      "statement": "Full constitutional audit MUST pass before integration.",
+      "check": {
+        "engine": "workflow_gate",
+        "params": {
+          "check_type": "test_verification"
+        }
+      }
     },
     {
       "id": "canary.abort_on_audit_error",
-      "statement": "Canary deployment MUST abort if any audit error is detected.",
+      "metric": "audit.errors == 0",
+      "rationale": "Strengthens system governance regarding canary.abort_on_audit_error.",
       "enforcement": "error",
-      "metric": "audit.errors == 0"
+      "statement": "Canary deployment MUST abort if any audit error is detected.",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: Canary deployment MUST abort if any audit error is detected."
+        }
+      }
     },
     {
       "id": "canary.abort_on_test_failure",
-      "statement": "Canary deployment MUST abort if any tests fail.",
+      "metric": "tests.failed == 0",
+      "rationale": "Strengthens system governance regarding canary.abort_on_test_failure.",
       "enforcement": "error",
-      "metric": "tests.failed == 0"
+      "statement": "Canary deployment MUST abort if any tests fail.",
+      "check": {
+        "engine": "workflow_gate",
+        "params": {
+          "check_type": "test_verification"
+        }
+      }
     },
     {
       "id": "dev_fastpath.no_intent_changes",
-      "statement": "Developer fastpath MUST NOT allow changes to intent or governance paths.",
-      "enforcement": "error",
       "scope": [
         ".intent/**",
         "src/system/governance/**"
-      ]
+      ],
+      "rationale": "Strengthens system governance regarding dev_fastpath.no_intent_changes.",
+      "enforcement": "error",
+      "statement": "Developer fastpath MUST NOT allow changes to intent or governance paths.",
+      "check": {
+        "engine": "glob_gate",
+        "params": {
+          "check_type": "path_restriction"
+        }
+      }
     },
     {
       "id": "ir.triage_required",
+      "rationale": "Strengthens system governance regarding ir.triage_required.",
+      "enforcement": "error",
       "statement": "All incidents MUST be triaged within 24 hours with severity and owner assigned.",
-      "enforcement": "error"
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: All incidents MUST be triaged within 24 hours with severity and owner assigned."
+        }
+      }
     },
     {
       "id": "ir.timeline_required",
+      "rationale": "Strengthens system governance regarding ir.timeline_required.",
+      "enforcement": "warning",
       "statement": "A minimal incident timeline MUST be recorded.",
-      "enforcement": "warn"
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: A minimal incident timeline MUST be recorded."
+        }
+      }
     },
     {
       "id": "ir.notifications_required",
+      "rationale": "Strengthens system governance regarding ir.notifications_required.",
+      "enforcement": "warning",
       "statement": "Maintainers MUST be notified for high and critical incidents.",
-      "enforcement": "warn"
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: Maintainers MUST be notified for high and critical incidents."
+        }
+      }
     },
     {
       "id": "ir.postmortem_required",
+      "rationale": "Strengthens system governance regarding ir.postmortem_required.",
+      "enforcement": "warning",
       "statement": "High and critical incidents REQUIRE a short postmortem with actions and owners.",
-      "enforcement": "warn"
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: High and critical incidents REQUIRE a short postmortem with actions and owners."
+        }
+      }
     },
     {
       "id": "operations.runtime.env_vars_defined",
+      "rationale": "Strengthens system governance regarding operations.runtime.env_vars_defined.",
+      "enforcement": "error",
       "statement": "All required runtime environment variables MUST be set.",
-      "enforcement": "error"
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: All required runtime environment variables MUST be set."
+        }
+      }
     }
   ],
   "intent_crates": {
@@ -202,5 +321,6 @@
       "high",
       "critical"
     ]
-  }
+  },
+  "additionalProperties": false
 }

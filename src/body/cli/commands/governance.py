@@ -2,6 +2,12 @@
 """
 Constitutional governance commands - enforcement coverage and verification.
 
+Coverage model (robust):
+- enforced: rule was executed in the latest audit evidence (executed_rules preferred; fallback: executed_checks)
+- implementable: rule declares a check engine and (if applicable) a check_type
+  that the engine can execute, but the latest audit did not execute it
+- declared_only: rule exists but is not implementable (unknown engine/check_type)
+
 Option A (SSOT, recommended):
 - Coverage uses AuditorContext's loaded governance resources as the single source of truth.
 - This avoids brittle filesystem scanning logic and automatically tracks PathResolver evolution.
@@ -23,6 +29,7 @@ import typer
 from rich.console import Console
 
 from mind.governance.audit_context import AuditorContext
+from mind.logic.engines.ast_gate import ASTGateEngine
 from shared.cli_utils import core_command
 from shared.config import settings
 
@@ -41,14 +48,12 @@ def _extract_rules_from_policy(content: dict[str, Any]) -> list[dict[str, Any]]:
     """
     rules: list[dict[str, Any]] = []
 
-    # Primary format: flat rules list
     flat = content.get("rules")
     if isinstance(flat, list):
         for item in flat:
             if isinstance(item, dict):
                 rules.append(item)
 
-    # Legacy sections: lists of dict rules
     legacy_sections = [
         "agent_rules",
         "safety_rules",
@@ -69,7 +74,6 @@ def _extract_rules_from_policy(content: dict[str, Any]) -> list[dict[str, Any]]:
                 if isinstance(item, dict):
                     rules.append(item)
 
-    # Special legacy: naming_conventions as nested dict-of-lists
     naming = content.get("naming_conventions")
     if isinstance(naming, dict):
         for _category_name, category_rules in naming.items():
@@ -82,11 +86,7 @@ def _extract_rules_from_policy(content: dict[str, Any]) -> list[dict[str, Any]]:
 
 
 def _detect_policy_format(content: dict[str, Any]) -> str:
-    """
-    Detect whether a policy uses flat or nested format.
-
-    Returns: "flat", "nested", or "unknown"
-    """
+    """Detect whether a policy uses flat or nested format."""
     rules_list = content.get("rules")
     if isinstance(rules_list, list) and rules_list:
         nested_indicators = {
@@ -120,6 +120,7 @@ def _detect_policy_format(content: dict[str, Any]) -> str:
             "severity",
             "title",
             "description",
+            "check",
         }
 
         for i in range(sample_size):
@@ -153,12 +154,7 @@ def _detect_policy_format(content: dict[str, Any]) -> str:
 
 
 def _canonical_policy_key(key: str, content: dict[str, Any]) -> str:
-    """
-    Best-effort canonical identifier for a policy/standard resource for reporting.
-
-    AuditorContext may not currently attach a source path into the dict; if it does
-    in the future (recommended), we will prefer it automatically.
-    """
+    """Best-effort canonical identifier for a policy/standard resource for reporting."""
     source = (
         content.get("_source_path")
         or content.get("source_path")
@@ -167,22 +163,17 @@ def _canonical_policy_key(key: str, content: dict[str, Any]) -> str:
     if isinstance(source, str) and source.strip():
         return source
 
-    # If the dict itself declares an id, use it as the best stable key.
     declared_id = content.get("id") or content.get("policy_id")
     if isinstance(declared_id, str) and declared_id.strip():
         return declared_id
 
-    # Fall back to the key used by AuditorContext (may be stem or id).
     return key
 
 
 def _dedupe_loaded_resources(
     resources: dict[str, Any],
 ) -> list[tuple[str, dict[str, Any]]]:
-    """
-    AuditorContext indexes the same dict under multiple keys.
-    Deduplicate by object identity (same dict instance).
-    """
+    """Deduplicate AuditorContext resources by object identity."""
     seen: set[int] = set()
     unique: list[tuple[str, dict[str, Any]]] = []
 
@@ -195,17 +186,102 @@ def _dedupe_loaded_resources(
         seen.add(oid)
         unique.append((key, value))
 
-    # Stable ordering (use canonical key where possible)
     unique.sort(key=lambda kv: _canonical_policy_key(kv[0], kv[1]))
     return unique
 
 
-def _generate_coverage_map(repo_root: Path) -> dict[str, Any]:
-    """
-    Generate enforcement coverage map from audit evidence.
+def _rule_check_engine(rule: dict[str, Any]) -> str | None:
+    check = rule.get("check")
+    if not isinstance(check, dict):
+        return None
+    engine = check.get("engine")
+    return engine if isinstance(engine, str) and engine.strip() else None
 
-    SSOT: AuditorContext-loaded governance resources.
+
+def _rule_check_params(rule: dict[str, Any]) -> dict[str, Any]:
+    check = rule.get("check")
+    if not isinstance(check, dict):
+        return {}
+    params = check.get("params")
+    return params if isinstance(params, dict) else {}
+
+
+def _supported_ast_gate_check_types() -> set[str]:
     """
+    Best-effort discovery of ASTGate check types.
+
+    Robustness rule:
+    - Coverage must not hard-fail if ASTGateEngine does not expose a capability list.
+    """
+    candidate = getattr(ASTGateEngine, "supported_check_types", None)
+    if callable(candidate):
+        try:
+            result = candidate()
+            if isinstance(result, (set, list, tuple)):
+                return {str(x) for x in result if isinstance(x, str) and x.strip()}
+        except Exception:
+            return set()
+
+    # If ASTGate doesn't expose this, treat only 'None' check_type as implementable.
+    return set()
+
+
+def _is_rule_implementable(rule: dict[str, Any]) -> bool:
+    """
+    Determine whether a rule is implementable given current runtime engines.
+
+    This does NOT assert the rule was executed; it only asserts the system can execute it.
+    """
+    engine = _rule_check_engine(rule)
+    if not engine:
+        return False
+
+    params = _rule_check_params(rule)
+
+    if engine == "ast_gate":
+        check_type = params.get("check_type")
+        if check_type is None:
+            # Backward-compatible ast_gate mode: forbidden_calls/decorators checks
+            return True
+
+        if not isinstance(check_type, str) or not check_type.strip():
+            return False
+
+        supported = _supported_ast_gate_check_types()
+        # If engine cannot advertise supported types, do not claim implementable.
+        if not supported:
+            return False
+        return check_type in supported
+
+    if engine == "llm_gate":
+        # Implementable by definition if llm_gate exists in the runtime.
+        # Whether it is *enabled* belongs to runtime gating and is not a coverage concern.
+        return True
+
+    return False
+
+
+def _load_executed_ids(evidence: dict[str, Any]) -> set[str]:
+    """
+    Load executed IDs from evidence in a forward-compatible way.
+
+    Rule:
+    - Prefer executed_rules (authoritative rule-level coverage)
+    - Fallback to executed_checks (legacy)
+    """
+    executed = evidence.get("executed_rules")
+    if isinstance(executed, list):
+        return {x for x in executed if isinstance(x, str) and x.strip()}
+
+    executed = evidence.get("executed_checks", [])
+    if isinstance(executed, list):
+        return {x for x in executed if isinstance(x, str) and x.strip()}
+
+    return set()
+
+
+def _generate_coverage_map(repo_root: Path) -> dict[str, Any]:
+    """Generate enforcement coverage map from audit evidence (SSOT = AuditorContext)."""
     evidence_file = repo_root / "reports/audit/latest_audit.json"
     if not evidence_file.exists():
         raise FileNotFoundError(
@@ -215,12 +291,10 @@ def _generate_coverage_map(repo_root: Path) -> dict[str, Any]:
     with evidence_file.open(encoding="utf-8") as f:
         evidence = json.load(f)
 
-    executed_checks = set(evidence.get("executed_checks", []))
+    executed_ids = _load_executed_ids(evidence)
 
-    # Load governance resources via AuditorContext (SSOT interface)
     auditor_context = AuditorContext(repo_root)
     resources = auditor_context.policies or {}
-
     unique_docs = _dedupe_loaded_resources(resources)
 
     policy_metadata: dict[str, dict[str, Any]] = {}
@@ -242,13 +316,10 @@ def _generate_coverage_map(repo_root: Path) -> dict[str, Any]:
 
         for rule in _extract_rules_from_policy(content):
             rule_id = rule.get("id")
-            if not rule_id:
+            if not isinstance(rule_id, str) or not rule_id.strip():
                 continue
 
-            # Skip document-level metadata IDs if you still have any such convention
-            if isinstance(rule_id, str) and rule_id.startswith(
-                ("standard_", "schema_", "constitution_", "global_")
-            ):
+            if rule_id.startswith(("standard_", "schema_", "constitution_", "global_")):
                 continue
 
             severity = rule.get("severity") or rule.get("enforcement") or ""
@@ -259,6 +330,14 @@ def _generate_coverage_map(repo_root: Path) -> dict[str, Any]:
                 or ""
             )
 
+            engine = _rule_check_engine(rule)
+            params = _rule_check_params(rule)
+            check_type = (
+                params.get("check_type")
+                if isinstance(params.get("check_type"), str)
+                else None
+            )
+
             all_rules.append(
                 {
                     "rule_id": rule_id,
@@ -266,24 +345,36 @@ def _generate_coverage_map(repo_root: Path) -> dict[str, Any]:
                     "severity": str(severity).lower(),
                     "policy": policy_key,
                     "category": rule.get("category", "uncategorized"),
+                    "check_engine": engine,
+                    "check_type": check_type,
+                    "implementable": _is_rule_implementable(rule),
                 }
             )
 
     entries: list[dict[str, Any]] = []
     for rule in all_rules:
         rid = rule["rule_id"]
-        status = "enforced" if rid in executed_checks else "declared_only"
+        in_exec = rid in executed_ids
+
+        if in_exec:
+            status = "enforced"
+        elif rule.get("implementable", False):
+            status = "implementable"
+        else:
+            status = "declared_only"
+
         entries.append(
             {
                 "rule": rule,
                 "coverage_status": status,
-                "in_executed_checks": rid in executed_checks,
+                "in_executed_ids": in_exec,
             }
         )
 
     total = len(entries)
     enforced = sum(1 for e in entries if e["coverage_status"] == "enforced")
-    declared = total - enforced
+    implementable = sum(1 for e in entries if e["coverage_status"] == "implementable")
+    declared = sum(1 for e in entries if e["coverage_status"] == "declared_only")
 
     flat_policies = sum(
         1 for m in policy_metadata.values() if m.get("format") == "flat"
@@ -296,7 +387,12 @@ def _generate_coverage_map(repo_root: Path) -> dict[str, Any]:
         "metadata": {
             "generated_at_utc": datetime.now(UTC).isoformat(),
             "evidence_file": str(evidence_file.relative_to(repo_root)),
-            "total_executed_checks": len(executed_checks),
+            "evidence_key_used": (
+                "executed_rules"
+                if isinstance(evidence.get("executed_rules"), list)
+                else "executed_checks"
+            ),
+            "total_executed_ids": len(executed_ids),
             "total_policy_files": len(policy_metadata),
             "flat_format_policies": flat_policies,
             "nested_format_policies": nested_policies,
@@ -304,22 +400,21 @@ def _generate_coverage_map(repo_root: Path) -> dict[str, Any]:
         "summary": {
             "rules_total": total,
             "rules_enforced": enforced,
-            "rules_partially_enforced": 0,
+            "rules_implementable": implementable,
             "rules_declared_only": declared,
-            "enforcement_rate": round(100 * enforced / total, 1) if total > 0 else 0,
+            "execution_rate": round(100 * enforced / total, 1) if total > 0 else 0,
+            "implementable_rate": (
+                round(100 * (enforced + implementable) / total, 1) if total > 0 else 0
+            ),
         },
         "entries": entries,
-        "executed_checks_list": sorted(executed_checks),
+        "executed_ids_list": sorted(executed_ids),
         "policy_metadata": policy_metadata,
     }
 
 
 def _ensure_coverage_map(repo_root: Path) -> Path:
-    """
-    Ensure coverage map exists and is up-to-date.
-
-    Returns path to coverage map file.
-    """
+    """Ensure coverage map exists and is up-to-date."""
     audit_evidence = repo_root / "reports/audit/latest_audit.json"
     coverage_map_path = repo_root / "reports/governance/enforcement_coverage_map.json"
 
@@ -339,7 +434,6 @@ def _ensure_coverage_map(repo_root: Path) -> Path:
 
     if needs_regeneration:
         console.print(f"[yellow]⚠ {reason}, regenerating...[/yellow]")
-
         coverage_data = _generate_coverage_map(repo_root)
 
         coverage_map_path.parent.mkdir(parents=True, exist_ok=True)
@@ -379,7 +473,7 @@ def enforcement_coverage(
     ),
 ) -> None:
     """
-    Show which constitutional rules are enforced vs declared.
+    Show which constitutional rules are enforced vs implementable vs declared-only.
 
     Auto-regenerates coverage map if audit is newer.
     Source of truth: AuditorContext-loaded governance resources.
@@ -398,10 +492,11 @@ def enforcement_coverage(
             console.print_json(data=coverage_data)
         return
 
-    if format == "hierarchical":
-        content = _render_hierarchical(coverage_data)
-    else:
-        content = _render_summary(coverage_data)
+    content = (
+        _render_hierarchical(coverage_data)
+        if format == "hierarchical"
+        else _render_summary(coverage_data)
+    )
 
     if output:
         output.write_text(content, encoding="utf-8")
@@ -411,12 +506,12 @@ def enforcement_coverage(
 
 
 def _render_summary(coverage_data: dict[str, Any]) -> str:
-    """Render flat summary format."""
     entries = coverage_data.get("entries", [])
     summary = coverage_data.get("summary", {})
     metadata = coverage_data.get("metadata", {})
 
     enforced = [e for e in entries if e.get("coverage_status") == "enforced"]
+    implementable = [e for e in entries if e.get("coverage_status") == "implementable"]
     declared = [e for e in entries if e.get("coverage_status") == "declared_only"]
 
     lines: list[str] = []
@@ -432,9 +527,19 @@ def _render_summary(coverage_data: dict[str, Any]) -> str:
         f"  - Legacy format (nested): {metadata.get('nested_format_policies', 0)}"
     )
     lines.append(f"- Total rules: {summary.get('rules_total', 0)}")
-    lines.append(f"- Enforced (evidence-backed): {summary.get('rules_enforced', 0)}")
-    lines.append(f"- Declared only: {summary.get('rules_declared_only', 0)}")
-    lines.append(f"- Enforcement rate: {summary.get('enforcement_rate', 0)}%")
+    lines.append(f"- Enforced (executed): {summary.get('rules_enforced', 0)}")
+    lines.append(
+        f"- Implementable (not executed): {summary.get('rules_implementable', 0)}"
+    )
+    lines.append(
+        f"- Declared only (not implementable): {summary.get('rules_declared_only', 0)}"
+    )
+    lines.append(f"- Execution rate: {summary.get('execution_rate', 0)}%")
+    lines.append(f"- Implementable rate: {summary.get('implementable_rate', 0)}%")
+    lines.append("")
+    lines.append(
+        f"**Evidence key used**: `{metadata.get('evidence_key_used', 'unknown')}`"
+    )
     lines.append("")
 
     lines.append("## Enforced rules")
@@ -445,6 +550,23 @@ def _render_summary(coverage_data: dict[str, Any]) -> str:
         for e in sorted(enforced, key=lambda x: x.get("rule", {}).get("rule_id", "")):
             rule = e.get("rule", {})
             lines.append(f"- `{rule.get('rule_id')}` — {rule.get('policy')}")
+    lines.append("")
+
+    lines.append("## Implementable but not executed")
+    lines.append("")
+    if not implementable:
+        lines.append("_None._")
+    else:
+        for e in sorted(
+            implementable, key=lambda x: x.get("rule", {}).get("rule_id", "")
+        ):
+            rule = e.get("rule", {})
+            engine = rule.get("check_engine") or "unknown"
+            ctype = rule.get("check_type")
+            ctype_part = f", check_type={ctype}" if ctype else ""
+            lines.append(
+                f"- `{rule.get('rule_id')}` — {rule.get('policy')} (engine={engine}{ctype_part})"
+            )
     lines.append("")
 
     lines.append("## Top gaps (highest severity first)")
@@ -470,7 +592,6 @@ def _render_summary(coverage_data: dict[str, Any]) -> str:
 
 
 def _render_hierarchical(coverage_data: dict[str, Any]) -> str:
-    """Render hierarchical format grouped by policy."""
     entries = coverage_data.get("entries", [])
     metadata = coverage_data.get("metadata", {})
     policy_metadata = coverage_data.get("policy_metadata", {})
@@ -481,7 +602,6 @@ def _render_hierarchical(coverage_data: dict[str, Any]) -> str:
         policy = rule.get("policy", "unknown")
         by_policy[str(policy)].append(entry)
 
-    # Include policies with no rules (metadata-only docs)
     for policy_path in policy_metadata.keys():
         by_policy.setdefault(policy_path, [])
 
@@ -493,15 +613,18 @@ def _render_hierarchical(coverage_data: dict[str, Any]) -> str:
     )
     lines.append("")
     lines.append(f"**Generated**: {metadata.get('generated_at_utc', 'unknown')}")
+    lines.append(
+        f"**Evidence key used**: `{metadata.get('evidence_key_used', 'unknown')}`"
+    )
     lines.append("")
 
     total_policies = len(by_policy)
-    fully_enforced = sum(
+    fully_executed = sum(
         1
         for _p, r in by_policy.items()
         if r and all(e.get("coverage_status") == "enforced" for e in r)
     )
-    partially_enforced = sum(
+    partially_executed = sum(
         1
         for _p, r in by_policy.items()
         if r
@@ -518,42 +641,39 @@ def _render_hierarchical(coverage_data: dict[str, Any]) -> str:
     lines.append(
         f"  - Legacy format (nested): {metadata.get('nested_format_policies', 0)}"
     )
+    lines.append(f"- **Fully executed**: {fully_executed}")
+    lines.append(f"- **Partially executed**: {partially_executed}")
     lines.append(
-        f"- **Fully enforced**: {fully_enforced} ({100 * fully_enforced // max(total_policies, 1)}%)"
-    )
-    lines.append(f"- **Partially enforced**: {partially_enforced}")
-    lines.append(
-        f"- **Not enforced**: {total_policies - fully_enforced - partially_enforced}"
+        f"- **Not executed**: {total_policies - fully_executed - partially_executed}"
     )
     lines.append("")
 
     policy_stats: list[tuple[str, list[dict[str, Any]], int, int, float, str]] = []
     for policy, rules in by_policy.items():
         total = len(rules)
-        enforced_count = sum(1 for r in rules if r.get("coverage_status") == "enforced")
-        rate = enforced_count / total if total > 0 else 0.0
+        executed_count = sum(1 for r in rules if r.get("coverage_status") == "enforced")
+        rate = executed_count / total if total > 0 else 0.0
         policy_format = policy_metadata.get(policy, {}).get("format", "unknown")
-        policy_stats.append((policy, rules, total, enforced_count, rate, policy_format))
+        policy_stats.append((policy, rules, total, executed_count, rate, policy_format))
 
-    # Gaps first
     policy_stats.sort(key=lambda x: (x[4], x[0]))
 
-    lines.append("## Policies by Enforcement Rate (Gaps First)")
+    lines.append("## Policies by Execution Rate (Gaps First)")
     lines.append("")
 
-    for policy, rules, total, enforced_count, rate, policy_format in policy_stats:
+    for policy, rules, total, executed_count, rate, policy_format in policy_stats:
         policy_short = "/".join(policy.split("/")[-3:]) if "/" in policy else policy
         status_icon = (
             "✅"
-            if total > 0 and enforced_count == total
-            else ("⚠️" if enforced_count > 0 else "❌")
+            if total > 0 and executed_count == total
+            else ("⚠️" if executed_count > 0 else "❌")
         )
         format_badge = "🆕" if policy_format == "flat" else ""
 
         lines.append(f"### {status_icon} {policy_short} {format_badge}")
         lines.append(f"**Policy**: `{policy}`  ")
         lines.append(
-            f"**Enforcement**: {enforced_count}/{total} rules ({int(100 * rate)}%)"
+            f"**Executed**: {executed_count}/{total} rules ({int(100 * rate)}%)"
         )
         if policy_format == "flat":
             lines.append("**Format**: New (flat rules array)")
@@ -584,12 +704,18 @@ def _render_hierarchical(coverage_data: dict[str, Any]) -> str:
             status = rule_entry.get("coverage_status")
             severity = rule.get("severity", "")
 
-            icon = "✅" if status == "enforced" else "❌"
-            status_text = (
-                "ENFORCED"
-                if status == "enforced"
-                else (f"DECLARED ({severity})" if severity else "DECLARED")
-            )
+            if status == "enforced":
+                icon = "✅"
+                status_text = "EXECUTED"
+            elif status == "implementable":
+                icon = "🟦"
+                status_text = (
+                    f"IMPLEMENTABLE ({severity})" if severity else "IMPLEMENTABLE"
+                )
+            else:
+                icon = "❌"
+                status_text = f"DECLARED ({severity})" if severity else "DECLARED"
+
             lines.append(f"- {icon} **`{rule_id}`**: {statement} _{status_text}_")
 
         if len(rules_sorted) > 20:
@@ -599,8 +725,13 @@ def _render_hierarchical(coverage_data: dict[str, Any]) -> str:
     lines.append("---")
     lines.append("## Legend")
     lines.append("")
-    lines.append("- ✅ **ENFORCED**: Active check with audit evidence")
-    lines.append("- ❌ **DECLARED**: Written but not checked")
+    lines.append("- ✅ **EXECUTED**: Rule was executed in latest audit evidence")
+    lines.append(
+        "- 🟦 **IMPLEMENTABLE**: Engine/check_type exists but audit did not execute it"
+    )
+    lines.append(
+        "- ❌ **DECLARED**: Rule exists but is not implementable by current engines"
+    )
     lines.append("- 🆕 **New format**: Using flat `rules` array")
     lines.append("")
 

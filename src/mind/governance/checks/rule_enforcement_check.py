@@ -6,20 +6,19 @@ Abstract template for constitutional rule enforcement checks.
 Provides a standardized pattern for verifying that constitutional rules
 are actually enforced in the codebase, not just declared in policy files.
 
-Option A (SSOT): Uses AuditorContext.policies as the canonical source.
-
-Constitutional rule:
+SSOT rule:
 - This template MUST NOT load policy files from disk.
 - Policy resolution MUST go through AuditorContext's loaded resources.
 
-Rationale:
-- Prevents path-churn during .intent layout changes
-- Eliminates duplicate “load JSON/YAML” logic across checks
-- Ensures all checks observe the same SSOT snapshot the Auditor produced
+Migration note (Option B):
+- Checks MAY omit policy_file and bind directly via policy_rule_ids.
+  This supports incremental migration away from path-based policy resolution.
 """
 
 from __future__ import annotations
 
+import asyncio
+import inspect
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any, ClassVar
@@ -50,13 +49,13 @@ class EnforcementMethod(ABC):
         self,
         context: AuditorContext,
         rule_data: dict[str, Any],
-        **kwargs,
-    ) -> list[AuditFinding]:
+        **kwargs: Any,
+    ) -> list[AuditFinding] | Any:
         """
         Verify that enforcement exists for this rule.
 
-        **kwargs is intentionally supported to allow checks to pass runtime parameters
-        (e.g., threshold, scope, file filters) without breaking the template contract.
+        Implementations MAY be async (return awaitable).
+        The template will normalize outputs to list[AuditFinding].
         """
         raise NotImplementedError
 
@@ -65,14 +64,15 @@ class EnforcementMethod(ABC):
         message: str,
         file_path: str | None = None,
         line_number: int | None = None,
+        details: dict[str, Any] | None = None,
     ) -> AuditFinding:
-        """Helper to create standardized findings."""
         return AuditFinding(
             check_id=self.rule_id,
             severity=self.severity,
             message=message,
             file_path=file_path,
             line_number=line_number,
+            details=details or {},
         )
 
 
@@ -81,12 +81,12 @@ class RuleEnforcementCheck(BaseCheck, ABC):
     """
     Abstract template for verifying that constitutional rules are enforced.
 
-    Subclasses declare:
-    - policy_file: Path-like hint used ONLY to derive SSOT lookup keys.
-                  Do NOT assume it exists on disk.
-    - enforcement_methods: List of verification strategies
+    Subclasses declare either:
+    - policy_file: Path-like hint used ONLY to derive SSOT lookup keys
+      (do NOT assume it exists on disk), OR
+    - policy_rule_ids: explicit rule IDs this check enforces (migration-friendly).
 
-    SSOT (required): policies are resolved via AuditorContext.policies.
+    SSOT: policies are resolved via AuditorContext.policies.
     """
 
     policy_file: ClassVar[Path | None] = None
@@ -95,7 +95,6 @@ class RuleEnforcementCheck(BaseCheck, ABC):
     @property
     @abstractmethod
     def _is_concrete_check(self) -> bool:
-        """Subclasses must override this to return True."""
         raise NotImplementedError
 
     def __init__(self, context: AuditorContext):
@@ -104,55 +103,60 @@ class RuleEnforcementCheck(BaseCheck, ABC):
         if self.__class__ is RuleEnforcementCheck:
             raise TypeError("RuleEnforcementCheck is abstract.")
 
-        if self.__class__.policy_file is None:
-            raise ValueError(f"{self.__class__.__name__} must set policy_file")
-
         if not self.__class__.enforcement_methods:
             raise ValueError(f"{self.__class__.__name__} must set enforcement_methods")
 
-        # Auto-populate policy_rule_ids for coverage tracking.
-        # Note: BaseCheck __init__ runs before this and may warn; that's acceptable.
-        if not self.policy_rule_ids:
+        # Option B:
+        # Allow policy_file to be absent if policy_rule_ids is defined.
+        has_policy_file = self.__class__.policy_file is not None
+        has_rule_ids = bool(getattr(self, "policy_rule_ids", None))
+
+        if not has_policy_file and not has_rule_ids:
+            raise ValueError(
+                f"{self.__class__.__name__} must set policy_file OR policy_rule_ids"
+            )
+
+        # Auto-populate policy_rule_ids from enforcement methods for coverage tracking.
+        if not getattr(self, "policy_rule_ids", None):
             self.policy_rule_ids = [
                 method.rule_id for method in self.__class__.enforcement_methods
             ]
 
-    # ID: a19b69aa-b618-4f69-af0e-014bc8cefde0
-    def execute(self, **kwargs) -> list[AuditFinding]:
-        """
-        Template method: orchestrates SSOT-based verification.
+    @staticmethod
+    def _run_maybe_awaitable(value: Any) -> Any:
+        if not inspect.isawaitable(value):
+            return value
 
-        Contract:
-        - Never reads policy files from disk
-        - Uses the AuditorContext snapshot only
-        - Accepts **kwargs for runtime parametrization (e.g., threshold)
-        """
+        try:
+            asyncio.get_running_loop()
+        except RuntimeError:
+            return asyncio.run(value)
+
+        raise RuntimeError(
+            "RuleEnforcementCheck.execute encountered an awaitable while an event loop "
+            "is running. Caller must await instead of calling synchronously."
+        )
+
+    # ID: a19b69aa-b618-4f69-af0e-014bc8cefde0
+    def execute(self, **kwargs: Any) -> list[AuditFinding]:
         findings: list[AuditFinding] = []
 
         policy_data = self._resolve_policy_from_ssot()
         if policy_data is None:
-            available: list[str] = []
-            paths = getattr(self.context, "paths", None)
-            if paths is not None and hasattr(paths, "list_policies"):
-                try:
-                    available = list(paths.list_policies())
-                except Exception:
-                    available = []
-
             findings.append(
                 AuditFinding(
-                    check_id="policy.file.missing",
+                    check_id="policy.missing",
                     severity=AuditSeverity.ERROR,
                     message=(
                         "Policy missing in SSOT (AuditorContext.policies). "
-                        f"Hint: {self.__class__.policy_file}. "
                         "This check is SSOT-only; filesystem fallbacks are forbidden."
                     ),
                     file_path="SSOT:policies",
-                    context={
+                    details={
                         "lookup_hints": self._policy_lookup_hints(),
-                        "available_policy_keys": available[:40],
-                        "available_policy_key_count": len(available),
+                        "policy_rule_ids": list(
+                            getattr(self, "policy_rule_ids", []) or []
+                        ),
                     },
                 )
             )
@@ -183,17 +187,26 @@ class RuleEnforcementCheck(BaseCheck, ABC):
                     AuditFinding(
                         check_id=method.rule_id,
                         severity=AuditSeverity.ERROR,
-                        message=(
-                            f"Rule '{method.rule_id}' not declared in policy "
-                            f"(lookup hints: {self._policy_lookup_hints()})"
-                        ),
+                        message=f"Rule '{method.rule_id}' not declared in policy.",
                         file_path=self._policy_identity_for_evidence(policy_data),
+                        details={"lookup_hints": self._policy_lookup_hints()},
                     )
                 )
                 continue
 
             try:
-                findings.extend(method.verify(self.context, rule_data, **kwargs))
+                out = method.verify(self.context, rule_data, **kwargs)
+                out = self._run_maybe_awaitable(out)
+
+                if out is None:
+                    continue
+                if not isinstance(out, list):
+                    raise TypeError(
+                        f"EnforcementMethod.verify must return list[AuditFinding], got {type(out)}"
+                    )
+
+                findings.extend(out)
+
             except Exception as exc:
                 logger.error(
                     "Enforcement failed for %s: %s", method.rule_id, exc, exc_info=True
@@ -210,23 +223,23 @@ class RuleEnforcementCheck(BaseCheck, ABC):
         return findings
 
     def _policy_lookup_hints(self) -> list[str]:
-        """
-        Convert a legacy Path hint into likely SSOT keys.
+        # If no policy_file (Option B), the AuditorContext SSOT resolver must still work:
+        # use rule IDs as weak hints so missing-policy findings are informative.
+        policy_file = self.__class__.policy_file
+        if policy_file is None:
+            return [
+                # common canonical key shapes
+                *(
+                    f"rules/{rid}"
+                    for rid in (getattr(self, "policy_rule_ids", []) or [])[:5]
+                ),
+                "policy_file:none",
+            ]
 
-        AuditorContext indexes resources under multiple keys, including:
-        - namespaced keys: 'policies/<key>', 'standards/<key>', 'constitution/<key>'
-        - raw canonical keys: '<key>'
-        - file stem: '<stem>'
-        - internal ids: 'id', 'policy_id'
-        """
-        hint = str(self.__class__.policy_file or "")
-        hint = hint.replace("\\", "/").strip()
-
-        # Strip extension
+        hint = str(policy_file).replace("\\", "/").strip()
         if "." in hint:
             hint = hint.rsplit(".", 1)[0]
 
-        # Strip leading intent roots (canonical + legacy)
         prefixes = (
             ".intent/policies/",
             ".intent/standards/",
@@ -243,10 +256,7 @@ class RuleEnforcementCheck(BaseCheck, ABC):
                 break
 
         hint = hint.lstrip("/")
-
         stem = Path(hint).name if hint else ""
-
-        # Ordered by likelihood given your AuditorContext indexing strategy
         candidates = [
             f"policies/{hint}" if hint else "",
             hint,
@@ -263,28 +273,45 @@ class RuleEnforcementCheck(BaseCheck, ABC):
     def _resolve_policy_from_ssot(self) -> dict[str, Any] | None:
         """
         Resolve policy from AuditorContext.policies (SSOT only).
+
+        IMPORTANT:
+        - If policy_file is None (Option B), this method should still resolve by scanning
+          for policies that declare at least one of policy_rule_ids.
         """
         policies = getattr(self.context, "policies", None)
         if not isinstance(policies, dict):
             logger.warning("AuditorContext.policies is missing or invalid.")
             return None
 
-        # 1) Direct key hits via derived hints
-        for key in self._policy_lookup_hints():
-            candidate = policies.get(key)
-            if isinstance(candidate, dict):
-                return candidate
+        # 1) If we have a policy_file, use hint-based resolution.
+        if self.__class__.policy_file is not None:
+            for key in self._policy_lookup_hints():
+                candidate = policies.get(key)
+                if isinstance(candidate, dict):
+                    return candidate
 
-        # 2) Fallback: scan for a matching id/policy_id that aligns with the hint stem
-        hint_stem = Path(str(self.__class__.policy_file or "")).stem.lower()
-        if hint_stem:
-            for _k, candidate in policies.items():
+            hint_stem = Path(str(self.__class__.policy_file)).stem.lower()
+            if hint_stem:
+                for candidate in policies.values():
+                    if not isinstance(candidate, dict):
+                        continue
+                    pid = str(
+                        candidate.get("id") or candidate.get("policy_id") or ""
+                    ).lower()
+                    if pid and (pid.endswith(hint_stem) or hint_stem in pid):
+                        return candidate
+
+        # 2) Option B fallback: find a policy that contains at least one of our rule ids.
+        wanted = set(getattr(self, "policy_rule_ids", []) or [])
+        if wanted:
+            for candidate in policies.values():
                 if not isinstance(candidate, dict):
                     continue
-                pid = str(
-                    candidate.get("id") or candidate.get("policy_id") or ""
-                ).lower()
-                if pid and (pid.endswith(hint_stem) or hint_stem in pid):
-                    return candidate
+                rules = candidate.get("rules")
+                if not isinstance(rules, list):
+                    continue
+                for r in rules:
+                    if isinstance(r, dict) and r.get("id") in wanted:
+                        return candidate
 
         return None

@@ -1,0 +1,905 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "schema_id": "standard.operations.observability",
+  "version": "1.0.0",
+  "title": "Operations Standard \u2013 Observability",
+  "description": "Validates observability.yaml with constitutional rigor and structural flexibility",
+  "type": "object",
+  "required": [
+    "id",
+    "version",
+    "title",
+    "type",
+    "status",
+    "owners",
+    "review",
+    "schema_id",
+    "policy_id",
+    "purpose",
+    "philosophy",
+    "structured_logging",
+    "metrics",
+    "dashboard",
+    "audit_trail",
+    "storage",
+    "implementation",
+    "success_criteria",
+    "future_work",
+    "validation"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9_.-]+$"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "title": {
+      "type": "string",
+      "maxLength": 200
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "draft",
+        "deprecated",
+        "experimental"
+      ]
+    },
+    "owners": {
+      "type": "object",
+      "required": [
+        "accountable"
+      ],
+      "properties": {
+        "accountable": {
+          "type": "string"
+        },
+        "responsible": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "review": {
+      "type": "object",
+      "required": [
+        "frequency"
+      ],
+      "properties": {
+        "frequency": {
+          "type": "string"
+        },
+        "last_reviewed": {
+          "type": "string",
+          "format": "date"
+        },
+        "next_review_due": {
+          "type": "string",
+          "format": "date"
+        }
+      },
+      "additionalProperties": false
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "$schema": {
+      "type": "string",
+      "description": "Optional JSON Schema reference"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "standard_operations"
+      ]
+    },
+    "schema_id": {
+      "type": "string",
+      "const": "standard.operations.observability"
+    },
+    "policy_id": {
+      "type": "string"
+    },
+    "purpose": {
+      "type": "string",
+      "minLength": 10
+    },
+    "philosophy": {
+      "type": "string",
+      "minLength": 10
+    },
+    "structured_logging": {
+      "type": "object",
+      "properties": {
+        "mandate": {
+          "type": "string",
+          "minLength": 10
+        },
+        "log_levels": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "level": {
+                "type": "string"
+              },
+              "usage": {
+                "type": "string"
+              },
+              "example": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "level",
+              "usage",
+              "example"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 1
+        },
+        "required_fields": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "field": {
+                "type": "string"
+              },
+              "type": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "field",
+              "type",
+              "description"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 1
+        },
+        "log_format": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string"
+            },
+            "rationale": {
+              "type": "string"
+            },
+            "example": {
+              "type": "string",
+              "minLength": 10
+            }
+          },
+          "required": [
+            "type",
+            "rationale",
+            "example"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "mandate",
+        "log_levels",
+        "required_fields",
+        "log_format"
+      ],
+      "additionalProperties": false
+    },
+    "metrics": {
+      "type": "object",
+      "properties": {
+        "mandate": {
+          "type": "string",
+          "minLength": 10
+        },
+        "action_metrics": {
+          "type": "array",
+          "items": {
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "metric": {
+                    "type": "string"
+                  },
+                  "type": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "target": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "metric",
+                  "type",
+                  "description",
+                  "target"
+                ],
+                "additionalProperties": false,
+                "description": "Variant with fields: description, metric, target, type"
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "metric": {
+                    "type": "string"
+                  },
+                  "type": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "alert_threshold": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "metric",
+                  "type",
+                  "description",
+                  "alert_threshold"
+                ],
+                "additionalProperties": false,
+                "description": "Variant with fields: alert_threshold, description, metric, type"
+              }
+            ]
+          },
+          "minItems": 1
+        },
+        "autonomous_metrics": {
+          "type": "array",
+          "items": {
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "metric": {
+                    "type": "string"
+                  },
+                  "type": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "current_baseline": {
+                    "type": "string"
+                  },
+                  "target": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "metric",
+                  "type",
+                  "description",
+                  "current_baseline",
+                  "target"
+                ],
+                "additionalProperties": false,
+                "description": "Variant with fields: current_baseline, description, metric, target, type"
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "metric": {
+                    "type": "string"
+                  },
+                  "type": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "target": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "metric",
+                  "type",
+                  "description",
+                  "target"
+                ],
+                "additionalProperties": false,
+                "description": "Variant with fields: description, metric, target, type"
+              }
+            ]
+          },
+          "minItems": 1
+        },
+        "system_metrics": {
+          "type": "array",
+          "items": {
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "metric": {
+                    "type": "string"
+                  },
+                  "type": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "alert_threshold": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "metric",
+                  "type",
+                  "description",
+                  "alert_threshold"
+                ],
+                "additionalProperties": false,
+                "description": "Variant with fields: alert_threshold, description, metric, type"
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "metric": {
+                    "type": "string"
+                  },
+                  "type": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "target": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "metric",
+                  "type",
+                  "description",
+                  "target"
+                ],
+                "additionalProperties": false,
+                "description": "Variant with fields: description, metric, target, type"
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "metric": {
+                    "type": "string"
+                  },
+                  "type": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "budget": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "metric",
+                  "type",
+                  "description",
+                  "budget"
+                ],
+                "additionalProperties": false,
+                "description": "Variant with fields: budget, description, metric, type"
+              }
+            ]
+          },
+          "minItems": 1
+        },
+        "quality_metrics": {
+          "type": "array",
+          "items": {
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "metric": {
+                    "type": "string"
+                  },
+                  "type": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "constitutional_minimum": {
+                    "type": "string"
+                  },
+                  "target": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "metric",
+                  "type",
+                  "description",
+                  "constitutional_minimum",
+                  "target"
+                ],
+                "additionalProperties": false,
+                "description": "Variant with fields: constitutional_minimum, description, metric, target, type"
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "metric": {
+                    "type": "string"
+                  },
+                  "type": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "target": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "metric",
+                  "type",
+                  "description",
+                  "target"
+                ],
+                "additionalProperties": false,
+                "description": "Variant with fields: description, metric, target, type"
+              }
+            ]
+          },
+          "minItems": 1
+        }
+      },
+      "required": [
+        "mandate",
+        "action_metrics",
+        "autonomous_metrics",
+        "system_metrics",
+        "quality_metrics"
+      ],
+      "additionalProperties": false
+    },
+    "dashboard": {
+      "type": "object",
+      "properties": {
+        "mandate": {
+          "type": "string",
+          "minLength": 10
+        },
+        "required_commands": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "command": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "outputs": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "minItems": 1
+              }
+            },
+            "required": [
+              "command",
+              "description",
+              "outputs"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 1
+        },
+        "cli_output_format": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "format": {
+                "type": "string"
+              },
+              "usage": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "format",
+              "usage"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 1
+        }
+      },
+      "required": [
+        "mandate",
+        "required_commands",
+        "cli_output_format"
+      ],
+      "additionalProperties": false
+    },
+    "audit_trail": {
+      "type": "object",
+      "properties": {
+        "mandate": {
+          "type": "string",
+          "minLength": 10
+        },
+        "decision_log_fields": {
+          "type": "array",
+          "items": {
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "field": {
+                    "type": "string"
+                  },
+                  "type": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "field",
+                  "type",
+                  "description"
+                ],
+                "additionalProperties": false,
+                "description": "Variant with fields: description, field, type"
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "field": {
+                    "type": "string"
+                  },
+                  "type": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "example": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "minItems": 1
+                  }
+                },
+                "required": [
+                  "field",
+                  "type",
+                  "description",
+                  "example"
+                ],
+                "additionalProperties": false,
+                "description": "Variant with fields: description, example, field, type"
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "field": {
+                    "type": "string"
+                  },
+                  "type": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "includes": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "minItems": 1
+                  }
+                },
+                "required": [
+                  "field",
+                  "type",
+                  "description",
+                  "includes"
+                ],
+                "additionalProperties": false,
+                "description": "Variant with fields: description, field, includes, type"
+              }
+            ]
+          },
+          "minItems": 1
+        }
+      },
+      "required": [
+        "mandate",
+        "decision_log_fields"
+      ],
+      "additionalProperties": false
+    },
+    "storage": {
+      "type": "object",
+      "properties": {
+        "logs": {
+          "type": "object",
+          "properties": {
+            "location": {
+              "type": "string"
+            },
+            "retention": {
+              "type": "string"
+            },
+            "indexing": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "location",
+            "retention",
+            "indexing"
+          ],
+          "additionalProperties": false
+        },
+        "metrics": {
+          "type": "object",
+          "properties": {
+            "location": {
+              "type": "string"
+            },
+            "aggregation": {
+              "type": "string"
+            },
+            "retention": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "location",
+            "aggregation",
+            "retention"
+          ],
+          "additionalProperties": false
+        },
+        "decision_trail": {
+          "type": "object",
+          "properties": {
+            "location": {
+              "type": "string"
+            },
+            "retention": {
+              "type": "string"
+            },
+            "rationale": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "location",
+            "retention",
+            "rationale"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "logs",
+        "metrics",
+        "decision_trail"
+      ],
+      "additionalProperties": false
+    },
+    "implementation": {
+      "type": "object",
+      "properties": {
+        "services": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "location": {
+                "type": "string"
+              },
+              "responsibility": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "name",
+              "location",
+              "responsibility"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 1
+        },
+        "cli_commands": {
+          "type": "object",
+          "properties": {
+            "location": {
+              "type": "string"
+            },
+            "commands": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "minItems": 1
+            }
+          },
+          "required": [
+            "location",
+            "commands"
+          ],
+          "additionalProperties": false
+        },
+        "database_schema": {
+          "type": "object",
+          "properties": {
+            "location": {
+              "type": "string"
+            },
+            "tables": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "minItems": 1
+            }
+          },
+          "required": [
+            "location",
+            "tables"
+          ],
+          "additionalProperties": false
+        },
+        "integration_points": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "point": {
+                "type": "string"
+              },
+              "modification": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "point",
+              "modification"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 1
+        }
+      },
+      "required": [
+        "services",
+        "cli_commands",
+        "database_schema",
+        "integration_points"
+      ],
+      "additionalProperties": false
+    },
+    "success_criteria": {
+      "type": "object",
+      "properties": {
+        "must_answer": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "question": {
+                "type": "string"
+              },
+              "command": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "question",
+              "command"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 1
+        },
+        "must_enable": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "capability": {
+                "type": "string"
+              },
+              "requirement": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "capability",
+              "requirement"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 1
+        }
+      },
+      "required": [
+        "must_answer",
+        "must_enable"
+      ],
+      "additionalProperties": false
+    },
+    "future_work": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1
+    },
+    "validation": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "rule": {
+            "type": "string"
+          },
+          "check": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "rule",
+          "check"
+        ],
+        "additionalProperties": false
+      },
+      "minItems": 1
+    }
+  },
+  "additionalProperties": false,
+  "id": "observability.schema",
+  "owners": {
+    "accountable": "Governance Lead"
+  },
+  "review": {
+    "frequency": "12 months"
+  }
+}

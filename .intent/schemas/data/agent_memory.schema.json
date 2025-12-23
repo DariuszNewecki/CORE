@@ -144,5 +144,6 @@
       ],
       "description": "Reflections are vectorized to allow retrieval by semantic similarity during planning."
     }
-  }
+  },
+  "additionalProperties": false
 }

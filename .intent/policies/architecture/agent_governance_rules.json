@@ -1,7 +1,7 @@
 {
   "id": "standard_architecture_agent_rules",
   "version": "1.0.0",
-  "title": "Architecture Standard – Agent Patterns",
+  "title": "Architecture Standard \u2013 Agent Patterns",
   "type": "standard_architecture",
   "status": "active",
   "owners": {
@@ -317,5 +317,6 @@
       "Pattern checker validates implementation",
       "Add to CI checks"
     ]
-  }
+  },
+  "additionalProperties": false
 }

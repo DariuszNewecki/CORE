@@ -1,213 +1,269 @@
 {
-  "description": "Defines the required structure for bundles produced by the Conversational\nContext Extractor (CCE). These bundles provide a tightly-scoped snapshot\nof relevant knowledge, symbols, policies, and runtime artefacts for a\nsingle irritation, topic, or investigation. Bundles are deterministic,\nreproducible, and governed by Mind policies.\n",
-  "id": "schema.operations.conversational_context_bundle",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "id": "conversational_context_bundle.schema",
+  "schema_id": "schema.operations.conversational_context_bundle",
+  "version": "1.0.0",
+  "title": "Conversational Context Bundle Schema",
+  "type": "object",
   "owners": {
     "accountable": "Governance Lead",
     "responsible": [
       "Core Maintainer"
     ]
   },
-  "properties": {
-    "created_at": {
-      "description": "ISO8601 timestamp of bundle creation.",
-      "format": "datetime",
-      "type": "string"
-    },
-    "id": {
-      "description": "Unique ID assigned to this bundle (e.g. cc-2025-0001).",
-      "type": "string"
-    },
-    "kind": {
-      "description": "Discriminator identifying this schema.",
-      "enum": [
-        "conversational_context_bundle"
-      ],
-      "type": "string"
-    },
-    "notes": {
-      "description": "Additional machine-generated or human-provided notes.",
-      "nullable": true,
-      "properties": {
-        "remarks": {
-          "nullable": true,
-          "type": "string"
-        },
-        "suspected_violations": {
-          "items": {
-            "type": "string"
-          },
-          "type": "array"
-        }
-      },
-      "type": "object"
-    },
-    "origin": {
-      "properties": {
-        "irritation_id": {
-          "description": "Optional reference to a recorded irritation event.",
-          "nullable": true,
-          "type": "string"
-        },
-        "source": {
-          "description": "Who or what requested the context.",
-          "enum": [
-            "human",
-            "test",
-            "check",
-            "agent",
-            "system"
-          ],
-          "type": "string"
-        },
-        "topic": {
-          "description": "Human-provided description of what triggered the need for this bundle.",
-          "type": "string"
-        }
-      },
-      "required": [
-        "topic",
-        "source"
-      ],
-      "type": "object"
-    },
-    "policies": {
-      "description": "Relevant constitutional policies governing this context.",
-      "items": {
-        "description": "Path + anchor to policy rule (e.g. .intent/charter/policies/body_contracts.yaml#headless_body).",
-        "type": "string"
-      },
-      "type": "array"
-    },
-    "runtime_artifacts": {
-      "description": "Optional runtime outputs relevant to understanding the irritation.",
-      "nullable": true,
-      "properties": {
-        "audits": {
-          "items": {
-            "properties": {
-              "path": {
-                "type": "string"
-              },
-              "summary": {
-                "description": "High-level audit information relevant to the irritation.",
-                "type": "string"
-              }
-            },
-            "type": "object"
-          },
-          "nullable": true,
-          "type": "array"
-        },
-        "logs": {
-          "items": {
-            "properties": {
-              "excerpt": {
-                "description": "A shortened extract from the referenced logfile.",
-                "type": "string"
-              },
-              "path": {
-                "type": "string"
-              }
-            },
-            "type": "object"
-          },
-          "nullable": true,
-          "type": "array"
-        },
-        "tests": {
-          "items": {
-            "properties": {
-              "name": {
-                "type": "string"
-              },
-              "output": {
-                "description": "Failing test output (redacted).",
-                "nullable": true,
-                "type": "string"
-              }
-            },
-            "type": "object"
-          },
-          "nullable": true,
-          "type": "array"
-        }
-      },
-      "type": "object"
-    },
-    "scope": {
-      "properties": {
-        "main_command": {
-          "description": "Primary CLI or workflow that produced the logs/behaviour.",
-          "nullable": true,
-          "type": "string"
-        },
-        "repo_root": {
-          "description": "Absolute path to the repository root used for symbol resolution.",
-          "type": "string"
-        },
-        "run_id": {
-          "description": "Optional workflow run identifier for traceability.",
-          "nullable": true,
-          "type": "string"
-        }
-      },
-      "required": [
-        "repo_root"
-      ],
-      "type": "object"
-    },
-    "symbols": {
-      "description": "List of relevant symbols derived from the knowledge graph.",
-      "items": {
-        "properties": {
-          "capability": {
-            "description": "Declared capability ID, if applicable.",
-            "nullable": true,
-            "type": "string"
-          },
-          "file": {
-            "description": "Path to file where symbol is declared.",
-            "type": "string"
-          },
-          "id": {
-            "description": "Stable symbol ID from knowledge graph.",
-            "nullable": true,
-            "type": "string"
-          },
-          "name": {
-            "description": "Fully-qualified symbol name (e.g. shared.logger.configure_root_logger).",
-            "type": "string"
-          }
-        },
-        "required": [
-          "name",
-          "file"
-        ],
-        "type": "object"
-      },
-      "type": "array"
-    },
-    "version": {
-      "description": "Schema version for forward compatibility.",
-      "type": "string"
-    }
+  "review": {
+    "frequency": "12 months"
   },
+  "description": "Validates conversational_context_bundle_schema.yaml",
+  "additionalProperties": false,
   "required": [
-    "kind",
-    "version",
     "id",
+    "version",
+    "kind",
     "created_at",
     "origin",
     "scope",
     "symbols",
     "policies"
   ],
-  "review": {
-    "frequency": "12 months"
-  },
-  "schema_id": "schema.operations.conversational_context_bundle.deprecated",
-  "status": "active",
-  "title": "Conversational Context Bundle Schema",
-  "type": "object",
-  "version": "1.0.0"
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9_.-]+$"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "title": {
+      "type": "string",
+      "maxLength": 200
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "draft",
+        "deprecated",
+        "experimental"
+      ]
+    },
+    "schema_id": {
+      "type": "string",
+      "const": "schema.operations.conversational_context_bundle"
+    },
+    "description": {
+      "type": "string",
+      "minLength": 10
+    },
+    "kind": {
+      "type": "string",
+      "enum": [
+        "conversational_context_bundle"
+      ]
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "origin": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "topic",
+        "source"
+      ],
+      "properties": {
+        "irritation_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "topic": {
+          "type": "string"
+        },
+        "source": {
+          "type": "string",
+          "enum": [
+            "human",
+            "test",
+            "check",
+            "agent",
+            "system"
+          ]
+        }
+      }
+    },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "repo_root"
+      ],
+      "properties": {
+        "repo_root": {
+          "type": "string"
+        },
+        "main_command": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "run_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "symbols": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "file"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "file": {
+            "type": "string"
+          },
+          "capability": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "policies": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "runtime_artifacts": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "logs": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "path",
+              "excerpt"
+            ],
+            "properties": {
+              "path": {
+                "type": "string"
+              },
+              "excerpt": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "audits": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "path",
+              "summary"
+            ],
+            "properties": {
+              "path": {
+                "type": "string"
+              },
+              "summary": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "tests": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "name",
+              "output"
+            ],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "output": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "notes": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": false,
+      "required": [
+        "suspected_violations",
+        "remarks"
+      ],
+      "properties": {
+        "suspected_violations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "remarks": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
 }

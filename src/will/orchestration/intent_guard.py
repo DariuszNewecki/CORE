@@ -1,28 +1,34 @@
 # src/will/orchestration/intent_guard.py
 # ID: orchestration.intent_guard
+
 """
 IntentGuard — CORE's Constitutional Enforcement Module
-Enforces safety, structure, and intent alignment for all file changes.
-Loads governance rules from .intent/policies/*.yaml and prevents unauthorized
-self-modifications of the CORE constitution.
 
-Updated to enforce Policy Precedence (Medium #2) and Emergency Override (Crate 4).
+ONE JOB ONLY:
+- Enforce governance decisions on proposed changes (allow/deny + violations)
+
+NON-JOBS (explicitly forbidden here):
+- Crawling `.intent`
+- Parsing YAML/JSON directly
+- Loading precedence rules directly
+- Reading emergency override content directly
+
+All `.intent` reads MUST go through:
+- src/shared/infrastructure/intent/intent_repository.py (IntentRepository)
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 from shared.config import settings
-from shared.config_loader import load_yaml_file
+from shared.infrastructure.intent.intent_repository import get_intent_repository
 from shared.logger import getLogger
 
 
 logger = getLogger(__name__)
-
-# This file indicates the system is in Emergency Mode (Break Glass Protocol)
-EMERGENCY_LOCK_FILE = Path(".intent/mind/.emergency_override")
 
 
 @dataclass
@@ -39,14 +45,13 @@ class PolicyRule:
 
     @classmethod
     # ID: d66ce31f-9efe-4c1d-a127-6a51699df421
-    def from_dict(cls, data: dict, source: str = "unknown") -> PolicyRule:
-        """Create PolicyRule from dictionary data."""
+    def from_dict(cls, data: dict[str, Any], source: str = "unknown") -> PolicyRule:
         return cls(
-            name=data.get("name") or data.get("id") or "unnamed",
-            pattern=data.get("pattern", ""),
-            action=data.get("action", "deny"),
-            description=data.get("description") or data.get("statement") or "",
-            severity=data.get("severity") or data.get("enforcement") or "error",
+            name=str(data.get("name") or data.get("id") or "unnamed"),
+            pattern=str(data.get("pattern") or ""),
+            action=str(data.get("action") or "deny"),
+            description=str(data.get("description") or data.get("statement") or ""),
+            severity=str(data.get("severity") or data.get("enforcement") or "error"),
             source_policy=source,
         )
 
@@ -68,155 +73,92 @@ class ViolationReport:
 class ConstitutionalViolationError(Exception):
     """Raised when code generation violates constitutional policies."""
 
-    pass
-
 
 # ID: af558ebb-97bd-4b81-9de2-740acdfc3b1a
 class IntentGuard:
     """
-    Central enforcement engine for CORE's safety and governance policies.
-    Respects constitutional precedence rules.
+    Enforcement-only engine.
+
+    Governance inputs MUST be provided by IntentRepository:
+    - precedence map
+    - flattened policy rules
+
+    Emergency override is existence-only here.
     """
 
+    _EMERGENCY_LOCK_REL = ".intent/mind/.emergency_override"
+
     def __init__(self, repo_path: Path):
-        """Initialize IntentGuard with repository path and load all policies."""
         self.repo_path = Path(repo_path).resolve()
+
+        # Paths used only for boundary checks / anchoring (no crawling)
         self.intent_path = settings.paths.intent_root
         self.proposals_path = settings.paths.proposals_dir
-        self.policies_path = settings.paths.policies_dir
-        self.precedence_map = self._load_precedence_rules()
-        self.rules: list[PolicyRule] = []
-        self._load_policies()
-        self.rules.sort(key=lambda r: self.precedence_map.get(r.source_policy, 999))
-        logger.info(
-            "IntentGuard initialized with %s rules (sorted by precedence).",
-            len(self.rules),
+        self.charter_dir = getattr(
+            settings.paths, "charter_dir", (self.intent_path / "charter")
         )
 
-    def _load_precedence_rules(self) -> dict[str, int]:
-        """
-        Load precedence rules from .intent/charter/constitution/precedence_rules.json
-        Returns:
-            dict: Map of policy_name -> level (e.g., {'safety_framework': 1})
-        """
-        mapping = {}
-        try:
-            path = settings.paths.constitution_dir / "precedence_rules.json"
-            if not path.exists():
-                logger.warning("Precedence rules not found at %s", path)
-                return mapping
-            data = load_yaml_file(path)
-            hierarchy = data.get("policy_hierarchy", [])
-            for entry in hierarchy:
-                level = entry.get("level", 999)
-                if "policy" in entry:
-                    name = entry["policy"].replace(".json", "")
-                    mapping[name] = level
-                if "policies" in entry:
-                    for p in entry["policies"]:
-                        name = p.replace(".json", "")
-                        mapping[name] = level
-            return mapping
-        except Exception as e:
-            logger.error("Failed to load precedence rules: %s", e)
-            return {}
+        # Emergency override: existence-only check (no file read here)
+        self.emergency_lock_file = (self.repo_path / self._EMERGENCY_LOCK_REL).resolve()
 
-    def _load_policies(self):
-        """Load rules from all YAML files in the `.intent/charter/policies/` directory."""
-        if not self.policies_path.is_dir():
-            logger.warning("Policies directory not found: %s", self.policies_path)
-            return
-        for policy_file in self.policies_path.rglob("*.json"):
-            policy_name = policy_file.stem
-            try:
-                content = load_yaml_file(policy_file)
-                if (
-                    content
-                    and "rules" in content
-                    and isinstance(content["rules"], list)
-                ):
-                    for rule_data in content["rules"]:
-                        if isinstance(rule_data, dict):
-                            self.rules.append(
-                                PolicyRule.from_dict(rule_data, source=policy_name)
-                            )
-                if (
-                    content
-                    and "safety_rules" in content
-                    and isinstance(content["safety_rules"], list)
-                ):
-                    for rule_data in content["safety_rules"]:
-                        if isinstance(rule_data, dict):
-                            self.rules.append(
-                                PolicyRule.from_dict(rule_data, source=policy_name)
-                            )
-                if (
-                    content
-                    and "agent_rules" in content
-                    and isinstance(content["agent_rules"], list)
-                ):
-                    for rule_data in content["agent_rules"]:
-                        if isinstance(rule_data, dict):
-                            self.rules.append(
-                                PolicyRule.from_dict(rule_data, source=policy_name)
-                            )
-            except Exception as e:
-                logger.error("Failed to load policy file {policy_file}: %s", e)
+        # Governance inputs (repo owns IO/parsing/indexing)
+        repo = get_intent_repository()
+        self.precedence_map = repo.get_precedence_map()
+
+        # repo.list_policy_rules() returns dict wrappers:
+        # {"policy_name": str, "section": str, "rule": dict}
+        raw_rules = repo.list_policy_rules()
+        self.rules: list[PolicyRule] = []
+        for entry in raw_rules:
+            if not isinstance(entry, dict):
+                continue
+            policy_name = entry.get("policy_name") or "unknown"
+            rule_dict = entry.get("rule")
+            if isinstance(rule_dict, dict):
+                self.rules.append(
+                    PolicyRule.from_dict(rule_dict, source=str(policy_name))
+                )
+
+        # Apply precedence (lower number = higher priority)
+        self.rules.sort(key=lambda r: self.precedence_map.get(r.source_policy, 999))
+
+        logger.info("IntentGuard initialized with %s rules.", len(self.rules))
+
+    # -------------------------------------------------------------------------
+    # Public API
+    # -------------------------------------------------------------------------
 
     # ID: b4d5c82c-d19f-4026-89a3-13ee3ffb200e
     def check_transaction(
         self, proposed_paths: list[str]
     ) -> tuple[bool, list[ViolationReport]]:
-        """
-        Check if a proposed set of file changes complies with all active rules.
-
-        Returns:
-            tuple[bool, list[ViolationReport]]: (is_valid, violations)
-            - is_valid: True ONLY if no violations found
-            - violations: List of violation reports (empty if valid)
-        """
-        # --- EMERGENCY OVERRIDE CHECK ---
-        if EMERGENCY_LOCK_FILE.exists():
-            reason = "Unknown"
-            try:
-                content = EMERGENCY_LOCK_FILE.read_text().strip()
-                if "|" in content:
-                    _, reason = content.split("|", 1)
-            except Exception:
-                pass
-
+        if self._is_emergency_mode():
             logger.critical(
-                "INTENT GUARD BYPASSED (EMERGENCY MODE). Reason: %s. Allowing access to: %s",
-                reason,
+                "INTENT GUARD BYPASSED (EMERGENCY MODE). Allowing access to: %s",
                 proposed_paths,
             )
-            # In emergency mode, we return Valid with NO violations.
             return (True, [])
-        # --------------------------------
 
-        violations = []
+        violations: list[ViolationReport] = []
         for path_str in proposed_paths:
-            path = (self.repo_path / path_str).resolve()
-            violations.extend(self._check_single_path(path, path_str))
-        is_valid = len(violations) == 0
-        return (is_valid, violations)
+            abs_path = (self.repo_path / path_str).resolve()
+            violations.extend(self._check_single_path(abs_path, path_str))
+        return (len(violations) == 0, violations)
 
     # ID: 86791f7d-277d-4c89-82b0-b1a29471a60d
     async def validate_generated_code(
         self, code: str, pattern_id: str, component_type: str, target_path: str
     ) -> tuple[bool, list[ViolationReport]]:
-        """
-        Validate generated code against pattern requirements.
-        """
-        # --- EMERGENCY OVERRIDE CHECK ---
-        if EMERGENCY_LOCK_FILE.exists():
+        # component_type kept for compatibility
+        if self._is_emergency_mode():
             logger.critical(
-                "CODE VALIDATION BYPASSED (EMERGENCY MODE). Target: %s", target_path
+                "CODE VALIDATION BYPASSED (EMERGENCY MODE). Target: %s",
+                target_path,
             )
             return (True, [])
-        # --------------------------------
 
-        violations = []
+        violations: list[ViolationReport] = []
+
         if pattern_id == "inspect_pattern":
             violations.extend(self._validate_inspect_pattern(code, target_path))
         elif pattern_id == "action_pattern":
@@ -225,18 +167,27 @@ class IntentGuard:
             violations.extend(self._validate_check_pattern(code, target_path))
         elif pattern_id == "run_pattern":
             violations.extend(self._validate_run_pattern(code, target_path))
-        path_violations = self._check_single_path(
-            self.repo_path / target_path, target_path
+
+        violations.extend(
+            self._check_single_path(self.repo_path / target_path, target_path)
         )
-        violations.extend(path_violations)
-        is_valid = len(violations) == 0
-        return (is_valid, violations)
+        return (len(violations) == 0, violations)
+
+    # -------------------------------------------------------------------------
+    # Emergency mode (existence-only)
+    # -------------------------------------------------------------------------
+
+    def _is_emergency_mode(self) -> bool:
+        return self.emergency_lock_file.exists()
+
+    # -------------------------------------------------------------------------
+    # Pattern validators (unchanged semantics)
+    # -------------------------------------------------------------------------
 
     def _validate_inspect_pattern(
         self, code: str, target_path: str
     ) -> list[ViolationReport]:
-        """Validate inspect pattern: READ-ONLY, no state modification."""
-        violations = []
+        violations: list[ViolationReport] = []
         forbidden_params = [
             "--write",
             "--apply",
@@ -251,9 +202,14 @@ class IntentGuard:
                     ViolationReport(
                         rule_name="inspect_pattern_violation",
                         path=target_path,
-                        message=f"Inspect pattern violation: Found forbidden parameter '{param}'. Inspect commands must be read-only.",
+                        message=(
+                            f"Inspect pattern violation: Found forbidden parameter '{param}'. "
+                            "Inspect commands must be read-only."
+                        ),
                         severity="error",
-                        suggested_fix=f"Remove '{param}' parameter - inspect commands cannot modify state.",
+                        suggested_fix=(
+                            f"Remove '{param}' parameter - inspect commands cannot modify state."
+                        ),
                         source_policy="pattern_vectorization",
                     )
                 )
@@ -262,8 +218,7 @@ class IntentGuard:
     def _validate_action_pattern(
         self, code: str, target_path: str
     ) -> list[ViolationReport]:
-        """Validate action pattern: Must have write parameter, default to False."""
-        violations = []
+        violations: list[ViolationReport] = []
         if "write:" not in code and "write =" not in code:
             violations.append(
                 ViolationReport(
@@ -291,8 +246,7 @@ class IntentGuard:
     def _validate_check_pattern(
         self, code: str, target_path: str
     ) -> list[ViolationReport]:
-        """Validate check pattern: Validation only, no modification."""
-        violations = []
+        violations: list[ViolationReport] = []
         if "write:" in code or "apply:" in code:
             violations.append(
                 ViolationReport(
@@ -309,8 +263,7 @@ class IntentGuard:
     def _validate_run_pattern(
         self, code: str, target_path: str
     ) -> list[ViolationReport]:
-        """Validate run pattern: Autonomous operations with safety controls."""
-        violations = []
+        violations: list[ViolationReport] = []
         if "write:" not in code and "write =" not in code:
             violations.append(
                 ViolationReport(
@@ -324,50 +277,55 @@ class IntentGuard:
             )
         return violations
 
+    # -------------------------------------------------------------------------
+    # Enforcement core
+    # -------------------------------------------------------------------------
+
     def _check_single_path(self, path: Path, path_str: str) -> list[ViolationReport]:
-        """Check a single path against all rules."""
-        violations = []
+        violations: list[ViolationReport] = []
         constitutional_violation = self._check_constitutional_integrity(path, path_str)
         if constitutional_violation:
             violations.append(constitutional_violation)
-        violations.extend(self._check_policy_rules(path, path_str))
+        violations.extend(self._check_policy_rules(path_str))
         return violations
 
     def _check_constitutional_integrity(
         self, path: Path, path_str: str
     ) -> ViolationReport | None:
-        """Check if the path violates constitutional immutability rules."""
         try:
-            charter_path_resolved = (self.intent_path / "charter").resolve()
-            if charter_path_resolved in path.parents or path == charter_path_resolved:
+            charter_root = Path(self.charter_dir).resolve()
+            if charter_root in path.parents or path == charter_root:
                 return ViolationReport(
                     rule_name="immutable_charter",
                     path=path_str,
-                    message=f"Direct write to '{path_str}' is forbidden. Changes to the Charter require a formal proposal.",
+                    message=(
+                        f"Direct write to '{path_str}' is forbidden. "
+                        "Changes to the Charter require a formal proposal."
+                    ),
                     severity="error",
                     source_policy="safety_framework",
                 )
         except Exception as e:
             logger.error(
-                "Error checking constitutional integrity for {path_str}: %s", e
+                "Error checking constitutional integrity for %s: %s", path_str, e
             )
         return None
 
-    def _check_policy_rules(self, path: Path, path_str: str) -> list[ViolationReport]:
-        """Check path against all loaded policy rules."""
-        violations = []
+    def _check_policy_rules(self, path_str: str) -> list[ViolationReport]:
+        violations: list[ViolationReport] = []
         for rule in self.rules:
             try:
                 if self._matches_pattern(path_str, rule.pattern):
                     violations.extend(self._apply_rule_action(rule, path_str))
             except Exception as e:
-                logger.error("Error applying rule '{rule.name}' to {path_str}: %s", e)
+                logger.error(
+                    "Error applying rule '%s' to %s: %s", rule.name, path_str, e
+                )
         return violations
 
     def _apply_rule_action(
         self, rule: PolicyRule, path_str: str
     ) -> list[ViolationReport]:
-        """Apply the action for a matched rule."""
         if rule.action == "deny":
             return [
                 ViolationReport(
@@ -378,12 +336,11 @@ class IntentGuard:
                     source_policy=rule.source_policy,
                 )
             ]
-        elif rule.action == "warn":
-            logger.warning("Policy warning for %s: {rule.description}", path_str)
+        if rule.action == "warn":
+            logger.warning("Policy warning for %s: %s", path_str, rule.description)
         return []
 
     def _matches_pattern(self, path: str, pattern: str) -> bool:
-        """Check if a path matches a given glob pattern."""
         if not pattern:
             return False
         return Path(path).match(pattern)

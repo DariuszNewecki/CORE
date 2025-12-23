@@ -1,0 +1,112 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Enforcement Model Policy Schema",
+  "description": "Schema for the canonical enforcement model policy.",
+  "type": "object",
+  "required": [
+    "version",
+    "title",
+    "purpose",
+    "levels",
+    "rules"
+  ],
+  "properties": {
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "title": {
+      "type": "string"
+    },
+    "purpose": {
+      "type": "string"
+    },
+    "scope": {
+      "type": "object"
+    },
+    "owners": {
+      "type": "object"
+    },
+    "review": {
+      "type": "object"
+    },
+    "levels": {
+      "type": "object",
+      "required": [
+        "error",
+        "warn",
+        "info"
+      ],
+      "properties": {
+        "error": {
+          "$ref": "#/definitions/level"
+        },
+        "warn": {
+          "$ref": "#/definitions/level"
+        },
+        "info": {
+          "$ref": "#/definitions/level"
+        }
+      },
+      "additionalProperties": false
+    },
+    "rules": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "statement",
+          "enforcement"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "statement": {
+            "type": "string"
+          },
+          "enforcement": {
+            "enum": [
+              "error",
+              "warn",
+              "info"
+            ]
+          }
+        }
+      }
+    }
+  },
+  "additionalProperties": false,
+  "definitions": {
+    "level": {
+      "type": "object",
+      "required": [
+        "description",
+        "ci_behavior",
+        "runtime_behavior"
+      ],
+      "properties": {
+        "description": {
+          "type": "string"
+        },
+        "ci_behavior": {
+          "type": "string"
+        },
+        "runtime_behavior": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "id": "enforcement_model.schema",
+  "version": "1.0.0",
+  "owners": {
+    "accountable": "Governance Lead"
+  },
+  "review": {
+    "frequency": "12 months"
+  },
+  "schema_id": "meta.schema"
+}

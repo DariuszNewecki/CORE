@@ -1,91 +1,87 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "schema_id": "schema.rule",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "title": "CORE Rule Schema",
-  "description": "Defines the canonical structure for a single enforceable rule. A rule is atomic, unambiguous, and carries its own severity. Any object presented as a rule MUST validate against this schema.",
+  "description": "The machine-level enforcer of a single rule. Validates that every law has a unique ID, a rationale, and a mandatory execution engine.",
   "type": "object",
-  "required": ["id", "severity", "description", "rationale"],
+  "required": [
+    "id",
+    "enforcement",
+    "statement",
+    "rationale",
+    "check"
+  ],
   "properties": {
     "id": {
       "type": "string",
       "pattern": "^[a-z][a-z0-9_]*(\\.[a-z0-9_]+)*$",
-      "description": "Unique, stable identifier using snake_case segments separated by dots. Digits allowed (e.g., nis2.*)."
+      "description": "Unique identifier using snake_case segments separated by dots."
     },
-    "severity": {
+    "enforcement": {
       "type": "string",
-      "enum": ["error", "warning"],
-      "description": "error blocks compliance, warning signals concern."
+      "enum": ["error", "warn", "warning", "info"],
+      "description": "The weight of the law. 'error' blocks system operations."
     },
-    "description": {
+    "statement": {
       "type": "string",
       "minLength": 10,
-      "description": "Clear, concise statement of the norm."
+      "maxLength": 500,
+      "description": "The imperative command (formerly description)."
     },
     "rationale": {
       "type": "string",
       "minLength": 10,
-      "description": "Purpose and risk mitigated."
+      "description": "The 'Why' - critical for LLM reasoning and human audit."
     },
-    "owner": {
-      "type": "string",
-      "description": "Optional owner (may inherit from containing document)."
-    },
-    "review_frequency": {
-      "type": "string",
-      "enum": ["quarterly", "annual", "biennial", "as_needed"],
-      "default": "annual"
-    },
-    "threshold": {
-      "type": "number",
-      "description": "Optional numeric bound for quantitative rules."
-    },
-    "constraints": {
+    "check": {
       "type": "object",
-      "required": ["type"],
+      "description": "Deterministic link to the execution engine.",
+      "required": ["engine"],
       "properties": {
-        "type": {
+        "engine": {
           "type": "string",
-          "enum": ["allowlist", "denylist", "ordered_set", "pattern_match"]
+          "enum": ["ast_gate", "regex_gate", "glob_gate", "python_handler", "llm_gate"],
+          "description": "The specialized logic provider in CORE."
         },
-        "items": {
-          "type": "array",
-          "items": { "type": "string" }
-        },
-        "patterns": {
-          "type": "array",
-          "items": { "type": "string" }
+        "params": {
+          "type": "object",
+          "description": "Parameters for the engine (e.g. forbidden_calls, patterns, or handler_id)."
         }
       },
       "additionalProperties": false
     },
-    "format_requirement": {
-      "type": "object",
-      "required": ["type", "applies_to"],
-      "properties": {
-        "type": {
-          "type": "string",
-          "enum": [
-            "flat_list",
-            "filename_pattern",
-            "pattern_match",
-            "uniqueness",
-            "schema_validation"
-          ]
-        },
-        "applies_to": {
-          "type": "string",
-          "enum": ["policies", "rules", "paths", "capability_ids", "charter", "all"]
-        },
-        "pattern": { "type": "string" },
-        "key": { "type": "string" },
-        "schema_ref": { "type": "string" }
-      },
-      "additionalProperties": false
+    "category": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]*$"
+    },
+    "subcategory": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]*$"
+    },
+    "scope": {
+      "oneOf": [
+        { "type": "string" },
+        { "type": "array", "items": { "type": "string" } }
+      ]
+    },
+    "exceptions": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "owner": {
+      "type": "string"
     },
     "notes": {
       "type": "string"
     }
   },
-  "additionalProperties": false
+  "additionalProperties": false,
+  "id": "rule.schema",
+  "owners": {
+    "accountable": "Governance Lead"
+  },
+  "review": {
+    "frequency": "12 months"
+  }
 }

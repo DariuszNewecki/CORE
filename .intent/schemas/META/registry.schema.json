@@ -31,33 +31,53 @@
     },
     "owners": {
       "type": "object",
-      "required": ["accountable"],
+      "required": [
+        "accountable"
+      ],
       "properties": {
-        "accountable": { "type": "string" },
+        "accountable": {
+          "type": "string"
+        },
         "responsible": {
           "type": "array",
-          "items": { "type": "string" }
+          "items": {
+            "type": "string"
+          }
         }
       },
       "additionalProperties": false
     },
     "review": {
       "type": "object",
-      "required": ["frequency"],
+      "required": [
+        "frequency"
+      ],
       "properties": {
-        "frequency": { "type": "string" },
-        "last_reviewed": { "type": "string", "format": "date" },
-        "next_review_due": { "type": "string", "format": "date" }
+        "frequency": {
+          "type": "string"
+        },
+        "last_reviewed": {
+          "type": "string",
+          "format": "date"
+        },
+        "next_review_due": {
+          "type": "string",
+          "format": "date"
+        }
       },
       "additionalProperties": false
     },
     "tags": {
       "type": "array",
-      "items": { "type": "string" }
+      "items": {
+        "type": "string"
+      }
     },
     "type": {
       "type": "string",
-      "enum": ["meta_registry"]
+      "enum": [
+        "meta_registry"
+      ]
     },
     "schema_id": {
       "type": "string",
@@ -65,12 +85,25 @@
     },
     "charter": {
       "type": "object",
-      "required": ["constitution", "policies", "patterns", "schemas"],
+      "required": [
+        "constitution",
+        "policies",
+        "patterns",
+        "schemas"
+      ],
       "properties": {
-        "constitution": { "type": "object" },
-        "policies": { "type": "object" },
-        "patterns": { "type": "object" },
-        "schemas": { "type": "object" }
+        "constitution": {
+          "type": "object"
+        },
+        "policies": {
+          "type": "object"
+        },
+        "patterns": {
+          "type": "object"
+        },
+        "schemas": {
+          "type": "object"
+        }
       },
       "additionalProperties": false
     },
@@ -87,17 +120,40 @@
         "context"
       ],
       "properties": {
-        "project_manifest": { "type": "object" },
-        "northstar": { "type": "object" },
-        "config": { "type": "object" },
-        "ir": { "type": "object" },
-        "knowledge": { "type": "object" },
-        "mind_export": { "type": "object" },
-        "prompts": { "type": "object" },
-        "context": { "type": "object" }
+        "project_manifest": {
+          "type": "object"
+        },
+        "northstar": {
+          "type": "object"
+        },
+        "config": {
+          "type": "object"
+        },
+        "ir": {
+          "type": "object"
+        },
+        "knowledge": {
+          "type": "object"
+        },
+        "mind_export": {
+          "type": "object"
+        },
+        "prompts": {
+          "type": "object"
+        },
+        "context": {
+          "type": "object"
+        }
       },
       "additionalProperties": false
     }
   },
-  "additionalProperties": false
+  "additionalProperties": false,
+  "id": "registry.schema",
+  "owners": {
+    "accountable": "Governance Lead"
+  },
+  "review": {
+    "frequency": "12 months"
+  }
 }
