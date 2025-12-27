@@ -29,6 +29,9 @@ from shared.logger import getLogger
 
 logger = getLogger(__name__)
 
+# Engines that operate on full AuditorContext instead of individual files
+CONTEXT_LEVEL_ENGINES = {"knowledge_gate", "workflow_gate"}
+
 
 # ID: f8e3d9c7-5a2b-4e1f-9d8c-7b6a3e5f2c4d
 def extract_executable_rules(policies: dict[str, Any]) -> list[ExecutableRule]:
@@ -73,54 +76,80 @@ def extract_executable_rules(policies: dict[str, Any]) -> list[ExecutableRule]:
 
         rules = policy_data.get("rules", [])
         if not isinstance(rules, list):
-            logger.debug("Policy %s has non-list rules, skipping", policy_id)
+            logger.debug("Policy %s has no rules list", policy_id)
             continue
 
-        for rule in rules:
-            if not isinstance(rule, dict):
+        for rule_data in rules:
+            if not isinstance(rule_data, dict):
                 continue
 
-            # Check if rule has engine assigned
-            check_block = rule.get("check")
+            # Extract check block
+            check_block = rule_data.get("check", {})
             if not isinstance(check_block, dict):
                 continue
 
-            engine = check_block.get("engine")
-            if not engine or not isinstance(engine, str):
+            # Must have an engine defined
+            engine_id = check_block.get("engine")
+            if not engine_id or not isinstance(engine_id, str):
                 continue
 
-            # Extract rule data
-            rule_id = rule.get("id")
-            if not rule_id:
-                logger.warning("Rule in policy %s missing 'id', skipping", policy_id)
-                continue
-
-            try:
-                executable_rule = ExecutableRule(
-                    rule_id=str(rule_id),
-                    engine=str(engine),
-                    params=check_block.get("params", {}),
-                    enforcement=str(rule.get("enforcement", "error")),
-                    statement=str(rule.get("statement", "")),
-                    scope=rule.get("scope", ["src/**/*.py"]),
-                    exclusions=rule.get("exclusions", []),
-                    policy_id=str(policy_id),
-                )
-                executable_rules.append(executable_rule)
-                logger.debug(
-                    "Extracted rule: %s (engine=%s) from policy %s",
-                    rule_id,
-                    engine,
-                    policy_id,
-                )
-            except Exception as e:
+            # Extract rule components
+            rule_id = rule_data.get("id", "")
+            if not rule_id or not isinstance(rule_id, str):
                 logger.warning(
-                    "Failed to extract rule %s from policy %s: %s",
-                    rule_id,
-                    policy_id,
-                    e,
+                    "Skipping rule in policy %s: missing or invalid id", policy_id
                 )
                 continue
+
+            params = check_block.get("params", {})
+            if not isinstance(params, dict):
+                params = {}
+
+            enforcement = rule_data.get("enforcement", "error")
+            if not isinstance(enforcement, str):
+                enforcement = "error"
+
+            statement = rule_data.get("statement", "")
+            if not isinstance(statement, str):
+                statement = ""
+
+            # Extract scope/exclusions
+            scope = rule_data.get("scope", ["src/**/*.py"])
+            if isinstance(scope, str):
+                scope = [scope]
+            elif not isinstance(scope, list):
+                scope = ["src/**/*.py"]
+
+            exclusions = rule_data.get("exclusions", [])
+            if isinstance(exclusions, str):
+                exclusions = [exclusions]
+            elif not isinstance(exclusions, list):
+                exclusions = []
+
+            # Determine if this is a context-level engine
+            is_context_level = engine_id in CONTEXT_LEVEL_ENGINES
+
+            # Create ExecutableRule
+            executable_rule = ExecutableRule(
+                rule_id=rule_id,
+                engine=engine_id,
+                params=params,
+                enforcement=enforcement,
+                statement=statement,
+                scope=scope,
+                exclusions=exclusions,
+                policy_id=policy_id,
+                is_context_level=is_context_level,
+            )
+
+            executable_rules.append(executable_rule)
+
+            logger.debug(
+                "Extracted rule: %s (engine=%s, context_level=%s)",
+                rule_id,
+                engine_id,
+                is_context_level,
+            )
 
     logger.info(
         "Extracted %d executable rules from %d policies",

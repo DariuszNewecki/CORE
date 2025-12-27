@@ -13,18 +13,6 @@
   },
   "rules": [
     {
-      "id": "caps.id_format",
-      "rationale": "Provides a consistent regex pattern for AST-based linkage and tracking tools.",
-      "enforcement": "error",
-      "statement": "Source code linkers MUST use the form '# ID: <uuid>'.",
-      "check": {
-        "engine": "llm_gate",
-        "params": {
-          "instruction": "Verify adherence to: Source code linkers MUST use the form '# ID: <uuid>'."
-        }
-      }
-    },
-    {
       "id": "caps.meaningful_description",
       "rationale": "Enables autonomous planners to accurately select capabilities for complex tasks.",
       "enforcement": "error",
@@ -42,9 +30,12 @@
       "enforcement": "error",
       "statement": "Descriptions such as 'TBD' or 'N/A' are forbidden in capability metadata.",
       "check": {
-        "engine": "llm_gate",
+        "engine": "regex_gate",
         "params": {
-          "instruction": "Verify adherence to: Descriptions such as 'TBD' or 'N/A' are forbidden in capability metadata."
+          "forbidden_patterns": [
+            "\\b(TBD|TODO|FIXME|XXX|N/?A|PLACEHOLDER|LOREM)\\b"
+          ],
+          "case_insensitive": true
         }
       }
     },
@@ -60,8 +51,5 @@
         }
       }
     }
-  ],
-  "review": {
-    "frequency": "12 months"
-  }
+  ]
 }

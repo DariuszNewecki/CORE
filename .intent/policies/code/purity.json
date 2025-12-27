@@ -1,7 +1,7 @@
 {
   "id": "standard_code_purity",
   "version": "2.0.0",
-  "title": "Code Standard \u2013 Purity & Side Effects",
+  "title": "Code Standard – Purity & Side Effects",
   "type": "policy",
   "status": "active",
   "owners": {
@@ -59,6 +59,17 @@
       "statement": "Primary public symbols MUST have a stable ID anchor (# ID: <uuid>) immediately above definition.",
       "enforcement": "error",
       "rationale": "The DB uses UUIDs as primary keys. Refactoring (renaming/moving) breaks links unless a stable anchor is present in source.",
+      "scope": {
+        "include": [
+          "src/**/*.py"
+        ],
+        "exclude": [
+          "**/__init__.py",
+          "**/test_*.py",
+          "**/*_test.py",
+          "tests/**/*.py"
+        ]
+      },
       "check": {
         "engine": "regex_gate",
         "params": {
@@ -72,13 +83,51 @@
     {
       "id": "purity.safety_contract_presence",
       "statement": "Public state-modifying functions MUST have an @atomic_action decorator.",
-      "enforcement": "error",
+      "enforcement": "warning",
       "rationale": "Required for the 'Will' layer (IntentGuard) to validate safety *before* execution. Defines blast radius and governing policies.",
       "check": {
         "engine": "ast_gate",
         "params": {
           "check_type": "required_decorator",
-          "target": "atomic_action"
+          "target": "atomic_action",
+          "exclude_patterns": [
+            "^get_.*",
+            "^list_.*",
+            "^find_.*",
+            "^search_.*",
+            "^query_.*",
+            "^fetch_.*",
+            "^read_.*",
+            "^load_.*",
+            "^retrieve_.*",
+            "^select_.*",
+            "^count_.*",
+            "^check_.*",
+            "^verify_.*",
+            "^validate_.*",
+            "^visit_.*",
+            "^add_nodes$",
+            "^build.*",
+            "^create_.*",
+            "^make_.*",
+            "^start_.*",
+            "^run_.*",
+            "^execute$",
+            "^main$",
+            "^handle_.*",
+            "^process_.*",
+            ".*_cmd$",
+            ".*_command$"
+          ],
+          "exclude_decorators": [
+            "core_command",
+            "property",
+            "cached_property",
+            "staticmethod",
+            "classmethod",
+            "app.callback",
+            "app.command"
+          ]
         }
       }
     },

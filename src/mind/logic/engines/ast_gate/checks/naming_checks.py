@@ -79,3 +79,36 @@ class NamingChecks:
             findings.append(f"Module has {line_count} lines, exceeds limit of {limit}")
 
         return findings
+
+    @staticmethod
+    # ID: a9b8c7d6-e5f4-3a2b-1c0d-9e8f7a6b5c4d
+    def check_max_function_length(tree: ast.AST, limit: int = 50) -> list[str]:
+        """
+        Enforce: Functions must not exceed line limits.
+
+        Constitutional Rule: code_standards.max_function_lines
+        Default limit: 50 lines per function
+
+        ROI: Replaces LLM gate with deterministic AST check.
+        """
+        findings: list[str] = []
+
+        for node in ast.walk(tree):
+            if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                continue
+
+            # Skip magic methods and private helpers
+            if node.name.startswith("__") and node.name.endswith("__"):
+                continue
+
+            # Calculate function length
+            if hasattr(node, "end_lineno") and hasattr(node, "lineno"):
+                func_length = node.end_lineno - node.lineno + 1
+
+                if func_length > limit:
+                    findings.append(
+                        f"Line {ASTHelpers.lineno(node)}: Function '{node.name}' has {func_length} lines, "
+                        f"exceeds limit of {limit}"
+                    )
+
+        return findings

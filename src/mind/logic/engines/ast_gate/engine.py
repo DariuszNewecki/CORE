@@ -11,6 +11,7 @@ from typing import Any, ClassVar
 from mind.logic.engines.ast_gate.checks import (
     CapabilityChecks,
     GenericASTChecks,
+    NamingChecks,
     PurityChecks,
 )
 from mind.logic.engines.base import BaseEngine, EngineResult
@@ -44,6 +45,7 @@ class ASTGateEngine(BaseEngine):
             "cli_async_helpers_private",
             "test_file_naming",
             "max_file_lines",
+            "max_function_length",  # NEW: Function length checking
             # Purity checks
             "stable_id_anchor",
             "forbidden_decorators",
@@ -184,6 +186,10 @@ class ASTGateEngine(BaseEngine):
                         required_args=required_args,
                     )
                 )
+        # NEW: Function length checking
+        elif check_type == "max_function_length":
+            limit = int(params.get("limit", 50))
+            violations.extend(NamingChecks.check_max_function_length(tree, limit=limit))
         else:
             # Supported but not yet implemented in this engine version (by design).
             return EngineResult(

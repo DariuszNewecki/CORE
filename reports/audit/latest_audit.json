@@ -1,8 +1,8 @@
 {
   "schema_version": "0.2.0",
-  "generated_at_utc": "2025-12-27T15:59:42Z",
+  "generated_at_utc": "2025-12-27T20:12:24Z",
   "source": "core-admin check audit",
-  "repository_commit": "f4f8cba9896717ea7acf97de6a308084c8272227",
+  "repository_commit": "2f38f94ce3ee61c978832bf34f54a284dbc88cad",
   "passed": true,
   "artifacts": {
     "findings": "reports/audit_findings.json",

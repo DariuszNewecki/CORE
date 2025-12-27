@@ -1,6 +1,6 @@
 # src/body/cli/commands/check/__init__.py
 """
-Check command group - Constitutional compliance and system health validation.
+Check command group - Constitutional compliance verification.
 """
 
 from __future__ import annotations
@@ -15,29 +15,14 @@ check_app = typer.Typer(
 
 
 def _register_rule_commands():
-    """Register rule commands with debugging."""
+    """Register rule commands."""
     import body.cli.commands.check.rule as rule_module
 
-    print("DEBUG: Checking rule module...")
-    print(
-        f"DEBUG: Module attributes: {[x for x in dir(rule_module) if not x.startswith('_')]}"
-    )
-
-    found = False
     for attr_name in dir(rule_module):
         attr = getattr(rule_module, attr_name)
-        if callable(attr) and hasattr(attr, "__name__"):
-            print(
-                f"DEBUG: Found callable '{attr_name}' with __name__ = '{attr.__name__}'"
-            )
-            if attr.__name__ == "rule_cmd":
-                print("DEBUG: ✓ Registering rule_cmd!")
-                check_app.command("rule")(attr)
-                found = True
-                break
-
-    if not found:
-        print("DEBUG: ✗ rule_cmd not found in module!")
+        if callable(attr) and hasattr(attr, "__name__") and attr.__name__ == "rule_cmd":
+            check_app.command("rule")(attr)
+            break
 
 
 def _register_audit_commands():

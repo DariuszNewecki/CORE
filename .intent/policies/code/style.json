@@ -73,18 +73,6 @@
       }
     },
     {
-      "id": "style.capability_id_placement",
-      "rationale": "Creates a stable anchor for linking source code logic to the Single Source of Truth database.",
-      "enforcement": "warning",
-      "statement": "Primary public symbols representing capabilities MUST have '# ID: <uuid>' tags above their definition.",
-      "check": {
-        "engine": "llm_gate",
-        "params": {
-          "instruction": "Verify adherence to: Primary public symbols representing capabilities MUST have '# ID: <uuid>' tags above their definition."
-        }
-      }
-    },
-    {
       "id": "style.import_order",
       "rationale": "Prevents circular dependencies and makes module dependencies immediately obvious.",
       "enforcement": "warning",
@@ -102,8 +90,5 @@
         }
       }
     }
-  ],
-  "review": {
-    "frequency": "12 months"
-  }
+  ]
 }

@@ -4,9 +4,9 @@ Rule Executor - Executes ExecutableRules via the engine registry.
 
 This module takes an ExecutableRule and executes it against the codebase:
 1. Gets the appropriate engine from EngineRegistry
-2. Gets files to check based on rule's scope/exclusions
-3. Executes engine verification on each file
-4. Converts engine results to AuditFindings
+2. For context-level engines: calls verify_context()
+3. For file-level engines: gets files and calls verify() on each
+4. Converts violations to AuditFindings
 
 Design:
 - Pure orchestration (connects existing pieces)
@@ -41,8 +41,9 @@ async def execute_rule(
 
     Flow:
     1. Get engine from registry
-    2. Get files matching rule's scope/exclusions
-    3. Execute engine on each file
+    2. Check if engine is context-level (knowledge_gate, workflow_gate)
+    3a. If context-level: call verify_context(context, params) once
+    3b. If file-level: get files and call verify(file, params) on each
     4. Convert violations to AuditFindings
 
     Args:
@@ -80,6 +81,63 @@ async def execute_rule(
             )
         )
         return findings
+
+    # CONTEXT-LEVEL ENGINES (knowledge_gate, workflow_gate)
+    # These engines operate on the full AuditorContext, not individual files
+    if rule.is_context_level:
+        logger.debug(
+            "Rule %s: executing context-level engine '%s'",
+            rule.rule_id,
+            rule.engine,
+        )
+
+        try:
+            # Call the context-aware verify method
+            if hasattr(engine, "verify_context"):
+                findings_from_engine = engine.verify_context(context, rule.params)
+                findings.extend(findings_from_engine)
+            else:
+                logger.error(
+                    "Engine '%s' is marked as context-level but doesn't have verify_context() method",
+                    rule.engine,
+                )
+                findings.append(
+                    AuditFinding(
+                        check_id=f"{rule.rule_id}.engine_error",
+                        severity=AuditSeverity.ERROR,
+                        message=f"Context-level engine '{rule.engine}' missing verify_context() method",
+                        file_path="N/A",
+                    )
+                )
+        except Exception as e:
+            logger.error(
+                "Context-level engine '%s' failed for rule %s: %s",
+                rule.engine,
+                rule.rule_id,
+                e,
+                exc_info=True,
+            )
+            findings.append(
+                AuditFinding(
+                    check_id=f"{rule.rule_id}.execution_error",
+                    severity=AuditSeverity.ERROR,
+                    message=f"Rule '{rule.rule_id}' execution failed: {e}",
+                    file_path="N/A",
+                )
+            )
+
+        if findings:
+            logger.debug("Rule %s: found %d violations", rule.rule_id, len(findings))
+
+        return findings
+
+    # FILE-LEVEL ENGINES (ast_gate, glob_gate, regex_gate, llm_gate)
+    # These engines operate on individual files
+    logger.debug(
+        "Rule %s: executing file-level engine '%s'",
+        rule.rule_id,
+        rule.engine,
+    )
 
     # Get files to check
     try:

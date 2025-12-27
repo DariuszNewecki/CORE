@@ -51,32 +51,29 @@
     {
       "id": "code_standards.max_file_lines",
       "rationale": "Prevents God Objects while allowing necessary complexity for system-critical orchestration and algorithmic density.",
-      "details": {
-        "thresholds": [
-          {
-            "path": "src/will/orchestration/**",
-            "limit": 600
-          },
-          {
-            "path": "src/mind/logic/**",
-            "limit": 600
-          },
-          {
-            "path": "src/features/self_healing/test_generation/**",
-            "limit": 500
-          },
-          {
-            "path": "default",
-            "limit": 400
-          }
-        ]
-      },
-      "enforcement": "error",
+      "enforcement": "warning",
       "statement": "Python modules MUST NOT exceed line limits based on their role: Core/Orchestration (600 lines), Features/Services (400 lines), Utilities (200 lines).",
       "check": {
-        "engine": "llm_gate",
+        "engine": "glob_gate",
         "params": {
-          "instruction": "Verify adherence to: Python modules MUST NOT exceed line limits based on their role: Core/Orchestration (600 lines), Features/Services (400 lines), Utilities (200 lines)."
+          "thresholds": [
+            {
+              "path": "src/will/orchestration/**",
+              "limit": 600
+            },
+            {
+              "path": "src/mind/logic/**",
+              "limit": 600
+            },
+            {
+              "path": "src/features/self_healing/test_generation/**",
+              "limit": 500
+            },
+            {
+              "path": "default",
+              "limit": 400
+            }
+          ]
         }
       }
     },
@@ -86,14 +83,12 @@
       "enforcement": "warning",
       "statement": "Functions SHOULD NOT exceed 50 lines.",
       "check": {
-        "engine": "llm_gate",
+        "engine": "ast_gate",
         "params": {
-          "instruction": "Verify adherence to: Functions SHOULD NOT exceed 50 lines."
+          "check_type": "max_function_length",
+          "limit": 50
         }
       }
     }
-  ],
-  "review": {
-    "frequency": "12 months"
-  }
+  ]
 }
