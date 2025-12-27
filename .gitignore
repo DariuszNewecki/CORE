@@ -18,10 +18,9 @@ __pypackages__/
 # Testing
 .pytest_cache/
 .coverage
-htmlcov/
-*.log
 coverage.json
-ITAM
+*.log
+*.jsonl
 
 # Editors
 .vscode/
@@ -32,26 +31,23 @@ ITAM
 .DS_Store
 Thumbs.db
 
-# CORE-specific
-logs/
-demo/
+# CORE-specific (sensitive / transient)
+ITAM
 .intent/keys/
 pending_writes/
 sandbox/
 knowledge_graph.json
-*.jsonl
 *.lock
-reports/
 
-# Cache or checkpoints
-*.bak
-*.tmp
+# Runtime state (CORE-owned; not versioned)
+var/*
+!var/.gitkeep
 
-# Work directory
+# Work directory (scratch)
 work/*
 !work/.gitkeep
 
-# Demo recordings (keep README.md only)
+# Demo recordings (keep README.md and other docs)
 demos/*.cast
 demos/*.mp4
 demos/*.gif
@@ -61,4 +57,6 @@ project_context.txt
 
 # Test files (temporary)
 test_placement.py
-dev-scripts/
+
+# Developer helpers / local scripts (do not version)
+scripts/dev/

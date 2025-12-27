@@ -9,6 +9,8 @@ from __future__ import annotations
 
 import asyncio
 import json
+from pathlib import Path
+from typing import Any
 
 import typer
 from dotenv import load_dotenv
@@ -27,75 +29,106 @@ logger = getLogger(__name__)
 load_dotenv()
 
 
+# ID: 2f40b3b9-6b2b-4e4d-9a32-3d1a0b2e1d9c
+async def _require_llm_enabled() -> None:
+    """Fails fast if LLMs are not enabled in runtime configuration."""
+    llm_enabled = await config_service.get_bool("LLM_ENABLED", default=False)
+    if not llm_enabled:
+        logger.error(
+            "The 'chat' command requires LLMs to be enabled. Check 'LLM_ENABLED' in the database."
+        )
+        raise typer.Exit(code=1)
+
+
+# ID: 8b8a3ef2-4bb3-44d8-9cb8-6ec3b36f2aa0
+async def _get_registered_cli_help_text(repo_path: Path) -> str:
+    """
+    Retrieves CLI help text for a canonical, registry-backed command.
+
+    We intentionally avoid `core-admin --help` because it is not a registered command
+    name under the `group.action` convention enforced by `respect_cli_registry_check`.
+    """
+    args = ["poetry", "run", "core-admin", "check", "audit", "--help"]
+    result = await run_command_async(args, cwd=repo_path)
+
+    if result.returncode != 0:
+        stderr = (result.stderr or "").strip()
+        logger.error(
+            "Failed to generate CLI help text for %s: %s", "check.audit", stderr
+        )
+        raise typer.Exit(code=1)
+
+    return result.stdout or ""
+
+
+# ID: 1d6e2f1d-0d0a-4e3f-9c25-6b3a9d1c7a6d
+async def _persist_cli_help_text(repo_path: Path, help_text: str) -> Path:
+    """Persists help text via the infrastructure layer (no direct I/O in Will)."""
+    help_file = repo_path / "reports" / "cli_help.txt"
+    await FileHandler.ensure_parent_dir(help_file)
+    await FileHandler.write_content(help_file, help_text)
+    return help_file
+
+
 # ID: e28b1579-1e68-40e2-9583-6774d0e8e48f
 async def chat(
     user_input: str = typer.Argument(..., help="Your goal in natural language."),
 ) -> None:
     """
-    Assesses your natural language goal and provides a clear, actionable command.
+    Assesses a natural language goal and returns a clear, actionable CLI command suggestion.
     """
-    # 1. Constitutional Check: Is LLM enabled?
-    llm_enabled = await config_service.get_bool("LLM_ENABLED", default=False)
-    if not llm_enabled:
-        logger.error(
-            "❌ The 'chat' command requires LLMs to be enabled. Check 'LLM_ENABLED' in the database."
-        )
-        raise typer.Exit(code=1)
+    await _require_llm_enabled()
 
-    logger.info("Translating user goal: '%s'", user_input)
+    logger.info("Translating user goal: %r", user_input)
 
+    response_text: str | None = None
     try:
-        # 2. Generate Context (CLI Help) via Safe Subprocess Wrapper
-        # We delegate execution to shared utils to satisfy security policy
-        help_text_result = await run_command_async(
-            ["poetry", "run", "core-admin", "--help"], cwd=settings.REPO_PATH
-        )
+        # 1) Generate context via safe subprocess wrapper (registered command only)
+        help_text = await _get_registered_cli_help_text(settings.REPO_PATH)
 
-        if help_text_result.returncode != 0:
-            logger.error(
-                "Failed to generate CLI help text: %s", help_text_result.stderr
-            )
-            raise typer.Exit(code=1)
+        # 2) Persist context via infrastructure boundary
+        help_file = await _persist_cli_help_text(settings.REPO_PATH, help_text)
+        logger.debug("Wrote CLI help context to: %s", help_file)
 
-        help_text = help_text_result.stdout
-
-        # 3. Persist Context via Infrastructure Layer (No Direct I/O in Will)
-        # We use FileHandler to cross the boundary into the 'Body/Infrastructure' layer
-        help_file = settings.REPO_PATH / "reports" / "cli_help.txt"
-        await FileHandler.ensure_parent_dir(help_file)
-        await FileHandler.write_content(help_file, help_text)
-
-        # 4. Cognitive Processing
+        # 3) Cognitive processing / translation
         cognitive_service = CognitiveService(settings.REPO_PATH)
         translator = IntentTranslator(cognitive_service)
 
-        # IntentTranslator might still be sync, so we offload to thread
+        # IntentTranslator may be sync; offload to a worker thread.
         response_text = await asyncio.to_thread(translator.translate, user_input)
-        response_json = extract_json_from_response(response_text)
+        response_json: dict[str, Any] | None = extract_json_from_response(response_text)
 
         if not response_json:
             raise json.JSONDecodeError(
                 "No valid JSON found in response.", response_text, 0
             )
 
-        # 5. Result Presentation (UI Layer - Typer allowed here in CLI Logic)
-        if "command" in response_json:
-            command = response_json["command"]
-            typer.secho("\n✅ AI Suggestion:", fg=typer.colors.GREEN)
-            typer.echo("Here is the recommended command to achieve your goal:")
+        # 4) Presentation
+        command = response_json.get("command")
+        error_message = response_json.get("error")
+
+        if command:
+            typer.secho("\nAI Suggestion:", fg=typer.colors.GREEN)
+            typer.echo("Recommended command to achieve your goal:")
             typer.secho(f"\n  {command}\n", fg=typer.colors.CYAN)
-        elif "error" in response_json:
-            error_message = response_json["error"]
-            typer.secho("\n⚠️ AI Assessment:", fg=typer.colors.YELLOW)
-            typer.echo(error_message)
-        else:
-            raise KeyError("AI response missing 'command' or 'error' key.")
+            return
+
+        if error_message:
+            typer.secho("\nAI Assessment:", fg=typer.colors.YELLOW)
+            typer.echo(str(error_message))
+            return
+
+        raise KeyError("AI response missing 'command' or 'error' key.")
 
     except (json.JSONDecodeError, KeyError) as e:
-        logger.error("Failed to parse the AI's translation: %s", e)
-        typer.echo("The AI returned a response I couldn't understand. Raw response:")
-        typer.echo(response_text)
+        logger.error("Failed to parse the AI translation: %s", e)
+        typer.echo("The AI returned a response that could not be interpreted.")
+        if response_text:
+            typer.echo("Raw response:")
+            typer.echo(response_text)
         raise typer.Exit(code=1)
-    except Exception as e:
-        logger.exception("An unexpected error occurred in chat logic")
+    except typer.Exit:
+        raise
+    except Exception:
+        logger.exception("Unexpected error occurred in chat logic")
         raise typer.Exit(code=1)

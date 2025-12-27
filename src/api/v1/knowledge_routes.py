@@ -7,7 +7,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from shared.infrastructure.database.session_manager import get_db_session
+from shared.infrastructure.database.session_manager import get_session
 from shared.infrastructure.knowledge.knowledge_service import KnowledgeService
 
 
@@ -16,7 +16,7 @@ router = APIRouter(prefix="/knowledge")
 
 @router.get("/capabilities")
 # ID: 0016df93-d0e5-45b0-b5b8-8f4170de3d9d
-async def list_capabilities(session: AsyncSession = Depends(get_db_session)) -> dict:
+async def list_capabilities(session: AsyncSession = Depends(get_session)) -> dict:
     """
     Return known capabilities.
 

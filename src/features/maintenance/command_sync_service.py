@@ -12,9 +12,9 @@ from typing import Any
 import typer
 from sqlalchemy import delete
 from sqlalchemy.dialects.postgresql import insert as pg_insert
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.infrastructure.database.models import CliCommand
-from shared.infrastructure.database.session_manager import get_session
 from shared.logger import getLogger
 
 
@@ -48,28 +48,35 @@ def _introspect_typer_app(app: typer.Typer, prefix: str = "") -> list[dict[str, 
     return commands
 
 
-async def _sync_commands_to_db(main_app: typer.Typer):
+async def _sync_commands_to_db(session: AsyncSession, main_app: typer.Typer):
     """
     Introspects the main CLI application, discovers all commands, and upserts them
     into the database, making the database the single source of truth.
+
+    Args:
+        session: Database session (injected dependency)
+        main_app: The main Typer application to introspect
     """
     logger.info("Synchronizing CLI command registry with the database...")
     discovered_commands = _introspect_typer_app(main_app)
+
     if not discovered_commands:
         logger.info("No commands discovered. Nothing to sync.")
         return
+
     logger.info(
         "Discovered %s commands from the application code.", len(discovered_commands)
     )
-    async with get_session() as session:
-        async with session.begin():
-            await session.execute(delete(CliCommand))
-            stmt = pg_insert(CliCommand).values(discovered_commands)
-            update_dict = {c.name: c for c in stmt.excluded if not c.primary_key}
-            upsert_stmt = stmt.on_conflict_do_update(
-                index_elements=["name"], set_=update_dict
-            )
-            await session.execute(upsert_stmt)
+
+    async with session.begin():
+        await session.execute(delete(CliCommand))
+        stmt = pg_insert(CliCommand).values(discovered_commands)
+        update_dict = {c.name: c for c in stmt.excluded if not c.primary_key}
+        upsert_stmt = stmt.on_conflict_do_update(
+            index_elements=["name"], set_=update_dict
+        )
+        await session.execute(upsert_stmt)
+
     logger.info(
         "Successfully synchronized %s commands to the database.",
         len(discovered_commands),

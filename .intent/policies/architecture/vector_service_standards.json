@@ -2,7 +2,7 @@
   "id": "standard_architecture_vector_service_standards",
   "version": "1.0.0",
   "title": "Architecture Standard \u2013 Vector Service Standards",
-  "type": "standard_architecture",
+  "type": "policy",
   "status": "active",
   "owners": {
     "accountable": "Architecture Owner",
@@ -13,7 +13,7 @@
   "review": {
     "frequency": "12 months"
   },
-  "schema_id": "policy.structure",
+  "schema_id": "meta.policy",
   "policy_id": "vector_service_standards",
   "category": "infrastructure",
   "layer": "body",

@@ -1,0 +1,2213 @@
+{
+  "repo_root": "/opt/dev/CORE",
+  "policy_root": "/opt/dev/CORE/.intent/policies",
+  "meta": {
+    "policies_scanned": 27,
+    "rules_declared_count": 248,
+    "rules_expected_count": 146
+  },
+  "duplicates_count": 0,
+  "duplicates": {},
+  "missing_from_policies_count": 17,
+  "missing_from_policies": [
+    "code_quality.health.module_outlier",
+    "coverage.data_missing",
+    "coverage.minimum_threshold",
+    "coverage.no_untested_commits",
+    "intent_alignment",
+    "purity.no_descriptive_pollution",
+    "purity.safety_contract_required",
+    "qa.coverage.data_missing",
+    "refactor.semantic_duplication",
+    "reuse.before_new_code",
+    "rules.must_have_statement",
+    "rules.no_placeholder_ids",
+    "rules.required_fields",
+    "safety.immutable_core_mission",
+    "safety.no_dangerous_execution",
+    "safety.single_active_constitution",
+    "structural_compliance.import_violation"
+  ],
+  "declared_but_not_expected_count": 119,
+  "declared_but_not_expected": [
+    "async.runtime.no_nested_loop_creation",
+    "atomic_actions_return_actionresult",
+    "cli.runtime.single_loop_owner",
+    "cli_commands_require_core_decorator",
+    "constitution.allow_legacy_yaml",
+    "db.cli_registry_in_db",
+    "db.cognitive_roles_in_db",
+    "db.domains_in_db",
+    "db.engine.scope.per_event_loop",
+    "db.integrity.linkage_ids_persisted",
+    "db.integrity.linkage_ids_unique",
+    "db.llm_resources_in_db",
+    "db.privacy.masking",
+    "db.privacy.no_pii_or_secrets",
+    "decorator_ordering",
+    "di.no_import_time_async_singletons",
+    "di.policy_reference",
+    "intent.proposal_file_naming",
+    "ir.notifications_required",
+    "ir.postmortem_required",
+    "ir.timeline_required",
+    "knowledge.capability_mapping_ssot_is_links",
+    "knowledge.limited_legacy_access",
+    "knowledge.symbols_key_is_label",
+    "layout.import_grouping",
+    "logging.structured_logging",
+    "no_duplicate_decorators",
+    "no_ui_imports_in_services",
+    "pattern_vectorization.migration.enforcement_mode",
+    "policy.partial_enforcement_declared",
+    "purity.atomic_action_contract",
+    "purity.forbidden_decorators",
+    "purity.framework_binding_limits",
+    "purity.no_inline_configuration",
+    "purity.safety_contract_presence",
+    "purity.stable_id_anchor",
+    "qa.change.evaluation_warn",
+    "qa.coverage.target_threshold",
+    "safety.runtime_contract_enforced",
+    "schemas.style.datetime_format",
+    "service_module_naming",
+    "service_must_be_headless",
+    "standard_architecture_agent_rules.pattern.cognitive_agent",
+    "standard_architecture_agent_rules.pattern.learning_agent",
+    "standard_architecture_agent_rules.pattern.orchestrator_agent",
+    "standard_architecture_agent_rules.pattern.validator_agent",
+    "standard_architecture_body_contracts.action_results.0",
+    "standard_architecture_body_contracts.action_results.1",
+    "standard_architecture_body_contracts.action_results.2",
+    "standard_architecture_body_contracts.action_results.3",
+    "standard_architecture_body_contracts.action_results.4",
+    "standard_architecture_body_contracts.configuration_access.0",
+    "standard_architecture_body_contracts.configuration_access.1",
+    "standard_architecture_body_contracts.configuration_access.2",
+    "standard_architecture_body_contracts.configuration_access.3",
+    "standard_architecture_body_contracts.dependencies.0",
+    "standard_architecture_body_contracts.dependencies.1",
+    "standard_architecture_body_contracts.dependencies.2",
+    "standard_architecture_body_contracts.error_handling.0",
+    "standard_architecture_body_contracts.error_handling.1",
+    "standard_architecture_body_contracts.error_handling.2",
+    "standard_architecture_body_contracts.error_handling.3",
+    "standard_architecture_body_contracts.error_handling.4",
+    "standard_architecture_body_contracts.headless_rules.0",
+    "standard_architecture_body_contracts.headless_rules.1",
+    "standard_architecture_body_contracts.headless_rules.2",
+    "standard_architecture_body_contracts.headless_rules.3",
+    "standard_architecture_body_contracts.headless_rules.4",
+    "standard_architecture_body_contracts.logging.0",
+    "standard_architecture_body_contracts.logging.1",
+    "standard_architecture_body_contracts.logging.2",
+    "standard_architecture_body_contracts.logging.3",
+    "standard_architecture_body_contracts.logging.4",
+    "standard_architecture_body_contracts.logging.5",
+    "standard_architecture_body_contracts.logging.6",
+    "standard_architecture_body_contracts.side_effects.0",
+    "standard_architecture_body_contracts.side_effects.1",
+    "standard_architecture_body_contracts.side_effects.2",
+    "standard_architecture_body_contracts.side_effects.3",
+    "standard_architecture_body_contracts.testing_contract.0",
+    "standard_architecture_body_contracts.testing_contract.1",
+    "standard_architecture_body_contracts.testing_contract.2",
+    "standard_architecture_body_contracts.testing_contract.3",
+    "standard_architecture_body_contracts.testing_contract.4",
+    "standard_architecture_body_contracts.write_semantics.0",
+    "standard_architecture_body_contracts.write_semantics.1",
+    "standard_architecture_body_contracts.write_semantics.2",
+    "standard_architecture_body_contracts.write_semantics.3",
+    "standard_architecture_body_contracts.write_semantics.4",
+    "standard_architecture_body_contracts.write_semantics.5",
+    "standard_architecture_command_rules.pattern.action_pattern",
+    "standard_architecture_command_rules.pattern.check_pattern",
+    "standard_architecture_command_rules.pattern.inspect_pattern",
+    "standard_architecture_command_rules.pattern.manage_pattern",
+    "standard_architecture_command_rules.pattern.run_pattern",
+    "standard_architecture_service_rules.pattern.facade_pattern",
+    "standard_architecture_service_rules.pattern.observer_pattern",
+    "standard_architecture_service_rules.pattern.repository_pattern",
+    "standard_architecture_service_rules.pattern.stateful_service",
+    "standard_architecture_service_rules.pattern.stateless_transformer",
+    "standard_architecture_workflow_rules.pattern.autonomous_workflow",
+    "standard_architecture_workflow_rules.pattern.dag_workflow",
+    "standard_architecture_workflow_rules.pattern.event_driven_workflow",
+    "standard_architecture_workflow_rules.pattern.linear_workflow",
+    "standard_architecture_workflow_rules.pattern.saga_workflow",
+    "standard_architecture_workflow_rules.ui_contract.0",
+    "standard_architecture_workflow_rules.ui_contract.1",
+    "standard_architecture_workflow_rules.ui_contract.2",
+    "standard_architecture_workflow_rules.ui_contract.3",
+    "vector.collection_lifecycle_management",
+    "vector.collection_vector_configuration",
+    "vector.vectorizer_standard_structure",
+    "workflow.workflow_ui_single_owner",
+    "workflow_composition.chain_action_pattern",
+    "workflow_composition.fail_fast",
+    "workflow_composition.idempotent",
+    "workflow_composition.progress_indication",
+    "workflow_composition.step_must_succeed",
+    "write_default_false"
+  ],
+  "prefix_summary": {
+    "agent": [
+      {
+        "file_path": ".intent/policies/architecture/agent_governance.json",
+        "count": 3
+      },
+      {
+        "file_path": ".intent/policies/operations/code_execution.json",
+        "count": 2
+      }
+    ],
+    "async": [
+      {
+        "file_path": ".intent/policies/architecture/dependency_injection.json",
+        "count": 1
+      },
+      {
+        "file_path": ".intent/policies/code/code_standards.json",
+        "count": 1
+      }
+    ],
+    "atomic": [
+      {
+        "file_path": ".intent/policies/architecture/atomic_actions.json",
+        "count": 6
+      }
+    ],
+    "atomic_actions_return_actionresult": [
+      {
+        "file_path": ".intent/policies/architecture/service_rules.json",
+        "count": 1
+      }
+    ],
+    "body": [
+      {
+        "file_path": ".intent/policies/architecture/body_contracts.json",
+        "count": 7
+      }
+    ],
+    "canary": [
+      {
+        "file_path": ".intent/policies/operations/operations.json",
+        "count": 2
+      }
+    ],
+    "caps": [
+      {
+        "file_path": ".intent/policies/code/code_standards.json",
+        "count": 4
+      }
+    ],
+    "cli": [
+      {
+        "file_path": ".intent/policies/architecture/command_rules.json",
+        "count": 1
+      }
+    ],
+    "cli_commands_require_core_decorator": [
+      {
+        "file_path": ".intent/policies/architecture/decorator_governance.json",
+        "count": 1
+      }
+    ],
+    "code": [
+      {
+        "file_path": ".intent/policies/code/code_standards.json",
+        "count": 2
+      }
+    ],
+    "code_standards": [
+      {
+        "file_path": ".intent/policies/code/code_standards.json",
+        "count": 2
+      }
+    ],
+    "constitution": [
+      {
+        "file_path": ".intent/policies/operations/constitution_format.json",
+        "count": 2
+      }
+    ],
+    "db": [
+      {
+        "file_path": ".intent/policies/data/governance.json",
+        "count": 11
+      },
+      {
+        "file_path": ".intent/policies/architecture/dependency_injection.json",
+        "count": 1
+      }
+    ],
+    "decorator_ordering": [
+      {
+        "file_path": ".intent/policies/architecture/decorator_governance.json",
+        "count": 1
+      }
+    ],
+    "dev_fastpath": [
+      {
+        "file_path": ".intent/policies/operations/operations.json",
+        "count": 1
+      }
+    ],
+    "di": [
+      {
+        "file_path": ".intent/policies/architecture/dependency_injection.json",
+        "count": 4
+      },
+      {
+        "file_path": ".intent/policies/code/code_standards.json",
+        "count": 1
+      }
+    ],
+    "events": [
+      {
+        "file_path": ".intent/policies/architecture/event_schema_standard.json",
+        "count": 3
+      }
+    ],
+    "integration": [
+      {
+        "file_path": ".intent/policies/operations/operations.json",
+        "count": 6
+      }
+    ],
+    "intent": [
+      {
+        "file_path": ".intent/policies/code/code_standards.json",
+        "count": 5
+      },
+      {
+        "file_path": ".intent/policies/operations/operations.json",
+        "count": 3
+      }
+    ],
+    "ir": [
+      {
+        "file_path": ".intent/policies/operations/operations.json",
+        "count": 4
+      }
+    ],
+    "knowledge": [
+      {
+        "file_path": ".intent/policies/data/governance.json",
+        "count": 4
+      }
+    ],
+    "layout": [
+      {
+        "file_path": ".intent/policies/code/code_standards.json",
+        "count": 2
+      }
+    ],
+    "linkage": [
+      {
+        "file_path": ".intent/policies/code/linkage_standards.json",
+        "count": 2
+      }
+    ],
+    "logging": [
+      {
+        "file_path": ".intent/policies/operations/logging_standards.json",
+        "count": 7
+      }
+    ],
+    "no_duplicate_decorators": [
+      {
+        "file_path": ".intent/policies/architecture/decorator_governance.json",
+        "count": 1
+      }
+    ],
+    "no_ui_imports_in_services": [
+      {
+        "file_path": ".intent/policies/architecture/service_rules.json",
+        "count": 1
+      }
+    ],
+    "observability": [
+      {
+        "file_path": ".intent/policies/operations/observability.json",
+        "count": 3
+      }
+    ],
+    "operations": [
+      {
+        "file_path": ".intent/policies/operations/operations.json",
+        "count": 1
+      }
+    ],
+    "pattern_vectorization": [
+      {
+        "file_path": ".intent/policies/operations/pattern_vectorization.json",
+        "count": 8
+      }
+    ],
+    "policy": [
+      {
+        "file_path": ".intent/policies/architecture/policy_integrity.json",
+        "count": 3
+      }
+    ],
+    "purity": [
+      {
+        "file_path": ".intent/policies/code/purity.json",
+        "count": 6
+      }
+    ],
+    "qa": [
+      {
+        "file_path": ".intent/policies/operations/quality_assurance.json",
+        "count": 19
+      }
+    ],
+    "refactor": [
+      {
+        "file_path": ".intent/policies/code/code_standards.json",
+        "count": 3
+      }
+    ],
+    "safety": [
+      {
+        "file_path": ".intent/policies/operations/safety.json",
+        "count": 7
+      }
+    ],
+    "schemas": [
+      {
+        "file_path": ".intent/policies/architecture/schema_format.json",
+        "count": 4
+      }
+    ],
+    "secrets": [
+      {
+        "file_path": ".intent/policies/operations/secrets_management.json",
+        "count": 4
+      }
+    ],
+    "service_module_naming": [
+      {
+        "file_path": ".intent/policies/architecture/service_rules.json",
+        "count": 1
+      }
+    ],
+    "service_must_be_headless": [
+      {
+        "file_path": ".intent/policies/architecture/service_rules.json",
+        "count": 1
+      }
+    ],
+    "standard_architecture_agent_rules": [
+      {
+        "file_path": ".intent/policies/architecture/agent_governance_rules.json",
+        "count": 4
+      }
+    ],
+    "standard_architecture_body_contracts": [
+      {
+        "file_path": ".intent/policies/architecture/body_contracts.json",
+        "count": 44
+      }
+    ],
+    "standard_architecture_command_rules": [
+      {
+        "file_path": ".intent/policies/architecture/command_rules.json",
+        "count": 5
+      }
+    ],
+    "standard_architecture_service_rules": [
+      {
+        "file_path": ".intent/policies/architecture/service_rules.json",
+        "count": 5
+      }
+    ],
+    "standard_architecture_workflow_rules": [
+      {
+        "file_path": ".intent/policies/architecture/workflow_rules.json",
+        "count": 9
+      }
+    ],
+    "style": [
+      {
+        "file_path": ".intent/policies/code/code_standards.json",
+        "count": 7
+      }
+    ],
+    "symbols": [
+      {
+        "file_path": ".intent/policies/code/code_standards.json",
+        "count": 3
+      }
+    ],
+    "tools": [
+      {
+        "file_path": ".intent/policies/architecture/tool_definition_standard.json",
+        "count": 2
+      }
+    ],
+    "vector": [
+      {
+        "file_path": ".intent/policies/architecture/vector_service_standards.json",
+        "count": 10
+      }
+    ],
+    "workflow": [
+      {
+        "file_path": ".intent/policies/architecture/workflow_rules.json",
+        "count": 1
+      }
+    ],
+    "workflow_composition": [
+      {
+        "file_path": ".intent/policies/architecture/command_rules.json",
+        "count": 5
+      }
+    ],
+    "write_default_false": [
+      {
+        "file_path": ".intent/policies/architecture/service_rules.json",
+        "count": 1
+      }
+    ]
+  },
+  "rule_index": {
+    "agent.compliance.no_write_intent": [
+      {
+        "file_path": ".intent/policies/architecture/agent_governance.json",
+        "index": 0,
+        "rule_id": "agent.compliance.no_write_intent"
+      }
+    ],
+    "agent.compliance.respect_cli_registry": [
+      {
+        "file_path": ".intent/policies/architecture/agent_governance.json",
+        "index": 1,
+        "rule_id": "agent.compliance.respect_cli_registry"
+      }
+    ],
+    "agent.reasoning.trace_required": [
+      {
+        "file_path": ".intent/policies/architecture/agent_governance.json",
+        "index": 2,
+        "rule_id": "agent.reasoning.trace_required"
+      }
+    ],
+    "standard_architecture_agent_rules.pattern.cognitive_agent": [
+      {
+        "file_path": ".intent/policies/architecture/agent_governance_rules.json",
+        "index": 0,
+        "rule_id": "standard_architecture_agent_rules.pattern.cognitive_agent"
+      }
+    ],
+    "standard_architecture_agent_rules.pattern.orchestrator_agent": [
+      {
+        "file_path": ".intent/policies/architecture/agent_governance_rules.json",
+        "index": 1,
+        "rule_id": "standard_architecture_agent_rules.pattern.orchestrator_agent"
+      }
+    ],
+    "standard_architecture_agent_rules.pattern.validator_agent": [
+      {
+        "file_path": ".intent/policies/architecture/agent_governance_rules.json",
+        "index": 2,
+        "rule_id": "standard_architecture_agent_rules.pattern.validator_agent"
+      }
+    ],
+    "standard_architecture_agent_rules.pattern.learning_agent": [
+      {
+        "file_path": ".intent/policies/architecture/agent_governance_rules.json",
+        "index": 3,
+        "rule_id": "standard_architecture_agent_rules.pattern.learning_agent"
+      }
+    ],
+    "atomic.action_must_return_result": [
+      {
+        "file_path": ".intent/policies/architecture/atomic_actions.json",
+        "index": 0,
+        "rule_id": "atomic.action_must_return_result"
+      }
+    ],
+    "atomic.result_must_be_structured": [
+      {
+        "file_path": ".intent/policies/architecture/atomic_actions.json",
+        "index": 1,
+        "rule_id": "atomic.result_must_be_structured"
+      }
+    ],
+    "atomic.workflow_must_declare_intent": [
+      {
+        "file_path": ".intent/policies/architecture/atomic_actions.json",
+        "index": 2,
+        "rule_id": "atomic.workflow_must_declare_intent"
+      }
+    ],
+    "atomic.actions_compose_transitively": [
+      {
+        "file_path": ".intent/policies/architecture/atomic_actions.json",
+        "index": 3,
+        "rule_id": "atomic.actions_compose_transitively"
+      }
+    ],
+    "atomic.governance_never_bypassed": [
+      {
+        "file_path": ".intent/policies/architecture/atomic_actions.json",
+        "index": 4,
+        "rule_id": "atomic.governance_never_bypassed"
+      }
+    ],
+    "atomic.action_must_be_headless": [
+      {
+        "file_path": ".intent/policies/architecture/atomic_actions.json",
+        "index": 5,
+        "rule_id": "atomic.action_must_be_headless"
+      }
+    ],
+    "body.no_ui_imports_in_body": [
+      {
+        "file_path": ".intent/policies/architecture/body_contracts.json",
+        "index": 0,
+        "rule_id": "body.no_ui_imports_in_body"
+      }
+    ],
+    "body.no_print_or_input_in_body": [
+      {
+        "file_path": ".intent/policies/architecture/body_contracts.json",
+        "index": 1,
+        "rule_id": "body.no_print_or_input_in_body"
+      }
+    ],
+    "body.write_defaults_false": [
+      {
+        "file_path": ".intent/policies/architecture/body_contracts.json",
+        "index": 2,
+        "rule_id": "body.write_defaults_false"
+      }
+    ],
+    "body.atomic_actions_use_actionresult": [
+      {
+        "file_path": ".intent/policies/architecture/body_contracts.json",
+        "index": 3,
+        "rule_id": "body.atomic_actions_use_actionresult"
+      }
+    ],
+    "body.actionresult_data_json_safe": [
+      {
+        "file_path": ".intent/policies/architecture/body_contracts.json",
+        "index": 4,
+        "rule_id": "body.actionresult_data_json_safe"
+      }
+    ],
+    "body.no_envvar_access_in_body": [
+      {
+        "file_path": ".intent/policies/architecture/body_contracts.json",
+        "index": 5,
+        "rule_id": "body.no_envvar_access_in_body"
+      }
+    ],
+    "body.dependency_injection_preferred": [
+      {
+        "file_path": ".intent/policies/architecture/body_contracts.json",
+        "index": 6,
+        "rule_id": "body.dependency_injection_preferred"
+      }
+    ],
+    "standard_architecture_body_contracts.headless_rules.0": [
+      {
+        "file_path": ".intent/policies/architecture/body_contracts.json",
+        "index": 7,
+        "rule_id": "standard_architecture_body_contracts.headless_rules.0"
+      }
+    ],
+    "standard_architecture_body_contracts.headless_rules.1": [
+      {
+        "file_path": ".intent/policies/architecture/body_contracts.json",
+        "index": 8,
+        "rule_id": "standard_architecture_body_contracts.headless_rules.1"
+      }
+    ],
+    "standard_architecture_body_contracts.headless_rules.2": [
+      {
+        "file_path": ".intent/policies/architecture/body_contracts.json",
+        "index": 9,
+        "rule_id": "standard_architecture_body_contracts.headless_rules.2"
+      }
+    ],
+    "standard_architecture_body_contracts.headless_rules.3": [
+      {
+        "file_path": ".intent/policies/architecture/body_contracts.json",
+        "index": 10,
+        "rule_id": "standard_architecture_body_contracts.headless_rules.3"
+      }
+    ],
+    "standard_architecture_body_contracts.headless_rules.4": [
+      {
+        "file_path": ".intent/policies/architecture/body_contracts.json",
+        "index": 11,
+        "rule_id": "standard_architecture_body_contracts.headless_rules.4"
+      }
+    ],
+    "standard_architecture_body_contracts.write_semantics.0": [
+      {
+        "file_path": ".intent/policies/architecture/body_contracts.json",
+        "index": 12,
+        "rule_id": "standard_architecture_body_contracts.write_semantics.0"
+      }
+    ],
+    "standard_architecture_body_contracts.write_semantics.1": [
+      {
+        "file_path": ".intent/policies/architecture/body_contracts.json",
+        "index": 13,
+        "rule_id": "standard_architecture_body_contracts.write_semantics.1"
+      }
+    ],
+    "standard_architecture_body_contracts.write_semantics.2": [
+      {
+        "file_path": ".intent/policies/architecture/body_contracts.json",
+        "index": 14,
+        "rule_id": "standard_architecture_body_contracts.write_semantics.2"
+      }
+    ],
+    "standard_architecture_body_contracts.write_semantics.3": [
+      {
+        "file_path": ".intent/policies/architecture/body_contracts.json",
+        "index": 15,
+        "rule_id": "standard_architecture_body_contracts.write_semantics.3"
+      }
+    ],
+    "standard_architecture_body_contracts.write_semantics.4": [
+      {
+        "file_path": ".intent/policies/architecture/body_contracts.json",
+        "index": 16,
+        "rule_id": "standard_architecture_body_contracts.write_semantics.4"
+      }
+    ],
+    "standard_architecture_body_contracts.write_semantics.5": [
+      {
+        "file_path": ".intent/policies/architecture/body_contracts.json",
+        "index": 17,
+        "rule_id": "standard_architecture_body_contracts.write_semantics.5"
+      }
+    ],
+    "standard_architecture_body_contracts.action_results.0": [
+      {
+        "file_path": ".intent/policies/architecture/body_contracts.json",
+        "index": 18,
+        "rule_id": "standard_architecture_body_contracts.action_results.0"
+      }
+    ],
+    "standard_architecture_body_contracts.action_results.1": [
+      {
+        "file_path": ".intent/policies/architecture/body_contracts.json",
+        "index": 19,
+        "rule_id": "standard_architecture_body_contracts.action_results.1"
+      }
+    ],
+    "standard_architecture_body_contracts.action_results.2": [
+      {
+        "file_path": ".intent/policies/architecture/body_contracts.json",
+        "index": 20,
+        "rule_id": "standard_architecture_body_contracts.action_results.2"
+      }
+    ],
+    "standard_architecture_body_contracts.action_results.3": [
+      {
+        "file_path": ".intent/policies/architecture/body_contracts.json",
+        "index": 21,
+        "rule_id": "standard_architecture_body_contracts.action_results.3"
+      }
+    ],
+    "standard_architecture_body_contracts.action_results.4": [
+      {
+        "file_path": ".intent/policies/architecture/body_contracts.json",
+        "index": 22,
+        "rule_id": "standard_architecture_body_contracts.action_results.4"
+      }
+    ],
+    "standard_architecture_body_contracts.logging.0": [
+      {
+        "file_path": ".intent/policies/architecture/body_contracts.json",
+        "index": 23,
+        "rule_id": "standard_architecture_body_contracts.logging.0"
+      }
+    ],
+    "standard_architecture_body_contracts.logging.1": [
+      {
+        "file_path": ".intent/policies/architecture/body_contracts.json",
+        "index": 24,
+        "rule_id": "standard_architecture_body_contracts.logging.1"
+      }
+    ],
+    "standard_architecture_body_contracts.logging.2": [
+      {
+        "file_path": ".intent/policies/architecture/body_contracts.json",
+        "index": 25,
+        "rule_id": "standard_architecture_body_contracts.logging.2"
+      }
+    ],
+    "standard_architecture_body_contracts.logging.3": [
+      {
+        "file_path": ".intent/policies/architecture/body_contracts.json",
+        "index": 26,
+        "rule_id": "standard_architecture_body_contracts.logging.3"
+      }
+    ],
+    "standard_architecture_body_contracts.logging.4": [
+      {
+        "file_path": ".intent/policies/architecture/body_contracts.json",
+        "index": 27,
+        "rule_id": "standard_architecture_body_contracts.logging.4"
+      }
+    ],
+    "standard_architecture_body_contracts.logging.5": [
+      {
+        "file_path": ".intent/policies/architecture/body_contracts.json",
+        "index": 28,
+        "rule_id": "standard_architecture_body_contracts.logging.5"
+      }
+    ],
+    "standard_architecture_body_contracts.logging.6": [
+      {
+        "file_path": ".intent/policies/architecture/body_contracts.json",
+        "index": 29,
+        "rule_id": "standard_architecture_body_contracts.logging.6"
+      }
+    ],
+    "standard_architecture_body_contracts.error_handling.0": [
+      {
+        "file_path": ".intent/policies/architecture/body_contracts.json",
+        "index": 30,
+        "rule_id": "standard_architecture_body_contracts.error_handling.0"
+      }
+    ],
+    "standard_architecture_body_contracts.error_handling.1": [
+      {
+        "file_path": ".intent/policies/architecture/body_contracts.json",
+        "index": 31,
+        "rule_id": "standard_architecture_body_contracts.error_handling.1"
+      }
+    ],
+    "standard_architecture_body_contracts.error_handling.2": [
+      {
+        "file_path": ".intent/policies/architecture/body_contracts.json",
+        "index": 32,
+        "rule_id": "standard_architecture_body_contracts.error_handling.2"
+      }
+    ],
+    "standard_architecture_body_contracts.error_handling.3": [
+      {
+        "file_path": ".intent/policies/architecture/body_contracts.json",
+        "index": 33,
+        "rule_id": "standard_architecture_body_contracts.error_handling.3"
+      }
+    ],
+    "standard_architecture_body_contracts.error_handling.4": [
+      {
+        "file_path": ".intent/policies/architecture/body_contracts.json",
+        "index": 34,
+        "rule_id": "standard_architecture_body_contracts.error_handling.4"
+      }
+    ],
+    "standard_architecture_body_contracts.side_effects.0": [
+      {
+        "file_path": ".intent/policies/architecture/body_contracts.json",
+        "index": 35,
+        "rule_id": "standard_architecture_body_contracts.side_effects.0"
+      }
+    ],
+    "standard_architecture_body_contracts.side_effects.1": [
+      {
+        "file_path": ".intent/policies/architecture/body_contracts.json",
+        "index": 36,
+        "rule_id": "standard_architecture_body_contracts.side_effects.1"
+      }
+    ],
+    "standard_architecture_body_contracts.side_effects.2": [
+      {
+        "file_path": ".intent/policies/architecture/body_contracts.json",
+        "index": 37,
+        "rule_id": "standard_architecture_body_contracts.side_effects.2"
+      }
+    ],
+    "standard_architecture_body_contracts.side_effects.3": [
+      {
+        "file_path": ".intent/policies/architecture/body_contracts.json",
+        "index": 38,
+        "rule_id": "standard_architecture_body_contracts.side_effects.3"
+      }
+    ],
+    "standard_architecture_body_contracts.configuration_access.0": [
+      {
+        "file_path": ".intent/policies/architecture/body_contracts.json",
+        "index": 39,
+        "rule_id": "standard_architecture_body_contracts.configuration_access.0"
+      }
+    ],
+    "standard_architecture_body_contracts.configuration_access.1": [
+      {
+        "file_path": ".intent/policies/architecture/body_contracts.json",
+        "index": 40,
+        "rule_id": "standard_architecture_body_contracts.configuration_access.1"
+      }
+    ],
+    "standard_architecture_body_contracts.configuration_access.2": [
+      {
+        "file_path": ".intent/policies/architecture/body_contracts.json",
+        "index": 41,
+        "rule_id": "standard_architecture_body_contracts.configuration_access.2"
+      }
+    ],
+    "standard_architecture_body_contracts.configuration_access.3": [
+      {
+        "file_path": ".intent/policies/architecture/body_contracts.json",
+        "index": 42,
+        "rule_id": "standard_architecture_body_contracts.configuration_access.3"
+      }
+    ],
+    "standard_architecture_body_contracts.dependencies.0": [
+      {
+        "file_path": ".intent/policies/architecture/body_contracts.json",
+        "index": 43,
+        "rule_id": "standard_architecture_body_contracts.dependencies.0"
+      }
+    ],
+    "standard_architecture_body_contracts.dependencies.1": [
+      {
+        "file_path": ".intent/policies/architecture/body_contracts.json",
+        "index": 44,
+        "rule_id": "standard_architecture_body_contracts.dependencies.1"
+      }
+    ],
+    "standard_architecture_body_contracts.dependencies.2": [
+      {
+        "file_path": ".intent/policies/architecture/body_contracts.json",
+        "index": 45,
+        "rule_id": "standard_architecture_body_contracts.dependencies.2"
+      }
+    ],
+    "standard_architecture_body_contracts.testing_contract.0": [
+      {
+        "file_path": ".intent/policies/architecture/body_contracts.json",
+        "index": 46,
+        "rule_id": "standard_architecture_body_contracts.testing_contract.0"
+      }
+    ],
+    "standard_architecture_body_contracts.testing_contract.1": [
+      {
+        "file_path": ".intent/policies/architecture/body_contracts.json",
+        "index": 47,
+        "rule_id": "standard_architecture_body_contracts.testing_contract.1"
+      }
+    ],
+    "standard_architecture_body_contracts.testing_contract.2": [
+      {
+        "file_path": ".intent/policies/architecture/body_contracts.json",
+        "index": 48,
+        "rule_id": "standard_architecture_body_contracts.testing_contract.2"
+      }
+    ],
+    "standard_architecture_body_contracts.testing_contract.3": [
+      {
+        "file_path": ".intent/policies/architecture/body_contracts.json",
+        "index": 49,
+        "rule_id": "standard_architecture_body_contracts.testing_contract.3"
+      }
+    ],
+    "standard_architecture_body_contracts.testing_contract.4": [
+      {
+        "file_path": ".intent/policies/architecture/body_contracts.json",
+        "index": 50,
+        "rule_id": "standard_architecture_body_contracts.testing_contract.4"
+      }
+    ],
+    "workflow_composition.chain_action_pattern": [
+      {
+        "file_path": ".intent/policies/architecture/command_rules.json",
+        "index": 0,
+        "rule_id": "workflow_composition.chain_action_pattern"
+      }
+    ],
+    "workflow_composition.step_must_succeed": [
+      {
+        "file_path": ".intent/policies/architecture/command_rules.json",
+        "index": 1,
+        "rule_id": "workflow_composition.step_must_succeed"
+      }
+    ],
+    "workflow_composition.idempotent": [
+      {
+        "file_path": ".intent/policies/architecture/command_rules.json",
+        "index": 2,
+        "rule_id": "workflow_composition.idempotent"
+      }
+    ],
+    "workflow_composition.progress_indication": [
+      {
+        "file_path": ".intent/policies/architecture/command_rules.json",
+        "index": 3,
+        "rule_id": "workflow_composition.progress_indication"
+      }
+    ],
+    "workflow_composition.fail_fast": [
+      {
+        "file_path": ".intent/policies/architecture/command_rules.json",
+        "index": 4,
+        "rule_id": "workflow_composition.fail_fast"
+      }
+    ],
+    "cli.runtime.single_loop_owner": [
+      {
+        "file_path": ".intent/policies/architecture/command_rules.json",
+        "index": 5,
+        "rule_id": "cli.runtime.single_loop_owner"
+      }
+    ],
+    "standard_architecture_command_rules.pattern.inspect_pattern": [
+      {
+        "file_path": ".intent/policies/architecture/command_rules.json",
+        "index": 6,
+        "rule_id": "standard_architecture_command_rules.pattern.inspect_pattern"
+      }
+    ],
+    "standard_architecture_command_rules.pattern.action_pattern": [
+      {
+        "file_path": ".intent/policies/architecture/command_rules.json",
+        "index": 7,
+        "rule_id": "standard_architecture_command_rules.pattern.action_pattern"
+      }
+    ],
+    "standard_architecture_command_rules.pattern.check_pattern": [
+      {
+        "file_path": ".intent/policies/architecture/command_rules.json",
+        "index": 8,
+        "rule_id": "standard_architecture_command_rules.pattern.check_pattern"
+      }
+    ],
+    "standard_architecture_command_rules.pattern.run_pattern": [
+      {
+        "file_path": ".intent/policies/architecture/command_rules.json",
+        "index": 9,
+        "rule_id": "standard_architecture_command_rules.pattern.run_pattern"
+      }
+    ],
+    "standard_architecture_command_rules.pattern.manage_pattern": [
+      {
+        "file_path": ".intent/policies/architecture/command_rules.json",
+        "index": 10,
+        "rule_id": "standard_architecture_command_rules.pattern.manage_pattern"
+      }
+    ],
+    "cli_commands_require_core_decorator": [
+      {
+        "file_path": ".intent/policies/architecture/decorator_governance.json",
+        "index": 0,
+        "rule_id": "cli_commands_require_core_decorator"
+      }
+    ],
+    "decorator_ordering": [
+      {
+        "file_path": ".intent/policies/architecture/decorator_governance.json",
+        "index": 1,
+        "rule_id": "decorator_ordering"
+      }
+    ],
+    "no_duplicate_decorators": [
+      {
+        "file_path": ".intent/policies/architecture/decorator_governance.json",
+        "index": 2,
+        "rule_id": "no_duplicate_decorators"
+      }
+    ],
+    "di.no_direct_instantiation": [
+      {
+        "file_path": ".intent/policies/architecture/dependency_injection.json",
+        "index": 0,
+        "rule_id": "di.no_direct_instantiation"
+      }
+    ],
+    "di.no_global_session_import": [
+      {
+        "file_path": ".intent/policies/architecture/dependency_injection.json",
+        "index": 1,
+        "rule_id": "di.no_global_session_import"
+      }
+    ],
+    "di.constructor_injection_preferred": [
+      {
+        "file_path": ".intent/policies/architecture/dependency_injection.json",
+        "index": 2,
+        "rule_id": "di.constructor_injection_preferred"
+      }
+    ],
+    "di.no_import_time_async_singletons": [
+      {
+        "file_path": ".intent/policies/architecture/dependency_injection.json",
+        "index": 3,
+        "rule_id": "di.no_import_time_async_singletons"
+      }
+    ],
+    "async.runtime.no_nested_loop_creation": [
+      {
+        "file_path": ".intent/policies/architecture/dependency_injection.json",
+        "index": 4,
+        "rule_id": "async.runtime.no_nested_loop_creation"
+      }
+    ],
+    "db.engine.scope.per_event_loop": [
+      {
+        "file_path": ".intent/policies/architecture/dependency_injection.json",
+        "index": 5,
+        "rule_id": "db.engine.scope.per_event_loop"
+      }
+    ],
+    "events.cloudevents_compliance": [
+      {
+        "file_path": ".intent/policies/architecture/event_schema_standard.json",
+        "index": 0,
+        "rule_id": "events.cloudevents_compliance"
+      }
+    ],
+    "events.topic_naming": [
+      {
+        "file_path": ".intent/policies/architecture/event_schema_standard.json",
+        "index": 1,
+        "rule_id": "events.topic_naming"
+      }
+    ],
+    "events.payload_immutability": [
+      {
+        "file_path": ".intent/policies/architecture/event_schema_standard.json",
+        "index": 2,
+        "rule_id": "events.payload_immutability"
+      }
+    ],
+    "policy.duplicate_rule_id_consistency": [
+      {
+        "file_path": ".intent/policies/architecture/policy_integrity.json",
+        "index": 0,
+        "rule_id": "policy.duplicate_rule_id_consistency"
+      }
+    ],
+    "policy.cross_reference_documented": [
+      {
+        "file_path": ".intent/policies/architecture/policy_integrity.json",
+        "index": 1,
+        "rule_id": "policy.cross_reference_documented"
+      }
+    ],
+    "policy.partial_enforcement_declared": [
+      {
+        "file_path": ".intent/policies/architecture/policy_integrity.json",
+        "index": 2,
+        "rule_id": "policy.partial_enforcement_declared"
+      }
+    ],
+    "schemas.dialect.standard_json_schema": [
+      {
+        "file_path": ".intent/policies/architecture/schema_format.json",
+        "index": 0,
+        "rule_id": "schemas.dialect.standard_json_schema"
+      }
+    ],
+    "schemas.dialect.forbid_nullable_keyword": [
+      {
+        "file_path": ".intent/policies/architecture/schema_format.json",
+        "index": 1,
+        "rule_id": "schemas.dialect.forbid_nullable_keyword"
+      }
+    ],
+    "schemas.style.closed_objects.root": [
+      {
+        "file_path": ".intent/policies/architecture/schema_format.json",
+        "index": 2,
+        "rule_id": "schemas.style.closed_objects.root"
+      }
+    ],
+    "schemas.style.datetime_format": [
+      {
+        "file_path": ".intent/policies/architecture/schema_format.json",
+        "index": 3,
+        "rule_id": "schemas.style.datetime_format"
+      }
+    ],
+    "service_must_be_headless": [
+      {
+        "file_path": ".intent/policies/architecture/service_rules.json",
+        "index": 0,
+        "rule_id": "service_must_be_headless"
+      }
+    ],
+    "atomic_actions_return_actionresult": [
+      {
+        "file_path": ".intent/policies/architecture/service_rules.json",
+        "index": 1,
+        "rule_id": "atomic_actions_return_actionresult"
+      }
+    ],
+    "write_default_false": [
+      {
+        "file_path": ".intent/policies/architecture/service_rules.json",
+        "index": 2,
+        "rule_id": "write_default_false"
+      }
+    ],
+    "no_ui_imports_in_services": [
+      {
+        "file_path": ".intent/policies/architecture/service_rules.json",
+        "index": 3,
+        "rule_id": "no_ui_imports_in_services"
+      }
+    ],
+    "service_module_naming": [
+      {
+        "file_path": ".intent/policies/architecture/service_rules.json",
+        "index": 4,
+        "rule_id": "service_module_naming"
+      }
+    ],
+    "standard_architecture_service_rules.pattern.stateful_service": [
+      {
+        "file_path": ".intent/policies/architecture/service_rules.json",
+        "index": 5,
+        "rule_id": "standard_architecture_service_rules.pattern.stateful_service"
+      }
+    ],
+    "standard_architecture_service_rules.pattern.stateless_transformer": [
+      {
+        "file_path": ".intent/policies/architecture/service_rules.json",
+        "index": 6,
+        "rule_id": "standard_architecture_service_rules.pattern.stateless_transformer"
+      }
+    ],
+    "standard_architecture_service_rules.pattern.repository_pattern": [
+      {
+        "file_path": ".intent/policies/architecture/service_rules.json",
+        "index": 7,
+        "rule_id": "standard_architecture_service_rules.pattern.repository_pattern"
+      }
+    ],
+    "standard_architecture_service_rules.pattern.facade_pattern": [
+      {
+        "file_path": ".intent/policies/architecture/service_rules.json",
+        "index": 8,
+        "rule_id": "standard_architecture_service_rules.pattern.facade_pattern"
+      }
+    ],
+    "standard_architecture_service_rules.pattern.observer_pattern": [
+      {
+        "file_path": ".intent/policies/architecture/service_rules.json",
+        "index": 9,
+        "rule_id": "standard_architecture_service_rules.pattern.observer_pattern"
+      }
+    ],
+    "tools.explicit_return_contract": [
+      {
+        "file_path": ".intent/policies/architecture/tool_definition_standard.json",
+        "index": 0,
+        "rule_id": "tools.explicit_return_contract"
+      }
+    ],
+    "tools.type_mapping_strictness": [
+      {
+        "file_path": ".intent/policies/architecture/tool_definition_standard.json",
+        "index": 1,
+        "rule_id": "tools.type_mapping_strictness"
+      }
+    ],
+    "vector.deterministic_id_generation": [
+      {
+        "file_path": ".intent/policies/architecture/vector_service_standards.json",
+        "index": 0,
+        "rule_id": "vector.deterministic_id_generation"
+      }
+    ],
+    "vector.mandatory_hashing": [
+      {
+        "file_path": ".intent/policies/architecture/vector_service_standards.json",
+        "index": 1,
+        "rule_id": "vector.mandatory_hashing"
+      }
+    ],
+    "vector.service_method_usage": [
+      {
+        "file_path": ".intent/policies/architecture/vector_service_standards.json",
+        "index": 2,
+        "rule_id": "vector.service_method_usage"
+      }
+    ],
+    "vector.standardized_payloads": [
+      {
+        "file_path": ".intent/policies/architecture/vector_service_standards.json",
+        "index": 3,
+        "rule_id": "vector.standardized_payloads"
+      }
+    ],
+    "vector.scroll_pagination": [
+      {
+        "file_path": ".intent/policies/architecture/vector_service_standards.json",
+        "index": 4,
+        "rule_id": "vector.scroll_pagination"
+      }
+    ],
+    "vector.bidirectional_sync_integrity": [
+      {
+        "file_path": ".intent/policies/architecture/vector_service_standards.json",
+        "index": 5,
+        "rule_id": "vector.bidirectional_sync_integrity"
+      }
+    ],
+    "vector.collection_naming_convention": [
+      {
+        "file_path": ".intent/policies/architecture/vector_service_standards.json",
+        "index": 6,
+        "rule_id": "vector.collection_naming_convention"
+      }
+    ],
+    "vector.collection_vector_configuration": [
+      {
+        "file_path": ".intent/policies/architecture/vector_service_standards.json",
+        "index": 7,
+        "rule_id": "vector.collection_vector_configuration"
+      }
+    ],
+    "vector.collection_lifecycle_management": [
+      {
+        "file_path": ".intent/policies/architecture/vector_service_standards.json",
+        "index": 8,
+        "rule_id": "vector.collection_lifecycle_management"
+      }
+    ],
+    "vector.vectorizer_standard_structure": [
+      {
+        "file_path": ".intent/policies/architecture/vector_service_standards.json",
+        "index": 9,
+        "rule_id": "vector.vectorizer_standard_structure"
+      }
+    ],
+    "workflow.workflow_ui_single_owner": [
+      {
+        "file_path": ".intent/policies/architecture/workflow_rules.json",
+        "index": 0,
+        "rule_id": "workflow.workflow_ui_single_owner"
+      }
+    ],
+    "standard_architecture_workflow_rules.ui_contract.0": [
+      {
+        "file_path": ".intent/policies/architecture/workflow_rules.json",
+        "index": 1,
+        "rule_id": "standard_architecture_workflow_rules.ui_contract.0"
+      }
+    ],
+    "standard_architecture_workflow_rules.ui_contract.1": [
+      {
+        "file_path": ".intent/policies/architecture/workflow_rules.json",
+        "index": 2,
+        "rule_id": "standard_architecture_workflow_rules.ui_contract.1"
+      }
+    ],
+    "standard_architecture_workflow_rules.ui_contract.2": [
+      {
+        "file_path": ".intent/policies/architecture/workflow_rules.json",
+        "index": 3,
+        "rule_id": "standard_architecture_workflow_rules.ui_contract.2"
+      }
+    ],
+    "standard_architecture_workflow_rules.ui_contract.3": [
+      {
+        "file_path": ".intent/policies/architecture/workflow_rules.json",
+        "index": 4,
+        "rule_id": "standard_architecture_workflow_rules.ui_contract.3"
+      }
+    ],
+    "standard_architecture_workflow_rules.pattern.linear_workflow": [
+      {
+        "file_path": ".intent/policies/architecture/workflow_rules.json",
+        "index": 5,
+        "rule_id": "standard_architecture_workflow_rules.pattern.linear_workflow"
+      }
+    ],
+    "standard_architecture_workflow_rules.pattern.dag_workflow": [
+      {
+        "file_path": ".intent/policies/architecture/workflow_rules.json",
+        "index": 6,
+        "rule_id": "standard_architecture_workflow_rules.pattern.dag_workflow"
+      }
+    ],
+    "standard_architecture_workflow_rules.pattern.saga_workflow": [
+      {
+        "file_path": ".intent/policies/architecture/workflow_rules.json",
+        "index": 7,
+        "rule_id": "standard_architecture_workflow_rules.pattern.saga_workflow"
+      }
+    ],
+    "standard_architecture_workflow_rules.pattern.event_driven_workflow": [
+      {
+        "file_path": ".intent/policies/architecture/workflow_rules.json",
+        "index": 8,
+        "rule_id": "standard_architecture_workflow_rules.pattern.event_driven_workflow"
+      }
+    ],
+    "standard_architecture_workflow_rules.pattern.autonomous_workflow": [
+      {
+        "file_path": ".intent/policies/architecture/workflow_rules.json",
+        "index": 9,
+        "rule_id": "standard_architecture_workflow_rules.pattern.autonomous_workflow"
+      }
+    ],
+    "style.linter_required": [
+      {
+        "file_path": ".intent/policies/code/code_standards.json",
+        "index": 0,
+        "rule_id": "style.linter_required"
+      }
+    ],
+    "style.formatter_required": [
+      {
+        "file_path": ".intent/policies/code/code_standards.json",
+        "index": 1,
+        "rule_id": "style.formatter_required"
+      }
+    ],
+    "style.fail_on_style_in_ci": [
+      {
+        "file_path": ".intent/policies/code/code_standards.json",
+        "index": 2,
+        "rule_id": "style.fail_on_style_in_ci"
+      }
+    ],
+    "style.docstrings_public_apis": [
+      {
+        "file_path": ".intent/policies/code/code_standards.json",
+        "index": 3,
+        "rule_id": "style.docstrings_public_apis"
+      }
+    ],
+    "style.universal_helper_first": [
+      {
+        "file_path": ".intent/policies/code/code_standards.json",
+        "index": 4,
+        "rule_id": "style.universal_helper_first"
+      }
+    ],
+    "style.capability_id_placement": [
+      {
+        "file_path": ".intent/policies/code/code_standards.json",
+        "index": 5,
+        "rule_id": "style.capability_id_placement"
+      }
+    ],
+    "style.import_order": [
+      {
+        "file_path": ".intent/policies/code/code_standards.json",
+        "index": 6,
+        "rule_id": "style.import_order"
+      }
+    ],
+    "layout.src_module_header": [
+      {
+        "file_path": ".intent/policies/code/code_standards.json",
+        "index": 7,
+        "rule_id": "layout.src_module_header"
+      }
+    ],
+    "layout.import_grouping": [
+      {
+        "file_path": ".intent/policies/code/code_standards.json",
+        "index": 8,
+        "rule_id": "layout.import_grouping"
+      }
+    ],
+    "di.policy_reference": [
+      {
+        "file_path": ".intent/policies/code/code_standards.json",
+        "index": 9,
+        "rule_id": "di.policy_reference"
+      }
+    ],
+    "refactor.requires_tests": [
+      {
+        "file_path": ".intent/policies/code/code_standards.json",
+        "index": 10,
+        "rule_id": "refactor.requires_tests"
+      }
+    ],
+    "refactor.update_capabilities": [
+      {
+        "file_path": ".intent/policies/code/code_standards.json",
+        "index": 11,
+        "rule_id": "refactor.update_capabilities"
+      }
+    ],
+    "refactor.audit_after": [
+      {
+        "file_path": ".intent/policies/code/code_standards.json",
+        "index": 12,
+        "rule_id": "refactor.audit_after"
+      }
+    ],
+    "code_standards.max_file_lines": [
+      {
+        "file_path": ".intent/policies/code/code_standards.json",
+        "index": 13,
+        "rule_id": "code_standards.max_file_lines"
+      }
+    ],
+    "code_standards.max_function_lines": [
+      {
+        "file_path": ".intent/policies/code/code_standards.json",
+        "index": 14,
+        "rule_id": "code_standards.max_function_lines"
+      }
+    ],
+    "async.no_manual_loop_management": [
+      {
+        "file_path": ".intent/policies/code/code_standards.json",
+        "index": 15,
+        "rule_id": "async.no_manual_loop_management"
+      }
+    ],
+    "caps.id_format": [
+      {
+        "file_path": ".intent/policies/code/code_standards.json",
+        "index": 16,
+        "rule_id": "caps.id_format"
+      }
+    ],
+    "caps.meaningful_description": [
+      {
+        "file_path": ".intent/policies/code/code_standards.json",
+        "index": 17,
+        "rule_id": "caps.meaningful_description"
+      }
+    ],
+    "caps.no_placeholder_text": [
+      {
+        "file_path": ".intent/policies/code/code_standards.json",
+        "index": 18,
+        "rule_id": "caps.no_placeholder_text"
+      }
+    ],
+    "caps.owner_required": [
+      {
+        "file_path": ".intent/policies/code/code_standards.json",
+        "index": 19,
+        "rule_id": "caps.owner_required"
+      }
+    ],
+    "symbols.public_capability_id_and_docstring": [
+      {
+        "file_path": ".intent/policies/code/code_standards.json",
+        "index": 20,
+        "rule_id": "symbols.public_capability_id_and_docstring"
+      }
+    ],
+    "symbols.private_helpers_no_id_required": [
+      {
+        "file_path": ".intent/policies/code/code_standards.json",
+        "index": 21,
+        "rule_id": "symbols.private_helpers_no_id_required"
+      }
+    ],
+    "symbols.cli_async_helpers_private": [
+      {
+        "file_path": ".intent/policies/code/code_standards.json",
+        "index": 22,
+        "rule_id": "symbols.cli_async_helpers_private"
+      }
+    ],
+    "intent.policy_file_naming": [
+      {
+        "file_path": ".intent/policies/code/code_standards.json",
+        "index": 23,
+        "rule_id": "intent.policy_file_naming"
+      }
+    ],
+    "intent.policy_schema_naming": [
+      {
+        "file_path": ".intent/policies/code/code_standards.json",
+        "index": 24,
+        "rule_id": "intent.policy_schema_naming"
+      }
+    ],
+    "intent.artifact_schema_naming": [
+      {
+        "file_path": ".intent/policies/code/code_standards.json",
+        "index": 25,
+        "rule_id": "intent.artifact_schema_naming"
+      }
+    ],
+    "intent.prompt_file_naming": [
+      {
+        "file_path": ".intent/policies/code/code_standards.json",
+        "index": 26,
+        "rule_id": "intent.prompt_file_naming"
+      }
+    ],
+    "intent.proposal_file_naming": [
+      {
+        "file_path": ".intent/policies/code/code_standards.json",
+        "index": 27,
+        "rule_id": "intent.proposal_file_naming"
+      }
+    ],
+    "code.python_module_naming": [
+      {
+        "file_path": ".intent/policies/code/code_standards.json",
+        "index": 28,
+        "rule_id": "code.python_module_naming"
+      }
+    ],
+    "code.python_test_module_naming": [
+      {
+        "file_path": ".intent/policies/code/code_standards.json",
+        "index": 29,
+        "rule_id": "code.python_test_module_naming"
+      }
+    ],
+    "linkage.assign_ids": [
+      {
+        "file_path": ".intent/policies/code/linkage_standards.json",
+        "index": 0,
+        "rule_id": "linkage.assign_ids"
+      }
+    ],
+    "linkage.duplicate_ids": [
+      {
+        "file_path": ".intent/policies/code/linkage_standards.json",
+        "index": 1,
+        "rule_id": "linkage.duplicate_ids"
+      }
+    ],
+    "purity.forbidden_decorators": [
+      {
+        "file_path": ".intent/policies/code/purity.json",
+        "index": 0,
+        "rule_id": "purity.forbidden_decorators"
+      }
+    ],
+    "purity.no_inline_configuration": [
+      {
+        "file_path": ".intent/policies/code/purity.json",
+        "index": 1,
+        "rule_id": "purity.no_inline_configuration"
+      }
+    ],
+    "purity.stable_id_anchor": [
+      {
+        "file_path": ".intent/policies/code/purity.json",
+        "index": 2,
+        "rule_id": "purity.stable_id_anchor"
+      }
+    ],
+    "purity.safety_contract_presence": [
+      {
+        "file_path": ".intent/policies/code/purity.json",
+        "index": 3,
+        "rule_id": "purity.safety_contract_presence"
+      }
+    ],
+    "purity.atomic_action_contract": [
+      {
+        "file_path": ".intent/policies/code/purity.json",
+        "index": 4,
+        "rule_id": "purity.atomic_action_contract"
+      }
+    ],
+    "purity.framework_binding_limits": [
+      {
+        "file_path": ".intent/policies/code/purity.json",
+        "index": 5,
+        "rule_id": "purity.framework_binding_limits"
+      }
+    ],
+    "knowledge.database_ssot": [
+      {
+        "file_path": ".intent/policies/data/governance.json",
+        "index": 0,
+        "rule_id": "knowledge.database_ssot"
+      }
+    ],
+    "db.integrity.linkage_ids_persisted": [
+      {
+        "file_path": ".intent/policies/data/governance.json",
+        "index": 1,
+        "rule_id": "db.integrity.linkage_ids_persisted"
+      }
+    ],
+    "db.integrity.linkage_ids_unique": [
+      {
+        "file_path": ".intent/policies/data/governance.json",
+        "index": 2,
+        "rule_id": "db.integrity.linkage_ids_unique"
+      }
+    ],
+    "db.ssot_for_operational_data": [
+      {
+        "file_path": ".intent/policies/data/governance.json",
+        "index": 3,
+        "rule_id": "db.ssot_for_operational_data"
+      }
+    ],
+    "db.write_via_governed_cli": [
+      {
+        "file_path": ".intent/policies/data/governance.json",
+        "index": 4,
+        "rule_id": "db.write_via_governed_cli"
+      }
+    ],
+    "db.cli_registry_in_db": [
+      {
+        "file_path": ".intent/policies/data/governance.json",
+        "index": 5,
+        "rule_id": "db.cli_registry_in_db"
+      }
+    ],
+    "db.domains_in_db": [
+      {
+        "file_path": ".intent/policies/data/governance.json",
+        "index": 6,
+        "rule_id": "db.domains_in_db"
+      }
+    ],
+    "db.vector_index_in_db": [
+      {
+        "file_path": ".intent/policies/data/governance.json",
+        "index": 7,
+        "rule_id": "db.vector_index_in_db"
+      }
+    ],
+    "db.llm_resources_in_db": [
+      {
+        "file_path": ".intent/policies/data/governance.json",
+        "index": 8,
+        "rule_id": "db.llm_resources_in_db"
+      }
+    ],
+    "db.cognitive_roles_in_db": [
+      {
+        "file_path": ".intent/policies/data/governance.json",
+        "index": 9,
+        "rule_id": "db.cognitive_roles_in_db"
+      }
+    ],
+    "db.privacy.no_pii_or_secrets": [
+      {
+        "file_path": ".intent/policies/data/governance.json",
+        "index": 10,
+        "rule_id": "db.privacy.no_pii_or_secrets"
+      }
+    ],
+    "db.privacy.masking": [
+      {
+        "file_path": ".intent/policies/data/governance.json",
+        "index": 11,
+        "rule_id": "db.privacy.masking"
+      }
+    ],
+    "knowledge.limited_legacy_access": [
+      {
+        "file_path": ".intent/policies/data/governance.json",
+        "index": 12,
+        "rule_id": "knowledge.limited_legacy_access"
+      }
+    ],
+    "knowledge.symbols_key_is_label": [
+      {
+        "file_path": ".intent/policies/data/governance.json",
+        "index": 13,
+        "rule_id": "knowledge.symbols_key_is_label"
+      }
+    ],
+    "knowledge.capability_mapping_ssot_is_links": [
+      {
+        "file_path": ".intent/policies/data/governance.json",
+        "index": 14,
+        "rule_id": "knowledge.capability_mapping_ssot_is_links"
+      }
+    ],
+    "agent.execution.no_unverified_code": [
+      {
+        "file_path": ".intent/policies/operations/code_execution.json",
+        "index": 0,
+        "rule_id": "agent.execution.no_unverified_code"
+      }
+    ],
+    "agent.execution.require_runtime_validation": [
+      {
+        "file_path": ".intent/policies/operations/code_execution.json",
+        "index": 1,
+        "rule_id": "agent.execution.require_runtime_validation"
+      }
+    ],
+    "constitution.primary_format": [
+      {
+        "file_path": ".intent/policies/operations/constitution_format.json",
+        "index": 0,
+        "rule_id": "constitution.primary_format"
+      }
+    ],
+    "constitution.allow_legacy_yaml": [
+      {
+        "file_path": ".intent/policies/operations/constitution_format.json",
+        "index": 1,
+        "rule_id": "constitution.allow_legacy_yaml"
+      }
+    ],
+    "logging.single_logging_system": [
+      {
+        "file_path": ".intent/policies/operations/logging_standards.json",
+        "index": 0,
+        "rule_id": "logging.single_logging_system"
+      }
+    ],
+    "logging.log_level_usage": [
+      {
+        "file_path": ".intent/policies/operations/logging_standards.json",
+        "index": 1,
+        "rule_id": "logging.log_level_usage"
+      }
+    ],
+    "logging.message_format": [
+      {
+        "file_path": ".intent/policies/operations/logging_standards.json",
+        "index": 2,
+        "rule_id": "logging.message_format"
+      }
+    ],
+    "logging.progress_indication": [
+      {
+        "file_path": ".intent/policies/operations/logging_standards.json",
+        "index": 3,
+        "rule_id": "logging.progress_indication"
+      }
+    ],
+    "logging.structured_logging": [
+      {
+        "file_path": ".intent/policies/operations/logging_standards.json",
+        "index": 4,
+        "rule_id": "logging.structured_logging"
+      }
+    ],
+    "logging.error_logging": [
+      {
+        "file_path": ".intent/policies/operations/logging_standards.json",
+        "index": 5,
+        "rule_id": "logging.error_logging"
+      }
+    ],
+    "logging.cli_command_output": [
+      {
+        "file_path": ".intent/policies/operations/logging_standards.json",
+        "index": 6,
+        "rule_id": "logging.cli_command_output"
+      }
+    ],
+    "observability.atomic_actions_emit_logs": [
+      {
+        "file_path": ".intent/policies/operations/observability.json",
+        "index": 0,
+        "rule_id": "observability.atomic_actions_emit_logs"
+      }
+    ],
+    "observability.cli_commands_valid": [
+      {
+        "file_path": ".intent/policies/operations/observability.json",
+        "index": 1,
+        "rule_id": "observability.cli_commands_valid"
+      }
+    ],
+    "observability.metrics_actionable": [
+      {
+        "file_path": ".intent/policies/operations/observability.json",
+        "index": 2,
+        "rule_id": "observability.metrics_actionable"
+      }
+    ],
+    "intent.schema_compliance": [
+      {
+        "file_path": ".intent/policies/operations/operations.json",
+        "index": 0,
+        "rule_id": "intent.schema_compliance"
+      }
+    ],
+    "intent.canary_required": [
+      {
+        "file_path": ".intent/policies/operations/operations.json",
+        "index": 1,
+        "rule_id": "intent.canary_required"
+      }
+    ],
+    "intent.immutable_history": [
+      {
+        "file_path": ".intent/policies/operations/operations.json",
+        "index": 2,
+        "rule_id": "intent.immutable_history"
+      }
+    ],
+    "integration.assign_ids_required": [
+      {
+        "file_path": ".intent/policies/operations/operations.json",
+        "index": 3,
+        "rule_id": "integration.assign_ids_required"
+      }
+    ],
+    "integration.duplicate_ids_resolved": [
+      {
+        "file_path": ".intent/policies/operations/operations.json",
+        "index": 4,
+        "rule_id": "integration.duplicate_ids_resolved"
+      }
+    ],
+    "integration.knowledge_sync_required": [
+      {
+        "file_path": ".intent/policies/operations/operations.json",
+        "index": 5,
+        "rule_id": "integration.knowledge_sync_required"
+      }
+    ],
+    "integration.tests_must_pass": [
+      {
+        "file_path": ".intent/policies/operations/operations.json",
+        "index": 6,
+        "rule_id": "integration.tests_must_pass"
+      }
+    ],
+    "integration.coverage_minimum": [
+      {
+        "file_path": ".intent/policies/operations/operations.json",
+        "index": 7,
+        "rule_id": "integration.coverage_minimum"
+      }
+    ],
+    "integration.audit_required": [
+      {
+        "file_path": ".intent/policies/operations/operations.json",
+        "index": 8,
+        "rule_id": "integration.audit_required"
+      }
+    ],
+    "canary.abort_on_audit_error": [
+      {
+        "file_path": ".intent/policies/operations/operations.json",
+        "index": 9,
+        "rule_id": "canary.abort_on_audit_error"
+      }
+    ],
+    "canary.abort_on_test_failure": [
+      {
+        "file_path": ".intent/policies/operations/operations.json",
+        "index": 10,
+        "rule_id": "canary.abort_on_test_failure"
+      }
+    ],
+    "dev_fastpath.no_intent_changes": [
+      {
+        "file_path": ".intent/policies/operations/operations.json",
+        "index": 11,
+        "rule_id": "dev_fastpath.no_intent_changes"
+      }
+    ],
+    "ir.triage_required": [
+      {
+        "file_path": ".intent/policies/operations/operations.json",
+        "index": 12,
+        "rule_id": "ir.triage_required"
+      }
+    ],
+    "ir.timeline_required": [
+      {
+        "file_path": ".intent/policies/operations/operations.json",
+        "index": 13,
+        "rule_id": "ir.timeline_required"
+      }
+    ],
+    "ir.notifications_required": [
+      {
+        "file_path": ".intent/policies/operations/operations.json",
+        "index": 14,
+        "rule_id": "ir.notifications_required"
+      }
+    ],
+    "ir.postmortem_required": [
+      {
+        "file_path": ".intent/policies/operations/operations.json",
+        "index": 15,
+        "rule_id": "ir.postmortem_required"
+      }
+    ],
+    "operations.runtime.env_vars_defined": [
+      {
+        "file_path": ".intent/policies/operations/operations.json",
+        "index": 16,
+        "rule_id": "operations.runtime.env_vars_defined"
+      }
+    ],
+    "pattern_vectorization.pattern_understanding.required": [
+      {
+        "file_path": ".intent/policies/operations/pattern_vectorization.json",
+        "index": 0,
+        "rule_id": "pattern_vectorization.pattern_understanding.required"
+      }
+    ],
+    "pattern_vectorization.semantic_validation.required": [
+      {
+        "file_path": ".intent/policies/operations/pattern_vectorization.json",
+        "index": 1,
+        "rule_id": "pattern_vectorization.semantic_validation.required"
+      }
+    ],
+    "pattern_vectorization.constitutional_audit.integration_required": [
+      {
+        "file_path": ".intent/policies/operations/pattern_vectorization.json",
+        "index": 2,
+        "rule_id": "pattern_vectorization.constitutional_audit.integration_required"
+      }
+    ],
+    "pattern_vectorization.collection.core_patterns.contract": [
+      {
+        "file_path": ".intent/policies/operations/pattern_vectorization.json",
+        "index": 3,
+        "rule_id": "pattern_vectorization.collection.core_patterns.contract"
+      }
+    ],
+    "pattern_vectorization.chunking.semantic_section.required": [
+      {
+        "file_path": ".intent/policies/operations/pattern_vectorization.json",
+        "index": 4,
+        "rule_id": "pattern_vectorization.chunking.semantic_section.required"
+      }
+    ],
+    "pattern_vectorization.update_policy.on_file_change": [
+      {
+        "file_path": ".intent/policies/operations/pattern_vectorization.json",
+        "index": 5,
+        "rule_id": "pattern_vectorization.update_policy.on_file_change"
+      }
+    ],
+    "pattern_vectorization.override_policy.disallowed": [
+      {
+        "file_path": ".intent/policies/operations/pattern_vectorization.json",
+        "index": 6,
+        "rule_id": "pattern_vectorization.override_policy.disallowed"
+      }
+    ],
+    "pattern_vectorization.migration.enforcement_mode": [
+      {
+        "file_path": ".intent/policies/operations/pattern_vectorization.json",
+        "index": 7,
+        "rule_id": "pattern_vectorization.migration.enforcement_mode"
+      }
+    ],
+    "qa.coverage.minimum_threshold": [
+      {
+        "file_path": ".intent/policies/operations/quality_assurance.json",
+        "index": 0,
+        "rule_id": "qa.coverage.minimum_threshold"
+      }
+    ],
+    "qa.coverage.target_threshold": [
+      {
+        "file_path": ".intent/policies/operations/quality_assurance.json",
+        "index": 1,
+        "rule_id": "qa.coverage.target_threshold"
+      }
+    ],
+    "qa.coverage.critical_paths": [
+      {
+        "file_path": ".intent/policies/operations/quality_assurance.json",
+        "index": 2,
+        "rule_id": "qa.coverage.critical_paths"
+      }
+    ],
+    "qa.coverage.no_regression": [
+      {
+        "file_path": ".intent/policies/operations/quality_assurance.json",
+        "index": 3,
+        "rule_id": "qa.coverage.no_regression"
+      }
+    ],
+    "qa.coverage.exclusions": [
+      {
+        "file_path": ".intent/policies/operations/quality_assurance.json",
+        "index": 4,
+        "rule_id": "qa.coverage.exclusions"
+      }
+    ],
+    "qa.remediation.auto_trigger": [
+      {
+        "file_path": ".intent/policies/operations/quality_assurance.json",
+        "index": 5,
+        "rule_id": "qa.remediation.auto_trigger"
+      }
+    ],
+    "qa.remediation.trigger_conditions": [
+      {
+        "file_path": ".intent/policies/operations/quality_assurance.json",
+        "index": 6,
+        "rule_id": "qa.remediation.trigger_conditions"
+      }
+    ],
+    "qa.remediation.phased_execution": [
+      {
+        "file_path": ".intent/policies/operations/quality_assurance.json",
+        "index": 7,
+        "rule_id": "qa.remediation.phased_execution"
+      }
+    ],
+    "qa.audit.exceptions_explicit": [
+      {
+        "file_path": ".intent/policies/operations/quality_assurance.json",
+        "index": 8,
+        "rule_id": "qa.audit.exceptions_explicit"
+      }
+    ],
+    "qa.audit.exceptions_empty_default": [
+      {
+        "file_path": ".intent/policies/operations/quality_assurance.json",
+        "index": 9,
+        "rule_id": "qa.audit.exceptions_empty_default"
+      }
+    ],
+    "qa.change.evaluation_required": [
+      {
+        "file_path": ".intent/policies/operations/quality_assurance.json",
+        "index": 10,
+        "rule_id": "qa.change.evaluation_required"
+      }
+    ],
+    "qa.change.evaluation_threshold_pass": [
+      {
+        "file_path": ".intent/policies/operations/quality_assurance.json",
+        "index": 11,
+        "rule_id": "qa.change.evaluation_threshold_pass"
+      }
+    ],
+    "qa.change.evaluation_warn": [
+      {
+        "file_path": ".intent/policies/operations/quality_assurance.json",
+        "index": 12,
+        "rule_id": "qa.change.evaluation_warn"
+      }
+    ],
+    "qa.risk.medium_gate": [
+      {
+        "file_path": ".intent/policies/operations/quality_assurance.json",
+        "index": 13,
+        "rule_id": "qa.risk.medium_gate"
+      }
+    ],
+    "qa.risk.high_gate": [
+      {
+        "file_path": ".intent/policies/operations/quality_assurance.json",
+        "index": 14,
+        "rule_id": "qa.risk.high_gate"
+      }
+    ],
+    "qa.audit.intent_declared": [
+      {
+        "file_path": ".intent/policies/operations/quality_assurance.json",
+        "index": 15,
+        "rule_id": "qa.audit.intent_declared"
+      }
+    ],
+    "qa.audit.explanation_required": [
+      {
+        "file_path": ".intent/policies/operations/quality_assurance.json",
+        "index": 16,
+        "rule_id": "qa.audit.explanation_required"
+      }
+    ],
+    "qa.audit.quality_verified": [
+      {
+        "file_path": ".intent/policies/operations/quality_assurance.json",
+        "index": 17,
+        "rule_id": "qa.audit.quality_verified"
+      }
+    ],
+    "qa.audit.quorum_evidence": [
+      {
+        "file_path": ".intent/policies/operations/quality_assurance.json",
+        "index": 18,
+        "rule_id": "qa.audit.quorum_evidence"
+      }
+    ],
+    "safety.charter_immutable": [
+      {
+        "file_path": ".intent/policies/operations/safety.json",
+        "index": 0,
+        "rule_id": "safety.charter_immutable"
+      }
+    ],
+    "safety.immutable_constitution": [
+      {
+        "file_path": ".intent/policies/operations/safety.json",
+        "index": 1,
+        "rule_id": "safety.immutable_constitution"
+      }
+    ],
+    "safety.no_autonomous_core_modification": [
+      {
+        "file_path": ".intent/policies/operations/safety.json",
+        "index": 2,
+        "rule_id": "safety.no_autonomous_core_modification"
+      }
+    ],
+    "safety.deny_core_loop_edit": [
+      {
+        "file_path": ".intent/policies/operations/safety.json",
+        "index": 3,
+        "rule_id": "safety.deny_core_loop_edit"
+      }
+    ],
+    "safety.no_dangerous_execution_primitives": [
+      {
+        "file_path": ".intent/policies/operations/safety.json",
+        "index": 4,
+        "rule_id": "safety.no_dangerous_execution_primitives"
+      }
+    ],
+    "safety.runtime_contract_enforced": [
+      {
+        "file_path": ".intent/policies/operations/safety.json",
+        "index": 5,
+        "rule_id": "safety.runtime_contract_enforced"
+      }
+    ],
+    "safety.change_must_be_logged": [
+      {
+        "file_path": ".intent/policies/operations/safety.json",
+        "index": 6,
+        "rule_id": "safety.change_must_be_logged"
+      }
+    ],
+    "secrets.no_raw_access": [
+      {
+        "file_path": ".intent/policies/operations/secrets_management.json",
+        "index": 0,
+        "rule_id": "secrets.no_raw_access"
+      }
+    ],
+    "secrets.provider_abstraction": [
+      {
+        "file_path": ".intent/policies/operations/secrets_management.json",
+        "index": 1,
+        "rule_id": "secrets.provider_abstraction"
+      }
+    ],
+    "secrets.no_hardcoded_secrets": [
+      {
+        "file_path": ".intent/policies/operations/secrets_management.json",
+        "index": 2,
+        "rule_id": "secrets.no_hardcoded_secrets"
+      }
+    ],
+    "secrets.rotation_autonomy": [
+      {
+        "file_path": ".intent/policies/operations/secrets_management.json",
+        "index": 3,
+        "rule_id": "secrets.rotation_autonomy"
+      }
+    ]
+  }
+}

@@ -1,8 +1,8 @@
 {
   "id": "standard_operations_safety",
-  "version": "1.1.3",
+  "version": "1.2.1",
   "title": "Operations Standard \u2013 Safety Framework",
-  "type": "standard_operations",
+  "type": "policy",
   "status": "active",
   "owners": {
     "accountable": "Safety Owner",
@@ -13,53 +13,39 @@
   "review": {
     "frequency": "12 months"
   },
-  "schema_id": "policy.structure",
+  "schema_id": "meta.policy",
   "policy_id": "05ffbf34-2e0e-4069-b77e-473923537077",
-  "purpose": "The single source of truth for safety, security, and constitutional boundary protection. Defines immutable assets, forbidden behaviors, and mandatory provenance guarantees.\n",
+  "purpose": "The single source of truth for runtime safety, execution gating, and constitutional boundary protection. Defines immutable assets, forbidden runtime behaviors, and mandatory execution-time guarantees.",
   "rules": [
     {
       "id": "safety.charter_immutable",
       "protected_paths": [
         ".intent/charter/**"
       ],
-      "rationale": "Strengthens system governance regarding safety.charter_immutable.",
       "enforcement": "error",
       "statement": "Charter files under .intent/charter/** MUST NOT be modified without a formal constitutional amendment.",
+      "rationale": "Charter files define the constitutional contract of the system. Any autonomous modification would invalidate governance legitimacy.",
       "check": {
         "engine": "llm_gate",
         "params": {
-          "instruction": "Verify adherence to: Charter files under .intent/charter/** MUST NOT be modified without a formal constitutional amendment."
+          "instruction": "Verify that no autonomous or ungoverned modification touches .intent/charter/**."
         }
       }
     },
     {
       "id": "safety.immutable_constitution",
       "protected_paths": [
-        ".intent/charter/constitution/**"
-      ],
-      "rationale": "Constitution defines the system's fundamental governance rules. Modifications bypass democratic process and create governance chaos.\n",
-      "enforcement": "error",
-      "statement": "Constitutional documents MUST NOT be modified outside formal amendment process.",
-      "check": {
-        "engine": "llm_gate",
-        "params": {
-          "instruction": "Verify adherence to: Constitutional documents MUST NOT be modified outside formal amendment process."
-        }
-      }
-    },
-    {
-      "id": "safety.immutable_core_mission",
-      "protected_paths": [
+        ".intent/charter/constitution/**",
         "mind/knowledge/domain_definitions.yaml",
         "mind_export/northstar.yaml"
       ],
-      "rationale": "Strengthens system governance regarding safety.immutable_core_mission.",
       "enforcement": "error",
-      "statement": "Core mission definition files MUST NOT be modified without human-in-the-loop amendment.",
+      "statement": "Constitutional and mission-defining documents MUST NOT be modified outside a formal amendment process.",
+      "rationale": "These artefacts anchor system authority and intent. Runtime or autonomous modification would invalidate governance.",
       "check": {
         "engine": "llm_gate",
         "params": {
-          "instruction": "Verify adherence to: Core mission definition files MUST NOT be modified without human-in-the-loop amendment."
+          "instruction": "Verify that constitutional or mission-defining documents are not modified outside an approved amendment workflow."
         }
       }
     },
@@ -69,13 +55,13 @@
         "src/core/main.py",
         "src/core/intent_guard.py"
       ],
-      "rationale": "Strengthens system governance regarding safety.no_autonomous_core_modification.",
       "enforcement": "error",
       "statement": "Core orchestration and governance engines MUST NOT be modified autonomously.",
+      "rationale": "Core orchestration and governance engines must remain immutable to preserve enforcement integrity.",
       "check": {
         "engine": "llm_gate",
         "params": {
-          "instruction": "Verify adherence to: Core orchestration and governance engines MUST NOT be modified autonomously."
+          "instruction": "Verify that core orchestration and governance code is not modified by autonomous agents."
         }
       }
     },
@@ -85,29 +71,21 @@
         "src/features/self_healing/autonomy_loop.py",
         "src/will/agents/**"
       ],
-      "rationale": "Core autonomy loop is the execution engine for autonomous operations. Self-modification creates unbounded recursion and loss of governance.\n",
       "enforcement": "error",
-      "statement": "Autonomous agents MUST NOT modify the core autonomy loop implementation.",
+      "statement": "Autonomous agents MUST NOT modify the autonomy loop or agent implementations.",
+      "rationale": "Self-modification of the autonomy loop creates unbounded recursion and loss of control.",
       "check": {
         "engine": "llm_gate",
         "params": {
-          "instruction": "Verify adherence to: Autonomous agents MUST NOT modify the core autonomy loop implementation."
+          "instruction": "Verify that autonomous agents do not modify autonomy loop or agent implementation paths."
         }
       }
     },
     {
       "id": "safety.no_dangerous_execution_primitives",
-      "detection": {
-        "method": "ast_call_scan",
-        "patterns": [
-          "eval\\(",
-          "exec\\(",
-          "subprocess\\.(run|Popen|call)\\([^)]*shell\\s*=\\s*True"
-        ]
-      },
-      "rationale": "Strengthens system governance regarding safety.no_dangerous_execution_primitives.",
       "enforcement": "error",
-      "statement": "Source code MUST NOT contain dangerous execution primitives.",
+      "statement": "Runtime execution MUST NOT use dangerous execution primitives.",
+      "rationale": "Dangerous execution primitives bypass static analysis and runtime governance safeguards.",
       "check": {
         "engine": "ast_gate",
         "params": {
@@ -116,46 +94,38 @@
       }
     },
     {
-      "id": "safety.no_dangerous_execution",
-      "detection": {
-        "method": "ast_call_scan",
-        "patterns": [
-          "eval\\(",
-          "exec\\(",
-          "subprocess\\.(run|Popen|call)\\([^)]*shell\\s*=\\s*True"
-        ]
-      },
-      "rationale": "Dynamic code execution bypasses static analysis and creates arbitrary code execution vulnerabilities.\n",
+      "id": "safety.runtime_contract_enforced",
       "enforcement": "error",
-      "statement": "Code MUST NOT use eval(), exec(), or shell=True subprocess calls.",
+      "statement": "A mutating operation MUST NOT execute unless its safety contract has been validated by IntentGuard at runtime.",
+      "rationale": "Execution without validated safety contracts bypasses IntentGuard and breaks constitutional enforcement.",
       "check": {
-        "engine": "ast_gate",
+        "engine": "llm_gate",
         "params": {
-          "check_type": "forbidden_primitives"
+          "instruction": "Verify that all mutating operations are gated by runtime validation of their declared safety contracts."
         }
       }
     },
     {
       "id": "safety.change_must_be_logged",
-      "rationale": "Strengthens system governance regarding safety.change_must_be_logged.",
       "enforcement": "error",
-      "statement": "Every file modification MUST be preceded by an audit log entry containing an IntentBundle identifier.",
+      "statement": "Every file modification MUST be preceded by an audit log entry containing a valid IntentBundle identifier.",
+      "rationale": "All changes must be traceable to preserve auditability and accountability.",
       "check": {
         "engine": "llm_gate",
         "params": {
-          "instruction": "Verify adherence to: Every file modification MUST be preceded by an audit log entry containing an IntentBundle identifier."
+          "instruction": "Verify that all file modifications are associated with a recorded IntentBundle."
         }
       }
     }
   ],
   "enforcement_levels": {
     "error": {
-      "description": "Critical violation. Blocks merge, deploy, and runtime execution.",
+      "description": "Critical violation. Blocks merge, deployment, and runtime execution.",
       "ci_behavior": "fail",
       "runtime_behavior": "block"
     },
     "warn": {
-      "description": "Non-critical issue. Reported but does not block.",
+      "description": "Non-critical issue. Reported but does not block execution.",
       "ci_behavior": "pass_with_warnings",
       "runtime_behavior": "log_and_continue"
     },
@@ -163,50 +133,6 @@
       "description": "Informational finding. No action required.",
       "ci_behavior": "ignore",
       "runtime_behavior": "ignore"
-    }
-  },
-  "intentguard_deny_rules": [
-    {
-      "id": "deny_domain_definitions",
-      "pattern": "mind/knowledge/domain_definitions.yaml",
-      "severity": "error",
-      "description": "Domain definitions are core mission assets."
-    },
-    {
-      "id": "deny_northstar",
-      "pattern": "mind_export/northstar.yaml",
-      "severity": "error",
-      "description": "Northstar mission file requires human amendment."
-    },
-    {
-      "id": "deny_core_main",
-      "pattern": "src/core/main.py",
-      "severity": "error",
-      "description": "Core orchestration entry point is immutable."
-    },
-    {
-      "id": "deny_intent_guard",
-      "pattern": "src/core/intent_guard.py",
-      "severity": "error",
-      "description": "IntentGuard cannot modify itself."
-    },
-    {
-      "id": "deny_autonomy_loop",
-      "pattern": "src/features/self_healing/autonomy_loop.py",
-      "severity": "error",
-      "description": "Autonomy loop cannot modify itself."
-    }
-  ],
-  "emergency_protocols": {
-    "break_glass": {
-      "description": "Emergency override mechanism for governance deadlock or system recovery.\n",
-      "mechanism": {
-        "command": "core-admin emergency-override --reason '<incident_ticket>'"
-      },
-      "consequences": [
-        "CRITICAL audit event recorded.",
-        "All autonomous agents suspended."
-      ]
     }
   },
   "additionalProperties": false

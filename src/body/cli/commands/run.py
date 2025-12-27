@@ -15,6 +15,7 @@ from features.autonomy.autonomous_developer import develop_from_goal
 from features.introspection.vectorization_service import run_vectorize
 from shared.cli_utils import core_command
 from shared.context import CoreContext
+from shared.infrastructure.database.session_manager import get_session
 from shared.logger import getLogger
 from will.agents.coder_agent import CoderAgent
 from will.agents.execution_agent import _ExecutionAgent
@@ -66,8 +67,11 @@ async def vectorize_command(
 ) -> None:
     """Scan capabilities from the DB, generate embeddings, and upsert to Qdrant."""
     core_context: CoreContext = ctx.obj
-    # Manual JIT injection logic removed - handled by @core_command
-    await run_vectorize(context=core_context, dry_run=not write, force=force)
+    # FIXED: Inject session for DI compliance
+    async with get_session() as session:
+        await run_vectorize(
+            context=core_context, session=session, dry_run=not write, force=force
+        )
 
 
 # Logic helper - kept for isolation
@@ -115,7 +119,10 @@ async def _develop(
         auditor_context=context.auditor_context,
     )
 
-    success, message = await develop_from_goal(context, goal_content, executor_agent)
+    async with get_session() as session:
+        success, message = await develop_from_goal(
+            session, context, goal_content, executor_agent
+        )
 
     if success:
         # Using simple prints here as it's not returning an ActionResult yet

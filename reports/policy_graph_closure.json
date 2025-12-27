@@ -1,0 +1,474 @@
+{
+  "meta": {
+    "policies_scanned": 30,
+    "policy_parse_errors": {}
+  },
+  "expected_rules_count": 146,
+  "declared_rules_count": 248,
+  "duplicates_count": 0,
+  "missing_from_policies_count": 17,
+  "missing_from_policies": [
+    "code_quality.health.module_outlier",
+    "coverage.data_missing",
+    "coverage.minimum_threshold",
+    "coverage.no_untested_commits",
+    "intent_alignment",
+    "purity.no_descriptive_pollution",
+    "purity.safety_contract_required",
+    "qa.coverage.data_missing",
+    "refactor.semantic_duplication",
+    "reuse.before_new_code",
+    "rules.must_have_statement",
+    "rules.no_placeholder_ids",
+    "rules.required_fields",
+    "safety.immutable_core_mission",
+    "safety.no_dangerous_execution",
+    "safety.single_active_constitution",
+    "structural_compliance.import_violation"
+  ],
+  "declared_but_not_expected_count": 119,
+  "declared_but_not_expected": [
+    "async.runtime.no_nested_loop_creation",
+    "atomic_actions_return_actionresult",
+    "cli.runtime.single_loop_owner",
+    "cli_commands_require_core_decorator",
+    "constitution.allow_legacy_yaml",
+    "db.cli_registry_in_db",
+    "db.cognitive_roles_in_db",
+    "db.domains_in_db",
+    "db.engine.scope.per_event_loop",
+    "db.integrity.linkage_ids_persisted",
+    "db.integrity.linkage_ids_unique",
+    "db.llm_resources_in_db",
+    "db.privacy.masking",
+    "db.privacy.no_pii_or_secrets",
+    "decorator_ordering",
+    "di.no_import_time_async_singletons",
+    "di.policy_reference",
+    "intent.proposal_file_naming",
+    "ir.notifications_required",
+    "ir.postmortem_required",
+    "ir.timeline_required",
+    "knowledge.capability_mapping_ssot_is_links",
+    "knowledge.limited_legacy_access",
+    "knowledge.symbols_key_is_label",
+    "layout.import_grouping",
+    "logging.structured_logging",
+    "no_duplicate_decorators",
+    "no_ui_imports_in_services",
+    "pattern_vectorization.migration.enforcement_mode",
+    "policy.partial_enforcement_declared",
+    "purity.atomic_action_contract",
+    "purity.forbidden_decorators",
+    "purity.framework_binding_limits",
+    "purity.no_inline_configuration",
+    "purity.safety_contract_presence",
+    "purity.stable_id_anchor",
+    "qa.change.evaluation_warn",
+    "qa.coverage.target_threshold",
+    "safety.runtime_contract_enforced",
+    "schemas.style.datetime_format",
+    "service_module_naming",
+    "service_must_be_headless",
+    "standard_architecture_agent_rules.pattern.cognitive_agent",
+    "standard_architecture_agent_rules.pattern.learning_agent",
+    "standard_architecture_agent_rules.pattern.orchestrator_agent",
+    "standard_architecture_agent_rules.pattern.validator_agent",
+    "standard_architecture_body_contracts.action_results.0",
+    "standard_architecture_body_contracts.action_results.1",
+    "standard_architecture_body_contracts.action_results.2",
+    "standard_architecture_body_contracts.action_results.3",
+    "standard_architecture_body_contracts.action_results.4",
+    "standard_architecture_body_contracts.configuration_access.0",
+    "standard_architecture_body_contracts.configuration_access.1",
+    "standard_architecture_body_contracts.configuration_access.2",
+    "standard_architecture_body_contracts.configuration_access.3",
+    "standard_architecture_body_contracts.dependencies.0",
+    "standard_architecture_body_contracts.dependencies.1",
+    "standard_architecture_body_contracts.dependencies.2",
+    "standard_architecture_body_contracts.error_handling.0",
+    "standard_architecture_body_contracts.error_handling.1",
+    "standard_architecture_body_contracts.error_handling.2",
+    "standard_architecture_body_contracts.error_handling.3",
+    "standard_architecture_body_contracts.error_handling.4",
+    "standard_architecture_body_contracts.headless_rules.0",
+    "standard_architecture_body_contracts.headless_rules.1",
+    "standard_architecture_body_contracts.headless_rules.2",
+    "standard_architecture_body_contracts.headless_rules.3",
+    "standard_architecture_body_contracts.headless_rules.4",
+    "standard_architecture_body_contracts.logging.0",
+    "standard_architecture_body_contracts.logging.1",
+    "standard_architecture_body_contracts.logging.2",
+    "standard_architecture_body_contracts.logging.3",
+    "standard_architecture_body_contracts.logging.4",
+    "standard_architecture_body_contracts.logging.5",
+    "standard_architecture_body_contracts.logging.6",
+    "standard_architecture_body_contracts.side_effects.0",
+    "standard_architecture_body_contracts.side_effects.1",
+    "standard_architecture_body_contracts.side_effects.2",
+    "standard_architecture_body_contracts.side_effects.3",
+    "standard_architecture_body_contracts.testing_contract.0",
+    "standard_architecture_body_contracts.testing_contract.1",
+    "standard_architecture_body_contracts.testing_contract.2",
+    "standard_architecture_body_contracts.testing_contract.3",
+    "standard_architecture_body_contracts.testing_contract.4",
+    "standard_architecture_body_contracts.write_semantics.0",
+    "standard_architecture_body_contracts.write_semantics.1",
+    "standard_architecture_body_contracts.write_semantics.2",
+    "standard_architecture_body_contracts.write_semantics.3",
+    "standard_architecture_body_contracts.write_semantics.4",
+    "standard_architecture_body_contracts.write_semantics.5",
+    "standard_architecture_command_rules.pattern.action_pattern",
+    "standard_architecture_command_rules.pattern.check_pattern",
+    "standard_architecture_command_rules.pattern.inspect_pattern",
+    "standard_architecture_command_rules.pattern.manage_pattern",
+    "standard_architecture_command_rules.pattern.run_pattern",
+    "standard_architecture_service_rules.pattern.facade_pattern",
+    "standard_architecture_service_rules.pattern.observer_pattern",
+    "standard_architecture_service_rules.pattern.repository_pattern",
+    "standard_architecture_service_rules.pattern.stateful_service",
+    "standard_architecture_service_rules.pattern.stateless_transformer",
+    "standard_architecture_workflow_rules.pattern.autonomous_workflow",
+    "standard_architecture_workflow_rules.pattern.dag_workflow",
+    "standard_architecture_workflow_rules.pattern.event_driven_workflow",
+    "standard_architecture_workflow_rules.pattern.linear_workflow",
+    "standard_architecture_workflow_rules.pattern.saga_workflow",
+    "standard_architecture_workflow_rules.ui_contract.0",
+    "standard_architecture_workflow_rules.ui_contract.1",
+    "standard_architecture_workflow_rules.ui_contract.2",
+    "standard_architecture_workflow_rules.ui_contract.3",
+    "vector.collection_lifecycle_management",
+    "vector.collection_vector_configuration",
+    "vector.vectorizer_standard_structure",
+    "workflow.workflow_ui_single_owner",
+    "workflow_composition.chain_action_pattern",
+    "workflow_composition.fail_fast",
+    "workflow_composition.idempotent",
+    "workflow_composition.progress_indication",
+    "workflow_composition.step_must_succeed",
+    "write_default_false"
+  ],
+  "duplicates": {},
+  "prefix_summary": {
+    "agent": [
+      {
+        "file_path": "/opt/dev/CORE/.intent/policies/architecture/agent_governance.json",
+        "count": 3
+      },
+      {
+        "file_path": "/opt/dev/CORE/.intent/policies/operations/code_execution.json",
+        "count": 2
+      }
+    ],
+    "standard_architecture_agent_rules": [
+      {
+        "file_path": "/opt/dev/CORE/.intent/policies/architecture/agent_governance_rules.json",
+        "count": 4
+      }
+    ],
+    "atomic": [
+      {
+        "file_path": "/opt/dev/CORE/.intent/policies/architecture/atomic_actions.json",
+        "count": 6
+      }
+    ],
+    "body": [
+      {
+        "file_path": "/opt/dev/CORE/.intent/policies/architecture/body_contracts.json",
+        "count": 7
+      }
+    ],
+    "standard_architecture_body_contracts": [
+      {
+        "file_path": "/opt/dev/CORE/.intent/policies/architecture/body_contracts.json",
+        "count": 44
+      }
+    ],
+    "workflow_composition": [
+      {
+        "file_path": "/opt/dev/CORE/.intent/policies/architecture/command_rules.json",
+        "count": 5
+      }
+    ],
+    "cli": [
+      {
+        "file_path": "/opt/dev/CORE/.intent/policies/architecture/command_rules.json",
+        "count": 1
+      }
+    ],
+    "standard_architecture_command_rules": [
+      {
+        "file_path": "/opt/dev/CORE/.intent/policies/architecture/command_rules.json",
+        "count": 5
+      }
+    ],
+    "cli_commands_require_core_decorator": [
+      {
+        "file_path": "/opt/dev/CORE/.intent/policies/architecture/decorator_governance.json",
+        "count": 1
+      }
+    ],
+    "decorator_ordering": [
+      {
+        "file_path": "/opt/dev/CORE/.intent/policies/architecture/decorator_governance.json",
+        "count": 1
+      }
+    ],
+    "no_duplicate_decorators": [
+      {
+        "file_path": "/opt/dev/CORE/.intent/policies/architecture/decorator_governance.json",
+        "count": 1
+      }
+    ],
+    "di": [
+      {
+        "file_path": "/opt/dev/CORE/.intent/policies/architecture/dependency_injection.json",
+        "count": 4
+      },
+      {
+        "file_path": "/opt/dev/CORE/.intent/policies/code/code_standards.json",
+        "count": 1
+      }
+    ],
+    "async": [
+      {
+        "file_path": "/opt/dev/CORE/.intent/policies/architecture/dependency_injection.json",
+        "count": 1
+      },
+      {
+        "file_path": "/opt/dev/CORE/.intent/policies/code/code_standards.json",
+        "count": 1
+      }
+    ],
+    "db": [
+      {
+        "file_path": "/opt/dev/CORE/.intent/policies/data/governance.json",
+        "count": 11
+      },
+      {
+        "file_path": "/opt/dev/CORE/.intent/policies/architecture/dependency_injection.json",
+        "count": 1
+      }
+    ],
+    "events": [
+      {
+        "file_path": "/opt/dev/CORE/.intent/policies/architecture/event_schema_standard.json",
+        "count": 3
+      }
+    ],
+    "policy": [
+      {
+        "file_path": "/opt/dev/CORE/.intent/policies/architecture/policy_integrity.json",
+        "count": 3
+      }
+    ],
+    "schemas": [
+      {
+        "file_path": "/opt/dev/CORE/.intent/policies/architecture/schema_format.json",
+        "count": 4
+      }
+    ],
+    "service_must_be_headless": [
+      {
+        "file_path": "/opt/dev/CORE/.intent/policies/architecture/service_rules.json",
+        "count": 1
+      }
+    ],
+    "atomic_actions_return_actionresult": [
+      {
+        "file_path": "/opt/dev/CORE/.intent/policies/architecture/service_rules.json",
+        "count": 1
+      }
+    ],
+    "write_default_false": [
+      {
+        "file_path": "/opt/dev/CORE/.intent/policies/architecture/service_rules.json",
+        "count": 1
+      }
+    ],
+    "no_ui_imports_in_services": [
+      {
+        "file_path": "/opt/dev/CORE/.intent/policies/architecture/service_rules.json",
+        "count": 1
+      }
+    ],
+    "service_module_naming": [
+      {
+        "file_path": "/opt/dev/CORE/.intent/policies/architecture/service_rules.json",
+        "count": 1
+      }
+    ],
+    "standard_architecture_service_rules": [
+      {
+        "file_path": "/opt/dev/CORE/.intent/policies/architecture/service_rules.json",
+        "count": 5
+      }
+    ],
+    "tools": [
+      {
+        "file_path": "/opt/dev/CORE/.intent/policies/architecture/tool_definition_standard.json",
+        "count": 2
+      }
+    ],
+    "vector": [
+      {
+        "file_path": "/opt/dev/CORE/.intent/policies/architecture/vector_service_standards.json",
+        "count": 10
+      }
+    ],
+    "workflow": [
+      {
+        "file_path": "/opt/dev/CORE/.intent/policies/architecture/workflow_rules.json",
+        "count": 1
+      }
+    ],
+    "standard_architecture_workflow_rules": [
+      {
+        "file_path": "/opt/dev/CORE/.intent/policies/architecture/workflow_rules.json",
+        "count": 9
+      }
+    ],
+    "style": [
+      {
+        "file_path": "/opt/dev/CORE/.intent/policies/code/code_standards.json",
+        "count": 7
+      }
+    ],
+    "layout": [
+      {
+        "file_path": "/opt/dev/CORE/.intent/policies/code/code_standards.json",
+        "count": 2
+      }
+    ],
+    "refactor": [
+      {
+        "file_path": "/opt/dev/CORE/.intent/policies/code/code_standards.json",
+        "count": 3
+      }
+    ],
+    "code_standards": [
+      {
+        "file_path": "/opt/dev/CORE/.intent/policies/code/code_standards.json",
+        "count": 2
+      }
+    ],
+    "caps": [
+      {
+        "file_path": "/opt/dev/CORE/.intent/policies/code/code_standards.json",
+        "count": 4
+      }
+    ],
+    "symbols": [
+      {
+        "file_path": "/opt/dev/CORE/.intent/policies/code/code_standards.json",
+        "count": 3
+      }
+    ],
+    "intent": [
+      {
+        "file_path": "/opt/dev/CORE/.intent/policies/code/code_standards.json",
+        "count": 5
+      },
+      {
+        "file_path": "/opt/dev/CORE/.intent/policies/operations/operations.json",
+        "count": 3
+      }
+    ],
+    "code": [
+      {
+        "file_path": "/opt/dev/CORE/.intent/policies/code/code_standards.json",
+        "count": 2
+      }
+    ],
+    "linkage": [
+      {
+        "file_path": "/opt/dev/CORE/.intent/policies/code/linkage_standards.json",
+        "count": 2
+      }
+    ],
+    "purity": [
+      {
+        "file_path": "/opt/dev/CORE/.intent/policies/code/purity.json",
+        "count": 6
+      }
+    ],
+    "knowledge": [
+      {
+        "file_path": "/opt/dev/CORE/.intent/policies/data/governance.json",
+        "count": 4
+      }
+    ],
+    "constitution": [
+      {
+        "file_path": "/opt/dev/CORE/.intent/policies/operations/constitution_format.json",
+        "count": 2
+      }
+    ],
+    "logging": [
+      {
+        "file_path": "/opt/dev/CORE/.intent/policies/operations/logging_standards.json",
+        "count": 7
+      }
+    ],
+    "observability": [
+      {
+        "file_path": "/opt/dev/CORE/.intent/policies/operations/observability.json",
+        "count": 3
+      }
+    ],
+    "integration": [
+      {
+        "file_path": "/opt/dev/CORE/.intent/policies/operations/operations.json",
+        "count": 6
+      }
+    ],
+    "canary": [
+      {
+        "file_path": "/opt/dev/CORE/.intent/policies/operations/operations.json",
+        "count": 2
+      }
+    ],
+    "dev_fastpath": [
+      {
+        "file_path": "/opt/dev/CORE/.intent/policies/operations/operations.json",
+        "count": 1
+      }
+    ],
+    "ir": [
+      {
+        "file_path": "/opt/dev/CORE/.intent/policies/operations/operations.json",
+        "count": 4
+      }
+    ],
+    "operations": [
+      {
+        "file_path": "/opt/dev/CORE/.intent/policies/operations/operations.json",
+        "count": 1
+      }
+    ],
+    "pattern_vectorization": [
+      {
+        "file_path": "/opt/dev/CORE/.intent/policies/operations/pattern_vectorization.json",
+        "count": 8
+      }
+    ],
+    "qa": [
+      {
+        "file_path": "/opt/dev/CORE/.intent/policies/operations/quality_assurance.json",
+        "count": 19
+      }
+    ],
+    "safety": [
+      {
+        "file_path": "/opt/dev/CORE/.intent/policies/operations/safety.json",
+        "count": 7
+      }
+    ],
+    "secrets": [
+      {
+        "file_path": "/opt/dev/CORE/.intent/policies/operations/secrets_management.json",
+        "count": 4
+      }
+    ]
+  }
+}

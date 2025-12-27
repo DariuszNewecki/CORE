@@ -1,8 +1,8 @@
 {
   "id": "standard_architecture_dependency_injection",
   "version": "1.1.0",
-  "title": "Architecture Standard – Dependency Injection",
-  "type": "standard_architecture",
+  "title": "Architecture Standard \u2013 Dependency Injection",
+  "type": "policy",
   "status": "active",
   "owners": {
     "accountable": "Architecture Owner",
@@ -13,7 +13,7 @@
   "review": {
     "frequency": "12 months"
   },
-  "schema_id": "policy.structure",
+  "schema_id": "meta.policy",
   "policy_id": "b9b2b1b8-4e62-4b20-8cb4-8b4f0c9d8e21",
   "purpose": "Canonical rules for dependency injection in CORE. Ensures that major services are wired through explicit constructors or factories, avoiding hidden globals and hard-coded wiring inside feature modules.\n\nAdditionally, defines lifecycle and scoping rules for loop-bound async resources (DB pools, async clients) to prevent cross-event-loop failures in CLI and test runtimes.\n",
   "scope": {

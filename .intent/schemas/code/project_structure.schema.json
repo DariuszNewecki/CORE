@@ -1,10 +1,20 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
+  "id": "project_structure.schema",
   "schema_id": "knowledge.project_structure",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "title": "CORE Project Structure Knowledge Schema",
-  "description": "Validates project_structure.yaml with proper match pattern variants",
+  "description": "Validates project_structure.json. Optimized to reference entry_point_patterns definition from the canonical source.",
   "type": "object",
+  "owners": {
+    "accountable": "Governance Lead",
+    "responsible": [
+      "Core Maintainer"
+    ]
+  },
+  "review": {
+    "frequency": "12 months"
+  },
   "required": [
     "id",
     "version",
@@ -32,9 +42,7 @@
     },
     "type": {
       "type": "string",
-      "enum": [
-        "knowledge_project_structure"
-      ]
+      "const": "knowledge_project_structure"
     },
     "status": {
       "type": "string",
@@ -93,9 +101,6 @@
         "type": "string"
       }
     },
-    "$schema": {
-      "type": "string"
-    },
     "architectural_domains": {
       "type": "array",
       "items": {
@@ -128,144 +133,8 @@
       "minItems": 1
     },
     "entry_point_patterns": {
-      "type": "array",
-      "items": {
-        "oneOf": [
-          {
-            "description": "Pattern with name_regex (with or without module_path)",
-            "type": "object",
-            "required": [
-              "name",
-              "description",
-              "entry_point_type",
-              "match"
-            ],
-            "properties": {
-              "name": {
-                "type": "string"
-              },
-              "description": {
-                "type": "string"
-              },
-              "entry_point_type": {
-                "type": "string"
-              },
-              "match": {
-                "type": "object",
-                "required": [
-                  "name_regex",
-                  "type"
-                ],
-                "properties": {
-                  "type": {
-                    "type": "string"
-                  },
-                  "name_regex": {
-                    "type": "string"
-                  },
-                  "module_path_contains": {
-                    "type": "string"
-                  },
-                  "is_public_function": {
-                    "type": "boolean"
-                  }
-                },
-                "additionalProperties": false
-              }
-            },
-            "additionalProperties": false
-          },
-          {
-            "description": "Pattern with module_path but no name_regex",
-            "type": "object",
-            "required": [
-              "name",
-              "description",
-              "entry_point_type",
-              "match"
-            ],
-            "properties": {
-              "name": {
-                "type": "string"
-              },
-              "description": {
-                "type": "string"
-              },
-              "entry_point_type": {
-                "type": "string"
-              },
-              "match": {
-                "type": "object",
-                "required": [
-                  "module_path_contains",
-                  "type"
-                ],
-                "properties": {
-                  "type": {
-                    "type": "string"
-                  },
-                  "module_path_contains": {
-                    "type": "string"
-                  },
-                  "is_public_function": {
-                    "type": "boolean"
-                  }
-                },
-                "additionalProperties": false,
-                "not": {
-                  "required": [
-                    "name_regex"
-                  ]
-                }
-              }
-            },
-            "additionalProperties": false
-          },
-          {
-            "description": "Tag-based pattern matching",
-            "type": "object",
-            "required": [
-              "name",
-              "description",
-              "entry_point_type",
-              "match"
-            ],
-            "properties": {
-              "name": {
-                "type": "string"
-              },
-              "description": {
-                "type": "string"
-              },
-              "entry_point_type": {
-                "type": "string"
-              },
-              "match": {
-                "type": "object",
-                "required": [
-                  "has_capability_tag"
-                ],
-                "properties": {
-                  "has_capability_tag": {
-                    "type": "boolean"
-                  }
-                },
-                "additionalProperties": false
-              }
-            },
-            "additionalProperties": false
-          }
-        ]
-      },
-      "minItems": 1
+      "$ref": "entry_point_patterns.schema.json#/properties/entry_point_patterns"
     }
   },
-  "additionalProperties": false,
-  "id": "project_structure.schema",
-  "owners": {
-    "accountable": "Governance Lead"
-  },
-  "review": {
-    "frequency": "12 months"
-  }
+  "additionalProperties": false
 }

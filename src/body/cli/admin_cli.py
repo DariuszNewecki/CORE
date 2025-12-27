@@ -13,7 +13,6 @@ import typer
 from rich.console import Console
 
 from body.cli.commands import (
-    check,
     check_atomic_actions,
     check_patterns,
     coverage,
@@ -27,6 +26,7 @@ from body.cli.commands import (
     secrets,
     submit,
 )
+from body.cli.commands.check import check_app
 from body.cli.commands.dev_sync import dev_sync_app
 from body.cli.commands.develop import develop_app
 
@@ -108,7 +108,7 @@ core_context.context_service_factory = _build_context_service
 # ID: c1414598-a5f8-46c2-8ff9-3a141bea3b11
 def register_all_commands(app_instance: typer.Typer) -> None:
     """Register all command groups and inject context declaratively."""
-    app_instance.add_typer(check.check_app, name="check")
+    app_instance.add_typer(check_app, name="check")
     app_instance.add_typer(coverage.coverage_app, name="coverage")
     app_instance.add_typer(enrich.enrich_app, name="enrich")
     app_instance.add_typer(fix_app, name="fix")
@@ -136,7 +136,6 @@ def register_all_commands(app_instance: typer.Typer) -> None:
     app_instance.command(name="inspect-patterns")(inspect_patterns)
 
     modules_with_context = [
-        check,
         coverage,
         enrich,
         fix,

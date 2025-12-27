@@ -1,8 +1,8 @@
 {
   "id": "standard_code_linkage",
   "version": "1.0.0",
-  "title": "Code Standard \u2013 Linkage and ID Management",
-  "type": "standard_code",
+  "title": "Code Standard – Linkage and ID Management",
+  "type": "policy",
   "status": "active",
   "owners": {
     "accountable": "Core Maintainer",
@@ -13,7 +13,7 @@
   "review": {
     "frequency": "12 months"
   },
-  "schema_id": "policy.structure",
+  "schema_id": "meta.policy",
   "purpose": "Defines how functions and methods are uniquely identified through ID comments. Enables tracing, auditing, debugging, and autonomous operations by providing stable identifiers for all executable logic.\n",
   "rules": [
     {
@@ -52,6 +52,29 @@
       "rationale": "Duplicate IDs break tracing, auditing, and autonomous operations. Each function must have a unique identifier for reliable governance.\n",
       "enforcement": "error",
       "statement": "Function IDs MUST be globally unique across the entire codebase."
+    },
+    {
+      "id": "linkage.capability.unassigned",
+      "scope": [
+        "src/**/*.py"
+      ],
+      "exclusions": [
+        "tests/**/*.py",
+        "scripts/**/*.py"
+      ],
+      "rationale": "Every public function must have a capability ID assigned in the knowledge graph for governance tracking, autonomous operations, and constitutional enforcement.",
+      "enforcement": "error",
+      "statement": "Public symbols MUST have capability IDs assigned in the knowledge graph (capability field must not be 'unassigned').",
+      "check": {
+        "engine": "knowledge_gate",
+        "params": {
+          "check_type": "capability_assignment",
+          "exclude_patterns": [
+            "tests/",
+            "scripts/"
+          ]
+        }
+      }
     }
   ],
   "id_format": {
@@ -61,7 +84,7 @@
     "spacing": "No blank lines between ID comment and function",
     "examples": {
       "correct": "# ID: 550e8400-e29b-41d4-a716-446655440000\ndef process_data():\n    \"\"\"Process the data.\"\"\"\n    pass\n",
-      "incorrect": "def process_data():\n    # ID: 550e8400-e29b-41d4-a716-446655440000  # \u274c Wrong location\n    pass\n\n# ID: not-a-uuid  # \u274c Invalid format\ndef process_data():\n    pass\n"
+      "incorrect": "def process_data():\n    # ID: 550e8400-e29b-41d4-a716-446655440000  # ❌ Wrong location\n    pass\n\n# ID: not-a-uuid  # ❌ Invalid format\ndef process_data():\n    pass\n"
     }
   },
   "scope": {

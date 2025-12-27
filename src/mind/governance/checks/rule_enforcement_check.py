@@ -20,6 +20,7 @@ from __future__ import annotations
 import asyncio
 import inspect
 from abc import ABC, abstractmethod
+from collections.abc import Iterable
 from pathlib import Path
 from typing import Any, ClassVar
 
@@ -89,8 +90,15 @@ class RuleEnforcementCheck(BaseCheck, ABC):
     SSOT: policies are resolved via AuditorContext.policies.
     """
 
+    # Optional hint for legacy/migration lookup; must never be read from disk here.
     policy_file: ClassVar[Path | None] = None
-    enforcement_methods: ClassVar[list[EnforcementMethod]] = []
+
+    # Preferred declaration (Option B): explicit rule IDs this check binds to.
+    # Subclasses may set this; otherwise we derive from enforcement_methods.
+    policy_rule_ids: ClassVar[tuple[str, ...]] = ()
+
+    # Prefer tuple to avoid accidental class-level mutation.
+    enforcement_methods: ClassVar[tuple[EnforcementMethod, ...]] = ()
 
     @property
     @abstractmethod
@@ -106,21 +114,21 @@ class RuleEnforcementCheck(BaseCheck, ABC):
         if not self.__class__.enforcement_methods:
             raise ValueError(f"{self.__class__.__name__} must set enforcement_methods")
 
-        # Option B:
-        # Allow policy_file to be absent if policy_rule_ids is defined.
         has_policy_file = self.__class__.policy_file is not None
-        has_rule_ids = bool(getattr(self, "policy_rule_ids", None))
+        has_rule_ids = bool(self.__class__.policy_rule_ids)
 
         if not has_policy_file and not has_rule_ids:
             raise ValueError(
                 f"{self.__class__.__name__} must set policy_file OR policy_rule_ids"
             )
 
-        # Auto-populate policy_rule_ids from enforcement methods for coverage tracking.
-        if not getattr(self, "policy_rule_ids", None):
-            self.policy_rule_ids = [
-                method.rule_id for method in self.__class__.enforcement_methods
-            ]
+        # Instance-level list for reporting/debug, derived safely.
+        self._bound_rule_ids: list[str] = self._derive_bound_rule_ids()
+
+    def _derive_bound_rule_ids(self) -> list[str]:
+        if self.__class__.policy_rule_ids:
+            return list(self.__class__.policy_rule_ids)
+        return [m.rule_id for m in self.__class__.enforcement_methods]
 
     @staticmethod
     def _run_maybe_awaitable(value: Any) -> Any:
@@ -154,9 +162,7 @@ class RuleEnforcementCheck(BaseCheck, ABC):
                     file_path="SSOT:policies",
                     details={
                         "lookup_hints": self._policy_lookup_hints(),
-                        "policy_rule_ids": list(
-                            getattr(self, "policy_rule_ids", []) or []
-                        ),
+                        "policy_rule_ids": list(self._bound_rule_ids),
                     },
                 )
             )
@@ -168,7 +174,10 @@ class RuleEnforcementCheck(BaseCheck, ABC):
                 AuditFinding(
                     check_id="rules.missing",
                     severity=AuditSeverity.ERROR,
-                    message="Policy declares no enforceable rules (expected flat 'rules' list).",
+                    message=(
+                        "Policy declares no enforceable rules "
+                        "(expected flat 'rules' list)."
+                    ),
                     file_path=self._policy_identity_for_evidence(policy_data),
                 )
             )
@@ -202,7 +211,8 @@ class RuleEnforcementCheck(BaseCheck, ABC):
                     continue
                 if not isinstance(out, list):
                     raise TypeError(
-                        f"EnforcementMethod.verify must return list[AuditFinding], got {type(out)}"
+                        "EnforcementMethod.verify must return list[AuditFinding], "
+                        f"got {type(out)}"
                     )
 
                 findings.extend(out)
@@ -223,18 +233,16 @@ class RuleEnforcementCheck(BaseCheck, ABC):
         return findings
 
     def _policy_lookup_hints(self) -> list[str]:
-        # If no policy_file (Option B), the AuditorContext SSOT resolver must still work:
-        # use rule IDs as weak hints so missing-policy findings are informative.
+        """
+        Return SSOT lookup hints for AuditorContext.policies.
+
+        If policy_file is absent (Option B), we return rule-id based hints so the
+        missing-policy finding remains actionable.
+        """
         policy_file = self.__class__.policy_file
         if policy_file is None:
-            return [
-                # common canonical key shapes
-                *(
-                    f"rules/{rid}"
-                    for rid in (getattr(self, "policy_rule_ids", []) or [])[:5]
-                ),
-                "policy_file:none",
-            ]
+            weak = [f"rules/{rid}" for rid in self._bound_rule_ids[:5]]
+            return [*weak, "policy_file:none"]
 
         hint = str(policy_file).replace("\\", "/").strip()
         if "." in hint:
@@ -257,6 +265,7 @@ class RuleEnforcementCheck(BaseCheck, ABC):
 
         hint = hint.lstrip("/")
         stem = Path(hint).name if hint else ""
+
         candidates = [
             f"policies/{hint}" if hint else "",
             hint,
@@ -266,7 +275,8 @@ class RuleEnforcementCheck(BaseCheck, ABC):
         ]
         return [c for c in candidates if c]
 
-    def _policy_identity_for_evidence(self, policy: dict[str, Any]) -> str:
+    @staticmethod
+    def _policy_identity_for_evidence(policy: dict[str, Any]) -> str:
         pid = policy.get("id") or policy.get("policy_id") or "unknown_policy"
         return f"SSOT:{pid}"
 
@@ -275,15 +285,15 @@ class RuleEnforcementCheck(BaseCheck, ABC):
         Resolve policy from AuditorContext.policies (SSOT only).
 
         IMPORTANT:
-        - If policy_file is None (Option B), this method should still resolve by scanning
-          for policies that declare at least one of policy_rule_ids.
+        - If policy_file is None (Option B), this resolves by scanning policies for
+          at least one of the bound rule IDs.
         """
         policies = getattr(self.context, "policies", None)
         if not isinstance(policies, dict):
             logger.warning("AuditorContext.policies is missing or invalid.")
             return None
 
-        # 1) If we have a policy_file, use hint-based resolution.
+        # 1) If we have a policy_file hint, try hint-based resolution first.
         if self.__class__.policy_file is not None:
             for key in self._policy_lookup_hints():
                 candidate = policies.get(key)
@@ -301,8 +311,8 @@ class RuleEnforcementCheck(BaseCheck, ABC):
                     if pid and (pid.endswith(hint_stem) or hint_stem in pid):
                         return candidate
 
-        # 2) Option B fallback: find a policy that contains at least one of our rule ids.
-        wanted = set(getattr(self, "policy_rule_ids", []) or [])
+        # 2) Option B fallback: find a policy that declares at least one bound rule id.
+        wanted = set(self._bound_rule_ids)
         if wanted:
             for candidate in policies.values():
                 if not isinstance(candidate, dict):
@@ -310,8 +320,14 @@ class RuleEnforcementCheck(BaseCheck, ABC):
                 rules = candidate.get("rules")
                 if not isinstance(rules, list):
                     continue
-                for r in rules:
-                    if isinstance(r, dict) and r.get("id") in wanted:
-                        return candidate
+                if self._policy_contains_any_rule_id(rules, wanted):
+                    return candidate
 
         return None
+
+    @staticmethod
+    def _policy_contains_any_rule_id(rules: Iterable[Any], wanted: set[str]) -> bool:
+        for r in rules:
+            if isinstance(r, dict) and r.get("id") in wanted:
+                return True
+        return False

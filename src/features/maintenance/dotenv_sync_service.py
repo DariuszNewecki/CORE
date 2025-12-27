@@ -8,10 +8,10 @@ from typing import Any
 
 from sqlalchemy import func
 from sqlalchemy.dialects.postgresql import insert as pg_insert
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.config import settings
 from shared.infrastructure.database.models import RuntimeSetting
-from shared.infrastructure.database.session_manager import get_session
 from shared.logger import getLogger
 
 
@@ -19,18 +19,24 @@ logger = getLogger(__name__)
 
 
 # ID: b4e0cca2-7956-4ee9-80bc-e36aca3bf0f5
-async def run_dotenv_sync(dry_run: bool):
+async def run_dotenv_sync(session: AsyncSession, dry_run: bool):
     """
     Reads variables defined in runtime_requirements.yaml from the environment/.env
     and upserts them into the core.runtime_settings table.
+
+    Args:
+        session: Database session (injected dependency)
+        dry_run: If True, only report what would be done without executing
     """
     logger.info("Synchronizing .env configuration to database...")
+
     try:
         runtime_reqs = settings.load("mind.config.runtime_requirements")
         variables_to_sync = runtime_reqs.get("variables", {})
     except FileNotFoundError as e:
         logger.error("Cannot find runtime_requirements policy: %s", e)
         return
+
     settings_to_upsert: list[dict[str, Any]] = []
     for key, config in variables_to_sync.items():
         value = getattr(settings, key, None)
@@ -49,6 +55,7 @@ async def run_dotenv_sync(dry_run: bool):
                 "is_secret": is_secret,
             }
         )
+
     if dry_run:
         logger.info("-- DRY RUN: The following settings would be synced --")
         for setting in settings_to_upsert:
@@ -64,25 +71,25 @@ async def run_dotenv_sync(dry_run: bool):
                 setting["is_secret"],
             )
         return
+
     try:
-        async with get_session() as session:
-            async with session.begin():
-                stmt = pg_insert(RuntimeSetting).values(settings_to_upsert)
-                update_dict = {
-                    "value": stmt.excluded.value,
-                    "description": stmt.excluded.description,
-                    "is_secret": stmt.excluded.is_secret,
-                    "last_updated": func.now(),
-                }
-                upsert_stmt = stmt.on_conflict_do_update(
-                    index_elements=["key"], set_=update_dict
-                )
-                await session.execute(upsert_stmt)
+        async with session.begin():
+            stmt = pg_insert(RuntimeSetting).values(settings_to_upsert)
+            update_dict = {
+                "value": stmt.excluded.value,
+                "description": stmt.excluded.description,
+                "is_secret": stmt.excluded.is_secret,
+                "last_updated": func.now(),
+            }
+            upsert_stmt = stmt.on_conflict_do_update(
+                index_elements=["key"], set_=update_dict
+            )
+            await session.execute(upsert_stmt)
+
         logger.info(
             "Successfully synchronized %d settings to the database.",
             len(settings_to_upsert),
         )
     except Exception as e:
         logger.error("Database sync failed: %s", e, exc_info=True)
-        # Note: Logic layer should generally raise exceptions or return status,
-        # but complying with existing pattern where return is void.
+        raise

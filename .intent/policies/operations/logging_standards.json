@@ -2,7 +2,7 @@
   "id": "standard_logging",
   "version": "2.0.0",
   "title": "Operations Standard \u2013 Logging & Observability",
-  "type": "standard_logging",
+  "type": "policy",
   "status": "active",
   "owners": {
     "accountable": "Platform SRE",
@@ -13,7 +13,7 @@
   "review": {
     "frequency": "12 months"
   },
-  "schema_id": "policy.structure",
+  "schema_id": "meta.policy",
   "purpose": "Establishes the single source of truth for logging behavior in CORE. Consistency and clarity are critical for debugging, auditing, and reliability. All code MUST comply with these standards without exception.\n",
   "rules": [
     {

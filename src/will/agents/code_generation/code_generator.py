@@ -6,9 +6,10 @@ Code generation specialist responsible for prompt construction and LLM interacti
 from __future__ import annotations
 
 import ast
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from shared.config import get_path_or_none
+from shared.config import settings
 from shared.logger import getLogger
 from shared.utils.parsing import extract_python_code_from_response
 
@@ -21,6 +22,25 @@ if TYPE_CHECKING:
     from will.tools.architectural_context_builder import ArchitecturalContextBuilder
 
 logger = getLogger(__name__)
+
+
+def _resolve_prompt_template_path(logical_path: str) -> Path | None:
+    """
+    Resolve a prompt template path via settings meta.yaml mapping.
+
+    This is intentionally local (not a shared shim):
+    - Keeps caller logic explicit.
+    - Avoids reintroducing legacy helper APIs into shared.config.
+    """
+    try:
+        return settings.get_path(logical_path)
+    except FileNotFoundError:
+        return None
+    except Exception as e:
+        logger.warning(
+            "Failed to resolve prompt template path '%s': %s", logical_path, e
+        )
+        return None
 
 
 # ID: 4a272fc9-4ce5-40ae-afa3-fd6eadceea73
@@ -180,12 +200,24 @@ class CodeGenerator:
         target_file = task.params.file_path or "unknown.py"
         symbol_name = task.params.symbol_name or ""
 
-        template_path = get_path_or_none("mind.prompts.standard_task_generator")
-        prompt_template = (
-            template_path.read_text(encoding="utf-8")
-            if template_path and template_path.exists()
-            else "Implement step '{step}' for goal '{goal}' targeting {file_path}."
+        template_path = _resolve_prompt_template_path(
+            "mind.prompts.standard_task_generator"
         )
+        if template_path and template_path.exists():
+            try:
+                prompt_template = template_path.read_text(encoding="utf-8")
+            except Exception as e:
+                logger.warning(
+                    "Failed to read prompt template '%s': %s", template_path, e
+                )
+                prompt_template = (
+                    "Implement step '{step}' for goal '{goal}' targeting {file_path}."
+                )
+        else:
+            prompt_template = (
+                "Implement step '{step}' for goal '{goal}' targeting {file_path}."
+            )
+
         base_prompt = prompt_template.format(
             goal=goal,
             step=task.step,
@@ -214,6 +246,7 @@ class CodeGenerator:
             return code
         except SyntaxError:
             pass
+
         lines = code.splitlines()
         fixed_lines = []
         for line in lines:
@@ -224,6 +257,7 @@ class CodeGenerator:
                     fixed_lines.append(line.replace("'", '"'))
                     continue
             fixed_lines.append(line)
+
         fixed_code = "\n".join(fixed_lines)
         try:
             ast.parse(fixed_code)
@@ -237,6 +271,7 @@ class CodeGenerator:
             return None
         cleaned = text.replace("```python", "").replace("```py", "").replace("```", "")
         lines = [ln.rstrip() for ln in cleaned.splitlines()]
+
         start_idx = 0
         for idx, line in enumerate(lines):
             stripped = line.lstrip()
@@ -245,6 +280,7 @@ class CodeGenerator:
             if stripped.startswith(("def ", "class ", "import ", "from ", "#")):
                 start_idx = idx
                 break
+
         code_lines = lines[start_idx:]
         if not any(ln.strip() for ln in code_lines):
             return None

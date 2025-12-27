@@ -28,7 +28,7 @@
       }
     }
   ],
-  "schema_id": "schema.operations.policy",
+  "schema_id": "meta.policy",
   "title": "Constitution Format Standard",
   "version": "1.0.0",
   "owners": {

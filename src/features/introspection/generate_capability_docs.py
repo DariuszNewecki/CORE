@@ -1,14 +1,17 @@
 # src/features/introspection/generate_capability_docs.py
 """
 Generates the canonical capability reference documentation from the database.
+
+ARCHITECTURE: Pure feature - no standalone execution.
+Use via: core-admin build capability-docs
 """
 
 from __future__ import annotations
 
 from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.config import settings
-from shared.infrastructure.database.session_manager import get_session
 from shared.logger import getLogger
 
 
@@ -26,14 +29,18 @@ It is generated from the `core.knowledge_graph` database view and should not be 
 """
 
 
-async def _fetch_capabilities() -> list[dict]:
-    """Fetches all public capabilities from the database knowledge graph view."""
+async def _fetch_capabilities(session: AsyncSession) -> list[dict]:
+    """
+    Fetches all public capabilities from the database knowledge graph view.
+
+    Args:
+        session: Injected database session
+    """
     logger.info("Fetching capabilities from the database...")
-    async with get_session() as session:
-        # FIX: Removed 'line_number' and JOIN, as the column does not exist in the DB schema.
-        # We will default to line 1 in the python logic.
-        stmt = text(
-            """
+    # FIX: Removed 'line_number' and JOIN, as the column does not exist in the DB schema.
+    # We will default to line 1 in the python logic.
+    stmt = text(
+        """
             SELECT
                 capability,
                 intent,
@@ -42,9 +49,9 @@ async def _fetch_capabilities() -> list[dict]:
             WHERE is_public = TRUE AND capability IS NOT NULL
             ORDER BY capability;
             """
-        )
-        result = await session.execute(stmt)
-        return [dict(row._mapping) for row in result]
+    )
+    result = await session.execute(stmt)
+    return [dict(row._mapping) for row in result]
 
 
 def _group_by_domain(capabilities: list[dict]) -> dict[str, list[dict]]:
@@ -61,10 +68,15 @@ def _group_by_domain(capabilities: list[dict]) -> dict[str, list[dict]]:
 
 
 # ID: 2ea63de3-081d-40b3-9386-0d372487aabd
-async def main():
-    """The main entry point for the documentation generation script."""
+async def main(session: AsyncSession):
+    """
+    The main entry point for the documentation generation script.
+
+    Args:
+        session: Injected database session (provided by Body CLI orchestrator)
+    """
     try:
-        capabilities = await _fetch_capabilities()
+        capabilities = await _fetch_capabilities(session)
     except Exception as e:
         logger.error("Error fetching capabilities: %s", e)
         return
@@ -109,9 +121,3 @@ async def main():
     logger.info(
         "Capability reference documentation successfully written to %s", OUTPUT_PATH
     )
-
-
-if __name__ == "__main__":
-    import anyio
-
-    anyio.run(main)

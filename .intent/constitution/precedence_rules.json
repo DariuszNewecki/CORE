@@ -1,74 +1,43 @@
 {
-  "id": "constitutional_precedence_rules",
-  "title": "Constitutional Policy Precedence Hierarchy",
-  "version": "1.1.0",
-  "type": "constitutional_precedence",
+  "id": "constitutional_precedence",
+  "version": "1.0.0",
+  "title": "Constitutional Precedence Rules",
   "owners": {
-    "accountable": "Governance Lead",
-    "responsible": [
-      "Core Maintainer"
-    ]
+    "accountable": "Governance Lead"
   },
   "review": {
     "frequency": "12 months"
   },
   "schema_id": "constitution.precedence",
-  "purpose": "Defines the precedence order for constitutional principles when conflicts arise. Lower level numbers have higher precedence.",
+  "type": "precedence",
   "policy_hierarchy": [
     {
       "level": 1,
-      "name": "safety_boundaries",
-      "description": "Safety and security boundaries that protect humans and systems",
-      "principles": [
-        "no_autonomous_constitutional_amendment",
-        "constitutional_supremacy",
-        "mind_body_will_separation"
+      "description": "Precedence level 1",
+      "policies": [
+        "tier_1"
       ]
     },
     {
       "level": 2,
-      "name": "operational_governance",
-      "description": "Operational governance and risk management",
-      "principles": [
-        "risk_calculation_precedence",
-        "critical_operations",
-        "elevated_operations"
+      "description": "Precedence level 2",
+      "policies": [
+        "tier_2"
       ]
     },
     {
       "level": 3,
-      "name": "data_governance",
-      "description": "Data integrity and architectural boundaries",
-      "principles": [
-        "database_ssot",
-        "transparency_and_auditability"
+      "description": "Precedence level 3",
+      "policies": [
+        "tier_3"
       ]
     },
     {
       "level": 4,
-      "name": "autonomous_operations",
-      "description": "Autonomous execution within safe boundaries",
-      "principles": [
-        "standard_operations",
-        "routine_operations",
-        "autonomous_code_quality",
-        "autonomous_documentation"
+      "description": "Precedence level 4",
+      "policies": [
+        "tier_4"
       ]
     }
-  ],
-  "conflict_resolution_rules": [
-    {
-      "rule": "When principles conflict, higher level (lower number) wins",
-      "example": "Safety boundary (level 1) overrides autonomous operation (level 4)"
-    },
-    {
-      "rule": "Within same level, more specific principle wins over general",
-      "example": "path_based_classification overrides action_based_classification for specific files"
-    },
-    {
-      "rule": "If still unresolved, require human decision",
-      "example": "Equally specific principles at same level cannot be autonomously resolved"
-    }
-  ],
-  "additionalProperties": false
+  ]
 }

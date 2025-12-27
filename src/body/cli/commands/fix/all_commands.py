@@ -128,22 +128,34 @@ async def run_all_fixes(
 
         # --- Vector / DB sync ---
         elif name == "vector-sync":
+            # FIXED: Create async wrapper to inject session
+            # ID: 6b760931-5575-4582-a3df-ebb2bcca0f4a
+            async def sync_vectors_with_session():
+                async with get_session() as session:
+                    return await sync_vectors_async(
+                        session=session,
+                        write=write,
+                        dry_run=dry_run,
+                        qdrant_service=core_context.qdrant_service,
+                    )
+
             await _step(
                 "Synchronizing vector database",
-                lambda: sync_vectors_async(
-                    write=write,
-                    dry_run=dry_run,
-                    qdrant_service=core_context.qdrant_service,
-                ),
+                sync_vectors_with_session,
                 is_async=True,
             )
 
         elif name == "db-registry":
             from body.cli.admin_cli import app as main_app
 
+            # ID: cad00092-8eae-48f9-ad94-ded24f3f50b9
+            async def sync_with_session():
+                async with get_session() as session:
+                    await _sync_commands_to_db(session, main_app)
+
             await _step(
                 "Syncing CLI registry",
-                lambda: _sync_commands_to_db(main_app),
+                sync_with_session,
                 is_async=True,
             )
 

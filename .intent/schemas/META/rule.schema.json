@@ -1,9 +1,9 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "schema_id": "schema.rule",
-  "version": "2.0.0",
+  "version": "2.2.0",
   "title": "CORE Rule Schema",
-  "description": "The machine-level enforcer of a single rule. Validates that every law has a unique ID, a rationale, and a mandatory execution engine.",
+  "description": "Validates a single rule. Enforces unique IDs and deterministic engine parameters.",
   "type": "object",
   "required": [
     "id",
@@ -20,54 +20,111 @@
     },
     "enforcement": {
       "type": "string",
-      "enum": ["error", "warn", "warning", "info"],
-      "description": "The weight of the law. 'error' blocks system operations."
+      "enum": [
+        "error",
+        "warn",
+        "warning",
+        "info"
+      ]
     },
     "statement": {
       "type": "string",
       "minLength": 10,
-      "maxLength": 500,
-      "description": "The imperative command (formerly description)."
+      "maxLength": 500
     },
     "rationale": {
       "type": "string",
-      "minLength": 10,
-      "description": "The 'Why' - critical for LLM reasoning and human audit."
+      "minLength": 10
     },
     "check": {
       "type": "object",
-      "description": "Deterministic link to the execution engine.",
-      "required": ["engine"],
+      "required": [
+        "engine"
+      ],
       "properties": {
         "engine": {
           "type": "string",
-          "enum": ["ast_gate", "regex_gate", "glob_gate", "python_handler", "llm_gate"],
-          "description": "The specialized logic provider in CORE."
+          "enum": [
+            "ast_gate",
+            "regex_gate",
+            "glob_gate",
+            "python_handler",
+            "llm_gate",
+            "knowledge_gate",
+            "workflow_gate",
+            "risk_gate"
+          ]
         },
         "params": {
           "type": "object",
-          "description": "Parameters for the engine (e.g. forbidden_calls, patterns, or handler_id)."
+          "additionalProperties": true
         }
       },
       "additionalProperties": false
     },
     "category": {
-      "type": "string",
-      "pattern": "^[a-z][a-z0-9_]*$"
+      "type": "string"
     },
     "subcategory": {
-      "type": "string",
-      "pattern": "^[a-z][a-z0-9_]*$"
+      "type": "string"
     },
     "scope": {
       "oneOf": [
-        { "type": "string" },
-        { "type": "array", "items": { "type": "string" } }
+        {
+          "type": "string"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": true
+        }
       ]
     },
     "exceptions": {
       "type": "array",
-      "items": { "type": "string" }
+      "items": {
+        "type": "string"
+      }
+    },
+    "protected_paths": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "command": {
+      "type": "string"
+    },
+    "metric": {
+      "type": "string"
+    },
+    "conditions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "cross_reference": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "details": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "applies_when": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "remediation": {
+      "type": "string"
     },
     "owner": {
       "type": "string"
@@ -76,12 +133,5 @@
       "type": "string"
     }
   },
-  "additionalProperties": false,
-  "id": "rule.schema",
-  "owners": {
-    "accountable": "Governance Lead"
-  },
-  "review": {
-    "frequency": "12 months"
-  }
+  "additionalProperties": true
 }

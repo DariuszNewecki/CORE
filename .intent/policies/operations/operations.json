@@ -2,7 +2,7 @@
   "id": "standard_operations_general",
   "version": "1.0.0",
   "title": "Operations Standard \u2013 General Operational Rules",
-  "type": "standard_operations",
+  "type": "policy",
   "status": "active",
   "owners": {
     "accountable": "Platform SRE",
@@ -13,7 +13,7 @@
   "review": {
     "frequency": "12 months"
   },
-  "schema_id": "policy.structure",
+  "schema_id": "meta.policy",
   "policy_id": "a3e1b0c4-9f8d-4a7b-8c1d-6e5f4a3b2c1d",
   "purpose": "Unified operational governance for intent crates, integration workflows, canary deployments, self-healing routines, developer fastpaths, incident response, and runtime safety.\n",
   "rules": [

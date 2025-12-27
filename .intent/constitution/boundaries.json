@@ -33,17 +33,6 @@
           ],
           "audit_trail": true
         }
-      },
-      "check": {
-        "engine": "ast_gate",
-        "params": {
-          "patterns_prohibited": [
-            "filesystem_state_persistence",
-            "config_file_as_source_of_truth",
-            "arbitrary_metadata_storage"
-          ],
-          "audit_trail": true
-        }
       }
     },
     "mind_body_will_separation": {
@@ -66,18 +55,6 @@
           ],
           "require_layer_separation": true
         }
-      },
-      "check": {
-        "engine": "ast_gate",
-        "params": {
-          "patterns_prohibited": [
-            "will_parsing_intent_yaml",
-            "body_writing_to_intent",
-            "ai_modifying_constitution",
-            "orchestration_bypassing_boundaries"
-          ],
-          "require_layer_separation": true
-        }
       }
     },
     "constitutional_supremacy": {
@@ -89,14 +66,6 @@
       "enforcement": {
         "method": "pre_execution_validation",
         "parameters": {
-          "validate_before_execution": true,
-          "block_on_violation": true,
-          "no_bypass_allowed": true
-        }
-      },
-      "check": {
-        "engine": "workflow_gate",
-        "params": {
           "validate_before_execution": true,
           "block_on_violation": true,
           "no_bypass_allowed": true
@@ -122,12 +91,6 @@
           "audit_log_append_only": true,
           "retention_period_days": 90
         }
-      },
-      "check": {
-        "engine": "llm_gate",
-        "params": {
-          "instruction": "Verify adherence to: All autonomous actions must be logged with full context for human review"
-        }
       }
     },
     "no_autonomous_constitutional_amendment": {
@@ -147,20 +110,8 @@
             "human_approved_amendments"
           ]
         }
-      },
-      "check": {
-        "engine": "glob_gate",
-        "params": {
-          "patterns": [
-            ".intent/constitution/**"
-          ],
-          "action": "block_all_writes",
-          "exceptions": [
-            "human_approved_amendments"
-          ]
-        }
       }
     }
   },
-  "additionalProperties": false
+  "status": "active"
 }

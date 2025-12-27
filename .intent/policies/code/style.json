@@ -1,0 +1,109 @@
+{
+  "id": "code.style",
+  "version": "1.0.0",
+  "title": "Code Style Standards",
+  "type": "policy",
+  "schema_id": "meta.policy",
+  "description": "Defines linting, formatting, and visual consistency standards for the CORE codebase.",
+  "owners": {
+    "accountable": "Governance Lead",
+    "responsible": [
+      "Core Maintainer"
+    ]
+  },
+  "rules": [
+    {
+      "id": "style.linter_required",
+      "rationale": "Maintains code health and prevents common bugs through automated static analysis.",
+      "enforcement": "error",
+      "statement": "All changes MUST pass ruff (lint) before merge.",
+      "check": {
+        "engine": "ast_gate",
+        "params": {
+          "check_type": "linter_compliance"
+        }
+      }
+    },
+    {
+      "id": "style.formatter_required",
+      "rationale": "Ensures a uniform visual style across the codebase to reduce cognitive load during review.",
+      "enforcement": "error",
+      "statement": "All changes MUST be formatted by black; CI runs black --check.",
+      "check": {
+        "engine": "ast_gate",
+        "params": {
+          "check_type": "linter_compliance"
+        }
+      }
+    },
+    {
+      "id": "style.fail_on_style_in_ci",
+      "rationale": "Prevents malformed or non-compliant code from entering the main branch history.",
+      "enforcement": "error",
+      "statement": "CI MUST fail on style or lint violations (no auto-fixing in CI).",
+      "check": {
+        "engine": "ast_gate",
+        "params": {
+          "check_type": "linter_compliance"
+        }
+      }
+    },
+    {
+      "id": "style.docstrings_public_apis",
+      "rationale": "Enables both humans and autonomous agents to correctly reason about and use capabilities.",
+      "enforcement": "warning",
+      "statement": "Public APIs MUST have docstrings summarizing intent and parameters.",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: Public APIs MUST have docstrings summarizing intent and parameters."
+        }
+      }
+    },
+    {
+      "id": "style.universal_helper_first",
+      "rationale": "Reduces technical debt and maintenance overhead by centralizing common logic.",
+      "enforcement": "warning",
+      "statement": "Before creating new helpers, check shared.universal. Reuse or extend instead of duplicating.",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: Before creating new helpers, check shared.universal. Reuse or extend instead of duplicating."
+        }
+      }
+    },
+    {
+      "id": "style.capability_id_placement",
+      "rationale": "Creates a stable anchor for linking source code logic to the Single Source of Truth database.",
+      "enforcement": "warning",
+      "statement": "Primary public symbols representing capabilities MUST have '# ID: <uuid>' tags above their definition.",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: Primary public symbols representing capabilities MUST have '# ID: <uuid>' tags above their definition."
+        }
+      }
+    },
+    {
+      "id": "style.import_order",
+      "rationale": "Prevents circular dependencies and makes module dependencies immediately obvious.",
+      "enforcement": "warning",
+      "statement": "Imports MUST follow canonical grouping and ordering as enforced by the linter.",
+      "check": {
+        "engine": "ast_gate",
+        "params": {
+          "check_type": "linter_compliance",
+          "internal_roots": [
+            "shared",
+            "mind",
+            "body",
+            "will"
+          ]
+        }
+      }
+    }
+  ],
+  "review": {
+    "frequency": "12 months"
+  }
+}

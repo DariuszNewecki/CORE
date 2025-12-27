@@ -2,7 +2,7 @@
   "id": "standard_architecture_events",
   "version": "2.0.0",
   "title": "Architecture Standard \u2013 Event Schema",
-  "type": "standard_architecture",
+  "type": "policy",
   "status": "active",
   "owners": {
     "accountable": "Architecture Owner",
@@ -13,7 +13,7 @@
   "review": {
     "frequency": "12 months"
   },
-  "schema_id": "policy.structure",
+  "schema_id": "meta.policy",
   "purpose": "Establishes the canonical schema for all system events (Audit, Governance, Operational). Decouples the \"Body\" (emitters) from the \"Will\" (agents/monitors).\n",
   "rules": [
     {

@@ -40,6 +40,10 @@ from mind.governance.audit_postprocessor import (
 )
 from mind.governance.audit_types import AuditCheckMetadata, AuditCheckResult
 from mind.governance.checks.base_check import BaseCheck
+from mind.governance.constitutional_auditor_dynamic import (
+    get_dynamic_execution_stats,
+    run_dynamic_rules,
+)
 from shared.activity_logging import activity_run, new_activity_run
 from shared.logger import getLogger
 from shared.models import AuditFinding, AuditSeverity
@@ -54,7 +58,6 @@ FINDINGS_FILENAME = "audit_findings.json"
 PROCESSED_FINDINGS_FILENAME = "audit_findings.processed.json"
 SYMBOL_INDEX_FILENAME = "symbol_index.json"
 DOWNGRADE_SEVERITY_TO = "info"
-DEAD_SYMBOL_RULE_IDS = {"linkage.capability.unassigned"}
 
 # Evidence artifact path
 AUDIT_EVIDENCE_DIR = REPORTS_DIR / "audit"
@@ -299,7 +302,7 @@ class ConstitutionalAuditor:
             symbol_index=json.loads(symbol_index_path.read_text(encoding="utf-8")),
             reports_dir=REPORTS_DIR,
             allow_list=EntryPointAllowList.default(),
-            dead_rule_ids=tuple(DEAD_SYMBOL_RULE_IDS),
+            dead_rule_ids=tuple(),  # No longer downgrading any rules
             downgrade_to=DOWNGRADE_SEVERITY_TO,
             write_reports=True,
         )
@@ -359,12 +362,26 @@ class ConstitutionalAuditor:
             executed_rule_ids: set[str] = set()
             executed_check_ids: set[str] = set()
 
+            # PHASE 1 POC: Run dynamic rules BEFORE legacy checks
+            logger.info("=== Running Dynamic Rule Execution (POC) ===")
+            dynamic_findings = await run_dynamic_rules(
+                self.context, executed_rule_ids=executed_rule_ids
+            )
+            logger.info("Dynamic rules produced %d findings", len(dynamic_findings))
+
+            # Run legacy Check classes (backward compatibility)
+            logger.info("=== Running Legacy Check Classes ===")
             findings, _unassigned = await self._run_all_checks(
                 check_classes,
                 reporter,
                 executed_rule_ids=executed_rule_ids,
                 executed_check_ids=executed_check_ids,
             )
+            logger.info("Legacy checks produced %d findings", len(findings))
+
+            # Merge findings
+            findings = dynamic_findings + findings
+            logger.info("Total findings: %d", len(findings))
 
             _maybe_call(
                 reporter, ("end", "finish", "close", "finalize", "complete"), findings
@@ -381,6 +398,10 @@ class ConstitutionalAuditor:
             )
 
             passed = not any(f.severity == "error" for f in findings)
+
+            # Log dynamic execution statistics
+            stats = get_dynamic_execution_stats(self.context, executed_rule_ids)
+            logger.info("Dynamic Execution Stats: %s", stats)
 
             evidence_path = self._write_audit_evidence(
                 executed_rules=executed_rule_ids,

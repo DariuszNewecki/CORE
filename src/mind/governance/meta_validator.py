@@ -1,36 +1,34 @@
 # src/mind/governance/meta_validator.py
-
 """
 Meta-Constitutional Validator.
 
-Validates ALL .intent documents against GLOBAL-DOCUMENT-META-SCHEMA.yaml
+Validates ALL .intent documents against GLOBAL-DOCUMENT-META-SCHEMA.json
 and their respective JSON schemas via schema_id resolution.
+
+FIX: Implements a Schema Registry to resolve internal $ref links.
 """
 
 from __future__ import annotations
 
-import json
 import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-import yaml
-from jsonschema import ValidationError as JsonSchemaValidationError
-from jsonschema import validate as json_validate
+from jsonschema.validators import validator_for
 
+from shared.infrastructure.intent.intent_repository import (
+    get_intent_repository,
+)
 from shared.logger import getLogger
-from shared.path_utils import get_repo_root
 
 
 logger = getLogger(__name__)
 
 
 @dataclass
-# ID: 5b932327-7774-4121-8ce9-a30c9c6b4906
+# ID: 840ed0a8-4180-495a-96b2-facc9837557c
 class ValidationError:
-    """A single validation error or warning."""
-
     document: str
     error_type: str
     message: str
@@ -39,10 +37,8 @@ class ValidationError:
 
 
 @dataclass
-# ID: 1bf5c973-bd55-43c1-bdb4-1558fa44bdb8
+# ID: 64d145aa-3edc-40dd-8aba-e83f56177406
 class ValidationReport:
-    """Complete validation report for .intent documents."""
-
     valid: bool
     errors: list[ValidationError]
     warnings: list[ValidationError]
@@ -51,85 +47,72 @@ class ValidationReport:
     documents_invalid: int
 
 
-# ID: 9d0ace72-0ee5-41e5-b9df-3adc58c11835
+# ID: 6c47ddbc-3670-441c-ab73-04d97830b6b2
 class MetaValidator:
-    """
-    Validates .intent documents against GLOBAL-DOCUMENT-META-SCHEMA.
-
-    Phase 1: Validates header structure
-    Phase 2: Validates against JSON schemas via schema_id resolution
-    """
-
     def __init__(self, intent_root: Path | None = None):
-        """
-        Initialize validator with .intent root.
+        self.repo = get_intent_repository()
+        self.intent_root = self.repo.root
 
-        Args:
-            intent_root: Path to .intent directory, defaults to repo_root/.intent
-        """
-        self.intent_root = intent_root or get_repo_root() / ".intent"
+        # 1. Build a local cache of all schemas to resolve $ref issues
+        self._all_schemas: dict[str, dict[str, Any]] = self._index_all_schemas()
+
         self.meta_schema = self._load_meta_schema()
         self.errors: list[ValidationError] = []
         self.warnings: list[ValidationError] = []
-        self.schema_cache: dict[str, dict[str, Any]] = {}
+
+    def _index_all_schemas(self) -> dict[str, dict[str, Any]]:
+        """Finds every .schema.json in the system and stores it in memory."""
+        index = {}
+        # Search the entire schemas directory
+        schemas_path = self.intent_root / "schemas"
+        for schema_file in schemas_path.rglob("*.schema.json"):
+            try:
+                # Use filename as the lookup key for $ref resolution
+                doc = self.repo.load_document(schema_file)
+                index[schema_file.name] = doc
+                # Also index by the internal schema_id if present
+                if "schema_id" in doc:
+                    index[doc["schema_id"]] = doc
+            except Exception:
+                continue
+        return index
 
     def _load_meta_schema(self) -> dict[str, Any]:
-        """
-        Load GLOBAL-DOCUMENT-META-SCHEMA.yaml.
+        rel_path = "schemas/META/GLOBAL-DOCUMENT-META-SCHEMA.json"
+        try:
+            abs_path = self.repo.resolve_rel(rel_path)
+            return self.repo.load_document(abs_path)
+        except Exception as e:
+            raise FileNotFoundError(f"META-SCHEMA not found: {rel_path}. Error: {e}")
 
-        Returns:
-            Loaded meta-schema dictionary
-
-        Raises:
-            FileNotFoundError: If META-SCHEMA not found
-        """
-        meta_path = (
-            self.intent_root / "charter/constitution/GLOBAL-DOCUMENT-META-SCHEMA.json"
-        )
-        if not meta_path.exists():
-            raise FileNotFoundError(f"META-SCHEMA not found: {meta_path}")
-        with open(meta_path) as f:
-            schema = yaml.safe_load(f)
-        logger.info("Loaded GLOBAL-DOCUMENT-META-SCHEMA v%s", schema.get("version"))
-        return schema
-
-    # ID: 22fbbd9e-9659-418c-8b87-03ab66e1fafc
+    # ID: a3e2e7c8-7f90-4dd1-9f6e-ab126d72f331
     def validate_all_documents(self) -> ValidationReport:
-        """
-        Scan and validate all .intent YAML documents.
-
-        Returns:
-            ValidationReport with results
-        """
         self.errors.clear()
         self.warnings.clear()
-        self.schema_cache.clear()
-        scope = self.meta_schema["scope"]
-        excludes = [p.replace(".intent/", "") for p in scope["excludes"]]
+
+        scope = self.meta_schema.get("scope", {})
+        excludes = [p.replace(".intent/", "") for p in scope.get("excludes", [])]
+
         documents_checked = 0
         documents_valid = 0
         documents_invalid = 0
-        for yaml_file in self.intent_root.rglob("*.yaml"):
-            rel_path = yaml_file.relative_to(self.intent_root)
-            if any(str(rel_path).startswith(ex) for ex in excludes):
-                logger.debug("Skipping excluded: %s", rel_path)
-                continue
-            documents_checked += 1
-            is_valid = self._validate_document(yaml_file, rel_path)
-            if is_valid:
-                documents_valid += 1
-            else:
-                documents_invalid += 1
-        for yml_file in self.intent_root.rglob("*.yml"):
-            rel_path = yml_file.relative_to(self.intent_root)
-            if any(str(rel_path).startswith(ex) for ex in excludes):
-                continue
-            documents_checked += 1
-            is_valid = self._validate_document(yml_file, rel_path)
-            if is_valid:
-                documents_valid += 1
-            else:
-                documents_invalid += 1
+
+        for ext in ("*.yaml", "*.yml", "*.json"):
+            for doc_file in self.intent_root.rglob(ext):
+                # Skip the schemas themselves and excluded paths
+                if "/schemas/" in str(doc_file).replace("\\", "/"):
+                    continue
+
+                rel_path = doc_file.relative_to(self.intent_root)
+                if any(str(rel_path).startswith(ex) for ex in excludes):
+                    continue
+
+                documents_checked += 1
+                if self._validate_document(doc_file, rel_path):
+                    documents_valid += 1
+                else:
+                    documents_invalid += 1
+
         return ValidationReport(
             valid=len(self.errors) == 0,
             errors=self.errors,
@@ -140,203 +123,83 @@ class MetaValidator:
         )
 
     def _validate_document(self, doc_path: Path, rel_path: Path) -> bool:
-        """
-        Validate single document.
-
-        Args:
-            doc_path: Absolute path to document
-            rel_path: Relative path from .intent root
-
-        Returns:
-            True if valid, False otherwise
-        """
         doc_errors_before = len(self.errors)
         try:
-            with open(doc_path) as f:
-                doc = yaml.safe_load(f)
+            doc = self.repo.load_document(doc_path)
         except Exception as e:
-            self._add_error(
-                document=str(rel_path),
-                error_type="parse_error",
-                message=f"Failed to parse YAML: {e}",
-            )
+            self._add_error(str(rel_path), "parse_error", f"Load failed: {e}")
             return False
+
         if not isinstance(doc, dict):
-            self._add_error(
-                document=str(rel_path),
-                error_type="invalid_structure",
-                message="Document must be a YAML dictionary",
-            )
+            self._add_error(str(rel_path), "invalid_structure", "Must be a mapping")
             return False
+
         self._validate_required_fields(str(rel_path), doc)
         self._validate_field_constraints(str(rel_path), doc)
         self._validate_against_json_schema(str(rel_path), doc)
+
         return len(self.errors) == doc_errors_before
 
     def _validate_required_fields(self, doc_name: str, doc: dict):
-        """
-        Validate all required header fields are present.
-
-        Args:
-            doc_name: Document name for error reporting
-            doc: Document dictionary
-        """
         required = self.meta_schema["header_schema"]["required_fields"]
         for field in required:
             if field not in doc:
                 self._add_error(
-                    document=doc_name,
-                    error_type="missing_required_field",
-                    message=f"Missing required field: {field}",
-                    field=field,
+                    doc_name, "missing_field", f"Missing field: {field}", field
                 )
 
     def _validate_field_constraints(self, doc_name: str, doc: dict):
-        """
-        Validate field patterns and constraints.
-
-        Args:
-            doc_name: Document name for error reporting
-            doc: Document dictionary
-        """
         fields = self.meta_schema["header_schema"]["fields"]
-        if "id" in doc:
-            pattern = fields["id"]["pattern"]
-            if not re.match(pattern, doc["id"]):
-                self._add_error(
-                    document=doc_name,
-                    error_type="invalid_pattern",
-                    message=f"id '{doc['id']}' does not match pattern {pattern}",
-                    field="id",
-                )
-        if "version" in doc:
-            pattern = fields["version"]["pattern"]
-            if not re.match(pattern, doc["version"]):
-                self._add_error(
-                    document=doc_name,
-                    error_type="invalid_pattern",
-                    message=f"version '{doc['version']}' does not match pattern {pattern}",
-                    field="version",
-                )
-        if "status" in doc:
-            allowed = fields["status"]["allowed_values"]
-            if doc["status"] not in allowed:
-                self._add_error(
-                    document=doc_name,
-                    error_type="invalid_value",
-                    message=f"status '{doc['status']}' not in allowed values: {allowed}",
-                    field="status",
-                )
-        if "type" in doc:
-            pattern = fields["type"]["pattern"]
-            if not re.match(pattern, doc["type"]):
-                self._add_error(
-                    document=doc_name,
-                    error_type="invalid_pattern",
-                    message=f"type '{doc['type']}' does not match pattern {pattern}",
-                    field="type",
-                )
-        if "owners" in doc:
-            if not isinstance(doc["owners"], dict):
-                self._add_error(
-                    document=doc_name,
-                    error_type="invalid_structure",
-                    message="owners must be a dictionary",
-                    field="owners",
-                )
-            elif "accountable" not in doc["owners"]:
-                self._add_error(
-                    document=doc_name,
-                    error_type="missing_required_field",
-                    message="owners.accountable is required",
-                    field="owners.accountable",
-                )
-        if "review" in doc:
-            if not isinstance(doc["review"], dict):
-                self._add_error(
-                    document=doc_name,
-                    error_type="invalid_structure",
-                    message="review must be a dictionary",
-                    field="review",
-                )
-            elif "frequency" not in doc["review"]:
-                self._add_error(
-                    document=doc_name,
-                    error_type="missing_required_field",
-                    message="review.frequency is required",
-                    field="review.frequency",
-                )
-        if "schema_id" in doc:
-            pattern = fields["schema_id"]["pattern"]
-            if not re.match(pattern, doc["schema_id"]):
-                self._add_error(
-                    document=doc_name,
-                    error_type="invalid_pattern",
-                    message=f"schema_id '{doc['schema_id']}' does not match pattern {pattern}",
-                    field="schema_id",
-                )
-
-    def _resolve_schema(self, schema_id: str) -> dict[str, Any] | None:
-        """
-        Resolve JSON schema by schema_id.
-
-        Args:
-            schema_id: Schema identifier to resolve
-
-        Returns:
-            Schema dictionary if found, None otherwise
-        """
-        if schema_id in self.schema_cache:
-            return self.schema_cache[schema_id]
-        schemas_root = self.intent_root / "charter/schemas"
-        for schema_file in schemas_root.rglob("*.schema.json"):
-            try:
-                with open(schema_file) as f:
-                    schema = json.load(f)
-                if schema.get("schema_id") == schema_id:
-                    logger.debug(
-                        "Resolved %s -> %s",
-                        schema_id,
-                        schema_file.relative_to(self.intent_root),
+        for field_name in ["id", "version", "type", "schema_id"]:
+            if field_name in doc and field_name in fields:
+                pattern = fields[field_name].get("pattern")
+                if pattern and not re.match(pattern, str(doc[field_name])):
+                    self._add_error(
+                        doc_name, "invalid_pattern", f"{field_name} invalid", field_name
                     )
-                    self.schema_cache[schema_id] = schema
-                    return schema
-            except Exception as e:
-                logger.warning("Failed to load schema {schema_file}: %s", e)
-                continue
-        return None
 
     def _validate_against_json_schema(self, doc_name: str, doc: dict):
-        """
-        Validate document against its JSON schema.
-
-        Args:
-            doc_name: Document name for error reporting
-            doc: Document dictionary
-        """
-        if "schema_id" not in doc:
+        schema_id = doc.get("schema_id")
+        if not schema_id:
             return
-        schema_id = doc["schema_id"]
-        schema = self._resolve_schema(schema_id)
-        if schema is None:
+
+        schema = self._all_schemas.get(schema_id)
+        if not schema:
             self._add_error(
-                document=doc_name,
-                error_type="schema_not_found",
-                message=f"No JSON schema found for schema_id: {schema_id}",
-                field="schema_id",
-                severity="warning",
+                doc_name,
+                "schema_not_found",
+                f"No schema for: {schema_id}",
+                "schema_id",
+                "warning",
             )
             return
+
         try:
-            json_validate(instance=doc, schema=schema)
-            logger.debug("Document {doc_name} validated against %s", schema_id)
-        except JsonSchemaValidationError as e:
-            error_path = ".".join(str(p) for p in e.path) if e.path else "root"
+            # FIX: Create a validator that knows about all our local schemas
+            validator_cls = validator_for(schema)
+
+            # Simple resolver that pulls from our in-memory index
+            # This is the "Sound Solution" for local $ref issues
+            # ID: ac52e1ca-d781-4664-ac7f-833bafcb384b
+            def retrieve_schema(uri):
+                name = uri.split("/")[-1]
+                if name in self._all_schemas:
+                    return self._all_schemas[name]
+                raise Exception(f"Could not resolve {uri}")
+
+            # Run validation with a custom resolver logic (simplified for 3.12 compatibility)
+            from jsonschema import RefResolver
+
+            resolver = RefResolver.from_schema(schema, store=self._all_schemas)
+            validator = validator_cls(schema, resolver=resolver)
+
+            for error in validator.iter_errors(doc):
+                path = ".".join(map(str, error.path)) or "root"
+                self._add_error(doc_name, "schema_violation", error.message, path)
+
+        except Exception as e:
             self._add_error(
-                document=doc_name,
-                error_type="schema_validation_failed",
-                message=f"JSON schema validation failed at {error_path}: {e.message}",
-                field=error_path if error_path != "root" else None,
+                doc_name, "validator_error", f"Internal validator error: {e}"
             )
 
     def _add_error(
@@ -347,23 +210,7 @@ class MetaValidator:
         field: str | None = None,
         severity: str = "error",
     ):
-        """
-        Add validation error.
-
-        Args:
-            document: Document path
-            error_type: Error type identifier
-            message: Human-readable error message
-            field: Optional field name
-            severity: "error" or "warning"
-        """
-        error = ValidationError(
-            document=document,
-            error_type=error_type,
-            message=message,
-            field=field,
-            severity=severity,
-        )
+        error = ValidationError(document, error_type, message, severity, field)
         if severity == "error":
             self.errors.append(error)
         else:

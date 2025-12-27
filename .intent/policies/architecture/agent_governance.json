@@ -2,7 +2,7 @@
   "id": "standard_architecture_agent_governance",
   "version": "1.0.0",
   "title": "Architecture Standard \u2013 Agent Governance",
-  "type": "standard_architecture",
+  "type": "policy",
   "status": "active",
   "owners": {
     "accountable": "Governance Lead",
@@ -13,7 +13,7 @@
   "review": {
     "frequency": "12 months"
   },
-  "schema_id": "policy.structure",
+  "schema_id": "meta.policy",
   "purpose": "Define how CORE\u2019s agents may act, what they are forbidden to do, and how autonomous behavior is constrained by the constitution.\n",
   "rules": [
     {

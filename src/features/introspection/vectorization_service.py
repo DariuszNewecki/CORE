@@ -12,10 +12,11 @@ import hashlib
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from shared.config import settings
 from shared.context import CoreContext
 from shared.infrastructure.clients.qdrant_client import QdrantService
-from shared.infrastructure.database.session_manager import get_session
 from shared.logger import getLogger
 from shared.utils.embedding_utils import normalize_text
 
@@ -25,27 +26,29 @@ if TYPE_CHECKING:
 logger = getLogger(__name__)
 
 
-async def _fetch_all_public_symbols_from_db() -> list[dict]:
+async def _fetch_all_public_symbols_from_db(session: AsyncSession) -> list[dict]:
     """Queries the database for all public symbols."""
     from sqlalchemy import text
 
-    async with get_session() as session:
-        stmt = text(
-            "\n            SELECT id, symbol_path, module, fingerprint AS structural_hash\n            FROM core.symbols\n            WHERE is_public = TRUE\n            "
-        )
-        result = await session.execute(stmt)
-        return [dict(row._mapping) for row in result]
+    stmt = text(
+        """
+            SELECT id, symbol_path, module, fingerprint AS structural_hash
+            FROM core.symbols
+            WHERE is_public = TRUE
+            """
+    )
+    result = await session.execute(stmt)
+    return [dict(row._mapping) for row in result]
 
 
-async def _fetch_existing_vector_links() -> dict[str, str]:
+async def _fetch_existing_vector_links(session: AsyncSession) -> dict[str, str]:
     """Fetches all existing symbol_id -> vector_id mappings from the database."""
     from sqlalchemy import text
 
-    async with get_session() as session:
-        result = await session.execute(
-            text("SELECT symbol_id, vector_id FROM core.symbol_vector_links")
-        )
-        return {str(row.symbol_id): str(row.vector_id) for row in result}
+    result = await session.execute(
+        text("SELECT symbol_id, vector_id FROM core.symbol_vector_links")
+    )
+    return {str(row.symbol_id): str(row.vector_id) for row in result}
 
 
 async def _get_stored_vector_hashes(qdrant_service: QdrantService) -> dict[str, str]:
@@ -154,47 +157,72 @@ async def _process_vectorization_task(
         return None
 
 
-async def _update_db_after_vectorization(updates: list[dict]):
+async def _update_db_after_vectorization(session: AsyncSession, updates: list[dict]):
     """Creates links in symbol_vector_links and updates the last_embedded timestamp."""
     from sqlalchemy import text
 
     if not updates:
         return
-    async with get_session() as session:
-        async with session.begin():
-            await session.execute(
-                text(
-                    "\n                    INSERT INTO core.symbol_vector_links (symbol_id, vector_id, embedding_model, embedding_version, created_at)\n                    VALUES (:symbol_id, :vector_id, :embedding_model, :embedding_version, NOW())\n                    ON CONFLICT (symbol_id) DO UPDATE SET\n                        vector_id = EXCLUDED.vector_id,\n                        embedding_model = EXCLUDED.embedding_model,\n                        embedding_version = EXCLUDED.embedding_version,\n                        created_at = NOW();\n                "
-                ),
-                updates,
-            )
-            await session.execute(
-                text(
-                    "UPDATE core.symbols SET last_embedded = NOW() WHERE id = ANY(:symbol_ids)"
-                ),
-                {"symbol_ids": [u["symbol_id"] for u in updates]},
-            )
+
+    # No session.begin() - session transaction is managed by caller
+    await session.execute(
+        text(
+            """
+                INSERT INTO core.symbol_vector_links (symbol_id, vector_id, embedding_model, embedding_version, created_at)
+                VALUES (:symbol_id, :vector_id, :embedding_model, :embedding_version, NOW())
+                ON CONFLICT (symbol_id) DO UPDATE SET
+                    vector_id = EXCLUDED.vector_id,
+                    embedding_model = EXCLUDED.embedding_model,
+                    embedding_version = EXCLUDED.embedding_version,
+                    created_at = NOW();
+            """
+        ),
+        updates,
+    )
+    await session.execute(
+        text(
+            "UPDATE core.symbols SET last_embedded = NOW() WHERE id = ANY(:symbol_ids)"
+        ),
+        {"symbol_ids": [u["symbol_id"] for u in updates]},
+    )
     logger.info("Updated %d records in the database.", len(updates))
 
 
 # ID: 0e545e4a-22e4-42cc-b1f6-9e900445627b
 async def run_vectorize(
-    context: CoreContext, dry_run: bool = False, force: bool = False
+    context: CoreContext,
+    session: AsyncSession,
+    dry_run: bool = False,
+    force: bool = False,
 ):
     """
     The main orchestration logic for vectorizing capabilities based on the database.
+
+    Args:
+        context: CoreContext with services
+        session: Injected database session
+        dry_run: If True, only report what would be vectorized
+        force: If True, re-vectorize all symbols regardless of hash
     """
     logger.info("Starting Database-Driven Vectorization...")
     failure_log_path = settings.REPO_PATH / "logs" / "vectorization_failures.log"
     from shared.infrastructure.config_service import ConfigService
 
-    async with get_session() as session:
-        config = await ConfigService.create(session)
-        llm_enabled = await config.get_bool("LLM_ENABLED", default=False)
+    config = await ConfigService.create(session)
+    llm_enabled = await config.get_bool("LLM_ENABLED", default=False)
     if not llm_enabled:
         logger.warning("LLM_ENABLED is False. Skipping vectorization.")
         return
+
+    # Get cognitive_service from context or registry
     cognitive_service = context.cognitive_service
+    if cognitive_service is None and hasattr(context, "registry"):
+        cognitive_service = await context.registry.get_cognitive_service()
+
+    if cognitive_service is None:
+        logger.error("❌ Cognitive service not available in context")
+        return
+
     logger.info("Performing pre-flight check on embedding service...")
     try:
         check = await cognitive_service.get_embedding_for_code("test")
@@ -208,11 +236,15 @@ async def run_vectorize(
         )
         return
     all_symbols, existing_links, stored_vector_hashes = await asyncio.gather(
-        _fetch_all_public_symbols_from_db(),
-        _fetch_existing_vector_links(),
-        _get_stored_vector_hashes(context.qdrant_service),
+        _fetch_all_public_symbols_from_db(session),
+        _fetch_existing_vector_links(session),
+        _get_stored_vector_hashes(
+            context.qdrant_service or await context.registry.get_qdrant_service()
+        ),
     )
-    qdrant_service = context.qdrant_service
+    qdrant_service = (
+        context.qdrant_service or await context.registry.get_qdrant_service()
+    )
     await qdrant_service.ensure_collection()
     tasks = []
     for symbol in all_symbols:
@@ -271,7 +303,7 @@ async def run_vectorize(
             )
         else:
             pass
-    await _update_db_after_vectorization(updates_to_db)
+    await _update_db_after_vectorization(session, updates_to_db)
     logger.info(
         "Vectorization complete. Processed %d/%d symbols.", success_count, total
     )

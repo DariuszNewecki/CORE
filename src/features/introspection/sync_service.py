@@ -10,10 +10,10 @@ from pathlib import Path
 from typing import Any
 
 from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.ast_utility import FunctionCallVisitor, calculate_structural_hash
 from shared.config import settings
-from shared.infrastructure.database.session_manager import get_session
 from shared.logger import getLogger
 
 
@@ -161,10 +161,13 @@ class SymbolScanner:
 
 
 # ID: f6cedf76-ff2c-48bd-9847-3a65c07edb2e
-async def run_sync_with_db() -> dict[str, int]:
+async def run_sync_with_db(session: AsyncSession) -> dict[str, int]:
     """
     Executes the full, database-centric sync logic using the "smart merge" strategy.
     This is the single source of truth for updating the symbols table from the codebase.
+
+    Args:
+        session: Database session (injected dependency)
     """
     logger.info("Starting symbol sync with database")
     scanner = SymbolScanner()
@@ -176,173 +179,172 @@ async def run_sync_with_db() -> dict[str, int]:
         "deleted": 0,
     }
 
-    async with get_session() as session:
-        async with session.begin():
-            # Create temp table matching core.symbols structure
-            await session.execute(
-                text(
-                    """
-                    CREATE TEMPORARY TABLE core_symbols_staging
-                    (LIKE core.symbols INCLUDING DEFAULTS)
-                    ON COMMIT DROP;
-                    """
-                )
+    async with session.begin():
+        # Create temp table matching core.symbols structure
+        await session.execute(
+            text(
+                """
+                CREATE TEMPORARY TABLE core_symbols_staging
+                (LIKE core.symbols INCLUDING DEFAULTS)
+                ON COMMIT DROP;
+                """
             )
+        )
 
-            if code_state:
-                # Updated INSERT to include 'domain'
-                insert_stmt = text(
-                    """
-                    INSERT INTO core_symbols_staging (
-                        id,
-                        symbol_path,
-                        module,
-                        qualname,
-                        kind,
-                        ast_signature,
-                        fingerprint,
-                        state,
-                        is_public,
-                        calls,
-                        domain
-                    ) VALUES (
-                        :id,
-                        :symbol_path,
-                        :module,
-                        :qualname,
-                        :kind,
-                        :ast_signature,
-                        :fingerprint,
-                        :state,
-                        :is_public,
-                        :calls,
-                        :domain
-                    )
-                    """
+        if code_state:
+            # Updated INSERT to include 'domain'
+            insert_stmt = text(
+                """
+                INSERT INTO core_symbols_staging (
+                    id,
+                    symbol_path,
+                    module,
+                    qualname,
+                    kind,
+                    ast_signature,
+                    fingerprint,
+                    state,
+                    is_public,
+                    calls,
+                    domain
+                ) VALUES (
+                    :id,
+                    :symbol_path,
+                    :module,
+                    :qualname,
+                    :kind,
+                    :ast_signature,
+                    :fingerprint,
+                    :state,
+                    :is_public,
+                    :calls,
+                    :domain
                 )
-                await session.execute(insert_stmt, code_state)
-
-            deleted_result = await session.execute(
-                text(
-                    """
-                    SELECT COUNT(*)
-                    FROM core.symbols
-                    WHERE symbol_path NOT IN (
-                        SELECT symbol_path FROM core_symbols_staging
-                    )
-                    """
-                )
+                """
             )
-            stats["deleted"] = deleted_result.scalar_one()
+            await session.execute(insert_stmt, code_state)
 
-            inserted_result = await session.execute(
-                text(
-                    """
-                    SELECT COUNT(*)
-                    FROM core_symbols_staging
-                    WHERE symbol_path NOT IN (
-                        SELECT symbol_path FROM core.symbols
-                    )
-                    """
+        deleted_result = await session.execute(
+            text(
+                """
+                SELECT COUNT(*)
+                FROM core.symbols
+                WHERE symbol_path NOT IN (
+                    SELECT symbol_path FROM core_symbols_staging
                 )
+                """
             )
-            stats["inserted"] = inserted_result.scalar_one()
+        )
+        stats["deleted"] = deleted_result.scalar_one()
 
-            # Updated change detection logic (fingerprint OR domain change)
-            updated_result = await session.execute(
-                text(
-                    """
-                    SELECT COUNT(*)
-                    FROM core.symbols s
-                    JOIN core_symbols_staging st
-                        ON s.symbol_path = st.symbol_path
-                    WHERE
-                        s.fingerprint != st.fingerprint
-                        OR s.calls::text != st.calls::text
-                        OR s.domain != st.domain
-                    """
+        inserted_result = await session.execute(
+            text(
+                """
+                SELECT COUNT(*)
+                FROM core_symbols_staging
+                WHERE symbol_path NOT IN (
+                    SELECT symbol_path FROM core.symbols
                 )
+                """
             )
-            stats["updated"] = updated_result.scalar_one()
+        )
+        stats["inserted"] = inserted_result.scalar_one()
 
-            await session.execute(
-                text(
-                    """
-                    DELETE FROM core.symbols
-                    WHERE symbol_path NOT IN (
-                        SELECT symbol_path FROM core_symbols_staging
-                    )
-                    """
-                )
+        # Updated change detection logic (fingerprint OR domain change)
+        updated_result = await session.execute(
+            text(
+                """
+                SELECT COUNT(*)
+                FROM core.symbols s
+                JOIN core_symbols_staging st
+                    ON s.symbol_path = st.symbol_path
+                WHERE
+                    s.fingerprint != st.fingerprint
+                    OR s.calls::text != st.calls::text
+                    OR s.domain != st.domain
+                """
             )
+        )
+        stats["updated"] = updated_result.scalar_one()
 
-            # Updated UPDATE statement to include domain
-            await session.execute(
-                text(
-                    """
-                    UPDATE core.symbols
-                    SET
-                        fingerprint   = st.fingerprint,
-                        calls         = st.calls,
-                        domain        = st.domain,
-                        last_modified = NOW(),
-                        last_embedded = NULL,
-                        updated_at    = NOW()
-                    FROM core_symbols_staging st
-                    WHERE core.symbols.symbol_path = st.symbol_path
-                    AND (
-                        core.symbols.fingerprint != st.fingerprint
-                        OR core.symbols.calls::text != st.calls::text
-                        OR core.symbols.domain != st.domain
-                    );
-                    """
+        await session.execute(
+            text(
+                """
+                DELETE FROM core.symbols
+                WHERE symbol_path NOT IN (
+                    SELECT symbol_path FROM core_symbols_staging
                 )
+                """
             )
+        )
 
-            # Updated INSERT statement to include domain
-            await session.execute(
-                text(
-                    """
-                    INSERT INTO core.symbols (
-                        id,
-                        symbol_path,
-                        module,
-                        qualname,
-                        kind,
-                        ast_signature,
-                        fingerprint,
-                        state,
-                        is_public,
-                        calls,
-                        domain,
-                        created_at,
-                        updated_at,
-                        last_modified,
-                        first_seen,
-                        last_seen
-                    )
-                    SELECT
-                        id,
-                        symbol_path,
-                        module,
-                        qualname,
-                        kind,
-                        ast_signature,
-                        fingerprint,
-                        state,
-                        is_public,
-                        calls,
-                        domain,
-                        NOW(),
-                        NOW(),
-                        NOW(),
-                        NOW(),
-                        NOW()
-                    FROM core_symbols_staging
-                    ON CONFLICT (symbol_path) DO NOTHING;
-                    """
-                )
+        # Updated UPDATE statement to include domain
+        await session.execute(
+            text(
+                """
+                UPDATE core.symbols
+                SET
+                    fingerprint   = st.fingerprint,
+                    calls         = st.calls,
+                    domain        = st.domain,
+                    last_modified = NOW(),
+                    last_embedded = NULL,
+                    updated_at    = NOW()
+                FROM core_symbols_staging st
+                WHERE core.symbols.symbol_path = st.symbol_path
+                AND (
+                    core.symbols.fingerprint != st.fingerprint
+                    OR core.symbols.calls::text != st.calls::text
+                    OR core.symbols.domain != st.domain
+                );
+                """
             )
+        )
+
+        # Updated INSERT statement to include domain
+        await session.execute(
+            text(
+                """
+                INSERT INTO core.symbols (
+                    id,
+                    symbol_path,
+                    module,
+                    qualname,
+                    kind,
+                    ast_signature,
+                    fingerprint,
+                    state,
+                    is_public,
+                    calls,
+                    domain,
+                    created_at,
+                    updated_at,
+                    last_modified,
+                    first_seen,
+                    last_seen
+                )
+                SELECT
+                    id,
+                    symbol_path,
+                    module,
+                    qualname,
+                    kind,
+                    ast_signature,
+                    fingerprint,
+                    state,
+                    is_public,
+                    calls,
+                    domain,
+                    NOW(),
+                    NOW(),
+                    NOW(),
+                    NOW(),
+                    NOW()
+                FROM core_symbols_staging
+                ON CONFLICT (symbol_path) DO NOTHING;
+                """
+            )
+        )
 
     logger.info(
         "Sync complete. Scanned: %d, Inserted: %d, Updated: %d, Deleted: %d",

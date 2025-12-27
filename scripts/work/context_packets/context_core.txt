@@ -1,0 +1,16 @@
+# PROJECT CONTEXT EXPORT
+# Generated: 2025-12-24T08:23:05.558083
+# Domains: src, intent
+
+
+============================================================
+DOMAIN: SRC (Body (Core Implementation))
+============================================================
+
+
+============================================================
+DOMAIN: INTENT (Constitutional Mind (Charter, Mission, Patterns))
+============================================================
+
+# END OF CONTEXT EXPORT
+# Total Files: 0

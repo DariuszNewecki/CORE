@@ -82,6 +82,45 @@ async def fix_ids_internal(write: bool = False) -> ActionResult:
         )
 
 
+@atomic_action(
+    action_id="fix.duplicate_ids",
+    intent="Resolve duplicate ID conflicts by regenerating UUIDs",
+    impact=ActionImpact.WRITE_METADATA,
+    policies=["id_uniqueness_check"],
+    category="fixers",
+)
+# ID: 60d8c8e6-6c3a-46cb-91ca-a0a399b5c5d3
+async def fix_duplicate_ids_internal(write: bool = False) -> ActionResult:
+    """
+    Core logic for fixing duplicate IDs.
+    Wraps legacy service in proper Atomic Action pattern.
+    """
+    start_time = time.time()
+    try:
+        # FIXED: Pass session to resolve_duplicate_ids
+        async with get_session() as session:
+            resolved_count = await resolve_duplicate_ids(session, dry_run=not write)
+
+        return ActionResult(
+            action_id="fix.duplicate_ids",
+            ok=True,
+            data={
+                "resolved_count": resolved_count,
+                "mode": "write" if write else "dry-run",
+            },
+            duration_sec=time.time() - start_time,
+            impact=ActionImpact.WRITE_METADATA,
+        )
+    except Exception as e:
+        return ActionResult(
+            action_id="fix.duplicate_ids",
+            ok=False,
+            data={"error": str(e)},
+            duration_sec=time.time() - start_time,
+            logs=[f"Error resolving duplicates: {e}"],
+        )
+
+
 @fix_app.command(
     "ids", help="Assigns a stable '# ID: <uuid>' to all untagged public symbols."
 )
@@ -179,47 +218,6 @@ async def fix_tags_command(
         write=write,
         dry_run=not write,
     )
-
-
-# NEW: Atomic Action Wrapper for Duplicate IDs
-@atomic_action(
-    action_id="fix.duplicate_ids",
-    intent="Resolve duplicate ID conflicts by regenerating UUIDs",
-    impact=ActionImpact.WRITE_METADATA,
-    policies=["id_uniqueness_check"],
-    category="fixers",
-)
-# ID: 60d8c8e6-6c3a-46cb-91ca-a0a399b5c5d3
-async def fix_duplicate_ids_internal(write: bool = False) -> ActionResult:
-    """
-    Core logic for fixing duplicate IDs.
-    Wraps legacy service in proper Atomic Action pattern.
-    """
-    start_time = time.time()
-    try:
-        # resolve_duplicate_ids is synchronous logic, running in thread if needed
-        # But looking at the error "coroutine was never awaited", it IS async.
-        # We await it here.
-        resolved_count = await resolve_duplicate_ids(dry_run=not write)
-
-        return ActionResult(
-            action_id="fix.duplicate_ids",
-            ok=True,
-            data={
-                "resolved_count": resolved_count,
-                "mode": "write" if write else "dry-run",
-            },
-            duration_sec=time.time() - start_time,
-            impact=ActionImpact.WRITE_METADATA,
-        )
-    except Exception as e:
-        return ActionResult(
-            action_id="fix.duplicate_ids",
-            ok=False,
-            data={"error": str(e)},
-            duration_sec=time.time() - start_time,
-            logs=[f"Error resolving duplicates: {e}"],
-        )
 
 
 @fix_app.command(

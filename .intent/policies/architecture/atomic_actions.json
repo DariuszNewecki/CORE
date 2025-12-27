@@ -2,7 +2,7 @@
   "id": "standard_architecture_atomic_actions",
   "version": "1.0.0",
   "title": "Architecture Standard \u2013 Atomic Actions",
-  "type": "standard_architecture",
+  "type": "policy",
   "status": "active",
   "owners": {
     "accountable": "Governance Lead",
@@ -13,7 +13,7 @@
   "review": {
     "frequency": "12 months"
   },
-  "schema_id": "policy.structure",
+  "schema_id": "meta.policy",
   "pattern_id": "atomic_actions",
   "category": "orchestration",
   "layer": "mind",

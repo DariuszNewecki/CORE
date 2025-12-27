@@ -1,0 +1,110 @@
+{
+  "id": "code.naming",
+  "version": "1.0.0",
+  "title": "Naming Conventions",
+  "type": "policy",
+  "schema_id": "meta.policy",
+  "description": "Defines naming standards for code, intent files, schemas, and prompts.",
+  "owners": {
+    "accountable": "Governance Lead",
+    "responsible": [
+      "Core Maintainer"
+    ]
+  },
+  "rules": [
+    {
+      "id": "intent.policy_file_naming",
+      "rationale": "Aligns naming with the constitutional mandate for JSON as the machine-readable format for intent.",
+      "enforcement": "error",
+      "statement": "All charter policy files must use snake_case and end with '.json'.",
+      "check": {
+        "engine": "regex_gate",
+        "params": {
+          "check_type": "naming_convention"
+        }
+      }
+    },
+    {
+      "id": "intent.policy_schema_naming",
+      "rationale": "Allows the validator to deterministically resolve schemas for policy documents.",
+      "enforcement": "error",
+      "statement": "Schemas for policy files must end with '_policy_schema.json'.",
+      "check": {
+        "engine": "glob_gate",
+        "params": {
+          "check_type": "path_restriction"
+        }
+      }
+    },
+    {
+      "id": "intent.artifact_schema_naming",
+      "rationale": "Differentiates implementation schemas from governance policy schemas.",
+      "enforcement": "error",
+      "statement": "Schemas for non-policy artifacts must end with '_schema.[json|yaml]'.",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: Schemas for non-policy artifacts must end with '_schema.[json|yaml]'."
+        }
+      }
+    },
+    {
+      "id": "intent.prompt_file_naming",
+      "rationale": "Standardizes the discovery of cognitive templates for AI agents.",
+      "enforcement": "error",
+      "statement": "All prompt files must use snake_case and end with '.prompt'.",
+      "check": {
+        "engine": "regex_gate",
+        "params": {
+          "check_type": "naming_convention"
+        }
+      }
+    },
+    {
+      "id": "intent.proposal_file_naming",
+      "rationale": "Identifies change-request artifacts to prevent accidental application without review.",
+      "enforcement": "warning",
+      "statement": "All proposal files must follow the 'cr-*.yaml' naming convention.",
+      "check": {
+        "engine": "regex_gate",
+        "params": {
+          "check_type": "naming_convention"
+        }
+      }
+    },
+    {
+      "id": "code.python_module_naming",
+      "rationale": "Maintains consistency with Python PEP 8 standards and project conventions.",
+      "enforcement": "error",
+      "statement": "All Python source files must use snake_case naming.",
+      "check": {
+        "engine": "regex_gate",
+        "params": {
+          "check_type": "naming_convention"
+        }
+      }
+    },
+    {
+      "id": "code.python_test_module_naming",
+      "rationale": "Ensures reliable discovery by pytest while preventing the misclassification of test-generation logic or utilities.",
+      "scope": [
+        "tests/**/*.py",
+        "src/**/*_test.py"
+      ],
+      "exceptions": [
+        "src/features/self_healing/test_generation/**"
+      ],
+      "enforcement": "error",
+      "statement": "All Python test suites (executable tests) MUST be prefixed with 'test_'.",
+      "check": {
+        "engine": "regex_gate",
+        "params": {
+          "check_type": "naming_convention"
+        }
+      }
+    }
+  ],
+  "review": {
+    "frequency": "12 months"
+  }
+}

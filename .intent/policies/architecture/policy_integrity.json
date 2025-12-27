@@ -2,7 +2,7 @@
   "id": "standard_policy_integrity",
   "version": "2.0.0",
   "title": "Policy Integrity & Cross-Reference Standards",
-  "type": "standard_policy_integrity",
+  "type": "policy",
   "status": "active",
   "owners": {
     "accountable": "Constitutional Governance",
@@ -13,7 +13,7 @@
   "review": {
     "frequency": "12 months"
   },
-  "schema_id": "policy.structure",
+  "schema_id": "meta.policy",
   "purpose": "Establishes rules for maintaining constitutional policy integrity, including how to handle duplicate rule IDs, cross-references between policies, and partial enforcement tracking.\nSupports the \"High-Level + Implementation\" pattern where the same rule ID appears in multiple files intentionally to link governance statements with technical specifications.\n",
   "rules": [
     {

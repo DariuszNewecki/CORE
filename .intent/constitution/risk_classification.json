@@ -32,13 +32,6 @@
           "risk_score": 1,
           "approval": "autonomous_with_audit"
         }
-      },
-      "check": {
-        "engine": "risk_gate",
-        "params": {
-          "risk_score": 1,
-          "approval": "autonomous_with_audit"
-        }
       }
     },
     "standard_operations": {
@@ -54,13 +47,6 @@
       "enforcement": {
         "method": "risk_calculation",
         "parameters": {
-          "risk_score": 3,
-          "approval": "validation_then_autonomous"
-        }
-      },
-      "check": {
-        "engine": "risk_gate",
-        "params": {
           "risk_score": 3,
           "approval": "validation_then_autonomous"
         }
@@ -80,13 +66,6 @@
       "enforcement": {
         "method": "risk_calculation",
         "parameters": {
-          "risk_score": 7,
-          "approval": "human_confirmation_required"
-        }
-      },
-      "check": {
-        "engine": "risk_gate",
-        "params": {
           "risk_score": 7,
           "approval": "human_confirmation_required"
         }
@@ -110,36 +89,6 @@
           "risk_score": 10,
           "approval": "human_review_plus_audit"
         }
-      },
-      "check": {
-        "engine": "risk_gate",
-        "params": {
-          "risk_score": 10,
-          "approval": "human_review_plus_audit"
-        }
-      }
-    },
-    "risk_calculation_precedence": {
-      "statement": "Path-based classification overrides action-based classification",
-      "rationale": "Location indicates operational impact more reliably than action type",
-      "scope": [
-        "all_file_operations"
-      ],
-      "enforcement": {
-        "method": "precedence_rule",
-        "parameters": {
-          "precedence_order": [
-            "path_based_classification",
-            "action_based_classification"
-          ],
-          "conflict_resolution": "use_higher_risk"
-        }
-      },
-      "check": {
-        "engine": "glob_gate",
-        "params": {
-          "check_type": "path_restriction"
-        }
       }
     },
     "path_based_classification": {
@@ -151,15 +100,6 @@
       "enforcement": {
         "method": "path_match",
         "parameters": {
-          "critical": ".intent/** src/mind/logic/** alembic/versions/**",
-          "elevated": "src/body/services/** src/body/core/** config/**",
-          "standard": "src/body/commands/** tests/**",
-          "routine": "docs/** scripts/dev/**"
-        }
-      },
-      "check": {
-        "engine": "glob_gate",
-        "params": {
           "critical": ".intent/** src/mind/logic/** alembic/versions/**",
           "elevated": "src/body/services/** src/body/core/** config/**",
           "standard": "src/body/commands/** tests/**",
@@ -181,17 +121,8 @@
           "standard": "code_generation refactoring test_generation",
           "routine": "format_code fix_docstring run_linter"
         }
-      },
-      "check": {
-        "engine": "action_gate",
-        "params": {
-          "critical": "schema_migration constitutional_amendment governance_modification",
-          "elevated": "interface_modification config_change agent_capability_addition",
-          "standard": "code_generation refactoring test_generation",
-          "routine": "format_code fix_docstring run_linter"
-        }
       }
     }
   },
-  "additionalProperties": false
+  "status": "active"
 }

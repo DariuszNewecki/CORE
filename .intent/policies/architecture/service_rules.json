@@ -2,7 +2,7 @@
   "id": "standard_architecture_service_rules",
   "version": "1.0.0",
   "title": "Architecture Standard \u2013 Service Patterns",
-  "type": "standard_architecture",
+  "type": "policy",
   "status": "active",
   "owners": {
     "accountable": "Architecture Owner",
@@ -13,7 +13,7 @@
   "review": {
     "frequency": "12 months"
   },
-  "schema_id": "policy.structure",
+  "schema_id": "meta.policy",
   "description": "Defines canonical patterns for all infrastructure and body-layer services in CORE.\nServices manage stateful resources (DB, vectors, LLMs) and provide\nclean interfaces for business logic.\n\nThis pattern file has two dimensions:\n- Architectural patterns: how different kinds of services are structured\n  (stateful services, repositories, facades, observers, etc.).\n- Behavioral contract: how ALL services must behave (headless, safe-by-default,\n  consistent result contracts) so they can be orchestrated by workflows and agents.\n",
   "service_contract": {
     "headless": {
@@ -88,207 +88,6 @@
       "Any new Rich-based UI MUST live in workflow/CLI modules, not in services."
     ]
   },
-  "write_semantics": {
-    "description": "To support safe autonomy and reversible behavior, services must be explicit about write behavior and support dry-run where practical.\n",
-    "rules": {
-      "parameters": [
-        "Any mutating service SHOULD accept write: bool = False.",
-        "Services MAY also accept dry_run: bool, but MUST keep semantics consistent (dry_run == not write).",
-        "Read-only services SHOULD omit write/dry_run parameters entirely."
-      ],
-      "behavior": [
-        "When write=False, services MUST NOT perform irreversible operations.",
-        "When write=False, services SHOULD still compute and return what WOULD happen where feasible.",
-        "When write=True, services perform the actual mutation and report impact in ActionResult or return data."
-      ]
-    },
-    "example_atomic_action": "async def sync_vectors_action(\n    qdrant_service: QdrantService,\n    write: bool = False,\n) -> ActionResult:\n    dry_run = not write\n    ...\n"
-  },
-  "patterns": [
-    {
-      "pattern_id": "stateful_service",
-      "type": "infrastructure",
-      "purpose": "Manage long-lived stateful resources",
-      "applies_to": [
-        "Database connections",
-        "Vector store clients",
-        "LLM API clients",
-        "File system watchers"
-      ],
-      "lifecycle": {
-        "initialization": [
-          "Load configuration from environment/config files",
-          "Validate connection parameters",
-          "Establish connection with retry logic",
-          "Verify service health",
-          "Log successful initialization"
-        ],
-        "usage": [
-          "Provide clean, typed interface",
-          "Handle transient failures gracefully",
-          "Implement connection pooling where appropriate",
-          "Cache results when safe"
-        ],
-        "shutdown": [
-          "Flush pending operations",
-          "Close connections cleanly",
-          "Log shutdown completion"
-        ]
-      },
-      "implementation_requirements": {
-        "structure": [
-          "Single class per service",
-          "Dependency injection via constructor",
-          "No global state or singletons",
-          "Async-first where I/O bound"
-        ],
-        "error_handling": [
-          "MUST raise specific exceptions (not generic Exception)",
-          "MUST log errors with context",
-          "SHOULD implement retry with backoff",
-          "SHOULD provide circuit breaker for external services"
-        ],
-        "testing": [
-          "MUST be mockable (interface-based)",
-          "MUST have unit tests with mocked dependencies",
-          "SHOULD have integration tests with real services"
-        ]
-      },
-      "example_skeleton": "class DatabaseService:\n    \"\"\"Manages PostgreSQL connection and operations.\"\"\"\n\n    def __init__(self, config: DatabaseConfig):\n        self._config = config\n        self._connection = None\n        self._initialized = False\n\n    async def initialize(self) -> None:\n        \"\"\"Establish database connection with validation.\"\"\"\n        # Connect, validate, set _initialized = True\n\n    async def execute_query(self, query: str, params: dict) -> List[dict]:\n        \"\"\"Execute parameterized query with error handling.\"\"\"\n        if not self._initialized:\n            raise ServiceNotInitializedError()\n        # Execute with retries, return results\n\n    async def shutdown(self) -> None:\n        \"\"\"Clean shutdown of database connection.\"\"\"\n        # Close connection, cleanup resources\n"
-    },
-    {
-      "pattern_id": "stateless_transformer",
-      "type": "pure_logic",
-      "purpose": "Transform data without side effects",
-      "applies_to": [
-        "Validators",
-        "Parsers",
-        "Formatters",
-        "Calculators"
-      ],
-      "guarantees": [
-        "Pure functions - same input always produces same output",
-        "No hidden state",
-        "No I/O operations",
-        "Easily testable"
-      ],
-      "implementation_requirements": {
-        "structure": [
-          "Static methods or pure functions preferred",
-          "No instance variables (if class-based)",
-          "Type hints for all inputs/outputs"
-        ],
-        "naming": [
-          "Verbs that describe transformation: parse_, validate_, format_"
-        ],
-        "testing": [
-          "Property-based testing recommended",
-          "100% code coverage achievable"
-        ]
-      },
-      "example_skeleton": "class YAMLProcessor:\n    \"\"\"Pure YAML processing operations.\"\"\"\n\n    @staticmethod\n    def parse_strict(content: str) -> dict:\n        \"\"\"Parse YAML with strict validation.\"\"\"\n        # Pure transformation, no side effects\n\n    @staticmethod\n    def validate_schema(data: dict, schema: dict) -> List[str]:\n        \"\"\"Validate data against schema, return violations.\"\"\"\n        # Pure validation, returns results\n"
-    },
-    {
-      "pattern_id": "repository_pattern",
-      "type": "data_access",
-      "purpose": "Abstract database operations behind domain interface",
-      "applies_to": [
-        "Symbol repository",
-        "Policy repository",
-        "Audit log repository",
-        "Capability repository"
-      ],
-      "structure": {
-        "interface_layer": [
-          "Define domain operations (save_symbol, find_by_id, etc.)",
-          "Return domain objects, not raw DB rows",
-          "Hide SQL/query details from callers"
-        ],
-        "implementation_layer": [
-          "Translate domain operations to SQL",
-          "Handle connection management",
-          "Map DB rows to domain objects"
-        ]
-      },
-      "implementation_requirements": {
-        "naming": [
-          "End with 'Repository': SymbolRepository",
-          "Methods follow domain language, not SQL"
-        ],
-        "methods": {
-          "standard_operations": [
-            "async def save(entity: DomainObject) -> None",
-            "async def find_by_id(id: str) -> Optional[DomainObject]",
-            "async def find_all(filters: dict) -> List[DomainObject]",
-            "async def delete(id: str) -> bool"
-          ],
-          "query_methods": [
-            "Use domain-specific names: find_orphaned_symbols()",
-            "Return domain objects, not dictionaries"
-          ]
-        },
-        "error_handling": [
-          "Raise domain exceptions, not DB exceptions",
-          "NotFoundError instead of SQLAlchemy NoResultFound"
-        ]
-      },
-      "example_skeleton": "class SymbolRepository:\n    \"\"\"Repository for Symbol domain objects.\"\"\"\n\n    def __init__(self, db_service: DatabaseService):\n        self._db = db_service\n\n    async def save(self, symbol: Symbol) -> None:\n        \"\"\"Persist symbol to database.\"\"\"\n        # Translate Symbol -> SQL INSERT/UPDATE\n\n    async def find_by_canonical_name(self, name: str) -> Optional[Symbol]:\n        \"\"\"Find symbol by canonical name.\"\"\"\n        # SQL query, map result -> Symbol object\n\n    async def find_orphaned(self) -> List[Symbol]:\n        \"\"\"Find symbols without file references.\"\"\"\n        # Domain-specific query\n"
-    },
-    {
-      "pattern_id": "facade_pattern",
-      "type": "simplification",
-      "purpose": "Provide simplified interface to complex subsystem",
-      "applies_to": [
-        "Cognitive orchestrator (hides multiple LLM clients)",
-        "Knowledge service (hides DB + Qdrant + vectorizer)",
-        "Audit service (hides multiple checkers)"
-      ],
-      "guarantees": [
-        "Single entry point for complex operations",
-        "Coordinates multiple services",
-        "Hides implementation complexity"
-      ],
-      "implementation_requirements": {
-        "structure": [
-          "Composes multiple services",
-          "Provides high-level methods",
-          "Handles coordination logic"
-        ],
-        "responsibilities": [
-          "Service orchestration",
-          "Error aggregation",
-          "Transaction boundaries"
-        ],
-        "anti_patterns": [
-          "Don't reimplement service logic",
-          "Don't hold state beyond request scope",
-          "Don't become a god object"
-        ]
-      },
-      "example_skeleton": "class KnowledgeService:\n    \"\"\"Facade for all knowledge graph operations.\"\"\"\n\n    def __init__(\n        self,\n        db_repo: SymbolRepository,\n        vector_service: QdrantService,\n        vectorizer: KnowledgeVectorizer\n    ):\n        self._db = db_repo\n        self._vectors = vector_service\n        self._vectorizer = vectorizer\n\n    async def add_symbol(self, symbol: Symbol) -> None:\n        \"\"\"Add symbol to both DB and vector store.\"\"\"\n        # 1. Save to DB\n        # 2. Generate embedding\n        # 3. Store in Qdrant\n        # Coordinate all three\n\n    async def search_similar(self, query: str, limit: int) -> List[Symbol]:\n        \"\"\"Search symbols by semantic similarity.\"\"\"\n        # 1. Get embedding for query\n        # 2. Vector search in Qdrant\n        # 3. Hydrate from DB\n        # Return complete Symbol objects\n"
-    },
-    {
-      "pattern_id": "observer_pattern",
-      "type": "event_driven",
-      "purpose": "Decouple event producers from consumers",
-      "applies_to": [
-        "File system watchers",
-        "Constitutional monitors",
-        "Audit loggers"
-      ],
-      "structure": [
-        "Observable: emits events",
-        "Observer: receives and handles events",
-        "Event: data payload"
-      ],
-      "implementation_requirements": [
-        "Use async event handlers",
-        "Observers should not block",
-        "Failed observers shouldn't crash observable"
-      ],
-      "example_skeleton": "class ConstitutionalMonitor:\n    \"\"\"Observable for constitutional violations.\"\"\"\n\n    def __init__(self):\n        self._observers: List[Callable] = []\n\n    def subscribe(self, handler: Callable[[ViolationEvent], None]) -> None:\n        \"\"\"Register violation handler.\"\"\"\n        self._observers.append(handler)\n\n    async def _notify_violation(self, violation: ViolationEvent) -> None:\n        \"\"\"Notify all observers of violation.\"\"\"\n        for observer in self._observers:\n            try:\n                await observer(violation)\n            except Exception as e:\n                logger.error(f\"Observer failed: {e}\")\n"
-    }
-  ],
   "service_composition": {
     "dependency_injection": {
       "principle": "Services receive dependencies via constructor",
@@ -303,27 +102,6 @@
       "purpose": "Central registry for service instances",
       "pattern": "class ServiceRegistry:\n    \"\"\"Central registry of initialized services.\"\"\"\n\n    def __init__(self):\n        self._services: Dict[Type, Any] = {}\n\n    def register(self, service_type: Type, instance: Any) -> None:\n        \"\"\"Register service instance.\"\"\"\n        self._services[service_type] = instance\n\n    def get(self, service_type: Type[T]) -> T:\n        \"\"\"Get service by type.\"\"\"\n        return self._services[service_type]\n",
       "usage": "Use for application-level service wiring, not within services"
-    }
-  },
-  "error_handling": {
-    "exception_hierarchy": {
-      "base": "CoreServiceError(Exception)",
-      "categories": [
-        "ConfigurationError - invalid configuration",
-        "ConnectionError - service unavailable",
-        "ValidationError - invalid input",
-        "NotFoundError - resource doesn't exist",
-        "ConflictError - resource already exists",
-        "PermissionError - operation not allowed"
-      ]
-    },
-    "retry_strategy": {
-      "transient_errors": [
-        "Network timeouts",
-        "Rate limits",
-        "Temporary unavailability"
-      ],
-      "implementation": "async def execute_with_retry(\n    operation: Callable,\n    max_attempts: int = 3,\n    backoff: float = 1.0\n):\n    for attempt in range(max_attempts):\n        try:\n            return await operation()\n        except TransientError as e:\n            if attempt == max_attempts - 1:\n                raise\n            await asyncio.sleep(backoff * (2 ** attempt))\n"
     }
   },
   "testing_patterns": {
@@ -411,6 +189,61 @@
         "params": {
           "check_type": "path_restriction"
         }
+      }
+    },
+    {
+      "id": "standard_architecture_service_rules.pattern.stateful_service",
+      "category": "architectural_pattern",
+      "statement": "Must follow the stateful_service pattern structure.",
+      "enforcement": "error",
+      "rationale": "Manage long-lived stateful resources",
+      "check": {
+        "engine": "llm_gate",
+        "params": {}
+      }
+    },
+    {
+      "id": "standard_architecture_service_rules.pattern.stateless_transformer",
+      "category": "architectural_pattern",
+      "statement": "Must follow the stateless_transformer pattern structure.",
+      "enforcement": "error",
+      "rationale": "Transform data without side effects",
+      "check": {
+        "engine": "llm_gate",
+        "params": {}
+      }
+    },
+    {
+      "id": "standard_architecture_service_rules.pattern.repository_pattern",
+      "category": "architectural_pattern",
+      "statement": "Must follow the repository_pattern pattern structure.",
+      "enforcement": "error",
+      "rationale": "Abstract database operations behind domain interface",
+      "check": {
+        "engine": "llm_gate",
+        "params": {}
+      }
+    },
+    {
+      "id": "standard_architecture_service_rules.pattern.facade_pattern",
+      "category": "architectural_pattern",
+      "statement": "Must follow the facade_pattern pattern structure.",
+      "enforcement": "error",
+      "rationale": "Provide simplified interface to complex subsystem",
+      "check": {
+        "engine": "llm_gate",
+        "params": {}
+      }
+    },
+    {
+      "id": "standard_architecture_service_rules.pattern.observer_pattern",
+      "category": "architectural_pattern",
+      "statement": "Must follow the observer_pattern pattern structure.",
+      "enforcement": "error",
+      "rationale": "Decouple event producers from consumers",
+      "check": {
+        "engine": "llm_gate",
+        "params": {}
       }
     }
   ],

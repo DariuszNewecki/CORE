@@ -30,24 +30,72 @@ class RespectCliRegistryEnforcement(EnforcementMethod):
     """Verifies that Agent code only invokes registered CLI commands."""
 
     async def _get_registered_commands(self) -> set[str]:
-        """Fetches valid command IDs from the database (SSOT)."""
+        """
+        Fetches valid CLI command names from the database (SSOT).
+
+        SSOT: core.cli_commands.name (e.g., "check.audit", "fix.code-style").
+        """
         async with get_session() as session:
-            result = await session.execute(
-                text("SELECT id FROM capabilities WHERE cli_command IS NOT NULL")
-            )
+            result = await session.execute(text("SELECT name FROM core.cli_commands"))
             return {row[0] for row in result.fetchall()}
+
+    @staticmethod
+    def _extract_core_admin_command(node: ast.Call) -> str | None:
+        """
+        Extract canonical command name from a subprocess.run([...]) call.
+
+        Supports:
+          ["core-admin", "<group>", "<action>", ...]
+          ["poetry", "run", "core-admin", "<group>", "<action>", ...]
+        Ignores flags/options (tokens starting with '-').
+
+        Returns:
+          "<group>.<action>" when both exist, otherwise "<group>".
+          None when no command tokens are present (e.g., "--help" only).
+        """
+        if not node.args or not isinstance(node.args[0], ast.List):
+            return None
+
+        elements = node.args[0].elts
+
+        argv: list[str] = []
+        for elt in elements:
+            if not isinstance(elt, ast.Constant):
+                return None
+            if not isinstance(elt.value, str):
+                return None
+            argv.append(elt.value)
+
+        try:
+            i = argv.index("core-admin")
+        except ValueError:
+            return None
+
+        tail = argv[i + 1 :]
+
+        # Skip flags like --help, -v, etc.
+        tail = [t for t in tail if not t.startswith("-")]
+
+        if not tail:
+            return None
+
+        group = tail[0]
+        action = tail[1] if len(tail) > 1 else None
+
+        if action:
+            return f"{group}.{action}"
+        return group
 
     # ID: 405e6834-95ec-4a73-9243-475fe897dfdb
     async def verify(
         self, context: AuditorContext, rule_data: dict[str, Any], **kwargs
     ) -> list[AuditFinding]:
-        findings = []
+        findings: list[AuditFinding] = []
 
         try:
-            # CORRECT: Await the coroutine directly in the existing event loop
             registered_commands = await self._get_registered_commands()
         except Exception as e:
-            logger.warning("Failed to fetch registered commands: %s", e)
+            logger.warning("Failed to fetch registered CLI commands: %s", e)
             return findings
 
         will_dir = context.repo_path / "src" / "will"
@@ -58,39 +106,29 @@ class RespectCliRegistryEnforcement(EnforcementMethod):
             try:
                 content = file_path.read_text(encoding="utf-8")
                 tree = ast.parse(content, filename=str(file_path))
-
-                # Look for subprocess.run(['core-admin', ...])
-                for node in ast.walk(tree):
-                    if isinstance(node, ast.Call):
-                        if (
-                            isinstance(node.func, ast.Attribute)
-                            and node.func.attr == "run"
-                        ):
-                            # Check if first arg is a list starting with 'core-admin'
-                            if node.args and isinstance(node.args[0], ast.List):
-                                elements = node.args[0].elts
-                                if elements and isinstance(elements[0], ast.Constant):
-                                    if elements[0].value == "core-admin":
-                                        # Extract command
-                                        if len(elements) > 1 and isinstance(
-                                            elements[1], ast.Constant
-                                        ):
-                                            cmd = elements[1].value
-                                            if cmd not in registered_commands:
-                                                findings.append(
-                                                    self._create_finding(
-                                                        message=f"Agent invoking unregistered CLI command: {cmd}",
-                                                        file_path=str(
-                                                            file_path.relative_to(
-                                                                context.repo_path
-                                                            )
-                                                        ),
-                                                        line_number=node.lineno,
-                                                    )
-                                                )
-
             except Exception:
-                pass  # Skip parse errors
+                continue  # Skip parse/read errors
+
+            for node in ast.walk(tree):
+                if not isinstance(node, ast.Call):
+                    continue
+                if not (
+                    isinstance(node.func, ast.Attribute) and node.func.attr == "run"
+                ):
+                    continue
+
+                cmd = self._extract_core_admin_command(node)
+                if not cmd:
+                    continue
+
+                if cmd not in registered_commands:
+                    findings.append(
+                        self._create_finding(
+                            message=f"Agent invoking unregistered CLI command: {cmd}",
+                            file_path=str(file_path.relative_to(context.repo_path)),
+                            line_number=getattr(node, "lineno", 0),
+                        )
+                    )
 
         return findings
 

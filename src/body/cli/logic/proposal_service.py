@@ -2,12 +2,15 @@
 
 """
 Implements a service for proposal lifecycle management and the corresponding CLI commands.
+
+Policy alignment:
+- No filesystem mutations (mkdir/write/delete/copy) outside FileHandler.
+- Canary runs in a governed workspace under var/workflows (but uses a repo snapshot that excludes var/ to avoid recursion).
 """
 
 from __future__ import annotations
 
 import base64
-import tempfile
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -15,6 +18,7 @@ from pathlib import Path
 from typing import Any
 
 import typer
+import yaml
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ed25519
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
@@ -24,8 +28,8 @@ from mind.governance.audit_context import AuditorContext
 from mind.governance.auditor import ConstitutionalAuditor
 from shared.config import settings
 from shared.context import CoreContext
+from shared.infrastructure.storage.file_handler import FileHandler
 from shared.logger import getLogger
-from shared.path_utils import copy_file, copy_tree
 from shared.utils.crypto import generate_approval_token
 from shared.utils.yaml_processor import YAMLProcessor
 
@@ -34,6 +38,21 @@ from .cli_utils import archive_rollback_plan
 
 logger = getLogger(__name__)
 yaml_processor = YAMLProcessor()
+
+
+def _yaml_dump(payload: dict[str, Any]) -> str:
+    """Serialize YAML deterministically enough for human review and stable diffs."""
+    return yaml.safe_dump(payload, sort_keys=False, allow_unicode=True)
+
+
+def _to_repo_rel(repo_root: Path, abs_path: Path) -> str:
+    """Convert absolute path to repo-relative string."""
+    abs_path = abs_path.resolve()
+    repo_root = repo_root.resolve()
+    try:
+        return str(abs_path.relative_to(repo_root))
+    except Exception as e:
+        raise ValueError(f"Path is not within repo root: {abs_path}") from e
 
 
 @dataclass
@@ -55,9 +74,13 @@ class ProposalService:
     """Handles the business logic for constitutional proposals."""
 
     def __init__(self, repo_root: Path):
-        self.repo_root = repo_root
+        self.repo_root = repo_root.resolve()
+        self.fs = FileHandler(str(self.repo_root))
+
         self.proposals_dir = settings.paths.proposals_dir
-        self.proposals_dir.mkdir(parents=True, exist_ok=True)
+        # mkdir is a filesystem mutation => must go through FileHandler
+        self.fs.ensure_dir(_to_repo_rel(self.repo_root, self.proposals_dir))
+
         self.approvers_config = (
             yaml_processor.load(settings.paths.constitution_dir / "approvers.yaml")
             or {}
@@ -85,7 +108,7 @@ class ProposalService:
     # ID: 5055d32c-5ed1-4e46-947f-07f6416f8f95
     def list(self) -> list[ProposalInfo]:
         """Returns structured info for all pending proposals."""
-        proposals = []
+        proposals: list[ProposalInfo] = []
         for prop_path in sorted(list(self.proposals_dir.glob("cr-*.yaml"))):
             config = yaml_processor.load(prop_path) or {}
             target_path = config.get("target_path", "")
@@ -122,10 +145,12 @@ class ProposalService:
         proposal_path = self.proposals_dir / proposal_name
         if not proposal_path.exists():
             raise FileNotFoundError(f"Proposal '{proposal_name}' not found.")
+
         proposal = yaml_processor.load(proposal_path) or {}
         private_key = self._load_private_key()
         token = generate_approval_token(proposal)
         signature = private_key.sign(token.encode("utf-8"))
+
         proposal.setdefault("signatures", [])
         proposal["signatures"] = [
             s for s in proposal["signatures"] if s.get("identity") != identity
@@ -138,7 +163,11 @@ class ProposalService:
                 "timestamp": datetime.now(UTC).isoformat() + "Z",
             }
         )
-        yaml_processor.dump(proposal, proposal_path)
+
+        # No direct write: go through FileHandler
+        rel_prop = _to_repo_rel(self.repo_root, proposal_path)
+        self.fs.write_runtime_text(rel_prop, _yaml_dump(proposal))
+        logger.info("Signature persisted via FileHandler: %s", rel_prop)
 
     def _verify_signatures(self, proposal: dict[str, Any]) -> int:
         """Verifies all signatures and returns the count of valid ones."""
@@ -168,39 +197,54 @@ class ProposalService:
         return valid
 
     async def _run_canary_audit(
-        self, proposal: dict[str, Any]
+        self, proposal: dict[str, Any], proposal_name: str
     ) -> tuple[bool, list[Any]]:
-        """Creates a canary environment, applies the change, and runs the full audit."""
-        target_rel_path = proposal["target_path"]
-        with tempfile.TemporaryDirectory() as tmp:
-            tmp_path = Path(tmp)
-            copy_tree(self.repo_root, tmp_path)
-            env_file = self.repo_root / ".env"
-            if env_file.exists():
-                copy_file(env_file, tmp_path / ".env")
-            canary_target_path = tmp_path / target_rel_path
-            canary_target_path.parent.mkdir(parents=True, exist_ok=True)
-            canary_target_path.write_text(proposal.get("content", ""), encoding="utf-8")
-            if (tmp_path / ".env").exists():
-                load_dotenv(dotenv_path=tmp_path / ".env", override=True)
-            auditor_context = AuditorContext(tmp_path)
-            auditor = ConstitutionalAuditor(auditor_context)
-            findings = await auditor.run_full_audit_async()
+        """
+        Creates a canary environment, applies the change, and runs the full audit.
 
-            def _is_blocking(finding: Any) -> bool:
-                severity = getattr(finding, "severity", None)
-                if hasattr(severity, "is_blocking"):
-                    return bool(severity.is_blocking)
-                if isinstance(severity, str):
-                    return severity.lower() == "error"
-                if isinstance(finding, dict):
-                    sev = finding.get("severity")
-                    if isinstance(sev, str):
-                        return sev.lower() == "error"
-                return False
+        Implementation detail:
+        - Canary lives under var/workflows/canary/<proposal_name>/repo
+        - The repo snapshot excludes var/ to avoid recursive copying into itself.
+        """
+        target_rel_path = str(proposal["target_path"]).lstrip("./")
 
-            success = not any(_is_blocking(f) for f in findings)
-            return (success, findings)
+        canary_root_rel = f"var/workflows/canary/{proposal_name}/repo"
+        # clean previous canary if present (mutation => FileHandler)
+        self.fs.remove_tree(f"var/workflows/canary/{proposal_name}")
+        self.fs.ensure_dir(f"var/workflows/canary/{proposal_name}")
+
+        # Snapshot repo into canary (excluding var/)
+        self.fs.copy_repo_snapshot(
+            canary_root_rel, exclude_top_level=("var", ".git", "__pycache__", ".venv")
+        )
+
+        # Apply target change into canary snapshot via FileHandler
+        canary_target_rel = f"{canary_root_rel}/{target_rel_path}"
+        self.fs.write_runtime_text(canary_target_rel, proposal.get("content", ""))
+
+        canary_root_abs = self.repo_root / canary_root_rel
+        env_file = canary_root_abs / ".env"
+        if env_file.exists():
+            load_dotenv(dotenv_path=env_file, override=True)
+
+        auditor_context = AuditorContext(canary_root_abs)
+        auditor = ConstitutionalAuditor(auditor_context)
+        findings = await auditor.run_full_audit_async()
+
+        def _is_blocking(finding: Any) -> bool:
+            severity = getattr(finding, "severity", None)
+            if hasattr(severity, "is_blocking"):
+                return bool(severity.is_blocking)
+            if isinstance(severity, str):
+                return severity.lower() == "error"
+            if isinstance(finding, dict):
+                sev = finding.get("severity")
+                if isinstance(sev, str):
+                    return sev.lower() == "error"
+            return False
+
+        success = not any(_is_blocking(f) for f in findings)
+        return (success, findings)
 
     # ID: 4fceca37-1e93-4f82-b676-b9e6ed5d866d
     async def approve(self, proposal_name: str) -> None:
@@ -211,15 +255,16 @@ class ProposalService:
         proposal = yaml_processor.load(proposal_path) or {}
 
         # Constitutional requirement: Log IntentBundle ID before write operations
-        # Each proposal file name serves as the intent_bundle_id for audit traceability
         intent_bundle_id = proposal_name
         logger.info("Processing proposal with intent_bundle_id: %s", intent_bundle_id)
 
         target_rel_path = proposal.get("target_path")
         if not target_rel_path:
             raise ValueError("Proposal is invalid: missing 'target_path'.")
+
         valid_sigs = self._verify_signatures(proposal)
         is_critical = any(str(target_rel_path) == p for p in self.critical_paths)
+
         quorum_config = self.approvers_config.get("quorum", {})
         mode = quorum_config.get("current_mode", "development")
         required_sigs = quorum_config.get(mode, {}).get(
@@ -229,28 +274,33 @@ class ProposalService:
             raise PermissionError(
                 f"Approval failed: Quorum not met ({valid_sigs}/{required_sigs})."
             )
-        success, findings = await self._run_canary_audit(proposal)
-        if success:
-            archive_rollback_plan(proposal_name, proposal)
-            live_target_path = self.repo_root / target_rel_path
-            live_target_path.parent.mkdir(parents=True, exist_ok=True)
 
-            # Log before write: Constitutional safety requirement (safety.change_must_be_logged)
-            logger.info(
-                "Applying changes for intent_bundle_id: %s to %s",
-                intent_bundle_id,
-                target_rel_path,
-            )
-            live_target_path.write_text(proposal.get("content", ""), encoding="utf-8")
-
-            proposal_path.unlink()
-            logger.info("Successfully approved and applied '%s'.", proposal_name)
-        else:
+        success, findings = await self._run_canary_audit(proposal, proposal_name)
+        if not success:
             if findings:
                 logger.error("Canary Audit Findings:")
                 for finding in findings:
                     logger.error(finding)
             raise ChildProcessError("Canary audit failed.")
+
+        archive_rollback_plan(proposal_name, proposal)
+
+        # Log before write: Constitutional safety requirement (safety.change_must_be_logged)
+        logger.info(
+            "Applying changes for intent_bundle_id: %s to %s",
+            intent_bundle_id,
+            target_rel_path,
+        )
+
+        # Apply live change via FileHandler (mkdir/write are inside FileHandler)
+        live_target_rel = str(target_rel_path).lstrip("./")
+        self.fs.write_runtime_text(live_target_rel, proposal.get("content", ""))
+
+        # Remove proposal file via FileHandler
+        rel_proposal_path = _to_repo_rel(self.repo_root, proposal_path)
+        self.fs.remove_file(rel_proposal_path)
+
+        logger.info("Successfully approved and applied '%s'.", proposal_name)
 
 
 # ID: afb5a8de-836f-4788-8fe0-f3cd86b463c6
@@ -273,10 +323,8 @@ def proposals_list_cmd() -> None:
         )
 
 
-def _safe_proposal_action(action_desc: str, action_func: Callable) -> None:
-    """
-    Wraps proposal actions with standard error handling to reduce duplication.
-    """
+def _safe_proposal_action(action_desc: str, action_func: Callable[[], None]) -> None:
+    """Wrap proposal actions with standard error handling to reduce duplication."""
     logger.info(action_desc)
     try:
         action_func()
@@ -290,11 +338,11 @@ def _safe_proposal_action(action_desc: str, action_func: Callable) -> None:
 
 # ID: a0f3d16d-4c7e-47b6-b8b6-3cc0ebb3e803
 def proposals_sign_cmd(
-    proposal_name: str = typer.Argument(..., help="Filename of the proposal to sign.")
+    proposal_name: str = typer.Argument(..., help="Filename of the proposal to sign."),
 ) -> None:
     """CLI command: sign a proposal."""
 
-    def _action():
+    def _action() -> None:
         service = ProposalService(settings.REPO_PATH)
         identity = typer.prompt(
             "Enter your identity (e.g., name@domain.com) for this signature"
@@ -334,6 +382,7 @@ async def proposals_approve_cmd(
         raise typer.Exit(code=1)
 
 
+# Aliases for CLI registry compatibility (single definition each).
 proposals_list = proposals_list_cmd
 proposals_sign = proposals_sign_cmd
 proposals_approve = proposals_approve_cmd

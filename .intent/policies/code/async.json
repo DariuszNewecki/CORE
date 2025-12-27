@@ -1,0 +1,35 @@
+{
+  "id": "code.async",
+  "version": "1.0.0",
+  "title": "Async/Await Standards",
+  "type": "policy",
+  "schema_id": "meta.policy",
+  "description": "Defines requirements for async event loop management and execution.",
+  "owners": {
+    "accountable": "Governance Lead",
+    "responsible": [
+      "Core Maintainer"
+    ]
+  },
+  "rules": [
+    {
+      "id": "async.no_manual_loop_management",
+      "rationale": "Prevents event loop conflicts and ensures async logic is properly integrated into the orchestrator.",
+      "enforcement": "error",
+      "statement": "Business logic and Feature modules MUST NOT call 'asyncio.run()'.",
+      "check": {
+        "engine": "ast_gate",
+        "params": {
+          "check_type": "restrict_event_loop_creation",
+          "forbidden_calls": [
+            "asyncio.run",
+            "asyncio.get_event_loop"
+          ]
+        }
+      }
+    }
+  ],
+  "review": {
+    "frequency": "12 months"
+  }
+}

@@ -9,18 +9,26 @@ CONSTITUTIONAL COMPLIANCE:
 - Loads Knowledge Graph from Database (SSOT) via KnowledgeService
 - NO direct filesystem access to .intent/ subdirectories
 - Exposes governance resources via policies dict (loaded from IntentRepository)
+
+FS MUTATION POLICY:
+- No direct filesystem mutations outside governed mutation surfaces.
+- Runtime artefact writes go through FileHandler (IntentGuard enforced).
+- mkdir counts as FS mutation => only FileHandler may create directories.
 """
 
 from __future__ import annotations
 
+import glob
+from collections.abc import Iterable
+from functools import cached_property
 from pathlib import Path
 from typing import Any
 
 from shared.config import settings
 from shared.infrastructure.intent.intent_repository import get_intent_repository
 from shared.infrastructure.knowledge.knowledge_service import KnowledgeService
+from shared.infrastructure.storage.file_handler import FileHandler
 from shared.logger import getLogger
-from shared.models import AuditFinding
 from shared.path_resolver import PathResolver
 
 
@@ -38,35 +46,27 @@ class AuditorContext:
     - Policies loaded via IntentRepository APIs only
     """
 
+    # ID: 4c0f2c62-3d57-4b32-8bff-76a8f3d3fd2f
     def __init__(self, repo_path: Path):
-        self.repo_path = repo_path
+        self.repo_path = repo_path.resolve()
         self.meta: dict[str, Any] = settings._meta_config
-        self.paths = PathResolver(repo_path, self.meta)
+        self.paths = PathResolver(self.repo_path, self.meta)
+
         self.src_dir = self.paths.repo_root / "src"
         self.intent_path = self.paths.intent_root
-        self.last_findings: list[AuditFinding] = []
 
-        # Governance resources loaded via IntentRepository (CONSTITUTIONAL)
+        self.last_findings: list[Any] = []
         self.policies: dict[str, Any] = self._load_governance_resources()
 
-        # Knowledge graph state (loaded from database)
+        # Knowledge graph is SSOT from database; file artefact is optional debug output.
         self.knowledge_graph: dict[str, Any] = {"symbols": {}}
-        self.symbols_list: list = []
-        self.symbols_map: dict = {}
-
-        logger.debug("AuditorContext initialized for %s", self.repo_path)
+        self.symbols_list: list[Any] = []
+        self.symbols_map: dict[str, Any] = {}
 
     @property
-    # ID: e6f262c9-0852-4d65-8fc7-c0a03808b3b7
-    def mind_path(self) -> Path:
-        """
-        Legacy accessor - DEPRECATED.
-        Returns intent_root for backward compatibility.
-        New code should use IntentRepository APIs.
-        """
-        logger.warning(
-            "AuditorContext.mind_path is deprecated. Use IntentRepository instead."
-        )
+    # ID: 2e3a5e67-17c7-4c86-8ad5-8a5bfe1b2b14
+    def intent_root(self) -> Path:
+        """Convenience alias for intent root."""
         return self.intent_path
 
     @property
@@ -82,10 +82,92 @@ class AuditorContext:
         )
         return self.intent_path
 
-    # ID: 090d1c13-3389-4f4c-81d0-eadf1c3259b2
+    @property
+    # ID: 9c7c2ef9-1b23-4c3a-9f4c-8b9d1d0b2e21
+    def mind_path(self) -> Path:
+        """
+        Canonical Mind runtime root.
+
+        IMPORTANT:
+        - This is runtime state under var/, not .intent/.
+        - We resolve only; we do not create directories here.
+        """
+        # Use PathResolver (SSOT) to avoid duplicating repo-relative layout knowledge.
+        return self.paths.var_dir / "mind"
+
+    # ID: 4a2f2b3d-1a8a-4a1f-9a8e-2b6a0e7d9b3c
+    def get_files(
+        self,
+        include: Iterable[str],
+        exclude: Iterable[str] | None = None,
+    ) -> list[Path]:
+        """
+        Deterministically expand repo-relative glob patterns into file Paths.
+
+        CONSTITUTIONAL COMPLIANCE:
+        - This method MUST NOT enumerate `.intent/**` at all.
+        - This method MUST NOT mutate the filesystem.
+
+        Args:
+            include: Repo-relative glob patterns (e.g., "src/**/*.py").
+            exclude: Optional repo-relative patterns to exclude.
+
+        Returns:
+            Sorted list of absolute Paths.
+        """
+        root = self.repo_path
+        exclude = list(exclude or [])
+
+        # Hard exclusions (policy boundary + performance hygiene)
+        hard_excludes = [
+            ".intent/**",  # forbidden for direct filesystem access
+            ".git/**",
+            ".venv/**",
+            "venv/**",
+            "**/__pycache__/**",
+            "var/**",  # runtime artefacts should not be linted/audited as source
+            "work/**",
+            "reports/**",
+        ]
+
+        exclude_patterns = set(exclude) | set(hard_excludes)
+
+        def _is_excluded(rel_posix: str) -> bool:
+            for pat in exclude_patterns:
+                if glob.fnmatch.fnmatch(rel_posix, pat):
+                    return True
+            return False
+
+        matches: set[Path] = set()
+        for pattern in include:
+            abs_pattern = (root / pattern).as_posix()
+            for hit in glob.glob(abs_pattern, recursive=True):
+                p = Path(hit)
+                if not p.is_file():
+                    continue
+                rel = p.relative_to(root).as_posix()
+                if _is_excluded(rel):
+                    continue
+                matches.add(p)
+
+        return sorted(matches)
+
+    @cached_property
+    # ID: 0e0b18cf-2c4a-43f5-8b1b-2a0f3c6d1d51
+    def python_files(self) -> list[Path]:
+        """
+        Canonical set of Python files to be scanned by governance checks.
+
+        Cached per AuditorContext instance to avoid repeated repo scans.
+        """
+        return self.get_files(include=["src/**/*.py", "tests/**/*.py"])
+
+    # ID: 3d1f1c34-fd1e-4bb8-8b4f-3f9a6c6dfd41
     async def load_knowledge_graph(self) -> None:
         """
-        Load the knowledge graph from the Database (SSOT).
+        Load knowledge graph from the database (SSOT).
+
+        This replaces legacy filesystem knowledge graph loading.
         """
         logger.info(
             "Loading knowledge graph from database (SSOT) for %s...", self.repo_path
@@ -103,58 +185,54 @@ class AuditorContext:
         except Exception as e:
             logger.error("Failed to load knowledge graph from DB: %s", e)
             self.knowledge_graph = {"symbols": {}}
+            self.symbols_map = {}
+            self.symbols_list = []
 
+    # ID: 6b11bd31-49d6-4f71-93dd-28a1a7b2f4ac
     def _save_knowledge_graph_artifact(self) -> None:
-        """Save knowledge graph to reports/ for debugging."""
+        """
+        Save knowledge graph to a runtime artefact location for debugging.
+
+        IMPORTANT:
+        - mkdir counts as filesystem mutation.
+        - Therefore we do NOT call PathResolver directory properties that mkdir.
+        - We create and write via FileHandler only.
+        """
         import json
 
-        reports_dir = self.paths.reports_dir
-        reports_dir.mkdir(exist_ok=True)
-        artifact_path = reports_dir / "knowledge_graph.json"
         try:
-            with open(artifact_path, "w", encoding="utf-8") as f:
-                json.dump(self.knowledge_graph, f, indent=2, default=str)
-        except Exception as e:
-            logger.warning("Failed to save knowledge graph artifact: %s", e)
+            fh = FileHandler(str(self.repo_path))
 
+            # Governed runtime artefact path (relative to repo root)
+            reports_rel_dir = "var/reports"
+            fh.ensure_dir(reports_rel_dir)
+
+            artifact_rel_path = f"{reports_rel_dir}/knowledge_graph.json"
+            payload = json.dumps(self.knowledge_graph, indent=2, default=str)
+            fh.write_runtime_text(artifact_rel_path, payload)
+
+            logger.debug("Saved knowledge graph artefact: %s", artifact_rel_path)
+        except Exception as e:
+            logger.debug("Skipping knowledge graph artefact write: %s", e)
+
+    # ID: 51b2d7cf-51e4-4c8d-bc34-b5b7d41af7db
     def _load_governance_resources(self) -> dict[str, Any]:
         """
-        Load governance resources via IntentRepository (CONSTITUTIONAL).
-
-        This is the ONLY way AuditorContext accesses .intent/ files.
-        All filesystem navigation happens inside IntentRepository.
+        Load governance resources via IntentRepository.
 
         Returns:
-            Dict mapping various keys to policy documents:
-            - canonical keys: "policies/architecture/agent_governance"
-            - policy_id from document: "standard_architecture_agent_governance"
-            - stem (legacy): "agent_governance"
+            dict: Mapping of doc_id -> parsed policy/pattern content.
         """
         resources: dict[str, Any] = {}
-
         try:
             intent_repo = get_intent_repository()
 
-            # Load all policies via repository
             for policy_ref in intent_repo.list_policies():
                 try:
-                    policy_data = intent_repo.load_document(policy_ref.path)
-
-                    if not isinstance(policy_data, dict):
-                        continue
-
-                    # Canonical key (e.g., "policies/architecture/agent_governance")
-                    resources[policy_ref.policy_id] = policy_data
-
-                    # Stem for legacy callers (e.g., "agent_governance")
-                    stem = Path(policy_ref.policy_id).stem
-                    resources[stem] = policy_data
-
-                    # Internal document ID if present
-                    doc_id = policy_data.get("id")
-                    if isinstance(doc_id, str) and doc_id:
+                    policy_data = intent_repo.load_policy(policy_ref.policy_id)
+                    if policy_data is not None:
+                        doc_id = policy_data.get("id") or policy_ref.policy_id
                         resources[doc_id] = policy_data
-
                 except Exception as e:
                     logger.debug(
                         "Failed to load policy %s: %s", policy_ref.policy_id, e
@@ -172,14 +250,18 @@ class AuditorContext:
 
         return resources
 
-    @property
-    # ID: 39d97b4e-5d44-4e43-8ccc-d194f851c62c
-    def python_files(self) -> list[Path]:
-        """Returns Python files ONLY from BODY (src/)."""
-        paths: list[Path] = []
-        if self.src_dir.exists():
-            paths.extend(self.src_dir.rglob("*.py"))
-        return list(paths)
+
+def _to_repo_relative_path(path: Path) -> str:
+    """
+    Convert an absolute path to a repo-relative POSIX path.
+
+    Raises if the path is outside the repository boundary.
+    """
+    repo_root = Path(settings.REPO_PATH).resolve()
+    resolved = path.resolve()
+    if resolved.is_relative_to(repo_root):
+        return resolved.relative_to(repo_root).as_posix()
+    raise ValueError(f"Path is outside repository boundary: {resolved}")
 
 
 __all__ = ["AuditorContext"]

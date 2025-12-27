@@ -1,67 +1,66 @@
 {
-  "$schema": ".intent/schemas/META/registry.schema.json",
   "id": "meta.intent_types",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "title": "Intent Types Registry",
-  "description": "Routes .intent documents to META schemas based on path globs.",
-  "defaults": {
-    "json_only": true
+  "description": "Bridges the static Laws (.intent/) with the living State (var/).",
+  "type": "meta_registry",
+  "schema_id": "meta.registry",
+  "owners": {
+    "accountable": "Governance Lead",
+    "responsible": ["Core Maintainer"]
+  },
+  "review": { "frequency": "12 months" },
+  "charter": {
+    "constitution": ".intent/constitution/",
+    "policies": ".intent/policies/",
+    "patterns": ".intent/standards/",
+    "schemas": ".intent/schemas/"
+  },
+  "mind": {
+    "project_manifest": "var/mind/project_manifest.yaml",
+    "northstar": "var/mind/northstar.yaml",
+    "config": "var/mind/config/",
+    "ir": "var/core/ir/",
+    "knowledge": "var/mind/knowledge/",
+    "mind_export": "var/core/mind_export/mind_export/",
+    "prompts": "var/prompts/prompts/",
+    "context": "var/context/"
   },
   "types": [
     {
       "type": "constitution",
-      "match": [
-        ".intent/constitution/*.json"
-      ],
-      "exclude": [
-        ".intent/constitution/precedence*.json"
-      ],
+      "match": [".intent/constitution/*.json"],
+      "exclude": [".intent/constitution/precedence*.json"],
       "schema": ".intent/schemas/META/constitution.schema.json"
     },
     {
       "type": "precedence",
-      "match": [
-        ".intent/constitution/precedence*.json"
-      ],
+      "match": [".intent/constitution/precedence*.json"],
       "schema": ".intent/schemas/META/precedence.schema.json"
     },
     {
       "type": "standard",
-      "match": [
-        ".intent/standards/**/*.json"
-      ],
+      "match": [".intent/standards/**/*.json"],
       "schema": ".intent/schemas/META/standard.schema.json"
     },
     {
       "type": "policy",
+      "match": [".intent/policies/**/*.json"],
+      "schema": ".intent/schemas/META/policy.schema.json"
+    },
+    {
+      "type": "charter",
       "match": [
-        ".intent/policies/**/*.json"
+        ".intent/schemas/**/*.json",
+        ".intent/standards/**/*.json"
       ],
-      "schema": ".intent/schemas/META/policy.schema.json",
-      "unique": [
-        {
-          "field": "id",
-          "scope": "global",
-          "code": "intent.policy.duplicate_id"
-        }
-      ],
-      "nested_unique": [
-        {
-          "path": "rules",
-          "field": "id",
-          "scope": "global",
-          "code": "intent.rule.duplicate_id"
-        }
-      ]
+      "exclude": [".intent/schemas/META/*.json"],
+      "schema": ".intent/schemas/META/registry.schema.json"
+    },
+    {
+      "type": "mind",
+      "match": ["var/mind/*.yaml"],
+      "schema": ".intent/schemas/mind/project_manifest.schema.json"
     }
-  ],
-  "additionalProperties": false,
-  "owners": {
-    "accountable": "Governance Lead"
-  },
-  "review": {
-    "frequency": "12 months"
-  },
-  "type": "schema",
-  "schema_id": "meta.schema"
+  ]
 }

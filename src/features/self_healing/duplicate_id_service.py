@@ -9,25 +9,26 @@ import uuid
 from collections import defaultdict
 
 from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from mind.governance.checks.id_uniqueness_check import IdUniquenessCheck
 from shared.config import settings
-from shared.infrastructure.database.session_manager import get_session
 from shared.logger import getLogger
 
 
 logger = getLogger(__name__)
 
 
-async def _get_symbol_creation_dates() -> dict[str, str]:
-    """Queries the database to get the creation timestamp for each symbol UUID."""
+async def _get_symbol_creation_dates(session: AsyncSession) -> dict[str, str]:
+    """
+    Queries the database to get the creation timestamp for each symbol UUID.
+
+    Args:
+        session: Database session (injected dependency)
+    """
     try:
-        async with get_session() as session:
-            # Select the correct 'id' column
-            result = await session.execute(
-                text("SELECT id, created_at FROM core.symbols")
-            )
-            return {str(row.id): row.created_at.isoformat() for row in result}
+        result = await session.execute(text("SELECT id, created_at FROM core.symbols"))
+        return {str(row.id): row.created_at.isoformat() for row in result}
     except Exception as e:
         logger.warning(
             "Could not fetch symbol creation dates from DB (%s). Assuming first found is original.",
@@ -37,9 +38,13 @@ async def _get_symbol_creation_dates() -> dict[str, str]:
 
 
 # ID: 5891cbbe-ae62-4743-92fa-2e204ca5fa13
-async def resolve_duplicate_ids(dry_run: bool = True) -> int:
+async def resolve_duplicate_ids(session: AsyncSession, dry_run: bool = True) -> int:
     """
     Finds all duplicate IDs and fixes them by assigning new UUIDs to all but the oldest symbol.
+
+    Args:
+        session: Database session (injected dependency)
+        dry_run: If True, only report what would be done without making changes
 
     Returns:
         The number of files that were (or would be) modified.
@@ -63,7 +68,7 @@ async def resolve_duplicate_ids(dry_run: bool = True) -> int:
     logger.warning("Found %d duplicate UUID(s). Resolving...", len(duplicates))
 
     # 2. Get creation dates from the database to find the "original"
-    symbol_creation_dates = await _get_symbol_creation_dates()
+    symbol_creation_dates = await _get_symbol_creation_dates(session)
 
     files_to_modify: dict[str, list[tuple[int, str]]] = defaultdict(list)
 

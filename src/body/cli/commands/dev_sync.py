@@ -9,44 +9,20 @@ Refactored to use direct service calls (Internal Orchestration) instead of subpr
 CONSTITUTIONAL GUARDRail:
 - BODY MUST treat `.intent/` as READ-ONLY.
 - This workflow MUST NOT write to `.intent/` under any circumstances.
-
-NOTE:
-- Legacy Manifest Sync (project_manifest) has been removed from this workflow.
-  Any required state must be derived from SSOT (DB) and/or read-only intent artefacts.
 """
 
 from __future__ import annotations
 
-import time
-
 import typer
 from rich.console import Console
 
-# --- Internal Logic Imports ---
-from body.cli.commands.fix.code_style import fix_headers_internal
-from body.cli.commands.fix.metadata import fix_ids_internal
-from body.cli.commands.fix_logging import LoggingFixer
-from body.cli.logic.body_contracts_checker import check_body_contracts
-from body.cli.logic.duplicates import inspect_duplicates_async
-
-# --- Shared Utilities ---
+from body.cli.workflows.dev_sync_phases import DevSyncPhases
 from body.cli.workflows.dev_sync_reporter import DevSyncReporter
-from features.introspection.sync_service import run_sync_with_db
-from features.introspection.vectorization_service import run_vectorize
-from features.project_lifecycle.definition_service import define_symbols
-from features.self_healing.code_style_service import format_code
-from features.self_healing.docstring_service import fix_docstrings
-from features.self_healing.sync_vectors import main_async as sync_vectors_async
-from mind.enforcement.audit import lint
-from shared.action_types import ActionResult
 from shared.activity_logging import activity_run
 from shared.cli_utils import core_command
 from shared.config import settings
 from shared.context import CoreContext
-from shared.infrastructure.vector.adapters.constitutional_adapter import (
-    ConstitutionalAdapter,
-)
-from shared.infrastructure.vector.vector_index_service import VectorIndexService
+from shared.infrastructure.database.session_manager import get_session
 
 
 console = Console()
@@ -84,436 +60,37 @@ async def dev_sync_command(
         reporter = DevSyncReporter(run, repo_path=str(settings.REPO_PATH))
         reporter.print_header()
 
-        # =================================================================
-        # PHASE 1: CODE FIXERS
-        # =================================================================
-        phase = reporter.start_phase("Code Fixers")
+        # Initialize phase executor with dependencies
+        phases = DevSyncPhases(
+            core_context=core_context,
+            reporter=reporter,
+            console=console,
+            write=write,
+            dry_run=dry_run,
+            session_factory=get_session,  # DI: pass session factory
+        )
 
-        # 1. Fix IDs
-        console.print("[cyan]Assigning stable IDs...[/cyan]")
-        result = await fix_ids_internal(write=write)
-        reporter.record_result(result, phase)
-        if not result.ok:
+        # Execute all phases
+        try:
+            await phases.run_code_fixers()
+            await phases.run_quality_checks()
+            await phases.run_body_contracts()
+            await phases.run_database_sync()
+            await phases.run_vectorization()
+            await phases.run_code_analysis()
+        except typer.Exit:
+            # Let typer.Exit propagate
+            raise
+        except Exception as e:
+            console.print(f"[red]Fatal error in workflow: {e}[/red]")
             raise typer.Exit(1)
 
-        # 2. Fix Headers
-        console.print("[cyan]Checking file headers...[/cyan]")
-        result = await fix_headers_internal(write=write)
-        reporter.record_result(result, phase)
-        if not result.ok:
-            raise typer.Exit(1)
-
-        # 3. Fix Logging Standards
-        try:
-            start = time.time()
-            console.print("[cyan]Checking logging standards...[/cyan]")
-            fixer = LoggingFixer(settings.REPO_PATH, dry_run=dry_run)
-            fix_stats = fixer.fix_all()
-
-            reporter.record_result(
-                ActionResult(
-                    action_id="fix.logging",
-                    ok=True,
-                    data=fix_stats,
-                    duration_sec=time.time() - start,
-                ),
-                phase,
-            )
-        except Exception as e:
-            reporter.record_result(
-                ActionResult(
-                    action_id="fix.logging",
-                    ok=False,
-                    data={"error": str(e)},
-                ),
-                phase,
-            )
-            console.print("[yellow]⚠ Logging fix issues, continuing...[/yellow]")
-
-        # 4. Fix Docstrings
-        try:
-            start = time.time()
-            console.print("[cyan]Checking docstrings...[/cyan]")
-            await fix_docstrings(context=core_context, write=write)
-
-            reporter.record_result(
-                ActionResult(
-                    action_id="fix.docstrings",
-                    ok=True,
-                    data={"status": "completed"},
-                    duration_sec=time.time() - start,
-                ),
-                phase,
-            )
-        except Exception as e:
-            reporter.record_result(
-                ActionResult(
-                    action_id="fix.docstrings",
-                    ok=False,
-                    data={"error": str(e)},
-                ),
-                phase,
-            )
-            raise typer.Exit(1)
-
-        # 5. Code Style
-        try:
-            start = time.time()
-            console.print("[cyan]Formatting code...[/cyan]")
-            format_code()  # Sync function
-
-            reporter.record_result(
-                ActionResult(
-                    action_id="fix.code-style",
-                    ok=True,
-                    data={"status": "completed"},
-                    duration_sec=time.time() - start,
-                ),
-                phase,
-            )
-        except Exception as e:
-            reporter.record_result(
-                ActionResult(
-                    action_id="fix.code-style",
-                    ok=False,
-                    data={"error": str(e)},
-                ),
-                phase,
-            )
-            raise typer.Exit(1)
-
-        # =================================================================
-        # PHASE 2: QUALITY CHECKS
-        # =================================================================
-        phase = reporter.start_phase("Quality Checks")
-
-        # 6. Lint
-        try:
-            start = time.time()
-            console.print("[cyan]Running linter...[/cyan]")
-            lint()
-
-            reporter.record_result(
-                ActionResult(
-                    action_id="check.lint",
-                    ok=True,
-                    data={"status": "passed"},
-                    duration_sec=time.time() - start,
-                ),
-                phase,
-            )
-        except Exception as e:
-            reporter.record_result(
-                ActionResult(
-                    action_id="check.lint",
-                    ok=False,
-                    data={"error": str(e)},
-                    warnings=["Linting failed"],
-                ),
-                phase,
-            )
-            console.print("[yellow]⚠ Lint failures detected, continuing...[/yellow]")
-
-        # =================================================================
-        # PHASE 3: BODY CONTRACTS
-        # =================================================================
-        phase = reporter.start_phase("Body Contracts")
-
-        try:
-            start = time.time()
-            console.print("[cyan]Checking Body contracts...[/cyan]")
-            contracts_result = await check_body_contracts()
-
-            contracts_result.duration_sec = time.time() - start  # type: ignore[attr-defined]
-            reporter.record_result(contracts_result, phase)
-
-            data = contracts_result.data or {}
-            violations = data.get("violations", []) or []
-            rules = data.get("rules_triggered", []) or []
-
-            if violations:
-                console.print(
-                    f"[bold cyan]Body Contracts:[/bold cyan] "
-                    f"{len(violations)} violation(s), "
-                    f"rules: {', '.join(rules) if rules else 'none'}"
-                )
-
-            for v in violations[:10]:
-                file = v.get("file", "?")
-                line = v.get("line", "?")
-                rule_id = v.get("rule_id", "?")
-                msg = v.get("message", "")
-                console.print(
-                    f"  • [red]{rule_id}[/red] in [magenta]{file}[/magenta]:{line} - {msg}"
-                )
-
-            if len(violations) > 10:
-                console.print(
-                    f"[dim]  … and {len(violations) - 10} more violation(s).[/dim]"
-                )
-
-            if not contracts_result.ok:
-                console.print(
-                    "[red]❌ Body contracts violations detected. "
-                    "See above for details.[/red]"
-                )
-                raise typer.Exit(1)
-
-        except Exception as e:
-            reporter.record_result(
-                ActionResult(
-                    action_id="check.body-contracts",
-                    ok=False,
-                    data={"error": str(e)},
-                    warnings=["Body Contracts checker crashed unexpectedly."],
-                ),
-                phase,
-            )
-            raise typer.Exit(1)
-
-        # =================================================================
-        # PHASE 4: DATABASE SYNC
-        # =================================================================
-        phase = reporter.start_phase("Database Sync")
-
-        # 7. Vector Sync
-        try:
-            start = time.time()
-            console.print("[cyan]Synchronizing vectors (cleaning orphans)...[/cyan]")
-            orphans, dangling = await sync_vectors_async(
-                write=write,
-                dry_run=dry_run,
-                qdrant_service=core_context.qdrant_service,
-            )
-
-            reporter.record_result(
-                ActionResult(
-                    action_id="fix.vector-sync",
-                    ok=True,
-                    data={"orphans_pruned": orphans, "dangling_pruned": dangling},
-                    duration_sec=time.time() - start,
-                ),
-                phase,
-            )
-        except Exception as e:
-            reporter.record_result(
-                ActionResult(
-                    action_id="fix.vector-sync",
-                    ok=False,
-                    data={"error": str(e)},
-                ),
-                phase,
-            )
-            raise typer.Exit(1)
-
-        # 8. Sync Knowledge (Scanning)
-        try:
-            start = time.time()
-            if write:
-                console.print("[cyan]Syncing knowledge to database...[/cyan]")
-                stats = await run_sync_with_db()
-                reporter.record_result(
-                    ActionResult(
-                        action_id="manage.sync-knowledge",
-                        ok=True,
-                        data=stats,
-                        duration_sec=time.time() - start,
-                    ),
-                    phase,
-                )
-            else:
-                console.print("[dim]Skipping knowledge sync (dry-run)[/dim]")
-        except Exception as e:
-            reporter.record_result(
-                ActionResult(
-                    action_id="manage.sync-knowledge",
-                    ok=False,
-                    data={"error": str(e)},
-                ),
-                phase,
-            )
-            raise typer.Exit(1)
-
-        # 9. Define Symbols (Descriptions)
-        try:
-            start = time.time()
-            console.print("[cyan]Defining symbols...[/cyan]")
-
-            ctx_service = core_context.context_service
-            if not ctx_service.cognitive_service:
-                ctx_service.cognitive_service = core_context.cognitive_service
-
-            if not ctx_service.vector_provider.qdrant:
-                ctx_service.vector_provider.qdrant = core_context.qdrant_service
-            if not ctx_service.vector_provider.cognitive_service:
-                ctx_service.vector_provider.cognitive_service = (
-                    core_context.cognitive_service
-                )
-
-            await define_symbols(ctx_service)
-
-            reporter.record_result(
-                ActionResult(
-                    action_id="manage.define-symbols",
-                    ok=True,
-                    data={},
-                    duration_sec=time.time() - start,
-                ),
-                phase,
-            )
-        except Exception as e:
-            reporter.record_result(
-                ActionResult(
-                    action_id="manage.define-symbols",
-                    ok=False,
-                    data={"error": str(e)},
-                ),
-                phase,
-            )
-            console.print("[yellow]⚠ Symbol definition issue, continuing...[/yellow]")
-
-        # =================================================================
-        # PHASE 5: VECTORIZATION
-        # =================================================================
-        phase = reporter.start_phase("Vectorization")
-
-        # 10. Sync Constitutional Vectors (Policies/Patterns)
-        try:
-            start = time.time()
-            console.print("[cyan]Syncing constitutional vectors...[/cyan]")
-
-            adapter = ConstitutionalAdapter()
-
-            # Policies
-            policy_items = adapter.policies_to_items()
-            policy_service = VectorIndexService(
-                core_context.qdrant_service,
-                "core_policies",
-            )
-            await policy_service.ensure_collection()
-            if not dry_run:
-                await policy_service.index_items(policy_items)
-
-            # Patterns
-            pattern_items = adapter.patterns_to_items()
-            pattern_service = VectorIndexService(
-                core_context.qdrant_service,
-                "core-patterns",
-            )
-            await pattern_service.ensure_collection()
-            if not dry_run:
-                await pattern_service.index_items(pattern_items)
-
-            reporter.record_result(
-                ActionResult(
-                    action_id="manage.vectors.sync",
-                    ok=True,
-                    data={
-                        "policies_count": len(policy_items),
-                        "patterns_count": len(pattern_items),
-                        "dry_run": dry_run,
-                    },
-                    duration_sec=time.time() - start,
-                ),
-                phase,
-            )
-
-        except Exception as e:
-            reporter.record_result(
-                ActionResult(
-                    action_id="manage.vectors.sync",
-                    ok=False,
-                    data={"error": str(e)},
-                ),
-                phase,
-            )
-            console.print(f"[yellow]⚠ Constitutional sync warning: {e}[/yellow]")
-
-        # 11. Vectorize Knowledge Graph
-        try:
-            start = time.time()
-            console.print("[cyan]Vectorizing knowledge graph...[/cyan]")
-            await run_vectorize(
-                context=core_context,
-                dry_run=dry_run,
-                force=False,
-            )
-
-            reporter.record_result(
-                ActionResult(
-                    action_id="run.vectorize",
-                    ok=True,
-                    data={"status": "completed"},
-                    duration_sec=time.time() - start,
-                ),
-                phase,
-            )
-        except Exception as e:
-            reporter.record_result(
-                ActionResult(
-                    action_id="run.vectorize",
-                    ok=False,
-                    data={"error": str(e)},
-                ),
-                phase,
-            )
-            raise typer.Exit(1)
-
-        # =================================================================
-        # PHASE 6: ANALYSIS
-        # =================================================================
-        phase = reporter.start_phase("Code Analysis")
-
-        # 12. Duplicates
-        try:
-            start = time.time()
-            console.print("[cyan]Detecting duplicate code...[/cyan]")
-            await inspect_duplicates_async(
-                context=core_context,
-                threshold=0.96,
-            )
-
-            reporter.record_result(
-                ActionResult(
-                    action_id="inspect.duplicates",
-                    ok=True,
-                    data={},
-                    duration_sec=time.time() - start,
-                ),
-                phase,
-            )
-        except Exception as e:
-            reporter.record_result(
-                ActionResult(
-                    action_id="inspect.duplicates",
-                    ok=False,
-                    data={"error": str(e)},
-                ),
-                phase,
-            )
-
-        # =================================================================
-        # FINAL REPORT
-        # =================================================================
+        # Print final report
         reporter.print_phases()
         reporter.print_summary()
 
-        critical_failures = [
-            r
-            for p in reporter.phases
-            for r in p.results
-            if not r.ok
-            and r.action_id
-            not in [
-                "check.lint",
-                "manage.define-symbols",
-                "inspect.duplicates",
-                "manage.vectors.sync",
-                "fix.logging",
-            ]
-        ]
-
-        if critical_failures:
+        # Check for critical failures
+        if phases.has_critical_failures():
             raise typer.Exit(1)
 
 

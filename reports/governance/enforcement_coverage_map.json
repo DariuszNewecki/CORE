@@ -1,0 +1,2942 @@
+{
+  "metadata": {
+    "generated_at_utc": "2025-12-27T08:36:29.790181+00:00",
+    "evidence_file": "reports/audit/latest_audit.json",
+    "evidence_key_used": "executed_rules",
+    "total_executed_ids": 198,
+    "total_policy_files": 37,
+    "flat_format_policies": 33,
+    "nested_format_policies": 0
+  },
+  "summary": {
+    "rules_total": 181,
+    "rules_enforced": 181,
+    "rules_implementable": 0,
+    "rules_declared_only": 0,
+    "execution_rate": 100.0,
+    "implementable_rate": 100.0
+  },
+  "entries": [
+    {
+      "rule": {
+        "rule_id": "async.no_manual_loop_management",
+        "statement": "Business logic and Feature modules MUST NOT call 'asyncio.run()'.",
+        "severity": "error",
+        "policy": "code.async",
+        "category": "uncategorized",
+        "check_engine": "ast_gate",
+        "check_type": "restrict_event_loop_creation",
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "caps.id_format",
+        "statement": "Source code linkers MUST use the form '# ID: <uuid>'.",
+        "severity": "error",
+        "policy": "code.capabilities",
+        "category": "uncategorized",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "caps.meaningful_description",
+        "statement": "Capability descriptions MUST be specific and non-placeholder.",
+        "severity": "error",
+        "policy": "code.capabilities",
+        "category": "uncategorized",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "caps.no_placeholder_text",
+        "statement": "Descriptions such as 'TBD' or 'N/A' are forbidden in capability metadata.",
+        "severity": "error",
+        "policy": "code.capabilities",
+        "category": "uncategorized",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "caps.owner_required",
+        "statement": "Active capabilities MUST have an assigned owner (agent or team).",
+        "severity": "error",
+        "policy": "code.capabilities",
+        "category": "uncategorized",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "layout.src_module_header",
+        "statement": "Every module under 'src/' MUST begin with a file path comment, module docstring, and future import.",
+        "severity": "error",
+        "policy": "code.layout",
+        "category": "uncategorized",
+        "check_engine": "ast_gate",
+        "check_type": "import_boundary",
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "layout.import_grouping",
+        "statement": "Imports MUST be grouped: future, stdlib, third-party, and finally internal modules.",
+        "severity": "warning",
+        "policy": "code.layout",
+        "category": "uncategorized",
+        "check_engine": "ast_gate",
+        "check_type": "import_boundary",
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "di.policy_reference",
+        "statement": "Dependency Injection rules are defined canonically in 'dependency_injection.json'.",
+        "severity": "warning",
+        "policy": "code.layout",
+        "category": "uncategorized",
+        "check_engine": "ast_gate",
+        "check_type": "import_boundary",
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "intent.policy_file_naming",
+        "statement": "All charter policy files must use snake_case and end with '.json'.",
+        "severity": "error",
+        "policy": "code.naming",
+        "category": "uncategorized",
+        "check_engine": "regex_gate",
+        "check_type": "naming_convention",
+        "implementable": false
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "intent.policy_schema_naming",
+        "statement": "Schemas for policy files must end with '_policy_schema.json'.",
+        "severity": "error",
+        "policy": "code.naming",
+        "category": "uncategorized",
+        "check_engine": "glob_gate",
+        "check_type": "path_restriction",
+        "implementable": false
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "intent.artifact_schema_naming",
+        "statement": "Schemas for non-policy artifacts must end with '_schema.[json|yaml]'.",
+        "severity": "error",
+        "policy": "code.naming",
+        "category": "uncategorized",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "intent.prompt_file_naming",
+        "statement": "All prompt files must use snake_case and end with '.prompt'.",
+        "severity": "error",
+        "policy": "code.naming",
+        "category": "uncategorized",
+        "check_engine": "regex_gate",
+        "check_type": "naming_convention",
+        "implementable": false
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "intent.proposal_file_naming",
+        "statement": "All proposal files must follow the 'cr-*.yaml' naming convention.",
+        "severity": "warning",
+        "policy": "code.naming",
+        "category": "uncategorized",
+        "check_engine": "regex_gate",
+        "check_type": "naming_convention",
+        "implementable": false
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "code.python_module_naming",
+        "statement": "All Python source files must use snake_case naming.",
+        "severity": "error",
+        "policy": "code.naming",
+        "category": "uncategorized",
+        "check_engine": "regex_gate",
+        "check_type": "naming_convention",
+        "implementable": false
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "code.python_test_module_naming",
+        "statement": "All Python test suites (executable tests) MUST be prefixed with 'test_'.",
+        "severity": "error",
+        "policy": "code.naming",
+        "category": "uncategorized",
+        "check_engine": "regex_gate",
+        "check_type": "naming_convention",
+        "implementable": false
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "refactor.requires_tests",
+        "statement": "Any refactor that changes public behavior MUST include tests or proof of equivalence.",
+        "severity": "error",
+        "policy": "code.refactor",
+        "category": "uncategorized",
+        "check_engine": "workflow_gate",
+        "check_type": "test_verification",
+        "implementable": false
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "refactor.update_capabilities",
+        "statement": "When moving symbols, update capability tags and manifests accordingly.",
+        "severity": "warning",
+        "policy": "code.refactor",
+        "category": "uncategorized",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "refactor.audit_after",
+        "statement": "A constitutional audit MUST run after refactors and before merge.",
+        "severity": "error",
+        "policy": "code.refactor",
+        "category": "uncategorized",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "code_standards.max_file_lines",
+        "statement": "Python modules MUST NOT exceed line limits based on their role: Core/Orchestration (600 lines), Features/Services (400 lines), Utilities (200 lines).",
+        "severity": "error",
+        "policy": "code.refactor",
+        "category": "uncategorized",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "code_standards.max_function_lines",
+        "statement": "Functions SHOULD NOT exceed 50 lines.",
+        "severity": "warning",
+        "policy": "code.refactor",
+        "category": "uncategorized",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "style.linter_required",
+        "statement": "All changes MUST pass ruff (lint) before merge.",
+        "severity": "error",
+        "policy": "code.style",
+        "category": "uncategorized",
+        "check_engine": "ast_gate",
+        "check_type": "linter_compliance",
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "style.formatter_required",
+        "statement": "All changes MUST be formatted by black; CI runs black --check.",
+        "severity": "error",
+        "policy": "code.style",
+        "category": "uncategorized",
+        "check_engine": "ast_gate",
+        "check_type": "linter_compliance",
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "style.fail_on_style_in_ci",
+        "statement": "CI MUST fail on style or lint violations (no auto-fixing in CI).",
+        "severity": "error",
+        "policy": "code.style",
+        "category": "uncategorized",
+        "check_engine": "ast_gate",
+        "check_type": "linter_compliance",
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "style.docstrings_public_apis",
+        "statement": "Public APIs MUST have docstrings summarizing intent and parameters.",
+        "severity": "warning",
+        "policy": "code.style",
+        "category": "uncategorized",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "style.universal_helper_first",
+        "statement": "Before creating new helpers, check shared.universal. Reuse or extend instead of duplicating.",
+        "severity": "warning",
+        "policy": "code.style",
+        "category": "uncategorized",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "style.capability_id_placement",
+        "statement": "Primary public symbols representing capabilities MUST have '# ID: <uuid>' tags above their definition.",
+        "severity": "warning",
+        "policy": "code.style",
+        "category": "uncategorized",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "style.import_order",
+        "statement": "Imports MUST follow canonical grouping and ordering as enforced by the linter.",
+        "severity": "warning",
+        "policy": "code.style",
+        "category": "uncategorized",
+        "check_engine": "ast_gate",
+        "check_type": "linter_compliance",
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "symbols.public_capability_id_and_docstring",
+        "statement": "Public capability symbols MUST have an ID comment and a meaningful docstring.",
+        "severity": "error",
+        "policy": "code.symbols",
+        "category": "uncategorized",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "symbols.private_helpers_no_id_required",
+        "statement": "Private helpers (starting with '_') MUST NOT receive capability IDs.",
+        "severity": "warning",
+        "policy": "code.symbols",
+        "category": "uncategorized",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "symbols.cli_async_helpers_private",
+        "statement": "Async orchestration helpers bridging CLI and domain MUST be private.",
+        "severity": "error",
+        "policy": "code.symbols",
+        "category": "uncategorized",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "schemas.dialect.standard_json_schema",
+        "statement": "All schema files under .intent/**/schemas/ must use standard JSON Schema (no OpenAPI extensions).",
+        "severity": "error",
+        "policy": "schema_dialect",
+        "category": "uncategorized",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "schemas.dialect.forbid_nullable_keyword",
+        "statement": "The 'nullable' keyword is forbidden in all schema files; use type unions like [\"string\",\"null\"].",
+        "severity": "error",
+        "policy": "schema_dialect",
+        "category": "uncategorized",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "schemas.style.closed_objects.root",
+        "statement": "All schema objects must set additionalProperties=false at the root schema object.",
+        "severity": "error",
+        "policy": "schema_dialect",
+        "category": "uncategorized",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "schemas.style.datetime_format",
+        "statement": "Schemas should use JSON Schema standard format 'date-time' (not 'datetime').",
+        "severity": "warning",
+        "policy": "schema_dialect",
+        "category": "uncategorized",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "agent.compliance.no_write_intent",
+        "statement": "Agents MUST NOT write directly to '.intent/charter/**'.",
+        "severity": "error",
+        "policy": "standard_architecture_agent_governance",
+        "category": "agent_governance",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "agent.compliance.respect_cli_registry",
+        "statement": "All tool invocations MUST route through registered CLI commands.",
+        "severity": "error",
+        "policy": "standard_architecture_agent_governance",
+        "category": "agent_governance",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "agent.reasoning.trace_required",
+        "statement": "MUST produce inspectable trace for non-trivial tasks.",
+        "severity": "warning",
+        "policy": "standard_architecture_agent_governance",
+        "category": "agent_governance",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "atomic.action_must_return_result",
+        "statement": "Every atomic action MUST return an ActionResult",
+        "severity": "error",
+        "policy": "standard_architecture_atomic_actions",
+        "category": "uncategorized",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "atomic.result_must_be_structured",
+        "statement": "ActionResult.data MUST be a dictionary of typed values",
+        "severity": "error",
+        "policy": "standard_architecture_atomic_actions",
+        "category": "uncategorized",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "atomic.workflow_must_declare_intent",
+        "statement": "Every workflow MUST declare its goal and abort policy",
+        "severity": "error",
+        "policy": "standard_architecture_atomic_actions",
+        "category": "uncategorized",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "atomic.actions_compose_transitively",
+        "statement": "If A→B and B→C are valid, then A→C MUST be valid",
+        "severity": "warning",
+        "policy": "standard_architecture_atomic_actions",
+        "category": "uncategorized",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "atomic.governance_never_bypassed",
+        "statement": "No action can skip constitutional validation",
+        "severity": "error",
+        "policy": "standard_architecture_atomic_actions",
+        "category": "uncategorized",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "atomic.action_must_be_headless",
+        "statement": "Atomic actions MUST NOT perform terminal I/O (print, Rich Console/Progress, direct writes to stdout/stderr). All UI rendering is the responsibility of the calling workflow/CLI layer, which consumes ActionResult objects.",
+        "severity": "error",
+        "policy": "standard_architecture_atomic_actions",
+        "category": "uncategorized",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "body.no_ui_imports_in_body",
+        "statement": "Body modules MUST NOT import Rich UI components (Console, Progress, etc.)",
+        "severity": "error",
+        "policy": "standard_architecture_body_contracts",
+        "category": "uncategorized",
+        "check_engine": "ast_gate",
+        "check_type": "import_boundary",
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "body.no_print_or_input_in_body",
+        "statement": "Body modules MUST NOT use print() or input() for user interaction",
+        "severity": "error",
+        "policy": "standard_architecture_body_contracts",
+        "category": "uncategorized",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "body.write_defaults_false",
+        "statement": "Any write/modify parameter in Body code MUST default to False",
+        "severity": "error",
+        "policy": "standard_architecture_body_contracts",
+        "category": "uncategorized",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "body.atomic_actions_use_actionresult",
+        "statement": "High-level Body actions exposed to workflows MUST return ActionResult",
+        "severity": "error",
+        "policy": "standard_architecture_body_contracts",
+        "category": "uncategorized",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "body.actionresult_data_json_safe",
+        "statement": "ActionResult.data MUST only contain JSON-serializable types",
+        "severity": "warning",
+        "policy": "standard_architecture_body_contracts",
+        "category": "uncategorized",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "body.no_envvar_access_in_body",
+        "statement": "Body modules MUST NOT call os.environ[...] directly; use shared.config.settings",
+        "severity": "warning",
+        "policy": "standard_architecture_body_contracts",
+        "category": "uncategorized",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "body.dependency_injection_preferred",
+        "statement": "Body services SHOULD receive dependencies via constructor, not create them internally",
+        "severity": "warning",
+        "policy": "standard_architecture_body_contracts",
+        "category": "uncategorized",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "workflow_composition.chain_action_pattern",
+        "statement": "Workflows can chain multiple action_pattern commands",
+        "severity": "error",
+        "policy": "standard_architecture_command_rules",
+        "category": "workflow_composition",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "workflow_composition.step_must_succeed",
+        "statement": "Each step must succeed before proceeding to next",
+        "severity": "error",
+        "policy": "standard_architecture_command_rules",
+        "category": "workflow_composition",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "workflow_composition.idempotent",
+        "statement": "Workflows should be idempotent (safe to re-run)",
+        "severity": "error",
+        "policy": "standard_architecture_command_rules",
+        "category": "workflow_composition",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "workflow_composition.progress_indication",
+        "statement": "Workflows should provide clear progress indication",
+        "severity": "error",
+        "policy": "standard_architecture_command_rules",
+        "category": "workflow_composition",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "workflow_composition.fail_fast",
+        "statement": "Workflows should fail fast on errors",
+        "severity": "error",
+        "policy": "standard_architecture_command_rules",
+        "category": "workflow_composition",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "cli.runtime.single_loop_owner",
+        "statement": "CLI commands MUST execute inside a single owned event loop via the CORE runtime boundary. Sync Typer entrypoints MUST NOT return asyncio Task objects or schedule background tasks as the command result.",
+        "severity": "error",
+        "policy": "standard_architecture_command_rules",
+        "category": "cli_runtime",
+        "check_engine": "ast_gate",
+        "check_type": "no_task_return_from_sync_cli",
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "decorator_governance.auto_rule_0",
+        "statement": "All CLI command functions MUST use @core_command decorator",
+        "severity": "error",
+        "policy": "standard_architecture_decorator_governance",
+        "category": "uncategorized",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "decorator_governance.auto_rule_1",
+        "statement": "Decorators MUST appear in constitutional order",
+        "severity": "error",
+        "policy": "standard_architecture_decorator_governance",
+        "category": "uncategorized",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "decorator_governance.auto_rule_2",
+        "statement": "Functions MUST NOT have duplicate decorators",
+        "severity": "error",
+        "policy": "standard_architecture_decorator_governance",
+        "category": "uncategorized",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "di.no_direct_instantiation",
+        "statement": "Services and features MUST NOT directly instantiate other major services. Dependencies MUST be injected via constructors or well-defined factories.\n",
+        "severity": "error",
+        "policy": "standard_architecture_dependency_injection",
+        "category": "uncategorized",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "di.no_global_session_import",
+        "statement": "Modules within 'features' and 'services' MUST NOT directly import a global `get_session` provider. Database sessions MUST be injected, not retrieved via global accessors.\n",
+        "severity": "error",
+        "policy": "standard_architecture_dependency_injection",
+        "category": "uncategorized",
+        "check_engine": "ast_gate",
+        "check_type": "import_boundary",
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "di.constructor_injection_preferred",
+        "statement": "Services SHOULD receive their dependencies through the `__init__` constructor with clear type hints, rather than via module-level singletons or hidden wiring.\n",
+        "severity": "warning",
+        "policy": "standard_architecture_dependency_injection",
+        "category": "uncategorized",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "di.no_import_time_async_singletons",
+        "statement": "Modules MUST NOT create loop-bound async resources (e.g., SQLAlchemy async engines, async HTTP clients, async transports) at module import time. Such resources MUST be created inside an explicit runtime scope and disposed deterministically.",
+        "severity": "error",
+        "policy": "standard_architecture_dependency_injection",
+        "category": "uncategorized",
+        "check_engine": "ast_gate",
+        "check_type": "no_import_time_async_singletons",
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "async.runtime.no_nested_loop_creation",
+        "statement": "Code MUST NOT call asyncio.run(), create a new event loop, or use run_until_complete() outside the approved runtime boundary. The CLI runtime boundary is the only allowed owner of event loop creation for commands.",
+        "severity": "error",
+        "policy": "standard_architecture_dependency_injection",
+        "category": "uncategorized",
+        "check_engine": "ast_gate",
+        "check_type": "restrict_event_loop_creation",
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "db.engine.scope.per_event_loop",
+        "statement": "Database engines and connection pools MUST be created lazily within the active event loop or runtime scope. Global module-level engine singletons are forbidden.",
+        "severity": "error",
+        "policy": "standard_architecture_dependency_injection",
+        "category": "uncategorized",
+        "check_engine": "ast_gate",
+        "check_type": "no_module_level_async_engine",
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "events.cloudevents_compliance",
+        "statement": "All system events MUST conform to the CloudEvents 1.0 specification structure.",
+        "severity": "error",
+        "policy": "standard_architecture_events",
+        "category": "events",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "events.topic_naming",
+        "statement": "Event types MUST follow the pattern 'core.<domain>.<entity>.<verb>'.",
+        "severity": "error",
+        "policy": "standard_architecture_events",
+        "category": "events",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "events.payload_immutability",
+        "statement": "Event payloads MUST be treated as immutable once emitted.",
+        "severity": "error",
+        "policy": "standard_architecture_events",
+        "category": "events",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "service_rules.auto_rule_0",
+        "statement": "Service modules in features/*_service.py and services/* MUST NOT import rich.Console or use print-based terminal output.\n",
+        "severity": "error",
+        "policy": "standard_architecture_service_rules",
+        "category": "validation",
+        "check_engine": "ast_gate",
+        "check_type": "import_boundary",
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "service_rules.auto_rule_1",
+        "statement": "Atomic action services that participate in workflows MUST return ActionResult, not ad-hoc dicts or tuples.\n",
+        "severity": "error",
+        "policy": "standard_architecture_service_rules",
+        "category": "validation",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "service_rules.auto_rule_2",
+        "statement": "Any service with a write or modify parameter MUST default it to False. This rule operationalizes the immutable 'write_defaults_false' principle.\n",
+        "severity": "error",
+        "policy": "standard_architecture_service_rules",
+        "category": "validation",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "service_rules.auto_rule_3",
+        "statement": "Service modules MUST NOT import terminal UI components (Rich, click, etc.).\n",
+        "severity": "error",
+        "policy": "standard_architecture_service_rules",
+        "category": "validation",
+        "check_engine": "ast_gate",
+        "check_type": "import_boundary",
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "service_rules.auto_rule_4",
+        "statement": "Domain services SHOULD live in features/<domain>/*_service.py to make architecture navigable and introspectable by CORE itself.\n",
+        "severity": "warning",
+        "policy": "standard_architecture_service_rules",
+        "category": "validation",
+        "check_engine": "glob_gate",
+        "check_type": "path_restriction",
+        "implementable": false
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "tools.explicit_return_contract",
+        "statement": "Tool definitions MUST describe the ActionResult schema, not just 'string'.",
+        "severity": "error",
+        "policy": "standard_architecture_tool_definition",
+        "category": "uncategorized",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "tools.type_mapping_strictness",
+        "statement": "Python types MUST map to the most specific JSON Schema type possible.",
+        "severity": "error",
+        "policy": "standard_architecture_tool_definition",
+        "category": "uncategorized",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "vector.deterministic_id_generation",
+        "statement": "Qdrant Point IDs MUST be deterministic and stable across process restarts. Use of Python's built-in `hash()` for persistent IDs is PROHIBITED.\n",
+        "severity": "error",
+        "policy": "standard_architecture_vector_service_standards",
+        "category": "uncategorized",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "vector.mandatory_hashing",
+        "statement": "ALL vectorization operations MUST compute and store content hashes to enable deduplication and change detection.\n",
+        "severity": "error",
+        "policy": "standard_architecture_vector_service_standards",
+        "category": "uncategorized",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "vector.service_method_usage",
+        "statement": "ALL Qdrant operations MUST go through QdrantService methods. Direct client access (qdrant_service.client.*) is PROHIBITED except when implementing new QdrantService methods.\n",
+        "severity": "error",
+        "policy": "standard_architecture_vector_service_standards",
+        "category": "uncategorized",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "vector.standardized_payloads",
+        "statement": "ALL vector payloads MUST conform to standardized schemas. Use EmbeddingPayload or typed domain payload classes. Raw dictionaries are PROHIBITED.\n",
+        "severity": "error",
+        "policy": "standard_architecture_vector_service_standards",
+        "category": "uncategorized",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "vector.scroll_pagination",
+        "statement": "ALL collection scanning MUST use proper pagination with scroll. Unbounded queries or limit-only queries are PROHIBITED for collections that may exceed 1000 points.\n",
+        "severity": "error",
+        "policy": "standard_architecture_vector_service_standards",
+        "category": "uncategorized",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "vector.bidirectional_sync_integrity",
+        "statement": "Vector store and PostgreSQL MUST maintain referential integrity. Orphaned vectors or dangling links are constitutional violations.\n",
+        "severity": "error",
+        "policy": "standard_architecture_vector_service_standards",
+        "category": "uncategorized",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "vector.collection_naming_convention",
+        "statement": "Vector collection names MUST match '^core-[a-z-]+$'.",
+        "severity": "error",
+        "policy": "standard_architecture_vector_service_standards",
+        "category": "uncategorized",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "vector.collection_vector_configuration",
+        "statement": "Vector collections MUST follow the standard configuration defaults unless explicitly justified.",
+        "severity": "warning",
+        "policy": "standard_architecture_vector_service_standards",
+        "category": "uncategorized",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "vector.collection_lifecycle_management",
+        "statement": "Collection lifecycle operations MUST be explicit and governed (create idempotently, delete with approval, migrate by swap).",
+        "severity": "warning",
+        "policy": "standard_architecture_vector_service_standards",
+        "category": "uncategorized",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "vector.vectorizer_standard_structure",
+        "statement": "Vectorizers MUST follow the standard structure and hash-checking pattern.",
+        "severity": "warning",
+        "policy": "standard_architecture_vector_service_standards",
+        "category": "uncategorized",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "workflow.workflow_ui_single_owner",
+        "statement": "Workflows are the single owner of terminal UI for their execution. They MUST NOT delegate UI concerns downward to services/actions, and MUST NOT call UI-producing subroutines.\n",
+        "severity": "warning",
+        "policy": "standard_architecture_workflow_rules",
+        "category": "uncategorized",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "linkage.assign_ids",
+        "statement": "All public functions and methods MUST have unique UUID identifiers.",
+        "severity": "error",
+        "policy": "standard_code_linkage",
+        "category": "uncategorized",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "linkage.duplicate_ids",
+        "statement": "Function IDs MUST be globally unique across the entire codebase.",
+        "severity": "error",
+        "policy": "standard_code_linkage",
+        "category": "uncategorized",
+        "check_engine": "glob_gate",
+        "check_type": "path_restriction",
+        "implementable": false
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "purity.forbidden_decorators",
+        "statement": "Source code MUST NOT contain descriptive metadata decorators: @capability, @meta, or @owner.",
+        "severity": "error",
+        "policy": "standard_code_purity",
+        "category": "uncategorized",
+        "check_engine": "ast_gate",
+        "check_type": "forbidden_decorators",
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "purity.no_inline_configuration",
+        "statement": "Hardcoding configuration (timeouts, retry limits, API keys) in source code is forbidden.",
+        "severity": "warning",
+        "policy": "standard_code_purity",
+        "category": "uncategorized",
+        "check_engine": "ast_gate",
+        "check_type": "forbidden_assignments",
+        "implementable": false
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "purity.stable_id_anchor",
+        "statement": "Primary public symbols MUST have a stable ID anchor (# ID: <uuid>) immediately above definition.",
+        "severity": "error",
+        "policy": "standard_code_purity",
+        "category": "uncategorized",
+        "check_engine": "regex_gate",
+        "check_type": null,
+        "implementable": false
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "purity.safety_contract_presence",
+        "statement": "Public state-modifying functions MUST have an @atomic_action decorator.",
+        "severity": "error",
+        "policy": "standard_code_purity",
+        "category": "uncategorized",
+        "check_engine": "ast_gate",
+        "check_type": "required_decorator",
+        "implementable": false
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "purity.atomic_action_contract",
+        "statement": "The @atomic_action decorator MUST include 'action_id', 'impact', and 'policies'.",
+        "severity": "error",
+        "policy": "standard_code_purity",
+        "category": "uncategorized",
+        "check_engine": "ast_gate",
+        "check_type": "decorator_args",
+        "implementable": false
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "purity.framework_binding_limits",
+        "statement": "Decorators are restricted to Governance Contracts or explicit Framework Bindings (FastAPI, Typer, Pytest).",
+        "severity": "error",
+        "policy": "standard_code_purity",
+        "category": "uncategorized",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "knowledge.database_ssot",
+        "statement": "Database is the single authoritative source of truth for all operational knowledge (capabilities, symbols, ownership, status, relationships).",
+        "severity": "error",
+        "policy": "standard_data_governance",
+        "category": "database",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "db.integrity.linkage_ids_persisted",
+        "statement": "All public capabilities, symbols, and governed entities MUST have a stable UUID assigned and persisted in the database.",
+        "severity": "error",
+        "policy": "standard_data_governance",
+        "category": "integrity",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "db.integrity.linkage_ids_unique",
+        "statement": "Duplicate UUIDs across capabilities, symbols, or other governed entities are forbidden.",
+        "severity": "error",
+        "policy": "standard_data_governance",
+        "category": "integrity",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "db.ssot_for_operational_data",
+        "statement": "Operational state MUST NOT be hardcoded in source code or configuration files when a database representation exists. Files are read-only mirrors.",
+        "severity": "error",
+        "policy": "standard_data_governance",
+        "category": "database",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "db.write_via_governed_cli",
+        "statement": "All database mutations MUST originate from registered CLI commands or the approved Repository layer.",
+        "severity": "error",
+        "policy": "standard_data_governance",
+        "category": "operations",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "db.cli_registry_in_db",
+        "statement": "All executable CLI commands MUST be registered and stored in the database CLI registry.",
+        "severity": "error",
+        "policy": "standard_data_governance",
+        "category": "database",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "db.domains_in_db",
+        "statement": "Capability domains MUST be stored in and queried from the database.",
+        "severity": "error",
+        "policy": "standard_data_governance",
+        "category": "knowledge",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "db.vector_index_in_db",
+        "statement": "Vector index metadata MUST be stored in the database to link semantic vectors to structured records.",
+        "severity": "error",
+        "policy": "standard_data_governance",
+        "category": "knowledge",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "db.llm_resources_in_db",
+        "statement": "The LLM resource manifest MUST be stored in the database.",
+        "severity": "error",
+        "policy": "standard_data_governance",
+        "category": "infrastructure",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "db.cognitive_roles_in_db",
+        "statement": "Cognitive roles and agent definitions MUST be stored in the database.",
+        "severity": "error",
+        "policy": "standard_data_governance",
+        "category": "infrastructure",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "db.privacy.no_pii_or_secrets",
+        "statement": "Personal data (PII) and secrets MUST NOT be stored in operational tables.",
+        "severity": "error",
+        "policy": "standard_data_governance",
+        "category": "security",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "db.privacy.masking",
+        "statement": "Logs and audit records MUST redact tokens, keys, and secrets.",
+        "severity": "error",
+        "policy": "standard_data_governance",
+        "category": "security",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "knowledge.limited_legacy_access",
+        "statement": "Only explicitly allowed system tools may interact with legacy knowledge artifacts.",
+        "severity": "error",
+        "policy": "standard_data_governance",
+        "category": "integrity",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "knowledge.symbols_key_is_label",
+        "statement": "core.symbols.key MUST be treated as a non-unique capability label. Multiple symbols MAY share the same key.",
+        "severity": "error",
+        "policy": "standard_data_governance",
+        "category": "integrity",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "knowledge.capability_mapping_ssot_is_links",
+        "statement": "The Symbol-to-capability mapping SSOT MUST be core.symbol_capability_links.",
+        "severity": "error",
+        "policy": "standard_data_governance",
+        "category": "integrity",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "logging.single_logging_system",
+        "statement": "All operational logging MUST use Python's standard logging via shared.logger.getLogger().",
+        "severity": "error",
+        "policy": "standard_logging",
+        "category": "logging",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "logging.log_level_usage",
+        "statement": "Log levels MUST be used according to their semantic meaning.",
+        "severity": "error",
+        "policy": "standard_logging",
+        "category": "logging",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "logging.message_format",
+        "statement": "Operational log messages MUST be clear, concise, and consistently formatted.",
+        "severity": "error",
+        "policy": "standard_logging",
+        "category": "logging",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "logging.progress_indication",
+        "statement": "Progress for long operations MUST be logged at appropriate intervals (operational logging).",
+        "severity": "error",
+        "policy": "standard_logging",
+        "category": "logging",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "logging.structured_logging",
+        "statement": "Complex operations SHOULD include structured context.",
+        "severity": "warning",
+        "policy": "standard_logging",
+        "category": "logging",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "logging.error_logging",
+        "statement": "Errors MUST be logged with full context and stack traces.",
+        "severity": "error",
+        "policy": "standard_logging",
+        "category": "logging",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "logging.cli_command_output",
+        "statement": "CLI commands MUST separate command output from operational logging.",
+        "severity": "error",
+        "policy": "standard_logging",
+        "category": "logging",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "agent.execution.no_unverified_code",
+        "statement": "Dangerous execution primitives MUST only be used when all required protection layers are present. Partial compliance is not allowed.\n",
+        "severity": "error",
+        "policy": "standard_operations_code_execution",
+        "category": "code_execution",
+        "check_engine": "ast_gate",
+        "check_type": "forbidden_primitives",
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "agent.execution.require_runtime_validation",
+        "statement": "When dangerous execution primitives are used, validation MUST occur at runtime before execution, not only at parse or design time.\n",
+        "severity": "error",
+        "policy": "standard_operations_code_execution",
+        "category": "code_execution",
+        "check_engine": "ast_gate",
+        "check_type": "forbidden_primitives",
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "constitution.primary_format",
+        "statement": "The canonical format for constitutional content in .intent/ must be JSON.",
+        "severity": "error",
+        "policy": "standard_operations_constitution_format",
+        "category": "uncategorized",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "constitution.allow_legacy_yaml",
+        "statement": "Legacy YAML intent artifacts may be tolerated during a controlled migration period, but are not canonical.",
+        "severity": "warning",
+        "policy": "standard_operations_constitution_format",
+        "category": "uncategorized",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "intent.schema_compliance",
+        "statement": "All intent crates MUST pass schema validation against the intent crate schema.",
+        "severity": "error",
+        "policy": "standard_operations_general",
+        "category": "uncategorized",
+        "check_engine": "workflow_gate",
+        "check_type": "test_verification",
+        "implementable": false
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "intent.canary_required",
+        "statement": "All intent crates MUST pass a canary audit in an isolated environment before application.",
+        "severity": "error",
+        "policy": "standard_operations_general",
+        "category": "uncategorized",
+        "check_engine": "workflow_gate",
+        "check_type": "test_verification",
+        "implementable": false
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "intent.immutable_history",
+        "statement": "Processed intent crates MUST be moved to accepted or rejected and MUST NOT be modified in place.",
+        "severity": "error",
+        "policy": "standard_operations_general",
+        "category": "uncategorized",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "integration.assign_ids_required",
+        "statement": "Stable UUIDs MUST be assigned to all new public symbols before integration.",
+        "severity": "error",
+        "policy": "standard_operations_general",
+        "category": "uncategorized",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "integration.duplicate_ids_resolved",
+        "statement": "Duplicate '# ID:' tags MUST be resolved before integration.",
+        "severity": "error",
+        "policy": "standard_operations_general",
+        "category": "uncategorized",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "integration.knowledge_sync_required",
+        "statement": "Codebase state MUST be synchronized with the database SSOT before integration.",
+        "severity": "error",
+        "policy": "standard_operations_general",
+        "category": "uncategorized",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "integration.tests_must_pass",
+        "statement": "Full test suite MUST pass before integration.",
+        "severity": "error",
+        "policy": "standard_operations_general",
+        "category": "uncategorized",
+        "check_engine": "workflow_gate",
+        "check_type": "test_verification",
+        "implementable": false
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "integration.coverage_minimum",
+        "statement": "Test coverage MUST meet or exceed the constitutional minimum (75%).",
+        "severity": "error",
+        "policy": "standard_operations_general",
+        "category": "uncategorized",
+        "check_engine": "workflow_gate",
+        "check_type": "test_verification",
+        "implementable": false
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "integration.audit_required",
+        "statement": "Full constitutional audit MUST pass before integration.",
+        "severity": "error",
+        "policy": "standard_operations_general",
+        "category": "uncategorized",
+        "check_engine": "workflow_gate",
+        "check_type": "test_verification",
+        "implementable": false
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "canary.abort_on_audit_error",
+        "statement": "Canary deployment MUST abort if any audit error is detected.",
+        "severity": "error",
+        "policy": "standard_operations_general",
+        "category": "uncategorized",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "canary.abort_on_test_failure",
+        "statement": "Canary deployment MUST abort if any tests fail.",
+        "severity": "error",
+        "policy": "standard_operations_general",
+        "category": "uncategorized",
+        "check_engine": "workflow_gate",
+        "check_type": "test_verification",
+        "implementable": false
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "dev_fastpath.no_intent_changes",
+        "statement": "Developer fastpath MUST NOT allow changes to intent or governance paths.",
+        "severity": "error",
+        "policy": "standard_operations_general",
+        "category": "uncategorized",
+        "check_engine": "glob_gate",
+        "check_type": "path_restriction",
+        "implementable": false
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "ir.triage_required",
+        "statement": "All incidents MUST be triaged within 24 hours with severity and owner assigned.",
+        "severity": "error",
+        "policy": "standard_operations_general",
+        "category": "uncategorized",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "ir.timeline_required",
+        "statement": "A minimal incident timeline MUST be recorded.",
+        "severity": "warning",
+        "policy": "standard_operations_general",
+        "category": "uncategorized",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "ir.notifications_required",
+        "statement": "Maintainers MUST be notified for high and critical incidents.",
+        "severity": "warning",
+        "policy": "standard_operations_general",
+        "category": "uncategorized",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "ir.postmortem_required",
+        "statement": "High and critical incidents REQUIRE a short postmortem with actions and owners.",
+        "severity": "warning",
+        "policy": "standard_operations_general",
+        "category": "uncategorized",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "operations.runtime.env_vars_defined",
+        "statement": "All required runtime environment variables MUST be set.",
+        "severity": "error",
+        "policy": "standard_operations_general",
+        "category": "uncategorized",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "observability.atomic_actions_emit_logs",
+        "statement": "All atomic actions MUST emit structured logs",
+        "severity": "error",
+        "policy": "standard_operations_observability",
+        "category": "uncategorized",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "observability.cli_commands_valid",
+        "statement": "Observe CLI commands MUST return valid data",
+        "severity": "error",
+        "policy": "standard_operations_observability",
+        "category": "uncategorized",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "observability.metrics_actionable",
+        "statement": "Metrics MUST be sufficient to answer success criteria questions",
+        "severity": "error",
+        "policy": "standard_operations_observability",
+        "category": "uncategorized",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "pattern_vectorization.pattern_understanding.required",
+        "statement": "CORE MUST maintain semantic understanding of all constitutional patterns defined in .intent/charter/patterns/ by vectorizing them into the core-patterns collection with section-level chunking and required metadata.\n",
+        "severity": "error",
+        "policy": "standard_operations_pattern_vectorization",
+        "category": "uncategorized",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "pattern_vectorization.semantic_validation.required",
+        "statement": "CORE MUST be able to validate code against patterns semantically, not just syntactically, by comparing pattern requirement chunks to code structure and reporting violations when similarity and/or structure checks fail.\n",
+        "severity": "error",
+        "policy": "standard_operations_pattern_vectorization",
+        "category": "uncategorized",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "pattern_vectorization.constitutional_audit.integration_required",
+        "statement": "Constitutional audit MUST include pattern-driven semantic validation and MUST report violations with explicit references to the violated pattern section, plus remediation guidance.\n",
+        "severity": "error",
+        "policy": "standard_operations_pattern_vectorization",
+        "category": "uncategorized",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "pattern_vectorization.collection.core_patterns.contract",
+        "statement": "The core-patterns vector collection MUST follow defined configuration and metadata schema so that semantic retrieval and validation remain stable and auditable.\n",
+        "severity": "error",
+        "policy": "standard_operations_pattern_vectorization",
+        "category": "uncategorized",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "pattern_vectorization.chunking.semantic_section.required",
+        "statement": "Pattern vectorization MUST chunk by semantic sections (derived from YAML structure and semantic coherence) and MUST include sufficient context metadata for each chunk.\n",
+        "severity": "error",
+        "policy": "standard_operations_pattern_vectorization",
+        "category": "uncategorized",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "pattern_vectorization.update_policy.on_file_change",
+        "statement": "Any modification to a pattern YAML file MUST trigger re-vectorization of the entire pattern file and verification that all chunks were updated in core-patterns.\n",
+        "severity": "error",
+        "policy": "standard_operations_pattern_vectorization",
+        "category": "uncategorized",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "pattern_vectorization.override_policy.disallowed",
+        "statement": "Overrides of constitutional patterns are NOT allowed. Any exemptions MUST be documented in the pattern file itself, not in audit code or runtime flags.\n",
+        "severity": "error",
+        "policy": "standard_operations_pattern_vectorization",
+        "category": "uncategorized",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "pattern_vectorization.migration.enforcement_mode",
+        "statement": "During migration, pattern violations SHOULD be reported as non-blocking; after migration completion, pattern violations MUST be blocking.\n",
+        "severity": "warning",
+        "policy": "standard_operations_pattern_vectorization",
+        "category": "uncategorized",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "qa.coverage.minimum_threshold",
+        "statement": "Production code MUST maintain a minimum of 55% test coverage.",
+        "severity": "error",
+        "policy": "standard_operations_quality_assurance",
+        "category": "uncategorized",
+        "check_engine": "workflow_gate",
+        "check_type": "test_verification",
+        "implementable": false
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "qa.coverage.target_threshold",
+        "statement": "The system SHOULD converge toward a target test coverage of 80% or higher.",
+        "severity": "warning",
+        "policy": "standard_operations_quality_assurance",
+        "category": "uncategorized",
+        "check_engine": "workflow_gate",
+        "check_type": "test_verification",
+        "implementable": false
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "qa.coverage.critical_paths",
+        "statement": "Critical code paths MUST meet elevated coverage thresholds as defined by policy.",
+        "severity": "error",
+        "policy": "standard_operations_quality_assurance",
+        "category": "uncategorized",
+        "check_engine": "glob_gate",
+        "check_type": "path_restriction",
+        "implementable": false
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "qa.coverage.no_regression",
+        "statement": "Code changes MUST NOT reduce overall coverage below the minimum threshold without an approved remediation plan.",
+        "severity": "error",
+        "policy": "standard_operations_quality_assurance",
+        "category": "uncategorized",
+        "check_engine": "workflow_gate",
+        "check_type": "test_verification",
+        "implementable": false
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "qa.coverage.exclusions",
+        "statement": "Coverage calculations MUST exclude non-executable or non-critical paths.",
+        "severity": "error",
+        "policy": "standard_operations_quality_assurance",
+        "category": "uncategorized",
+        "check_engine": "glob_gate",
+        "check_type": "path_restriction",
+        "implementable": false
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "qa.remediation.auto_trigger",
+        "statement": "If coverage drops below the minimum threshold, autonomous test remediation MUST be triggered.",
+        "severity": "error",
+        "policy": "standard_operations_quality_assurance",
+        "category": "uncategorized",
+        "check_engine": "workflow_gate",
+        "check_type": "test_verification",
+        "implementable": false
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "qa.remediation.trigger_conditions",
+        "statement": "Autonomous remediation MUST trigger when predefined degradation signals are detected.",
+        "severity": "error",
+        "policy": "standard_operations_quality_assurance",
+        "category": "uncategorized",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "qa.remediation.phased_execution",
+        "statement": "Autonomous remediation MUST execute in defined phases: analysis followed by test generation.",
+        "severity": "error",
+        "policy": "standard_operations_quality_assurance",
+        "category": "uncategorized",
+        "check_engine": "workflow_gate",
+        "check_type": "test_verification",
+        "implementable": false
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "qa.audit.exceptions_explicit",
+        "statement": "Any audit exception MUST be explicitly declared with scope and justification.",
+        "severity": "error",
+        "policy": "standard_operations_quality_assurance",
+        "category": "uncategorized",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "qa.audit.exceptions_empty_default",
+        "statement": "The default state for audit exceptions MUST be empty.",
+        "severity": "error",
+        "policy": "standard_operations_quality_assurance",
+        "category": "uncategorized",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "qa.change.evaluation_required",
+        "statement": "All changes MUST be evaluated using the weighted quality evaluation framework.",
+        "severity": "error",
+        "policy": "standard_operations_quality_assurance",
+        "category": "uncategorized",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "qa.change.evaluation_threshold_pass",
+        "statement": "Changes MUST achieve a minimum evaluation score of 0.7 to be accepted.",
+        "severity": "error",
+        "policy": "standard_operations_quality_assurance",
+        "category": "uncategorized",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "qa.change.evaluation_warn",
+        "statement": "Changes scoring between 0.5 and 0.7 SHOULD be flagged for human review.",
+        "severity": "warning",
+        "policy": "standard_operations_quality_assurance",
+        "category": "uncategorized",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "qa.risk.medium_gate",
+        "statement": "Medium-risk changes MUST pass checkpoint and canary validation with a minimum score of 0.80.",
+        "severity": "error",
+        "policy": "standard_operations_quality_assurance",
+        "category": "uncategorized",
+        "check_engine": "workflow_gate",
+        "check_type": "test_verification",
+        "implementable": false
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "qa.risk.high_gate",
+        "statement": "High-risk changes MUST pass checkpoint, canary validation, and approver quorum with a minimum score of 0.90.",
+        "severity": "error",
+        "policy": "standard_operations_quality_assurance",
+        "category": "uncategorized",
+        "check_engine": "workflow_gate",
+        "check_type": "test_verification",
+        "implementable": false
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "qa.audit.intent_declared",
+        "statement": "An explicit intent MUST be declared prior to applying a change.",
+        "severity": "error",
+        "policy": "standard_operations_quality_assurance",
+        "category": "uncategorized",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "qa.audit.explanation_required",
+        "statement": "All changes MUST include an explanation or justification.",
+        "severity": "error",
+        "policy": "standard_operations_quality_assurance",
+        "category": "uncategorized",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "qa.audit.quality_verified",
+        "statement": "Post-change quality verification MUST be performed and recorded.",
+        "severity": "error",
+        "policy": "standard_operations_quality_assurance",
+        "category": "uncategorized",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "qa.audit.quorum_evidence",
+        "statement": "Medium and high-risk changes MUST record quorum evidence.",
+        "severity": "error",
+        "policy": "standard_operations_quality_assurance",
+        "category": "uncategorized",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "safety.charter_immutable",
+        "statement": "Charter files under .intent/charter/** MUST NOT be modified without a formal constitutional amendment.",
+        "severity": "error",
+        "policy": "standard_operations_safety",
+        "category": "uncategorized",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "safety.immutable_constitution",
+        "statement": "Constitutional and mission-defining documents MUST NOT be modified outside a formal amendment process.",
+        "severity": "error",
+        "policy": "standard_operations_safety",
+        "category": "uncategorized",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "safety.no_autonomous_core_modification",
+        "statement": "Core orchestration and governance engines MUST NOT be modified autonomously.",
+        "severity": "error",
+        "policy": "standard_operations_safety",
+        "category": "uncategorized",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "safety.deny_core_loop_edit",
+        "statement": "Autonomous agents MUST NOT modify the autonomy loop or agent implementations.",
+        "severity": "error",
+        "policy": "standard_operations_safety",
+        "category": "uncategorized",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "safety.no_dangerous_execution_primitives",
+        "statement": "Runtime execution MUST NOT use dangerous execution primitives.",
+        "severity": "error",
+        "policy": "standard_operations_safety",
+        "category": "uncategorized",
+        "check_engine": "ast_gate",
+        "check_type": "forbidden_primitives",
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "safety.runtime_contract_enforced",
+        "statement": "A mutating operation MUST NOT execute unless its safety contract has been validated by IntentGuard at runtime.",
+        "severity": "error",
+        "policy": "standard_operations_safety",
+        "category": "uncategorized",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "safety.change_must_be_logged",
+        "statement": "Every file modification MUST be preceded by an audit log entry containing a valid IntentBundle identifier.",
+        "severity": "error",
+        "policy": "standard_operations_safety",
+        "category": "uncategorized",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "secrets.no_raw_access",
+        "statement": "Agents, tools, and logs MUST NEVER contain raw secret values.",
+        "severity": "error",
+        "policy": "standard_operations_secrets",
+        "category": "uncategorized",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "secrets.provider_abstraction",
+        "statement": "All secret retrieval MUST go through the SecretsService abstraction.",
+        "severity": "error",
+        "policy": "standard_operations_secrets",
+        "category": "uncategorized",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "secrets.no_hardcoded_secrets",
+        "statement": "Source code MUST NOT contain hardcoded secret material.",
+        "severity": "error",
+        "policy": "standard_operations_secrets",
+        "category": "uncategorized",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "secrets.rotation_autonomy",
+        "statement": "Agents MAY trigger secret rotation but MUST NOT observe the new value.",
+        "severity": "error",
+        "policy": "standard_operations_secrets",
+        "category": "uncategorized",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "policy.duplicate_rule_id_consistency",
+        "statement": "When the same rule ID appears in multiple charter files, all instances MUST have consistent enforcement level after normalization.\n",
+        "severity": "error",
+        "policy": "standard_policy_integrity",
+        "category": "governance",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "policy.cross_reference_documented",
+        "statement": "When a rule ID appears in multiple files, each occurrence MUST declare its role in the cross-reference relationship OR explicitly declare itself as the canonical definition.\n",
+        "severity": "warning",
+        "policy": "standard_policy_integrity",
+        "category": "governance",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "policy.partial_enforcement_declared",
+        "statement": "Rules with incomplete checker implementation MUST declare which aspects are enforced and which are not implemented.\n",
+        "severity": "error",
+        "policy": "standard_policy_integrity",
+        "category": "governance",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    }
+  ],
+  "executed_ids_list": [
+    "agent.compliance.no_write_intent",
+    "agent.compliance.respect_cli_registry",
+    "agent.execution.no_unverified_code",
+    "agent.execution.require_runtime_validation",
+    "agent.reasoning.trace_required",
+    "async.no_manual_loop_management",
+    "async.runtime.no_nested_loop_creation",
+    "atomic.action_must_be_headless",
+    "atomic.action_must_return_result",
+    "atomic.actions_compose_transitively",
+    "atomic.governance_never_bypassed",
+    "atomic.result_must_be_structured",
+    "atomic.workflow_must_declare_intent",
+    "body.actionresult_data_json_safe",
+    "body.atomic_actions_use_actionresult",
+    "body.dependency_injection_preferred",
+    "body.no_envvar_access_in_body",
+    "body.no_print_or_input_in_body",
+    "body.no_ui_imports_in_body",
+    "body.write_defaults_false",
+    "canary.abort_on_audit_error",
+    "canary.abort_on_test_failure",
+    "caps.id_format",
+    "caps.meaningful_description",
+    "caps.no_placeholder_text",
+    "caps.owner_required",
+    "cli.runtime.single_loop_owner",
+    "code.python_module_naming",
+    "code.python_test_module_naming",
+    "code_quality.health.module_outlier",
+    "code_standards.max_file_lines",
+    "code_standards.max_function_lines",
+    "constitution.allow_legacy_yaml",
+    "constitution.primary_format",
+    "coverage.data_missing",
+    "coverage.minimum_threshold",
+    "coverage.no_untested_commits",
+    "db.cli_registry_in_db",
+    "db.cognitive_roles_in_db",
+    "db.domains_in_db",
+    "db.engine.scope.per_event_loop",
+    "db.integrity.linkage_ids_persisted",
+    "db.integrity.linkage_ids_unique",
+    "db.llm_resources_in_db",
+    "db.privacy.masking",
+    "db.privacy.no_pii_or_secrets",
+    "db.ssot_for_operational_data",
+    "db.vector_index_in_db",
+    "db.write_via_governed_cli",
+    "decorator_governance.auto_rule_0",
+    "decorator_governance.auto_rule_1",
+    "decorator_governance.auto_rule_2",
+    "dev_fastpath.no_intent_changes",
+    "di.constructor_injection_preferred",
+    "di.no_direct_instantiation",
+    "di.no_global_session_import",
+    "di.no_import_time_async_singletons",
+    "di.policy_reference",
+    "events.cloudevents_compliance",
+    "events.payload_immutability",
+    "events.topic_naming",
+    "integration.assign_ids_required",
+    "integration.audit_required",
+    "integration.coverage_minimum",
+    "integration.duplicate_ids_resolved",
+    "integration.knowledge_sync_required",
+    "integration.tests_must_pass",
+    "intent.artifact_schema_naming",
+    "intent.canary_required",
+    "intent.immutable_history",
+    "intent.policy_file_naming",
+    "intent.policy_schema_naming",
+    "intent.prompt_file_naming",
+    "intent.proposal_file_naming",
+    "intent.schema_compliance",
+    "intent_alignment",
+    "ir.notifications_required",
+    "ir.postmortem_required",
+    "ir.timeline_required",
+    "ir.triage_required",
+    "knowledge.capability_mapping_ssot_is_links",
+    "knowledge.database_ssot",
+    "knowledge.limited_legacy_access",
+    "knowledge.symbols_key_is_label",
+    "layout.import_grouping",
+    "layout.src_module_header",
+    "linkage.assign_ids",
+    "linkage.duplicate_ids",
+    "logging.cli_command_output",
+    "logging.error_logging",
+    "logging.log_level_usage",
+    "logging.message_format",
+    "logging.progress_indication",
+    "logging.single_logging_system",
+    "logging.structured_logging",
+    "observability.atomic_actions_emit_logs",
+    "observability.cli_commands_valid",
+    "observability.metrics_actionable",
+    "operations.runtime.env_vars_defined",
+    "pattern_vectorization.chunking.semantic_section.required",
+    "pattern_vectorization.collection.core_patterns.contract",
+    "pattern_vectorization.constitutional_audit.integration_required",
+    "pattern_vectorization.migration.enforcement_mode",
+    "pattern_vectorization.override_policy.disallowed",
+    "pattern_vectorization.pattern_understanding.required",
+    "pattern_vectorization.semantic_validation.required",
+    "pattern_vectorization.update_policy.on_file_change",
+    "policy.cross_reference_documented",
+    "policy.duplicate_rule_id_consistency",
+    "policy.partial_enforcement_declared",
+    "purity.atomic_action_contract",
+    "purity.forbidden_decorators",
+    "purity.framework_binding_limits",
+    "purity.no_descriptive_pollution",
+    "purity.no_inline_configuration",
+    "purity.safety_contract_presence",
+    "purity.safety_contract_required",
+    "purity.stable_id_anchor",
+    "qa.audit.exceptions_empty_default",
+    "qa.audit.exceptions_explicit",
+    "qa.audit.explanation_required",
+    "qa.audit.intent_declared",
+    "qa.audit.quality_verified",
+    "qa.audit.quorum_evidence",
+    "qa.change.evaluation_required",
+    "qa.change.evaluation_threshold_pass",
+    "qa.change.evaluation_warn",
+    "qa.coverage.critical_paths",
+    "qa.coverage.data_missing",
+    "qa.coverage.exclusions",
+    "qa.coverage.minimum_threshold",
+    "qa.coverage.no_regression",
+    "qa.coverage.target_threshold",
+    "qa.remediation.auto_trigger",
+    "qa.remediation.phased_execution",
+    "qa.remediation.trigger_conditions",
+    "qa.risk.high_gate",
+    "qa.risk.medium_gate",
+    "refactor.audit_after",
+    "refactor.requires_tests",
+    "refactor.semantic_duplication",
+    "refactor.update_capabilities",
+    "reuse.before_new_code",
+    "rules.must_have_statement",
+    "rules.no_placeholder_ids",
+    "rules.required_fields",
+    "safety.change_must_be_logged",
+    "safety.charter_immutable",
+    "safety.deny_core_loop_edit",
+    "safety.immutable_constitution",
+    "safety.immutable_core_mission",
+    "safety.no_autonomous_core_modification",
+    "safety.no_dangerous_execution",
+    "safety.no_dangerous_execution_primitives",
+    "safety.runtime_contract_enforced",
+    "safety.single_active_constitution",
+    "schemas.dialect.forbid_nullable_keyword",
+    "schemas.dialect.standard_json_schema",
+    "schemas.style.closed_objects.root",
+    "schemas.style.datetime_format",
+    "secrets.no_hardcoded_secrets",
+    "secrets.no_raw_access",
+    "secrets.provider_abstraction",
+    "secrets.rotation_autonomy",
+    "service_rules.auto_rule_0",
+    "service_rules.auto_rule_1",
+    "service_rules.auto_rule_2",
+    "service_rules.auto_rule_3",
+    "service_rules.auto_rule_4",
+    "structural_compliance.import_violation",
+    "style.capability_id_placement",
+    "style.docstrings_public_apis",
+    "style.fail_on_style_in_ci",
+    "style.formatter_required",
+    "style.import_order",
+    "style.linter_required",
+    "style.universal_helper_first",
+    "symbols.cli_async_helpers_private",
+    "symbols.private_helpers_no_id_required",
+    "symbols.public_capability_id_and_docstring",
+    "tools.explicit_return_contract",
+    "tools.type_mapping_strictness",
+    "vector.bidirectional_sync_integrity",
+    "vector.collection_lifecycle_management",
+    "vector.collection_naming_convention",
+    "vector.collection_vector_configuration",
+    "vector.deterministic_id_generation",
+    "vector.mandatory_hashing",
+    "vector.scroll_pagination",
+    "vector.service_method_usage",
+    "vector.standardized_payloads",
+    "vector.vectorizer_standard_structure",
+    "workflow.workflow_ui_single_owner",
+    "workflow_composition.chain_action_pattern",
+    "workflow_composition.fail_fast",
+    "workflow_composition.idempotent",
+    "workflow_composition.progress_indication",
+    "workflow_composition.step_must_succeed"
+  ],
+  "policy_metadata": {
+    "code.async": {
+      "title": "Async/Await Standards",
+      "id": "code.async",
+      "format": "flat"
+    },
+    "code.capabilities": {
+      "title": "Capability Standards",
+      "id": "code.capabilities",
+      "format": "flat"
+    },
+    "code.layout": {
+      "title": "Code Layout Standards",
+      "id": "code.layout",
+      "format": "flat"
+    },
+    "code.naming": {
+      "title": "Naming Conventions",
+      "id": "code.naming",
+      "format": "flat"
+    },
+    "code.refactor": {
+      "title": "Refactoring Standards",
+      "id": "code.refactor",
+      "format": "flat"
+    },
+    "code.style": {
+      "title": "Code Style Standards",
+      "id": "code.style",
+      "format": "flat"
+    },
+    "code.symbols": {
+      "title": "Symbol Standards",
+      "id": "code.symbols",
+      "format": "flat"
+    },
+    "code_standards": {
+      "title": "Code Standards Policy (Backward Compatibility)",
+      "id": "code_standards",
+      "format": "unknown"
+    },
+    "schema_dialect": {
+      "title": "Schema Dialect Standards",
+      "id": "schema_dialect",
+      "format": "flat"
+    },
+    "standard_architecture_agent_governance": {
+      "title": "Architecture Standard – Agent Governance",
+      "id": "standard_architecture_agent_governance",
+      "format": "flat"
+    },
+    "standard_architecture_agent_rules": {
+      "title": "Architecture Standard – Agent Patterns",
+      "id": "standard_architecture_agent_rules",
+      "format": "flat"
+    },
+    "standard_architecture_atomic_actions": {
+      "title": "Architecture Standard – Atomic Actions",
+      "id": "standard_architecture_atomic_actions",
+      "format": "flat"
+    },
+    "standard_architecture_body_contracts": {
+      "title": "Architecture Standard – Body Contracts",
+      "id": "standard_architecture_body_contracts",
+      "format": "flat"
+    },
+    "standard_architecture_command_rules": {
+      "title": "Architecture Standard – Command Patterns",
+      "id": "standard_architecture_command_rules",
+      "format": "flat"
+    },
+    "standard_architecture_decorator_governance": {
+      "title": "Architecture Standard – Decorator Governance",
+      "id": "standard_architecture_decorator_governance",
+      "format": "flat"
+    },
+    "standard_architecture_dependency_injection": {
+      "title": "Architecture Standard – Dependency Injection",
+      "id": "standard_architecture_dependency_injection",
+      "format": "flat"
+    },
+    "standard_architecture_events": {
+      "title": "Architecture Standard – Event Schema",
+      "id": "standard_architecture_events",
+      "format": "flat"
+    },
+    "standard_architecture_irritation_heuristic": {
+      "title": "Architecture Standard – Irritation Heuristic",
+      "id": "standard_architecture_irritation_heuristic",
+      "format": "unknown"
+    },
+    "standard_architecture_layer_contracts": {
+      "title": "Architecture Standard — Layer Contracts & Symbol Governance",
+      "id": "standard_architecture_layer_contracts",
+      "format": "unknown"
+    },
+    "standard_architecture_service_rules": {
+      "title": "Architecture Standard – Service Patterns",
+      "id": "standard_architecture_service_rules",
+      "format": "flat"
+    },
+    "standard_architecture_tool_definition": {
+      "title": "Architecture Standard – Tool Definitions",
+      "id": "standard_architecture_tool_definition",
+      "format": "flat"
+    },
+    "standard_architecture_user_interface": {
+      "title": "Architecture Standard – User Interface",
+      "id": "standard_architecture_user_interface",
+      "format": "unknown"
+    },
+    "standard_architecture_vector_service_standards": {
+      "title": "Architecture Standard – Vector Service Standards",
+      "id": "standard_architecture_vector_service_standards",
+      "format": "flat"
+    },
+    "standard_architecture_workflow_rules": {
+      "title": "Architecture Standard – Workflow Patterns",
+      "id": "standard_architecture_workflow_rules",
+      "format": "flat"
+    },
+    "standard_code_linkage": {
+      "title": "Code Standard – Linkage and ID Management",
+      "id": "standard_code_linkage",
+      "format": "flat"
+    },
+    "standard_code_purity": {
+      "title": "Code Standard – Purity & Side Effects",
+      "id": "standard_code_purity",
+      "format": "flat"
+    },
+    "standard_data_governance": {
+      "title": "Data Standard – Database & Data Governance",
+      "id": "standard_data_governance",
+      "format": "flat"
+    },
+    "standard_logging": {
+      "title": "Operations Standard – Logging & Observability",
+      "id": "standard_logging",
+      "format": "flat"
+    },
+    "standard_operations_code_execution": {
+      "title": "Operations Standard – Code Execution Governance",
+      "id": "standard_operations_code_execution",
+      "format": "flat"
+    },
+    "standard_operations_constitution_format": {
+      "title": "Constitution Format Standard",
+      "id": "standard_operations_constitution_format",
+      "format": "flat"
+    },
+    "standard_operations_general": {
+      "title": "Operations Standard – General Operational Rules",
+      "id": "standard_operations_general",
+      "format": "flat"
+    },
+    "standard_operations_observability": {
+      "title": "Operations Standard – Observability",
+      "id": "standard_operations_observability",
+      "format": "flat"
+    },
+    "standard_operations_pattern_vectorization": {
+      "title": "Operations Standard – Pattern Vectorization",
+      "id": "standard_operations_pattern_vectorization",
+      "format": "flat"
+    },
+    "standard_operations_quality_assurance": {
+      "title": "Operations Standard – Quality Assurance",
+      "id": "standard_operations_quality_assurance",
+      "format": "flat"
+    },
+    "standard_operations_safety": {
+      "title": "Operations Standard – Safety Framework",
+      "id": "standard_operations_safety",
+      "format": "flat"
+    },
+    "standard_operations_secrets": {
+      "title": "Operations Standard – Secrets Management",
+      "id": "standard_operations_secrets",
+      "format": "flat"
+    },
+    "standard_policy_integrity": {
+      "title": "Policy Integrity & Cross-Reference Standards",
+      "id": "standard_policy_integrity",
+      "format": "flat"
+    }
+  }
+}

@@ -1,8 +1,8 @@
 {
   "id": "standard_architecture_command_rules",
   "version": "1.1.0",
-  "title": "Architecture Standard – Command Patterns",
-  "type": "standard_architecture",
+  "title": "Architecture Standard \u2013 Command Patterns",
+  "type": "policy",
   "status": "active",
   "owners": {
     "accountable": "Architecture Owner",
@@ -13,224 +13,8 @@
   "review": {
     "frequency": "12 months"
   },
-  "schema_id": "policy.structure",
+  "schema_id": "meta.policy",
   "description": "Defines the canonical patterns for all CORE CLI commands.\nEvery command MUST follow one of these patterns to ensure consistency,\nsafety, and predictability across the system.\n",
-  "patterns": [
-    {
-      "pattern_id": "inspect_pattern",
-      "type": "read_only",
-      "purpose": "Query system state without side effects",
-      "signature": {
-        "template": "core-admin inspect <resource> [options]",
-        "examples": [
-          "core-admin inspect state",
-          "core-admin inspect workflows --active",
-          "core-admin inspect duplicates --threshold 0.96",
-          "core-admin inspect activity --last 1h"
-        ]
-      },
-      "guarantees": [
-        "No modifications to files, database, or vectors",
-        "Idempotent - can be called repeatedly safely",
-        "Fast response time (<5 seconds for simple queries)",
-        "Output to stdout/stderr only, never modifies disk",
-        "Returns structured data (JSON/YAML) when requested"
-      ],
-      "parameters": {
-        "allowed_flags": [
-          "--format [json|yaml|table]",
-          "--filter <expression>",
-          "--limit <n>",
-          "--save <path>"
-        ],
-        "forbidden_flags": [
-          "--write",
-          "--fix",
-          "--apply"
-        ]
-      },
-      "implementation_requirements": [
-        "Must be pure read operations",
-        "Should cache results when appropriate",
-        "Must handle missing data gracefully",
-        "Should provide progress indicators for long queries"
-      ],
-      "exit_codes": {
-        "0": "Success - query completed",
-        "1": "Error - query failed",
-        "2": "Warning - partial results returned"
-      }
-    },
-    {
-      "pattern_id": "action_pattern",
-      "type": "read_write",
-      "purpose": "Modify system state with safety guarantees",
-      "signature": {
-        "template": "core-admin <verb> <noun> [--dry-run|--write] [options]",
-        "examples": [
-          "core-admin fix headers --dry-run",
-          "core-admin fix headers --write",
-          "core-admin manage policies sync --write",
-          "core-admin context rebuild --write"
-        ]
-      },
-      "guarantees": [
-        "Dry-run mode is DEFAULT (never destructive by accident)",
-        "Always preview changes before applying",
-        "Atomic operations (all or nothing)",
-        "Full audit trail of all modifications",
-        "Rollback capability for critical operations"
-      ],
-      "parameters": {
-        "required_behavior": {
-          "default_mode": "dry-run",
-          "execution_flag": "--write"
-        },
-        "common_flags": [
-          "--dry-run",
-          "--write",
-          "--force",
-          "--backup"
-        ],
-        "forbidden_combinations": [
-          "--dry-run --write"
-        ]
-      },
-      "implementation_requirements": [
-        "MUST show diff/preview in dry-run mode",
-        "MUST log all changes to audit system",
-        "MUST validate constitutional compliance before execution",
-        "MUST provide progress indication for multi-step operations",
-        "SHOULD support --confirm for interactive approval"
-      ],
-      "phases": {
-        "1_analyze": "Detect what needs to change",
-        "2_preview": "Show proposed changes (dry-run)",
-        "3_validate": "Check constitutional compliance",
-        "4_execute": "Apply changes (only if --write)",
-        "5_verify": "Confirm changes succeeded",
-        "6_audit": "Log to audit trail"
-      },
-      "exit_codes": {
-        "0": "Success - changes applied (or dry-run completed)",
-        "1": "Error - operation failed",
-        "2": "Constitutional violation - blocked by policy",
-        "3": "User cancelled - interactive confirmation denied"
-      }
-    },
-    {
-      "pattern_id": "check_pattern",
-      "type": "validation",
-      "purpose": "Validate system state against policies",
-      "signature": {
-        "template": "core-admin check <aspect> [options]",
-        "examples": [
-          "core-admin check audit",
-          "core-admin check lint",
-          "core-admin check patterns",
-          "core-admin check coverage --threshold 80"
-        ]
-      },
-      "guarantees": [
-        "No modifications (like inspect)",
-        "Returns clear pass/fail status",
-        "Provides actionable error messages",
-        "Exit code reflects validation status"
-      ],
-      "parameters": {
-        "common_flags": [
-          "--quiet",
-          "--verbose",
-          "--json"
-        ],
-        "threshold_flags": [
-          "--threshold <value>"
-        ]
-      },
-      "implementation_requirements": [
-        "MUST return non-zero exit code on validation failure",
-        "MUST provide specific violation details",
-        "SHOULD suggest remediation commands"
-      ],
-      "exit_codes": {
-        "0": "Pass - all checks succeeded",
-        "1": "Fail - violations detected",
-        "2": "Warning - non-critical issues found"
-      }
-    },
-    {
-      "pattern_id": "run_pattern",
-      "type": "execution",
-      "purpose": "Execute autonomous operations or workflows",
-      "signature": {
-        "template": "core-admin run <operation> [--write] [options]",
-        "examples": [
-          "core-admin run vectorize --write",
-          "core-admin run self-heal --write",
-          "core-admin run coverage-repair --write"
-        ]
-      },
-      "guarantees": [
-        "Follows action_pattern safety model",
-        "Dry-run by default",
-        "Can involve multiple agents/services",
-        "Respects autonomy lane boundaries"
-      ],
-      "parameters": {
-        "execution_flags": [
-          "--dry-run",
-          "--write",
-          "--interactive"
-        ],
-        "autonomy_flags": [
-          "--lane <name>",
-          "--max-steps <n>"
-        ]
-      },
-      "implementation_requirements": [
-        "MUST operate within defined autonomy lanes",
-        "MUST get constitutional approval for actions",
-        "MUST log all autonomous decisions",
-        "SHOULD provide step-by-step progress"
-      ],
-      "exit_codes": {
-        "0": "Success - operation completed",
-        "1": "Error - operation failed",
-        "2": "Constitutional block - operation violated policy",
-        "3": "Autonomy limit reached - stopped safely"
-      }
-    },
-    {
-      "pattern_id": "manage_pattern",
-      "type": "administration",
-      "purpose": "Administer system resources and configuration",
-      "signature": {
-        "template": "core-admin manage <resource> <action> [options]",
-        "examples": [
-          "core-admin manage database migrate --apply",
-          "core-admin manage policies sync --write",
-          "core-admin manage define-symbols"
-        ]
-      },
-      "guarantees": [
-        "Administrative operations for system maintenance",
-        "Follows action_pattern for state changes",
-        "Requires elevated consideration (affects infrastructure)"
-      ],
-      "parameters": {
-        "common_flags": [
-          "--apply",
-          "--write",
-          "--backup"
-        ]
-      },
-      "implementation_requirements": [
-        "MUST validate system health before critical operations",
-        "MUST support rollback for schema changes",
-        "SHOULD warn about potential downtime"
-      ]
-    }
-  ],
   "rules": [
     {
       "id": "workflow_composition.chain_action_pattern",
@@ -309,32 +93,63 @@
           "check_type": "no_task_return_from_sync_cli"
         }
       }
+    },
+    {
+      "id": "standard_architecture_command_rules.pattern.inspect_pattern",
+      "category": "architectural_pattern",
+      "statement": "Must follow the inspect_pattern pattern structure.",
+      "enforcement": "error",
+      "rationale": "Query system state without side effects",
+      "check": {
+        "engine": "llm_gate",
+        "params": {}
+      }
+    },
+    {
+      "id": "standard_architecture_command_rules.pattern.action_pattern",
+      "category": "architectural_pattern",
+      "statement": "Must follow the action_pattern pattern structure.",
+      "enforcement": "error",
+      "rationale": "Modify system state with safety guarantees",
+      "check": {
+        "engine": "llm_gate",
+        "params": {}
+      }
+    },
+    {
+      "id": "standard_architecture_command_rules.pattern.check_pattern",
+      "category": "architectural_pattern",
+      "statement": "Must follow the check_pattern pattern structure.",
+      "enforcement": "error",
+      "rationale": "Validate system state against policies",
+      "check": {
+        "engine": "llm_gate",
+        "params": {}
+      }
+    },
+    {
+      "id": "standard_architecture_command_rules.pattern.run_pattern",
+      "category": "architectural_pattern",
+      "statement": "Must follow the run_pattern pattern structure.",
+      "enforcement": "error",
+      "rationale": "Execute autonomous operations or workflows",
+      "check": {
+        "engine": "llm_gate",
+        "params": {}
+      }
+    },
+    {
+      "id": "standard_architecture_command_rules.pattern.manage_pattern",
+      "category": "architectural_pattern",
+      "statement": "Must follow the manage_pattern pattern structure.",
+      "enforcement": "error",
+      "rationale": "Administer system resources and configuration",
+      "check": {
+        "engine": "llm_gate",
+        "params": {}
+      }
     }
   ],
-  "workflow_composition": {
-    "description": "Workflows (Makefile targets) compose multiple commands following these rules\n",
-    "example": {
-      "name": "dev-sync",
-      "steps": [
-        {
-          "command": "fix ids --write",
-          "pattern": "action_pattern"
-        },
-        {
-          "command": "fix headers --write",
-          "pattern": "action_pattern"
-        },
-        {
-          "command": "check lint",
-          "pattern": "check_pattern"
-        },
-        {
-          "command": "inspect state --save snapshot.json",
-          "pattern": "inspect_pattern"
-        }
-      ]
-    }
-  },
   "anti_patterns": {
     "forbidden": [
       {

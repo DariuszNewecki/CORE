@@ -176,8 +176,8 @@ async def sync_manifest_command(
     "migrate-ssot",
     help="One-time data migration from legacy files to the SSOT database.",
 )
-# ID: 5a0db9ac-d7af-4aa7-8907-84f00e4bb7da
 @core_command(dangerous=True, confirmation=True)
+# ID: 5a0db9ac-d7af-4aa7-8907-84f00e4bb7da
 # ID: e3693194-d3ec-4e77-8a94-0ae812a2258d
 async def migrate_ssot_command(
     ctx: typer.Context,
@@ -187,7 +187,9 @@ async def migrate_ssot_command(
         help="Apply the migration to the database.",
     ),
 ) -> None:
-    await run_ssot_migration(dry_run=not write)
+    """Execute SSOT migration with proper DI."""
+    async with get_session() as session:
+        await run_ssot_migration(session, dry_run=not write)
 
 
 @db_sub_app.command(
@@ -244,8 +246,8 @@ dotenv_sub_app = typer.Typer(
         "runtime_requirements.yaml."
     ),
 )
-# ID: 1b58c1f3-395b-494a-b717-918cae0b7665
 @core_command(dangerous=True, confirmation=True)
+# ID: 1b58c1f3-395b-494a-b717-918cae0b7665
 # ID: 933a2755-cec1-487b-a314-a6c496baaf23
 async def dotenv_sync_command(
     ctx: typer.Context,
@@ -255,7 +257,9 @@ async def dotenv_sync_command(
         help="Apply the sync to the database.",
     ),
 ) -> None:
-    await run_dotenv_sync(dry_run=not write)
+    """Sync .env settings to database with proper DI."""
+    async with get_session() as session:
+        await run_dotenv_sync(session, dry_run=not write)
 
 
 manage_app.add_typer(dotenv_sub_app, name="dotenv")
@@ -392,8 +396,8 @@ manage_app.add_typer(emergency_sub_app, name="emergency")
 
 
 @manage_app.command("define-symbols")
-# ID: b66c3bfb-d92c-4641-9c2d-ccb4dc6e72ef
 @core_command(dangerous=True, confirmation=True)
+# ID: b66c3bfb-d92c-4641-9c2d-ccb4dc6e72ef
 # ID: 950b9c6d-9d54-4e29-a856-b4af49fabe77
 async def define_symbols_command(
     ctx: typer.Context,
@@ -410,25 +414,15 @@ async def define_symbols_command(
         console.print(
             "[yellow]Dry run: Symbol definition requires --write to persist changes.[/yellow]"
         )
-        # The underlying service doesn't currently support a dry-run mode that returns
-        # hypothetical changes without side effects, so we exit early.
         return
 
     core_context: CoreContext = ctx.obj
-
-    # Get the shared ContextService instance
     ctx_service = core_context.context_service
 
-    # Wire in the CognitiveService and QdrantService if missing,
-    # mirroring the dev-sync command behavior.
-    if not ctx_service.cognitive_service:
-        ctx_service.cognitive_service = core_context.cognitive_service
+    # Pass get_session as the session_factory
+    result = await define_symbols(ctx_service, get_session)
 
-    if not ctx_service.vector_provider.qdrant:
-        ctx_service.vector_provider.qdrant = core_context.qdrant_service
-
-    if not ctx_service.vector_provider.cognitive_service:
-        ctx_service.vector_provider.cognitive_service = core_context.cognitive_service
-
-    # Run the actual symbol definition with a fully wired context service
-    await define_symbols(ctx_service)
+    # Display results
+    console.print(
+        f"[green]✓ Symbol definition complete: {result.data['defined']}/{result.data['attempted']} defined[/green]"
+    )

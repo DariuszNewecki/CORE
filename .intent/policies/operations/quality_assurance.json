@@ -2,7 +2,7 @@
   "id": "standard_operations_quality_assurance",
   "version": "1.0.0",
   "title": "Operations Standard \u2013 Quality Assurance",
-  "type": "standard_operations",
+  "type": "policy",
   "status": "active",
   "owners": {
     "accountable": "Quality Owner",
@@ -13,7 +13,7 @@
   "review": {
     "frequency": "12 months"
   },
-  "schema_id": "policy.structure",
+  "schema_id": "meta.policy",
   "policy_id": "7d4f8c9a-2e1b-4f6d-9a8c-3b5e7f1d2c4a",
   "purpose": "Define enforceable quality gates for CORE, including test coverage, autonomous remediation, audit exception handling, and change evaluation.\n",
   "rules": [

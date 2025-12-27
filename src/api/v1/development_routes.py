@@ -14,8 +14,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from features.autonomy.autonomous_developer import develop_from_goal
 from shared.context import CoreContext
-from shared.infrastructure.database.session_manager import get_db_session
+from shared.infrastructure.database.session_manager import get_session
 from shared.infrastructure.repositories.task_repository import TaskRepository
+from will.agents.coder_agent import CoderAgent
+from will.agents.execution_agent import _ExecutionAgent
+from will.agents.plan_executor import PlanExecutor
+from will.orchestration.prompt_pipeline import PromptPipeline
 
 
 router = APIRouter()
@@ -32,7 +36,7 @@ async def start_development_cycle(
     request: Request,
     payload: DevelopmentGoal,
     background_tasks: BackgroundTasks,
-    session: AsyncSession = Depends(get_db_session),
+    session: AsyncSession = Depends(get_session),
 ):
     """
     Accepts a high-level goal, creates a task record, and starts the
@@ -48,8 +52,39 @@ async def start_development_cycle(
         intent=payload.goal, assigned_role="AutonomousDeveloper", status="planning"
     )
 
-    background_tasks.add_task(
-        develop_from_goal, core_context, payload.goal, task_id=new_task.id
-    )
+    # FIXED: Create async wrapper that properly passes session to develop_from_goal
+    # ID: 419febbe-ce48-49a1-a1a7-ae800ce5cb4a
+    async def run_development():
+        """Background task that runs autonomous development with proper session management."""
+        # Create new session for background task
+        async with get_session() as dev_session:
+            # Build executor agent (same pattern as CLI command)
+            prompt_pipeline = PromptPipeline(core_context.git_service.repo_path)
+            plan_executor = PlanExecutor(
+                core_context.file_handler,
+                core_context.git_service,
+                core_context.planner_config,
+            )
+            coder_agent = CoderAgent(
+                cognitive_service=core_context.cognitive_service,
+                prompt_pipeline=prompt_pipeline,
+                auditor_context=core_context.auditor_context,
+            )
+            executor_agent = _ExecutionAgent(
+                coder_agent=coder_agent,
+                plan_executor=plan_executor,
+                auditor_context=core_context.auditor_context,
+            )
+
+            # Call develop_from_goal with proper DI
+            await develop_from_goal(
+                session=dev_session,
+                context=core_context,
+                goal=payload.goal,
+                executor_agent=executor_agent,
+                task_id=new_task.id,
+            )
+
+    background_tasks.add_task(run_development)
 
     return {"task_id": str(new_task.id), "status": "Task accepted and running."}

@@ -2,7 +2,7 @@
   "id": "standard_operations_observability",
   "version": "1.0.0",
   "title": "Operations Standard \u2013 Observability",
-  "type": "standard_operations",
+  "type": "policy",
   "status": "active",
   "owners": {
     "accountable": "Platform SRE",
@@ -13,7 +13,7 @@
   "review": {
     "frequency": "12 months"
   },
-  "schema_id": "policy.structure",
+  "schema_id": "meta.policy",
   "policy_id": "observability",
   "purpose": "Establish comprehensive observability for CORE's autonomous operations. Without observability, we operate blind. With it, we can see, learn, and improve.\n",
   "philosophy": "CORE must be able to answer these questions at any time:\n\n1. \"What is CORE doing right now?\"\n2. \"How well is CORE performing?\"\n3. \"Why did that autonomous operation fail?\"\n4. \"Is CORE getting better or worse over time?\"\n5. \"What are the patterns in CORE's behavior?\"\n\nIf we cannot answer these questions, we cannot trust autonomous operations at scale.\nObservability is not optional - it is constitutional.\n",

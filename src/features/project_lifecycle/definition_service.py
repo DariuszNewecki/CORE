@@ -12,6 +12,7 @@ from __future__ import annotations
 import re
 import time
 from functools import partial
+from pathlib import Path
 from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -20,7 +21,6 @@ from shared.action_types import ActionImpact, ActionResult
 from shared.atomic_action import atomic_action
 from shared.config import settings
 from shared.infrastructure.context.service import ContextService
-from shared.infrastructure.database.session_manager import get_session
 from shared.infrastructure.repositories.symbol_definition_repository import (
     SymbolDefinitionRepository,
 )
@@ -33,57 +33,60 @@ logger = getLogger(__name__)
 
 
 # ID: b967b43c-3a4d-4b36-855f-12a434c0db4f
-async def get_undefined_symbols(limit: int = 500) -> list[dict[str, Any]]:
+async def get_undefined_symbols(
+    session: AsyncSession, limit: int = 500
+) -> list[dict[str, Any]]:
     """
     Get symbols needing definition, filtering out stale ones.
 
     CONSTITUTIONAL: Uses Repository and manages transaction boundary.
+
+    Args:
+        session: Database session (injected dependency)
+        limit: Maximum number of symbols to retrieve
     """
-    from pathlib import Path
+    repo = SymbolDefinitionRepository(session)
 
-    async with get_session() as session:
-        repo = SymbolDefinitionRepository(session)
+    # Get symbols from repository
+    symbols = await repo.get_undefined_symbols(limit)
 
-        # Get symbols from repository
-        symbols = await repo.get_undefined_symbols(limit)
+    # Validate file existence
+    valid_symbols = []
+    stale_ids = []
 
-        # Validate file existence
-        valid_symbols = []
-        stale_ids = []
-
-        for symbol in symbols:
-            # Check if the module file still exists
-            module_path = symbol.get("file_path") or symbol.get("module", "")
-            if module_path:
-                file_path = Path(module_path)
-                if file_path.exists():
-                    valid_symbols.append(symbol)
-                else:
-                    stale_ids.append(symbol["id"])
-                    logger.debug(
-                        "Skipping stale symbol '%s' - file not found: %s",
-                        symbol.get("symbol_path"),
-                        file_path,
-                    )
-            else:
-                # No file path means we can't validate - include it
+    for symbol in symbols:
+        # Check if the module file still exists
+        module_path = symbol.get("file_path") or symbol.get("module", "")
+        if module_path:
+            file_path = Path(module_path)
+            if file_path.exists():
                 valid_symbols.append(symbol)
+            else:
+                stale_ids.append(symbol["id"])
+                logger.debug(
+                    "Skipping stale symbol '%s' - file not found: %s",
+                    symbol.get("symbol_path"),
+                    file_path,
+                )
+        else:
+            # No file path means we can't validate - include it
+            valid_symbols.append(symbol)
 
-        # Mark stale symbols as broken
-        if stale_ids:
-            await repo.mark_stale_symbols_broken(stale_ids)
-            await session.commit()  # Transaction boundary here
-            logger.info(
-                "Marked %d stale symbols as 'broken' (files not found)", len(stale_ids)
-            )
-
+    # Mark stale symbols as broken
+    if stale_ids:
+        await repo.mark_stale_symbols_broken(stale_ids)
+        await session.commit()  # Transaction boundary here
         logger.info(
-            "Found %d symbols needing definition (limit=%d, filtered=%d stale)",
-            len(valid_symbols),
-            limit,
-            len(stale_ids),
+            "Marked %d stale symbols as 'broken' (files not found)", len(stale_ids)
         )
-        return valid_symbols
+
+    logger.info(
+        "Found %d symbols needing definition (limit=%d, filtered=%d stale)",
+        len(valid_symbols),
+        limit,
+        len(stale_ids),
+    )
+    return valid_symbols
 
 
 def _extract_code(packet: dict[str, Any], file_path: str) -> str:
@@ -172,11 +175,17 @@ async def _mark_attempt(
 async def define_single_symbol(
     symbol: dict[str, Any],
     context_service: ContextService,
+    session_factory: Any,  # Callable that returns async context manager
 ) -> dict[str, Any]:
     """
     Use an LLM to generate a capability key for a single symbol.
 
     CONSTITUTIONAL: Manages transaction boundary at this level.
+
+    Args:
+        symbol: Symbol dictionary with id, symbol_path, file_path, qualname
+        context_service: Service for building context
+        session_factory: Factory function to create database sessions
     """
     symbol_id = symbol["id"]
     symbol_path = symbol["symbol_path"]
@@ -216,7 +225,7 @@ async def define_single_symbol(
 
         if not source_code:
             # Mark as invalid - commit this error state
-            async with get_session() as session:
+            async with session_factory() as session:
                 await _mark_attempt(
                     symbol_id,
                     status="invalid",
@@ -241,7 +250,7 @@ async def define_single_symbol(
 
         if not key or "." not in key or " " in key:
             # Mark as invalid - commit this error state
-            async with get_session() as session:
+            async with session_factory() as session:
                 await _mark_attempt(
                     symbol_id,
                     status="invalid",
@@ -253,7 +262,7 @@ async def define_single_symbol(
             return {"id": symbol_id, "key": None}
 
         # SUCCESS - commit defined state
-        async with get_session() as session:
+        async with session_factory() as session:
             await _mark_attempt(symbol_id, status="defined", key=key, session=session)
             await session.commit()  # Transaction boundary here
 
@@ -262,7 +271,7 @@ async def define_single_symbol(
     except Exception as exc:
         # EXCEPTION - commit error state
         try:
-            async with get_session() as session:
+            async with session_factory() as session:
                 await _mark_attempt(
                     symbol_id,
                     status="invalid",
@@ -285,10 +294,22 @@ async def define_single_symbol(
     category="management",
 )
 # ID: 45e0e360-c263-430b-923d-0c804d90df17
-async def define_symbols(context_service: ContextService) -> ActionResult:
+async def define_symbols(
+    context_service: ContextService,
+    session_factory: Any,  # Callable that returns async context manager
+) -> ActionResult:
+    """
+    Define capabilities for undefined symbols.
+
+    Args:
+        context_service: Service for building context
+        session_factory: Factory function to create database sessions
+    """
     start = time.time()
 
-    symbols = await get_undefined_symbols(limit=500)
+    async with session_factory() as session:
+        symbols = await get_undefined_symbols(session, limit=500)
+
     if not symbols:
         return ActionResult(
             action_id="manage.define-symbols",
@@ -302,7 +323,11 @@ async def define_symbols(context_service: ContextService) -> ActionResult:
 
     results = await processor.run_async(
         symbols,
-        partial(define_single_symbol, context_service=context_service),
+        partial(
+            define_single_symbol,
+            context_service=context_service,
+            session_factory=session_factory,
+        ),
     )
 
     duration = time.time() - start
@@ -319,5 +344,9 @@ async def define_symbols(context_service: ContextService) -> ActionResult:
     )
 
 
-async def _define_new_symbols(context_service: ContextService) -> ActionResult:
-    return await define_symbols(context_service)
+async def _define_new_symbols(
+    context_service: ContextService,
+    session_factory: Any,
+) -> ActionResult:
+    """Wrapper for define_symbols with injected dependencies."""
+    return await define_symbols(context_service, session_factory)

@@ -14,9 +14,9 @@ from typing import Any
 
 import yaml
 from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.config import settings
-from shared.infrastructure.database.session_manager import get_session
 from shared.logger import getLogger
 
 
@@ -81,11 +81,18 @@ async def _migrate_symbols_from_ast() -> list[dict[str, Any]]:
 
 
 # ID: 7038f63f-b52c-48ea-a03d-5c18f4f38129
-async def run_ssot_migration(dry_run: bool):
-    """Orchestrates the full one-time migration from files to the SSOT database."""
+async def run_ssot_migration(session: AsyncSession, dry_run: bool):
+    """
+    Orchestrates the full one-time migration from files to the SSOT database.
+
+    Args:
+        session: Database session (injected dependency)
+        dry_run: If True, only report what would be done without executing
+    """
     logger.info("Starting one-time migration of knowledge from files to database...")
     capabilities = await _migrate_capabilities_from_manifest()
     symbols = await _migrate_symbols_from_ast()
+
     if dry_run:
         logger.info("-- DRY RUN: The following actions would be taken --")
         logger.info(
@@ -94,27 +101,37 @@ async def run_ssot_migration(dry_run: bool):
         )
         logger.info("  - Insert %s symbols from source code scan.", len(symbols))
         return
-    async with get_session() as session:
-        async with session.begin():
-            logger.info("  -> Deleting existing data from tables...")
-            await session.execute(text("DELETE FROM core.symbol_capability_links;"))
-            await session.execute(text("DELETE FROM core.symbols;"))
-            await session.execute(text("DELETE FROM core.capabilities;"))
-            logger.info("  -> Inserting %s capabilities...", len(capabilities))
-            if capabilities:
-                await session.execute(
-                    text(
-                        "\n                    INSERT INTO core.capabilities (id, name, title, objective, owner, domain, tags, status)\n                    VALUES (:id, :name, :title, :objective, :owner, :domain, :tags, :status)\n                "
-                    ),
-                    capabilities,
-                )
-            logger.info("  -> Inserting %s symbols...", len(symbols))
-            if symbols:
-                insert_stmt = text(
-                    "\n                    INSERT INTO core.symbols (id, module, qualname, kind, ast_signature, fingerprint, state, symbol_path)\n                    VALUES (:id, :module, :qualname, :kind, :ast_signature, :fingerprint, :state, :symbol_path)\n                    ON CONFLICT (symbol_path) DO NOTHING;\n                "
-                )
-                for symbol in symbols:
-                    await session.execute(insert_stmt, symbol)
+
+    async with session.begin():
+        logger.info("  -> Deleting existing data from tables...")
+        await session.execute(text("DELETE FROM core.symbol_capability_links;"))
+        await session.execute(text("DELETE FROM core.symbols;"))
+        await session.execute(text("DELETE FROM core.capabilities;"))
+
+        logger.info("  -> Inserting %s capabilities...", len(capabilities))
+        if capabilities:
+            await session.execute(
+                text(
+                    """
+                    INSERT INTO core.capabilities (id, name, title, objective, owner, domain, tags, status)
+                    VALUES (:id, :name, :title, :objective, :owner, :domain, :tags, :status)
+                """
+                ),
+                capabilities,
+            )
+
+        logger.info("  -> Inserting %s symbols...", len(symbols))
+        if symbols:
+            insert_stmt = text(
+                """
+                INSERT INTO core.symbols (id, module, qualname, kind, ast_signature, fingerprint, state, symbol_path)
+                VALUES (:id, :module, :qualname, :kind, :ast_signature, :fingerprint, :state, :symbol_path)
+                ON CONFLICT (symbol_path) DO NOTHING;
+            """
+            )
+            for symbol in symbols:
+                await session.execute(insert_stmt, symbol)
+
     logger.info("✅ One-time migration complete.")
     logger.info(
         "Run 'core-admin mind snapshot' to create the first export from the database."

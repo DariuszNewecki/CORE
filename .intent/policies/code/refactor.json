@@ -1,0 +1,99 @@
+{
+  "id": "code.refactor",
+  "version": "1.0.0",
+  "title": "Refactoring Standards",
+  "type": "policy",
+  "schema_id": "meta.policy",
+  "description": "Defines requirements for safe code restructuring and capability updates.",
+  "owners": {
+    "accountable": "Governance Lead",
+    "responsible": [
+      "Core Maintainer"
+    ]
+  },
+  "rules": [
+    {
+      "id": "refactor.requires_tests",
+      "rationale": "Ensures that autonomous or manual structural changes do not introduce functional regressions.",
+      "enforcement": "error",
+      "statement": "Any refactor that changes public behavior MUST include tests or proof of equivalence.",
+      "check": {
+        "engine": "workflow_gate",
+        "params": {
+          "check_type": "test_verification"
+        }
+      }
+    },
+    {
+      "id": "refactor.update_capabilities",
+      "rationale": "Maintains synchronization between the executable logic and the system's semantic memory.",
+      "enforcement": "warning",
+      "statement": "When moving symbols, update capability tags and manifests accordingly.",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: When moving symbols, update capability tags and manifests accordingly."
+        }
+      }
+    },
+    {
+      "id": "refactor.audit_after",
+      "rationale": "Verifies that new code structures still comply with the system's foundational safety rules.",
+      "enforcement": "error",
+      "statement": "A constitutional audit MUST run after refactors and before merge.",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: A constitutional audit MUST run after refactors and before merge."
+        }
+      }
+    },
+    {
+      "id": "code_standards.max_file_lines",
+      "rationale": "Prevents God Objects while allowing necessary complexity for system-critical orchestration and algorithmic density.",
+      "details": {
+        "thresholds": [
+          {
+            "path": "src/will/orchestration/**",
+            "limit": 600
+          },
+          {
+            "path": "src/mind/logic/**",
+            "limit": 600
+          },
+          {
+            "path": "src/features/self_healing/test_generation/**",
+            "limit": 500
+          },
+          {
+            "path": "default",
+            "limit": 400
+          }
+        ]
+      },
+      "enforcement": "error",
+      "statement": "Python modules MUST NOT exceed line limits based on their role: Core/Orchestration (600 lines), Features/Services (400 lines), Utilities (200 lines).",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: Python modules MUST NOT exceed line limits based on their role: Core/Orchestration (600 lines), Features/Services (400 lines), Utilities (200 lines)."
+        }
+      }
+    },
+    {
+      "id": "code_standards.max_function_lines",
+      "rationale": "Encourages decomposition of complex logic into smaller, more testable units.",
+      "enforcement": "warning",
+      "statement": "Functions SHOULD NOT exceed 50 lines.",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: Functions SHOULD NOT exceed 50 lines."
+        }
+      }
+    }
+  ],
+  "review": {
+    "frequency": "12 months"
+  }
+}

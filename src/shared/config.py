@@ -50,16 +50,22 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=None, env_file_encoding="utf-8", extra="allow", case_sensitive=True
     )
+
     _meta_config: dict[str, Any] = PrivateAttr(default_factory=dict)
     _path_resolver: PathResolver | None = PrivateAttr(default=None)
 
     REPO_PATH: Path = REPO_ROOT
     MIND: Path = REPO_PATH / ".intent"
     BODY: Path = REPO_PATH / "src"
+
     KEY_STORAGE_DIR: Path = REPO_PATH / ".intent" / "keys"
+
+    # NOTE: left as-is for now; we will align these to var/ later as part of consolidation
     CORE_ACTION_LOG_PATH: Path = REPO_PATH / "logs" / "actions.jsonl"
+
     DATABASE_URL: str
     QDRANT_URL: str
+
     CORE_MASTER_KEY: str | None = None
     LOG_LEVEL: str = "INFO"
     LLM_ENABLED: bool = True
@@ -110,7 +116,7 @@ class Settings(BaseSettings):
         try:
             self._meta_config = self._load_file_content(meta_path)
         except (OSError, ValueError) as e:
-            raise RuntimeError(f"FATAL: Could not parse .intent/meta.yaml: {e}")
+            raise RuntimeError(f"FATAL: Could not parse .intent/meta.yaml: {e}") from e
 
     def _load_file_content(self, file_path: Path) -> dict[str, Any]:
         content = file_path.read_text("utf-8")
@@ -130,36 +136,32 @@ class Settings(BaseSettings):
         """
         Unified interface for all file system paths in CORE.
 
-        This is the ONLY way to access file paths. No hardcoded path construction
-        should exist anywhere else in the codebase.
-
-        Examples:
-            >>> settings.paths.proposals_dir
-            PosixPath('/opt/dev/CORE/work/proposals')
-
-            >>> settings.paths.prompt("refactor_outlier")
-            PosixPath('/opt/dev/CORE/.intent/mind/prompts/refactor_outlier.prompt')
-
-            >>> settings.paths.list_prompts()
-            ['refactor_outlier', 'planner', 'code_reviewer', ...]
-
-        Constitutional Principle:
-            All path access MUST go through this interface to maintain consistency
-            and eliminate scattered hardcoded path construction.
+        IMPORTANT:
+        - PathResolver is PURE (no mkdir). All directory creation belongs to FileHandler.
         """
         if self._path_resolver is None:
-            # Lazy initialization - only create when first accessed
             from shared.path_resolver import PathResolver
 
-            self._path_resolver = PathResolver(
-                repo_root=self.REPO_PATH, meta=self._meta_config
+            # New constructor: repo_root + intent_root (no meta)
+            # intent_root is fixed at repo/.intent and provided for IntentRepository use.
+            self._path_resolver = PathResolver.from_repo(
+                repo_root=self.REPO_PATH,
+                intent_root=self.MIND,
             )
 
-            # Validate structure on first access
-            errors = self._path_resolver.validate_structure()
-            if errors:
+            # Validate structure on first access (pure check; does not create)
+            issues = self._path_resolver.validate_structure()
+            # New implementation returns dict; older variants returned list[str]
+            if isinstance(issues, dict):
+                missing = issues.get("missing_dirs") or []
+                if missing:
+                    logger.warning(
+                        "Path structure validation found missing dirs: %s",
+                        "; ".join(missing),
+                    )
+            elif isinstance(issues, list) and issues:
                 logger.warning(
-                    "Path structure validation found issues: %s", "; ".join(errors)
+                    "Path structure validation found issues: %s", "; ".join(issues)
                 )
 
         return self._path_resolver
@@ -186,10 +188,10 @@ class Settings(BaseSettings):
             if value.startswith("charter/") or value.startswith("mind/"):
                 return self.REPO_PATH / ".intent" / value
             return self.REPO_PATH / value
-        except (KeyError, TypeError):
+        except (KeyError, TypeError) as e:
             raise FileNotFoundError(
-                f"Logical path '{logical_path}' not found or invalid in meta.yaml."
-            )
+                f"Logical path '{logical_path}' not found or invalid in meta.yaml index."
+            ) from e
 
     # ID: defdb6ae-211b-4ca7-abda-3582519cc6e3
     def find_logical_path_for_file(self, filename: str) -> str:
@@ -210,31 +212,5 @@ class Settings(BaseSettings):
             return found_path
         raise ValueError(f"Filename '{filename}' not found in meta.yaml index.")
 
-    # ID: ce3d8a38-9dd7-4467-a921-2576d9a3d3eb
-    def load(self, logical_path: str) -> dict[str, Any]:
-        """LEGACY: Load file content from meta.yaml logical path."""
-        file_path = self.get_path(logical_path)
-        try:
-            return self._load_file_content(file_path)
-        except FileNotFoundError:
-            raise
-        except (OSError, ValueError) as e:
-            raise OSError(f"Failed to load or parse file for '{logical_path}': {e}")
 
-
-try:
-    settings = Settings()
-except (RuntimeError, FileNotFoundError) as e:
-    logger.critical("FATAL ERROR during settings initialization: %s", e)
-    raise
-
-
-# ID: c920ea8e-ecae-48f4-8fd4-c1dda9a506e7
-def get_path_or_none(logical_path: str) -> Path | None:
-    """LEGACY: Get path or None if not found."""
-    try:
-        if "settings" not in globals() or settings is None:
-            return None
-        return settings.get_path(logical_path)
-    except Exception:
-        return None
+settings = Settings()

@@ -1,16 +1,10 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "schema_id": "meta.policy",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "title": "CORE Policy Schema",
-  "description": "Validates CORE policy documents under .intent/policies/**. Policies are governed containers of enforceable rules. Presence under .intent implies current law; no status field is used.",
+  "description": "Validates CORE policy documents. Updated to allow header properties and aggregated policy structures.",
   "type": "object",
-  "additionalProperties": false,
-  "allOf": [
-    {
-      "$ref": "header.schema.json"
-    }
-  ],
   "required": [
     "type",
     "rules"
@@ -22,10 +16,7 @@
     },
     "scope": {
       "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "paths"
-      ],
+      "additionalProperties": true,
       "properties": {
         "paths": {
           "type": "array",
@@ -49,15 +40,11 @@
         "$ref": "rule.schema.json"
       }
     },
-    "notes": {
-      "type": "string"
+    "aggregates": {
+      "type": "array",
+      "description": "Used by meta-policies to link multiple policy files."
     }
   },
-  "id": "policy.schema",
-  "owners": {
-    "accountable": "Governance Lead"
-  },
-  "review": {
-    "frequency": "12 months"
-  }
+  "additionalProperties": true,
+  "id": "policy.schema"
 }

@@ -10,6 +10,7 @@ from __future__ import annotations
 import typer
 
 from features.introspection.sync_service import run_sync_with_db
+from shared.infrastructure.database.session_manager import get_session
 from shared.logger import getLogger
 
 
@@ -27,7 +28,11 @@ async def _async_sync_knowledge(write: bool):
         )
         logger.info("   Run with '--write' to execute the synchronization.")
         return
-    stats = await run_sync_with_db()
+
+    # FIXED: Pass session to run_sync_with_db
+    async with get_session() as session:
+        stats = await run_sync_with_db(session)
+
     logger.info("--- Knowledge Sync Summary ---")
     logger.info("   Scanned from code:  %s symbols", stats["scanned"])
     logger.info("   New symbols added:  %s", stats["inserted"])

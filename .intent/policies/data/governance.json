@@ -1,8 +1,8 @@
 {
   "id": "standard_data_governance",
-  "version": "1.0.0",
-  "title": "Data Standard - Data Governance",
-  "type": "standard_data",
+  "version": "2.0.0",
+  "title": "Data Standard \u2013 Database & Data Governance",
+  "type": "policy",
   "status": "active",
   "owners": {
     "accountable": "Data Architect",
@@ -13,10 +13,222 @@
   "review": {
     "frequency": "12 months"
   },
-  "schema_id": "policy.structure",
+  "schema_id": "meta.policy",
   "policy_id": "1fb8949c-02db-486a-8b9d-556191456de3",
-  "purpose": "Unified governance for database as Single Source of Truth, secrets management, and knowledge source integrity.\n",
-  "database_ssot": {
+  "purpose": "Unified governance for database as Single Source of Truth (SSOT), secrets management, and knowledge source integrity. Prevents split-brain configurations between source code and persisted system state.",
+  "rules": [
+    {
+      "id": "knowledge.database_ssot",
+      "category": "database",
+      "statement": "Database is the single authoritative source of truth for all operational knowledge (capabilities, symbols, ownership, status, relationships).",
+      "enforcement": "error",
+      "rationale": "Duplicating operational knowledge in source code or files leads to split-brain state and non-deterministic governance.",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify that operational knowledge is not duplicated outside the database SSOT."
+        }
+      }
+    },
+    {
+      "id": "db.integrity.linkage_ids_persisted",
+      "category": "integrity",
+      "statement": "All public capabilities, symbols, and governed entities MUST have a stable UUID assigned and persisted in the database.",
+      "enforcement": "error",
+      "rationale": "Stable identifiers are required to maintain referential integrity across refactors, renames, and migrations.",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify that all public entities have stable UUIDs assigned and stored in the database."
+        }
+      }
+    },
+    {
+      "id": "db.integrity.linkage_ids_unique",
+      "category": "integrity",
+      "statement": "Duplicate UUIDs across capabilities, symbols, or other governed entities are forbidden.",
+      "enforcement": "error",
+      "rationale": "Duplicate identifiers break referential integrity and corrupt the knowledge graph.",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Detect duplicate UUIDs across governed database entities."
+        }
+      }
+    },
+    {
+      "id": "db.ssot_for_operational_data",
+      "category": "database",
+      "statement": "Operational state MUST NOT be hardcoded in source code or configuration files when a database representation exists. Files are read-only mirrors.",
+      "enforcement": "error",
+      "rationale": "Hardcoded operational state prevents runtime governance, migration, and introspection.",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify that operational data is stored in the database and not hardcoded elsewhere."
+        }
+      }
+    },
+    {
+      "id": "db.write_via_governed_cli",
+      "category": "operations",
+      "statement": "All database mutations MUST originate from registered CLI commands or the approved Repository layer.",
+      "enforcement": "error",
+      "rationale": "Direct writes bypass governance, audit logging, and intent validation. Transaction boundaries belong at the controller layer.",
+      "details": {
+        "allowed_write_paths": [
+          "src/shared/infrastructure/database/**",
+          "src/shared/infrastructure/repositories/**",
+          "src/shared/infrastructure/migrations/**",
+          "src/features/**/definition_service.py",
+          "src/features/**/sync_vectors.py"
+        ]
+      },
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify that database write operations occur only via governed CLI commands or approved services."
+        }
+      }
+    },
+    {
+      "id": "db.cli_registry_in_db",
+      "category": "database",
+      "statement": "All executable CLI commands MUST be registered and stored in the database CLI registry.",
+      "enforcement": "error",
+      "rationale": "The CLI registry enables traceability, permissioning, governance enforcement, and auditability.",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify that all executable CLI commands are registered in the database CLI registry."
+        }
+      }
+    },
+    {
+      "id": "db.domains_in_db",
+      "category": "knowledge",
+      "statement": "Capability domains MUST be stored in and queried from the database.",
+      "enforcement": "error",
+      "rationale": "Centralizing domains in the DB allows the system to reason about its own architectural boundaries.",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify that capability domains are stored in the database (core.domains table) and code queries the database rather than using hardcoded domain lists."
+        }
+      }
+    },
+    {
+      "id": "db.vector_index_in_db",
+      "category": "knowledge",
+      "statement": "Vector index metadata MUST be stored in the database to link semantic vectors to structured records.",
+      "enforcement": "error",
+      "rationale": "Prevents orphaned vectors and enables bidirectional lookups.",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify that vector index metadata is stored in the database and linked to structured records."
+        }
+      }
+    },
+    {
+      "id": "db.llm_resources_in_db",
+      "category": "infrastructure",
+      "statement": "The LLM resource manifest MUST be stored in the database.",
+      "enforcement": "error",
+      "rationale": "Enables dynamic resource allocation and cost tracking without redeploying code.",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify that LLM resources are defined in the database (core.llm_resources table) and accessed via database queries, not hardcoded configuration."
+        }
+      }
+    },
+    {
+      "id": "db.cognitive_roles_in_db",
+      "category": "infrastructure",
+      "statement": "Cognitive roles and agent definitions MUST be stored in the database.",
+      "enforcement": "error",
+      "rationale": "Supports swarm orchestration and permissioning.",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify that cognitive roles are stored in the database (core.cognitive_roles table) and role definitions are loaded from the database at runtime."
+        }
+      }
+    },
+    {
+      "id": "db.privacy.no_pii_or_secrets",
+      "category": "security",
+      "statement": "Personal data (PII) and secrets MUST NOT be stored in operational tables.",
+      "enforcement": "error",
+      "rationale": "Protects sensitive data from accidental exposure in logs or audits.",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify that operational database tables do not store PII (names, emails, addresses) or secrets (API keys, passwords). Sensitive data should be in dedicated secure storage."
+        }
+      }
+    },
+    {
+      "id": "db.privacy.masking",
+      "category": "security",
+      "statement": "Logs and audit records MUST redact tokens, keys, and secrets.",
+      "enforcement": "error",
+      "rationale": "Ensures that even if a secret is processed, it is not persisted in plain text.",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify that logging code masks/redacts sensitive values (tokens, API keys, passwords) before writing to logs or audit records."
+        }
+      }
+    },
+    {
+      "id": "knowledge.limited_legacy_access",
+      "category": "integrity",
+      "statement": "Only explicitly allowed system tools may interact with legacy knowledge artifacts.",
+      "enforcement": "error",
+      "details": {
+        "allowed_access_paths": [
+          "src/features/introspection/knowledge_graph_service.py",
+          "src/features/governance/checks/knowledge_source_check.py"
+        ]
+      },
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify that only allowed paths access legacy knowledge artifacts. Disallowed paths should use the database SSOT instead."
+        }
+      },
+      "rationale": "Enforcement of architectural standards"
+    },
+    {
+      "id": "knowledge.symbols_key_is_label",
+      "category": "integrity",
+      "statement": "core.symbols.key MUST be treated as a non-unique capability label. Multiple symbols MAY share the same key.",
+      "enforcement": "error",
+      "rationale": "Allows for polymorphic implementations of the same capability key.",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify that code treats symbols.key as a non-unique label and uses unique identifiers (like symbol.id) for identity, not symbols.key."
+        }
+      }
+    },
+    {
+      "id": "knowledge.capability_mapping_ssot_is_links",
+      "category": "integrity",
+      "statement": "The Symbol-to-capability mapping SSOT MUST be core.symbol_capability_links.",
+      "enforcement": "error",
+      "rationale": "Ensures that the relationship between code symbols and capabilities is explicitly defined.",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify that symbol-to-capability mappings are stored in core.symbol_capability_links table and code uses this table as the authoritative source."
+        }
+      }
+    }
+  ],
+  "technical_specifications": {
     "engine": {
       "type": "postgresql",
       "schema": "core"
@@ -27,120 +239,15 @@
         "001_consolidated_schema.sql"
       ]
     },
-    "rules": [
-      {
-        "id": "db.ssot_for_operational_data",
-        "statement": "Database is authoritative source for all operational data. Files are read-only mirrors.",
-        "enforcement": "error"
-      },
-      {
-        "id": "db.write_via_governed_cli",
-        "statement": "All writes MUST originate from registered CLI commands or Repository layer.",
-        "enforcement": "error",
-        "allowed_write_paths": [
-          "src/shared/infrastructure/database/**",
-          "src/shared/infrastructure/repositories/**",
-          "src/shared/infrastructure/migrations/**",
-          "src/features/**/definition_service.py",
-          "src/features/**/sync_vectors.py"
-        ],
-        "rationale": "Transaction boundaries belong at controller layer (CLI/API). Only infrastructure and repository layers may execute raw DB operations. Services contain business logic, not transaction management.\n"
-      },
-      {
-        "id": "db.domains_in_db",
-        "statement": "Capability domains MUST be stored in and queried from database.",
-        "enforcement": "error"
-      },
-      {
-        "id": "db.vector_index_in_db",
-        "statement": "Vector index data MUST be stored in database with metadata.",
-        "enforcement": "error"
-      },
-      {
-        "id": "db.cli_registry_in_db",
-        "statement": "Canonical CLI commands MUST be stored in database.",
-        "enforcement": "error"
-      },
-      {
-        "id": "db.llm_resources_in_db",
-        "statement": "LLM resource manifest MUST be stored in database.",
-        "enforcement": "error"
-      },
-      {
-        "id": "db.cognitive_roles_in_db",
-        "statement": "Cognitive roles MUST be stored in database.",
-        "enforcement": "error"
-      }
-    ]
-  },
-  "security": {
-    "rules": [
-      {
-        "id": "db.privacy.no_pii_or_secrets",
-        "statement": "Personal data and secrets MUST NOT be stored in operational tables.",
-        "enforcement": "error"
-      },
-      {
-        "id": "db.privacy.masking",
-        "statement": "Logs and audit records MUST redact tokens, keys, and secrets.",
-        "enforcement": "error"
-      },
-      {
-        "id": "secrets.no_hardcoded_secrets",
-        "statement": "Source code MUST NOT contain hardcoded secrets. Use environment variables.",
-        "enforcement": "error",
-        "detection": {
-          "method": "regex_scan",
-          "patterns": [
-            "(A|B|S|G)K[0-9A-Za-z]{30,}",
-            "password\\s*[:=]\\s*['\"\"].+['\"\"]"
-          ]
-        }
-      },
-      {
-        "id": "secrets.redact_in_logs",
-        "statement": "Logs and telemetry MUST redact sensitive data before persistence.",
-        "enforcement": "warn"
-      }
-    ]
-  },
-  "knowledge_integrity": {
-    "rules": [
-      {
-        "id": "knowledge.database_ssot",
-        "statement": "Database is single source of operational truth for knowledge artifacts.",
-        "enforcement": "error"
-      },
-      {
-        "id": "knowledge.limited_legacy_access",
-        "statement": "Only explicitly allowed system tools may interact with legacy knowledge artifacts.",
-        "enforcement": "error",
-        "allowed_access_paths": [
-          "src/features/introspection/knowledge_graph_service.py",
-          "src/features/governance/checks/knowledge_source_check.py"
-        ]
-      },
-      {
-        "id": "knowledge.symbols_key_is_label",
-        "statement": "core.symbols.key MUST be treated as a non-unique capability label. Multiple symbols MAY share the same key.",
-        "enforcement": "error"
-      },
-      {
-        "id": "knowledge.capability_mapping_ssot_is_links",
-        "statement": "Symbol-to-capability mapping SSOT MUST be core.symbol_capability_links (and core.capabilities). core.symbols.key is a convenience label only.",
-        "enforcement": "error"
-      }
-    ]
-  },
-  "retention": {
-    "audit_runs_days": 180,
-    "cli_runs_days": 90,
-    "capability_history_days": 365,
-    "proposals_days": 1095
-  },
-  "backup_restore": {
-    "cadence": "daily",
-    "test_restore_quarterly": true
-  },
-  "additionalProperties": false
+    "retention": {
+      "audit_runs_days": 180,
+      "cli_runs_days": 90,
+      "capability_history_days": 365,
+      "proposals_days": 1095
+    },
+    "backup_restore": {
+      "cadence": "daily",
+      "test_restore_quarterly": true
+    }
+  }
 }

@@ -1,0 +1,55 @@
+{
+  "id": "code.symbols",
+  "version": "1.0.0",
+  "title": "Symbol Standards",
+  "type": "policy",
+  "schema_id": "meta.policy",
+  "description": "Defines requirements for public and private symbol handling.",
+  "owners": {
+    "accountable": "Governance Lead",
+    "responsible": [
+      "Core Maintainer"
+    ]
+  },
+  "rules": [
+    {
+      "id": "symbols.public_capability_id_and_docstring",
+      "rationale": "Mandatory for symbols that are exposed to external callers or autonomous agents.",
+      "enforcement": "error",
+      "statement": "Public capability symbols MUST have an ID comment and a meaningful docstring.",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: Public capability symbols MUST have an ID comment and a meaningful docstring."
+        }
+      }
+    },
+    {
+      "id": "symbols.private_helpers_no_id_required",
+      "rationale": "Prevents internal implementation details from being tracked as top-level system capabilities.",
+      "enforcement": "warning",
+      "statement": "Private helpers (starting with '_') MUST NOT receive capability IDs.",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: Private helpers (starting with '_') MUST NOT receive capability IDs."
+        }
+      }
+    },
+    {
+      "id": "symbols.cli_async_helpers_private",
+      "rationale": "Protects the public API boundary from leaking internal orchestration mechanics.",
+      "enforcement": "error",
+      "statement": "Async orchestration helpers bridging CLI and domain MUST be private.",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: Async orchestration helpers bridging CLI and domain MUST be private."
+        }
+      }
+    }
+  ],
+  "review": {
+    "frequency": "12 months"
+  }
+}

@@ -26,7 +26,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.config import settings
 from shared.infrastructure.clients.qdrant_client import QdrantService
-from shared.infrastructure.database.session_manager import get_session
 from shared.infrastructure.repositories.vector_link_repository import (
     VectorLinkRepository,
 )
@@ -60,38 +59,42 @@ async def _fetch_all_qdrant_ids(client: AsyncQdrantClient) -> set[str]:
     return all_ids
 
 
-async def _fetch_db_vector_ids() -> set[str]:
+async def _fetch_db_vector_ids(session: AsyncSession) -> set[str]:
     """
     Load all valid vector IDs from core.symbol_vector_links.
 
+    Args:
+        session: Injected database session
+
     Returns a set of vector_id values cast to text for normalization.
     """
-    async with get_session() as session:
-        result = await session.execute(
-            text(
-                "SELECT vector_id::text FROM core.symbol_vector_links WHERE vector_id IS NOT NULL"
-            )
+    result = await session.execute(
+        text(
+            "SELECT vector_id::text FROM core.symbol_vector_links WHERE vector_id IS NOT NULL"
         )
-        return {str(row[0]) for row in result}
+    )
+    return {str(row[0]) for row in result}
 
 
-async def _fetch_db_links() -> list[tuple[str, str]]:
+async def _fetch_db_links(session: AsyncSession) -> list[tuple[str, str]]:
     """
     Load all (symbol_id, vector_id) pairs from core.symbol_vector_links.
 
+    Args:
+        session: Injected database session
+
     Returns list of tuples for deletion operations.
     """
-    async with get_session() as session:
-        result = await session.execute(
-            text(
-                """
+    result = await session.execute(
+        text(
+            """
                 SELECT symbol_id::text, vector_id::text
                 FROM core.symbol_vector_links
                 WHERE vector_id IS NOT NULL
                 """
-            )
         )
-        return [(row[0], row[1]) for row in result]
+    )
+    return [(row[0], row[1]) for row in result]
 
 
 async def _prune_orphaned_vectors(
@@ -149,12 +152,21 @@ async def _delete_dangling_links(
 
 
 async def _prune_dangling_links(
-    db_links: list[tuple[str, str]], qdrant_ids: set[str], dry_run: bool
+    db_links: list[tuple[str, str]],
+    qdrant_ids: set[str],
+    session: AsyncSession,
+    dry_run: bool,
 ) -> int:
     """
     Find and delete DB links pointing to non-existent Qdrant vectors.
 
     CONSTITUTIONAL: Transaction boundary managed at this controller level.
+
+    Args:
+        db_links: List of (symbol_id, vector_id) tuples from database
+        qdrant_ids: Set of vector IDs currently in Qdrant
+        session: Injected database session
+        dry_run: If True, only report what would be deleted
 
     Returns the count of dangling links found (and deleted if not dry_run).
     """
@@ -178,19 +190,23 @@ async def _prune_dangling_links(
     logger.info("Deleting %s dangling link(s) from PostgreSQL...", len(dangling_links))
 
     # CONTROLLER MANAGES TRANSACTION BOUNDARY
-    async with get_session() as session:
-        deleted_count = await _delete_dangling_links(dangling_links, session)
-        await session.commit()  # Transaction boundary at controller level
+    deleted_count = await _delete_dangling_links(dangling_links, session)
+    await session.commit()  # Transaction boundary at controller level
 
     logger.info("Deleted %s dangling link(s).", deleted_count)
     return deleted_count
 
 
 async def _async_sync_vectors(
-    dry_run: bool, qdrant_service: QdrantService | None = None
+    session: AsyncSession, dry_run: bool, qdrant_service: QdrantService | None = None
 ) -> tuple[int, int]:
     """
     Core async logic for complete vector synchronization.
+
+    Args:
+        session: Injected database session
+        dry_run: If True, only report what would be changed
+        qdrant_service: Optional injected Qdrant service
 
     Returns (orphans_pruned, dangling_pruned) counts.
     """
@@ -206,8 +222,8 @@ async def _async_sync_vectors(
     qdrant_ids = await _fetch_all_qdrant_ids(client)
     logger.info("Found %s vectors in Qdrant.", len(qdrant_ids))
     logger.info("Fetching vector links from PostgreSQL...")
-    db_vector_ids = await _fetch_db_vector_ids()
-    db_links = await _fetch_db_links()
+    db_vector_ids = await _fetch_db_vector_ids(session)
+    db_links = await _fetch_db_links(session)
     logger.info("Found %s valid vector IDs in PostgreSQL.", len(db_vector_ids))
     logger.info("Found %s total symbol-vector links.", len(db_links))
     logger.info("Phase 1: Pruning orphaned vectors from Qdrant...")
@@ -215,7 +231,9 @@ async def _async_sync_vectors(
         client, qdrant_ids, db_vector_ids, dry_run
     )
     logger.info("Phase 2: Pruning dangling links from PostgreSQL...")
-    dangling_pruned = await _prune_dangling_links(db_links, qdrant_ids, dry_run)
+    dangling_pruned = await _prune_dangling_links(
+        db_links, qdrant_ids, session, dry_run
+    )
     logger.info("Synchronization Summary")
     logger.info("  • Orphaned vectors pruned: %s", orphans_pruned)
     logger.info("  • Dangling links pruned: %s", dangling_pruned)
@@ -230,6 +248,7 @@ async def _async_sync_vectors(
 
 # ID: 2ba0085c-70d8-4a2f-b3f5-a41479fba562
 async def main_sync(
+    session: AsyncSession,
     write: bool = typer.Option(
         False,
         "--write",
@@ -246,16 +265,20 @@ async def main_sync(
     1. Removes orphaned vectors from Qdrant (no DB link)
     2. Removes dangling links from PostgreSQL (no Qdrant vector)
 
+    Args:
+        session: Injected database session
+
     Example:
         poetry run core-admin fix vector-sync --dry-run
         poetry run core-admin fix vector-sync --write
     """
     effective_dry_run = dry_run or not write
-    await _async_sync_vectors(dry_run=effective_dry_run)
+    await _async_sync_vectors(session, dry_run=effective_dry_run)
 
 
 # ID: 45b243cb-5331-464d-a50d-13a1310e672a
 async def main_async(
+    session: AsyncSession,
     write: bool = False,
     dry_run: bool = False,
     qdrant_service: QdrantService | None = None,
@@ -264,9 +287,15 @@ async def main_async(
     Async entry point for orchestrators that own the event loop.
     Accepts optional qdrant_service for JIT injection.
 
+    Args:
+        session: Injected database session
+        write: If True, apply changes (default: False)
+        dry_run: If True, only report what would change (default: False)
+        qdrant_service: Optional injected Qdrant service
+
     Returns (orphans_pruned, dangling_pruned) counts.
     """
     effective_dry_run = dry_run or not write
     return await _async_sync_vectors(
-        dry_run=effective_dry_run, qdrant_service=qdrant_service
+        session, dry_run=effective_dry_run, qdrant_service=qdrant_service
     )

@@ -9,9 +9,9 @@ Returns a success flag and an optional linting message.
 from __future__ import annotations
 
 import json
-import os
 import subprocess
 import tempfile
+from pathlib import Path
 from typing import Any
 
 from shared.logger import getLogger
@@ -37,54 +37,64 @@ def fix_and_lint_code_with_ruff(
         - The potentially fixed code as a string.
         - A list of structured violation dictionaries for any remaining issues.
     """
-    violations = []
-    with tempfile.NamedTemporaryFile(
-        suffix=".py", mode="w+", delete=False, encoding="utf-8"
-    ) as tmp_file:
-        tmp_file.write(code)
-        tmp_file_path = tmp_file.name
-    try:
-        subprocess.run(
-            ["ruff", "check", tmp_file_path, "--fix", "--exit-zero", "--quiet"],
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-        with open(tmp_file_path, encoding="utf-8") as f:
-            fixed_code = f.read()
-        result = subprocess.run(
-            ["ruff", "check", tmp_file_path, "--format", "json", "--exit-zero"],
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-        if result.stdout:
-            ruff_violations = json.loads(result.stdout)
-            for v in ruff_violations:
-                violations.append(
-                    {
-                        "rule": v.get("code", "RUFF-UNKNOWN"),
-                        "message": v.get("message", "Unknown Ruff error"),
-                        "line": v.get("location", {}).get("row", 0),
-                        "severity": "warning",
-                    }
-                )
-        return (fixed_code, violations)
-    except FileNotFoundError:
-        logger.error("Ruff is not installed or not in your PATH. Please install it.")
-        tool_missing_violation = {
-            "rule": "tooling.missing",
-            "message": "Ruff is not installed or not in your PATH.",
-            "line": 0,
-            "severity": "error",
-        }
-        return (code, [tool_missing_violation])
-    except json.JSONDecodeError:
-        logger.error("Failed to parse Ruff's JSON output.")
-        return (code, [])
-    except Exception as e:
-        logger.error("An unexpected error occurred during Ruff execution: %s", e)
-        return (code, [])
-    finally:
-        if os.path.exists(tmp_file_path):
-            os.remove(tmp_file_path)
+    violations: list[Violation] = []
+
+    # Use a temporary directory to avoid any explicit filesystem deletions (no os.remove).
+    with tempfile.TemporaryDirectory(prefix="core_ruff_") as tmp_dir:
+        tmp_path = Path(tmp_dir) / "snippet.py"
+        tmp_path.write_text(code, encoding="utf-8")
+
+        try:
+            # Apply fixes (do not fail build on lint errors).
+            subprocess.run(
+                ["ruff", "check", str(tmp_path), "--fix", "--exit-zero", "--quiet"],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+
+            fixed_code = tmp_path.read_text(encoding="utf-8")
+
+            # Collect structured violations (JSON output).
+            result = subprocess.run(
+                ["ruff", "check", str(tmp_path), "--format", "json", "--exit-zero"],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+
+            if result.stdout:
+                ruff_violations = json.loads(result.stdout)
+                for v in ruff_violations:
+                    violations.append(
+                        {
+                            "rule": v.get("code", "RUFF-UNKNOWN"),
+                            "message": v.get("message", "Unknown Ruff error"),
+                            "line": v.get("location", {}).get("row", 0),
+                            "severity": "warning",
+                            "file": display_filename,
+                        }
+                    )
+
+            return (fixed_code, violations)
+
+        except FileNotFoundError:
+            logger.error(
+                "Ruff is not installed or not in your PATH. Please install it."
+            )
+            tool_missing_violation: Violation = {
+                "rule": "tooling.missing",
+                "message": "Ruff is not installed or not in your PATH.",
+                "line": 0,
+                "severity": "error",
+                "file": display_filename,
+            }
+            return (code, [tool_missing_violation])
+
+        except json.JSONDecodeError:
+            logger.error("Failed to parse Ruff's JSON output.")
+            return (code, [])
+
+        except Exception as e:
+            logger.error("An unexpected error occurred during Ruff execution: %s", e)
+            return (code, [])

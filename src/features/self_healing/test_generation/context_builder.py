@@ -10,6 +10,8 @@ from __future__ import annotations
 import ast
 from pathlib import Path
 
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from features.self_healing.test_context_analyzer import ModuleContext
 from shared.config import settings
 from shared.infrastructure.context import ContextBuilder
@@ -18,7 +20,6 @@ from shared.infrastructure.context.providers import (
     DBProvider,
     VectorProvider,
 )
-from shared.infrastructure.database.session_manager import get_session
 from shared.logger import getLogger
 
 
@@ -30,9 +31,13 @@ class ContextPackageBuilder:
     """Builds ContextPackage → ModuleContext."""
 
     # ID: d047b64c-e60b-4ed2-9a88-231107db4046
-    async def build(self, module_path: str) -> ModuleContext:
+    async def build(self, session: AsyncSession, module_path: str) -> ModuleContext:
         """
         Build Packet → Convert to ModuleContext
+
+        Args:
+            session: Database session (injected dependency)
+            module_path: Path to module to analyze
         """
         full_path = settings.REPO_PATH / module_path
         source = full_path.read_text(encoding="utf-8")
@@ -66,18 +71,17 @@ class ContextPackageBuilder:
             "constraints": {"max_tokens": 50000, "max_items": 30},
         }
 
-        # Build packet
-        async with get_session() as db:
-            dbp = DBProvider(db_service=db)
-            astp = ASTProvider(project_root=str(settings.REPO_PATH))
-            vecp = VectorProvider()
-            builder = ContextBuilder(
-                db_provider=dbp,
-                vector_provider=vecp,
-                ast_provider=astp,
-                config={"max_tokens": 50000, "max_context_items": 30},
-            )
-            packet = await builder.build_for_task(task_spec)
+        # Build packet with injected session
+        dbp = DBProvider(db_service=session)
+        astp = ASTProvider(project_root=str(settings.REPO_PATH))
+        vecp = VectorProvider()
+        builder = ContextBuilder(
+            db_provider=dbp,
+            vector_provider=vecp,
+            ast_provider=astp,
+            config={"max_tokens": 50000, "max_context_items": 30},
+        )
+        packet = await builder.build_for_task(task_spec)
 
         return self._packet_to_context(packet, module_path, source, tree)
 

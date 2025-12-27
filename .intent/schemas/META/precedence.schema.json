@@ -6,19 +6,73 @@
   "description": "Validates precedence rules documents used for conflict resolution across constitution, standards, and policies.",
   "type": "object",
   "additionalProperties": false,
-  "allOf": [
-    {
-      "$ref": "header.schema.json"
-    }
-  ],
   "required": [
+    "id",
+    "version",
+    "title",
     "type",
+    "owners",
+    "review",
+    "schema_id",
     "policy_hierarchy"
   ],
   "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_.-]*$"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "title": {
+      "type": "string"
+    },
     "type": {
       "type": "string",
       "const": "precedence"
+    },
+    "owners": {
+      "type": "object",
+      "required": [
+        "accountable"
+      ],
+      "properties": {
+        "accountable": {
+          "type": "string"
+        },
+        "responsible": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "review": {
+      "type": "object",
+      "required": [
+        "frequency"
+      ],
+      "properties": {
+        "frequency": {
+          "type": "string"
+        },
+        "last_reviewed": {
+          "type": "string"
+        },
+        "next_review_due": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "schema_id": {
+      "type": "string"
+    },
+    "purpose": {
+      "type": "string"
     },
     "policy_hierarchy": {
       "type": "array",
@@ -56,12 +110,5 @@
     "notes": {
       "type": "string"
     }
-  },
-  "id": "precedence.schema",
-  "owners": {
-    "accountable": "Governance Lead"
-  },
-  "review": {
-    "frequency": "12 months"
   }
 }

@@ -12,6 +12,7 @@ import typer
 from features.maintenance.command_sync_service import _sync_commands_to_db
 from features.self_healing.sync_vectors import main_async as sync_vectors_async
 from shared.cli_utils import core_command
+from shared.infrastructure.database.session_manager import get_session
 
 from . import (
     console,
@@ -25,18 +26,17 @@ from . import (
 )
 @handle_command_errors
 @core_command(dangerous=True, confirmation=False)
-# Confirmation=False because this is a metadata sync that shouldn't break things,
-# typically run automatically.
 # ID: 9309bc1b-d580-4887-b07d-13eccd137ef7
 async def sync_db_registry_command(ctx: typer.Context) -> None:
     """CLI wrapper for the command sync service."""
-    # We need to import the app object to introspect it
     from body.cli.admin_cli import app as main_app
 
     with console.status("[cyan]Syncing CLI commands to database...[/cyan]"):
-        await _sync_commands_to_db(main_app)
+        # Inject session for proper DI
+        async with get_session() as session:
+            await _sync_commands_to_db(session, main_app)
 
-    console.print("[green]✅ Database registry sync completed[/green]")
+    console.print("[green]✓ Database registry sync completed[/green]")
 
 
 @fix_app.command(

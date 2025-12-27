@@ -2,7 +2,7 @@
   "id": "standard_architecture_tool_definition",
   "version": "1.0.0",
   "title": "Architecture Standard \u2013 Tool Definitions",
-  "type": "standard_architecture",
+  "type": "policy",
   "status": "active",
   "owners": {
     "accountable": "AI Architecture Lead",
@@ -13,7 +13,7 @@
   "review": {
     "frequency": "12 months"
   },
-  "schema_id": "policy.structure",
+  "schema_id": "meta.policy",
   "purpose": "Defines how Python CLI commands and Atomic Actions are transformed into JSON Schema definitions for LLM tool calling. Ensures Agents hallucinate arguments less often by providing strict type bounds.\n",
   "rules": [
     {

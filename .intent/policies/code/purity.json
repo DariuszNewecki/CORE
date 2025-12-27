@@ -1,15 +1,19 @@
 {
   "id": "standard_code_purity",
   "version": "2.0.0",
-  "title": "Code Standard – Purity & Side Effects",
-  "type": "standard_code",
+  "title": "Code Standard \u2013 Purity & Side Effects",
+  "type": "policy",
   "status": "active",
   "owners": {
     "accountable": "Code Quality Owner",
-    "responsible": ["Core Maintainer"]
+    "responsible": [
+      "Core Maintainer"
+    ]
   },
-  "review": { "frequency": "12 months" },
-  "schema_id": "policy.structure",
+  "review": {
+    "frequency": "12 months"
+  },
+  "schema_id": "meta.policy",
   "policy_id": "73394e37-41db-4391-93e8-6ced1a61735f",
   "purpose": "Define the strict boundary between Code (Logic/Safety) and Database (Metadata/State). Ensures the codebase remains clean, readable, and free of 'Split-Brain' metadata configuration.",
   "core_principle": "Source code is for LOGIC and RUNTIME CONTRACTS. Descriptive metadata (Ownership, Relationships, Status) belongs in the Knowledge Graph (DB).",
@@ -23,7 +27,11 @@
         "engine": "ast_gate",
         "params": {
           "check_type": "forbidden_decorators",
-          "forbidden": ["capability", "meta", "owner"],
+          "forbidden": [
+            "capability",
+            "meta",
+            "owner"
+          ],
           "remediation": "Use 'core-admin manage database' or 'fix docstrings' to update metadata."
         }
       }
@@ -37,7 +45,11 @@
         "engine": "ast_gate",
         "params": {
           "check_type": "forbidden_assignments",
-          "targets": ["CONFIG", "API_KEY", "SECRET_KEY"],
+          "targets": [
+            "CONFIG",
+            "API_KEY",
+            "SECRET_KEY"
+          ],
           "remediation": "Load via ConfigService (backed by core.runtime_settings)."
         }
       }
@@ -50,7 +62,9 @@
       "check": {
         "engine": "regex_gate",
         "params": {
-          "required_patterns": ["^# ID: [0-9a-fA-F]{8}-([0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}"],
+          "required_patterns": [
+            "^# ID: [0-9a-fA-F]{8}-([0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}"
+          ],
           "location_hint": "preceding_line"
         }
       }
@@ -76,9 +90,19 @@
       "check": {
         "engine": "ast_gate",
         "params": {
-          "check_type": "decorator_args",
-          "decorator": "atomic_action",
-          "required_args": ["action_id", "impact", "policies"]
+          "check_type": "generic_primitive",
+          "selector": {
+            "has_decorator": "atomic_action"
+          },
+          "requirement": {
+            "check_type": "decorator_args",
+            "decorator": "atomic_action",
+            "required_kwargs": [
+              "action_id",
+              "impact",
+              "policies"
+            ]
+          }
         }
       }
     },
@@ -96,9 +120,19 @@
     }
   ],
   "metadata_strategy": {
-    "source_code": { "contains": "Logic, Flow Control, Runtime Safety Contracts (@atomic_action)", "role": "The Body (Execution)" },
-    "database": { "contains": "Ownership, Capability Definitions, Relationships, Execution History", "schema_ref": "001_consolidated_schema.sql", "role": "The Mind (Memory & Context)" },
-    "docstrings": { "contains": "Human-readable intent, usage examples, reasoning", "role": "Explanation" }
+    "source_code": {
+      "contains": "Logic, Flow Control, Runtime Safety Contracts (@atomic_action)",
+      "role": "The Body (Execution)"
+    },
+    "database": {
+      "contains": "Ownership, Capability Definitions, Relationships, Execution History",
+      "schema_ref": "001_consolidated_schema.sql",
+      "role": "The Mind (Memory & Context)"
+    },
+    "docstrings": {
+      "contains": "Human-readable intent, usage examples, reasoning",
+      "role": "Explanation"
+    }
   },
   "philosophy": "If the data describes *what* the code is, it lives in the Database. If the data describes *how* the code behaves safely, it lives in the Code (Decorator).",
   "additionalProperties": false

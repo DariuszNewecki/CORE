@@ -61,7 +61,7 @@
       }
     }
   ],
-  "schema_id": "schema.standard.policy",
+  "schema_id": "meta.policy",
   "title": "Schema Dialect Standards",
   "version": "1.0.0",
   "additionalProperties": false,

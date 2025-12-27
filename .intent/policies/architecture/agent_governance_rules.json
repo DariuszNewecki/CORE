@@ -2,7 +2,7 @@
   "id": "standard_architecture_agent_rules",
   "version": "1.0.0",
   "title": "Architecture Standard \u2013 Agent Patterns",
-  "type": "standard_architecture",
+  "type": "policy",
   "status": "active",
   "owners": {
     "accountable": "Governance Lead",
@@ -13,223 +13,8 @@
   "review": {
     "frequency": "12 months"
   },
-  "schema_id": "policy.structure",
+  "schema_id": "meta.policy",
   "description": "Defines canonical patterns for autonomous agents in CORE's Will layer.\nAgents transform context into decisions through LLM-powered reasoning\nwhile respecting constitutional boundaries.\n",
-  "patterns": [
-    {
-      "pattern_id": "cognitive_agent",
-      "type": "reasoning",
-      "purpose": "Transform context into decisions via LLM reasoning",
-      "applies_to": [
-        "PlannerAgent",
-        "CoderAgent",
-        "ReviewerAgent",
-        "TaggerAgent"
-      ],
-      "architecture": {
-        "inputs": [
-          "ContextPackage: Rich context about the problem",
-          "Constitution: Policy constraints",
-          "Task: Specific objective"
-        ],
-        "processing": [
-          "Prompt construction from context",
-          "LLM invocation with temperature/model selection",
-          "Response parsing and validation"
-        ],
-        "outputs": [
-          "Decision: Structured result (code, plan, tags, etc.)",
-          "Reasoning: Explanation of decision",
-          "Confidence: Certainty level"
-        ]
-      },
-      "implementation_requirements": {
-        "structure": "class AgentName:\n    \"\"\"One-line description of agent's purpose.\"\"\"\n\n    def __init__(\n        self,\n        llm_client: LLMClient,\n        constitutional_guard: ConstitutionalGuard\n    ):\n        self._llm = llm_client\n        self._guard = constitutional_guard\n\n    async def execute(\n        self,\n        context: ContextPackage,\n        task: TaskSpec\n    ) -> AgentDecision:\n        \"\"\"Main entry point for agent execution.\"\"\"\n        # 1. Validate constitutional compliance\n        # 2. Build prompt from context\n        # 3. Invoke LLM\n        # 4. Parse and validate response\n        # 5. Return structured decision\n",
-        "prompt_management": [
-          "Prompts stored in .intent/mind/prompts/{agent_name}.prompt",
-          "Use Jinja2 templating with ContextPackage",
-          "Include few-shot examples in prompts",
-          "Version prompts (track in git)"
-        ],
-        "response_handling": [
-          "MUST validate LLM output format",
-          "MUST handle malformed responses gracefully",
-          "SHOULD provide partial results when possible",
-          "MUST log raw LLM responses for debugging"
-        ],
-        "error_handling": [
-          "LLM timeout -> return 'uncertain' decision",
-          "Invalid response -> retry with clarified prompt",
-          "Constitutional violation -> block and report",
-          "Max retries exceeded -> escalate to human"
-        ]
-      },
-      "constitutional_integration": {
-        "before_execution": [
-          "Check if task violates safety policies",
-          "Verify agent has authority for task type",
-          "Validate inputs meet quality thresholds"
-        ],
-        "during_execution": [
-          "Enforce token limits",
-          "Monitor for policy violations in responses",
-          "Track autonomy level restrictions"
-        ],
-        "after_execution": [
-          "Audit decision against policies",
-          "Log decision for transparency",
-          "Update autonomy metrics"
-        ]
-      },
-      "example_implementation": "class CoderAgent:\n    \"\"\"Generates code based on specifications and context.\"\"\"\n\n    PROMPT_PATH = \".intent/mind/prompts/coder_agent.md\"\n\n    def __init__(\n        self,\n        llm_client: LLMClient,\n        guard: ConstitutionalGuard\n    ):\n        self._llm = llm_client\n        self._guard = guard\n\n    async def execute(\n        self,\n        context: ContextPackage,\n        spec: CodeGenSpec\n    ) -> CodeDecision:\n        \"\"\"Generate code for given specification.\"\"\"\n\n        # 1. Constitutional pre-check\n        await self._guard.validate_task(\n            agent=\"coder\",\n            task_type=\"code_generation\",\n            context=context\n        )\n\n        # 2. Build prompt\n        prompt = self._build_prompt(context, spec)\n\n        # 3. Invoke LLM with retries\n        for attempt in range(3):\n            try:\n                response = await self._llm.complete(\n                    prompt=prompt,\n                    model=\"deepseek-coder\",\n                    temperature=0.2,\n                    max_tokens=4000\n                )\n\n                # 4. Parse response\n                decision = self._parse_code_response(response)\n\n                # 5. Constitutional post-check\n                await self._guard.validate_decision(decision)\n\n                # 6. Audit and return\n                await self._audit_decision(decision, context)\n                return decision\n\n            except MalformedResponseError:\n                if attempt == 2:\n                    raise\n                prompt = self._clarify_prompt(prompt, response)\n\n    def _build_prompt(\n        self,\n        context: ContextPackage,\n        spec: CodeGenSpec\n    ) -> str:\n        \"\"\"Construct prompt from template and context.\"\"\"\n        template = self._load_prompt_template()\n        return template.render(\n            context=context,\n            spec=spec,\n            examples=self._get_few_shot_examples(spec)\n        )\n"
-    },
-    {
-      "pattern_id": "orchestrator_agent",
-      "type": "coordination",
-      "purpose": "Coordinate multiple agents to achieve complex goals",
-      "applies_to": [
-        "AutonomousDeveloper",
-        "SelfHealingOrchestrator",
-        "MicroProposalExecutor"
-      ],
-      "architecture": {
-        "responsibilities": [
-          "Break down complex tasks into subtasks",
-          "Select appropriate agents for each subtask",
-          "Manage execution flow and dependencies",
-          "Aggregate results from multiple agents",
-          "Handle failures and retries"
-        ],
-        "decision_making": [
-          "Determine execution order",
-          "Decide when to parallelize",
-          "Choose which agent for which task",
-          "Determine when to stop/continue"
-        ]
-      },
-      "implementation_requirements": {
-        "structure": "class OrchestratorName:\n    \"\"\"Coordinates multiple agents for complex objectives.\"\"\"\n\n    def __init__(\n        self,\n        planner: PlannerAgent,\n        executor_registry: Dict[str, Agent],\n        guard: ConstitutionalGuard\n    ):\n        self._planner = planner\n        self._executors = executor_registry\n        self._guard = guard\n\n    async def execute(\n        self,\n        objective: Objective,\n        context: ContextPackage\n    ) -> OrchestratorResult:\n        \"\"\"Execute multi-agent workflow.\"\"\"\n        # 1. Plan execution strategy\n        # 2. Execute steps with appropriate agents\n        # 3. Handle failures and retries\n        # 4. Aggregate and validate results\n",
-        "execution_flow": {
-          "planning_phase": [
-            "Use planner agent to decompose objective",
-            "Identify dependencies between subtasks",
-            "Estimate resources and time"
-          ],
-          "execution_phase": [
-            "Execute tasks respecting dependencies",
-            "Parallelize independent tasks",
-            "Collect intermediate results"
-          ],
-          "validation_phase": [
-            "Verify all subtasks completed",
-            "Validate aggregate result",
-            "Check constitutional compliance"
-          ]
-        },
-        "error_handling": {
-          "strategies": [
-            "Retry failed subtasks with backoff",
-            "Skip non-critical failures",
-            "Rollback on critical failures",
-            "Escalate after max retries"
-          ]
-        }
-      },
-      "state_management": {
-        "execution_state": [
-          "Track which steps completed",
-          "Store intermediate results",
-          "Record failures and retries"
-        ],
-        "persistence": [
-          "Save state after each step",
-          "Enable resume from checkpoint",
-          "Clean up state on completion"
-        ]
-      },
-      "example_implementation": "class AutonomousDeveloper:\n    \"\"\"Orchestrates end-to-end autonomous development.\"\"\"\n\n    async def execute(\n        self,\n        feature_request: str,\n        context: ContextPackage\n    ) -> DevelopmentResult:\n        \"\"\"Autonomously implement a feature.\"\"\"\n\n        # 1. Plan\n        plan = await self._planner.create_plan(\n            request=feature_request,\n            context=context\n        )\n\n        # 2. Execute steps\n        results = []\n        for step in plan.steps:\n            agent = self._select_agent(step.type)\n\n            result = await self._execute_with_retry(\n                agent=agent,\n                step=step,\n                context=context\n            )\n\n            results.append(result)\n\n            # Update context with result\n            context = context.with_new_info(result)\n\n        # 3. Validate\n        return await self._validate_results(results)\n"
-    },
-    {
-      "pattern_id": "validator_agent",
-      "type": "verification",
-      "purpose": "Verify outputs meet quality and policy standards",
-      "applies_to": [
-        "CodeReviewerAgent",
-        "TestValidator",
-        "PolicyComplianceChecker"
-      ],
-      "architecture": {
-        "inputs": [
-          "Artifact to validate (code, plan, etc.)",
-          "Validation criteria",
-          "Context for informed judgments"
-        ],
-        "outputs": [
-          "Pass/Fail decision",
-          "Specific violations found",
-          "Suggested improvements",
-          "Confidence in assessment"
-        ]
-      },
-      "implementation_requirements": {
-        "validation_process": {
-          "1_parse": "Parse artifact into analyzable form",
-          "2_check_syntax": "Verify structural correctness",
-          "3_check_semantics": "Verify logical correctness",
-          "4_check_policy": "Verify constitutional compliance",
-          "5_check_quality": "Verify quality standards"
-        },
-        "reporting": [
-          "List all violations (not just first)",
-          "Provide line numbers and context",
-          "Suggest specific fixes",
-          "Rank by severity"
-        ]
-      },
-      "example_implementation": "class CodeReviewerAgent:\n    \"\"\"Reviews generated code for quality and compliance.\"\"\"\n\n    async def execute(\n        self,\n        code: str,\n        context: ContextPackage\n    ) -> ReviewDecision:\n        \"\"\"Review code and return assessment.\"\"\"\n\n        violations = []\n\n        # Syntax check\n        violations.extend(self._check_syntax(code))\n\n        # LLM-based semantic review\n        semantic_issues = await self._llm_review(code, context)\n        violations.extend(semantic_issues)\n\n        # Policy compliance\n        policy_violations = await self._guard.check_code(code)\n        violations.extend(policy_violations)\n\n        return ReviewDecision(\n            approved=len(violations) == 0,\n            violations=violations,\n            suggestions=self._generate_suggestions(violations)\n        )\n"
-    },
-    {
-      "pattern_id": "learning_agent",
-      "type": "adaptive",
-      "purpose": "Improve performance through experience",
-      "applies_to": [
-        "PlacementOptimizer (learns from successful placements)",
-        "PromptEvolver (learns from LLM performance)",
-        "StrategySelector (learns which approaches work)"
-      ],
-      "architecture": {
-        "feedback_loop": {
-          "1_execute": "Perform task with current strategy",
-          "2_measure": "Collect performance metrics",
-          "3_analyze": "Identify what worked/failed",
-          "4_adapt": "Update strategy based on learnings"
-        },
-        "memory": [
-          "Store successful patterns",
-          "Store failure patterns",
-          "Track performance trends"
-        ]
-      },
-      "implementation_requirements": {
-        "experience_tracking": [
-          "Log all decisions with context",
-          "Record outcomes (success/failure)",
-          "Capture performance metrics"
-        ],
-        "learning_mechanism": [
-          "Identify correlations (context -> outcome)",
-          "Update strategy based on data",
-          "A/B test new strategies"
-        ],
-        "safety": [
-          "Validate learned strategies against policies",
-          "Gradual rollout of new strategies",
-          "Rollback if performance degrades"
-        ]
-      },
-      "example_implementation": "class PlacementOptimizer:\n    \"\"\"Learns optimal file placement strategies.\"\"\"\n\n    async def learn_from_placement(\n        self,\n        context: ContextPackage,\n        placement: FilePlacement,\n        outcome: PlacementOutcome\n    ) -> None:\n        \"\"\"Update strategy based on placement result.\"\"\"\n\n        # 1. Record experience\n        await self._db.save_placement_record(\n            context=context,\n            decision=placement,\n            outcome=outcome\n        )\n\n        # 2. Analyze patterns\n        if outcome.success:\n            patterns = self._extract_success_patterns(\n                context, placement\n            )\n            await self._db.strengthen_patterns(patterns)\n        else:\n            await self._db.weaken_patterns(\n                self._extract_failure_patterns(context, placement)\n            )\n\n        # 3. Update strategy\n        if self._should_update_strategy():\n            new_strategy = await self._derive_strategy()\n            await self._validate_and_deploy(new_strategy)\n"
-    }
-  ],
   "agent_communication": {
     "context_package": {
       "purpose": "Standard format for inter-agent communication",
@@ -318,5 +103,51 @@
       "Add to CI checks"
     ]
   },
-  "additionalProperties": false
+  "additionalProperties": false,
+  "rules": [
+    {
+      "id": "standard_architecture_agent_rules.pattern.cognitive_agent",
+      "category": "architectural_pattern",
+      "statement": "Must follow the cognitive_agent pattern structure.",
+      "enforcement": "error",
+      "rationale": "Transform context into decisions via LLM reasoning",
+      "check": {
+        "engine": "llm_gate",
+        "params": {}
+      }
+    },
+    {
+      "id": "standard_architecture_agent_rules.pattern.orchestrator_agent",
+      "category": "architectural_pattern",
+      "statement": "Must follow the orchestrator_agent pattern structure.",
+      "enforcement": "error",
+      "rationale": "Coordinate multiple agents to achieve complex goals",
+      "check": {
+        "engine": "llm_gate",
+        "params": {}
+      }
+    },
+    {
+      "id": "standard_architecture_agent_rules.pattern.validator_agent",
+      "category": "architectural_pattern",
+      "statement": "Must follow the validator_agent pattern structure.",
+      "enforcement": "error",
+      "rationale": "Verify outputs meet quality and policy standards",
+      "check": {
+        "engine": "llm_gate",
+        "params": {}
+      }
+    },
+    {
+      "id": "standard_architecture_agent_rules.pattern.learning_agent",
+      "category": "architectural_pattern",
+      "statement": "Must follow the learning_agent pattern structure.",
+      "enforcement": "error",
+      "rationale": "Improve performance through experience",
+      "check": {
+        "engine": "llm_gate",
+        "params": {}
+      }
+    }
+  ]
 }

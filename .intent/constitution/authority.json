@@ -29,15 +29,6 @@
           ],
           "action": "block_autonomous"
         }
-      },
-      "check": {
-        "engine": "glob_gate",
-        "params": {
-          "patterns": [
-            ".intent/constitution/**"
-          ],
-          "action": "block_autonomous"
-        }
       }
     },
     "critical_path_modifications": {
@@ -51,17 +42,6 @@
       "enforcement": {
         "method": "path_match",
         "parameters": {
-          "patterns": [
-            "src/mind/logic/**",
-            "src/body/core/database.py",
-            "src/will/orchestration/intent_guard.py"
-          ],
-          "action": "require_human_approval"
-        }
-      },
-      "check": {
-        "engine": "glob_gate",
-        "params": {
           "patterns": [
             "src/mind/logic/**",
             "src/body/core/database.py",
@@ -83,18 +63,6 @@
       "enforcement": {
         "method": "action_classification",
         "parameters": {
-          "actions_prohibited": [
-            "schema_migration",
-            "production_deployment",
-            "external_api_integration",
-            "cryptographic_operations"
-          ],
-          "require": "human_approval"
-        }
-      },
-      "check": {
-        "engine": "action_gate",
-        "params": {
           "actions_prohibited": [
             "schema_migration",
             "production_deployment",
@@ -125,18 +93,6 @@
           ],
           "require": "validation_only"
         }
-      },
-      "check": {
-        "engine": "action_gate",
-        "params": {
-          "actions_allowed": [
-            "fix_docstring",
-            "format_code",
-            "fix_lint",
-            "add_type_hints"
-          ],
-          "require": "validation_only"
-        }
       }
     },
     "autonomous_documentation": {
@@ -158,17 +114,6 @@
           ],
           "action": "allow_autonomous"
         }
-      },
-      "check": {
-        "engine": "glob_gate",
-        "params": {
-          "patterns": [
-            "docs/**",
-            "README.md",
-            "*.md"
-          ],
-          "action": "allow_autonomous"
-        }
       }
     },
     "autonomous_testing": {
@@ -182,18 +127,6 @@
       "enforcement": {
         "method": "action_classification",
         "parameters": {
-          "actions_allowed": [
-            "run_tests",
-            "generate_tests",
-            "measure_coverage",
-            "create_fixtures"
-          ],
-          "require": "validation_only"
-        }
-      },
-      "check": {
-        "engine": "action_gate",
-        "params": {
           "actions_allowed": [
             "run_tests",
             "generate_tests",
@@ -224,18 +157,6 @@
           ],
           "require": "audit_only"
         }
-      },
-      "check": {
-        "engine": "action_gate",
-        "params": {
-          "actions_allowed": [
-            "scan_violations",
-            "generate_report",
-            "build_knowledge_graph",
-            "compute_metrics"
-          ],
-          "require": "audit_only"
-        }
       }
     },
     "conditional_code_generation": {
@@ -252,12 +173,6 @@
           "require_pattern_match": true,
           "pattern_source": ".intent/standards/architecture/",
           "on_violation": "block_execution"
-        }
-      },
-      "check": {
-        "engine": "llm_gate",
-        "params": {
-          "instruction": "Verify adherence to: Code generation allowed only when matching architectural patterns"
         }
       }
     },
@@ -276,14 +191,8 @@
           "require_no_behavioral_change": true,
           "on_violation": "block_execution"
         }
-      },
-      "check": {
-        "engine": "llm_gate",
-        "params": {
-          "instruction": "Verify adherence to: Refactoring allowed only when preserving behavior"
-        }
       }
     }
   },
-  "additionalProperties": false
+  "status": "active"
 }

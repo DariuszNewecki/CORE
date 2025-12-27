@@ -5,6 +5,11 @@ Service for creating Intent Crates from generated code.
 
 Packages code, tests, and metadata into constitutionally-compliant crates
 that can be processed by CrateProcessingService with canary validation.
+
+Policy:
+- No direct filesystem mutations outside governed mutation surfaces.
+- Writes/mkdir/rmtree must go through FileHandler (IntentGuard enforced).
+- CORE must never write to .intent/** (crate payload validation enforces this).
 """
 
 from __future__ import annotations
@@ -18,6 +23,7 @@ import yaml
 
 from shared.action_logger import action_logger
 from shared.config import settings
+from shared.infrastructure.storage.file_handler import FileHandler
 from shared.logger import getLogger
 
 
@@ -42,8 +48,14 @@ class CrateCreationService:
     def __init__(self) -> None:
         """Initialize service with constitutional paths."""
         self.repo_root: Path = settings.REPO_PATH
+
+        # Use constitutional path resolution for work dir; avoid hardcoded Path ops.
         self.inbox_path: Path = self.repo_root / "work" / "crates" / "inbox"
-        self.inbox_path.mkdir(parents=True, exist_ok=True)
+
+        # Ensure runtime directories via governed surface (no direct mkdir).
+        self._fh = FileHandler(str(self.repo_root))
+        self._fh.ensure_dir(self._to_repo_rel(self.inbox_path))
+
         self.crate_schema = settings.load(
             "charter.schemas.constitutional.intent_crate_schema"
         )
@@ -65,9 +77,13 @@ class CrateCreationService:
         """
         crate_id = self._generate_crate_id()
         crate_path = self.inbox_path / crate_id
+        crate_rel = self._to_repo_rel(crate_path)
+
         try:
-            crate_path.mkdir(parents=True, exist_ok=False)
+            # Create crate directory via governed surface
+            self._fh.ensure_dir(crate_rel, exist_ok=False)
             logger.info("Created crate directory: %s", crate_id)
+
             manifest = self._create_manifest(
                 crate_id=crate_id,
                 intent=intent,
@@ -75,9 +91,12 @@ class CrateCreationService:
                 crate_type=crate_type,
                 metadata=metadata or {},
             )
-            manifest_path = crate_path / "manifest.yaml"
-            manifest_path.write_text(yaml.dump(manifest, indent=2), encoding="utf-8")
-            self._write_payload_files(crate_path, payload_files)
+
+            manifest_rel = f"{crate_rel}/manifest.yaml"
+            self._fh.write_runtime_text(manifest_rel, yaml.dump(manifest, indent=2))
+
+            self._write_payload_files(crate_rel, payload_files)
+
             action_logger.log_event(
                 "crate.creation.success",
                 {
@@ -93,11 +112,15 @@ class CrateCreationService:
                 len(payload_files),
             )
             return crate_id
-        except Exception as e:
-            if crate_path.exists():
-                import shutil
 
-                shutil.rmtree(crate_path, ignore_errors=True)
+        except Exception as e:
+            # Cleanup via governed surface (no shutil.rmtree)
+            try:
+                self._fh.remove_tree(crate_rel)
+            except Exception:
+                # Cleanup failures should not mask the original error
+                logger.debug("Failed to cleanup crate dir after error: %s", crate_rel)
+
             logger.error("Failed to create crate: %s", e, exc_info=True)
             action_logger.log_event(
                 "crate.creation.failed", {"intent": intent, "error": str(e)}
@@ -142,6 +165,7 @@ class CrateCreationService:
             manifest["type"] = "CODE_MODIFICATION"
         elif crate_type == "CONSTITUTIONAL_AMENDMENT":
             manifest["type"] = "CONSTITUTIONAL_AMENDMENT"
+
         strict_manifest = {
             "crate_id": manifest["crate_id"],
             "author": manifest["author"],
@@ -153,28 +177,43 @@ class CrateCreationService:
         return strict_manifest
 
     def _write_payload_files(
-        self, crate_path: Path, payload_files: dict[str, str]
+        self, crate_rel: str, payload_files: dict[str, str]
     ) -> None:
         for relative_path, content in payload_files.items():
-            file_path = crate_path / relative_path
-            file_path.parent.mkdir(parents=True, exist_ok=True)
-            file_path.write_text(content, encoding="utf-8")
+            rel = Path(relative_path).as_posix().lstrip("./")
+
+            # Ensure crate-local relative paths only
+            if rel.startswith("/"):
+                raise ValueError(
+                    f"Absolute path not allowed in payload: {relative_path}"
+                )
+
+            file_rel = f"{crate_rel}/{rel}"
+            self._fh.write_runtime_text(file_rel, content)
             logger.debug("Wrote payload file: %s", relative_path)
 
     # ID: cee36a3f-693c-4326-9ecd-1101d9c92bf3
     def validate_payload_paths(self, payload_files: dict[str, str]) -> list[str]:
-        errors = []
-        allowed_roots = ["src/", "tests/", ".intent/charter/policies/governance/"]
+        errors: list[str] = []
+
+        # CORE must never write to .intent/**, so do not allow it here.
+        allowed_roots = ["src/", "tests/"]
+
         for path_str in payload_files.keys():
             path = Path(path_str)
+
             if path.is_absolute():
                 errors.append(f"Absolute path not allowed: {path_str}")
                 continue
             if ".." in path.parts:
                 errors.append(f"Path traversal not allowed: {path_str}")
                 continue
+            if path_str.startswith(".intent/") or path_str.startswith(".intent\\"):
+                errors.append(f".intent writes are forbidden: {path_str}")
+                continue
             if not any(path_str.startswith(root) for root in allowed_roots):
                 errors.append(f"Path must start with allowed root: {path_str}")
+
         return errors
 
     # ID: fc7dcb63-c6db-40db-b28d-e0f1518f4208
@@ -192,6 +231,13 @@ class CrateCreationService:
             "manifest": manifest,
             "status": "inbox",
         }
+
+    def _to_repo_rel(self, p: Path) -> str:
+        repo = Path(self.repo_root).resolve()
+        resolved = Path(p).resolve()
+        if resolved.is_relative_to(repo):
+            return resolved.relative_to(repo).as_posix()
+        raise ValueError(f"Path outside repository boundary: {p}")
 
 
 # ID: a5091f6d-4fb1-47d1-9769-3d59d82db735
