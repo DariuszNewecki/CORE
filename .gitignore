@@ -60,3 +60,4 @@ test_placement.py
 
 # Developer helpers / local scripts (do not version)
 scripts/dev/
+.env.bak
