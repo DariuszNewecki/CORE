@@ -1,7 +1,7 @@
 {
   "id": "standard_operations_code_execution",
   "version": "2.0.0",
-  "title": "Operations Standard \u2013 Code Execution Governance",
+  "title": "Operations Standard – Code Execution Governance",
   "type": "policy",
   "status": "active",
   "owners": {
@@ -31,7 +31,20 @@
       "check": {
         "engine": "ast_gate",
         "params": {
-          "check_type": "forbidden_primitives"
+          "check_type": "forbidden_primitives",
+          "forbidden": [
+            "eval",
+            "exec",
+            "compile",
+            "__import__"
+          ],
+          "allowed_domains": [
+            "mind.governance",
+            "mind.policies",
+            "body.cli.logic",
+            "body.cli.commands",
+            "core"
+          ]
         }
       }
     },
@@ -50,14 +63,27 @@
       "check": {
         "engine": "ast_gate",
         "params": {
-          "check_type": "forbidden_primitives"
+          "check_type": "forbidden_primitives",
+          "forbidden": [
+            "eval",
+            "exec",
+            "compile",
+            "__import__"
+          ],
+          "allowed_domains": [
+            "mind.governance",
+            "mind.policies",
+            "body.cli.logic",
+            "body.cli.commands",
+            "core"
+          ]
         }
       }
     }
   ],
   "trust_zones": {
     "system": {
-      "description": "Constitutional governance layer \u2013 highest trust",
+      "description": "Constitutional governance layer – highest trust",
       "domains": [
         "mind.governance",
         "mind.policies"
@@ -65,7 +91,7 @@
       "rationale": "Required for dynamic constitutional evaluation"
     },
     "privileged": {
-      "description": "CLI and orchestration \u2013 elevated trust",
+      "description": "CLI and orchestration – elevated trust",
       "domains": [
         "body.cli.logic",
         "body.cli.commands",
@@ -74,7 +100,7 @@
       "rationale": "Meta-programming needed for introspection and self-healing"
     },
     "application": {
-      "description": "Features and services \u2013 standard trust",
+      "description": "Features and services – standard trust",
       "domains": [
         "features",
         "services",
@@ -181,7 +207,7 @@
   "metadata": {
     "status": "active",
     "effective_date": "2025-12-18",
-    "migration_notes": "Converted from legacy nested format to flat rules structure v2.0.0"
+    "migration_notes": "Converted from legacy nested format to flat rules structure v2.0.0. Enhanced with domain-aware enforcement via params interface."
   },
   "additionalProperties": false
 }

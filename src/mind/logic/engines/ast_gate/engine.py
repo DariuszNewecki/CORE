@@ -147,7 +147,15 @@ class ASTGateEngine(BaseEngine):
             violations.extend(PurityChecks.check_forbidden_decorators(tree, forbidden))
         elif check_type == "forbidden_primitives":
             forbidden = params.get("forbidden", []) or params.get("primitives", [])
-            violations.extend(PurityChecks.check_forbidden_primitives(tree, forbidden))
+            allowed_domains = params.get("allowed_domains", [])
+            violations.extend(
+                PurityChecks.check_forbidden_primitives(
+                    tree,
+                    forbidden,
+                    file_path=file_path,
+                    allowed_domains=allowed_domains,
+                )
+            )
         elif check_type == "no_print_statements":
             violations.extend(PurityChecks.check_no_print_statements(tree))
         elif check_type == "required_decorator":

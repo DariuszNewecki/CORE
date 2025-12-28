@@ -30,6 +30,14 @@
       "Knowledge bases (informational content without checks)"
     ]
   },
+  "format_status": {
+    "current_version": "v2.0.0",
+    "status": "stable",
+    "migration_completed": "2024-12-28",
+    "description": "All CORE policies use v2 flat rules format. Legacy nested formats have been removed from the system.",
+    "enforcement": "PolicyFormatCheck enforces v2 format at runtime, rejecting any legacy formats.",
+    "parser_simplification": "All parsers updated to use single-path v2 format loading. Backward compatibility code removed."
+  },
   "canonical_structure": {
     "description": "Documents containing enforceable rules MUST use a single flat 'rules' array at the top level. All rules exist in this array regardless of their category, type, or enforcement level.\n",
     "schema_resolution": {
@@ -225,98 +233,6 @@
       }
     }
   },
-  "deprecated_format": {
-    "description": "The following nested structures are DEPRECATED and will be removed in version 3.0.0 of this standard.\n",
-    "legacy_patterns": [
-      {
-        "section_name": "style_rules",
-        "replacement": "rules array with category='style'",
-        "deprecated_since": "v2.0.0",
-        "removal_target": "v3.0.0"
-      },
-      {
-        "section_name": "naming_conventions",
-        "replacement": "rules array with category='naming', subcategory='code|intent'",
-        "deprecated_since": "v2.0.0",
-        "removal_target": "v3.0.0"
-      },
-      {
-        "section_name": "capability_rules",
-        "replacement": "rules array with category='capabilities'",
-        "deprecated_since": "v2.0.0",
-        "removal_target": "v3.0.0"
-      },
-      {
-        "section_name": "agent_rules",
-        "replacement": "rules array with category='agent_governance'",
-        "deprecated_since": "v2.0.0",
-        "removal_target": "v3.0.0"
-      },
-      {
-        "section_name": "safety_rules",
-        "replacement": "rules array with category='safety'",
-        "deprecated_since": "v2.0.0",
-        "removal_target": "v3.0.0"
-      }
-    ],
-    "why_deprecated": [
-      "Parsers must know every possible section name (fragile)",
-      "Adding new categories breaks existing parsers",
-      "Inconsistent: some sections are lists, some are nested dicts",
-      "Not aligned with industry standards (Kubernetes, AWS, OPA)",
-      "Harder to maintain and evolve"
-    ]
-  },
-  "migration_timeline": {
-    "v2_x": {
-      "status": "Current - Backward Compatible",
-      "description": "Both formats are supported. Parsers and auditors MUST handle both flat 'rules' array and legacy nested sections.\n",
-      "policy_enforcement": [
-        "New documents SHOULD use flat rules array",
-        "Existing documents MAY continue using legacy format",
-        "No warnings issued for legacy format"
-      ]
-    },
-    "v3_0": {
-      "status": "Future - Deprecation Warnings",
-      "target_date": "2026-Q2",
-      "description": "Legacy format is officially deprecated. Parsers MUST emit warnings when encountering nested sections.\n",
-      "policy_enforcement": [
-        "All NEW documents MUST use flat rules array",
-        "Existing documents SHOULD migrate to new format",
-        "Warnings issued for legacy format",
-        "Tools provided to auto-migrate legacy documents"
-      ]
-    },
-    "v4_0": {
-      "status": "Future - Breaking Change",
-      "target_date": "2026-Q4",
-      "description": "Legacy format is removed. Only flat rules array supported.\n",
-      "policy_enforcement": [
-        "ALL documents MUST use flat rules array",
-        "Legacy format rejected by validators",
-        "Breaking change - major version bump"
-      ]
-    }
-  },
-  "migration_tools": {
-    "description": "Tools to help migrate from legacy to new format",
-    "auto_migration_script": {
-      "path": "scripts/migrate_rules_format.py",
-      "usage": "python3 scripts/migrate_rules_format.py --file POLICY.json",
-      "capabilities": [
-        "Detects legacy nested sections",
-        "Extracts rules and adds category/subcategory properties",
-        "Consolidates into single flat rules array",
-        "Preserves all rule metadata and properties",
-        "Creates backup before modifying"
-      ]
-    },
-    "validation_check": {
-      "command": "core-admin governance validate-structure",
-      "description": "Checks all .intent documents for compliance with this standard"
-    }
-  },
   "industry_patterns": {
     "description": "This standard aligns with established patterns from major platforms that have proven effective at scale.\n",
     "kubernetes": {
@@ -344,21 +260,18 @@
       "description": "Rule with all optional fields",
       "content": "{\n  \"id\": \"style.linter_required\",\n  \"category\": \"style\",\n  \"subcategory\": \"quality\",\n  \"statement\": \"All changes MUST pass ruff (lint) before merge.\",\n  \"enforcement\": \"error\",\n  \"scope\": [\n    \"src/**/*.py\",\n    \"tests/**/*.py\"\n  ],\n  \"rationale\": \"Linting catches common bugs and enforces consistent code style, reducing review burden and improving code quality.\",\n  \"exceptions\": [\n    \"Generated code with @generated marker\",\n    \"Third-party vendored code\"\n  ],\n  \"details\": {\n    \"fix_command\": \"ruff check --fix src/ tests/\",\n    \"documentation\": \"https://docs.astral.sh/ruff/\"\n  }\n}\n"
     },
-    "migrated_policy": {
-      "description": "Before and after migration from legacy format",
-      "before": "{\n  \"style_rules\": [\n    {\n      \"id\": \"style.linter_required\",\n      \"statement\": \"...\"\n    }\n  ],\n  \"naming_conventions\": {\n    \"code\": [\n      {\n        \"id\": \"code.python_module_naming\",\n        \"statement\": \"...\"\n      }\n    ],\n    \"intent\": [\n      {\n        \"id\": \"intent.policy_file_naming\",\n        \"statement\": \"...\"\n      }\n    ]\n  }\n}\n",
-      "after": "{\n  \"rules\": [\n    {\n      \"id\": \"style.linter_required\",\n      \"category\": \"style\",\n      \"statement\": \"...\"\n    },\n    {\n      \"id\": \"code.python_module_naming\",\n      \"category\": \"naming\",\n      \"subcategory\": \"code\",\n      \"statement\": \"...\"\n    },\n    {\n      \"id\": \"intent.policy_file_naming\",\n      \"category\": \"naming\",\n      \"subcategory\": \"intent\",\n      \"statement\": \"...\"\n    }\n  ]\n}\n"
+    "category_filtering": {
+      "description": "How to filter rules by category in code",
+      "content": "# Load all rules from document\nall_rules = document.get('rules', [])\n\n# Filter by category\nstyle_rules = [r for r in all_rules if r.get('category') == 'style']\n\n# Filter by category and subcategory\ncode_naming_rules = [\n    r for r in all_rules\n    if r.get('category') == 'naming'\n    and r.get('subcategory') == 'code'\n]\n"
     }
   },
   "parser_guidance": {
-    "description": "How parsers and auditors should handle rules",
+    "description": "How parsers and auditors should handle v2 format",
     "loading_rules": {
-      "v2_backward_compatible": "# Support both formats during v2.x\nrules = []\n\n# Try new format first (preferred)\nif \"rules\" in document and isinstance(document[\"rules\"], list):\n    rules = document[\"rules\"]\n\n# Fallback to legacy format\nelse:\n    # Check all known legacy sections\n    for section in [\"style_rules\", \"agent_rules\", \"naming_conventions\"]:\n        if section in document:\n            if isinstance(document[section], list):\n                rules.extend(document[section])\n            elif isinstance(document[section], dict):\n                # Handle nested structure (like naming_conventions)\n                for subsection, subrules in document[section].items():\n                    if isinstance(subrules, list):\n                        rules.extend(subrules)\n\nreturn rules\n",
-      "v3_with_warnings": "# Emit warnings for legacy format in v3.x\nif \"rules\" in document:\n    return document[\"rules\"]\n\n# Legacy format detected\nlogger.warning(\n    f\"Document {document_path} uses deprecated legacy format. \"\n    f\"Migrate to 'rules' array by 2026-Q4. \"\n    f\"See RULES-STRUCTURE.json for migration guide.\"\n)\n# ... then load from legacy sections\n",
-      "v4_strict": "# Only accept new format in v4.x\nif \"rules\" not in document:\n    raise ValidationError(\n        f\"Document {document_path} missing required 'rules' array. \"\n        f\"Legacy formats removed in v4.0. \"\n        f\"See RULES-STRUCTURE.json migration guide.\"\n    )\nreturn document[\"rules\"]\n"
+      "v2_format": "# Load rules from v2 flat format (stable)\nrules = document.get('rules', [])\nif not isinstance(rules, list):\n    raise ValidationError('rules must be an array')\nreturn rules\n"
     },
     "filtering_by_category": {
-      "example": "# Filter rules by category\nall_rules = document.get(\"rules\", [])\nstyle_rules = [r for r in all_rules if r.get(\"category\") == \"style\"]\n\n# Filter by category and subcategory\ncode_naming_rules = [\n    r for r in all_rules\n    if r.get(\"category\") == \"naming\"\n    and r.get(\"subcategory\") == \"code\"\n]\n"
+      "example": "# Filter rules by category\nall_rules = document.get('rules', [])\nstyle_rules = [r for r in all_rules if r.get('category') == 'style']\n\n# Filter by category and subcategory\ncode_naming_rules = [\n    r for r in all_rules\n    if r.get('category') == 'naming'\n    and r.get('subcategory') == 'code'\n]\n"
     }
   },
   "validation_rules": {

@@ -1,16 +1,16 @@
 {
   "metadata": {
-    "generated_at_utc": "2025-12-27T08:36:29.790181+00:00",
+    "generated_at_utc": "2025-12-28T14:37:07.479172+00:00",
     "evidence_file": "reports/audit/latest_audit.json",
     "evidence_key_used": "executed_rules",
-    "total_executed_ids": 198,
+    "total_executed_ids": 270,
     "total_policy_files": 37,
-    "flat_format_policies": 33,
+    "flat_format_policies": 37,
     "nested_format_policies": 0
   },
   "summary": {
-    "rules_total": 181,
-    "rules_enforced": 181,
+    "rules_total": 184,
+    "rules_enforced": 184,
     "rules_implementable": 0,
     "rules_declared_only": 0,
     "execution_rate": 100.0,
@@ -26,20 +26,6 @@
         "category": "uncategorized",
         "check_engine": "ast_gate",
         "check_type": "restrict_event_loop_creation",
-        "implementable": true
-      },
-      "coverage_status": "enforced",
-      "in_executed_ids": true
-    },
-    {
-      "rule": {
-        "rule_id": "caps.id_format",
-        "statement": "Source code linkers MUST use the form '# ID: <uuid>'.",
-        "severity": "error",
-        "policy": "code.capabilities",
-        "category": "uncategorized",
-        "check_engine": "llm_gate",
-        "check_type": null,
         "implementable": true
       },
       "coverage_status": "enforced",
@@ -66,9 +52,9 @@
         "severity": "error",
         "policy": "code.capabilities",
         "category": "uncategorized",
-        "check_engine": "llm_gate",
+        "check_engine": "regex_gate",
         "check_type": null,
-        "implementable": true
+        "implementable": false
       },
       "coverage_status": "enforced",
       "in_executed_ids": true
@@ -273,12 +259,12 @@
       "rule": {
         "rule_id": "code_standards.max_file_lines",
         "statement": "Python modules MUST NOT exceed line limits based on their role: Core/Orchestration (600 lines), Features/Services (400 lines), Utilities (200 lines).",
-        "severity": "error",
+        "severity": "warning",
         "policy": "code.refactor",
         "category": "uncategorized",
-        "check_engine": "llm_gate",
+        "check_engine": "glob_gate",
         "check_type": null,
-        "implementable": true
+        "implementable": false
       },
       "coverage_status": "enforced",
       "in_executed_ids": true
@@ -290,8 +276,8 @@
         "severity": "warning",
         "policy": "code.refactor",
         "category": "uncategorized",
-        "check_engine": "llm_gate",
-        "check_type": null,
+        "check_engine": "ast_gate",
+        "check_type": "max_function_length",
         "implementable": true
       },
       "coverage_status": "enforced",
@@ -369,20 +355,6 @@
     },
     {
       "rule": {
-        "rule_id": "style.capability_id_placement",
-        "statement": "Primary public symbols representing capabilities MUST have '# ID: <uuid>' tags above their definition.",
-        "severity": "warning",
-        "policy": "code.style",
-        "category": "uncategorized",
-        "check_engine": "llm_gate",
-        "check_type": null,
-        "implementable": true
-      },
-      "coverage_status": "enforced",
-      "in_executed_ids": true
-    },
-    {
-      "rule": {
         "rule_id": "style.import_order",
         "statement": "Imports MUST follow canonical grouping and ordering as enforced by the linter.",
         "severity": "warning",
@@ -429,6 +401,20 @@
         "statement": "Async orchestration helpers bridging CLI and domain MUST be private.",
         "severity": "error",
         "policy": "code.symbols",
+        "category": "uncategorized",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "code_index.meta_aggregator",
+        "statement": "This meta-policy aggregates sub-policies listed in the 'aggregates' field.",
+        "severity": "info",
+        "policy": "code_standards",
         "category": "uncategorized",
         "check_engine": "llm_gate",
         "check_type": null,
@@ -668,8 +654,8 @@
         "severity": "error",
         "policy": "standard_architecture_body_contracts",
         "category": "uncategorized",
-        "check_engine": "llm_gate",
-        "check_type": null,
+        "check_engine": "ast_gate",
+        "check_type": "generic_primitive",
         "implementable": true
       },
       "coverage_status": "enforced",
@@ -971,6 +957,34 @@
     },
     {
       "rule": {
+        "rule_id": "irritation.placeholder",
+        "statement": "This policy document is currently being defined.",
+        "severity": "info",
+        "policy": "standard_architecture_irritation_heuristic",
+        "category": "uncategorized",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "layers.placeholder",
+        "statement": "This policy document is currently being defined.",
+        "severity": "info",
+        "policy": "standard_architecture_layer_contracts",
+        "category": "uncategorized",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
         "rule_id": "service_rules.auto_rule_0",
         "statement": "Service modules in features/*_service.py and services/* MUST NOT import rich.Console or use print-based terminal output.\n",
         "severity": "error",
@@ -1059,6 +1073,20 @@
         "statement": "Python types MUST map to the most specific JSON Schema type possible.",
         "severity": "error",
         "policy": "standard_architecture_tool_definition",
+        "category": "uncategorized",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "ui.placeholder",
+        "statement": "This policy document is currently being defined.",
+        "severity": "info",
+        "policy": "standard_architecture_user_interface",
         "category": "uncategorized",
         "check_engine": "llm_gate",
         "check_type": null,
@@ -1251,6 +1279,20 @@
     },
     {
       "rule": {
+        "rule_id": "linkage.capability.unassigned",
+        "statement": "Public symbols MUST have capability IDs assigned in the knowledge graph (capability field must not be 'unassigned').",
+        "severity": "error",
+        "policy": "standard_code_linkage",
+        "category": "uncategorized",
+        "check_engine": "knowledge_gate",
+        "check_type": "capability_assignment",
+        "implementable": false
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
         "rule_id": "purity.forbidden_decorators",
         "statement": "Source code MUST NOT contain descriptive metadata decorators: @capability, @meta, or @owner.",
         "severity": "error",
@@ -1295,12 +1337,12 @@
       "rule": {
         "rule_id": "purity.safety_contract_presence",
         "statement": "Public state-modifying functions MUST have an @atomic_action decorator.",
-        "severity": "error",
+        "severity": "warning",
         "policy": "standard_code_purity",
         "category": "uncategorized",
         "check_engine": "ast_gate",
         "check_type": "required_decorator",
-        "implementable": false
+        "implementable": true
       },
       "coverage_status": "enforced",
       "in_executed_ids": true
@@ -1313,8 +1355,8 @@
         "policy": "standard_code_purity",
         "category": "uncategorized",
         "check_engine": "ast_gate",
-        "check_type": "decorator_args",
-        "implementable": false
+        "check_type": "generic_primitive",
+        "implementable": true
       },
       "coverage_status": "enforced",
       "in_executed_ids": true
@@ -2582,6 +2624,7 @@
     "cli.runtime.single_loop_owner",
     "code.python_module_naming",
     "code.python_test_module_naming",
+    "code_index.meta_aggregator",
     "code_quality.health.module_outlier",
     "code_standards.max_file_lines",
     "code_standards.max_function_lines",
@@ -2633,13 +2676,16 @@
     "ir.postmortem_required",
     "ir.timeline_required",
     "ir.triage_required",
+    "irritation.placeholder",
     "knowledge.capability_mapping_ssot_is_links",
     "knowledge.database_ssot",
     "knowledge.limited_legacy_access",
     "knowledge.symbols_key_is_label",
+    "layers.placeholder",
     "layout.import_grouping",
     "layout.src_module_header",
     "linkage.assign_ids",
+    "linkage.capability.unassigned",
     "linkage.duplicate_ids",
     "logging.cli_command_output",
     "logging.error_logging",
@@ -2722,6 +2768,73 @@
     "service_rules.auto_rule_2",
     "service_rules.auto_rule_3",
     "service_rules.auto_rule_4",
+    "standard_architecture_agent_rules.pattern.cognitive_agent",
+    "standard_architecture_agent_rules.pattern.learning_agent",
+    "standard_architecture_agent_rules.pattern.orchestrator_agent",
+    "standard_architecture_agent_rules.pattern.validator_agent",
+    "standard_architecture_body_contracts.action_results.0",
+    "standard_architecture_body_contracts.action_results.1",
+    "standard_architecture_body_contracts.action_results.2",
+    "standard_architecture_body_contracts.action_results.3",
+    "standard_architecture_body_contracts.action_results.4",
+    "standard_architecture_body_contracts.configuration_access.0",
+    "standard_architecture_body_contracts.configuration_access.1",
+    "standard_architecture_body_contracts.configuration_access.2",
+    "standard_architecture_body_contracts.configuration_access.3",
+    "standard_architecture_body_contracts.dependencies.0",
+    "standard_architecture_body_contracts.dependencies.1",
+    "standard_architecture_body_contracts.dependencies.2",
+    "standard_architecture_body_contracts.error_handling.0",
+    "standard_architecture_body_contracts.error_handling.1",
+    "standard_architecture_body_contracts.error_handling.2",
+    "standard_architecture_body_contracts.error_handling.3",
+    "standard_architecture_body_contracts.error_handling.4",
+    "standard_architecture_body_contracts.headless_rules.0",
+    "standard_architecture_body_contracts.headless_rules.1",
+    "standard_architecture_body_contracts.headless_rules.2",
+    "standard_architecture_body_contracts.headless_rules.3",
+    "standard_architecture_body_contracts.headless_rules.4",
+    "standard_architecture_body_contracts.logging.0",
+    "standard_architecture_body_contracts.logging.1",
+    "standard_architecture_body_contracts.logging.2",
+    "standard_architecture_body_contracts.logging.3",
+    "standard_architecture_body_contracts.logging.4",
+    "standard_architecture_body_contracts.logging.5",
+    "standard_architecture_body_contracts.logging.6",
+    "standard_architecture_body_contracts.side_effects.0",
+    "standard_architecture_body_contracts.side_effects.1",
+    "standard_architecture_body_contracts.side_effects.2",
+    "standard_architecture_body_contracts.side_effects.3",
+    "standard_architecture_body_contracts.testing_contract.0",
+    "standard_architecture_body_contracts.testing_contract.1",
+    "standard_architecture_body_contracts.testing_contract.2",
+    "standard_architecture_body_contracts.testing_contract.3",
+    "standard_architecture_body_contracts.testing_contract.4",
+    "standard_architecture_body_contracts.write_semantics.0",
+    "standard_architecture_body_contracts.write_semantics.1",
+    "standard_architecture_body_contracts.write_semantics.2",
+    "standard_architecture_body_contracts.write_semantics.3",
+    "standard_architecture_body_contracts.write_semantics.4",
+    "standard_architecture_body_contracts.write_semantics.5",
+    "standard_architecture_command_rules.pattern.action_pattern",
+    "standard_architecture_command_rules.pattern.check_pattern",
+    "standard_architecture_command_rules.pattern.inspect_pattern",
+    "standard_architecture_command_rules.pattern.manage_pattern",
+    "standard_architecture_command_rules.pattern.run_pattern",
+    "standard_architecture_service_rules.pattern.facade_pattern",
+    "standard_architecture_service_rules.pattern.observer_pattern",
+    "standard_architecture_service_rules.pattern.repository_pattern",
+    "standard_architecture_service_rules.pattern.stateful_service",
+    "standard_architecture_service_rules.pattern.stateless_transformer",
+    "standard_architecture_workflow_rules.pattern.autonomous_workflow",
+    "standard_architecture_workflow_rules.pattern.dag_workflow",
+    "standard_architecture_workflow_rules.pattern.event_driven_workflow",
+    "standard_architecture_workflow_rules.pattern.linear_workflow",
+    "standard_architecture_workflow_rules.pattern.saga_workflow",
+    "standard_architecture_workflow_rules.ui_contract.0",
+    "standard_architecture_workflow_rules.ui_contract.1",
+    "standard_architecture_workflow_rules.ui_contract.2",
+    "standard_architecture_workflow_rules.ui_contract.3",
     "structural_compliance.import_violation",
     "style.capability_id_placement",
     "style.docstrings_public_apis",
@@ -2735,6 +2848,7 @@
     "symbols.public_capability_id_and_docstring",
     "tools.explicit_return_contract",
     "tools.type_mapping_strictness",
+    "ui.placeholder",
     "vector.bidirectional_sync_integrity",
     "vector.collection_lifecycle_management",
     "vector.collection_naming_convention",
@@ -2789,9 +2903,9 @@
       "format": "flat"
     },
     "code_standards": {
-      "title": "Code Standards Policy (Backward Compatibility)",
+      "title": "Code Standards Policy (Aggregated)",
       "id": "code_standards",
-      "format": "unknown"
+      "format": "flat"
     },
     "schema_dialect": {
       "title": "Schema Dialect Standards",
@@ -2841,12 +2955,12 @@
     "standard_architecture_irritation_heuristic": {
       "title": "Architecture Standard – Irritation Heuristic",
       "id": "standard_architecture_irritation_heuristic",
-      "format": "unknown"
+      "format": "flat"
     },
     "standard_architecture_layer_contracts": {
       "title": "Architecture Standard — Layer Contracts & Symbol Governance",
       "id": "standard_architecture_layer_contracts",
-      "format": "unknown"
+      "format": "flat"
     },
     "standard_architecture_service_rules": {
       "title": "Architecture Standard – Service Patterns",
@@ -2861,7 +2975,7 @@
     "standard_architecture_user_interface": {
       "title": "Architecture Standard – User Interface",
       "id": "standard_architecture_user_interface",
-      "format": "unknown"
+      "format": "flat"
     },
     "standard_architecture_vector_service_standards": {
       "title": "Architecture Standard – Vector Service Standards",

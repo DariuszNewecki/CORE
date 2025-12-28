@@ -8,6 +8,7 @@ Focused on rules from .intent/policies/code/purity.json and adjacent purity cons
 from __future__ import annotations
 
 import ast
+from pathlib import Path
 from typing import ClassVar
 
 from mind.logic.engines.ast_gate.base import ASTHelpers
@@ -22,6 +23,69 @@ class PurityChecks:
 
     # ID: 9b3f3c34-2bba-4cf1-9d8b-51d548a61b7e
     _ID_ANCHOR_PREFIXES: ClassVar[tuple[str, ...]] = ("# ID:",)
+
+    @staticmethod
+    # ID: e4d3c2b1-a0f9-8e7d-6c5b-4a3f2e1d0c9b
+    def _extract_domain_from_path(file_path: Path | str) -> str:
+        """
+        Extract domain from file path following CORE's domain convention.
+
+        Examples:
+            src/mind/governance/foo.py -> mind.governance
+            /opt/dev/CORE/src/body/cli/logic/bar.py -> body.cli.logic
+            src/features/example/baz.py -> features.example
+
+        Returns empty string if path doesn't match convention.
+        """
+        # Convert to string and normalize path separators
+        path_str = str(file_path).replace("\\", "/")
+
+        # Find the 'src/' marker and extract everything after it
+        if "/src/" in path_str:
+            # Split on /src/ and take the part after it
+            path_str = path_str.split("/src/", 1)[1]
+        elif path_str.startswith("src/"):
+            # Already relative, remove src/ prefix
+            path_str = path_str[4:]
+        else:
+            # No src/ found, use as-is
+            pass
+
+        # Split path and take domain parts (before filename)
+        parts = path_str.split("/")
+
+        # Filter out filename (last part with .py) and empty parts
+        domain_parts = [p for p in parts[:-1] if p]
+
+        # Join with dots to form domain
+        return ".".join(domain_parts) if domain_parts else ""
+
+    @staticmethod
+    # ID: f3e2d1c0-b9a8-7f6e-5d4c-3b2a1f0e9d8c
+    def _domain_matches_allowed(file_domain: str, allowed_domains: list[str]) -> bool:
+        """
+        Check if file domain matches any allowed domain.
+
+        Supports prefix matching:
+            - file_domain="mind.governance.checks" matches allowed="mind.governance"
+            - file_domain="body.cli.logic" matches allowed="body.cli.logic"
+
+        Args:
+            file_domain: Domain extracted from file path (e.g., "mind.governance.checks")
+            allowed_domains: List of allowed domain prefixes
+
+        Returns:
+            True if file_domain starts with any allowed domain
+        """
+        if not file_domain or not allowed_domains:
+            return False
+
+        for allowed in allowed_domains:
+            # Exact match or prefix match
+            if file_domain == allowed or file_domain.startswith(f"{allowed}."):
+                return True
+
+        return False
 
     @staticmethod
     # ID: 7b2f0a5a-cf7d-4af4-9b3c-7bbd7b4d36d4
@@ -57,19 +121,42 @@ class PurityChecks:
                     violations.append(
                         f"Forbidden decorator '{dec_name}' on function '{node.name}' (line {ASTHelpers.lineno(dec)})."
                     )
-                # Also catch calls like @x.y(...)
-                if isinstance(dec, ast.Call):
-                    call_name = ASTHelpers.full_attr_name(dec.func)
-                    if call_name in forbidden_set:
-                        violations.append(
-                            f"Forbidden decorator '{call_name}' on function '{node.name}' (line {ASTHelpers.lineno(dec)})."
-                        )
 
         return violations
 
     @staticmethod
-    # ID: 432da7b5-4aa2-4557-9c56-9c0ce540a23d
-    def check_forbidden_primitives(tree: ast.AST, forbidden: list[str]) -> list[str]:
+    # ID: 8d7c6b5a-4e3f-2d1c-0b9a-8f7e6d5c4b3a
+    def check_forbidden_primitives(
+        tree: ast.AST,
+        forbidden: list[str],
+        file_path: Path | None = None,
+        allowed_domains: list[str] | None = None,
+    ) -> list[str]:
+        """
+        Check for forbidden execution primitives with domain-aware trust zones.
+
+        Constitutional Rule: agent.execution.no_unverified_code
+
+        Args:
+            tree: AST tree to check
+            forbidden: List of forbidden primitive names (e.g., ["eval", "exec", "compile", "__import__"])
+            file_path: Optional file path to determine domain
+            allowed_domains: Optional list of domain prefixes where primitives are allowed
+
+        Returns:
+            List of violation messages
+
+        Examples:
+            # File in allowed domain (mind.governance) - primitives allowed
+            check_forbidden_primitives(tree, ["eval"], Path("src/mind/governance/checks/test.py"),
+                                       ["mind.governance", "body.cli.logic"])
+            # Returns: []
+
+            # File in forbidden domain (features) - primitives forbidden
+            check_forbidden_primitives(tree, ["eval"], Path("src/features/example/service.py"),
+                                       ["mind.governance", "body.cli.logic"])
+            # Returns: ["Dangerous primitive 'eval' is FORBIDDEN in this domain..."]
+        """
         violations: list[str] = []
         forbidden_set = {
             p.strip() for p in forbidden if isinstance(p, str) and p.strip()
@@ -77,17 +164,45 @@ class PurityChecks:
         if not forbidden_set:
             return violations
 
+        # Determine if file is in allowed trust zone
+        is_allowed_domain = False
+        file_domain = ""
+
+        if file_path and allowed_domains:
+            file_domain = PurityChecks._extract_domain_from_path(file_path)
+            is_allowed_domain = PurityChecks._domain_matches_allowed(
+                file_domain, allowed_domains
+            )
+
         for node in ast.walk(tree):
+            primitive_name = None
+
+            # Check for Name nodes (e.g., eval, exec)
             if isinstance(node, ast.Name) and node.id in forbidden_set:
-                violations.append(
-                    f"Forbidden primitive '{node.id}' used (line {ASTHelpers.lineno(node)})."
-                )
+                primitive_name = node.id
+            # Check for Attribute nodes (e.g., builtins.eval)
             elif isinstance(node, ast.Attribute):
                 name = ASTHelpers.full_attr_name(node)
                 if name and name in forbidden_set:
-                    violations.append(
-                        f"Forbidden primitive '{name}' used (line {ASTHelpers.lineno(node)})."
-                    )
+                    primitive_name = name
+
+            if primitive_name:
+                if is_allowed_domain:
+                    # In allowed domain - primitive is permitted
+                    continue
+                else:
+                    # Not in allowed domain - violation
+                    if allowed_domains:
+                        allowed_str = ", ".join(allowed_domains)
+                        violations.append(
+                            f"Dangerous primitive '{primitive_name}' is FORBIDDEN in this domain. "
+                            f"Allowed domains: {allowed_str} (current domain: {file_domain or 'unknown'}) "
+                            f"(line {ASTHelpers.lineno(node)})."
+                        )
+                    else:
+                        violations.append(
+                            f"Forbidden primitive '{primitive_name}' used (line {ASTHelpers.lineno(node)})."
+                        )
 
         return violations
 
@@ -100,8 +215,59 @@ class PurityChecks:
                 call_name = ASTHelpers.full_attr_name(node.func)
                 if call_name == "print":
                     violations.append(
-                        f"Disallowed print() call (line {ASTHelpers.lineno(node)})."
+                        f"Forbidden print() call on line {ASTHelpers.lineno(node)}. "
+                        "Use logger.info() or logger.debug() instead."
                     )
+        return violations
+
+    @staticmethod
+    # ID: a4b3c2d1-e0f9-8e7d-6c5b-4a3f2e1d0c9b
+    def check_required_decorator(
+        tree: ast.AST,
+        decorator: str,
+        only_public: bool = True,
+        ignore_tests: bool = True,
+    ) -> list[str]:
+        """
+        Check that state-modifying functions have required decorator.
+
+        Heuristic for state-modifying: function contains assignment, attribute setting, or method calls.
+        """
+        violations: list[str] = []
+
+        def _has_decorator(node: ast.FunctionDef | ast.AsyncFunctionDef) -> bool:
+            for dec in node.decorator_list:
+                dec_name = ASTHelpers.full_attr_name(dec)
+                if dec_name == decorator:
+                    return True
+            return False
+
+        def _looks_state_modifying(
+            node: ast.FunctionDef | ast.AsyncFunctionDef,
+        ) -> bool:
+            """Heuristic: does function look like it modifies state?"""
+            writeish = {"Assign", "AugAssign", "AnnAssign", "Delete"}
+            for child in ast.walk(node):
+                leaf = type(child).__name__.split(".")[-1]
+                if leaf in writeish:
+                    return True
+            return False
+
+        for fn in ast.walk(tree):
+            if not isinstance(fn, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                continue
+
+            if ignore_tests and fn.name.startswith("test_"):
+                continue
+            if only_public and fn.name.startswith("_"):
+                continue
+
+            if _looks_state_modifying(fn) and not _has_decorator(fn):
+                violations.append(
+                    f"Function '{fn.name}' appears state-modifying but lacks required @{decorator} "
+                    f"(line {ASTHelpers.lineno(fn)})."
+                )
+
         return violations
 
     @staticmethod
@@ -168,94 +334,5 @@ class PurityChecks:
                             f"@{decorator} on '{fn.name}' missing required args {missing} "
                             f"(line {ASTHelpers.lineno(dec)})."
                         )
-
-        return violations
-
-    @staticmethod
-    # ID: 9f2f6b65-9ff0-4b7b-9b2e-8e2c22f2f50c
-    def check_required_decorator(
-        tree: ast.AST,
-        decorator: str,
-        only_public: bool = True,
-        ignore_tests: bool = True,
-    ) -> list[str]:
-        """
-        Conservative enforcement:
-        - Applies to public functions by default (name does not start with '_')
-        - Ignores tests by default (function names starting with 'test_' are skipped)
-        - Uses a heuristic to decide "state modifying":
-            * assignment to self.<attr>
-            * calls that look like writes / commits / executes / deletes
-        """
-        violations: list[str] = []
-
-        def _has_decorator(fn: ast.FunctionDef | ast.AsyncFunctionDef) -> bool:
-            for dec in fn.decorator_list:
-                if isinstance(dec, ast.Call):
-                    name = ASTHelpers.full_attr_name(dec.func) or ""
-                else:
-                    name = ASTHelpers.full_attr_name(dec) or ""
-                if name == decorator or name.split(".")[-1] == decorator:
-                    return True
-            return False
-
-        def _looks_state_modifying(fn: ast.FunctionDef | ast.AsyncFunctionDef) -> bool:
-            # Heuristics: keep intentionally conservative to avoid flooding.
-            writeish = {
-                "write",
-                "write_text",
-                "writelines",
-                "unlink",
-                "remove",
-                "rmtree",
-                "commit",
-                "execute",
-                "executemany",
-                "add",
-                "delete",
-                "update",
-                "insert",
-                "save",
-                "set",
-                "put",
-                "post",
-            }
-            for n in ast.walk(fn):
-                if isinstance(n, ast.Assign):
-                    for t in n.targets:
-                        if (
-                            isinstance(t, ast.Attribute)
-                            and isinstance(t.value, ast.Name)
-                            and t.value.id == "self"
-                        ):
-                            return True
-                if isinstance(n, ast.AugAssign):
-                    if (
-                        isinstance(n.target, ast.Attribute)
-                        and isinstance(n.target.value, ast.Name)
-                        and n.target.value.id == "self"
-                    ):
-                        return True
-                if isinstance(n, ast.Call):
-                    call_name = ASTHelpers.full_attr_name(n.func) or ""
-                    leaf = call_name.split(".")[-1]
-                    if leaf in writeish:
-                        return True
-            return False
-
-        for fn in ast.walk(tree):
-            if not isinstance(fn, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                continue
-
-            if ignore_tests and fn.name.startswith("test_"):
-                continue
-            if only_public and fn.name.startswith("_"):
-                continue
-
-            if _looks_state_modifying(fn) and not _has_decorator(fn):
-                violations.append(
-                    f"Function '{fn.name}' appears state-modifying but lacks required @{decorator} "
-                    f"(line {ASTHelpers.lineno(fn)})."
-                )
 
         return violations

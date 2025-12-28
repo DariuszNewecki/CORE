@@ -45,6 +45,7 @@ from mind.governance.constitutional_auditor_dynamic import (
     run_dynamic_rules,
 )
 from shared.activity_logging import activity_run, new_activity_run
+from shared.infrastructure.storage.file_handler import FileHandler
 from shared.logger import getLogger
 from shared.models import AuditFinding, AuditSeverity
 from shared.path_utils import get_repo_root
@@ -68,11 +69,27 @@ def _utc_now_iso() -> str:
     return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
-def _safe_write_json(path: Path, payload: dict[str, Any]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_suffix(path.suffix + ".tmp")
-    tmp.write_text(json.dumps(payload, indent=2), encoding="utf-8")
-    tmp.replace(path)
+def _repo_rel(path: Path) -> str:
+    """
+    Convert an absolute path under repo root into a repo-relative string.
+    Raises if the path escapes the repository boundary.
+    """
+    repo_root = get_repo_root().resolve()
+    p = path.resolve()
+    try:
+        rel = p.relative_to(repo_root)
+    except ValueError as e:
+        raise ValueError(f"Path escapes repo boundary: {p}") from e
+    return str(rel).lstrip("./")
+
+
+def _safe_write_json(fs: FileHandler, path: Path, payload: dict[str, Any]) -> None:
+    """
+    Minimal, safe fix:
+    - Remove direct mkdir/write_text atomic logic.
+    - Delegate atomic write + directory creation to FileHandler (mutation surface).
+    """
+    fs.write_runtime_json(_repo_rel(path), payload)
 
 
 def _git_commit_sha(repo_root: Path) -> str | None:
@@ -174,7 +191,13 @@ class ConstitutionalAuditor:
 
     def __init__(self, context: AuditorContext):
         self.context = context
-        REPORTS_DIR.mkdir(parents=True, exist_ok=True)
+
+        # Governed mutation surface (IntentGuard enforced inside FileHandler)
+        self.fs = FileHandler(str(get_repo_root().resolve()))
+
+        # Ensure output dirs exist (no direct mkdir here)
+        self.fs.ensure_dir("reports")
+        self.fs.ensure_dir("reports/audit")
 
     def _discover_checks(self) -> list[type[BaseCheck]]:
         """Dynamically discovers all BaseCheck subclasses in the checks package."""
@@ -289,7 +312,9 @@ class ConstitutionalAuditor:
     def _write_findings(self, findings: list[AuditFinding]) -> Path:
         out_path = REPORTS_DIR / FINDINGS_FILENAME
         out_payload = [f.as_dict() for f in findings]
-        out_path.write_text(json.dumps(out_payload, indent=2), encoding="utf-8")
+        self.fs.write_runtime_text(
+            _repo_rel(out_path), json.dumps(out_payload, indent=2)
+        )
         return out_path
 
     def _write_processed_findings(
@@ -305,8 +330,10 @@ class ConstitutionalAuditor:
             dead_rule_ids=tuple(),  # No longer downgrading any rules
             downgrade_to=DOWNGRADE_SEVERITY_TO,
             write_reports=True,
+            file_handler=self.fs,  # ← ADD THIS LINE
+            repo_root=get_repo_root(),  # ← ADD THIS LINE
         )
-        out_path.write_text(json.dumps(processed, indent=2), encoding="utf-8")
+        self.fs.write_runtime_text(_repo_rel(out_path), json.dumps(processed, indent=2))
         return out_path
 
     def _write_audit_evidence(
@@ -338,7 +365,7 @@ class ConstitutionalAuditor:
             "executed_checks": sorted(executed_checks),
         }
 
-        _safe_write_json(evidence_path, payload)
+        _safe_write_json(self.fs, evidence_path, payload)
         return evidence_path
 
     # ID: 178b5c18-373c-4d39-be91-9c71f37f4a23
@@ -391,7 +418,10 @@ class ConstitutionalAuditor:
 
             symbol_index_path = REPORTS_DIR / SYMBOL_INDEX_FILENAME
             if not symbol_index_path.exists():
-                symbol_index_path.write_text(json.dumps({}, indent=2), encoding="utf-8")
+                self.fs.write_runtime_text(
+                    _repo_rel(symbol_index_path),
+                    json.dumps({}, indent=2),
+                )
 
             processed_path = self._write_processed_findings(
                 findings_path, symbol_index_path

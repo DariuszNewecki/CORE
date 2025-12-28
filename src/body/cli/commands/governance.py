@@ -42,114 +42,28 @@ governance_app = typer.Typer(
 
 def _extract_rules_from_policy(content: dict[str, Any]) -> list[dict[str, Any]]:
     """
-    Extract rules from policy content, supporting BOTH formats:
-    - NEW: Flat "rules" array (preferred)
-    - OLD: Nested sections (backward compatibility)
+    Extract rules from policy content (v2 flat format).
+
+    All policies migrated to v2 format (confirmed 2024-12-28).
+    Legacy format support removed - see policy_format_migration.py for migration tool.
     """
-    rules: list[dict[str, Any]] = []
+    rules = content.get("rules", [])
+    if not isinstance(rules, list):
+        return []
 
-    flat = content.get("rules")
-    if isinstance(flat, list):
-        for item in flat:
-            if isinstance(item, dict):
-                rules.append(item)
-
-    legacy_sections = [
-        "agent_rules",
-        "safety_rules",
-        "style_rules",
-        "capability_rules",
-        "refactoring_rules",
-        "module_size_limits",
-        "file_header_rules",
-        "import_structure_rules",
-        "symbol_metadata_rules",
-        "health_standards",
-        "dependency_injection",
-    ]
-    for section_name in legacy_sections:
-        section = content.get(section_name)
-        if isinstance(section, list):
-            for item in section:
-                if isinstance(item, dict):
-                    rules.append(item)
-
-    naming = content.get("naming_conventions")
-    if isinstance(naming, dict):
-        for _category_name, category_rules in naming.items():
-            if isinstance(category_rules, list):
-                for item in category_rules:
-                    if isinstance(item, dict):
-                        rules.append(item)
-
-    return rules
+    # Filter to valid rule dicts only
+    return [r for r in rules if isinstance(r, dict)]
 
 
 def _detect_policy_format(content: dict[str, Any]) -> str:
-    """Detect whether a policy uses flat or nested format."""
-    rules_list = content.get("rules")
-    if isinstance(rules_list, list) and rules_list:
-        nested_indicators = {
-            "allowed",
-            "forbidden",
-            "requirements",
-            "pattern",
-            "levels",
-            "technique",
-            "example",
-            "definitions",
-            "parameters",
-            "allowed_actions",
-            "benefits",
-            "examples",
-        }
+    """
+    Detect policy format (all policies use v2 flat format as of 2024-12-28).
 
-        sample_size = min(3, len(rules_list))
-        nested_count = 0
-
-        flat_keys = {
-            "id",
-            "category",
-            "statement",
-            "enforcement",
-            "cross_references",
-            "rationale",
-            "scope",
-            "command",
-            "metric",
-            "severity",
-            "title",
-            "description",
-            "check",
-        }
-
-        for i in range(sample_size):
-            rule = rules_list[i]
-            if not isinstance(rule, dict):
-                continue
-            extra_keys = set(rule.keys()) - flat_keys
-            if extra_keys & nested_indicators:
-                nested_count += 1
-
-        return "nested" if nested_count > (sample_size / 2) else "flat"
-
-    legacy_indicators = [
-        "agent_rules",
-        "safety_rules",
-        "style_rules",
-        "capability_rules",
-        "refactoring_rules",
-        "module_size_limits",
-        "file_header_rules",
-        "import_structure_rules",
-        "symbol_metadata_rules",
-        "health_standards",
-        "dependency_injection",
-        "naming_conventions",
-    ]
-    if any(k in content for k in legacy_indicators):
-        return "nested"
-
+    Returns 'flat' if rules array present, 'unknown' otherwise.
+    Legacy nested format detection removed - all policies migrated.
+    """
+    if "rules" in content and isinstance(content["rules"], list):
+        return "flat"
     return "unknown"
 
 

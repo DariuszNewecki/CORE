@@ -10,7 +10,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from shared.infrastructure.storage.file_handler import FileHandler  # <--- NEW IMPORT
+from shared.config import settings
+from shared.infrastructure.storage.file_handler import FileHandler
 from shared.logger import getLogger
 
 
@@ -41,13 +42,17 @@ class DecisionTracer:
     ):
         self.session_id = session_id or datetime.now().strftime("%Y%m%d_%H%M%S")
         self.decisions: list[Decision] = []
-        self.trace_dir = Path("reports/decisions")
 
-        # Use injected FileHandler or create a default one (safe default for Body)
-        self.file_handler = file_handler or FileHandler(Path("."))
+        # Keep legacy location used elsewhere in the codebase:
+        # e.g. settings.REPO_PATH / "reports" / "decisions" :contentReference[oaicite:1]{index=1}
+        self.trace_dir = Path("reports") / "decisions"
 
-        # Delegate mkdir to Body layer
-        self.file_handler.ensure_directory(self.trace_dir)
+        # Use injected FileHandler or create a default one.
+        # FileHandler expects repo_path: str. :contentReference[oaicite:2]{index=2}
+        self.file_handler = file_handler or FileHandler(str(settings.REPO_PATH))
+
+        # Delegate mkdir to the mutation surface (FileHandler).
+        self.file_handler.ensure_dir(str(self.trace_dir))
 
     # ID: d259527d-5f1e-4778-8499-fa23fd49e7f5
     def record(
@@ -59,7 +64,7 @@ class DecisionTracer:
         alternatives: list[str] | None = None,
         context: dict[str, Any] | None = None,
         confidence: float = 1.0,
-    ):
+    ) -> None:
         """Record a decision point."""
         decision = Decision(
             timestamp=datetime.now().isoformat(),
@@ -105,9 +110,10 @@ class DecisionTracer:
         return "\n".join(lines)
 
     # ID: aa09fa09-8f93-496a-bea9-62d220708268
-    def save_trace(self):
+    def save_trace(self) -> Path:
         """Save decision trace to file."""
         trace_file = self.trace_dir / f"trace_{self.session_id}.json"
+        rel_path = str(trace_file)
 
         content = json.dumps(
             {
@@ -117,8 +123,8 @@ class DecisionTracer:
             indent=2,
         )
 
-        # Delegate write to Body layer
-        self.file_handler.write_file(trace_file, content)
+        # Delegate write to the mutation surface (FileHandler).
+        self.file_handler.write_runtime_text(rel_path, content)
 
-        logger.info("Decision trace saved: %s", trace_file)
+        logger.info("Decision trace saved: %s", rel_path)
         return trace_file

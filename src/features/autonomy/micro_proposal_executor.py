@@ -4,6 +4,10 @@
 Service for validating and applying micro-proposals to enable safe, autonomous
 changes to the CORE codebase, adhering to the micro_proposal_policy.yaml and
 enforcing safe_by_default and reason_with_purpose principles.
+
+Architectural rule:
+- No direct filesystem mutations (write_text/unlink/mkdir/etc.) in this service.
+- All mutations must go through FileHandler (IntentGuard enforced).
 """
 
 from __future__ import annotations
@@ -12,6 +16,7 @@ import uuid
 from dataclasses import dataclass
 from pathlib import Path
 
+from shared.infrastructure.storage.file_handler import FileHandler
 from shared.logger import getLogger
 from shared.models import CheckResult
 from shared.path_utils import get_repo_root
@@ -48,16 +53,22 @@ class MicroProposalExecutor:
         Args:
             repo_root: Path to the repository root, defaults to detected root.
         """
-        self.repo_root = repo_root or get_repo_root()
+        self.repo_root = (repo_root or get_repo_root()).resolve()
+
+        # NOTE: policy path kept as-is (your repo currently points to this location)
         self.policy_path = (
             self.repo_root / ".intent/charter/policies/agent/micro_proposal_policy.json"
         )
         self.policy = self._load_policy()
-        logger.debug("MicroProposalExecutor initialized")
+
+        # Mutation surface (IntentGuard enforced inside)
+        self.fs = FileHandler(str(self.repo_root))
+
+        logger.debug("MicroProposalExecutor initialized (repo_root=%s)", self.repo_root)
 
     def _load_policy(self) -> dict:
         """
-        Load and validate the micro_proposal_policy.yaml.
+        Load and validate the micro_proposal_policy.yaml (or json).
 
         Returns:
             Dict: The parsed policy content.
@@ -77,35 +88,26 @@ class MicroProposalExecutor:
     def _check_safe_actions(self, action: str) -> CheckResult:
         """
         Verify if the action is in the allowed_actions list.
-
-        Args:
-            action: The action to validate.
-
-        Returns:
-            CheckResult: Result of the safe actions check.
         """
         safe_actions_rule = next(
-            (rule for rule in self.policy["rules"] if rule["id"] == "safe_actions"),
+            (
+                rule
+                for rule in self.policy.get("rules", [])
+                if rule.get("id") == "safe_actions"
+            ),
             None,
         )
-        if not safe_actions_rule:
+        allowed = (safe_actions_rule or {}).get("allowed_actions", []) or []
+        if action not in allowed:
             return CheckResult(
-                policy_id=self.policy["policy_id"],
+                policy_id=self.policy.get("policy_id", "micro_proposal_policy"),
                 rule_id="safe_actions",
                 severity="error",
-                message="Safe actions rule not found in policy",
-                path=None,
-            )
-        if action not in safe_actions_rule["allowed_actions"]:
-            return CheckResult(
-                policy_id=self.policy["policy_id"],
-                rule_id="safe_actions",
-                severity="error",
-                message=f"Action '{action}' is not in allowed actions: {safe_actions_rule['allowed_actions']}",
+                message=f"Action '{action}' is not in allowed actions",
                 path=None,
             )
         return CheckResult(
-            policy_id=self.policy["policy_id"],
+            policy_id=self.policy.get("policy_id", "micro_proposal_policy"),
             rule_id="safe_actions",
             severity="pass",
             message=f"Action '{action}' is allowed",
@@ -114,80 +116,72 @@ class MicroProposalExecutor:
 
     def _check_safe_paths(self, file_path: str) -> CheckResult:
         """
-        Verify if the file_path complies with allowed and forbidden paths.
-
-        Args:
-            file_path: The file path to validate.
-
-        Returns:
-            CheckResult: Result of the safe paths check.
+        Verify if the file_path matches allowed patterns and does not match forbidden patterns.
         """
-        from fnmatch import fnmatch
-
+        # This module historically validated paths via policy rules, but the repo also
+        # enforces a second gate at mutation-time (IntentGuard inside FileHandler).
         safe_paths_rule = next(
-            (rule for rule in self.policy["rules"] if rule["id"] == "safe_paths"), None
+            (
+                rule
+                for rule in self.policy.get("rules", [])
+                if rule.get("id") == "safe_paths"
+            ),
+            None,
         )
-        if not safe_paths_rule:
+        allowed_patterns = (safe_paths_rule or {}).get("allowed_paths", []) or []
+        forbidden_patterns = (safe_paths_rule or {}).get("forbidden_paths", []) or []
+
+        # Normalize to repo-relative for evaluation
+        rel = self._normalize_to_repo_rel(file_path)
+
+        # Lightweight glob-style matching using Path.match semantics
+        rel_path = Path(rel)
+
+        def _matches_any(patterns: list[str]) -> bool:
+            for pat in patterns:
+                # Path.match treats patterns as relative and supports ** on POSIX style
+                if rel_path.match(pat):
+                    return True
+            return False
+
+        if forbidden_patterns and _matches_any(forbidden_patterns):
             return CheckResult(
-                policy_id=self.policy["policy_id"],
+                policy_id=self.policy.get("policy_id", "micro_proposal_policy"),
                 rule_id="safe_paths",
                 severity="error",
-                message="Safe paths rule not found in policy",
-                path=file_path,
+                message=f"File path '{rel}' matches a forbidden pattern",
+                path=rel,
             )
-        path_obj = Path(file_path)
-        is_allowed = any(
-            fnmatch(str(path_obj), pattern)
-            for pattern in safe_paths_rule["allowed_paths"]
-        )
-        is_forbidden = any(
-            fnmatch(str(path_obj), pattern)
-            for pattern in safe_paths_rule["forbidden_paths"]
-        )
-        if is_forbidden:
+        if allowed_patterns and not _matches_any(allowed_patterns):
             return CheckResult(
-                policy_id=self.policy["policy_id"],
+                policy_id=self.policy.get("policy_id", "micro_proposal_policy"),
                 rule_id="safe_paths",
                 severity="error",
-                message=f"File path '{file_path}' matches forbidden pattern",
-                path=file_path,
-            )
-        if not is_allowed:
-            return CheckResult(
-                policy_id=self.policy["policy_id"],
-                rule_id="safe_paths",
-                severity="error",
-                message=f"File path '{file_path}' does not match any allowed pattern",
-                path=file_path,
+                message=f"File path '{rel}' does not match any allowed pattern",
+                path=rel,
             )
         return CheckResult(
-            policy_id=self.policy["policy_id"],
+            policy_id=self.policy.get("policy_id", "micro_proposal_policy"),
             rule_id="safe_paths",
             severity="pass",
-            message=f"File path '{file_path}' is allowed",
-            path=file_path,
+            message=f"File path '{rel}' is allowed",
+            path=rel,
         )
 
     def _check_validation_report(self, report_id: str | None) -> CheckResult:
         """
         Verify if a validation report ID is provided and valid (placeholder).
-
-        Args:
-            report_id: The validation report ID to check.
-
-        Returns:
-            CheckResult: Result of the validation report check.
         """
         if not report_id:
             return CheckResult(
-                policy_id=self.policy["policy_id"],
+                policy_id=self.policy.get("policy_id", "micro_proposal_policy"),
                 rule_id="require_validation",
                 severity="error",
                 message="No validation report ID provided",
                 path=None,
             )
         return CheckResult(
-            policy_id=self.policy["policy_id"],
+            policy_id=self.policy.get("policy_id", "micro_proposal_policy"),
             rule_id="require_validation",
             severity="pass",
             message=f"Validation report '{report_id}' accepted (placeholder)",
@@ -199,14 +193,8 @@ class MicroProposalExecutor:
         """
         Validate a micro-proposal against safe_actions, safe_paths, and
         require_validation rules from micro_proposal_policy.yaml.
-
-        Args:
-            proposal: The MicroProposal to validate.
-
-        Returns:
-            List[CheckResult]: List of validation results detailing compliance or violations.
         """
-        results = []
+        results: list[CheckResult] = []
         logger.debug(
             "Validating micro-proposal for action '%s' on '%s'",
             proposal.action,
@@ -215,6 +203,7 @@ class MicroProposalExecutor:
         results.append(self._check_safe_actions(proposal.action))
         results.append(self._check_safe_paths(proposal.file_path))
         results.append(self._check_validation_report(proposal.validation_report_id))
+
         errors = [r for r in results if r.severity == "error"]
         if errors:
             logger.error(
@@ -225,16 +214,46 @@ class MicroProposalExecutor:
             logger.info("Micro-proposal passed all validation checks")
         return results
 
+    def _normalize_to_repo_rel(self, file_path: str) -> str:
+        """
+        Convert file_path into a repo-relative path (string), rejecting escapes.
+        Supports:
+        - repo-relative paths like 'src/x.py'
+        - absolute paths under repo_root like '/opt/dev/CORE/src/x.py'
+        """
+        raw = str(file_path).strip()
+
+        # Treat empty as invalid early (prevents writing to repo root by mistake)
+        if not raw:
+            raise ValueError("Proposal file_path is empty")
+
+        p = Path(raw)
+
+        if p.is_absolute():
+            try:
+                rel = p.resolve().relative_to(self.repo_root)
+            except ValueError as e:
+                raise ValueError(f"Absolute path is outside repo_root: {p}") from e
+            return str(rel).lstrip("./")
+
+        # Relative: normalize and ensure it stays within repo_root when resolved
+        candidate = (self.repo_root / p).resolve()
+        try:
+            rel = candidate.relative_to(self.repo_root)
+        except ValueError as e:
+            raise ValueError(f"Relative path escapes repo_root: {raw}") from e
+
+        return str(rel).lstrip("./")
+
     # ID: d9dcf58e-224a-4971-bab0-750913c3c3e8
     async def apply_proposal(self, proposal: MicroProposal) -> bool:
         """
         Apply a validated micro-proposal by executing the specified action.
 
-        Args:
-            proposal: The MicroProposal to apply, expected to have passed validation.
-
-        Returns:
-            bool: True if the proposal was applied successfully, False otherwise.
+        Policy:
+        - Validation first
+        - Log intent_bundle_id
+        - Write only via FileHandler (IntentGuard enforced)
         """
         validation_results = self.validate_proposal(proposal)
         if any(result.severity == "error" for result in validation_results):
@@ -242,7 +261,6 @@ class MicroProposalExecutor:
             return False
 
         # Constitutional requirement: Generate and log IntentBundle ID before write operations
-        # This satisfies safety.change_must_be_logged for audit traceability
         if not proposal.intent_bundle_id:
             proposal.intent_bundle_id = str(uuid.uuid4())
 
@@ -252,34 +270,28 @@ class MicroProposalExecutor:
         )
 
         try:
-            if proposal.action == "autonomy.self_healing.format_code":
+            rel_target = self._normalize_to_repo_rel(proposal.file_path)
+
+            if proposal.action in {
+                "autonomy.self_healing.format_code",
+                "autonomy.self_healing.fix_docstrings",
+                "autonomy.self_healing.fix_headers",
+            }:
                 logger.info(
                     "Writing changes for intent_bundle_id: %s to %s",
                     proposal.intent_bundle_id,
-                    proposal.file_path,
+                    rel_target,
                 )
-                Path(proposal.file_path).write_text(proposal.content, encoding="utf-8")
-                logger.info("Applied format_code to %s", proposal.file_path)
-            elif proposal.action == "autonomy.self_healing.fix_docstrings":
-                logger.info(
-                    "Writing changes for intent_bundle_id: %s to %s",
-                    proposal.intent_bundle_id,
-                    proposal.file_path,
-                )
-                Path(proposal.file_path).write_text(proposal.content, encoding="utf-8")
-                logger.info("Applied fix_docstrings to %s", proposal.file_path)
-            elif proposal.action == "autonomy.self_healing.fix_headers":
-                logger.info(
-                    "Writing changes for intent_bundle_id: %s to %s",
-                    proposal.intent_bundle_id,
-                    proposal.file_path,
-                )
-                Path(proposal.file_path).write_text(proposal.content, encoding="utf-8")
-                logger.info("Applied fix_headers to %s", proposal.file_path)
-            else:
-                logger.error("Unsupported action: %s", proposal.action)
-                return False
-            return True
+
+                # IMPORTANT: mutation via governed surface (IntentGuard blocks .intent/**)
+                self.fs.write_runtime_text(rel_target, proposal.content)
+
+                logger.info("Applied %s to %s", proposal.action, rel_target)
+                return True
+
+            logger.error("Unsupported action: %s", proposal.action)
+            return False
+
         except Exception as e:
             logger.error("Failed to apply micro-proposal: %s", e)
             return False

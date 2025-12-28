@@ -49,22 +49,13 @@ class NamingConventionsEnforcement(EnforcementMethod):
         # Load Policy Data
         policy_data = context.policies.get("code_standards", {})
 
-        # 1. Try V2 Format (Flat 'rules' array)
+        # Load naming rules from v2 flat format
         all_rules = policy_data.get("rules", [])
         naming_rules = [r for r in all_rules if r.get("category") == "naming"]
 
-        # 2. Fallback to Legacy Format (nested 'naming_conventions' dict)
-        if not naming_rules:
-            legacy_section = policy_data.get("naming_conventions", {})
-            if isinstance(legacy_section, dict):
-                # Flatten the nested dictionary structure
-                for subcategory, rules_list in legacy_section.items():
-                    if isinstance(rules_list, list):
-                        naming_rules.extend(rules_list)
-
         if not naming_rules:
             logger.warning(
-                "NamingConventionsCheck: No naming rules found in code_standards.yaml"
+                "NamingConventionsCheck: No naming rules found in code_standards policy"
             )
             return findings
 
