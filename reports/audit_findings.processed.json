@@ -4813,7 +4813,7 @@
   {
     "check_id": "code_standards.max_function_lines",
     "severity": "warning",
-    "message": "Line 79: Function 'run_full_audit_async' has 61 lines, exceeds limit of 50",
+    "message": "Line 79: Function 'run_full_audit_async' has 63 lines, exceeds limit of 50",
     "file_path": "src/mind/governance/auditor.py",
     "line_number": null,
     "context": {},

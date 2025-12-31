@@ -280,6 +280,19 @@ poetry run core-admin chat "create a CLI command that validates JSON files"
 
 ---
 
+## 🖥️ Local Infrastructure
+
+CORE is designed to run **locally by default** for auditability, reproducibility,
+and governance reasons. External cloud-hosted LLM APIs are optional and not a
+design requirement.
+
+Details about the current development platform and the rationale behind local
+infrastructure decisions are documented in:
+
+👉 [`docs/infrastructure.md`](docs/infrastructure.md)
+
+---
+
 ## 📄 License
 
 Licensed under the **MIT License**. See `LICENSE`.
