@@ -45,8 +45,6 @@ jobs:
       - name: Install dependencies
         run: poetry install --no-interaction --no-root
 
-      # --- Lightweight, stable PR checks --------------------------
-
       - name: Lint (ruff/black via CLI)
         run: poetry run core-admin check lint
 
@@ -58,25 +56,26 @@ jobs:
             --cov-report=term-missing:skip-covered
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
+        if: github.repository == 'DariuszNewecki/CORE'
+        uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          file: ./coverage.xml
+          files: coverage.xml
           flags: unittests
-          name: codecov-umbrella
+          name: core-ci-${{ matrix.python-version }}
           fail_ci_if_error: true
+          verbose: true
 
   pr_linter:
     name: PR Linter
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
+
     steps:
       - name: Check PR Body for Intent & Justification
         id: check_body
         run: |
           PR_BODY="${{ github.event.pull_request.body }}"
-          # The linter now checks if the specific "> REQUIRED:" placeholder line is still present.
-          # If it is, it means the section has not been filled out.
           if echo "$PR_BODY" | grep -q "> REQUIRED:"; then
             echo "missing_justification=true" >> $GITHUB_OUTPUT
           else
