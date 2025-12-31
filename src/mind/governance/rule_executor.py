@@ -94,7 +94,7 @@ async def execute_rule(
         try:
             # Call the context-aware verify method
             if hasattr(engine, "verify_context"):
-                findings_from_engine = engine.verify_context(context, rule.params)
+                findings_from_engine = await engine.verify_context(context, rule.params)
                 findings.extend(findings_from_engine)
             else:
                 logger.error(

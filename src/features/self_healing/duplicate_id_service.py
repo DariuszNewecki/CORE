@@ -1,6 +1,8 @@
 # src/features/self_healing/duplicate_id_service.py
+
 """
 Provides a service to intelligently find and resolve duplicate UUIDs in the codebase.
+Updated to use the dynamic constitutional rule engine.
 """
 
 from __future__ import annotations
@@ -11,7 +13,9 @@ from collections import defaultdict
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from mind.governance.checks.id_uniqueness_check import IdUniquenessCheck
+from mind.governance.audit_context import AuditorContext
+from mind.governance.rule_executor import execute_rule
+from mind.governance.rule_extractor import extract_executable_rules
 from shared.config import settings
 from shared.logger import getLogger
 
@@ -28,7 +32,7 @@ async def _get_symbol_creation_dates(session: AsyncSession) -> dict[str, str]:
     """
     try:
         result = await session.execute(text("SELECT id, created_at FROM core.symbols"))
-        return {str(row.id): row.created_at.isoformat() for row in result}
+        return {str(row[0]): row[1].isoformat() for row in result}
     except Exception as e:
         logger.warning(
             "Could not fetch symbol creation dates from DB (%s). Assuming first found is original.",
@@ -49,138 +53,112 @@ async def resolve_duplicate_ids(session: AsyncSession, dry_run: bool = True) -> 
     Returns:
         The number of files that were (or would be) modified.
     """
-    logger.info("Scanning for duplicate UUIDs...")
+    logger.info("🔍 Scanning for duplicate UUIDs via constitutional rules...")
 
-    # 1. Discover duplicates using the existing auditor check
-    from mind.governance.audit_context import AuditorContext
-
+    # 1. Initialize Context and load Knowledge Graph
     context = AuditorContext(settings.REPO_PATH)
-    uniqueness_check = IdUniquenessCheck(context)
+    await context.load_knowledge_graph()
 
-    findings = uniqueness_check.execute()
+    # 2. Extract and Execute the Uniqueness Rule
+    all_rules = extract_executable_rules(context.policies)
+    target_rule = next(
+        (r for r in all_rules if r.rule_id == "integration.duplicate_ids_resolved"),
+        None,
+    )
 
-    duplicates = [f for f in findings if f.check_id == "linkage.duplicate_ids"]
-
-    if not duplicates:
-        logger.info("No duplicate UUIDs found.")
+    if not target_rule:
+        logger.error(
+            "Constitutional rule 'integration.duplicate_ids_resolved' not found."
+        )
         return 0
 
-    logger.warning("Found %d duplicate UUID(s). Resolving...", len(duplicates))
+    all_findings = await execute_rule(target_rule, context)
 
-    # 2. Get creation dates from the database to find the "original"
+    if not all_findings:
+        logger.info("✅ No duplicate UUIDs found.")
+        return 0
+
+    logger.warning(
+        "⚠️  Found %d duplicate UUID collisions. Resolving...", len(all_findings)
+    )
+
+    # 3. Get creation dates from the database to find the "original" entry
     symbol_creation_dates = await _get_symbol_creation_dates(session)
 
     files_to_modify: dict[str, list[tuple[int, str]]] = defaultdict(list)
 
-    for finding in duplicates:
-        locations_str = finding.context.get("locations")
+    for finding in all_findings:
+        # Extract metadata from the finding context
+        ctx = finding.context or {}
+        duplicate_uuid = ctx.get("uuid")
 
-        # Robustly handle missing locations
-        if not locations_str:
-            logger.warning(
-                "Finding '%s' has no location data. Skipping.", finding.message
-            )
-            continue
-
-        # FIX: Prefer extracting UUID from context (structured) over message (fragile)
-        duplicate_uuid = finding.context.get("uuid")
-
-        # Fallback to message parsing (legacy support)
-        if not duplicate_uuid:
-            # Try to grab the first part after "Duplicate ID collision: "
-            # Message format: "Duplicate ID collision: {uuid}. This ID is..."
-            try:
-                parts = finding.message.split("Duplicate ID collision: ")
-                if len(parts) > 1:
-                    duplicate_uuid = parts[1].split(".")[0].strip()
-            except IndexError:
-                pass
-
-        if not duplicate_uuid:
-            logger.warning("Could not extract UUID from finding: %s", finding.message)
+        # The engine finds collisions. We need to parse where they are.
+        # Logic: If the rule detected multiple locations, they are in the finding message or context
+        locations_str = ctx.get("locations", "")
+        if not locations_str or not duplicate_uuid:
             continue
 
         locations = []
         for loc in locations_str.split(", "):
-            loc = loc.strip()
-            if not loc:
-                continue
-
             try:
                 path, line = loc.rsplit(":", 1)
-                locations.append((path, int(line)))
+                locations.append((path.strip(), int(line.strip())))
             except ValueError:
-                logger.warning("Skipping malformed location string: '%s'", loc)
                 continue
 
         if not locations:
             continue
 
-        # Find the original symbol (the one created first)
-        original_location = None
-
-        if duplicate_uuid in symbol_creation_dates:
-            original_location = locations[0]
-        else:
-            # Fallback: assume first found is original
-            original_location = locations[0]
+        # Determine which one is the "Original" (the one in the DB or the first one found)
+        # We preserve the original and change the rest.
+        original_location = locations[0]
 
         logger.info(
-            "Duplicate UUID: %s (Original at %s:%s)",
-            duplicate_uuid,
-            original_location[0],
-            original_location[1],
+            "Collision for ID %s: Preserving %s:%s", duplicate_uuid, *original_location
         )
 
-        # Mark all other locations for change
-        for path, line_num in locations:
-            if (path, line_num) != original_location:
-                logger.info("   - Copy found at: %s:%s", path, line_num)
-                files_to_modify[path].append((line_num, duplicate_uuid))
+        # Mark subsequent locations for regeneration
+        for path, line_num in locations[1:]:
+            logger.info("   -> Marking for fix: %s:%s", path, line_num)
+            files_to_modify[path].append((line_num, duplicate_uuid))
 
     if not files_to_modify:
-        logger.info("All duplicates seem to be resolved or are new. No changes needed.")
         return 0
 
     if dry_run:
-        logger.info("-- DRY RUN: No files will be changed. --")
-        for path, changes in files_to_modify.items():
-            logger.info(
-                "  - Would modify %s to fix %d duplicate ID(s).", path, len(changes)
-            )
+        logger.info(
+            "💧 [DRY RUN] Would modify %d files to resolve collisions.",
+            len(files_to_modify),
+        )
         return len(files_to_modify)
 
-    # Apply the changes
-    logger.info("Applying fixes...")
+    # 4. Apply the changes
+    files_fixed = 0
     for file_str, changes in files_to_modify.items():
         file_path = settings.REPO_PATH / file_str
         if not file_path.exists():
-            logger.warning("File %s does not exist. Skipping.", file_str)
             continue
 
-        content = file_path.read_text("utf-8")
-        lines = content.splitlines()
+        try:
+            content = file_path.read_text("utf-8")
+            lines = content.splitlines()
 
-        for line_num, old_uuid in changes:
-            new_uuid = str(uuid.uuid4())
-            line_index = line_num - 1
-
-            if 0 <= line_index < len(lines):
-                if old_uuid in lines[line_index]:
-                    lines[line_index] = lines[line_index].replace(old_uuid, new_uuid)
+            for line_num, old_uuid in changes:
+                line_idx = line_num - 1
+                if 0 <= line_idx < len(lines) and old_uuid in lines[line_idx]:
+                    new_uuid = str(uuid.uuid4())
+                    lines[line_idx] = lines[line_idx].replace(old_uuid, new_uuid)
                     logger.info(
-                        "  - Replaced ID in %s:%s -> %s", file_str, line_num, new_uuid
-                    )
-                else:
-                    logger.warning(
-                        "  - ID %s not found in %s:%s (line changed?)",
-                        old_uuid,
+                        "   ✅ Replaced %s with %s in %s:%s",
+                        old_uuid[:8],
+                        new_uuid[:8],
                         file_str,
                         line_num,
                     )
-            else:
-                logger.warning("  - Line %s out of bounds in %s", line_num, file_str)
 
-        file_path.write_text("\n".join(lines) + "\n", "utf-8")
+            file_path.write_text("\n".join(lines) + "\n", "utf-8")
+            files_fixed += 1
+        except Exception as e:
+            logger.error("❌ Failed to fix %s: %s", file_str, e)
 
-    return len(files_to_modify)
+    return files_fixed

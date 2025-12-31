@@ -4,13 +4,12 @@ PathResolver - Single source of truth for all repository-relative paths in CORE.
 
 Key boundary rules:
 - PathResolver RESOLVES paths only. It must not mutate the filesystem (mkdir, write, copy, delete).
-- Filesystem mutations (including mkdir) belong to FileHandler (or other explicitly governed mutation surfaces).
-- PathResolver may return paths under `.intent/` for READ/LOOKUP purposes, but should not read or write files.
+- Filesystem mutations (including mkdir) belong to FileHandler.
+- Aligned to search both 'policies/' and 'standards/' for constitutional rule discovery.
 
 Design:
 - Deterministic path construction.
 - No side effects.
-- Minimal, explicit public surface: resolve directories and files used across CORE.
 """
 
 from __future__ import annotations
@@ -33,10 +32,6 @@ class PathResolver:
     Important:
         This class is NOT a filesystem manager. It must not create directories.
         Use FileHandler for mkdir/copy/write operations.
-
-    Notes on `.intent/`:
-        - Returning a Path under `.intent/` is allowed (resolution).
-        - Reading/writing `.intent/` should be mediated by IntentRepository / governed services.
     """
 
     # Runtime structure defaults (relative to repo root)
@@ -64,14 +59,6 @@ class PathResolver:
     ) -> PathResolver:
         """
         Convenience constructor used by Settings/config.
-
-        This method MUST remain side-effect free (no mkdir/write).
-        It simply wires repo_root + optional intent_root override.
-
-        Args:
-            repo_root: Root directory of the CORE repository.
-            intent_root: Optional override for `.intent/` root (defaults to repo_root / ".intent").
-            meta: Optional parsed contents of .intent/meta.yaml (legacy). May be empty/None.
         """
         resolver = cls(repo_root=repo_root, meta=meta)
         if intent_root is not None:
@@ -82,9 +69,9 @@ class PathResolver:
         """
         Args:
             repo_root: Root directory of the CORE repository.
-            meta: Parsed contents of .intent/meta.yaml (legacy). May be empty/None.
+            meta: Parsed contents of .intent/meta.yaml (legacy).
         """
-        self._repo_root = Path(repo_root)
+        self._repo_root = Path(repo_root).resolve()
         self._meta: dict[str, Any] = meta or {}
         self._intent_root = self._repo_root / ".intent"
 
@@ -109,10 +96,7 @@ class PathResolver:
     @property
     # ID: b0e1d8c2-3f4a-4a2e-8c7a-9a8b7c6d5e4f
     def registry_path(self) -> Path:
-        """
-        Path to the master intent registry (path only).
-        Kept because bootstrapping needs a stable anchor.
-        """
+        """Path to the master intent registry."""
         return self.intent_root / "schemas" / "META" / "intent_types.json"
 
     # =========================================================================
@@ -120,143 +104,106 @@ class PathResolver:
     # =========================================================================
 
     @property
-    # ID: 3d6d3a0f-8e67-4e3c-9eaa-2c7b53b2a0c7
+    # ID: 78a6f2cd-4f39-4840-afc0-83bc10c1d409
     def var_dir(self) -> Path:
-        """Root directory for runtime state (var/)."""
         return self._repo_root / "var"
 
     @property
-    # ID: 8e4a2c22-5f9e-4f3d-9b6b-8b1f8b4b3a1f
+    # ID: d35865f7-b5f0-4e33-804e-cd7aa13f3cba
     def workflows_dir(self) -> Path:
-        """Root directory for governed workflows (var/workflows/)."""
         return self._repo_root.joinpath(*self._DEFAULT_WORKFLOWS_SUBDIR)
 
     @property
-    # ID: 7c52f9cb-5d8f-4c1c-9e1e-08f7b44f7b9f
+    # ID: f0f7057e-00f3-4a06-aa93-fd4152339da8
     def build_dir(self) -> Path:
-        """Directory for build artefacts (var/build/)."""
         return self._repo_root.joinpath(*self._DEFAULT_BUILD_SUBDIR)
 
     @property
-    # ID: a5caa41d-7f34-4d1c-bd63-8b71df8c76bd
+    # ID: 8f858176-f2d1-42ee-be36-79b70c35d3de
     def reports_dir(self) -> Path:
-        """Directory for reports (var/reports/)."""
         return self._repo_root.joinpath(*self._DEFAULT_REPORTS_SUBDIR)
 
     @property
-    # ID: 6f6a4a33-9e6f-4b26-b7ef-0f4f8c4dbcf3
+    # ID: 57b1229f-57f3-4d83-911a-55075081fae7
     def logs_dir(self) -> Path:
-        """Directory for logs (var/logs/)."""
         return self._repo_root.joinpath(*self._DEFAULT_LOGS_SUBDIR)
 
     @property
-    # ID: 58d20e6e-7c3b-4d3c-a04a-6d75f86a0d6d
+    # ID: 63eff06a-930a-4df7-90be-8172116fc361
     def exports_dir(self) -> Path:
-        """Directory for exports (var/exports/)."""
         return self._repo_root.joinpath(*self._DEFAULT_EXPORTS_SUBDIR)
 
     @property
-    # ID: 5e8d4b18-11df-4fe8-b1b0-74d4c2d6f44a
+    # ID: aad7047a-cbeb-475e-ac1a-3180eef745be
     def context_dir(self) -> Path:
-        """Directory containing runtime context artefacts (var/context)."""
         return self._repo_root.joinpath(*self._DEFAULT_CONTEXT_SUBDIR)
 
     @property
-    # ID: 0b8f1bb0-2d5c-4ce5-8ad0-4d6e5a35f7a1
+    # ID: f25e5afb-7bf4-4930-855a-fb2d84bfbd22
     def context_cache_dir(self) -> Path:
-        """Directory containing disposable context cache (var/cache/context)."""
         return self._repo_root.joinpath(*self._DEFAULT_CONTEXT_CACHE_SUBDIR)
 
-    # ID: 4a5a5d3e-8d54-4f07-9a31-08d2a2bb2f60
+    # ID: 71eea8fd-38ae-4707-8dac-2ecc7a52af08
     def context_schema_path(self) -> Path:
-        """Path to runtime context schema file."""
         return self.context_dir / "schema.yaml"
 
     @property
-    # ID: 694858d4-5b4d-4e9e-8c3a-96942c7e87ab
+    # ID: da01c682-35df-48d5-af6c-2a68a031b582
     def knowledge_dir(self) -> Path:
-        """Directory containing living knowledge state (var/mind/knowledge)."""
         return self._repo_root.joinpath(*self._DEFAULT_KNOWLEDGE_SUBDIR)
 
     @property
-    # ID: 243ebce3-db6e-407e-9f53-7fd4669728b9
+    # ID: 1430c7a5-c840-4416-97e2-0db14fbbc756
     def mind_export_dir(self) -> Path:
-        """Directory for Mind state exports (var/core/mind_export)."""
         return self._repo_root / "var" / "core" / "mind_export"
 
-    # ID: e631bf4f-5e70-491c-a685-fa87754af9cf
+    # ID: 5a8d7abf-f560-41ed-ad72-6f9b12883489
     def mind_export(self, resource: str) -> Path:
-        """Get path to a Mind export file."""
         return self.mind_export_dir / f"{resource}.yaml"
 
-    # =========================================================================
-    # WORKFLOWS: well-known subdirs (var/workflows/*)
-    # =========================================================================
-
     @property
-    # ID: 6adf5f2e-761f-4ad5-bc59-cbcb40c39b69
+    # ID: 3ee4afe4-510f-4ba3-b028-7ddff08cfcc6
     def proposals_dir(self) -> Path:
         return self.workflows_dir / "proposals"
 
     @property
-    # ID: 18f6d4c1-9a83-4f50-8a1b-9c8201f7a6c1
+    # ID: ad7b8a0f-55b9-4d4e-a07d-dc3624d782a4
     def pending_writes_dir(self) -> Path:
         return self.workflows_dir / "pending_writes"
 
     @property
-    # ID: 5c5c4f71-8aa3-4c8c-8f39-1a9a33f0a3d2
+    # ID: 27eac5a7-82d0-4f66-aa0f-f50949e562bb
     def canary_dir(self) -> Path:
         return self.workflows_dir / "canary"
 
-    # =========================================================================
-    # PROMPTS (var/prompts)
-    # =========================================================================
-
     @property
-    # ID: 2a4f2cb7-4b66-4d49-a7a0-4ab9a2c3c8f5
+    # ID: c02aebe7-9030-4a29-8a0a-29f221481c3c
     def prompts_dir(self) -> Path:
-        """Directory containing prompt templates (var/prompts)."""
         return self._repo_root.joinpath(*self._DEFAULT_PROMPTS_SUBDIR)
 
-    # ID: 4f42c781-6d21-4c67-8b0a-7f9efb0f0f2b
+    # ID: e890ddef-5847-49cb-8fe4-b013d5262c39
     def prompt(self, name: str) -> Path:
-        """Resolve a prompt template file path by stem (e.g., 'planner')."""
         safe = name.strip().replace("\\", "/").split("/")[-1]
         return self.prompts_dir / f"{safe}.prompt"
 
-    # ID: ca8f8d94-eb47-4163-af8e-8baff04e716c
+    # ID: 8e6f9bcc-a967-4edb-a015-bd97c6b556f5
     def list_prompts(self) -> list[str]:
-        """List available prompt templates (stems). No filesystem mutation."""
         if not self.prompts_dir.exists():
             return []
         return sorted({p.stem for p in self.prompts_dir.glob("*.prompt")})
 
-    # =========================================================================
-    # OTHER (non-governed scratch)
-    # =========================================================================
-
     @property
-    # ID: 78d4598f-1267-4607-b3fb-469f4f092a90
+    # ID: e187c5cf-0bb2-4346-92b4-0bc6da6b5eb5
     def work_dir(self) -> Path:
-        """Temporary human scratch directory (work/)."""
         return self._repo_root / "work"
 
     # =========================================================================
-    # STRUCTURE VALIDATION (no mkdir)
+    # STRUCTURE VALIDATION
     # =========================================================================
 
-    # ID: 2374f137-6c7f-4ecc-a804-d3e8d18dd137
+    # ID: 0b5bfb1a-d91b-43a1-8034-2f2e4a9921a5
     def validate_structure(self) -> list[str]:
-        """
-        Validate expected directories exist.
-
-        This method MUST NOT create directories. It reports missing ones, and the
-        caller decides whether to create them via FileHandler or another governed
-        mutation surface.
-
-        Returns:
-            List of missing-path messages (empty if all exist).
-        """
+        """Check for existence of required runtime directories."""
         required_dirs: list[tuple[Path, str]] = [
             (self.var_dir, "var/"),
             (self.workflows_dir, "var/workflows/"),
@@ -274,19 +221,12 @@ class PathResolver:
         ]
 
         errors: list[str] = []
-        for p, _label in required_dirs:
+        for p, _ in required_dirs:
             if not p.exists():
                 errors.append(str(p))
 
-        # .intent is governance-managed; still report if missing.
         if not self.intent_root.exists():
             errors.append(str(self.intent_root))
-
-        if errors:
-            # Caller logs this already; keep message stable for upstream parsing.
-            logger.debug(
-                "PathResolver.validate_structure missing: %s", "; ".join(errors)
-            )
 
         return errors
 
@@ -294,68 +234,68 @@ class PathResolver:
         return f"PathResolver(root={self._repo_root})"
 
     # =========================================================================
-    # POLICY RESOLUTION (path only; no file reads)
+    # CONSTITUTIONAL RESOLUTION (Policies & Standards)
     # =========================================================================
 
     # ID: f0cca605-cbd8-4007-a9d4-dba5598cc6ba
     def policy(self, policy_id: str) -> Path:
         """
-        Resolve a policy file path under `.intent/policies/` by:
-        - direct relative path (with or without extension), OR
-        - stem lookup anywhere under policies/.
-
-        This is path resolution only (no file reads), because many checks still
-        require a stable `policy_file: ClassVar[Path]`.
+        Unified resolution for rule-bearing artifacts.
+        Searches .intent/policies/ AND .intent/standards/.
 
         Args:
-            policy_id: Policy stem (e.g. "code_standards") or relative path under
-                      policies (e.g. "architecture/atomic_actions").
+            policy_id: The stem or path fragment of the policy/standard.
 
         Returns:
-            Path to the matching policy file.
-
-        Raises:
-            FileNotFoundError: if not found.
+            Absolute Path to the first matching file found.
         """
-        policies_root = self.intent_root / "policies"
-        raw = policy_id.strip().replace("\\", "/")
-        raw = raw.removeprefix("policies/").removeprefix(".intent/policies/")
+        search_roots = [self.intent_root / "policies", self.intent_root / "standards"]
 
-        # 1) Direct path
-        direct = policies_root / raw
-        if direct.suffix in {".json", ".yaml", ".yml"} and direct.exists():
-            return direct
+        # Cleanup input
+        raw = policy_id.replace("\\", "/").strip().lstrip("/")
+        for prefix in ("policies/", "standards/", ".intent/"):
+            if raw.startswith(prefix):
+                raw = raw[len(prefix) :]
 
-        for ext in (".json", ".yaml", ".yml"):
-            cand = direct.with_suffix(ext)
-            if cand.exists():
-                return cand
+        # 1) Try Direct Match in all roots
+        for root in search_roots:
+            direct = root / raw
+            # Try with various extensions
+            for ext in (".json", ".yaml", ".yml", ""):
+                p = direct.with_suffix(ext) if ext else direct
+                if p.is_file() and p.exists():
+                    return p
 
-        # 2) Stem scan anywhere under policies/
-        name = Path(raw).name
-        patterns = [
-            str(policies_root / "**" / f"{name}.json"),
-            str(policies_root / "**" / f"{name}.yaml"),
-            str(policies_root / "**" / f"{name}.yml"),
-        ]
+        # 2) Recursive stem lookup if direct match fails
+        stem = Path(raw).name
+        for root in search_roots:
+            if not root.exists():
+                continue
+            # Search for files with this stem and valid extensions
+            pattern = str(root / "**" / f"{stem}.*")
+            matches = [
+                m
+                for m in glob.glob(pattern, recursive=True)
+                if Path(m).suffix.lower() in (".json", ".yaml", ".yml")
+            ]
+            if matches:
+                # Return the shortest path to prefer higher-level definitions
+                matches.sort(key=len)
+                return Path(matches[0])
 
-        matches: list[str] = []
-        for pat in patterns:
-            matches.extend(glob.glob(pat, recursive=True))
+        # Informative error if not found
+        available = []
+        for root in search_roots:
+            if root.exists():
+                available.extend(
+                    [
+                        Path(p).stem
+                        for p in glob.glob(str(root / "**" / "*.*"), recursive=True)
+                        if Path(p).suffix in {".json", ".yaml", ".yml"}
+                    ]
+                )
 
-        if not matches:
-            available = sorted(
-                {
-                    Path(p).stem
-                    for p in glob.glob(
-                        str(policies_root / "**" / "*.*"), recursive=True
-                    )
-                    if Path(p).suffix in {".json", ".yaml", ".yml"}
-                }
-            )
-            raise FileNotFoundError(
-                f"Policy {policy_id!r} not found in {policies_root}. "
-                f"Available policies: {', '.join(available)}"
-            )
-
-        return Path(sorted(matches)[0])
+        raise FileNotFoundError(
+            f"Constitutional resource '{policy_id}' not found in 'policies/' or 'standards/'. "
+            f"Available: {', '.join(sorted(set(available)))}"
+        )

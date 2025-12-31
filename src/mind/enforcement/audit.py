@@ -28,7 +28,12 @@ async def run_audit_workflow(context: CoreContext) -> tuple[bool, list[AuditFind
     Returns:
         tuple(passed: bool, findings: list[AuditFinding])
     """
-    auditor = ConstitutionalAuditor(context.auditor_context)
+    # Inject Qdrant service from CoreContext into AuditorContext
+    auditor_context = context.auditor_context
+    if context.qdrant_service and not hasattr(auditor_context, "qdrant_service"):
+        auditor_context.qdrant_service = context.qdrant_service
+
+    auditor = ConstitutionalAuditor(auditor_context)
 
     # The auditor handles its own activity logging and progress reporting
     # via AuditRunReporter (which is in Mind layer, thus allowed to print).

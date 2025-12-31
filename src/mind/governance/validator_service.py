@@ -61,10 +61,15 @@ class ConstitutionalValidator:
     Loaded once at startup, queried many times by Will layer.
     """
 
-    def __init__(self, constitution_path: Path = Path(".intent/charter/constitution")):
-        self.constitution_path = constitution_path
-        self._constitution: dict[str, Any] = {}
-        self._load_constitution()
+
+def __init__(self, constitution_path: Path | None = None):
+    self.constitution_path = constitution_path
+    # or settings.paths.intent_root / "constitution"
+
+    #    def __init__(self, constitution_path: Path = Path(".intent/charter/constitution")):
+    #        self.constitution_path = constitution_path
+    #        self._constitution: dict[str, Any] = {}
+    #        self._load_constitution()
 
     def _load_constitution(self):
         """Load all constitutional YAML files into memory."""

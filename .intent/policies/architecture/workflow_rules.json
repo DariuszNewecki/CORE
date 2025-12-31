@@ -1,7 +1,7 @@
 {
   "id": "standard_architecture_workflow_rules",
-  "version": "1.0.0",
-  "title": "Architecture Standard \u2013 Workflow Patterns",
+  "version": "1.1.0",
+  "title": "Architecture Standard – Workflow Patterns",
   "type": "policy",
   "status": "active",
   "owners": {
@@ -14,7 +14,7 @@
     "frequency": "12 months"
   },
   "schema_id": "meta.policy",
-  "description": "Defines canonical patterns for multi-step workflows in CORE.\nWorkflows compose commands, agents, and services into reliable\nend-to-end processes.\n",
+  "description": "Defines canonical patterns for multi-step workflows in CORE.\nWorkflows compose commands, agents, and services into reliable\nend-to-end processes.\n\nNOTE: UI contract enforcement migrated to body.no_ui_imports_in_body (ast_gate) in body_contracts.json.\nWorkflows own UI rendering, but the prohibition on Rich imports in Body modules handles enforcement.\n",
   "activity_tracking": {
     "purpose": "Make workflows visible and debuggable",
     "timeline_logging": {
@@ -83,7 +83,7 @@
     "detection_criteria": [
       "Same file modified by auto-fix multiple times",
       "Same check failing repeatedly after remediation",
-      "Oscillating state (A\u2192B\u2192A\u2192B pattern)",
+      "Oscillating state (A→B→A→B pattern)",
       "Resource usage spike from retry loops"
     ],
     "actions_on_breach": {
@@ -128,7 +128,7 @@
         }
       ]
     },
-    "implementation_example": "class CircuitBreaker:\n    def __init__(self, max_attempts=3, window_hours=1):\n        self._attempts = {}  # file_path -> [(timestamp, state_hash), ...]\n\n    def check_and_record(self, file_path: str, state_hash: str) -> bool:\n        \"\"\"Returns False if circuit breaker should trigger.\"\"\"\n        now = datetime.now()\n        cutoff = now - timedelta(hours=self.window_hours)\n\n        # Get recent attempts for this file\n        recent = [\n            (ts, h) for ts, h in self._attempts.get(file_path, [])\n            if ts > cutoff\n        ]\n\n        # Check for oscillation (A\u2192B\u2192A pattern)\n        if len(recent) >= 3:\n            hashes = [h for _, h in recent[-3:]]\n            if hashes[0] == hashes[2] and hashes[0] != hashes[1]:\n                return False  # Oscillation detected\n\n        # Check attempt count\n        if len(recent) >= self.max_attempts:\n            return False  # Too many attempts\n\n        # Record this attempt\n        if file_path not in self._attempts:\n            self._attempts[file_path] = []\n        self._attempts[file_path].append((now, state_hash))\n\n        return True  # OK to proceed\n",
+    "implementation_example": "class CircuitBreaker:\n    def __init__(self, max_attempts=3, window_hours=1):\n        self._attempts = {}  # file_path -> [(timestamp, state_hash), ...]\n\n    def check_and_record(self, file_path: str, state_hash: str) -> bool:\n        \"\"\"Returns False if circuit breaker should trigger.\"\"\"\n        now = datetime.now()\n        cutoff = now - timedelta(hours=self.window_hours)\n\n        # Get recent attempts for this file\n        recent = [\n            (ts, h) for ts, h in self._attempts.get(file_path, [])\n            if ts > cutoff\n        ]\n\n        # Check for oscillation (A→B→A pattern)\n        if len(recent) >= 3:\n            hashes = [h for _, h in recent[-3:]]\n            if hashes[0] == hashes[2] and hashes[0] != hashes[1]:\n                return False  # Oscillation detected\n\n        # Check attempt count\n        if len(recent) >= self.max_attempts:\n            return False  # Too many attempts\n\n        # Record this attempt\n        if file_path not in self._attempts:\n            self._attempts[file_path] = []\n        self._attempts[file_path].append((now, state_hash))\n\n        return True  # OK to proceed\n",
     "monitoring": {
       "metrics": [
         "Circuit breaker trigger count",
@@ -260,28 +260,6 @@
       }
     },
     {
-      "id": "standard_architecture_workflow_rules.ui_contract.2",
-      "category": "ui_contract",
-      "statement": "Use 'console.status(...)' for all duration-based operations.",
-      "enforcement": "error",
-      "rationale": "Migrated from ui_contract section.",
-      "check": {
-        "engine": "llm_gate",
-        "params": {}
-      }
-    },
-    {
-      "id": "standard_architecture_workflow_rules.ui_contract.3",
-      "category": "ui_contract",
-      "statement": "Do NOT use 'rich.progress.track' or 'Progress()' unless the operation is a user-interactive file download/upload.",
-      "enforcement": "error",
-      "rationale": "Migrated from ui_contract section.",
-      "check": {
-        "engine": "llm_gate",
-        "params": {}
-      }
-    },
-    {
       "id": "standard_architecture_workflow_rules.pattern.linear_workflow",
       "category": "architectural_pattern",
       "statement": "Must follow the linear_workflow pattern structure.",
@@ -337,5 +315,10 @@
       }
     }
   ],
+  "removed_rules": {
+    "note": "The following rules were removed as duplicates of existing ast_gate enforcement:",
+    "ui_contract.2": "Duplicate of body.no_ui_imports_in_body (ast_gate). Rich console.status usage is already blocked by import restrictions.",
+    "ui_contract.3": "Duplicate of body.no_ui_imports_in_body (ast_gate). Rich Progress usage is already blocked by import restrictions."
+  },
   "additionalProperties": false
 }

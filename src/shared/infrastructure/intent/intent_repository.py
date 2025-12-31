@@ -11,7 +11,8 @@ This is the single source of truth for:
 - indexing rules/policies for stable query access
 - providing policy-level query APIs (precedence map, policy rule lists)
 
-This module intentionally exposes no write primitives.
+This module intentionally exposes no write primitives and relies on
+shared.path_resolver for filesystem location knowledge.
 """
 
 from __future__ import annotations
@@ -25,7 +26,7 @@ from typing import Any
 
 from shared.config import settings
 from shared.logger import getLogger
-from shared.utils.yaml_processor import strict_yaml_processor
+from shared.processors.yaml_processor import strict_yaml_processor
 
 
 logger = getLogger(__name__)
@@ -71,6 +72,7 @@ class IntentRepository:
         strict: bool = True,
         allow_writable_root: bool = True,
     ) -> None:
+        # Use settings as the entry point for the Mind's location
         self._root: Path = settings.MIND.resolve()
         self._strict = strict
         self._allow_writable_root = allow_writable_root
@@ -220,7 +222,7 @@ class IntentRepository:
     # ID: 8dc3100f-cb41-473a-bc86-b9ce58ca2ccb
     def list_policy_rules(self) -> list[dict[str, Any]]:
         """
-        Return all policy rule blocks (raw dicts), across all policies.
+        Return all policy rule blocks (raw dicts), across all policies and standards.
 
         Shape:
             [
@@ -237,19 +239,32 @@ class IntentRepository:
             doc = self.load_document(pref.path)
             policy_name = Path(pref.policy_id).name  # stable, precedence-friendly
 
-            for section in ("rules", "safety_rules", "agent_rules"):
+            # Support both rules array and constitutional principles
+            for section in ("rules", "safety_rules", "agent_rules", "principles"):
                 block = doc.get(section)
-                if not isinstance(block, list):
-                    continue
-                for item in block:
-                    if isinstance(item, dict):
-                        out.append(
-                            {
-                                "policy_name": policy_name,
-                                "section": section,
-                                "rule": item,
-                            }
-                        )
+                if isinstance(block, list):
+                    for item in block:
+                        if isinstance(item, dict):
+                            out.append(
+                                {
+                                    "policy_name": policy_name,
+                                    "section": section,
+                                    "rule": item,
+                                }
+                            )
+                elif isinstance(block, dict):
+                    # For principles in constitutional documents (e.g. authority.json)
+                    for rid, item in block.items():
+                        if isinstance(item, dict):
+                            # Ensure the ID is part of the rule for executor use
+                            rule_copy = {**item, "id": rid}
+                            out.append(
+                                {
+                                    "policy_name": policy_name,
+                                    "section": section,
+                                    "rule": rule_copy,
+                                }
+                            )
         return out
 
     # -------------------------------------------------------------------------
@@ -272,7 +287,7 @@ class IntentRepository:
     # ID: 34da4756-1be7-409e-8d92-5b01f8b82176
     def list_policies(self) -> list[PolicyRef]:
         """
-        List all policies discovered under .intent/policies.
+        List all policies and standards discovered in the Mind.
         """
         self._ensure_index()
         assert self._policy_index is not None
@@ -282,7 +297,7 @@ class IntentRepository:
     def list_governance_map(self) -> dict[str, list[str]]:
         """
         Returns a stable hierarchy of category -> policy_ids.
-        Category is the first directory under 'policies/'.
+        Category is the first directory under governance roots.
         """
         self._ensure_index()
         assert self._hierarchy is not None
@@ -323,32 +338,38 @@ class IntentRepository:
             )
 
     def _build_policy_index(self) -> tuple[dict[str, PolicyRef], dict[str, list[str]]]:
-        policies_dir = self.resolve_rel("policies")
-        if not policies_dir.exists():
-            if self._strict:
-                raise GovernanceError(f"Missing policies directory: {policies_dir}")
-            logger.warning("Policies directory missing: %s", policies_dir)
-            return {}, {}
+        """
+        Consults PathResolver (Map) to find where to scan for rules.
+        This enforces DRY by relying on the central path definitions.
+        """
+        # We scan the folders managed by the Constitution: policies and standards
+        # These are handled as sub-directories of the intent root
+        search_roots = ["policies", "standards"]
 
         index: dict[str, PolicyRef] = {}
         hierarchy: dict[str, list[str]] = {}
 
-        for path in self._iter_policy_files(policies_dir):
-            policy_id = self._policy_id_from_path(path)
-            if policy_id in index:
-                msg = (
-                    f"Duplicate policy_id detected: {policy_id} "
-                    f"({index[policy_id].path} vs {path})"
-                )
-                if self._strict:
-                    raise GovernanceError(msg)
-                logger.warning(msg)
+        for root_name in search_roots:
+            root_dir = self._root / root_name
+            if not root_dir.exists():
                 continue
 
-            index[policy_id] = PolicyRef(policy_id=policy_id, path=path)
+            for path in self._iter_policy_files(root_dir):
+                policy_id = self._policy_id_from_path(path)
+                if policy_id in index:
+                    msg = (
+                        f"Duplicate policy_id detected: {policy_id} "
+                        f"({index[policy_id].path} vs {path})"
+                    )
+                    if self._strict:
+                        raise GovernanceError(msg)
+                    logger.warning(msg)
+                    continue
 
-            category = self._category_from_policy_id(policy_id)
-            hierarchy.setdefault(category, []).append(policy_id)
+                index[policy_id] = PolicyRef(policy_id=policy_id, path=path)
+
+                category = self._category_from_policy_id(policy_id)
+                hierarchy.setdefault(category, []).append(policy_id)
 
         for cat in hierarchy:
             hierarchy[cat].sort()
@@ -369,24 +390,27 @@ class IntentRepository:
                 logger.warning("Skipping unreadable policy %s: %s", policy_id, e)
                 continue
 
-            rules = data.get("rules", [])
-            for rid, content in self._extract_rules(rules):
-                if rid in rule_index:
-                    msg = (
-                        f"Duplicate rule_id detected: {rid} "
-                        f"({rule_index[rid].source_path} vs {ref.path})"
-                    )
-                    if self._strict:
-                        raise GovernanceError(msg)
-                    logger.warning(msg)
-                    continue
+            # Support both flat rules (rules) and constitutional sections (principles, safety_rules, etc)
+            sections = ["rules", "safety_rules", "agent_rules", "principles"]
+            for section in sections:
+                rules = data.get(section, [])
+                for rid, content in self._extract_rules(rules):
+                    if rid in rule_index:
+                        msg = (
+                            f"Duplicate rule_id detected: {rid} "
+                            f"({rule_index[rid].source_path} vs {ref.path})"
+                        )
+                        if self._strict:
+                            raise GovernanceError(msg)
+                        logger.warning(msg)
+                        continue
 
-                rule_index[rid] = RuleRef(
-                    rule_id=rid,
-                    policy_id=policy_id,
-                    source_path=ref.path,
-                    content={**content},
-                )
+                    rule_index[rid] = RuleRef(
+                        rule_id=rid,
+                        policy_id=policy_id,
+                        source_path=ref.path,
+                        content={**content},
+                    )
 
         return rule_index
 
@@ -399,8 +423,9 @@ class IntentRepository:
             return
 
         try:
-            writable = self._root.exists() and self._root.is_dir() and self._root.stat()
-            # You can tighten this later with explicit os.access checks.
+            # Simple check if root is writable
+            writable = self._root.exists() and self._root.is_dir()
+            # If strictly required, could add explicit os.access(W_OK) here.
         except OSError:
             writable = False
 
@@ -414,20 +439,22 @@ class IntentRepository:
             yield from policies_dir.rglob(suffix)
 
     def _policy_id_from_path(self, path: Path) -> str:
-        rel = path.relative_to(self._root)
-        # remove suffix
-        without_suffix = rel.with_suffix("")
-        return str(without_suffix).replace("\\", "/")
+        # Create id relative to .intent root (e.g. 'policies/code/style')
+        try:
+            rel = path.relative_to(self._root)
+            return str(rel.with_suffix("")).replace("\\", "/")
+        except ValueError:
+            return path.stem
 
     def _category_from_policy_id(self, policy_id: str) -> str:
-        # policy_id is like "policies/<category>/..."
+        # policy_id is like "policies/<category>/..." or "standards/<category>/..."
         parts = policy_id.split("/")
-        if len(parts) >= 2 and parts[0] == "policies":
+        if len(parts) >= 2 and parts[0] in ("policies", "standards"):
             return parts[1]
         return "uncategorized"
 
     def _candidate_paths_for_id(self, policy_id: str) -> list[Path]:
-        # policy_id points to a file without suffix under .intent
+        # policy_id points to a path under .intent, like 'policies/code/style'
         base = self.resolve_rel(policy_id)
         return [
             Path(str(base) + ".yaml"),
@@ -439,7 +466,7 @@ class IntentRepository:
         """
         Supports:
         - list of dicts with 'id' or 'rule_id'
-        - dict mapping id -> dict
+        - dict mapping id -> dict (common in constitutional principles)
         """
         if isinstance(rules, list):
             for rule in rules:

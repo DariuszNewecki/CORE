@@ -1,7 +1,7 @@
 {
   "id": "standard_architecture_service_rules",
-  "version": "1.0.0",
-  "title": "Architecture Standard \u2013 Service Patterns",
+  "version": "1.1.0",
+  "title": "Architecture Standard – Service Patterns",
   "type": "policy",
   "status": "active",
   "owners": {
@@ -35,7 +35,7 @@
       ]
     },
     "results": {
-      "description": "Services MUST return predictable, structured results. High-level operations that participate in workflows use ActionResult. Low-level helpers may return plain types but MUST remain headless and easily wrappable.\n",
+      "description": "Services MUST return predictable, structured results. High-level operations that participate in workflows use ActionResult. Low-level helpers may return plain types but MUST remain headless and easily wrappable.\n\nNOTE: ActionResult enforcement migrated to body.atomic_actions_use_actionresult (ast_gate) in body_contracts.json.\n",
       "types": {
         "atomic_action_service": {
           "description": "High-level operations that are directly orchestrated by workflows/agents and appear in audit trails MUST return ActionResult.\n",
@@ -132,20 +132,6 @@
         "engine": "ast_gate",
         "params": {
           "check_type": "import_boundary"
-        }
-      }
-    },
-    {
-      "rule_id": "atomic_actions_return_actionresult",
-      "category": "validation",
-      "rationale": "Strengthens system governance regarding unspecified requirements.",
-      "id": "service_rules.auto_rule_1",
-      "enforcement": "error",
-      "statement": "Atomic action services that participate in workflows MUST return ActionResult, not ad-hoc dicts or tuples.\n",
-      "check": {
-        "engine": "llm_gate",
-        "params": {
-          "instruction": "Verify adherence to: Atomic action services that participate in workflows MUST return ActionResult, not ad-hoc dicts or tuples.\n"
         }
       }
     },
@@ -247,6 +233,10 @@
       }
     }
   ],
+  "removed_rules": {
+    "note": "The following rule was removed as a duplicate of existing ast_gate enforcement:",
+    "service_rules.auto_rule_1": "Duplicate of body.atomic_actions_use_actionresult (ast_gate) in body_contracts.json. That rule already checks that @atomic_action decorated functions return ActionResult."
+  },
   "migration_checklist": {
     "audit_existing_services": [
       "List all service classes and *_service.py modules.",

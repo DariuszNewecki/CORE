@@ -1,6 +1,6 @@
 {
   "id": "code.refactor",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "title": "Refactoring Standards",
   "type": "policy",
   "schema_id": "meta.policy",
@@ -33,18 +33,6 @@
         "engine": "llm_gate",
         "params": {
           "instruction": "Verify adherence to: When moving symbols, update capability tags and manifests accordingly."
-        }
-      }
-    },
-    {
-      "id": "refactor.audit_after",
-      "rationale": "Verifies that new code structures still comply with the system's foundational safety rules.",
-      "enforcement": "error",
-      "statement": "A constitutional audit MUST run after refactors and before merge.",
-      "check": {
-        "engine": "llm_gate",
-        "params": {
-          "instruction": "Verify adherence to: A constitutional audit MUST run after refactors and before merge."
         }
       }
     },
@@ -90,5 +78,9 @@
         }
       }
     }
-  ]
+  ],
+  "removed_rules": {
+    "note": "The following rule was removed as a duplicate of existing workflow_gate enforcement:",
+    "refactor.audit_after": "Duplicate of integration.audit_required (workflow_gate) in operations/general.json. That rule already ensures constitutional audit runs before integration/merge."
+  }
 }

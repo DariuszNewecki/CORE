@@ -1,16 +1,16 @@
 {
   "metadata": {
-    "generated_at_utc": "2025-12-28T14:37:07.479172+00:00",
+    "generated_at_utc": "2025-12-30T14:59:44.496788+00:00",
     "evidence_file": "reports/audit/latest_audit.json",
     "evidence_key_used": "executed_rules",
-    "total_executed_ids": 270,
+    "total_executed_ids": 208,
     "total_policy_files": 37,
     "flat_format_policies": 37,
     "nested_format_policies": 0
   },
   "summary": {
-    "rules_total": 184,
-    "rules_enforced": 184,
+    "rules_total": 183,
+    "rules_enforced": 183,
     "rules_implementable": 0,
     "rules_declared_only": 0,
     "execution_rate": 100.0,
@@ -138,7 +138,7 @@
         "category": "uncategorized",
         "check_engine": "glob_gate",
         "check_type": "path_restriction",
-        "implementable": false
+        "implementable": true
       },
       "coverage_status": "enforced",
       "in_executed_ids": true
@@ -215,6 +215,48 @@
     },
     {
       "rule": {
+        "rule_id": "code.module_name_clarity",
+        "statement": "Module names must be semantically distinct and self-documenting within their domain. Names should complete the sentence: 'This module handles...'",
+        "severity": "error",
+        "policy": "code.naming",
+        "category": "uncategorized",
+        "check_engine": "llm_gate",
+        "check_type": null,
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "code.no_generic_module_names",
+        "statement": "Avoid generic module names. Use specific names describing the module's responsibility or domain.",
+        "severity": "warning",
+        "policy": "code.naming",
+        "category": "uncategorized",
+        "check_engine": "glob_gate",
+        "check_type": "forbidden_patterns",
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "code.module_name_length",
+        "statement": "Module names should be 3-40 characters (excluding .py extension). Names under 3 characters are too terse; names over 40 characters suggest the module has too many responsibilities.",
+        "severity": "warning",
+        "policy": "code.naming",
+        "category": "uncategorized",
+        "check_engine": "regex_gate",
+        "check_type": "length_constraint",
+        "implementable": false
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
         "rule_id": "refactor.requires_tests",
         "statement": "Any refactor that changes public behavior MUST include tests or proof of equivalence.",
         "severity": "error",
@@ -222,7 +264,7 @@
         "category": "uncategorized",
         "check_engine": "workflow_gate",
         "check_type": "test_verification",
-        "implementable": false
+        "implementable": true
       },
       "coverage_status": "enforced",
       "in_executed_ids": true
@@ -243,20 +285,6 @@
     },
     {
       "rule": {
-        "rule_id": "refactor.audit_after",
-        "statement": "A constitutional audit MUST run after refactors and before merge.",
-        "severity": "error",
-        "policy": "code.refactor",
-        "category": "uncategorized",
-        "check_engine": "llm_gate",
-        "check_type": null,
-        "implementable": true
-      },
-      "coverage_status": "enforced",
-      "in_executed_ids": true
-    },
-    {
-      "rule": {
         "rule_id": "code_standards.max_file_lines",
         "statement": "Python modules MUST NOT exceed line limits based on their role: Core/Orchestration (600 lines), Features/Services (400 lines), Utilities (200 lines).",
         "severity": "warning",
@@ -264,7 +292,7 @@
         "category": "uncategorized",
         "check_engine": "glob_gate",
         "check_type": null,
-        "implementable": false
+        "implementable": true
       },
       "coverage_status": "enforced",
       "in_executed_ids": true
@@ -290,7 +318,7 @@
         "severity": "error",
         "policy": "code.style",
         "category": "uncategorized",
-        "check_engine": "ast_gate",
+        "check_engine": "workflow_gate",
         "check_type": "linter_compliance",
         "implementable": true
       },
@@ -304,7 +332,7 @@
         "severity": "error",
         "policy": "code.style",
         "category": "uncategorized",
-        "check_engine": "ast_gate",
+        "check_engine": "workflow_gate",
         "check_type": "linter_compliance",
         "implementable": true
       },
@@ -318,7 +346,7 @@
         "severity": "error",
         "policy": "code.style",
         "category": "uncategorized",
-        "check_engine": "ast_gate",
+        "check_engine": "workflow_gate",
         "check_type": "linter_compliance",
         "implementable": true
       },
@@ -523,20 +551,6 @@
     },
     {
       "rule": {
-        "rule_id": "atomic.action_must_return_result",
-        "statement": "Every atomic action MUST return an ActionResult",
-        "severity": "error",
-        "policy": "standard_architecture_atomic_actions",
-        "category": "uncategorized",
-        "check_engine": "llm_gate",
-        "check_type": null,
-        "implementable": true
-      },
-      "coverage_status": "enforced",
-      "in_executed_ids": true
-    },
-    {
-      "rule": {
         "rule_id": "atomic.result_must_be_structured",
         "statement": "ActionResult.data MUST be a dictionary of typed values",
         "severity": "error",
@@ -593,20 +607,6 @@
     },
     {
       "rule": {
-        "rule_id": "atomic.action_must_be_headless",
-        "statement": "Atomic actions MUST NOT perform terminal I/O (print, Rich Console/Progress, direct writes to stdout/stderr). All UI rendering is the responsibility of the calling workflow/CLI layer, which consumes ActionResult objects.",
-        "severity": "error",
-        "policy": "standard_architecture_atomic_actions",
-        "category": "uncategorized",
-        "check_engine": "llm_gate",
-        "check_type": null,
-        "implementable": true
-      },
-      "coverage_status": "enforced",
-      "in_executed_ids": true
-    },
-    {
-      "rule": {
         "rule_id": "body.no_ui_imports_in_body",
         "statement": "Body modules MUST NOT import Rich UI components (Console, Progress, etc.)",
         "severity": "error",
@@ -626,8 +626,8 @@
         "severity": "error",
         "policy": "standard_architecture_body_contracts",
         "category": "uncategorized",
-        "check_engine": "llm_gate",
-        "check_type": null,
+        "check_engine": "ast_gate",
+        "check_type": "no_print_statements",
         "implementable": true
       },
       "coverage_status": "enforced",
@@ -640,8 +640,8 @@
         "severity": "error",
         "policy": "standard_architecture_body_contracts",
         "category": "uncategorized",
-        "check_engine": "llm_gate",
-        "check_type": null,
+        "check_engine": "ast_gate",
+        "check_type": "write_defaults_false",
         "implementable": true
       },
       "coverage_status": "enforced",
@@ -663,27 +663,13 @@
     },
     {
       "rule": {
-        "rule_id": "body.actionresult_data_json_safe",
-        "statement": "ActionResult.data MUST only contain JSON-serializable types",
-        "severity": "warning",
-        "policy": "standard_architecture_body_contracts",
-        "category": "uncategorized",
-        "check_engine": "llm_gate",
-        "check_type": null,
-        "implementable": true
-      },
-      "coverage_status": "enforced",
-      "in_executed_ids": true
-    },
-    {
-      "rule": {
         "rule_id": "body.no_envvar_access_in_body",
         "statement": "Body modules MUST NOT call os.environ[...] directly; use shared.config.settings",
         "severity": "warning",
         "policy": "standard_architecture_body_contracts",
         "category": "uncategorized",
-        "check_engine": "llm_gate",
-        "check_type": null,
+        "check_engine": "ast_gate",
+        "check_type": "forbidden_primitives",
         "implementable": true
       },
       "coverage_status": "enforced",
@@ -696,8 +682,8 @@
         "severity": "warning",
         "policy": "standard_architecture_body_contracts",
         "category": "uncategorized",
-        "check_engine": "llm_gate",
-        "check_type": null,
+        "check_engine": "ast_gate",
+        "check_type": "no_import_time_async_singletons",
         "implementable": true
       },
       "coverage_status": "enforced",
@@ -999,20 +985,6 @@
     },
     {
       "rule": {
-        "rule_id": "service_rules.auto_rule_1",
-        "statement": "Atomic action services that participate in workflows MUST return ActionResult, not ad-hoc dicts or tuples.\n",
-        "severity": "error",
-        "policy": "standard_architecture_service_rules",
-        "category": "validation",
-        "check_engine": "llm_gate",
-        "check_type": null,
-        "implementable": true
-      },
-      "coverage_status": "enforced",
-      "in_executed_ids": true
-    },
-    {
-      "rule": {
         "rule_id": "service_rules.auto_rule_2",
         "statement": "Any service with a write or modify parameter MUST default it to False. This rule operationalizes the immutable 'write_defaults_false' principle.\n",
         "severity": "error",
@@ -1048,7 +1020,7 @@
         "category": "validation",
         "check_engine": "glob_gate",
         "check_type": "path_restriction",
-        "implementable": false
+        "implementable": true
       },
       "coverage_status": "enforced",
       "in_executed_ids": true
@@ -1256,8 +1228,8 @@
         "severity": "error",
         "policy": "standard_code_linkage",
         "category": "uncategorized",
-        "check_engine": "llm_gate",
-        "check_type": null,
+        "check_engine": "ast_gate",
+        "check_type": "id_anchor",
         "implementable": true
       },
       "coverage_status": "enforced",
@@ -1270,9 +1242,9 @@
         "severity": "error",
         "policy": "standard_code_linkage",
         "category": "uncategorized",
-        "check_engine": "glob_gate",
-        "check_type": "path_restriction",
-        "implementable": false
+        "check_engine": "knowledge_gate",
+        "check_type": "duplicate_ids",
+        "implementable": true
       },
       "coverage_status": "enforced",
       "in_executed_ids": true
@@ -1286,7 +1258,7 @@
         "category": "uncategorized",
         "check_engine": "knowledge_gate",
         "check_type": "capability_assignment",
-        "implementable": false
+        "implementable": true
       },
       "coverage_status": "enforced",
       "in_executed_ids": true
@@ -1314,7 +1286,7 @@
         "category": "uncategorized",
         "check_engine": "ast_gate",
         "check_type": "forbidden_assignments",
-        "implementable": false
+        "implementable": true
       },
       "coverage_status": "enforced",
       "in_executed_ids": true
@@ -1326,9 +1298,9 @@
         "severity": "error",
         "policy": "standard_code_purity",
         "category": "uncategorized",
-        "check_engine": "regex_gate",
-        "check_type": null,
-        "implementable": false
+        "check_engine": "ast_gate",
+        "check_type": "id_anchor",
+        "implementable": true
       },
       "coverage_status": "enforced",
       "in_executed_ids": true
@@ -1355,7 +1327,7 @@
         "policy": "standard_code_purity",
         "category": "uncategorized",
         "check_engine": "ast_gate",
-        "check_type": "generic_primitive",
+        "check_type": "decorator_args",
         "implementable": true
       },
       "coverage_status": "enforced",
@@ -1368,8 +1340,36 @@
         "severity": "error",
         "policy": "standard_code_purity",
         "category": "uncategorized",
-        "check_engine": "llm_gate",
-        "check_type": null,
+        "check_engine": "ast_gate",
+        "check_type": "forbidden_decorators",
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "purity.no_ast_duplication",
+        "statement": "Code MUST NOT contain structurally identical blocks (AST-level duplication).",
+        "severity": "warning",
+        "policy": "standard_code_purity",
+        "category": "uncategorized",
+        "check_engine": "knowledge_gate",
+        "check_type": "ast_duplication",
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "purity.no_semantic_duplication",
+        "statement": "Code MUST NOT contain semantically equivalent implementations (vector similarity duplication).",
+        "severity": "warning",
+        "policy": "standard_code_purity",
+        "category": "uncategorized",
+        "check_engine": "knowledge_gate",
+        "check_type": "semantic_duplication",
         "implementable": true
       },
       "coverage_status": "enforced",
@@ -1592,8 +1592,8 @@
         "severity": "error",
         "policy": "standard_logging",
         "category": "logging",
-        "check_engine": "llm_gate",
-        "check_type": null,
+        "check_engine": "ast_gate",
+        "check_type": "no_print_statements",
         "implementable": true
       },
       "coverage_status": "enforced",
@@ -1747,8 +1747,8 @@
         "policy": "standard_operations_general",
         "category": "uncategorized",
         "check_engine": "workflow_gate",
-        "check_type": "test_verification",
-        "implementable": false
+        "check_type": "linter_compliance",
+        "implementable": true
       },
       "coverage_status": "enforced",
       "in_executed_ids": true
@@ -1761,8 +1761,8 @@
         "policy": "standard_operations_general",
         "category": "uncategorized",
         "check_engine": "workflow_gate",
-        "check_type": "test_verification",
-        "implementable": false
+        "check_type": "canary_audit",
+        "implementable": true
       },
       "coverage_status": "enforced",
       "in_executed_ids": true
@@ -1774,8 +1774,8 @@
         "severity": "error",
         "policy": "standard_operations_general",
         "category": "uncategorized",
-        "check_engine": "llm_gate",
-        "check_type": null,
+        "check_engine": "glob_gate",
+        "check_type": "path_restriction",
         "implementable": true
       },
       "coverage_status": "enforced",
@@ -1788,8 +1788,8 @@
         "severity": "error",
         "policy": "standard_operations_general",
         "category": "uncategorized",
-        "check_engine": "llm_gate",
-        "check_type": null,
+        "check_engine": "ast_gate",
+        "check_type": "id_anchor",
         "implementable": true
       },
       "coverage_status": "enforced",
@@ -1802,8 +1802,8 @@
         "severity": "error",
         "policy": "standard_operations_general",
         "category": "uncategorized",
-        "check_engine": "llm_gate",
-        "check_type": null,
+        "check_engine": "knowledge_gate",
+        "check_type": "duplicate_ids",
         "implementable": true
       },
       "coverage_status": "enforced",
@@ -1816,8 +1816,8 @@
         "severity": "error",
         "policy": "standard_operations_general",
         "category": "uncategorized",
-        "check_engine": "llm_gate",
-        "check_type": null,
+        "check_engine": "knowledge_gate",
+        "check_type": "capability_assignment",
         "implementable": true
       },
       "coverage_status": "enforced",
@@ -1832,7 +1832,7 @@
         "category": "uncategorized",
         "check_engine": "workflow_gate",
         "check_type": "test_verification",
-        "implementable": false
+        "implementable": true
       },
       "coverage_status": "enforced",
       "in_executed_ids": true
@@ -1845,8 +1845,8 @@
         "policy": "standard_operations_general",
         "category": "uncategorized",
         "check_engine": "workflow_gate",
-        "check_type": "test_verification",
-        "implementable": false
+        "check_type": "coverage_minimum",
+        "implementable": true
       },
       "coverage_status": "enforced",
       "in_executed_ids": true
@@ -1859,21 +1859,7 @@
         "policy": "standard_operations_general",
         "category": "uncategorized",
         "check_engine": "workflow_gate",
-        "check_type": "test_verification",
-        "implementable": false
-      },
-      "coverage_status": "enforced",
-      "in_executed_ids": true
-    },
-    {
-      "rule": {
-        "rule_id": "canary.abort_on_audit_error",
-        "statement": "Canary deployment MUST abort if any audit error is detected.",
-        "severity": "error",
-        "policy": "standard_operations_general",
-        "category": "uncategorized",
-        "check_engine": "llm_gate",
-        "check_type": null,
+        "check_type": "audit_history",
         "implementable": true
       },
       "coverage_status": "enforced",
@@ -1882,13 +1868,13 @@
     {
       "rule": {
         "rule_id": "canary.abort_on_test_failure",
-        "statement": "Canary deployment MUST abort if any tests fail.",
+        "statement": "Canary deployment MUST abort if any tests fail or audit errors are detected.",
         "severity": "error",
         "policy": "standard_operations_general",
         "category": "uncategorized",
         "check_engine": "workflow_gate",
         "check_type": "test_verification",
-        "implementable": false
+        "implementable": true
       },
       "coverage_status": "enforced",
       "in_executed_ids": true
@@ -1902,7 +1888,7 @@
         "category": "uncategorized",
         "check_engine": "glob_gate",
         "check_type": "path_restriction",
-        "implementable": false
+        "implementable": true
       },
       "coverage_status": "enforced",
       "in_executed_ids": true
@@ -1970,8 +1956,8 @@
         "severity": "error",
         "policy": "standard_operations_general",
         "category": "uncategorized",
-        "check_engine": "llm_gate",
-        "check_type": null,
+        "check_engine": "ast_gate",
+        "check_type": "forbidden_primitives",
         "implementable": true
       },
       "coverage_status": "enforced",
@@ -2140,7 +2126,7 @@
         "category": "uncategorized",
         "check_engine": "workflow_gate",
         "check_type": "test_verification",
-        "implementable": false
+        "implementable": true
       },
       "coverage_status": "enforced",
       "in_executed_ids": true
@@ -2154,7 +2140,7 @@
         "category": "uncategorized",
         "check_engine": "workflow_gate",
         "check_type": "test_verification",
-        "implementable": false
+        "implementable": true
       },
       "coverage_status": "enforced",
       "in_executed_ids": true
@@ -2168,7 +2154,7 @@
         "category": "uncategorized",
         "check_engine": "glob_gate",
         "check_type": "path_restriction",
-        "implementable": false
+        "implementable": true
       },
       "coverage_status": "enforced",
       "in_executed_ids": true
@@ -2182,7 +2168,7 @@
         "category": "uncategorized",
         "check_engine": "workflow_gate",
         "check_type": "test_verification",
-        "implementable": false
+        "implementable": true
       },
       "coverage_status": "enforced",
       "in_executed_ids": true
@@ -2196,7 +2182,7 @@
         "category": "uncategorized",
         "check_engine": "glob_gate",
         "check_type": "path_restriction",
-        "implementable": false
+        "implementable": true
       },
       "coverage_status": "enforced",
       "in_executed_ids": true
@@ -2210,7 +2196,7 @@
         "category": "uncategorized",
         "check_engine": "workflow_gate",
         "check_type": "test_verification",
-        "implementable": false
+        "implementable": true
       },
       "coverage_status": "enforced",
       "in_executed_ids": true
@@ -2238,7 +2224,7 @@
         "category": "uncategorized",
         "check_engine": "workflow_gate",
         "check_type": "test_verification",
-        "implementable": false
+        "implementable": true
       },
       "coverage_status": "enforced",
       "in_executed_ids": true
@@ -2322,7 +2308,7 @@
         "category": "uncategorized",
         "check_engine": "workflow_gate",
         "check_type": "test_verification",
-        "implementable": false
+        "implementable": true
       },
       "coverage_status": "enforced",
       "in_executed_ids": true
@@ -2336,7 +2322,7 @@
         "category": "uncategorized",
         "check_engine": "workflow_gate",
         "check_type": "test_verification",
-        "implementable": false
+        "implementable": true
       },
       "coverage_status": "enforced",
       "in_executed_ids": true
@@ -2602,37 +2588,31 @@
     "agent.reasoning.trace_required",
     "async.no_manual_loop_management",
     "async.runtime.no_nested_loop_creation",
-    "atomic.action_must_be_headless",
-    "atomic.action_must_return_result",
     "atomic.actions_compose_transitively",
     "atomic.governance_never_bypassed",
     "atomic.result_must_be_structured",
     "atomic.workflow_must_declare_intent",
-    "body.actionresult_data_json_safe",
     "body.atomic_actions_use_actionresult",
     "body.dependency_injection_preferred",
     "body.no_envvar_access_in_body",
     "body.no_print_or_input_in_body",
     "body.no_ui_imports_in_body",
     "body.write_defaults_false",
-    "canary.abort_on_audit_error",
     "canary.abort_on_test_failure",
-    "caps.id_format",
     "caps.meaningful_description",
     "caps.no_placeholder_text",
     "caps.owner_required",
     "cli.runtime.single_loop_owner",
+    "code.module_name_clarity",
+    "code.module_name_length",
+    "code.no_generic_module_names",
     "code.python_module_naming",
     "code.python_test_module_naming",
     "code_index.meta_aggregator",
-    "code_quality.health.module_outlier",
     "code_standards.max_file_lines",
     "code_standards.max_function_lines",
     "constitution.allow_legacy_yaml",
     "constitution.primary_format",
-    "coverage.data_missing",
-    "coverage.minimum_threshold",
-    "coverage.no_untested_commits",
     "db.cli_registry_in_db",
     "db.cognitive_roles_in_db",
     "db.domains_in_db",
@@ -2671,7 +2651,6 @@
     "intent.prompt_file_naming",
     "intent.proposal_file_naming",
     "intent.schema_compliance",
-    "intent_alignment",
     "ir.notifications_required",
     "ir.postmortem_required",
     "ir.timeline_required",
@@ -2712,10 +2691,10 @@
     "purity.atomic_action_contract",
     "purity.forbidden_decorators",
     "purity.framework_binding_limits",
-    "purity.no_descriptive_pollution",
+    "purity.no_ast_duplication",
     "purity.no_inline_configuration",
+    "purity.no_semantic_duplication",
     "purity.safety_contract_presence",
-    "purity.safety_contract_required",
     "purity.stable_id_anchor",
     "qa.audit.exceptions_empty_default",
     "qa.audit.exceptions_explicit",
@@ -2727,7 +2706,6 @@
     "qa.change.evaluation_threshold_pass",
     "qa.change.evaluation_warn",
     "qa.coverage.critical_paths",
-    "qa.coverage.data_missing",
     "qa.coverage.exclusions",
     "qa.coverage.minimum_threshold",
     "qa.coverage.no_regression",
@@ -2737,24 +2715,15 @@
     "qa.remediation.trigger_conditions",
     "qa.risk.high_gate",
     "qa.risk.medium_gate",
-    "refactor.audit_after",
     "refactor.requires_tests",
-    "refactor.semantic_duplication",
     "refactor.update_capabilities",
-    "reuse.before_new_code",
-    "rules.must_have_statement",
-    "rules.no_placeholder_ids",
-    "rules.required_fields",
     "safety.change_must_be_logged",
     "safety.charter_immutable",
     "safety.deny_core_loop_edit",
     "safety.immutable_constitution",
-    "safety.immutable_core_mission",
     "safety.no_autonomous_core_modification",
-    "safety.no_dangerous_execution",
     "safety.no_dangerous_execution_primitives",
     "safety.runtime_contract_enforced",
-    "safety.single_active_constitution",
     "schemas.dialect.forbid_nullable_keyword",
     "schemas.dialect.standard_json_schema",
     "schemas.style.closed_objects.root",
@@ -2764,7 +2733,6 @@
     "secrets.provider_abstraction",
     "secrets.rotation_autonomy",
     "service_rules.auto_rule_0",
-    "service_rules.auto_rule_1",
     "service_rules.auto_rule_2",
     "service_rules.auto_rule_3",
     "service_rules.auto_rule_4",
@@ -2772,50 +2740,8 @@
     "standard_architecture_agent_rules.pattern.learning_agent",
     "standard_architecture_agent_rules.pattern.orchestrator_agent",
     "standard_architecture_agent_rules.pattern.validator_agent",
-    "standard_architecture_body_contracts.action_results.0",
-    "standard_architecture_body_contracts.action_results.1",
-    "standard_architecture_body_contracts.action_results.2",
     "standard_architecture_body_contracts.action_results.3",
-    "standard_architecture_body_contracts.action_results.4",
-    "standard_architecture_body_contracts.configuration_access.0",
-    "standard_architecture_body_contracts.configuration_access.1",
-    "standard_architecture_body_contracts.configuration_access.2",
-    "standard_architecture_body_contracts.configuration_access.3",
-    "standard_architecture_body_contracts.dependencies.0",
-    "standard_architecture_body_contracts.dependencies.1",
-    "standard_architecture_body_contracts.dependencies.2",
-    "standard_architecture_body_contracts.error_handling.0",
-    "standard_architecture_body_contracts.error_handling.1",
-    "standard_architecture_body_contracts.error_handling.2",
-    "standard_architecture_body_contracts.error_handling.3",
-    "standard_architecture_body_contracts.error_handling.4",
-    "standard_architecture_body_contracts.headless_rules.0",
-    "standard_architecture_body_contracts.headless_rules.1",
-    "standard_architecture_body_contracts.headless_rules.2",
-    "standard_architecture_body_contracts.headless_rules.3",
-    "standard_architecture_body_contracts.headless_rules.4",
-    "standard_architecture_body_contracts.logging.0",
-    "standard_architecture_body_contracts.logging.1",
-    "standard_architecture_body_contracts.logging.2",
-    "standard_architecture_body_contracts.logging.3",
-    "standard_architecture_body_contracts.logging.4",
-    "standard_architecture_body_contracts.logging.5",
-    "standard_architecture_body_contracts.logging.6",
-    "standard_architecture_body_contracts.side_effects.0",
-    "standard_architecture_body_contracts.side_effects.1",
-    "standard_architecture_body_contracts.side_effects.2",
-    "standard_architecture_body_contracts.side_effects.3",
-    "standard_architecture_body_contracts.testing_contract.0",
-    "standard_architecture_body_contracts.testing_contract.1",
-    "standard_architecture_body_contracts.testing_contract.2",
-    "standard_architecture_body_contracts.testing_contract.3",
     "standard_architecture_body_contracts.testing_contract.4",
-    "standard_architecture_body_contracts.write_semantics.0",
-    "standard_architecture_body_contracts.write_semantics.1",
-    "standard_architecture_body_contracts.write_semantics.2",
-    "standard_architecture_body_contracts.write_semantics.3",
-    "standard_architecture_body_contracts.write_semantics.4",
-    "standard_architecture_body_contracts.write_semantics.5",
     "standard_architecture_command_rules.pattern.action_pattern",
     "standard_architecture_command_rules.pattern.check_pattern",
     "standard_architecture_command_rules.pattern.inspect_pattern",
@@ -2835,8 +2761,6 @@
     "standard_architecture_workflow_rules.ui_contract.1",
     "standard_architecture_workflow_rules.ui_contract.2",
     "standard_architecture_workflow_rules.ui_contract.3",
-    "structural_compliance.import_violation",
-    "style.capability_id_placement",
     "style.docstrings_public_apis",
     "style.fail_on_style_in_ci",
     "style.formatter_required",
@@ -2993,7 +2917,7 @@
       "format": "flat"
     },
     "standard_code_purity": {
-      "title": "Code Standard – Purity & Side Effects",
+      "title": "Code Standard - Purity & Side Effects",
       "id": "standard_code_purity",
       "format": "flat"
     },

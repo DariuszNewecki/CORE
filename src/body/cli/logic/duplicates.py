@@ -1,25 +1,21 @@
 # src/body/cli/logic/duplicates.py
 
 """
-Implements the dedicated 'inspect duplicates' command.
-
-Refactored: Exposes async entry point for orchestrators.
-
-Key behavior:
-- Loads the AuditorContext knowledge graph (DB SSOT)
-- Ensures QdrantService is available on the AuditorContext
-- Runs DuplicationCheck (which reads qdrant_service from the context)
+Logic for the 'inspect duplicates' command.
+Refactored to use the dynamic constitutional rule engine and provide
+both AST and semantic code duplication analysis.
 """
 
 from __future__ import annotations
 
 import traceback
-from pathlib import Path
 
 import networkx as nx
 
 from mind.governance.audit_context import AuditorContext
-from mind.governance.check_registry import get_check
+from mind.governance.rule_executor import execute_rule
+from mind.governance.rule_extractor import extract_executable_rules
+from shared.config import settings
 from shared.context import CoreContext
 from shared.infrastructure.clients.qdrant_client import QdrantService
 from shared.logger import getLogger
@@ -30,7 +26,7 @@ logger = getLogger(__name__)
 
 
 def _group_findings(findings: list[AuditFinding]) -> list[list[AuditFinding]]:
-    """Groups pairwise duplicate findings into clusters."""
+    """Groups pairwise duplicate findings into clusters using graph theory."""
     graph = nx.Graph()
     finding_map: dict[tuple[str, str], AuditFinding] = {}
 
@@ -40,6 +36,7 @@ def _group_findings(findings: list[AuditFinding]) -> list[list[AuditFinding]]:
         symbol2 = ctx.get("symbol_b")
         if symbol1 and symbol2:
             graph.add_edge(symbol1, symbol2)
+            # Sort keys to ensure consistent mapping
             finding_map[tuple(sorted((symbol1, symbol2)))] = finding
 
     clusters = list(nx.connected_components(graph))
@@ -55,6 +52,7 @@ def _group_findings(findings: list[AuditFinding]) -> list[list[AuditFinding]]:
                     cluster_findings.append(finding_map[key])
 
         if cluster_findings:
+            # Sort by similarity within the cluster
             cluster_findings.sort(
                 key=lambda f: float((f.context or {}).get("similarity", 0)),
                 reverse=True,
@@ -67,83 +65,117 @@ def _group_findings(findings: list[AuditFinding]) -> list[list[AuditFinding]]:
 # ID: 00ec62c1-ef50-4f17-aec6-460fe26a47d5
 async def inspect_duplicates_async(context: CoreContext, threshold: float) -> None:
     """
-    The core async logic for running only the duplication check.
+    The core async logic for running duplication analysis.
+    Uses the constitutional rule engine to identify duplicates via:
+    1. AST duplication (structural similarity)
+    2. Semantic duplication (vector similarity)
     """
     if context is None:
         logger.error("Context not initialized for inspect duplicates")
         raise ValueError("Context not initialized for inspect duplicates")
 
-    logger.info("Running semantic duplication check with threshold: %s...", threshold)
+    logger.info("🔍 Running duplication checks (threshold: %s)...", threshold)
 
     try:
-        from shared.config import settings
-
-        repo_path = (
-            getattr(getattr(context, "git_service", None), "repo_path", None)
-            or settings.REPO_PATH
-        )
-        repo_root = Path(repo_path).resolve()
-
-        if not repo_root.exists():
-            raise FileNotFoundError(f"Repository path does not exist: {repo_root}")
-
-        auditor_context = AuditorContext(repo_root)
+        # 1. Initialize AuditorContext and load state
+        repo_root = settings.paths.repo_root
+        auditor_context = context.auditor_context or AuditorContext(repo_root)
         await auditor_context.load_knowledge_graph()
 
-        # Resolve Qdrant service from CoreContext (preferred) or registry fallback
-        qdrant_service: QdrantService | None = getattr(context, "qdrant_service", None)
-        if qdrant_service is None:
-            registry = getattr(context, "registry", None)
-            if registry is not None:
-                try:
-                    qdrant_service = await registry.get_qdrant_service()
-                    context.qdrant_service = qdrant_service
-                except Exception as exc:
-                    logger.warning("Could not initialize Qdrant service: %s", exc)
-                    qdrant_service = None
+        # 2. Ensure Qdrant is available (required for semantic duplication)
+        qdrant_service: QdrantService | None = context.qdrant_service
+        if qdrant_service is None and context.registry:
+            qdrant_service = await context.registry.get_qdrant_service()
+            context.qdrant_service = qdrant_service
 
         if qdrant_service is None:
-            logger.error(
-                "Qdrant service unavailable; cannot run duplication check. "
-                "Ensure service is configured in context or registry."
+            logger.warning(
+                "Qdrant service unavailable; semantic duplication check will be skipped."
             )
-            return
+        else:
+            # Attach service to context for the rule engine to use
+            auditor_context.qdrant_service = qdrant_service
 
-        # Attach Qdrant service to auditor context
-        auditor_context.qdrant_service = qdrant_service
+        # 3. Extract all executable rules
+        all_rules = extract_executable_rules(auditor_context.policies)
 
-        # Dynamic check lookup
-        DuplicationCheck = get_check("DuplicationCheck")
-        check = DuplicationCheck(auditor_context)
-
-        findings = await check.execute(threshold=threshold)
-
-        if not findings:
-            logger.info("No significant duplicates found (threshold=%s).", threshold)
-            return
-
-        logger.info(
-            "Found %s pairwise duplication finding(s) (threshold=%s).",
-            len(findings),
-            threshold,
+        # 4. Find AST duplication rule
+        ast_rule = next(
+            (r for r in all_rules if r.rule_id == "purity.no_ast_duplication"),
+            None,
         )
 
-        # Group findings into clusters
-        grouped = _group_findings(findings)
-        logger.info("Grouped into %s cluster(s):", len(grouped))
+        if ast_rule:
+            logger.info("Found AST duplication rule: %s", ast_rule)
+        else:
+            logger.warning("AST duplication rule not found in %d rules", len(all_rules))
+
+        # 5. Find semantic duplication rule
+        semantic_rule = next(
+            (r for r in all_rules if r.rule_id == "purity.no_semantic_duplication"),
+            None,
+        )
+
+        if semantic_rule:
+            logger.info("Found semantic duplication rule: %s", semantic_rule)
+        else:
+            logger.warning(
+                "Semantic duplication rule not found in %d rules", len(all_rules)
+            )
+
+        all_findings: list[AuditFinding] = []
+
+        # 6. Execute AST duplication check
+        if ast_rule:
+            logger.info("Running AST duplication check...")
+            ast_rule.params["threshold"] = threshold
+            ast_findings = await execute_rule(ast_rule, auditor_context)
+            all_findings.extend(ast_findings)
+            logger.info("AST check found %d duplicate pairs", len(ast_findings))
+        else:
+            logger.warning("Constitutional rule purity.no_ast_duplication not found.")
+
+        # 7. Execute semantic duplication check (if Qdrant available)
+        if semantic_rule and qdrant_service:
+            logger.info("Running semantic duplication check...")
+            semantic_rule.params["threshold"] = threshold
+            semantic_findings = await execute_rule(semantic_rule, auditor_context)
+            all_findings.extend(semantic_findings)
+            logger.info(
+                "Semantic check found %d duplicate pairs", len(semantic_findings)
+            )
+        elif semantic_rule and not qdrant_service:
+            logger.warning("Skipping semantic duplication check (Qdrant unavailable).")
+        else:
+            logger.warning(
+                "Constitutional rule purity.no_semantic_duplication not found."
+            )
+
+        # 8. Report results
+        if not all_findings:
+            logger.info("✅ No significant duplicates found (threshold=%s).", threshold)
+            return
+
+        logger.info("⚠️  Found %s total duplication finding(s).", len(all_findings))
+
+        # 9. Group findings into clusters for better readability
+        grouped = _group_findings(all_findings)
+        logger.info("Found %s logical cluster(s) of duplicated code:", len(grouped))
 
         for idx, cluster_findings in enumerate(grouped, start=1):
             logger.info("Cluster %s:", idx)
             for finding in cluster_findings:
                 ctx = finding.context or {}
+                dup_type = ctx.get("type", "unknown")
                 logger.info(
-                    "  - %s <-> %s (similarity: %s)",
+                    "  - [%s] %s <-> %s (similarity: %s)",
+                    dup_type.upper(),
                     ctx.get("symbol_a", "???"),
                     ctx.get("symbol_b", "???"),
-                    ctx.get("similarity", "???"),
+                    f"{ctx.get('similarity', 0):.2%}",
                 )
 
     except Exception as exc:
         logger.error("Duplication check failed: %s", exc)
-        traceback.print_exc()
+        logger.debug(traceback.format_exc())
         raise

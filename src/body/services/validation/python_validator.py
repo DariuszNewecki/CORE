@@ -2,7 +2,11 @@
 
 """
 Python code validation pipeline orchestrator.
-Coordinates validation across Mind (governance), Body (tools), and shared utilities.
+
+CONSTITUTIONAL ALIGNMENT:
+- Aligns with 'body_contracts.json' (Headless, no direct Mind engine dependency).
+- Uses local 'PolicyValidator' for semantic safety checks within the Body layer.
+- Enforces 'dry_by_design' by delegating to shared infrastructure for Black/Ruff/Syntax.
 """
 
 from __future__ import annotations
@@ -12,18 +16,17 @@ from typing import TYPE_CHECKING, Any
 import black
 
 from body.services.validation.validation_policies import PolicyValidator
-from mind.governance.checks.import_rules import ImportRulesCheck
-from mind.governance.runtime_validator import RuntimeValidatorService
 from shared.infrastructure.validation.black_formatter import format_code_with_black
 from shared.infrastructure.validation.quality import QualityChecker
 from shared.infrastructure.validation.ruff_linter import fix_and_lint_code_with_ruff
 from shared.infrastructure.validation.syntax_checker import check_syntax
-from shared.models import AuditFinding
+from shared.logger import getLogger
 
 
 if TYPE_CHECKING:
     from mind.governance.audit_context import AuditorContext
 
+logger = getLogger(__name__)
 Violation = dict[str, Any]
 
 
@@ -31,15 +34,15 @@ Violation = dict[str, Any]
 async def validate_python_code_async(
     path_hint: str, code: str, auditor_context: AuditorContext
 ) -> tuple[str, list[Violation]]:
-    """Comprehensive validation pipeline for Python code, now including runtime checks."""
+    """
+    Comprehensive validation pipeline for Python code.
+
+    This Body-layer service coordinates deterministic quality checks.
+    Governance-level auditing is deferred to the Mind-layer Auditor.
+    """
     all_violations: list[Violation] = []
 
-    # --- Step 1: Static Analysis (unchanged) ---
-    safety_policy = auditor_context.policies.get("safety_policy", {})
-    policy_validator = PolicyValidator(safety_policy.get("rules", []))
-    quality_checker = QualityChecker()
-    import_checker = ImportRulesCheck(auditor_context)
-
+    # 1. FORMATTING (Standard Tooling)
     try:
         formatted_code = format_code_with_black(code)
     except (black.InvalidInput, Exception) as e:
@@ -53,53 +56,32 @@ async def validate_python_code_async(
         )
         return code, all_violations
 
+    # 2. LINTING (Standard Tooling)
     fixed_code, ruff_violations = fix_and_lint_code_with_ruff(formatted_code, path_hint)
     all_violations.extend(ruff_violations)
 
+    # 3. SYNTAX VALIDATION (Deterministic Body Check)
     syntax_violations = check_syntax(path_hint, fixed_code)
     all_violations.extend(syntax_violations)
+
+    # Fail fast on syntax errors before performing more expensive checks
     if any(v["severity"] == "error" for v in syntax_violations):
         return fixed_code, all_violations
 
+    # 4. LOCAL POLICY VALIDATION (Policy-Aware Body Check)
+    # Uses the local PolicyValidator which is a permitted Body-layer component.
+    safety_policy = auditor_context.policies.get("safety_policy", {})
+    policy_validator = PolicyValidator(safety_policy.get("rules", []))
     all_violations.extend(policy_validator.check_semantics(fixed_code, path_hint))
+
+    # 5. QUALITY ATTRIBUTES (DRY / TODO detection)
+    quality_checker = QualityChecker()
     all_violations.extend(quality_checker.check_for_todo_comments(fixed_code))
 
-    try:
-        # ImportRulesCheck.execute_on_content is synchronous.
-        import_violations = import_checker.execute_on_content(path_hint, fixed_code)
-        all_violations.extend(import_violations)
-    except Exception as e:
-        all_violations.append(
-            {
-                "rule": "import.check_failed",
-                "message": str(e),
-                "line": 0,
-                "severity": "error",
-            }
-        )
-
-    # --- Step 2: Conditional Runtime Validation ---
-    # FIX: Downgrade test failures to WARNING during development to allow multi-file refactoring.
-    # This prevents the "Atomic Commit Paradox" where you can't fix file A because file B is broken.
-    is_test_file = "tests/" in path_hint.replace("\\", "/")
-
-    # Only run expensive runtime tests if static analysis passed
-    if not is_test_file and not any(
-        v.get("severity") == "error" for v in all_violations
-    ):
-        runtime_validator = RuntimeValidatorService(auditor_context.repo_path)
-        passed, details = await runtime_validator.run_tests_in_canary(
-            path_hint, fixed_code
-        )
-        if not passed:
-            all_violations.append(
-                AuditFinding(
-                    check_id="runtime.tests.failed",
-                    # CHANGED from 'error' to 'warning' to allow partial states during refactoring
-                    severity="warning",
-                    message="Code failed to pass the test suite. Proceeding (Development Fastpath).",
-                    context={"details": details},
-                ).as_dict()
-            )
+    logger.debug(
+        "Validation completed for %s: %d violation(s) found.",
+        path_hint,
+        len(all_violations),
+    )
 
     return fixed_code, all_violations

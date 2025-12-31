@@ -28,7 +28,7 @@ from typing import Any, ClassVar
 from shared.config import settings
 from shared.logger import getLogger
 from shared.models.vector_models import VectorizableItem
-from shared.utils.yaml_processor import strict_yaml_processor
+from shared.processors.yaml_processor import strict_yaml_processor
 
 
 logger = getLogger(__name__)

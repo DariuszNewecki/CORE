@@ -1,7 +1,7 @@
 {
   "id": "standard_operations_general",
-  "version": "1.0.0",
-  "title": "Operations Standard \u2013 General Operational Rules",
+  "version": "1.2.0",
+  "title": "Operations Standard – General Operational Rules",
   "type": "policy",
   "status": "active",
   "owners": {
@@ -20,85 +20,89 @@
     {
       "id": "intent.schema_compliance",
       "scope": "intent_crates.validation",
-      "rationale": "Strengthens system governance regarding intent.schema_compliance.",
+      "rationale": "Ensures that all change units follow the governed structure.",
       "enforcement": "error",
       "statement": "All intent crates MUST pass schema validation against the intent crate schema.",
       "check": {
         "engine": "workflow_gate",
         "params": {
-          "check_type": "test_verification"
+          "check_type": "linter_compliance"
         }
       }
     },
     {
       "id": "intent.canary_required",
       "scope": "intent_crates.lifecycle",
-      "rationale": "Strengthens system governance regarding intent.canary_required.",
+      "rationale": "Prevents breaking changes from hitting the main branch by testing in isolation.",
       "enforcement": "error",
       "statement": "All intent crates MUST pass a canary audit in an isolated environment before application.",
       "check": {
         "engine": "workflow_gate",
         "params": {
-          "check_type": "test_verification"
+          "check_type": "canary_audit",
+          "canary_passed": true
         }
       }
     },
     {
       "id": "intent.immutable_history",
       "scope": "intent_crates.lifecycle",
-      "rationale": "Strengthens system governance regarding intent.immutable_history.",
+      "rationale": "Prevents 'ghost changes' by ensuring the processing queue is always cleared and logged.",
       "enforcement": "error",
       "statement": "Processed intent crates MUST be moved to accepted or rejected and MUST NOT be modified in place.",
       "check": {
-        "engine": "llm_gate",
+        "engine": "glob_gate",
         "params": {
-          "instruction": "Verify adherence to: Processed intent crates MUST be moved to accepted or rejected and MUST NOT be modified in place."
+          "check_type": "path_restriction",
+          "patterns": [
+            "work/crates/processing/**"
+          ]
         }
       }
     },
     {
       "id": "integration.assign_ids_required",
       "command": "core-admin fix ids --write",
-      "rationale": "Strengthens system governance regarding integration.assign_ids_required.",
+      "rationale": "Stable UUIDs are the primary key for the Knowledge Graph.",
       "enforcement": "error",
       "statement": "Stable UUIDs MUST be assigned to all new public symbols before integration.",
       "check": {
-        "engine": "llm_gate",
+        "engine": "workflow_gate",
         "params": {
-          "instruction": "Verify adherence to: Stable UUIDs MUST be assigned to all new public symbols before integration."
+          "check_type": "audit_history"
         }
       }
     },
     {
       "id": "integration.duplicate_ids_resolved",
       "command": "core-admin fix duplicate-ids --write",
-      "rationale": "Strengthens system governance regarding integration.duplicate_ids_resolved.",
+      "rationale": "Duplicate IDs break semantic retrieval and system integrity.",
       "enforcement": "error",
       "statement": "Duplicate '# ID:' tags MUST be resolved before integration.",
       "check": {
-        "engine": "llm_gate",
+        "engine": "knowledge_gate",
         "params": {
-          "instruction": "Verify adherence to: Duplicate '# ID:' tags MUST be resolved before integration."
+          "check_type": "duplicate_ids"
         }
       }
     },
     {
       "id": "integration.knowledge_sync_required",
       "command": "core-admin manage database sync-knowledge --write",
-      "rationale": "Strengthens system governance regarding integration.knowledge_sync_required.",
+      "rationale": "Ensures the Mind (DB) is perfectly aligned with the Body (Code).",
       "enforcement": "error",
       "statement": "Codebase state MUST be synchronized with the database SSOT before integration.",
       "check": {
-        "engine": "llm_gate",
+        "engine": "knowledge_gate",
         "params": {
-          "instruction": "Verify adherence to: Codebase state MUST be synchronized with the database SSOT before integration."
+          "check_type": "capability_assignment"
         }
       }
     },
     {
       "id": "integration.tests_must_pass",
       "command": "core-admin check tests",
-      "rationale": "Strengthens system governance regarding integration.tests_must_pass.",
+      "rationale": "Guarantees functional integrity.",
       "enforcement": "error",
       "statement": "Full test suite MUST pass before integration.",
       "check": {
@@ -111,48 +115,35 @@
     {
       "id": "integration.coverage_minimum",
       "command": "core-admin coverage check",
-      "rationale": "Strengthens system governance regarding integration.coverage_minimum.",
+      "rationale": "Enforces a minimum quality bar for all new logic.",
       "enforcement": "error",
       "statement": "Test coverage MUST meet or exceed the constitutional minimum (75%).",
       "check": {
         "engine": "workflow_gate",
         "params": {
-          "check_type": "test_verification"
+          "check_type": "coverage_minimum"
         }
       }
     },
     {
       "id": "integration.audit_required",
       "command": "core-admin check audit",
-      "rationale": "Strengthens system governance regarding integration.audit_required.",
+      "rationale": "The final gate for constitutional alignment.",
       "enforcement": "error",
       "statement": "Full constitutional audit MUST pass before integration.",
       "check": {
         "engine": "workflow_gate",
         "params": {
-          "check_type": "test_verification"
-        }
-      }
-    },
-    {
-      "id": "canary.abort_on_audit_error",
-      "metric": "audit.errors == 0",
-      "rationale": "Strengthens system governance regarding canary.abort_on_audit_error.",
-      "enforcement": "error",
-      "statement": "Canary deployment MUST abort if any audit error is detected.",
-      "check": {
-        "engine": "llm_gate",
-        "params": {
-          "instruction": "Verify adherence to: Canary deployment MUST abort if any audit error is detected."
+          "check_type": "audit_history"
         }
       }
     },
     {
       "id": "canary.abort_on_test_failure",
       "metric": "tests.failed == 0",
-      "rationale": "Strengthens system governance regarding canary.abort_on_test_failure.",
+      "rationale": "Standard safety requirement for autonomous deployment. Includes audit errors as part of test verification.",
       "enforcement": "error",
-      "statement": "Canary deployment MUST abort if any tests fail.",
+      "statement": "Canary deployment MUST abort if any tests fail or audit errors are detected.",
       "check": {
         "engine": "workflow_gate",
         "params": {
@@ -166,19 +157,22 @@
         ".intent/**",
         "src/system/governance/**"
       ],
-      "rationale": "Strengthens system governance regarding dev_fastpath.no_intent_changes.",
+      "rationale": "Fastpaths are for logic refinement, not constitutional changes.",
       "enforcement": "error",
       "statement": "Developer fastpath MUST NOT allow changes to intent or governance paths.",
       "check": {
         "engine": "glob_gate",
         "params": {
-          "check_type": "path_restriction"
+          "check_type": "path_restriction",
+          "patterns": [
+            ".intent/**"
+          ]
         }
       }
     },
     {
       "id": "ir.triage_required",
-      "rationale": "Strengthens system governance regarding ir.triage_required.",
+      "rationale": "Ensures system failures are attended to within a governed timeframe.",
       "enforcement": "error",
       "statement": "All incidents MUST be triaged within 24 hours with severity and owner assigned.",
       "check": {
@@ -190,7 +184,7 @@
     },
     {
       "id": "ir.timeline_required",
-      "rationale": "Strengthens system governance regarding ir.timeline_required.",
+      "rationale": "Traceability is required for postmortem analysis.",
       "enforcement": "warning",
       "statement": "A minimal incident timeline MUST be recorded.",
       "check": {
@@ -202,7 +196,7 @@
     },
     {
       "id": "ir.notifications_required",
-      "rationale": "Strengthens system governance regarding ir.notifications_required.",
+      "rationale": "Escalation transparency.",
       "enforcement": "warning",
       "statement": "Maintainers MUST be notified for high and critical incidents.",
       "check": {
@@ -214,7 +208,7 @@
     },
     {
       "id": "ir.postmortem_required",
-      "rationale": "Strengthens system governance regarding ir.postmortem_required.",
+      "rationale": "Enables the 'Self-Improving' loop by learning from critical failures.",
       "enforcement": "warning",
       "statement": "High and critical incidents REQUIRE a short postmortem with actions and owners.",
       "check": {
@@ -226,17 +220,38 @@
     },
     {
       "id": "operations.runtime.env_vars_defined",
-      "rationale": "Strengthens system governance regarding operations.runtime.env_vars_defined.",
+      "rationale": "Prevents runtime failures due to missing infrastructure secrets.",
       "enforcement": "error",
       "statement": "All required runtime environment variables MUST be set.",
+      "scope": [
+        "src/**/*.py"
+      ],
+      "exclusions": [
+        "src/api/**",
+        "src/body/cli/**",
+        "src/mind/**",
+        "src/shared/logger.py",
+        "tests/**/*.py",
+        "**/*_test.py",
+        "**/test_*.py",
+        "**/__init__.py"
+      ],
       "check": {
-        "engine": "llm_gate",
+        "engine": "ast_gate",
         "params": {
-          "instruction": "Verify adherence to: All required runtime environment variables MUST be set."
+          "check_type": "forbidden_primitives",
+          "forbidden": [
+            "os.environ",
+            "os.getenv"
+          ]
         }
       }
     }
   ],
+  "removed_rules": {
+    "note": "The following rule was removed as a duplicate of existing workflow_gate enforcement:",
+    "canary.abort_on_audit_error": "Merged into canary.abort_on_test_failure. The workflow_gate test_verification check already includes audit validation via integration.audit_required, making this a duplicate check."
+  },
   "intent_crates": {
     "description": "Change-management units governing modifications to system intent.",
     "schema": "intent_crate_schema.json",

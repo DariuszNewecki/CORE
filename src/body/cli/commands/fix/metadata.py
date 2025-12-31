@@ -55,6 +55,7 @@ async def fix_ids_internal(write: bool = False) -> ActionResult:
     start_time = time.time()
 
     try:
+        # Note: assign_missing_ids is currently a sync tool scanning filesystem
         total_assigned = assign_missing_ids(dry_run=not write)
 
         return ActionResult(
@@ -97,7 +98,7 @@ async def fix_duplicate_ids_internal(write: bool = False) -> ActionResult:
     """
     start_time = time.time()
     try:
-        # FIXED: Pass session to resolve_duplicate_ids
+        # FIXED: Pass session to resolve_duplicate_ids and AWAIT the result
         async with get_session() as session:
             resolved_count = await resolve_duplicate_ids(session, dry_run=not write)
 
@@ -161,7 +162,8 @@ async def purge_legacy_tags_command(
     ),
 ) -> None:
     """Remove obsolete tag formats from Python files."""
-    removed_count = purge_legacy_tags(dry_run=not write)
+    # FIXED: Added 'await' because purge_legacy_tags is now an async function
+    removed_count = await purge_legacy_tags(dry_run=not write)
 
     mode = "removed" if write else "would be removed (dry-run)"
     console.print(f"[bold green]Obsolete tags {mode}: {removed_count}[/bold green]")
@@ -185,6 +187,7 @@ async def fix_policy_ids_command(
     ),
 ) -> None:
     """Ensure each policy file has a unique policy_id."""
+    # Note: add_missing_policy_ids is currently a sync utility
     added, skipped = add_missing_policy_ids(
         policies_dir=policies_dir, dry_run=not write
     )
@@ -235,6 +238,6 @@ async def fix_duplicate_ids_command(
 ) -> ActionResult:
     """Detect and resolve duplicate IDs in Python files."""
 
-    # Delegate to atomic action
+    # Delegate to atomic action (which is already async and awaits internally)
     with console.status("[cyan]Resolving duplicate IDs...[/cyan]"):
         return await fix_duplicate_ids_internal(write=write)

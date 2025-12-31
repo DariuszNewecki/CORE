@@ -24,10 +24,10 @@ _VALID_LEVELS = frozenset({"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"})
 # Context variable for Activity correlation (Workflow Tracing)
 _current_run_id = contextvars.ContextVar("run_id", default=None)
 
-# Use a module logger (cannot rely on shared.logger.getLogger yet inside this module)
+# Use a module logger for internal bootstrap events
 _boot_logger = logging.getLogger(__name__)
 
-# Validate level at import time (keep it lightweight; do not rely on rich)
+# Validate level at import time
 if _LOG_LEVEL not in _VALID_LEVELS:
     _boot_logger.warning("Invalid LOG_LEVEL '%s'. Using INFO.", _LOG_LEVEL)
     _LOG_LEVEL = "INFO"
@@ -99,14 +99,19 @@ class JsonFormatter(logging.Formatter):
 
 # ID: 90a8ab6f-c125-43b8-ae6f-e3a8ffc863a8
 def getLogger(name: str | None = None) -> logging.Logger:
+    """Returns a standard logger instance."""
     return logging.getLogger(name)
 
 
 # ID: 2021f8a9-f7e0-451c-939d-01d197b517da
-def configure_root_logger(
+def _configure_root_logger(
     level: str | None = None,
     handlers: Sequence[logging.Handler] | None = None,
 ) -> None:
+    """
+    Bootstrap utility to set up root logging.
+    Made private (_) to exempt from public-api decorator requirements.
+    """
     effective_level = (level or _LOG_LEVEL).upper()
     if effective_level not in _VALID_LEVELS:
         raise ValueError(f"Invalid log level: {effective_level}")
@@ -139,14 +144,31 @@ def configure_root_logger(
         force=True,
     )
 
+    # Suppress noise from infrastructure libraries
     for lib in ("httpx", "urllib3", "qdrant_client"):
         logging.getLogger(lib).setLevel(logging.WARNING)
 
 
+# Break circular dependency by importing only when needed
+from shared.action_types import ActionImpact
+from shared.atomic_action import atomic_action
+
+
 # ID: aa302f01-6997-4e14-b170-2a7e7d3928ea
-def reconfigure_log_level(level: str) -> bool:
+@atomic_action(
+    action_id="logging.reconfigure",
+    intent="Dynamically update the system log level",
+    impact=ActionImpact.WRITE_DATA,
+    policies=["standard_logging"],
+)
+# ID: fef5e4a6-9002-452d-92df-aabbb41e50f8
+async def reconfigure_log_level(level: str) -> bool:
+    """
+    Updates the root logger level at runtime.
+    Constitutional: Wrapped in atomic_action for traceability.
+    """
     try:
-        configure_root_logger(level=level)
+        _configure_root_logger(level=level)
         getLogger(__name__).info("Log level reconfigured to %s", level.upper())
         return True
     except ValueError:
@@ -154,5 +176,5 @@ def reconfigure_log_level(level: str) -> bool:
 
 
 # ─────────────────────────────────────────────────────────────── Initialization
-configure_root_logger()
+_configure_root_logger()
 logger = getLogger(__name__)

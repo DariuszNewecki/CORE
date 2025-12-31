@@ -1,7 +1,7 @@
 {
   "id": "standard_operations_safety",
   "version": "1.2.1",
-  "title": "Operations Standard \u2013 Safety Framework",
+  "title": "Operations Standard – Safety Framework",
   "type": "policy",
   "status": "active",
   "owners": {
@@ -118,6 +118,9 @@
       }
     }
   ],
+  "notes": {
+    "optimization_review": "safety.no_dangerous_execution_primitives already uses ast_gate correctly. Remaining 6 llm_gate rules require semantic understanding of autonomous modification patterns and runtime contracts."
+  },
   "enforcement_levels": {
     "error": {
       "description": "Critical violation. Blocks merge, deployment, and runtime execution.",

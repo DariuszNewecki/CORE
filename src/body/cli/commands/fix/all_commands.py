@@ -5,7 +5,7 @@ Batch execution command(s) for the 'fix' CLI group.
 Provides:
 - core-admin fix all
 
-Refactored to use the Constitutional CLI Framework (@core_command).
+Refactored to handle async self-healing services and rule-engine integration.
 """
 
 from __future__ import annotations
@@ -55,7 +55,7 @@ async def run_all_fixes(
     ),
 ) -> None:
     """
-    Run a curated set of fix subcommands in a sensible order.
+    Run a curated set of fix subcommands in a sequence that respects dependencies.
     """
     core_context: CoreContext = ctx.obj
     dry_run = not write
@@ -66,13 +66,16 @@ async def run_all_fixes(
             if is_async:
                 await func()
             else:
-                func()
+                # Handle potential sync wrappers of async code
+                res = func()
+                if hasattr(res, "__await__"):
+                    await res
 
     async def _run(name: str) -> None:
         cfg = COMMAND_CONFIG.get(name, {})
         is_dangerous = cfg.get("dangerous", False)
 
-        # If specific command is dangerous and we are skipping dangerous, AND we are in write mode
+        # Skip dangerous operations if requested
         if skip_dangerous and is_dangerous and write:
             console.print(
                 f"[yellow]Skipping dangerous command 'fix {name}' (skip_dangerous=True).[/yellow]"
@@ -82,15 +85,9 @@ async def run_all_fixes(
         mode_str = "write" if write else "dry-run"
         console.print(f"[bold cyan]▶ Running 'fix {name}' ({mode_str})[/bold cyan]")
 
-        # --- Formatting & style ---
+        # --- Formatting & Style ---
         if name == "code-style":
-            # Code style is generally safe to run even in dry run (it just checks/diffs)
             await _step("Formatting code", lambda: format_code())
-
-        elif name == "line-lengths":
-            console.print(
-                "[yellow]Skipping 'fix line-lengths' in 'fix all' (targeted tool).[/yellow]"
-            )
 
         # --- Metadata & IDs ---
         elif name == "ids":
@@ -100,9 +97,11 @@ async def run_all_fixes(
             )
 
         elif name == "purge-legacy-tags":
+            # FIXED: Now treated as an async step
             await _step(
                 "Purging legacy tags",
                 lambda: purge_legacy_tags(dry_run=dry_run),
+                is_async=True,
             )
 
         elif name == "policy-ids":
@@ -111,25 +110,19 @@ async def run_all_fixes(
                 lambda: add_missing_policy_ids(dry_run=dry_run),
             )
 
-        elif name == "duplicate-ids":
-            # Placeholder until dependency issue resolved
-            console.print(
-                "[yellow]Skipping 'fix duplicate-ids' (manual run required).[/yellow]"
-            )
-
-        # --- CRITICAL: SYNC KNOWLEDGE BASE ---
+        # --- Knowledge & Database ---
         elif name == "knowledge-sync":
             if write:
-                stats = await run_sync_with_db()
-                console.print(f"   -> Scanned: {stats['scanned']}")
-                console.print(f"   -> Updated: {stats['updated']}")
+                async with get_session() as session:
+                    stats = await run_sync_with_db(session)
+                console.print(
+                    f"   -> Scanned: {stats['scanned']}, Updated: {stats['updated']}"
+                )
             else:
                 console.print("[yellow]Skipping DB sync in dry-run mode[/yellow]")
 
-        # --- Vector / DB sync ---
         elif name == "vector-sync":
-            # FIXED: Create async wrapper to inject session
-            # ID: 6b760931-5575-4582-a3df-ebb2bcca0f4a
+            # ID: 0faf3025-d627-4be9-8caa-07a59867e5c6
             async def sync_vectors_with_session():
                 async with get_session() as session:
                     return await sync_vectors_async(
@@ -148,7 +141,7 @@ async def run_all_fixes(
         elif name == "db-registry":
             from body.cli.admin_cli import app as main_app
 
-            # ID: cad00092-8eae-48f9-ad94-ded24f3f50b9
+            # ID: ebde7afa-ed88-492a-abd9-7a8b2cab87d7
             async def sync_with_session():
                 async with get_session() as session:
                     await _sync_commands_to_db(session, main_app)
@@ -159,10 +152,8 @@ async def run_all_fixes(
                 is_async=True,
             )
 
-        # --- Docstrings & tags (AI-powered) ---
+        # --- Docstrings & Capability Tagging (AI-powered) ---
         elif name == "docstrings":
-            # Note: fix_docstrings currently requires manual write flag if not handled
-            # We pass context which has services
             await _step(
                 "Fixing docstrings",
                 lambda: fix_docstrings(context=core_context, write=write),
@@ -184,21 +175,16 @@ async def run_all_fixes(
                 is_async=True,
             )
 
-        # --- IR bootstrap ---
+        # --- Incident Response Bootstrap ---
         elif name == "ir-triage":
             fix_ir_triage(ctx, write=write)
 
         elif name == "ir-log":
             fix_ir_log(ctx, write=write)
 
-        # --- Skip targeted tools ---
-        elif name in {"clarity", "complexity"}:
-            console.print(f"[yellow]Skipping 'fix {name}' (targeted tool).[/yellow]")
-
-    # Curated execution plan
+    # Curated execution plan (in logical order)
     plan = [
         "code-style",
-        "line-lengths",
         "ids",
         "purge-legacy-tags",
         "policy-ids",

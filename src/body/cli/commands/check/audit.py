@@ -1,9 +1,11 @@
 # src/body/cli/commands/check/audit.py
 """
-Core audit commands: audit, audit-v2, audit-hybrid.
+Core audit commands: audit.
 
-Constitutional compliance verification using legacy Check classes
-and modern engine-based execution.
+REFACTORED:
+- Delegates 100% of execution to mind.governance.auditor.ConstitutionalAuditor.
+- Fixes TypeError in severity comparison by properly casting string to Enum.
+- Maintains Rich UI formatting for the CLI layer.
 """
 
 from __future__ import annotations
@@ -12,91 +14,53 @@ from pathlib import Path
 
 import typer
 from rich.console import Console
+from rich.panel import Panel
 from rich.table import Table
 
-from body.cli.commands.check.converters import (
-    convert_engine_findings_to_audit_findings,
-    parse_min_severity,
-    read_legacy_executed_ids_from_evidence,
-)
+from body.cli.commands.check.converters import parse_min_severity
 from body.cli.commands.check.formatters import (
-    print_audit_summary,
-    print_migration_delta,
     print_summary_findings,
     print_verbose_findings,
 )
-from body.cli.commands.check.utils import iter_target_files
-from mind.enforcement.audit import run_audit_workflow
-from mind.logic.auditor import ConstitutionalAuditor as EngineConstitutionalAuditor
+from mind.governance.audit_context import AuditorContext
+from mind.governance.auditor import ConstitutionalAuditor
 from shared.cli_utils import core_command
-from shared.context import CoreContext
-from shared.models import AuditSeverity
+from shared.models import AuditFinding, AuditSeverity
 
 
 console = Console()
 
 
-# ID: ca09d5e2-b0af-4ed2-9c8b-9dcb515e3c00
+def _to_audit_finding(raw: dict) -> AuditFinding:
+    """Safely converts a dictionary finding into an AuditFinding object."""
+    # Map string severity to Enum
+    severity_map = {
+        "info": AuditSeverity.INFO,
+        "warning": AuditSeverity.WARNING,
+        "error": AuditSeverity.ERROR,
+    }
+
+    raw_severity = str(raw.get("severity", "info")).lower()
+    severity = severity_map.get(raw_severity, AuditSeverity.INFO)
+
+    return AuditFinding(
+        check_id=raw.get("check_id", "unknown"),
+        severity=severity,
+        message=raw.get("message", ""),
+        file_path=raw.get("file_path"),
+        line_number=raw.get("line_number"),
+        context=raw.get("context", {}),
+    )
+
+
+# ID: a1b2c3d4-e5f6-7a8b-9c0d-e1f2a3b4c5d6
 @core_command(dangerous=False)
-# ID: bcdf6e1c-7976-4764-96b0-9a7ff66ae9e1
+# ID: d9e8be26-e5e2-4015-899b-8741adaa820c
 async def audit_cmd(
-    ctx: typer.Context,
-    severity: str = typer.Option(
-        "warning",
-        "--severity",
-        "-s",
-        help="Filter findings by minimum severity level (info, warning, error).",
-        case_sensitive=False,
-    ),
-    verbose: bool = typer.Option(
-        False,
-        "--verbose",
-        "-v",
-        help="Show all individual findings instead of a summary.",
-    ),
-) -> None:
-    """
-    Run the full constitutional self-audit (legacy check-class system).
-    """
-    core_context: CoreContext = ctx.obj
-
-    passed, all_findings = await run_audit_workflow(core_context)
-
-    min_severity = parse_min_severity(severity)
-    filtered_findings = [f for f in all_findings if f.severity >= min_severity]
-
-    unassigned_count = len(
-        [f for f in all_findings if f.check_id == "linkage.capability.unassigned"]
-    )
-
-    errors = [f for f in all_findings if f.severity.is_blocking]
-    warnings = [f for f in all_findings if f.severity == AuditSeverity.WARNING]
-
-    print_audit_summary(
-        passed=passed,
-        errors=errors,
-        warnings=warnings,
-        unassigned_count=unassigned_count,
-    )
-
-    if filtered_findings:
-        if verbose:
-            print_verbose_findings(filtered_findings)
-        else:
-            print_summary_findings(filtered_findings)
-
-    if not passed:
-        raise typer.Exit(1)
-
-
-# ID: 6c7ab9b7-78a3-4b75-8e9e-2ab6a0f3d3bf
-@core_command(dangerous=False)
-# ID: 158d9ea2-c2ae-488d-a581-52c84a0297e4
-async def audit_v2_cmd(
     ctx: typer.Context,
     target: Path = typer.Argument(
         Path("src"),
-        help="File or directory to audit. If a directory, audits all *.py under it.",
+        help="File or directory to audit.",
     ),
     severity: str = typer.Option(
         "warning",
@@ -111,62 +75,38 @@ async def audit_v2_cmd(
         "-v",
         help="Show all individual findings instead of a summary.",
     ),
-    include_llm: bool = typer.Option(
-        False,
-        "--include-llm-v2",
-        help="Include v2 findings from LLM engines (default: off).",
-    ),
 ) -> None:
     """
-    Run the engine-based constitutional audit (rules -> engines).
+    Run the full constitutional self-audit.
     """
-    _ = ctx
-
     min_severity = parse_min_severity(severity)
 
-    files = iter_target_files(target)
-    if not files:
-        console.print(f"[bold red]No audit targets found at: {target}[/bold red]")
-        raise typer.Exit(code=1)
+    # 1. INITIALIZE SSOT CONTEXT
+    auditor_context = AuditorContext(Path.cwd())
+    auditor = ConstitutionalAuditor(auditor_context)
 
-    auditor = EngineConstitutionalAuditor()
+    # 2. EXECUTE THE UNIFIED AUDIT
+    raw_findings = await auditor.run_full_audit_async()
 
-    all_findings = []
-    for file_path in files:
-        engine_findings = auditor.audit_file(file_path)
+    # FIXED: Use the safe conversion helper to ensure Enums for comparison
+    all_findings = [_to_audit_finding(f) for f in raw_findings]
 
-        if not include_llm:
-            engine_findings = [
-                f
-                for f in engine_findings
-                if str(f.get("engine") or "").strip().lower() not in {"llm_gate", "llm"}
-            ]
-
-        all_findings.extend(
-            convert_engine_findings_to_audit_findings(
-                file_path=file_path,
-                engine_findings=engine_findings,
-                tag_check_ids=False,
-            )
-        )
-
-    passed = not any(f.severity.is_blocking for f in all_findings)
+    # 3. PRESENTATION
+    # The >= operator now works because both sides are AuditSeverity Enums
     filtered_findings = [f for f in all_findings if f.severity >= min_severity]
-
     errors = [f for f in all_findings if f.severity.is_blocking]
     warnings = [f for f in all_findings if f.severity == AuditSeverity.WARNING]
 
-    # Custom summary for V2
+    passed = len(errors) == 0
+
     summary_table = Table.grid(expand=True, padding=(0, 1))
     summary_table.add_column(justify="left")
     summary_table.add_column(justify="right", style="bold")
-    summary_table.add_row("Files Audited:", str(len(files)))
+    summary_table.add_row("Total Findings:", str(len(all_findings)))
     summary_table.add_row("Errors:", f"[red]{len(errors)}[/red]")
     summary_table.add_row("Warnings:", f"[yellow]{len(warnings)}[/yellow]")
 
-    from rich.panel import Panel
-
-    title = "✅ AUDIT V2 PASSED" if passed else "❌ AUDIT V2 FAILED"
+    title = "✅ AUDIT PASSED" if passed else "❌ AUDIT FAILED"
     style = "bold green" if passed else "bold red"
     console.print(Panel(summary_table, title=title, style=style, expand=False))
 
@@ -175,117 +115,6 @@ async def audit_v2_cmd(
             print_verbose_findings(filtered_findings)
         else:
             print_summary_findings(filtered_findings)
-
-    if not passed:
-        raise typer.Exit(1)
-
-
-# ID: 8cfe7d3f-3a98-4fb6-8c75-6cba52d7bf42
-@core_command(dangerous=False)
-# ID: df0b2239-db71-44e1-9012-522185ce5f8b
-async def audit_hybrid_cmd(
-    ctx: typer.Context,
-    target: Path = typer.Argument(
-        Path("src"),
-        help="File or directory to audit with v2. Legacy audit is always global.",
-    ),
-    severity: str = typer.Option(
-        "warning",
-        "--severity",
-        "-s",
-        help="Filter findings by minimum severity level (info, warning, error).",
-        case_sensitive=False,
-    ),
-    verbose: bool = typer.Option(
-        False,
-        "--verbose",
-        "-v",
-        help="Show all individual findings instead of a summary.",
-    ),
-    include_llm_v2: bool = typer.Option(
-        False,
-        "--include-llm-v2",
-        help="Include v2 findings from LLM engines (default: off).",
-    ),
-) -> None:
-    """
-    Run both audit models and produce a migration delta.
-    """
-    core_context: CoreContext = ctx.obj
-    min_severity = parse_min_severity(severity)
-
-    # Run legacy audit
-    legacy_passed, legacy_findings = await run_audit_workflow(core_context)
-    legacy_executed_ids = read_legacy_executed_ids_from_evidence()
-
-    # Run v2 on target files
-    files = iter_target_files(target)
-    if not files:
-        console.print(f"[bold red]No audit targets found at: {target}[/bold red]")
-        raise typer.Exit(code=1)
-
-    auditor = EngineConstitutionalAuditor()
-    v2_findings = []
-    v2_rule_ids: set[str] = set()
-
-    for file_path in files:
-        raw = auditor.audit_file(file_path)
-
-        if not include_llm_v2:
-            raw = [
-                f
-                for f in raw
-                if str(f.get("engine") or "").strip().lower() not in {"llm_gate", "llm"}
-            ]
-
-        for f in raw:
-            rid = str(f.get("rule_id") or "").strip()
-            if rid:
-                v2_rule_ids.add(rid)
-
-        v2_findings.extend(
-            convert_engine_findings_to_audit_findings(
-                file_path=file_path,
-                engine_findings=raw,
-                tag_check_ids=True,
-            )
-        )
-
-    # Merge findings
-    all_findings = list(legacy_findings) + v2_findings
-    passed = legacy_passed and not any(f.severity.is_blocking for f in v2_findings)
-    filtered_findings = [f for f in all_findings if f.severity >= min_severity]
-
-    # Display hybrid summary
-    all_errors = [f for f in all_findings if f.severity.is_blocking]
-    all_warnings = [f for f in all_findings if f.severity == AuditSeverity.WARNING]
-    legacy_errors = [f for f in legacy_findings if f.severity.is_blocking]
-    v2_errors = [f for f in v2_findings if f.severity.is_blocking]
-
-    summary_table = Table.grid(expand=True, padding=(0, 1))
-    summary_table.add_column(justify="left")
-    summary_table.add_column(justify="right", style="bold")
-    summary_table.add_row("Legacy findings:", str(len(legacy_findings)))
-    summary_table.add_row("V2 findings:", str(len(v2_findings)))
-    summary_table.add_row("Files audited (v2):", str(len(files)))
-    summary_table.add_row("Errors (total):", f"[red]{len(all_errors)}[/red]")
-    summary_table.add_row("Warnings (total):", f"[yellow]{len(all_warnings)}[/red]")
-    summary_table.add_row("Errors (legacy):", f"[red]{len(legacy_errors)}[/red]")
-    summary_table.add_row("Errors (v2):", f"[red]{len(v2_errors)}[/red]")
-
-    from rich.panel import Panel
-
-    title = "✅ HYBRID AUDIT PASSED" if passed else "❌ HYBRID AUDIT FAILED"
-    style = "bold green" if passed else "bold red"
-    console.print(Panel(summary_table, title=title, style=style, expand=False))
-
-    if filtered_findings:
-        if verbose:
-            print_verbose_findings(filtered_findings)
-        else:
-            print_summary_findings(filtered_findings)
-
-    print_migration_delta(legacy_executed=legacy_executed_ids, v2_rule_ids=v2_rule_ids)
 
     if not passed:
         raise typer.Exit(1)

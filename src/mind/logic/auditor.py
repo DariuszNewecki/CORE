@@ -1,15 +1,10 @@
 # src/mind/logic/auditor.py
-
 """
-Engine-based Constitutional Auditor (rule -> engine dispatch).
+Engine-based constitutional auditor.
 
-This auditor implements the newer CORE enforcement pattern:
-- Constitutional rules live in .intent (resolved via IntentConnector)
-- Each rule declares an engine + params
-- Engines are resolved via EngineRegistry and invoked deterministically
-
-This module intentionally does NOT configure logging or sys.path.
-It relies on CORE's logging and packaging/import conventions.
+Executes constitutional rules against files using registered engines.
+Supports both file-level engines (ast_gate, regex_gate) and context-level
+engines (knowledge_gate, workflow_gate).
 """
 
 from __future__ import annotations
@@ -25,8 +20,13 @@ from shared.logger import getLogger
 
 logger = getLogger(__name__)
 
+# CONSTITUTIONAL FIX: Engines that operate on the full system state (Mind)
+# or process results (Workflows) rather than individual file content.
+# These are skipped during single-file audits to prevent out-of-context errors.
+CONTEXT_LEVEL_ENGINES = {"knowledge_gate", "workflow_gate", "action_gate"}
 
-# ID: 6e38513b-76ce-4063-8595-2c51f3068c3a
+
+# ID: 1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d
 class ConstitutionalAuditor:
     """
     Engine-based constitutional auditor.
@@ -34,6 +34,8 @@ class ConstitutionalAuditor:
     Executes applicable constitutional rules against a single target file by:
     1) querying IntentConnector for applicable rules
     2) dispatching each rule to its declared verification engine
+
+    Supports both file-level and context-level engines.
     """
 
     def __init__(self, *, connector: IntentConnector | None = None) -> None:
@@ -45,29 +47,49 @@ class ConstitutionalAuditor:
         """
         Run all applicable constitutional checks against a single file.
 
-        Returns:
-            List of findings (dicts). Empty list means compliant.
+        Note: Context-level engines are skipped silently during file-level
+        audits as they require the full AuditorContext/Database state.
         """
         target = Path(file_path)
         if not target.exists():
             logger.error("File not found: %s", target)
             return []
+
         applicable_rules = self.connector.get_applicable_rules(target)
         findings: list[dict[str, Any]] = []
+
         for rule in applicable_rules:
             rule_id = (rule.get("id") or rule.get("uid") or "").strip()
             check_meta = rule.get("check")
+
             if not isinstance(check_meta, dict):
                 continue
+
             engine_id = (check_meta.get("engine") or "").strip()
             params = check_meta.get("params", {})
+
             if not engine_id:
                 continue
+
             if not isinstance(params, dict):
                 params = {}
+
+            # CONSTITUTIONAL FIX: Skip context-level engines during file-level audits.
+            # This prevents reporting "Requires context" as an audit failure for
+            # specific files, as these rules are meant for project-wide audits.
+            if engine_id in CONTEXT_LEVEL_ENGINES:
+                logger.debug(
+                    "Skipping context-level engine '%s' for rule '%s' during file-level audit of %s",
+                    engine_id,
+                    rule_id,
+                    file_path.name,
+                )
+                continue
+
             try:
                 engine = self._registry.get(engine_id)
                 result = engine.verify(target, params)
+
                 if not getattr(result, "ok", False):
                     findings.append(
                         {
@@ -95,6 +117,8 @@ class ConstitutionalAuditor:
                         "rationale": rule.get("rationale"),
                     }
                 )
+
+        # Sort by severity (blocking first) then alphabetically by ID
         findings.sort(key=lambda f: (str(f.get("severity")), str(f.get("rule_id"))))
         return findings
 
@@ -103,37 +127,34 @@ class ConstitutionalAuditor:
 def main(argv: list[str] | None = None) -> int:
     """
     CLI entrypoint for individual file auditing.
-
-    Usage:
-        poetry run python -m mind.logic.auditor <file_path>
     """
     parser = argparse.ArgumentParser(prog="core-audit-file")
     parser.add_argument("file_path", type=str, help="Path to the file to audit")
     args = parser.parse_args(argv)
+
     target = Path(args.file_path)
     auditor = ConstitutionalAuditor()
+
     logger.info("Auditing file: %s", target)
     results = auditor.audit_file(target)
+
     if not results:
         logger.info("✅ COMPLIANT: No constitutional violations found.")
         return 0
+
     logger.info("❌ NON-COMPLIANT: Found %s violations.\n", len(results))
     for res in results:
         rid = res.get("rule_id", "<unknown>")
         sev = str(res.get("severity", "error")).upper()
-        stmt = res.get("statement", "")
-        eng = res.get("engine", "")
         msg = res.get("message", "")
         violations = res.get("violations") or []
+
         logger.info("[%s] (%s)", rid, sev)
-        if stmt:
-            logger.info("  Statement: %s", stmt)
-        if eng:
-            logger.info("  Engine:    %s", eng)
         logger.info("  Issue:     %s", msg)
         for v in violations:
             logger.info("    - %s", v)
         logger.info("-" * 40)
+
     return 1
 
 

@@ -89,17 +89,49 @@ class PurityChecks:
 
     @staticmethod
     # ID: 7b2f0a5a-cf7d-4af4-9b3c-7bbd7b4d36d4
+    @staticmethod
+    # ID: d0d9b1d6-5849-486a-9f77-8333f4fd75a4
     def check_stable_id_anchor(source: str) -> list[str]:
         """
-        Ensures that the file contains at least one stable ID anchor.
-        This is intentionally simple: many other tools rely on '# ID:' anchors.
+        Ensures that all PUBLIC symbols (functions / classes) have a stable ID
+        anchor (# ID: <uuid>) immediately above their definition.
+
+        Files with no public symbols are valid.
         """
+        violations: list[str] = []
+
+        try:
+            tree = ast.parse(source)
+        except SyntaxError:
+            return violations
+
         lines = source.splitlines()
-        for line in lines[:200]:  # cheap bound; IDs should be near top or near symbols
-            stripped = line.strip()
-            if any(stripped.startswith(p) for p in PurityChecks._ID_ANCHOR_PREFIXES):
-                return []
-        return ["Missing stable ID anchor: expected at least one '# ID: <...>' line."]
+
+        for node in ast.walk(tree):
+            if not isinstance(
+                node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)
+            ):
+                continue
+
+            if node.name.startswith("_"):
+                continue
+
+            lineno = node.lineno - 1
+            if lineno <= 0:
+                violations.append(
+                    f"Public symbol '{node.name}' missing stable ID anchor "
+                    f"(line {node.lineno})."
+                )
+                continue
+
+            prev_line = lines[lineno - 1].strip()
+            if not prev_line.startswith("# ID:"):
+                violations.append(
+                    f"Public symbol '{node.name}' missing stable ID anchor "
+                    f"(line {node.lineno})."
+                )
+
+        return violations
 
     @staticmethod
     # ID: 1cc2a7f3-5e21-4c10-9f93-5d2b7bdb3a65
@@ -227,30 +259,106 @@ class PurityChecks:
         decorator: str,
         only_public: bool = True,
         ignore_tests: bool = True,
+        exclude_patterns: list[str] | None = None,
+        exclude_decorators: list[str] | None = None,
     ) -> list[str]:
         """
         Check that state-modifying functions have required decorator.
 
-        Heuristic for state-modifying: function contains assignment, attribute setting, or method calls.
+        Improved heuristic: only flags actual external state modification.
+        Supports exclude_patterns (regex) and exclude_decorators from policy.
         """
+        import re
+
         violations: list[str] = []
+
+        exclude_patterns = exclude_patterns or []
+        exclude_decorators = exclude_decorators or []
 
         def _has_decorator(node: ast.FunctionDef | ast.AsyncFunctionDef) -> bool:
             for dec in node.decorator_list:
                 dec_name = ASTHelpers.full_attr_name(dec)
                 if dec_name == decorator:
                     return True
+                # Check excluded decorators
+                for excluded in exclude_decorators:
+                    if dec_name == excluded or (
+                        dec_name and dec_name.endswith(f".{excluded}")
+                    ):
+                        return True
+            return False
+
+        def _matches_exclude_pattern(fn_name: str) -> bool:
+            """Check if function name matches any exclude pattern."""
+            for pattern in exclude_patterns:
+                try:
+                    if re.match(pattern, fn_name):
+                        return True
+                except re.error:
+                    pass  # Invalid regex, skip
             return False
 
         def _looks_state_modifying(
             node: ast.FunctionDef | ast.AsyncFunctionDef,
         ) -> bool:
-            """Heuristic: does function look like it modifies state?"""
-            writeish = {"Assign", "AugAssign", "AnnAssign", "Delete"}
+            """
+            IMPROVED: Only flags actual external state modification.
+
+            True if:
+            - Assigns to attributes (obj.attr = x)
+            - Calls mutating methods (.add, .commit, .write, etc.)
+
+            False for:
+            - Local variable assignments (x = 1)
+            """
+            mutating_methods = {
+                "add",
+                "commit",
+                "execute",
+                "write",
+                "update",
+                "delete",
+                "create",
+                "insert",
+                "remove",
+                "append",
+                "extend",
+                "pop",
+                "clear",
+                "set",
+                "put",
+                "post",
+                "patch",
+                "save",
+                "store",
+                "apply",
+                "modify",
+                "change",
+                "alter",
+                "upsert",
+                "persist",
+            }
+
             for child in ast.walk(node):
-                leaf = type(child).__name__.split(".")[-1]
-                if leaf in writeish:
+                # Attribute assignment: obj.attr = value
+                if isinstance(child, ast.Assign):
+                    for target in child.targets:
+                        if isinstance(target, ast.Attribute):
+                            return True
+
+                # Augmented attribute assignment: obj.x += 1
+                if isinstance(child, ast.AugAssign) and isinstance(
+                    child.target, ast.Attribute
+                ):
                     return True
+
+                # Calls to mutating methods
+                if isinstance(child, ast.Call) and isinstance(
+                    child.func, ast.Attribute
+                ):
+                    if child.func.attr in mutating_methods:
+                        return True
+
             return False
 
         for fn in ast.walk(tree):
@@ -260,6 +368,10 @@ class PurityChecks:
             if ignore_tests and fn.name.startswith("test_"):
                 continue
             if only_public and fn.name.startswith("_"):
+                continue
+
+            # Check exclude patterns
+            if _matches_exclude_pattern(fn.name):
                 continue
 
             if _looks_state_modifying(fn) and not _has_decorator(fn):

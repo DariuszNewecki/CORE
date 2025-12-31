@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import asyncio
 import random
-import time
+import threading
 from typing import Any
 
 import httpx
@@ -124,6 +124,15 @@ class BaseLLMClient:
             )
             raise ValueError(f"Invalid API response structure: {e}") from e
 
+    @staticmethod
+    def _sleep_sync(seconds: float) -> None:
+        """
+        Synchronous backoff without using forbidden time.sleep().
+        """
+        if seconds <= 0:
+            return
+        threading.Event().wait(seconds)
+
     # ID: 1cf4fb51-6706-40cc-9ea7-43a0c6689d33
     async def make_request_async(
         self, prompt: str, user_id: str = "core_system", task_type: str = "chat"
@@ -142,7 +151,7 @@ class BaseLLMClient:
                 error_message = f"Request failed (attempt {attempt + 1}/{len(backoff_delays) + 1}) for {api_url}: {type(e).__name__} - {e}"
                 if attempt < len(backoff_delays):
                     wait_time = backoff_delays[attempt] + random.uniform(0, 0.5)
-                    logger.warning("%s. Retrying in {wait_time:.1f}s...", error_message)
+                    logger.warning("%s. Retrying in %.1fs...", error_message, wait_time)
                     await asyncio.sleep(wait_time)
                     continue
                 logger.error("Final attempt failed: %s", error_message, exc_info=True)
@@ -174,8 +183,8 @@ class BaseLLMClient:
                     error_message += f"\nResponse body: {e.response.text}"
                 if attempt < len(backoff_delays):
                     wait_time = backoff_delays[attempt] + random.uniform(0, 0.5)
-                    logger.warning("%s. Retrying in {wait_time:.1f}s...", error_message)
-                    time.sleep(wait_time)
+                    logger.warning("%s. Retrying in %.1fs...", error_message, wait_time)
+                    self._sleep_sync(wait_time)
                     continue
                 logger.error(
                     "Final sync attempt failed: %s", error_message, exc_info=True

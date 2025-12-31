@@ -1,6 +1,9 @@
 {
   "id": "schema_dialect",
   "purpose": "Defines the canonical JSON Schema dialect and style requirements for all CORE schemas",
+  "notes": {
+    "optimization_review": "All 4 llm_gate rules require semantic understanding of JSON Schema content and structure. Cannot be reduced to simple pattern matching."
+  },
   "rules": [
     {
       "id": "schemas.dialect.standard_json_schema",

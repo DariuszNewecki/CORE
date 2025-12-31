@@ -3,16 +3,18 @@
 """
 Symbol definition service - assigns capability keys to public symbols.
 
-CONSTITUTIONAL FIX: Uses SymbolDefinitionRepository with proper transaction boundaries.
-Transaction management at controller level, not service level.
+CONSTITUTIONAL FIX:
+- Separates LLM reasoning (Will) from persistence (Body).
+- Uses SymbolDefinitionRepository for all database interactions.
+- Manages discrete transaction boundaries for parallel processing efficiency.
 """
 
 from __future__ import annotations
 
 import re
 import time
+from collections.abc import Callable
 from functools import partial
-from pathlib import Path
 from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -37,59 +39,46 @@ async def get_undefined_symbols(
     session: AsyncSession, limit: int = 500
 ) -> list[dict[str, Any]]:
     """
-    Get symbols needing definition, filtering out stale ones.
-
-    CONSTITUTIONAL: Uses Repository and manages transaction boundary.
+    Retrieves symbols requiring definition, filtering out stale entries.
 
     Args:
-        session: Database session (injected dependency)
-        limit: Maximum number of symbols to retrieve
+        session: Database session.
+        limit: Max symbols to process.
     """
     repo = SymbolDefinitionRepository(session)
-
-    # Get symbols from repository
     symbols = await repo.get_undefined_symbols(limit)
 
-    # Validate file existence
     valid_symbols = []
     stale_ids = []
 
     for symbol in symbols:
-        # Check if the module file still exists
+        # Verify file still exists on disk before asking AI to reason about it
         module_path = symbol.get("file_path") or symbol.get("module", "")
         if module_path:
-            file_path = Path(module_path)
+            file_path = settings.REPO_PATH / module_path
             if file_path.exists():
                 valid_symbols.append(symbol)
             else:
                 stale_ids.append(symbol["id"])
                 logger.debug(
-                    "Skipping stale symbol '%s' - file not found: %s",
+                    "Skipping stale symbol '%s' (file not found)",
                     symbol.get("symbol_path"),
-                    file_path,
                 )
         else:
-            # No file path means we can't validate - include it
             valid_symbols.append(symbol)
 
-    # Mark stale symbols as broken
+    # Clean up stale references in the DB
     if stale_ids:
         await repo.mark_stale_symbols_broken(stale_ids)
-        await session.commit()  # Transaction boundary here
-        logger.info(
-            "Marked %d stale symbols as 'broken' (files not found)", len(stale_ids)
-        )
+        # Immediate commit for cleanup
+        await session.commit()
+        logger.info("Marked %d stale symbols as 'broken'.", len(stale_ids))
 
-    logger.info(
-        "Found %d symbols needing definition (limit=%d, filtered=%d stale)",
-        len(valid_symbols),
-        limit,
-        len(stale_ids),
-    )
     return valid_symbols
 
 
 def _extract_code(packet: dict[str, Any], file_path: str) -> str:
+    """Extracts relevant code from a ContextPackage."""
     for item in packet.get("context", []):
         if (
             item.get("item_type") == "code"
@@ -97,95 +86,53 @@ def _extract_code(packet: dict[str, Any], file_path: str) -> str:
         ):
             return (item.get("content") or "").strip()
 
+    # Fallback to any code in the packet
     for item in packet.get("context", []):
         if item.get("item_type") == "code":
             return (item.get("content") or "").strip()
-
     return ""
 
 
 def _extract_similar_capabilities(packet: dict[str, Any], target_qualname: str) -> str:
-    names: list[str] = []
-    for item in packet.get("context", []):
-        if item.get("item_type") != "symbol":
-            continue
-        name = (item.get("name") or "").strip()
-        if not name or name == target_qualname:
-            continue
-        names.append(name)
+    """Extracts existing similar capability keys to provide few-shot context."""
+    names = [
+        (item.get("name") or "").strip()
+        for item in packet.get("context", [])
+        if item.get("item_type") == "symbol" and item.get("name") != target_qualname
+    ]
 
-    seen: set[str] = set()
-    deduped: list[str] = []
-    for n in names:
-        if n not in seen:
-            seen.add(n)
-            deduped.append(n)
-
+    deduped = sorted(list(set(filter(None, names))))[:12]
     if not deduped:
         return "No similar capabilities found."
-
-    deduped = deduped[:12]
-    return "Found similar existing capabilities: " + ", ".join(
+    return "Existing capabilities for reference: " + ", ".join(
         f"`{n}`" for n in deduped
     )
-
-
-def _make_processor(
-    description: str, concurrency: int = 2
-) -> ThrottledParallelProcessor:
-    for kwargs in (
-        {"concurrency_limit": concurrency},
-        {"concurrency": concurrency},
-        {"limit": concurrency},
-    ):
-        try:
-            return ThrottledParallelProcessor(description=description, **kwargs)
-        except TypeError:
-            continue
-    return ThrottledParallelProcessor(description=description)
 
 
 async def _mark_attempt(
     symbol_id: Any,
     *,
     status: str,
+    session: AsyncSession,
     error: str | None = None,
     key: str | None = None,
-    session: AsyncSession,
 ) -> None:
-    """
-    Mark a symbol definition attempt.
-
-    CONSTITUTIONAL FIX: Uses Repository, no commit (caller manages transaction).
-
-    Args:
-        symbol_id: Symbol ID to update
-        status: New status
-        error: Optional error message
-        key: Optional capability key
-        session: Database session (caller manages transaction boundary)
-    """
+    """Body: Persists a definition attempt via the Repository."""
     repo = SymbolDefinitionRepository(session)
     await repo.mark_attempt(symbol_id, status=status, error=error, key=key)
-
-    # NO COMMIT - caller manages transaction
+    # We commit immediately within the worker to ensure work is saved during parallel batches
+    await session.commit()
 
 
 # ID: 912ae5b0-f073-4a3a-9df1-a53cff7da99a
 async def define_single_symbol(
     symbol: dict[str, Any],
     context_service: ContextService,
-    session_factory: Any,  # Callable that returns async context manager
+    session_factory: Callable[[], Any],
 ) -> dict[str, Any]:
     """
-    Use an LLM to generate a capability key for a single symbol.
-
-    CONSTITUTIONAL: Manages transaction boundary at this level.
-
-    Args:
-        symbol: Symbol dictionary with id, symbol_path, file_path, qualname
-        context_service: Service for building context
-        session_factory: Factory function to create database sessions
+    Will: Orchestrates the AI reasoning for a single symbol.
+    Each call uses its own session to enable independent commits in parallel.
     """
     symbol_id = symbol["id"]
     symbol_path = symbol["symbol_path"]
@@ -194,37 +141,19 @@ async def define_single_symbol(
 
     task_spec = {
         "task_id": f"define-{symbol_id}",
-        "task_type": "refactor",
+        "task_type": "metadata.refine",
         "summary": f"Define capability for {symbol_path}",
         "target_file": file_path,
         "target_symbol": target_qualname,
         "scope": {"traversal_depth": 1},
     }
 
-    async def _attempt(prompt: str) -> str | None:
-        agent = await context_service.cognitive_service.aget_client_for_role(
-            "CodeReviewer"
-        )
-        response = await agent.make_request_async(prompt, user_id="symbol-definer")
-
-        try:
-            parsed = extract_json_from_response(response)
-            if isinstance(parsed, dict):
-                raw = parsed.get("suggested_capability")
-                if isinstance(raw, str):
-                    return raw.strip()
-        except Exception:
-            pass
-
-        match = re.search(r"[a-z0-9_]+\.[a-z0-9_.]+", response)
-        return match.group(0).strip() if match else None
-
     try:
+        # 1. Build semantic context
         packet = await context_service.build_for_task(task_spec, use_cache=True)
         source_code = _extract_code(packet, file_path)
 
         if not source_code:
-            # Mark as invalid - commit this error state
             async with session_factory() as session:
                 await _mark_attempt(
                     symbol_id,
@@ -232,24 +161,34 @@ async def define_single_symbol(
                     error="context.code_missing",
                     session=session,
                 )
-                await session.commit()  # Transaction boundary here
-
-            logger.warning("❌ No code extracted for %s", symbol_path)
             return {"id": symbol_id, "key": None}
 
-        similar_capabilities = _extract_similar_capabilities(packet, target_qualname)
+        # 2. Invoke AI Reasoning (Will)
+        similar_context = _extract_similar_capabilities(packet, target_qualname)
 
-        template = settings.paths.prompt("capability_definer").read_text(
-            encoding="utf-8"
+        # Resolve prompt via PathResolver
+        template_path = settings.paths.prompt("capability_definer")
+        prompt = template_path.read_text(encoding="utf-8").format(
+            code=source_code, similar_capabilities=similar_context
         )
-        prompt = template.format(
-            code=source_code, similar_capabilities=similar_capabilities
+
+        agent = await context_service.cognitive_service.aget_client_for_role(
+            "CodeReviewer"
         )
+        response = await agent.make_request_async(prompt, user_id="symbol-definer")
 
-        key = await _attempt(prompt)
+        # 3. Parse result
+        key = None
+        try:
+            parsed = extract_json_from_response(response)
+            if isinstance(parsed, dict) and "suggested_capability" in parsed:
+                key = str(parsed["suggested_capability"]).strip()
+        except Exception:
+            # Regex fallback
+            match = re.search(r"[a-z0-9_]+\.[a-z0-9_.]+", response)
+            key = match.group(0).strip() if match else None
 
-        if not key or "." not in key or " " in key:
-            # Mark as invalid - commit this error state
+        if not key or "." not in key:
             async with session_factory() as session:
                 await _mark_attempt(
                     symbol_id,
@@ -257,38 +196,30 @@ async def define_single_symbol(
                     error="llm.invalid_format",
                     session=session,
                 )
-                await session.commit()  # Transaction boundary here
-
             return {"id": symbol_id, "key": None}
 
-        # SUCCESS - commit defined state
+        # 4. Persist success (Body)
         async with session_factory() as session:
             await _mark_attempt(symbol_id, status="defined", key=key, session=session)
-            await session.commit()  # Transaction boundary here
 
+        logger.info("✅ Defined: %s -> %s", target_qualname, key)
         return {"id": symbol_id, "key": key}
 
     except Exception as exc:
-        # EXCEPTION - commit error state
-        try:
-            async with session_factory() as session:
-                await _mark_attempt(
-                    symbol_id,
-                    status="invalid",
-                    error=f"exception:{exc}",
-                    session=session,
-                )
-                await session.commit()  # Transaction boundary here
-        except Exception as commit_exc:
-            logger.error("Failed to mark exception for %s: %s", symbol_id, commit_exc)
-
-        logger.exception("❌ Definition failed for %s", symbol_path)
+        logger.error("❌ Failed to define %s: %s", symbol_path, exc)
+        async with session_factory() as session:
+            await _mark_attempt(
+                symbol_id,
+                status="invalid",
+                error=f"exception:{type(exc).__name__}",
+                session=session,
+            )
         return {"id": symbol_id, "key": None}
 
 
 @atomic_action(
     action_id="manage.define-symbols",
-    intent="Define capabilities for public symbols",
+    intent="Assign capability keys to public symbols via AI reasoning",
     impact=ActionImpact.WRITE_DATA,
     policies=["symbol_identification"],
     category="management",
@@ -296,30 +227,29 @@ async def define_single_symbol(
 # ID: 45e0e360-c263-430b-923d-0c804d90df17
 async def define_symbols(
     context_service: ContextService,
-    session_factory: Any,  # Callable that returns async context manager
+    session_factory: Callable[[], Any],
 ) -> ActionResult:
     """
-    Define capabilities for undefined symbols.
-
-    Args:
-        context_service: Service for building context
-        session_factory: Factory function to create database sessions
+    Main entry point for batch symbol definition.
     """
-    start = time.time()
+    start_time = time.time()
 
+    # 1. Gather tasks
     async with session_factory() as session:
-        symbols = await get_undefined_symbols(session, limit=500)
+        symbols = await get_undefined_symbols(session, limit=100)
 
     if not symbols:
         return ActionResult(
             action_id="manage.define-symbols",
             ok=True,
             data={"attempted": 0, "defined": 0},
-            duration_sec=0,
+            duration_sec=time.time() - start_time,
             impact=ActionImpact.READ_ONLY,
         )
 
-    processor = _make_processor(description="Defining symbols", concurrency=2)
+    # 2. Execute parallel reasoning
+    # Throttled to respect API rate limits defined in settings
+    processor = ThrottledParallelProcessor(description="Defining symbols")
 
     results = await processor.run_async(
         symbols,
@@ -330,23 +260,16 @@ async def define_symbols(
         ),
     )
 
-    duration = time.time() - start
+    defined_count = sum(1 for r in results if r.get("key"))
 
     return ActionResult(
         action_id="manage.define-symbols",
         ok=True,
         data={
             "attempted": len(symbols),
-            "defined": sum(1 for r in results if r.get("key")),
+            "defined": defined_count,
+            "failed": len(symbols) - defined_count,
         },
-        duration_sec=duration,
+        duration_sec=time.time() - start_time,
         impact=ActionImpact.WRITE_DATA,
     )
-
-
-async def _define_new_symbols(
-    context_service: ContextService,
-    session_factory: Any,
-) -> ActionResult:
-    """Wrapper for define_symbols with injected dependencies."""
-    return await define_symbols(context_service, session_factory)

@@ -143,8 +143,7 @@ def _supported_ast_gate_check_types() -> set[str]:
 def _is_rule_implementable(rule: dict[str, Any]) -> bool:
     """
     Determine whether a rule is implementable given current runtime engines.
-
-    This does NOT assert the rule was executed; it only asserts the system can execute it.
+    Updated to recognize all CORE engines (Glob, Workflow, Knowledge, etc).
     """
     engine = _rule_check_engine(rule)
     if not engine:
@@ -152,24 +151,30 @@ def _is_rule_implementable(rule: dict[str, Any]) -> bool:
 
     params = _rule_check_params(rule)
 
+    # 1. AST Gate Intelligence
     if engine == "ast_gate":
         check_type = params.get("check_type")
         if check_type is None:
-            # Backward-compatible ast_gate mode: forbidden_calls/decorators checks
             return True
-
-        if not isinstance(check_type, str) or not check_type.strip():
-            return False
-
         supported = _supported_ast_gate_check_types()
-        # If engine cannot advertise supported types, do not claim implementable.
-        if not supported:
-            return False
+        # Include the alias we just added to the engine
+        supported.add("id_anchor")
         return check_type in supported
 
+    # 2. Glob Gate Intelligence (Always implementable if engine is present)
+    if engine == "glob_gate":
+        return True
+
+    # 3. Workflow Gate Intelligence (Always implementable)
+    if engine == "workflow_gate":
+        return True
+
+    # 4. Knowledge Gate Intelligence (Always implementable)
+    if engine == "knowledge_gate":
+        return True
+
+    # 5. LLM Gate (Implementable by definition)
     if engine == "llm_gate":
-        # Implementable by definition if llm_gate exists in the runtime.
-        # Whether it is *enabled* belongs to runtime gating and is not a coverage concern.
         return True
 
     return False

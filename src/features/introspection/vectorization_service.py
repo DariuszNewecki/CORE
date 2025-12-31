@@ -304,6 +304,10 @@ async def run_vectorize(
         else:
             pass
     await _update_db_after_vectorization(session, updates_to_db)
+
+    # FIX: Commit the transaction so links persist for next run
+    await session.commit()
+
     logger.info(
         "Vectorization complete. Processed %d/%d symbols.", success_count, total
     )

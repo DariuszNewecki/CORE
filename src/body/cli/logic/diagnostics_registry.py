@@ -1,12 +1,8 @@
 # src/body/cli/logic/diagnostics_registry.py
 
 """
-Logic for auditing domain manifests and (optionally) legacy CLI registry artifacts.
-
-Important:
-- This module must NOT reference deprecated legacy artifact filenames directly
-  (knowledge.limited_legacy_access). If the legacy registry still exists, its
-  location must be provided via .intent/meta.yaml and handled only when present.
+Logic for auditing domain manifests and legacy artifacts.
+Refactored to use the dynamic constitutional rule engine instead of deleted legacy check classes.
 """
 
 from __future__ import annotations
@@ -17,9 +13,11 @@ import jsonschema
 import typer
 import yaml
 
-from mind.governance.check_registry import check_exists, get_check
+from mind.governance.audit_context import AuditorContext
+from mind.governance.rule_executor import execute_rule
+from mind.governance.rule_extractor import extract_executable_rules
 from shared.config import settings
-from shared.context import CoreContext
+from shared.context import CoreContext  # Fixed: Added missing import
 from shared.logger import getLogger
 from shared.models import AuditSeverity
 
@@ -28,45 +26,53 @@ logger = getLogger(__name__)
 
 
 # ID: 3a8ecff4-54d8-4fe1-8977-6c00d694db6f
-def manifest_hygiene(ctx: typer.Context) -> None:
+async def manifest_hygiene(ctx: typer.Context) -> None:
     """
-    Checks for misplaced capabilities in domain manifests.
-
-    NOTE: DomainPlacementCheck was removed as obsolete (references deleted project_structure.yaml).
-    This function now gracefully handles its absence.
+    Checks for misplaced capabilities or structural drift in the knowledge base.
+    Uses the 'knowledge.database_ssot' constitutional rule.
     """
     core_context: CoreContext = ctx.obj
+    logger.info("🔍 Running manifest hygiene check (SSOT alignment)...")
 
-    # Check if DomainPlacementCheck exists (it was deleted)
-    if not check_exists("DomainPlacementCheck"):
-        logger.info(
-            "DomainPlacementCheck not available (obsolete check removed). "
-            "Domain placement validation moved to database."
+    # 1. Initialize AuditorContext
+    auditor_context = core_context.auditor_context or AuditorContext(settings.REPO_PATH)
+    await auditor_context.load_knowledge_graph()
+
+    # 2. Extract and find the SSOT rule
+    all_rules = extract_executable_rules(auditor_context.policies)
+    target_rule = next(
+        (r for r in all_rules if r.rule_id == "knowledge.database_ssot"), None
+    )
+
+    if not target_rule:
+        logger.warning(
+            "Constitutional rule 'knowledge.database_ssot' not found. Skipping hygiene check."
         )
-        raise typer.Exit(code=0)
+        return
 
-    # If somehow it still exists, run it
-    DomainPlacementCheck = get_check("DomainPlacementCheck")
-    check = DomainPlacementCheck(core_context.auditor_context)
-    findings = check.execute()
+    # 3. Execute and report
+    findings = await execute_rule(target_rule, auditor_context)
 
     if not findings:
-        logger.info("All capabilities correctly placed in domain manifests")
-        raise typer.Exit(code=0)
+        logger.info("✅ All capabilities correctly placed and synchronized with DB.")
+        return
 
+    # Sort findings by severity
     errors = [f for f in findings if f.severity == AuditSeverity.ERROR]
-    if errors:
-        logger.error("%s CRITICAL errors found:", len(errors))
-        for f in errors:
-            logger.error("  %s", f)
-
     warnings = [f for f in findings if f.severity == AuditSeverity.WARNING]
-    if warnings:
-        logger.warning("%s warnings found:", len(warnings))
-        for f in warnings:
-            logger.warning("  %s", f)
 
-    raise typer.Exit(code=1 if errors else 0)
+    if errors:
+        logger.error("❌ Found %s CRITICAL alignment errors:", len(errors))
+        for f in errors:
+            logger.error("  - %s", f.message)
+
+    if warnings:
+        logger.warning("⚠️  Found %s alignment warnings:", len(warnings))
+        for f in warnings:
+            logger.warning("  - %s", f.message)
+
+    if errors:
+        raise typer.Exit(code=1)
 
 
 def _load_intent_meta() -> dict:
@@ -94,10 +100,6 @@ def _resolve_from_meta(meta: dict, *keys: str) -> str | None:
 def cli_registry() -> None:
     """
     Validates the *legacy* CLI registry YAML (if still present) against its schema.
-
-    Post-SSOT migration behavior:
-    - If meta.yaml does not declare a legacy registry path, this check is skipped.
-    - If meta.yaml declares one, we validate it (useful during transition cleanup).
     """
     meta = _load_intent_meta()
 
@@ -109,59 +111,66 @@ def cli_registry() -> None:
             "No legacy CLI registry declared in meta.yaml; skipping validation."
         )
         return
-    if not schema_rel:
-        logger.warning(
-            "No CLI registry schema declared in meta.yaml; skipping validation."
-        )
-        return
 
     registry_path = (settings.REPO_PATH / registry_rel).resolve()
-    schema_path = (settings.REPO_PATH / schema_rel).resolve()
+    schema_path = (settings.REPO_PATH / (schema_rel or "")).resolve()
 
     if not registry_path.exists():
         logger.info("Legacy CLI registry path not found on disk: %s", registry_rel)
         return
+
     if not schema_path.exists():
-        logger.error("CLI registry schema not found: %s", schema_path)
+        logger.warning("CLI registry schema not found; skipping validation.")
+        return
+
+    try:
+        registry = yaml.safe_load(registry_path.read_text(encoding="utf-8")) or {}
+        schema = json.loads(schema_path.read_text(encoding="utf-8"))
+        jsonschema.validate(instance=registry, schema=schema)
+        logger.info("✅ Legacy CLI registry is valid: %s", registry_rel)
+    except Exception as e:
+        logger.error("❌ CLI registry failed validation: %s", e)
         raise typer.Exit(code=1)
-
-    registry = yaml.safe_load(registry_path.read_text(encoding="utf-8")) or {}
-    schema = json.loads(schema_path.read_text(encoding="utf-8"))
-
-    validator = jsonschema.Draft202012Validator(schema)
-    errors = sorted(validator.iter_errors(registry), key=lambda e: list(e.path))
-
-    if errors:
-        logger.error("CLI registry failed validation against schema: %s", schema_rel)
-        for idx, err in enumerate(errors, 1):
-            loc = "/".join(map(str, err.path)) or "(root)"
-            logger.error("  %s. at %s: %s", idx, loc, err.message)
-        raise typer.Exit(code=1)
-
-    logger.info("Legacy CLI registry is valid: %s", registry_rel)
 
 
 # ID: 03edb3b5-ca71-411e-8c90-5249d29a9543
-def check_legacy_tags(ctx: typer.Context) -> None:
-    """Runs only the LegacyTagCheck to find obsolete capability tags."""
+async def check_legacy_tags(ctx: typer.Context) -> None:
+    """
+    Runs a standalone check for obsolete capability tags using the 'purity' rule set.
+    """
     core_context: CoreContext = ctx.obj
-    logger.info("Running standalone legacy tag check...")
+    logger.info("🔍 Running standalone legacy tag check...")
 
-    # Dynamic check lookup
-    LegacyTagCheck = get_check("LegacyTagCheck")
-    check = LegacyTagCheck(core_context.auditor_context)
-    findings = check.execute()
+    # 1. Initialize AuditorContext
+    auditor_context = core_context.auditor_context or AuditorContext(settings.REPO_PATH)
+    await auditor_context.load_knowledge_graph()
 
-    if not findings:
-        logger.info("Success! No legacy tags found.")
+    # 2. Extract and find the Purity rule
+    all_rules = extract_executable_rules(auditor_context.policies)
+    target_rule = next(
+        (r for r in all_rules if r.rule_id == "purity.no_descriptive_pollution"), None
+    )
+
+    if not target_rule:
+        logger.warning(
+            "Constitutional rule 'purity.no_descriptive_pollution' not found."
+        )
         return
 
-    logger.error("Found %s instance(s) of legacy tags:", len(findings))
+    # 3. Execute
+    findings = await execute_rule(target_rule, auditor_context)
+
+    if not findings:
+        logger.info("✅ Success! No legacy tags found.")
+        return
+
+    logger.error("❌ Found %s instance(s) of legacy tags/pollution:", len(findings))
     for finding in findings:
-        logger.error(
-            "  File: %s, Line: %s, Message: %s",
-            finding.file_path,
-            finding.line_number,
-            finding.message,
+        loc = (
+            f"{finding.file_path}:{finding.line_number}"
+            if finding.line_number
+            else finding.file_path
         )
+        logger.error("  [%s] %s: %s", finding.severity.name, loc, finding.message)
+
     raise typer.Exit(code=1)

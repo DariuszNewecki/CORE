@@ -1,7 +1,7 @@
 {
   "id": "standard_operations_pattern_vectorization",
   "version": "1.0.0",
-  "title": "Operations Standard \u2013 Pattern Vectorization",
+  "title": "Operations Standard – Pattern Vectorization",
   "type": "policy",
   "status": "active",
   "owners": {
@@ -22,6 +22,9 @@
   ],
   "purpose": "Ensure CORE maintains semantic understanding of constitutional patterns and can validate code against patterns semantically, producing actionable, cited audit findings.\n",
   "philosophy": "Constitutional governance requires semantic understanding of patterns, not only syntax. CORE must internalize patterns as vectors, compare expectation vs reality, and report constitutional deltas with references.\n",
+  "notes": {
+    "optimization_review": "All 8 llm_gate rules require semantic understanding of pattern vectorization, chunking strategies, and validation workflows. These are inherently semantic checks that cannot be reduced to deterministic patterns."
+  },
   "rules": [
     {
       "id": "pattern_vectorization.pattern_understanding.required",

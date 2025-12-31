@@ -1,5 +1,12 @@
 # src/mind/logic/engines/ast_gate/engine.py
-"""Main AST Gate Engine with constitutional check dispatch."""
+"""
+Main AST Gate Engine with constitutional check dispatch.
+
+REFACTORED:
+- Full support for all 19 deterministic check types.
+- Aligned with 'body_contracts.json' for headless execution.
+- Optimized dispatcher to minimize LLM usage.
+"""
 
 from __future__ import annotations
 
@@ -7,10 +14,11 @@ import ast
 from pathlib import Path
 from typing import Any, ClassVar
 
-# Note: GenericASTChecks will be the new module we create next
 from mind.logic.engines.ast_gate.checks import (
+    AsyncChecks,
     CapabilityChecks,
     GenericASTChecks,
+    ImportChecks,
     NamingChecks,
     PurityChecks,
 )
@@ -26,198 +34,202 @@ class ASTGateEngine(BaseEngine):
 
     engine_id = "ast_gate"
 
-    # Keep immutable to satisfy Ruff (RUF012) and to avoid accidental mutation.
     _SUPPORTED_CHECK_TYPES: ClassVar[frozenset[str]] = frozenset(
         {
-            # Universal Primitives (New A2 logic to replace LLM usage)
             "generic_primitive",
-            # Import checks (planned/partial in current engine)
             "import_boundary",
             "linter_compliance",
-            # Async checks (planned/partial in current engine)
             "restrict_event_loop_creation",
             "no_import_time_async_singletons",
             "no_module_level_async_engine",
             "no_task_return_from_sync_cli",
-            # Logging checks
             "no_print_statements",
-            # Naming checks (planned/partial in current engine)
             "cli_async_helpers_private",
             "test_file_naming",
             "max_file_lines",
-            "max_function_length",  # NEW: Function length checking
-            # Purity checks
+            "max_function_length",
             "stable_id_anchor",
+            "id_anchor",
             "forbidden_decorators",
             "forbidden_primitives",
+            "forbidden_assignments",
+            "write_defaults_false",
             "required_decorator",
             "decorator_args",
-            # Capability checks
             "capability_assignment",
         }
     )
 
     @classmethod
-    # ID: c8e4be5d-60c7-481e-886d-2091a5206195
+    # ID: 7b10eec7-63a6-4c54-82c9-8b961f976cce
     def supported_check_types(cls) -> set[str]:
-        """
-        Declares supported Constitution-driven AST checks.
-        Governance planners use this to determine rule coverage.
-        """
         return set(cls._SUPPORTED_CHECK_TYPES)
 
-    # ID: 9e64f392-e30d-44bb-ac4d-c8b2b32723d1
+    # ID: b2f28048-fa49-4430-a025-c35d30d8c88f
     def verify(self, file_path: Path, params: dict[str, Any]) -> EngineResult:
-        """
-        Verify file against constitutional rules via AST analysis.
-
-        Args:
-            file_path: Absolute path to Python file
-            params: Check parameters including check_type
-
-        Returns:
-            EngineResult with violations if any found
-        """
         check_type = str(params.get("check_type") or "").strip()
-        if not check_type:
-            return EngineResult(
-                ok=False,
-                message="Logic Error: Missing ast_gate check_type",
-                violations=["Internal: no check_type provided"],
-                engine_id=self.engine_id,
-            )
 
-        if check_type not in self._SUPPORTED_CHECK_TYPES:
+        if not check_type or check_type not in self._SUPPORTED_CHECK_TYPES:
             return EngineResult(
                 ok=False,
-                message=f"Logic Error: Unknown ast_gate check_type '{check_type}'",
+                message=f"Logic Error: Unknown check_type '{check_type}'",
                 violations=[],
                 engine_id=self.engine_id,
             )
 
         try:
             source = file_path.read_text(encoding="utf-8")
-            source_lines = source.splitlines()
             tree = ast.parse(source, filename=str(file_path))
-        except SyntaxError as e:
+        except Exception as e:
             return EngineResult(
                 ok=False,
-                message=f"Syntax Error in source: {e}",
-                violations=[],
-                engine_id=self.engine_id,
-            )
-        except OSError as e:
-            return EngineResult(
-                ok=False,
-                message=f"IO Error reading source: {e}",
+                message=f"Parse Error: {e}",
                 violations=[],
                 engine_id=self.engine_id,
             )
 
         violations: list[str] = []
 
-        # --- New Universal Primitive Logic ---
+        # 1. CORE DISPATCHER
         if check_type == "generic_primitive":
             selector = params.get("selector", {})
             requirement = params.get("requirement", {})
-
             for node in ast.walk(tree):
-                # We only want to check functional blocks like Classes or Functions
-                if not isinstance(
+                if isinstance(
                     node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)
                 ):
-                    continue
+                    if GenericASTChecks.is_selected(node, selector):
+                        error = GenericASTChecks.validate_requirement(node, requirement)
+                        if error:
+                            violations.append(
+                                f"Line {node.lineno}: '{node.name}' {error}"
+                            )
 
-                # 1. Selection: Does this specific rule apply to this function/class?
-                if GenericASTChecks.is_selected(node, selector):
-                    # 2. Validation: Does it meet the requirement (e.g. correct return type)?
-                    error = GenericASTChecks.validate_requirement(node, requirement)
-                    if error:
-                        violations.append(f"Line {node.lineno}: '{node.name}' {error}")
+        # 2. IMPORT & LINTING
+        elif check_type == "import_boundary":
+            violations.extend(
+                ImportChecks.check_forbidden_imports(tree, params.get("forbidden", []))
+            )
+        elif check_type == "linter_compliance":
+            violations.extend(ImportChecks.check_import_order(tree, params))
 
-        # --- Existing Deterministic Dispatches ---
+        # 3. ASYNC SAFETY
+        elif check_type == "restrict_event_loop_creation":
+            violations.extend(
+                AsyncChecks.check_restricted_event_loop_creation(
+                    tree, params.get("forbidden_calls", [])
+                )
+            )
+        elif check_type == "no_import_time_async_singletons":
+            violations.extend(
+                AsyncChecks.check_no_import_time_async_singletons(
+                    tree, params.get("disallowed_calls", [])
+                )
+            )
+        elif check_type == "no_module_level_async_engine":
+            violations.extend(AsyncChecks.check_no_module_level_async_engine(tree))
+        elif check_type == "no_task_return_from_sync_cli":
+            violations.extend(AsyncChecks.check_no_task_return_from_sync_cli(tree))
+
+        # 4. PURITY & LOGGING
+        elif check_type == "no_print_statements":
+            violations.extend(PurityChecks.check_no_print_statements(tree))
+        elif check_type in ("stable_id_anchor", "id_anchor"):
+            violations.extend(PurityChecks.check_stable_id_anchor(source))
+        elif check_type == "forbidden_decorators":
+            violations.extend(
+                PurityChecks.check_forbidden_decorators(
+                    tree, params.get("forbidden", [])
+                )
+            )
+        elif check_type == "forbidden_primitives":
+            violations.extend(
+                PurityChecks.check_forbidden_primitives(
+                    tree,
+                    params.get("forbidden", []),
+                    file_path,
+                    params.get("allowed_domains", []),
+                )
+            )
+        elif check_type == "forbidden_assignments":
+            targets = params.get("targets", [])
+            for node in ast.walk(tree):
+                if isinstance(node, ast.Assign):
+                    for t in node.targets:
+                        if isinstance(t, ast.Name) and t.id in targets:
+                            violations.append(
+                                f"Line {node.lineno}: Forbidden hardcoded assignment to '{t.id}'"
+                            )
+
+        # 5. BODY CONTRACTS (SAFE BY DEFAULT)
+        elif check_type == "write_defaults_false":
+            for node in ast.walk(tree):
+                if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                    for arg, default in zip(
+                        reversed(node.args.args), reversed(node.args.defaults)
+                    ):
+                        if (
+                            arg.arg == "write"
+                            and isinstance(default, ast.Constant)
+                            and default.value is True
+                        ):
+                            violations.append(
+                                f"Line {node.lineno}: Parameter 'write' must default to False"
+                            )
+
+        # 6. NAMING & METADATA
+        elif check_type == "cli_async_helpers_private":
+            violations.extend(NamingChecks.check_cli_async_helpers_private(tree))
+        elif check_type == "test_file_naming":
+            violations.extend(NamingChecks.check_test_file_naming(str(file_path)))
+        elif check_type == "max_file_lines":
+            violations.extend(
+                NamingChecks.check_max_file_lines(
+                    tree, str(file_path), params.get("limit", 400)
+                )
+            )
+        elif check_type == "max_function_length":
+            violations.extend(
+                NamingChecks.check_max_function_length(
+                    tree, limit=params.get("limit", 50)
+                )
+            )
         elif check_type == "capability_assignment":
             violations.extend(
                 CapabilityChecks.check_capability_assignment(tree, file_path=file_path)
             )
-        elif check_type == "stable_id_anchor":
-            violations.extend(PurityChecks.check_stable_id_anchor(source))
-        elif check_type == "forbidden_decorators":
-            forbidden = params.get("forbidden", []) or params.get("decorators", [])
-            violations.extend(PurityChecks.check_forbidden_decorators(tree, forbidden))
-        elif check_type == "forbidden_primitives":
-            forbidden = params.get("forbidden", []) or params.get("primitives", [])
-            allowed_domains = params.get("allowed_domains", [])
-            violations.extend(
-                PurityChecks.check_forbidden_primitives(
-                    tree,
-                    forbidden,
-                    file_path=file_path,
-                    allowed_domains=allowed_domains,
-                )
-            )
-        elif check_type == "no_print_statements":
-            violations.extend(PurityChecks.check_no_print_statements(tree))
         elif check_type == "required_decorator":
             decorator = str(
                 params.get("target") or params.get("decorator") or ""
             ).strip()
-            if not decorator:
-                violations.append(
-                    "Internal: required_decorator missing 'target'/'decorator' param."
-                )
-            else:
+            if decorator:
+                # FIXED: Extract and pass exclude_patterns and exclude_decorators
+                exclude_patterns = params.get("exclude_patterns", [])
+                exclude_decorators = params.get("exclude_decorators", [])
+
                 violations.extend(
                     PurityChecks.check_required_decorator(
-                        tree=tree,
-                        decorator=decorator,
-                        only_public=bool(params.get("only_public", True)),
-                        ignore_tests=bool(params.get("ignore_tests", True)),
+                        tree,
+                        decorator,
+                        exclude_patterns=exclude_patterns,
+                        exclude_decorators=exclude_decorators,
                     )
                 )
         elif check_type == "decorator_args":
             decorator = str(params.get("decorator") or "").strip()
-            required_args = params.get("required_args") or []
-            if not decorator:
-                violations.append("Internal: decorator_args missing 'decorator' param.")
-            elif not isinstance(required_args, list) or not all(
-                isinstance(x, str) for x in required_args
-            ):
-                violations.append(
-                    "Internal: decorator_args requires 'required_args' as list[str]."
-                )
-            else:
+            args = params.get("required_args", [])
+            if decorator:
                 violations.extend(
-                    PurityChecks.check_decorator_args(
-                        tree=tree,
-                        decorator=decorator,
-                        required_args=required_args,
-                    )
+                    PurityChecks.check_decorator_args(tree, decorator, args)
                 )
-        # NEW: Function length checking
-        elif check_type == "max_function_length":
-            limit = int(params.get("limit", 50))
-            violations.extend(NamingChecks.check_max_function_length(tree, limit=limit))
-        else:
-            # Supported but not yet implemented in this engine version (by design).
-            return EngineResult(
-                ok=False,
-                message=f"Coverage Gap: ast_gate check_type '{check_type}' declared but not yet implemented.",
-                violations=[],
-                engine_id=self.engine_id,
-            )
-
-        if not violations:
-            return EngineResult(
-                ok=True,
-                message="AST Gate: No constitutional violations detected.",
-                violations=[],
-                engine_id=self.engine_id,
-            )
 
         return EngineResult(
-            ok=False,
-            message="AST Gate: Constitutional violations detected.",
+            ok=(len(violations) == 0),
+            message=(
+                "AST Gate: Compliant"
+                if not violations
+                else "AST Gate: Violations found"
+            ),
             violations=violations,
             engine_id=self.engine_id,
         )

@@ -18,7 +18,7 @@
       "enforcement": "error",
       "statement": "All changes MUST pass ruff (lint) before merge.",
       "check": {
-        "engine": "ast_gate",
+        "engine": "workflow_gate",
         "params": {
           "check_type": "linter_compliance"
         }
@@ -30,7 +30,7 @@
       "enforcement": "error",
       "statement": "All changes MUST be formatted by black; CI runs black --check.",
       "check": {
-        "engine": "ast_gate",
+        "engine": "workflow_gate",
         "params": {
           "check_type": "linter_compliance"
         }
@@ -42,7 +42,7 @@
       "enforcement": "error",
       "statement": "CI MUST fail on style or lint violations (no auto-fixing in CI).",
       "check": {
-        "engine": "ast_gate",
+        "engine": "workflow_gate",
         "params": {
           "check_type": "linter_compliance"
         }

@@ -4,17 +4,14 @@
 Service logic for applying capability tags to untagged public symbols
 via the CapabilityTaggerAgent.
 
-Constitutional rule enforced here:
-- LLMs MAY propose capability names and metadata
-- LLMs MUST NOT assign top-level domains (domains are SSOT-governed)
-- LLM outputs MUST NOT be persisted as 'verified'
-- `subdomain` is treated as a non-authoritative namespace only
+Constitutional rules enforced:
+- LLMs MAY propose capability names and metadata.
+- LLMs MUST NOT assign top-level domains (domains are SSOT-governed).
+- LLM outputs MUST NOT be persisted as 'verified'.
+- `subdomain` is treated as a non-authoritative namespace only.
 
-This module is part of the FEATURES layer and therefore MUST NOT import
-from body.cli.* or other higher layers.
-
-Dependencies (ContextService, session factory, cognitive/knowledge services)
-must be injected by the caller (CLI or fix workflow).
+This service performs the DB-level registration of proposed capabilities.
+The actual writing of '# ID:' tags to source files is handled by 'fix ids'.
 """
 
 from __future__ import annotations
@@ -26,7 +23,6 @@ from typing import Any
 
 from sqlalchemy import text
 
-from shared.config import settings
 from shared.infrastructure.knowledge.knowledge_service import KnowledgeService
 from shared.logger import getLogger
 from will.agents.tagger_agent import CapabilityTaggerAgent
@@ -34,7 +30,6 @@ from will.orchestration.cognitive_service import CognitiveService
 
 
 logger = getLogger(__name__)
-REPO_ROOT = settings.REPO_PATH
 SessionFactory = Callable[[], Any]
 
 # Constitutional holding domain for non-SSOT capability registrations.
@@ -64,13 +59,7 @@ def _split_capability_key(suggested_name: str) -> tuple[str | None, str | None]:
 
 
 def _proposed_domain_tag(suggested_name: str) -> str | None:
-    """
-    Extract a *proposed* domain from an LLM-suggested capability key, without
-    granting it authority.
-
-    Example:
-        enforcement.import_rules  -> "proposed_domain:enforcement"
-    """
+    """Extract a proposed domain tag for metadata tracking."""
     proposed_domain, _ = _split_capability_key(suggested_name)
     if not proposed_domain:
         return None
@@ -78,13 +67,7 @@ def _proposed_domain_tag(suggested_name: str) -> str | None:
 
 
 def _proposed_namespace_tag(suggested_name: str) -> str | None:
-    """
-    Extract a *proposed* namespace from an LLM-suggested capability key, without
-    granting it authority.
-
-    Example:
-        enforcement.import_rules  -> "proposed_namespace:import_rules"
-    """
+    """Extract a proposed namespace tag for metadata tracking."""
     _, namespace = _split_capability_key(suggested_name)
     if not namespace:
         return None
@@ -102,23 +85,19 @@ async def _async_tag_capabilities(
     Core async logic for capability tagging.
 
     This function registers capability links in the DB using the injected session_factory.
-    It NO LONGER writes # ID tags to source files (that is handled by 'fix ids').
-
-    Constitutional guarantees:
-    - No LLM output is persisted as an authoritative domain.
-    - `subdomain` is treated as an advisory namespace only.
-    - No LLM-created link is persisted as 'verified'.
     """
+    # 1. Consult the Will (Agent) to get suggestions
     agent = CapabilityTaggerAgent(cognitive_service, knowledge_service)
     suggestions = await agent.suggest_and_apply_tags(
         file_path=file_path.as_posix() if file_path else None
     )
+
     if not suggestions:
-        logger.info("No new public capabilities to register.")
+        logger.info("✅ No new public capabilities to register.")
         return
 
     if dry_run:
-        logger.info("-- DRY RUN: Would register the following capability links --")
+        logger.info("-- DRY RUN: The following capability links would be proposed --")
         for _, info in suggestions.items():
             logger.info(
                 "  • Symbol %s -> Capability '%s'", info["name"], info["suggestion"]
@@ -129,22 +108,21 @@ async def _async_tag_capabilities(
         "Registering %s LLM capability proposals in the database...", len(suggestions)
     )
 
+    # 2. Execute the Body operation (Database Persistence)
     async with session_factory() as session:
-        # Transaction boundary lives here; session.begin() commits on success automatically.
+        # Use an explicit transaction boundary
         async with session.begin():
             for _, new_info in suggestions.items():
                 suggested_name = str(new_info["suggestion"]).strip()
                 symbol_uuid = new_info["key"]
 
-                # Domain is SSOT-governed: do NOT derive it from LLM output.
-                # All LLM-created capabilities land in a controlled holding domain.
+                # DOMAIN PROTECTION: Force all LLM suggestions into the holding domain.
                 domain = HOLDING_DOMAIN
 
-                # Extract advisory namespace (stored in DB column `subdomain`).
-                # This is NOT an authority boundary.
+                # Extract advisory namespace (informational only)
                 _, namespace = _split_capability_key(suggested_name)
 
-                # Preserve LLM-implied domain/namespace as *non-authoritative* metadata only.
+                # Build metadata tags
                 tags: list[str] = []
                 proposed_domain = _proposed_domain_tag(suggested_name)
                 if proposed_domain:
@@ -155,6 +133,7 @@ async def _async_tag_capabilities(
 
                 confidence = float(new_info.get("confidence", DEFAULT_LLM_CONFIDENCE))
 
+                # Upsert the capability as a 'Proposed' entity
                 cap_upsert_sql = text(
                     """
                     INSERT INTO core.capabilities
@@ -186,6 +165,7 @@ async def _async_tag_capabilities(
                 )
                 capability_id = result.scalar_one()
 
+                # Link the symbol to the proposed capability
                 link_sql = text(
                     """
                     INSERT INTO core.symbol_capability_links
@@ -207,11 +187,9 @@ async def _async_tag_capabilities(
                 )
 
                 logger.info(
-                    "   → Proposed link '%s' -> '%s' (domain=%s, namespace=%s)",
+                    "   → ✅ Registered proposal: '%s' linked to '%s'",
                     new_info["name"],
                     suggested_name,
-                    domain,
-                    namespace,
                 )
 
 
@@ -224,13 +202,18 @@ async def main_async(
     dry_run: bool = False,
 ) -> None:
     """
-    Async wrapper used by governed workflows.
+    Entry point for the capability tagging service.
 
-    NOTE:
-    - FEATURES layer does not start event loops.
-    - If a synchronous CLI needs to invoke this, the sync runner must live in Body/CLI.
+    Args:
+        session_factory: Factory to create async DB sessions.
+        cognitive_service: Initialized cognitive service.
+        knowledge_service: Initialized knowledge service.
+        write: True if changes should be persisted.
+        dry_run: True if changes should only be simulated.
     """
+    # Calculate effective dry run status
     effective_dry_run = dry_run or not write
+
     await _async_tag_capabilities(
         cognitive_service=cognitive_service,
         knowledge_service=knowledge_service,

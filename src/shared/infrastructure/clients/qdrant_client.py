@@ -303,7 +303,7 @@ class QdrantService:
 
         rec = records[0]
         vec = getattr(rec, "vector", None)
-        if isinstance(vec | (list, tuple)):
+        if isinstance(vec, (list, tuple)):
             return [float(v) for v in vec]
 
         # Check named vectors
@@ -311,7 +311,7 @@ class QdrantService:
         if isinstance(vectors_obj, dict) and vectors_obj:
             first_key = sorted(vectors_obj.keys())[0]
             chosen = vectors_obj.get(self.vector_name) or vectors_obj[first_key]
-            if isinstance(chosen | (list, tuple)):
+            if isinstance(chosen, (list, tuple)):
                 return [float(v) for v in chosen]
 
         raise VectorNotFoundError(f"No valid vector found for point {point_id}")

@@ -1,7 +1,7 @@
 {
   "id": "standard_architecture_body_contracts",
-  "version": "1.0.0",
-  "title": "Architecture Standard \u2013 Body Contracts",
+  "version": "1.1.0",
+  "title": "Architecture Standard – Body Contracts",
   "type": "policy",
   "status": "active",
   "owners": {
@@ -14,7 +14,7 @@
     "frequency": "12 months"
   },
   "schema_id": "meta.policy",
-  "description": "Defines cross-cutting behavioral rules for all Body-layer code:\nservices, actions, and helpers. This file does NOT define\narchitectural patterns (see service_patterns.yaml) but enforces\nhow Body code must behave so it can be safely orchestrated.\n\nThese contracts ensure:\n- Headless execution (no UI leakage from the Body)\n- Safe-by-default write behavior\n- Predictable result contracts for orchestration\n- Consistent logging and error handling\n- Testability and introspectability\n",
+  "description": "Defines behavioral rules for all Body-layer code. Enforces headless execution, safe-by-default writes, and predictable result contracts.",
   "scope": {
     "applies_to": [
       "features/*/*_service.py",
@@ -28,43 +28,51 @@
   "rules": [
     {
       "id": "body.no_ui_imports_in_body",
-      "rationale": "Strengthens system governance regarding body.no_ui_imports_in_body.",
+      "rationale": "Body modules must be headless to allow for automated orchestration without a TTY.",
       "enforcement": "error",
       "statement": "Body modules MUST NOT import Rich UI components (Console, Progress, etc.)",
       "check": {
         "engine": "ast_gate",
         "params": {
-          "check_type": "import_boundary"
+          "check_type": "import_boundary",
+          "forbidden": [
+            "rich",
+            "click",
+            "typer",
+            "tkinter",
+            "PyQt5",
+            "prompt_toolkit"
+          ]
         }
       }
     },
     {
       "id": "body.no_print_or_input_in_body",
-      "rationale": "Strengthens system governance regarding body.no_print_or_input_in_body.",
+      "rationale": "Direct I/O bypasses the structured ActionResult and logging systems.",
       "enforcement": "error",
       "statement": "Body modules MUST NOT use print() or input() for user interaction",
       "check": {
-        "engine": "llm_gate",
+        "engine": "ast_gate",
         "params": {
-          "instruction": "Verify adherence to: Body modules MUST NOT use print() or input() for user interaction"
+          "check_type": "no_print_statements"
         }
       }
     },
     {
       "id": "body.write_defaults_false",
-      "rationale": "Strengthens system governance regarding body.write_defaults_false.",
+      "rationale": "Enforces safe-by-default behavior; actions should not mutate unless explicitly told to.",
       "enforcement": "error",
       "statement": "Any write/modify parameter in Body code MUST default to False",
       "check": {
-        "engine": "llm_gate",
+        "engine": "ast_gate",
         "params": {
-          "instruction": "Verify adherence to: Any write/modify parameter in Body code MUST default to False"
+          "check_type": "write_defaults_false"
         }
       }
     },
     {
       "id": "body.atomic_actions_use_actionresult",
-      "rationale": "Strengthens system governance regarding body.atomic_actions_use_actionresult.",
+      "rationale": "Workflows require a consistent return object to handle success/failure logic.",
       "enforcement": "error",
       "statement": "High-level Body actions exposed to workflows MUST return ActionResult",
       "check": {
@@ -82,523 +90,71 @@
       }
     },
     {
-      "id": "body.actionresult_data_json_safe",
-      "rationale": "Strengthens system governance regarding body.actionresult_data_json_safe.",
+      "id": "body.no_envvar_access_in_body",
+      "rationale": "Environment variables are global state. Use shared.config.settings for governed configuration.",
       "enforcement": "warning",
-      "statement": "ActionResult.data MUST only contain JSON-serializable types",
+      "statement": "Body modules MUST NOT call os.environ[...] directly; use shared.config.settings",
       "check": {
-        "engine": "llm_gate",
+        "engine": "ast_gate",
         "params": {
-          "instruction": "Verify adherence to: ActionResult.data MUST only contain JSON-serializable types"
+          "check_type": "forbidden_primitives",
+          "forbidden": [
+            "os.environ",
+            "os.getenv",
+            "getenv"
+          ]
         }
       }
     },
     {
-      "id": "body.no_envvar_access_in_body",
-      "rationale": "Strengthens system governance regarding body.no_envvar_access_in_body.",
-      "enforcement": "warning",
-      "statement": "Body modules MUST NOT call os.environ[...] directly; use shared.config.settings",
+      "id": "standard_architecture_body_contracts.testing_contract.4",
+      "id_alias": "body.no_blocking_sleep",
+      "rationale": "time.sleep blocks the event loop in async-native systems.",
+      "enforcement": "error",
+      "statement": "Avoid time.sleep and blocking calls in Body code; use asyncio.sleep.",
       "check": {
-        "engine": "llm_gate",
+        "engine": "ast_gate",
         "params": {
-          "instruction": "Verify adherence to: Body modules MUST NOT call os.environ[...] directly; use shared.config.settings"
+          "check_type": "forbidden_primitives",
+          "forbidden": [
+            "time.sleep"
+          ]
         }
       }
     },
     {
       "id": "body.dependency_injection_preferred",
-      "rationale": "Strengthens system governance regarding body.dependency_injection_preferred.",
+      "rationale": "Hardcoded instantiation makes units untestable and architecture rigid.",
       "enforcement": "warning",
       "statement": "Body services SHOULD receive dependencies via constructor, not create them internally",
       "check": {
-        "engine": "llm_gate",
+        "engine": "ast_gate",
         "params": {
-          "instruction": "Verify adherence to: Body services SHOULD receive dependencies via constructor, not create them internally"
+          "check_type": "no_import_time_async_singletons",
+          "disallowed_calls": [
+            "CognitiveService",
+            "QdrantService",
+            "GitService"
+          ]
         }
       }
     },
     {
-      "id": "standard_architecture_body_contracts.headless_rules.0",
-      "category": "headless_rules",
-      "statement": "No Rich console/progress usage in services or logic modules.",
-      "enforcement": "error",
-      "rationale": "Migrated from legacy nested structure.",
-      "check": {
-        "engine": "llm_gate",
-        "params": {}
-      }
-    },
-    {
-      "id": "standard_architecture_body_contracts.headless_rules.1",
-      "category": "headless_rules",
-      "statement": "No print() / input() in Body modules (except explicitly-marked one-off scripts).",
-      "enforcement": "error",
-      "rationale": "Migrated from legacy nested structure.",
-      "check": {
-        "engine": "llm_gate",
-        "params": {}
-      }
-    },
-    {
-      "id": "standard_architecture_body_contracts.headless_rules.2",
-      "category": "headless_rules",
-      "statement": "No click/typer prompts in services or logic.",
-      "enforcement": "error",
-      "rationale": "Migrated from legacy nested structure.",
-      "check": {
-        "engine": "llm_gate",
-        "params": {}
-      }
-    },
-    {
-      "id": "standard_architecture_body_contracts.headless_rules.3",
-      "category": "headless_rules",
-      "statement": "All user-facing UX lives in workflows/CLI (Will layer).",
-      "enforcement": "error",
-      "rationale": "Migrated from legacy nested structure.",
-      "check": {
-        "engine": "llm_gate",
-        "params": {}
-      }
-    },
-    {
-      "id": "standard_architecture_body_contracts.headless_rules.4",
-      "category": "headless_rules",
-      "statement": "Body code MUST be callable without a TTY or interactive environment.",
-      "enforcement": "error",
-      "rationale": "Migrated from legacy nested structure.",
-      "check": {
-        "engine": "llm_gate",
-        "params": {}
-      }
-    },
-    {
-      "id": "standard_architecture_body_contracts.write_semantics.0",
-      "category": "write_semantics",
-      "statement": "Parameters controlling side effects MUST default to False (write=False).",
-      "enforcement": "error",
-      "rationale": "Migrated from legacy nested structure.",
-      "check": {
-        "engine": "llm_gate",
-        "params": {}
-      }
-    },
-    {
-      "id": "standard_architecture_body_contracts.write_semantics.1",
-      "category": "write_semantics",
-      "statement": "If both write and dry_run are present, they MUST be consistent (dry_run == not write).",
-      "enforcement": "error",
-      "rationale": "Migrated from legacy nested structure.",
-      "check": {
-        "engine": "llm_gate",
-        "params": {}
-      }
-    },
-    {
-      "id": "standard_architecture_body_contracts.write_semantics.2",
-      "category": "write_semantics",
-      "statement": "Read-only functions SHOULD NOT expose write/dry_run toggles.",
-      "enforcement": "error",
-      "rationale": "Migrated from legacy nested structure.",
-      "check": {
-        "engine": "llm_gate",
-        "params": {}
-      }
-    },
-    {
-      "id": "standard_architecture_body_contracts.write_semantics.3",
-      "category": "write_semantics",
-      "statement": "When write=False or dry_run=True, services MUST NOT perform irreversible operations.",
-      "enforcement": "error",
-      "rationale": "Migrated from legacy nested structure.",
-      "check": {
-        "engine": "llm_gate",
-        "params": {}
-      }
-    },
-    {
-      "id": "standard_architecture_body_contracts.write_semantics.4",
-      "category": "write_semantics",
-      "statement": "When write=False, services SHOULD still compute and return what WOULD happen, when feasible.",
-      "enforcement": "error",
-      "rationale": "Migrated from legacy nested structure.",
-      "check": {
-        "engine": "llm_gate",
-        "params": {}
-      }
-    },
-    {
-      "id": "standard_architecture_body_contracts.write_semantics.5",
-      "category": "write_semantics",
-      "statement": "Functions that always write MUST be clearly named with an imperative verb (e.g. apply_, persist_, delete_).",
-      "enforcement": "error",
-      "rationale": "Migrated from legacy nested structure.",
-      "check": {
-        "engine": "llm_gate",
-        "params": {}
-      }
-    },
-    {
-      "id": "standard_architecture_body_contracts.action_results.0",
-      "category": "action_results",
-      "statement": "Atomic actions orchestrated by workflows MUST return ActionResult.",
-      "enforcement": "error",
-      "rationale": "Migrated from legacy nested structure.",
-      "check": {
-        "engine": "llm_gate",
-        "params": {}
-      }
-    },
-    {
-      "id": "standard_architecture_body_contracts.action_results.1",
-      "category": "action_results",
-      "statement": "Helper functions MAY return plain types but MUST remain easily wrappable.",
-      "enforcement": "error",
-      "rationale": "Migrated from legacy nested structure.",
-      "check": {
-        "engine": "llm_gate",
-        "params": {}
-      }
-    },
-    {
-      "id": "standard_architecture_body_contracts.action_results.2",
-      "category": "action_results",
-      "statement": "ActionResult MUST include action_id, ok, data and SHOULD include duration_sec when meaningful.",
-      "enforcement": "error",
-      "rationale": "Migrated from legacy nested structure.",
-      "check": {
-        "engine": "llm_gate",
-        "params": {}
-      }
-    },
-    {
       "id": "standard_architecture_body_contracts.action_results.3",
-      "category": "action_results",
+      "rationale": "Ensures results can be serialized for persistence or network transmission.",
+      "enforcement": "error",
       "statement": "ActionResult.data MUST be JSON-serializable (no raw DB sessions, open files, etc.).",
-      "enforcement": "error",
-      "rationale": "Migrated from legacy nested structure.",
       "check": {
-        "engine": "llm_gate",
-        "params": {}
-      }
-    },
-    {
-      "id": "standard_architecture_body_contracts.action_results.4",
-      "category": "action_results",
-      "statement": "Impact level (read-only/write-metadata/write-code/write-data) SHOULD be declared where applicable.",
-      "enforcement": "error",
-      "rationale": "Migrated from legacy nested structure.",
-      "check": {
-        "engine": "llm_gate",
-        "params": {}
-      }
-    },
-    {
-      "id": "standard_architecture_body_contracts.logging.0",
-      "category": "logging",
-      "statement": "Use shared.logger.getLogger(__name__) for all Body logging.",
-      "enforcement": "error",
-      "rationale": "Migrated from legacy nested structure.",
-      "check": {
-        "engine": "llm_gate",
-        "params": {}
-      }
-    },
-    {
-      "id": "standard_architecture_body_contracts.logging.1",
-      "category": "logging",
-      "statement": "INFO: high-level steps, counts, and summary outcomes.",
-      "enforcement": "error",
-      "rationale": "Migrated from legacy nested structure.",
-      "check": {
-        "engine": "llm_gate",
-        "params": {}
-      }
-    },
-    {
-      "id": "standard_architecture_body_contracts.logging.2",
-      "category": "logging",
-      "statement": "DEBUG: per-item details and noisy diagnostic information.",
-      "enforcement": "error",
-      "rationale": "Migrated from legacy nested structure.",
-      "check": {
-        "engine": "llm_gate",
-        "params": {}
-      }
-    },
-    {
-      "id": "standard_architecture_body_contracts.logging.3",
-      "category": "logging",
-      "statement": "WARNING / ERROR: unexpected failures, misconfigurations, or degraded behavior.",
-      "enforcement": "error",
-      "rationale": "Migrated from legacy nested structure.",
-      "check": {
-        "engine": "llm_gate",
-        "params": {}
-      }
-    },
-    {
-      "id": "standard_architecture_body_contracts.logging.4",
-      "category": "logging",
-      "statement": "Avoid WARNING/ERROR inside tight loops; prefer DEBUG to prevent log spam.",
-      "enforcement": "error",
-      "rationale": "Migrated from legacy nested structure.",
-      "check": {
-        "engine": "llm_gate",
-        "params": {}
-      }
-    },
-    {
-      "id": "standard_architecture_body_contracts.logging.5",
-      "category": "logging",
-      "statement": "Do not log secrets, raw credentials, or full LLM prompts/responses without masking.",
-      "enforcement": "error",
-      "rationale": "Migrated from legacy nested structure.",
-      "check": {
-        "engine": "llm_gate",
-        "params": {}
-      }
-    },
-    {
-      "id": "standard_architecture_body_contracts.logging.6",
-      "category": "logging",
-      "statement": "Log messages SHOULD be actionable (what failed, what to check next).",
-      "enforcement": "error",
-      "rationale": "Migrated from legacy nested structure.",
-      "check": {
-        "engine": "llm_gate",
-        "params": {}
-      }
-    },
-    {
-      "id": "standard_architecture_body_contracts.error_handling.0",
-      "category": "error_handling",
-      "statement": "Body code MUST NOT swallow exceptions silently.",
-      "enforcement": "error",
-      "rationale": "Migrated from legacy nested structure.",
-      "check": {
-        "engine": "llm_gate",
-        "params": {}
-      }
-    },
-    {
-      "id": "standard_architecture_body_contracts.error_handling.1",
-      "category": "error_handling",
-      "statement": "Known/expected failure modes SHOULD use dedicated exception types (e.g. NotFoundError, ValidationError).",
-      "enforcement": "error",
-      "rationale": "Migrated from legacy nested structure.",
-      "check": {
-        "engine": "llm_gate",
-        "params": {}
-      }
-    },
-    {
-      "id": "standard_architecture_body_contracts.error_handling.2",
-      "category": "error_handling",
-      "statement": "Unexpected errors MAY bubble up but MUST be logged with context.",
-      "enforcement": "error",
-      "rationale": "Migrated from legacy nested structure.",
-      "check": {
-        "engine": "llm_gate",
-        "params": {}
-      }
-    },
-    {
-      "id": "standard_architecture_body_contracts.error_handling.3",
-      "category": "error_handling",
-      "statement": "ActionResult-based functions SHOULD capture failures in ok=False and data['error'].",
-      "enforcement": "error",
-      "rationale": "Migrated from legacy nested structure.",
-      "check": {
-        "engine": "llm_gate",
-        "params": {}
-      }
-    },
-    {
-      "id": "standard_architecture_body_contracts.error_handling.4",
-      "category": "error_handling",
-      "statement": "Do not use bare `except:`; always catch specific exceptions or Exception with a clear log.",
-      "enforcement": "error",
-      "rationale": "Migrated from legacy nested structure.",
-      "check": {
-        "engine": "llm_gate",
-        "params": {}
-      }
-    },
-    {
-      "id": "standard_architecture_body_contracts.side_effects.0",
-      "category": "side_effects",
-      "statement": "Pure transformations (no I/O) SHOULD be implemented as standalone functions or static methods.",
-      "enforcement": "error",
-      "rationale": "Migrated from legacy nested structure.",
-      "check": {
-        "engine": "llm_gate",
-        "params": {}
-      }
-    },
-    {
-      "id": "standard_architecture_body_contracts.side_effects.1",
-      "category": "side_effects",
-      "statement": "Functions performing I/O or writes MUST document their side effects in docstrings.",
-      "enforcement": "error",
-      "rationale": "Migrated from legacy nested structure.",
-      "check": {
-        "engine": "llm_gate",
-        "params": {}
-      }
-    },
-    {
-      "id": "standard_architecture_body_contracts.side_effects.2",
-      "category": "side_effects",
-      "statement": "Pure functions MUST NOT perform logging or random number generation.",
-      "enforcement": "error",
-      "rationale": "Migrated from legacy nested structure.",
-      "check": {
-        "engine": "llm_gate",
-        "params": {}
-      }
-    },
-    {
-      "id": "standard_architecture_body_contracts.side_effects.3",
-      "category": "side_effects",
-      "statement": "Long-running side-effectful operations SHOULD expose progress via ActionResult data, not UI.",
-      "enforcement": "error",
-      "rationale": "Migrated from legacy nested structure.",
-      "check": {
-        "engine": "llm_gate",
-        "params": {}
-      }
-    },
-    {
-      "id": "standard_architecture_body_contracts.configuration_access.0",
-      "category": "configuration_access",
-      "statement": "Use shared.config.settings for configuration; do NOT read environment variables directly in Body code.",
-      "enforcement": "error",
-      "rationale": "Migrated from legacy nested structure.",
-      "check": {
-        "engine": "llm_gate",
-        "params": {}
-      }
-    },
-    {
-      "id": "standard_architecture_body_contracts.configuration_access.1",
-      "category": "configuration_access",
-      "statement": "Access configuration via typed helpers where possible (e.g. settings.get_path(...)).",
-      "enforcement": "error",
-      "rationale": "Migrated from legacy nested structure.",
-      "check": {
-        "engine": "llm_gate",
-        "params": {}
-      }
-    },
-    {
-      "id": "standard_architecture_body_contracts.configuration_access.2",
-      "category": "configuration_access",
-      "statement": "Do NOT hardcode environment-specific paths or secrets in Body code.",
-      "enforcement": "error",
-      "rationale": "Migrated from legacy nested structure.",
-      "check": {
-        "engine": "llm_gate",
-        "params": {}
-      }
-    },
-    {
-      "id": "standard_architecture_body_contracts.configuration_access.3",
-      "category": "configuration_access",
-      "statement": "Configuration keys used by Body MUST be declared and documented in the configuration service.",
-      "enforcement": "error",
-      "rationale": "Migrated from legacy nested structure.",
-      "check": {
-        "engine": "llm_gate",
-        "params": {}
-      }
-    },
-    {
-      "id": "standard_architecture_body_contracts.dependencies.0",
-      "category": "dependencies",
-      "statement": "Services SHOULD receive dependencies via constructor or explicit parameters (DI style).",
-      "enforcement": "error",
-      "rationale": "Migrated from legacy nested structure.",
-      "check": {
-        "engine": "llm_gate",
-        "params": {}
-      }
-    },
-    {
-      "id": "standard_architecture_body_contracts.dependencies.1",
-      "category": "dependencies",
-      "statement": "Body code SHOULD NOT create new DB sessions, HTTP clients, or Qdrant clients inline if a service already exists.",
-      "enforcement": "error",
-      "rationale": "Migrated from legacy nested structure.",
-      "check": {
-        "engine": "llm_gate",
-        "params": {}
-      }
-    },
-    {
-      "id": "standard_architecture_body_contracts.dependencies.2",
-      "category": "dependencies",
-      "statement": "Global mutable state in Body modules is forbidden, except for cached, read-only configuration/mappings.",
-      "enforcement": "error",
-      "rationale": "Migrated from legacy nested structure.",
-      "check": {
-        "engine": "llm_gate",
-        "params": {}
-      }
-    },
-    {
-      "id": "standard_architecture_body_contracts.testing_contract.0",
-      "category": "testing_contract",
-      "statement": "Functions SHOULD avoid reading global state; prefer explicit parameters.",
-      "enforcement": "error",
-      "rationale": "Migrated from legacy nested structure.",
-      "check": {
-        "engine": "llm_gate",
-        "params": {}
-      }
-    },
-    {
-      "id": "standard_architecture_body_contracts.testing_contract.1",
-      "category": "testing_contract",
-      "statement": "External interactions (DB, Qdrant, LLMs) MUST be abstracted behind services or interfaces.",
-      "enforcement": "error",
-      "rationale": "Migrated from legacy nested structure.",
-      "check": {
-        "engine": "llm_gate",
-        "params": {}
-      }
-    },
-    {
-      "id": "standard_architecture_body_contracts.testing_contract.2",
-      "category": "testing_contract",
-      "statement": "Critical Body functions SHOULD have unit tests covering success and failure paths.",
-      "enforcement": "error",
-      "rationale": "Migrated from legacy nested structure.",
-      "check": {
-        "engine": "llm_gate",
-        "params": {}
-      }
-    },
-    {
-      "id": "standard_architecture_body_contracts.testing_contract.3",
-      "category": "testing_contract",
-      "statement": "ActionResult-based functions SHOULD be testable with in-memory or stub dependencies.",
-      "enforcement": "error",
-      "rationale": "Migrated from legacy nested structure.",
-      "check": {
-        "engine": "llm_gate",
-        "params": {}
-      }
-    },
-    {
-      "id": "standard_architecture_body_contracts.testing_contract.4",
-      "category": "testing_contract",
-      "statement": "Avoid time.sleep and blocking calls in Body code; use async-friendly patterns.",
-      "enforcement": "error",
-      "rationale": "Migrated from legacy nested structure.",
-      "check": {
-        "engine": "llm_gate",
-        "params": {}
+        "engine": "ast_gate",
+        "params": {
+          "check_type": "generic_primitive",
+          "selector": {
+            "has_decorator": "atomic_action"
+          },
+          "requirement": {
+            "check_type": "actionresult_data_json_safe"
+          }
+        }
       }
     }
   ],

@@ -1,10 +1,10 @@
 {
   "id": "code.naming",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "title": "Naming Conventions",
   "type": "policy",
   "schema_id": "meta.policy",
-  "description": "Defines naming standards for code, intent files, schemas, and prompts.",
+  "description": "Defines naming standards for code, intent files, schemas, and prompts to ensure clarity and maintainability.",
   "owners": {
     "accountable": "Governance Lead",
     "responsible": [
@@ -100,6 +100,87 @@
         "engine": "regex_gate",
         "params": {
           "check_type": "naming_convention"
+        }
+      }
+    },
+    {
+      "id": "code.module_name_clarity",
+      "rationale": "Module names must clearly communicate purpose to reduce cognitive load, onboarding time, and maintenance burden. Semantically ambiguous names force readers to open files to understand their purpose.",
+      "enforcement": "error",
+      "statement": "Module names must be semantically distinct and self-documenting within their domain. Names should complete the sentence: 'This module handles...'",
+      "examples": {
+        "violations": [
+          "audit.py + auditor.py + audit_context.py in same directory (semantically indistinguishable)",
+          "context.py (what kind of context?)",
+          "base.py (base for what domain?)",
+          "utils.py (what utilities?)"
+        ],
+        "compliant": [
+          "audit_workflow.py (clear: orchestrates audit execution flow)",
+          "constitutional_auditor.py (clear: performs constitutional compliance audits)",
+          "auditor_context.py (clear: provides resources and state for auditors)",
+          "string_utils.py (clear: string manipulation utilities)",
+          "action_base.py (clear: base class for action implementations)"
+        ]
+      },
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify that module names within each directory are semantically distinct and self-documenting. Flag modules with ambiguous names or names too similar to sibling modules."
+        }
+      }
+    },
+    {
+      "id": "code.no_generic_module_names",
+      "rationale": "Generic names like 'utils', 'helpers', 'common', 'base' provide no information about module purpose or domain. They become dumping grounds for unrelated functionality.",
+      "enforcement": "warning",
+      "statement": "Avoid generic module names. Use specific names describing the module's responsibility or domain.",
+      "forbidden_patterns": [
+        "**/utils.py",
+        "**/helpers.py",
+        "**/common.py",
+        "**/base.py",
+        "**/misc.py",
+        "**/stuff.py",
+        "**/core.py",
+        "**/main.py"
+      ],
+      "exceptions": [
+        "Module name includes domain prefix (e.g., string_utils.py, db_helpers.py)",
+        "Module contains single well-documented utility class with clear scope",
+        "main.py as application entry point",
+        "base.py when immediately preceded by domain (e.g., actions/base.py for action base classes)"
+      ],
+      "check": {
+        "engine": "glob_gate",
+        "params": {
+          "check_type": "forbidden_patterns",
+          "patterns": [
+            "**/utils.py",
+            "**/helpers.py",
+            "**/common.py",
+            "**/misc.py",
+            "**/stuff.py"
+          ],
+          "exclude_patterns": [
+            "**/*_utils.py",
+            "**/*_helpers.py",
+            "**/*_common.py"
+          ]
+        }
+      }
+    },
+    {
+      "id": "code.module_name_length",
+      "rationale": "Extremely short names lack descriptiveness; extremely long names indicate unclear responsibilities or improper abstraction.",
+      "enforcement": "warning",
+      "statement": "Module names should be 3-40 characters (excluding .py extension). Names under 3 characters are too terse; names over 40 characters suggest the module has too many responsibilities.",
+      "check": {
+        "engine": "regex_gate",
+        "params": {
+          "check_type": "length_constraint",
+          "min_length": 3,
+          "max_length": 40
         }
       }
     }

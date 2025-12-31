@@ -25,8 +25,8 @@ import typer
 
 from shared.infrastructure.clients.qdrant_client import QdrantService
 from shared.logger import getLogger
+from shared.processors.yaml_processor import strict_yaml_processor
 from shared.universal import get_deterministic_id
-from shared.utils.yaml_processor import strict_yaml_processor
 from will.orchestration.cognitive_service import CognitiveService
 
 

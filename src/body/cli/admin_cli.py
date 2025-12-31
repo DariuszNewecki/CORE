@@ -17,7 +17,6 @@ from body.cli.commands import (
     check_patterns,
     coverage,
     enrich,
-    fix,
     governance,
     inspect,
     mind,
@@ -26,6 +25,7 @@ from body.cli.commands import (
     secrets,
     submit,
 )
+from body.cli.commands.autonomy import autonomy_app
 from body.cli.commands.check import check_app
 from body.cli.commands.dev_sync import dev_sync_app
 from body.cli.commands.develop import develop_app
@@ -40,7 +40,6 @@ from body.cli.logic.tools import tools_app
 
 # New Architecture: Registry
 from body.services.service_registry import service_registry
-from mind.enforcement import audit
 from shared.config import settings
 from shared.context import CoreContext
 from shared.infrastructure.context import cli as context_cli
@@ -127,6 +126,9 @@ def register_all_commands(app_instance: typer.Typer) -> None:
     app_instance.add_typer(
         check_atomic_actions.atomic_actions_group, name="atomic-actions"
     )
+    app_instance.add_typer(
+        autonomy_app, name="autonomy"
+    )  # ← Fixed! (was app.add_typer)
     app_instance.add_typer(tools_app, name="tools")
 
     # NEW: Register the diagnostics group
@@ -134,22 +136,6 @@ def register_all_commands(app_instance: typer.Typer) -> None:
 
     # Pattern diagnostics
     app_instance.command(name="inspect-patterns")(inspect_patterns)
-
-    modules_with_context = [
-        coverage,
-        enrich,
-        fix,
-        governance,
-        inspect,
-        manage,
-        run,
-        search,
-        submit,
-        audit,
-    ]
-    for module in modules_with_context:
-        if hasattr(module, "_context"):
-            setattr(module, "_context", core_context)
 
 
 register_all_commands(app)

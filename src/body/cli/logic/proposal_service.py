@@ -30,8 +30,8 @@ from shared.config import settings
 from shared.context import CoreContext
 from shared.infrastructure.storage.file_handler import FileHandler
 from shared.logger import getLogger
+from shared.processors.yaml_processor import YAMLProcessor
 from shared.utils.crypto import generate_approval_token
-from shared.utils.yaml_processor import YAMLProcessor
 
 from .cli_utils import archive_rollback_plan
 

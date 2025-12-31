@@ -1,7 +1,7 @@
 {
   "id": "standard_code_purity",
-  "version": "2.0.0",
-  "title": "Code Standard – Purity & Side Effects",
+  "version": "2.1.0",
+  "title": "Code Standard - Purity & Side Effects",
   "type": "policy",
   "status": "active",
   "owners": {
@@ -71,12 +71,9 @@
         ]
       },
       "check": {
-        "engine": "regex_gate",
+        "engine": "ast_gate",
         "params": {
-          "required_patterns": [
-            "^# ID: [0-9a-fA-F]{8}-([0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}"
-          ],
-          "location_hint": "preceding_line"
+          "check_type": "id_anchor"
         }
       }
     },
@@ -139,19 +136,13 @@
       "check": {
         "engine": "ast_gate",
         "params": {
-          "check_type": "generic_primitive",
-          "selector": {
-            "has_decorator": "atomic_action"
-          },
-          "requirement": {
-            "check_type": "decorator_args",
-            "decorator": "atomic_action",
-            "required_kwargs": [
-              "action_id",
-              "impact",
-              "policies"
-            ]
-          }
+          "check_type": "decorator_args",
+          "decorator": "atomic_action",
+          "required_args": [
+            "action_id",
+            "impact",
+            "policies"
+          ]
         }
       }
     },
@@ -161,9 +152,54 @@
       "enforcement": "error",
       "rationale": "Prevents 'Decorator Inflation' where the source code becomes cluttered with non-functional metadata.",
       "check": {
-        "engine": "llm_gate",
+        "engine": "ast_gate",
         "params": {
-          "instruction": "Identify decorators that do not serve a runtime framework purpose or a governance requirement."
+          "check_type": "forbidden_decorators",
+          "allowed": [
+            "core_command",
+            "atomic_action",
+            "app.command",
+            "app.callback",
+            "router.get",
+            "router.post",
+            "router.put",
+            "router.delete",
+            "pytest.fixture",
+            "pytest.mark",
+            "dataclass",
+            "property",
+            "cached_property",
+            "staticmethod",
+            "classmethod",
+            "wraps",
+            "abstractmethod"
+          ]
+        }
+      }
+    },
+    {
+      "id": "purity.no_ast_duplication",
+      "statement": "Code MUST NOT contain structurally identical blocks (AST-level duplication).",
+      "enforcement": "warning",
+      "rationale": "Copy-pasted code with minor variable name changes creates maintenance burden, violates DRY principle, and indicates missed abstraction opportunities. Structural duplication is detected by comparing Abstract Syntax Trees.",
+      "check": {
+        "engine": "knowledge_gate",
+        "params": {
+          "check_type": "ast_duplication",
+          "threshold": 0.95
+        }
+      }
+    },
+    {
+      "id": "purity.no_semantic_duplication",
+      "statement": "Code MUST NOT contain semantically equivalent implementations (vector similarity duplication).",
+      "enforcement": "warning",
+      "rationale": "Functionally duplicate code written differently indicates missed abstraction opportunities and creates hidden maintenance burden. Semantic duplication is detected via vector embeddings of code semantics, catching cases where implementations differ syntactically but perform equivalent operations.",
+      "check": {
+        "engine": "knowledge_gate",
+        "params": {
+          "check_type": "semantic_duplication",
+          "threshold": 0.85
         }
       }
     }

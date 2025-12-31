@@ -1,0 +1,259 @@
+# src/body/atomic/fix_actions.py
+# ID: atomic.fix
+"""
+Atomic Fix Actions - Code Remediation
+
+Each action does ONE thing and returns ActionResult.
+Actions are composable, auditable, and constitutionally governed.
+"""
+
+from __future__ import annotations
+
+import time
+from typing import TYPE_CHECKING
+
+from body.atomic.registry import ActionCategory, register_action
+
+
+if TYPE_CHECKING:
+    from shared.context import CoreContext
+from body.cli.commands.fix.code_style import fix_headers_internal
+from body.cli.commands.fix.metadata import fix_ids_internal
+from body.cli.commands.fix_logging import LoggingFixer
+from features.self_healing.code_style_service import format_code
+from features.self_healing.docstring_service import fix_docstrings
+from shared.action_types import ActionResult
+from shared.config import settings
+from shared.logger import getLogger
+
+
+logger = getLogger(__name__)
+
+
+@register_action(
+    action_id="fix.format",
+    description="Format code with Black and Ruff",
+    category=ActionCategory.FIX,
+    policies=["code_quality_standards"],
+    impact_level="safe",
+)
+# ID: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+async def action_format_code(write: bool = False) -> ActionResult:
+    """
+    Format code using Black and Ruff.
+
+    Args:
+        write: Apply changes (default: dry-run)
+
+    Returns:
+        ActionResult with files_changed count
+    """
+    start = time.time()
+    try:
+        logger.info("Starting code formatting (Black + Ruff)")
+
+        # Note: format_code doesn't support write flag, it always formats
+        # In dry-run mode, we just skip calling it
+        if write:
+            format_code(path=None)  # Format entire project
+            files_changed = 1  # Simplified - actual count not available
+        else:
+            files_changed = 0  # Dry-run: no changes
+
+        return ActionResult(
+            action_id="fix.format",
+            ok=True,
+            data={
+                "files_changed": files_changed,
+                "dry_run": not write,
+            },
+            duration_sec=time.time() - start,
+        )
+    except Exception as e:
+        logger.error("Code formatting failed: %s", e, exc_info=True)
+        return ActionResult(
+            action_id="fix.format",
+            ok=False,
+            data={"error": str(e)},
+            duration_sec=time.time() - start,
+        )
+
+
+@register_action(
+    action_id="fix.ids",
+    description="Assign constitutional IDs to functions/classes",
+    category=ActionCategory.FIX,
+    policies=["constitutional_header_policy"],
+    impact_level="safe",
+)
+# ID: b2c3d4e5-f678-90ab-cdef-1234567890ab
+async def action_fix_ids(write: bool = False) -> ActionResult:
+    """
+    Assign unique IDs to all functions and classes.
+
+    Args:
+        write: Apply changes (default: dry-run)
+
+    Returns:
+        ActionResult with ids_assigned count
+    """
+    start = time.time()
+    try:
+        logger.info("Assigning constitutional IDs")
+        result = await fix_ids_internal(write=write)
+
+        return ActionResult(
+            action_id="fix.ids",
+            ok=result.ok,
+            data={
+                "ids_assigned": result.data.get("ids_assigned", 0),
+                "files_processed": result.data.get("files_processed", 0),
+                "dry_run": not write,
+            },
+            duration_sec=result.duration_sec,
+        )
+    except Exception as e:
+        logger.error("ID assignment failed: %s", e, exc_info=True)
+        return ActionResult(
+            action_id="fix.ids",
+            ok=False,
+            data={"error": str(e)},
+            duration_sec=time.time() - start,
+        )
+
+
+@register_action(
+    action_id="fix.headers",
+    description="Fix constitutional file headers",
+    category=ActionCategory.FIX,
+    policies=["constitutional_header_policy"],
+    impact_level="safe",
+)
+# ID: c3d4e5f6-7890-abcd-ef12-34567890abcd
+async def action_fix_headers(write: bool = False) -> ActionResult:
+    """
+    Fix constitutional headers in all Python files.
+
+    Args:
+        write: Apply changes (default: dry-run)
+
+    Returns:
+        ActionResult with headers_fixed count
+    """
+    start = time.time()
+    try:
+        logger.info("Fixing constitutional headers")
+        result = await fix_headers_internal(write=write)
+
+        return ActionResult(
+            action_id="fix.headers",
+            ok=result.ok,
+            data={
+                "headers_fixed": result.data.get("headers_fixed", 0),
+                "files_processed": result.data.get("files_processed", 0),
+                "dry_run": not write,
+            },
+            duration_sec=result.duration_sec,
+        )
+    except Exception as e:
+        logger.error("Header fixing failed: %s", e, exc_info=True)
+        return ActionResult(
+            action_id="fix.headers",
+            ok=False,
+            data={"error": str(e)},
+            duration_sec=time.time() - start,
+        )
+
+
+@register_action(
+    action_id="fix.docstrings",
+    description="Fix missing or incomplete docstrings",
+    category=ActionCategory.FIX,
+    policies=["docstring_requirements"],
+    impact_level="safe",
+)
+# ID: d4e5f678-90ab-cdef-1234-567890abcdef
+async def action_fix_docstrings(
+    core_context: CoreContext, write: bool = False
+) -> ActionResult:
+    """
+    Fix missing or incomplete docstrings.
+
+    Args:
+        core_context: CORE context with services
+        write: Apply changes (default: dry-run)
+
+    Returns:
+        ActionResult with docstrings_fixed count
+    """
+    start = time.time()
+    try:
+        logger.info("Fixing docstrings")
+        result = await fix_docstrings(core_context, write=write)
+
+        # fix_docstrings may return None if no work needed
+        if result is None:
+            result = {"docstrings_added": 0, "files_processed": 0}
+
+        return ActionResult(
+            action_id="fix.docstrings",
+            ok=True,
+            data={
+                "docstrings_fixed": result.get("docstrings_added", 0),
+                "files_processed": result.get("files_processed", 0),
+                "dry_run": not write,
+            },
+            duration_sec=time.time() - start,
+        )
+    except Exception as e:
+        logger.error("Docstring fixing failed: %s", e, exc_info=True)
+        return ActionResult(
+            action_id="fix.docstrings",
+            ok=False,
+            data={"error": str(e)},
+            duration_sec=time.time() - start,
+        )
+
+
+@register_action(
+    action_id="fix.logging",
+    description="Fix logging policy violations",
+    category=ActionCategory.FIX,
+    policies=["logging_policy"],
+    impact_level="safe",
+)
+# ID: e5f67890-abcd-ef12-3456-7890abcdef12
+async def action_fix_logging(write: bool = False) -> ActionResult:
+    """
+    Fix logging policy violations (LOG-001, LOG-004).
+
+    Args:
+        write: Apply changes (default: dry-run)
+
+    Returns:
+        ActionResult with fixes_applied count
+    """
+    start = time.time()
+    try:
+        logger.info("Fixing logging violations")
+        fixer = LoggingFixer(settings.REPO_PATH, dry_run=not write)
+        result = fixer.fix_all()
+
+        return ActionResult(
+            action_id="fix.logging",
+            ok=True,
+            data={
+                "fixes_applied": result["fixes_applied"],
+                "files_modified": result["files_modified"],
+                "dry_run": not write,
+            },
+            duration_sec=time.time() - start,
+        )
+    except Exception as e:
+        logger.error("Logging fix failed: %s", e, exc_info=True)
+        return ActionResult(
+            action_id="fix.logging",
+            ok=False,
+            data={"error": str(e)},
+            duration_sec=time.time() - start,
+        )

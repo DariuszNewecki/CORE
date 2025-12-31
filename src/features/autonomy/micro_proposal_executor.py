@@ -20,7 +20,7 @@ from shared.infrastructure.storage.file_handler import FileHandler
 from shared.logger import getLogger
 from shared.models import CheckResult
 from shared.path_utils import get_repo_root
-from shared.utils.yaml_processor import strict_yaml_processor
+from shared.processors.yaml_processor import strict_yaml_processor
 
 
 logger = getLogger(__name__)

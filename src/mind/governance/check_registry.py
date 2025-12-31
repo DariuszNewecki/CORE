@@ -6,15 +6,8 @@ Provides lookup and discovery of audit checks without hardcoded imports.
 Follows the "Big Boys" pattern - checks are discovered automatically via
 introspection rather than explicit registration.
 
-Usage:
-    from mind.governance.check_registry import get_check, discover_all_checks
-
-    # Get a specific check by name
-    check_class = get_check("CoverageGovernanceCheck")
-    check_instance = check_class(context)
-
-    # Or discover all checks
-    all_checks = discover_all_checks()
+UPDATED: Now discovers shims and bridges defined in the package root to
+maintain backward compatibility with constitutional rule migration.
 """
 
 from __future__ import annotations
@@ -52,6 +45,17 @@ def discover_all_checks() -> dict[str, type[BaseCheck]]:
 
     check_classes: dict[str, type[BaseCheck]] = {}
 
+    # 1. Discover checks exported in the package root (e.g. shims in __init__.py)
+    # This allows us to find LegacyTagCheck, DuplicationCheck, etc. without files.
+    for name, obj in inspect.getmembers(checks, inspect.isclass):
+        if (
+            issubclass(obj, BaseCheck)
+            and obj is not BaseCheck
+            and not inspect.isabstract(obj)
+        ):
+            check_classes[name] = obj
+
+    # 2. Discover checks in existing physical submodules
     for _, name, _ in pkgutil.iter_modules(checks.__path__):
         try:
             module = importlib.import_module(f"mind.governance.checks.{name}")
@@ -63,6 +67,8 @@ def discover_all_checks() -> dict[str, type[BaseCheck]]:
                     and not inspect.isabstract(item)
                 ):
                     # Use class name as key
+                    # If already present from root (a shim), the submodule wins
+                    # (actual physical implementations take precedence)
                     check_classes[item.__name__] = item
 
                     logger.debug(
@@ -74,7 +80,10 @@ def discover_all_checks() -> dict[str, type[BaseCheck]]:
             continue
 
     _CHECK_REGISTRY = check_classes
-    logger.info("Discovered %d constitutional checks", len(check_classes))
+    logger.info(
+        "Discovered %d constitutional checks (including legacy shims)",
+        len(check_classes),
+    )
 
     return check_classes
 
@@ -93,19 +102,12 @@ def get_check(check_name: str) -> type[BaseCheck]:
 
     Raises:
         KeyError: If the check doesn't exist
-
-    Example:
-        check_class = get_check("CoverageGovernanceCheck")
-        check_instance = check_class(auditor_context)
-        findings = check_instance.execute()
     """
     registry = discover_all_checks()
 
     if check_name not in registry:
         available = ", ".join(sorted(registry.keys()))
-        raise KeyError(
-            f"Check '{check_name}' not found. " f"Available checks: {available}"
-        )
+        raise KeyError(f"Check '{check_name}' not found. Available checks: {available}")
 
     return registry[check_name]
 

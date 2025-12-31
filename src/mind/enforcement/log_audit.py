@@ -9,7 +9,6 @@ from __future__ import annotations
 import typer
 from sqlalchemy import text
 
-from body.cli.logic.common import git_commit_sha
 from shared.infrastructure.database.session_manager import get_session
 
 
@@ -28,7 +27,7 @@ async def log_audit(
 ) -> None:
     """Insert one row into core.audit_runs."""
 
-    sha = commit_sha or git_commit_sha()
+    sha = commit_sha or ""
     stmt = text(
         """
         insert into core.audit_runs (source, commit_sha, score, passed, started_at, finished_at)

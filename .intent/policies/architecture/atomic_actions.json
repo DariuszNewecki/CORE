@@ -1,7 +1,7 @@
 {
   "id": "standard_architecture_atomic_actions",
-  "version": "1.0.0",
-  "title": "Architecture Standard \u2013 Atomic Actions",
+  "version": "1.1.0",
+  "title": "Architecture Standard – Atomic Actions",
   "type": "policy",
   "status": "active",
   "owners": {
@@ -107,7 +107,7 @@
       "ui_contract": {
         "owner": "workflow_orchestrator_or_cli",
         "action_may_print": false,
-        "description": "Atomic actions are HEADLESS. They MUST NOT perform any terminal I/O (no print(), logging to stdout/stderr, or Rich Console/Progress rendering). All UI concerns (spinners, progress bars, status lines) are owned exclusively by the calling workflow or CLI layer, which consumes ActionResult objects and decides how to present them.\n"
+        "description": "Atomic actions are HEADLESS. They MUST NOT perform any terminal I/O (no print(), logging to stdout/stderr, or Rich Console/Progress rendering). All UI concerns (spinners, progress bars, status lines) are owned exclusively by the calling workflow or CLI layer, which consumes ActionResult objects and decides how to present them.\n\nNOTE: Headless enforcement migrated to body.no_ui_imports_in_body and body.no_print_or_input_in_body (ast_gate).\n"
       }
     },
     "examples": {
@@ -367,18 +367,6 @@
   },
   "rules": [
     {
-      "id": "atomic.action_must_return_result",
-      "rationale": "compile-time type checking",
-      "enforcement": "error",
-      "statement": "Every atomic action MUST return an ActionResult",
-      "check": {
-        "engine": "llm_gate",
-        "params": {
-          "instruction": "Verify adherence to: Every atomic action MUST return an ActionResult"
-        }
-      }
-    },
-    {
       "id": "atomic.result_must_be_structured",
       "rationale": "runtime validation",
       "enforcement": "error",
@@ -406,11 +394,11 @@
       "id": "atomic.actions_compose_transitively",
       "rationale": "Strengthens system governance regarding atomic.actions_compose_transitively.",
       "enforcement": "warning",
-      "statement": "If A\u2192B and B\u2192C are valid, then A\u2192C MUST be valid",
+      "statement": "If A→B and B→C are valid, then A→C MUST be valid",
       "check": {
         "engine": "llm_gate",
         "params": {
-          "instruction": "Verify adherence to: If A\u2192B and B\u2192C are valid, then A\u2192C MUST be valid"
+          "instruction": "Verify adherence to: If A→B and B→C are valid, then A→C MUST be valid"
         }
       }
     },
@@ -425,20 +413,13 @@
           "instruction": "Verify adherence to: No action can skip constitutional validation"
         }
       }
-    },
-    {
-      "id": "atomic.action_must_be_headless",
-      "rationale": "static analysis and linting",
-      "enforcement": "error",
-      "statement": "Atomic actions MUST NOT perform terminal I/O (print, Rich Console/Progress, direct writes to stdout/stderr). All UI rendering is the responsibility of the calling workflow/CLI layer, which consumes ActionResult objects.",
-      "check": {
-        "engine": "llm_gate",
-        "params": {
-          "instruction": "Verify adherence to: Atomic actions MUST NOT perform terminal I/O (print, Rich Console/Progress, direct writes to stdout/stderr). All UI rendering is the responsibility of the calling workflow/CLI layer, which consumes ActionResult objects."
-        }
-      }
     }
   ],
+  "removed_rules": {
+    "note": "The following rules were removed as duplicates of existing ast_gate enforcement:",
+    "atomic.action_must_return_result": "Duplicate of body.atomic_actions_use_actionresult (ast_gate) in body_contracts.json",
+    "atomic.action_must_be_headless": "Duplicate of body.no_ui_imports_in_body and body.no_print_or_input_in_body (ast_gate) in body_contracts.json"
+  },
   "future_work": {
     "a3_autonomy": [
       "Actions declare capabilities they provide",

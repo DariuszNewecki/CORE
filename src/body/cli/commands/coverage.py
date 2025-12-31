@@ -2,8 +2,7 @@
 
 """
 CLI commands for test coverage management and autonomous remediation.
-
-Refactored to use the Constitutional CLI Framework (@core_command).
+Refactored to use the dynamic constitutional rule engine (Eliminating legacy classes).
 """
 
 from __future__ import annotations
@@ -18,7 +17,7 @@ from rich.table import Table
 
 from features.self_healing.batch_remediation_service import _remediate_batch
 from features.self_healing.coverage_remediation_service import _remediate_coverage
-from mind.governance.checks.coverage_check import CoverageGovernanceCheck
+from mind.governance.filtered_audit import run_filtered_audit
 from shared.cli_utils import core_command
 from shared.config import settings
 from shared.context import CoreContext
@@ -34,27 +33,42 @@ coverage_app = typer.Typer(
 
 @coverage_app.command("check")
 @core_command(dangerous=False)
-# ID: 6e193f7f-14c1-43a6-b040-ad6687887881
+# ID: 6e193f7f-14c1-4326-b040-ad6687887881
 async def check_coverage(ctx: typer.Context) -> None:
     """
     Checks current test coverage against constitutional requirements.
-    Exits with code 1 if coverage is below the minimum threshold (75%).
+    Uses the 'qa.coverage.*' dynamic rule set from the Mind.
     """
-    console.print("[bold cyan]🔍 Checking Coverage Compliance...[/bold cyan]\n")
+    console.print(
+        "[bold cyan]🔍 Checking Coverage Compliance via Constitution...[/bold cyan]\n"
+    )
     core_context: CoreContext = ctx.obj
-    checker = CoverageGovernanceCheck(core_context.auditor_context)
-    findings = await checker.execute()
+
+    findings, _executed, _stats = await run_filtered_audit(
+        core_context.auditor_context, rule_patterns=[r"qa\.coverage\..*"]
+    )
+
     if not findings:
         console.print(
-            "[bold green]✅ Coverage meets constitutional requirements![/bold green]"
+            "[bold green]✅ Coverage meets all constitutional requirements![/bold green]"
         )
-        raise typer.Exit(code=0)
-    console.print("[bold red]❌ Coverage Violations Found:[/bold red]\n")
+        return
+
+    blocking_violations = [f for f in findings if f.get("severity") == "error"]
+
+    console.print(
+        f"[bold red]❌ Found {len(findings)} Coverage Violations:[/bold red]\n"
+    )
+
     for finding in findings:
-        console.print(f"  • {finding.message}")
-        if finding.severity == "error":
-            console.print(f"    [red]Severity: {finding.severity}[/red]")
-    raise typer.Exit(code=1)
+        msg = finding.get("message", "Unknown violation")
+        severity = finding.get("severity", "warning")
+        color = "red" if severity == "error" else "yellow"
+        console.print(f"  • [{color}]{severity.upper()}[/{color}] {msg}")
+
+    if blocking_violations:
+        console.print("\n[dim]Audit FAILED due to blocking errors.[/dim]")
+        raise typer.Exit(code=1)
 
 
 @coverage_app.command("report")
@@ -70,7 +84,7 @@ def coverage_report(
     html: bool = typer.Option(False, "--html", help="Generate HTML coverage report"),
 ) -> None:
     """
-    Generates a detailed coverage report.
+    Generates a detailed coverage report from local .coverage data.
     """
     core_context: CoreContext = ctx.obj
     repo_path = core_context.git_service.repo_path
@@ -93,8 +107,6 @@ def coverage_report(
                 console.print(
                     f"\n[bold green]✅ HTML report generated:[/bold green] {html_dir}/index.html"
                 )
-            else:
-                console.print("[yellow]Warning: HTML generation failed[/yellow]")
     except FileNotFoundError:
         console.print(
             "[red]Error: coverage tool not found. Run: pip install coverage[/red]"
@@ -114,15 +126,13 @@ async def remediate_coverage_cmd(
         None,
         "--file",
         "-f",
-        help="Target specific file for test generation (single-file mode)",
+        help="Target specific file for test generation",
     ),
     count: int = typer.Option(
         None,
         "--count",
         "-n",
         help="Number of files to process (batch mode)",
-        min=1,
-        max=100,
     ),
     complexity: str = typer.Option(
         "moderate",
@@ -130,8 +140,6 @@ async def remediate_coverage_cmd(
         "-c",
         help="Max complexity: simple, moderate, or complex",
     ),
-    max_iterations: int = typer.Option(10, hidden=True),
-    batch_size: int = typer.Option(5, hidden=True),
     write: bool = typer.Option(
         False, "--write", help="Write generated tests to filesystem"
     ),
@@ -140,20 +148,12 @@ async def remediate_coverage_cmd(
     Autonomously generates tests to restore constitutional coverage compliance.
     """
     core_context: CoreContext = ctx.obj
-    complexity_lower = complexity.lower()
-    if complexity_lower not in ["simple", "moderate", "complex"]:
-        console.print(f"[red]Invalid complexity: {complexity}[/red]")
-        raise typer.Exit(code=1)
-    complexity_param = complexity_lower.upper()
+    complexity_param = complexity.upper()
+
     if file and count:
         console.print("[red]Error: Cannot use both --file and --count[/red]")
         raise typer.Exit(code=1)
-    if file:
-        console.print("[bold cyan]🎯 Single-File Coverage Remediation[/bold cyan]")
-    elif count:
-        console.print("[bold cyan]📦 Batch Coverage Remediation[/bold cyan]")
-    else:
-        console.print("[bold cyan]🤖 Full-Project Coverage Remediation[/bold cyan]")
+
     try:
         if count:
             result = await _remediate_batch(
@@ -170,16 +170,19 @@ async def remediate_coverage_cmd(
                 file_path=file,
                 max_complexity=complexity_param,
             )
+
         console.print("\n[bold]📊 Remediation Summary[/bold]")
-        console.print(f"Status: {result.get('status')}")
-        if result.get("status") == "completed" or result.get("status") == "success":
+        status = result.get("status")
+        if status in ("completed", "success"):
             console.print(
-                "[bold green]✅ Test generation completed successfully[/bold green]"
+                "[bold green]✅ Remediation successfully completed[/bold green]"
             )
         else:
-            console.print("[bold yellow]⚠️  Test generation had issues[/bold yellow]")
+            console.print(
+                f"[bold yellow]⚠️  Remediation finished with status: {status}[/bold yellow]"
+            )
             if "error" in result:
-                console.print(f"[dim]Error: {result['error']}[/dim]")
+                console.print(f"[dim]Detail: {result['error']}[/dim]")
     except Exception as e:
         logger.error("Remediation failed: %s", e, exc_info=True)
         console.print(f"[red]❌ Remediation failed: {e}[/red]")
@@ -196,13 +199,14 @@ def coverage_history(
     ),
 ) -> None:
     """
-    Shows coverage history and trends over time.
+    Shows coverage history and trends from var/mind/history/coverage_history.json.
     """
     core_context: CoreContext = ctx.obj
     history_file = (
         core_context.file_handler.repo_path
-        / "work"
-        / "testing"
+        / "var"
+        / "mind"
+        / "history"
         / "coverage_history.json"
     )
     if not history_file.exists():
@@ -212,26 +216,28 @@ def coverage_history(
         history_data = json.loads(history_file.read_text())
         runs = history_data.get("runs", [])
         last_run = history_data.get("last_run", {})
-        if not runs and (not last_run):
+        if not runs and not last_run:
             console.print("[yellow]History file is empty[/yellow]")
             return
+
         console.print("[bold]📈 Coverage History[/bold]\n")
         if last_run:
-            console.print("[bold cyan]Latest Run:[/bold cyan]")
-            console.print(f"  Timestamp: {last_run.get('timestamp', 'Unknown')}")
-            console.print(f"  Overall:   {last_run.get('overall_percent', 0)}%")
+            console.print(
+                f"  Latest Run: [cyan]{last_run.get('overall_percent', 0)}%[/cyan]"
+            )
+
         if runs:
-            table = Table()
-            table.add_column("Date", style="cyan")
-            table.add_column("Coverage", justify="right", style="green")
+            table = Table(box=None)
+            table.add_column("Date", style="dim")
+            table.add_column("Coverage", justify="right")
             table.add_column("Delta", justify="right")
             for run in runs[-limit:]:
                 delta = run.get("delta", 0)
-                delta_color = "green" if delta >= 0 else "red"
+                color = "green" if delta >= 0 else "red"
                 table.add_row(
-                    run.get("timestamp", "Unknown"),
+                    run.get("timestamp", "Unknown")[:16],
                     f"{run.get('overall_percent', 0)}%",
-                    f"[{delta_color}]{delta:+.1f}%[/{delta_color}]",
+                    f"[{color}]{delta:+.1f}%[/{color}]",
                 )
             console.print(table)
     except Exception as e:
@@ -244,19 +250,27 @@ def coverage_history(
 # ID: 5a11f3db-0510-4f00-9cb2-14801a5f269f
 def show_targets(ctx: typer.Context) -> None:
     """
-    Shows constitutional coverage requirements and targets.
+    Shows constitutional coverage targets directly from the quality_assurance policy.
     """
-    console.print("[bold cyan]🎯 Coverage Targets[/bold cyan]\n")
+    console.print("[bold cyan]🎯 Constitutional Coverage Targets[/bold cyan]\n")
     try:
-        policy = settings.load("charter.policies.governance.quality_assurance_policy")
-        config = policy.get("coverage_config", {}) or policy.get(
-            "coverage_requirements", {}
-        )
-        console.print("[bold]Thresholds:[/bold]")
-        console.print(f"  Minimum: {config.get('minimum_threshold', 75)}%")
-        console.print(f"  Target:  {config.get('target_threshold', 80)}%\n")
+        policy_path = settings.paths.policy("quality_assurance")
+        content = policy_path.read_text(encoding="utf-8")
+        data = json.loads(content) if policy_path.suffix == ".json" else {}
+
+        rules = data.get("rules", [])
+
+        for rule in rules:
+            rule_id = rule.get("id", "")
+            if "coverage" in rule_id:
+                status = (
+                    "blocking" if rule.get("enforcement") == "error" else "guideline"
+                )
+                console.print(f"  • [bold]{rule_id}[/bold] ({status})")
+                console.print(f"    [dim]{rule.get('statement')}[/dim]\n")
+
     except Exception:
-        console.print("[yellow]Could not load coverage policy.[/yellow]")
+        console.print("[yellow]Could not load coverage policy from the Mind.[/yellow]")
 
 
 @coverage_app.command("accumulate")
@@ -264,24 +278,23 @@ def show_targets(ctx: typer.Context) -> None:
 # ID: 7edff4e6-b383-47b3-8cf1-c502ba9a2d9a
 async def accumulate_tests_command(
     ctx: typer.Context,
-    file_path: str = typer.Argument(
-        ..., help="Source file to generate tests for (e.g., src/core/foo.py)"
-    ),
-    write: bool = typer.Option(
-        False, "--write", help="Write generated tests to filesystem"
-    ),
+    file_path: str = typer.Argument(..., help="Source file"),
+    write: bool = typer.Option(False, "--write", help="Persist results to filesystem"),
 ) -> None:
     """
-    Generate tests for individual symbols, keep what works.
+    Generate tests for individual symbols, keeping only what passes.
     """
     core_context: CoreContext = ctx.obj
     from features.self_healing.accumulative_test_service import AccumulativeTestService
 
     service = AccumulativeTestService(core_context.cognitive_service)
-    result = await service.accumulate_tests_for_file(file_path)
-    console.print("\n[bold]Results:[/bold]")
+    # FIX: Pass the write flag to the service
+    result = await service.accumulate_tests_for_file(file_path, write=write)
+
+    console.print("\n[bold]Accumulation Results:[/bold]")
     console.print(f"  File: {result['file']}")
     console.print(f"  Success rate: {result['success_rate']:.0%}")
+    console.print(f"  Tests kept: {result['tests_generated']}")
 
 
 @coverage_app.command("accumulate-batch")
@@ -289,31 +302,52 @@ async def accumulate_tests_command(
 # ID: 0d846e3f-843a-463e-9355-f58c3c7bf214
 async def accumulate_batch_command(
     ctx: typer.Context,
-    pattern: str = typer.Option(
-        "src/**/*.py", help="Glob pattern for files to process"
-    ),
-    limit: int = typer.Option(10, help="Maximum number of files to process"),
-    write: bool = typer.Option(
-        False, "--write", help="Write generated tests to filesystem"
-    ),
+    pattern: str = typer.Option("src/**/*.py", help="File pattern"),
+    limit: int = typer.Option(10, help="Max files"),
+    write: bool = typer.Option(False, "--write", help="Persist results"),
 ) -> None:
     """
-    Generate tests for multiple files in batch (pragmatic approach).
+    Run symbol-by-symbol test accumulation across multiple files.
+    Prioritizes files with the lowest current coverage.
     """
     core_context: CoreContext = ctx.obj
     from features.self_healing.accumulative_test_service import AccumulativeTestService
+    from features.self_healing.coverage_analyzer import CoverageAnalyzer
 
     service = AccumulativeTestService(core_context.cognitive_service)
-    files = list(settings.REPO_PATH.glob(pattern))[:limit]
-    if not files:
+
+    # INTELLIGENCE: Use CoverageAnalyzer to prioritize files with lowest coverage
+    analyzer = CoverageAnalyzer()
+    coverage_map = analyzer.get_module_coverage()
+
+    all_files = list(settings.REPO_PATH.glob(pattern))
+
+    # ID: 5abe2cc8-040b-494b-95c9-4dcdfb5d2beb
+    def get_coverage_score(file_path: Path) -> float:
+        """Helper to get coverage for sorting; unknown files treated as 0%."""
+        try:
+            rel = str(file_path.relative_to(settings.REPO_PATH)).replace("\\", "/")
+            return float(coverage_map.get(rel, 0.0))
+        except ValueError:
+            return 0.0
+
+    # Sort: Lowest coverage first
+    prioritized_files = sorted(all_files, key=get_coverage_score)[:limit]
+
+    if not prioritized_files:
         console.print(f"[yellow]No files found matching: {pattern}[/yellow]")
         return
-    console.print(f"[cyan]Processing {len(files)} files...[/cyan]\n")
-    total_tests = 0
-    for file_path in files:
-        rel_path = file_path.relative_to(settings.REPO_PATH)
-        result = await service.accumulate_tests_for_file(str(rel_path))
-        total_tests += result["tests_generated"]
+
     console.print(
-        f"\n[bold green]Batch Complete! Generated {total_tests} tests.[/bold green]"
+        f"[cyan]Processing {len(prioritized_files)} files (Lowest Coverage First)...[/cyan]\n"
+    )
+    total_tests = 0
+    for file_path in prioritized_files:
+        rel_path = file_path.relative_to(settings.REPO_PATH)
+        # FIX: Pass the write flag to the service
+        result = await service.accumulate_tests_for_file(str(rel_path), write=write)
+        total_tests += result.get("tests_generated", 0)
+
+    console.print(
+        f"\n[bold green]Batch Complete! Accumulated {total_tests} new tests.[/bold green]"
     )
