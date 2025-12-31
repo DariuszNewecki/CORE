@@ -35,6 +35,7 @@ logger = getLogger(__name__)
 
 
 # ID: executor_main
+# ID: e1b46328-53d2-4abe-93e4-3b875d50300f
 class ActionExecutor:
     """
     Universal execution gateway for all atomic actions.
@@ -67,6 +68,7 @@ class ActionExecutor:
         logger.debug("ActionExecutor initialized")
 
     # ID: executor_execute
+    # ID: d068c5cc-7e31-479e-a615-993e4570680c
     async def execute(
         self,
         action_id: str,
@@ -408,6 +410,7 @@ class ActionExecutor:
         )
 
     # ID: executor_list_actions
+    # ID: 118ed7f6-3a4f-4c31-b6a9-448727bbea76
     def list_actions(
         self, category: ActionCategory | None = None
     ) -> list[ActionDefinition]:
@@ -425,6 +428,7 @@ class ActionExecutor:
         return self.registry.list_all()
 
     # ID: executor_get_action
+    # ID: 46e53493-d92c-402d-83c8-b9516d394f81
     def get_action(self, action_id: str) -> ActionDefinition | None:
         """
         Get action definition by ID.

@@ -78,12 +78,6 @@ WHERE s.symbol_path = ''body.cli.check:audit''
 ';
 
 
---
--- Name: public; Type: SCHEMA; Schema: -; Owner: -
---
-
-CREATE SCHEMA public;
-
 
 --
 -- Name: SCHEMA public; Type: COMMENT; Schema: -; Owner: -

@@ -7,6 +7,7 @@ Organized by Mind-Body-Will architecture.
 
 from __future__ import annotations
 
+from .autonomous_proposals import AutonomousProposal
 from .governance import AuditRun, ConstitutionalViolation, Proposal, ProposalSignature
 from .knowledge import Base, Capability, Domain, Symbol, SymbolCapabilityLink
 from .learning import AgentDecision, AgentMemory, Feedback

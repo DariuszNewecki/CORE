@@ -1,199 +1,487 @@
 # src/body/cli/commands/autonomy.py
+# ID: cli.autonomy
 """
-Autonomy commands - A3 autonomous operation triggers and controls.
+A3 Autonomy CLI Commands
 
-Provides:
-- core-admin autonomy analyze  # Analyze audit findings for auto-fixable violations
-- core-admin autonomy propose  # (Future) Generate prioritized proposals
-- core-admin autonomy run      # (Future) Execute autonomous fixes
-- core-admin autonomy status   # (Future) Show autonomy system status
+Provides command-line interface for the A3 autonomous proposal system.
+Users can create, list, approve, and execute proposals through these commands.
+
+Commands:
+  - propose: Create a new proposal
+  - list: List proposals by status
+  - show: Show proposal details
+  - approve: Approve a pending proposal
+  - execute: Execute an approved proposal
+  - reject: Reject a proposal
 """
 
 from __future__ import annotations
 
-import json
-from pathlib import Path
+import asyncio
 
 import typer
 from rich.console import Console
 from rich.table import Table
 
-from features.autonomy.audit_analyzer import analyze_audit_findings
 from shared.cli_utils import core_command
-from shared.config import settings
+from shared.context import CoreContext
+from shared.infrastructure.database.session_manager import get_session
+from shared.logger import getLogger
+from will.autonomy.proposal import (
+    Proposal,
+    ProposalAction,
+    ProposalScope,
+    ProposalStatus,
+)
+from will.autonomy.proposal_executor import ProposalExecutor
+from will.autonomy.proposal_repository import ProposalRepository
 
 
+logger = getLogger(__name__)
 console = Console()
+
+# Create Typer app
 autonomy_app = typer.Typer(
     name="autonomy",
-    help="A3 autonomous operation controls and triggers",
+    help="A3 Autonomous Proposal System - Create and execute proposals",
     no_args_is_help=True,
 )
 
 
-@autonomy_app.command(
-    "analyze", help="Analyze audit findings for auto-fixable violations"
-)
-@core_command(dangerous=False)
-# ID: a1a2a3a4-b1b2-c1c2-d1d2-e1e2e3e4e5e6
-def analyze_command(
-    ctx: typer.Context,
-    findings_path: Path | None = typer.Option(
-        None,
-        "--findings",
-        help="Path to audit findings JSON (defaults to reports/audit_findings.json)",
+# ID: cmd_propose
+@autonomy_app.command("propose")
+def propose_cmd(
+    goal: str = typer.Argument(..., help="What the proposal aims to achieve"),
+    actions: list[str] = typer.Option(
+        [],
+        "--action",
+        "-a",
+        help="Action to include (format: action_id:param=value)",
     ),
-    output_json: bool = typer.Option(
-        False,
-        "--json",
-        help="Output results as JSON instead of human-readable format",
+    files: list[str] = typer.Option(
+        [], "--file", "-f", help="File that will be affected"
     ),
-) -> None:
+    dry_run: bool = typer.Option(
+        False, "--dry-run", help="Preview without creating proposal"
+    ),
+):
     """
-    Analyze audit findings to identify which violations can be automatically fixed.
+    Create a new autonomous proposal.
 
-    This is the first step in the A3 autonomous loop:
-    1. audit runs → findings
-    2. analyze → identify auto-fixable
-    3. propose → prioritize and plan
-    4. run → execute within constitutional bounds
+    Examples:
+        # Simple proposal with actions
+        autonomy propose "Fix docstrings" -a fix.docstrings -a fix.format
+
+        # With scope
+        autonomy propose "Refactor auth" -a fix.format -f src/auth/login.py
+
+        # Preview
+        autonomy propose "Test" -a fix.format --dry-run
     """
-    console.print("[cyan]🔍 Analyzing audit findings...[/cyan]\n")
+    asyncio.run(_propose(goal, actions, files, dry_run))
 
-    # Run analysis
-    results = analyze_audit_findings(
-        findings_path=findings_path,
-        repo_root=settings.REPO_PATH,
-    )
 
-    # Check status
-    if results["status"] == "no_findings":
-        console.print("[yellow]⚠️  No audit findings found.[/yellow]")
+async def _propose(goal: str, action_strs: list[str], files: list[str], dry_run: bool):
+    """Async implementation of propose command."""
+
+    console.print("\n[bold cyan]Creating A3 Proposal[/bold cyan]")
+    console.print(f"Goal: {goal}\n")
+
+    # Parse actions
+    proposal_actions = []
+    if not action_strs:
+        console.print("[yellow]⚠ No actions specified. Use --action flag.[/yellow]")
         console.print(
-            f"   Expected at: {findings_path or 'reports/audit_findings.json'}"
+            "[yellow]Available actions: fix.format, fix.ids, fix.headers, fix.docstrings, fix.logging[/yellow]"
         )
-        console.print("\n   Run [cyan]core-admin check audit[/cyan] first")
         return
 
-    if results["status"] == "parse_error":
-        console.print(f"[red]❌ {results['message']}[/red]")
-        return
+    for i, action_str in enumerate(action_strs):
+        # Simple format: action_id or action_id:param=value
+        if ":" in action_str:
+            action_id, params_str = action_str.split(":", 1)
+            # Parse params (simple key=value)
+            parameters = {}
+            for param in params_str.split(","):
+                if "=" in param:
+                    key, value = param.split("=", 1)
+                    parameters[key.strip()] = value.strip()
+        else:
+            action_id = action_str
+            parameters = {}
 
-    if results["status"] == "format_error":
-        console.print(f"[red]❌ {results['message']}[/red]")
-        return
+        proposal_actions.append(
+            ProposalAction(action_id=action_id, parameters=parameters, order=i)
+        )
+        console.print(f"  [green]✓[/green] Action {i + 1}: {action_id}")
 
-    # JSON output
-    if output_json:
-        console.print(json.dumps(results, indent=2))
-        return
-
-    # Human-readable output
-    total = results["total_findings"]
-    fixable = results["auto_fixable_count"]
-    not_fixable = results["not_fixable_count"]
-
-    # Summary
-    console.print("[bold]Analysis Results[/bold]")
-    console.print(f"  Total findings: {total}")
-    console.print(
-        f"  Auto-fixable: [green]{fixable}[/green] ({fixable / total * 100:.1f}%)"
-    )
-    console.print(
-        f"  Not auto-fixable: [yellow]{not_fixable}[/yellow] ({not_fixable / total * 100:.1f}%)"
-    )
     console.print()
 
-    # Table of fixable actions
-    if results["summary_by_action"]:
-        table = Table(title="Auto-Fixable Violations by Action")
-        table.add_column("Action", style="cyan", no_wrap=True)
-        table.add_column("Violations", justify="right", style="green")
-        table.add_column("Files", justify="right")
-        table.add_column("Risk", style="yellow")
-        table.add_column("Confidence", justify="right")
-        table.add_column("Description")
+    # Create proposal
+    proposal = Proposal(
+        goal=goal,
+        actions=proposal_actions,
+        scope=ProposalScope(files=files) if files else ProposalScope(),
+        created_by="cli_user",
+    )
 
-        for summary in results["summary_by_action"]:
-            table.add_row(
-                summary["action"].split(".")[-1],  # Just the action name
-                str(summary["finding_count"]),
-                str(summary["affected_files"]),
-                summary["risk_level"],
-                f"{summary['confidence'] * 100:.0f}%",
-                summary["description"][:50],  # Truncate long descriptions
-            )
+    # Compute risk
+    risk = proposal.compute_risk()
+    console.print(f"Risk Assessment: [bold]{risk.overall_risk.upper()}[/bold]")
+    if risk.risk_factors:
+        console.print("Risk Factors:")
+        for factor in risk.risk_factors:
+            console.print(f"  - {factor}")
+    console.print(f"Approval Required: {'Yes' if proposal.approval_required else 'No'}")
+    console.print()
 
-        console.print(table)
-        console.print()
+    # Validate
+    is_valid, errors = proposal.validate()
+    if not is_valid:
+        console.print("[red]✗ Validation failed:[/red]")
+        for error in errors:
+            console.print(f"  - {error}")
+        return
 
-    # Next steps
-    if fixable > 0:
-        console.print("[bold green]✅ Autonomous fixes available[/bold green]")
-        console.print()
-        console.print("Next steps:")
-        console.print("  1. Review fixable violations above")
-        console.print(
-            "  2. Generate proposals: [cyan]core-admin autonomy propose[/cyan] (coming soon)"
-        )
-        console.print(
-            "  3. Execute fixes: [cyan]core-admin autonomy run --write[/cyan] (coming soon)"
-        )
+    console.print("[green]✓ Proposal is valid[/green]\n")
+
+    if dry_run:
+        console.print("[yellow]DRY-RUN mode - proposal not saved[/yellow]")
+        console.print(f"Would create proposal: {proposal.proposal_id}")
+        return
+
+    # Save to database
+    async with get_session() as session:
+        repo = ProposalRepository(session)
+        await repo.create(proposal)
+
+    console.print("[bold green]✓ Proposal created successfully![/bold green]")
+    console.print(f"Proposal ID: [cyan]{proposal.proposal_id}[/cyan]")
+    console.print()
+    console.print("Next steps:")
+    if proposal.approval_required:
+        console.print(f"  1. Review: autonomy show {proposal.proposal_id}")
+        console.print(f"  2. Approve: autonomy approve {proposal.proposal_id}")
+        console.print(f"  3. Execute: autonomy execute {proposal.proposal_id}")
     else:
-        console.print("[bold yellow]⚠️  No auto-fixable violations found[/bold yellow]")
-        console.print()
-        console.print("All audit violations require manual review or are not yet")
-        console.print("mapped to autonomous actions.")
-
-
-@autonomy_app.command(
-    "propose", help="Generate prioritized fix proposals (coming soon)"
-)
-@core_command(dangerous=False)
-# ID: b2b3b4b5-c2c3-d2d3-e2e3-f2f3f4f5f6f7
-def propose_command(ctx: typer.Context) -> None:
-    """Generate prioritized proposals from analyzed findings."""
-    console.print("[yellow]⚠️  This command is not yet implemented.[/yellow]")
+        console.print(f"  1. Execute: autonomy execute {proposal.proposal_id}")
     console.print()
-    console.print("Coming in Phase 2 of A3 implementation:")
-    console.print("  - Priority scoring (risk, effort, value)")
-    console.print("  - Constitutional bounds checking")
-    console.print("  - Velocity limit validation")
-    console.print("  - Proposal queue generation")
 
 
-@autonomy_app.command("run", help="Execute autonomous fixes (coming soon)")
-@core_command(dangerous=True, confirmation=True)
-# ID: c3c4c5c6-d3d4-e3e4-f3f4-a4a5a6a7a8a9
-def run_command(
-    ctx: typer.Context,
-    write: bool = typer.Option(
-        False,
-        "--write",
-        help="Actually execute fixes (otherwise dry-run)",
+# ID: cmd_list
+@autonomy_app.command("list")
+def list_cmd(
+    status: str | None = typer.Option(
+        None, "--status", "-s", help="Filter by status (draft, pending, approved, etc.)"
     ),
-) -> None:
-    """Execute autonomous fixes within constitutional bounds."""
-    console.print("[yellow]⚠️  This command is not yet implemented.[/yellow]")
-    console.print()
-    console.print("Coming in Phase 2 of A3 implementation:")
-    console.print("  - Execute proposals in priority order")
-    console.print("  - Respect velocity limits (max 10/hour, 50/day)")
-    console.print("  - Validate against autonomy lanes")
-    console.print("  - Log all autonomous decisions")
-    console.print("  - Run audit after fixes to validate")
+    limit: int = typer.Option(20, "--limit", "-n", help="Maximum results to show"),
+):
+    """
+    List proposals.
+
+    Examples:
+        # All proposals
+        autonomy list
+
+        # Only pending
+        autonomy list --status pending
+
+        # Approved proposals
+        autonomy list --status approved --limit 10
+    """
+    asyncio.run(_list(status, limit))
 
 
-@autonomy_app.command("status", help="Show autonomy system status (coming soon)")
-@core_command(dangerous=False)
-# ID: d4d5d6d7-e4e5-f4f5-a5a6-b5b6b7b8b9ba
-def status_command(ctx: typer.Context) -> None:
-    """Show current status of autonomy system."""
-    console.print("[yellow]⚠️  This command is not yet implemented.[/yellow]")
+async def _list(status_str: str | None, limit: int):
+    """Async implementation of list command."""
+
+    async with get_session() as session:
+        repo = ProposalRepository(session)
+
+        if status_str:
+            try:
+                status = ProposalStatus(status_str.lower())
+                proposals = await repo.list_by_status(status, limit=limit)
+                title = f"Proposals ({status.value})"
+            except ValueError:
+                console.print(f"[red]Invalid status: {status_str}[/red]")
+                console.print(
+                    "Valid: draft, pending, approved, executing, completed, failed, rejected"
+                )
+                return
+        else:
+            # Get all recent proposals
+            proposals = []
+            for status in ProposalStatus:
+                batch = await repo.list_by_status(status, limit=limit)
+                proposals.extend(batch)
+
+            # Sort by created_at desc
+            proposals = sorted(proposals, key=lambda p: p.created_at, reverse=True)
+            proposals = proposals[:limit]
+            title = "Recent Proposals"
+
+    if not proposals:
+        console.print("[yellow]No proposals found.[/yellow]")
+        return
+
+    # Create table
+    table = Table(title=title)
+    table.add_column("ID", style="cyan", no_wrap=True)
+    table.add_column("Goal", style="white")
+    table.add_column("Status", style="bold")
+    table.add_column("Actions", justify="center")
+    table.add_column("Risk", justify="center")
+    table.add_column("Created", style="dim")
+
+    for proposal in proposals:
+        # Color status
+        status_colors = {
+            "draft": "white",
+            "pending": "yellow",
+            "approved": "green",
+            "executing": "blue",
+            "completed": "green",
+            "failed": "red",
+            "rejected": "red",
+        }
+        status_color = status_colors.get(proposal.status.value, "white")
+
+        # Risk color
+        risk_colors = {"safe": "green", "moderate": "yellow", "dangerous": "red"}
+        risk_level = proposal.risk.overall_risk if proposal.risk else "unknown"
+        risk_color = risk_colors.get(risk_level, "white")
+
+        table.add_row(
+            proposal.proposal_id[:8] + "...",
+            proposal.goal[:50] + ("..." if len(proposal.goal) > 50 else ""),
+            f"[{status_color}]{proposal.status.value}[/{status_color}]",
+            str(len(proposal.actions)),
+            f"[{risk_color}]{risk_level}[/{risk_color}]",
+            proposal.created_at.strftime("%Y-%m-%d %H:%M"),
+        )
+
     console.print()
-    console.print("Coming soon:")
-    console.print("  - Active proposals")
-    console.print("  - Execution history (last 24h)")
-    console.print("  - Velocity limit status")
-    console.print("  - Success/failure rates")
-    console.print("  - Circuit breaker status")
+    console.print(table)
+    console.print()
+
+
+# ID: cmd_show
+@autonomy_app.command("show")
+def show_cmd(
+    proposal_id: str = typer.Argument(..., help="Proposal ID to show"),
+):
+    """
+    Show detailed proposal information.
+
+    Examples:
+        autonomy show abc123...
+    """
+    asyncio.run(_show(proposal_id))
+
+
+async def _show(proposal_id: str):
+    """Async implementation of show command."""
+
+    async with get_session() as session:
+        repo = ProposalRepository(session)
+        proposal = await repo.get(proposal_id)
+
+    if not proposal:
+        console.print(f"[red]Proposal not found: {proposal_id}[/red]")
+        return
+
+    console.print()
+    console.print(f"[bold cyan]Proposal: {proposal.proposal_id}[/bold cyan]")
+    console.print()
+    console.print(f"[bold]Goal:[/bold] {proposal.goal}")
+    console.print(f"[bold]Status:[/bold] {proposal.status.value}")
+    console.print(f"[bold]Created:[/bold] {proposal.created_at}")
+    console.print(f"[bold]Created By:[/bold] {proposal.created_by}")
+    console.print()
+
+    # Risk
+    if proposal.risk:
+        console.print("[bold]Risk Assessment:[/bold]")
+        console.print(f"  Overall: {proposal.risk.overall_risk}")
+        console.print(
+            f"  Approval Required: {'Yes' if proposal.approval_required else 'No'}"
+        )
+        if proposal.risk.risk_factors:
+            console.print("  Factors:")
+            for factor in proposal.risk.risk_factors:
+                console.print(f"    - {factor}")
+        console.print()
+
+    # Actions
+    console.print(f"[bold]Actions ({len(proposal.actions)}):[/bold]")
+    for action in sorted(proposal.actions, key=lambda a: a.order):
+        console.print(f"  {action.order + 1}. {action.action_id}")
+        if action.parameters:
+            console.print(f"     Parameters: {action.parameters}")
+    console.print()
+
+    # Scope
+    if proposal.scope.files or proposal.scope.modules:
+        console.print("[bold]Scope:[/bold]")
+        if proposal.scope.files:
+            console.print(f"  Files: {len(proposal.scope.files)}")
+        if proposal.scope.modules:
+            console.print(f"  Modules: {', '.join(proposal.scope.modules)}")
+        console.print()
+
+    # Execution info
+    if proposal.execution_started_at:
+        console.print("[bold]Execution:[/bold]")
+        console.print(f"  Started: {proposal.execution_started_at}")
+        if proposal.execution_completed_at:
+            duration = (
+                proposal.execution_completed_at - proposal.execution_started_at
+            ).total_seconds()
+            console.print(f"  Completed: {proposal.execution_completed_at}")
+            console.print(f"  Duration: {duration:.2f}s")
+        console.print()
+
+    if proposal.failure_reason:
+        console.print(f"[red]Failure Reason: {proposal.failure_reason}[/red]")
+        console.print()
+
+
+# ID: cmd_approve
+@autonomy_app.command("approve")
+def approve_cmd(
+    proposal_id: str = typer.Argument(..., help="Proposal ID to approve"),
+    approved_by: str = typer.Option("cli_admin", "--by", help="Who is approving this"),
+):
+    """
+    Approve a pending proposal.
+
+    Examples:
+        autonomy approve abc123...
+        autonomy approve abc123... --by "john@example.com"
+    """
+    asyncio.run(_approve(proposal_id, approved_by))
+
+
+async def _approve(proposal_id: str, approved_by: str):
+    """Async implementation of approve command."""
+
+    async with get_session() as session:
+        repo = ProposalRepository(session)
+
+        # Check proposal exists
+        proposal = await repo.get(proposal_id)
+        if not proposal:
+            console.print(f"[red]Proposal not found: {proposal_id}[/red]")
+            return
+
+        # Approve
+        await repo.approve(proposal_id, approved_by=approved_by)
+
+    console.print()
+    console.print("[bold green]✓ Proposal approved![/bold green]")
+    console.print(f"Proposal ID: {proposal_id}")
+    console.print(f"Approved by: {approved_by}")
+    console.print()
+    console.print("Next step:")
+    console.print(f"  autonomy execute {proposal_id}")
+    console.print()
+
+
+# ID: cmd_execute
+@autonomy_app.command("execute")
+@core_command(dangerous=True, confirmation=False)
+def execute_cmd(
+    ctx: typer.Context,
+    proposal_id: str = typer.Argument(..., help="Proposal ID to execute"),
+    write: bool = typer.Option(
+        False, "--write", help="Actually execute (default is dry-run)"
+    ),
+):
+    """
+    Execute an approved proposal.
+
+    Examples:
+        # Dry-run first (default)
+        autonomy execute abc123...
+
+        # Execute for real
+        autonomy execute abc123... --write
+    """
+    return _execute(ctx.obj, proposal_id, write)
+
+
+async def _execute(context: CoreContext, proposal_id: str, write: bool):
+    """Async implementation of execute command."""
+    console.print()
+    if not write:
+        console.print("[yellow]DRY-RUN MODE - No changes will be applied[/yellow]")
+        console.print("[yellow]Use --write to execute for real[/yellow]")
+    else:
+        console.print("[bold cyan]Executing Proposal[/bold cyan]")
+    console.print()
+
+    executor = ProposalExecutor(context)
+
+    result = await executor.execute(proposal_id, write=write)
+
+    if result["ok"]:
+        console.print("[bold green]✓ Execution completed successfully![/bold green]")
+    else:
+        console.print("[bold red]✗ Execution failed[/bold red]")
+        if "error" in result:
+            console.print(f"Error: {result['error']}")
+
+    console.print()
+    console.print(f"Actions executed: {result['actions_executed']}")
+    console.print(f"Succeeded: {result['actions_succeeded']}")
+    console.print(f"Failed: {result['actions_failed']}")
+    console.print(f"Duration: {result['duration_sec']:.2f}s")
+    console.print()
+
+    # Show action results
+    console.print("[bold]Action Results:[/bold]")
+    for action_id, action_result in result["action_results"].items():
+        status = "[green]✓[/green]" if action_result["ok"] else "[red]✗[/red]"
+        console.print(f"  {status} {action_id}: {action_result['duration_sec']:.2f}s")
+        if not action_result["ok"]:
+            error = action_result["data"].get("error", "Unknown error")
+            console.print(f"      [red]{error}[/red]")
+    console.print()
+
+
+# ID: cmd_reject
+@autonomy_app.command("reject")
+def reject_cmd(
+    proposal_id: str = typer.Argument(..., help="Proposal ID to reject"),
+    reason: str = typer.Option(..., "--reason", "-r", help="Rejection reason"),
+):
+    """
+    Reject a proposal.
+
+    Examples:
+        autonomy reject abc123... --reason "Too risky"
+    """
+    asyncio.run(_reject(proposal_id, reason))
+
+
+async def _reject(proposal_id: str, reason: str):
+    """Async implementation of reject command."""
+
+    async with get_session() as session:
+        repo = ProposalRepository(session)
+
+        # Check proposal exists
+        proposal = await repo.get(proposal_id)
+        if not proposal:
+            console.print(f"[red]Proposal not found: {proposal_id}[/red]")
+            return
+
+        # Reject
+        await repo.reject(proposal_id, reason=reason)
+
+    console.print()
+    console.print("[bold yellow]Proposal rejected[/bold yellow]")
+    console.print(f"Proposal ID: {proposal_id}")
+    console.print(f"Reason: {reason}")
+    console.print()
