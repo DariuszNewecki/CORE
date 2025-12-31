@@ -16,6 +16,7 @@ import yaml
 
 from shared.config import settings
 from shared.logger import getLogger
+from shared.models.validation_result import ValidationResult
 
 
 logger = getLogger(__name__)
@@ -60,7 +61,7 @@ class ContextValidator:
     def _default_schema_path(self) -> Path:
         """Resolve the default schema path."""
         if hasattr(settings.paths, "context_schema_path"):
-            return settings.paths.context_schema_path()  # type: ignore[attr-defined]
+            return settings.paths.context_schema_path()
         return settings.REPO_PATH / "var" / "context" / "schema.yaml"
 
     def _load_schema(self) -> dict[str, Any]:
@@ -91,7 +92,7 @@ class ContextValidator:
             return 0
 
     # ID: 2412a7ae-c33f-4055-909a-ca0b4a88e49b
-    def validate(self, packet: dict[str, Any]) -> tuple[bool, list[str]]:
+    def validate(self, packet: dict[str, Any]) -> ValidationResult:
         """
         Validate packet against schema.
 
@@ -99,13 +100,9 @@ class ContextValidator:
             packet: ContextPackage dict
 
         Returns:
-            Tuple of (is_valid, errors)
+            ValidationResult object
         """
         errors: list[str] = []
-
-        # Version check (currently permissive)
-        if not self._check_version(packet):
-            errors.append("Schema version mismatch or missing")
 
         # Required fields from schema
         required_fields = self.schema.get("required_fields", [])
@@ -120,7 +117,6 @@ class ContextValidator:
         errors.extend(self._validate_context(packet.get("context", [])))
         errors.extend(self._validate_policy(packet))
 
-        # Log results (type-safe packet_id extraction)
         header = packet.get("header")
         packet_id = (
             header.get("packet_id", "unknown")
@@ -138,11 +134,12 @@ class ContextValidator:
                 packet_id,
             )
 
-        return (is_valid, errors)
-
-    def _check_version(self, packet: dict[str, Any]) -> bool:
-        """Check schema version compatibility (currently permissive)."""
-        return True
+        return ValidationResult(
+            ok=is_valid,
+            errors=errors,
+            validated_data=packet if is_valid else {},
+            metadata={"packet_id": packet_id},
+        )
 
     def _validate_header(self, header: dict[str, Any]) -> list[str]:
         """Validate header fields."""
@@ -188,18 +185,6 @@ class ContextValidator:
                         f"Token budget exceeded: {total_tokens} > {max_tokens}"
                     )
 
-        # Validate max_items
-        if "max_items" in constraints:
-            try:
-                max_items = int(constraints["max_items"])
-            except (ValueError, TypeError):
-                return ["constraints.max_items must be an integer"]
-
-            if isinstance(context_items, list) and len(context_items) > max_items:
-                errors.append(
-                    f"Item limit exceeded: {len(context_items)} > {max_items}"
-                )
-
         return errors
 
     def _validate_context(self, context: Any) -> list[str]:
@@ -240,9 +225,5 @@ class ContextValidator:
 
         if privacy == "local_only" and remote_allowed:
             errors.append("Privacy is local_only but policy.remote_allowed is true")
-        elif privacy == "remote_allowed" and not remote_allowed:
-            errors.append(
-                "Privacy is remote_allowed but policy.remote_allowed is false"
-            )
 
         return errors

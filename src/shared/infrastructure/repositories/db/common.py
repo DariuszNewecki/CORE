@@ -2,11 +2,11 @@
 # ID: infra.repo.db.common
 """
 Provides common utilities for database-related CLI commands.
+Refactored to comply with operations.runtime.env_vars_defined (no os.getenv).
 """
 
 from __future__ import annotations
 
-import os
 import pathlib
 import subprocess
 from datetime import UTC, datetime
@@ -129,7 +129,7 @@ async def record_applied(mig_id: str) -> None:
 
 # ID: c0a84f36-7546-405b-8de4-eba8548ff56b
 def git_commit_sha() -> str:
-    """Best-effort: get current commit SHA, or fallback to env, max 40 chars."""
+    """Best-effort: get current commit SHA via CLI or Settings."""
     try:
         res = subprocess.run(
             ["git", "rev-parse", "--verify", "HEAD"],
@@ -141,4 +141,6 @@ def git_commit_sha() -> str:
             return res.stdout.strip()[:40]
     except Exception:
         pass
-    return (os.getenv("GIT_COMMIT", "") or "").strip()[:40]
+
+    # CONSTITUTIONAL FIX: Use Settings instead of os.getenv
+    return str(getattr(settings, "GIT_COMMIT", "") or "").strip()[:40]

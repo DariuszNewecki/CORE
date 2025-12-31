@@ -1,15 +1,12 @@
 # src/mind/governance/auditor.py
+# ID: 85bb69ce-b22a-490a-8a1d-92a5da7e2646
+
 """
 Constitutional Auditor - The Unified Enforcement Engine.
 
-REFACTORED: 100% Dynamic Engine-based execution.
-This module no longer crawls 'mind.governance.checks' for Python classes.
-It relies exclusively on 'run_dynamic_rules' to execute policies declared in JSON.
-
-Key outputs:
-- reports/audit_findings.json
-- reports/audit_findings.processed.json
-- reports/audit/latest_audit.json (Authoritative Evidence Ledger)
+REFACTORED:
+- Now injects both DB session and Qdrant service into the context.
+- Ensures semantic checks have access to vector infrastructure.
 """
 
 from __future__ import annotations
@@ -19,7 +16,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from body.cli.commands.audit_reporter import AuditRunReporter
+from body.services.service_registry import service_registry
 from mind.governance.audit_context import AuditorContext
 from mind.governance.audit_postprocessor import (
     EntryPointAllowList,
@@ -30,6 +27,7 @@ from mind.governance.constitutional_auditor_dynamic import (
     run_dynamic_rules,
 )
 from shared.activity_logging import activity_run, new_activity_run
+from shared.infrastructure.database.session_manager import get_session
 from shared.infrastructure.storage.file_handler import FileHandler
 from shared.logger import getLogger
 from shared.models import AuditSeverity
@@ -73,56 +71,63 @@ class ConstitutionalAuditor:
 
     def __init__(self, context: AuditorContext):
         self.context = context
-        # Governed mutation surface (IntentGuard enforced)
         self.fs = FileHandler(str(get_repo_root().resolve()))
-        # Ensure output dirs exist
         self.fs.ensure_dir("reports")
         self.fs.ensure_dir("reports/audit")
 
     # ID: e70bf756-620a-4065-99df-34b03cc25c96
     async def run_full_audit_async(self) -> list[dict[str, Any]]:
         """
-        Executes the full constitutional audit using the Dynamic Rule Engine.
+        Executes the full constitutional audit.
+        Injects DB and Vector services into the context for dynamic engines.
         """
         await self.context.load_knowledge_graph()
 
         with activity_run("constitutional_audit"):
             run = new_activity_run("constitutional_audit")
 
-            # We no longer discover classes, so we start with 0 legacy checks.
-            reporter = AuditRunReporter(
-                run=run,
-                repo_path=get_repo_root(),
-                total_checks=0,
-            )
-
             executed_rule_ids: set[str] = set()
 
-            # 1. CORE EXECUTION: Run dynamic rules from JSON policies
-            logger.info("=== Running Dynamic Constitutional Enforcement ===")
-            findings = await run_dynamic_rules(
-                self.context, executed_rule_ids=executed_rule_ids
-            )
+            # 1. CORE EXECUTION: Run dynamic rules
+            async with get_session() as session:
+                logger.info("=== Running Dynamic Constitutional Enforcement ===")
 
-            # 2. PERSISTENCE: Write raw findings
+                # JIT Service Injection
+                self.context.db_session = session  # type: ignore
+
+                # Resolve Qdrant from registry if not already present
+                if not getattr(self.context, "qdrant_service", None):
+                    self.context.qdrant_service = (
+                        await service_registry.get_qdrant_service()
+                    )  # type: ignore
+
+                try:
+                    findings = await run_dynamic_rules(
+                        self.context, executed_rule_ids=executed_rule_ids
+                    )
+                finally:
+                    # Cleanup session to avoid leaks
+                    if hasattr(self.context, "db_session"):
+                        delattr(self.context, "db_session")
+
+            # 2. PERSISTENCE
             findings_path = self._write_findings(findings)
 
-            # 3. POST-PROCESSING: Apply severity downgrades
+            # 3. POST-PROCESSING
             symbol_index_path = REPORTS_DIR / SYMBOL_INDEX_FILENAME
             if not symbol_index_path.exists():
                 self.fs.write_runtime_text(
-                    _repo_rel(symbol_index_path),
-                    json.dumps({}, indent=2),
+                    _repo_rel(symbol_index_path), json.dumps({}, indent=2)
                 )
 
             processed_path = self._write_processed_findings(
                 findings_path, symbol_index_path
             )
 
-            # 4. DECISION: Determine pass/fail
+            # 4. DECISION
             passed = not any(f.severity == AuditSeverity.ERROR for f in findings)
 
-            # 5. EVIDENCE: Write the authoritative Evidence Ledger
+            # 5. EVIDENCE
             stats = get_dynamic_execution_stats(self.context, executed_rule_ids)
             logger.info("Audit stats: %s", stats)
 
@@ -145,8 +150,6 @@ class ConstitutionalAuditor:
         self, findings_path: Path, symbol_index_path: Path
     ) -> Path:
         out_path = REPORTS_DIR / PROCESSED_FINDINGS_FILENAME
-
-        # apply_entry_point_downgrade_and_report handles its own reporting internal to the service
         processed = apply_entry_point_downgrade_and_report(
             findings=json.loads(findings_path.read_text(encoding="utf-8")),
             symbol_index=json.loads(symbol_index_path.read_text(encoding="utf-8")),
@@ -169,9 +172,7 @@ class ConstitutionalAuditor:
         processed_findings_path: Path,
         passed: bool,
     ) -> Path:
-        """Writes the evidence required by 'governance coverage' command."""
         evidence_path = AUDIT_EVIDENCE_DIR / AUDIT_EVIDENCE_FILENAME
-
         payload: dict[str, Any] = {
             "schema_version": "0.2.0",
             "generated_at_utc": _utc_now_iso(),
@@ -181,10 +182,8 @@ class ConstitutionalAuditor:
                 "findings": _repo_rel(findings_path),
                 "processed_findings": _repo_rel(processed_findings_path),
             },
-            # FIXED: Use the argument name 'executed_rules'
             "executed_rules": sorted(list(executed_rules)),
-            "executed_checks": [],  # Legacy checks removed
+            "executed_checks": [],
         }
-
         self.fs.write_runtime_json(_repo_rel(evidence_path), payload)
         return evidence_path

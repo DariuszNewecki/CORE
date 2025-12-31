@@ -1,100 +1,147 @@
 # src/features/self_healing/docstring_service.py
+# ID: 43c3af5c-b9e3-4f5a-a95d-3b8945a71567
 
 """
-Implements the 'fix docstrings' command, an AI-powered tool to add
-missing docstrings to functions and methods.
+AI-powered docstring healing.
+Refactored to use the canonical ActionExecutor Gateway for all modifications.
 """
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING, Any
+
+from body.atomic.executor import ActionExecutor
 from features.introspection.knowledge_helpers import extract_source_code
 from shared.config import settings
-from shared.context import CoreContext
 from shared.logger import getLogger
 
 
+if TYPE_CHECKING:
+    from shared.context import CoreContext
+
 logger = getLogger(__name__)
-REPO_ROOT = settings.REPO_PATH
 
 
 async def _async_fix_docstrings(context: CoreContext, dry_run: bool):
-    """Async core logic for finding and fixing missing docstrings."""
-    logger.info("Searching for symbols missing docstrings...")
+    """
+    Async core logic for finding and fixing missing docstrings.
+    Mutations are routed through the governed ActionExecutor.
+    """
+    logger.info("🔍 Searching for symbols missing docstrings...")
+
+    executor = ActionExecutor(context)
     knowledge_service = context.knowledge_service
     graph = await knowledge_service.get_graph()
     symbols = graph.get("symbols", {})
+
+    # Filter for functions/methods missing docstrings
     symbols_to_fix = [
         s
         for s in symbols.values()
         if not s.get("docstring")
         and s.get("type") in ["FunctionDef", "AsyncFunctionDef"]
     ]
+
     if not symbols_to_fix:
-        logger.info("No symbols are missing docstrings. Excellent!")
+        logger.info("✅ All public symbols have docstrings.")
         return
-    logger.info("Found %d symbol(s) missing docstrings. Fixing...", len(symbols_to_fix))
-    cognitive_service = context.cognitive_service
-    prompt_template = (
-        settings.MIND / "prompts" / "fix_function_docstring.prompt"
-    ).read_text(encoding="utf-8")
-    writer_client = await cognitive_service.aget_client_for_role("DocstringWriter")
-    modification_plan = {}
+
+    logger.info("Found %d symbol(s) requiring docstrings.", len(symbols_to_fix))
+
+    # Resolve Prompt via PathResolver (SSOT)
+    prompt_path = settings.paths.prompt("fix_function_docstring")
+    prompt_template = prompt_path.read_text(encoding="utf-8")
+
+    writer_client = await context.cognitive_service.aget_client_for_role(
+        "DocstringWriter"
+    )
+
+    # Group work by file to minimize gateway roundtrips
+    file_modification_map: dict[str, list[dict[str, Any]]] = {}
 
     for i, symbol in enumerate(symbols_to_fix, 1):
-        # Log progress periodically for large batches (LOG-004)
-        if i % 5 == 0:
-            logger.debug("Processed %d/%d symbols", i, len(symbols_to_fix))
+        if i % 10 == 0:
+            logger.debug("Docstring analysis progress: %d/%d", i, len(symbols_to_fix))
 
         try:
-            source_code = extract_source_code(REPO_ROOT, symbol)
-            final_prompt = prompt_template.format(source_code=source_code)
-            new_docstring_content = await writer_client.make_request_async(
-                final_prompt, user_id="docstring_writer_agent"
+            source_code = extract_source_code(settings.REPO_PATH, symbol)
+            if not source_code:
+                continue
+
+            # Will: Ask AI to generate the docstring
+            new_doc = await writer_client.make_request_async(
+                prompt_template.format(source_code=source_code),
+                user_id="docstring_healing_service",
             )
-            if new_docstring_content:
-                file_path = settings.paths.repo_root / symbol["file_path"]
-                if file_path not in modification_plan:
-                    modification_plan[file_path] = []
-                modification_plan[file_path].append(
+
+            if new_doc:
+                rel_path = symbol["file_path"]
+                if rel_path not in file_modification_map:
+                    file_modification_map[rel_path] = []
+
+                file_modification_map[rel_path].append(
                     {
                         "line_number": symbol["line_number"],
-                        "indent": len(symbol.get("name", ""))
-                        - len(symbol.get("name", "").lstrip()),
-                        "docstring": new_docstring_content.strip().replace('"', '\\"'),
+                        "docstring": new_doc.strip(),
+                        "symbol_name": symbol.get("name", "unknown"),
                     }
                 )
         except Exception as e:
-            logger.error("Could not process %s: %s", symbol["symbol_path"], e)
+            logger.error("Could not process %s: %s", symbol.get("symbol_path"), e)
 
-    if dry_run:
-        logger.info("Dry Run Summary:")
-        for file_path, patches in modification_plan.items():
-            logger.info(
-                "  - Would add %d docstring(s) to: %s",
-                len(patches),
-                file_path.relative_to(REPO_ROOT),
+    # 2. Execution Phase (Gateway dispatch)
+    write_mode = not dry_run
+    for rel_path, patches in file_modification_map.items():
+        try:
+            full_path = settings.REPO_PATH / rel_path
+            if not full_path.exists():
+                continue
+
+            lines = full_path.read_text(encoding="utf-8").splitlines()
+
+            # Apply patches in reverse line order to maintain index integrity
+            patches.sort(key=lambda x: x["line_number"], reverse=True)
+
+            for patch in patches:
+                line_idx = patch["line_number"] - 1  # 0-based
+                if line_idx >= len(lines):
+                    continue
+
+                # Determine indentation of the target line
+                original_line = lines[line_idx]
+                indent = original_line[
+                    : len(original_line) - len(original_line.lstrip())
+                ]
+
+                # Insert the docstring
+                doc_block = f'{indent}    """{patch["docstring"]}"""'
+                lines.insert(line_idx + 1, doc_block)
+
+            final_code = "\n".join(lines) + "\n"
+
+            # CONSTITUTIONAL GATEWAY: Mutation is audited and guarded
+            result = await executor.execute(
+                action_id="file.edit",
+                write=write_mode,
+                file_path=rel_path,
+                code=final_code,
             )
-    else:
-        logger.info("Writing changes to disk...")
-        for file_path, patches in modification_plan.items():
-            try:
-                lines = file_path.read_text(encoding="utf-8").splitlines()
-                patches.sort(key=lambda p: p["line_number"], reverse=True)
-                for patch in patches:
-                    indent_space = " " * (patch["indent"] + 4)
-                    docstring = f'{indent_space}"""{patch["docstring"]}"""'
-                    lines.insert(patch["line_number"], docstring)
-                file_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+            if result.ok:
+                status = "Healed" if write_mode else "Proposed"
                 logger.info(
-                    "   -> Wrote %d docstring(s) to %s",
-                    len(patches),
-                    file_path.relative_to(REPO_ROOT),
+                    "   -> [%s] %d docstrings in %s", status, len(patches), rel_path
                 )
-            except Exception as e:
-                logger.error("Failed to write to %s: %s", file_path, e)
+            else:
+                logger.error(
+                    "   -> [BLOCKED] %s: %s", rel_path, result.data.get("error")
+                )
+
+        except Exception as e:
+            logger.error("Failed to prepare docstring fix for %s: %s", rel_path, e)
 
 
 # ID: 43c3af5c-b9e3-4f5a-a95d-3b8945a71567
 async def fix_docstrings(context: CoreContext, write: bool):
-    """Uses an AI agent to find and add missing docstrings to functions and methods."""
+    """Uses an AI agent to find and add missing docstrings via governed actions."""
     await _async_fix_docstrings(context, dry_run=not write)

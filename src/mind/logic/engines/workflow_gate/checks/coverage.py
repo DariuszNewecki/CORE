@@ -1,9 +1,9 @@
 # src/mind/logic/engines/workflow_gate/checks/coverage.py
+# ID: c3d4e5f6-a7b8-9c0d-1e2f-3a4b5c6d7e8f
 
 """
 Coverage verification workflow check.
-
-Verifies that code coverage meets constitutional threshold.
+Refactored to be circular-safe.
 """
 
 from __future__ import annotations
@@ -24,24 +24,12 @@ logger = getLogger(__name__)
 class CoverageMinimumCheck(WorkflowCheck):
     """
     Checks if code coverage meets the constitutional threshold.
-
-    Reads coverage.json or accepts current_coverage from params.
     """
 
     check_type = "coverage_minimum"
 
-    # ID: 0dcd0e36-61d4-4cb7-a048-3b14b5c8cedf
+    # ID: c360fe9a-1dc3-4f63-9c8a-30ebe3b4f4df
     async def verify(self, file_path: Path | None, params: dict[str, Any]) -> list[str]:
-        """
-        Verify coverage meets threshold.
-
-        Args:
-            file_path: Unused (context-level check)
-            params: May include 'current_coverage' override
-
-        Returns:
-            List of violations if coverage is too low or unavailable
-        """
         threshold = self._load_coverage_threshold()
         current_coverage = params.get("current_coverage")
 
@@ -49,9 +37,9 @@ class CoverageMinimumCheck(WorkflowCheck):
             cov_file = Path("coverage.json")
             if cov_file.exists():
                 try:
-                    data = json.loads(cov_file.read_text())
+                    data = json.loads(cov_file.read_text(encoding="utf-8"))
                     current_coverage = data.get("totals", {}).get("percent_covered", 0)
-                except (json.JSONDecodeError, KeyError, Exception) as e:
+                except Exception as e:
                     logger.warning("Failed to parse coverage.json: %s", e)
 
         if current_coverage is not None and current_coverage < threshold:
@@ -60,24 +48,22 @@ class CoverageMinimumCheck(WorkflowCheck):
             ]
 
         if current_coverage is None:
-            return [
-                "No coverage data found. Coverage must be measured before integration."
-            ]
+            return ["No coverage data found. Run 'make test' first."]
 
         return []
 
     def _load_coverage_threshold(self) -> float:
-        """Load coverage threshold from constitutional operations policy."""
+        """Load threshold via PathResolver (SSOT)."""
         try:
-            ops_policy = settings.paths.governance("operations.json")
-            if ops_policy.exists():
-                data = json.loads(ops_policy.read_text())
+            # We resolve the path but do not import the registry
+            ops_path = settings.paths.policy("operations")
+            if ops_path.exists():
+                data = json.loads(ops_path.read_text(encoding="utf-8"))
                 return float(
-                    data.get("rules", {})
-                    .get("testing", {})
-                    .get("min_coverage_percent", 75)
+                    data.get("quality_assurance", {})
+                    .get("coverage_requirements", {})
+                    .get("minimum_threshold", 75)
                 )
-        except Exception as e:
-            logger.warning("Could not load coverage threshold from policy: %s", e)
-
-        return 75.0  # Constitutional default
+        except Exception:
+            pass
+        return 75.0

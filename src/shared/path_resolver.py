@@ -19,6 +19,7 @@ from pathlib import Path
 from typing import Any, ClassVar
 
 from shared.logger import getLogger
+from shared.models.validation_result import ValidationResult
 
 
 logger = getLogger(__name__)
@@ -202,7 +203,7 @@ class PathResolver:
     # =========================================================================
 
     # ID: 0b5bfb1a-d91b-43a1-8034-2f2e4a9921a5
-    def validate_structure(self) -> list[str]:
+    def validate_structure(self) -> ValidationResult:
         """Check for existence of required runtime directories."""
         required_dirs: list[tuple[Path, str]] = [
             (self.var_dir, "var/"),
@@ -221,14 +222,18 @@ class PathResolver:
         ]
 
         errors: list[str] = []
-        for p, _ in required_dirs:
+        for p, label in required_dirs:
             if not p.exists():
-                errors.append(str(p))
+                errors.append(f"Missing required directory: {label} (expected at {p})")
 
         if not self.intent_root.exists():
-            errors.append(str(self.intent_root))
+            errors.append(f"Missing constitutional intent root at {self.intent_root}")
 
-        return errors
+        return ValidationResult(
+            ok=not errors,
+            errors=errors,
+            metadata={"checked_paths": [str(p) for p, _ in required_dirs]},
+        )
 
     def __repr__(self) -> str:
         return f"PathResolver(root={self._repo_root})"

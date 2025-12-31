@@ -20,7 +20,7 @@
   {
     "check_id": "body.no_ui_imports_in_body",
     "severity": "error",
-    "message": "Line 17: Forbidden import 'typer'",
+    "message": "Line 22: Forbidden import 'typer'",
     "file_path": "src/body/cli/commands/autonomy.py",
     "line_number": null,
     "context": {},
@@ -38,7 +38,7 @@
   {
     "check_id": "body.no_ui_imports_in_body",
     "severity": "error",
-    "message": "Line 15: Forbidden import 'typer'",
+    "message": "Line 13: Forbidden import 'typer'",
     "file_path": "src/body/cli/commands/check/audit.py",
     "line_number": null,
     "context": {},
@@ -110,17 +110,8 @@
   {
     "check_id": "body.no_ui_imports_in_body",
     "severity": "error",
-    "message": "Line 16: Forbidden import 'typer'",
-    "file_path": "src/body/cli/commands/dev_sync.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "body.no_ui_imports_in_body",
-    "severity": "error",
     "message": "Line 17: Forbidden import 'typer'",
-    "file_path": "src/body/cli/commands/dev_sync_v2.py",
+    "file_path": "src/body/cli/commands/dev_sync.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -227,7 +218,7 @@
   {
     "check_id": "body.no_ui_imports_in_body",
     "severity": "error",
-    "message": "Line 14: Forbidden import 'typer'",
+    "message": "Line 8: Forbidden import 'typer'",
     "file_path": "src/body/cli/commands/fix/handler_discovery.py",
     "line_number": null,
     "context": {},
@@ -578,7 +569,7 @@
   {
     "check_id": "body.no_ui_imports_in_body",
     "severity": "error",
-    "message": "Line 13: Forbidden import 'typer'",
+    "message": "Line 17: Forbidden import 'typer'",
     "file_path": "src/features/introspection/export_vectors.py",
     "line_number": null,
     "context": {},
@@ -632,35 +623,8 @@
   {
     "check_id": "body.no_ui_imports_in_body",
     "severity": "error",
-    "message": "Line 18: Forbidden import 'typer'",
-    "file_path": "src/features/self_healing/complexity_service.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "body.no_ui_imports_in_body",
-    "severity": "error",
-    "message": "Line 13: Forbidden import 'typer'",
-    "file_path": "src/features/self_healing/fix_manifest_hygiene.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "body.no_ui_imports_in_body",
-    "severity": "error",
-    "message": "Line 12: Forbidden import 'typer'",
+    "message": "Line 15: Forbidden import 'typer'",
     "file_path": "src/features/self_healing/linelength_service.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "body.no_ui_imports_in_body",
-    "severity": "error",
-    "message": "Line 13: Forbidden import 'typer'",
-    "file_path": "src/features/self_healing/prune_private_capabilities.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -801,24 +765,6 @@
     "details": {}
   },
   {
-    "check_id": "body.atomic_actions_use_actionresult",
-    "severity": "error",
-    "message": "Line 160: 'run_sync_with_db' expected '-> ActionResult', found '-> None'",
-    "file_path": "src/features/introspection/sync_service.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "body.atomic_actions_use_actionresult",
-    "severity": "error",
-    "message": "Line 165: 'reconfigure_log_level' expected '-> ActionResult', found '-> bool'",
-    "file_path": "src/shared/logger.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
     "check_id": "body.no_envvar_access_in_body",
     "severity": "warning",
     "message": "Forbidden primitive 'os.getenv' used (line 66).",
@@ -866,33 +812,6 @@
   {
     "check_id": "body.no_envvar_access_in_body",
     "severity": "warning",
-    "message": "Forbidden primitive 'os.getenv' used (line 54).",
-    "file_path": "src/shared/infrastructure/adapters/embedding_provider.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "body.no_envvar_access_in_body",
-    "severity": "warning",
-    "message": "Forbidden primitive 'os.getenv' used (line 144).",
-    "file_path": "src/shared/infrastructure/repositories/db/common.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "body.no_envvar_access_in_body",
-    "severity": "warning",
-    "message": "Forbidden primitive 'os.getenv' used (line 281).",
-    "file_path": "src/shared/infrastructure/secrets_service.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "body.no_envvar_access_in_body",
-    "severity": "warning",
     "message": "Forbidden primitive 'os.getenv' used (line 20).",
     "file_path": "src/shared/logger.py",
     "line_number": null,
@@ -920,7 +839,7 @@
   {
     "check_id": "body.dependency_injection_preferred",
     "severity": "warning",
-    "message": "Line 76: Import-time async singleton creation: 'GitService()'",
+    "message": "Line 75: Import-time async singleton creation: 'GitService()'",
     "file_path": "src/body/cli/admin_cli.py",
     "line_number": null,
     "context": {},
@@ -1100,6 +1019,51 @@
   {
     "check_id": "async.runtime.no_nested_loop_creation",
     "severity": "error",
+    "message": "Line 82: Forbidden event-loop call 'asyncio.run()'",
+    "file_path": "src/body/cli/commands/autonomy.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "async.runtime.no_nested_loop_creation",
+    "severity": "error",
+    "message": "Line 194: Forbidden event-loop call 'asyncio.run()'",
+    "file_path": "src/body/cli/commands/autonomy.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "async.runtime.no_nested_loop_creation",
+    "severity": "error",
+    "message": "Line 283: Forbidden event-loop call 'asyncio.run()'",
+    "file_path": "src/body/cli/commands/autonomy.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "async.runtime.no_nested_loop_creation",
+    "severity": "error",
+    "message": "Line 367: Forbidden event-loop call 'asyncio.run()'",
+    "file_path": "src/body/cli/commands/autonomy.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "async.runtime.no_nested_loop_creation",
+    "severity": "error",
+    "message": "Line 471: Forbidden event-loop call 'asyncio.run()'",
+    "file_path": "src/body/cli/commands/autonomy.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "async.runtime.no_nested_loop_creation",
+    "severity": "error",
     "message": "Line 96: Forbidden event-loop call 'subprocess.run()'",
     "file_path": "src/body/cli/commands/coverage.py",
     "line_number": null,
@@ -1163,6 +1127,24 @@
   {
     "check_id": "async.runtime.no_nested_loop_creation",
     "severity": "error",
+    "message": "Line 266: Forbidden event-loop call 'asyncio.run()'",
+    "file_path": "src/features/maintenance/scripts/context_export.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "async.runtime.no_nested_loop_creation",
+    "severity": "error",
+    "message": "Line 262: Forbidden event-loop call 'exporter.run()'",
+    "file_path": "src/features/maintenance/scripts/context_export.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "async.runtime.no_nested_loop_creation",
+    "severity": "error",
     "message": "Line 89: Forbidden event-loop call 'subprocess.run()'",
     "file_path": "src/features/project_lifecycle/bootstrap_service.py",
     "line_number": null,
@@ -1183,24 +1165,6 @@
     "severity": "error",
     "message": "Line 116: Forbidden event-loop call 'subprocess.run()'",
     "file_path": "src/features/self_healing/coverage_analyzer.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "async.runtime.no_nested_loop_creation",
-    "severity": "error",
-    "message": "Line 114: Forbidden event-loop call 'typer.run()'",
-    "file_path": "src/features/self_healing/fix_manifest_hygiene.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "async.runtime.no_nested_loop_creation",
-    "severity": "error",
-    "message": "Line 96: Forbidden event-loop call 'typer.run()'",
-    "file_path": "src/features/self_healing/prune_private_capabilities.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -1361,6 +1325,51 @@
   {
     "check_id": "async.no_manual_loop_management",
     "severity": "error",
+    "message": "Line 82: Forbidden event-loop call 'asyncio.run()'",
+    "file_path": "src/body/cli/commands/autonomy.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "async.no_manual_loop_management",
+    "severity": "error",
+    "message": "Line 194: Forbidden event-loop call 'asyncio.run()'",
+    "file_path": "src/body/cli/commands/autonomy.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "async.no_manual_loop_management",
+    "severity": "error",
+    "message": "Line 283: Forbidden event-loop call 'asyncio.run()'",
+    "file_path": "src/body/cli/commands/autonomy.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "async.no_manual_loop_management",
+    "severity": "error",
+    "message": "Line 367: Forbidden event-loop call 'asyncio.run()'",
+    "file_path": "src/body/cli/commands/autonomy.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "async.no_manual_loop_management",
+    "severity": "error",
+    "message": "Line 471: Forbidden event-loop call 'asyncio.run()'",
+    "file_path": "src/body/cli/commands/autonomy.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "async.no_manual_loop_management",
+    "severity": "error",
     "message": "Line 96: Forbidden event-loop call 'subprocess.run()'",
     "file_path": "src/body/cli/commands/coverage.py",
     "line_number": null,
@@ -1424,6 +1433,24 @@
   {
     "check_id": "async.no_manual_loop_management",
     "severity": "error",
+    "message": "Line 266: Forbidden event-loop call 'asyncio.run()'",
+    "file_path": "src/features/maintenance/scripts/context_export.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "async.no_manual_loop_management",
+    "severity": "error",
+    "message": "Line 262: Forbidden event-loop call 'exporter.run()'",
+    "file_path": "src/features/maintenance/scripts/context_export.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "async.no_manual_loop_management",
+    "severity": "error",
     "message": "Line 89: Forbidden event-loop call 'subprocess.run()'",
     "file_path": "src/features/project_lifecycle/bootstrap_service.py",
     "line_number": null,
@@ -1444,24 +1471,6 @@
     "severity": "error",
     "message": "Line 116: Forbidden event-loop call 'subprocess.run()'",
     "file_path": "src/features/self_healing/coverage_analyzer.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "async.no_manual_loop_management",
-    "severity": "error",
-    "message": "Line 114: Forbidden event-loop call 'typer.run()'",
-    "file_path": "src/features/self_healing/fix_manifest_hygiene.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "async.no_manual_loop_management",
-    "severity": "error",
-    "message": "Line 96: Forbidden event-loop call 'typer.run()'",
-    "file_path": "src/features/self_healing/prune_private_capabilities.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -1604,6 +1613,51 @@
   {
     "check_id": "caps.no_placeholder_text",
     "severity": "error",
+    "message": "Forbidden Content [Line 212]: Matched restricted regex '\\b(TBD|TODO|FIXME|XXX|N/?A|PLACEHOLDER|LOREM)\\b'",
+    "file_path": "src/body/atomic/executor.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "caps.no_placeholder_text",
+    "severity": "error",
+    "message": "Forbidden Content [Line 266]: Matched restricted regex '\\b(TBD|TODO|FIXME|XXX|N/?A|PLACEHOLDER|LOREM)\\b'",
+    "file_path": "src/body/atomic/executor.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "caps.no_placeholder_text",
+    "severity": "error",
+    "message": "Forbidden Content [Line 351]: Matched restricted regex '\\b(TBD|TODO|FIXME|XXX|N/?A|PLACEHOLDER|LOREM)\\b'",
+    "file_path": "src/body/atomic/executor.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "caps.no_placeholder_text",
+    "severity": "error",
+    "message": "Forbidden Content [Line 374]: Matched restricted regex '\\b(TBD|TODO|FIXME|XXX|N/?A|PLACEHOLDER|LOREM)\\b'",
+    "file_path": "src/body/atomic/executor.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "caps.no_placeholder_text",
+    "severity": "error",
+    "message": "Forbidden Content [Line 400]: Matched restricted regex '\\b(TBD|TODO|FIXME|XXX|N/?A|PLACEHOLDER|LOREM)\\b'",
+    "file_path": "src/body/atomic/executor.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "caps.no_placeholder_text",
+    "severity": "error",
     "message": "Forbidden Content [Line 59]: Matched restricted regex '\\b(TBD|TODO|FIXME|XXX|N/?A|PLACEHOLDER|LOREM)\\b'",
     "file_path": "src/body/cli/commands/check_patterns.py",
     "line_number": null,
@@ -1685,7 +1739,7 @@
   {
     "check_id": "caps.no_placeholder_text",
     "severity": "error",
-    "message": "Forbidden Content [Line 103]: Matched restricted regex '\\b(TBD|TODO|FIXME|XXX|N/?A|PLACEHOLDER|LOREM)\\b'",
+    "message": "Forbidden Content [Line 106]: Matched restricted regex '\\b(TBD|TODO|FIXME|XXX|N/?A|PLACEHOLDER|LOREM)\\b'",
     "file_path": "src/features/introspection/sync_service.py",
     "line_number": null,
     "context": {},
@@ -1696,15 +1750,6 @@
     "severity": "error",
     "message": "Forbidden Content [Line 74]: Matched restricted regex '\\b(TBD|TODO|FIXME|XXX|N/?A|PLACEHOLDER|LOREM)\\b'",
     "file_path": "src/features/maintenance/migration_service.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "caps.no_placeholder_text",
-    "severity": "error",
-    "message": "Forbidden Content [Line 58]: Matched restricted regex '\\b(TBD|TODO|FIXME|XXX|N/?A|PLACEHOLDER|LOREM)\\b'",
-    "file_path": "src/features/maintenance/scripts/context_export.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -1910,51 +1955,6 @@
   {
     "check_id": "caps.no_placeholder_text",
     "severity": "error",
-    "message": "Forbidden Content [Line 108]: Matched restricted regex '\\b(TBD|TODO|FIXME|XXX|N/?A|PLACEHOLDER|LOREM)\\b'",
-    "file_path": "src/mind/logic/engines/knowledge_gate.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "caps.no_placeholder_text",
-    "severity": "error",
-    "message": "Forbidden Content [Line 128]: Matched restricted regex '\\b(TBD|TODO|FIXME|XXX|N/?A|PLACEHOLDER|LOREM)\\b'",
-    "file_path": "src/mind/logic/engines/knowledge_gate.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "caps.no_placeholder_text",
-    "severity": "error",
-    "message": "Forbidden Content [Line 153]: Matched restricted regex '\\b(TBD|TODO|FIXME|XXX|N/?A|PLACEHOLDER|LOREM)\\b'",
-    "file_path": "src/mind/logic/engines/knowledge_gate.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "caps.no_placeholder_text",
-    "severity": "error",
-    "message": "Forbidden Content [Line 174]: Matched restricted regex '\\b(TBD|TODO|FIXME|XXX|N/?A|PLACEHOLDER|LOREM)\\b'",
-    "file_path": "src/mind/logic/engines/knowledge_gate.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "caps.no_placeholder_text",
-    "severity": "error",
-    "message": "Forbidden Content [Line 185]: Matched restricted regex '\\b(TBD|TODO|FIXME|XXX|N/?A|PLACEHOLDER|LOREM)\\b'",
-    "file_path": "src/mind/logic/engines/knowledge_gate.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "caps.no_placeholder_text",
-    "severity": "error",
     "message": "Forbidden Content [Line 90]: Matched restricted regex '\\b(TBD|TODO|FIXME|XXX|N/?A|PLACEHOLDER|LOREM)\\b'",
     "file_path": "src/mind/logic/engines/workflow_gate/engine.py",
     "line_number": null,
@@ -2119,6 +2119,15 @@
     "severity": "warning",
     "message": "Function 'lifespan' appears state-modifying but lacks required @atomic_action (line 47).",
     "file_path": "src/api/main.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.safety_contract_presence",
+    "severity": "warning",
+    "message": "Function 'action_create_file' appears state-modifying but lacks required @atomic_action (line 69).",
+    "file_path": "src/body/atomic/file_ops.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -2432,7 +2441,7 @@
   {
     "check_id": "purity.safety_contract_presence",
     "severity": "warning",
-    "message": "Function 'scan' appears state-modifying but lacks required @atomic_action (line 117).",
+    "message": "Function 'scan' appears state-modifying but lacks required @atomic_action (line 120).",
     "file_path": "src/features/introspection/sync_service.py",
     "line_number": null,
     "context": {},
@@ -2450,43 +2459,7 @@
   {
     "check_id": "purity.safety_contract_presence",
     "severity": "warning",
-    "message": "Function 'sha256_file' appears state-modifying but lacks required @atomic_action (line 73).",
-    "file_path": "src/features/maintenance/scripts/context_export.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.safety_contract_presence",
-    "severity": "warning",
-    "message": "Function 'tar_dir' appears state-modifying but lacks required @atomic_action (line 109).",
-    "file_path": "src/features/maintenance/scripts/context_export.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.safety_contract_presence",
-    "severity": "warning",
-    "message": "Function 'scan_python_symbols' appears state-modifying but lacks required @atomic_action (line 192).",
-    "file_path": "src/features/maintenance/scripts/context_export.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.safety_contract_presence",
-    "severity": "warning",
-    "message": "Function 'try_db_samples' appears state-modifying but lacks required @atomic_action (line 313).",
-    "file_path": "src/features/maintenance/scripts/context_export.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.safety_contract_presence",
-    "severity": "warning",
-    "message": "Function 'to_yaml' appears state-modifying but lacks required @atomic_action (line 435).",
+    "message": "Function 'sha256_file' appears state-modifying but lacks required @atomic_action (line 54).",
     "file_path": "src/features/maintenance/scripts/context_export.py",
     "line_number": null,
     "context": {},
@@ -2513,6 +2486,24 @@
   {
     "check_id": "purity.safety_contract_presence",
     "severity": "warning",
+    "message": "Function 'scaffold_base_structure' appears state-modifying but lacks required @atomic_action (line 57).",
+    "file_path": "src/features/project_lifecycle/scaffolding_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.safety_contract_presence",
+    "severity": "warning",
+    "message": "Function 'write_file' appears state-modifying but lacks required @atomic_action (line 152).",
+    "file_path": "src/features/project_lifecycle/scaffolding_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.safety_contract_presence",
+    "severity": "warning",
     "message": "Function 'accumulate_tests_for_file' appears state-modifying but lacks required @atomic_action (line 44).",
     "file_path": "src/features/self_healing/accumulative_test_service.py",
     "line_number": null,
@@ -2531,7 +2522,16 @@
   {
     "check_id": "purity.safety_contract_presence",
     "severity": "warning",
-    "message": "Function 'resolve_duplicate_ids' appears state-modifying but lacks required @atomic_action (line 45).",
+    "message": "Function 'fix_clarity' appears state-modifying but lacks required @atomic_action (line 28).",
+    "file_path": "src/features/self_healing/clarity_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.safety_contract_presence",
+    "severity": "warning",
+    "message": "Function 'resolve_duplicate_ids' appears state-modifying but lacks required @atomic_action (line 48).",
     "file_path": "src/features/self_healing/duplicate_id_service.py",
     "line_number": null,
     "context": {},
@@ -2540,7 +2540,7 @@
   {
     "check_id": "purity.safety_contract_presence",
     "severity": "warning",
-    "message": "Function 'analyze' appears state-modifying but lacks required @atomic_action (line 49).",
+    "message": "Function 'analyze' appears state-modifying but lacks required @atomic_action (line 57).",
     "file_path": "src/features/self_healing/header_service.py",
     "line_number": null,
     "context": {},
@@ -2549,7 +2549,7 @@
   {
     "check_id": "purity.safety_contract_presence",
     "severity": "warning",
-    "message": "Function 'assign_missing_ids' appears state-modifying but lacks required @atomic_action (line 26).",
+    "message": "Function 'assign_missing_ids' appears state-modifying but lacks required @atomic_action (line 35).",
     "file_path": "src/features/self_healing/id_tagging_service.py",
     "line_number": null,
     "context": {},
@@ -2558,7 +2558,7 @@
   {
     "check_id": "purity.safety_contract_presence",
     "severity": "warning",
-    "message": "Function 'fix_line_lengths' appears state-modifying but lacks required @atomic_action (line 96).",
+    "message": "Function 'fix_line_lengths' appears state-modifying but lacks required @atomic_action (line 128).",
     "file_path": "src/features/self_healing/linelength_service.py",
     "line_number": null,
     "context": {},
@@ -2567,7 +2567,25 @@
   {
     "check_id": "purity.safety_contract_presence",
     "severity": "warning",
-    "message": "Function 'purge_legacy_tags' appears state-modifying but lacks required @atomic_action (line 23).",
+    "message": "Function 'add_missing_policy_ids' appears state-modifying but lacks required @atomic_action (line 29).",
+    "file_path": "src/features/self_healing/policy_id_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.safety_contract_presence",
+    "severity": "warning",
+    "message": "Function 'prune_private_capability_tags' appears state-modifying but lacks required @atomic_action (line 31).",
+    "file_path": "src/features/self_healing/prune_private_capabilities.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.safety_contract_presence",
+    "severity": "warning",
+    "message": "Function 'purge_legacy_tags' appears state-modifying but lacks required @atomic_action (line 29).",
     "file_path": "src/features/self_healing/purge_legacy_tags_service.py",
     "line_number": null,
     "context": {},
@@ -2819,7 +2837,7 @@
   {
     "check_id": "purity.safety_contract_presence",
     "severity": "warning",
-    "message": "Function 'verify' appears state-modifying but lacks required @atomic_action (line 36).",
+    "message": "Function 'verify' appears state-modifying but lacks required @atomic_action (line 31).",
     "file_path": "src/mind/logic/engines/workflow_gate/checks/alignment.py",
     "line_number": null,
     "context": {},
@@ -3062,7 +3080,7 @@
   {
     "check_id": "purity.safety_contract_presence",
     "severity": "warning",
-    "message": "Function 'validate' appears state-modifying but lacks required @atomic_action (line 94).",
+    "message": "Function 'validate' appears state-modifying but lacks required @atomic_action (line 95).",
     "file_path": "src/shared/infrastructure/context/validator.py",
     "line_number": null,
     "context": {},
@@ -3233,7 +3251,7 @@
   {
     "check_id": "purity.safety_contract_presence",
     "severity": "warning",
-    "message": "Function 'set_secret' appears state-modifying but lacks required @atomic_action (line 84).",
+    "message": "Function 'set_secret' appears state-modifying but lacks required @atomic_action (line 86).",
     "file_path": "src/shared/infrastructure/secrets_service.py",
     "line_number": null,
     "context": {},
@@ -3242,7 +3260,7 @@
   {
     "check_id": "purity.safety_contract_presence",
     "severity": "warning",
-    "message": "Function 'delete_secret' appears state-modifying but lacks required @atomic_action (line 147).",
+    "message": "Function 'delete_secret' appears state-modifying but lacks required @atomic_action (line 149).",
     "file_path": "src/shared/infrastructure/secrets_service.py",
     "line_number": null,
     "context": {},
@@ -3278,7 +3296,7 @@
   {
     "check_id": "purity.safety_contract_presence",
     "severity": "warning",
-    "message": "Function 'policy' appears state-modifying but lacks required @atomic_action (line 241).",
+    "message": "Function 'policy' appears state-modifying but lacks required @atomic_action (line 246).",
     "file_path": "src/shared/path_resolver.py",
     "line_number": null,
     "context": {},
@@ -3359,6 +3377,15 @@
   {
     "check_id": "purity.safety_contract_presence",
     "severity": "warning",
+    "message": "Function 'execute_plan' appears state-modifying but lacks required @atomic_action (line 41).",
+    "file_path": "src/will/agents/plan_executor.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.safety_contract_presence",
+    "severity": "warning",
     "message": "Function 'generate_report' appears state-modifying but lacks required @atomic_action (line 62).",
     "file_path": "src/will/agents/reconnaissance_agent.py",
     "line_number": null,
@@ -3379,6 +3406,105 @@
     "severity": "warning",
     "message": "Function 'suggest_and_apply_tags' appears state-modifying but lacks required @atomic_action (line 189).",
     "file_path": "src/will/agents/tagger_agent.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.safety_contract_presence",
+    "severity": "warning",
+    "message": "Function 'validate' appears state-modifying but lacks required @atomic_action (line 208).",
+    "file_path": "src/will/autonomy/proposal.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.safety_contract_presence",
+    "severity": "warning",
+    "message": "Function 'compute_risk' appears state-modifying but lacks required @atomic_action (line 243).",
+    "file_path": "src/will/autonomy/proposal.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.safety_contract_presence",
+    "severity": "warning",
+    "message": "Function 'execute_batch' appears state-modifying but lacks required @atomic_action (line 257).",
+    "file_path": "src/will/autonomy/proposal_executor.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.safety_contract_presence",
+    "severity": "warning",
+    "message": "Function 'create' appears state-modifying but lacks required @atomic_action (line 55).",
+    "file_path": "src/will/autonomy/proposal_repository.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.safety_contract_presence",
+    "severity": "warning",
+    "message": "Function 'get' appears state-modifying but lacks required @atomic_action (line 120).",
+    "file_path": "src/will/autonomy/proposal_repository.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.safety_contract_presence",
+    "severity": "warning",
+    "message": "Function 'update' appears state-modifying but lacks required @atomic_action (line 179).",
+    "file_path": "src/will/autonomy/proposal_repository.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.safety_contract_presence",
+    "severity": "warning",
+    "message": "Function 'mark_executing' appears state-modifying but lacks required @atomic_action (line 375).",
+    "file_path": "src/will/autonomy/proposal_repository.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.safety_contract_presence",
+    "severity": "warning",
+    "message": "Function 'mark_completed' appears state-modifying but lacks required @atomic_action (line 401).",
+    "file_path": "src/will/autonomy/proposal_repository.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.safety_contract_presence",
+    "severity": "warning",
+    "message": "Function 'mark_failed' appears state-modifying but lacks required @atomic_action (line 429).",
+    "file_path": "src/will/autonomy/proposal_repository.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.safety_contract_presence",
+    "severity": "warning",
+    "message": "Function 'approve' appears state-modifying but lacks required @atomic_action (line 457).",
+    "file_path": "src/will/autonomy/proposal_repository.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.safety_contract_presence",
+    "severity": "warning",
+    "message": "Function 'reject' appears state-modifying but lacks required @atomic_action (line 485).",
+    "file_path": "src/will/autonomy/proposal_repository.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -3422,15 +3548,6 @@
   {
     "check_id": "purity.safety_contract_presence",
     "severity": "warning",
-    "message": "Function 'format_for_prompt' appears state-modifying but lacks required @atomic_action (line 458).",
-    "file_path": "src/will/tools/architectural_context_builder.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.safety_contract_presence",
-    "severity": "warning",
     "message": "Function 'generate_all_anchors' appears state-modifying but lacks required @atomic_action (line 82).",
     "file_path": "src/will/tools/module_anchor_generator.py",
     "line_number": null,
@@ -3458,77 +3575,69 @@
   {
     "check_id": "purity.no_ast_duplication",
     "severity": "warning",
-    "message": "AST duplication: 'DevSyncPhase.ok' and 'WorkflowRun.ok' (100.00%)",
-    "file_path": "body.cli.workflows.dev_sync_reporter",
+    "message": "AST duplication detected.",
+    "file_path": null,
     "line_number": null,
     "context": {
       "symbol_a": "DevSyncPhase.ok",
       "symbol_b": "WorkflowRun.ok",
-      "similarity": 1.0,
-      "type": "ast"
+      "score": 1.0
     },
     "details": {
       "symbol_a": "DevSyncPhase.ok",
       "symbol_b": "WorkflowRun.ok",
-      "similarity": 1.0,
-      "type": "ast"
+      "score": 1.0
     }
   },
   {
     "check_id": "purity.no_ast_duplication",
     "severity": "warning",
-    "message": "AST duplication: 'DevSyncPhase.total_duration' and 'WorkflowRun.total_duration' (100.00%)",
-    "file_path": "body.cli.workflows.dev_sync_reporter",
+    "message": "AST duplication detected.",
+    "file_path": null,
     "line_number": null,
     "context": {
       "symbol_a": "DevSyncPhase.total_duration",
       "symbol_b": "WorkflowRun.total_duration",
-      "similarity": 1.0,
-      "type": "ast"
+      "score": 1.0
     },
     "details": {
       "symbol_a": "DevSyncPhase.total_duration",
       "symbol_b": "WorkflowRun.total_duration",
-      "similarity": 1.0,
-      "type": "ast"
+      "score": 1.0
     }
   },
   {
     "check_id": "purity.no_ast_duplication",
     "severity": "warning",
-    "message": "AST duplication: 'Embeddable' and 'Embeddable' (100.00%)",
-    "file_path": "shared.infrastructure.vector.vector_index_service",
+    "message": "AST duplication detected.",
+    "file_path": null,
     "line_number": null,
     "context": {
       "symbol_a": "Embeddable",
       "symbol_b": "Embeddable",
-      "similarity": 1.0,
-      "type": "ast"
+      "score": 1.0
     },
     "details": {
       "symbol_a": "Embeddable",
       "symbol_b": "Embeddable",
-      "similarity": 1.0,
-      "type": "ast"
+      "score": 1.0
     }
   },
   {
     "check_id": "purity.no_ast_duplication",
     "severity": "warning",
-    "message": "AST duplication: 'Embeddable.get_embedding' and 'Embeddable.get_embedding' (100.00%)",
-    "file_path": "shared.infrastructure.vector.vector_index_service",
+    "message": "AST duplication detected.",
+    "file_path": null,
     "line_number": null,
     "context": {
       "symbol_a": "Embeddable.get_embedding",
       "symbol_b": "Embeddable.get_embedding",
-      "similarity": 1.0,
-      "type": "ast"
+      "score": 1.0
     },
     "details": {
       "symbol_a": "Embeddable.get_embedding",
       "symbol_b": "Embeddable.get_embedding",
-      "similarity": 1.0,
-      "type": "ast"
+      "score": 1.0
     }
   },
   {
@@ -3536,6 +3645,24 @@
     "severity": "error",
     "message": "No test execution history found. Tests must be run before integration.",
     "file_path": "System",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "code_standards.max_file_lines",
+    "severity": "warning",
+    "message": "Module has 442 lines, exceeds limit of 400",
+    "file_path": "src/body/atomic/executor.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "code_standards.max_file_lines",
+    "severity": "warning",
+    "message": "Module has 493 lines, exceeds limit of 400",
+    "file_path": "src/body/cli/commands/autonomy.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -3581,15 +3708,6 @@
     "severity": "warning",
     "message": "Module has 559 lines, exceeds limit of 400",
     "file_path": "src/body/cli/workflows/dev_sync_phases.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "code_standards.max_file_lines",
-    "severity": "warning",
-    "message": "Module has 469 lines, exceeds limit of 400",
-    "file_path": "src/features/maintenance/scripts/context_export.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -3651,8 +3769,17 @@
   {
     "check_id": "code_standards.max_file_lines",
     "severity": "warning",
-    "message": "Module has 534 lines, exceeds limit of 400",
-    "file_path": "src/will/tools/architectural_context_builder.py",
+    "message": "Module has 432 lines, exceeds limit of 400",
+    "file_path": "src/will/autonomy/proposal.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "code_standards.max_file_lines",
+    "severity": "warning",
+    "message": "Module has 508 lines, exceeds limit of 400",
+    "file_path": "src/will/autonomy/proposal_repository.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -3687,7 +3814,25 @@
   {
     "check_id": "code_standards.max_function_lines",
     "severity": "warning",
-    "message": "Line 42: Function 'action_sync_database' has 54 lines, exceeds limit of 50",
+    "message": "Line 72: Function 'execute' has 128 lines, exceeds limit of 50",
+    "file_path": "src/body/atomic/executor.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "code_standards.max_function_lines",
+    "severity": "warning",
+    "message": "Line 221: Function '_check_authorization' has 65 lines, exceeds limit of 50",
+    "file_path": "src/body/atomic/executor.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "code_standards.max_function_lines",
+    "severity": "warning",
+    "message": "Line 42: Function 'action_sync_database' has 57 lines, exceeds limit of 50",
     "file_path": "src/body/atomic/sync_actions.py",
     "line_number": null,
     "context": {},
@@ -3696,7 +3841,7 @@
   {
     "check_id": "code_standards.max_function_lines",
     "severity": "warning",
-    "message": "Line 165: Function 'action_sync_constitutional_vectors' has 124 lines, exceeds limit of 50",
+    "message": "Line 168: Function 'action_sync_constitutional_vectors' has 124 lines, exceeds limit of 50",
     "file_path": "src/body/atomic/sync_actions.py",
     "line_number": null,
     "context": {},
@@ -3705,7 +3850,7 @@
   {
     "check_id": "code_standards.max_function_lines",
     "severity": "warning",
-    "message": "Line 39: Function 'analyze_command' has 108 lines, exceeds limit of 50",
+    "message": "Line 85: Function '_propose' has 85 lines, exceeds limit of 50",
     "file_path": "src/body/cli/commands/autonomy.py",
     "line_number": null,
     "context": {},
@@ -3714,7 +3859,25 @@
   {
     "check_id": "code_standards.max_function_lines",
     "severity": "warning",
-    "message": "Line 59: Function 'audit_cmd' has 62 lines, exceeds limit of 50",
+    "message": "Line 197: Function '_list' has 72 lines, exceeds limit of 50",
+    "file_path": "src/body/cli/commands/autonomy.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "code_standards.max_function_lines",
+    "severity": "warning",
+    "message": "Line 286: Function '_show' has 65 lines, exceeds limit of 50",
+    "file_path": "src/body/cli/commands/autonomy.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "code_standards.max_function_lines",
+    "severity": "warning",
+    "message": "Line 52: Function 'audit_cmd' has 51 lines, exceeds limit of 50",
     "file_path": "src/body/cli/commands/check/audit.py",
     "line_number": null,
     "context": {},
@@ -3777,17 +3940,8 @@
   {
     "check_id": "code_standards.max_function_lines",
     "severity": "warning",
-    "message": "Line 39: Function 'dev_sync_command' has 56 lines, exceeds limit of 50",
-    "file_path": "src/body/cli/commands/dev_sync.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "code_standards.max_function_lines",
-    "severity": "warning",
     "message": "Line 82: Function '_print_workflow_results' has 55 lines, exceeds limit of 50",
-    "file_path": "src/body/cli/commands/dev_sync_v2.py",
+    "file_path": "src/body/cli/commands/dev_sync.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -3833,24 +3987,6 @@
     "severity": "warning",
     "message": "Line 35: Function 'fix_body_ui_command' has 79 lines, exceeds limit of 50",
     "file_path": "src/body/cli/commands/fix/body_ui.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "code_standards.max_function_lines",
-    "severity": "warning",
-    "message": "Line 228: Function 'discover_handlers_command' has 99 lines, exceeds limit of 50",
-    "file_path": "src/body/cli/commands/fix/handler_discovery.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "code_standards.max_function_lines",
-    "severity": "warning",
-    "message": "Line 85: Function '_load_registered_handlers' has 55 lines, exceeds limit of 50",
-    "file_path": "src/body/cli/commands/fix/handler_discovery.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -4191,6 +4327,15 @@
   {
     "check_id": "code_standards.max_function_lines",
     "severity": "warning",
+    "message": "Line 31: Function '_async_export' has 60 lines, exceeds limit of 50",
+    "file_path": "src/features/introspection/export_vectors.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "code_standards.max_function_lines",
+    "severity": "warning",
     "message": "Line 71: Function 'main' has 53 lines, exceeds limit of 50",
     "file_path": "src/features/introspection/generate_capability_docs.py",
     "line_number": null,
@@ -4236,7 +4381,7 @@
   {
     "check_id": "code_standards.max_function_lines",
     "severity": "warning",
-    "message": "Line 160: Function 'run_sync_with_db' has 202 lines, exceeds limit of 50",
+    "message": "Line 163: Function 'run_sync_with_db' has 207 lines, exceeds limit of 50",
     "file_path": "src/features/introspection/sync_service.py",
     "line_number": null,
     "context": {},
@@ -4281,15 +4426,6 @@
   {
     "check_id": "code_standards.max_function_lines",
     "severity": "warning",
-    "message": "Line 192: Function 'scan_python_symbols' has 94 lines, exceeds limit of 50",
-    "file_path": "src/features/maintenance/scripts/context_export.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "code_standards.max_function_lines",
-    "severity": "warning",
     "message": "Line 19: Function 'run_vector_verify' has 55 lines, exceeds limit of 50",
     "file_path": "src/features/maintenance/scripts/vector_verify.py",
     "line_number": null,
@@ -4310,6 +4446,15 @@
     "severity": "warning",
     "message": "Line 20: Function 'integrate_changes' has 64 lines, exceeds limit of 50",
     "file_path": "src/features/project_lifecycle/integration_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "code_standards.max_function_lines",
+    "severity": "warning",
+    "message": "Line 57: Function 'scaffold_base_structure' has 93 lines, exceeds limit of 50",
+    "file_path": "src/features/project_lifecycle/scaffolding_service.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -4362,7 +4507,16 @@
   {
     "check_id": "code_standards.max_function_lines",
     "severity": "warning",
-    "message": "Line 96: Function '_async_complexity_outliers' has 62 lines, exceeds limit of 50",
+    "message": "Line 28: Function 'fix_clarity' has 71 lines, exceeds limit of 50",
+    "file_path": "src/features/self_healing/clarity_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "code_standards.max_function_lines",
+    "severity": "warning",
+    "message": "Line 116: Function '_async_complexity_outliers' has 86 lines, exceeds limit of 50",
     "file_path": "src/features/self_healing/complexity_service.py",
     "line_number": null,
     "context": {},
@@ -4398,7 +4552,7 @@
   {
     "check_id": "code_standards.max_function_lines",
     "severity": "warning",
-    "message": "Line 20: Function '_async_fix_docstrings' has 75 lines, exceeds limit of 50",
+    "message": "Line 25: Function '_async_fix_docstrings' has 117 lines, exceeds limit of 50",
     "file_path": "src/features/self_healing/docstring_service.py",
     "line_number": null,
     "context": {},
@@ -4407,7 +4561,7 @@
   {
     "check_id": "code_standards.max_function_lines",
     "severity": "warning",
-    "message": "Line 45: Function 'resolve_duplicate_ids' has 120 lines, exceeds limit of 50",
+    "message": "Line 48: Function 'resolve_duplicate_ids' has 128 lines, exceeds limit of 50",
     "file_path": "src/features/self_healing/duplicate_id_service.py",
     "line_number": null,
     "context": {},
@@ -4416,7 +4570,7 @@
   {
     "check_id": "code_standards.max_function_lines",
     "severity": "warning",
-    "message": "Line 26: Function 'run_fix_manifest_hygiene' has 85 lines, exceeds limit of 50",
+    "message": "Line 33: Function 'run_fix_manifest_hygiene' has 94 lines, exceeds limit of 50",
     "file_path": "src/features/self_healing/fix_manifest_hygiene.py",
     "line_number": null,
     "context": {},
@@ -4434,7 +4588,7 @@
   {
     "check_id": "code_standards.max_function_lines",
     "severity": "warning",
-    "message": "Line 123: Function '_run_header_fix_cycle' has 51 lines, exceeds limit of 50",
+    "message": "Line 159: Function '_run_header_fix_cycle' has 66 lines, exceeds limit of 50",
     "file_path": "src/features/self_healing/header_service.py",
     "line_number": null,
     "context": {},
@@ -4443,7 +4597,7 @@
   {
     "check_id": "code_standards.max_function_lines",
     "severity": "warning",
-    "message": "Line 26: Function 'assign_missing_ids' has 55 lines, exceeds limit of 50",
+    "message": "Line 35: Function 'assign_missing_ids' has 90 lines, exceeds limit of 50",
     "file_path": "src/features/self_healing/id_tagging_service.py",
     "line_number": null,
     "context": {},
@@ -4470,7 +4624,7 @@
   {
     "check_id": "code_standards.max_function_lines",
     "severity": "warning",
-    "message": "Line 26: Function '_async_fix_line_lengths' has 67 lines, exceeds limit of 50",
+    "message": "Line 31: Function '_async_fix_line_lengths' has 94 lines, exceeds limit of 50",
     "file_path": "src/features/self_healing/linelength_service.py",
     "line_number": null,
     "context": {},
@@ -4488,7 +4642,7 @@
   {
     "check_id": "code_standards.max_function_lines",
     "severity": "warning",
-    "message": "Line 21: Function 'add_missing_policy_ids' has 54 lines, exceeds limit of 50",
+    "message": "Line 29: Function 'add_missing_policy_ids' has 66 lines, exceeds limit of 50",
     "file_path": "src/features/self_healing/policy_id_service.py",
     "line_number": null,
     "context": {},
@@ -4497,7 +4651,7 @@
   {
     "check_id": "code_standards.max_function_lines",
     "severity": "warning",
-    "message": "Line 25: Function 'main' has 68 lines, exceeds limit of 50",
+    "message": "Line 31: Function 'prune_private_capability_tags' has 115 lines, exceeds limit of 50",
     "file_path": "src/features/self_healing/prune_private_capabilities.py",
     "line_number": null,
     "context": {},
@@ -4506,7 +4660,7 @@
   {
     "check_id": "code_standards.max_function_lines",
     "severity": "warning",
-    "message": "Line 23: Function 'purge_legacy_tags' has 106 lines, exceeds limit of 50",
+    "message": "Line 29: Function 'purge_legacy_tags' has 113 lines, exceeds limit of 50",
     "file_path": "src/features/self_healing/purge_legacy_tags_service.py",
     "line_number": null,
     "context": {},
@@ -4659,7 +4813,7 @@
   {
     "check_id": "code_standards.max_function_lines",
     "severity": "warning",
-    "message": "Line 83: Function 'run_full_audit_async' has 54 lines, exceeds limit of 50",
+    "message": "Line 79: Function 'run_full_audit_async' has 61 lines, exceeds limit of 50",
     "file_path": "src/mind/governance/auditor.py",
     "line_number": null,
     "context": {},
@@ -4670,15 +4824,6 @@
     "severity": "warning",
     "message": "Line 32: Function 'discover_all_checks' has 57 lines, exceeds limit of 50",
     "file_path": "src/mind/governance/check_registry.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "code_standards.max_function_lines",
-    "severity": "warning",
-    "message": "Line 35: Function 'run_dynamic_rules' has 89 lines, exceeds limit of 50",
-    "file_path": "src/mind/governance/constitutional_auditor_dynamic.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -4875,24 +5020,6 @@
   {
     "check_id": "code_standards.max_function_lines",
     "severity": "warning",
-    "message": "Line 132: Function '_check_table_has_records' has 58 lines, exceeds limit of 50",
-    "file_path": "src/mind/logic/engines/knowledge_gate.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "code_standards.max_function_lines",
-    "severity": "warning",
-    "message": "Line 293: Function '_check_semantic_duplication' has 58 lines, exceeds limit of 50",
-    "file_path": "src/mind/logic/engines/knowledge_gate.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "code_standards.max_function_lines",
-    "severity": "warning",
     "message": "Line 41: Function 'verify' has 70 lines, exceeds limit of 50",
     "file_path": "src/mind/logic/engines/llm_gate.py",
     "line_number": null,
@@ -4904,15 +5031,6 @@
     "severity": "warning",
     "message": "Line 24: Function 'verify' has 62 lines, exceeds limit of 50",
     "file_path": "src/mind/logic/engines/regex_gate.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "code_standards.max_function_lines",
-    "severity": "warning",
-    "message": "Line 36: Function 'verify' has 56 lines, exceeds limit of 50",
-    "file_path": "src/mind/logic/engines/workflow_gate/checks/alignment.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -5010,7 +5128,7 @@
   {
     "check_id": "code_standards.max_function_lines",
     "severity": "warning",
-    "message": "Line 87: Function 'build_for_task' has 81 lines, exceeds limit of 50",
+    "message": "Line 89: Function 'build_for_task' has 83 lines, exceeds limit of 50",
     "file_path": "src/shared/infrastructure/context/service.py",
     "line_number": null,
     "context": {},
@@ -5082,7 +5200,7 @@
   {
     "check_id": "code_standards.max_function_lines",
     "severity": "warning",
-    "message": "Line 241: Function 'policy' has 61 lines, exceeds limit of 50",
+    "message": "Line 246: Function 'policy' has 61 lines, exceeds limit of 50",
     "file_path": "src/shared/path_resolver.py",
     "line_number": null,
     "context": {},
@@ -5154,7 +5272,7 @@
   {
     "check_id": "code_standards.max_function_lines",
     "severity": "warning",
-    "message": "Line 39: Function 'infer_pattern_id' has 54 lines, exceeds limit of 50",
+    "message": "Line 40: Function 'infer_pattern_id' has 53 lines, exceeds limit of 50",
     "file_path": "src/will/agents/code_generation/pattern_validator.py",
     "line_number": null,
     "context": {},
@@ -5163,16 +5281,7 @@
   {
     "check_id": "code_standards.max_function_lines",
     "severity": "warning",
-    "message": "Line 94: Function '_classify_function_type' has 66 lines, exceeds limit of 50",
-    "file_path": "src/will/agents/code_generation/pattern_validator.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "code_standards.max_function_lines",
-    "severity": "warning",
-    "message": "Line 182: Function 'get_pattern_requirements' has 56 lines, exceeds limit of 50",
+    "message": "Line 94: Function '_classify_function_type' has 62 lines, exceeds limit of 50",
     "file_path": "src/will/agents/code_generation/pattern_validator.py",
     "line_number": null,
     "context": {},
@@ -5226,6 +5335,96 @@
   {
     "check_id": "code_standards.max_function_lines",
     "severity": "warning",
+    "message": "Line 243: Function 'compute_risk' has 55 lines, exceeds limit of 50",
+    "file_path": "src/will/autonomy/proposal.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "code_standards.max_function_lines",
+    "severity": "warning",
+    "message": "Line 301: Function 'to_dict' has 56 lines, exceeds limit of 50",
+    "file_path": "src/will/autonomy/proposal.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "code_standards.max_function_lines",
+    "severity": "warning",
+    "message": "Line 361: Function 'from_dict' has 72 lines, exceeds limit of 50",
+    "file_path": "src/will/autonomy/proposal.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "code_standards.max_function_lines",
+    "severity": "warning",
+    "message": "Line 66: Function 'execute' has 188 lines, exceeds limit of 50",
+    "file_path": "src/will/autonomy/proposal_executor.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "code_standards.max_function_lines",
+    "severity": "warning",
+    "message": "Line 257: Function 'execute_batch' has 56 lines, exceeds limit of 50",
+    "file_path": "src/will/autonomy/proposal_executor.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "code_standards.max_function_lines",
+    "severity": "warning",
+    "message": "Line 55: Function 'create' has 62 lines, exceeds limit of 50",
+    "file_path": "src/will/autonomy/proposal_repository.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "code_standards.max_function_lines",
+    "severity": "warning",
+    "message": "Line 120: Function 'get' has 56 lines, exceeds limit of 50",
+    "file_path": "src/will/autonomy/proposal_repository.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "code_standards.max_function_lines",
+    "severity": "warning",
+    "message": "Line 179: Function 'update' has 62 lines, exceeds limit of 50",
+    "file_path": "src/will/autonomy/proposal_repository.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "code_standards.max_function_lines",
+    "severity": "warning",
+    "message": "Line 244: Function 'list_by_status' has 64 lines, exceeds limit of 50",
+    "file_path": "src/will/autonomy/proposal_repository.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "code_standards.max_function_lines",
+    "severity": "warning",
+    "message": "Line 311: Function 'list_pending_approval' has 61 lines, exceeds limit of 50",
+    "file_path": "src/will/autonomy/proposal_repository.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "code_standards.max_function_lines",
+    "severity": "warning",
     "message": "Line 74: Function 'chat' has 61 lines, exceeds limit of 50",
     "file_path": "src/will/cli_logic/chat.py",
     "line_number": null,
@@ -5262,25 +5461,7 @@
   {
     "check_id": "code_standards.max_function_lines",
     "severity": "warning",
-    "message": "Line 113: Function 'build_context' has 63 lines, exceeds limit of 50",
-    "file_path": "src/will/tools/architectural_context_builder.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "code_standards.max_function_lines",
-    "severity": "warning",
-    "message": "Line 177: Function '_find_similar_examples' has 95 lines, exceeds limit of 50",
-    "file_path": "src/will/tools/architectural_context_builder.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "code_standards.max_function_lines",
-    "severity": "warning",
-    "message": "Line 458: Function 'format_for_prompt' has 77 lines, exceeds limit of 50",
+    "message": "Line 137: Function '_find_similar_examples' has 69 lines, exceeds limit of 50",
     "file_path": "src/will/tools/architectural_context_builder.py",
     "line_number": null,
     "context": {},
@@ -5327,159 +5508,6 @@
     "severity": "warning",
     "message": "Line 48: Function 'generate_tool_definition' has 57 lines, exceeds limit of 50",
     "file_path": "src/will/tools/tool_generator.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "style.import_order",
-    "severity": "warning",
-    "message": "Line 16: Imports not properly grouped",
-    "file_path": "src/body/actions/code_actions.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "style.import_order",
-    "severity": "warning",
-    "message": "Line 17: Imports not properly grouped",
-    "file_path": "src/body/actions/code_actions.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "style.import_order",
-    "severity": "warning",
-    "message": "Line 12: Imports not properly grouped",
-    "file_path": "src/body/actions/file_actions.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "style.import_order",
-    "severity": "warning",
-    "message": "Line 13: Imports not properly grouped",
-    "file_path": "src/body/actions/file_actions.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "style.import_order",
-    "severity": "warning",
-    "message": "Line 14: Imports not properly grouped",
-    "file_path": "src/body/actions/file_actions.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "style.import_order",
-    "severity": "warning",
-    "message": "Line 17: Imports not properly grouped",
-    "file_path": "src/body/actions/governance_actions.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "style.import_order",
-    "severity": "warning",
-    "message": "Line 18: Imports not properly grouped",
-    "file_path": "src/body/actions/governance_actions.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "style.import_order",
-    "severity": "warning",
-    "message": "Line 11: Imports not properly grouped",
-    "file_path": "src/body/actions/healing_actions.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "style.import_order",
-    "severity": "warning",
-    "message": "Line 12: Imports not properly grouped",
-    "file_path": "src/body/actions/healing_actions.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "style.import_order",
-    "severity": "warning",
-    "message": "Line 13: Imports not properly grouped",
-    "file_path": "src/body/actions/healing_actions.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "style.import_order",
-    "severity": "warning",
-    "message": "Line 11: Imports not properly grouped",
-    "file_path": "src/body/actions/registry.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "style.import_order",
-    "severity": "warning",
-    "message": "Line 12: Imports not properly grouped",
-    "file_path": "src/body/actions/registry.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "style.import_order",
-    "severity": "warning",
-    "message": "Line 13: Imports not properly grouped",
-    "file_path": "src/body/actions/registry.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "style.import_order",
-    "severity": "warning",
-    "message": "Line 14: Imports not properly grouped",
-    "file_path": "src/body/actions/registry.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "style.import_order",
-    "severity": "warning",
-    "message": "Line 15: Imports not properly grouped",
-    "file_path": "src/body/actions/registry.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "style.import_order",
-    "severity": "warning",
-    "message": "Line 16: Imports not properly grouped",
-    "file_path": "src/body/actions/registry.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "style.import_order",
-    "severity": "warning",
-    "message": "Line 23: Imports not properly grouped",
-    "file_path": "src/body/actions/registry.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -5550,7 +5578,7 @@
   {
     "check_id": "style.import_order",
     "severity": "warning",
-    "message": "Line 21: Imports not properly grouped",
+    "message": "Line 22: Imports not properly grouped",
     "file_path": "src/body/cli/commands/fix/code_style.py",
     "line_number": null,
     "context": {},
@@ -5577,7 +5605,7 @@
   {
     "check_id": "style.import_order",
     "severity": "warning",
-    "message": "Line 20: Imports not properly grouped",
+    "message": "Line 15: Imports not properly grouped",
     "file_path": "src/body/cli/commands/fix/handler_discovery.py",
     "line_number": null,
     "context": {},
@@ -5793,6 +5821,15 @@
   {
     "check_id": "style.import_order",
     "severity": "warning",
+    "message": "Line 14: Imports not properly grouped",
+    "file_path": "src/features/self_healing/docstring_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
     "message": "Line 23: Imports not properly grouped",
     "file_path": "src/features/self_healing/test_generation/generator.py",
     "line_number": null,
@@ -5928,71 +5965,98 @@
   {
     "check_id": "style.import_order",
     "severity": "warning",
-    "message": "Line 12: Imports not properly grouped",
-    "file_path": "src/mind/logic/engines/registry.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "style.import_order",
-    "severity": "warning",
-    "message": "Line 13: Imports not properly grouped",
-    "file_path": "src/mind/logic/engines/registry.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "style.import_order",
-    "severity": "warning",
-    "message": "Line 14: Imports not properly grouped",
-    "file_path": "src/mind/logic/engines/registry.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "style.import_order",
-    "severity": "warning",
-    "message": "Line 15: Imports not properly grouped",
-    "file_path": "src/mind/logic/engines/registry.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "style.import_order",
-    "severity": "warning",
-    "message": "Line 16: Imports not properly grouped",
-    "file_path": "src/mind/logic/engines/registry.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "style.import_order",
-    "severity": "warning",
-    "message": "Line 17: Imports not properly grouped",
-    "file_path": "src/mind/logic/engines/registry.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "style.import_order",
-    "severity": "warning",
-    "message": "Line 18: Imports not properly grouped",
-    "file_path": "src/mind/logic/engines/registry.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "style.import_order",
-    "severity": "warning",
     "message": "Line 18: Imports not properly grouped",
     "file_path": "src/shared/infrastructure/context/builder.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 18: Imports not properly grouped",
+    "file_path": "src/shared/infrastructure/context/service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 19: Imports not properly grouped",
+    "file_path": "src/shared/infrastructure/context/service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 20: Imports not properly grouped",
+    "file_path": "src/shared/infrastructure/context/service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 21: Imports not properly grouped",
+    "file_path": "src/shared/infrastructure/context/service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 22: Imports not properly grouped",
+    "file_path": "src/shared/infrastructure/context/service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 23: Imports not properly grouped",
+    "file_path": "src/shared/infrastructure/context/service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 24: Imports not properly grouped",
+    "file_path": "src/shared/infrastructure/context/service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 25: Imports not properly grouped",
+    "file_path": "src/shared/infrastructure/context/service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 26: Imports not properly grouped",
+    "file_path": "src/shared/infrastructure/context/service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 27: Imports not properly grouped",
+    "file_path": "src/shared/infrastructure/context/service.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -6083,33 +6147,6 @@
     "severity": "error",
     "message": "No test execution history found. Tests must be run before integration.",
     "file_path": "System",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "operations.runtime.env_vars_defined",
-    "severity": "error",
-    "message": "Forbidden primitive 'os.getenv' used (line 54).",
-    "file_path": "src/shared/infrastructure/adapters/embedding_provider.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "operations.runtime.env_vars_defined",
-    "severity": "error",
-    "message": "Forbidden primitive 'os.getenv' used (line 144).",
-    "file_path": "src/shared/infrastructure/repositories/db/common.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "operations.runtime.env_vars_defined",
-    "severity": "error",
-    "message": "Forbidden primitive 'os.getenv' used (line 281).",
-    "file_path": "src/shared/infrastructure/secrets_service.py",
     "line_number": null,
     "context": {},
     "details": {}

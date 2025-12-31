@@ -1,14 +1,17 @@
 # src/features/self_healing/purge_legacy_tags_service.py
+# ID: 0e5a08a4-7c8f-4b5d-86b7-539a77d4e829
 
 """
 Service logic for purging legacy tags and descriptive pollution from source code.
-Uses the dynamic constitutional rule engine instead of deleted legacy check classes.
+Refactored to use the canonical ActionExecutor Gateway for all mutations.
 """
 
 from __future__ import annotations
 
 from collections import defaultdict
+from typing import TYPE_CHECKING
 
+from body.atomic.executor import ActionExecutor
 from mind.governance.audit_context import AuditorContext
 from mind.governance.rule_executor import execute_rule
 from mind.governance.rule_extractor import extract_executable_rules
@@ -16,29 +19,32 @@ from shared.config import settings
 from shared.logger import getLogger
 
 
+if TYPE_CHECKING:
+    from shared.context import CoreContext
+
 logger = getLogger(__name__)
 
 
 # ID: 0e5a08a4-7c8f-4b5d-86b7-539a77d4e829
-async def purge_legacy_tags(dry_run: bool = True) -> int:
+async def purge_legacy_tags(context: CoreContext, dry_run: bool = True) -> int:
     """
     Finds legacy tags (like # owner: or # Tag:) using constitutional rules
-    and removes them from the source files.
+    and removes them from the source files via the Action Gateway.
 
     Args:
-        dry_run: If True, only prints the actions that would be taken.
+        context: CoreContext (Required for ActionExecutor)
+        dry_run: If True, only prints the actions (write=False in Gateway).
 
     Returns:
         The total number of lines that were (or would be) removed.
     """
-    # 1. Initialize Context and load the Knowledge Graph from DB
-    context = AuditorContext(settings.REPO_PATH)
-    await context.load_knowledge_graph()
+    # 1. Initialize Context and Gateway
+    executor = ActionExecutor(context)
+    auditor_context = context.auditor_context or AuditorContext(settings.REPO_PATH)
+    await auditor_context.load_knowledge_graph()
 
     # 2. Extract rules from the Constitution and find the "Purity" rule
-    # This rule is defined in src/mind/governance/checks/capability_owner_check.py
-    # and targets "# owner:" and other comment pollution.
-    all_rules = extract_executable_rules(context.policies)
+    all_rules = extract_executable_rules(auditor_context.policies)
     target_rule = next(
         (r for r in all_rules if r.rule_id == "purity.no_descriptive_pollution"), None
     )
@@ -49,11 +55,11 @@ async def purge_legacy_tags(dry_run: bool = True) -> int:
         )
         return 0
 
-    # 3. Execute the rule dynamically
+    # 3. Execute the rule dynamically to find violations
     logger.info(
         "🔍 Scanning for legacy tags via constitutional rule: %s", target_rule.rule_id
     )
-    all_findings = await execute_rule(target_rule, context)
+    all_findings = await execute_rule(target_rule, auditor_context)
 
     if not all_findings:
         logger.info("✅ No legacy tags found. Codebase is pure.")
@@ -78,34 +84,27 @@ async def purge_legacy_tags(dry_run: bool = True) -> int:
         len(src_findings),
     )
 
-    # 5. Group findings by file so we only open each file once
+    # 5. Group findings by file to minimize gateway transactions
     files_to_fix = defaultdict(list)
     for finding in src_findings:
         if finding.line_number:
             files_to_fix[finding.file_path].append(finding.line_number)
 
     total_lines_removed = 0
+    write_mode = not dry_run
 
-    # 6. Apply fixes
+    # 6. Apply fixes via Governed Gateway
     for file_path_str, line_numbers_to_delete in files_to_fix.items():
         file_path = settings.REPO_PATH / file_path_str
 
         # Sort lines in reverse order to avoid index shifting while deleting
         sorted_line_numbers = sorted(line_numbers_to_delete, reverse=True)
 
-        if dry_run:
-            logger.info("💧 [DRY RUN] Would process: %s", file_path_str)
-            for line_num in sorted_line_numbers:
-                logger.debug("   -> Would delete line %s", line_num)
-                total_lines_removed += 1
-            continue
-
         try:
             if not file_path.exists():
                 continue
 
             lines = file_path.read_text("utf-8").splitlines()
-            original_count = len(lines)
 
             for line_num in sorted_line_numbers:
                 index_to_delete = line_num - 1
@@ -113,13 +112,27 @@ async def purge_legacy_tags(dry_run: bool = True) -> int:
                     del lines[index_to_delete]
                     total_lines_removed += 1
 
-            # Save the file back only if lines were actually removed
-            if len(lines) < original_count:
-                file_path.write_text("\n".join(lines) + "\n", "utf-8")
+            final_code = "\n".join(lines) + "\n"
+
+            # CONSTITUTIONAL GATEWAY: Mutation is audited and guarded
+            result = await executor.execute(
+                action_id="file.edit",
+                write=write_mode,
+                file_path=file_path_str,
+                code=final_code,
+            )
+
+            if result.ok:
+                mode_str = "Purged" if write_mode else "Proposed (Dry Run)"
                 logger.info(
-                    "   -> ✅ Purged %s tags from %s",
+                    "   -> [%s] %s lines from %s",
+                    mode_str,
                     len(sorted_line_numbers),
                     file_path_str,
+                )
+            else:
+                logger.error(
+                    "   -> [BLOCKED] %s: %s", file_path_str, result.data.get("error")
                 )
 
         except Exception as e:

@@ -8,17 +8,19 @@ Constitutional Principle: Safe by Default
 - All secrets encrypted at rest using Fernet (symmetric encryption)
 - Audit trail for all secret access
 - Master key never stored in database
+
+Refactored to comply with operations.runtime.env_vars_defined (no os.getenv).
 """
 
 from __future__ import annotations
 
-import os
 from datetime import datetime
 
 from cryptography.fernet import Fernet, InvalidToken
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from shared.config import settings
 from shared.exceptions import SecretNotFoundError
 from shared.logger import getLogger
 
@@ -267,7 +269,7 @@ class SecretsService:
 # ID: a2beeaad-c05f-404b-8215-0e999d48a4d3
 async def get_secrets_service(db: AsyncSession) -> SecretsService:
     """
-    Factory function to create SecretsService with master key from environment.
+    Factory function to create SecretsService with master key from settings.
 
     This is the primary way to instantiate the service in production code.
 
@@ -276,11 +278,12 @@ async def get_secrets_service(db: AsyncSession) -> SecretsService:
         api_key = await secrets.get_secret(db, "anthropic.api_key")
 
     Raises:
-        RuntimeError: If CORE_MASTER_KEY not set in environment
+        RuntimeError: If CORE_MASTER_KEY not set in settings configuration
     """
-    master_key = os.getenv("CORE_MASTER_KEY")
+    # CONSTITUTIONAL FIX: Use settings SSOT instead of raw os.getenv
+    master_key = settings.CORE_MASTER_KEY
     if not master_key:
         raise RuntimeError(
-            "CORE_MASTER_KEY not found in environment. Generate one with: python -c 'from cryptography.fernet import Fernet; logger.info(Fernet.generate_key().decode())'"
+            "CORE_MASTER_KEY not found in configuration. Generate one with: python -c 'from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())'"
         )
     return SecretsService(master_key)

@@ -70,8 +70,11 @@ async def action_sync_database(
             )
 
         async with get_session() as session:
-            # run_sync_with_db only takes session parameter
-            stats = await run_sync_with_db(session)
+            # run_sync_with_db now returns an ActionResult object
+            result_obj = await run_sync_with_db(session)
+
+        # FIXED: Access statistics via the .data attribute of the ActionResult
+        stats = result_obj.data
 
         return ActionResult(
             action_id="sync.db",

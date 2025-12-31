@@ -1,4 +1,5 @@
 # src/features/introspection/sync_service.py
+# ID: f6cedf76-ff2c-48bd-9847-3a65c07edb2e
 
 """
 Symbol Synchronization Service
@@ -10,19 +11,21 @@ Constitutional Alignment:
 - knowledge.database_ssot: Ensures DB is the authoritative source for symbols.
 - dry_by_design: Centralizes AST extraction logic.
 - domain_mapper: Uses the shared utility to determine architectural boundaries.
+- body.atomic_actions_use_actionresult: Returns a standardized ActionResult.
 """
 
 from __future__ import annotations
 
 import ast
 import json
+import time
 import uuid
 from typing import Any
 
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from shared.action_types import ActionImpact
+from shared.action_types import ActionImpact, ActionResult
 from shared.ast_utility import FunctionCallVisitor, calculate_structural_hash
 from shared.atomic_action import atomic_action
 from shared.config import settings
@@ -157,13 +160,14 @@ class SymbolScanner:
     category="introspection",
 )
 # ID: f6cedf76-ff2c-48bd-9847-3a65c07edb2e
-async def run_sync_with_db(session: AsyncSession) -> dict[str, int]:
+async def run_sync_with_db(session: AsyncSession) -> ActionResult:
     """
     Executes the full, database-centric sync logic using the "smart merge" strategy.
 
     Args:
         session: Database session (injected dependency)
     """
+    start_time = time.time()
     logger.info("🚀 Starting symbol sync with database (Mind/Body alignment)")
 
     scanner = SymbolScanner()
@@ -175,10 +179,6 @@ async def run_sync_with_db(session: AsyncSession) -> dict[str, int]:
         "updated": 0,
         "deleted": 0,
     }
-
-    # FIXED: Removed begin_nested() - it was causing changes to rollback!
-    # The outer session will commit when it exits, which will properly
-    # apply all changes before dropping the temp table.
 
     # Create temp table matching core.symbols structure for high-performance set comparison
     await session.execute(
@@ -358,4 +358,12 @@ async def run_sync_with_db(session: AsyncSession) -> dict[str, int]:
         stats["updated"],
         stats["deleted"],
     )
-    return stats
+
+    # CONSTITUTIONAL FIX: Return ActionResult instead of dict
+    return ActionResult(
+        action_id="sync.knowledge_graph",
+        ok=True,
+        data=stats,
+        duration_sec=time.time() - start_time,
+        impact=ActionImpact.WRITE_DATA,
+    )

@@ -1,38 +1,52 @@
 # src/features/self_healing/policy_id_service.py
+# ID: c1a2b3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d
+
 """
 Provides the service logic for the one-time constitutional migration to add
 UUIDs to all policy files, bringing them into compliance with the updated policy_schema.
+Refactored to use the canonical ActionExecutor Gateway for all mutations.
 """
 
 from __future__ import annotations
 
 import uuid
+from typing import TYPE_CHECKING
 
 import yaml
 
+from body.atomic.executor import ActionExecutor
 from shared.config import settings
 from shared.logger import getLogger
 
+
+if TYPE_CHECKING:
+    from shared.context import CoreContext
 
 logger = getLogger(__name__)
 
 
 # ID: c1a2b3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d
-def add_missing_policy_ids(dry_run: bool = True) -> int:
+async def add_missing_policy_ids(context: CoreContext, dry_run: bool = True) -> int:
     """
-    Scans all constitutional policy files and adds a `policy_id` UUID if it's missing.
+    Scans all constitutional policy files and adds a `policy_id` UUID via the Action Gateway.
 
     Args:
-        dry_run: If True, only reports on the changes that would be made.
+        context: CoreContext (Required for ActionExecutor)
+        dry_run: If True, only reports on the changes (write=False in Gateway).
 
     Returns:
         The total number of policies that were (or would be) updated.
     """
-    policies_dir = settings.REPO_PATH / ".intent" / "charter" / "policies"
+    executor = ActionExecutor(context)
+
+    # Use canonical path resolution for the intent root
+    policies_dir = settings.paths.intent_root / "charter" / "policies"
+
     if not policies_dir.is_dir():
         logger.info("Policies directory not found at: %s", policies_dir)
         return 0
 
+    # Find all policy files
     files_to_process = list(policies_dir.rglob("*_policy.yaml"))
     policies_updated = 0
 
@@ -47,28 +61,34 @@ def add_missing_policy_ids(dry_run: bool = True) -> int:
             if "policy_id" in data:
                 continue
 
-            # If the key is missing, add it
-            policies_updated += 1
+            # If the key is missing, prepare the fix
             new_id = str(uuid.uuid4())
-
-            # Prepend the new ID to the raw file content to preserve comments and structure
             new_content = f"policy_id: {new_id}\n{content}"
 
-            if dry_run:
+            # Convert to repo-relative path for the Action Gateway
+            rel_path = str(file_path.relative_to(settings.REPO_PATH))
+
+            # CONSTITUTIONAL GATEWAY:
+            # This write is now governed by IntentGuard and logged in action_results.
+            result = await executor.execute(
+                action_id="file.edit",
+                write=not dry_run,
+                file_path=rel_path,
+                code=new_content,
+            )
+
+            if result.ok:
+                policies_updated += 1
+                status = "Added" if not dry_run else "Proposed (Dry Run)"
                 logger.info(
-                    "  -> [DRY RUN] Would add policy_id=%s to %s",
-                    new_id,
-                    file_path.name,
+                    "  -> [%s] policy_id=%s to %s", status, new_id, file_path.name
                 )
             else:
-                file_path.write_text(new_content, "utf-8")
-                logger.info(
-                    "  -> Added policy_id=%s to %s",
-                    new_id,
-                    file_path.name,
+                logger.error(
+                    "  -> [BLOCKED] %s: %s", file_path.name, result.data.get("error")
                 )
 
-        except Exception as e:  # pragma: no cover - defensive
-            logger.error("Error processing %s: %s", file_path.name, e, exc_info=True)
+        except Exception as e:
+            logger.error("Error processing %s: %s", file_path.name, e)
 
     return policies_updated

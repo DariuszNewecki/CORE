@@ -1,14 +1,15 @@
 # src/features/introspection/knowledge_graph_service.py
+# ID: b64ba9c9-f55c-4a24-bc2d-d8c2fa04b43e
 
 """
 Provides the KnowledgeGraphBuilder, the primary tool for introspecting the
 codebase and creating an in-memory representation of its symbols.
+Refactored to use the canonical FileHandler for artifact persistence.
 """
 
 from __future__ import annotations
 
 import ast
-import json
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -23,7 +24,7 @@ from shared.ast_utility import (
     extract_parameters,
     parse_metadata_comment,
 )
-from shared.config import settings
+from shared.infrastructure.storage.file_handler import FileHandler
 from shared.logger import getLogger
 
 
@@ -38,29 +39,32 @@ class KnowledgeGraphBuilder:
     """
 
     def __init__(self, root_path: Path):
-        self.root_path = root_path
+        self.root_path = root_path.resolve()
         self.intent_dir = self.root_path / ".intent"
         self.src_dir = self.root_path / "src"
         self.symbols: dict[str, dict[str, Any]] = {}
+
+        # Initialize the governed mutation surface
+        self._fh = FileHandler(str(self.root_path))
+
         self.domain_map = self._load_domain_map()
         self.entry_point_patterns = self._load_entry_point_patterns()
 
     def _load_domain_map(self) -> dict[str, str]:
         """Loads the architectural domain map from the constitution."""
         try:
-            # Tries to load source_structure.yaml first, often used for broad mapping
+            # Tries to load source_structure.yaml first
             structure_path = (
                 self.intent_dir / "mind" / "knowledge" / "source_structure.yaml"
             )
             if not structure_path.exists():
-                # Fallback to project_structure.yaml if source_structure is missing
+                # Fallback to project_structure.yaml
                 structure_path = (
                     self.intent_dir / "mind" / "knowledge" / "project_structure.yaml"
                 )
 
             if structure_path.exists():
                 structure = yaml.safe_load(structure_path.read_text("utf-8"))
-                # If checking project_structure.yaml, keys might be under 'architectural_domains'
                 items = structure.get("structure", []) or structure.get(
                     "architectural_domains", []
                 )
@@ -91,8 +95,10 @@ class KnowledgeGraphBuilder:
     def build(self) -> dict[str, Any]:
         """
         Executes the full build process for the knowledge graph and returns it.
+        Persists the result as a reports artifact via the governed FileHandler.
         """
         logger.info("Building knowledge graph for repository at: %s", self.root_path)
+
         # Reset symbols on rebuild
         self.symbols = {}
         for py_file in self.src_dir.rglob("*.py"):
@@ -106,16 +112,20 @@ class KnowledgeGraphBuilder:
             "symbols": self.symbols,
         }
 
-        # Save artifact for reporting/debugging
-        output_path = settings.REPO_PATH / "reports" / "knowledge_graph.json"
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-        output_path.write_text(json.dumps(knowledge_graph, indent=2))
+        # GOVERNED MUTATION: Save artifact using FileHandler
+        # This replaces output_path.write_text and ensures IntentGuard compliance.
+        artifact_rel_path = "reports/knowledge_graph.json"
 
-        logger.info(
-            "Knowledge graph artifact with %s symbols saved to %s",
-            len(self.symbols),
-            output_path,
-        )
+        try:
+            self._fh.write_runtime_json(artifact_rel_path, knowledge_graph)
+            logger.info(
+                "Knowledge graph artifact with %s symbols saved to %s",
+                len(self.symbols),
+                artifact_rel_path,
+            )
+        except Exception as e:
+            logger.error("Failed to save knowledge graph artifact: %s", e)
+
         return knowledge_graph
 
     def _scan_file(self, file_path: Path):
@@ -133,13 +143,7 @@ class KnowledgeGraphBuilder:
             logger.error("Failed to process file %s: %s", file_path, e)
 
     def _determine_domain(self, file_path: Path) -> str:
-        """
-        Determines the architectural domain of a file.
-
-        Logic:
-        1. If inside `src/features/<subdir>`, the domain is <subdir>.
-        2. Otherwise, falls back to the architectural domain map.
-        """
+        """Determines the architectural domain of a file."""
         try:
             rel_path = file_path.relative_to(self.root_path)
         except ValueError:
@@ -147,23 +151,16 @@ class KnowledgeGraphBuilder:
 
         parts = rel_path.parts
 
-        # 1. Feature Sub-domains (Priority for Operational Drift check)
-        # Structure matches: src/features/<domain_name>/...
-        # We look for index of 'features' and take the next part
         if "features" in parts:
             try:
                 idx = parts.index("features")
-                # Ensure there is a folder after 'features'
                 if idx + 1 < len(parts):
                     candidate = parts[idx + 1]
-                    # Exclude files directly in features/ like __init__.py
                     if not candidate.endswith(".py"):
                         return candidate
             except ValueError:
                 pass
 
-        # 2. Architectural Domains (Fallback from map)
-        # This handles high-level domains like 'api', 'core', 'mind', 'shared'
         abs_file_path = file_path.resolve()
         for domain_path, domain_name in self.domain_map.items():
             if str(abs_file_path).startswith(str(Path(domain_path).resolve())):
@@ -185,20 +182,16 @@ class KnowledgeGraphBuilder:
         call_visitor = FunctionCallVisitor()
         call_visitor.visit(node)
 
-        # Determine domain dynamically based on file location
         domain = self._determine_domain(file_path)
 
         symbol_data = {
             "uuid": symbol_path_key,
-            # If # ID tag exists, use it as the primary key reference if needed,
-            # though usually uuid field here is the path-key.
-            # The SyncService often reconciles this with the # ID tag.
             "key": metadata.get("capability"),
             "symbol_path": symbol_path_key,
             "name": node.name,
             "type": type(node).__name__,
             "file_path": str(rel_path),
-            "domain": domain,  # <--- CRITICAL FIX: Domain assignment
+            "domain": domain,
             "is_public": not node.name.startswith("_"),
             "title": node.name.replace("_", " ").title(),
             "description": docstring.split("\n")[0] if docstring else None,

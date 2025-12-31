@@ -150,7 +150,7 @@ def _configure_root_logger(
 
 
 # Break circular dependency by importing only when needed
-from shared.action_types import ActionImpact
+from shared.action_types import ActionImpact, ActionResult
 from shared.atomic_action import atomic_action
 
 
@@ -162,17 +162,33 @@ from shared.atomic_action import atomic_action
     policies=["standard_logging"],
 )
 # ID: fef5e4a6-9002-452d-92df-aabbb41e50f8
-async def reconfigure_log_level(level: str) -> bool:
+async def reconfigure_log_level(level: str) -> ActionResult:
     """
     Updates the root logger level at runtime.
     Constitutional: Wrapped in atomic_action for traceability.
+    Satisfies body.atomic_actions_use_actionresult law.
     """
+    import time
+
+    start_time = time.time()
     try:
         _configure_root_logger(level=level)
         getLogger(__name__).info("Log level reconfigured to %s", level.upper())
-        return True
-    except ValueError:
-        return False
+        return ActionResult(
+            action_id="logging.reconfigure",
+            ok=True,
+            data={"new_level": level.upper()},
+            duration_sec=time.time() - start_time,
+            impact=ActionImpact.WRITE_DATA,
+        )
+    except Exception as e:
+        return ActionResult(
+            action_id="logging.reconfigure",
+            ok=False,
+            data={"error": str(e)},
+            duration_sec=time.time() - start_time,
+            impact=ActionImpact.WRITE_DATA,
+        )
 
 
 # ─────────────────────────────────────────────────────────────── Initialization

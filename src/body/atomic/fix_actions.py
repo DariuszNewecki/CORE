@@ -41,24 +41,16 @@ logger = getLogger(__name__)
 async def action_format_code(write: bool = False) -> ActionResult:
     """
     Format code using Black and Ruff.
-
-    Args:
-        write: Apply changes (default: dry-run)
-
-    Returns:
-        ActionResult with files_changed count
     """
     start = time.time()
     try:
         logger.info("Starting code formatting (Black + Ruff)")
 
-        # Note: format_code doesn't support write flag, it always formats
-        # In dry-run mode, we just skip calling it
         if write:
             format_code(path=None)  # Format entire project
-            files_changed = 1  # Simplified - actual count not available
+            files_changed = 1
         else:
-            files_changed = 0  # Dry-run: no changes
+            files_changed = 0
 
         return ActionResult(
             action_id="fix.format",
@@ -87,20 +79,17 @@ async def action_format_code(write: bool = False) -> ActionResult:
     impact_level="safe",
 )
 # ID: b2c3d4e5-f678-90ab-cdef-1234567890ab
-async def action_fix_ids(write: bool = False) -> ActionResult:
+async def action_fix_ids(
+    core_context: CoreContext, write: bool = False
+) -> ActionResult:
     """
     Assign unique IDs to all functions and classes.
-
-    Args:
-        write: Apply changes (default: dry-run)
-
-    Returns:
-        ActionResult with ids_assigned count
     """
     start = time.time()
     try:
         logger.info("Assigning constitutional IDs")
-        result = await fix_ids_internal(write=write)
+        # FIXED: Pass core_context and await
+        result = await fix_ids_internal(core_context, write=write)
 
         return ActionResult(
             action_id="fix.ids",
@@ -130,20 +119,17 @@ async def action_fix_ids(write: bool = False) -> ActionResult:
     impact_level="safe",
 )
 # ID: c3d4e5f6-7890-abcd-ef12-34567890abcd
-async def action_fix_headers(write: bool = False) -> ActionResult:
+async def action_fix_headers(
+    core_context: CoreContext, write: bool = False
+) -> ActionResult:
     """
     Fix constitutional headers in all Python files.
-
-    Args:
-        write: Apply changes (default: dry-run)
-
-    Returns:
-        ActionResult with headers_fixed count
     """
     start = time.time()
     try:
         logger.info("Fixing constitutional headers")
-        result = await fix_headers_internal(write=write)
+        # FIXED: Pass core_context and await
+        result = await fix_headers_internal(core_context, write=write)
 
         return ActionResult(
             action_id="fix.headers",
@@ -178,29 +164,17 @@ async def action_fix_docstrings(
 ) -> ActionResult:
     """
     Fix missing or incomplete docstrings.
-
-    Args:
-        core_context: CORE context with services
-        write: Apply changes (default: dry-run)
-
-    Returns:
-        ActionResult with docstrings_fixed count
     """
     start = time.time()
     try:
         logger.info("Fixing docstrings")
-        result = await fix_docstrings(core_context, write=write)
-
-        # fix_docstrings may return None if no work needed
-        if result is None:
-            result = {"docstrings_added": 0, "files_processed": 0}
+        await fix_docstrings(core_context, write=write)
 
         return ActionResult(
             action_id="fix.docstrings",
             ok=True,
             data={
-                "docstrings_fixed": result.get("docstrings_added", 0),
-                "files_processed": result.get("files_processed", 0),
+                "status": "completed",
                 "dry_run": not write,
             },
             duration_sec=time.time() - start,
@@ -226,12 +200,6 @@ async def action_fix_docstrings(
 async def action_fix_logging(write: bool = False) -> ActionResult:
     """
     Fix logging policy violations (LOG-001, LOG-004).
-
-    Args:
-        write: Apply changes (default: dry-run)
-
-    Returns:
-        ActionResult with fixes_applied count
     """
     start = time.time()
     try:

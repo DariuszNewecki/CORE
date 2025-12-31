@@ -7,32 +7,22 @@ Composes atomic actions into a governed workflow:
 1. Fix Phase: Make code constitutional
 2. Sync Phase: Propagate clean state to DB and vectors
 
-Follows workflow_rules.json policy:
-- Each action is independent
-- Each action returns ActionResult
-- Phases organize related actions
-- Full governance and audit trail
+This orchestrator now routes all actions through the ActionExecutor gateway
+to ensure consistent governance, auditing, and automatic dependency injection.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import TYPE_CHECKING
 
-# Import from body.atomic package (which has the aliases)
-from body.atomic import (
-    action_fix_docstrings,
-    action_fix_format,  # This is the alias for action_format_code
-    action_fix_headers,
-    action_fix_ids,
-    action_fix_logging,
-    action_sync_code_vectors,
-    action_sync_constitutional_vectors,
-    action_sync_database,
-)
+from body.atomic.executor import ActionExecutor
 from shared.action_types import ActionResult
-from shared.context import CoreContext
 from shared.logger import getLogger
 
+
+if TYPE_CHECKING:
+    from shared.context import CoreContext
 
 logger = getLogger(__name__)
 
@@ -108,12 +98,6 @@ class DevSyncWorkflow:
     Composes atomic actions into a governed workflow that:
     1. Fixes code to be constitutional
     2. Syncs clean code to DB and vectors
-
-    Constitutional guarantees:
-    - Every action is independent
-    - Every action is auditable
-    - Failures are traceable
-    - Results are composable
     """
 
     def __init__(self, core_context: CoreContext, write: bool = False):
@@ -121,13 +105,13 @@ class DevSyncWorkflow:
         self.write = write
         self.result = WorkflowResult(workflow_id="dev.sync")
 
+        # We now use the ActionExecutor Gateway for all execution
+        self.gateway = ActionExecutor(core_context)
+
     # ID: 34567890-abcd-ef01-2345-6789abcdef01
     async def execute(self) -> WorkflowResult:
         """
         Execute the complete dev sync workflow.
-
-        Returns:
-            WorkflowResult with all phases and actions
         """
         logger.info("Starting dev.sync workflow (write=%s)", self.write)
 
@@ -151,38 +135,33 @@ class DevSyncWorkflow:
 
     # ID: 45678901-2345-6789-abcd-ef0123456789
     async def _execute_fix_phase(self) -> None:
-        """Execute all fix actions."""
+        """Execute all fix actions via the Gateway."""
         phase = WorkflowPhase(name="Fix Code")
         logger.info("Starting Fix Phase")
 
-        # Action 1: Format code (Black + Ruff)
-        result = await action_fix_format(write=self.write)
-        phase.actions.append(result)
-        logger.info("fix.format: %s", "OK" if result.ok else f"FAILED - {result.data}")
+        # By using self.gateway.execute(), the Gateway automatically
+        # injects core_context where needed and checks the IntentGuard.
 
-        # Action 2: Assign IDs
-        result = await action_fix_ids(write=self.write)
-        phase.actions.append(result)
-        logger.info("fix.ids: %s", "OK" if result.ok else f"FAILED - {result.data}")
+        # 1. Format
+        phase.actions.append(await self.gateway.execute("fix.format", write=self.write))
 
-        # Action 3: Fix headers
-        result = await action_fix_headers(write=self.write)
-        phase.actions.append(result)
-        logger.info("fix.headers: %s", "OK" if result.ok else f"FAILED - {result.data}")
+        # 2. Assign IDs
+        phase.actions.append(await self.gateway.execute("fix.ids", write=self.write))
 
-        # Action 4: Fix docstrings
-        result = await action_fix_docstrings(
-            core_context=self.core_context, write=self.write
-        )
-        phase.actions.append(result)
-        logger.info(
-            "fix.docstrings: %s", "OK" if result.ok else f"FAILED - {result.data}"
+        # 3. Fix headers
+        phase.actions.append(
+            await self.gateway.execute("fix.headers", write=self.write)
         )
 
-        # Action 5: Fix logging
-        result = await action_fix_logging(write=self.write)
-        phase.actions.append(result)
-        logger.info("fix.logging: %s", "OK" if result.ok else f"FAILED - {result.data}")
+        # 4. Fix docstrings
+        phase.actions.append(
+            await self.gateway.execute("fix.docstrings", write=self.write)
+        )
+
+        # 5. Fix logging
+        phase.actions.append(
+            await self.gateway.execute("fix.logging", write=self.write)
+        )
 
         self.result.phases.append(phase)
         logger.info(
@@ -193,47 +172,35 @@ class DevSyncWorkflow:
 
     # ID: 56789012-3456-789a-bcde-f0123456789a
     async def _execute_sync_phase(self) -> None:
-        """Execute all sync actions."""
+        """Execute all sync actions via the Gateway."""
         phase = WorkflowPhase(name="Sync State")
         logger.info("Starting Sync Phase")
 
-        # Action 1: Sync to database
-        result = await action_sync_database(
-            core_context=self.core_context, write=self.write
-        )
-        phase.actions.append(result)
-        logger.info("sync.db: %s", "OK" if result.ok else f"FAILED - {result.data}")
+        # 1. Sync to database
+        sync_db_result = await self.gateway.execute("sync.db", write=self.write)
+        phase.actions.append(sync_db_result)
 
-        # Action 2: Vectorize code (only if DB sync succeeded)
-        if result.ok:
-            result = await action_sync_code_vectors(
-                core_context=self.core_context, write=self.write, force=False
-            )
-            phase.actions.append(result)
-            logger.info(
-                "sync.vectors.code: %s",
-                "OK" if result.ok else f"FAILED - {result.data}",
+        # 2. Vectorize code (only if DB sync succeeded)
+        if sync_db_result.ok:
+            phase.actions.append(
+                await self.gateway.execute(
+                    "sync.vectors.code", write=self.write, force=False
+                )
             )
         else:
             logger.warning("Skipping code vectorization due to DB sync failure")
 
-        # Action 3: Vectorize constitution (optional, only if write=True)
-        # Skip if embedding settings not configured (this was the original issue)
+        # 3. Vectorize constitution (optional)
         if self.write:
+            # We wrap this in a try-except to handle cases where embeddings aren't configured
             try:
-                result = await action_sync_constitutional_vectors(
-                    core_context=self.core_context, write=self.write
+                result = await self.gateway.execute(
+                    "sync.vectors.constitution", write=self.write
                 )
                 phase.actions.append(result)
+            except Exception as e:
                 logger.info(
-                    "sync.vectors.constitution: %s",
-                    "OK" if result.ok else f"FAILED - {result.data}",
-                )
-            except ValueError as e:
-                # Missing embedding settings - log but don't fail
-                logger.info(
-                    "Skipping constitutional vectorization (settings not configured): %s",
-                    e,
+                    "Skipping constitutional vectorization (non-critical): %s", e
                 )
 
         self.result.phases.append(phase)

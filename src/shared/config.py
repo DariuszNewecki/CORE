@@ -149,19 +149,13 @@ class Settings(BaseSettings):
                 intent_root=self.MIND,
             )
 
-            # Validate structure on first access (pure check; does not create)
-            issues = self._path_resolver.validate_structure()
-            # New implementation returns dict; older variants returned list[str]
-            if isinstance(issues, dict):
-                missing = issues.get("missing_dirs") or []
-                if missing:
-                    logger.warning(
-                        "Path structure validation found missing dirs: %s",
-                        "; ".join(missing),
-                    )
-            elif isinstance(issues, list) and issues:
+            # 2. Validate structure
+            # REFACTORED: Single code path for all validation outcomes
+            result = self._path_resolver.validate_structure()
+            if not result.ok:
                 logger.warning(
-                    "Path structure validation found issues: %s", "; ".join(issues)
+                    "Path structure validation found missing components: %s",
+                    "; ".join(result.errors),
                 )
 
         return self._path_resolver

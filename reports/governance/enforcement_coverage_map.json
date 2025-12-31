@@ -1,9 +1,9 @@
 {
   "metadata": {
-    "generated_at_utc": "2025-12-30T14:59:44.496788+00:00",
+    "generated_at_utc": "2025-12-31T11:00:43.024484+00:00",
     "evidence_file": "reports/audit/latest_audit.json",
     "evidence_key_used": "executed_rules",
-    "total_executed_ids": 208,
+    "total_executed_ids": 206,
     "total_policy_files": 37,
     "flat_format_policies": 37,
     "nested_format_policies": 0
@@ -1410,8 +1410,8 @@
         "severity": "error",
         "policy": "standard_data_governance",
         "category": "integrity",
-        "check_engine": "llm_gate",
-        "check_type": null,
+        "check_engine": "knowledge_gate",
+        "check_type": "duplicate_ids",
         "implementable": true
       },
       "coverage_status": "enforced",
@@ -1438,8 +1438,8 @@
         "severity": "error",
         "policy": "standard_data_governance",
         "category": "operations",
-        "check_engine": "llm_gate",
-        "check_type": null,
+        "check_engine": "glob_gate",
+        "check_type": "path_restriction",
         "implementable": true
       },
       "coverage_status": "enforced",
@@ -1452,8 +1452,8 @@
         "severity": "error",
         "policy": "standard_data_governance",
         "category": "database",
-        "check_engine": "llm_gate",
-        "check_type": null,
+        "check_engine": "knowledge_gate",
+        "check_type": "table_has_records",
         "implementable": true
       },
       "coverage_status": "enforced",
@@ -1466,8 +1466,8 @@
         "severity": "error",
         "policy": "standard_data_governance",
         "category": "knowledge",
-        "check_engine": "llm_gate",
-        "check_type": null,
+        "check_engine": "knowledge_gate",
+        "check_type": "table_has_records",
         "implementable": true
       },
       "coverage_status": "enforced",
@@ -1480,8 +1480,8 @@
         "severity": "error",
         "policy": "standard_data_governance",
         "category": "knowledge",
-        "check_engine": "llm_gate",
-        "check_type": null,
+        "check_engine": "knowledge_gate",
+        "check_type": "table_has_records",
         "implementable": true
       },
       "coverage_status": "enforced",
@@ -1494,8 +1494,8 @@
         "severity": "error",
         "policy": "standard_data_governance",
         "category": "infrastructure",
-        "check_engine": "llm_gate",
-        "check_type": null,
+        "check_engine": "knowledge_gate",
+        "check_type": "table_has_records",
         "implementable": true
       },
       "coverage_status": "enforced",
@@ -1508,8 +1508,8 @@
         "severity": "error",
         "policy": "standard_data_governance",
         "category": "infrastructure",
-        "check_engine": "llm_gate",
-        "check_type": null,
+        "check_engine": "knowledge_gate",
+        "check_type": "table_has_records",
         "implementable": true
       },
       "coverage_status": "enforced",
@@ -1550,8 +1550,8 @@
         "severity": "error",
         "policy": "standard_data_governance",
         "category": "integrity",
-        "check_engine": "llm_gate",
-        "check_type": null,
+        "check_engine": "glob_gate",
+        "check_type": "path_restriction",
         "implementable": true
       },
       "coverage_status": "enforced",
@@ -1578,8 +1578,8 @@
         "severity": "error",
         "policy": "standard_data_governance",
         "category": "integrity",
-        "check_engine": "llm_gate",
-        "check_type": null,
+        "check_engine": "knowledge_gate",
+        "check_type": "table_has_records",
         "implementable": true
       },
       "coverage_status": "enforced",
@@ -1788,8 +1788,8 @@
         "severity": "error",
         "policy": "standard_operations_general",
         "category": "uncategorized",
-        "check_engine": "ast_gate",
-        "check_type": "id_anchor",
+        "check_engine": "workflow_gate",
+        "check_type": "audit_history",
         "implementable": true
       },
       "coverage_status": "enforced",
@@ -2759,8 +2759,6 @@
     "standard_architecture_workflow_rules.pattern.saga_workflow",
     "standard_architecture_workflow_rules.ui_contract.0",
     "standard_architecture_workflow_rules.ui_contract.1",
-    "standard_architecture_workflow_rules.ui_contract.2",
-    "standard_architecture_workflow_rules.ui_contract.3",
     "style.docstrings_public_apis",
     "style.fail_on_style_in_ci",
     "style.formatter_required",
@@ -2922,7 +2920,7 @@
       "format": "flat"
     },
     "standard_data_governance": {
-      "title": "Data Standard – Database & Data Governance",
+      "title": "Data Standard - Database & Data Governance",
       "id": "standard_data_governance",
       "format": "flat"
     },

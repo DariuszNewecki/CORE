@@ -1,19 +1,16 @@
 # src/will/agents/plan_executor.py
+# ID: autonomy.plan_executor
 
 """
-Provides a clean, refactored PlanExecutor that acts as a pure orchestrator,
-delegating all action-specific logic to dedicated, registered handlers.
+Provides a refactored PlanExecutor that routes AI Agent steps through the
+canonical Atomic Action system (ActionExecutor).
 """
 
 from __future__ import annotations
 
-import asyncio
+from typing import Any
 
-from body.actions.context import PlanExecutorContext
-from body.actions.registry import ActionRegistry
-from mind.governance.audit_context import AuditorContext
-from shared.infrastructure.git_service import GitService
-from shared.infrastructure.storage.file_handler import FileHandler
+from body.atomic.executor import ActionExecutor
 from shared.logger import getLogger
 from shared.models import ExecutionTask, PlanExecutionError, PlannerConfig
 
@@ -24,53 +21,62 @@ logger = getLogger(__name__)
 # ID: c87abb8b-1424-4bd5-b85b-94c013db5eeb
 class PlanExecutor:
     """
-    A service that takes a list of ExecutionTasks and orchestrates their
-    execution by dispatching them to registered ActionHandlers.
+    Orchestrates execution of AI-generated plans using the canonical ActionExecutor.
+
+    This ensures that Agent actions are identical to human/CLI actions and are
+    subject to the same constitutional governance.
     """
 
     def __init__(
-        self, file_handler: FileHandler, git_service: GitService, config: PlannerConfig
+        self,
+        core_context: Any,  # We now require the full CoreContext
+        config: PlannerConfig,
     ):
-        """Initializes the executor with necessary dependencies."""
         self.config = config
-        self.action_registry = ActionRegistry()
-        self.context = PlanExecutorContext(
-            file_handler=file_handler,
-            git_service=git_service,
-            auditor_context=AuditorContext(file_handler.repo_path),
-        )
-        self._knowledge_graph_task = asyncio.create_task(
-            self.context.auditor_context.load_knowledge_graph()
-        )
+        self.context = core_context
+        # The ActionExecutor is the single entry point for all system changes
+        self.action_executor = ActionExecutor(core_context)
 
     # ID: 322ea945-c32f-4f6a-8c26-640f7c38b6b3
     async def execute_plan(self, plan: list[ExecutionTask]):
-        """Executes the entire plan by dispatching each task to its handler."""
+        """Executes the entire plan by dispatching to the Action Gateway."""
         for i, task in enumerate(plan, 1):
-            logger.info("--- Executing Step %s/{len(plan)}: {task.step} ---", i)
-            handler = self.action_registry.get_handler(task.action)
-            if not handler:
-                logger.warning(
-                    "Skipping task: No handler found for action '%s'.", task.action
-                )
-                continue
-            await self._execute_task_with_timeout(task, handler)
+            logger.info("--- Executing Step %s/%s: %s ---", i, len(plan), task.step)
 
-    async def _execute_task_with_timeout(self, task: ExecutionTask, handler):
-        """Executes a single task with timeout protection."""
-        timeout = self.config.task_timeout
-        try:
-            await asyncio.wait_for(
-                handler.execute(task.params, self.context), timeout=timeout
+            # 1. Translate legacy agent action names to the new Atomic IDs
+            action_id = self._map_legacy_action(task.action)
+
+            # 2. Extract the parameters from the AI's plan
+            params = task.params.model_dump(exclude_none=True)
+
+            # 3. Call the central Gateway
+            # This handles policies, impacts, and safety checks for the AI automatically.
+            result = await self.action_executor.execute(
+                action_id=action_id, write=self.config.auto_commit, **params
             )
-        except TimeoutError:
-            raise PlanExecutionError(f"Task '{task.step}' timed out after {timeout}s")
-        except Exception as e:
-            logger.error(
-                "Error executing action '%s' for step '%s': %s",
-                task.action,
-                task.step,
-                e,
-                exc_info=True,
-            )
-            raise PlanExecutionError(f"Step '{task.step}' failed: {e}") from e
+
+            # 4. Handle failures
+            if not result.ok:
+                error_msg = result.data.get("error", "Unknown error")
+                raise PlanExecutionError(f"Step '{task.step}' failed: {error_msg}")
+
+            # 5. Context Persistence: If the AI read a file, keep it in cache for the next step
+            if action_id == "file.read" and "content" in result.data:
+                if not hasattr(self.context, "file_content_cache"):
+                    self.context.file_content_cache = {}
+                self.context.file_content_cache[params["file_path"]] = result.data[
+                    "content"
+                ]
+
+    def _map_legacy_action(self, legacy_name: str) -> str:
+        """Translates old agent action names to the new canonical action_ids."""
+        mapping = {
+            "read_file": "file.read",
+            "create_file": "file.create",
+            "edit_file": "file.edit",
+            "delete_file": "file.delete",
+            "fix_docstrings": "fix.docstrings",
+            "fix_headers": "fix.headers",
+            "sync_db": "sync.db",
+        }
+        return mapping.get(legacy_name, legacy_name)

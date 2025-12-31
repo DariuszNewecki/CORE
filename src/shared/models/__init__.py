@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from .audit_models import AuditFinding, AuditSeverity
 from .capability_models import CapabilityMeta
-from .drift_models import DriftReport  # <-- ADD THIS LINE
+from .drift_models import DriftReport
 from .embedding_payload import EmbeddingPayload
 from .execution_models import (
     ExecutionTask,
@@ -15,16 +15,18 @@ from .execution_models import (
     PlannerConfig,
     TaskParams,
 )
+from .validation_result import ValidationResult
 
 
 __all__ = [
     "AuditFinding",
     "AuditSeverity",
     "CapabilityMeta",
-    "DriftReport",  # <-- AND ADD THIS LINE
+    "DriftReport",
     "EmbeddingPayload",
     "ExecutionTask",
     "PlanExecutionError",
     "PlannerConfig",
     "TaskParams",
+    "ValidationResult",
 ]

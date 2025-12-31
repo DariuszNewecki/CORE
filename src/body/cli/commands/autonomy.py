@@ -50,6 +50,7 @@ autonomy_app = typer.Typer(
 
 # ID: cmd_propose
 @autonomy_app.command("propose")
+# ID: 4ba20fb0-ce9f-46ab-ae88-f8dc559198bc
 def propose_cmd(
     goal: str = typer.Argument(..., help="What the proposal aims to achieve"),
     actions: list[str] = typer.Option(
@@ -170,6 +171,7 @@ async def _propose(goal: str, action_strs: list[str], files: list[str], dry_run:
 
 # ID: cmd_list
 @autonomy_app.command("list")
+# ID: 19c54972-1076-4a20-ba6e-7f669e11ea79
 def list_cmd(
     status: str | None = typer.Option(
         None, "--status", "-s", help="Filter by status (draft, pending, approved, etc.)"
@@ -268,6 +270,7 @@ async def _list(status_str: str | None, limit: int):
 
 # ID: cmd_show
 @autonomy_app.command("show")
+# ID: 67ca4d4b-9526-4105-a976-119305dd16bc
 def show_cmd(
     proposal_id: str = typer.Argument(..., help="Proposal ID to show"),
 ):
@@ -349,6 +352,7 @@ async def _show(proposal_id: str):
 
 # ID: cmd_approve
 @autonomy_app.command("approve")
+# ID: f8e09a45-bceb-4c73-a8ff-ac33da0f332a
 def approve_cmd(
     proposal_id: str = typer.Argument(..., help="Proposal ID to approve"),
     approved_by: str = typer.Option("cli_admin", "--by", help="Who is approving this"),
@@ -391,6 +395,7 @@ async def _approve(proposal_id: str, approved_by: str):
 # ID: cmd_execute
 @autonomy_app.command("execute")
 @core_command(dangerous=True, confirmation=False)
+# ID: 07e0bfc0-f2f5-49ef-bfc5-a2b5a3254a12
 def execute_cmd(
     ctx: typer.Context,
     proposal_id: str = typer.Argument(..., help="Proposal ID to execute"),
@@ -452,6 +457,7 @@ async def _execute(context: CoreContext, proposal_id: str, write: bool):
 
 # ID: cmd_reject
 @autonomy_app.command("reject")
+# ID: cd681bf8-96b0-40a1-9975-4fc9cb303677
 def reject_cmd(
     proposal_id: str = typer.Argument(..., help="Proposal ID to reject"),
     reason: str = typer.Option(..., "--reason", "-r", help="Rejection reason"),

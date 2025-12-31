@@ -1,76 +1,58 @@
 # src/features/maintenance/scripts/context_export.py
+# ID: af5abbe5-0304-4f54-9eb0-596d71791b41
 
 """
-Export a complete, compact operational snapshot of CORE:
-- Mind (.intent)  -> zipped + manifest
-- Body (src)      -> zipped + symbol_index.json
-- State (DB)      -> schema-only SQL + small samples (optional)
-- Vectors (Qdrant)-> collection schema + small payload samples (optional)
-- Runtime         -> runtime_context.yaml
-- Top manifest    -> core_context_manifest.yaml (hashes, versions, pointers)
+Export a complete, compact operational snapshot of CORE.
+Refactored to use canonical services (FileHandler, GitService, Settings).
 
-✅ CORE UX principle:
-By default, this script reads its configuration from the live CORE environment
-(no arguments needed) and writes to ./_exports/core_export_<timestamp>/.
-
-Quick run:
-  python3 scripts/export_core_context.py
-
-Optional overrides:
-  python3 scripts/export_core_context.py --output-dir /opt/exports
-  python3 scripts/export_core_context.py --db-url postgresql://user:pass@host:5432/core
-  python3 scripts/export_core_context.py --qdrant-url http://127.0.0.1:6333 --qdrant-collection core_capabilities
-
-Environment fallbacks (used if args not passed):
-  DATABASE_URL, QDRANT_URL, QDRANT_COLLECTION_NAME
-
-Outputs (under output-dir/TIMESTAMP/):
-  - .intent.tar.gz
-  - intent_manifest.yaml
-  - src.tar.gz
-  - symbol_index.json
-  - db_schema.sql              (if DB available)
-  - db_samples.json            (if DB available)
-  - qdrant_schema.yaml         (if Qdrant available)
-  - qdrant_samples.json        (if Qdrant available)
-  - runtime_context.yaml
-  - core_context_manifest.yaml (top-level manifest & checksums)
+Compliance:
+- Category C: Reports/Exports
+- Single Source of Truth: shared.config.settings
+- Governed Mutation: FileHandler
 """
 
 from __future__ import annotations
 
 import ast
+import asyncio
 import dataclasses
-import datetime as dt
 import hashlib
 import json
-import os
-import re
-import subprocess
 import tarfile
 import urllib.error
 import urllib.parse
 import urllib.request
 from pathlib import Path
-from typing import Any
+
+from shared.config import settings
+from shared.infrastructure.git_service import GitService
+from shared.infrastructure.storage.file_handler import FileHandler
+from shared.logger import getLogger
+from shared.time import now_iso
 
 
-# TODO: Replace with shared.config.settings access
-# Currently using argparse defaults with os.environ fallback
-# Should be refactored to use shared.config.settings
+logger = getLogger(__name__)
+
+
+@dataclasses.dataclass
+# ID: fc33426e-cb3d-461d-b20f-a02b90f2408f
+class Symbol:
+    module: str
+    kind: str
+    name: str
+    lineno: int
+    signature: str
+    doc: str | None
+
 
 # ---------------------------
 # Helpers
 # ---------------------------
 
 
-# ID: 5db35538-9a12-43ef-9a09-3d359df0d2d0
-def now_utc_iso() -> str:
-    return dt.datetime.utcnow().replace(microsecond=0).isoformat() + "Z"
-
-
-# ID: e40eea40-fdc4-42c1-8022-b6306c23efab
+# ID: 772bd5da-7fcf-4aa1-a23c-3d5889d0c149
 def sha256_file(path: Path) -> str:
+    """Pure helper for file hashing."""
     h = hashlib.sha256()
     with open(path, "rb") as f:
         for chunk in iter(lambda: f.read(1024 * 1024), b""):
@@ -78,107 +60,12 @@ def sha256_file(path: Path) -> str:
     return h.hexdigest()
 
 
-# ID: 3c91eb52-a5e1-42b4-86e7-19dab7bdd556
-def redacted_url(url: str) -> str:
-    if not url or "@" not in url:
-        return url
-    # Redact credentials: scheme://user:pass@host -> scheme://***@host
-    return re.sub(r"//([^/@:]+)(:[^/@]+)?@", "//***@", url)
-
-
-# ID: 221808d8-f133-4bb2-92f8-4ce9c8a7ac97
-def run_cmd(
-    args: list[str], cwd: Path | None = None, timeout: int = 60
-) -> tuple[int, str, str]:
-    proc = subprocess.Popen(
-        args,
-        cwd=str(cwd) if cwd else None,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-    )
-    try:
-        out, err = proc.communicate(timeout=timeout)
-    except subprocess.TimeoutExpired:
-        proc.kill()
-        out, err = proc.communicate()
-    return proc.returncode, out, err
-
-
-# ID: e8d3a370-90b9-4526-9196-7b30c71bb69e
-def tar_dir(
-    src_dir: Path, out_path: Path, exclude_globs: list[str] | None = None
-) -> None:
-    """
-    Create a .tar.gz archive (stdlib-only; portable & compact).
-    """
-    mode = "w:gz"
-    with tarfile.open(out_path, mode) as tar:
-        for root, _, files in os.walk(src_dir):
-            root_p = Path(root)
-            for name in files:
-                p = root_p / name
-                rel = p.relative_to(src_dir)
-                if exclude_globs and any(rel.match(g) for g in exclude_globs):
-                    continue
-                tar.add(p, arcname=str(rel))
-
-
-# ID: f56e2728-a4bd-4392-81e4-84474efb7548
-def safe_write_text(path: Path, text: str) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(text, encoding="utf-8")
-
-
-# ID: 582df9bd-10a3-4120-9a00-f7e5592eabd3
-def safe_write_json(path: Path, data: Any) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
-
-
-# ---------------------------
-# Git info (optional)
-# ---------------------------
-
-
-# ID: 20a1dbf6-bc0a-47aa-a4f3-9944ad7f3efc
-def git_info(repo_root: Path) -> dict[str, Any]:
-    info = {}
-    code, out, _ = run_cmd(["git", "rev-parse", "HEAD"], cwd=repo_root)
-    if code == 0:
-        info["commit"] = out.strip()
-    code, out, _ = run_cmd(["git", "rev-parse", "--abbrev-ref", "HEAD"], cwd=repo_root)
-    if code == 0:
-        info["branch"] = out.strip()
-    code, out, _ = run_cmd(["git", "status", "--porcelain"], cwd=repo_root)
-    if code == 0:
-        info["dirty"] = bool(out.strip())
-    return info
-
-
-# ---------------------------
-# AST scan for symbol index
-# ---------------------------
-
-
-@dataclasses.dataclass
-# ID: d751eeec-bb80-4ab7-bac3-53d4801520ca
-class Symbol:
-    module: str
-    kind: str  # "class" | "function"
-    name: str
-    lineno: int
-    signature: str
-    doc: str | None
-
-
-# ID: a3a8a571-4b76-426c-9f36-90fe4eb6ad90
+# ID: 377f784e-516c-404b-8b36-ccd4346d299f
 def build_signature_from_ast(node: ast.AST) -> str:
+    """Pure helper for AST signature extraction."""
     if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
         return ""
-    args = []
-    for a in node.args.args:
-        args.append(a.arg)
+    args = [a.arg for a in node.args.args]
     if node.args.vararg:
         args.append("*" + node.args.vararg.arg)
     for a in node.args.kwonlyargs:
@@ -188,282 +75,192 @@ def build_signature_from_ast(node: ast.AST) -> str:
     return f"({', '.join(args)})"
 
 
-# ID: 8b3f5ac1-958f-43a6-9043-c558d18de672
-def scan_python_symbols(src_root: Path) -> dict[str, Any]:
-    symbols: list[Symbol] = []
-    imports: list[dict[str, Any]] = []
-    for py in src_root.rglob("*.py"):
-        rel_mod = str(py.relative_to(src_root)).replace(os.sep, ".")[:-3]
-        try:
-            txt = py.read_text(encoding="utf-8")
-        except Exception:
-            continue
-        try:
-            tree = ast.parse(txt)
-        except Exception:
-            continue
+# ---------------------------
+# Governed Export Logic
+# ---------------------------
 
-        # Imports
-        for node in ast.walk(tree):
-            if isinstance(node, ast.Import):
-                for alias in node.names:
-                    imports.append({"from": rel_mod, "to": alias.name})
-            elif isinstance(node, ast.ImportFrom) and node.module:
-                imports.append({"from": rel_mod, "to": node.module})
 
-        # Top-level symbols
-        for node in tree.body:
-            if isinstance(node, ast.ClassDef):
-                doc = ast.get_docstring(node)
-                symbols.append(
-                    Symbol(
-                        rel_mod,
-                        "class",
-                        node.name,
-                        getattr(node, "lineno", 0),
-                        "(…)",
-                        doc,
-                    )
-                )
-                # public methods
-                for ch in node.body:
-                    if isinstance(
-                        ch, (ast.FunctionDef, ast.AsyncFunctionDef)
-                    ) and not ch.name.startswith("_"):
-                        doc_m = ast.get_docstring(ch)
-                        sig = build_signature_from_ast(ch)
+# ID: 6c005976-a799-446d-aea4-2d04782c6b76
+class ContextExporter:
+    """Orchestrates the system snapshot using governed services."""
+
+    def __init__(self, output_base: Path | None = None):
+        self.repo_root = settings.REPO_PATH
+        self.output_base = output_base or (self.repo_root / "var" / "exports")
+        self.timestamp = now_iso().replace(":", "-").split(".")[0]
+        self.export_rel_dir = f"var/exports/core_export_{self.timestamp}"
+
+        # Mutation surface
+        self.fh = FileHandler(str(self.repo_root))
+        self.git = GitService(self.repo_root)
+
+    # ID: 2f5bda9b-4da0-486d-8748-c2c0a75a42dc
+    async def run(self) -> str:
+        """Execute the full export pipeline."""
+        logger.info("🚀 Starting CORE Context Export...")
+
+        # Ensure export directory
+        self.fh.ensure_dir(self.export_rel_dir)
+
+        # 1. Body (src) and Mind (.intent) Bundling
+        self._bundle_directories()
+
+        # 2. Symbol Analysis
+        await self._generate_symbol_index()
+
+        # 3. Database Metadata (State)
+        await self._export_db_schema()
+
+        # 4. Vector Metadata (Memory)
+        await self._export_qdrant_metadata()
+
+        # 5. Runtime & Manifest
+        await self._finalize_manifest()
+
+        logger.info("✅ Export complete: %s", self.export_rel_dir)
+        return self.export_rel_dir
+
+    def _bundle_directories(self):
+        """Create .tar.gz archives of key directories via FileHandler context."""
+        logger.info("📦 Bundling src/ and .intent/...")
+
+        for folder in ["src", ".intent"]:
+            out_name = f"{folder.replace('.', '')}.tar.gz"
+            out_path = self.repo_root / self.export_rel_dir / out_name
+
+            # Using standard tarfile but writing to the governed directory
+            with tarfile.open(out_path, "w:gz") as tar:
+                src_path = self.repo_root / folder
+                if src_path.exists():
+                    tar.add(src_path, arcname=folder)
+
+    async def _generate_symbol_index(self):
+        """Scan Python symbols and write index via FileHandler."""
+        logger.info("🔍 Scanning Python symbols...")
+        symbols = []
+        src_root = self.repo_root / "src"
+
+        for py in src_root.rglob("*.py"):
+            rel_mod = str(py.relative_to(src_root)).replace("/", ".")[:-3]
+            try:
+                txt = py.read_text(encoding="utf-8")
+                tree = ast.parse(txt)
+                for node in tree.body:
+                    if isinstance(node, ast.ClassDef):
                         symbols.append(
                             Symbol(
-                                f"{rel_mod}.{node.name}",
-                                "function",
-                                ch.name,
-                                getattr(ch, "lineno", 0),
-                                sig,
-                                doc_m,
+                                rel_mod,
+                                "class",
+                                node.name,
+                                node.lineno,
+                                "(...)",
+                                ast.get_docstring(node),
                             )
                         )
-            elif isinstance(
-                node, (ast.FunctionDef, ast.AsyncFunctionDef)
-            ) and not node.name.startswith("_"):
-                doc = ast.get_docstring(node)
-                sig = build_signature_from_ast(node)
-                symbols.append(
-                    Symbol(
-                        rel_mod,
-                        "function",
-                        node.name,
-                        getattr(node, "lineno", 0),
-                        sig,
-                        doc,
-                    )
+                    elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                        if not node.name.startswith("_"):
+                            sig = build_signature_from_ast(node)
+                            symbols.append(
+                                Symbol(
+                                    rel_mod,
+                                    "function",
+                                    node.name,
+                                    node.lineno,
+                                    sig,
+                                    ast.get_docstring(node),
+                                )
+                            )
+            except Exception:
+                continue
+
+        index_data = {
+            "generated_at": now_iso(),
+            "symbols": [dataclasses.asdict(s) for s in symbols],
+        }
+        self.fh.write_runtime_json(
+            f"{self.export_rel_dir}/symbol_index.json", index_data
+        )
+
+    async def _export_db_schema(self):
+        """Capture DB schema using subprocess, persisted via FileHandler."""
+        logger.info("🗄️ Capturing Database Schema...")
+        db_url = settings.DATABASE_URL
+
+        # We run pg_dump but capture the output into a string to write via FileHandler
+        try:
+            # Note: requires pg_dump installed on host
+            proc = await asyncio.create_subprocess_exec(
+                "pg_dump",
+                "--schema-only",
+                "--no-owner",
+                db_url,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+            )
+            stdout, _ = await proc.communicate()
+            if stdout:
+                self.fh.write_runtime_text(
+                    f"{self.export_rel_dir}/db_schema.sql", stdout.decode()
                 )
+        except Exception as e:
+            logger.warning("Could not export DB schema: %s", e)
 
-    modules: dict[str, dict[str, Any]] = {}
-    for s in symbols:
-        modules.setdefault(s.module, {"classes": {}, "functions": []})
-        if s.kind == "class":
-            modules[s.module]["classes"].setdefault(
-                s.name, {"doc": s.doc, "methods": []}
-            )
-        else:
-            modules[s.module]["functions"].append(
-                {
-                    "name": s.name,
-                    "lineno": s.lineno,
-                    "signature": s.signature,
-                    "doc": s.doc,
-                }
-            )
+    async def _export_qdrant_metadata(self):
+        """Fetch Qdrant collection info via HTTP."""
+        logger.info("🧠 Capturing Qdrant Metadata...")
+        q_url = settings.QDRANT_URL.rstrip("/")
+        q_col = settings.QDRANT_COLLECTION_NAME
 
-    idx = {
-        "generated_at": now_utc_iso(),
-        "root": str(src_root),
-        "modules": modules,
-        "imports": imports,
-        "note": "Public functions/classes only; docstrings captured at definition sites.",
-    }
-    return idx
+        try:
+            # Use urllib for standard-lib compliance in scripts
+            url = f"{q_url}/collections/{q_col}"
+            req = urllib.request.Request(url, headers={"Accept": "application/json"})
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+                self.fh.write_runtime_json(
+                    f"{self.export_rel_dir}/qdrant_info.json", data
+                )
+        except Exception as e:
+            logger.warning("Could not export Qdrant metadata: %s", e)
 
+    async def _finalize_manifest(self):
+        """Create the top-level manifest and checksums."""
+        logger.info("📄 Finalizing Export Manifest...")
 
-# ---------------------------
-# DB: schema + samples (best-effort)
-# ---------------------------
+        manifest = {
+            "export_id": f"core_export_{self.timestamp}",
+            "generated_at": now_iso(),
+            "core_version": "1.0.0",
+            "git_info": {
+                "commit": (
+                    self.git.get_current_commit() if self.git.is_git_repo() else "none"
+                ),
+                "branch": "unknown",
+            },
+            "environment": settings.CORE_ENV,
+            "checksums": {},
+        }
 
+        # Calculate checksums for the bundles we created
+        export_path = self.repo_root / self.export_rel_dir
+        for bundle in export_path.glob("*.tar.gz"):
+            manifest["checksums"][bundle.name] = sha256_file(bundle)
 
-# ID: 00e570fa-d48f-4bcc-800b-643cefb6ed80
-def export_db_schema(db_url: str, out_sql: Path) -> str | None:
-    code, _, _ = run_cmd(["pg_dump", "--version"], timeout=10)
-    if code == 0:
-        code, out, err = run_cmd(
-            ["pg_dump", "--schema-only", "--no-owner", "--no-privileges", db_url]
-        )
-        if code == 0:
-            safe_write_text(out_sql, out)
-            return "pg_dump"
-        else:
-            safe_write_text(out_sql, f"-- pg_dump failed:\n{err}")
-            return None
-    safe_write_text(
-        out_sql, "-- pg_dump not available; provide schema via admin tools.\n"
-    )
-    return None
-
-
-# ID: d5a14bbb-c044-4bd2-bf3e-4c39d6179101
-def try_db_samples(db_url: str, out_json: Path, max_rows: int = 5) -> None:
-    # Try psycopg
-    try:
-        import psycopg  # type: ignore
-
-        with psycopg.connect(db_url) as conn:
-            cur = conn.cursor()
-            cur.execute(
-                """
-                SELECT table_schema, table_name
-                FROM information_schema.tables
-                WHERE table_schema NOT IN ('pg_catalog', 'information_schema')
-                ORDER BY 1,2
-                LIMIT 25;
-            """
-            )
-            tables = cur.fetchall()
-            data = {"samples": {}, "limit": max_rows}
-            for schema, table in tables:
-                q = f'SELECT * FROM "{schema}"."{table}" LIMIT {max_rows};'
-                try:
-                    cur.execute(q)
-                    rows = cur.fetchall()
-                    cols = [d[0] for d in cur.description] if cur.description else []
-                    data["samples"][f"{schema}.{table}"] = {
-                        "columns": cols,
-                        "rows": rows,
-                    }
-                except Exception as e:
-                    data["samples"][f"{schema}.{table}"] = {"error": str(e)}
-            safe_write_json(out_json, data)
-            return
-    except Exception:
-        pass
-
-    # Try psql
-    code, out, _ = run_cmd(["psql", db_url, "-c", "\\dt"], timeout=15)
-    if code == 0:
-        safe_write_json(
-            out_json,
-            {"psql_dt": out, "note": "Install psycopg for structured samples."},
-        )
-        return
-
-    safe_write_json(out_json, {"note": "No psycopg/psql available; skip DB samples."})
-
-
-# ---------------------------
-# Qdrant: schema + samples (stdlib HTTP)
-# ---------------------------
-
-
-# ID: 4ef11fbe-602d-4bc9-ba16-f0c1d05fc45a
-def http_get_json(url: str, timeout: int = 10) -> dict[str, Any] | None:
-    try:
-        req = urllib.request.Request(url, headers={"Accept": "application/json"})
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
-            return json.loads(resp.read().decode("utf-8"))
-    except (
-        urllib.error.URLError,
-        urllib.error.HTTPError,
-        TimeoutError,
-        json.JSONDecodeError,
-    ):
-        return None
-
-
-# ID: 5040d90f-77d6-4cfa-b7c9-03db223ca4ed
-def export_qdrant(
-    qdrant_url: str,
-    collection: str,
-    schema_out: Path,
-    samples_out: Path,
-    sample_limit: int = 3,
-) -> None:
-    base = qdrant_url.rstrip("/")
-    col = urllib.parse.quote(collection)
-    info = http_get_json(f"{base}/collections/{col}")
-    if info is None:
-        safe_write_text(schema_out, "# Qdrant not reachable or collection missing.\n")
-        safe_write_json(samples_out, {"note": "Qdrant not reachable."})
-        return
-
-    details = info.get("result", {})
-    schema_lines = [
-        "collection:",
-        f"  name: {collection}",
-        f"  vectors: {details.get('vectors')}",
-        f"  hnsw_config: {details.get('hnsw_config')}",
-        f"  quantization_config: {details.get('quantization_config')}",
-        f"  on_disk_payload: {details.get('on_disk_payload')}",
-        f"  replication_factor: {details.get('replication_factor')}",
-        f"  write_consistency_factor: {details.get('write_consistency_factor')}",
-        f"  shard_number: {details.get('shard_number')}",
-    ]
-    safe_write_text(schema_out, "\n".join(schema_lines) + "\n")
-
-    # Sample points via scroll
-    body = json.dumps({"limit": sample_limit}).encode("utf-8")
-    try:
-        req = urllib.request.Request(
-            f"{base}/collections/{col}/points/scroll",
-            data=body,
-            headers={"Content-Type": "application/json", "Accept": "application/json"},
-            method="POST",
-        )
-        with urllib.request.urlopen(req, timeout=10) as resp:
-            result = json.loads(resp.read().decode("utf-8"))
-            safe_write_json(samples_out, result)
-    except Exception:
-        safe_write_json(
-            samples_out,
-            {"note": "Could not fetch sample points (scroll).", "limit": sample_limit},
+        self.fh.write_runtime_json(
+            f"{self.export_rel_dir}/core_context_manifest.json", manifest
         )
 
 
 # ---------------------------
-# Minimal YAML emitter (avoid external deps)
+# CLI Entrypoint
 # ---------------------------
 
 
-# ID: c3dc5c1f-9a52-49f2-92d0-09af54615570
-def to_yaml(data: Any, indent: int = 0) -> str:
-    sp = "  " * indent
-    if data is None:
-        return "null"
-    if isinstance(data, bool):
-        return "true" if data else "false"
-    if isinstance(data, (int, float)):
-        return str(data)
-    if isinstance(data, str):
-        if re.search(r"[:#\-\n']", data):
-            return "'" + data.replace("'", "''") + "'"
-        return data
-    if isinstance(data, list):
-        lines = []
-        for item in data:
-            v = to_yaml(item, indent + 1)
-            lines.append(
-                f"{sp}- {v if '\n' not in v else '\n' + '  ' * (indent + 1) + v}"
-            )
-        return "\n".join(lines) if lines else "[]"
-    if isinstance(data, dict):
-        lines = []
-        for k, v in data.items():
-            val = to_yaml(v, indent + 1)
-            if "\n" in val:
-                lines.append(f"{sp}{k}:\n{'  ' * (indent + 1)}{val}")
-            else:
-                lines.append(f"{sp}{k}: {val}")
-        return "\n".join(lines) if lines else "{}"
-    return to_yaml(str(data), indent)
+# ID: a13aecdf-8b7f-4649-bcd7-e42aab66b0bc
+async def main():
+    exporter = ContextExporter()
+    await exporter.run()
 
 
-# ---------------------------
-# Runtime context builder
-# ---------------------------
+if __name__ == "__main__":
+    asyncio.run(main())

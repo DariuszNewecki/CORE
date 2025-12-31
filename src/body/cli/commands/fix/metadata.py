@@ -48,21 +48,22 @@ from . import (
     category="fixers",
 )
 # ID: 61377f91-d017-4749-a863-774ea5c2df3d
-async def fix_ids_internal(write: bool = False) -> ActionResult:
+async def fix_ids_internal(context: CoreContext, write: bool = False) -> ActionResult:
     """
-    Core logic for fix ids command.
+    Core logic for fix ids command. Now uses governed ActionExecutor.
     """
     start_time = time.time()
 
     try:
-        # Note: assign_missing_ids is currently a sync tool scanning filesystem
-        total_assigned = assign_missing_ids(dry_run=not write)
+        # Note: assign_missing_ids now returns the count of IDs fixed
+        total_assigned = await assign_missing_ids(context, write=write)
 
         return ActionResult(
             action_id="fix.ids",
             ok=True,
             data={
                 "ids_assigned": total_assigned,
+                "files_processed": 1 if total_assigned > 0 else 0,  # Heuristic for now
                 "dry_run": not write,
                 "mode": "write" if write else "dry-run",
             },
@@ -91,16 +92,18 @@ async def fix_ids_internal(write: bool = False) -> ActionResult:
     category="fixers",
 )
 # ID: 60d8c8e6-6c3a-46cb-91ca-a0a399b5c5d3
-async def fix_duplicate_ids_internal(write: bool = False) -> ActionResult:
+async def fix_duplicate_ids_internal(
+    context: CoreContext, write: bool = False
+) -> ActionResult:
     """
-    Core logic for fixing duplicate IDs.
-    Wraps legacy service in proper Atomic Action pattern.
+    Core logic for fixing duplicate IDs via governed ActionExecutor.
     """
     start_time = time.time()
     try:
-        # FIXED: Pass session to resolve_duplicate_ids and AWAIT the result
         async with get_session() as session:
-            resolved_count = await resolve_duplicate_ids(session, dry_run=not write)
+            resolved_count = await resolve_duplicate_ids(
+                context, session, dry_run=not write
+            )
 
         return ActionResult(
             action_id="fix.duplicate_ids",
@@ -127,14 +130,7 @@ async def fix_duplicate_ids_internal(write: bool = False) -> ActionResult:
 )
 @handle_command_errors
 @core_command(dangerous=True, confirmation=False)
-@atomic_action(
-    action_id="fix.ids_cmd",
-    intent="CLI wrapper for stable UUID assignment to public symbols",
-    impact=ActionImpact.WRITE_METADATA,
-    policies=["symbol_identification", "atomic_actions"],
-    category="fixers",
-)
-# ID: 6c95448b-f539-4f22-9f44-51052ab5f51e
+# ID: 444bd442-cc5b-4f7a-a3d4-392ccf86e7be
 async def assign_ids_command(
     ctx: typer.Context,
     write: bool = typer.Option(
@@ -145,7 +141,7 @@ async def assign_ids_command(
     CLI wrapper for fix ids command.
     """
     with console.status("[cyan]Assigning missing IDs...[/cyan]"):
-        return await fix_ids_internal(write=write)
+        return await fix_ids_internal(ctx.obj, write=write)
 
 
 @fix_app.command(
@@ -162,8 +158,7 @@ async def purge_legacy_tags_command(
     ),
 ) -> None:
     """Remove obsolete tag formats from Python files."""
-    # FIXED: Added 'await' because purge_legacy_tags is now an async function
-    removed_count = await purge_legacy_tags(dry_run=not write)
+    removed_count = await purge_legacy_tags(ctx.obj, dry_run=not write)
 
     mode = "removed" if write else "would be removed (dry-run)"
     console.print(f"[bold green]Obsolete tags {mode}: {removed_count}[/bold green]")
@@ -187,10 +182,7 @@ async def fix_policy_ids_command(
     ),
 ) -> None:
     """Ensure each policy file has a unique policy_id."""
-    # Note: add_missing_policy_ids is currently a sync utility
-    added, skipped = add_missing_policy_ids(
-        policies_dir=policies_dir, dry_run=not write
-    )
+    added, skipped = await add_missing_policy_ids(ctx.obj, dry_run=not write)
 
     mode = "write" if write else "dry-run"
     console.print(
@@ -238,6 +230,5 @@ async def fix_duplicate_ids_command(
 ) -> ActionResult:
     """Detect and resolve duplicate IDs in Python files."""
 
-    # Delegate to atomic action (which is already async and awaits internally)
     with console.status("[cyan]Resolving duplicate IDs...[/cyan]"):
-        return await fix_duplicate_ids_internal(write=write)
+        return await fix_duplicate_ids_internal(ctx.obj, write=write)

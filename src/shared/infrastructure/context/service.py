@@ -13,6 +13,8 @@ from contextlib import AbstractAsyncContextManager
 from pathlib import Path
 from typing import Any
 
+from shared.models.validation_result import ValidationResult
+
 from .builder import ContextBuilder
 from .cache import ContextCache
 from .database import ContextDatabase
@@ -120,13 +122,15 @@ class ContextService:
 
         packet = await self.builder.build_for_task(task_spec)
 
-        is_valid, errors = self.validator.validate(packet)
-        if not is_valid:
-            error_msg = f"Validation failed: {errors}"
+        # REFACTORED: Use the new ValidationResult object instead of a tuple
+        result = self.validator.validate(packet)
+        if not result.ok:
+            error_msg = f"Validation failed: {'; '.join(result.errors)}"
             logger.error(error_msg)
             raise ValueError(error_msg)
 
-        packet = self.redactor.redact(packet)
+        # Use the data directly from the validation result
+        packet = self.redactor.redact(result.validated_data)
 
         packet["provenance"]["packet_hash"] = ContextSerializer.compute_packet_hash(
             packet
@@ -187,14 +191,14 @@ class ContextService:
         return ContextSerializer.from_yaml(str(packet_path))
 
     # ID: 7eb62236-0835-4856-9ac1-1c421f526535
-    def validate_packet(self, packet: dict[str, Any]) -> tuple[bool, list[str]]:
+    def validate_packet(self, packet: dict[str, Any]) -> ValidationResult:
         """Validate a packet against schema.
 
         Args:
             packet: ContextPackage dict
 
         Returns:
-            Tuple of (is_valid, errors)
+            A ValidationResult object
         """
         return self.validator.validate(packet)
 

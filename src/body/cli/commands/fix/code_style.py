@@ -17,6 +17,7 @@ from shared.action_types import ActionImpact, ActionResult
 from shared.atomic_action import atomic_action
 from shared.cli_utils import core_command
 from shared.config import settings
+from shared.context import CoreContext
 
 from . import (
     _run_with_progress,
@@ -37,7 +38,6 @@ def format_code_cmd(ctx: typer.Context) -> None:
     CLI entry point for `fix code-style`.
     Delegates to Black & Ruff via subprocesses.
     """
-    # Note: _run_with_progress is kept here as it wraps subprocess calls specifically
     _run_with_progress("Formatting code", format_code)
     console.print("[green]✅ Code formatting completed[/green]")
 
@@ -50,10 +50,11 @@ def format_code_cmd(ctx: typer.Context) -> None:
     category="fixers",
 )
 # ID: edb6d962-f821-475d-8885-ca8518569758
-async def fix_headers_internal(write: bool = False) -> ActionResult:
+async def fix_headers_internal(
+    context: CoreContext, write: bool = False
+) -> ActionResult:
     """
-    Core logic for fix headers command.
-    Audits and optionally remediates file headers.
+    Core logic for fix headers command. Now uses governed ActionExecutor.
     """
     import time
 
@@ -66,8 +67,10 @@ async def fix_headers_internal(write: bool = False) -> ActionResult:
             str(p.relative_to(settings.REPO_PATH)) for p in src_dir.rglob("*.py")
         ]
 
-        # Call the service layer
-        _run_header_fix_cycle(dry_run=not write, all_py_files=all_py_files)
+        # FIXED: _run_header_fix_cycle is now async and requires context
+        await _run_header_fix_cycle(
+            context, dry_run=not write, all_py_files=all_py_files
+        )
 
         return ActionResult(
             action_id="fix.headers",
@@ -99,13 +102,6 @@ async def fix_headers_internal(write: bool = False) -> ActionResult:
 )
 @handle_command_errors
 @core_command(dangerous=True, confirmation=True)
-@atomic_action(
-    action_id="fix.headers_cmd",
-    intent="CLI wrapper for file header compliance checking and fixing",
-    impact=ActionImpact.WRITE_METADATA,
-    policies=["file_headers", "atomic_actions"],
-    category="fixers",
-)
 # ID: 967c7322-5732-466f-a639-cacbaae425ba
 async def fix_headers_cmd(
     ctx: typer.Context,
@@ -116,11 +112,6 @@ async def fix_headers_cmd(
     """
     CLI wrapper for fix headers command.
     """
-    # The framework handles:
-    # 1. Safety checks (confirmation prompt)
-    # 2. Async loop management
-    # 3. Error handling
-    # 4. Output formatting (via ActionResult)
-
+    # FIXED: Pass CoreContext (ctx.obj)
     with console.status("[cyan]Checking file headers...[/cyan]"):
-        return await fix_headers_internal(write=write)
+        return await fix_headers_internal(ctx.obj, write=write)

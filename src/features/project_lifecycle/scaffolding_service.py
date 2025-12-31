@@ -1,23 +1,25 @@
 # src/features/project_lifecycle/scaffolding_service.py
+# ID: b2a71e87-f72f-4868-8e63-9538096af12e
 
 """
 Service to scaffold a new CORE-governed project with templates and structure.
-
-Domain-level scaffolding logic lives in `_create_new_project`, with a
-backwards-compatible `create_new_project` alias used by the CLI. The alias
-keeps the public API stable while avoiding treating this helper as a
-first-class governed capability until the project lifecycle domain is fully
-modelled in capabilities.
+Refactored to use the canonical ActionExecutor Gateway for all mutations.
 """
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import yaml
 
+from body.atomic.executor import ActionExecutor
 from shared.config import settings
 from shared.logger import getLogger
 from shared.path_utils import get_repo_root
 
+
+if TYPE_CHECKING:
+    from shared.context import CoreContext
 
 logger = getLogger(__name__)
 
@@ -25,131 +27,165 @@ logger = getLogger(__name__)
 # ID: b2a71e87-f72f-4868-8e63-9538096af12e
 class Scaffolder:
     """
-    Handles filesystem operations to create a new CORE-governed project
-    from a starter kit profile.
+    Orchestrates the creation of a new CORE project via governed Atomic Actions.
     """
 
-    def __init__(self, project_name: str, profile: str = "default"):
+    def __init__(
+        self, context: CoreContext, project_name: str, profile: str = "default"
+    ):
+        self.context = context
+        self.executor = ActionExecutor(context)
         self.name = project_name
         self.profile = profile
+
+        # Scaffolding target is typically a sibling to the current REPO_PATH
         self.workspace = settings.REPO_PATH.parent
         self.project_root = self.workspace / project_name
+
+        # Source of truth for templates
         repo_root = get_repo_root()
         self.starter_kit_path = (
             repo_root / "starter_kits" / "project_profiles" / profile
         )
+
         if not self.starter_kit_path.exists():
             raise FileNotFoundError(
                 f"Starter kit profile '{profile}' not found at {self.starter_kit_path}"
             )
 
     # ID: 882f22a6-a1f3-4a31-8967-09f8b9d763ab
-    def scaffold_base_structure(self) -> None:
-        """Creates the base project structure, including tests and CI directories."""
-        logger.info("💾 Creating project structure at %s...", self.project_root)
-        if self.project_root.exists():
+    async def scaffold_base_structure(self, write: bool = False) -> None:
+        """
+        Creates the base project structure via governed Atomic Actions.
+        """
+        logger.info("💾 Planning project structure at %s...", self.project_root)
+
+        if self.project_root.exists() and write:
             raise FileExistsError(f"Directory '{self.project_root}' already exists.")
-        self.project_root.mkdir(parents=True, exist_ok=True)
-        (self.project_root / "src").mkdir()
-        (self.project_root / "tests").mkdir()
-        (self.project_root / ".github" / "workflows").mkdir(parents=True, exist_ok=True)
-        (self.project_root / "reports").mkdir()
-        intent_dir = self.project_root / ".intent"
-        intent_dir.mkdir()
-        constitutional_files_to_copy = [
+
+        # 1. Define required directory structure
+        dirs_to_create = [
+            "",  # Root
+            "src",
+            "tests",
+            ".github/workflows",
+            "reports",
+            ".intent",
+        ]
+
+        # Use the FileHandler via the Gateway to ensure directories exist
+        for d in dirs_to_create:
+            rel_dir = f"../{self.name}/{d}".strip("/")
+            # Note: Scaffolding often happens sibling to current repo.
+            # We use the FileHandler's ensure_dir capability.
+            if write:
+                self.context.file_handler.ensure_dir(rel_dir)
+            else:
+                logger.info("   -> [DRY RUN] Would create directory: %s", rel_dir)
+
+        # 2. Copy Constitutional Files
+        constitutional_files = [
             "principles.yaml",
             "project_manifest.yaml",
             "safety_policies.yaml",
             "source_structure.yaml",
+            "README.md",
         ]
-        for filename in constitutional_files_to_copy:
+
+        for filename in constitutional_files:
             source_path = self.starter_kit_path / filename
-            if source_path.exists():
-                target_path = intent_dir / filename
-                target_path.write_bytes(source_path.read_bytes())
-        readme_template = self.starter_kit_path / "README.md"
-        if readme_template.exists():
-            target_path = intent_dir / "README.md"
-            target_path.write_bytes(readme_template.read_bytes())
+            if not source_path.exists():
+                continue
+
+            content = source_path.read_text(encoding="utf-8")
+            target_rel_path = f"../{self.name}/.intent/{filename}"
+
+            await self.executor.execute(
+                action_id="file.create",
+                write=write,
+                file_path=target_rel_path,
+                code=content,
+            )
+
+        # 3. Process Templates (.template files)
         for template_path in self.starter_kit_path.glob("*.template"):
             content = template_path.read_text(encoding="utf-8").format(
                 project_name=self.name
             )
-            target_name = (
+
+            target_base = (
                 ".gitignore"
                 if template_path.name == "gitignore.template"
                 else template_path.name.replace(".template", "")
             )
-            (self.project_root / target_name).write_text(content, encoding="utf-8")
-        manifest_path = intent_dir / "project_manifest.yaml"
-        if manifest_path.exists():
-            manifest_data = yaml.safe_load(manifest_path.read_text(encoding="utf-8"))
-            if manifest_data:
-                manifest_data["name"] = self.name
-                manifest_path.write_text(
-                    yaml.dump(manifest_data, indent=2), encoding="utf-8"
-                )
-        logger.info("   -> ✅ Base structure for '%s' created successfully.", self.name)
+            target_rel_path = f"../{self.name}/{target_base}"
+
+            await self.executor.execute(
+                action_id="file.create",
+                write=write,
+                file_path=target_rel_path,
+                code=content,
+            )
+
+        # 4. Finalize Manifest
+        manifest_rel = f"../{self.name}/.intent/project_manifest.yaml"
+        # We read back the just-created manifest to update the name
+        manifest_abs = self.project_root / ".intent" / "project_manifest.yaml"
+        if manifest_abs.exists():
+            manifest_data = (
+                yaml.safe_load(manifest_abs.read_text(encoding="utf-8")) or {}
+            )
+            manifest_data["name"] = self.name
+
+            await self.executor.execute(
+                action_id="file.edit",
+                write=write,
+                file_path=manifest_rel,
+                code=yaml.dump(manifest_data, indent=2),
+            )
+
+        logger.info(
+            "   -> ✅ Base structure for '%s' orchestrated successfully.", self.name
+        )
 
     # ID: badd73be-d36f-44a8-a4f9-6c3d9b025b80
-    def write_file(self, relative_path: str, content: str) -> None:
-        """Writes content to a file within the new project's directory, creating parent directories as needed."""
-        target_file = self.project_root / relative_path
-        target_file.parent.mkdir(parents=True, exist_ok=True)
-        target_file.write_text(content, encoding="utf-8")
-        logger.info("   -> 📄 Wrote agent-generated file: %s", relative_path)
+    async def write_file(
+        self, relative_path: str, content: str, write: bool = False
+    ) -> None:
+        """Writes content to a file within the new project via the Gateway."""
+        target_rel = f"../{self.name}/{relative_path}"
+
+        await self.executor.execute(
+            action_id="file.create", write=write, file_path=target_rel, code=content
+        )
 
 
-def _create_new_project(
-    name: str, profile: str = "default", dry_run: bool = True
+async def _create_new_project(
+    context: CoreContext, name: str, profile: str = "default", write: bool = False
 ) -> None:
     """
-    Domain-level operation to scaffold a new CORE-governed project.
-
-    This is pure service logic:
-    - No Typer dependencies
-    - No direct exit codes
-    - Uses logging and exceptions only
-
-    It is intentionally kept as a private helper from the perspective of
-    the intent_alignment auditor; the CLI-level entrypoint is the governed
-    surface, and this function is an implementation detail behind it.
+    Domain-level operation to scaffold a new CORE project.
     """
-    scaffolder = Scaffolder(project_name=name, profile=profile)
-    logger.info(
-        "🚀 Scaffolding new CORE application: '%s' using '%s' profile.", name, profile
-    )
-    if dry_run:
-        logger.info(
-            "💧 Dry Run Mode: no files will be written. Would create project '%s' in '%s/' with the '%s' starter kit.",
-            name,
-            scaffolder.workspace,
-            profile,
-        )
-        return
+    scaffolder = Scaffolder(context, project_name=name, profile=profile)
+
+    mode_str = "WRITE" if write else "DRY RUN"
+    logger.info("🚀 Scaffolding new CORE application: '%s' [%s]", name, mode_str)
+
     try:
-        scaffolder.scaffold_base_structure()
+        await scaffolder.scaffold_base_structure(write=write)
+
+        # Handle README template separately if it exists as a .template
         readme_template_path = scaffolder.starter_kit_path / "README.md.template"
         if readme_template_path.exists():
             readme_content = readme_template_path.read_text(encoding="utf-8").format(
                 project_name=name
             )
-            scaffolder.write_file("README.md", readme_content)
-    except FileExistsError:
-        logger.error(
-            "❌ Cannot scaffold project '%s': destination already exists at %s",
-            name,
-            scaffolder.project_root,
-        )
-        raise
+            await scaffolder.write_file("README.md", readme_content, write=write)
+
     except Exception as e:
-        logger.error(
-            "❌ Unexpected error while scaffolding project '%s': %s",
-            name,
-            e,
-            exc_info=True,
-        )
+        logger.error("❌ Scaffolding failed for '%s': %s", name, e, exc_info=True)
         raise
 
 
+# Alias for backward compatibility
 create_new_project = _create_new_project

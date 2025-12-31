@@ -1,22 +1,23 @@
 # src/shared/infrastructure/adapters/embedding_provider.py
+# ID: 54ebd35a-46b6-4c6c-b36b-5bfedd866b36
 
 """
 EmbeddingService (quality-first, single-file)
 
-This is now a pure, low-level client. It has no knowledge of the constitution
-and receives all configuration during initialization.
+This is a pure, low-level client.
+Refactored to comply with operations.runtime.env_vars_defined (no os.getenv).
 """
 
 from __future__ import annotations
 
 import asyncio
-import os
 import random
 from typing import Any
 from urllib.parse import urlparse
 
 import requests
 
+from shared.config import settings
 from shared.logger import getLogger
 
 
@@ -27,7 +28,6 @@ logger = getLogger(__name__)
 class EmbeddingService:
     """
     Minimal, robust client for OpenAI-compatible or Ollama-compatible embeddings endpoint.
-    Keeps the interface tiny and predictable.
     """
 
     def __init__(
@@ -51,7 +51,9 @@ class EmbeddingService:
         self._validate_configuration()
         self._detect_api_type_and_endpoint()
         self._log_initialization_info()
-        if os.getenv("PYTEST_CURRENT_TEST") is None:
+
+        # CONSTITUTIONAL FIX: Use settings.CORE_ENV instead of os.getenv("PYTEST_CURRENT_TEST")
+        if settings.CORE_ENV.lower() not in ("test", "testing"):
             self._check_server_health()
 
     def _validate_configuration(self) -> None:
@@ -128,9 +130,6 @@ class EmbeddingService:
     async def get_embedding(self, text: str) -> list[float]:
         """
         Return a single embedding vector for the given text.
-        Raises:
-            ValueError if empty input or wrong dimension is returned.
-            RuntimeError for non-retryable HTTP failures or server issues.
         """
         text = (text or "").strip()
         if not text:
@@ -181,8 +180,7 @@ class EmbeddingService:
         self, *, json: dict[str, Any], headers: dict[str, str]
     ) -> dict[str, Any]:
         """
-        Execute POST in a thread (to keep async),
-        with exponential backoff and jitter for transient errors.
+        Execute POST in a thread with exponential backoff and jitter.
         """
         attempt = 0
         last_error: Exception | None = None
@@ -218,7 +216,7 @@ class EmbeddingService:
         )
 
     def _validate_http_response(self, response: requests.Response) -> None:
-        """Validates HTTP response status codes and raises appropriate errors."""
+        """Validates HTTP response status codes."""
         status_code = response.status_code
         response_text = response.text[:200]
         if status_code in (408, 429, 500, 502, 503, 504):
@@ -231,7 +229,7 @@ class EmbeddingService:
             raise RuntimeError(f"HTTP {status_code}: {response_text}")
 
     def _should_stop_retrying(self, error: Exception, attempt: int) -> bool:
-        """Determines whether to stop retrying based on the error and attempt count."""
+        """Determines whether to stop retrying."""
         if attempt > self.max_retries:
             return True
         if isinstance(error, RuntimeError) and "Transient" not in str(error):

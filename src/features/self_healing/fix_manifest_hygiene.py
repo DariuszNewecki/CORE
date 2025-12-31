@@ -1,47 +1,58 @@
 # src/features/self_healing/fix_manifest_hygiene.py
+# ID: 186b49f2-f06a-49b6-95f7-0e7fd097c94e
 
 """
-A self-healing tool that scans domain manifests for misplaced capability
+Self-healing tool that scans domain manifests for misplaced capability
 declarations and moves them to the correct manifest file.
+
+Refactored to use the canonical ActionExecutor Gateway for all mutations.
 """
 
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-import typer
 import yaml
 
+from body.atomic.executor import ActionExecutor
 from shared.config import settings
 from shared.logger import getLogger
 
 
+if TYPE_CHECKING:
+    from shared.context import CoreContext
+
 logger = getLogger(__name__)
 REPO_ROOT = settings.REPO_PATH
-DOMAINS_DIR = settings.paths.mind_root / "knowledge" / "domains"
+# Use PathResolver (SSOT) to find the domains directory
+DOMAINS_DIR = settings.paths.intent_root / "knowledge" / "domains"
 
 
 # ID: 186b49f2-f06a-49b6-95f7-0e7fd097c94e
-def run_fix_manifest_hygiene(
-    write: bool = typer.Option(
-        False, "--write", help="Apply fixes to the manifest files."
-    ),
-):
+async def run_fix_manifest_hygiene(context: CoreContext, write: bool = False):
     """
     Scans for and corrects misplaced capability declarations in domain manifests.
+    Mutations are routed through the governed ActionExecutor.
     """
-    dry_run = not write
-    logger.info("Starting manifest hygiene check for misplaced capabilities...")
+    logger.info("🔍 Starting Governed Manifest Hygiene Check...")
+
+    executor = ActionExecutor(context)
+
     if not DOMAINS_DIR.is_dir():
         logger.error("Domains directory not found at: %s", DOMAINS_DIR)
-        raise typer.Exit(code=1)
+        return
+
     all_domain_files = {p.stem: p for p in DOMAINS_DIR.glob("*.yaml")}
     changes_to_make: dict[str, dict[str, Any]] = {}
+
+    # 1. ANALYSIS PHASE (Read-Only)
     for domain_name, file_path in all_domain_files.items():
         try:
             content = yaml.safe_load(file_path.read_text("utf-8")) or {}
             capabilities = content.get("tags", [])
+
+            # Find tags that belong to a different domain
             misplaced_caps = [
                 cap
                 for cap in capabilities
@@ -49,66 +60,67 @@ def run_fix_manifest_hygiene(
                 and "key" in cap
                 and (not cap["key"].startswith(f"{domain_name}."))
             ]
+
             if misplaced_caps:
+                logger.warning(
+                    "🚨 Found %d misplaced capabilities in %s",
+                    len(misplaced_caps),
+                    file_path.name,
+                )
+
+                # Prepare cleaned version of original file
                 content["tags"] = [
                     cap for cap in capabilities if cap not in misplaced_caps
                 ]
-                changes_to_make[str(file_path)] = {
-                    "action": "update",
-                    "content": content,
-                }
+                changes_to_make[str(file_path)] = content
+
+                # Move them to the correct target files
                 for cap in misplaced_caps:
                     correct_domain = cap["key"].split(".")[0]
                     correct_file_path = all_domain_files.get(correct_domain)
+
                     if correct_file_path:
                         correct_path_str = str(correct_file_path)
                         if correct_path_str not in changes_to_make:
-                            changes_to_make[correct_path_str] = {
-                                "action": "update",
-                                "content": yaml.safe_load(
-                                    correct_file_path.read_text("utf-8")
-                                )
-                                or {"tags": []},
-                            }
-                        changes_to_make[correct_path_str]["content"].setdefault(
-                            "tags", []
-                        ).append(cap)
-                        logger.info(
-                            "   -> Planning to move '%s' from '%s' to '%s'",
+                            changes_to_make[correct_path_str] = yaml.safe_load(
+                                correct_file_path.read_text("utf-8")
+                            ) or {"tags": []}
+
+                        changes_to_make[correct_path_str].setdefault("tags", []).append(
+                            cap
+                        )
+                        logger.debug(
+                            "   -> Moving '%s' to '%s'",
                             cap["key"],
-                            file_path.name,
                             correct_file_path.name,
                         )
-                    else:
-                        logger.warning(
-                            "   -> Could not find a manifest file for domain '%s' to move '%s'.",
-                            correct_domain,
-                            cap["key"],
-                        )
         except Exception as e:
-            logger.error("Error processing {file_path.name}: %s", e)
+            logger.error("Error analyzing %s: %s", file_path.name, e)
+
     if not changes_to_make:
-        logger.info("Manifest hygiene is perfect. No misplaced capabilities found.")
+        logger.info("✅ Manifest hygiene is perfect. No misplaced capabilities found.")
         return
-    if dry_run:
-        logger.info("-- DRY RUN: The following manifest changes would be applied --")
-        for path_str, change in changes_to_make.items():
-            logger.info(
-                "  - File to %s: %s",
-                change["action"],
-                Path(path_str).relative_to(REPO_ROOT),
-            )
-        return
-    logger.info("Applying manifest hygiene fixes...")
-    for path_str, change in changes_to_make.items():
+
+    # 2. EXECUTION PHASE (Gateway Dispatch)
+    # We apply changes via the ActionExecutor to ensure IntentGuard compliance.
+    for path_str, updated_content in changes_to_make.items():
         try:
-            Path(path_str).write_text(
-                yaml.dump(change["content"], indent=2, sort_keys=False), "utf-8"
+            # Convert to repo-relative path for the Gateway
+            rel_path = str(Path(path_str).relative_to(REPO_ROOT))
+            yaml_str = yaml.dump(updated_content, indent=2, sort_keys=False)
+
+            # CONSTITUTIONAL GATEWAY: Instead of raw write_text, use the executor.
+            result = await executor.execute(
+                action_id="file.edit", write=write, file_path=rel_path, code=yaml_str
             )
-            logger.info("  - Updated %s", Path(path_str).name)
+
+            if result.ok:
+                mode_label = "Fixed" if write else "Proposed (Dry Run)"
+                logger.info("   -> [%s] %s", mode_label, rel_path)
+            else:
+                logger.error(
+                    "   -> [BLOCKED] %s: %s", rel_path, result.data.get("error")
+                )
+
         except Exception as e:
-            logger.info("  - Failed to update {Path(path_str).name}: %s", e)
-
-
-if __name__ == "__main__":
-    typer.run(run_fix_manifest_hygiene)
+            logger.error("❌ Failed to process fix for %s: %s", path_str, e)

@@ -1,10 +1,11 @@
 # src/will/agents/code_generation/pattern_validator.py
+# ID: 59749c80-7e75-4609-8ecb-143e9200f503
+
 """
 Pattern validation and inference for code generation.
 Determines which architectural pattern applies and validates compliance.
 
-ENHANCED: Now includes intelligent function classification to prevent
-false positives on pure utility functions.
+Updated: Redirected from body/actions to body/atomic substrate.
 """
 
 from __future__ import annotations
@@ -40,7 +41,7 @@ class PatternValidator:
         """
         Infer which architectural pattern applies to this task.
 
-        ENHANCED: Now classifies functions by their nature (pure vs stateful)
+        ENHANCED: Classifies functions by their nature (pure vs stateful)
         to avoid forcing action_pattern on simple utilities.
         """
         if hasattr(task.params, "pattern_id") and task.params.pattern_id:
@@ -49,7 +50,7 @@ class PatternValidator:
         file_path = task.params.file_path or ""
         task_description = task.step.lower()
 
-        # CLASSIFICATION HIERARCHY: Check nature of function first
+        # 1. CLASSIFICATION HIERARCHY: Check nature of function first
         function_type = self._classify_function_type(file_path, task_description)
 
         if function_type == "pure_function":
@@ -60,7 +61,7 @@ class PatternValidator:
             logger.info("  -> Classified as stateless_utility (no state modification)")
             return "stateless_utility"
 
-        # ARCHITECTURAL LOCATION: For stateful/command code
+        # 2. ARCHITECTURAL LOCATION: For stateful/command code
         if "cli/commands" in file_path:
             if "inspect" in file_path or "inspect" in task_description:
                 return "inspect_pattern"
@@ -82,13 +83,12 @@ class PatternValidator:
         elif "agents" in file_path:
             return "cognitive_agent"
 
-        elif "body/actions" in file_path:
+        # === CONSOLIDATION FIX ===
+        # Point to the new canonical substrate
+        elif "body/atomic" in file_path:
             return "action_pattern"
 
-        # === CRITICAL FIX ===
-        # If it falls through here (e.g. src/test_hello.py), it is a generic script.
-        # We must NOT enforce action_pattern (which requires write: bool).
-        # Defaulting to stateless_utility applies minimal validation (syntax check).
+        # Default for unknown locations
         return "stateless_utility"
 
     def _classify_function_type(self, file_path: str, task_description: str) -> str:
@@ -111,7 +111,6 @@ class PatternValidator:
             "returns",
         ]
 
-        # Check if in shared/utils (strong signal for pure functions)
         if "shared/utils" in file_path or "shared/universal" in file_path:
             for indicator in pure_indicators:
                 if indicator in task_description:
@@ -119,7 +118,6 @@ class PatternValidator:
             return "stateless_utility"
 
         # STATEFUL INDICATORS (needs action_pattern)
-        # Note: "Create" removed from here to avoid trapping "Create a function..." goals
         stateful_indicators = [
             "command",
             "action",
@@ -149,13 +147,11 @@ class PatternValidator:
             "list",
             "show",
             "display",
-            "create",  # "Create a function" context is usually metadata, not DB op
         ]
 
         if any(indicator in task_description for indicator in readonly_indicators):
             return "stateless_utility"
 
-        # Default: assume stateful if ambiguous
         return "stateful"
 
     # ID: 412ade61-2b7e-48de-8327-eaea101affbb
@@ -174,8 +170,9 @@ class PatternValidator:
             return "service"
         elif "agents" in file_path:
             return "agent"
+        elif "body/atomic" in file_path:
+            return "action"
         else:
-            # Default to utility for generic scripts
             return "utility"
 
     # ID: 4d65d262-2cc0-4228-b12f-e45d1a341c14
@@ -188,50 +185,23 @@ class PatternValidator:
 ## Pattern Requirements: pure_function
 CRITICAL: This is a PURE, STATELESS function.
 - Must have NO side effects (no I/O, no global state modification)
-- Must be deterministic (same input → same output)
+- Must be deterministic (same input -> same output)
 - Should use type hints for all parameters and return value
 - Should have comprehensive docstring with examples
-- NO 'write' parameter needed (this is not a command)
-- NO database access, file writes, or network calls
+- NO 'write' parameter needed
 """,
             "stateless_utility": """
 ## Pattern Requirements: stateless_utility
-CRITICAL: This is a general utility or script.
-- Should use type hints for all parameters and return value
-- Should have comprehensive docstring
-- NO 'write' parameter needed (this is not a command)
-""",
-            "inspect_pattern": """
-## Pattern Requirements: inspect_pattern
-CRITICAL: This is a READ-ONLY command that must NEVER modify state.
-- Must NOT have --write, --apply, or --force parameters
-- Should return data for inspection only
-- Exit code: 0 for success, 1 for error
+- Should use type hints and clear docstring.
+- NO 'write' parameter needed.
 """,
             "action_pattern": """
-## Pattern Requirements: action_pattern
-CRITICAL: This command modifies state and must follow safety guarantees.
+## Pattern Requirements: action_pattern (Atomic Action)
+CRITICAL: This command/action modifies state.
+- MUST use @atomic_action decorator from shared.atomic_action
 - MUST have a 'write' parameter with type: bool
 - MUST default to False (dry-run by default)
-- In dry-run mode, show what WOULD change without changing it
-- Only execute when write=True
-- Must be atomic (all or nothing)
-""",
-            "check_pattern": """
-## Pattern Requirements: check_pattern
-CRITICAL: This is a VALIDATION command.
-- Must NOT modify state (no --write parameter)
-- Must return clear pass/fail status
-- Exit code: 0 for pass, 1 for fail, 2 for warnings
-- Provide actionable error messages
-""",
-            "run_pattern": """
-## Pattern Requirements: run_pattern
-CRITICAL: This executes autonomous operations.
-- MUST have 'write' parameter (bool, default=False)
-- Must operate within autonomy lane boundaries
-- Must log all autonomous decisions
-- Respects constitutional constraints
+- MUST return ActionResult
 """,
         }
         return requirements.get(pattern_id, requirements["stateless_utility"])
@@ -243,18 +213,13 @@ CRITICAL: This executes autonomous operations.
         """
         Validate generated code against pattern requirements.
         """
-        # OPTIMIZATION: Skip pattern validation for pure functions
         if pattern_id in ("pure_function", "stateless_utility"):
-            # Just check basic Python validity
             try:
                 ast.parse(code)
-                logger.info("  -> %s validated (basic syntax check only)", pattern_id)
                 return (True, [])
             except SyntaxError as e:
-                logger.warning("  -> Syntax error in {pattern_id}: %s", e)
                 return (False, [{"message": f"Syntax error: {e}", "severity": "error"}])
 
-        # Full pattern validation for stateful code
         return await self.intent_guard.validate_generated_code(
             code=code,
             pattern_id=pattern_id,

@@ -1,11 +1,9 @@
 # src/body/cli/commands/check/audit.py
+# ID: d9e8be26-e5e2-4015-899b-8741adaa820c
+
 """
 Core audit commands: audit.
-
-REFACTORED:
-- Delegates 100% of execution to mind.governance.auditor.ConstitutionalAuditor.
-- Fixes TypeError in severity comparison by properly casting string to Enum.
-- Maintains Rich UI formatting for the CLI layer.
+Refactored to use the canonical CoreContext provided by the framework.
 """
 
 from __future__ import annotations
@@ -22,7 +20,6 @@ from body.cli.commands.check.formatters import (
     print_summary_findings,
     print_verbose_findings,
 )
-from mind.governance.audit_context import AuditorContext
 from mind.governance.auditor import ConstitutionalAuditor
 from shared.cli_utils import core_command
 from shared.models import AuditFinding, AuditSeverity
@@ -32,17 +29,13 @@ console = Console()
 
 
 def _to_audit_finding(raw: dict) -> AuditFinding:
-    """Safely converts a dictionary finding into an AuditFinding object."""
-    # Map string severity to Enum
     severity_map = {
         "info": AuditSeverity.INFO,
         "warning": AuditSeverity.WARNING,
         "error": AuditSeverity.ERROR,
     }
-
     raw_severity = str(raw.get("severity", "info")).lower()
     severity = severity_map.get(raw_severity, AuditSeverity.INFO)
-
     return AuditFinding(
         check_id=raw.get("check_id", "unknown"),
         severity=severity,
@@ -55,25 +48,19 @@ def _to_audit_finding(raw: dict) -> AuditFinding:
 
 # ID: a1b2c3d4-e5f6-7a8b-9c0d-e1f2a3b4c5d6
 @core_command(dangerous=False)
-# ID: d9e8be26-e5e2-4015-899b-8741adaa820c
+# ID: 2a6833cf-af2f-432f-8423-dad36e20d936
 async def audit_cmd(
     ctx: typer.Context,
-    target: Path = typer.Argument(
-        Path("src"),
-        help="File or directory to audit.",
-    ),
+    target: Path = typer.Argument(Path("src"), help="File or directory to audit."),
     severity: str = typer.Option(
         "warning",
         "--severity",
         "-s",
-        help="Filter findings by minimum severity level (info, warning, error).",
+        help="Minimum severity level.",
         case_sensitive=False,
     ),
     verbose: bool = typer.Option(
-        False,
-        "--verbose",
-        "-v",
-        help="Show all individual findings instead of a summary.",
+        False, "--verbose", "-v", help="Show individual findings."
     ),
 ) -> None:
     """
@@ -81,18 +68,15 @@ async def audit_cmd(
     """
     min_severity = parse_min_severity(severity)
 
-    # 1. INITIALIZE SSOT CONTEXT
-    auditor_context = AuditorContext(Path.cwd())
+    # CONSTITUTIONAL FIX: Use the context already wired by the framework
+    auditor_context = ctx.obj.auditor_context
     auditor = ConstitutionalAuditor(auditor_context)
 
-    # 2. EXECUTE THE UNIFIED AUDIT
+    # EXECUTE THE UNIFIED AUDIT
     raw_findings = await auditor.run_full_audit_async()
-
-    # FIXED: Use the safe conversion helper to ensure Enums for comparison
     all_findings = [_to_audit_finding(f) for f in raw_findings]
 
-    # 3. PRESENTATION
-    # The >= operator now works because both sides are AuditSeverity Enums
+    # PRESENTATION
     filtered_findings = [f for f in all_findings if f.severity >= min_severity]
     errors = [f for f in all_findings if f.severity.is_blocking]
     warnings = [f for f in all_findings if f.severity == AuditSeverity.WARNING]
@@ -100,8 +84,6 @@ async def audit_cmd(
     passed = len(errors) == 0
 
     summary_table = Table.grid(expand=True, padding=(0, 1))
-    summary_table.add_column(justify="left")
-    summary_table.add_column(justify="right", style="bold")
     summary_table.add_row("Total Findings:", str(len(all_findings)))
     summary_table.add_row("Errors:", f"[red]{len(errors)}[/red]")
     summary_table.add_row("Warnings:", f"[yellow]{len(warnings)}[/yellow]")

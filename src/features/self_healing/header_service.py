@@ -1,20 +1,24 @@
 # src/features/self_healing/header_service.py
+# ID: 9f8e7d6c-5b4a-4932-1e0d-2f3c4b5a6978
 
 """
 HeaderService — enforces the constitutional file header law.
-Now 100% correct and fully tested.
+Refactored to use the canonical ActionExecutor Gateway for all mutations.
 """
 
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from features.introspection.knowledge_graph_service import KnowledgeGraphBuilder
+from body.atomic.executor import ActionExecutor
 from shared.config import settings
 from shared.logger import getLogger
 from shared.utils.header_tools import _HeaderTools
 
+
+if TYPE_CHECKING:
+    from shared.context import CoreContext
 
 logger = getLogger(__name__)
 REPO_ROOT = settings.REPO_PATH
@@ -32,7 +36,11 @@ class HeaderService:
         return f"# {rel_path}"
 
     def _get_current_header(self, file_path: Path) -> str | None:
-        lines = file_path.read_text(encoding="utf-8").splitlines()
+        try:
+            lines = file_path.read_text(encoding="utf-8").splitlines()
+        except Exception:
+            return None
+
         for line in lines:
             stripped = line.strip()
             if not stripped:
@@ -47,11 +55,13 @@ class HeaderService:
 
     # ID: 8d49b70c-95b6-4aea-b392-6b3c30fac7aa
     def analyze(self, paths: list[str]) -> list[dict[str, Any]]:
+        """Identifies header violations in the provided paths."""
         issues = []
         for p in paths:
             path = Path(p)
-            if path.suffix != ".py" or not str(path).startswith(
-                str(self.repo_root / "src")
+            # Ensure we only target source files within the repo
+            if path.suffix != ".py" or not str(path.resolve()).startswith(
+                str(self.repo_root.resolve() / "src")
             ):
                 continue
 
@@ -73,31 +83,49 @@ class HeaderService:
 
     # ID: 900e1f3e-e89c-4ffc-8814-b6cba069509c
     def analyze_all(self) -> list[dict[str, Any]]:
+        """Scans the entire src directory for header violations."""
         return self.analyze([str(p) for p in self.repo_root.rglob("src/**/*.py")])
 
-    def _fix(self, paths: list[str]) -> None:
-        for issue in self.analyze(paths):
-            self._apply_fix(Path(issue["file"]), issue["expected_header"])
+    # ID: fbb21920-5457-4aa2-9ae7-23da72fff8fd
+    async def fix(
+        self, context: CoreContext, paths: list[str], write: bool = False
+    ) -> None:
+        """Fixes headers for specific paths via the Action Gateway."""
+        issues = self.analyze(paths)
+        for issue in issues:
+            await self._apply_fix(
+                context, Path(issue["file"]), issue["expected_header"], write
+            )
 
-    def _fix_all(self) -> None:
-        for issue in self.analyze_all():
-            self._apply_fix(Path(issue["file"]), issue["expected_header"])
+    async def _fix_all(self, context: CoreContext, write: bool = False) -> None:
+        """Fixes all header violations in the project via the Action Gateway."""
+        issues = self.analyze_all()
+        for issue in issues:
+            await self._apply_fix(
+                context, Path(issue["file"]), issue["expected_header"], write
+            )
 
-    def _apply_fix(self, file_path: Path, expected_header: str) -> None:
-        """Replace wrong header or insert missing one. Preserve blank lines after header."""
-        content = file_path.read_text(encoding="utf-8")
+    async def _apply_fix(
+        self, context: CoreContext, file_path: Path, expected_header: str, write: bool
+    ) -> None:
+        """Prepares the new source and dispatches to ActionExecutor."""
+        rel_path = str(file_path.relative_to(self.repo_root))
+        executor = ActionExecutor(context)
+
+        try:
+            content = file_path.read_text(encoding="utf-8")
+        except Exception as e:
+            logger.error("Could not read %s for header fix: %s", rel_path, e)
+            return
+
         lines = content.splitlines(keepends=True)
-
-        # Find and remove any existing header line
         new_lines = []
-        header_found = False
         skip_next_blank = False
 
         for line in lines:
             stripped = line.strip()
             # Skip existing header line
             if stripped.startswith("# src/"):
-                header_found = True
                 skip_next_blank = True
                 continue
             # Skip blank line immediately after removed header
@@ -107,27 +135,42 @@ class HeaderService:
             skip_next_blank = False
             new_lines.append(line)
 
-        # Insert correct header at the beginning
+        # Reconstruct with the correct header
         final_lines = [expected_header + "\n"]
-
-        # Add blank line if content follows
         if new_lines and new_lines[0].strip():
             final_lines.append("\n")
-
         final_lines.extend(new_lines)
 
-        file_path.write_text("".join(final_lines), encoding="utf-8")
-        logger.info("Fixed header in %s", file_path.relative_to(self.repo_root))
+        final_code = "".join(final_lines)
+
+        # CONSTITUTIONAL GATEWAY: Mutation is audited and guarded
+        result = await executor.execute(
+            action_id="file.edit", write=write, file_path=rel_path, code=final_code
+        )
+
+        if result.ok:
+            status = "Fixed" if write else "Proposed (Dry Run)"
+            logger.info("   -> [%s] Header in %s", status, rel_path)
+        else:
+            logger.error("   -> [BLOCKED] %s: %s", rel_path, result.data.get("error"))
 
 
-def _run_header_fix_cycle(dry_run: bool, all_py_files: list[str]):
-    """The core logic for finding and fixing all header style violations."""
-    logger.info("Scanning %d files for header compliance...", len(all_py_files))
-    files_to_fix = {}
+# ID: 4828affd-f7da-4995-9493-7037211b4144
+async def _run_header_fix_cycle(
+    context: CoreContext, dry_run: bool, all_py_files: list[str]
+):
+    """
+    The core logic for finding and fixing all header style violations.
+    Mutations are routed through the governed ActionExecutor.
+    """
+    logger.info("🔍 Scanning %d files for header compliance...", len(all_py_files))
+
+    executor = ActionExecutor(context)
+    write_mode = not dry_run
+    count = 0
 
     for i, file_path_str in enumerate(all_py_files, 1):
-        # Progress log (LOG-004)
-        if i % 20 == 0:
+        if i % 50 == 0:
             logger.debug("Header analysis progress: %d/%d", i, len(all_py_files))
 
         file_path = settings.paths.repo_root / file_path_str
@@ -135,11 +178,13 @@ def _run_header_fix_cycle(dry_run: bool, all_py_files: list[str]):
             original_content = file_path.read_text(encoding="utf-8")
             header = _HeaderTools.parse(original_content)
             correct_location_comment = f"# {file_path_str}"
+
             is_compliant = (
                 header.location == correct_location_comment
                 and header.module_description is not None
                 and header.has_future_import
             )
+
             if not is_compliant:
                 header.location = correct_location_comment
                 if not header.module_description:
@@ -148,26 +193,32 @@ def _run_header_fix_cycle(dry_run: bool, all_py_files: list[str]):
                     )
                 header.has_future_import = True
                 corrected_code = _HeaderTools.reconstruct(header)
+
                 if corrected_code != original_content:
-                    files_to_fix[file_path_str] = corrected_code
+                    # CONSTITUTIONAL GATEWAY
+                    result = await executor.execute(
+                        action_id="file.edit",
+                        write=write_mode,
+                        file_path=file_path_str,
+                        code=corrected_code,
+                    )
+
+                    if result.ok:
+                        count += 1
+                    else:
+                        logger.warning("   -> [BLOCKED] %s", file_path_str)
+
         except Exception as e:
             logger.warning("Could not process %s: %s", file_path_str, e)
 
-    if not files_to_fix:
-        logger.info("All file headers are constitutionally compliant.")
-        return
-
-    logger.info("Found %d file(s) requiring header fixes.", len(files_to_fix))
-
-    if dry_run:
-        for file_path in sorted(files_to_fix.keys()):
-            logger.info("   -> [DRY RUN] Would fix header in: %s", file_path)
+    if count == 0:
+        logger.info("✅ All file headers are constitutionally compliant.")
     else:
-        logger.info("Writing changes to disk...")
-        for file_path_str, new_code in files_to_fix.items():
-            (settings.paths.repo_root / file_path_str).write_text(new_code, "utf-8")
-        logger.info("   -> All header fixes have been applied.")
-        logger.info("Rebuilding knowledge graph to reflect all changes...")
-        builder = KnowledgeGraphBuilder(REPO_ROOT)
-        builder.build()
-        logger.info("Knowledge graph successfully updated.")
+        mode_label = "Fixed" if write_mode else "Proposed fixes for"
+        logger.info("🏁 Header fix cycle complete. %s %d file(s).", mode_label, count)
+
+        if write_mode:
+            logger.info("🔄 Rebuilding Knowledge Graph to reflect metadata changes...")
+            # Sync DB Action (Unified Substrate)
+            await executor.execute(action_id="sync.db", write=True)
+            logger.info("✅ Knowledge Graph successfully updated.")
