@@ -34,7 +34,7 @@ jobs:
           poetry run core-admin submit changes -m "chore(auto): Daily constitutional sync and audit"
 
       - name: "Create Pull Request if Changes Occur"
-        uses: peter-evans/create-pull-request@v6
+        uses: peter-evans/create-pull-request@v8
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: "chore(auto): Propose changes from daily constitutional sync"
