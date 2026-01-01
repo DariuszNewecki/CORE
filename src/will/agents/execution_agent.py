@@ -1,101 +1,195 @@
 # src/will/agents/execution_agent.py
+# ID: will.agents.execution
 
 """
-Provides functionality for the execution_agent module.
+ExecutionAgent - The Contractor (UNIX-Compliant Phase 5)
+
+Does ONE thing: Executes a pre-validated DetailedPlan via the ActionExecutor.
+
+A3 UPDATE (Phase 5):
+- Strictly separated from reasoning and code generation.
+- Receives a 'blueprint' (DetailedPlan) that has already passed the Canary Trial.
+- Acts as the final gateway to the Body layer (Production Code).
+
+UNIX Philosophy:
+- Each agent does ONE thing well.
+- Input: DetailedPlan (Structured Specifications).
+- Output: ExecutionResults (Audit Trail of success/failure).
+- No internal code generation; pure implementation.
+
+Constitutional Alignment:
+- Governed: All operations route through ActionExecutor (IntentGuard enforced).
+- Headless: Uses standard logging (LOG-001 compliant).
+- Traceable: Every execution step is logged in the DecisionTracer.
 """
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+import time
 
+from body.atomic.executor import ActionExecutor
+from shared.action_types import ActionResult
 from shared.logger import getLogger
-from shared.models import ExecutionTask, PlanExecutionError
-from will.agents.coder_agent import CodeGenerationError, CoderAgent
-from will.agents.plan_executor import PlanExecutor
+from shared.models.workflow_models import (
+    DetailedPlan,
+    DetailedPlanStep,
+    ExecutionResults,
+)
+from will.orchestration.decision_tracer import DecisionTracer
 
 
-if TYPE_CHECKING:
-    from mind.governance.audit_context import AuditorContext
 logger = getLogger(__name__)
 
 
-class _ExecutionAgent:
-    """Orchestrates the execution of a plan, delegating code generation to the CoderAgent."""
+# ID: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+class ExecutionAgent:
+    """
+    The Contractor: Executes validated code blueprints.
+    """
 
-    def __init__(
-        self,
-        coder_agent: CoderAgent,
-        plan_executor: PlanExecutor,
-        auditor_context: AuditorContext,
-    ):
-        """Initializes the ExecutionAgent as a pure orchestrator."""
-        self.coder_agent = coder_agent
-        self.executor = plan_executor
-        self.auditor_context = auditor_context
+    def __init__(self, executor: ActionExecutor):
+        """
+        Initialize the ExecutionAgent.
 
-    # ID: 28cde0e5-3236-4e29-888a-c68d615ae588
+        Args:
+            executor: The ActionExecutor (The Body's Gateway).
+        """
+        self.executor = executor
+        self.tracer = DecisionTracer()
+
+        logger.info("ExecutionAgent initialized (Contractor Mode)")
+
+    # ID: b2c3d4e5-f678-90ab-cdef-0123456789ab
     async def execute_plan(
-        self, high_level_goal: str, plan: list[ExecutionTask]
-    ) -> tuple[bool, str]:
+        self,
+        detailed_plan: DetailedPlan,
+    ) -> ExecutionResults:
         """
-        Orchestrates the execution of a plan, delegating code generation to the CoderAgent.
+        Execute a DetailedPlan step-by-step.
+
+        This assumes the plan has already passed a Canary Trial in the sandbox.
         """
-        if not plan:
-            return (False, "Plan is empty or invalid.")
-        try:
+        start_time = time.time()
+
+        logger.info(
+            "🏗️ Construction Phase: Applying %d spec-validated steps...",
+            detailed_plan.step_count,
+        )
+
+        results: list[ActionResult] = []
+        success_count = 0
+        failure_count = 0
+        aborted_at_step: int | None = None
+
+        for i, step in enumerate(detailed_plan.steps, 1):
             logger.info(
-                "--- Starting Governed Code Generation Phase (Orchestration) ---"
+                "  [Step %d/%d] Executing: %s...",
+                i,
+                detailed_plan.step_count,
+                step.description,
             )
-            context_str = ""
-            if self.executor.context.file_content_cache:
-                context_str += "\n\n--- CONTEXT FROM PREVIOUS STEPS ---\n"
-                for path, content in self.executor.context.file_content_cache.items():
-                    context_str += f"\n--- Contents of {path} ---\n{content}\n"
-                context_str += "--- END CONTEXT ---\n"
-            for task in plan:
-                if (
-                    task.action
-                    in ["create_file", "edit_file", "edit_function", "create_proposal"]
-                    and task.params.code is None
-                ):
-                    logger.info(
-                        "  -> Delegating code generation for step: '%s' to CoderAgent...",
-                        task.step,
+
+            # Execution via Constitutional Gateway
+            result = await self._execute_step(step, step_number=i)
+            results.append(result)
+
+            if result.ok:
+                success_count += 1
+                logger.info("    → ✅ Applied successfully.")
+            else:
+                failure_count += 1
+                error = result.data.get("error", "Unknown error")
+                logger.error("    → ❌ Step failed: %s", error)
+
+                # CONSTITUTIONAL SAFETY: Abort on critical failure to prevent corruption
+                if step.is_critical:
+                    aborted_at_step = i
+                    logger.error(
+                        "⛔ Critical step failed. Aborting construction for safety."
                     )
-                    try:
-                        validated_code = (
-                            await self.coder_agent.generate_and_validate_code_for_task(
-                                task, high_level_goal, context_str
-                            )
-                        )
-                        task.params.code = validated_code
-                        logger.info(
-                            "  -> ✅ CoderAgent returned validated code for '%s'.",
-                            task.step,
-                        )
-                    except CodeGenerationError as e:
-                        if e.code:
-                            task.params.code = e.code
-                            logger.warning(
-                                "  -> ⚠️ Validation failed, but captured draft code for crate."
-                            )
-                        logger.error("Code generation failed: %s", e)
-                        raise
-                    except Exception as e:
-                        logger.error(
-                            "Code generation failed for step '%s': %s", task.step, e
-                        )
-                        raise
-            logger.info("--- Handing off fully prepared plan to Executor ---")
-            await self.executor.execute_plan(plan)
-            return (True, "✅ Plan executed successfully.")
-        except (PlanExecutionError, CodeGenerationError) as e:
-            return (False, f"Plan execution failed: {e!s}")
+                    break
+
+        duration = time.time() - start_time
+
+        # Final Summary for the result object
+        metadata = {
+            "completed_successfully": failure_count == 0,
+            "total_duration_sec": duration,
+        }
+
+        if aborted_at_step is not None:
+            metadata["aborted_at_step"] = aborted_at_step
+            metadata["abort_reason"] = "Critical step failure"
+
+        logger.info(
+            "🏁 Execution Result: %s (%d success, %d failure) in %.2fs",
+            "✅ CLEAN" if failure_count == 0 else "❌ DIRTY",
+            success_count,
+            failure_count,
+            duration,
+        )
+
+        # Record the construction phase outcome
+        self.tracer.record(
+            agent="ExecutionAgent",
+            decision_type="plan_execution",
+            rationale=f"Executed blueprint for: {detailed_plan.goal}",
+            chosen_action="Sequential construction",
+            context={
+                "steps": len(results),
+                "success": success_count,
+                "fail": failure_count,
+                "aborted": aborted_at_step is not None,
+            },
+            confidence=1.0 if failure_count == 0 else 0.4,
+        )
+
+        return ExecutionResults(
+            steps=results,
+            success_count=success_count,
+            failure_count=failure_count,
+            total_duration_sec=duration,
+            metadata=metadata,
+        )
+
+    # ID: c3d4e5f6-789a-bcde-f012-3456789abcde
+    async def _execute_step(
+        self,
+        step: DetailedPlanStep,
+        step_number: int,
+    ) -> ActionResult:
+        """
+        Invokes the ActionExecutor for a single atomic action.
+        """
+        try:
+            # All mutations flow through this Gateway (Mind/Body boundary)
+            # 'write=True' is used here because the decision was validated by the Trial.
+            result = await self.executor.execute(
+                action_id=step.action,
+                write=True,
+                **step.params,
+            )
+
+            return result
+
         except Exception as e:
-            logger.error(
-                "An unexpected error occurred during execution: %s", e, exc_info=True
+            logger.error("Execution Exception in step %d: %s", step_number, e)
+
+            # Return a failed ActionResult to keep the pipeline stable
+            return ActionResult(
+                action_id=step.action,
+                ok=False,
+                data={
+                    "error": str(e),
+                    "error_type": type(e).__name__,
+                },
+                duration_sec=0.0,
             )
-            return (
-                False,
-                f"An unexpected error occurred during plan orchestration: {e!s}",
-            )
+
+    # ID: 55112e4c-696a-41a9-b32d-0a8cf16ff338
+    def get_decision_trace(self) -> str:
+        return self.tracer.format_trace()
+
+    # ID: af34975e-a553-471e-a7b1-7b739d7d6eb4
+    def save_decision_trace(self) -> None:
+        self.tracer.save_trace()

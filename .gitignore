@@ -21,11 +21,15 @@ __pypackages__/
 coverage.json
 *.log
 *.jsonl
+src/test.py
 
 # Editors
 .vscode/
 .idea/
 *.swp
+
+# Reports (runtime artifacts)
+reports/
 
 # System/OS
 .DS_Store

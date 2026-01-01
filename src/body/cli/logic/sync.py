@@ -1,13 +1,11 @@
 # src/body/cli/logic/sync.py
-
+# ID: 3234fb7f-f5d6-4111-b926-455657955794
 """
-Implements the 'knowledge sync' command, the single source of truth for
-synchronizing the codebase state (IDs) with the database.
+Headless logic for synchronizing the codebase state with the database.
+Complies with body_contracts.json (no UI imports).
 """
 
 from __future__ import annotations
-
-import typer
 
 from features.introspection.sync_service import run_sync_with_db
 from shared.infrastructure.database.session_manager import get_session
@@ -17,35 +15,35 @@ from shared.logger import getLogger
 logger = getLogger(__name__)
 
 
-async def _async_sync_knowledge(write: bool):
-    """Core async logic for the sync command."""
-    logger.info(
-        "🚀 Synchronizing codebase state with database using temp table strategy..."
-    )
-    if not write:
-        logger.warning(
-            "💧 Dry Run: This command no longer supports a dry run due to its database-centric logic."
-        )
-        logger.info("   Run with '--write' to execute the synchronization.")
-        return
+# ID: 26a3ed07-80bb-4a78-a05d-862cae7968e3
+async def sync_knowledge_base(write: bool = False) -> dict:
+    """
+    Scans the codebase and syncs all symbols and their IDs to the database.
 
-    # FIXED: Pass session to run_sync_with_db
+    Returns:
+        dict: Sync statistics.
+    """
+    logger.info("🚀 Synchronizing codebase state with database...")
+
+    if not write:
+        logger.info("DRY-RUN: Knowledge sync requires write=True to persist changes.")
+        return {
+            "status": "dry_run",
+            "scanned": 0,
+            "inserted": 0,
+            "updated": 0,
+            "deleted": 0,
+        }
+
     async with get_session() as session:
-        stats = await run_sync_with_db(session)
+        # run_sync_with_db returns an ActionResult; we extract the data for the caller
+        result = await run_sync_with_db(session)
+        stats = result.data
 
     logger.info("--- Knowledge Sync Summary ---")
-    logger.info("   Scanned from code:  %s symbols", stats["scanned"])
-    logger.info("   New symbols added:  %s", stats["inserted"])
-    logger.info("   Existing symbols updated: %s", stats["updated"])
-    logger.info("   Obsolete symbols removed: %s", stats["deleted"])
-    logger.info("✅ Database is now synchronized with the codebase.")
+    logger.info("   Scanned from code:  %s symbols", stats.get("scanned", 0))
+    logger.info("   New symbols added:  %s", stats.get("inserted", 0))
+    logger.info("   Existing symbols updated: %s", stats.get("updated", 0))
+    logger.info("   Obsolete symbols removed: %s", stats.get("deleted", 0))
 
-
-# ID: 3234fb7f-f5d6-4111-b926-455657955794
-async def sync_knowledge_base(
-    write: bool = typer.Option(
-        False, "--write", help="Apply the changes to the database."
-    ),
-):
-    """Scans the codebase and syncs all symbols and their IDs to the database."""
-    await _async_sync_knowledge(write)
+    return stats

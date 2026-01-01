@@ -27,10 +27,19 @@ class MicroPlannerAgent:
     def __init__(self, cognitive_service: CognitiveService):
         """Initializes the MicroPlannerAgent."""
         self.cognitive_service = cognitive_service
-        self.policy = settings.load("charter.policies.agent.micro_proposal_policy")
-        self.prompt_template = settings.get_path(
-            "mind.prompts.micro_planner"
-        ).read_text(encoding="utf-8")
+
+        # ALIGNED: Using settings.paths for policy and prompt resolution
+        self.policy = settings.load("charter.policies.agent_governance")
+
+        try:
+            self.prompt_template = settings.paths.prompt("micro_planner").read_text(
+                encoding="utf-8"
+            )
+        except FileNotFoundError:
+            logger.error(
+                "Constitutional prompt 'micro_planner.prompt' missing from var/prompts/"
+            )
+            raise
 
     # ID: d4a1edd0-a3ea-4f8d-a937-c6e95d8d4fb1
     async def create_micro_plan(self, goal: str) -> list[dict[str, Any]]:

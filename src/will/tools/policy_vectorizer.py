@@ -357,10 +357,17 @@ class PolicyVectorizer:
                 formatted_results.append(
                     {
                         "score": hit.score,
-                        "policy_id": hit.payload["policy_id"],
-                        "type": hit.payload["type"],
-                        "content": hit.payload["content"],
-                        "metadata": hit.payload.get("metadata", {}),
+                        "policy_id": hit.payload["doc_id"],  # ✅ Correct
+                        "type": hit.payload["section_type"],  # ✅ Correct
+                        "content": hit.payload.get(
+                            "item_id", ""
+                        ),  # ✅ Correct (or get actual content)
+                        "metadata": {
+                            "doc_title": hit.payload.get("doc_title"),
+                            "doc_version": hit.payload.get("doc_version"),
+                            "section_path": hit.payload.get("section_path"),
+                            "filename": hit.payload.get("filename"),
+                        },
                     }
                 )
             logger.info("Found %s relevant policy chunks", len(formatted_results))

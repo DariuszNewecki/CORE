@@ -74,7 +74,7 @@ async def validate_python_code_async(
     policy_validator = PolicyValidator(safety_policy.get("rules", []))
     all_violations.extend(policy_validator.check_semantics(fixed_code, path_hint))
 
-    # 5. QUALITY ATTRIBUTES (DRY / TODO detection)
+    # 5. QUALITY ATTRIBUTES (DRY / FUTURE detection)
     quality_checker = QualityChecker()
     all_violations.extend(quality_checker.check_for_todo_comments(fixed_code))
 

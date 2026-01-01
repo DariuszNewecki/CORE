@@ -1,6 +1,6 @@
 {
   "schema_version": "0.2.0",
-  "generated_at_utc": "2025-12-31T14:00:31Z",
+  "generated_at_utc": "2026-01-01T18:33:17Z",
   "source": "core-admin check audit",
   "passed": false,
   "artifacts": {
@@ -24,6 +24,7 @@
     "body.no_envvar_access_in_body",
     "body.no_print_or_input_in_body",
     "body.no_ui_imports_in_body",
+    "body.staged_writes_required",
     "body.write_defaults_false",
     "canary.abort_on_test_failure",
     "caps.meaningful_description",

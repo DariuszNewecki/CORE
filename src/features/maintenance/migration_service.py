@@ -71,7 +71,7 @@ async def _migrate_symbols_from_ast() -> list[dict[str, Any]]:
                 "module": symbol_data["module"],
                 "qualname": symbol_data["qualname"],
                 "kind": symbol_data["kind"],
-                "ast_signature": symbol_data.get("ast_signature", "TBD"),
+                "ast_signature": symbol_data.get("ast_signature", "pending"),
                 "fingerprint": symbol_data["fingerprint"],
                 "state": symbol_data.get("state", "discovered"),
                 "symbol_path": symbol_data["symbol_path"],

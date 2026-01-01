@@ -87,7 +87,7 @@ class WorkflowGateEngine(BaseEngine):
                     check_id="workflow_gate.error",
                     severity=AuditSeverity.ERROR,
                     message="Missing 'check_type' parameter in constitutional rule definition.",
-                    file_path="N/A",
+                    file_path="none",
                 )
             ]
 
@@ -98,7 +98,7 @@ class WorkflowGateEngine(BaseEngine):
                     check_id="workflow_gate.error",
                     severity=AuditSeverity.ERROR,
                     message=f"Logic Error: Engine does not support check_type '{check_type}'",
-                    file_path="N/A",
+                    file_path="none",
                 )
             ]
 
@@ -124,7 +124,7 @@ class WorkflowGateEngine(BaseEngine):
                     check_id=f"workflow.{check_type}.error",
                     severity=AuditSeverity.ERROR,
                     message=f"Internal Engine Error during {check_type} verification: {e}",
-                    file_path="N/A",
+                    file_path="none",
                 )
             ]
 

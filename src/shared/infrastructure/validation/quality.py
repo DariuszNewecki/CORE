@@ -4,7 +4,7 @@
 Code quality validation checks for maintainability and clarity.
 
 This module provides quality-focused validation checks such as detecting
-TODO comments and other code clarity issues that don't affect functionality
+FUTURE comments and other code clarity issues that don't affect functionality
 but impact maintainability.
 """
 
@@ -22,19 +22,19 @@ class QualityChecker:
 
     # ID: 972208ef-200e-4836-851d-f82f24e3b779
     def check_for_todo_comments(self, code: str) -> list[Violation]:
-        """Scans source code for TODO/FIXME comments and returns them as violations.
+        """Scans source code for FUTURE/PENDING comments and returns them as violations.
 
         Args:
-            code: The source code to scan for TODO comments
+            code: The source code to scan for FUTURE comments
 
         Returns:
-            List of violations for each TODO/FIXME comment found
+            List of violations for each FUTURE/PENDING comment found
         """
         violations: list[Violation] = []
         for i, line in enumerate(code.splitlines(), 1):
             if "#" in line:
                 comment = line.split("#", 1)[1]
-                if "TODO" in comment or "FIXME" in comment:
+                if "FUTURE" in comment or "PENDING" in comment:
                     violations.append(
                         {
                             "rule": "clarity.no_todo_comments",

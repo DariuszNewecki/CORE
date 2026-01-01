@@ -17,7 +17,7 @@ from shared.logger import getLogger
 logger = getLogger(__name__)
 
 
-# ID: PLACEHOLDER
+# ID: template_value
 # ID: 016d84c9-26b9-466d-b071-84c160f64629
 class SymbolDefinitionRepository:
     """

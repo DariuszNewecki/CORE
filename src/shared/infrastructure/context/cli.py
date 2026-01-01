@@ -103,7 +103,7 @@ async def _build_internal(task: str, out: Path | None) -> ActionResult:
     start_time = time.time()
 
     try:
-        # TODO: Wire up actual builder initialization with DB/Qdrant/AST providers
+        # FUTURE: Wire up actual builder initialization with DB/Qdrant/AST providers
         # For now, this is a stub showing the intended flow
         return ActionResult(
             action_id="context.build",

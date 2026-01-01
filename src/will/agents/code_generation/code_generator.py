@@ -1,6 +1,9 @@
 # src/will/agents/code_generation/code_generator.py
+# ID: 4a272fc9-4ce5-40ae-afa3-fd6eadceea73
+
 """
 Code generation specialist responsible for prompt construction and LLM interaction.
+Aligned with PathResolver standards for var/prompts access.
 """
 
 from __future__ import annotations
@@ -24,22 +27,19 @@ if TYPE_CHECKING:
 logger = getLogger(__name__)
 
 
-def _resolve_prompt_template_path(logical_path: str) -> Path | None:
+def _resolve_prompt_template_path(prompt_name: str) -> Path | None:
     """
-    Resolve a prompt template path via settings meta.yaml mapping.
-
-    This is intentionally local (not a shared shim):
-    - Keeps caller logic explicit.
-    - Avoids reintroducing legacy helper APIs into shared.config.
+    Resolve a prompt template path via the PathResolver (var/prompts).
+    This replaces the legacy logical path lookup to prevent Mind/Body sync errors.
     """
     try:
-        return settings.get_path(logical_path)
-    except FileNotFoundError:
+        # ALIGNED: Using the PathResolver (SSOT for var/ layout)
+        path = settings.paths.prompt(prompt_name)
+        if path.exists():
+            return path
         return None
     except Exception as e:
-        logger.warning(
-            "Failed to resolve prompt template path '%s': %s", logical_path, e
-        )
+        logger.warning("Failed to resolve prompt template '%s': %s", prompt_name, e)
         return None
 
 
@@ -200,9 +200,9 @@ class CodeGenerator:
         target_file = task.params.file_path or "unknown.py"
         symbol_name = task.params.symbol_name or ""
 
-        template_path = _resolve_prompt_template_path(
-            "mind.prompts.standard_task_generator"
-        )
+        # ALIGNED: Pass the prompt stem, not the legacy logical path
+        template_path = _resolve_prompt_template_path("standard_task_generator")
+
         if template_path and template_path.exists():
             try:
                 prompt_template = template_path.read_text(encoding="utf-8")

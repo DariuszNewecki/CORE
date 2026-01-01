@@ -77,7 +77,7 @@ async def execute_rule(
                 check_id=f"{rule.rule_id}.engine_missing",
                 severity=AuditSeverity.ERROR,
                 message=f"Rule '{rule.rule_id}' requires engine '{rule.engine}' which is not available: {e}",
-                file_path="N/A",
+                file_path="none",
             )
         )
         return findings
@@ -106,7 +106,7 @@ async def execute_rule(
                         check_id=f"{rule.rule_id}.engine_error",
                         severity=AuditSeverity.ERROR,
                         message=f"Context-level engine '{rule.engine}' missing verify_context() method",
-                        file_path="N/A",
+                        file_path="none",
                     )
                 )
         except Exception as e:
@@ -122,7 +122,7 @@ async def execute_rule(
                     check_id=f"{rule.rule_id}.execution_error",
                     severity=AuditSeverity.ERROR,
                     message=f"Rule '{rule.rule_id}' execution failed: {e}",
-                    file_path="N/A",
+                    file_path="none",
                 )
             )
 
@@ -156,7 +156,7 @@ async def execute_rule(
                 check_id=f"{rule.rule_id}.scope_error",
                 severity=AuditSeverity.ERROR,
                 message=f"Rule '{rule.rule_id}' failed to resolve file scope: {e}",
-                file_path="N/A",
+                file_path="none",
             )
         )
         return findings

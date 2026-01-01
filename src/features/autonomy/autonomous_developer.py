@@ -1,8 +1,22 @@
 # src/features/autonomy/autonomous_developer.py
-
+# ID: features.autonomy.autonomous_developer
 """
 Provides a dedicated, reusable service for orchestrating the full autonomous
 development cycle, from goal to implemented code.
+
+MAJOR UPDATE (Phase 5):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+REFACTORED TO USE UNIX-COMPLIANT WORKFLOW ORCHESTRATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+OLD PATTERN (Removed):
+  - Used _ExecutionAgent (mixed code generation + execution)
+  - Accepted executor_agent parameter
+
+NEW PATTERN (Current):
+  - Uses AutonomousWorkflowOrchestrator
+  - Three-phase pipeline: Planning → Specification → Execution
+  - No executor_agent parameter needed
 
 UPGRADED (Phase 2): Now uses ContextService for graph-aware context.
 """
@@ -14,12 +28,16 @@ from typing import Any
 from sqlalchemy import update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from body.atomic.executor import ActionExecutor
 from shared.context import CoreContext
 from shared.infrastructure.database.models import Task
 from shared.logger import getLogger
-from shared.models import PlanExecutionError
-from will.agents.execution_agent import _ExecutionAgent
+from will.agents.coder_agent import CoderAgent
+from will.agents.execution_agent import ExecutionAgent
 from will.agents.planner_agent import PlannerAgent
+from will.agents.specification_agent import SpecificationAgent
+from will.orchestration.prompt_pipeline import PromptPipeline
+from will.orchestration.workflow_orchestrator import AutonomousWorkflowOrchestrator
 
 
 logger = getLogger(__name__)
@@ -58,140 +76,221 @@ async def develop_from_goal(
     session: AsyncSession,
     context: CoreContext,
     goal: str,
-    executor_agent: _ExecutionAgent,
     task_id: str | None = None,
     output_mode: str = "direct",
 ):
     """
     Runs the full, end-to-end autonomous development cycle for a given goal.
 
-    Args:
-        session: Database session (injected dependency)
-        context: Core context with services
-        goal: High-level development goal
-        executor_agent: Agent to execute the plan
-        task_id: Optional task ID for tracking
-        output_mode: Output mode ('direct' or 'crate')
-    """
-    try:
-        logger.info("🚀 Initiating autonomous development cycle for goal: '%s'", goal)
-        logger.info("   -> Output mode: %s", output_mode)
-        logger.info("   -> Building ContextPackage (Graph + Search)...")
+    REFACTORED: Now uses UNIX-compliant three-phase workflow orchestration.
 
-        context_service = context.context_service
-        task_spec = {
-            "task_id": task_id or "dev_task",
-            "task_type": "code.generate",
-            "summary": goal,
-            "scope": {"traversal_depth": 1, "roots": ["src/"]},
-            "constraints": {"max_items": 30, "max_tokens": 50000},
-        }
-        packet = await context_service.build_for_task(task_spec, use_cache=False)
-        context_report = _format_context_package_report(packet)
-        logger.info(
-            "   -> Context Report generated (%s items).", len(packet.get("context", []))
+    Workflow:
+    1. Planning (PlannerAgent) → list[ExecutionTask]
+    2. Specification (SpecificationAgent) → DetailedPlan with code
+    3. Execution (ExecutionAgent) → ExecutionResults
+
+    Args:
+        session: Database session for tracking task status
+        context: CoreContext with services
+        goal: High-level development goal
+        task_id: Optional task ID for status tracking
+        output_mode: 'direct' or 'crate' mode
+
+    Returns:
+        Tuple of (success: bool, result: dict | str)
+        - If success: (True, result_dict with files/plan/etc)
+        - If failure: (False, error_message_str)
+
+    Note: This function maintains backward compatibility with existing
+    callers while using the new UNIX-compliant workflow internally.
+    """
+    logger.info("🚀 Starting autonomous development cycle for goal: %s", goal)
+
+    # Update task status if tracking
+    if task_id and session:
+        await session.execute(
+            update(Task).where(Task.id == task_id).values(status="planning")
+        )
+        await session.commit()
+
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    # PHASE 0: RECONNAISSANCE (Optional - Build Context)
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+    context_report = ""
+
+    try:
+        from features.context.context_service import ContextService
+        from shared.infrastructure.database.session_manager import (
+            get_session as get_new_session,
         )
 
-        planner = PlannerAgent(context.cognitive_service)
-        plan = await planner.create_execution_plan(goal, context_report)
+        logger.debug("Building graph-aware context for goal...")
 
-        if not plan:
-            raise PlanExecutionError(
-                "PlannerAgent failed to create a valid execution plan."
+        context_service = ContextService(
+            cognitive_service=context.cognitive_service,
+            project_root=str(context.settings.REPO_PATH),
+            session_factory=get_new_session,
+        )
+
+        context_packet = await context_service.build_for_task(
+            {
+                "task_id": task_id or "autonomous_dev",
+                "task_type": "autonomous_development",
+                "summary": goal,
+                "scope": {"traversal_depth": 2},
+            },
+            use_cache=True,
+        )
+
+        context_report = _format_context_package_report(context_packet)
+        logger.info(
+            "✅ Context built: %d relevant items found",
+            len(context_packet.get("context", [])),
+        )
+
+    except Exception as e:
+        logger.warning(
+            "Context building failed (proceeding without enhanced context): %s", e
+        )
+        context_report = ""
+
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    # BUILD SPECIALISTS (UNIX-Compliant Three-Phase Pattern)
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+    logger.debug("Initializing UNIX-compliant workflow specialists...")
+
+    # Get cognitive service
+    cognitive_service = context.cognitive_service
+
+    # Try to initialize Qdrant (optional semantic features)
+    qdrant_service = None
+    try:
+        from shared.infrastructure.clients.qdrant_client import QdrantService
+
+        qdrant_service = QdrantService(settings=context.settings)
+        logger.debug("Qdrant service initialized")
+    except Exception as e:
+        logger.debug("Qdrant not available (optional): %s", e)
+
+    # 1. PlannerAgent (Architect)
+    planner = PlannerAgent(cognitive_service)
+
+    # 2. CoderAgent (for SpecificationAgent)
+    prompt_pipeline = PromptPipeline(context.git_service.repo_path)
+    coder_agent = CoderAgent(
+        cognitive_service=cognitive_service,
+        prompt_pipeline=prompt_pipeline,
+        auditor_context=context.auditor_context,
+        qdrant_service=qdrant_service,
+    )
+
+    # 3. SpecificationAgent (Engineer)
+    spec_agent = SpecificationAgent(
+        coder_agent=coder_agent,
+        context_str="",  # Will accumulate during execution
+    )
+
+    # 4. ExecutionAgent (Contractor)
+    action_executor = ActionExecutor(context)
+    exec_agent = ExecutionAgent(action_executor)
+
+    # 5. AutonomousWorkflowOrchestrator (General Contractor)
+    orchestrator = AutonomousWorkflowOrchestrator(
+        planner=planner,
+        spec_agent=spec_agent,
+        exec_agent=exec_agent,
+    )
+
+    logger.info("✅ All specialists initialized")
+
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    # EXECUTE THREE-PHASE WORKFLOW
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+    # Update task status
+    if task_id and session:
+        await session.execute(
+            update(Task).where(Task.id == task_id).values(status="executing")
+        )
+        await session.commit()
+
+    try:
+        workflow_result = await orchestrator.execute_autonomous_goal(
+            goal=goal,
+            reconnaissance_report=context_report,
+        )
+
+    except Exception as e:
+        logger.error("Workflow orchestration failed: %s", e, exc_info=True)
+
+        # Update task status
+        if task_id and session:
+            await session.execute(
+                update(Task).where(Task.id == task_id).values(status="failed")
             )
+            await session.commit()
 
-        execution_success = False
-        execution_message = ""
+        return (False, f"Workflow failed: {e}")
 
-        try:
-            execution_success, execution_message = await executor_agent.execute_plan(
-                high_level_goal=goal, plan=plan
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    # HANDLE RESULTS
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+    if not workflow_result.success:
+        logger.error("Workflow completed with failures")
+
+        # Update task status
+        if task_id and session:
+            await session.execute(
+                update(Task).where(Task.id == task_id).values(status="failed")
             )
-        except Exception as e:
-            execution_message = f"Execution failed: {e!s}"
-            logger.warning("Plan execution had issues: %s", e)
+            await session.commit()
 
-        if output_mode == "crate":
-            logger.info("   -> Extracting generated files for crate packaging...")
-            generated_files = {}
+        return (False, f"Workflow failed: {workflow_result.summary()}")
 
-            if hasattr(executor_agent.executor, "context") and hasattr(
-                executor_agent.executor.context, "file_content_cache"
-            ):
-                file_cache = executor_agent.executor.context.file_content_cache
-                for abs_path, content in file_cache.items():
-                    try:
-                        from pathlib import Path
+    # Success!
+    logger.info("✅ Workflow completed successfully")
 
-                        rel_path = Path(abs_path).relative_to(
-                            context.git_service.repo_path
-                        )
-                        generated_files[str(rel_path)] = content
-                    except ValueError:
-                        generated_files[abs_path] = content
+    # Update task status
+    if task_id and session:
+        await session.execute(
+            update(Task).where(Task.id == task_id).values(status="completed")
+        )
+        await session.commit()
 
-            for task in plan:
-                if task.params.file_path and task.params.code:
-                    generated_files[task.params.file_path] = task.params.code
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    # BUILD RESULT (Backward Compatible Format)
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-            if not generated_files:
-                if not execution_success:
-                    raise PlanExecutionError(execution_message)
-                raise PlanExecutionError("No generated files found to package.")
+    if output_mode == "crate":
+        # Extract generated files for crate mode
+        generated_files = {}
 
-            logger.info("   -> Extracted %s files for crate", len(generated_files))
+        for step in workflow_result.detailed_plan.steps:
+            if "code" in step.params and step.params.get("file_path"):
+                file_path = step.params["file_path"]
+                code = step.params["code"]
+                generated_files[file_path] = code
 
-            result = {
-                "files": generated_files,
-                "context_tokens": 0,
-                "generation_tokens": 0,
-                "plan": [task.model_dump() for task in plan],
-                "validation_passed": execution_success,
-                "notes": (
-                    execution_message
-                    if not execution_success
-                    else "Automatically generated."
-                ),
-            }
+        result = {
+            "files": generated_files,
+            "context_tokens": 0,  # FUTURE: Track if needed
+            "generation_tokens": 0,  # FUTURE: Track if needed
+            "plan": [
+                {
+                    "step": step.description,
+                    "action": step.action,
+                }
+                for step in workflow_result.detailed_plan.steps
+            ],
+            "validation_passed": True,
+            "notes": "Generated via UNIX-compliant three-phase workflow",
+        }
 
-            if task_id:
-                status = "completed" if execution_success else "review_required"
-                async with session.begin():
-                    stmt = (
-                        update(Task)
-                        .where(Task.id == task_id)
-                        .values(
-                            status=status,
-                            failure_reason=(
-                                execution_message if not execution_success else None
-                            ),
-                        )
-                    )
-                    await session.execute(stmt)
+        return (True, result)
 
-            return (True, result)
-
-        if not execution_success:
-            raise PlanExecutionError(execution_message)
-
-        if task_id:
-            async with session.begin():
-                stmt = update(Task).where(Task.id == task_id).values(status="completed")
-                await session.execute(stmt)
-
-        return (execution_success, execution_message)
-
-    except (PlanExecutionError, Exception) as e:
-        error_message = f"Autonomous development cycle failed: {e}"
-        logger.error(error_message, exc_info=True)
-
-        if task_id:
-            async with session.begin():
-                stmt = (
-                    update(Task)
-                    .where(Task.id == task_id)
-                    .values(status="failed", failure_reason=error_message)
-                )
-                await session.execute(stmt)
-
-        return (False, error_message)
+    else:
+        # Direct mode - just return success message
+        return (True, workflow_result.summary())

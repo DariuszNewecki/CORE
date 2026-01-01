@@ -24,12 +24,11 @@ from functools import cached_property
 from pathlib import Path
 from typing import Any
 
-from shared.config import settings
+from shared.config import Settings, settings
 from shared.infrastructure.intent.intent_repository import get_intent_repository
 from shared.infrastructure.knowledge.knowledge_service import KnowledgeService
 from shared.infrastructure.storage.file_handler import FileHandler
 from shared.logger import getLogger
-from shared.path_resolver import PathResolver
 
 
 logger = getLogger(__name__)
@@ -47,10 +46,21 @@ class AuditorContext:
     """
 
     # ID: 4c0f2c62-3d57-4b32-8bff-76a8f3d3fd2f
-    def __init__(self, repo_path: Path):
+    def __init__(self, repo_path: Path, settings_instance: Settings | None = None):
+        """
+        Initialize AuditorContext for a specific repository.
+
+        Args:
+            repo_path: Root path of the repository to audit
+            settings_instance: Optional Settings instance. If None, uses global settings.
+        """
         self.repo_path = repo_path.resolve()
-        self.meta: dict[str, Any] = settings._meta_config
-        self.paths = PathResolver(self.repo_path, self.meta)
+
+        # Use provided settings or fall back to global
+        if settings_instance:
+            self.paths = settings_instance.paths
+        else:
+            self.paths = settings.paths
 
         self.src_dir = self.paths.repo_root / "src"
         self.intent_path = self.paths.intent_root

@@ -7,7 +7,13 @@ Atomic Actions - Constitutional Action System
 from __future__ import annotations
 
 # Import modules to trigger registration
-from body.atomic import file_ops, fix_actions, sync_actions
+from body.atomic import (
+    crate_ops,
+    file_ops,
+    fix_actions,
+    sync_actions,
+)  # ADDED crate_ops
+from body.atomic.crate_ops import action_create_crate
 from body.atomic.file_ops import (
     action_create_file,
     action_edit_file,
@@ -33,6 +39,7 @@ from body.atomic.sync_actions import (
 
 
 __all__ = [
+    "action_create_crate",
     "action_create_file",
     "action_edit_file",
     "action_fix_docstrings",

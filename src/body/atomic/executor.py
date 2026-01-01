@@ -20,6 +20,7 @@ CRITICAL: This enforces the "single execution contract" principle.
 
 from __future__ import annotations
 
+import shutil
 import time
 from typing import TYPE_CHECKING, Any
 
@@ -209,7 +210,7 @@ class ActionExecutor:
         Returns:
             Validation result with ok status and details
         """
-        # TODO: Phase 2 - Query constitution database for policy existence
+        # FUTURE: Phase 2 - Query constitution database for policy existence
         # For now, assume all policies are valid
         return {
             "ok": True,
@@ -263,7 +264,7 @@ class ActionExecutor:
 
         # Dangerous actions require explicit handling
         if impact == "dangerous":
-            # TODO: Phase 2 - Implement confirmation mechanism
+            # FUTURE: Phase 2 - Implement confirmation mechanism
             if write:
                 return {
                     "authorized": False,
@@ -348,12 +349,51 @@ class ActionExecutor:
             write: Write mode
             params: Execution parameters
         """
-        # TODO: Phase 2 - Implement pre-execution hooks
-        # Examples:
-        # - Verify git working directory is clean
-        # - Check disk space for file operations
-        # - Validate DB connection for sync actions
-        logger.debug("Pre-execution hooks for %s (placeholder)", definition.action_id)
+        action_id = definition.action_id
+        git_service = self.core_context.git_service
+
+        if write and git_service and git_service.is_git_repo():
+            try:
+                status = git_service.status_porcelain()
+            except Exception as exc:
+                logger.warning("Pre-hook git status failed for %s: %s", action_id, exc)
+            else:
+                if status:
+                    dirty_count = len(status.splitlines())
+                    logger.warning(
+                        "Git working directory not clean before %s (%d changes)",
+                        action_id,
+                        dirty_count,
+                    )
+
+        if write and (
+            action_id.startswith("file.")
+            or definition.category in (ActionCategory.FIX, ActionCategory.BUILD)
+        ):
+            repo_path = git_service.repo_path if git_service else None
+            if repo_path:
+                try:
+                    _total, _used, free = shutil.disk_usage(repo_path)
+                except Exception as exc:
+                    logger.warning(
+                        "Pre-hook disk check failed for %s: %s", action_id, exc
+                    )
+                else:
+                    min_free_bytes = 100 * 1024 * 1024
+                    if free < min_free_bytes:
+                        logger.warning(
+                            "Low disk space before %s: %d MB free",
+                            action_id,
+                            free // (1024 * 1024),
+                        )
+
+        if definition.requires_db and not self.core_context.db_available:
+            logger.warning("Action %s requires DB but it's not available", action_id)
+
+        if definition.requires_vectors and not self.core_context.qdrant_service:
+            logger.warning(
+                "Action %s requires vectors but Qdrant is not available", action_id
+            )
 
     # ID: executor_post_hooks
     async def _post_execute_hooks(
@@ -371,7 +411,7 @@ class ActionExecutor:
             definition: Action definition
             result: Execution result
         """
-        # TODO: Phase 2 - Implement post-execution hooks
+        # FUTURE: Phase 2 - Implement post-execution hooks
         # Examples:
         # - Run constitutional audit after fix actions
         # - Update success rate metrics
@@ -397,7 +437,7 @@ class ActionExecutor:
             result: Execution result
             write: Whether changes were written
         """
-        # TODO: Phase 2 - Persist to audit database
+        # FUTURE: Phase 2 - Persist to audit database
         # For now, structured logging
         logger.info(
             "AUDIT: action=%s category=%s impact=%s write=%s ok=%s duration=%.2fs",

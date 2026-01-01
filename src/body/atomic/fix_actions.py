@@ -17,11 +17,13 @@ from body.atomic.registry import ActionCategory, register_action
 
 if TYPE_CHECKING:
     from shared.context import CoreContext
+
 from body.cli.commands.fix.code_style import fix_headers_internal
 from body.cli.commands.fix.metadata import fix_ids_internal
 from body.cli.commands.fix_logging import LoggingFixer
 from features.self_healing.code_style_service import format_code
 from features.self_healing.docstring_service import fix_docstrings
+from features.self_healing.placeholder_fixer_service import fix_placeholders_in_content
 from shared.action_types import ActionResult
 from shared.config import settings
 from shared.logger import getLogger
@@ -221,6 +223,56 @@ async def action_fix_logging(write: bool = False) -> ActionResult:
         logger.error("Logging fix failed: %s", e, exc_info=True)
         return ActionResult(
             action_id="fix.logging",
+            ok=False,
+            data={"error": str(e)},
+            duration_sec=time.time() - start,
+        )
+
+
+@register_action(
+    action_id="fix.placeholders",
+    description="Deterministically replace forbidden placeholders (FUTURE, none, pending)",
+    category=ActionCategory.FIX,
+    policies=["code_standards"],
+    impact_level="moderate",
+)
+# ID: 7d8e9f0a-1b2c-3d4e-5f6g-7h8i9j0k1l2m
+# ID: 4eadad7d-48b6-4799-9b52-646e4227f28e
+async def action_fix_placeholders(
+    core_context: CoreContext, write: bool = False
+) -> ActionResult:
+    """
+    Scans src/ and replaces forbidden placeholders with constitutional alternatives.
+    """
+    start = time.time()
+    files_modified = 0
+
+    try:
+        src_dir = core_context.git_service.repo_path / "src"
+        for py_file in src_dir.rglob("*.py"):
+            original = py_file.read_text(encoding="utf-8")
+            fixed = fix_placeholders_in_content(original)
+
+            if fixed != original:
+                if write:
+                    py_file.write_text(fixed, encoding="utf-8")
+                    logger.info("Fixed placeholders in %s", py_file.name)
+                files_modified += 1
+
+        return ActionResult(
+            action_id="fix.placeholders",
+            ok=True,
+            data={
+                "files_affected": files_modified,
+                "written": write,
+                "dry_run": not write,
+            },
+            duration_sec=time.time() - start,
+        )
+    except Exception as e:
+        logger.error("Placeholder fix failed: %s", e, exc_info=True)
+        return ActionResult(
+            action_id="fix.placeholders",
             ok=False,
             data={"error": str(e)},
             duration_sec=time.time() - start,

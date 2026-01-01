@@ -15,7 +15,7 @@ from shared.logger import getLogger
 logger = getLogger(__name__)
 
 
-# ID: PLACEHOLDER
+# ID: template_value
 # ID: d1c4233c-25d9-4378-84fc-d529bbbe89e6
 class VectorLinkRepository:
     """

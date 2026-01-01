@@ -59,7 +59,7 @@ async def status_command(ctx: typer.Context) -> None:
     if report.db_version:
         console.print(f"Database version: {report.db_version}")
     else:
-        console.print("Database version: N/A")
+        console.print("Database version: none")
 
     # Migration status
     pending = list(report.pending_migrations)

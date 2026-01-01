@@ -258,7 +258,7 @@ class AlignmentOrchestrator:
             f"Rule: {violation.get('check_id')}\n"
             f"Severity: {violation.get('severity')}\n"
             f"Message: {violation.get('message')}\n"
-            f"Line: {violation.get('line_number', 'N/A')}"
+            f"Line: {violation.get('line_number', 'none')}"
         )
 
         final_prompt = template.format(

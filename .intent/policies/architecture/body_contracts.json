@@ -71,6 +71,19 @@
       }
     },
     {
+      "id": "body.staged_writes_required",
+      "rationale": "Prevents direct corruption of source code. A3 maturity requires a validated blueprint (Crate) before execution.",
+      "enforcement": "error",
+      "statement": "Autonomous development workflows MUST stage code modifications in an Intent Crate for canary validation prior to application.",
+      "check": {
+        "engine": "ast_gate",
+        "params": {
+          "check_type": "required_decorator",
+          "target": "atomic_action"
+        }
+      }
+    },
+    {
       "id": "body.atomic_actions_use_actionresult",
       "rationale": "Workflows require a consistent return object to handle success/failure logic.",
       "enforcement": "error",

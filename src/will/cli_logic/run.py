@@ -1,6 +1,11 @@
 # src/will/cli_logic/run.py
+# ID: will.cli_logic.run
+"""
+Provides functionality for the run module.
 
-"""Provides functionality for the run module."""
+UPDATED (Phase 5): Removed _ExecutionAgent dependency.
+Now uses develop_from_goal which internally uses the new UNIX-compliant pattern.
+"""
 
 from __future__ import annotations
 
@@ -15,10 +20,6 @@ from shared.context import CoreContext
 from shared.infrastructure.config_service import ConfigService
 from shared.infrastructure.database.session_manager import get_session
 from shared.logger import getLogger
-from will.agents.coder_agent import CoderAgent
-from will.agents.execution_agent import _ExecutionAgent
-from will.agents.plan_executor import PlanExecutor
-from will.orchestration.prompt_pipeline import PromptPipeline
 
 
 logger = getLogger(__name__)
@@ -30,46 +31,55 @@ run_app = typer.Typer(
 async def _develop(
     context: CoreContext, goal: str | None = None, from_file: Path | None = None
 ):
-    """Orchestrates the autonomous development process from a high-level goal."""
-    if not goal and (not from_file):
+    """
+    Orchestrates the autonomous development process from a high-level goal.
+
+    UPDATED: Simplified! No need to build agents manually.
+    develop_from_goal handles all orchestration internally.
+    """
+    if not goal and not from_file:
         logger.error(
             "❌ You must provide a goal either as an argument or with --from-file."
         )
         raise typer.Exit(code=1)
+
     if from_file:
         goal_content = from_file.read_text(encoding="utf-8").strip()
     else:
         goal_content = goal.strip() if goal else ""
+
     load_dotenv()
+
     async with get_session() as session:
         config = await ConfigService.create(session)
         llm_enabled = await config.get_bool("LLM_ENABLED", default=False)
+
     if not llm_enabled:
         logger.error("❌ The 'develop' command requires LLMs to be enabled.")
         raise typer.Exit(code=1)
-    prompt_pipeline = PromptPipeline(context.git_service.repo_path)
-    plan_executor = PlanExecutor(
-        context.file_handler, context.git_service, context.planner_config
-    )
-    coder_agent = CoderAgent(
-        cognitive_service=context.cognitive_service,
-        prompt_pipeline=prompt_pipeline,
-        auditor_context=context.auditor_context,
-    )
-    executor_agent = _ExecutionAgent(
-        coder_agent=coder_agent,
-        plan_executor=plan_executor,
-        auditor_context=context.auditor_context,
-    )
-    success, message = await develop_from_goal(context, goal_content, executor_agent)
+
+    # Execute autonomous development
+    # NOTE: develop_from_goal now builds all agents internally!
+    # No need to pass executor_agent anymore!
+    async with get_session() as session:
+        success, message = await develop_from_goal(
+            session=session,
+            context=context,
+            goal=goal_content,
+            task_id=None,
+            output_mode="direct",
+        )
+
     if success:
-        typer.secho(f"\n✅ Goal execution successful: {message}", fg=typer.colors.GREEN)
-        typer.secho(
-            "   -> Run 'git status' to see the changes and 'core-admin submit changes' to integrate them.",
-            bold=True,
+        from rich.console import Console
+
+        c = Console()
+        c.print(f"\n[bold green]✅ Goal execution successful:[/bold green] {message}")
+        c.print(
+            "   -> Run 'git status' to see changes and 'core-admin submit changes' to integrate."
         )
     else:
-        typer.secho(f"\n❌ Goal execution failed: {message}", fg=typer.colors.RED)
+        logger.error("Goal execution failed: %s", message)
         raise typer.Exit(code=1)
 
 
@@ -78,12 +88,15 @@ async def _vectorize_capabilities(
 ):
     """The CLI wrapper for the database-driven vectorization process."""
     logger.info("🚀 Starting capability vectorization process...")
+
     async with get_session() as session:
         config = await ConfigService.create(session)
         llm_enabled = await config.get_bool("LLM_ENABLED", default=False)
+
     if not llm_enabled:
         logger.error("❌ LLMs must be enabled to generate embeddings.")
         raise typer.Exit(code=1)
+
     try:
         await run_vectorize(context=context, dry_run=dry_run, force=force)
     except Exception as e:

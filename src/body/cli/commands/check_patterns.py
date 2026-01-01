@@ -56,7 +56,7 @@ def list_patterns(
         for pattern in pattern_spec.get("patterns", []):
             typer.echo(f"  • {pattern['pattern_id']}")
             typer.echo(f"    Type: {pattern.get('type', 'unknown')}")
-            typer.echo(f"    Purpose: {pattern.get('purpose', 'N/A')}")
+            typer.echo(f"    Purpose: {pattern.get('purpose', 'none')}")
             typer.echo()
 
 

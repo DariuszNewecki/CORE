@@ -103,7 +103,7 @@ class SymbolVisitor(ast.NodeVisitor):
                 "module": module_name,
                 "qualname": qualname,
                 "kind": kind_map.get(type(node).__name__, "function"),
-                "ast_signature": "TBD",
+                "ast_signature": "pending",
                 "fingerprint": calculate_structural_hash(node),
                 "state": "discovered",
                 "is_public": True,

@@ -119,7 +119,7 @@
   {
     "check_id": "body.no_ui_imports_in_body",
     "severity": "error",
-    "message": "Line 17: Forbidden import 'typer'",
+    "message": "Line 42: Forbidden import 'typer'",
     "file_path": "src/body/cli/commands/develop.py",
     "line_number": null,
     "context": {},
@@ -236,7 +236,7 @@
   {
     "check_id": "body.no_ui_imports_in_body",
     "severity": "error",
-    "message": "Line 18: Forbidden import 'typer'",
+    "message": "Line 19: Forbidden import 'typer'",
     "file_path": "src/body/cli/commands/fix/metadata.py",
     "line_number": null,
     "context": {},
@@ -335,7 +335,7 @@
   {
     "check_id": "body.no_ui_imports_in_body",
     "severity": "error",
-    "message": "Line 11: Forbidden import 'typer'",
+    "message": "Line 15: Forbidden import 'typer'",
     "file_path": "src/body/cli/commands/run.py",
     "line_number": null,
     "context": {},
@@ -508,15 +508,6 @@
     "severity": "error",
     "message": "Line 8: Forbidden import 'typer'",
     "file_path": "src/body/cli/logic/report.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "body.no_ui_imports_in_body",
-    "severity": "error",
-    "message": "Line 10: Forbidden import 'typer'",
-    "file_path": "src/body/cli/logic/sync.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -740,7 +731,7 @@
   {
     "check_id": "body.no_ui_imports_in_body",
     "severity": "error",
-    "message": "Line 9: Forbidden import 'typer'",
+    "message": "Line 14: Forbidden import 'typer'",
     "file_path": "src/will/cli_logic/run.py",
     "line_number": null,
     "context": {},
@@ -760,6 +751,2850 @@
     "severity": "error",
     "message": "Line 24: Forbidden import 'typer'",
     "file_path": "src/will/tools/policy_vectorizer.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.no_print_or_input_in_body",
+    "severity": "error",
+    "message": "Forbidden print() call on line 48. Use logger.info() or logger.debug() instead.",
+    "file_path": "src/test.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'lifespan' appears state-modifying but lacks required @atomic_action (line 47).",
+    "file_path": "src/api/main.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'start_development_cycle' appears state-modifying but lacks required @atomic_action (line 35).",
+    "file_path": "src/api/v1/development_routes.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'action_create_file' appears state-modifying but lacks required @atomic_action (line 69).",
+    "file_path": "src/body/atomic/file_ops.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'main' appears state-modifying but lacks required @atomic_action (line 146).",
+    "file_path": "src/body/cli/admin_cli.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'record_phase' appears state-modifying but lacks required @atomic_action (line 86).",
+    "file_path": "src/body/cli/commands/audit_reporter.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'record_check_result' appears state-modifying but lacks required @atomic_action (line 115).",
+    "file_path": "src/body/cli/commands/audit_reporter.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'print_summary' appears state-modifying but lacks required @atomic_action (line 188).",
+    "file_path": "src/body/cli/commands/audit_reporter.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'convert_engine_findings_to_audit_findings' appears state-modifying but lacks required @atomic_action (line 53).",
+    "file_path": "src/body/cli/commands/check/converters.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'convert_finding_dicts_to_models' appears state-modifying but lacks required @atomic_action (line 94).",
+    "file_path": "src/body/cli/commands/check/converters.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'check_body_ui_cmd' appears state-modifying but lacks required @atomic_action (line 36).",
+    "file_path": "src/body/cli/commands/check/diagnostics_commands.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'print_summary_findings' appears state-modifying but lacks required @atomic_action (line 57).",
+    "file_path": "src/body/cli/commands/check/formatters.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'coverage_report' appears state-modifying but lacks required @atomic_action (line 77).",
+    "file_path": "src/body/cli/commands/coverage.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'dev_sync_command' appears state-modifying but lacks required @atomic_action (line 39).",
+    "file_path": "src/body/cli/commands/dev_sync.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'cli_tree_command' appears state-modifying but lacks required @atomic_action (line 71).",
+    "file_path": "src/body/cli/commands/diagnostics.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'add_nodes' appears state-modifying but lacks required @atomic_action (line 97).",
+    "file_path": "src/body/cli/commands/diagnostics.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'fix_callback' appears state-modifying but lacks required @atomic_action (line 191).",
+    "file_path": "src/body/cli/commands/fix/__init__.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'fix_atomic_actions_internal' appears state-modifying but lacks required @atomic_action (line 38).",
+    "file_path": "src/body/cli/commands/fix/atomic_actions.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'fix_imports_command' appears state-modifying but lacks required @atomic_action (line 33).",
+    "file_path": "src/body/cli/commands/fix/imports.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'fix_imports_internal' appears state-modifying but lacks required @atomic_action (line 88).",
+    "file_path": "src/body/cli/commands/fix/imports.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'fix_placeholders_command' appears state-modifying but lacks required @atomic_action (line 246).",
+    "file_path": "src/body/cli/commands/fix/metadata.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'fix_file' appears state-modifying but lacks required @atomic_action (line 65).",
+    "file_path": "src/body/cli/commands/fix_logging.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'visit_Call' appears state-modifying but lacks required @atomic_action (line 204).",
+    "file_path": "src/body/cli/commands/fix_logging.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'command_tree_cmd' appears state-modifying but lacks required @atomic_action (line 81).",
+    "file_path": "src/body/cli/commands/inspect.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'add_nodes' appears state-modifying but lacks required @atomic_action (line 93).",
+    "file_path": "src/body/cli/commands/inspect.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'inspect_patterns' appears state-modifying but lacks required @atomic_action (line 22).",
+    "file_path": "src/body/cli/commands/inspect_patterns.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'develop_command' appears state-modifying but lacks required @atomic_action (line 35).",
+    "file_path": "src/body/cli/commands/run.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'vectorize_command' appears state-modifying but lacks required @atomic_action (line 110).",
+    "file_path": "src/body/cli/commands/run.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'launch_interactive_menu' appears state-modifying but lacks required @atomic_action (line 200).",
+    "file_path": "src/body/cli/interactive.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'scaffold_new_application' appears state-modifying but lacks required @atomic_action (line 37).",
+    "file_path": "src/body/cli/logic/agent.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'format_atomic_action_violations' appears state-modifying but lacks required @atomic_action (line 376).",
+    "file_path": "src/body/cli/logic/atomic_actions_checker.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'check_all' appears state-modifying but lacks required @atomic_action (line 85).",
+    "file_path": "src/body/cli/logic/atomic_actions_checker.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'check_body_contracts' appears state-modifying but lacks required @atomic_action (line 275).",
+    "file_path": "src/body/cli/logic/body_contracts_checker.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'fix_body_ui_violations' appears state-modifying but lacks required @atomic_action (line 107).",
+    "file_path": "src/body/cli/logic/body_contracts_fixer.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'get_unassigned_symbols_logic' appears state-modifying but lacks required @atomic_action (line 21).",
+    "file_path": "src/body/cli/logic/diagnostics.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'get_all_constitutional_paths' appears state-modifying but lacks required @atomic_action (line 62).",
+    "file_path": "src/body/cli/logic/diagnostics.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'inspect_duplicates_async' appears state-modifying but lacks required @atomic_action (line 66).",
+    "file_path": "src/body/cli/logic/duplicates.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'hub_list_cmd' appears state-modifying but lacks required @atomic_action (line 65).",
+    "file_path": "src/body/cli/logic/hub.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'hub_search_cmd' appears state-modifying but lacks required @atomic_action (line 92).",
+    "file_path": "src/body/cli/logic/hub.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'format_violations' appears state-modifying but lacks required @atomic_action (line 310).",
+    "file_path": "src/body/cli/logic/pattern_checker.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'check_all' appears state-modifying but lacks required @atomic_action (line 49).",
+    "file_path": "src/body/cli/logic/pattern_checker.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'docs' appears state-modifying but lacks required @atomic_action (line 16).",
+    "file_path": "src/body/cli/logic/project_docs.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'list' appears state-modifying but lacks required @atomic_action (line 109).",
+    "file_path": "src/body/cli/logic/proposal_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'sign' appears state-modifying but lacks required @atomic_action (line 143).",
+    "file_path": "src/body/cli/logic/proposal_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'report' appears state-modifying but lacks required @atomic_action (line 15).",
+    "file_path": "src/body/cli/logic/report.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'export_context_cmd' appears state-modifying but lacks required @atomic_action (line 72).",
+    "file_path": "src/body/cli/logic/tools.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'inspect_vector_drift' appears state-modifying but lacks required @atomic_action (line 46).",
+    "file_path": "src/body/cli/logic/vector_drift.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'run_body_contracts' appears state-modifying but lacks required @atomic_action (line 232).",
+    "file_path": "src/body/cli/workflows/dev_sync_phases.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'start_phase' appears state-modifying but lacks required @atomic_action (line 109).",
+    "file_path": "src/body/cli/workflows/dev_sync_reporter.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'record_result' appears state-modifying but lacks required @atomic_action (line 125).",
+    "file_path": "src/body/cli/workflows/dev_sync_reporter.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'validate_payload_paths' appears state-modifying but lacks required @atomic_action (line 158).",
+    "file_path": "src/body/services/crate_creation_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'make_request' appears state-modifying but lacks required @atomic_action (line 31).",
+    "file_path": "src/body/services/llm_client.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'validate_python_code_async' appears state-modifying but lacks required @atomic_action (line 34).",
+    "file_path": "src/body/services/validation/python_validator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'failed_actions' appears state-modifying but lacks required @atomic_action (line 85).",
+    "file_path": "src/body/workflows/dev_sync_workflow.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'analyze_findings' appears state-modifying but lacks required @atomic_action (line 130).",
+    "file_path": "src/features/autonomy/audit_analyzer.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'develop_from_goal' appears state-modifying but lacks required @atomic_action (line 75).",
+    "file_path": "src/features/autonomy/autonomous_developer.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'validate_proposal' appears state-modifying but lacks required @atomic_action (line 192).",
+    "file_path": "src/features/autonomy/micro_proposal_executor.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'apply_proposal' appears state-modifying but lacks required @atomic_action (line 249).",
+    "file_path": "src/features/autonomy/micro_proposal_executor.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'enforce' appears state-modifying but lacks required @atomic_action (line 71).",
+    "file_path": "src/features/crate_processing/canary_executor.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'load_and_validate_capabilities' appears state-modifying but lacks required @atomic_action (line 140).",
+    "file_path": "src/features/introspection/capability_discovery_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'validate_agent_roles' appears state-modifying but lacks required @atomic_action (line 173).",
+    "file_path": "src/features/introspection/capability_discovery_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'sync_capabilities_to_db' appears state-modifying but lacks required @atomic_action (line 222).",
+    "file_path": "src/features/introspection/capability_discovery_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'dfs' appears state-modifying but lacks required @atomic_action (line 115).",
+    "file_path": "src/features/introspection/capability_discovery_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'detect_capability_drift' appears state-modifying but lacks required @atomic_action (line 17).",
+    "file_path": "src/features/introspection/drift_detector.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'main' appears state-modifying but lacks required @atomic_action (line 71).",
+    "file_path": "src/features/introspection/generate_capability_docs.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'find_semantic_clusters' appears state-modifying but lacks required @atomic_action (line 24).",
+    "file_path": "src/features/introspection/graph_analysis_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'build' appears state-modifying but lacks required @atomic_action (line 95).",
+    "file_path": "src/features/introspection/knowledge_graph_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'log_failure' appears state-modifying but lacks required @atomic_action (line 61).",
+    "file_path": "src/features/introspection/knowledge_helpers.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'vectorize_pattern' appears state-modifying but lacks required @atomic_action (line 151).",
+    "file_path": "src/features/introspection/pattern_vectorizer.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'run_clustering' appears state-modifying but lacks required @atomic_action (line 30).",
+    "file_path": "src/features/introspection/semantic_clusterer.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'build_symbol_index' appears state-modifying but lacks required @atomic_action (line 259).",
+    "file_path": "src/features/introspection/symbol_index_builder.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'visit_ClassDef' appears state-modifying but lacks required @atomic_action (line 103).",
+    "file_path": "src/features/introspection/symbol_index_builder.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'run_sync_with_db' appears state-modifying but lacks required @atomic_action (line 163).",
+    "file_path": "src/features/introspection/sync_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'visit_ClassDef' appears state-modifying but lacks required @atomic_action (line 52).",
+    "file_path": "src/features/introspection/sync_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'scan' appears state-modifying but lacks required @atomic_action (line 120).",
+    "file_path": "src/features/introspection/sync_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'run_vectorize' appears state-modifying but lacks required @atomic_action (line 192).",
+    "file_path": "src/features/introspection/vectorization_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'run_dotenv_sync' appears state-modifying but lacks required @atomic_action (line 22).",
+    "file_path": "src/features/maintenance/dotenv_sync_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'rewire_imports' appears state-modifying but lacks required @atomic_action (line 31).",
+    "file_path": "src/features/maintenance/maintenance_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'run_ssot_migration' appears state-modifying but lacks required @atomic_action (line 84).",
+    "file_path": "src/features/maintenance/migration_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'sha256_file' appears state-modifying but lacks required @atomic_action (line 54).",
+    "file_path": "src/features/maintenance/scripts/context_export.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'build_signature_from_ast' appears state-modifying but lacks required @atomic_action (line 64).",
+    "file_path": "src/features/maintenance/scripts/context_export.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'run_vector_verify' appears state-modifying but lacks required @atomic_action (line 19).",
+    "file_path": "src/features/maintenance/scripts/vector_verify.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'bootstrap_issues' appears state-modifying but lacks required @atomic_action (line 98).",
+    "file_path": "src/features/project_lifecycle/bootstrap_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'get_undefined_symbols' appears state-modifying but lacks required @atomic_action (line 38).",
+    "file_path": "src/features/project_lifecycle/definition_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'integrate_changes' appears state-modifying but lacks required @atomic_action (line 20).",
+    "file_path": "src/features/project_lifecycle/integration_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'scaffold_base_structure' appears state-modifying but lacks required @atomic_action (line 57).",
+    "file_path": "src/features/project_lifecycle/scaffolding_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'write_file' appears state-modifying but lacks required @atomic_action (line 152).",
+    "file_path": "src/features/project_lifecycle/scaffolding_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'accumulate_tests_for_file' appears state-modifying but lacks required @atomic_action (line 44).",
+    "file_path": "src/features/self_healing/accumulative_test_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'align_file' appears state-modifying but lacks required @atomic_action (line 46).",
+    "file_path": "src/features/self_healing/alignment_orchestrator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'process_batch' appears state-modifying but lacks required @atomic_action (line 56).",
+    "file_path": "src/features/self_healing/batch_remediation_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'fix_clarity' appears state-modifying but lacks required @atomic_action (line 28).",
+    "file_path": "src/features/self_healing/clarity_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'check_and_remediate' appears state-modifying but lacks required @atomic_action (line 52).",
+    "file_path": "src/features/self_healing/coverage_watcher.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'resolve_duplicate_ids' appears state-modifying but lacks required @atomic_action (line 48).",
+    "file_path": "src/features/self_healing/duplicate_id_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'run_fix_manifest_hygiene' appears state-modifying but lacks required @atomic_action (line 33).",
+    "file_path": "src/features/self_healing/fix_manifest_hygiene.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'analyze' appears state-modifying but lacks required @atomic_action (line 57).",
+    "file_path": "src/features/self_healing/header_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'assign_missing_ids' appears state-modifying but lacks required @atomic_action (line 35).",
+    "file_path": "src/features/self_healing/id_tagging_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'find_structurally_similar_helpers' appears state-modifying but lacks required @atomic_action (line 21).",
+    "file_path": "src/features/self_healing/knowledge_consolidation_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'fix_line_lengths' appears state-modifying but lacks required @atomic_action (line 128).",
+    "file_path": "src/features/self_healing/linelength_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'add_missing_policy_ids' appears state-modifying but lacks required @atomic_action (line 29).",
+    "file_path": "src/features/self_healing/policy_id_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'prune_private_capability_tags' appears state-modifying but lacks required @atomic_action (line 31).",
+    "file_path": "src/features/self_healing/prune_private_capabilities.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'purge_legacy_tags' appears state-modifying but lacks required @atomic_action (line 29).",
+    "file_path": "src/features/self_healing/purge_legacy_tags_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'to_prompt_context' appears state-modifying but lacks required @atomic_action (line 49).",
+    "file_path": "src/features/self_healing/test_context_analyzer.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'to_fix_context' appears state-modifying but lacks required @atomic_action (line 44).",
+    "file_path": "src/features/self_healing/test_failure_analyzer.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'generate_fix_summary' appears state-modifying but lacks required @atomic_action (line 236).",
+    "file_path": "src/features/self_healing/test_failure_analyzer.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'fix' appears state-modifying but lacks required @atomic_action (line 26).",
+    "file_path": "src/features/self_healing/test_generation/automatic_repair.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'fix' appears state-modifying but lacks required @atomic_action (line 109).",
+    "file_path": "src/features/self_healing/test_generation/automatic_repair.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'fix' appears state-modifying but lacks required @atomic_action (line 158).",
+    "file_path": "src/features/self_healing/test_generation/automatic_repair.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'fix' appears state-modifying but lacks required @atomic_action (line 209).",
+    "file_path": "src/features/self_healing/test_generation/automatic_repair.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'apply_all_repairs' appears state-modifying but lacks required @atomic_action (line 350).",
+    "file_path": "src/features/self_healing/test_generation/automatic_repair.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'parse_failures' appears state-modifying but lacks required @atomic_action (line 31).",
+    "file_path": "src/features/self_healing/test_generation/single_test_fixer.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'analyze_file' appears state-modifying but lacks required @atomic_action (line 40).",
+    "file_path": "src/features/self_healing/test_target_analyzer.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'run_audit_workflow' appears state-modifying but lacks required @atomic_action (line 24).",
+    "file_path": "src/mind/enforcement/audit.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'list_audits' appears state-modifying but lacks required @atomic_action (line 19).",
+    "file_path": "src/mind/enforcement/list_audits.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'log_audit' appears state-modifying but lacks required @atomic_action (line 16).",
+    "file_path": "src/mind/enforcement/log_audit.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'get_files' appears state-modifying but lacks required @atomic_action (line 109).",
+    "file_path": "src/mind/governance/audit_context.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'load_knowledge_graph' appears state-modifying but lacks required @atomic_action (line 176).",
+    "file_path": "src/mind/governance/audit_context.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'apply_entry_point_downgrade_and_report' appears state-modifying but lacks required @atomic_action (line 171).",
+    "file_path": "src/mind/governance/audit_postprocessor.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'run_full_audit_async' appears state-modifying but lacks required @atomic_action (line 79).",
+    "file_path": "src/mind/governance/auditor.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'run_dynamic_rules' appears state-modifying but lacks required @atomic_action (line 24).",
+    "file_path": "src/mind/governance/constitutional_auditor_dynamic.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'audit_headers' appears state-modifying but lacks required @atomic_action (line 99).",
+    "file_path": "src/mind/governance/constitutional_monitor.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'verify' appears state-modifying but lacks required @atomic_action (line 82).",
+    "file_path": "src/mind/governance/enforcement_methods.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'verify' appears state-modifying but lacks required @atomic_action (line 140).",
+    "file_path": "src/mind/governance/enforcement_methods.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'verify' appears state-modifying but lacks required @atomic_action (line 210).",
+    "file_path": "src/mind/governance/enforcement_methods.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'verify' appears state-modifying but lacks required @atomic_action (line 256).",
+    "file_path": "src/mind/governance/enforcement_methods.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'verify' appears state-modifying but lacks required @atomic_action (line 320).",
+    "file_path": "src/mind/governance/enforcement_methods.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'invoke_engine' appears state-modifying but lacks required @atomic_action (line 36).",
+    "file_path": "src/mind/governance/engine_dispatcher.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'run_filtered_audit' appears state-modifying but lacks required @atomic_action (line 70).",
+    "file_path": "src/mind/governance/filtered_audit.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'check_transaction' appears state-modifying but lacks required @atomic_action (line 107).",
+    "file_path": "src/mind/governance/intent_guard.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'validate_generated_code' appears state-modifying but lacks required @atomic_action (line 152).",
+    "file_path": "src/mind/governance/intent_guard.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'validate_inspect_pattern' appears state-modifying but lacks required @atomic_action (line 43).",
+    "file_path": "src/mind/governance/intent_pattern_validators.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'validate_action_pattern' appears state-modifying but lacks required @atomic_action (line 76).",
+    "file_path": "src/mind/governance/intent_pattern_validators.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'validate_check_pattern' appears state-modifying but lacks required @atomic_action (line 112).",
+    "file_path": "src/mind/governance/intent_pattern_validators.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'validate_run_pattern' appears state-modifying but lacks required @atomic_action (line 136).",
+    "file_path": "src/mind/governance/intent_pattern_validators.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'validate_all_documents' appears state-modifying but lacks required @atomic_action (line 89).",
+    "file_path": "src/mind/governance/meta_validator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'validate' appears state-modifying but lacks required @atomic_action (line 50).",
+    "file_path": "src/mind/governance/pattern_validator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'format_analysis_report' appears state-modifying but lacks required @atomic_action (line 237).",
+    "file_path": "src/mind/governance/policy_analyzer.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'analyze' appears state-modifying but lacks required @atomic_action (line 70).",
+    "file_path": "src/mind/governance/policy_analyzer.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'run' appears state-modifying but lacks required @atomic_action (line 126).",
+    "file_path": "src/mind/governance/policy_coverage_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'load' appears state-modifying but lacks required @atomic_action (line 33).",
+    "file_path": "src/mind/governance/registry.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'get_all_rules' appears state-modifying but lacks required @atomic_action (line 67).",
+    "file_path": "src/mind/governance/registry.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'execute_rule' appears state-modifying but lacks required @atomic_action (line 36).",
+    "file_path": "src/mind/governance/rule_executor.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'extract_executable_rules' appears state-modifying but lacks required @atomic_action (line 37).",
+    "file_path": "src/mind/governance/rule_extractor.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'reload_constitution' appears state-modifying but lacks required @atomic_action (line 220).",
+    "file_path": "src/mind/governance/validator_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'is_boundary_violation' appears state-modifying but lacks required @atomic_action (line 247).",
+    "file_path": "src/mind/governance/validator_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'audit_file' appears state-modifying but lacks required @atomic_action (line 46).",
+    "file_path": "src/mind/logic/auditor.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'verify' appears state-modifying but lacks required @atomic_action (line 23).",
+    "file_path": "src/mind/logic/engines/action_gate.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'check_restricted_event_loop_creation' appears state-modifying but lacks required @atomic_action (line 17).",
+    "file_path": "src/mind/logic/engines/ast_gate/checks/async_checks.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'check_no_import_time_async_singletons' appears state-modifying but lacks required @atomic_action (line 49).",
+    "file_path": "src/mind/logic/engines/ast_gate/checks/async_checks.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'check_no_module_level_async_engine' appears state-modifying but lacks required @atomic_action (line 71).",
+    "file_path": "src/mind/logic/engines/ast_gate/checks/async_checks.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'check_no_task_return_from_sync_cli' appears state-modifying but lacks required @atomic_action (line 105).",
+    "file_path": "src/mind/logic/engines/ast_gate/checks/async_checks.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'check_capability_assignment' appears state-modifying but lacks required @atomic_action (line 29).",
+    "file_path": "src/mind/logic/engines/ast_gate/checks/capability_checks.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'check_forbidden_imports' appears state-modifying but lacks required @atomic_action (line 18).",
+    "file_path": "src/mind/logic/engines/ast_gate/checks/import_checks.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'check_import_order' appears state-modifying but lacks required @atomic_action (line 48).",
+    "file_path": "src/mind/logic/engines/ast_gate/checks/import_checks.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'check_no_print_statements' appears state-modifying but lacks required @atomic_action (line 17).",
+    "file_path": "src/mind/logic/engines/ast_gate/checks/logging_checks.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'check_cli_async_helpers_private' appears state-modifying but lacks required @atomic_action (line 17).",
+    "file_path": "src/mind/logic/engines/ast_gate/checks/naming_checks.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'check_test_file_naming' appears state-modifying but lacks required @atomic_action (line 43).",
+    "file_path": "src/mind/logic/engines/ast_gate/checks/naming_checks.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'check_max_file_lines' appears state-modifying but lacks required @atomic_action (line 63).",
+    "file_path": "src/mind/logic/engines/ast_gate/checks/naming_checks.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'check_max_function_length' appears state-modifying but lacks required @atomic_action (line 85).",
+    "file_path": "src/mind/logic/engines/ast_gate/checks/naming_checks.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'check_stable_id_anchor' appears state-modifying but lacks required @atomic_action (line 94).",
+    "file_path": "src/mind/logic/engines/ast_gate/checks/purity_checks.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'check_forbidden_decorators' appears state-modifying but lacks required @atomic_action (line 138).",
+    "file_path": "src/mind/logic/engines/ast_gate/checks/purity_checks.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'check_forbidden_primitives' appears state-modifying but lacks required @atomic_action (line 161).",
+    "file_path": "src/mind/logic/engines/ast_gate/checks/purity_checks.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'check_no_print_statements' appears state-modifying but lacks required @atomic_action (line 243).",
+    "file_path": "src/mind/logic/engines/ast_gate/checks/purity_checks.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'check_required_decorator' appears state-modifying but lacks required @atomic_action (line 257).",
+    "file_path": "src/mind/logic/engines/ast_gate/checks/purity_checks.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'check_decorator_args' appears state-modifying but lacks required @atomic_action (line 387).",
+    "file_path": "src/mind/logic/engines/ast_gate/checks/purity_checks.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'verify' appears state-modifying but lacks required @atomic_action (line 69).",
+    "file_path": "src/mind/logic/engines/ast_gate/engine.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'verify' appears state-modifying but lacks required @atomic_action (line 25).",
+    "file_path": "src/mind/logic/engines/glob_gate.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'verify' appears state-modifying but lacks required @atomic_action (line 24).",
+    "file_path": "src/mind/logic/engines/regex_gate.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'verify' appears state-modifying but lacks required @atomic_action (line 31).",
+    "file_path": "src/mind/logic/engines/workflow_gate/checks/alignment.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'verify' appears state-modifying but lacks required @atomic_action (line 35).",
+    "file_path": "src/mind/logic/engines/workflow_gate/checks/audit.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'verify' appears state-modifying but lacks required @atomic_action (line 33).",
+    "file_path": "src/mind/logic/engines/workflow_gate/checks/linter.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'verify' appears state-modifying but lacks required @atomic_action (line 35).",
+    "file_path": "src/mind/logic/engines/workflow_gate/checks/tests.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'log_event' appears state-modifying but lacks required @atomic_action (line 39).",
+    "file_path": "src/shared/action_logger.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'activity_run' appears state-modifying but lacks required @atomic_action (line 96).",
+    "file_path": "src/shared/activity_logging.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'extract_base_classes' appears state-modifying but lacks required @atomic_action (line 114).",
+    "file_path": "src/shared/ast_utility.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'normalize_ast' appears state-modifying but lacks required @atomic_action (line 239).",
+    "file_path": "src/shared/ast_utility.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'visit_Call' appears state-modifying but lacks required @atomic_action (line 154).",
+    "file_path": "src/shared/ast_utility.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'visit_Name' appears state-modifying but lacks required @atomic_action (line 253).",
+    "file_path": "src/shared/ast_utility.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'visit_Constant' appears state-modifying but lacks required @atomic_action (line 264).",
+    "file_path": "src/shared/ast_utility.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'atomic_action' appears state-modifying but lacks required @atomic_action (line 60).",
+    "file_path": "src/shared/atomic_action.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'decorator' appears state-modifying but lacks required @atomic_action (line 85).",
+    "file_path": "src/shared/atomic_action.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'add' appears state-modifying but lacks required @atomic_action (line 79).",
+    "file_path": "src/shared/cli_types.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'core_command' appears state-modifying but lacks required @atomic_action (line 121).",
+    "file_path": "src/shared/cli_utils.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'decorator' appears state-modifying but lacks required @atomic_action (line 138).",
+    "file_path": "src/shared/cli_utils.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'wrapper' appears state-modifying but lacks required @atomic_action (line 147).",
+    "file_path": "src/shared/cli_utils.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'initialize_for_test' appears state-modifying but lacks required @atomic_action (line 103).",
+    "file_path": "src/shared/config.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'paths' appears state-modifying but lacks required @atomic_action (line 135).",
+    "file_path": "src/shared/config.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'context_service' appears state-modifying but lacks required @atomic_action (line 68).",
+    "file_path": "src/shared/context.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'make_request_async' appears state-modifying but lacks required @atomic_action (line 137).",
+    "file_path": "src/shared/infrastructure/clients/llm_api_client.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'make_request_sync' appears state-modifying but lacks required @atomic_action (line 167).",
+    "file_path": "src/shared/infrastructure/clients/llm_api_client.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'upsert_points' appears state-modifying but lacks required @atomic_action (line 137).",
+    "file_path": "src/shared/infrastructure/clients/qdrant_client.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'scroll_all_points' appears state-modifying but lacks required @atomic_action (line 153).",
+    "file_path": "src/shared/infrastructure/clients/qdrant_client.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'delete_points' appears state-modifying but lacks required @atomic_action (line 347).",
+    "file_path": "src/shared/infrastructure/clients/qdrant_client.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'bootstrap_config_from_env' appears state-modifying but lacks required @atomic_action (line 155).",
+    "file_path": "src/shared/infrastructure/config_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'config_service' appears state-modifying but lacks required @atomic_action (line 276).",
+    "file_path": "src/shared/infrastructure/config_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'create' appears state-modifying but lacks required @atomic_action (line 57).",
+    "file_path": "src/shared/infrastructure/config_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'get_secret' appears state-modifying but lacks required @atomic_action (line 91).",
+    "file_path": "src/shared/infrastructure/config_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'set' appears state-modifying but lacks required @atomic_action (line 127).",
+    "file_path": "src/shared/infrastructure/config_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'reload' appears state-modifying but lacks required @atomic_action (line 144).",
+    "file_path": "src/shared/infrastructure/config_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'build_for_task' appears state-modifying but lacks required @atomic_action (line 120).",
+    "file_path": "src/shared/infrastructure/context/builder.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'visit_ClassDef' appears state-modifying but lacks required @atomic_action (line 42).",
+    "file_path": "src/shared/infrastructure/context/builder.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'save_packet_metadata' appears state-modifying but lacks required @atomic_action (line 38).",
+    "file_path": "src/shared/infrastructure/context/database.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'get_packet_by_id' appears state-modifying but lacks required @atomic_action (line 86).",
+    "file_path": "src/shared/infrastructure/context/database.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'get_packets_for_task' appears state-modifying but lacks required @atomic_action (line 102).",
+    "file_path": "src/shared/infrastructure/context/database.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'get_recent_packets' appears state-modifying but lacks required @atomic_action (line 117).",
+    "file_path": "src/shared/infrastructure/context/database.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'get_stats' appears state-modifying but lacks required @atomic_action (line 132).",
+    "file_path": "src/shared/infrastructure/context/database.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'visit' appears state-modifying but lacks required @atomic_action (line 30).",
+    "file_path": "src/shared/infrastructure/context/providers/ast.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'get_signature_from_tree' appears state-modifying but lacks required @atomic_action (line 61).",
+    "file_path": "src/shared/infrastructure/context/providers/ast.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'get_dependencies_from_tree' appears state-modifying but lacks required @atomic_action (line 81).",
+    "file_path": "src/shared/infrastructure/context/providers/ast.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'get_symbols_for_scope' appears state-modifying but lacks required @atomic_action (line 191).",
+    "file_path": "src/shared/infrastructure/context/providers/db.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'get_symbol_by_name' appears state-modifying but lacks required @atomic_action (line 242).",
+    "file_path": "src/shared/infrastructure/context/providers/db.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'search_by_embedding' appears state-modifying but lacks required @atomic_action (line 67).",
+    "file_path": "src/shared/infrastructure/context/providers/vectors.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'redact_packet' appears state-modifying but lacks required @atomic_action (line 57).",
+    "file_path": "src/shared/infrastructure/context/redactor.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'add' appears state-modifying but lacks required @atomic_action (line 28).",
+    "file_path": "src/shared/infrastructure/context/redactor.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'analyze_task' appears state-modifying but lacks required @atomic_action (line 71).",
+    "file_path": "src/shared/infrastructure/context/reuse.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'summarize_for_prompt' appears state-modifying but lacks required @atomic_action (line 192).",
+    "file_path": "src/shared/infrastructure/context/reuse.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'build_for_task' appears state-modifying but lacks required @atomic_action (line 89).",
+    "file_path": "src/shared/infrastructure/context/service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'get_task_packets' appears state-modifying but lacks required @atomic_action (line 206).",
+    "file_path": "src/shared/infrastructure/context/service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'get_stats' appears state-modifying but lacks required @atomic_action (line 227).",
+    "file_path": "src/shared/infrastructure/context/service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'validate' appears state-modifying but lacks required @atomic_action (line 95).",
+    "file_path": "src/shared/infrastructure/context/validator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'dispose_engine' appears state-modifying but lacks required @atomic_action (line 121).",
+    "file_path": "src/shared/infrastructure/database/session_manager.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'get_instance' appears state-modifying but lacks required @atomic_action (line 34).",
+    "file_path": "src/shared/infrastructure/events/bus.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'subscribe' appears state-modifying but lacks required @atomic_action (line 41).",
+    "file_path": "src/shared/infrastructure/events/bus.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'emit' appears state-modifying but lacks required @atomic_action (line 52).",
+    "file_path": "src/shared/infrastructure/events/bus.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'get_applicable_rules' appears state-modifying but lacks required @atomic_action (line 71).",
+    "file_path": "src/shared/infrastructure/intent/intent_connector.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'list_policy_rules' appears state-modifying but lacks required @atomic_action (line 223).",
+    "file_path": "src/shared/infrastructure/intent/intent_repository.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'get_graph' appears state-modifying but lacks required @atomic_action (line 33).",
+    "file_path": "src/shared/infrastructure/knowledge/knowledge_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'list_capabilities' appears state-modifying but lacks required @atomic_action (line 75).",
+    "file_path": "src/shared/infrastructure/knowledge/knowledge_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'create_llm_client_for_role' appears state-modifying but lacks required @atomic_action (line 142).",
+    "file_path": "src/shared/infrastructure/llm/client.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'create' appears state-modifying but lacks required @atomic_action (line 43).",
+    "file_path": "src/shared/infrastructure/llm/client.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'get_or_create_client' appears state-modifying but lacks required @atomic_action (line 76).",
+    "file_path": "src/shared/infrastructure/llm/client_registry.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'clear_cache' appears state-modifying but lacks required @atomic_action (line 133).",
+    "file_path": "src/shared/infrastructure/llm/client_registry.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'chat_completion' appears state-modifying but lacks required @atomic_action (line 34).",
+    "file_path": "src/shared/infrastructure/llm/providers/anthropic.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'chat_completion' appears state-modifying but lacks required @atomic_action (line 28).",
+    "file_path": "src/shared/infrastructure/llm/providers/ollama.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'get_embedding' appears state-modifying but lacks required @atomic_action (line 43).",
+    "file_path": "src/shared/infrastructure/llm/providers/ollama.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'chat_completion' appears state-modifying but lacks required @atomic_action (line 25).",
+    "file_path": "src/shared/infrastructure/llm/providers/openai.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'get_embedding' appears state-modifying but lacks required @atomic_action (line 40).",
+    "file_path": "src/shared/infrastructure/llm/providers/openai.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'ensure_ledger' appears state-modifying but lacks required @atomic_action (line 82).",
+    "file_path": "src/shared/infrastructure/repositories/db/common.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'get_applied' appears state-modifying but lacks required @atomic_action (line 100).",
+    "file_path": "src/shared/infrastructure/repositories/db/common.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'apply_sql_file' appears state-modifying but lacks required @atomic_action (line 108).",
+    "file_path": "src/shared/infrastructure/repositories/db/common.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'record_applied' appears state-modifying but lacks required @atomic_action (line 119).",
+    "file_path": "src/shared/infrastructure/repositories/db/common.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'ping' appears state-modifying but lacks required @atomic_action (line 20).",
+    "file_path": "src/shared/infrastructure/repositories/db/engine.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'delete_old_episodes' appears state-modifying but lacks required @atomic_action (line 36).",
+    "file_path": "src/shared/infrastructure/repositories/memory_repository.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'delete_old_reflections' appears state-modifying but lacks required @atomic_action (line 72).",
+    "file_path": "src/shared/infrastructure/repositories/memory_repository.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'count_episodes_older_than' appears state-modifying but lacks required @atomic_action (line 105).",
+    "file_path": "src/shared/infrastructure/repositories/memory_repository.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'count_reflections_older_than' appears state-modifying but lacks required @atomic_action (line 112).",
+    "file_path": "src/shared/infrastructure/repositories/memory_repository.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'mark_attempt' appears state-modifying but lacks required @atomic_action (line 33).",
+    "file_path": "src/shared/infrastructure/repositories/symbol_definition_repository.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'mark_stale_symbols_broken' appears state-modifying but lacks required @atomic_action (line 78).",
+    "file_path": "src/shared/infrastructure/repositories/symbol_definition_repository.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'get_undefined_symbols' appears state-modifying but lacks required @atomic_action (line 110).",
+    "file_path": "src/shared/infrastructure/repositories/symbol_definition_repository.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'create' appears state-modifying but lacks required @atomic_action (line 30).",
+    "file_path": "src/shared/infrastructure/repositories/task_repository.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'get_by_id' appears state-modifying but lacks required @atomic_action (line 47).",
+    "file_path": "src/shared/infrastructure/repositories/task_repository.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'update_status' appears state-modifying but lacks required @atomic_action (line 53).",
+    "file_path": "src/shared/infrastructure/repositories/task_repository.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'delete_dangling_links' appears state-modifying but lacks required @atomic_action (line 31).",
+    "file_path": "src/shared/infrastructure/repositories/vector_link_repository.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'get_all_links' appears state-modifying but lacks required @atomic_action (line 61).",
+    "file_path": "src/shared/infrastructure/repositories/vector_link_repository.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'get_all_vector_ids' appears state-modifying but lacks required @atomic_action (line 74).",
+    "file_path": "src/shared/infrastructure/repositories/vector_link_repository.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'set_secret' appears state-modifying but lacks required @atomic_action (line 86).",
+    "file_path": "src/shared/infrastructure/secrets_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'get_secret' appears state-modifying but lacks required @atomic_action (line 120).",
+    "file_path": "src/shared/infrastructure/secrets_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'delete_secret' appears state-modifying but lacks required @atomic_action (line 149).",
+    "file_path": "src/shared/infrastructure/secrets_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'list_secrets' appears state-modifying but lacks required @atomic_action (line 170).",
+    "file_path": "src/shared/infrastructure/secrets_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'list_dir' appears state-modifying but lacks required @atomic_action (line 145).",
+    "file_path": "src/shared/infrastructure/storage/file_provider.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'check_for_todo_comments' appears state-modifying but lacks required @atomic_action (line 24).",
+    "file_path": "src/shared/infrastructure/validation/quality.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'fix_and_lint_code_with_ruff' appears state-modifying but lacks required @atomic_action (line 25).",
+    "file_path": "src/shared/infrastructure/validation/ruff_linter.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'validate_yaml_code' appears state-modifying but lacks required @atomic_action (line 21).",
+    "file_path": "src/shared/infrastructure/validation/yaml_validator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'index_items' appears state-modifying but lacks required @atomic_action (line 96).",
+    "file_path": "src/shared/infrastructure/vector/vector_index_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'details' appears state-modifying but lacks required @atomic_action (line 96).",
+    "file_path": "src/shared/models/audit_models.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'summary' appears state-modifying but lacks required @atomic_action (line 185).",
+    "file_path": "src/shared/models/workflow_models.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'from_repo' appears state-modifying but lacks required @atomic_action (line 55).",
+    "file_path": "src/shared/path_resolver.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'validate_structure' appears state-modifying but lacks required @atomic_action (line 206).",
+    "file_path": "src/shared/path_resolver.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'policy' appears state-modifying but lacks required @atomic_action (line 246).",
+    "file_path": "src/shared/path_resolver.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'dump' appears state-modifying but lacks required @atomic_action (line 99).",
+    "file_path": "src/shared/processors/base_processor.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'validate_manifest_entry' appears state-modifying but lacks required @atomic_action (line 52).",
+    "file_path": "src/shared/schemas/manifest_validator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'create_greeting_action' appears state-modifying but lacks required @atomic_action (line 63).",
+    "file_path": "src/shared/utils/__init__.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'collapse_blank_lines' appears state-modifying but lacks required @atomic_action (line 31).",
+    "file_path": "src/shared/utils/common_knowledge.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'get_all_constitutional_paths' appears state-modifying but lacks required @atomic_action (line 13).",
+    "file_path": "src/shared/utils/constitutional_parser.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'generate_approval_token' appears state-modifying but lacks required @atomic_action (line 31).",
+    "file_path": "src/shared/utils/crypto.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'get_embedding' appears state-modifying but lacks required @atomic_action (line 122).",
+    "file_path": "src/shared/utils/embedding_utils.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'parse' appears state-modifying but lacks required @atomic_action (line 30).",
+    "file_path": "src/shared/utils/header_tools.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'reconstruct' appears state-modifying but lacks required @atomic_action (line 125).",
+    "file_path": "src/shared/utils/header_tools.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'scan_imports_for_file' appears state-modifying but lacks required @atomic_action (line 19).",
+    "file_path": "src/shared/utils/import_scanner.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'aggregate_manifests' appears state-modifying but lacks required @atomic_action (line 21).",
+    "file_path": "src/shared/utils/manifest_aggregator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'extract_python_code_from_response' appears state-modifying but lacks required @atomic_action (line 140).",
+    "file_path": "src/shared/utils/parsing.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'clean_text' appears state-modifying but lacks required @atomic_action (line 11).",
+    "file_path": "src/shared/utils/text_cleaner.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'build_planning_prompt' appears state-modifying but lacks required @atomic_action (line 26).",
+    "file_path": "src/will/agents/base_planner.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'initialize' appears state-modifying but lacks required @atomic_action (line 40).",
+    "file_path": "src/will/agents/cognitive_orchestrator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'execute_plan' appears state-modifying but lacks required @atomic_action (line 63).",
+    "file_path": "src/will/agents/execution_agent.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'execute_plan' appears state-modifying but lacks required @atomic_action (line 41).",
+    "file_path": "src/will/agents/plan_executor.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'generate_report' appears state-modifying but lacks required @atomic_action (line 62).",
+    "file_path": "src/will/agents/reconnaissance_agent.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'scan_and_heal' appears state-modifying but lacks required @atomic_action (line 62).",
+    "file_path": "src/will/agents/self_healing_agent.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'elaborate_plan' appears state-modifying but lacks required @atomic_action (line 70).",
+    "file_path": "src/will/agents/specification_agent.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'update_context' appears state-modifying but lacks required @atomic_action (line 199).",
+    "file_path": "src/will/agents/specification_agent.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'suggest_and_apply_tags' appears state-modifying but lacks required @atomic_action (line 189).",
+    "file_path": "src/will/agents/tagger_agent.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'validate' appears state-modifying but lacks required @atomic_action (line 208).",
+    "file_path": "src/will/autonomy/proposal.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'compute_risk' appears state-modifying but lacks required @atomic_action (line 243).",
+    "file_path": "src/will/autonomy/proposal.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'execute' appears state-modifying but lacks required @atomic_action (line 66).",
+    "file_path": "src/will/autonomy/proposal_executor.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'execute_batch' appears state-modifying but lacks required @atomic_action (line 257).",
+    "file_path": "src/will/autonomy/proposal_executor.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'create' appears state-modifying but lacks required @atomic_action (line 55).",
+    "file_path": "src/will/autonomy/proposal_repository.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'get' appears state-modifying but lacks required @atomic_action (line 120).",
+    "file_path": "src/will/autonomy/proposal_repository.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'update' appears state-modifying but lacks required @atomic_action (line 179).",
+    "file_path": "src/will/autonomy/proposal_repository.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'list_by_status' appears state-modifying but lacks required @atomic_action (line 244).",
+    "file_path": "src/will/autonomy/proposal_repository.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'list_pending_approval' appears state-modifying but lacks required @atomic_action (line 311).",
+    "file_path": "src/will/autonomy/proposal_repository.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'mark_executing' appears state-modifying but lacks required @atomic_action (line 375).",
+    "file_path": "src/will/autonomy/proposal_repository.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'mark_completed' appears state-modifying but lacks required @atomic_action (line 401).",
+    "file_path": "src/will/autonomy/proposal_repository.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'mark_failed' appears state-modifying but lacks required @atomic_action (line 429).",
+    "file_path": "src/will/autonomy/proposal_repository.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'approve' appears state-modifying but lacks required @atomic_action (line 457).",
+    "file_path": "src/will/autonomy/proposal_repository.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'reject' appears state-modifying but lacks required @atomic_action (line 485).",
+    "file_path": "src/will/autonomy/proposal_repository.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'initialize' appears state-modifying but lacks required @atomic_action (line 72).",
+    "file_path": "src/will/orchestration/client_orchestrator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'record' appears state-modifying but lacks required @atomic_action (line 58).",
+    "file_path": "src/will/orchestration/decision_tracer.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'explain_chain' appears state-modifying but lacks required @atomic_action (line 89).",
+    "file_path": "src/will/orchestration/decision_tracer.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'check_goal_alignment' appears state-modifying but lacks required @atomic_action (line 62).",
+    "file_path": "src/will/orchestration/intent_alignment.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'attempt_correction' appears state-modifying but lacks required @atomic_action (line 54).",
+    "file_path": "src/will/orchestration/self_correction_engine.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'list_dir' appears state-modifying but lacks required @atomic_action (line 82).",
+    "file_path": "src/will/tools/file_navigator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'generate_all_anchors' appears state-modifying but lacks required @atomic_action (line 82).",
+    "file_path": "src/will/tools/module_anchor_generator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'vectorize_all_policies' appears state-modifying but lacks required @atomic_action (line 101).",
+    "file_path": "src/will/tools/policy_vectorizer.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'search_policies' appears state-modifying but lacks required @atomic_action (line 331).",
+    "file_path": "src/will/tools/policy_vectorizer.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'find_symbol' appears state-modifying but lacks required @atomic_action (line 57).",
+    "file_path": "src/will/tools/symbol_finder.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'get_context_for_import_error' appears state-modifying but lacks required @atomic_action (line 103).",
+    "file_path": "src/will/tools/symbol_finder.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.staged_writes_required",
+    "severity": "error",
+    "message": "Function 'generate_tool_definition' appears state-modifying but lacks required @atomic_action (line 48).",
+    "file_path": "src/will/tools/tool_generator.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -841,6 +3676,24 @@
     "severity": "warning",
     "message": "Line 75: Import-time async singleton creation: 'GitService()'",
     "file_path": "src/body/cli/admin_cli.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.dependency_injection_preferred",
+    "severity": "warning",
+    "message": "Line 117: Import-time async singleton creation: 'CognitiveService()'",
+    "file_path": "src/body/cli/commands/develop.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.dependency_injection_preferred",
+    "severity": "warning",
+    "message": "Line 133: Import-time async singleton creation: 'QdrantService()'",
+    "file_path": "src/body/cli/commands/develop.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -956,6 +3809,15 @@
   {
     "check_id": "body.dependency_injection_preferred",
     "severity": "warning",
+    "message": "Line 172: Import-time async singleton creation: 'QdrantService()'",
+    "file_path": "src/features/autonomy/autonomous_developer.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "body.dependency_injection_preferred",
+    "severity": "warning",
     "message": "Line 94: Import-time async singleton creation: 'CognitiveService()'",
     "file_path": "src/will/cli_logic/chat.py",
     "line_number": null,
@@ -1001,7 +3863,7 @@
   {
     "check_id": "body.dependency_injection_preferred",
     "severity": "warning",
-    "message": "Line 391: Import-time async singleton creation: 'QdrantService()'",
+    "message": "Line 398: Import-time async singleton creation: 'QdrantService()'",
     "file_path": "src/will/tools/policy_vectorizer.py",
     "line_number": null,
     "context": {},
@@ -1010,7 +3872,7 @@
   {
     "check_id": "body.dependency_injection_preferred",
     "severity": "warning",
-    "message": "Line 392: Import-time async singleton creation: 'CognitiveService()'",
+    "message": "Line 399: Import-time async singleton creation: 'CognitiveService()'",
     "file_path": "src/will/tools/policy_vectorizer.py",
     "line_number": null,
     "context": {},
@@ -1316,7 +4178,7 @@
   {
     "check_id": "async.runtime.no_nested_loop_creation",
     "severity": "error",
-    "message": "Line 417: Forbidden event-loop call 'typer.run()'",
+    "message": "Line 424: Forbidden event-loop call 'typer.run()'",
     "file_path": "src/will/tools/policy_vectorizer.py",
     "line_number": null,
     "context": {},
@@ -1604,512 +4466,17 @@
   {
     "check_id": "async.no_manual_loop_management",
     "severity": "error",
-    "message": "Line 417: Forbidden event-loop call 'typer.run()'",
+    "message": "Line 424: Forbidden event-loop call 'typer.run()'",
     "file_path": "src/will/tools/policy_vectorizer.py",
     "line_number": null,
     "context": {},
     "details": {}
   },
   {
-    "check_id": "caps.no_placeholder_text",
+    "check_id": "purity.stable_id_anchor",
     "severity": "error",
-    "message": "Forbidden Content [Line 212]: Matched restricted regex '\\b(TBD|TODO|FIXME|XXX|N/?A|PLACEHOLDER|LOREM)\\b'",
-    "file_path": "src/body/atomic/executor.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "caps.no_placeholder_text",
-    "severity": "error",
-    "message": "Forbidden Content [Line 266]: Matched restricted regex '\\b(TBD|TODO|FIXME|XXX|N/?A|PLACEHOLDER|LOREM)\\b'",
-    "file_path": "src/body/atomic/executor.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "caps.no_placeholder_text",
-    "severity": "error",
-    "message": "Forbidden Content [Line 351]: Matched restricted regex '\\b(TBD|TODO|FIXME|XXX|N/?A|PLACEHOLDER|LOREM)\\b'",
-    "file_path": "src/body/atomic/executor.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "caps.no_placeholder_text",
-    "severity": "error",
-    "message": "Forbidden Content [Line 374]: Matched restricted regex '\\b(TBD|TODO|FIXME|XXX|N/?A|PLACEHOLDER|LOREM)\\b'",
-    "file_path": "src/body/atomic/executor.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "caps.no_placeholder_text",
-    "severity": "error",
-    "message": "Forbidden Content [Line 400]: Matched restricted regex '\\b(TBD|TODO|FIXME|XXX|N/?A|PLACEHOLDER|LOREM)\\b'",
-    "file_path": "src/body/atomic/executor.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "caps.no_placeholder_text",
-    "severity": "error",
-    "message": "Forbidden Content [Line 59]: Matched restricted regex '\\b(TBD|TODO|FIXME|XXX|N/?A|PLACEHOLDER|LOREM)\\b'",
-    "file_path": "src/body/cli/commands/check_patterns.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "caps.no_placeholder_text",
-    "severity": "error",
-    "message": "Forbidden Content [Line 62]: Matched restricted regex '\\b(TBD|TODO|FIXME|XXX|N/?A|PLACEHOLDER|LOREM)\\b'",
-    "file_path": "src/body/cli/commands/inspect.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "caps.no_placeholder_text",
-    "severity": "error",
-    "message": "Forbidden Content [Line 61]: Matched restricted regex '\\b(TBD|TODO|FIXME|XXX|N/?A|PLACEHOLDER|LOREM)\\b'",
-    "file_path": "src/body/cli/commands/search.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "caps.no_placeholder_text",
-    "severity": "error",
-    "message": "Forbidden Content [Line 258]: Matched restricted regex '\\b(TBD|TODO|FIXME|XXX|N/?A|PLACEHOLDER|LOREM)\\b'",
-    "file_path": "src/body/cli/commands/secrets.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "caps.no_placeholder_text",
-    "severity": "error",
-    "message": "Forbidden Content [Line 23]: Matched restricted regex '\\b(TBD|TODO|FIXME|XXX|N/?A|PLACEHOLDER|LOREM)\\b'",
-    "file_path": "src/body/cli/logic/body_contracts_fixer.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "caps.no_placeholder_text",
-    "severity": "error",
-    "message": "Forbidden Content [Line 26]: Matched restricted regex '\\b(TBD|TODO|FIXME|XXX|N/?A|PLACEHOLDER|LOREM)\\b'",
-    "file_path": "src/body/cli/logic/status.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "caps.no_placeholder_text",
-    "severity": "error",
-    "message": "Forbidden Content [Line 41]: Matched restricted regex '\\b(TBD|TODO|FIXME|XXX|N/?A|PLACEHOLDER|LOREM)\\b'",
-    "file_path": "src/body/cli/logic/utils_migration.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "caps.no_placeholder_text",
-    "severity": "error",
-    "message": "Forbidden Content [Line 77]: Matched restricted regex '\\b(TBD|TODO|FIXME|XXX|N/?A|PLACEHOLDER|LOREM)\\b'",
-    "file_path": "src/body/services/validation/python_validator.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "caps.no_placeholder_text",
-    "severity": "error",
-    "message": "Forbidden Content [Line 315]: Matched restricted regex '\\b(TBD|TODO|FIXME|XXX|N/?A|PLACEHOLDER|LOREM)\\b'",
-    "file_path": "src/features/introspection/symbol_index_builder.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "caps.no_placeholder_text",
-    "severity": "error",
-    "message": "Forbidden Content [Line 106]: Matched restricted regex '\\b(TBD|TODO|FIXME|XXX|N/?A|PLACEHOLDER|LOREM)\\b'",
-    "file_path": "src/features/introspection/sync_service.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "caps.no_placeholder_text",
-    "severity": "error",
-    "message": "Forbidden Content [Line 74]: Matched restricted regex '\\b(TBD|TODO|FIXME|XXX|N/?A|PLACEHOLDER|LOREM)\\b'",
-    "file_path": "src/features/maintenance/migration_service.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "caps.no_placeholder_text",
-    "severity": "error",
-    "message": "Forbidden Content [Line 261]: Matched restricted regex '\\b(TBD|TODO|FIXME|XXX|N/?A|PLACEHOLDER|LOREM)\\b'",
-    "file_path": "src/features/self_healing/alignment_orchestrator.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "caps.no_placeholder_text",
-    "severity": "error",
-    "message": "Forbidden Content [Line 93]: Matched restricted regex '\\b(TBD|TODO|FIXME|XXX|N/?A|PLACEHOLDER|LOREM)\\b'",
-    "file_path": "src/mind/governance/enforcement_methods.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "caps.no_placeholder_text",
-    "severity": "error",
-    "message": "Forbidden Content [Line 105]: Matched restricted regex '\\b(TBD|TODO|FIXME|XXX|N/?A|PLACEHOLDER|LOREM)\\b'",
-    "file_path": "src/mind/governance/enforcement_methods.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "caps.no_placeholder_text",
-    "severity": "error",
-    "message": "Forbidden Content [Line 110]: Matched restricted regex '\\b(TBD|TODO|FIXME|XXX|N/?A|PLACEHOLDER|LOREM)\\b'",
-    "file_path": "src/mind/governance/enforcement_methods.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "caps.no_placeholder_text",
-    "severity": "error",
-    "message": "Forbidden Content [Line 115]: Matched restricted regex '\\b(TBD|TODO|FIXME|XXX|N/?A|PLACEHOLDER|LOREM)\\b'",
-    "file_path": "src/mind/governance/enforcement_methods.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "caps.no_placeholder_text",
-    "severity": "error",
-    "message": "Forbidden Content [Line 151]: Matched restricted regex '\\b(TBD|TODO|FIXME|XXX|N/?A|PLACEHOLDER|LOREM)\\b'",
-    "file_path": "src/mind/governance/enforcement_methods.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "caps.no_placeholder_text",
-    "severity": "error",
-    "message": "Forbidden Content [Line 163]: Matched restricted regex '\\b(TBD|TODO|FIXME|XXX|N/?A|PLACEHOLDER|LOREM)\\b'",
-    "file_path": "src/mind/governance/enforcement_methods.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "caps.no_placeholder_text",
-    "severity": "error",
-    "message": "Forbidden Content [Line 171]: Matched restricted regex '\\b(TBD|TODO|FIXME|XXX|N/?A|PLACEHOLDER|LOREM)\\b'",
-    "file_path": "src/mind/governance/enforcement_methods.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "caps.no_placeholder_text",
-    "severity": "error",
-    "message": "Forbidden Content [Line 181]: Matched restricted regex '\\b(TBD|TODO|FIXME|XXX|N/?A|PLACEHOLDER|LOREM)\\b'",
-    "file_path": "src/mind/governance/enforcement_methods.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "caps.no_placeholder_text",
-    "severity": "error",
-    "message": "Forbidden Content [Line 186]: Matched restricted regex '\\b(TBD|TODO|FIXME|XXX|N/?A|PLACEHOLDER|LOREM)\\b'",
-    "file_path": "src/mind/governance/enforcement_methods.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "caps.no_placeholder_text",
-    "severity": "error",
-    "message": "Forbidden Content [Line 221]: Matched restricted regex '\\b(TBD|TODO|FIXME|XXX|N/?A|PLACEHOLDER|LOREM)\\b'",
-    "file_path": "src/mind/governance/enforcement_methods.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "caps.no_placeholder_text",
-    "severity": "error",
-    "message": "Forbidden Content [Line 226]: Matched restricted regex '\\b(TBD|TODO|FIXME|XXX|N/?A|PLACEHOLDER|LOREM)\\b'",
-    "file_path": "src/mind/governance/enforcement_methods.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "caps.no_placeholder_text",
-    "severity": "error",
-    "message": "Forbidden Content [Line 227]: Matched restricted regex '\\b(TBD|TODO|FIXME|XXX|N/?A|PLACEHOLDER|LOREM)\\b'",
-    "file_path": "src/mind/governance/enforcement_methods.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "caps.no_placeholder_text",
-    "severity": "error",
-    "message": "Forbidden Content [Line 231]: Matched restricted regex '\\b(TBD|TODO|FIXME|XXX|N/?A|PLACEHOLDER|LOREM)\\b'",
-    "file_path": "src/mind/governance/enforcement_methods.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "caps.no_placeholder_text",
-    "severity": "error",
-    "message": "Forbidden Content [Line 337]: Matched restricted regex '\\b(TBD|TODO|FIXME|XXX|N/?A|PLACEHOLDER|LOREM)\\b'",
-    "file_path": "src/mind/governance/enforcement_methods.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "caps.no_placeholder_text",
-    "severity": "error",
-    "message": "Forbidden Content [Line 168]: Matched restricted regex '\\b(TBD|TODO|FIXME|XXX|N/?A|PLACEHOLDER|LOREM)\\b'",
-    "file_path": "src/mind/governance/intent_guard.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "caps.no_placeholder_text",
-    "severity": "error",
-    "message": "Forbidden Content [Line 187]: Matched restricted regex '\\b(TBD|TODO|FIXME|XXX|N/?A|PLACEHOLDER|LOREM)\\b'",
-    "file_path": "src/mind/governance/intent_guard.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "caps.no_placeholder_text",
-    "severity": "error",
-    "message": "Forbidden Content [Line 38]: Matched restricted regex '\\b(TBD|TODO|FIXME|XXX|N/?A|PLACEHOLDER|LOREM)\\b'",
-    "file_path": "src/mind/governance/intent_pattern_validators.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "caps.no_placeholder_text",
-    "severity": "error",
-    "message": "Forbidden Content [Line 80]: Matched restricted regex '\\b(TBD|TODO|FIXME|XXX|N/?A|PLACEHOLDER|LOREM)\\b'",
-    "file_path": "src/mind/governance/rule_executor.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "caps.no_placeholder_text",
-    "severity": "error",
-    "message": "Forbidden Content [Line 109]: Matched restricted regex '\\b(TBD|TODO|FIXME|XXX|N/?A|PLACEHOLDER|LOREM)\\b'",
-    "file_path": "src/mind/governance/rule_executor.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "caps.no_placeholder_text",
-    "severity": "error",
-    "message": "Forbidden Content [Line 125]: Matched restricted regex '\\b(TBD|TODO|FIXME|XXX|N/?A|PLACEHOLDER|LOREM)\\b'",
-    "file_path": "src/mind/governance/rule_executor.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "caps.no_placeholder_text",
-    "severity": "error",
-    "message": "Forbidden Content [Line 159]: Matched restricted regex '\\b(TBD|TODO|FIXME|XXX|N/?A|PLACEHOLDER|LOREM)\\b'",
-    "file_path": "src/mind/governance/rule_executor.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "caps.no_placeholder_text",
-    "severity": "error",
-    "message": "Forbidden Content [Line 90]: Matched restricted regex '\\b(TBD|TODO|FIXME|XXX|N/?A|PLACEHOLDER|LOREM)\\b'",
-    "file_path": "src/mind/logic/engines/workflow_gate/engine.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "caps.no_placeholder_text",
-    "severity": "error",
-    "message": "Forbidden Content [Line 101]: Matched restricted regex '\\b(TBD|TODO|FIXME|XXX|N/?A|PLACEHOLDER|LOREM)\\b'",
-    "file_path": "src/mind/logic/engines/workflow_gate/engine.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "caps.no_placeholder_text",
-    "severity": "error",
-    "message": "Forbidden Content [Line 127]: Matched restricted regex '\\b(TBD|TODO|FIXME|XXX|N/?A|PLACEHOLDER|LOREM)\\b'",
-    "file_path": "src/mind/logic/engines/workflow_gate/engine.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "caps.no_placeholder_text",
-    "severity": "error",
-    "message": "Forbidden Content [Line 106]: Matched restricted regex '\\b(TBD|TODO|FIXME|XXX|N/?A|PLACEHOLDER|LOREM)\\b'",
-    "file_path": "src/shared/infrastructure/context/cli.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "caps.no_placeholder_text",
-    "severity": "error",
-    "message": "Forbidden Content [Line 22]: Matched restricted regex '\\b(TBD|TODO|FIXME|XXX|N/?A|PLACEHOLDER|LOREM)\\b'",
-    "file_path": "src/shared/infrastructure/repositories/memory_repository.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "caps.no_placeholder_text",
-    "severity": "error",
-    "message": "Forbidden Content [Line 20]: Matched restricted regex '\\b(TBD|TODO|FIXME|XXX|N/?A|PLACEHOLDER|LOREM)\\b'",
-    "file_path": "src/shared/infrastructure/repositories/symbol_definition_repository.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "caps.no_placeholder_text",
-    "severity": "error",
-    "message": "Forbidden Content [Line 21]: Matched restricted regex '\\b(TBD|TODO|FIXME|XXX|N/?A|PLACEHOLDER|LOREM)\\b'",
-    "file_path": "src/shared/infrastructure/repositories/task_repository.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "caps.no_placeholder_text",
-    "severity": "error",
-    "message": "Forbidden Content [Line 18]: Matched restricted regex '\\b(TBD|TODO|FIXME|XXX|N/?A|PLACEHOLDER|LOREM)\\b'",
-    "file_path": "src/shared/infrastructure/repositories/vector_link_repository.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "caps.no_placeholder_text",
-    "severity": "error",
-    "message": "Forbidden Content [Line 7]: Matched restricted regex '\\b(TBD|TODO|FIXME|XXX|N/?A|PLACEHOLDER|LOREM)\\b'",
-    "file_path": "src/shared/infrastructure/validation/quality.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "caps.no_placeholder_text",
-    "severity": "error",
-    "message": "Forbidden Content [Line 25]: Matched restricted regex '\\b(TBD|TODO|FIXME|XXX|N/?A|PLACEHOLDER|LOREM)\\b'",
-    "file_path": "src/shared/infrastructure/validation/quality.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "caps.no_placeholder_text",
-    "severity": "error",
-    "message": "Forbidden Content [Line 25]: Matched restricted regex '\\b(TBD|TODO|FIXME|XXX|N/?A|PLACEHOLDER|LOREM)\\b'",
-    "file_path": "src/shared/infrastructure/validation/quality.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "caps.no_placeholder_text",
-    "severity": "error",
-    "message": "Forbidden Content [Line 28]: Matched restricted regex '\\b(TBD|TODO|FIXME|XXX|N/?A|PLACEHOLDER|LOREM)\\b'",
-    "file_path": "src/shared/infrastructure/validation/quality.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "caps.no_placeholder_text",
-    "severity": "error",
-    "message": "Forbidden Content [Line 31]: Matched restricted regex '\\b(TBD|TODO|FIXME|XXX|N/?A|PLACEHOLDER|LOREM)\\b'",
-    "file_path": "src/shared/infrastructure/validation/quality.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "caps.no_placeholder_text",
-    "severity": "error",
-    "message": "Forbidden Content [Line 31]: Matched restricted regex '\\b(TBD|TODO|FIXME|XXX|N/?A|PLACEHOLDER|LOREM)\\b'",
-    "file_path": "src/shared/infrastructure/validation/quality.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "caps.no_placeholder_text",
-    "severity": "error",
-    "message": "Forbidden Content [Line 37]: Matched restricted regex '\\b(TBD|TODO|FIXME|XXX|N/?A|PLACEHOLDER|LOREM)\\b'",
-    "file_path": "src/shared/infrastructure/validation/quality.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "caps.no_placeholder_text",
-    "severity": "error",
-    "message": "Forbidden Content [Line 37]: Matched restricted regex '\\b(TBD|TODO|FIXME|XXX|N/?A|PLACEHOLDER|LOREM)\\b'",
-    "file_path": "src/shared/infrastructure/validation/quality.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "caps.no_placeholder_text",
-    "severity": "error",
-    "message": "Forbidden Content [Line 22]: Matched restricted regex '\\b(TBD|TODO|FIXME|XXX|N/?A|PLACEHOLDER|LOREM)\\b'",
-    "file_path": "src/will/agents/conversational/factory.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "caps.no_placeholder_text",
-    "severity": "error",
-    "message": "Forbidden Content [Line 87]: Matched restricted regex '\\b(TBD|TODO|FIXME|XXX|N/?A|PLACEHOLDER|LOREM)\\b'",
-    "file_path": "src/will/agents/reconnaissance_agent.py",
+    "message": "Public symbol 'add_comment_to_test_file' missing stable ID anchor (line 4).",
+    "file_path": "src/test.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -2191,15 +4558,6 @@
     "severity": "warning",
     "message": "Function 'coverage_report' appears state-modifying but lacks required @atomic_action (line 77).",
     "file_path": "src/body/cli/commands/coverage.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.safety_contract_presence",
-    "severity": "warning",
-    "message": "Function 'feature' appears state-modifying but lacks required @atomic_action (line 43).",
-    "file_path": "src/body/cli/commands/develop.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -2369,7 +4727,7 @@
   {
     "check_id": "purity.safety_contract_presence",
     "severity": "warning",
-    "message": "Function 'develop_from_goal' appears state-modifying but lacks required @atomic_action (line 57).",
+    "message": "Function 'develop_from_goal' appears state-modifying but lacks required @atomic_action (line 75).",
     "file_path": "src/features/autonomy/autonomous_developer.py",
     "line_number": null,
     "context": {},
@@ -3296,6 +5654,15 @@
   {
     "check_id": "purity.safety_contract_presence",
     "severity": "warning",
+    "message": "Function 'summary' appears state-modifying but lacks required @atomic_action (line 185).",
+    "file_path": "src/shared/models/workflow_models.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.safety_contract_presence",
+    "severity": "warning",
     "message": "Function 'policy' appears state-modifying but lacks required @atomic_action (line 246).",
     "file_path": "src/shared/path_resolver.py",
     "line_number": null,
@@ -3359,6 +5726,15 @@
   {
     "check_id": "purity.safety_contract_presence",
     "severity": "warning",
+    "message": "Function 'clean_text' appears state-modifying but lacks required @atomic_action (line 11).",
+    "file_path": "src/shared/utils/text_cleaner.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.safety_contract_presence",
+    "severity": "warning",
     "message": "Function 'initialize' appears state-modifying but lacks required @atomic_action (line 40).",
     "file_path": "src/will/agents/cognitive_orchestrator.py",
     "line_number": null,
@@ -3368,7 +5744,7 @@
   {
     "check_id": "purity.safety_contract_presence",
     "severity": "warning",
-    "message": "Function 'execute_plan' appears state-modifying but lacks required @atomic_action (line 37).",
+    "message": "Function 'execute_plan' appears state-modifying but lacks required @atomic_action (line 63).",
     "file_path": "src/will/agents/execution_agent.py",
     "line_number": null,
     "context": {},
@@ -3397,6 +5773,24 @@
     "severity": "warning",
     "message": "Function 'scan_and_heal' appears state-modifying but lacks required @atomic_action (line 62).",
     "file_path": "src/will/agents/self_healing_agent.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.safety_contract_presence",
+    "severity": "warning",
+    "message": "Function 'elaborate_plan' appears state-modifying but lacks required @atomic_action (line 70).",
+    "file_path": "src/will/agents/specification_agent.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.safety_contract_presence",
+    "severity": "warning",
+    "message": "Function 'update_context' appears state-modifying but lacks required @atomic_action (line 199).",
+    "file_path": "src/will/agents/specification_agent.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -3641,6 +6035,74 @@
     }
   },
   {
+    "check_id": "purity.no_ast_duplication",
+    "severity": "warning",
+    "message": "AST duplication detected.",
+    "file_path": null,
+    "line_number": null,
+    "context": {
+      "symbol_a": "ExecutionAgent.get_decision_trace",
+      "symbol_b": "SpecificationAgent.get_decision_trace",
+      "score": 1.0
+    },
+    "details": {
+      "symbol_a": "ExecutionAgent.get_decision_trace",
+      "symbol_b": "SpecificationAgent.get_decision_trace",
+      "score": 1.0
+    }
+  },
+  {
+    "check_id": "purity.no_ast_duplication",
+    "severity": "warning",
+    "message": "AST duplication detected.",
+    "file_path": null,
+    "line_number": null,
+    "context": {
+      "symbol_a": "ExecutionAgent.save_decision_trace",
+      "symbol_b": "SpecificationAgent.save_decision_trace",
+      "score": 1.0
+    },
+    "details": {
+      "symbol_a": "ExecutionAgent.save_decision_trace",
+      "symbol_b": "SpecificationAgent.save_decision_trace",
+      "score": 1.0
+    }
+  },
+  {
+    "check_id": "purity.no_ast_duplication",
+    "severity": "warning",
+    "message": "AST duplication detected.",
+    "file_path": null,
+    "line_number": null,
+    "context": {
+      "symbol_a": "ExecutionAgent.save_decision_trace",
+      "symbol_b": "AutonomousWorkflowOrchestrator.save_decision_trace",
+      "score": 1.0
+    },
+    "details": {
+      "symbol_a": "ExecutionAgent.save_decision_trace",
+      "symbol_b": "AutonomousWorkflowOrchestrator.save_decision_trace",
+      "score": 1.0
+    }
+  },
+  {
+    "check_id": "purity.no_ast_duplication",
+    "severity": "warning",
+    "message": "AST duplication detected.",
+    "file_path": null,
+    "line_number": null,
+    "context": {
+      "symbol_a": "SpecificationAgent.save_decision_trace",
+      "symbol_b": "AutonomousWorkflowOrchestrator.save_decision_trace",
+      "score": 1.0
+    },
+    "details": {
+      "symbol_a": "SpecificationAgent.save_decision_trace",
+      "symbol_b": "AutonomousWorkflowOrchestrator.save_decision_trace",
+      "score": 1.0
+    }
+  },
+  {
     "check_id": "workflow.test_verification",
     "severity": "error",
     "message": "No test execution history found. Tests must be run before integration.",
@@ -3652,7 +6114,7 @@
   {
     "check_id": "code_standards.max_file_lines",
     "severity": "warning",
-    "message": "Module has 442 lines, exceeds limit of 400",
+    "message": "Module has 482 lines, exceeds limit of 400",
     "file_path": "src/body/atomic/executor.py",
     "line_number": null,
     "context": {},
@@ -3787,7 +6249,7 @@
   {
     "check_id": "code_standards.max_file_lines",
     "severity": "warning",
-    "message": "Module has 417 lines, exceeds limit of 400",
+    "message": "Module has 424 lines, exceeds limit of 400",
     "file_path": "src/will/tools/policy_vectorizer.py",
     "line_number": null,
     "context": {},
@@ -3805,16 +6267,7 @@
   {
     "check_id": "code_standards.max_function_lines",
     "severity": "warning",
-    "message": "Line 35: Function 'start_development_cycle' has 56 lines, exceeds limit of 50",
-    "file_path": "src/api/v1/development_routes.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "code_standards.max_function_lines",
-    "severity": "warning",
-    "message": "Line 72: Function 'execute' has 128 lines, exceeds limit of 50",
+    "message": "Line 73: Function 'execute' has 128 lines, exceeds limit of 50",
     "file_path": "src/body/atomic/executor.py",
     "line_number": null,
     "context": {},
@@ -3823,7 +6276,16 @@
   {
     "check_id": "code_standards.max_function_lines",
     "severity": "warning",
-    "message": "Line 221: Function '_check_authorization' has 65 lines, exceeds limit of 50",
+    "message": "Line 222: Function '_check_authorization' has 65 lines, exceeds limit of 50",
+    "file_path": "src/body/atomic/executor.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "code_standards.max_function_lines",
+    "severity": "warning",
+    "message": "Line 336: Function '_pre_execute_hooks' has 61 lines, exceeds limit of 50",
     "file_path": "src/body/atomic/executor.py",
     "line_number": null,
     "context": {},
@@ -3949,7 +6411,7 @@
   {
     "check_id": "code_standards.max_function_lines",
     "severity": "warning",
-    "message": "Line 43: Function 'feature' has 159 lines, exceeds limit of 50",
+    "message": "Line 68: Function '_run_development_workflow' has 180 lines, exceeds limit of 50",
     "file_path": "src/body/cli/commands/develop.py",
     "line_number": null,
     "context": {},
@@ -4084,7 +6546,7 @@
   {
     "check_id": "code_standards.max_function_lines",
     "severity": "warning",
-    "message": "Line 78: Function '_develop' has 63 lines, exceeds limit of 50",
+    "message": "Line 35: Function 'develop_command' has 70 lines, exceeds limit of 50",
     "file_path": "src/body/cli/commands/run.py",
     "line_number": null,
     "context": {},
@@ -4246,7 +6708,7 @@
   {
     "check_id": "code_standards.max_function_lines",
     "severity": "warning",
-    "message": "Line 65: Function 'create_intent_crate' has 64 lines, exceeds limit of 50",
+    "message": "Line 68: Function 'create_intent_crate' has 84 lines, exceeds limit of 50",
     "file_path": "src/body/services/crate_creation_service.py",
     "line_number": null,
     "context": {},
@@ -4255,25 +6717,7 @@
   {
     "check_id": "code_standards.max_function_lines",
     "severity": "warning",
-    "message": "Line 92: Function '_scan_and_validate_inbox' has 56 lines, exceeds limit of 50",
-    "file_path": "src/body/services/crate_processing_service.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "code_standards.max_function_lines",
-    "severity": "warning",
-    "message": "Line 192: Function '_run_canary_validation' has 71 lines, exceeds limit of 50",
-    "file_path": "src/body/services/crate_processing_service.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "code_standards.max_function_lines",
-    "severity": "warning",
-    "message": "Line 321: Function 'process_pending_crates_async' has 66 lines, exceeds limit of 50",
+    "message": "Line 140: Function '_run_canary_validation' has 89 lines, exceeds limit of 50",
     "file_path": "src/body/services/crate_processing_service.py",
     "line_number": null,
     "context": {},
@@ -4309,7 +6753,7 @@
   {
     "check_id": "code_standards.max_function_lines",
     "severity": "warning",
-    "message": "Line 57: Function 'develop_from_goal' has 141 lines, exceeds limit of 50",
+    "message": "Line 75: Function 'develop_from_goal' has 222 lines, exceeds limit of 50",
     "file_path": "src/features/autonomy/autonomous_developer.py",
     "line_number": null,
     "context": {},
@@ -4777,7 +7221,7 @@
   {
     "check_id": "code_standards.max_function_lines",
     "severity": "warning",
-    "message": "Line 99: Function 'get_files' has 55 lines, exceeds limit of 50",
+    "message": "Line 109: Function 'get_files' has 55 lines, exceeds limit of 50",
     "file_path": "src/mind/governance/audit_context.py",
     "line_number": null,
     "context": {},
@@ -5254,6 +7698,15 @@
   {
     "check_id": "code_standards.max_function_lines",
     "severity": "warning",
+    "message": "Line 11: Function 'clean_text' has 58 lines, exceeds limit of 50",
+    "file_path": "src/shared/utils/text_cleaner.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "code_standards.max_function_lines",
+    "severity": "warning",
     "message": "Line 73: Function 'generate_code' has 88 lines, exceeds limit of 50",
     "file_path": "src/will/agents/code_generation/code_generator.py",
     "line_number": null,
@@ -5299,7 +7752,7 @@
   {
     "check_id": "code_standards.max_function_lines",
     "severity": "warning",
-    "message": "Line 37: Function 'execute_plan' has 65 lines, exceeds limit of 50",
+    "message": "Line 63: Function 'execute_plan' has 91 lines, exceeds limit of 50",
     "file_path": "src/will/agents/execution_agent.py",
     "line_number": null,
     "context": {},
@@ -5319,6 +7772,15 @@
     "severity": "warning",
     "message": "Line 62: Function 'scan_and_heal' has 51 lines, exceeds limit of 50",
     "file_path": "src/will/agents/self_healing_agent.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "code_standards.max_function_lines",
+    "severity": "warning",
+    "message": "Line 70: Function 'elaborate_plan' has 72 lines, exceeds limit of 50",
+    "file_path": "src/will/agents/specification_agent.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -5452,8 +7914,26 @@
   {
     "check_id": "code_standards.max_function_lines",
     "severity": "warning",
+    "message": "Line 31: Function '_develop' has 53 lines, exceeds limit of 50",
+    "file_path": "src/will/cli_logic/run.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "code_standards.max_function_lines",
+    "severity": "warning",
     "message": "Line 54: Function 'attempt_correction' has 88 lines, exceeds limit of 50",
     "file_path": "src/will/orchestration/self_correction_engine.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "code_standards.max_function_lines",
+    "severity": "warning",
+    "message": "Line 67: Function 'execute_autonomous_goal' has 143 lines, exceeds limit of 50",
+    "file_path": "src/will/orchestration/workflow_orchestrator.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -5513,6 +7993,60 @@
     "details": {}
   },
   {
+    "check_id": "workflow.linter_compliance",
+    "severity": "error",
+    "message": "Ruff check failed: W292 [*] No newline at end of file\n  --> src/test.py:11:26\n   |\n 9 | def hello_world():\n10 |     \"\"\"Simple test function.\"\"\"\n11 |     return \"Hello, CORE!\"\n   |                          ^\n   |\nhelp: Add trailing newline\n\nFound 1 error.\n[*] 1 fixable with the `--fix` option.",
+    "file_path": "System",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "workflow.linter_compliance",
+    "severity": "error",
+    "message": "Black format check failed: would reformat /opt/dev/CORE/src/test.py\n\nOh no! \ud83d\udca5 \ud83d\udc94 \ud83d\udca5\n1 file would be reformatted, 527 files would be left unchanged.",
+    "file_path": "System",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "workflow.linter_compliance",
+    "severity": "error",
+    "message": "Ruff check failed: W292 [*] No newline at end of file\n  --> src/test.py:11:26\n   |\n 9 | def hello_world():\n10 |     \"\"\"Simple test function.\"\"\"\n11 |     return \"Hello, CORE!\"\n   |                          ^\n   |\nhelp: Add trailing newline\n\nFound 1 error.\n[*] 1 fixable with the `--fix` option.",
+    "file_path": "System",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "workflow.linter_compliance",
+    "severity": "error",
+    "message": "Black format check failed: would reformat /opt/dev/CORE/src/test.py\n\nOh no! \ud83d\udca5 \ud83d\udc94 \ud83d\udca5\n1 file would be reformatted, 527 files would be left unchanged.",
+    "file_path": "System",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "workflow.linter_compliance",
+    "severity": "error",
+    "message": "Ruff check failed: W292 [*] No newline at end of file\n  --> src/test.py:11:26\n   |\n 9 | def hello_world():\n10 |     \"\"\"Simple test function.\"\"\"\n11 |     return \"Hello, CORE!\"\n   |                          ^\n   |\nhelp: Add trailing newline\n\nFound 1 error.\n[*] 1 fixable with the `--fix` option.",
+    "file_path": "System",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "workflow.linter_compliance",
+    "severity": "error",
+    "message": "Black format check failed: would reformat /opt/dev/CORE/src/test.py\n\nOh no! \ud83d\udca5 \ud83d\udc94 \ud83d\udca5\n1 file would be reformatted, 527 files would be left unchanged.",
+    "file_path": "System",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
     "check_id": "style.import_order",
     "severity": "warning",
     "message": "Line 19: Imports not properly grouped",
@@ -5526,15 +8060,6 @@
     "severity": "warning",
     "message": "Line 20: Imports not properly grouped",
     "file_path": "src/body/atomic/sync_actions.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "style.import_order",
-    "severity": "warning",
-    "message": "Line 23: Imports not properly grouped",
-    "file_path": "src/body/cli/commands/develop.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -5623,7 +8148,52 @@
   {
     "check_id": "style.import_order",
     "severity": "warning",
-    "message": "Line 36: Imports not properly grouped",
+    "message": "Line 22: Imports not properly grouped",
+    "file_path": "src/body/cli/commands/fix/metadata.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 25: Imports not properly grouped",
+    "file_path": "src/body/cli/commands/fix/metadata.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 26: Imports not properly grouped",
+    "file_path": "src/body/cli/commands/fix/metadata.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 27: Imports not properly grouped",
+    "file_path": "src/body/cli/commands/fix/metadata.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 28: Imports not properly grouped",
+    "file_path": "src/body/cli/commands/fix/metadata.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 38: Imports not properly grouped",
     "file_path": "src/body/cli/commands/fix/metadata.py",
     "line_number": null,
     "context": {},
@@ -6116,10 +8686,19 @@
     "details": {}
   },
   {
-    "check_id": "style.import_order",
-    "severity": "warning",
-    "message": "Line 13: Imports not properly grouped",
-    "file_path": "src/will/agents/planner_agent.py",
+    "check_id": "workflow.linter_compliance",
+    "severity": "error",
+    "message": "Ruff check failed: W292 [*] No newline at end of file\n  --> src/test.py:11:26\n   |\n 9 | def hello_world():\n10 |     \"\"\"Simple test function.\"\"\"\n11 |     return \"Hello, CORE!\"\n   |                          ^\n   |\nhelp: Add trailing newline\n\nFound 1 error.\n[*] 1 fixable with the `--fix` option.",
+    "file_path": "System",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "workflow.linter_compliance",
+    "severity": "error",
+    "message": "Black format check failed: would reformat /opt/dev/CORE/src/test.py\n\nOh no! \ud83d\udca5 \ud83d\udc94 \ud83d\udca5\n1 file would be reformatted, 527 files would be left unchanged.",
+    "file_path": "System",
     "line_number": null,
     "context": {},
     "details": {}
@@ -6136,7 +8715,7 @@
   {
     "check_id": "workflow.coverage_minimum",
     "severity": "error",
-    "message": "Coverage too low: 31.4% (Constitutional Minimum: 75.0%)",
+    "message": "No coverage data found. Run 'make test' first.",
     "file_path": "System",
     "line_number": null,
     "context": {},
@@ -6210,6 +8789,24 @@
     "severity": "error",
     "message": "No test execution history found. Tests must be run before integration.",
     "file_path": "System",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "linkage.assign_ids",
+    "severity": "error",
+    "message": "Public symbol 'add_comment_to_test_file' missing stable ID anchor (line 4).",
+    "file_path": "src/test.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "logging.single_logging_system",
+    "severity": "error",
+    "message": "Forbidden print() call on line 48. Use logger.info() or logger.debug() instead.",
+    "file_path": "src/test.py",
     "line_number": null,
     "context": {},
     "details": {}

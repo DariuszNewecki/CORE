@@ -25,24 +25,33 @@ class IntentTranslator:
         """Initializes the translator with the CognitiveService."""
         self.cognitive_service = cognitive_service
         self.prompt_pipeline = PromptPipeline(settings.REPO_PATH)
-        self.prompt_path = settings.MIND / "prompts" / "intent_translator.prompt"
-        if not self.prompt_path.exists():
-            raise FileNotFoundError(
-                "Constitutional prompt for IntentTranslator not found."
+
+        # ALIGNED: Using PathResolver (var/prompts) instead of .intent
+        try:
+            self.prompt_template = settings.paths.prompt("intent_translator").read_text(
+                encoding="utf-8"
             )
-        self.prompt_template = self.prompt_path.read_text(encoding="utf-8")
+        except FileNotFoundError:
+            logger.error(
+                "Constitutional prompt 'intent_translator.prompt' missing from var/prompts/"
+            )
+            raise
 
     # ID: 5d47894a-2952-4783-afc1-6b05cc46ad13
-    def translate(self, user_input: str) -> str:
+    async def translate(self, user_input: str) -> str:
         """
         Takes a user's natural language input and translates it into a
         structured goal for the PlannerAgent.
         """
         logger.info("Translating user intent: '%s'", user_input)
-        client = self.cognitive_service.get_client_for_role("IntentTranslator")
+        client = await self.cognitive_service.aget_client_for_role("IntentTranslator")
+
         final_prompt = self.prompt_pipeline.process(
             self.prompt_template.format(user_input=user_input)
         )
-        structured_goal = client.make_request(final_prompt, user_id="intent_translator")
+
+        structured_goal = await client.make_request_async(
+            final_prompt, user_id="intent_translator"
+        )
         logger.info("Translated goal: '%s'", structured_goal)
         return structured_goal

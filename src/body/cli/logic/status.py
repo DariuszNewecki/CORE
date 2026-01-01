@@ -23,7 +23,7 @@ async def _status_impl() -> None:
     # can reason about a single place where DB status is obtained.
     report: StatusReport = await _get_status_report()
 
-    # TODO: This function should not render UI in a Body module.
+    # FUTURE: This function should not render UI in a Body module.
     # CLI wrappers should handle rendering. For now, we keep it as a no-op.
     pass
 

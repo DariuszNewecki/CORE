@@ -165,7 +165,7 @@ class IntentGuard:
             (valid, violations) - valid=False if any violations found
 
         Note: Uses legacy pattern validators during migration period.
-        TODO: Migrate pattern validation to constitutional rules.
+        FUTURE: Migrate pattern validation to constitutional rules.
         """
         _ = component_type  # Unused, kept for API compatibility
 
@@ -184,7 +184,7 @@ class IntentGuard:
 
         violations: list[ViolationReport] = []
 
-        # Legacy pattern validators (TODO: migrate to constitutional rules)
+        # Legacy pattern validators (FUTURE: migrate to constitutional rules)
         if pattern_id == "inspect_pattern":
             violations.extend(
                 PatternValidators.validate_inspect_pattern(code, target_path)

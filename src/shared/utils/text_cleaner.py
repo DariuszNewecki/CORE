@@ -1,103 +1,68 @@
 # src/shared/utils/text_cleaner.py
-"""
-Provides functionality for the text_cleaner module.
-Refactored to use shared.utils.common_knowledge for whitespace normalization (SSOT).
-"""
+
+"""Provides functionality for the text_cleaner module."""
 
 from __future__ import annotations
 
-import unicodedata
-
-# Import the Single Source of Truth for whitespace normalization
-from shared.utils.common_knowledge import normalize_whitespace as _canonical_normalize
+import re
 
 
-# ID: 95528f75-7e92-4b42-bb95-91c30a87bf4d
-def remove_emojis(text: str) -> str:
-    """
-    Remove all emoji characters from the input text.
-
-    Args:
-        text: The input string that may contain emojis
-
-    Returns:
-        A string with all emoji characters removed
-
-    Example:
-        >>> remove_emojis("Hello 👋 World 🌍")
-        'Hello  World '
-    """
-    if not text:
-        return text
-
-    # Remove emojis using Unicode character categories
-    # Emojis fall under the 'So' (Symbol, Other) category and specific ranges
-    cleaned_text = "".join(
-        char
-        for char in text
-        if not unicodedata.category(char).startswith("So")
-        and not (0x1F600 <= ord(char) <= 0x1F64F)  # Emoticons
-        and not (
-            0x1F300 <= ord(char) <= 0x1F5FF
-        )  # Miscellaneous Symbols and Pictographs
-        and not (0x1F680 <= ord(char) <= 0x1F6FF)  # Transport and Map Symbols
-        and not (0x1F700 <= ord(char) <= 0x1F77F)  # Alchemical Symbols
-        and not (0x1F780 <= ord(char) <= 0x1F7FF)  # Geometric Shapes Extended
-        and not (0x1F800 <= ord(char) <= 0x1F8FF)  # Supplemental Arrows-C
-        and not (
-            0x1F900 <= ord(char) <= 0x1F9FF
-        )  # Supplemental Symbols and Pictographs
-        and not (0x1FA00 <= ord(char) <= 0x1FA6F)  # Chess Symbols
-        and not (0x1FA70 <= ord(char) <= 0x1FAFF)  # Symbols and Pictographs Extended-A
-        and not (0x2600 <= ord(char) <= 0x26FF)  # Miscellaneous Symbols
-        and not (0x2700 <= ord(char) <= 0x27BF)  # Dingbats
-        and not (0xFE00 <= ord(char) <= 0xFE0F)  # Variation Selectors
-    )
-
-    return cleaned_text
-
-
-# ID: 6179eab2-0469-4b0e-a762-ea353103ab34
-def remove_extra_whitespace(text: str) -> str:
-    """
-    Remove extra whitespace from the input text.
-
-    DELEGATION NOTE:
-    This logic is now centralized in shared.utils.common_knowledge.
-    We delegate to that implementation to enforce the DRY principle.
-    """
-    if not text:
-        return text
-
-    return _canonical_normalize(text)
-
-
-# ID: d58d042a-d3ff-48a0-b724-2023d87778ea
-def normalize_text(
+# ID: a957aad3-e091-4ec8-a098-2d849abc2600
+def clean_text(
     text: str,
-    remove_emojis_flag: bool = True,
-    remove_extra_whitespace_flag: bool = True,
+    remove_extra_spaces: bool = True,
+    remove_empty_lines: bool = True,
+    strip_whitespace: bool = True,
+    normalize_case: str | None = None,
 ) -> str:
     """
-    Normalize text by removing emojis and/or extra whitespace.
+    Clean and normalize text by applying various transformations.
 
     Args:
-        text: The input string to normalize
-        remove_emojis_flag: If True, remove emojis from the text
-        remove_extra_whitespace_flag: If True, normalize whitespace in the text
+        text: The input text to clean.
+        remove_extra_spaces: If True, collapses multiple spaces/tabs to single space.
+        remove_empty_lines: If True, removes lines containing only whitespace.
+        strip_whitespace: If True, strips leading/trailing whitespace from each line and the entire result.
+        normalize_case: Optional case normalization: 'lower' or 'upper'.
 
     Returns:
-        A normalized string
+        The cleaned text string.
     """
-    if not text:
-        return text
+    if not isinstance(text, str):
+        raise TypeError(f"Expected string, got {type(text).__name__}")
 
-    normalized_text = text
+    lines = text.splitlines()
+    cleaned_lines = []
 
-    if remove_emojis_flag:
-        normalized_text = remove_emojis(normalized_text)
+    for line in lines:
+        # Apply space reduction if requested
+        if remove_extra_spaces:
+            line = re.sub(r"[ \t]+", " ", line)
 
-    if remove_extra_whitespace_flag:
-        normalized_text = remove_extra_whitespace(normalized_text)
+        # Strip whitespace from each line if requested
+        if strip_whitespace:
+            line = line.strip()
 
-    return normalized_text
+        # Skip empty lines if requested
+        if remove_empty_lines and not line:
+            continue
+
+        cleaned_lines.append(line)
+
+    result = "\n".join(cleaned_lines)
+
+    # Apply case normalization if requested
+    if normalize_case == "lower":
+        result = result.lower()
+    elif normalize_case == "upper":
+        result = result.upper()
+    elif normalize_case is not None and normalize_case not in ("lower", "upper"):
+        raise ValueError(
+            f"normalize_case must be 'lower', 'upper', or None, got '{normalize_case}'"
+        )
+
+    # Final strip if requested
+    if strip_whitespace:
+        result = result.strip()
+
+    return result

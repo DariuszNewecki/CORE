@@ -1,7 +1,11 @@
 # src/body/cli/commands/run.py
+# ID: body.cli.commands.run
 """
 Provides functionality for the run module.
 Refactored to use the Constitutional CLI Framework.
+
+UPDATED (Phase 5): Removed _ExecutionAgent dependency.
+Now uses develop_from_goal which internally uses the new UNIX-compliant pattern.
 """
 
 from __future__ import annotations
@@ -17,10 +21,6 @@ from shared.cli_utils import core_command
 from shared.context import CoreContext
 from shared.infrastructure.database.session_manager import get_session
 from shared.logger import getLogger
-from will.agents.coder_agent import CoderAgent
-from will.agents.execution_agent import _ExecutionAgent
-from will.agents.plan_executor import PlanExecutor
-from will.orchestration.prompt_pipeline import PromptPipeline
 
 
 logger = getLogger(__name__)
@@ -37,48 +37,24 @@ async def develop_command(
     goal: str | None = typer.Argument(
         None,
         help="The high-level development goal for CORE to achieve.",
-        show_default=False,
     ),
     from_file: Path | None = typer.Option(
         None,
         "--from-file",
         "-f",
-        help="Path to a file containing the development goal.",
-        exists=True,
-        dir_okay=False,
-        resolve_path=True,
-        show_default=False,
+        help="Read the goal from a file instead of the command line.",
     ),
-) -> None:
-    """Orchestrates the autonomous development process from a high-level goal."""
-    core_context: CoreContext = ctx.obj
-    await _develop(context=core_context, goal=goal, from_file=from_file)
-
-
-@run_app.command("vectorize")
-@core_command(dangerous=True)  # Requires write permission to update Qdrant
-# ID: fe1e4f7b-44a5-429f-8549-bd97760b3997
-async def vectorize_command(
-    ctx: typer.Context,
-    write: bool = typer.Option(False, "--write", help="Persist changes to Qdrant."),
-    force: bool = typer.Option(
-        False, "--force", help="Force re-vectorization of all capabilities."
-    ),
-) -> None:
-    """Scan capabilities from the DB, generate embeddings, and upsert to Qdrant."""
-    core_context: CoreContext = ctx.obj
-    # FIXED: Inject session for DI compliance
-    async with get_session() as session:
-        await run_vectorize(
-            context=core_context, session=session, dry_run=not write, force=force
-        )
-
-
-# Logic helper - kept for isolation
-async def _develop(
-    context: CoreContext, goal: str | None = None, from_file: Path | None = None
 ):
-    if not goal and (not from_file):
+    """
+    Runs the autonomous development cycle for a high-level goal.
+
+    UPDATED: Now uses develop_from_goal with new UNIX-compliant orchestration.
+    No need to build agents manually - all handled internally.
+    """
+    context: CoreContext = ctx.obj
+
+    # Determine goal
+    if not goal and not from_file:
         logger.error(
             "❌ You must provide a goal either as an argument or with --from-file."
         )
@@ -89,14 +65,13 @@ async def _develop(
     else:
         goal_content = goal.strip() if goal else ""
 
+    # Load environment
     load_dotenv()
 
-    # Simplified config check - context already has what we need ideally,
-    # but keeping logic similar to original for now
-    from shared.infrastructure.config_service import ConfigService
-    from shared.infrastructure.database.session_manager import get_session
-
+    # Check LLM enabled
     async with get_session() as session:
+        from shared.infrastructure.config_service import ConfigService
+
         config = await ConfigService.create(session)
         llm_enabled = await config.get_bool("LLM_ENABLED", default=False)
 
@@ -104,37 +79,60 @@ async def _develop(
         logger.error("❌ The 'develop' command requires LLMs to be enabled.")
         raise typer.Exit(code=1)
 
-    prompt_pipeline = PromptPipeline(context.git_service.repo_path)
-    plan_executor = PlanExecutor(
-        context.file_handler, context.git_service, context.planner_config
-    )
-    coder_agent = CoderAgent(
-        cognitive_service=context.cognitive_service,
-        prompt_pipeline=prompt_pipeline,
-        auditor_context=context.auditor_context,
-    )
-    executor_agent = _ExecutionAgent(
-        coder_agent=coder_agent,
-        plan_executor=plan_executor,
-        auditor_context=context.auditor_context,
-    )
-
+    # Execute autonomous development
+    # NOTE: develop_from_goal now builds all agents internally!
+    # No need to pass executor_agent anymore!
     async with get_session() as session:
         success, message = await develop_from_goal(
-            session, context, goal_content, executor_agent
+            session=session,
+            context=context,
+            goal=goal_content,
+            task_id=None,
+            output_mode="direct",
         )
 
     if success:
-        # Using simple prints here as it's not returning an ActionResult yet
         from rich.console import Console
 
         c = Console()
-        c.console.print(
-            f"\n[bold green]✅ Goal execution successful:[/bold green] {message}"
-        )
-        c.console.print(
+        c.print(f"\n[bold green]✅ Goal execution successful:[/bold green] {message}")
+        c.print(
             "   -> Run 'git status' to see changes and 'core-admin submit changes' to integrate."
         )
     else:
         logger.error("Goal execution failed: %s", message)
+        raise typer.Exit(code=1)
+
+
+@run_app.command("vectorize")
+@core_command(dangerous=True)
+# ID: f8e9d0a1-b2c3-4d5e-6f7a-8b9c0d1e2f3a
+async def vectorize_command(
+    ctx: typer.Context,
+    dry_run: bool = typer.Option(True, help="Preview changes without writing."),
+    force: bool = typer.Option(
+        False, help="Force re-vectorization of all capabilities."
+    ),
+):
+    """
+    Vectorize capabilities in the knowledge base for semantic search.
+    """
+    context: CoreContext = ctx.obj
+
+    logger.info("🚀 Starting capability vectorization process...")
+
+    async with get_session() as session:
+        from shared.infrastructure.config_service import ConfigService
+
+        config = await ConfigService.create(session)
+        llm_enabled = await config.get_bool("LLM_ENABLED", default=False)
+
+    if not llm_enabled:
+        logger.error("❌ LLMs must be enabled to generate embeddings.")
+        raise typer.Exit(code=1)
+
+    try:
+        await run_vectorize(context=context, dry_run=dry_run, force=force)
+    except Exception as e:
+        logger.error("❌ Orchestration failed: %s", e, exc_info=True)
         raise typer.Exit(code=1)

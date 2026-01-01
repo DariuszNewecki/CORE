@@ -1,4 +1,5 @@
 # src/body/services/crate_creation_service.py
+# ID: b9ee3781-7db1-4445-a5f6-19eb7d658315
 
 """
 Service for creating Intent Crates from generated code.
@@ -6,256 +7,197 @@ Service for creating Intent Crates from generated code.
 Packages code, tests, and metadata into constitutionally-compliant crates
 that can be processed by CrateProcessingService with canary validation.
 
-Policy:
-- No direct filesystem mutations outside governed mutation surfaces.
-- Writes/mkdir/rmtree must go through FileHandler (IntentGuard enforced).
-- CORE must never write to .intent/** (crate payload validation enforces this).
+UNIX-Compliant Methodology:
+- This is a "Body" component: it executes the packaging but makes no decisions.
+- It is the "Staging Area" between the SpecificationAgent and ExecutionAgent.
+
+Policy Alignment:
+- Headless: Uses standard logging only.
+- Safe-by-Default: Validates all paths before touching the disk.
+- Governed: All mutations route through FileHandler (IntentGuard enforced).
 """
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+import time
+import uuid
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-import jsonschema
 import yaml
 
-from shared.action_logger import action_logger
+from shared.action_types import ActionImpact, ActionResult
+from shared.atomic_action import atomic_action
 from shared.config import settings
-from shared.infrastructure.storage.file_handler import FileHandler
 from shared.logger import getLogger
 
+
+if TYPE_CHECKING:
+    from shared.context import CoreContext
 
 logger = getLogger(__name__)
 
 
-# ID: b9ee3781-7db1-4445-a5f6-19eb7d658315
+# ID: 8051b110-89d6-44f9-b787-21a3d58519b5
 class CrateCreationService:
     """
     Creates Intent Crates from generated code.
-
-    Responsibilities:
-    - Generate unique crate IDs
-    - Create crate directory structure
-    - Write constitutional manifest
-    - Package payload files
-    - Log creation events
+    Acts as the bridge between Engineering (Will) and Construction (Body).
     """
 
-    _CRATE_PREFIX = "crate"
+    def __init__(self, core_context: CoreContext) -> None:
+        """
+        Initialize service with the system context.
 
-    def __init__(self) -> None:
-        """Initialize service with constitutional paths."""
-        self.repo_root: Path = settings.REPO_PATH
+        Args:
+            core_context: The central container for system services.
+        """
+        self.context = core_context
+        # Use PathResolver (SSOT) to find the inbox
+        self.inbox_path = settings.paths.workflows_dir / "crates" / "inbox"
+        self.fs = core_context.file_handler
 
-        # Use constitutional path resolution for work dir; avoid hardcoded Path ops.
-        self.inbox_path: Path = self.repo_root / "work" / "crates" / "inbox"
-
-        # Ensure runtime directories via governed surface (no direct mkdir).
-        self._fh = FileHandler(str(self.repo_root))
-        self._fh.ensure_dir(self._to_repo_rel(self.inbox_path))
-
-        self.crate_schema = settings.load(
-            "charter.schemas.constitutional.intent_crate_schema"
-        )
-        logger.info("CrateCreationService initialized.")
-
-    # ID: 0d490d0f-ab25-4c49-9bad-a9691a5f9448
-    def create_intent_crate(
+    @atomic_action(
+        action_id="crate.create",
+        intent="Package generated code into an Intent Crate for canary validation",
+        impact=ActionImpact.WRITE_DATA,
+        policies=["body_contracts", "intent_crate_schema"],
+        category="orchestration",
+    )
+    # ID: dc96d08d-72ec-407e-b087-349423ed66ef
+    async def create_intent_crate(
         self,
         intent: str,
         payload_files: dict[str, str],
         crate_type: str = "STANDARD",
         metadata: dict[str, Any] | None = None,
-    ) -> str:
+    ) -> ActionResult:
         """
-        Create an Intent Crate from generated code.
-
-        Returns:
-            crate_id of the created crate
+        The core logic to build a Crate. Returns an ActionResult for the Orchestrator.
         """
+        start_time = time.time()
         crate_id = self._generate_crate_id()
         crate_path = self.inbox_path / crate_id
+
+        # Convert to repo-relative path for FileHandler
         crate_rel = self._to_repo_rel(crate_path)
 
         try:
-            # Create crate directory via governed surface
-            self._fh.ensure_dir(crate_rel, exist_ok=False)
-            logger.info("Created crate directory: %s", crate_id)
-
-            manifest = self._create_manifest(
-                crate_id=crate_id,
-                intent=intent,
-                payload_files=list(payload_files.keys()),
-                crate_type=crate_type,
-                metadata=metadata or {},
-            )
-
-            manifest_rel = f"{crate_rel}/manifest.yaml"
-            self._fh.write_runtime_text(manifest_rel, yaml.dump(manifest, indent=2))
-
-            self._write_payload_files(crate_rel, payload_files)
-
-            action_logger.log_event(
-                "crate.creation.success",
-                {
-                    "crate_id": crate_id,
-                    "intent": intent,
-                    "type": crate_type,
-                    "file_count": len(payload_files),
-                },
-            )
-            logger.info(
-                "Successfully created crate '%s' with %s files",
-                crate_id,
-                len(payload_files),
-            )
-            return crate_id
-
-        except Exception as e:
-            # Cleanup via governed surface (no shutil.rmtree)
-            try:
-                self._fh.remove_tree(crate_rel)
-            except Exception:
-                # Cleanup failures should not mask the original error
-                logger.debug("Failed to cleanup crate dir after error: %s", crate_rel)
-
-            logger.error("Failed to create crate: %s", e, exc_info=True)
-            action_logger.log_event(
-                "crate.creation.failed", {"intent": intent, "error": str(e)}
-            )
-            raise
-
-    def _generate_crate_id(self) -> str:
-        """
-        Generate a unique crate identifier — safe, collision-resistant, constitutionally pure.
-        """
-        timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
-        candidate = f"{self._CRATE_PREFIX}_{timestamp}"
-        if not (self.inbox_path / candidate).exists():
-            return candidate
-        counter = 1
-        while True:
-            candidate = f"{self._CRATE_PREFIX}_{timestamp}_{counter}"
-            if not (self.inbox_path / candidate).exists():
-                return candidate
-            counter += 1
-
-    def _create_manifest(
-        self,
-        crate_id: str,
-        intent: str,
-        payload_files: list[str],
-        crate_type: str,
-        metadata: dict[str, Any],
-    ) -> dict[str, Any]:
-        manifest = {
-            "crate_id": crate_id,
-            "author": "CoderAgent",
-            "intent": intent,
-            "type": "CODE_MODIFICATION",
-            "created_at": datetime.now(UTC).isoformat(),
-            "generator": "CoderAgent",
-            "generator_version": "0.2.0",
-            "payload_files": payload_files,
-            "metadata": metadata,
-        }
-        if crate_type == "STANDARD":
-            manifest["type"] = "CODE_MODIFICATION"
-        elif crate_type == "CONSTITUTIONAL_AMENDMENT":
-            manifest["type"] = "CONSTITUTIONAL_AMENDMENT"
-
-        strict_manifest = {
-            "crate_id": manifest["crate_id"],
-            "author": manifest["author"],
-            "intent": manifest["intent"],
-            "type": manifest["type"],
-            "payload_files": manifest["payload_files"],
-        }
-        jsonschema.validate(instance=strict_manifest, schema=self.crate_schema)
-        return strict_manifest
-
-    def _write_payload_files(
-        self, crate_rel: str, payload_files: dict[str, str]
-    ) -> None:
-        for relative_path, content in payload_files.items():
-            rel = Path(relative_path).as_posix().lstrip("./")
-
-            # Ensure crate-local relative paths only
-            if rel.startswith("/"):
-                raise ValueError(
-                    f"Absolute path not allowed in payload: {relative_path}"
+            # 1. Path Safety Check (Constitutional Guard)
+            path_errors = self.validate_payload_paths(payload_files)
+            if path_errors:
+                return ActionResult(
+                    action_id="crate.create",
+                    ok=False,
+                    data={
+                        "error": "Forbidden paths in payload",
+                        "details": path_errors,
+                    },
+                    duration_sec=time.time() - start_time,
                 )
 
-            file_rel = f"{crate_rel}/{rel}"
-            self._fh.write_runtime_text(file_rel, content)
-            logger.debug("Wrote payload file: %s", relative_path)
+            # 2. Create directory (Governed Mutation)
+            self.fs.ensure_dir(crate_rel)
 
-    # ID: cee36a3f-693c-4326-9ecd-1101d9c92bf3
+            # 3. Create Manifest
+            manifest = {
+                "crate_id": crate_id,
+                "author": "CoderAgent",
+                "intent": intent,
+                "type": "CODE_MODIFICATION" if crate_type == "STANDARD" else crate_type,
+                "created_at": (
+                    settings.paths.now_iso()
+                    if hasattr(settings.paths, "now_iso")
+                    else time.strftime("%Y-%m-%dT%H:%M:%SZ")
+                ),
+                "metadata": metadata or {},
+                "payload_files": list(payload_files.keys()),
+            }
+
+            # 4. Write Manifest & Payload (IntentGuard Enforced)
+            self.fs.write_runtime_text(
+                f"{crate_rel}/manifest.yaml", yaml.dump(manifest, sort_keys=False)
+            )
+
+            for rel_path, content in payload_files.items():
+                # Ensure we don't allow traversal or absolute paths
+                safe_file_rel = f"{crate_rel}/{rel_path.lstrip('/')}"
+                self.fs.write_runtime_text(safe_file_rel, content)
+
+            logger.info("Successfully created Crate: %s", crate_id)
+
+            return ActionResult(
+                action_id="crate.create",
+                ok=True,
+                data={
+                    "crate_id": crate_id,
+                    "path": crate_rel,
+                    "file_count": len(payload_files),
+                },
+                duration_sec=time.time() - start_time,
+                impact=ActionImpact.WRITE_DATA,
+            )
+
+        except Exception as e:
+            logger.error("Crate creation failed: %s", e, exc_info=True)
+            # Cleanup on failure via governed surface
+            self.fs.remove_tree(crate_rel)
+
+            return ActionResult(
+                action_id="crate.create",
+                ok=False,
+                data={"error": str(e)},
+                duration_sec=time.time() - start_time,
+            )
+
+    def _generate_crate_id(self) -> str:
+        """Generate a deterministic, stable ID for the transaction."""
+        return f"fix_{uuid.uuid4().hex[:8]}"
+
+    # ID: 356375c5-8d95-441f-90ec-967f38794f35
     def validate_payload_paths(self, payload_files: dict[str, str]) -> list[str]:
+        """
+        Enforce Constitutional path boundaries.
+        CORE must never write to .intent/** or keys/**.
+        """
         errors: list[str] = []
-
-        # CORE must never write to .intent/**, so do not allow it here.
-        allowed_roots = ["src/", "tests/"]
+        forbidden_roots = [".intent", "var/keys", "var/cache"]
 
         for path_str in payload_files.keys():
-            path = Path(path_str)
+            p = Path(path_str)
+            if p.is_absolute():
+                errors.append(f"Absolute path forbidden: {path_str}")
+                continue
 
-            if path.is_absolute():
-                errors.append(f"Absolute path not allowed: {path_str}")
-                continue
-            if ".." in path.parts:
-                errors.append(f"Path traversal not allowed: {path_str}")
-                continue
-            if path_str.startswith(".intent/") or path_str.startswith(".intent\\"):
-                errors.append(f".intent writes are forbidden: {path_str}")
-                continue
-            if not any(path_str.startswith(root) for root in allowed_roots):
-                errors.append(f"Path must start with allowed root: {path_str}")
+            normalized = p.as_posix()
+            if any(normalized.startswith(root) for root in forbidden_roots):
+                errors.append(f"Constitutional boundary violation: {path_str}")
+
+            if ".." in normalized:
+                errors.append(f"Path traversal detected: {path_str}")
 
         return errors
 
-    # ID: fc7dcb63-c6db-40db-b28d-e0f1518f4208
-    def get_crate_info(self, crate_id: str) -> dict[str, Any] | None:
-        crate_path = self.inbox_path / crate_id
-        if not crate_path.exists():
-            return None
-        manifest_path = crate_path / "manifest.yaml"
-        if not manifest_path.exists():
-            return None
-        manifest = yaml.safe_load(manifest_path.read_text(encoding="utf-8"))
-        return {
-            "crate_id": crate_id,
-            "path": str(crate_path),
-            "manifest": manifest,
-            "status": "inbox",
-        }
-
     def _to_repo_rel(self, p: Path) -> str:
-        repo = Path(self.repo_root).resolve()
-        resolved = Path(p).resolve()
-        if resolved.is_relative_to(repo):
-            return resolved.relative_to(repo).as_posix()
-        raise ValueError(f"Path outside repository boundary: {p}")
+        """Internal helper to ensure paths are compatible with FileHandler."""
+        try:
+            return str(p.relative_to(settings.REPO_PATH))
+        except ValueError:
+            # If it's already relative, just return it
+            return str(p)
 
 
-# ID: a5091f6d-4fb1-47d1-9769-3d59d82db735
-def create_crate_from_generation_result(
+# ID: a858d9e4-1fbe-4fcb-8af7-92d74a852024
+async def create_crate_from_spec(
+    context: CoreContext,
     intent: str,
     files_generated: dict[str, str],
-    generation_metadata: dict[str, Any] | None = None,
-) -> str:
+    metadata: dict[str, Any] | None = None,
+) -> ActionResult:
     """
-    Convenience function used by CoderAgent and self-healing.
+    Convenience wrapper for SpecificationAgent.
     """
-    service = CrateCreationService()
-    errors = service.validate_payload_paths(files_generated)
-    if errors:
-        raise ValueError(f"Invalid payload paths: {errors}")
-    return service.create_intent_crate(
-        intent=intent,
-        payload_files=files_generated,
-        crate_type="STANDARD",
-        metadata=generation_metadata,
+    service = CrateCreationService(context)
+    return await service.create_intent_crate(
+        intent=intent, payload_files=files_generated, metadata=metadata
     )

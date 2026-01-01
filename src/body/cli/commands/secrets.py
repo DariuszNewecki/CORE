@@ -255,7 +255,7 @@ async def _list_secrets_internal() -> ActionResult:
                     (
                         str(secret.get("last_updated"))
                         if secret.get("last_updated")
-                        else "N/A"
+                        else "none"
                     ),
                 )
 

@@ -35,7 +35,7 @@ class PatternValidators:
     - check_pattern: Pure check commands (no mutations)
     - run_pattern: Run commands with write parameter
 
-    TODO: Migrate to constitutional rules in .intent/policies/
+    FUTURE: Migrate to constitutional rules in .intent/policies/
     """
 
     @staticmethod

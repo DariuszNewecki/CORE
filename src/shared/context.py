@@ -4,6 +4,8 @@
 """
 Defines the CoreContext, a dataclass that holds singleton instances of all major
 services, enabling explicit dependency injection throughout the application.
+
+ALIGNED: Added file_content_cache to support A2/A3 cross-step context persistence.
 """
 
 from __future__ import annotations
@@ -38,6 +40,9 @@ class CoreContext:
     file_handler: Any | None = None
     planner_config: Any | None = None
     qdrant_service: Any | None = None
+
+    # ALIGNED: Shared state for autonomous agents to pass file content between plan steps
+    file_content_cache: dict[str, str] = field(default_factory=dict)
 
     _is_test_mode: bool = False
 

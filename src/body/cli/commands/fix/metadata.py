@@ -8,6 +8,7 @@ Provides:
 - fix policy-ids
 - fix tags
 - fix duplicate-ids
+- fix placeholders
 """
 
 from __future__ import annotations
@@ -17,6 +18,7 @@ from pathlib import Path
 
 import typer
 
+from body.atomic.executor import ActionExecutor
 from features.self_healing.capability_tagging_service import (
     main_async as tag_capabilities_async,
 )
@@ -232,3 +234,25 @@ async def fix_duplicate_ids_command(
 
     with console.status("[cyan]Resolving duplicate IDs...[/cyan]"):
         return await fix_duplicate_ids_internal(ctx.obj, write=write)
+
+
+@fix_app.command(
+    "placeholders",
+    help="Automated replacement of forbidden placeholders (FUTURE, pending, none).",
+)
+@handle_command_errors
+@core_command(dangerous=True, confirmation=True)
+# ID: b1c2d3e4-f5a6-7890-abcd-ef1234567890
+async def fix_placeholders_command(
+    ctx: typer.Context,
+    write: bool = typer.Option(
+        False, "--write", help="Apply fixes to resolve forbidden placeholders."
+    ),
+) -> ActionResult:
+    """
+    Detects and resolves forbidden placeholder strings (pending, FUTURE, etc.)
+    using the governed ActionExecutor to ensure compliance with purity standards.
+    """
+    with console.status("[cyan]Purging forbidden placeholders...[/cyan]"):
+        executor = ActionExecutor(ctx.obj)
+        return await executor.execute("fix.placeholders", write=write)

@@ -16,17 +16,28 @@ from .execution_models import (
     TaskParams,
 )
 from .validation_result import ValidationResult
+from .workflow_models import (
+    DetailedPlan,
+    DetailedPlanStep,
+    ExecutionResults,
+    WorkflowResult,
+)
 
 
 __all__ = [
     "AuditFinding",
     "AuditSeverity",
     "CapabilityMeta",
+    # Workflow models (NEW - Phase 1)
+    "DetailedPlan",
+    "DetailedPlanStep",
     "DriftReport",
     "EmbeddingPayload",
+    "ExecutionResults",
     "ExecutionTask",
     "PlanExecutionError",
     "PlannerConfig",
     "TaskParams",
     "ValidationResult",
+    "WorkflowResult",
 ]

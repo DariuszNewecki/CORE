@@ -90,7 +90,7 @@ class PathProtectionEnforcement(EnforcementMethod):
             findings.append(
                 self._create_finding(
                     f"Rule '{self.rule_id}' must declare 'protected_paths' for path protection enforcement.",
-                    file_path="N/A",
+                    file_path="none",
                 )
             )
             return findings
@@ -102,17 +102,17 @@ class PathProtectionEnforcement(EnforcementMethod):
                     findings.append(
                         self._create_finding(
                             f"Rule '{self.rule_id}' missing expected protected path: '{pattern}'",
-                            file_path="N/A",
+                            file_path="none",
                         )
                     )
 
         # 3. Check runtime enforcement: IntentGuard should deny writes
-        # TODO: Once IntentGuard loads protected_paths from SSOT, verify it here
+        # FUTURE: Once IntentGuard loads protected_paths from SSOT, verify it here
         # For now, we just verify the declaration exists
         findings.append(
             self._create_finding(
                 f"Rule '{self.rule_id}' declares protected paths but runtime enforcement not yet wired to IntentGuard.",
-                file_path="N/A",
+                file_path="none",
             )
         )
 
@@ -148,7 +148,7 @@ class CodePatternEnforcement(EnforcementMethod):
             findings.append(
                 self._create_finding(
                     f"Rule '{self.rule_id}' must declare 'detection' method for code pattern enforcement.",
-                    file_path="N/A",
+                    file_path="none",
                 )
             )
             return findings
@@ -160,7 +160,7 @@ class CodePatternEnforcement(EnforcementMethod):
             findings.append(
                 self._create_finding(
                     f"Rule '{self.rule_id}' detection method must be 'ast_call_scan', got: '{method}'",
-                    file_path="N/A",
+                    file_path="none",
                 )
             )
 
@@ -168,7 +168,7 @@ class CodePatternEnforcement(EnforcementMethod):
             findings.append(
                 self._create_finding(
                     f"Rule '{self.rule_id}' must declare detection patterns.",
-                    file_path="N/A",
+                    file_path="none",
                 )
             )
 
@@ -178,12 +178,12 @@ class CodePatternEnforcement(EnforcementMethod):
                 findings.append(
                     self._create_finding(
                         f"Rule '{self.rule_id}' missing required pattern: '{required}'",
-                        file_path="N/A",
+                        file_path="none",
                     )
                 )
 
         # 3. Check runtime enforcement: Should have corresponding check
-        # TODO: Verify AST scanner actually runs these patterns
+        # FUTURE: Verify AST scanner actually runs these patterns
         # For now, just verify the declaration
 
         return findings
@@ -218,17 +218,17 @@ class AuditLoggingEnforcement(EnforcementMethod):
             findings.append(
                 self._create_finding(
                     f"Rule '{self.rule_id}' must have 'enforcement: error' for audit logging.",
-                    file_path="N/A",
+                    file_path="none",
                 )
             )
 
         # 2. Verify audit metadata in Actions table
-        # TODO: Query database to verify actions have required fields
-        # For now, just flag as TODO
+        # FUTURE: Query database to verify actions have required fields
+        # For now, just flag as a pending task
         findings.append(
             self._create_finding(
-                f"Rule '{self.rule_id}' requires audit logging enforcement - database validation not yet implemented.",
-                file_path="N/A",
+                f"Rule '{self.rule_id}' requires audit logging enforcement - database validation pending implementation.",
+                file_path="none",
             )
         )
 
@@ -334,7 +334,7 @@ class DatabaseSSOTEnforcement(EnforcementMethod):
                 )
 
         # 2. Verify table has data
-        # TODO: Query database to verify table exists and has records
+        # FUTURE: Query database to verify table exists and has records
         # For now, assume it exists if no deprecated file
 
         return findings

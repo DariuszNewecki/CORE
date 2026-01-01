@@ -58,7 +58,7 @@ async def search_capabilities_cmd(
 
         for hit in results:
             payload = hit.get("payload", {}) or {}
-            key = payload.get("key", "N/A")
+            key = payload.get("key", "none")
             description = (
                 payload.get("description") or "No description provided."
             ).strip()

@@ -84,7 +84,7 @@ class ReconnaissanceAgent:
             report_parts.append("\n## Relevant Symbols Identified by Semantic Search:")
             for symbol_data in target_symbols:
                 callers = self._find_callers(symbol_data.get("name"))
-                report_parts.append(f"\n### Symbol: `{symbol_data.get('key', 'N/A')}`")
+                report_parts.append(f"\n### Symbol: `{symbol_data.get('key', 'none')}`")
                 report_parts.append(f"- **Type:** {symbol_data.get('type')}")
                 report_parts.append(f"- **Location:** `{symbol_data.get('file')}`")
                 report_parts.append(f"- **Intent:** {symbol_data.get('intent')}")

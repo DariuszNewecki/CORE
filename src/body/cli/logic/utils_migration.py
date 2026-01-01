@@ -38,6 +38,6 @@ def replacer(match: re.Match, domain_map: dict, py_file: Path, repo_root: Path) 
         if old_cap.startswith(old_domain):
             new_cap = old_cap.replace(old_domain, new_domain, 1)
             if old_cap != new_cap:
-                # TODO: Add logging if needed
+                # FUTURE: Add logging if needed
                 pass
     return match.group(0)

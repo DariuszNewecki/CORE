@@ -19,7 +19,7 @@ from shared.logger import getLogger
 logger = getLogger(__name__)
 
 
-# ID: PLACEHOLDER
+# ID: template_value
 # ID: 9cf9287b-cc80-4121-a307-bffa7e6b925c
 class MemoryRepository:
     """

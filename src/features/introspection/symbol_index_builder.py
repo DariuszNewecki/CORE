@@ -312,7 +312,7 @@ def main(argv: list[str] | None = None) -> int:
     out_path.write_text(
         json.dumps(index, indent=2, ensure_ascii=False), encoding="utf-8"
     )
-    # TODO: Replace with logging once logger is configured
+    # FUTURE: Replace with logging once logger is configured
     # print(f"Wrote {out_path.as_posix()} with {len(index)} symbols.")
     return 0
 
