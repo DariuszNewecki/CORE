@@ -33,7 +33,7 @@ jobs:
         run: pipx install poetry
 
       - name: Cache Poetry & Pip
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ~/.cache/pypoetry
