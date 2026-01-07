@@ -7,9 +7,8 @@ the discovered commands with the `core.cli_commands` database table.
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Protocol
 
-import typer
 from sqlalchemy import delete
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -21,7 +20,26 @@ from shared.logger import getLogger
 logger = getLogger(__name__)
 
 
-def _introspect_typer_app(app: typer.Typer, prefix: str = "") -> list[dict[str, Any]]:
+# ID: 10bc5565-2f20-4497-8865-c36de47dcb48
+class TyperCommandLike(Protocol):
+    name: str | None
+    callback: Any
+    help: str | None
+
+
+# ID: d01d9def-d26d-4c50-84f6-4ecc6921c9a1
+class TyperGroupLike(Protocol):
+    name: str | None
+    typer_instance: Any
+
+
+# ID: f9bd5ff6-605c-4575-b5c6-dc61f23bf964
+class TyperAppLike(Protocol):
+    registered_commands: list[TyperCommandLike]
+    registered_groups: list[TyperGroupLike]
+
+
+def _introspect_typer_app(app: TyperAppLike, prefix: str = "") -> list[dict[str, Any]]:
     """Recursively scans a Typer app to discover all commands and their metadata."""
     commands = []
     for cmd_info in app.registered_commands:
@@ -48,7 +66,7 @@ def _introspect_typer_app(app: typer.Typer, prefix: str = "") -> list[dict[str, 
     return commands
 
 
-async def _sync_commands_to_db(session: AsyncSession, main_app: typer.Typer):
+async def _sync_commands_to_db(session: AsyncSession, main_app: TyperAppLike):
     """
     Introspects the main CLI application, discovers all commands, and upserts them
     into the database, making the database the single source of truth.

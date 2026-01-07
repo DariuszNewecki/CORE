@@ -12,6 +12,7 @@ import yaml
 from shared.config import settings
 from shared.infrastructure.database.models import CognitiveRole, LlmResource
 from shared.logger import getLogger
+from will.orchestration.decision_tracer import DecisionTracer
 
 
 logger = getLogger(__name__)
@@ -28,6 +29,7 @@ class DeductionAgent:
     def __init__(self, repo_path: Path | str):
         self.repo_path = Path(repo_path)
         self._policy: dict | None = None
+        self.tracer = DecisionTracer()
         self._load_policies()
 
     def _load_policies(self) -> None:
@@ -75,6 +77,13 @@ class DeductionAgent:
         """
         candidates = list(candidates)
         if not candidates:
+            self.tracer.record(
+                agent=self.__class__.__name__,
+                decision_type="task_execution",
+                rationale="Executing goal based on input context",
+                chosen_action="No candidate LLM resources provided; returning None",
+                confidence=0.9,
+            )
             return None
         best = None
         best_rating = None
@@ -90,4 +99,20 @@ class DeductionAgent:
             if best_rating is None or rating < best_rating:
                 best_rating = rating
                 best = r
-        return best.name if best is not None else None
+        if best is None:
+            self.tracer.record(
+                agent=self.__class__.__name__,
+                decision_type="task_execution",
+                rationale="Executing goal based on input context",
+                chosen_action="No LLM resource selected after evaluating candidates; returning None",
+                confidence=0.9,
+            )
+            return None
+        self.tracer.record(
+            agent=self.__class__.__name__,
+            decision_type="task_execution",
+            rationale="Executing goal based on input context",
+            chosen_action=f"Selected LLM resource '{best.name}' for role {role}",
+            confidence=0.9,
+        )
+        return best.name

@@ -15,6 +15,7 @@ from shared.logger import getLogger
 from shared.models import PlanExecutionError
 from will.agents.base_planner import parse_and_validate_plan
 from will.orchestration.cognitive_service import CognitiveService
+from will.orchestration.decision_tracer import DecisionTracer
 
 
 logger = getLogger(__name__)
@@ -27,6 +28,7 @@ class MicroPlannerAgent:
     def __init__(self, cognitive_service: CognitiveService):
         """Initializes the MicroPlannerAgent."""
         self.cognitive_service = cognitive_service
+        self.tracer = DecisionTracer()
 
         # ALIGNED: Using settings.paths for policy and prompt resolution
         self.policy = settings.load("charter.policies.agent_governance")
@@ -54,9 +56,24 @@ class MicroPlannerAgent:
         )
         try:
             plan = parse_and_validate_plan(response_text)
-            return [task.model_dump() for task in plan]
+            micro_plan = [task.model_dump() for task in plan]
+            self.tracer.record(
+                agent=self.__class__.__name__,
+                decision_type="task_execution",
+                rationale="Executing goal based on input context",
+                chosen_action=f"Generated micro plan with {len(micro_plan)} tasks",
+                confidence=0.9,
+            )
+            return micro_plan
         except PlanExecutionError:
             logger.warning(
                 "Micro-planner did not return a valid plan. Returning empty plan."
+            )
+            self.tracer.record(
+                agent=self.__class__.__name__,
+                decision_type="task_execution",
+                rationale="Executing goal based on input context",
+                chosen_action="No valid micro plan generated; returning empty list",
+                confidence=0.9,
             )
             return []

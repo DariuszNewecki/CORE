@@ -4,6 +4,11 @@ Generates the canonical capability reference documentation from the database.
 
 ARCHITECTURE: Pure feature - no standalone execution.
 Use via: core-admin build capability-docs
+
+CONSTITUTIONAL FIX:
+- Aligned with 'governance.artifact_mutation.traceable'.
+- Replaced direct Path writes with governed FileHandler mutations.
+- Enforces IntentGuard and audit logging for documentation exports.
 """
 
 from __future__ import annotations
@@ -12,13 +17,15 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.config import settings
+from shared.infrastructure.storage.file_handler import FileHandler
 from shared.logger import getLogger
 
 
 logger = getLogger(__name__)
 
 # --- Configuration ---
-OUTPUT_PATH = settings.REPO_PATH / "docs" / "10_CAPABILITY_REFERENCE.md"
+# Internal logic uses repo-relative path for FileHandler compatibility
+REL_OUTPUT_PATH = "docs/10_CAPABILITY_REFERENCE.md"
 GITHUB_URL_BASE = "https://github.com/DariuszNewecki/CORE/blob/main/"
 
 HEADER = """
@@ -37,8 +44,6 @@ async def _fetch_capabilities(session: AsyncSession) -> list[dict]:
         session: Injected database session
     """
     logger.info("Fetching capabilities from the database...")
-    # FIX: Removed 'line_number' and JOIN, as the column does not exist in the DB schema.
-    # We will default to line 1 in the python logic.
     stmt = text(
         """
             SELECT
@@ -59,7 +64,7 @@ def _group_by_domain(capabilities: list[dict]) -> dict[str, list[dict]]:
     domains = {}
     for cap in capabilities:
         key = cap["capability"]
-        # Infer domain from the key, e.g., 'autonomy.self_healing.fix_headers' -> 'autonomy.self_healing'
+        # Infer domain from the key
         domain_key = ".".join(key.split(".")[:-1]) if "." in key else "general"
         if domain_key not in domains:
             domains[domain_key] = []
@@ -71,9 +76,6 @@ def _group_by_domain(capabilities: list[dict]) -> dict[str, list[dict]]:
 async def main(session: AsyncSession):
     """
     The main entry point for the documentation generation script.
-
-    Args:
-        session: Injected database session (provided by Body CLI orchestrator)
     """
     try:
         capabilities = await _fetch_capabilities(session)
@@ -108,16 +110,22 @@ async def main(session: AsyncSession):
             md_content.append(f"  - **Description:** {description.strip()}")
 
             file_path = cap.get("file")
-            # FIX: Default to 1 since DB doesn't store line numbers for symbols
-            line_number = cap.get("line_number") or 1
+            line_number = 1
             github_link = f"{GITHUB_URL_BASE}{file_path}#L{line_number}"
             md_content.append(f"  - **Source:** [{file_path}]({github_link})")
         md_content.append("")
 
     final_text = "\n".join(md_content)
 
-    OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
-    OUTPUT_PATH.write_text(final_text, encoding="utf-8")
-    logger.info(
-        "Capability reference documentation successfully written to %s", OUTPUT_PATH
-    )
+    # CONSTITUTIONAL FIX: Use the governed mutation surface
+    # FileHandler handles directory creation and path validation automatically.
+    file_handler = FileHandler(str(settings.REPO_PATH))
+
+    try:
+        file_handler.write_runtime_text(REL_OUTPUT_PATH, final_text)
+        logger.info(
+            "Capability reference documentation successfully written to %s via FileHandler",
+            REL_OUTPUT_PATH,
+        )
+    except Exception as e:
+        logger.error("Failed to write documentation: %s", e)

@@ -1,0 +1,93 @@
+mappings:
+  # 1. Protection of the Constitution itself
+  governance.constitution.read_only:
+    engine: glob_gate
+    params:
+      patterns_prohibited:
+        - .intent/constitution/**
+    scope:
+      applies_to:
+        - src/**/*.py
+
+  # 2. THE BLOCKING LAW: Logic mutations must be governed.
+  # This list EXCLUDES components that are allowed to use direct writes.
+  governance.logic_mutation.governed:
+    engine: ast_gate
+    params:
+      check_type: no_direct_writes
+    scope:
+      applies_to:
+        - "src/**/*.py"
+      excludes:
+        # --- THE SANCTUARY: Implementation Machinery ---
+        - "src/shared/infrastructure/storage/file_handler.py"
+        - "src/shared/path_utils.py"
+        - "src/body/services/crate_processing_service.py"
+        - "src/mind/governance/runtime_validator.py"
+        - "src/shared/infrastructure/validation/ruff_linter.py"
+        # --- THE PROTECTED ZONE: Reporting & Metadata ---
+        # Excluded from Blocking so they don't fail the audit
+        - "src/body/cli/commands/governance.py"
+        - "src/body/cli/commands/manage/emergency.py"
+        - "src/body/cli/logic/db.py"
+        - "src/body/cli/logic/cli_utils.py"
+        - "src/body/cli/logic/byor.py"
+        - "src/features/introspection/**"
+        - "src/mind/governance/constitutional_monitor.py"
+        - "src/mind/governance/key_management_service.py"
+        - "src/features/maintenance/scripts/context_export.py"
+        # --- THE SANDBOX: Testing Infrastructure ---
+        - "src/features/self_healing/simple_test_generator.py"
+        - "src/features/self_healing/context_aware_test_generator.py"
+        - "src/features/self_healing/coverage_watcher.py"
+        - "src/features/self_healing/full_project_remediation.py"
+        - "src/features/self_healing/test_generation/**"
+        - "src/features/self_healing/iterative_test_fixer.py"
+
+  # 3. THE REPORTING LAW: Artifacts should use FileHandler.
+  # This rule issues WARNINGS for the files we excluded above.
+  governance.artifact_mutation.traceable:
+    engine: ast_gate
+    params:
+      check_type: no_direct_writes
+    scope:
+      applies_to:
+        - "src/body/cli/commands/governance.py"
+        - "src/body/cli/logic/**"
+        - "src/features/introspection/**"
+        - "src/mind/governance/constitutional_monitor.py"
+        - "src/mind/governance/key_management_service.py"
+        - "src/features/self_healing/coverage_watcher.py"
+        - "src/features/self_healing/full_project_remediation.py"
+        - "src/features/maintenance/scripts/context_export.py"
+
+  governance.no_governance_bypass:
+    engine: ast_gate
+    params:
+      check_type: forbidden_primitives
+      forbidden:
+        - "IntentGuard(bypass=True)"
+        - "bypass_governance"
+        - "disable_governance"
+
+  governance.no_dangerous_execution_primitives:
+    engine: ast_gate
+    params:
+      check_type: forbidden_primitives
+      forbidden:
+        - "eval"
+        - "exec"
+        - "compile"
+        - "os.system"
+        - "subprocess.Popen"
+        - "subprocess.call"
+        - "subprocess.run"
+  governance.intent_meta.required:
+    engine: glob_gate
+    params:
+      check_type: path_match
+      patterns:
+        - ".intent/META/GLOBAL-DOCUMENT-META-SCHEMA.json"
+    scope:
+      applies_to:
+        - ".intent/META/GLOBAL-DOCUMENT-META-SCHEMA.json"

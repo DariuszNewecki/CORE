@@ -8,6 +8,11 @@ Follows the constitutional remediation process:
 2. Goal Generation - Create executable test generation tasks
 3. Test Generation - Autonomously write and validate tests in batches
 4. Integration - Report results and track metrics
+
+CONSTITUTIONAL FIX:
+- Aligned with 'governance.artifact_mutation.traceable'.
+- Replaced direct Path writes with governed FileHandler mutations.
+- Enforces IntentGuard and audit logging for all strategic artifacts.
 """
 
 from __future__ import annotations
@@ -21,6 +26,7 @@ from typing import Any
 from features.self_healing.coverage_analyzer import CoverageAnalyzer
 from mind.governance.audit_context import AuditorContext
 from shared.config import settings
+from shared.infrastructure.storage.file_handler import FileHandler
 from shared.logger import getLogger
 from will.orchestration.cognitive_service import CognitiveService
 
@@ -61,14 +67,21 @@ class FullProjectRemediationService:
         self.auditor = auditor_context
         self.analyzer = CoverageAnalyzer()
         self.generator = TestGenerator(cognitive_service, auditor_context)
+
+        # CONSTITUTIONAL FIX: Use the governed mutation surface
+        self.fh = FileHandler(str(settings.REPO_PATH))
+
         policy = settings.load("charter.policies.governance.quality_assurance_policy")
         self.config = policy.get("coverage_config", {}).get("remediation_config", {})
         self.work_dir = Path(self.config.get("work_directory", "work/testing"))
         self.strategy_dir = self.work_dir / "strategy"
         self.goals_dir = self.work_dir / "goals"
         self.logs_dir = self.work_dir / "logs"
+
+        # Ensure directories exist via governed surface
         for dir_path in [self.strategy_dir, self.goals_dir, self.logs_dir]:
-            dir_path.mkdir(parents=True, exist_ok=True)
+            rel_dir = str(dir_path.relative_to(settings.REPO_PATH))
+            self.fh.ensure_dir(rel_dir)
 
     # ID: e42edc78-f06d-4cb9-816f-120e142605c2
     async def remediate(self) -> dict[str, Any]:
@@ -109,8 +122,13 @@ class FullProjectRemediationService:
         response = await client.make_request_async(
             prompt, user_id="coverage_remediation"
         )
+
         strategy_file = self.strategy_dir / "test_plan.md"
-        strategy_file.write_text(response)
+        rel_path = str(strategy_file.relative_to(settings.REPO_PATH))
+
+        # CONSTITUTIONAL FIX: Use FileHandler instead of Path.write_text
+        self.fh.write_runtime_text(rel_path, response)
+
         logger.info("Strategy saved to %s", strategy_file)
         return {
             "strategy_file": str(strategy_file),
@@ -124,7 +142,7 @@ class FullProjectRemediationService:
         """
         logger.info("Phase 2: Goal Generation")
         strategy_file = Path(strategy["strategy_file"])
-        strategy_text = strategy_file.read_text()
+        strategy_text = strategy_file.read_text(encoding="utf-8")
         prompt = f'Based on this testing strategy, generate a JSON array of test goals.\n\nEach goal should have:\n- module: The Python module path (e.g., "core.prompt_pipeline")\n- test_file: Corresponding test file path (e.g., "tests/core/test_prompt_pipeline.py")\n- priority: Integer 1-10 (1=highest)\n- current_coverage: Current coverage percentage\n- target_coverage: Target coverage percentage\n- goal: A concise description of what tests to create\n\nStrategy:\n{strategy_text}\n\nReturn ONLY valid JSON starting with [ and ending with ].\n'
         client = await self.cognitive.aget_client_for_role("Planner")
         response = await client.make_request_async(
@@ -136,11 +154,15 @@ class FullProjectRemediationService:
             if json_start >= 0 and json_end > json_start:
                 json_str = response[json_start:json_end]
                 goals_data = json.loads(json_str)
-                goals = [TestGoal(**g) for g in goals_data]
+
                 goals_file = self.goals_dir / "test_goals.json"
-                goals_file.write_text(json.dumps(goals_data, indent=2))
+                rel_goals_path = str(goals_file.relative_to(settings.REPO_PATH))
+
+                # CONSTITUTIONAL FIX: Use FileHandler instead of Path.write_text
+                self.fh.write_runtime_json(rel_goals_path, goals_data)
+
                 logger.info("Goals saved to %s", goals_file)
-                return goals
+                return [TestGoal(**g) for g in goals_data]
         except Exception as e:
             logger.error("Failed to parse goals: %s", e)
         return []
@@ -228,7 +250,7 @@ class FullProjectRemediationService:
             settings.REPO_PATH / ".intent/mind/prompts/coverage_strategy.prompt"
         )
         if strategy_prompt_file.exists():
-            template = strategy_prompt_file.read_text()
+            template = strategy_prompt_file.read_text(encoding="utf-8")
         else:
             template = "Analyze coverage and create a testing strategy."
         prompt = f"{template}\n\n## Coverage Data\n{json.dumps(coverage_data, indent=2)}\n\n## Module Information\n{json.dumps(module_info, indent=2)}\n\nGenerate a comprehensive testing strategy in Markdown format.\n"

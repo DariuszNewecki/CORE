@@ -13,6 +13,7 @@ from dataclasses import dataclass
 
 from mind.governance.governance_mixin import GovernanceMixin
 from shared.logger import getLogger
+from will.orchestration.decision_tracer import DecisionTracer
 
 
 logger = getLogger(__name__)
@@ -56,6 +57,7 @@ class SelfHealingAgent(GovernanceMixin):
             agent_id: Unique identifier for this agent instance
         """
         self.agent_id = agent_id
+        self.tracer = DecisionTracer()
         self.proposals: list[HealingProposal] = []
 
     # ID: 9e9ce8e4-2e80-46f4-85a1-235fef7a4282
@@ -109,6 +111,13 @@ class SelfHealingAgent(GovernanceMixin):
                     results["blocked"] += 1
                     logger.info("🚫 Healing blocked: %s - {decision.rationale}", path)
         self._log_summary(results)
+        self.tracer.record(
+            agent=self.__class__.__name__,
+            decision_type="task_execution",
+            rationale="Executing goal based on input context",
+            chosen_action=f"Completed self-healing scan with summary {results}",
+            confidence=0.9,
+        )
         return results
 
     def _log_summary(self, results: dict[str, int]):

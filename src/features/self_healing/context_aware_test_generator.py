@@ -6,12 +6,10 @@ This improves on SimpleTestGenerator by providing the LLM with richer context.
 Enforces non-blocking I/O to satisfy the Async-Native architectural contract.
 Complies with Body Contracts by avoiding direct os.environ access.
 
-FIXED BUGS:
-1. No more error truncation - full error messages preserved.
-2. Failed tests saved to work/testing/failures/ for debugging.
-3. Tests run from repo root with proper PYTHONPATH injection via 'env' utility.
-4. ASYNC230 Fix: All blocking I/O offloaded to threads.
-5. LOG-001 Fix: No direct os.environ access in logic layer.
+CONSTITUTIONAL FIX:
+- Removed ALL imports of 'get_session' to satisfy 'logic.di.no_global_session'.
+- Uses ServiceRegistry for Just-In-Time (JIT) context service initialization.
+- Promotes 'Inversion of Control' by delegating session acquisition to the registry.
 """
 
 from __future__ import annotations
@@ -23,8 +21,8 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
+from body.services.service_registry import service_registry
 from shared.config import settings
-from shared.infrastructure.context.service import ContextService
 from shared.logger import getLogger
 from shared.utils.parsing import extract_python_code_from_response
 from will.orchestration.cognitive_service import CognitiveService
@@ -38,17 +36,8 @@ class ContextAwareTestGenerator:
     """Generates tests using ContextPackage for richer context."""
 
     def __init__(self, cognitive_service: CognitiveService) -> None:
-        """Initialize with LLM and context services."""
+        """Initialize with LLM service."""
         self.cognitive = cognitive_service
-
-        # Wired for DB-backed context resolution
-        from shared.infrastructure.database.session_manager import get_session
-
-        self.context_service = ContextService(
-            cognitive_service=cognitive_service,
-            project_root=str(settings.REPO_PATH),
-            session_factory=get_session,
-        )
 
     # ID: 4a5a573a-9c74-4048-adfb-0affde2d6aaa
     async def generate_test_for_symbol(
@@ -56,6 +45,17 @@ class ContextAwareTestGenerator:
     ) -> dict[str, Any]:
         """Generate a test for ONE symbol with full context."""
         try:
+            # CONSTITUTIONAL FIX: Removed 'get_session' import.
+            # We now use the 'service_registry.session' factory which was
+            # primed at the application's entry point.
+            from shared.infrastructure.context.service import ContextService
+
+            context_service = ContextService(
+                cognitive_service=self.cognitive,
+                project_root=str(settings.REPO_PATH),
+                session_factory=service_registry.session,
+            )
+
             # AST + file I/O offloaded for async-native compliance
             symbol_code = await asyncio.to_thread(
                 self._extract_symbol_code, file_path, symbol_name
@@ -68,7 +68,7 @@ class ContextAwareTestGenerator:
                     "reason": f"Could not extract {symbol_name} from {file_path}",
                 }
 
-            context_packet = await self.context_service.build_for_task(
+            context_packet = await context_service.build_for_task(
                 {
                     "task_id": f"test_gen_{symbol_name}",
                     "task_type": "test.generate",
@@ -186,10 +186,7 @@ class ContextAwareTestGenerator:
     async def _try_run_test(
         self, test_code: str, symbol_name: str, source_file: str
     ) -> tuple[bool, str]:
-        """Try to run the test.
-
-        CONSTITUTIONAL FIX: No os.environ access. Use OS-level 'env' utility.
-        """
+        """Try to run the test without direct os.environ access."""
         failures_dir = settings.REPO_PATH / "work" / "testing" / "failures"
         temp_dir = settings.REPO_PATH / "work" / "testing" / "temp"
 
@@ -218,7 +215,6 @@ class ContextAwareTestGenerator:
                     return f.name
 
             temp_path = await asyncio.to_thread(_create_temp)
-
             src_path = str((settings.REPO_PATH / "src").resolve())
 
             proc = await asyncio.create_subprocess_exec(

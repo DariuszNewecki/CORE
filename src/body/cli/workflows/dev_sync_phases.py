@@ -440,6 +440,9 @@ class DevSyncPhases:
 
             # Policies
             policy_items = adapter.policies_to_items()
+            assert (
+                self.core_context.qdrant_service is not None
+            ), "QdrantService not initialized"
             policy_service = VectorIndexService(
                 self.core_context.qdrant_service,
                 "core_policies",
@@ -450,6 +453,9 @@ class DevSyncPhases:
 
             # Patterns
             pattern_items = adapter.patterns_to_items()
+            assert (
+                self.core_context.qdrant_service is not None
+            ), "QdrantService not initialized"
             pattern_service = VectorIndexService(
                 self.core_context.qdrant_service,
                 "core-patterns",

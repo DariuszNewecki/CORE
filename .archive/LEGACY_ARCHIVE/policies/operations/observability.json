@@ -1,0 +1,433 @@
+{
+  "id": "standard_operations_observability",
+  "version": "1.0.0",
+  "title": "Operations Standard \u2013 Observability",
+  "type": "policy",
+  "status": "active",
+  "owners": {
+    "accountable": "Platform SRE",
+    "responsible": [
+      "Core Maintainer"
+    ]
+  },
+  "review": {
+    "frequency": "12 months"
+  },
+  "schema_id": "schema.policy",
+  "policy_id": "observability",
+  "purpose": "Establish comprehensive observability for CORE's autonomous operations. Without observability, we operate blind. With it, we can see, learn, and improve.\n",
+  "philosophy": "CORE must be able to answer these questions at any time:\n\n1. \"What is CORE doing right now?\"\n2. \"How well is CORE performing?\"\n3. \"Why did that autonomous operation fail?\"\n4. \"Is CORE getting better or worse over time?\"\n5. \"What are the patterns in CORE's behavior?\"\n\nIf we cannot answer these questions, we cannot trust autonomous operations at scale.\nObservability is not optional - it is constitutional.\n",
+  "structured_logging": {
+    "mandate": "Every atomic action MUST emit structured logs that enable:\n- Tracing individual operations from start to finish\n- Aggregating statistics across operations\n- Debugging failures with full context\n- Understanding system behavior patterns\n",
+    "log_levels": [
+      {
+        "level": "DEBUG",
+        "usage": "Detailed internal state for debugging",
+        "example": "Parsed 47 symbols from module X"
+      },
+      {
+        "level": "INFO",
+        "usage": "Normal operational events",
+        "example": "Started atomic action: fix.ids"
+      },
+      {
+        "level": "WARNING",
+        "usage": "Unexpected but handled situations",
+        "example": "Retrying LLM call (attempt 2/3)"
+      },
+      {
+        "level": "ERROR",
+        "usage": "Operation failed but system continues",
+        "example": "Failed to vectorize policy: invalid YAML"
+      },
+      {
+        "level": "CRITICAL",
+        "usage": "System-level failure requiring intervention",
+        "example": "Database connection lost"
+      }
+    ],
+    "required_fields": [
+      {
+        "field": "timestamp",
+        "type": "ISO8601",
+        "description": "When the event occurred"
+      },
+      {
+        "field": "action_id",
+        "type": "string",
+        "description": "Atomic action identifier (e.g., 'fix.ids', 'manage.vectorize')"
+      },
+      {
+        "field": "correlation_id",
+        "type": "uuid",
+        "description": "Links related operations across the system"
+      },
+      {
+        "field": "duration_ms",
+        "type": "integer",
+        "description": "How long the operation took (milliseconds)"
+      },
+      {
+        "field": "outcome",
+        "type": "enum[success, failure, partial]",
+        "description": "Result of the operation"
+      },
+      {
+        "field": "context",
+        "type": "object",
+        "description": "Operation-specific details (e.g., files_modified, tests_generated)"
+      }
+    ],
+    "log_format": {
+      "type": "JSON",
+      "rationale": "Machine-parseable for aggregation and analysis",
+      "example": "{\n  \"timestamp\": \"2025-12-05T10:30:45.123Z\",\n  \"level\": \"INFO\",\n  \"action_id\": \"fix.ids\",\n  \"correlation_id\": \"a1b2c3d4-e5f6-7890-abcd-ef1234567890\",\n  \"duration_ms\": 1247,\n  \"outcome\": \"success\",\n  \"context\": {\n    \"files_scanned\": 156,\n    \"ids_assigned\": 12,\n    \"files_modified\": 8\n  },\n  \"message\": \"ID assignment completed successfully\"\n}\n"
+    }
+  },
+  "metrics": {
+    "mandate": "CORE MUST track quantitative measures of system health and performance.\nMetrics enable trend analysis, anomaly detection, and informed decisions.\n",
+    "action_metrics": [
+      {
+        "metric": "action_success_rate",
+        "type": "percentage",
+        "description": "Percentage of atomic actions that complete successfully",
+        "target": ">95%"
+      },
+      {
+        "metric": "action_duration_p50",
+        "type": "milliseconds",
+        "description": "Median action execution time",
+        "target": "<5000ms"
+      },
+      {
+        "metric": "action_duration_p95",
+        "type": "milliseconds",
+        "description": "95th percentile action execution time",
+        "target": "<15000ms"
+      },
+      {
+        "metric": "action_failure_count",
+        "type": "counter",
+        "description": "Total number of failed actions",
+        "alert_threshold": ">10 in 1 hour"
+      }
+    ],
+    "autonomous_metrics": [
+      {
+        "metric": "autonomous_generation_success_rate",
+        "type": "percentage",
+        "description": "Percentage of autonomous code generation that passes validation",
+        "current_baseline": "70-80%",
+        "target": ">90%"
+      },
+      {
+        "metric": "constitutional_compliance_rate",
+        "type": "percentage",
+        "description": "Percentage of generated code that passes constitutional audit",
+        "target": "100%"
+      },
+      {
+        "metric": "self_healing_success_rate",
+        "type": "percentage",
+        "description": "Percentage of self-healing operations that resolve issues",
+        "target": ">85%"
+      }
+    ],
+    "system_metrics": [
+      {
+        "metric": "database_connection_pool_usage",
+        "type": "gauge",
+        "description": "Number of active database connections",
+        "alert_threshold": ">80% of pool size"
+      },
+      {
+        "metric": "vector_search_latency_p95",
+        "type": "milliseconds",
+        "description": "95th percentile Qdrant query time",
+        "target": "<500ms"
+      },
+      {
+        "metric": "llm_token_usage_daily",
+        "type": "counter",
+        "description": "Total tokens consumed per day",
+        "budget": "configurable"
+      }
+    ],
+    "quality_metrics": [
+      {
+        "metric": "test_coverage_percentage",
+        "type": "percentage",
+        "description": "Overall codebase test coverage",
+        "constitutional_minimum": "75%",
+        "target": "85%"
+      },
+      {
+        "metric": "constitutional_violations_count",
+        "type": "counter",
+        "description": "Number of constitutional violations detected",
+        "target": "0"
+      }
+    ]
+  },
+  "dashboard": {
+    "mandate": "Operators MUST be able to access system health in real-time via CLI.\nNo external dependencies (Grafana, Prometheus) required for basic observability.\n",
+    "required_commands": [
+      {
+        "command": "core-admin observe status",
+        "description": "Real-time system health overview",
+        "outputs": [
+          "Current active operations",
+          "Recent failures (last 24h)",
+          "Key metrics summary"
+        ]
+      },
+      {
+        "command": "core-admin observe metrics [action_id]",
+        "description": "Detailed metrics for specific action or all actions",
+        "outputs": [
+          "Success rate",
+          "Duration percentiles",
+          "Failure modes"
+        ]
+      },
+      {
+        "command": "core-admin observe trace [correlation_id]",
+        "description": "Full trace of a specific operation",
+        "outputs": [
+          "All log entries for this correlation_id",
+          "Timeline visualization",
+          "Related operations"
+        ]
+      },
+      {
+        "command": "core-admin observe trends [time_period]",
+        "description": "Historical trends and patterns",
+        "outputs": [
+          "Success rate over time",
+          "Performance trends",
+          "Failure pattern analysis"
+        ]
+      }
+    ],
+    "cli_output_format": [
+      {
+        "format": "table",
+        "usage": "Human-readable summaries"
+      },
+      {
+        "format": "json",
+        "usage": "Machine-parseable for automation (--format json)"
+      },
+      {
+        "format": "graph",
+        "usage": "ASCII charts for trends (optional)"
+      }
+    ]
+  },
+  "audit_trail": {
+    "mandate": "All autonomous decisions MUST be traceable to:\n1. The constitutional policy that governed the decision\n2. The context that informed the decision\n3. The outcome of the decision\n4. The learning from the decision\n",
+    "decision_log_fields": [
+      {
+        "field": "decision_id",
+        "type": "uuid",
+        "description": "Unique identifier for this decision"
+      },
+      {
+        "field": "decision_type",
+        "type": "enum[code_generation, self_healing, validation, planning]",
+        "description": "Category of autonomous decision"
+      },
+      {
+        "field": "governing_policies",
+        "type": "array[string]",
+        "description": "Constitutional policies that constrained this decision",
+        "example": [
+          "atomic_actions",
+          "code_standards",
+          "safety_framework"
+        ]
+      },
+      {
+        "field": "context_used",
+        "type": "object",
+        "description": "Input context provided to the AI",
+        "includes": [
+          "relevant_symbols",
+          "pattern_references",
+          "policy_excerpts"
+        ]
+      },
+      {
+        "field": "reasoning_trace",
+        "type": "string",
+        "description": "AI's explanation of why it made this decision"
+      },
+      {
+        "field": "outcome",
+        "type": "object",
+        "description": "Result of executing the decision",
+        "includes": [
+          "validation_result",
+          "constitutional_audit_result",
+          "integration_status"
+        ]
+      }
+    ]
+  },
+  "storage": {
+    "logs": {
+      "location": "PostgreSQL table: observability.logs",
+      "retention": "90 days",
+      "indexing": "timestamp, action_id, correlation_id, outcome"
+    },
+    "metrics": {
+      "location": "PostgreSQL table: observability.metrics",
+      "aggregation": "1-minute buckets",
+      "retention": "1 year"
+    },
+    "decision_trail": {
+      "location": "PostgreSQL table: observability.decisions",
+      "retention": "indefinite",
+      "rationale": "Constitutional audit trail must be permanent"
+    }
+  },
+  "implementation": {
+    "services": [
+      {
+        "name": "LogCollector",
+        "location": "src/services/observability/log_collector.py",
+        "responsibility": "Emit structured logs from atomic actions"
+      },
+      {
+        "name": "MetricsCollector",
+        "location": "src/services/observability/metrics_collector.py",
+        "responsibility": "Track and aggregate metrics"
+      },
+      {
+        "name": "ObservabilityService",
+        "location": "src/services/observability/service.py",
+        "responsibility": "Central observability API"
+      },
+      {
+        "name": "DashboardService",
+        "location": "src/services/observability/dashboard.py",
+        "responsibility": "Query and format observability data for CLI"
+      }
+    ],
+    "cli_commands": {
+      "location": "src/body/cli/commands/observe.py",
+      "commands": [
+        "status",
+        "metrics",
+        "trace",
+        "trends"
+      ]
+    },
+    "database_schema": {
+      "location": "migrations/add_observability_tables.sql",
+      "tables": [
+        "observability.logs",
+        "observability.metrics",
+        "observability.decisions"
+      ]
+    },
+    "integration_points": [
+      {
+        "point": "atomic_action decorator",
+        "modification": "Auto-emit structured logs for all decorated functions"
+      },
+      {
+        "point": "ActionResult construction",
+        "modification": "Auto-collect metrics on action completion"
+      },
+      {
+        "point": "CognitiveService decisions",
+        "modification": "Auto-log decision context and reasoning"
+      }
+    ]
+  },
+  "success_criteria": {
+    "must_answer": [
+      {
+        "question": "What actions ran in the last hour?",
+        "command": "core-admin observe status --last 1h"
+      },
+      {
+        "question": "Why did fix.ids fail yesterday?",
+        "command": "core-admin observe trace <correlation_id>"
+      },
+      {
+        "question": "Is autonomous generation improving?",
+        "command": "core-admin observe trends --metric autonomous_generation_success_rate"
+      },
+      {
+        "question": "What are the top failure modes this week?",
+        "command": "core-admin observe metrics --failures --last 7d"
+      }
+    ],
+    "must_enable": [
+      {
+        "capability": "Debug any autonomous operation failure",
+        "requirement": "Full trace from decision to outcome"
+      },
+      {
+        "capability": "Track A2\u2192A3 performance improvements",
+        "requirement": "Historical metrics over time"
+      },
+      {
+        "capability": "Detect anomalies automatically",
+        "requirement": "Alert on metric threshold breaches"
+      },
+      {
+        "capability": "Learn from patterns",
+        "requirement": "Aggregate statistics by action type, time, context"
+      }
+    ]
+  },
+  "future_work": [
+    "Prometheus/Grafana export for advanced dashboards",
+    "Real-time alerting via Slack/email",
+    "Machine learning on failure patterns",
+    "Automatic performance regression detection",
+    "Cost tracking and optimization recommendations"
+  ],
+  "rules": [
+    {
+      "id": "observability.atomic_actions_emit_logs",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: All atomic actions MUST emit structured logs"
+        }
+      },
+      "rationale": "Strengthens system governance regarding observability.atomic_actions_emit_logs.",
+      "enforcement": "error",
+      "statement": "All atomic actions MUST emit structured logs"
+    },
+    {
+      "id": "observability.cli_commands_valid",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: Observe CLI commands MUST return valid data"
+        }
+      },
+      "rationale": "Strengthens system governance regarding observability.cli_commands_valid.",
+      "enforcement": "error",
+      "statement": "Observe CLI commands MUST return valid data"
+    },
+    {
+      "id": "observability.metrics_actionable",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: Metrics MUST be sufficient to answer success criteria questions"
+        }
+      },
+      "rationale": "Strengthens system governance regarding observability.metrics_actionable.",
+      "enforcement": "error",
+      "statement": "Metrics MUST be sufficient to answer success criteria questions"
+    }
+  ],
+  "additionalProperties": false
+}

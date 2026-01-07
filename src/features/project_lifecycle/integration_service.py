@@ -6,8 +6,6 @@ from __future__ import annotations
 
 import asyncio
 
-import typer
-
 from shared.config import settings
 from shared.context import CoreContext
 from shared.logger import getLogger
@@ -16,8 +14,17 @@ from shared.logger import getLogger
 logger = getLogger(__name__)
 
 
+# ID: c5928a71-8e5e-488e-9b89-0fb67b772bc3
+class IntegrationError(RuntimeError):
+    """Raised when the integration workflow fails."""
+
+    def __init__(self, message: str, *, exit_code: int = 1):
+        super().__init__(message)
+        self.exit_code = exit_code
+
+
 # ID: 22c20758-700f-46d1-9c39-43f2280ba73a
-async def integrate_changes(context: CoreContext, commit_message: str):
+async def integrate_changes(context: CoreContext, commit_message: str) -> None:
     """
     Orchestrates the full, non-destructive, and intelligent integration of code changes
     by executing the constitutionally-defined `integration_workflow`.
@@ -80,4 +87,4 @@ async def integrate_changes(context: CoreContext, commit_message: str):
         logger.info("Successfully integrated and committed changes.")
     except Exception as e:
         logger.error("Integration process failed: %s", e)
-        raise typer.Exit(code=1)
+        raise IntegrationError("Integration process failed.", exit_code=1) from e

@@ -1,0 +1,35 @@
+{
+    "$schema": "META/rule_document.schema.json",
+    "kind": "rule_document",
+    "metadata": {
+        "id": "rules.data.governance",
+        "title": "Data Governance",
+        "version": "1.0.0",
+        "authority": "policy",
+        "phase": "runtime",
+        "status": "active"
+    },
+    "rules": [
+        {
+            "id": "data.ssot.database_primacy",
+            "statement": "Operational knowledge MUST NOT be hardcoded in files when a database representation exists.",
+            "authority": "policy",
+            "phase": "load",
+            "enforcement": "blocking"
+        },
+        {
+            "id": "data.security.no_raw_secrets",
+            "statement": "Source code, logs, and prompts MUST NOT contain raw secret values or API keys.",
+            "authority": "policy",
+            "phase": "runtime",
+            "enforcement": "blocking"
+        },
+        {
+            "id": "data.integrity.vector_sync",
+            "statement": "Every code symbol record in the database MUST have a corresponding vector entry in the memory layer.",
+            "authority": "policy",
+            "phase": "audit",
+            "enforcement": "reporting"
+        }
+    ]
+}

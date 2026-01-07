@@ -38,7 +38,6 @@ def _build_context_service() -> ContextService:
     return ContextService(
         project_root=str(settings.REPO_PATH),
         session_factory=get_session,
-        # Qdrant/Cognitive services are loaded lazily by ContextService if not passed
     )
 
 
@@ -47,20 +46,20 @@ def _build_context_service() -> ContextService:
 async def lifespan(app: FastAPI):
     logger.info("🚀 Starting CORE system...")
 
+    # CONSTITUTIONAL FIX: Prime the ServiceRegistry with the session factory.
+    # This allows logic modules to acquire sessions without importing the manager.
+    service_registry.prime(get_session)
+
     # 1. Initialize CoreContext with the Singleton Registry
-    # This prevents "Split-Brain" by using the same service container as the CLI.
     core_context = CoreContext(
         registry=service_registry,
-        # Initialize lightweight components that don't manage connection pools
         git_service=GitService(settings.REPO_PATH),
         file_handler=FileHandler(str(settings.REPO_PATH)),
         planner_config=PlannerConfig(),
         knowledge_service=KnowledgeService(settings.REPO_PATH),
     )
 
-    # Wire the factory for ContextService (Required for Autonomous Developer)
     core_context.context_service_factory = _build_context_service
-
     app.state.core_context = core_context
 
     if os.getenv("PYTEST_CURRENT_TEST"):
@@ -69,13 +68,10 @@ async def lifespan(app: FastAPI):
     try:
         if not getattr(core_context, "_is_test_mode", False):
             # 2. Warm up Heavy Services via Registry (Async)
-            # This ensures we use the singleton instances managed by ServiceRegistry
-            # instead of creating new ones with separate connection pools.
             cognitive = await service_registry.get_cognitive_service()
             auditor = await service_registry.get_auditor_context()
             qdrant = await service_registry.get_qdrant_service()
 
-            # Backfill legacy context fields for routes that rely on them directly
             core_context.cognitive_service = cognitive
             core_context.auditor_context = auditor
             core_context.qdrant_service = qdrant
@@ -83,15 +79,11 @@ async def lifespan(app: FastAPI):
             # 3. Database & Config Initialization
             async with get_session() as session:
                 config = await ConfigService.create(session)
-
-                # Apply logging configuration from DB
                 log_level_from_db = await config.get("LOG_LEVEL", "INFO")
                 reconfigure_log_level(log_level_from_db)
-
-                # Initialize Agents/Roles from DB (Mind Layer)
                 await cognitive.initialize()
 
-            # 4. Load Knowledge Graph (for Auditor/Safety Checks)
+            # 4. Load Knowledge Graph
             await auditor.load_knowledge_graph()
 
         yield

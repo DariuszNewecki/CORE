@@ -1,73 +1,61 @@
 # src/mind/governance/rule_extractor.py
+
 """
-Rule Extraction - Converts policy JSON into ExecutableRule instances.
+Rule Extractor - Combines Constitutional Law with Enforcement Mappings
 
-This module scans loaded policies and extracts rules that have engines assigned,
-making them ready for dynamic execution without requiring Python Check classes.
+This module implements the derivation boundary:
+    Constitution (5 canonical fields) → Enforcement Mappings → ExecutableRules
 
-Flow:
-1. AuditorContext loads all policies from .intent/ into context.policies
-2. extract_executable_rules() scans those policies
-3. Returns list of ExecutableRule instances
-4. Auditor executes them via EngineRegistry
-
-Design:
-- Pure data transformation (policies dict → ExecutableRule list)
-- No I/O, no side effects
-- Defensive parsing (skip malformed rules)
-
-Ref: Dynamic Rule Execution Architecture
+CONSTITUTIONAL ALIGNMENT:
+- Rules contain ONLY the 5 canonical fields
+- Enforcement strategies are derived artifacts
+- Missing mappings = declared but not implementable (safe degradation)
 """
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from mind.governance.executable_rule import ExecutableRule
 from shared.logger import getLogger
 
 
+if TYPE_CHECKING:
+    from mind.governance.enforcement_loader import EnforcementMappingLoader
+    from mind.governance.executable_rule import ExecutableRule
+
 logger = getLogger(__name__)
 
-# Engines that operate on full AuditorContext instead of individual files
-CONTEXT_LEVEL_ENGINES = {"knowledge_gate", "workflow_gate"}
+
+# Context-level engines (operate on full AuditorContext, not individual files)
+CONTEXT_LEVEL_ENGINES = frozenset({"workflow_gate", "knowledge_gate"})
 
 
-# ID: f8e3d9c7-5a2b-4e1f-9d8c-7b6a3e5f2c4d
-def extract_executable_rules(policies: dict[str, Any]) -> list[ExecutableRule]:
+# ID: bb50b995-53a3-436d-bd01-10f6ab0c8a42
+def extract_executable_rules(
+    policies: dict[str, dict[str, Any]], enforcement_loader: EnforcementMappingLoader
+) -> list[ExecutableRule]:
     """
-    Extract all executable rules from loaded policy dictionaries.
+    Combines canonical rules (law) with enforcement mappings (implementation).
 
-    Scans all policies for rules with "check.engine" defined and converts
-    them into ExecutableRule instances ready for dynamic execution.
+    This is where derivation happens: Constitution → Executable Artifacts
 
     Args:
-        policies: Dictionary of policy_id -> policy_data from AuditorContext
+        policies: Dictionary of policy_id -> policy data from AuditorContext
+        enforcement_loader: Loader for enforcement mappings
 
     Returns:
-        List of ExecutableRule instances
+        List of ExecutableRule instances ready for dynamic execution
 
-    Example policy structure:
-        {
-            "standard_architecture_dependency_injection": {
-                "id": "standard_architecture_dependency_injection",
-                "rules": [
-                    {
-                        "id": "async.runtime.no_nested_loop_creation",
-                        "enforcement": "error",
-                        "statement": "Code MUST NOT call asyncio.run()...",
-                        "check": {
-                            "engine": "ast_gate",
-                            "params": {"check_type": "restrict_event_loop_creation"}
-                        },
-                        "scope": ["src/**/*.py"],
-                        "exclusions": ["tests/**"]
-                    }
-                ]
-            }
-        }
+    Design:
+        1. Extract canonical rules from policies (5 fields only)
+        2. Look up enforcement mapping for each rule
+        3. Combine into ExecutableRule
+        4. Log rules without mappings (declared but not implementable)
     """
+    from mind.governance.executable_rule import ExecutableRule
+
     executable_rules: list[ExecutableRule] = []
+    declared_only_rules: list[str] = []
 
     for policy_id, policy_data in policies.items():
         if not isinstance(policy_data, dict):
@@ -83,59 +71,78 @@ def extract_executable_rules(policies: dict[str, Any]) -> list[ExecutableRule]:
             if not isinstance(rule_data, dict):
                 continue
 
-            # Extract check block
-            check_block = rule_data.get("check", {})
-            if not isinstance(check_block, dict):
-                continue
-
-            # Must have an engine defined
-            engine_id = check_block.get("engine")
-            if not engine_id or not isinstance(engine_id, str):
-                continue
-
-            # Extract rule components
-            rule_id = rule_data.get("id", "")
+            # Extract rule ID
+            rule_id = rule_data.get("id")
             if not rule_id or not isinstance(rule_id, str):
                 logger.warning(
                     "Skipping rule in policy %s: missing or invalid id", policy_id
                 )
                 continue
 
-            params = check_block.get("params", {})
-            if not isinstance(params, dict):
-                params = {}
+            # CONSTITUTIONAL LAW: Extract only the 5 canonical fields
+            canonical_rule = {
+                "id": rule_data.get("id"),
+                "statement": rule_data.get("statement", ""),
+                "enforcement": rule_data.get("enforcement", "reporting"),
+                "authority": rule_data.get("authority", "policy"),
+                "phase": rule_data.get("phase", "audit"),
+            }
 
-            enforcement = rule_data.get("enforcement", "error")
-            if not isinstance(enforcement, str):
-                enforcement = "error"
+            # Validate canonical fields
+            if not all(canonical_rule.values()):
+                logger.warning(
+                    "Rule %s missing required canonical fields: %s",
+                    rule_id,
+                    [k for k, v in canonical_rule.items() if not v],
+                )
+                continue
 
-            statement = rule_data.get("statement", "")
-            if not isinstance(statement, str):
-                statement = ""
+            # DERIVED ARTIFACT: Get enforcement strategy
+            strategy = enforcement_loader.get_enforcement_strategy(rule_id)
 
-            # Extract scope/exclusions
-            scope = rule_data.get("scope", ["src/**/*.py"])
-            if isinstance(scope, str):
-                scope = [scope]
-            elif not isinstance(scope, list):
+            if not strategy:
+                # Rule exists but has no implementation mapping
+                declared_only_rules.append(rule_id)
+                logger.debug(
+                    "Rule %s declared but not implementable (no enforcement mapping)",
+                    rule_id,
+                )
+                continue
+
+            # Validate enforcement strategy has required fields
+            engine = strategy.get("engine")
+            if not engine:
+                logger.warning(
+                    "Enforcement mapping for %s missing engine field", rule_id
+                )
+                continue
+
+            # Extract scope from enforcement mapping
+            scope_data = strategy.get("scope", {})
+            if isinstance(scope_data, dict):
+                scope = scope_data.get("applies_to", ["src/**/*.py"])
+                exclusions = scope_data.get("excludes", [])
+            else:
+                # Fallback for simple scope definitions
                 scope = ["src/**/*.py"]
-
-            exclusions = rule_data.get("exclusions", [])
-            if isinstance(exclusions, str):
-                exclusions = [exclusions]
-            elif not isinstance(exclusions, list):
                 exclusions = []
 
-            # Determine if this is a context-level engine
-            is_context_level = engine_id in CONTEXT_LEVEL_ENGINES
+            # Ensure scope and exclusions are lists
+            if isinstance(scope, str):
+                scope = [scope]
+            if isinstance(exclusions, str):
+                exclusions = [exclusions]
 
-            # Create ExecutableRule
+            # Determine if this is a context-level engine
+            is_context_level = engine in CONTEXT_LEVEL_ENGINES
+
+            # Build executable rule from law + implementation
             executable_rule = ExecutableRule(
                 rule_id=rule_id,
-                engine=engine_id,
-                params=params,
-                enforcement=enforcement,
-                statement=statement,
+                engine=engine,
+                params=strategy.get("params", {}),
+                enforcement=canonical_rule["enforcement"],
+                statement=canonical_rule["statement"],
                 scope=scope,
                 exclusions=exclusions,
                 policy_id=policy_id,
@@ -145,16 +152,29 @@ def extract_executable_rules(policies: dict[str, Any]) -> list[ExecutableRule]:
             executable_rules.append(executable_rule)
 
             logger.debug(
-                "Extracted rule: %s (engine=%s, context_level=%s)",
+                "Extracted rule: %s (engine=%s, context_level=%s, scope=%d patterns)",
                 rule_id,
-                engine_id,
+                engine,
                 is_context_level,
+                len(scope),
             )
 
+    # Report statistics
     logger.info(
         "Extracted %d executable rules from %d policies",
         len(executable_rules),
         len(policies),
     )
 
+    if declared_only_rules:
+        logger.info(
+            "Found %d declared-only rules (no enforcement mappings): %s",
+            len(declared_only_rules),
+            ", ".join(declared_only_rules[:5])
+            + ("..." if len(declared_only_rules) > 5 else ""),
+        )
+
     return executable_rules
+
+
+__all__ = ["CONTEXT_LEVEL_ENGINES", "extract_executable_rules"]

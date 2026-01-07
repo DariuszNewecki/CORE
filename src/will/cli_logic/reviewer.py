@@ -17,7 +17,6 @@ from rich.panel import Panel
 from shared.config import settings
 from shared.infrastructure.storage.file_handler import FileHandler
 from shared.logger import getLogger
-from shared.utils.constitutional_parser import get_all_constitutional_paths
 from will.orchestration.cognitive_service import CognitiveService
 
 
@@ -48,12 +47,11 @@ async def _get_bundle_content(files_to_bundle: list[Path], root_dir: Path) -> st
 
 
 def _get_constitutional_files() -> list[Path]:
-    """
-    Discovers all constitutional files by parsing meta.yaml via the settings object.
-    """
-    meta_content = settings._meta_config
-    relative_paths = get_all_constitutional_paths(meta_content, settings.MIND)
-    return [settings.REPO_PATH / p for p in relative_paths]
+    from shared.infrastructure.intent.intent_repository import get_intent_repository
+
+    repo = get_intent_repository()
+    # If the repo indexed it, it's a constitutional file.
+    return [ref.path for ref in repo.list_policies()]
 
 
 def _get_docs_files() -> list[Path]:

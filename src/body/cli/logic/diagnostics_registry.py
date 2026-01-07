@@ -2,7 +2,7 @@
 
 """
 Logic for auditing domain manifests and legacy artifacts.
-Refactored to use the dynamic constitutional rule engine instead of deleted legacy check classes.
+Refactored to use the dynamic constitutional rule engine and PathResolver.
 """
 
 from __future__ import annotations
@@ -17,7 +17,7 @@ from mind.governance.audit_context import AuditorContext
 from mind.governance.rule_executor import execute_rule
 from mind.governance.rule_extractor import extract_executable_rules
 from shared.config import settings
-from shared.context import CoreContext  # Fixed: Added missing import
+from shared.context import CoreContext
 from shared.logger import getLogger
 from shared.models import AuditSeverity
 
@@ -38,8 +38,12 @@ async def manifest_hygiene(ctx: typer.Context) -> None:
     auditor_context = core_context.auditor_context or AuditorContext(settings.REPO_PATH)
     await auditor_context.load_knowledge_graph()
 
-    # 2. Extract and find the SSOT rule
-    all_rules = extract_executable_rules(auditor_context.policies)
+    # 2. Extract rules using the mandatory enforcement_loader
+    # CONSTITUTIONAL FIX: Passed enforcement_loader as the second argument
+    all_rules = extract_executable_rules(
+        auditor_context.policies, auditor_context.enforcement_loader
+    )
+
     target_rule = next(
         (r for r in all_rules if r.rule_id == "knowledge.database_ssot"), None
     )
@@ -75,59 +79,32 @@ async def manifest_hygiene(ctx: typer.Context) -> None:
         raise typer.Exit(code=1)
 
 
-def _load_intent_meta() -> dict:
-    meta_path = settings.REPO_PATH / ".intent" / "meta.yaml"
-    if not meta_path.exists():
-        logger.error("Missing .intent/meta.yaml: %s", meta_path)
-        raise typer.Exit(code=1)
-    try:
-        return yaml.safe_load(meta_path.read_text(encoding="utf-8")) or {}
-    except Exception as e:
-        logger.error("Failed to parse .intent/meta.yaml: %s", e)
-        raise typer.Exit(code=1)
-
-
-def _resolve_from_meta(meta: dict, *keys: str) -> str | None:
-    cur: object = meta
-    for k in keys:
-        if not isinstance(cur, dict):
-            return None
-        cur = cur.get(k)
-    return cur if isinstance(cur, str) and cur.strip() else None
-
-
 # ID: 67db4c4d-4483-4d71-9044-a1464ae3a4b2
 def cli_registry() -> None:
     """
     Validates the *legacy* CLI registry YAML (if still present) against its schema.
     """
-    meta = _load_intent_meta()
+    # Use PathResolver to find standard locations
+    registry_path = settings.paths.knowledge_dir / "cli_registry.yaml"
 
-    registry_rel = _resolve_from_meta(meta, "mind", "knowledge", "cli_registry")
-    schema_rel = _resolve_from_meta(meta, "charter", "schemas", "cli_registry_schema")
-
-    if not registry_rel:
+    try:
+        # Resolve schema via the unified policy/standard search
+        schema_path = settings.paths.policy("cli_registry_schema")
+    except FileNotFoundError:
         logger.info(
-            "No legacy CLI registry declared in meta.yaml; skipping validation."
+            "CLI registry schema not found via PathResolver; skipping validation."
         )
         return
 
-    registry_path = (settings.REPO_PATH / registry_rel).resolve()
-    schema_path = (settings.REPO_PATH / (schema_rel or "")).resolve()
-
     if not registry_path.exists():
-        logger.info("Legacy CLI registry path not found on disk: %s", registry_rel)
-        return
-
-    if not schema_path.exists():
-        logger.warning("CLI registry schema not found; skipping validation.")
+        logger.info("Legacy CLI registry not found at %s; skipping.", registry_path)
         return
 
     try:
         registry = yaml.safe_load(registry_path.read_text(encoding="utf-8")) or {}
         schema = json.loads(schema_path.read_text(encoding="utf-8"))
         jsonschema.validate(instance=registry, schema=schema)
-        logger.info("✅ Legacy CLI registry is valid: %s", registry_rel)
+        logger.info("✅ Legacy CLI registry is valid: %s", registry_path.name)
     except Exception as e:
         logger.error("❌ CLI registry failed validation: %s", e)
         raise typer.Exit(code=1)
@@ -145,8 +122,12 @@ async def check_legacy_tags(ctx: typer.Context) -> None:
     auditor_context = core_context.auditor_context or AuditorContext(settings.REPO_PATH)
     await auditor_context.load_knowledge_graph()
 
-    # 2. Extract and find the Purity rule
-    all_rules = extract_executable_rules(auditor_context.policies)
+    # 2. Extract rules using the mandatory enforcement_loader
+    # CONSTITUTIONAL FIX: Passed enforcement_loader
+    all_rules = extract_executable_rules(
+        auditor_context.policies, auditor_context.enforcement_loader
+    )
+
     target_rule = next(
         (r for r in all_rules if r.rule_id == "purity.no_descriptive_pollution"), None
     )

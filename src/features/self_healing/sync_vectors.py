@@ -18,7 +18,6 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 
-import typer
 from qdrant_client import AsyncQdrantClient
 from qdrant_client.http.models import PointIdsList
 from sqlalchemy import text
@@ -249,14 +248,8 @@ async def _async_sync_vectors(
 # ID: 2ba0085c-70d8-4a2f-b3f5-a41479fba562
 async def main_sync(
     session: AsyncSession,
-    write: bool = typer.Option(
-        False,
-        "--write",
-        help="Permanently fix synchronization issues. Without this, runs in dry-run mode.",
-    ),
-    dry_run: bool = typer.Option(
-        False, "--dry-run", help="Show what would be changed without making changes."
-    ),
+    write: bool = False,
+    dry_run: bool = False,
 ) -> None:
     """
     Synchronize vector database between PostgreSQL and Qdrant.

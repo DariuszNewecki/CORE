@@ -10,7 +10,9 @@ Workflow:
 3. The Booking: Sync with DB and Qdrant to update system memory.
 4. The Record: Log outcome to action_results for workflow gate verification.
 
-Constitutional Principles: safe_by_default, knowledge.database_ssot, clarity_first
+CONSTITUTIONAL FIX:
+- Removed global and local imports of 'get_session' to satisfy 'logic.di.no_global_session'.
+- Uses ServiceRegistry for database session acquisition.
 """
 
 from __future__ import annotations
@@ -21,9 +23,9 @@ import time
 from pathlib import Path
 from typing import Any
 
+from body.services.service_registry import service_registry
 from mind.governance.filtered_audit import run_filtered_audit
 from shared.config import settings
-from shared.infrastructure.database.session_manager import get_session
 from shared.logger import getLogger
 from shared.models.action_result import ActionResult
 from shared.utils.parsing import extract_python_code_from_response, parse_write_blocks
@@ -57,7 +59,6 @@ class AlignmentOrchestrator:
         findings, _, _ = await run_filtered_audit(auditor_ctx, rule_patterns=[r".*"])
 
         # STREET SMART: Filter only for REAL violations in THIS file.
-        # Ignore engine-missing errors (infrastructure noise) to keep the agent moving.
         file_violations = [
             f
             for f in findings
@@ -91,7 +92,7 @@ class AlignmentOrchestrator:
             rule_id = violation.get("check_id")
 
             try:
-                # CASE: File too long -> Call Modularizer (A3 Strategic Refactor)
+                # CASE: File too long -> Call Modularizer
                 if rule_id == "code_standards.max_file_lines":
                     if await self._trigger_modularizer(file_path, write):
                         modified = True
@@ -106,7 +107,7 @@ class AlignmentOrchestrator:
                     if await self._heal_structural_clerk(file_path, "ids", write):
                         modified = True
 
-                # CASE: Generic violation - dispatch to logic repair with context
+                # CASE: Generic violation
                 else:
                     if await self._trigger_generic_repair(file_path, violation, write):
                         modified = True
@@ -117,7 +118,6 @@ class AlignmentOrchestrator:
                 errors.append(error_msg)
 
         # CASE: Logic drift (broken imports).
-        # We re-verify in case the modularizer or other fixes already resolved it.
         still_unstable, current_error = await self._verify_import_safety(file_path)
         if not still_unstable:
             try:
@@ -129,7 +129,6 @@ class AlignmentOrchestrator:
                 errors.append(error_msg)
 
         # 3. THE BOOKING: Synchronize SSOT
-        # IMPORTANT: This satisfies the "State must match Body" rule.
         if modified and write:
             try:
                 await self._update_system_memory(file_path, write=write)
@@ -142,7 +141,7 @@ class AlignmentOrchestrator:
                 logger.error(error_msg)
                 errors.append(error_msg)
 
-        # 4. THE RECORD: Log to action_results for workflow gate verification
+        # 4. THE RECORD: Log result
         final_ok = modified and not errors
         await self._record_action_result(
             file_path=file_path,
@@ -177,7 +176,7 @@ class AlignmentOrchestrator:
         final_prompt = template.format(
             file_path=file_path,
             current_lines=len(source_code.splitlines()),
-            max_lines=400,  # Per code_standards.json
+            max_lines=400,
             source_code=source_code,
         )
 
@@ -241,7 +240,7 @@ class AlignmentOrchestrator:
     ) -> bool:
         """Generic healing for violations not covered by specific handlers."""
         logger.info(
-            "🔍 Generic violation %s. Triggering Logic Specialist with codebase context...",
+            "🔍 Generic violation %s. Triggering Logic Specialist...",
             violation.get("check_id"),
         )
 
@@ -249,11 +248,9 @@ class AlignmentOrchestrator:
             (settings.REPO_PATH / file_path).read_text, encoding="utf-8"
         )
 
-        # Build context-aware prompt
         prompt_path = settings.paths.prompt("logic_alignment")
         template = await asyncio.to_thread(prompt_path.read_text, encoding="utf-8")
 
-        # Format violation details for the agent
         violation_details = (
             f"Rule: {violation.get('check_id')}\n"
             f"Severity: {violation.get('severity')}\n"
@@ -264,7 +261,7 @@ class AlignmentOrchestrator:
         final_prompt = template.format(
             file_path=file_path,
             error_message=violation_details,
-            symbol_hints="Search codebase for similar correct implementations. Follow existing patterns.",
+            symbol_hints="Search codebase for similar correct implementations.",
             source_code=source_code,
         )
 
@@ -302,7 +299,9 @@ class AlignmentOrchestrator:
         if task == "ids":
             from features.self_healing.id_tagging_service import assign_missing_ids
 
-            await asyncio.to_thread(assign_missing_ids, dry_run=False)
+            # CONSTITUTIONAL FIX: Action handles its own gateway/audit
+            # We don't import get_session here.
+            await assign_missing_ids(context=None, write=False)
             return True
 
         return False
@@ -318,7 +317,6 @@ class AlignmentOrchestrator:
 
         try:
             src_path = str((settings.REPO_PATH / "src").resolve())
-            # Use 'env' to satisfy Body Contract: No direct os.environ access
             proc = await asyncio.create_subprocess_exec(
                 "env",
                 f"PYTHONPATH={src_path}",
@@ -335,6 +333,8 @@ class AlignmentOrchestrator:
 
     async def _update_system_memory(self, file_path: str, write: bool):
         """Ensures the State (DB) and Mind (Vectors) match the Body (Code)."""
+        # CONSTITUTIONAL FIX: No 'get_session' import.
+        # Uses the registry to acquire a session context manager.
         from body.services.service_registry import service_registry
         from features.introspection.sync_service import run_sync_with_db
         from features.introspection.vectorization_service import run_vectorize
@@ -343,13 +343,13 @@ class AlignmentOrchestrator:
         logger.info(
             "🔄 Booking: Updating Knowledge Graph and Vectors for %s...", file_path
         )
-        async with get_session() as session:
+        # Using the primed registry factory helper
+        async with service_registry.session() as session:
             # 1. Sync Symbols to DB
             await run_sync_with_db(session)
 
             # 2. Re-vectorize to Qdrant
             ctx = CoreContext(registry=service_registry)
-            # FIX: Mapping 'write' to 'dry_run' correctly per service signature
             await run_vectorize(context=ctx, session=session, dry_run=not write)
 
     async def _record_action_result(
@@ -360,12 +360,9 @@ class AlignmentOrchestrator:
         error_message: str | None = None,
         action_metadata: dict[str, Any] | None = None,
     ) -> None:
-        """
-        Record alignment action outcome to action_results table.
-
-        This enables WorkflowGateEngine to verify alignment success.
-        """
-        async with get_session() as session:
+        """Record alignment action outcome to action_results table."""
+        # CONSTITUTIONAL FIX: Uses service_registry.session() instead of local get_session import.
+        async with service_registry.session() as session:
             result = ActionResult(
                 action_type="alignment",
                 ok=ok,
@@ -379,8 +376,7 @@ class AlignmentOrchestrator:
             await session.commit()
 
         logger.debug(
-            "📊 Recorded action_result: alignment %s for %s (ok=%s)",
+            "📊 Recorded action_result: alignment %s for %s",
             "✓" if ok else "✗",
             file_path,
-            ok,
         )

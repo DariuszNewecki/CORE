@@ -1,0 +1,35 @@
+{
+    "$schema": "META/rule_document.schema.json",
+    "kind": "rule_document",
+    "metadata": {
+        "id": "rules.architecture.async_logic",
+        "title": "Async & Logic Standards",
+        "version": "1.0.0",
+        "authority": "policy",
+        "phase": "load",
+        "status": "active"
+    },
+    "rules": [
+        {
+            "id": "async.no_manual_loop_run",
+            "statement": "Logic modules MUST NOT call 'asyncio.run()' or manually create new event loops.",
+            "authority": "policy",
+            "phase": "load",
+            "enforcement": "blocking"
+        },
+        {
+            "id": "logic.di.no_global_session",
+            "statement": "Modules MUST NOT import 'get_session' globally; database access MUST be injected.",
+            "authority": "policy",
+            "phase": "load",
+            "enforcement": "blocking"
+        },
+        {
+            "id": "logic.logging.standard_only",
+            "statement": "Operational logs MUST use standard 'getLogger' and avoid f-strings for lazy evaluation.",
+            "authority": "policy",
+            "phase": "audit",
+            "enforcement": "reporting"
+        }
+    ]
+}

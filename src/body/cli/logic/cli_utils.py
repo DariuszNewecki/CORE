@@ -2,11 +2,15 @@
 """
 Provides centralized, reusable utilities for standardizing the console output
 and execution of all `core-admin` commands.
+
+CONSTITUTIONAL FIX:
+- Aligned with 'governance.artifact_mutation.traceable'.
+- Replaced direct Path writes with governed FileHandler mutations.
+- Enforces IntentGuard and audit logging for all CLI helper operations.
 """
 
 from __future__ import annotations
 
-import json
 import os
 from datetime import datetime
 from pathlib import Path
@@ -23,7 +27,6 @@ from shared.logger import getLogger
 logger = getLogger(__name__)
 
 # Directories we should not traverse when doing broad filesystem scans.
-# Keep this conservative; callers can override search_paths if needed.
 _DEFAULT_EXCLUDE_DIRS = {
     ".git",
     ".hg",
@@ -53,13 +56,6 @@ async def _find_test_file_for_capability_async(
 ) -> Path | None:
     """
     Asynchronously find a test file associated with a given capability name.
-
-    Args:
-        capability_name: The name of the capability to find tests for.
-        search_paths: Optional list of paths to search in. If None, uses defaults.
-
-    Returns:
-        Path to the test file if found, None otherwise.
     """
     if search_paths is None:
         search_paths = ["tests", "test", "src/tests"]
@@ -81,12 +77,10 @@ async def _find_test_file_for_capability_async(
             if _is_excluded_dir(root):
                 continue
 
-            # First pass: exact common patterns
             for pattern in patterns:
                 if pattern in files:
                     return Path(root) / pattern
 
-            # Second pass: capability name appears in filename
             for filename in files:
                 if not filename.endswith(".py"):
                     continue
@@ -103,16 +97,8 @@ def find_source_file(
 ) -> Path | None:
     """
     Find the source file containing a given symbol.
-
-    Args:
-        symbol_name: The name of the symbol to find.
-        search_paths: Optional list of paths to search in. If None, uses defaults.
-
-    Returns:
-        Path to the source file if found, None otherwise.
     """
     if search_paths is None:
-        # Avoid "." by default; it can explode into .git/venv/etc.
         search_paths = ["src", "lib"]
 
     def_markers = (f"def {symbol_name}", f"class {symbol_name}")
@@ -123,7 +109,6 @@ def find_source_file(
             continue
 
         for root, _dirs, files in os.walk(base_path):
-            # Skip test directories and known heavy/noisy directories
             if "test" in root.lower():
                 continue
             if _is_excluded_dir(root):
@@ -135,7 +120,6 @@ def find_source_file(
 
                 file_path = Path(root) / filename
                 try:
-                    # Stream line-by-line to avoid loading large files into memory.
                     with file_path.open("r", encoding="utf-8") as f:
                         for line in f:
                             if def_markers[0] in line or def_markers[1] in line:
@@ -149,10 +133,22 @@ def find_source_file(
 
 # ID: a3d61adf-6e42-4854-a028-89a73d47c667
 def save_yaml_file(path: Path, data: dict[str, Any]) -> None:
-    """Saves data to a YAML file with consistent sorting."""
+    """Saves data to a YAML file via the governed FileHandler."""
     import yaml
 
-    path.write_text(yaml.dump(data, sort_keys=True), encoding="utf-8")
+    from shared.infrastructure.storage.file_handler import FileHandler
+
+    # CONSTITUTIONAL FIX: Use governed mutation surface
+    fh = FileHandler(str(settings.REPO_PATH))
+    try:
+        rel_path = str(path.resolve().relative_to(settings.REPO_PATH.resolve()))
+        content = yaml.dump(data, sort_keys=True)
+        fh.write_runtime_text(rel_path, content)
+    except ValueError:
+        logger.error(
+            "Attempted to save YAML file outside repository boundary: %s", path
+        )
+        raise
 
 
 # ID: 4e814eab-bdc4-4d68-b13e-8c4c53269a68
@@ -169,38 +165,38 @@ def load_private_key() -> ed25519.Ed25519PrivateKey:
 
 # ID: f803faac-7a8d-40b1-84cb-659379a4b512
 def archive_rollback_plan(proposal_name: str, proposal: dict[str, Any]) -> None:
-    """Archives a proposal's rollback plan upon approval."""
+    """Archives a proposal's rollback plan via the governed FileHandler."""
     rollback_plan = proposal.get("rollback_plan")
     if not rollback_plan:
         return
 
-    rollbacks_dir = settings.MIND / "constitution" / "rollbacks"
-    rollbacks_dir.mkdir(parents=True, exist_ok=True)
+    from shared.infrastructure.storage.file_handler import FileHandler
 
-    archive_path = (
-        rollbacks_dir
-        / f"{datetime.utcnow().strftime('%Y%m%d%H%M%S')}-{proposal_name}.json"
-    )
-    archive_path.write_text(
-        json.dumps(
-            {
-                "proposal_name": proposal_name,
-                "target_path": proposal.get("target_path"),
-                "justification": proposal.get("justification"),
-                "rollback_plan": rollback_plan,
-            },
-            indent=2,
-        ),
-        encoding="utf-8",
-    )
-    logger.info("Rollback plan archived to %s", archive_path)
+    fh = FileHandler(str(settings.REPO_PATH))
+
+    # CONSTITUTIONAL FIX: Use FileHandler for directory creation and writes
+    rel_rollbacks_dir = "var/mind/rollbacks"
+    fh.ensure_dir(rel_rollbacks_dir)
+
+    timestamp = datetime.utcnow().strftime("%Y%m%d%H%M%S")
+    archive_filename = f"{timestamp}-{proposal_name}.json"
+    rel_archive_path = f"{rel_rollbacks_dir}/{archive_filename}"
+
+    payload = {
+        "proposal_name": proposal_name,
+        "target_path": proposal.get("target_path"),
+        "justification": proposal.get("justification"),
+        "rollback_plan": rollback_plan,
+    }
+
+    fh.write_runtime_json(rel_archive_path, payload)
+    logger.info("Rollback plan archived to %s", rel_archive_path)
 
 
 # ID: 0babc74d-bd4e-4cbd-8cd6-bc955b32967e
 def should_fail(report: dict[str, Any], fail_on: str) -> bool:
     """
-    Determines if the CLI should exit with an error code based on the drift
-    report and the specified fail condition.
+    Determines if the CLI should exit with an error code based on drift.
     """
     missing_in_code = bool(report.get("missing_in_code"))
     undeclared_in_manifest = bool(report.get("undeclared_in_manifest"))
@@ -211,5 +207,4 @@ def should_fail(report: dict[str, Any], fail_on: str) -> bool:
     if fail_on == "undeclared":
         return undeclared_in_manifest
 
-    # default: fail on any drift
     return missing_in_code or undeclared_in_manifest or mismatched_mappings

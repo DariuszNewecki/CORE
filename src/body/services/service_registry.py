@@ -2,14 +2,18 @@
 
 """
 Provides a centralized, lazily-initialized service registry for CORE.
-This acts as the authoritative Dependency Injection container, ensuring
-singletons and preventing circular dependencies.
+This acts as the authoritative Dependency Injection container.
+
+CONSTITUTIONAL FIX:
+- Removed ALL imports of 'get_session' to satisfy 'logic.di.no_global_session'.
+- Implements Late-Binding Factory pattern for database access.
 """
 
 from __future__ import annotations
 
 import asyncio
 import importlib
+from collections.abc import Callable
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, ClassVar
 
@@ -17,7 +21,6 @@ from sqlalchemy import text
 
 from mind.governance.audit_context import AuditorContext
 from shared.config import settings
-from shared.infrastructure.database.session_manager import get_session
 from shared.logger import getLogger
 
 
@@ -31,13 +34,6 @@ logger = getLogger(__name__)
 class ServiceRegistry:
     """
     A singleton service locator and DI container.
-    Manages the lifecycle of infrastructure services to ensure:
-    1. Singletons (only one connection pool per service)
-    2. Lazy loading (don't import heavy libs until needed)
-
-    DI Pattern: Two-Phase Initialization
-    - Phase 1 (inside lock): Construct lightweight objects
-    - Phase 2 (outside lock): Initialize async resources
     """
 
     _instances: ClassVar[dict[str, Any]] = {}
@@ -46,17 +42,57 @@ class ServiceRegistry:
     _init_flags: ClassVar[dict[str, bool]] = {}
     _lock: ClassVar[asyncio.Lock] = asyncio.Lock()
 
+    # CONSTITUTIONAL FIX: Placeholder for the session factory.
+    # Handled via prime() to avoid hard-coded imports.
+    _session_factory: ClassVar[Callable | None] = None
+
     def __init__(self, repo_path: Path | None = None):
         self.repo_path = repo_path or settings.REPO_PATH
+
+    @classmethod
+    # ID: 1efcada0-bc76-4cc0-8e8c-379e47d04101
+    def session(cls):
+        """
+        Returns an async session context manager using the primed factory.
+
+        Usage:
+            async with service_registry.session() as session:
+                ...
+        """
+        if not cls._session_factory:
+            raise RuntimeError(
+                "ServiceRegistry error: session() called before prime(). "
+                "The application entry point must call service_registry.prime(get_session)."
+            )
+        return cls._session_factory()
+
+    @classmethod
+    # ID: ae9d47fa-c850-4800-ba2d-5992aa744bce
+    def prime(cls, session_factory: Callable) -> None:
+        """
+        Primes the registry with infrastructure factories.
+        MUST be called by the application entry point (Sanctuary).
+        """
+        cls._session_factory = session_factory
+        logger.debug("ServiceRegistry primed with session factory.")
 
     async def _initialize_from_db(self):
         """Loads the dynamic service map from the database on first access."""
         async with self._lock:
             if self._initialized:
                 return
+
+            if not self._session_factory:
+                # Fallback: try to resolve from the context if available,
+                # or wait for priming.
+                logger.warning("ServiceRegistry accessed before being primed.")
+                return
+
             logger.info("Initializing ServiceRegistry from database...")
+
             try:
-                async with get_session() as session:
+                # Use the injected factory instead of a global import
+                async with self._session_factory() as session:
                     result = await session.execute(
                         text("SELECT name, implementation FROM core.runtime_services")
                     )
@@ -78,7 +114,6 @@ class ServiceRegistry:
     def _ensure_qdrant_instance(self):
         """
         Internal helper to create Qdrant instance if missing.
-        MUST be called under lock to ensure safety.
         """
         if "qdrant" not in self._instances:
             logger.debug("Lazy-loading QdrantService...")
@@ -92,12 +127,7 @@ class ServiceRegistry:
 
     # ID: 8e8fc0c0-11df-4bd8-b365-15c255075d04
     async def get_qdrant_service(self) -> QdrantService:
-        """
-        Authoritative, lazy, singleton access to Qdrant.
-        Prevents 'split-brain' initialization where multiple clients are created.
-
-        Two-Phase Init: Construction (fast) + Initialization (async I/O)
-        """
+        """Authoritative, lazy, singleton access to Qdrant."""
         if "qdrant" not in self._instances:
             async with self._lock:
                 self._ensure_qdrant_instance()
@@ -106,11 +136,7 @@ class ServiceRegistry:
 
     # ID: e87e3db8-9a2f-4bed-b41e-3ebea0f3b8ef
     async def get_cognitive_service(self) -> CognitiveService:
-        """
-        Creates CognitiveService, injecting the singleton QdrantService.
-
-        Two-Phase Init: Construction (fast) + Initialization (async I/O)
-        """
+        """Creates CognitiveService, injecting the singleton QdrantService."""
         if "cognitive_service" not in self._instances:
             async with self._lock:
                 if "cognitive_service" not in self._instances:
@@ -132,10 +158,7 @@ class ServiceRegistry:
 
     # ID: 8f882e11-9bff-4225-9208-12660aa7c3a3
     async def get_auditor_context(self) -> AuditorContext:
-        """
-        Singleton factory for AuditorContext.
-        Ensures we only have one view of the constitution/knowledge graph.
-        """
+        """Singleton factory for AuditorContext."""
         if "auditor_context" not in self._instances:
             async with self._lock:
                 if "auditor_context" not in self._instances:
@@ -149,10 +172,7 @@ class ServiceRegistry:
 
     # ID: 4df97396-6692-426f-a2cc-e6d29b8cefc2
     async def get_service(self, name: str) -> Any:
-        """
-        Lazily initializes and returns a singleton instance of a dynamic service.
-        Used for services defined in the database 'runtime_services' table.
-        """
+        """Lazily initializes and returns a singleton instance of a dynamic service."""
         if name == "qdrant":
             return await self.get_qdrant_service()
         if name == "cognitive_service":

@@ -31,6 +31,8 @@ logger = logging.getLogger(__name__)
 class TestFailure:
     """Represents a single test failure with context."""
 
+    __test__ = False
+
     test_name: str
     test_class: str | None
     failure_type: str
@@ -87,6 +89,8 @@ class TestFailureAnalyzer:
     This parser handles pytest's verbose output format and extracts
     structured information about what went wrong.
     """
+
+    __test__ = False
 
     def __init__(self):
         """Initialize the analyzer."""

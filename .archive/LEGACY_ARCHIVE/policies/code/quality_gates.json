@@ -1,0 +1,75 @@
+{
+    "id": "standard_code_quality_gates",
+    "version": "1.0.0",
+    "title": "Code Quality Gates",
+    "type": "policy",
+    "status": "active",
+    "owners": {
+        "accountable": "Code Quality Owner",
+        "responsible": [
+            "Core Maintainer"
+        ]
+    },
+    "review": {
+        "frequency": "12 months"
+    },
+    "schema_id": "schema.policy",
+    "policy_id": "quality_gates",
+    "purpose": "Enforce industry-standard quality gates before code integration",
+    "rules": [
+        {
+            "id": "quality.ruff",
+            "statement": "All code MUST pass ruff linting with zero errors",
+            "enforcement": "error",
+            "check": {
+                "command": "ruff check src/",
+                "expected_exit": 0
+            }
+        },
+        {
+            "id": "quality.mypy",
+            "statement": "All code MUST pass mypy type checking",
+            "enforcement": "error",
+            "check": {
+                "command": "mypy src/ --ignore-missing-imports",
+                "expected_exit": 0
+            }
+        },
+        {
+            "id": "quality.coverage",
+            "statement": "Test coverage MUST be at least 75%",
+            "enforcement": "error",
+            "check": {
+                "command": "pytest --cov=src --cov-fail-under=75 -q",
+                "expected_exit": 0
+            }
+        },
+        {
+            "id": "quality.security",
+            "statement": "ZERO known security vulnerabilities allowed",
+            "enforcement": "error",
+            "check": {
+                "command": "pip-audit",
+                "expected_exit": 0
+            }
+        },
+        {
+            "id": "quality.complexity",
+            "statement": "Functions MUST have cyclomatic complexity ≤10",
+            "enforcement": "warn",
+            "check": {
+                "command": "radon cc src/ -nc -a",
+                "expected_exit": 0
+            }
+        },
+        {
+            "id": "quality.dead_code",
+            "statement": "No unused code allowed in production paths",
+            "enforcement": "warn",
+            "check": {
+                "command": "vulture src/ --min-confidence 80",
+                "expected_exit": 0
+            }
+        }
+    ]
+}

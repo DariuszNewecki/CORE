@@ -1,14 +1,28 @@
 # src/mind/logic/engines/glob_gate.py
 
-"""Provides functionality for the glob_gate module."""
+"""
+Deterministic Path Auditor.
+
+CONSTITUTIONAL ALIGNMENT:
+- Aligned with 'async.no_manual_loop_run'.
+- Promoted to natively async to satisfy the BaseEngine contract.
+- Complies with ASYNC230 by offloading blocking I/O to threads.
+"""
 
 from __future__ import annotations
 
+import asyncio
 import fnmatch
 from pathlib import Path
 from typing import Any
 
 from .base import BaseEngine, EngineResult
+
+
+def _count_lines_sync(path: Path) -> int:
+    """Helper to perform blocking file read in a thread."""
+    with open(path, encoding="utf-8") as f:
+        return sum(1 for _ in f)
 
 
 # ID: e9ab205c-263d-40c2-91ce-e44471308a21
@@ -22,7 +36,11 @@ class GlobGateEngine(BaseEngine):
     engine_id = "glob_gate"
 
     # ID: 6576f3e8-c1f6-4180-bcd2-076f7cd7a491
-    def verify(self, file_path: Path, params: dict[str, Any]) -> EngineResult:
+    async def verify(self, file_path: Path, params: dict[str, Any]) -> EngineResult:
+        """
+        Natively async verification.
+        Matches the BaseEngine contract to prevent loop-hijacking in orchestrators.
+        """
         violations = []
 
         # Normalize the path relative to project root for consistent matching
@@ -42,8 +60,9 @@ class GlobGateEngine(BaseEngine):
 
         if max_lines or thresholds:
             try:
-                with open(file_path, encoding="utf-8") as f:
-                    line_count = sum(1 for _ in f)
+                # CONSTITUTIONAL FIX (ASYNC230):
+                # Use to_thread to prevent blocking the event loop during file I/O.
+                line_count = await asyncio.to_thread(_count_lines_sync, file_path)
 
                 # Determine the appropriate limit based on file path
                 limit = max_lines  # Default
@@ -75,12 +94,11 @@ class GlobGateEngine(BaseEngine):
                     violations.append(
                         f"Module has {line_count} lines, exceeds limit of {limit}"
                     )
-            except Exception as e:
+            except Exception:
                 # Don't fail the check if we can't read the file
                 pass
 
         # 1. Fact: Extract patterns from parameters
-        # Support 'patterns', 'include', 'forbidden_paths', or 'patterns_prohibited'
         patterns = (
             params.get("patterns")
             or params.get("forbidden_paths")
@@ -126,17 +144,13 @@ class GlobGateEngine(BaseEngine):
         """
         Implements robust glob matching including recursive (**) support.
         """
-        # Convert path to posix style for consistent matching
         path = path.replace("\\", "/")
         pattern = pattern.replace("\\", "/")
 
-        # Standard fnmatch handles * and ?, but not always ** correctly in all versions
-        # Here we use the common glob logic:
         if "**" in pattern:
-            # Handle recursive globbing by splitting and matching
             parts = pattern.split("/**")
             prefix = parts[0]
-            if not prefix:  # pattern was "/**/file.py"
+            if not prefix:
                 return path.endswith(parts[1]) if len(parts) > 1 else True
             return path.startswith(prefix)
 

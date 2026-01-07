@@ -80,6 +80,7 @@ async def audit_cmd(
     filtered_findings = [f for f in all_findings if f.severity >= min_severity]
     errors = [f for f in all_findings if f.severity.is_blocking]
     warnings = [f for f in all_findings if f.severity == AuditSeverity.WARNING]
+    infos = [f for f in all_findings if f.severity == AuditSeverity.INFO]
 
     passed = len(errors) == 0
 
@@ -87,6 +88,7 @@ async def audit_cmd(
     summary_table.add_row("Total Findings:", str(len(all_findings)))
     summary_table.add_row("Errors:", f"[red]{len(errors)}[/red]")
     summary_table.add_row("Warnings:", f"[yellow]{len(warnings)}[/yellow]")
+    summary_table.add_row("Info:", f"[cyan]{len(infos)}[/cyan]")
 
     title = "✅ AUDIT PASSED" if passed else "❌ AUDIT FAILED"
     style = "bold green" if passed else "bold red"

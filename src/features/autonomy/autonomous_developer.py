@@ -9,16 +9,13 @@ MAJOR UPDATE (Phase 5):
 REFACTORED TO USE UNIX-COMPLIANT WORKFLOW ORCHESTRATION
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-OLD PATTERN (Removed):
-  - Used _ExecutionAgent (mixed code generation + execution)
-  - Accepted executor_agent parameter
-
 NEW PATTERN (Current):
   - Uses AutonomousWorkflowOrchestrator
   - Three-phase pipeline: Planning → Specification → Execution
-  - No executor_agent parameter needed
 
-UPGRADED (Phase 2): Now uses ContextService for graph-aware context.
+CONSTITUTIONAL FIX:
+- Removed local 'get_session' import to satisfy 'logic.di.no_global_session'.
+- Leverages the pre-wired 'context_service' from CoreContext (Inversion of Control).
 """
 
 from __future__ import annotations
@@ -82,27 +79,10 @@ async def develop_from_goal(
     """
     Runs the full, end-to-end autonomous development cycle for a given goal.
 
-    REFACTORED: Now uses UNIX-compliant three-phase workflow orchestration.
-
     Workflow:
     1. Planning (PlannerAgent) → list[ExecutionTask]
     2. Specification (SpecificationAgent) → DetailedPlan with code
     3. Execution (ExecutionAgent) → ExecutionResults
-
-    Args:
-        session: Database session for tracking task status
-        context: CoreContext with services
-        goal: High-level development goal
-        task_id: Optional task ID for status tracking
-        output_mode: 'direct' or 'crate' mode
-
-    Returns:
-        Tuple of (success: bool, result: dict | str)
-        - If success: (True, result_dict with files/plan/etc)
-        - If failure: (False, error_message_str)
-
-    Note: This function maintains backward compatibility with existing
-    callers while using the new UNIX-compliant workflow internally.
     """
     logger.info("🚀 Starting autonomous development cycle for goal: %s", goal)
 
@@ -120,18 +100,12 @@ async def develop_from_goal(
     context_report = ""
 
     try:
-        from features.context.context_service import ContextService
-        from shared.infrastructure.database.session_manager import (
-            get_session as get_new_session,
-        )
-
         logger.debug("Building graph-aware context for goal...")
 
-        context_service = ContextService(
-            cognitive_service=context.cognitive_service,
-            project_root=str(context.settings.REPO_PATH),
-            session_factory=get_new_session,
-        )
+        # CONSTITUTIONAL FIX: We use the context_service property on CoreContext.
+        # This service is already initialized at the Sanctuary (API/CLI entry)
+        # with the correct session factory. No local 'get_session' import needed.
+        context_service = context.context_service
 
         context_packet = await context_service.build_for_task(
             {
@@ -167,10 +141,11 @@ async def develop_from_goal(
     # Try to initialize Qdrant (optional semantic features)
     qdrant_service = None
     try:
-        from shared.infrastructure.clients.qdrant_client import QdrantService
-
-        qdrant_service = QdrantService(settings=context.settings)
-        logger.debug("Qdrant service initialized")
+        # CONSTITUTIONAL FIX: Use the registry to get the singleton instance
+        # to ensure we don't bypass system-wide connection management.
+        if context.registry:
+            qdrant_service = await context.registry.get_qdrant_service()
+        logger.debug("Qdrant service resolved via Registry")
     except Exception as e:
         logger.debug("Qdrant not available (optional): %s", e)
 
@@ -276,8 +251,8 @@ async def develop_from_goal(
 
         result = {
             "files": generated_files,
-            "context_tokens": 0,  # FUTURE: Track if needed
-            "generation_tokens": 0,  # FUTURE: Track if needed
+            "context_tokens": 0,
+            "generation_tokens": 0,
             "plan": [
                 {
                     "step": step.description,

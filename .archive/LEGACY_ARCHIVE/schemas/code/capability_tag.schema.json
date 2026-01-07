@@ -1,0 +1,85 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "CORE Capability Tag Definition",
+  "description": "The formal schema for a single, well-defined capability in the CORE system.",
+  "type": "object",
+  "required": [
+    "key",
+    "title",
+    "description",
+    "owner",
+    "status",
+    "risk_level"
+  ],
+  "properties": {
+    "key": {
+      "type": "string",
+      "description": "The unique, canonical identifier for the capability, following the 'domain.action' pattern.",
+      "pattern": "^[a-z0-9_]+(\\.[a-z0-9_]+)+$"
+    },
+    "title": {
+      "type": "string",
+      "description": "A short, human-readable title for the capability.",
+      "minLength": 5
+    },
+    "description": {
+      "type": "string",
+      "description": "A clear, one-sentence explanation of what this capability does.",
+      "minLength": 10
+    },
+    "owner": {
+      "type": "string",
+      "description": "The architectural domain that owns and is responsible for this capability."
+    },
+    "status": {
+      "type": "string",
+      "description": "The current lifecycle status of the capability.",
+      "enum": [
+        "active",
+        "deprecated",
+        "experimental"
+      ]
+    },
+    "risk_level": {
+      "type": "string",
+      "description": "The assessed risk of invoking this capability (low, medium, or high).",
+      "enum": [
+        "low",
+        "medium",
+        "high"
+      ]
+    },
+    "aliases": {
+      "type": "array",
+      "description": "A list of old or alternative names for this capability to ensure backward compatibility.",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    },
+    "policy_refs": {
+      "type": "array",
+      "description": "A list of policy files that govern or relate to this capability.",
+      "items": {
+        "type": "string"
+      }
+    },
+    "vector": {
+      "type": "array",
+      "description": "A pre-computed semantic vector representing the meaning of the capability's source code.",
+      "items": {
+        "type": "number"
+      }
+    }
+  },
+  "additionalProperties": false,
+  "id": "capability_tag.schema",
+  "version": "1.0.0",
+  "owners": {
+    "accountable": "Governance Lead"
+  },
+  "review": {
+    "frequency": "12 months"
+  },
+  "schema_id": "code.capability_tag"
+}

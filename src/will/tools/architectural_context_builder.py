@@ -1,11 +1,9 @@
 # src/will/tools/architectural_context_builder.py
-# ID: ecbb2cd5-4cdd-42db-9d3f-10663a2c1787
 
 """
-Architectural Context Builder - A2 Enhanced
+Builds rich architectural context for code generation.
 
-Builds rich architectural context for code generation prompts.
-Updated to enforce the Atomic Action Substrate (body/atomic).
+FIXED: Added support for test generation with actual file contents.
 """
 
 from __future__ import annotations
@@ -18,27 +16,29 @@ from typing import TYPE_CHECKING, Any
 from sqlalchemy import text
 
 from shared.config import settings
-from shared.infrastructure.clients.qdrant_client import QdrantService
 from shared.infrastructure.database.session_manager import get_session
 from shared.logger import getLogger
-from will.tools.module_anchor_generator import ModuleAnchorGenerator
-from will.tools.policy_vectorizer import PolicyVectorizer
 
 
 if TYPE_CHECKING:
+    from shared.infrastructure.clients.qdrant_client import QdrantService
     from will.orchestration.cognitive_service import CognitiveService
+    from will.tools.module_anchor_generator import ModuleAnchorGenerator
+    from will.tools.policy_vectorizer import PolicyVectorizer
+
 logger = getLogger(__name__)
 
 
 def _read_file_lines_sync(path: Path) -> list[str]:
-    """Read file lines synchronously (used via asyncio.to_thread)."""
+    """Synchronous file reading helper."""
     return path.read_text(encoding="utf-8").splitlines(keepends=True)
 
 
+# ID: 2b8c9d4a-1e3f-4d5b-9c6a-7e8f9a0b1c2d
 @dataclass
-# ID: 1e498d9d-3f23-45a4-8816-a293c5d070de
+# ID: 5a520778-2e61-4f0b-b3ae-6173d8b0642c
 class CodeExample:
-    """Represents a successful code implementation example."""
+    """Example code snippet for reference."""
 
     file_path: str
     symbol_name: str
@@ -47,8 +47,9 @@ class CodeExample:
     similarity_score: float
 
 
-@dataclass
 # ID: 4132cf73-dafe-40f7-b15c-54d82dc198ba
+@dataclass
+# ID: 312a17a7-26b3-4cfc-b892-a85b81c89103
 class ArchitecturalContext:
     """Rich context for code generation with A2 enhancements."""
 
@@ -65,12 +66,17 @@ class ArchitecturalContext:
     placement_reasoning: str = ""
     common_patterns_in_module: list[str] = field(default_factory=list)
     anti_patterns: list[str] = field(default_factory=list)
+    # NEW: For test generation
+    target_file_content: str | None = None
+    target_file_path: str | None = None
 
 
 # ID: ecbb2cd5-4cdd-42db-9d3f-10663a2c1787
 class ArchitecturalContextBuilder:
     """
     Builds rich architectural context for code generation.
+
+    FIXED: Now includes actual file contents for test generation.
     """
 
     def __init__(
@@ -93,8 +99,15 @@ class ArchitecturalContextBuilder:
     ) -> ArchitecturalContext:
         """
         Build comprehensive architectural context for code generation.
+
+        FIXED: For test generation, includes actual target file contents.
         """
         logger.info("Building A2 context for: %s...", goal[:50])
+
+        # NEW: Detect if this is test generation
+        is_test_generation = "test" in goal.lower() and target_file is not None
+
+        # Get policies and placements
         policies = await self.policy_vectorizer.search_policies(query=goal, limit=5)
         placements = await self.anchor_generator.find_best_placement(
             code_description=goal, limit=3
@@ -106,6 +119,16 @@ class ArchitecturalContextBuilder:
         layer = best_placement["layer"]
         layer_patterns = self._get_layer_patterns(layer)
         confidence = "high" if best_placement["score"] > 0.5 else "medium"
+
+        # NEW: For test generation, read the actual target file
+        target_file_content = None
+        target_file_path = None
+
+        if is_test_generation:
+            (
+                target_file_content,
+                target_file_path,
+            ) = await self._read_target_file_for_tests(goal, target_file)
 
         similar_examples = await self._find_similar_examples(
             goal=goal, layer=layer, module_path=best_placement["path"]
@@ -132,7 +155,50 @@ class ArchitecturalContextBuilder:
             typical_dependencies=typical_deps,
             placement_reasoning=reasoning,
             anti_patterns=anti_patterns,
+            target_file_content=target_file_content,
+            target_file_path=target_file_path,
         )
+
+    async def _read_target_file_for_tests(
+        self, goal: str, target_file: str
+    ) -> tuple[str | None, str | None]:
+        """
+        NEW: Read the actual file that needs tests generated.
+
+        Extracts the module path from the goal and reads the file.
+        """
+        try:
+            # Extract module path from goal
+            # Goal format: "Generate comprehensive tests for src/path/to/module.py"
+            import re
+
+            match = re.search(r"for\s+(src/[^\s]+\.py)", goal)
+            if not match:
+                logger.warning("Could not extract target module from goal: %s", goal)
+                return None, None
+
+            module_path = match.group(1)
+            full_path = self.repo_root / module_path
+
+            if not full_path.exists():
+                logger.warning("Target file does not exist: %s", full_path)
+                return None, None
+
+            content = await asyncio.to_thread(
+                lambda: full_path.read_text(encoding="utf-8")
+            )
+
+            logger.info(
+                "Read target file for test generation: %s (%d chars)",
+                module_path,
+                len(content),
+            )
+
+            return content, module_path
+
+        except Exception as e:
+            logger.error("Failed to read target file: %s", e)
+            return None, None
 
     async def _find_similar_examples(
         self, goal: str, layer: str, module_path: str
@@ -213,8 +279,8 @@ class ArchitecturalContextBuilder:
             ],
             "core": [
                 "from __future__ import annotations",
-                "from body.atomic.registry import register_action",  # <--- FIXED
-                "from shared.action_types import ActionResult",  # <--- FIXED
+                "from body.atomic.registry import register_action",
+                "from shared.action_types import ActionResult",
             ],
             "will": [
                 "from __future__ import annotations",
@@ -223,6 +289,11 @@ class ArchitecturalContextBuilder:
             "services": [
                 "from __future__ import annotations",
                 "from shared.config import settings",
+            ],
+            "tests": [
+                "from __future__ import annotations",
+                "import pytest",
+                "from sqlalchemy.orm import Session",
             ],
         }
         return dependencies.get(layer, [])
@@ -249,13 +320,18 @@ class ArchitecturalContextBuilder:
         anti_patterns = {
             "core": [
                 "DO NOT make autonomous decisions (delegate to will)",
-                "DO NOT use legacy body.actions handlers",  # <--- FIXED
-                "DO NOT skip @register_action registration",  # <--- FIXED
-                "MUST return ActionResult with structured data",  # <--- FIXED
+                "DO NOT use legacy body.actions handlers",
+                "DO NOT skip @register_action registration",
+                "MUST return ActionResult with structured data",
             ],
             "will": [
-                "DO NOT implement action execution (use body/atomic)",  # <--- FIXED
-                "DO NOT bypass ActionExecutor gateway",  # <--- FIXED
+                "DO NOT implement action execution (use body/atomic)",
+                "DO NOT bypass ActionExecutor gateway",
+            ],
+            "tests": [
+                "DO NOT import from src. prefix - imports should be direct",
+                "DO NOT hallucinate models that don't exist",
+                "MUST match actual model structure from target file",
             ],
         }
         return anti_patterns.get(layer, [])
@@ -267,19 +343,86 @@ class ArchitecturalContextBuilder:
                 "Atomic Actions",
                 "Strict Result Contract",
                 "Governed Mutations",
-            ],  # <--- FIXED
-            "will": ["Autonomous agents", "Constitutional compliance"],
-            "services": ["Infrastructure orchestration", "External system integration"],
+            ],
+            "will": ["Planning", "Orchestration", "Decision Making"],
+            "tests": [
+                "Comprehensive coverage",
+                "Test actual implementations",
+                "Use fixtures for database setup",
+            ],
         }
-        return patterns.get(layer, ["Standard architectural pattern"])
+        return patterns.get(layer, [])
 
-    # ID: 58df19f1-2831-40cc-a4ee-13dbe4ff8196
+    # ID: 51a52f37-a84f-42ef-aba7-e776032a979c
     def format_for_prompt(self, context: ArchitecturalContext) -> str:
+        """
+        Format architectural context for LLM prompt.
+
+        FIXED: Includes target file content for test generation.
+        """
         parts = [
-            "# Architectural Context (A2 Enhanced)",
+            "# Architectural Context",
             "",
-            f"**Goal**: {context.goal}",
-            f"**Target Layer**: {context.target_layer}",
+            f"**Goal:** {context.goal}",
+            f"**Target Layer:** {context.target_layer}",
+            f"**Layer Purpose:** {context.layer_purpose}",
+            f"**Placement Confidence:** {context.placement_confidence}",
+            "",
         ]
-        # ... (rest of formatting logic)
+
+        # NEW: Include target file content if available (for test generation)
+        if context.target_file_content and context.target_file_path:
+            parts.extend(
+                [
+                    "## Target File to Test",
+                    f"**File:** {context.target_file_path}",
+                    "",
+                    "```python",
+                    context.target_file_content,
+                    "```",
+                    "",
+                    "**CRITICAL:** Generate tests for the ACTUAL models shown above.",
+                    "Do NOT hallucinate User, Project, or other models not present in the file.",
+                    "",
+                ]
+            )
+
+        if context.layer_patterns:
+            parts.append("## Layer Patterns")
+            for pattern in context.layer_patterns:
+                parts.append(f"- {pattern}")
+            parts.append("")
+
+        if context.typical_dependencies:
+            parts.append("## Typical Dependencies")
+            for dep in context.typical_dependencies:
+                parts.append(f"- {dep}")
+            parts.append("")
+
+        if context.anti_patterns:
+            parts.append("## Anti-Patterns to Avoid")
+            for anti in context.anti_patterns:
+                parts.append(f"- {anti}")
+            parts.append("")
+
+        if context.similar_examples:
+            parts.append("## Similar Examples for Reference")
+            for example in context.similar_examples[:3]:
+                parts.extend(
+                    [
+                        f"### {example.symbol_name} ({example.file_path})",
+                        f"**Purpose:** {example.purpose}",
+                        "```python",
+                        example.code_snippet,
+                        "```",
+                        "",
+                    ]
+                )
+
+        if context.relevant_policies:
+            parts.append("## Relevant Constitutional Policies")
+            for policy in context.relevant_policies[:3]:
+                parts.append(f"- {policy.get('statement', 'N/A')}")
+            parts.append("")
+
         return "\n".join(parts)

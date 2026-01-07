@@ -3,14 +3,10 @@
 """
 Workflow Gate Engine - Context-Aware Process Auditor.
 
-This engine enforces rules based on the outcomes of system-wide processes
-(Tests, Coverage, Audits). It operates on the full AuditorContext to
-verify compliance that cannot be determined by looking at a single file.
-
 CONSTITUTIONAL ALIGNMENT:
-- Aligns with 'standard_architecture_workflow_rules'.
-- Implements 'verify_context' for dynamic rule execution.
-- Headless execution using centralized logging.
+- Aligned with 'async.no_manual_loop_run'.
+- Promoted to natively async to eliminate thread-based loop hijacking.
+- Provides non-blocking verification for system-wide processes (Tests, Coverage).
 """
 
 from __future__ import annotations
@@ -51,7 +47,6 @@ class WorkflowGateEngine(BaseEngine):
 
     def __init__(self) -> None:
         """Initialize the engine and register its specialized check logic."""
-        # The 'bits' that perform the actual measurement
         check_instances: list[WorkflowCheck] = [
             TestVerificationCheck(),
             CoverageMinimumCheck(),
@@ -61,7 +56,6 @@ class WorkflowGateEngine(BaseEngine):
             LinterComplianceCheck(),
         ]
 
-        # Map check_type strings from JSON to these implementations
         self._checks: dict[str, WorkflowCheck] = {
             check.check_type: check for check in check_instances
         }
@@ -78,7 +72,6 @@ class WorkflowGateEngine(BaseEngine):
     ) -> list[AuditFinding]:
         """
         Executes a context-level check against system state.
-        Required by the Dynamic Rule Executor for rules targeting the full Mind.
         """
         check_type = params.get("check_type")
         if not check_type:
@@ -86,7 +79,7 @@ class WorkflowGateEngine(BaseEngine):
                 AuditFinding(
                     check_id="workflow_gate.error",
                     severity=AuditSeverity.ERROR,
-                    message="Missing 'check_type' parameter in constitutional rule definition.",
+                    message="Missing 'check_type' parameter in constitutional rule.",
                     file_path="none",
                 )
             ]
@@ -103,11 +96,9 @@ class WorkflowGateEngine(BaseEngine):
             ]
 
         try:
-            # Execute the specific logic (e.g. check DB for test results)
-            # file_path is None because we are operating on system context
+            # Native await - no loop hijacking required
             violations = await check_logic.verify(None, params)
 
-            # Normalize raw strings into AuditFindings for the Auditor
             return [
                 AuditFinding(
                     check_id=f"workflow.{check_type}",
@@ -129,44 +120,14 @@ class WorkflowGateEngine(BaseEngine):
             ]
 
     # ID: 449a88ef-71ff-4f63-b692-4cffdc6483ce
-    def verify(self, file_path: Path, params: dict[str, Any]) -> EngineResult:
+    async def verify(self, file_path: Path, params: dict[str, Any]) -> EngineResult:
         """
-        Sync wrapper for backward compatibility with file-level triggers.
+        Natively async verification.
+
+        REFACTORED: Removed legacy thread-spawning and run_until_complete logic.
+        This now properly participates in the system's async runtime.
         """
-        import asyncio
-        import threading
-
-        try:
-            loop = asyncio.get_running_loop()
-        except RuntimeError:
-            loop = None
-
-        if loop and loop.is_running():
-            result = [None]
-            exception = [None]
-
-            # ID: c64858c6-a696-42f4-89a1-930bd12b136f
-            def run_in_thread():
-                try:
-                    new_loop = asyncio.new_event_loop()
-                    asyncio.set_event_loop(new_loop)
-                    try:
-                        coro = self._verify_async(file_path, params)
-                        result[0] = new_loop.run_until_complete(coro)
-                    finally:
-                        new_loop.close()
-                except Exception as ex:
-                    exception[0] = ex
-
-            thread = threading.Thread(target=run_in_thread)
-            thread.start()
-            thread.join()
-
-            if exception[0]:
-                raise exception[0]
-            return result[0]
-
-        return asyncio.run(self._verify_async(file_path, params))
+        return await self._verify_async(file_path, params)
 
     async def _verify_async(
         self, file_path: Path | None, params: dict[str, Any]

@@ -8,6 +8,8 @@ Refactored to use the Constitutional CLI Framework (@core_command).
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import typer
 from rich.console import Console
 
@@ -22,12 +24,15 @@ from body.cli.logic.proposal_service import (
 from body.cli.logic.sync import sync_knowledge_base
 from body.cli.logic.sync_manifest import sync_manifest
 from features.introspection.capability_discovery_service import sync_capabilities_to_db
-from features.introspection.export_vectors import export_vectors
+from features.introspection.export_vectors import (
+    VectorExportError,
+    export_vectors,
+)
 from features.maintenance.dotenv_sync_service import run_dotenv_sync
 from features.maintenance.migration_service import run_ssot_migration
 from features.project_lifecycle.definition_service import define_symbols
 from features.project_lifecycle.scaffolding_service import create_new_project
-from mind.governance.key_management_service import keygen
+from mind.governance.key_management_service import KeyManagementError, keygen
 from shared.cli_utils import core_command
 from shared.config import settings
 from shared.context import CoreContext
@@ -105,7 +110,11 @@ async def export_vectors_command(
     output_path: str = typer.Option("vectors.json", help="Output file path"),
 ):
     """Export vector data."""
-    await export_vectors(output_path)
+    try:
+        await export_vectors(ctx.obj, Path(output_path))
+    except VectorExportError as exc:
+        logger.error("%s", exc)
+        raise typer.Exit(exc.exit_code)
 
 
 @db_sub_app.command("cleanup-memory")
@@ -368,7 +377,40 @@ keys_sub_app = typer.Typer(
     help="Manage operator cryptographic keys.",
     no_args_is_help=True,
 )
-keys_sub_app.command("generate")(keygen)
+
+
+@keys_sub_app.command("generate")
+@core_command(dangerous=False)
+# ID: 6b675ff0-7b3e-4e2b-88c0-6b1c46d6e6cf
+def keygen_command(
+    ctx: typer.Context,
+    identity: str = typer.Argument(
+        ..., help="Identity for the key pair (e.g., 'your.name@example.com')."
+    ),
+    force: bool = typer.Option(
+        False,
+        "--force",
+        "-f",
+        help="Overwrite existing key without prompting.",
+    ),
+) -> None:
+    """Generate a new Ed25519 key pair and print an approver YAML block."""
+    private_key_path = settings.REPO_PATH / settings.KEY_STORAGE_DIR / "private.key"
+    allow_overwrite = force
+    if private_key_path.exists() and not force:
+        if not typer.confirm(
+            "⚠️ A private key already exists. Overwriting it will invalidate your old identity. Continue?"
+        ):
+            raise typer.Exit(1)
+        allow_overwrite = True
+
+    try:
+        keygen(identity, allow_overwrite=allow_overwrite)
+    except KeyManagementError as exc:
+        logger.error("%s", exc)
+        raise typer.Exit(exc.exit_code) from exc
+
+
 manage_app.add_typer(keys_sub_app, name="keys")
 
 

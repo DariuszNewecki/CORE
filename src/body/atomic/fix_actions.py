@@ -5,6 +5,10 @@ Atomic Fix Actions - Code Remediation
 
 Each action does ONE thing and returns ActionResult.
 Actions are composable, auditable, and constitutionally governed.
+
+CONSTITUTIONAL COMPLIANCE:
+- Enforces governance.logic_mutation.governed by using FileHandler.
+- Uses ActionExecutor Gateway logic for all mutations.
 """
 
 from __future__ import annotations
@@ -90,7 +94,6 @@ async def action_fix_ids(
     start = time.time()
     try:
         logger.info("Assigning constitutional IDs")
-        # FIXED: Pass core_context and await
         result = await fix_ids_internal(core_context, write=write)
 
         return ActionResult(
@@ -130,7 +133,6 @@ async def action_fix_headers(
     start = time.time()
     try:
         logger.info("Fixing constitutional headers")
-        # FIXED: Pass core_context and await
         result = await fix_headers_internal(core_context, write=write)
 
         return ActionResult(
@@ -199,14 +201,21 @@ async def action_fix_docstrings(
     impact_level="safe",
 )
 # ID: e5f67890-abcd-ef12-3456-7890abcdef12
-async def action_fix_logging(write: bool = False) -> ActionResult:
+async def action_fix_logging(
+    core_context: CoreContext, write: bool = False
+) -> ActionResult:
     """
     Fix logging policy violations (LOG-001, LOG-004).
     """
     start = time.time()
     try:
         logger.info("Fixing logging violations")
-        fixer = LoggingFixer(settings.REPO_PATH, dry_run=not write)
+        # CONSTITUTIONAL FIX: Pass the governed file_handler
+        fixer = LoggingFixer(
+            settings.REPO_PATH,
+            file_handler=core_context.file_handler,
+            dry_run=not write,
+        )
         result = fixer.fix_all()
 
         return ActionResult(
@@ -246,17 +255,19 @@ async def action_fix_placeholders(
     """
     start = time.time()
     files_modified = 0
+    repo_root = core_context.git_service.repo_path
 
     try:
-        src_dir = core_context.git_service.repo_path / "src"
+        src_dir = repo_root / "src"
         for py_file in src_dir.rglob("*.py"):
             original = py_file.read_text(encoding="utf-8")
             fixed = fix_placeholders_in_content(original)
 
             if fixed != original:
                 if write:
-                    py_file.write_text(fixed, encoding="utf-8")
-                    logger.info("Fixed placeholders in %s", py_file.name)
+                    # CONSTITUTIONAL FIX: Use governed mutation surface
+                    rel_path = str(py_file.relative_to(repo_root))
+                    core_context.file_handler.write_runtime_text(rel_path, fixed)
                 files_modified += 1
 
         return ActionResult(

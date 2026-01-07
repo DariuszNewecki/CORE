@@ -17,6 +17,7 @@ from shared.infrastructure.knowledge.knowledge_service import KnowledgeService
 from shared.logger import getLogger
 from shared.utils.parallel_processor import ThrottledParallelProcessor
 from will.orchestration.cognitive_service import CognitiveService
+from will.orchestration.decision_tracer import DecisionTracer
 
 
 logger = getLogger(__name__)
@@ -32,11 +33,22 @@ class CapabilityTaggerAgent:
         """Initializes the agent with the tools it needs."""
         self.cognitive_service = cognitive_service
         self.knowledge_service = knowledge_service
-        prompt_path = settings.MIND / "mind" / "prompts" / "capability_definer.prompt"
+        self.tracer = DecisionTracer()
+
+        # CONSTITUTIONAL FIX: Removed hardcoded path to .intent/ (settings.MIND).
+        # Prompts are runtime instructions that reside in var/prompts/.
+        prompt_path = settings.paths.prompt("capability_definer")
+
+        if not prompt_path.exists():
+            msg = f"Constitutional prompt 'capability_definer.prompt' missing from {prompt_path}"
+            logger.error(msg)
+            raise FileNotFoundError(msg)
+
         self.prompt_template = prompt_path.read_text(encoding="utf-8")
         self.tagger_client = None
 
         # Load entry point patterns (same as OrphanedLogicCheck)
+        # Note: settings.load uses the PathResolver shim internally
         self.entry_point_patterns = settings.load(
             "mind.knowledge.project_structure"
         ).get("entry_point_patterns", [])
@@ -219,6 +231,13 @@ class CapabilityTaggerAgent:
         ]
 
         if not target_symbols:
+            self.tracer.record(
+                agent=self.__class__.__name__,
+                decision_type="task_execution",
+                rationale="Executing goal based on input context",
+                chosen_action="No orphaned symbols found for capability tagging",
+                confidence=0.9,
+            )
             return None
 
         logger.info(
@@ -242,6 +261,20 @@ class CapabilityTaggerAgent:
             suggestions_to_return[res["key"]] = res
 
         if not suggestions_to_return:
+            self.tracer.record(
+                agent=self.__class__.__name__,
+                decision_type="task_execution",
+                rationale="Executing goal based on input context",
+                chosen_action="No capability tag suggestions generated",
+                confidence=0.9,
+            )
             return None
 
+        self.tracer.record(
+            agent=self.__class__.__name__,
+            decision_type="task_execution",
+            rationale="Executing goal based on input context",
+            chosen_action=f"Generated {len(suggestions_to_return)} capability tag suggestions",
+            confidence=0.9,
+        )
         return suggestions_to_return

@@ -1,0 +1,89 @@
+# src/features/test_generation_v2/prompt_engine.py
+
+"""
+Constitutional Test Prompt Builder
+Purpose: Encapsulates the high-precision prompt construction logic.
+"""
+
+from __future__ import annotations
+
+from typing import Any
+
+from shared.component_primitive import ComponentResult
+
+
+# ID: 79c76676-92aa-49cd-8e45-e1c2ce44a0ad
+class ConstitutionalTestPromptBuilder:
+    """
+    Handles the assembly of 'Strict Focus' prompts for test generation.
+    """
+
+    # ID: 6e29b09f-2a57-4658-b19b-5ee223d84e39
+    def build(
+        self,
+        symbol_name: str,
+        symbol_code: str,
+        dependencies: list[dict],
+        similar_symbols: list[dict],
+        strategy: ComponentResult,
+        file_type: str,
+        complexity: str,
+        has_db_harness: bool,
+        context_packet: dict[str, Any],
+    ) -> str:
+        import_path = context_packet.get("problem", {}).get("target_module", "unknown")
+
+        # Extract strategy details
+        strategy_approach = "unknown"
+        constraints: list[str] = []
+        if getattr(strategy, "data", None) and isinstance(strategy.data, dict):
+            strategy_approach = str(strategy.data.get("approach", "unknown"))
+            raw_constraints = strategy.data.get("constraints", [])
+            if isinstance(raw_constraints, list):
+                constraints = [str(c) for c in raw_constraints if str(c).strip()]
+
+        parts = []
+        parts.append(f"# TASK: Generate Pytest Unit Tests for '{symbol_name}'")
+        parts.append(f"# MODULE: {import_path}")
+        parts.append("")
+
+        parts.append("## MANDATORY EXECUTION TRACE")
+        parts.append(f"Before writing code, analyze '{symbol_name}' line-by-line:")
+        parts.append(
+            "1. TRUNCATION: If rsplit(' ', 1)[0] is used, the LAST word is always dropped."
+        )
+        parts.append("2. BLANK LINES: join(['']) returns '', not a newline.")
+        parts.append("")
+
+        parts.append("## CRITICAL RULES")
+        parts.append(f"- STRICT FOCUS: Only test '{symbol_name}'.")
+        parts.append("- NO MOCKING: This is a pure utility. Use real data strings.")
+        parts.append(f"- IMPORT: from {import_path} import {symbol_name}")
+
+        # CONSTITUTIONAL FIX: Increased weight for character accuracy to fix safe_truncate failures
+        parts.append(
+            "- CHARACTER ACCURACY: ALWAYS use the Unicode Ellipsis '…' (u+2026)."
+        )
+        parts.append(
+            "  NEVER use three literal dots '...' for truncation expectations. It will fail the sandbox."
+        )
+
+        if constraints:
+            for constraint in constraints:
+                parts.append(f"- {constraint.upper()}")
+
+        parts.append("")
+
+        parts.append("## TARGET CODE")
+        parts.append("```python")
+        parts.append(symbol_code)
+        parts.append("```")
+        parts.append("")
+
+        parts.append("## OUTPUT REQUIREMENTS")
+        parts.append(
+            "- Include a comment at the top explaining the detected return type."
+        )
+        parts.append("- Return ONLY the Python test code. No fences. No prose.")
+
+        return "\n".join(parts)

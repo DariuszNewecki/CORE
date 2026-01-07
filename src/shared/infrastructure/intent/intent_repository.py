@@ -25,16 +25,13 @@ from threading import Lock
 from typing import Any
 
 from shared.config import settings
+from shared.infrastructure.intent.errors import GovernanceError
+from shared.infrastructure.intent.intent_validator import validate_intent_tree
 from shared.logger import getLogger
 from shared.processors.yaml_processor import strict_yaml_processor
 
 
 logger = getLogger(__name__)
-
-
-# ID: 9eb28147-e0da-4f48-84ef-1274b5b80496
-class GovernanceError(RuntimeError):
-    """Raised when an intent artifact cannot be resolved or violates expectations."""
 
 
 @dataclass(frozen=True)
@@ -83,6 +80,17 @@ class IntentRepository:
         self._hierarchy: dict[str, list[str]] | None = None
 
         self._check_root_safety()
+        # Enforce Bootstrap Contract v0 in strict mode; best-effort report in non-strict mode.
+        validate_intent_tree(self._root, strict=self._strict)
+
+    # -------------------------------------------------------------------------
+    # Compatibility (IntentConnector expects initialize())
+    # -------------------------------------------------------------------------
+
+    # ID: 9a3fa3d6-6f48-4cc9-a7c7-ff6b3a9d2e5e
+    def initialize(self) -> None:
+        """Compatibility: explicitly triggers indexing."""
+        self._ensure_index()
 
     # -------------------------------------------------------------------------
     # Root / path resolution
@@ -136,11 +144,9 @@ class IntentRepository:
     # ID: b26242f2-8e09-4693-ba41-a993447564d4
     def load_policy(self, logical_path_or_id: str) -> dict[str, Any]:
         """
-        Load a policy by either:
-        - legacy meta.yaml logical path (e.g., 'policies.code.code_standards'), OR
-        - canonical policy_id derived from .intent relative path (e.g., 'policies/code/code_standards')
+        Deprecated legacy support
         """
-        # 1) Legacy: meta.yaml logical path
+        # 1) Legacy: logical path
         if "." in logical_path_or_id and "/" not in logical_path_or_id:
             path = settings.get_path(logical_path_or_id)
             return self.load_document(path)
@@ -344,7 +350,7 @@ class IntentRepository:
         """
         # We scan the folders managed by the Constitution: policies and standards
         # These are handled as sub-directories of the intent root
-        search_roots = ["policies", "standards"]
+        search_roots = ["policies", "standards", "rules"]
 
         index: dict[str, PolicyRef] = {}
         hierarchy: dict[str, list[str]] = {}

@@ -1,0 +1,80 @@
+mappings:
+  # 1. LAW: Production code MUST NOT contain 'TODO', 'FIXME', or 'TBD'
+  # Check type: regex_gate (Deterministic String Match)
+  purity.no_todo_placeholders:
+    engine: regex_gate
+    params:
+      forbidden_patterns:
+        - "\\bTODO\\b"
+        - "\\bFIXME\\b"
+        - "\\bTBD\\b"
+    scope:
+      applies_to:
+        - "src/**/*.py"
+      excludes:
+        - "tests/**/*.py"
+        - "scripts/**/*.py"
+
+  # 2. LAW: Every public symbol MUST have a stable '# ID:' anchor
+  # Check type: ast_gate (Context-Aware definition lookup)
+  purity.stable_id_anchor:
+    engine: ast_gate
+    params:
+      check_type: id_anchor
+    scope:
+      applies_to:
+        - "src/**/*.py"
+      excludes:
+        - "**/__init__.py"
+        - "tests/**/*.py"
+        - "scripts/**/*.py"
+
+  # 3. LAW: Metadata belongs in the DB, not the code (@capability, @owner)
+  # Check type: ast_gate (Decorator inspection)
+  purity.no_metadata_decorators:
+    engine: ast_gate
+    params:
+      check_type: forbidden_decorators
+      forbidden:
+        - "capability"
+        - "meta"
+        - "owner"
+        - "domain"
+    scope:
+      applies_to:
+        - "src/**/*.py"
+      excludes:
+        - "tests/**/*.py"
+
+  # 4. LAW: Public symbols MUST have docstrings
+  # CONSTITUTIONAL FIX: Removed the 'returns_type' shim that caused 440 errors.
+  # We use the LLM gate here because verifying docstring presence and quality
+  # is a semantic reasoning task.
+  purity.docstrings.required:
+    engine: llm_gate
+    params:
+      instruction: "Verify that all public functions and classes have a docstring. Return a violation if a docstring is missing or is just a placeholder like 'TODO'."
+    scope:
+      applies_to:
+        - "src/features/**/*.py"
+        - "src/body/services/**/*.py"
+
+  # 5. LAW: Public functions and methods MUST have unique UUID identifiers
+  # (Duplicate of purity.stable_id_anchor to satisfy linkage.json requirements)
+  linkage.assign_ids:
+    engine: ast_gate
+    params:
+      check_type: id_anchor
+    scope:
+      applies_to:
+        - "src/**/*.py"
+      excludes:
+        - "**/__init__.py"
+        - "tests/**/*.py"
+
+  # 6. LAW: Symbol identifiers MUST be globally unique across the codebase
+  # Check type: knowledge_gate (Cross-Substrate Database Query)
+  linkage.duplicate_ids:
+    engine: knowledge_gate
+    params:
+      check_type: duplicate_ids

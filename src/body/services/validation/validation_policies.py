@@ -19,7 +19,7 @@ Violation = dict[str, Any]
 class PolicyValidator:
     """Handles policy-aware validation including safety checks and forbidden patterns."""
 
-    def __init__(self, safety_policy_rules: list[dict]):
+    def __init__(self, safety_policy_rules: list[dict[str, Any]]):
         """
         Initialize the policy validator with pre-loaded safety policy rules.
         """
@@ -27,8 +27,8 @@ class PolicyValidator:
 
     def _get_full_attribute_name(self, node: ast.Attribute) -> str:
         """Recursively builds the full name of an attribute call."""
-        parts = []
-        current = node
+        parts: list[str] = []  # FIXED
+        current: Any = node  # FIXED: Type set to Any to allow re-assignment
         while isinstance(current, ast.Attribute):
             parts.insert(0, current.attr)
             current = current.value
@@ -83,7 +83,7 @@ class PolicyValidator:
                         {
                             "rule": "safety.dangerous_call",
                             "message": f"Use of forbidden call: '{full_call_name}'",
-                            "line": node.lineno,
+                            "line": getattr(node, "lineno", 0),
                             "severity": "error",
                         }
                     )
@@ -94,7 +94,7 @@ class PolicyValidator:
                             {
                                 "rule": "safety.forbidden_import",
                                 "message": f"Import of forbidden module: '{alias.name}'",
-                                "line": node.lineno,
+                                "line": getattr(node, "lineno", 0),
                                 "severity": "error",
                             }
                         )
@@ -104,7 +104,7 @@ class PolicyValidator:
                         {
                             "rule": "safety.forbidden_import",
                             "message": f"Import from forbidden module: '{node.module}'",
-                            "line": node.lineno,
+                            "line": getattr(node, "lineno", 0),
                             "severity": "error",
                         }
                     )

@@ -6,7 +6,7 @@ Provides utilities for validating manifest entries against JSON schemas using js
 from __future__ import annotations
 
 import json
-from typing import Any
+from typing import Any, cast
 
 import jsonschema
 
@@ -23,16 +23,6 @@ SCHEMA_DIR = get_repo_root() / ".intent" / "charter" / "schemas"
 def load_schema(schema_name: str) -> dict[str, Any]:
     """
     Load a JSON schema from the .intent/schemas/ directory.
-
-    Args:
-        schema_name (str): The filename of the schema (e.g., 'knowledge_graph_entry.schema.json').
-
-    Returns:
-        Dict[str, Any]: The loaded JSON schema.
-
-    Raises:
-        FileNotFoundError: If the schema file is not found.
-        json.JSONDecodeError: If the schema file is not valid JSON.
     """
     schema_path = SCHEMA_DIR / schema_name
 
@@ -41,7 +31,8 @@ def load_schema(schema_name: str) -> dict[str, Any]:
 
     try:
         with open(schema_path, encoding="utf-8") as f:
-            return json.load(f)
+            # FIXED: Added cast for MyPy
+            return cast(dict[str, Any], json.load(f))
     except json.JSONDecodeError as e:
         raise json.JSONDecodeError(
             f"Invalid JSON in schema file {schema_path}: {e.msg}", e.doc, e.pos
@@ -54,13 +45,6 @@ def validate_manifest_entry(
 ) -> tuple[bool, list[str]]:
     """
     Validate a single manifest entry against a schema.
-
-    Args:
-        entry: The dictionary representing a single function/class entry.
-        schema_name: The filename of the schema to validate against.
-
-    Returns:
-        A tuple of (is_valid: bool, list_of_error_messages: List[str]).
     """
     try:
         schema = load_schema(schema_name)

@@ -12,6 +12,7 @@ from typing import Any
 
 import yaml
 
+from shared.config import settings
 from shared.infrastructure.knowledge.knowledge_service import KnowledgeService
 from shared.logger import getLogger
 
@@ -60,10 +61,17 @@ def _parse_python_file(filepath: str) -> list[dict]:
                     qualname = f"{'.'.join(self.stack)}.{node.name}"
                 else:
                     qualname = node.name
-                signature = ast.get_source_segment(source, node).split("\n")[0]
-                lines = source.splitlines()
-                end_lineno = getattr(node, "end_lineno", node.lineno)
-                code = "\n".join(lines[node.lineno - 1 : end_lineno])
+
+                # Extract code segment
+                try:
+                    signature = ast.get_source_segment(source, node).split("\n")[0]
+                    lines = source.splitlines()
+                    end_lineno = getattr(node, "end_lineno", node.lineno)
+                    code = "\n".join(lines[node.lineno - 1 : end_lineno])
+                except Exception:
+                    signature = f"def {node.name}(...)"
+                    code = "# Code extraction failed"
+
                 docstring = ast.get_docstring(node) or ""
                 self.symbols.append(
                     {
@@ -105,7 +113,8 @@ class ContextBuilder:
     async def _load_knowledge_graph_from_db(self) -> dict[str, Any]:
         """Loads the knowledge graph from database (SSOT)."""
         try:
-            knowledge_service = KnowledgeService()
+            # CONSTITUTIONAL FIX: Explicitly passing REPO_PATH
+            knowledge_service = KnowledgeService(settings.REPO_PATH)
             graph = await knowledge_service.get_graph()
             logger.info(
                 "Loaded knowledge graph with %s symbols from DB",
@@ -127,6 +136,16 @@ class ContextBuilder:
         packet_id = str(uuid.uuid4())
         created_at = start_time.isoformat()
         scope_spec = task_spec.get("scope", {})
+
+        # PROPER CONFIGURATION: Derive canonical import path for the target file
+        target_file = task_spec.get("target_file", "")
+        target_module = ""
+        if target_file:
+            # e.g., 'src/shared/utils/common_knowledge.py' -> 'shared.utils.common_knowledge'
+            target_module = (
+                target_file.replace("src/", "", 1).replace(".py", "").replace("/", ".")
+            )
+
         packet = {
             "header": {
                 "packet_id": packet_id,
@@ -138,6 +157,8 @@ class ContextBuilder:
             },
             "problem": {
                 "summary": task_spec.get("summary", ""),
+                "target_file": target_file,
+                "target_module": target_module,  # <--- NEW: Crucial address for LLM imports
                 "intent_ref": task_spec.get("intent_ref"),
                 "acceptance": task_spec.get("acceptance", []),
             },
@@ -261,18 +282,10 @@ class ContextBuilder:
         return None
 
     def _format_symbol_as_context_item(self, symbol_data: dict) -> dict:
-        """Formats a symbol dictionary from the knowledge graph into a context item.
-
-        The DB view returns:
-        - 'name' (this is the qualname like "ContextCache.get")
-        - 'symbol_path' (like "src/path/file.py::ContextCache.get")
-        - NOT 'qualname' (that's only in the table, not the view)
-        """
-        # symbol_path format: "src/path/file.py::Class.method"
+        """Formats a symbol dictionary from the knowledge graph into a context item."""
         symbol_path = symbol_data.get("symbol_path", "")
-        name = symbol_data.get("name", "")  # This is the qualname from the view
+        name = symbol_data.get("name", "")
 
-        # Extract file path from symbol_path (before the ::)
         file_path_raw = None
         if "::" in symbol_path:
             file_path_raw = symbol_path.split("::")[0]
@@ -281,13 +294,12 @@ class ContextBuilder:
         signature = str(symbol_data.get("parameters", []))
 
         if file_path_raw and name:
-            full_path = Path.cwd() / file_path_raw
+            # CONSTITUTIONAL FIX: Use settings.REPO_PATH as SSOT
+            full_path = settings.REPO_PATH / file_path_raw
             if full_path.exists():
                 try:
                     symbols = _parse_python_file(str(full_path))
-
                     for sym in symbols:
-                        # Match against the parsed qualname
                         if sym.get("qualname") == name or sym["name"] == name:
                             content = sym["code"]
                             signature = sym.get("signature", signature)
@@ -315,39 +327,26 @@ class ContextBuilder:
         target_file_str = task_spec.get("target_file")
         target_symbol = task_spec.get("target_symbol")
 
-        logger.info(
-            "DEBUG _force_add_code_item: target_file=%s, target_symbol=%s",
+        if not target_file_str or not target_symbol:
+            return []
+
+        logger.debug(
+            "ContextBuilder: force_add_code target_file=%s, target_symbol=%s",
             target_file_str,
             target_symbol,
         )
 
-        if not target_file_str or not target_symbol:
-            logger.info("DEBUG: Missing target_file or target_symbol, returning empty")
-            return []
-
-        full_path = Path.cwd() / target_file_str
-
-        logger.info(
-            "DEBUG: Checking if file exists: %s (exists=%s)",
-            full_path,
-            full_path.exists(),
-        )
+        # CONSTITUTIONAL FIX: Use settings.REPO_PATH as SSOT
+        full_path = settings.REPO_PATH / target_file_str
 
         if not full_path.exists():
-            logger.warning("File not found: %s", full_path)
+            logger.warning(
+                "ContextBuilder: File not found via REPO_PATH: %s", full_path
+            )
             return []
 
         logger.info("FORCE-ADDING CODE ITEM for '%s'", target_symbol)
         symbols = _parse_python_file(str(full_path))
-
-        logger.info("DEBUG: Parsed %d symbols from file", len(symbols))
-        for i, sym in enumerate(symbols[:5]):  # Show first 5
-            logger.info(
-                "  DEBUG symbol %d: name=%s, qualname=%s",
-                i,
-                sym.get("name"),
-                sym.get("qualname"),
-            )
 
         for sym in symbols:
             if sym["name"] == target_symbol or sym.get("qualname") == target_symbol:
@@ -360,15 +359,10 @@ class ContextBuilder:
                     "source": "builtin_ast",
                     "signature": sym.get("signature", ""),
                 }
-                logger.info("Added CODE item with content: %s", target_symbol)
                 return [item]
 
         logger.warning(
             "Target symbol '%s' not found in %s", target_symbol, target_file_str
-        )
-        logger.info(
-            "DEBUG: Available symbols in file: %s",
-            [s.get("qualname") for s in symbols[:10]],
         )
         return []
 

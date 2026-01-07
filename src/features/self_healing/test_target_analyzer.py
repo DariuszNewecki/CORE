@@ -21,6 +21,8 @@ Classification = Literal["SIMPLE", "COMPLEX"]
 class TestTarget:
     """Represents a potential function to be tested."""
 
+    __test__ = False
+
     name: str
     complexity: int
     classification: Classification
@@ -30,6 +32,8 @@ class TestTarget:
 # ID: e1e93bfa-852d-4673-85e3-ffc827419c8c
 class TestTargetAnalyzer:
     """Analyzes a Python file and classifies its functions for testability."""
+
+    __test__ = False
 
     def __init__(self, complexity_threshold: int = 5):
         self.complexity_threshold = complexity_threshold

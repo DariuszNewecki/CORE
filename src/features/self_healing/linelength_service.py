@@ -12,8 +12,6 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-import typer
-
 from body.atomic.executor import ActionExecutor
 from mind.governance.audit_context import AuditorContext
 from shared.config import settings
@@ -26,6 +24,15 @@ if TYPE_CHECKING:
 
 logger = getLogger(__name__)
 REPO_ROOT = settings.REPO_PATH
+
+
+# ID: c5efe959-a435-4034-be61-c6ac3503bc2f
+class LineLengthServiceError(RuntimeError):
+    """Raised when line-length fixing fails."""
+
+    def __init__(self, message: str, *, exit_code: int = 1):
+        super().__init__(message)
+        self.exit_code = exit_code
 
 
 async def _async_fix_line_lengths(
@@ -127,23 +134,24 @@ async def _async_fix_line_lengths(
 # ID: 38f408b5-3490-4fb8-8bf4-c09b33ed5af8
 async def fix_line_lengths(
     context: CoreContext,
-    file_path: Path | None = typer.Argument(
-        None,
-        help="Optional: A specific file to fix. If omitted, all project files are scanned.",
-        exists=True,
-        dir_okay=False,
-        resolve_path=True,
-    ),
-    dry_run: bool = typer.Option(
-        True,
-        "--dry-run/--write",
-        help="Show what refactoring would be applied. Use --write to apply.",
-    ),
-):
+    file_path: Path | str | None = None,
+    dry_run: bool = True,
+) -> None:
     """Uses an AI agent to refactor files with lines longer than 100 characters via governed actions."""
-    files_to_scan = []
     if file_path:
-        files_to_scan.append(file_path)
+        candidate = Path(file_path)
+        if not candidate.is_file():
+            logger.error("Provided file does not exist or is not a file: %s", file_path)
+            raise LineLengthServiceError(
+                f"Provided file does not exist: {file_path}", exit_code=1
+            )
+        target_path = candidate
+    else:
+        target_path = None
+
+    files_to_scan = []
+    if target_path:
+        files_to_scan.append(target_path)
     else:
         src_dir = settings.paths.repo_root / "src"
         files_to_scan.extend(src_dir.rglob("*.py"))

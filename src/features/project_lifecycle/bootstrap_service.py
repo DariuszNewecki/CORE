@@ -10,15 +10,20 @@ from __future__ import annotations
 import shutil
 import subprocess
 
-import typer
-
 from shared.logger import getLogger
 
 
 logger = getLogger(__name__)
-bootstrap_app = typer.Typer(
-    help="Commands for project bootstrapping and initial setup."
-)
+
+
+# ID: 182c9266-f195-4a4e-930e-010b53405ccd
+class BootstrapError(RuntimeError):
+    """Raised when project bootstrap tasks fail."""
+
+    def __init__(self, message: str, *, exit_code: int = 1):
+        super().__init__(message)
+        self.exit_code = exit_code
+
 
 ISSUES_TO_CREATE = [
     {
@@ -83,23 +88,18 @@ def _run_gh_command(command: list[str], ignore_errors: bool = False):
     if not shutil.which("gh"):
         logger.error("'gh' (GitHub CLI) not found in PATH.")
         logger.info("Install GitHub CLI to use bootstrap features.")
-        raise typer.Exit(code=1)
+        raise BootstrapError("'gh' (GitHub CLI) not found in PATH.", exit_code=1)
 
     try:
         subprocess.run(command, check=True, capture_output=True, text=True)
     except subprocess.CalledProcessError as e:
         if not ignore_errors:
             logger.error("Error running gh command: %s", e.stderr)
-            raise typer.Exit(code=1)
+            raise BootstrapError("Error running gh command.", exit_code=1) from e
 
 
-@bootstrap_app.command("issues")
-# ID: 4a6eaa79-3261-4e31-9f43-e2e5a96c4276
-def bootstrap_issues(
-    repo: str | None = typer.Option(
-        None, "--repo", help="GitHub repository in 'owner/repo' format."
-    ),
-):
+# ID: 17f7cac0-4134-4885-93fb-0d432c634ed1
+def bootstrap_issues(repo: str | None = None) -> None:
     """Create a standard set of starter issues for the project on GitHub."""
     logger.info("Bootstrapping standard GitHub issues...")
     logger.info("Ensuring required labels exist...")
@@ -138,3 +138,23 @@ def bootstrap_issues(
         _run_gh_command(cmd)
 
     logger.info("Successfully created starter issues on GitHub.")
+
+
+if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        description="Bootstrap starter GitHub issues and labels."
+    )
+    parser.add_argument(
+        "--repo",
+        help="GitHub repository in 'owner/repo' format.",
+        default=None,
+    )
+
+    args = parser.parse_args()
+
+    try:
+        bootstrap_issues(repo=args.repo)
+    except BootstrapError as exc:
+        raise SystemExit(exc.exit_code) from exc

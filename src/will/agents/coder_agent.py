@@ -189,6 +189,13 @@ class CoderAgent:
                 )
                 if validation_result["status"] == "clean":
                     logger.info("  -> ✅ Constitutional validation passed.")
+                    self.tracer.record(
+                        agent=self.__class__.__name__,
+                        decision_type="task_execution",
+                        rationale="Executing goal based on input context",
+                        chosen_action="Returning constitutionally validated code for execution",
+                        confidence=0.9,
+                    )
                     self.tracer.save_trace()
                     return validation_result["code"]
                 if attempt >= self.max_correction_attempts:

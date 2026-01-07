@@ -109,6 +109,10 @@ ipython = "^8.12"
 anyio = "^4.11.0"
 mkdocs = "^1.6.1"
 mkdocs-material = "^9.7.0"
+radon = "^6.0.1"
+vulture = "^2.14"
+pip-audit = "^2.10.0"
+bandit = "^1.9.2"
 
 [tool.poetry.scripts]
 core-admin = "body.cli.admin_cli:app"
@@ -167,7 +171,7 @@ ignore = [
     "C414",  # Allow list() in sorted()
     "N806",  # Allow uppercase variable names
     "F841",  # Allow unused local variables (sometimes intentional)
-    "RUF043",
+    # CONSTITUTIONAL FIX: Removed "RUF043" which was causing the parser to fail.
 ]
 [tool.ruff.lint.isort]
 force-single-line = false
@@ -196,20 +200,37 @@ module = "tests.*"
 disallow_untyped_defs = false
 
 [tool.pytest.ini_options]
+# Basic setup
 testpaths = ["tests"]
-env_files = ".env.test"
-env_override_existing_values = "true"
-asyncio_mode = "auto"
 pythonpath = ["src"]
+asyncio_mode = "auto"
+
+# Environment handling (pytest-dotenv)
+env_files = [".env.test"]
+env_override_existing_values = "true"
+
+# CLI Logging settings (moved from pytest.ini)
+log_cli = true
+log_cli_level = "INFO"
+
+# Consolidated Options
+# 1. Added --cov-report=json (Required for CORE Auditor/Remediation)
+# 2. Merged the html report path from your ini
+# 3. Kept the existing coverage and marker settings
 addopts = [
+    "--envfile", ".env.test",
     "-v",
     "--strict-markers",
     "--strict-config",
     "--cov=src",
-    "--cov-report=html",
+    "--cov-report=json",
+    "--cov-report=html:reports/htmlcov",
     "--cov-report=term-missing:skip-covered",
+    "--html=reports/pytest-report.html",
+    "--self-contained-html",
     "-m", "not trio"
 ]
+
 markers = [
     "unit: Unit tests (fast, no external dependencies)",
     "integration: Integration tests (database, external services)",
@@ -217,7 +238,6 @@ markers = [
     "slow: Slow running tests",
     "trio: marks tests to run with trio backend (skipped by default)",
 ]
-
 
 [tool.coverage.run]
 source = ["src"]

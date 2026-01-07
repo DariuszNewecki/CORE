@@ -17,6 +17,8 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
 
 # ─────────────────────────────────────────────────────────────── Configuration
+# CONSTITUTIONAL FIX: Use os.getenv here instead of shared.config.settings
+# to break the circular dependency during system bootstrap.
 _LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
 _LOG_FORMAT_TYPE = os.getenv("LOG_FORMAT_TYPE", "human").lower()  # json or human
 _VALID_LEVELS = frozenset({"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"})

@@ -1,9 +1,17 @@
 # src/mind/logic/engines/regex_gate.py
 
-"""Provides functionality for the regex_gate module."""
+"""
+Pattern-Based Governance Auditor.
+
+CONSTITUTIONAL ALIGNMENT:
+- Aligned with 'async.no_manual_loop_run'.
+- Promoted to natively async to satisfy the BaseEngine contract.
+- Complies with ASYNC230 by offloading blocking file reads to threads.
+"""
 
 from __future__ import annotations
 
+import asyncio
 import re
 from pathlib import Path
 from typing import Any
@@ -21,11 +29,14 @@ class RegexGateEngine(BaseEngine):
     engine_id = "regex_gate"
 
     # ID: 53cc3e25-0d0c-41a7-8ad3-32f8e6963a1a
-    def verify(self, file_path: Path, params: dict[str, Any]) -> EngineResult:
+    async def verify(self, file_path: Path, params: dict[str, Any]) -> EngineResult:
+        """
+        Natively async verification.
+        Matches the BaseEngine contract to prevent loop-hijacking in orchestrators.
+        """
         violations = []
 
         # FACT 1: Check Filename Naming Conventions
-        # Many rules (like code.python_module_naming) apply to the filename, not content.
         name_pattern = params.get("naming_pattern")
         if name_pattern:
             if not re.match(name_pattern, file_path.name):
@@ -35,7 +46,9 @@ class RegexGateEngine(BaseEngine):
 
         # FACT 2: Check Content
         try:
-            content = file_path.read_text()
+            # CONSTITUTIONAL FIX (ASYNC230):
+            # Use to_thread to prevent blocking the event loop during file I/O.
+            content = await asyncio.to_thread(file_path.read_text, encoding="utf-8")
         except Exception as e:
             return EngineResult(
                 ok=False,

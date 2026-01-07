@@ -1,0 +1,33 @@
+mappings:
+  architecture.no_module_async_engine:
+    engine: ast_gate
+    params:
+      check_type: no_module_level_async_engine
+    scope:
+      applies_to:
+        - "src/**/*.py"
+  architecture.max_file_size:
+    engine: ast_gate
+    params:
+      check_type: max_file_lines
+      limit: 400
+    scope:
+      applies_to:
+        - "src/**/*.py"
+        - "tests/**/*.py"
+  architecture.constitution_read_only:
+    engine: glob_gate
+    params:
+      patterns_prohibited:
+        - ".intent/constitution/**"
+    scope:
+      applies_to:
+        - "src/**/*.py"
+  architecture.meta_read_only:
+    engine: glob_gate
+    params:
+      patterns_prohibited:
+        - ".intent/META/**"
+    scope:
+      applies_to:
+        - "src/**/*.py"

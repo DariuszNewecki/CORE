@@ -1,9 +1,18 @@
 # src/mind/logic/engines/llm_gate.py
 
-"""Provides functionality for the llm_gate module."""
+"""
+Semantic Reasoning Auditor.
+
+CONSTITUTIONAL ALIGNMENT:
+- Aligned with 'async.no_manual_loop_run'.
+- Promoted to natively async to satisfy the BaseEngine contract.
+- Prevents thread-blocking during long-running LLM API calls.
+- Complies with ASYNC230 by offloading blocking file reads to threads.
+"""
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import json
 from pathlib import Path
@@ -29,21 +38,27 @@ class LLMGateEngine(BaseEngine):
         if llm_client:
             self.llm = llm_client
         else:
-            # Using positional arguments as required by your LLMClient.__init__
+            # Using positional arguments as required by LLMClient.__init__
             self.llm = LLMClient(
                 api_url=settings.LLM_API_URL,
                 api_key=settings.LLM_API_KEY,
                 model_name=settings.LLM_MODEL_NAME,
             )
-        self._cache = {}
+        self._cache: dict[str, EngineResult] = {}
 
     # ID: 66b7f4b7-72a8-43b9-af11-787c58e20524
-    def verify(self, file_path: Path, params: dict[str, Any]) -> EngineResult:
+    async def verify(self, file_path: Path, params: dict[str, Any]) -> EngineResult:
+        """
+        Natively async verification.
+        Performs semantic analysis via LLM without blocking the event loop.
+        """
         instruction = params.get("instruction")
         rationale = params.get("rationale", "No rationale provided.")
 
         try:
-            content = file_path.read_text()
+            # CONSTITUTIONAL FIX (ASYNC230):
+            # Use to_thread to prevent blocking the event loop during file I/O.
+            content = await asyncio.to_thread(file_path.read_text, encoding="utf-8")
         except Exception as e:
             return EngineResult(
                 ok=False,
@@ -72,12 +87,11 @@ class LLMGateEngine(BaseEngine):
             '{ "violation": boolean, "reasoning": "string", "finding": "string or null" }'
         )
 
-        # 2. Fact: Invoke Reasoning
+        # 2. Fact: Invoke Reasoning (Natively Async)
         try:
-            response_text = self.llm.complete(
-                prompt=user_prompt,
-                system=system_prompt,
-                response_format="json",  # If your client supports it
+            # ALIGNED: Using make_request as defined in llm_client.py
+            response_text = await self.llm.make_request(
+                prompt=user_prompt, system_prompt=system_prompt
             )
             result_data = json.loads(response_text)
         except Exception as e:
@@ -105,6 +119,6 @@ class LLMGateEngine(BaseEngine):
             ok=is_ok, message=message, violations=violations, engine_id=self.engine_id
         )
 
-        # Update cache to protect your potato GPU
+        # Update cache to protect your local resources
         self._cache[state_hash] = final_result
         return final_result

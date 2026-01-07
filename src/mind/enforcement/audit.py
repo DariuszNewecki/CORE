@@ -5,6 +5,10 @@ Provides functionality for the audit module.
 
 Refactored to be stateless and pure async (logic layer).
 Now HEADLESS: Returns data, does not logger.info(LOG-001 compliance).
+
+CONSTITUTIONAL FIX:
+- Integrated with shared.infrastructure.validation.test_runner for Traceable Evidence.
+- Promoted test_system to async-native.
 """
 
 from __future__ import annotations
@@ -15,7 +19,9 @@ from shared.logger import getLogger
 logger = getLogger(__name__)
 
 from mind.governance.auditor import ConstitutionalAuditor
+from shared.action_types import ActionResult
 from shared.context import CoreContext
+from shared.infrastructure.validation.test_runner import run_tests
 from shared.models import AuditFinding, AuditSeverity
 from shared.utils.subprocess_utils import run_poetry_command
 
@@ -36,14 +42,12 @@ async def run_audit_workflow(context: CoreContext) -> tuple[bool, list[AuditFind
     auditor = ConstitutionalAuditor(auditor_context)
 
     # The auditor handles its own activity logging and progress reporting
-    # via AuditRunReporter (which is in Mind layer, thus allowed to print).
     all_findings_dicts = await auditor.run_full_audit_async()
 
     # Convert dicts back to models for the command layer
     severity_map = {str(s): s for s in AuditSeverity}
     all_findings = []
     for f_dict in all_findings_dicts:
-        # Ensure we have a valid severity enum
         severity_val = f_dict.get("severity", "info")
         if isinstance(severity_val, str):
             f_dict["severity"] = severity_map.get(severity_val, AuditSeverity.INFO)
@@ -68,6 +72,15 @@ def lint() -> None:
 
 
 # ID: 0a52d8ef-18a6-40c6-9ffe-95b9f9c295e4
-def test_system() -> None:
-    """Run the pytest suite."""
-    run_poetry_command("🧪 Running tests with pytest...", ["pytest"])
+async def test_system() -> ActionResult:
+    """
+    Run the project test suite via the canonical async test runner.
+
+    This bridge ensures that test results are:
+    1. Recorded in core.action_results (Database SSOT)
+    2. Available as structured JSON evidence in var/reports/
+    3. Interpretable by CORE agents and governance engines.
+    """
+    # We delegate to the infrastructure layer to ensure the "single execution contract"
+    # is maintained across CLI and autonomous tasks.
+    return await run_tests()

@@ -30,7 +30,9 @@ async def run_dynamic_rules(
     from mind.logic.engines.registry import EngineRegistry
 
     all_findings = []
-    executable_rules = extract_executable_rules(context.policies)
+    executable_rules = extract_executable_rules(
+        context.policies, context.enforcement_loader
+    )
 
     executed_count = 0
     skipped_stub_count = 0
@@ -68,7 +70,9 @@ def get_dynamic_execution_stats(
     context: AuditorContext, executed_rule_ids: set[str]
 ) -> dict[str, int]:
     try:
-        executable_rules = extract_executable_rules(context.policies)
+        executable_rules = extract_executable_rules(
+            context.policies, context.enforcement_loader
+        )
         dynamic_executed = len(
             [r for r in executable_rules if r.rule_id in executed_rule_ids]
         )

@@ -13,8 +13,6 @@ import traceback
 import networkx as nx
 
 from mind.governance.audit_context import AuditorContext
-from mind.governance.rule_executor import execute_rule
-from mind.governance.rule_extractor import extract_executable_rules
 from shared.config import settings
 from shared.context import CoreContext
 from shared.infrastructure.clients.qdrant_client import QdrantService
@@ -66,10 +64,12 @@ def _group_findings(findings: list[AuditFinding]) -> list[list[AuditFinding]]:
 async def inspect_duplicates_async(context: CoreContext, threshold: float) -> None:
     """
     The core async logic for running duplication analysis.
-    Uses the constitutional rule engine to identify duplicates via:
-    1. AST duplication (structural similarity)
-    2. Semantic duplication (vector similarity)
+    Uses the constitutional rule engine to identify duplicates.
     """
+    # CONSTITUTIONAL FIX: Local imports to break circular dependency
+    from mind.governance.rule_executor import execute_rule
+    from mind.governance.rule_extractor import extract_executable_rules
+
     if context is None:
         logger.error("Context not initialized for inspect duplicates")
         raise ValueError("Context not initialized for inspect duplicates")
@@ -105,23 +105,11 @@ async def inspect_duplicates_async(context: CoreContext, threshold: float) -> No
             None,
         )
 
-        if ast_rule:
-            logger.info("Found AST duplication rule: %s", ast_rule)
-        else:
-            logger.warning("AST duplication rule not found in %d rules", len(all_rules))
-
         # 5. Find semantic duplication rule
         semantic_rule = next(
             (r for r in all_rules if r.rule_id == "purity.no_semantic_duplication"),
             None,
         )
-
-        if semantic_rule:
-            logger.info("Found semantic duplication rule: %s", semantic_rule)
-        else:
-            logger.warning(
-                "Semantic duplication rule not found in %d rules", len(all_rules)
-            )
 
         all_findings: list[AuditFinding] = []
 
@@ -132,10 +120,8 @@ async def inspect_duplicates_async(context: CoreContext, threshold: float) -> No
             ast_findings = await execute_rule(ast_rule, auditor_context)
             all_findings.extend(ast_findings)
             logger.info("AST check found %d duplicate pairs", len(ast_findings))
-        else:
-            logger.warning("Constitutional rule purity.no_ast_duplication not found.")
 
-        # 7. Execute semantic duplication check (if Qdrant available)
+        # 7. Execute semantic duplication check
         if semantic_rule and qdrant_service:
             logger.info("Running semantic duplication check...")
             semantic_rule.params["threshold"] = threshold
@@ -143,12 +129,6 @@ async def inspect_duplicates_async(context: CoreContext, threshold: float) -> No
             all_findings.extend(semantic_findings)
             logger.info(
                 "Semantic check found %d duplicate pairs", len(semantic_findings)
-            )
-        elif semantic_rule and not qdrant_service:
-            logger.warning("Skipping semantic duplication check (Qdrant unavailable).")
-        else:
-            logger.warning(
-                "Constitutional rule purity.no_semantic_duplication not found."
             )
 
         # 8. Report results

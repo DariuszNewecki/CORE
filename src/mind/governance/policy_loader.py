@@ -20,7 +20,7 @@ logger = getLogger(__name__)
 
 def _load_policy_yaml(logical_path: str) -> dict[str, Any]:
     """
-    Loads a policy using the settings pathfinder (meta.yaml aware).
+    Loads a policy using the settings pathfinder (PathResolver aware).
     """
     try:
         path = settings.get_path(logical_path)

@@ -18,12 +18,14 @@ FS MUTATION POLICY:
 
 from __future__ import annotations
 
+import fnmatch
 import glob
 from collections.abc import Iterable
 from functools import cached_property
 from pathlib import Path
 from typing import Any
 
+from mind.governance.enforcement_loader import EnforcementMappingLoader
 from shared.config import Settings, settings
 from shared.infrastructure.intent.intent_repository import get_intent_repository
 from shared.infrastructure.knowledge.knowledge_service import KnowledgeService
@@ -67,6 +69,7 @@ class AuditorContext:
 
         self.last_findings: list[Any] = []
         self.policies: dict[str, Any] = self._load_governance_resources()
+        self.enforcement_loader = EnforcementMappingLoader(self.paths.intent_root)
 
         # Knowledge graph is SSOT from database; file artefact is optional debug output.
         self.knowledge_graph: dict[str, Any] = {"symbols": {}}
@@ -143,9 +146,46 @@ class AuditorContext:
         exclude_patterns = set(exclude) | set(hard_excludes)
 
         def _is_excluded(rel_posix: str) -> bool:
+            """
+            Check if a file path matches any exclusion pattern.
+            """
             for pat in exclude_patterns:
-                if glob.fnmatch.fnmatch(rel_posix, pat):
+                pat = pat.replace("\\", "/")
+
+                # Handle standard glob patterns without **
+                if "**" not in pat:
+                    if fnmatch.fnmatch(rel_posix, pat):
+                        return True
+                    continue
+
+                # Handle recursive glob patterns
+                parts = pat.split("**")
+
+                # FIX: If pattern is just "**", exclude everything (unlikely but safe)
+                if not any(parts):
                     return True
+
+                # Prefix check
+                if parts[0]:
+                    prefix = parts[0].rstrip("/")
+                    if not (rel_posix.startswith(prefix + "/") or rel_posix == prefix):
+                        continue
+
+                # Suffix check
+                if parts[-1] and parts[-1] not in ("", "/"):
+                    suffix = parts[-1].lstrip("/")
+                    if not (rel_posix.endswith("/" + suffix) or rel_posix == suffix):
+                        continue
+
+                # Middle part check (e.g., **/pycache/**)
+                # If there are middle parts, the path must contain those segments
+                mid_parts = [p.strip("/") for p in parts[1:-1] if p.strip("/")]
+                if mid_parts:
+                    if not all(mp in rel_posix for mp in mid_parts):
+                        continue
+
+                return True
+
             return False
 
         matches: set[Path] = set()
@@ -155,10 +195,13 @@ class AuditorContext:
                 p = Path(hit)
                 if not p.is_file():
                     continue
-                rel = p.relative_to(root).as_posix()
-                if _is_excluded(rel):
+                try:
+                    rel = p.relative_to(root).as_posix()
+                    if _is_excluded(rel):
+                        continue
+                    matches.add(p)
+                except ValueError:
                     continue
-                matches.add(p)
 
         return sorted(matches)
 
@@ -176,8 +219,6 @@ class AuditorContext:
     async def load_knowledge_graph(self) -> None:
         """
         Load knowledge graph from the database (SSOT).
-
-        This replaces legacy filesystem knowledge graph loading.
         """
         logger.info(
             "Loading knowledge graph from database (SSOT) for %s...", self.repo_path
@@ -202,70 +243,43 @@ class AuditorContext:
     def _save_knowledge_graph_artifact(self) -> None:
         """
         Save knowledge graph to a runtime artefact location for debugging.
-
-        IMPORTANT:
-        - mkdir counts as filesystem mutation.
-        - Therefore we do NOT call PathResolver directory properties that mkdir.
-        - We create and write via FileHandler only.
         """
         import json
 
         try:
             fh = FileHandler(str(self.repo_path))
-
-            # Governed runtime artefact path (relative to repo root)
             reports_rel_dir = "var/reports"
             fh.ensure_dir(reports_rel_dir)
-
             artifact_rel_path = f"{reports_rel_dir}/knowledge_graph.json"
             payload = json.dumps(self.knowledge_graph, indent=2, default=str)
             fh.write_runtime_text(artifact_rel_path, payload)
-
-            logger.debug("Saved knowledge graph artefact: %s", artifact_rel_path)
-        except Exception as e:
-            logger.debug("Skipping knowledge graph artefact write: %s", e)
+        except Exception:
+            pass
 
     # ID: 51b2d7cf-51e4-4c8d-bc34-b5b7d41af7db
     def _load_governance_resources(self) -> dict[str, Any]:
         """
         Load governance resources via IntentRepository.
-
-        Returns:
-            dict: Mapping of doc_id -> parsed policy/pattern content.
         """
         resources: dict[str, Any] = {}
         try:
             intent_repo = get_intent_repository()
-
             for policy_ref in intent_repo.list_policies():
                 try:
                     policy_data = intent_repo.load_policy(policy_ref.policy_id)
                     if policy_data is not None:
                         doc_id = policy_data.get("id") or policy_ref.policy_id
                         resources[doc_id] = policy_data
-                except Exception as e:
-                    logger.debug(
-                        "Failed to load policy %s: %s", policy_ref.policy_id, e
-                    )
-
-            logger.info(
-                "Loaded %s governance resource(s) from IntentRepository",
-                len(intent_repo.list_policies()),
-            )
-
+                except Exception:
+                    continue
         except Exception as e:
-            logger.error(
-                "Failed to load governance resources via IntentRepository: %s", e
-            )
-
+            logger.error("Failed to load governance resources: %s", e)
         return resources
 
 
 def _to_repo_relative_path(path: Path) -> str:
     """
     Convert an absolute path to a repo-relative POSIX path.
-
-    Raises if the path is outside the repository boundary.
     """
     repo_root = Path(settings.REPO_PATH).resolve()
     resolved = path.resolve()

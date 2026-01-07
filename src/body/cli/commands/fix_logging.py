@@ -1,9 +1,12 @@
 # src/body/cli/commands/fix_logging.py
+# ID: atomic.fix.logging
 """
 AST-based automated remediation for logging standards violations.
 
 CONSTITUTIONAL EVOLUTION: This fixer uses AST parsing to match the context-aware
 checker, ensuring the fixer can handle exactly what the checker detects.
+CONSTITUTIONAL FIX: All mutations now route through FileHandler to ensure
+IntentGuard enforcement and auditability.
 
 Converts:
 - console.print() → logger.info()
@@ -20,11 +23,15 @@ Constitutional Rules Enforced:
 from __future__ import annotations
 
 import ast
-import subprocess
 from pathlib import Path
+from typing import TYPE_CHECKING
 
+from shared.infrastructure.validation.black_formatter import format_code_with_black
 from shared.logger import getLogger
 
+
+if TYPE_CHECKING:
+    from shared.infrastructure.storage.file_handler import FileHandler
 
 logger = getLogger(__name__)
 
@@ -38,8 +45,11 @@ class LoggingFixer:
     into proper lazy % formatting while preserving code semantics.
     """
 
-    def __init__(self, repo_root: Path, dry_run: bool = True):
+    def __init__(
+        self, repo_root: Path, file_handler: FileHandler, dry_run: bool = True
+    ):
         self.repo_root = repo_root
+        self.file_handler = file_handler
         self.dry_run = dry_run
         self.fixes_applied = 0
         self.files_modified = 0
@@ -66,7 +76,6 @@ class LoggingFixer:
         """Fix logging violations in a single file using AST transformation."""
         try:
             content = file_path.read_text(encoding="utf-8")
-            original_content = content
 
             # Parse into AST
             try:
@@ -94,15 +103,20 @@ class LoggingFixer:
             fixed_content = self._ensure_logger_import(fixed_content)
 
             # Write or report
+            rel_path = str(file_path.relative_to(self.repo_root))
             if not self.dry_run:
-                file_path.write_text(fixed_content, encoding="utf-8")
-                # Format with Black after AST transformation
-                self._format_with_black(file_path)
-                logger.info("Fixed %s", file_path.relative_to(self.repo_root))
+                # CONSTITUTIONAL FIX: Format in-memory via shared utility
+                try:
+                    formatted_content = format_code_with_black(fixed_content)
+                except Exception as e:
+                    logger.debug("Black formatting failed for %s: %s", rel_path, e)
+                    formatted_content = fixed_content
+
+                # CONSTITUTIONAL FIX: Use governed mutation surface
+                self.file_handler.write_runtime_text(rel_path, formatted_content)
+                logger.info("Fixed %s via governed surface", rel_path)
             else:
-                logger.info(
-                    "[DRY-RUN] Would fix %s", file_path.relative_to(self.repo_root)
-                )
+                logger.info("[DRY-RUN] Would fix %s", rel_path)
 
             self.files_modified += 1
             self.fixes_applied += transformer.fix_count
@@ -112,20 +126,8 @@ class LoggingFixer:
             logger.error("Failed to fix %s: %s", file_path, e)
             return False
 
-    def _format_with_black(self, file_path: Path) -> None:
-        """Format file with Black after AST transformation."""
-        try:
-            subprocess.run(
-                ["black", "--quiet", str(file_path)],
-                check=False,
-                capture_output=True,
-            )
-        except Exception as e:
-            logger.debug("Black formatting failed for %s: %s", file_path, e)
-
     def _ensure_logger_import(self, content: str) -> str:
         """Add logger import if missing, respecting __future__ imports."""
-        # Check if logger import already exists
         if "from shared.logger import getLogger" in content:
             return content
         if "logger = getLogger" in content and "shared.logger" in content:
@@ -150,7 +152,6 @@ class LoggingFixer:
                 else:
                     break
 
-        # Insert logger import
         new_lines = [
             "",
             "from shared.logger import getLogger",
@@ -164,23 +165,14 @@ class LoggingFixer:
     def _is_exempted_file(self, file_path: Path) -> bool:
         """Check if file is exempted from fixing."""
         path_parts = file_path.parts
-
-        # Test files
         if "test" in path_parts or "tests" in path_parts:
             return True
-
-        # Scripts
         if len(path_parts) > 0 and path_parts[0] in ("scripts", "dev-scripts"):
             return True
-
-        # This file itself
         if file_path.name == "fix_logging.py":
             return True
-
-        # CLI utils
         if file_path.name == "cli_utils.py":
             return True
-
         return False
 
 
@@ -188,10 +180,6 @@ class LoggingFixer:
 class LoggingTransformer(ast.NodeTransformer):
     """
     AST NodeTransformer that fixes logging violations.
-
-    This transformer walks the AST and modifies nodes in place:
-    - Converts f-strings in logger calls to % formatting
-    - Could be extended to handle other logging fixes
     """
 
     def __init__(self, file_path: Path):
@@ -203,90 +191,50 @@ class LoggingTransformer(ast.NodeTransformer):
     # ID: 9de559dc-607e-45f7-9880-217c77f68f31
     def visit_Call(self, node: ast.Call) -> ast.Call:
         """Visit function call nodes and fix logger f-strings."""
-        # First, visit children
         self.generic_visit(node)
-
-        # Check if this is a logger method call
         if self._is_logger_call(node):
-            # Check if first argument is an f-string
             if node.args and isinstance(node.args[0], ast.JoinedStr):
-                # Transform f-string to % formatting
                 transformed = self._transform_fstring_to_percent(node)
                 if transformed:
                     self.modified = True
                     self.fix_count += 1
                     return transformed
-
         return node
 
     def _is_logger_call(self, node: ast.Call) -> bool:
         """Check if this is a logger.method() call."""
         logger_methods = ["debug", "info", "warning", "error", "critical", "exception"]
-
         if isinstance(node.func, ast.Attribute):
-            # Check for logger.method pattern
             if isinstance(node.func.value, ast.Name):
                 if node.func.value.id == "logger" and node.func.attr in logger_methods:
                     return True
-
         return False
 
     def _transform_fstring_to_percent(self, node: ast.Call) -> ast.Call | None:
-        """
-        Transform logger.info(f"text {var}") to logger.info("text %s", var).
-
-        Handles:
-        - Simple variables: f"{var}"
-        - Expressions: f"{obj.attr}", f"{func()}"
-        - Multiple variables: f"{a} and {b}"
-        - Mixed text and variables: f"Value: {x}"
-        """
+        """Transform logger.info(f"text {var}") to logger.info("text %s", var)."""
         fstring = node.args[0]
         if not isinstance(fstring, ast.JoinedStr):
             return None
 
-        # Build the format string and collect arguments
         format_parts = []
         format_args = []
 
         for value in fstring.values:
             if isinstance(value, ast.Constant):
-                # This is literal text
-                format_parts.append(value.value)
+                format_parts.append(str(value.value))
             elif isinstance(value, ast.FormattedValue):
-                # This is a {expression} in the f-string
                 format_parts.append("%s")
+                format_args.append(value.value)
 
-                # Extract the expression
-                expr = value.value
-
-                # Handle format specs (like f"{var:.2f}")
-                # For now, we'll just use %s and warn about lost precision
-                if value.format_spec:
-                    logger.warning(
-                        "Lost format spec in %s - manual review needed",
-                        self.file_path.name,
-                    )
-
-                format_args.append(expr)
-
-        # Create the new format string
         format_string = "".join(format_parts)
-
-        # Build new call: logger.method("format string", arg1, arg2, ...)
         new_args = [ast.Constant(value=format_string), *format_args, *node.args[1:]]
-
-        # Create new Call node with same function but new args
         new_call = ast.Call(func=node.func, args=new_args, keywords=node.keywords)
-
-        # Copy location info for better error messages
         ast.copy_location(new_call, node)
-
         return new_call
 
 
 # ID: d1a3f234-bfff-4385-a973-9f387d6b1cc3
-def run_fix(repo_root: Path, dry_run: bool = True) -> dict:
+def run_fix(repo_root: Path, file_handler: FileHandler, dry_run: bool = True) -> dict:
     """Run the logging fixer."""
-    fixer = LoggingFixer(repo_root, dry_run=dry_run)
+    fixer = LoggingFixer(repo_root, file_handler, dry_run=dry_run)
     return fixer.fix_all()

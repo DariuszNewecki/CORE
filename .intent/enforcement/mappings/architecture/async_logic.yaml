@@ -1,0 +1,45 @@
+mappings:
+  # LAW: Modules MUST NOT import 'get_session' globally
+  logic.di.no_global_session:
+    engine: ast_gate
+    params:
+      check_type: import_boundary
+      forbidden:
+        - "shared.infrastructure.database.session_manager.get_session"
+        - "shared.infrastructure.database.session_manager.get_db_session"
+    scope:
+      applies_to: ["src/features/**/*.py", "src/body/services/**/*.py"]
+
+  # LAW: Logic modules MUST NOT hijack the event loop
+  #
+  # EXCLUSIONS RATIONALE (Mind-Body-Will Architecture):
+  # - CLI entry points (Body/API layer) MUST call asyncio.run() to bootstrap async runtime
+  # - CLI helper utilities provide @async_command decorator (legitimate use)
+  # - Internal logic/engines/tools MUST NOT call asyncio.run() (they run INSIDE the runtime)
+  async.no_manual_loop_run:
+    engine: ast_gate
+    params:
+      check_type: restrict_event_loop_creation
+      forbidden_calls: ["asyncio.run", "asyncio.get_event_loop"]
+    scope:
+      applies_to: ["src/**/*.py"]
+      excludes:
+        # CLI Entry Points (Body/API layer) - Bootstrap async runtime
+        - "src/api/cli_user.py"
+        - "src/body/cli/admin_cli.py"
+        - "src/body/cli/commands/**" # Matches both commands/*.py and commands/*/*.py
+        # CLI Helpers - Provide @async_command decorator
+        - "src/shared/cli_utils.py"
+        # Maintenance Scripts - Standalone entry points
+        - "src/features/maintenance/scripts/**"
+        # Tests
+        - "tests/**"
+
+  # LAW: Operational logs MUST use standard getLogger
+  logic.logging.standard_only:
+    engine: ast_gate
+    params:
+      check_type: no_print_statements
+    scope:
+      applies_to: ["src/**/*.py"]
+      excludes: ["src/body/cli/commands/**", "src/api/**", "tests/**"]

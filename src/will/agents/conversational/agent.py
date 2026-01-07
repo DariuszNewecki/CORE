@@ -33,6 +33,7 @@ from typing import Any
 from shared.infrastructure.context.builder import ContextBuilder
 from shared.logger import getLogger
 from will.orchestration.cognitive_service import CognitiveService
+from will.orchestration.decision_tracer import DecisionTracer
 
 from .helpers import (
     _build_llm_prompt,
@@ -66,6 +67,7 @@ class ConversationalAgent:
         """
         self.context_builder = context_builder
         self.cognitive_service = cognitive_service
+        self.tracer = DecisionTracer()
         logger.info("ConversationalAgent initialized (Phase 1: read-only)")
 
     # ID: f5917f41-6465-4e8e-9a4e-0eb4005e7f5f
@@ -95,9 +97,24 @@ class ConversationalAgent:
             logger.info("Sending to LLM for analysis...")
             client = await self.cognitive_service.aget_client_for_role("Planner")
             llm_response = await client.make_request_async(prompt)
-            return llm_response.strip()
+            response_text = llm_response.strip()
+            self.tracer.record(
+                agent=self.__class__.__name__,
+                decision_type="task_execution",
+                rationale="Executing goal based on input context",
+                chosen_action="Returned conversational response to user",
+                confidence=0.9,
+            )
+            return response_text
         except Exception as e:
             logger.error("Failed to process message: %s", e, exc_info=True)
+            self.tracer.record(
+                agent=self.__class__.__name__,
+                decision_type="task_execution",
+                rationale="Executing goal based on input context",
+                chosen_action=f"Failed to process message: {e!s}",
+                confidence=0.9,
+            )
             return f"❌ Error processing your message: {e!s}"
 
     def _create_task_spec(self, user_message: str) -> dict[str, Any]:

@@ -37,16 +37,21 @@ async def fix_clarity(context: CoreContext, file_path: Path, dry_run: bool):
     cognitive_service = context.cognitive_service
 
     # Resolve Prompt via PathResolver (SSOT)
+    # CONSTITUTIONAL FIX: Removed fallback to settings.MIND (.intent is read-only).
+    # Prompts must reside in var/prompts/ as managed by the PathResolver.
+    prompt_path = settings.paths.prompt("refactor_for_clarity")
+
+    if not prompt_path.exists():
+        logger.error(
+            "Constitutional prompt 'refactor_for_clarity.prompt' missing from var/prompts/. Aborting."
+        )
+        return
+
     try:
-        prompt_path = settings.paths.prompt("refactor_for_clarity")
         prompt_template = prompt_path.read_text(encoding="utf-8")
-    except Exception:
-        # Fallback to logical path
-        prompt_path = settings.MIND / "prompts" / "refactor_for_clarity.prompt"
-        if not prompt_path.exists():
-            logger.error("Prompt template 'refactor_for_clarity' not found. Aborting.")
-            return
-        prompt_template = prompt_path.read_text(encoding="utf-8")
+    except Exception as e:
+        logger.error("Failed to read prompt template at %s: %s", prompt_path, e)
+        return
 
     # 2. Get AI Proposal (Will)
     original_code = file_path.read_text("utf-8")

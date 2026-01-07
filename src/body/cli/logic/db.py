@@ -2,6 +2,12 @@
 
 """
 Registers the top-level 'db' command group for managing the CORE operational database.
+
+CONSTITUTIONAL FIX:
+- Aligned with 'governance.artifact_mutation.traceable'.
+- Replaced direct Path writes with governed FileHandler mutations.
+- Redirected Mind-layer exports to the 'var/' runtime directory to maintain
+  the read-only boundary of '.intent/'.
 """
 
 from __future__ import annotations
@@ -12,7 +18,11 @@ from sqlalchemy import text
 
 from shared.config import settings
 from shared.infrastructure.database.session_manager import get_session
-from shared.infrastructure.repositories.db.migration_service import migrate_db
+from shared.infrastructure.repositories.db.migration_service import (
+    MigrationServiceError,
+    migrate_db,
+)
+from shared.infrastructure.storage.file_handler import FileHandler
 from shared.logger import getLogger
 
 from .sync_domains import sync_domains
@@ -24,8 +34,8 @@ db_app = typer.Typer(
 )
 
 
-async def _export_domains():
-    """Fetches domains from the DB and writes them to domains.yaml."""
+async def _export_domains(file_handler: FileHandler):
+    """Fetches domains from the DB and writes them to the runtime knowledge directory."""
     logger.info("Exporting `core.domains` to YAML...")
     async with get_session() as session:
         result = await session.execute(
@@ -34,18 +44,27 @@ async def _export_domains():
             )
         )
         domains_data = [dict(row._mapping) for row in result]
-    output_path = settings.MIND / "knowledge" / "domains.yaml"
-    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    # CONSTITUTIONAL FIX: Use var/ (runtime) instead of .intent/ (mind) for exports.
+    # The Body layer must never write directly to the Constitution.
     yaml_content = {"version": 2, "domains": domains_data}
-    output_path.write_text(yaml.dump(yaml_content, indent=2, sort_keys=False), "utf-8")
+    content_str = yaml.dump(yaml_content, indent=2, sort_keys=False)
+
+    # Resolve the relative path under the project root
+    # Note: var/mind/knowledge/ is the canonical home for runtime knowledge artifacts.
+    rel_path = "var/mind/knowledge/domains.yaml"
+
+    # Governed write: checks IntentGuard and logs the action
+    file_handler.write_runtime_text(rel_path, content_str)
+
     logger.info(
         "Wrote %s domains to %s",
         len(domains_data),
-        output_path.relative_to(settings.REPO_PATH),
+        rel_path,
     )
 
 
-async def _export_vector_metadata():
+async def _export_vector_metadata(file_handler: FileHandler):
     """Fetches vector metadata from the DB and writes it to a report."""
     logger.info("Exporting vector metadata from database to YAML...")
     async with get_session() as session:
@@ -62,13 +81,17 @@ async def _export_vector_metadata():
             if "vector_id" in row_dict and row_dict["vector_id"] is not None:
                 row_dict["vector_id"] = str(row_dict["vector_id"])
             vector_data.append(row_dict)
-    output_path = settings.REPO_PATH / "reports" / "vector_metadata_export.yaml"
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    output_path.write_text(yaml.dump(vector_data, indent=2, sort_keys=False), "utf-8")
+
+    # CONSTITUTIONAL FIX: Use FileHandler for report generation
+    content_str = yaml.dump(vector_data, indent=2, sort_keys=False)
+    rel_path = "reports/vector_metadata_export.yaml"
+
+    file_handler.write_runtime_text(rel_path, content_str)
+
     logger.info(
         "Wrote metadata for %s vectors to %s",
         len(vector_data),
-        output_path.relative_to(settings.REPO_PATH),
+        rel_path,
     )
 
 
@@ -80,10 +103,30 @@ async def export_data() -> None:
     """Exports DB tables to their canonical, read-only YAML file representations."""
     logger.info("Exporting operational data from Database to files...")
 
-    await _export_domains()
-    await _export_vector_metadata()
+    # Create the governed mutation surface
+    file_handler = FileHandler(str(settings.REPO_PATH))
+
+    await _export_domains(file_handler)
+    await _export_vector_metadata(file_handler)
     logger.info("Export complete.")
 
 
 db_app.command("sync-domains")(sync_domains)
-db_app.command("migrate")(migrate_db)
+
+
+@db_app.command("migrate")
+# ID: e8d94b4b-0257-4b03-8c83-03f04d8fb2a8
+async def migrate_db_command(
+    apply: bool = typer.Option(
+        False, "--apply", help="Apply pending migrations (default: dry run)."
+    ),
+) -> None:
+    """Initialize DB schema and apply pending migrations."""
+    try:
+        await migrate_db(apply)
+    except MigrationServiceError as exc:
+        logger.error("%s", exc)
+        raise typer.Exit(exc.exit_code) from exc
+
+
+db_app.command("migrate")(migrate_db_command)

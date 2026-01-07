@@ -1,0 +1,28 @@
+{
+    "$schema": "META/rule_document.schema.json",
+    "kind": "rule_document",
+    "metadata": {
+        "id": "rules.code.linkage",
+        "title": "Code Linkage & Identity",
+        "version": "1.0.0",
+        "authority": "policy",
+        "phase": "audit",
+        "status": "active"
+    },
+    "rules": [
+        {
+            "id": "linkage.assign_ids",
+            "statement": "Public functions and methods MUST have unique UUID identifiers for Knowledge Graph synchronization.",
+            "authority": "policy",
+            "phase": "audit",
+            "enforcement": "blocking"
+        },
+        {
+            "id": "linkage.duplicate_ids",
+            "statement": "Symbol identifiers (# ID:) MUST be globally unique across the entire codebase.",
+            "authority": "policy",
+            "phase": "audit",
+            "enforcement": "blocking"
+        }
+    ]
+}

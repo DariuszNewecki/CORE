@@ -1,0 +1,40 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "CORE Intent Enumerations",
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+        "authority": {
+            "type": "string",
+            "enum": [
+                "meta",
+                "constitution",
+                "policy",
+                "code"
+            ]
+        },
+        "phase": {
+            "type": "string",
+            "enum": [
+                "parse",
+                "load",
+                "audit",
+                "runtime",
+                "execution"
+            ]
+        },
+        "strength": {
+            "type": "string",
+            "enum": [
+                "blocking",
+                "reporting",
+                "advisory"
+            ]
+        }
+    },
+    "required": [
+        "authority",
+        "phase",
+        "strength"
+    ]
+}

@@ -1,0 +1,42 @@
+{
+    "$schema": "META/rule_document.schema.json",
+    "kind": "rule_document",
+    "metadata": {
+        "id": "rules.architecture.core_safety",
+        "title": "CORE Safety Rules",
+        "version": "0.1.0",
+        "authority": "policy",
+        "phase": "runtime",
+        "status": "active"
+    },
+    "rules": [
+        {
+            "id": "architecture.no_module_async_engine",
+            "statement": "Async execution engines MUST NOT be instantiated at module import time.",
+            "enforcement": "blocking",
+            "authority": "policy",
+            "phase": "load"
+        },
+        {
+            "id": "architecture.max_file_size",
+            "statement": "Source files MUST remain below a defined maximum size to preserve maintainability.",
+            "enforcement": "reporting",
+            "authority": "policy",
+            "phase": "audit"
+        },
+        {
+            "id": "architecture.constitution_read_only",
+            "statement": "The constitutional intent directory MUST be immutable.",
+            "enforcement": "blocking",
+            "authority": "constitution",
+            "phase": "runtime"
+        },
+        {
+            "id": "architecture.meta_read_only",
+            "statement": "Intent schema and meta artifacts MUST NOT be mutated at runtime.",
+            "enforcement": "blocking",
+            "authority": "meta",
+            "phase": "runtime"
+        }
+    ]
+}

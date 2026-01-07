@@ -1,0 +1,35 @@
+{
+    "$schema": "META/rule_document.schema.json",
+    "kind": "rule_document",
+    "metadata": {
+        "id": "rules.will.autonomy",
+        "title": "Autonomous Lane Control",
+        "version": "1.0.0",
+        "authority": "policy",
+        "phase": "runtime",
+        "status": "active"
+    },
+    "rules": [
+        {
+            "id": "autonomy.lanes.boundary_enforcement",
+            "statement": "Autonomous agents MUST NOT modify files outside their assigned autonomy lane.",
+            "authority": "constitution",
+            "phase": "runtime",
+            "enforcement": "blocking"
+        },
+        {
+            "id": "autonomy.tracing.mandatory",
+            "statement": "All non-trivial autonomous decisions MUST produce an inspectable trace in the Decision Log.",
+            "authority": "policy",
+            "phase": "execution",
+            "enforcement": "reporting"
+        },
+        {
+            "id": "autonomy.reasoning.policy_alignment",
+            "statement": "Agent goal planning MUST include a semantic check against the Quality Assurance policy.",
+            "authority": "policy",
+            "phase": "runtime",
+            "enforcement": "reporting"
+        }
+    ]
+}

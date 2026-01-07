@@ -8,7 +8,10 @@ from __future__ import annotations
 
 import typer
 
-from features.project_lifecycle.integration_service import integrate_changes
+from features.project_lifecycle.integration_service import (
+    IntegrationError,
+    integrate_changes,
+)
 from shared.cli_utils import core_command
 from shared.context import CoreContext
 
@@ -41,4 +44,7 @@ async def integrate_command(
     4. Git Commit (if successful)
     """
     core_context: CoreContext = ctx.obj
-    await integrate_changes(context=core_context, commit_message=commit_message)
+    try:
+        await integrate_changes(context=core_context, commit_message=commit_message)
+    except IntegrationError as exc:
+        raise typer.Exit(exc.exit_code) from exc

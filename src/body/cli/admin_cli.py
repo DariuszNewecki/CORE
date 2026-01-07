@@ -2,9 +2,6 @@
 
 """
 The single, canonical entry point for the core-admin CLI.
-This module assembles all command groups into a single Typer application.
-
-Refactored for A2 Autonomy: Now uses ServiceRegistry for dependency wiring.
 """
 
 from __future__ import annotations
@@ -19,6 +16,7 @@ from body.cli.commands import (
     enrich,
     governance,
     inspect,
+    interactive_test,
     mind,
     run,
     search,
@@ -29,16 +27,12 @@ from body.cli.commands.autonomy import autonomy_app
 from body.cli.commands.check import check_app
 from body.cli.commands.dev_sync import dev_sync_app
 from body.cli.commands.develop import develop_app
-
-# NEW: Import the refactored diagnostics command group
 from body.cli.commands.diagnostics import app as diagnostics_app
 from body.cli.commands.fix import fix_app
 from body.cli.commands.inspect_patterns import inspect_patterns
 from body.cli.commands.manage import manage
 from body.cli.interactive import launch_interactive_menu
 from body.cli.logic.tools import tools_app
-
-# New Architecture: Registry
 from body.services.service_registry import service_registry
 from shared.config import settings
 from shared.context import CoreContext
@@ -60,53 +54,40 @@ app = typer.Typer(
     help=(
         "\n    CORE: The Self-Improving System Architect's Toolkit.\n"
         "    This CLI is the primary interface for operating and governing the CORE system.\n"
-        "    "
     ),
     no_args_is_help=False,
 )
 
-# Initialize the Context using the Registry pattern.
-# Note: We ONLY initialize what's strictly required for CLI bootstrap.
-# All heavy lifting (Qdrant, Cognitive, Auditor) happens lazily via the registry.
 core_context = CoreContext(
     registry=service_registry,
-    # Legacy fields - populated for backward compatibility, but sourced from registry/settings
-    # We still create simple lightweight objects here if needed, or pass None
     git_service=GitService(settings.REPO_PATH),
     file_handler=FileHandler(str(settings.REPO_PATH)),
     planner_config=PlannerConfig(),
-    # Heavy services are explicitly None to force lazy loading or registry usage
     cognitive_service=None,
-    knowledge_service=KnowledgeService(settings.REPO_PATH),  # Lightweight
+    knowledge_service=KnowledgeService(settings.REPO_PATH),
     qdrant_service=None,
     auditor_context=None,
 )
 
 
 def _build_context_service() -> ContextService:
-    """
-    Factory for ContextService.
-
-    ContextService is dependency-aware and resolves heavy services
-    lazily via the ServiceRegistry when first used.
-    """
+    """Factory for ContextService."""
     return ContextService(
         qdrant_client=None,
         cognitive_service=None,
         config={},
         project_root=str(settings.REPO_PATH),
         session_factory=get_session,
-        service_registry=service_registry,  # ← inject registry
+        service_registry=service_registry,
     )
 
 
-# Wire the factory into CoreContext
 core_context.context_service_factory = _build_context_service
 
 
 # ID: c1414598-a5f8-46c2-8ff9-3a141bea3b11
 def register_all_commands(app_instance: typer.Typer) -> None:
-    """Register all command groups and inject context declaratively."""
+    """Register all command groups."""
     app_instance.add_typer(check_app, name="check")
     app_instance.add_typer(coverage.coverage_app, name="coverage")
     app_instance.add_typer(enrich.enrich_app, name="enrich")
@@ -126,15 +107,10 @@ def register_all_commands(app_instance: typer.Typer) -> None:
     app_instance.add_typer(
         check_atomic_actions.atomic_actions_group, name="atomic-actions"
     )
-    app_instance.add_typer(
-        autonomy_app, name="autonomy"
-    )  # ← Fixed! (was app.add_typer)
+    app_instance.add_typer(autonomy_app, name="autonomy")
     app_instance.add_typer(tools_app, name="tools")
-
-    # NEW: Register the diagnostics group
     app_instance.add_typer(diagnostics_app, name="diagnostics")
-
-    # Pattern diagnostics
+    app_instance.add_typer(interactive_test.app, name="interactive-test")
     app_instance.command(name="inspect-patterns")(inspect_patterns)
 
 
@@ -145,6 +121,11 @@ register_all_commands(app)
 # ID: 2429907d-f6f1-47a5-a3af-5df18685c545
 def main(ctx: typer.Context) -> None:
     """If no command is specified, launch the interactive menu."""
+
+    # CONSTITUTIONAL FIX: Prime the ServiceRegistry here.
+    # This ensures every CLI command has access to a governed session factory.
+    service_registry.prime(get_session)
+
     ctx.obj = core_context
     if ctx.invoked_subcommand is None:
         console.print(

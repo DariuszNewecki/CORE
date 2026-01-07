@@ -1,5 +1,12 @@
 # src/mind/logic/engines/ast_gate/checks/generic_checks.py
-"""Universal AST Primitives - Enhanced for Forbidden Patterns."""
+"""
+Universal AST Primitives - Enhanced for Forbidden and Mandatory Patterns.
+
+CONSTITUTIONAL FIX:
+- Added 'required_calls' primitive to support mandatory instrumentation rules.
+- Enables 'autonomy.tracing.mandatory' to verify presence rather than absence.
+- Maintains 'dry_by_design' by centralizing call-graph inspection.
+"""
 
 from __future__ import annotations
 
@@ -59,10 +66,25 @@ class GenericASTChecks:
                     if name in forbidden:
                         return f"contains forbidden call '{name}()' on line {sub_node.lineno}"
 
-        # 3. Primitive: forbidden_imports (e.g. no 'rich' or 'click')
+        # 3. CONSTITUTIONAL FIX: required_calls (e.g. MUST call self.tracer.record())
+        # This replaces the backward 'forbidden_calls' logic used in tracing.
+        if check_type == "required_calls":
+            required = set(requirement.get("calls", []))
+            found_calls = set()
+
+            for sub_node in ast.walk(node):
+                if isinstance(sub_node, ast.Call):
+                    name = ASTHelpers.full_attr_name(sub_node.func)
+                    if name:
+                        found_calls.add(name)
+
+            missing = sorted(list(required - found_calls))
+            if missing:
+                return f"missing mandatory call(s): {missing}"
+
+        # 4. Primitive: forbidden_imports (e.g. no 'rich' or 'click')
         if check_type == "forbidden_imports":
             forbidden = set(requirement.get("imports", []))
-            # Imports are usually at module level, so we walk the whole tree
             for sub_node in ast.walk(node):
                 if isinstance(sub_node, ast.Import):
                     for alias in sub_node.names:
@@ -72,7 +94,7 @@ class GenericASTChecks:
                     if sub_node.module.split(".")[0] in forbidden:
                         return f"contains forbidden import-from '{sub_node.module}'"
 
-        # 4. Primitive: decorator_args (e.g. @atomic_action must have action_id)
+        # 5. Primitive: decorator_args (e.g. @atomic_action must have action_id)
         if check_type == "decorator_args":
             target_dec = requirement.get("decorator")
             required_keys = set(requirement.get("required_kwargs", []))

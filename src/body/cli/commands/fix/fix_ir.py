@@ -1,29 +1,37 @@
 # src/body/cli/commands/fix/fix_ir.py
+# ID: atomic.fix.ir
 """
 IR (Incident Response) self-healing commands.
 
 Refactored to use the Constitutional CLI Framework (@core_command).
+CONSTITUTIONAL FIX: All mutations now route through FileHandler to ensure
+IntentGuard enforcement and auditability.
 """
 
 from __future__ import annotations
 
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import typer
 
-from body.cli.commands.fix import (
+from shared.cli_utils import core_command
+from shared.logger import getLogger
+
+# CONSTITUTIONAL FIX: Import fix_app so the decorators @fix_app.command work
+from . import (
     console,
     fix_app,
     handle_command_errors,
 )
-from shared.cli_utils import core_command
-from shared.config import settings
-from shared.logger import getLogger
 
+
+if TYPE_CHECKING:
+    from shared.context import CoreContext
 
 logger = getLogger(__name__)
 
-IR_DIR = Path(settings.REPO_PATH) / ".intent" / "mind" / "ir"
+IR_DIR = Path(".intent") / "mind" / "ir"
 TRIAGE_FILE = IR_DIR / "triage_log.yaml"
 INCIDENT_LOG_FILE = IR_DIR / "incident_log.yaml"
 
@@ -40,36 +48,28 @@ entries: []
 """
 
 
-def _ensure_ir_file(path: Path, content: str, label: str) -> None:
+def _run_ir_fix(
+    context: CoreContext, path: Path, content: str, label: str, write: bool
+) -> None:
     """
-    Helper: Ensure a minimal IR artifact exists.
+    Generic handler for IR fix commands using the governed FileHandler.
     """
-    path.parent.mkdir(parents=True, exist_ok=True)
-
-    if path.exists():
-        logger.info("%s already exists at %s", label, path)
-        console.print(f"[yellow]INFO {label} already exists.[/yellow]")
-        return
-
-    path.write_text(content, encoding="utf-8")
-    logger.info("Created %s at %s", label, path)
-    console.print(f"[green]✅ Created {label}[/green]")
-
-
-def _run_ir_fix(path: Path, content: str, label: str, write: bool) -> None:
-    """
-    Generic handler for IR fix commands.
-    """
-    # Safety check handled by @core_command decorator
+    rel_path = str(path).replace("\\", "/")
 
     if not write:
         console.print(
-            f"[yellow]Dry run:[/yellow] would ensure {path} exists with a "
+            f"[yellow]Dry run:[/yellow] would ensure {rel_path} exists with a "
             f"minimal {label.lower()} structure. Use --write to apply."
         )
         return
 
-    _ensure_ir_file(path, content, label)
+    try:
+        context.file_handler.write_runtime_text(rel_path, content)
+        logger.info("Governed Write: %s at %s", label, rel_path)
+        console.print(f"[green]✅ Created {label}[/green]")
+    except Exception as e:
+        logger.error("Failed to bootstrap %s: %s", label, e)
+        console.print(f"[red]❌ Failed to create {label}: {e}[/red]")
 
 
 @fix_app.command("ir-triage", help="Initialize or update the incident triage log.")
@@ -87,7 +87,8 @@ def fix_ir_triage(
     """
     Bootstrap the IR triage log under .intent/mind/ir/.
     """
-    _run_ir_fix(TRIAGE_FILE, TRIAGE_CONTENT, "IR triage log", write)
+    core_context: CoreContext = ctx.obj
+    _run_ir_fix(core_context, TRIAGE_FILE, TRIAGE_CONTENT, "IR triage log", write)
 
 
 @fix_app.command("ir-log", help="Initialize or update the incident response log.")
@@ -105,4 +106,7 @@ def fix_ir_log(
     """
     Bootstrap the main incident response log under .intent/mind/ir/.
     """
-    _run_ir_fix(INCIDENT_LOG_FILE, INCIDENT_LOG_CONTENT, "IR incident log", write)
+    core_context: CoreContext = ctx.obj
+    _run_ir_fix(
+        core_context, INCIDENT_LOG_FILE, INCIDENT_LOG_CONTENT, "IR incident log", write
+    )

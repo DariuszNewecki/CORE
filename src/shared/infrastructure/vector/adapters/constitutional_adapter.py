@@ -3,32 +3,42 @@
 """
 Constitutional Adapter - Constitution/Policies/Standards Vectorization
 
-Converts constitutional documents (constitution + policies + optional standards)
-into VectorizableItems for VectorIndexService.
+Orchestrates transformation of constitutional documents into VectorizableItems
+for semantic search.
 
-Canonical intent layout (SSOT):
-    .intent/
-      constitution/
-      policies/
-      schemas/
-      standards/   (optional; may be empty depending on rollout)
+CONSTITUTIONAL COMPLIANCE:
+- Uses IntentRepository as SSOT for all .intent/ access
+- NO direct filesystem crawling
+- Delegates discovery and loading to IntentRepository
+- Pure orchestration: IntentRepository → chunker → item_builder → VectorizableItems
 
-Design principles:
-    - Deterministic path resolution via settings.paths
-    - Stable, canonical document keys based on relative path under the intent root
-    - Explicit doc_type separation: constitution | policy | standard | pattern
+Architecture (Mind-Body-Will):
+    Mind (IntentRepository): Knows where files are, loads them
+    Body (ConstitutionalAdapter): Orchestrates transformation
+    Will (VectorIndexService): Stores vectors for semantic search
+
+Modular Design:
+- constitutional/chunker: Document chunking logic
+- constitutional/item_builder: VectorizableItem construction
+- constitutional/doc_key_resolver: Canonical key computation
+- This module: Orchestration only
 """
 
 from __future__ import annotations
 
-import hashlib
 from pathlib import Path
-from typing import Any, ClassVar
+from typing import ClassVar
 
-from shared.config import settings
+from shared.infrastructure.intent.intent_repository import (
+    IntentRepository,
+    PolicyRef,
+    get_intent_repository,
+)
+from shared.infrastructure.vector.adapters.constitutional.item_builder import (
+    data_to_items,
+)
 from shared.logger import getLogger
 from shared.models.vector_models import VectorizableItem
-from shared.processors.yaml_processor import strict_yaml_processor
 
 
 logger = getLogger(__name__)
@@ -36,19 +46,30 @@ logger = getLogger(__name__)
 
 # ID: bd536b63-ab28-435d-bdd6-bdd4d90b33f0
 class ConstitutionalAdapter:
-    """Adapts constitutional files into vectorizable items."""
+    """
+    Adapts constitutional files into vectorizable items.
+
+    CONSTITUTIONAL BOUNDARY:
+    - ALL .intent/ access goes through IntentRepository
+    - NO direct filesystem operations
+    - Pure orchestration: PolicyRef + document data → VectorizableItem
+    """
 
     _EXTENSIONS: ClassVar[tuple[str, ...]] = (".json", ".yaml", ".yml")
 
-    def __init__(self, intent_root: Path | None = None):
+    def __init__(self, intent_repository: IntentRepository | None = None):
         """
+        Initialize adapter.
+
         Args:
-            intent_root: Optional override for .intent root.
-                        Defaults to settings.paths.intent_root.
+            intent_repository: Optional IntentRepository instance.
+                              If None, uses singleton from get_intent_repository().
         """
-        self.intent_root = (intent_root or settings.paths.intent_root).resolve()
+        self.intent_repo = intent_repository or get_intent_repository()
+        self.intent_repo.initialize()  # Ensure index is built
+
         logger.debug(
-            "ConstitutionalAdapter initialized (intent_root=%s)", self.intent_root
+            "ConstitutionalAdapter initialized (intent_root=%s)", self.intent_repo.root
         )
 
     # -------------------------------------------------------------------------
@@ -57,9 +78,20 @@ class ConstitutionalAdapter:
 
     # ID: 7d7f430c-fd4b-4b99-9e35-76a28b93b492
     def policies_to_items(self) -> list[VectorizableItem]:
-        """Convert all executable governance policies into vector items."""
-        return self._process_dir(
-            self._policies_dir(), doc_type="policy", recursive=True, key_root="policies"
+        """
+        Convert all executable governance policies into vector items.
+
+        Uses IntentRepository to discover policies from:
+        - .intent/policies/
+        - .intent/standards/
+        - .intent/rules/
+
+        Returns:
+            List of VectorizableItem objects ready for indexing
+        """
+        policy_refs = self.intent_repo.list_policies()
+        return self._process_policy_refs(
+            policy_refs, doc_type="policy", key_root="policies"
         )
 
     # ID: 5beb285c-cec2-4d2b-8107-4c948e62d818
@@ -67,118 +99,207 @@ class ConstitutionalAdapter:
         """
         Convert architecture patterns into vector items.
 
-        Canonical behavior:
-            Treat patterns as a subset of governance policies under policies/architecture.
+        Filters policies for those under */architecture/* paths.
+
+        Returns:
+            List of VectorizableItem objects for patterns
         """
-        arch_dir = self._policies_dir() / "architecture"
-        return self._process_dir(
-            arch_dir, doc_type="pattern", recursive=False, key_root="policies"
+        all_refs = self.intent_repo.list_policies()
+
+        # Filter for patterns under architecture subdirectories
+        pattern_refs = [
+            ref
+            for ref in all_refs
+            if "/architecture/" in str(ref.path).replace("\\", "/")
+        ]
+
+        if not pattern_refs:
+            logger.info("No architecture pattern files found")
+            return []
+
+        return self._process_policy_refs(
+            pattern_refs,
+            doc_type="pattern",
+            key_root="policies",  # Patterns are policies
         )
 
     # ID: a048dee6-165e-4f74-bd20-8dcacf87125f
     def constitution_to_items(self) -> list[VectorizableItem]:
-        """Convert constitution documents into vector items."""
-        return self._process_dir(
-            self._constitution_dir(),
-            doc_type="constitution",
-            recursive=True,
-            key_root="constitution",
-        )
+        """
+        Convert constitution documents into vector items.
 
-    # Optional: keep standards indexing separate and correctly typed
+        Processes files from .intent/constitution/ directory.
+
+        Returns:
+            List of VectorizableItem objects for constitution
+        """
+        return self._process_constitution_dir()
+
     # ID: 6d5a1ee7-ebc0-44cd-bcaf-b30045d73547
     def standards_to_items(self) -> list[VectorizableItem]:
         """
         Convert standards documents into vector items.
 
-        NOTE:
-            Your current canonical tree shows standards/ exists but may be empty.
-            This function is safe to call even when empty.
+        NOTE: Standards are already included in policies_to_items()
+        since IntentRepository searches ["policies", "standards", "rules"].
+        This method exists for backward compatibility and explicit standards querying.
+
+        Returns:
+            List of VectorizableItem objects for standards
         """
-        return self._process_dir(
-            self._standards_dir(),
-            doc_type="standard",
-            recursive=True,
-            key_root="standards",
+        all_refs = self.intent_repo.list_policies()
+
+        # Filter for standards only (path starts with standards/)
+        standards_refs = [
+            ref for ref in all_refs if str(ref.policy_id).startswith("standards/")
+        ]
+
+        if not standards_refs:
+            logger.info("No standards files found")
+            return []
+
+        return self._process_policy_refs(
+            standards_refs, doc_type="standard", key_root="standards"
         )
 
-    # Backward compat alias: older callers may still use this name
     # ID: bb43de2b-45e4-4889-aa23-c0bcd965d73d
     def enforcement_policies_to_items(self) -> list[VectorizableItem]:
-        """Alias for policies_to_items()."""
+        """Backward compatibility alias for policies_to_items()."""
         return self.policies_to_items()
 
     # -------------------------------------------------------------------------
-    # Directory resolution (deterministic; no silent semantic drift)
+    # Processing - Uses IntentRepository data
     # -------------------------------------------------------------------------
 
-    def _standards_dir(self) -> Path:
-        """Get standards directory (optional)."""
-        return (self.intent_root / "standards").resolve()
-
-    def _constitution_dir(self) -> Path:
-        """Get constitution directory."""
-        return (self.intent_root / "constitution").resolve()
-
-    def _policies_dir(self) -> Path:
-        """Get policies directory."""
-        return (self.intent_root / "policies").resolve()
-
-    def _require_path(self, attr_name: str, fallback_name: str) -> Path:
-        """
-        Resolve an intent path deterministically.
-
-        We still provide a fallback for robustness, but we log it as a warning,
-        because in CORE the resolver contract should be the SSOT.
-        """
-        if hasattr(settings, "paths") and hasattr(settings.paths, attr_name):
-            value = getattr(settings.paths, attr_name)
-            if isinstance(value, Path):
-                return value
-            if callable(value):
-                resolved = value()
-                if isinstance(resolved, Path):
-                    return resolved
-
-        fallback = (self.intent_root / fallback_name).resolve()
-        logger.warning(
-            "PathResolver missing '%s'; using fallback path: %s", attr_name, fallback
-        )
-        return fallback
-
-    # -------------------------------------------------------------------------
-    # Processing
-    # -------------------------------------------------------------------------
-
-    def _process_dir(
+    def _process_policy_refs(
         self,
-        directory: Path,
+        policy_refs: list[PolicyRef],
         *,
         doc_type: str,
-        recursive: bool = False,
         key_root: str,
     ) -> list[VectorizableItem]:
-        """Process directory and convert files to vector items."""
-        if not directory.exists():
-            logger.warning("Directory not found for %s: %s", doc_type, directory)
+        """
+        Process PolicyRef objects from IntentRepository into VectorizableItems.
+
+        Args:
+            policy_refs: List of PolicyRef from IntentRepository
+            doc_type: Document type (policy, pattern, standard)
+            key_root: Root for key generation (policies, standards)
+
+        Returns:
+            List of VectorizableItem objects
+        """
+        if not policy_refs:
+            logger.info("No %s files to process", doc_type)
             return []
 
-        files = self._collect_files(directory, recursive)
+        logger.info("Processing %s %s file(s)", len(policy_refs), doc_type)
+
+        items: list[VectorizableItem] = []
+        for ref in policy_refs:
+            try:
+                # Load document through IntentRepository (SSOT)
+                data = self.intent_repo.load_document(ref.path)
+
+                if not isinstance(data, dict):
+                    logger.warning(
+                        "Skipping non-dict document: %s (type=%s)",
+                        ref.path,
+                        type(data).__name__,
+                    )
+                    continue
+
+                # Transform to VectorizableItems (delegates to item_builder)
+                file_items = data_to_items(
+                    data,
+                    ref.path,
+                    doc_type,
+                    key_root=key_root,
+                    intent_root=self.intent_repo.root,
+                )
+                items.extend(file_items)
+
+            except Exception as exc:
+                logger.exception(
+                    "Failed to process %s (%s): %s", ref.path, doc_type, exc
+                )
+                continue
+
+        logger.info(
+            "Generated %s item(s) from %s file(s)", len(items), len(policy_refs)
+        )
+        return items
+
+    def _process_constitution_dir(self) -> list[VectorizableItem]:
+        """
+        Process constitution directory files.
+
+        Constitution files are not indexed by IntentRepository's policy index,
+        so we use direct directory resolution through IntentRepository.root.
+
+        Returns:
+            List of VectorizableItem objects
+        """
+        constitution_dir = self.intent_repo.root / "constitution"
+
+        if not constitution_dir.exists():
+            logger.warning("Constitution directory not found: %s", constitution_dir)
+            return []
+
+        files = self._collect_files(constitution_dir, recursive=True)
         if not files:
-            logger.info("No %s files found under %s", doc_type, directory)
+            logger.info("No constitution files found")
             return []
 
-        logger.info("Processing %s %s file(s) from %s", len(files), doc_type, directory)
+        logger.info("Processing %s constitution file(s)", len(files))
 
         items: list[VectorizableItem] = []
         for file_path in files:
-            items.extend(self._process_file(file_path, doc_type, key_root=key_root))
+            try:
+                # Load through IntentRepository for consistency
+                data = self.intent_repo.load_document(file_path)
+
+                if not isinstance(data, dict):
+                    logger.warning(
+                        "Skipping non-dict document: %s (type=%s)",
+                        file_path,
+                        type(data).__name__,
+                    )
+                    continue
+
+                # Transform to VectorizableItems (delegates to item_builder)
+                file_items = data_to_items(
+                    data,
+                    file_path,
+                    doc_type="constitution",
+                    key_root="constitution",
+                    intent_root=self.intent_repo.root,
+                )
+                items.extend(file_items)
+
+            except Exception as exc:
+                logger.exception(
+                    "Failed to process constitution file %s: %s", file_path, exc
+                )
+                continue
 
         logger.info("Generated %s item(s) from %s file(s)", len(items), len(files))
         return items
 
     def _collect_files(self, directory: Path, recursive: bool) -> list[Path]:
-        """Collect JSON/YAML files from directory."""
+        """
+        Collect JSON/YAML files from directory.
+
+        This is only used for constitution directory since those files
+        are not in the policy index.
+
+        Args:
+            directory: Directory to scan
+            recursive: Whether to scan recursively
+
+        Returns:
+            Sorted list of file paths
+        """
         collected: set[Path] = set()
         for ext in self._EXTENSIONS:
             if recursive:
@@ -186,275 +307,3 @@ class ConstitutionalAdapter:
             else:
                 collected.update(p for p in directory.glob(f"*{ext}") if p.is_file())
         return sorted(collected)
-
-    def _process_file(
-        self, file_path: Path, doc_type: str, *, key_root: str
-    ) -> list[VectorizableItem]:
-        """Process a single file and convert to vector items."""
-        try:
-            data = strict_yaml_processor.load(file_path)
-            if not isinstance(data, dict):
-                raise ValueError(
-                    f"Expected mapping in {file_path}, got {type(data).__name__}"
-                )
-            return self._data_to_items(data, file_path, doc_type, key_root=key_root)
-        except Exception as exc:
-            logger.exception("Failed to process %s (%s): %s", file_path, doc_type, exc)
-            return []
-
-    def _data_to_items(
-        self,
-        data: dict[str, Any],
-        file_path: Path,
-        doc_type: str,
-        *,
-        key_root: str,
-    ) -> list[VectorizableItem]:
-        """Convert document data to vector items."""
-        # Prefer explicit doc fields if present, but always compute a canonical doc_key.
-        doc_id = self._safe_str(data.get("id")) or file_path.stem
-        doc_version = self._safe_str(data.get("version")) or "unknown"
-        doc_title = self._safe_str(data.get("title")) or doc_id
-
-        doc_key = self._compute_doc_key(file_path, key_root=key_root)
-
-        chunks = self._chunk_document(data)
-        items: list[VectorizableItem] = []
-        for idx, chunk in enumerate(chunks):
-            item = self._chunk_to_item(
-                chunk=chunk,
-                idx=idx,
-                doc_id=doc_id,
-                doc_key=doc_key,
-                doc_version=doc_version,
-                doc_title=doc_title,
-                doc_type=doc_type,
-                file_path=file_path,
-            )
-            if item is not None:
-                items.append(item)
-        return items
-
-    def _compute_doc_key(self, file_path: Path, *, key_root: str) -> str:
-        """
-        Compute canonical document key based on canonical intent layout.
-
-        key_root must be one of: policies | constitution | standards.
-        Returns a stable path-like key without extension, e.g.:
-            policies/code/code_standards
-            constitution/authority
-        """
-        root_dir = self.intent_root / key_root
-        try:
-            rel = file_path.resolve().relative_to(root_dir.resolve())
-            rel_no_ext = rel.with_suffix("")
-            return f"{key_root}/{rel_no_ext.as_posix()}"
-        except Exception:
-            # Fallback: still stable-ish, but should not happen in a healthy repo.
-            return f"{key_root}/{file_path.stem}"
-
-    def _chunk_to_item(
-        self,
-        *,
-        chunk: dict[str, Any],
-        idx: int,
-        doc_id: str,
-        doc_key: str,
-        doc_version: str,
-        doc_title: str,
-        doc_type: str,
-        file_path: Path,
-    ) -> VectorizableItem | None:
-        """Convert a chunk to a VectorizableItem."""
-        content = self._safe_str(chunk.get("content", "")).strip()
-        if not content:
-            return None
-
-        section_type = self._safe_str(chunk.get("section_type")) or "section"
-        section_path = self._safe_str(chunk.get("section_path")) or section_type
-
-        # Make item_id stable and collision-resistant across taxonomy.
-        # doc_key already includes policy/constitution/standard prefix and relative path.
-        item_id = f"{doc_key}:{section_type}:{idx}"
-
-        content_hash = hashlib.sha256(content.encode("utf-8")).hexdigest()
-        try:
-            rel_path = file_path.relative_to(settings.REPO_PATH)
-            rel_path_str = str(rel_path).replace("\\", "/")
-        except Exception:
-            rel_path_str = str(file_path).replace("\\", "/")
-
-        payload = {
-            "doc_id": doc_id,
-            "doc_key": doc_key,
-            "doc_version": doc_version,
-            "doc_title": doc_title,
-            "doc_type": doc_type,
-            "filename": file_path.name,
-            "file_path": rel_path_str,
-            "section_type": section_type,
-            "section_path": section_path,
-            "severity": self._safe_str(chunk.get("severity")) or "error",
-            "content_sha256": content_hash,
-        }
-        return VectorizableItem(item_id=item_id, text=content, payload=payload)
-
-    # -------------------------------------------------------------------------
-    # Chunking
-    # -------------------------------------------------------------------------
-
-    def _chunk_document(self, data: dict[str, Any]) -> list[dict[str, Any]]:
-        """Chunk a document into semantic sections."""
-        chunks: list[dict[str, Any]] = []
-
-        title = self._safe_str(data.get("title")).strip()
-        purpose = self._safe_str(data.get("purpose")).strip()
-        if title and purpose:
-            chunks.append(
-                {
-                    "section_type": "purpose",
-                    "section_path": "purpose",
-                    "content": f"{title}\n\n{purpose}",
-                }
-            )
-
-        philosophy = self._safe_str(data.get("philosophy")).strip()
-        if philosophy:
-            chunks.append(
-                {
-                    "section_type": "philosophy",
-                    "section_path": "philosophy",
-                    "content": philosophy,
-                }
-            )
-
-        requirements = data.get("requirements")
-        if isinstance(requirements, dict):
-            chunks.extend(self._chunk_requirements(requirements))
-
-        rules = data.get("rules")
-        if isinstance(rules, list):
-            chunks.extend(self._chunk_rules(rules))
-
-        validation_rules = data.get("validation_rules")
-        if isinstance(validation_rules, list):
-            chunks.extend(self._chunk_validation_rules(validation_rules))
-
-        examples = data.get("examples")
-        if isinstance(examples, dict):
-            chunks.extend(self._chunk_examples(examples))
-
-        return chunks
-
-    def _chunk_requirements(self, requirements: dict[str, Any]) -> list[dict[str, Any]]:
-        """Chunk requirements section."""
-        chunks: list[dict[str, Any]] = []
-        for req_name, req_data in requirements.items():
-            if not isinstance(req_name, str) or not isinstance(req_data, dict):
-                continue
-            mandate = self._safe_str(req_data.get("mandate")).strip()
-            if not mandate:
-                continue
-
-            content = f"{mandate}\n"
-            impl = req_data.get("implementation")
-            if impl is not None:
-                content += "\nImplementation:\n"
-                if isinstance(impl, list):
-                    lines = [self._safe_str(x).strip() for x in impl if x is not None]
-                    lines = [x for x in lines if x]
-                    content += "\n".join(f"- {x}" for x in lines)
-                else:
-                    content += self._safe_str(impl).strip()
-
-            chunks.append(
-                {
-                    "section_type": "requirement",
-                    "section_path": f"requirements.{req_name}",
-                    "content": content,
-                    "severity": "error",
-                }
-            )
-        return chunks
-
-    def _chunk_rules(self, rules: list[Any]) -> list[dict[str, Any]]:
-        """Chunk rules section."""
-        chunks: list[dict[str, Any]] = []
-        for rule in rules:
-            if not isinstance(rule, dict):
-                continue
-            statement = self._safe_str(rule.get("statement")).strip()
-            if not statement:
-                continue
-
-            rule_id = self._safe_str(rule.get("id")) or "unknown"
-            enforcement = self._safe_str(rule.get("enforcement")) or "error"
-            content = (
-                f"Rule: {rule_id}\nStatement: {statement}\nEnforcement: {enforcement}"
-            )
-            chunks.append(
-                {
-                    "section_type": "rule",
-                    "section_path": f"rules.{rule_id}",
-                    "content": content,
-                    "severity": enforcement,
-                }
-            )
-        return chunks
-
-    def _chunk_validation_rules(self, rules: list[Any]) -> list[dict[str, Any]]:
-        """Chunk validation rules section."""
-        chunks: list[dict[str, Any]] = []
-        for rule in rules:
-            if not isinstance(rule, dict):
-                continue
-
-            rule_name = self._safe_str(rule.get("rule")).strip()
-            if not rule_name:
-                continue
-
-            description = self._safe_str(rule.get("description")).strip()
-            severity = self._safe_str(rule.get("severity")) or "error"
-            enforcement = self._safe_str(rule.get("enforcement")) or "runtime"
-            content = (
-                f"Rule: {rule_name}\n"
-                f"Description: {description}\n"
-                f"Severity: {severity}\n"
-                f"Enforcement: {enforcement}"
-            )
-            chunks.append(
-                {
-                    "section_type": "validation_rule",
-                    "section_path": f"validation_rules.{rule_name}",
-                    "content": content,
-                    "severity": severity,
-                }
-            )
-        return chunks
-
-    def _chunk_examples(self, examples: dict[str, Any]) -> list[dict[str, Any]]:
-        """Chunk examples section."""
-        chunks: list[dict[str, Any]] = []
-        for example_name, example_data in examples.items():
-            if not isinstance(example_name, str) or not isinstance(example_data, dict):
-                continue
-            content = (
-                f"Example: {example_name}\n"
-                f"{strict_yaml_processor.dump_yaml(example_data)}"
-            )
-            chunks.append(
-                {
-                    "section_type": "example",
-                    "section_path": f"examples.{example_name}",
-                    "content": content,
-                }
-            )
-        return chunks
-
-    def _safe_str(self, value: Any) -> str:
-        """Safely convert value to string."""
-        if value is None:
-            return ""
-        if isinstance(value, str):
-            return value
-        return str(value)

@@ -1,0 +1,39 @@
+mappings:
+  # LAW: Agents MUST NOT modify files outside their assigned lane
+  autonomy.lanes.boundary_enforcement:
+    engine: glob_gate
+    params:
+      check_type: path_restriction
+      # Only allow agents to modify non-core directories autonomously
+      patterns: ["src/body/cli/logic/**", "src/features/introspection/**"]
+      action: "warn"
+    scope:
+      applies_to: ["src/will/agents/**/*.py"]
+
+  # LAW: Every autonomous decision MUST produce a trace
+  # Check: Ensures Agents initialize or call the DecisionTracer
+  autonomy.tracing.mandatory:
+    engine: ast_gate
+    params:
+      check_type: generic_primitive
+      selector:
+        # Targets classes ending in 'Agent'
+        name_regex: "Agent$"
+      requirement:
+        # CONSTITUTIONAL FIX: Changed from 'forbidden_calls' to 'required_calls'.
+        # This aligns the enforcement logic with the 'mandatory' intent of the rule.
+        # It now verifies that agents ARE properly instrumented with tracing.
+        check_type: required_calls
+        calls: ["self.tracer.record"]
+    scope:
+      applies_to: ["src/will/agents/**/*.py"]
+
+  # LAW: Planning MUST include a check against Quality Assurance policy
+  autonomy.reasoning.policy_alignment:
+    engine: regex_gate
+    params:
+      # Verifies the PlannerAgent explicitly mentions its governing policy
+      required_patterns:
+        - "quality_assurance"
+    scope:
+      applies_to: ["src/will/agents/planner_agent.py"]

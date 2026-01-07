@@ -12,11 +12,11 @@ import subprocess
 from datetime import UTC, datetime
 
 import sqlparse
-import yaml
 from sqlalchemy import text
 
 from shared.config import settings
 from shared.infrastructure.database.session_manager import get_session
+from shared.processors.yaml_processor import strict_yaml_processor
 
 
 # This robust function finds the project root without relying on the global settings object.
@@ -30,52 +30,13 @@ def _get_repo_root_for_migration() -> pathlib.Path:
 
 
 REPO_ROOT = _get_repo_root_for_migration()
-META_YAML_PATH = settings.paths.intent_root / "meta.yaml"
 
 
 # ID: 80ae5adf-d9cc-432e-b962-369b8992c700
 def load_policy() -> dict:
     """Load the database_policy.yaml using a minimal, self-contained pathfinder."""
-    try:
-        with META_YAML_PATH.open("r", encoding="utf-8") as f:
-            meta_config = yaml.safe_load(f)
-
-        # Attempt to resolve path using new v2.2 structure (standards) first, then legacy (policies)
-        db_policy_path_str = None
-
-        # Path 1: New Standards Structure (charter -> standards -> data -> governance)
-        try:
-            db_policy_path_str = meta_config["charter"]["standards"]["data"][
-                "governance"
-            ]
-        except KeyError:
-            pass
-
-        # Path 2: Legacy Policy Structure (charter -> policies -> data_governance)
-        if not db_policy_path_str:
-            try:
-                db_policy_path_str = meta_config["charter"]["policies"][
-                    "data_governance"
-                ]
-            except KeyError:
-                pass
-
-        if not db_policy_path_str:
-            raise KeyError("Could not find data governance policy path in meta.yaml")
-
-        db_policy_path = settings.paths.intent_root / db_policy_path_str
-
-        with db_policy_path.open("r", encoding="utf-8") as f:
-            return yaml.safe_load(f) or {}
-
-    except (FileNotFoundError, KeyError) as e:
-        raise FileNotFoundError(
-            f"Could not locate database policy via meta.yaml. Ensure it's correctly indexed under 'charter.standards.data.governance'. Original error: {e}"
-        ) from e
-    except yaml.YAMLError as e:
-        raise ValueError(
-            f"Failed to parse a required YAML file for DB migration: {e}"
-        ) from e
+    policy_path = settings.paths.policy("data/governance")
+    return strict_yaml_processor.load_strict(policy_path)
 
 
 # ID: a5ec72d4-d489-434f-ad69-a36a39229d92

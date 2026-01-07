@@ -16,8 +16,6 @@ from __future__ import annotations
 import re
 from typing import TYPE_CHECKING
 
-from mind.governance.rule_executor import execute_rule
-from mind.governance.rule_extractor import extract_executable_rules
 from shared.logger import getLogger
 
 
@@ -87,15 +85,16 @@ async def run_filtered_audit(
 
     Returns:
         tuple(findings, executed_rules, stats)
-        - findings: List of AuditFinding dicts
-        - executed_rules: Set of rule IDs that were executed
-        - stats: Dict with execution statistics
     """
+    # CONSTITUTIONAL FIX: Local imports to break circular dependency
+    from mind.governance.rule_executor import execute_rule
+    from mind.governance.rule_extractor import extract_executable_rules
+
     if executed_rule_ids is None:
         executed_rule_ids = set()
 
     # Extract all executable rules from policies
-    all_rules = extract_executable_rules(context.policies)
+    all_rules = extract_executable_rules(context.policies, context.enforcement_loader)
 
     # Create filter
     rule_filter = RuleFilter(

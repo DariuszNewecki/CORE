@@ -1,50 +1,35 @@
 # src/will/agents/execution_agent.py
-# ID: will.agents.execution
 
 """
-ExecutionAgent - The Contractor (UNIX-Compliant Phase 5)
+The ExecutionAgent (Contractor): Executes validated code blueprints.
 
-Does ONE thing: Executes a pre-validated DetailedPlan via the ActionExecutor.
-
-A3 UPDATE (Phase 5):
-- Strictly separated from reasoning and code generation.
-- Receives a 'blueprint' (DetailedPlan) that has already passed the Canary Trial.
-- Acts as the final gateway to the Body layer (Production Code).
-
-UNIX Philosophy:
-- Each agent does ONE thing well.
-- Input: DetailedPlan (Structured Specifications).
-- Output: ExecutionResults (Audit Trail of success/failure).
-- No internal code generation; pure implementation.
-
-Constitutional Alignment:
-- Governed: All operations route through ActionExecutor (IntentGuard enforced).
-- Headless: Uses standard logging (LOG-001 compliant).
-- Traceable: Every execution step is logged in the DecisionTracer.
+FIXED: Now skips steps that failed code generation instead of trying to execute them.
 """
 
 from __future__ import annotations
 
 import time
+from typing import TYPE_CHECKING
 
-from body.atomic.executor import ActionExecutor
 from shared.action_types import ActionResult
 from shared.logger import getLogger
-from shared.models.workflow_models import (
-    DetailedPlan,
-    DetailedPlanStep,
-    ExecutionResults,
-)
+from shared.models.workflow_models import ExecutionResults
 from will.orchestration.decision_tracer import DecisionTracer
 
+
+if TYPE_CHECKING:
+    from body.atomic.executor import ActionExecutor
+    from shared.models import DetailedPlan, DetailedPlanStep
 
 logger = getLogger(__name__)
 
 
-# ID: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+# ID: 4b9a28f4-6c4d-4a5e-8f7c-9d0e1b2a3c4d
 class ExecutionAgent:
     """
     The Contractor: Executes validated code blueprints.
+
+    FIXED: Skips steps that failed code generation.
     """
 
     def __init__(self, executor: ActionExecutor):
@@ -88,6 +73,35 @@ class ExecutionAgent:
                 detailed_plan.step_count,
                 step.description,
             )
+
+            # FIXED: Skip steps that failed code generation
+            if step.metadata.get("generation_failed", False):
+                error_msg = step.metadata.get("error", "Code generation failed")
+                logger.warning(
+                    "    → ⚠️ Skipping step - code generation failed: %s", error_msg
+                )
+                result = ActionResult(
+                    action_id=step.action,
+                    ok=False,
+                    data={
+                        "error": error_msg,
+                        "error_type": "CodeGenerationFailed",
+                        "skipped": True,
+                    },
+                    duration_sec=0.0,
+                )
+                results.append(result)
+                failure_count += 1
+
+                # Mark as critical to stop execution
+                if step.is_critical:
+                    aborted_at_step = i
+                    logger.error(
+                        "⛔ Critical step failed during generation. Aborting construction."
+                    )
+                    break
+
+                continue
 
             # Execution via Constitutional Gateway
             result = await self._execute_step(step, step_number=i)

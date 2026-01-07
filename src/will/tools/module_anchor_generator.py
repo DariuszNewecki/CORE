@@ -13,15 +13,18 @@ Constitutional Alignment:
 
 Phase 1 Goal: Fix 45% → 90%+ semantic placement
 Phase 1 Update: Uses QdrantService.upsert_points() service method
+
+CONSTITUTIONAL FIX:
+- Implements 'Defensive Loop Guard' to satisfy async.no_manual_loop_run.
+- Complies with RUF006 using a module-level task registry to prevent GC.
 """
 
 from __future__ import annotations
 
 import ast
+import asyncio
 from pathlib import Path
 from typing import Any
-
-import typer
 
 from shared.infrastructure.clients.qdrant_client import QdrantService
 from shared.logger import getLogger
@@ -32,6 +35,10 @@ from will.tools.module_descriptor import ModuleDescriptor
 
 logger = getLogger(__name__)
 ANCHOR_COLLECTION = "core_module_anchors"
+
+# RUF006 FIX: Persistent set to hold references to running tasks
+_RUNNING_TASKS: set[asyncio.Task] = set()
+
 LAYERS = {
     "mind": "Constitutional governance, policies, and validation rules",
     "body": "Pure execution - CLI commands, actions, no decision-making",
@@ -152,8 +159,6 @@ class ModuleAnchorGenerator:
     async def _generate_layer_anchor(self, layer_name: str, layer_purpose: str) -> None:
         """
         Generate anchor for architectural layer.
-
-        PHASE 1: Uses upsert_points() service method instead of direct client access.
         """
         from qdrant_client.models import PointStruct
 
@@ -182,8 +187,6 @@ class ModuleAnchorGenerator:
     ) -> None:
         """
         Generate anchor for specific module with rich descriptions.
-
-        PHASE 1: Uses upsert_points() service method instead of direct client access.
         """
         from qdrant_client.models import PointStruct
 
@@ -295,17 +298,48 @@ async def generate_anchors_command(repo_root: Path) -> dict[str, Any]:
     return await generator.generate_all_anchors()
 
 
-if __name__ == "__main__":
-    # ID: ad438fa0-9ff5-40fa-8a49-ef2c93d8b373
-    async def run_cli(
-        repo_root: Path = typer.Argument(
-            Path.cwd(), help="Path to the CORE repository root."
-        ),
-    ) -> None:
-        result = await generate_anchors_command(repo_root)
+# ID: a6f2c56a-c121-4ac5-ba3e-3cb49cb28dcb
+def run_as_script():
+    """
+    Constitutional entry point for standalone execution.
+    """
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        description="Generate module anchors for the CORE codebase."
+    )
+    parser.add_argument(
+        "--repo-root",
+        type=Path,
+        default=Path.cwd(),
+        help="Path to the CORE repository root.",
+    )
+
+    args = parser.parse_args()
+
+    async def _main() -> None:
+        """Internal main logic."""
+        result = await generate_anchors_command(args.repo_root)
         logger.info("\nAnchor generation complete!")
         logger.info("  Anchors: %s", result["anchors_created"])
         if result.get("errors"):
             logger.info("  Errors: %s", len(result["errors"]))
 
-    typer.run(run_cli)
+    # THE DEFENSIVE GUARD:
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        loop = None
+
+    if loop and loop.is_running():
+        # RUF006 COMPLIANCE: Use a strong reference in a module-level set.
+        # This prevents the linter from flagging the task as 'dangling'.
+        task = asyncio.create_task(_main())
+        _RUNNING_TASKS.add(task)
+        task.add_done_callback(_RUNNING_TASKS.discard)
+    else:
+        asyncio.run(_main())
+
+
+if __name__ == "__main__":
+    run_as_script()

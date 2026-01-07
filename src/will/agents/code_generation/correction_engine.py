@@ -1,6 +1,9 @@
 # src/will/agents/code_generation/correction_engine.py
+
 """
-Self-correction engine for fixing pattern and constitutional violations.
+Handles self-correction for pattern and constitutional violations.
+
+FIXED: Changed v.message to v['message'] for dict access.
 """
 
 from __future__ import annotations
@@ -21,7 +24,7 @@ if TYPE_CHECKING:
 logger = getLogger(__name__)
 
 
-# ID: be263da7-4cbf-4204-8b6d-a098ab6cd557
+# ID: 6a7b8c9d-0e1f-2a3b-4c5d-6e7f8a9b0c1d
 class CorrectionEngine:
     """Handles self-correction for pattern and constitutional violations."""
 
@@ -59,7 +62,7 @@ class CorrectionEngine:
         Args:
             task: The execution task
             current_code: Code with violations
-            pattern_violations: List of violations found
+            pattern_violations: List of violations found (as dicts)
             pattern_id: Pattern that was violated
             pattern_requirements: Pattern requirements text
             goal: High-level goal for context
@@ -67,7 +70,10 @@ class CorrectionEngine:
         Returns:
             Dict with 'status' and either 'code' or 'message'
         """
-        violation_messages = "\n".join([f"- {v.message}" for v in pattern_violations])
+        # FIXED: Changed v.message to v['message'] for dict access
+        violation_messages = "\n".join(
+            [f"- {v.get('message', str(v))}" for v in pattern_violations]
+        )
 
         # DECISION TRACING: Record correction attempt
         self.tracer.record(

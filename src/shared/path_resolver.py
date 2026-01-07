@@ -70,7 +70,6 @@ class PathResolver:
         """
         Args:
             repo_root: Root directory of the CORE repository.
-            meta: Parsed contents of .intent/meta.yaml (legacy).
         """
         self._repo_root = Path(repo_root).resolve()
         self._meta: dict[str, Any] = meta or {}
@@ -254,7 +253,11 @@ class PathResolver:
         Returns:
             Absolute Path to the first matching file found.
         """
-        search_roots = [self.intent_root / "policies", self.intent_root / "standards"]
+        search_roots = [
+            self.intent_root / "policies",
+            self.intent_root / "standards",
+            self.intent_root / "rules",
+        ]
 
         # Cleanup input
         raw = policy_id.replace("\\", "/").strip().lstrip("/")

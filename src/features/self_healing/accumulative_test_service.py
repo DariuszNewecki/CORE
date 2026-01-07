@@ -1,10 +1,13 @@
 # src/features/self_healing/accumulative_test_service.py
+# ID: 4333b9d3-e1ae-432c-8395-ecf954342559
 
 """
 Accumulates successful tests over time, one symbol at a time.
 Strategy: Align the file (Police Agent), then generate tests for healthy code.
 
 Constitutional Principles: evolvable_structure, safe_by_default, knowledge.database_ssot
+CONSTITUTIONAL FIX: All mutations now route through FileHandler to ensure
+IntentGuard enforcement and auditability.
 """
 
 from __future__ import annotations
@@ -17,6 +20,7 @@ from typing import Any
 from features.self_healing.alignment_orchestrator import AlignmentOrchestrator
 from features.self_healing.simple_test_generator import SimpleTestGenerator
 from shared.config import settings
+from shared.infrastructure.storage.file_handler import FileHandler
 from shared.logger import getLogger
 from shared.utils.subprocess_utils import run_poetry_command
 from will.orchestration.cognitive_service import CognitiveService
@@ -191,11 +195,12 @@ class AccumulativeTestService:
             test_dir = Path("tests")
 
         test_file_name = f"test_{source_path.stem}.py"
-        test_file_path = (settings.REPO_PATH / test_dir / test_file_name).resolve()
+        test_file_path = test_dir / test_file_name
+        abs_test_path = (settings.REPO_PATH / test_file_path).resolve()
 
         # CONSTITUTIONAL SAFETY: Protect manual tests
-        if test_file_path.exists():
-            content = test_file_path.read_text(encoding="utf-8")
+        if abs_test_path.exists():
+            content = abs_test_path.read_text(encoding="utf-8")
             if self.CORE_SIGNATURE not in content:
                 # RELIABILITY FIX: Use underscore instead of dot to prevent
                 # import errors while still marking it as CORE output.
@@ -206,8 +211,6 @@ class AccumulativeTestService:
                     test_file_path.parent / f"test_{source_path.stem}_core.py"
                 )
 
-        test_file_path.parent.mkdir(parents=True, exist_ok=True)
-
         # Prepare header
         header = (
             f"{self.CORE_SIGNATURE}\n"
@@ -216,6 +219,12 @@ class AccumulativeTestService:
         )
 
         test_body = "\n\n".join([test["code"] for test in successful_tests])
+        final_content = header + test_body + "\n"
 
-        test_file_path.write_text(header + test_body + "\n", encoding="utf-8")
-        return test_file_path
+        # CONSTITUTIONAL FIX: Use governed mutation surface
+        # FileHandler handles directory creation and IntentGuard path validation
+        fh = FileHandler(str(settings.REPO_PATH))
+        rel_target = str(test_file_path).replace("\\", "/")
+        fh.write_runtime_text(rel_target, final_content)
+
+        return settings.REPO_PATH / test_file_path

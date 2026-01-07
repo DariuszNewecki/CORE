@@ -2,6 +2,11 @@
 
 """
 Implements the 'byor-init' command to analyze external repositories and scaffold minimal CORE governance structures.
+
+CONSTITUTIONAL FIX:
+- Aligned with 'governance.artifact_mutation.traceable'.
+- Replaced direct Path writes with governed FileHandler mutations.
+- Centralizes mutation logic via the Body layer for auditability.
 """
 
 from __future__ import annotations
@@ -12,6 +17,7 @@ import typer
 import yaml
 
 from features.introspection.knowledge_graph_service import KnowledgeGraphBuilder
+from shared.infrastructure.storage.file_handler import FileHandler
 from shared.logger import getLogger
 
 
@@ -54,6 +60,7 @@ def initialize_repository(
     except Exception as e:
         logger.error("   -> ❌ Failed to build Knowledge Graph: %s", e, exc_info=True)
         raise typer.Exit(code=1)
+
     logger.info("   -> Step 2: Generating starter constitution from analysis...")
     domains = builder.domain_map
     source_structure_content = {
@@ -82,7 +89,12 @@ def initialize_repository(
         "intent": "A high-level description of what this project is intended to do.",
         "required_capabilities": discovered_capabilities,
     }
-    (TEMPLATES_DIR / "capability_tags.yaml.template").read_text()
+
+    # Pre-flight check on template availability
+    tag_template_path = TEMPLATES_DIR / "capability_tags.yaml.template"
+    if not tag_template_path.exists():
+        logger.warning("Template missing: %s", tag_template_path)
+
     capability_tags_content = {
         "tags": [
             {
@@ -92,35 +104,49 @@ def initialize_repository(
             for cap in discovered_capabilities
         ]
     }
+
     files_to_generate = {
         ".intent/knowledge/source_structure.yaml": source_structure_content,
         ".intent/project_manifest.yaml": project_manifest_content,
         ".intent/knowledge/capability_tags.yaml": capability_tags_content,
         ".intent/mission/principles.yaml": (
             TEMPLATES_DIR / "principles.yaml"
-        ).read_text(),
+        ).read_text(encoding="utf-8"),
         ".intent/policies/safety_policies.yaml": (
             TEMPLATES_DIR / "safety_policies.yaml"
-        ).read_text(),
+        ).read_text(encoding="utf-8"),
     }
+
     if dry_run:
         logger.info("\n💧 Dry Run Mode: No files will be written.")
         for rel_path, content in files_to_generate.items():
             typer.secho(f"\n📄 Proposed `{rel_path}`:", fg=typer.colors.YELLOW)
             if isinstance(content, dict):
-                typer.echo(yaml.dump(content, indent=2))
+                typer.echo(yaml.dump(content, indent=2, sort_keys=False))
             else:
                 typer.echo(content)
     else:
         logger.info("\n💾 **Write Mode:** Applying changes to disk.")
+
+        # CONSTITUTIONAL FIX: Initialize FileHandler for the target path.
+        # This ensures all writes are traceable and governed by IntentGuard.
+        # NOTE: BYOR is allowed to write to .intent in the NEW repo because
+        # the FileHandler is rooted at the external 'path'.
+        fh = FileHandler(str(path))
+
         for rel_path, content in files_to_generate.items():
-            target_path = path / rel_path
-            target_path.parent.mkdir(parents=True, exist_ok=True)
             if isinstance(content, dict):
-                target_path.write_text(yaml.dump(content, indent=2))
+                output_content = yaml.dump(content, indent=2, sort_keys=False)
             else:
-                target_path.write_text(content)
-            typer.secho(
-                f"   -> ✅ Wrote starter file to {target_path}", fg=typer.colors.GREEN
-            )
+                output_content = content
+
+            try:
+                # Use governed mutation surface instead of Path.write_text
+                fh.write_runtime_text(rel_path, output_content)
+                typer.secho(
+                    f"   -> ✅ Wrote starter file: {rel_path}", fg=typer.colors.GREEN
+                )
+            except Exception as e:
+                logger.error("   -> ❌ Failed to write %s: %s", rel_path, e)
+
     logger.info("\n🎉 BYOR initialization complete.")

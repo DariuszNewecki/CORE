@@ -18,6 +18,7 @@ import logging
 import re
 import uuid
 from dataclasses import dataclass
+from typing import cast
 
 
 logger = logging.getLogger(__name__)
@@ -107,7 +108,12 @@ def find_symbol_id_and_def_line(
 # ID: 79ccf26e-3710-4802-9ccb-29423f545e45
 def extract_docstring(node: ast.AST) -> str | None:
     """Extract the docstring from the given AST node if it exists."""
-    return ast.get_docstring(node)
+    # FIXED: Added type guard to satisfy MyPy's strict type checking for ast.get_docstring
+    if isinstance(
+        node, (ast.AsyncFunctionDef, ast.FunctionDef, ast.ClassDef, ast.Module)
+    ):
+        return ast.get_docstring(node)
+    return None
 
 
 # ID: 79024211-279d-40af-91c3-679d5afdcf9f
@@ -174,7 +180,7 @@ class FunctionCallVisitor(ast.NodeVisitor):
 # ID: 5f4a3e52-b52a-49ac-aa37-a5201376979f
 def parse_metadata_comment(node: ast.AST, source_lines: list[str]) -> dict[str, str]:
     """Returns a dict like {'capability': 'domain.key'} when present; otherwise empty dict."""
-    if getattr(node, "lineno", None) and node.lineno > 1:
+    if getattr(node, "lineno", None) and node.lineno is not None and node.lineno > 1:
         line = source_lines[node.lineno - 2].strip()
         if line.startswith("#") and "CAPABILITY:" in line.upper():
             try:
@@ -200,10 +206,12 @@ def _strip_docstrings(node: ast.AST) -> ast.AST:
             getattr(node, "body", None)
             and len(node.body) > 0
             and isinstance(node.body[0], ast.Expr)
-            and isinstance(getattr(node.body[0], "value", None), ast.Constant)
-            and isinstance(node.body[0].value.value, str)
         ):
-            node.body = node.body[1:]
+            first_expr = node.body[0]
+            if isinstance(
+                getattr(first_expr, "value", None), ast.Constant
+            ) and isinstance(first_expr.value.value, str):  # type: ignore
+                node.body = node.body[1:]
 
     for child in ast.iter_child_nodes(node):
         _strip_docstrings(child)
@@ -220,8 +228,9 @@ def calculate_structural_hash(node: ast.AST) -> str:
       - insensitive to whitespace and newlines
     """
     try:
-        normalized = ast.parse(ast.unparse(node))
-        normalized = _strip_docstrings(normalized)
+        # FIXED: Cast the parse result to Module to satisfy attribute lookups
+        normalized = cast(ast.Module, ast.parse(ast.unparse(node)))
+        normalized = cast(ast.Module, _strip_docstrings(normalized))
         structural = ast.unparse(normalized).replace("\n", "").replace(" ", "")
         return hashlib.sha256(structural.encode("utf-8")).hexdigest()
     except Exception:

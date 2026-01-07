@@ -5,10 +5,11 @@
 Export a complete, compact operational snapshot of CORE.
 Refactored to use canonical services (FileHandler, GitService, Settings).
 
-Compliance:
-- Category C: Reports/Exports
-- Single Source of Truth: shared.config.settings
-- Governed Mutation: FileHandler
+CONSTITUTIONAL FIX:
+- Aligned with 'governance.artifact_mutation.traceable'.
+- Replaced direct tarfile writes with governed FileHandler mutations.
+- Uses io.BytesIO to buffer archives before persisting via the mutation surface.
+- Ensures all exported artifacts are recorded in the action ledger.
 """
 
 from __future__ import annotations
@@ -17,6 +18,7 @@ import ast
 import asyncio
 import dataclasses
 import hashlib
+import io
 import json
 import tarfile
 import urllib.error
@@ -121,18 +123,26 @@ class ContextExporter:
         return self.export_rel_dir
 
     def _bundle_directories(self):
-        """Create .tar.gz archives of key directories via FileHandler context."""
+        """Create .tar.gz archives of key directories via FileHandler."""
         logger.info("📦 Bundling src/ and .intent/...")
 
         for folder in ["src", ".intent"]:
             out_name = f"{folder.replace('.', '')}.tar.gz"
-            out_path = self.repo_root / self.export_rel_dir / out_name
+            rel_out_path = f"{self.export_rel_dir}/{out_name}"
 
-            # Using standard tarfile but writing to the governed directory
-            with tarfile.open(out_path, "w:gz") as tar:
+            # CONSTITUTIONAL FIX:
+            # We create the archive in memory using io.BytesIO instead of opening
+            # the filesystem directly. This allows us to pass the final bytes
+            # to the FileHandler for a governed write.
+            buffer = io.BytesIO()
+            with tarfile.open(fileobj=buffer, mode="w:gz") as tar:
                 src_path = self.repo_root / folder
                 if src_path.exists():
                     tar.add(src_path, arcname=folder)
+
+            # Persist the archive via the approved mutation surface
+            self.fh.write_runtime_bytes(rel_out_path, buffer.getvalue())
+            logger.debug("   -> Governed Archive Created: %s", rel_out_path)
 
     async def _generate_symbol_index(self):
         """Scan Python symbols and write index via FileHandler."""
@@ -186,7 +196,6 @@ class ContextExporter:
         logger.info("🗄️ Capturing Database Schema...")
         db_url = settings.DATABASE_URL
 
-        # We run pg_dump but capture the output into a string to write via FileHandler
         try:
             # Note: requires pg_dump installed on host
             proc = await asyncio.create_subprocess_exec(

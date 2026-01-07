@@ -11,6 +11,7 @@ from typing import Any
 
 from shared.logger import getLogger
 from will.orchestration.cognitive_service import CognitiveService
+from will.orchestration.decision_tracer import DecisionTracer
 
 
 logger = getLogger(__name__)
@@ -27,6 +28,7 @@ class ReconnaissanceAgent:
         self.graph = knowledge_graph
         self.symbols = knowledge_graph.get("symbols", {})
         self.cognitive_service = cognitive_service
+        self.tracer = DecisionTracer()
 
     async def _find_relevant_symbols_and_files(
         self, goal: str
@@ -101,6 +103,13 @@ class ReconnaissanceAgent:
         )
         report = "\n".join(report_parts)
         logger.info("   -> Generated Surgical Context Report:\n%s", report)
+        self.tracer.record(
+            agent=self.__class__.__name__,
+            decision_type="task_execution",
+            rationale="Executing goal based on input context",
+            chosen_action="Generated reconnaissance report for planning",
+            confidence=0.9,
+        )
         return report
 
     def _find_callers(self, symbol_name: str | None) -> list[dict]:

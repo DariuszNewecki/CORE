@@ -1,11 +1,12 @@
 # src/mind/logic/engines/ast_gate/engine.py
+
 """
 Main AST Gate Engine with constitutional check dispatch.
 
-REFACTORED:
-- Full support for all 19 deterministic check types.
-- Aligned with 'body_contracts.json' for headless execution.
-- Optimized dispatcher to minimize LLM usage.
+CONSTITUTIONAL ALIGNMENT:
+- Aligned with 'async.no_manual_loop_run'.
+- Promoted to natively async to satisfy the BaseEngine contract.
+- Prepares for non-blocking I/O in metadata and capability checks.
 """
 
 from __future__ import annotations
@@ -57,16 +58,21 @@ class ASTGateEngine(BaseEngine):
             "required_decorator",
             "decorator_args",
             "capability_assignment",
+            "no_direct_writes",
         }
     )
 
     @classmethod
-    # ID: 7b10eec7-63a6-4c54-82c9-8b961f976cce
+    # ID: 4b285bc1-10ef-4d85-a1a3-c3b28ee636af
     def supported_check_types(cls) -> set[str]:
         return set(cls._SUPPORTED_CHECK_TYPES)
 
     # ID: b2f28048-fa49-4430-a025-c35d30d8c88f
-    def verify(self, file_path: Path, params: dict[str, Any]) -> EngineResult:
+    async def verify(self, file_path: Path, params: dict[str, Any]) -> EngineResult:
+        """
+        Natively async verification entry point.
+        Satisfies BaseEngine contract and avoids loop hijacking.
+        """
         check_type = str(params.get("check_type") or "").strip()
 
         if not check_type or check_type not in self._SUPPORTED_CHECK_TYPES:
@@ -177,6 +183,9 @@ class ASTGateEngine(BaseEngine):
                                 f"Line {node.lineno}: Parameter 'write' must default to False"
                             )
 
+        elif check_type == "no_direct_writes":
+            violations.extend(PurityChecks.check_no_direct_writes(tree))
+
         # 6. NAMING & METADATA
         elif check_type == "cli_async_helpers_private":
             violations.extend(NamingChecks.check_cli_async_helpers_private(tree))
@@ -195,24 +204,26 @@ class ASTGateEngine(BaseEngine):
                 )
             )
         elif check_type == "capability_assignment":
+            # NOTE: We maintain the current call structure.
+            # If CapabilityChecks.check_capability_assignment is updated to be
+            # async in the future, we simply add 'await' here.
             violations.extend(
                 CapabilityChecks.check_capability_assignment(tree, file_path=file_path)
             )
+
+        # 7. DECORATORS
         elif check_type == "required_decorator":
             decorator = str(
                 params.get("target") or params.get("decorator") or ""
             ).strip()
             if decorator:
-                # FIXED: Extract and pass exclude_patterns and exclude_decorators
-                exclude_patterns = params.get("exclude_patterns", [])
-                exclude_decorators = params.get("exclude_decorators", [])
-
                 violations.extend(
                     PurityChecks.check_required_decorator(
                         tree,
                         decorator,
-                        exclude_patterns=exclude_patterns,
-                        exclude_decorators=exclude_decorators,
+                        exclude_patterns=params.get("exclude_patterns", []),
+                        exclude_decorators=params.get("exclude_decorators", []),
+                        file_path=file_path,
                     )
                 )
         elif check_type == "decorator_args":

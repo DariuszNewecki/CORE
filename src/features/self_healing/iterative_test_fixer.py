@@ -56,17 +56,25 @@ class IterativeTestFixer:
         self.fix_prompt_template = self._load_prompt("test_fixer")
 
     def _load_prompt(self, name: str) -> str:
-        """Load prompt template from constitutional prompts."""
+        """
+        Load prompt template from var/prompts/.
+        CONSTITUTIONAL FIX: Uses PathResolver (SSOT) to avoid .intent/ boundary violations.
+        """
         try:
-            prompt_path = settings.get_path(f"mind.prompts.{name}")
-            if prompt_path and prompt_path.exists():
+            # Resolved via settings.paths (var/prompts)
+            prompt_path = settings.paths.prompt(name)
+            if prompt_path.exists():
                 return prompt_path.read_text(encoding="utf-8")
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug("Failed to load prompt '%s' from var/prompts: %s", name, e)
+
         if name == "test_fixer":
-            logger.info("Using default test_fixer prompt (not in meta.yaml)")
+            logger.info("Using default internal test_fixer prompt.")
             return self._get_default_fix_prompt()
-        raise FileNotFoundError(f"Prompt not found: {name}")
+
+        raise FileNotFoundError(
+            f"Required prompt artifact not found in var/prompts/: {name}"
+        )
 
     def _get_default_fix_prompt(self) -> str:
         """Default prompt for fixing tests."""
@@ -82,15 +90,6 @@ class IterativeTestFixer:
     ) -> dict[str, Any]:
         """
         Generate tests with iterative fixing based on failures.
-
-        Args:
-            module_context: Rich context about the module
-            test_file: Path where test should be written
-            goal: High-level testing goal
-            target_coverage: Target coverage percentage
-
-        Returns:
-            Best result across all attempts with metrics
         """
         best_result = None
         best_passed = 0

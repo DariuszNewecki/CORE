@@ -1,0 +1,56 @@
+{
+    "$schema": "META/rule_document.schema.json",
+    "kind": "rule_document",
+    "metadata": {
+        "id": "rules.architecture.governance_basics",
+        "title": "Governance Basics",
+        "version": "0.1.4",
+        "authority": "policy",
+        "phase": "runtime",
+        "status": "active"
+    },
+    "rules": [
+        {
+            "id": "governance.constitution.read_only",
+            "statement": "The constitutional intent directory (.intent/**) MUST be treated as immutable by all system components.",
+            "enforcement": "blocking",
+            "authority": "policy",
+            "phase": "runtime"
+        },
+        {
+            "id": "governance.intent_meta.required",
+            "statement": "A single META directory MUST exist at .intent/META to serve as the authoritative contract for intent artifacts.",
+            "enforcement": "advisory",
+            "authority": "policy",
+            "phase": "load"
+        },
+        {
+            "id": "governance.logic_mutation.governed",
+            "statement": "Permanent modifications to production logic within 'src/' MUST occur only through governed mutation surfaces.",
+            "enforcement": "blocking",
+            "authority": "policy",
+            "phase": "runtime"
+        },
+        {
+            "id": "governance.artifact_mutation.traceable",
+            "statement": "System artifacts, logs, and reports SHOULD be generated via the FileHandler to ensure audit traceability.",
+            "enforcement": "reporting",
+            "authority": "policy",
+            "phase": "runtime"
+        },
+        {
+            "id": "governance.no_governance_bypass",
+            "statement": "No action or workflow MAY bypass governance validation; if a precondition cannot be evaluated, the operation MUST be blocked.",
+            "enforcement": "advisory",
+            "authority": "policy",
+            "phase": "runtime"
+        },
+        {
+            "id": "governance.dangerous_execution_primitives",
+            "statement": "Dangerous execution primitives (eval, exec, compile, subprocess) require documented justification. AI agent code (Will layer) MUST NOT use these primitives. Infrastructure code (Body layer) MAY use them in designated sanctuary modules with clear operational need.",
+            "enforcement": "advisory",
+            "authority": "policy",
+            "phase": "execution"
+        }
+    ]
+}

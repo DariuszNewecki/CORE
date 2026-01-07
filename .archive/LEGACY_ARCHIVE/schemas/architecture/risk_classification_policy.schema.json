@@ -1,0 +1,442 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://core.local/schemas/architecture/risk_classification_policy_schema.json",
+  "title": "Risk Classification Policy Schema",
+  "description": "Canonical schema for risk_classification_policy.json. Ensures risk tier assignment logic is well-formed and enforceable.",
+  "type": "object",
+  "required": [
+    "policy_id",
+    "id",
+    "version",
+    "title",
+    "status",
+    "purpose",
+    "owners",
+    "review",
+    "tiers",
+    "classification_rules"
+  ],
+  "properties": {
+    "policy_id": {
+      "type": "string",
+      "description": "Unique UUID for this policy document.",
+      "pattern": "^[0-9a-fA-F]{8}-([0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}$"
+    },
+    "id": {
+      "type": "string",
+      "const": "risk_classification_policy",
+      "description": "Must be exactly 'risk_classification_policy'."
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+      "description": "Semantic version of the policy."
+    },
+    "title": {
+      "type": "string",
+      "description": "Human-readable title."
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "draft",
+        "deprecated"
+      ]
+    },
+    "purpose": {
+      "type": "string",
+      "minLength": 20,
+      "description": "Clear explanation of why this policy exists."
+    },
+    "scope": {
+      "type": "object",
+      "properties": {
+        "applies_to": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        }
+      }
+    },
+    "owners": {
+      "type": "object",
+      "required": [
+        "primary"
+      ],
+      "properties": {
+        "primary": {
+          "type": "string"
+        },
+        "reviewers": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "review": {
+      "type": "object",
+      "required": [
+        "frequency"
+      ],
+      "properties": {
+        "frequency": {
+          "type": "string",
+          "description": "e.g., '6 months', 'quarterly'"
+        },
+        "last_reviewed": {
+          "type": "string",
+          "format": "date"
+        }
+      }
+    },
+    "tiers": {
+      "type": "object",
+      "description": "Definitions of each risk tier. Must include all four tiers.",
+      "required": [
+        "routine",
+        "standard",
+        "elevated",
+        "critical"
+      ],
+      "properties": {
+        "routine": {
+          "$ref": "#/$defs/tier_definition"
+        },
+        "standard": {
+          "$ref": "#/$defs/tier_definition"
+        },
+        "elevated": {
+          "$ref": "#/$defs/tier_definition"
+        },
+        "critical": {
+          "$ref": "#/$defs/tier_definition"
+        }
+      },
+      "additionalProperties": false
+    },
+    "classification_rules": {
+      "type": "array",
+      "description": "Ordered list of rules for automatic risk tier assignment. First match wins.",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/classification_rule"
+      }
+    },
+    "escalation_modifiers": {
+      "type": "array",
+      "description": "Conditions that can bump a risk tier higher.",
+      "items": {
+        "$ref": "#/$defs/escalation_modifier"
+      }
+    },
+    "override": {
+      "type": "object",
+      "description": "Rules governing human override of automatic classification.",
+      "required": [
+        "allowed_by",
+        "requires"
+      ],
+      "properties": {
+        "allowed_by": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Roles permitted to override (e.g., 'approvers')."
+        },
+        "requires": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/override_requirement"
+          },
+          "minItems": 1
+        },
+        "audit_trail": {
+          "type": "boolean",
+          "description": "Whether overrides must be logged."
+        },
+        "escalation_on_override": {
+          "type": "object",
+          "properties": {
+            "downgrade_requires": {
+              "type": "string",
+              "description": "Quorum type required to override DOWN (e.g., 'critical_quorum')."
+            },
+            "upgrade_requires": {
+              "type": "string",
+              "description": "Quorum type required to override UP."
+            }
+          }
+        }
+      }
+    },
+    "validation": {
+      "type": "array",
+      "description": "Meta-rules about risk tier assignment itself.",
+      "items": {
+        "$ref": "#/$defs/validation_rule"
+      }
+    }
+  },
+  "$defs": {
+    "tier_definition": {
+      "type": "object",
+      "required": [
+        "score",
+        "description"
+      ],
+      "properties": {
+        "score": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4,
+          "description": "Numeric risk score (1=lowest, 4=highest)."
+        },
+        "description": {
+          "type": "string",
+          "minLength": 10,
+          "description": "Clear explanation of what constitutes this tier."
+        },
+        "examples": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Concrete examples to guide classification."
+        }
+      }
+    },
+    "classification_rule": {
+      "type": "object",
+      "required": [
+        "tier",
+        "conditions"
+      ],
+      "properties": {
+        "tier": {
+          "type": "string",
+          "enum": [
+            "routine",
+            "standard",
+            "elevated",
+            "critical"
+          ],
+          "description": "The risk tier to assign if conditions match."
+        },
+        "conditions": {
+          "type": "object",
+          "description": "Logical conditions for this rule. Must have at least one condition group.",
+          "minProperties": 1,
+          "properties": {
+            "any_of": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/condition"
+              },
+              "description": "Match if ANY condition is true (OR logic)."
+            },
+            "all_of": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/condition"
+              },
+              "description": "Match if ALL conditions are true (AND logic)."
+            }
+          }
+        }
+      }
+    },
+    "condition": {
+      "type": "object",
+      "description": "A single testable condition for risk classification.",
+      "minProperties": 1,
+      "properties": {
+        "path_matches_any": {
+          "type": "object",
+          "required": [
+            "source"
+          ],
+          "properties": {
+            "source": {
+              "type": "string",
+              "description": "YAML file containing a 'paths' array to check against."
+            },
+            "rationale": {
+              "type": "string"
+            }
+          }
+        },
+        "path_pattern": {
+          "type": "string",
+          "description": "Glob pattern to match file paths (e.g., 'src/core/**/*.py')."
+        },
+        "exclude": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Patterns to exclude from path_pattern matches."
+        },
+        "modifies_schema": {
+          "type": "boolean",
+          "description": "True if change affects schema files."
+        },
+        "modifies_database_schema": {
+          "type": "boolean",
+          "description": "True if change affects database schema."
+        },
+        "adds_new_capability": {
+          "type": "boolean",
+          "description": "True if change introduces a new capability tag."
+        },
+        "modifies_existing_capability": {
+          "type": "boolean",
+          "description": "True if change modifies existing capability."
+        },
+        "adds_dependency": {
+          "type": "boolean",
+          "description": "True if change adds external dependency."
+        },
+        "touches_files_count": {
+          "type": "string",
+          "pattern": "^(>|>=|<|<=|==)\\s*\\d+$",
+          "description": "Comparison operator and number (e.g., '>= 5')."
+        },
+        "changes_only_comments": {
+          "type": "boolean",
+          "description": "True if only comments were modified."
+        },
+        "changes_only_whitespace": {
+          "type": "boolean",
+          "description": "True if only whitespace was modified."
+        },
+        "rationale": {
+          "type": "string",
+          "description": "Human-readable explanation of why this condition matters."
+        }
+      }
+    },
+    "escalation_modifier": {
+      "type": "object",
+      "required": [
+        "condition"
+      ],
+      "properties": {
+        "condition": {
+          "type": "string",
+          "description": "Named condition to check (e.g., 'author_is_new_contributor')."
+        },
+        "escalate_by": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3,
+          "description": "How many tiers to bump up (1 = one tier higher)."
+        },
+        "escalate_to": {
+          "type": "string",
+          "enum": [
+            "routine",
+            "standard",
+            "elevated",
+            "critical"
+          ],
+          "description": "Force escalation to this specific tier, ignoring current tier."
+        },
+        "applies_when": {
+          "type": "string",
+          "description": "Condition string for when this modifier applies (e.g., 'tier >= standard')."
+        },
+        "source_rule": {
+          "type": "string",
+          "description": "Reference to the safety policy rule this enforces (e.g., 'safety_policy.yaml#no_dangerous_execution')."
+        },
+        "rationale": {
+          "type": "string",
+          "minLength": 10,
+          "description": "Why this escalation is necessary."
+        }
+      },
+      "oneOf": [
+        {
+          "required": [
+            "escalate_by"
+          ]
+        },
+        {
+          "required": [
+            "escalate_to"
+          ]
+        }
+      ]
+    },
+    "override_requirement": {
+      "type": "object",
+      "required": [
+        "field"
+      ],
+      "properties": {
+        "field": {
+          "type": "string",
+          "description": "The proposal field that must be present for override."
+        },
+        "min_length": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Minimum character length for text fields."
+        },
+        "must_match": {
+          "type": "string",
+          "description": "A reference to another config file for validation (e.g., 'approvers.yaml#approvers[].identity')."
+        }
+      }
+    },
+    "validation_rule": {
+      "type": "object",
+      "required": [
+        "id",
+        "enforcement",
+        "message"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9_]+$",
+          "description": "Unique identifier for this validation rule."
+        },
+        "enforcement": {
+          "type": "string",
+          "enum": [
+            "error",
+            "warn",
+            "info"
+          ],
+          "description": "Severity of validation failure."
+        },
+        "message": {
+          "type": "string",
+          "minLength": 10,
+          "description": "Error message shown when validation fails."
+        },
+        "links_to": {
+          "type": "string",
+          "description": "Reference to related policy (e.g., 'approvers.yaml#quorum.critical')."
+        }
+      }
+    }
+  },
+  "additionalProperties": false,
+  "id": "risk_classification_policy.schema",
+  "version": "1.0.0",
+  "owners": {
+    "accountable": "Governance Lead"
+  },
+  "review": {
+    "frequency": "12 months"
+  },
+  "schema_id": "architecture.risk_classification_policy"
+}

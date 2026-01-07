@@ -25,7 +25,8 @@ OUTPUT_PATH := docs/10_CAPABILITY_REFERENCE.md
 # ---- Phony targets -----------------------------------------------------------
 .PHONY: \
   help install lock run stop \
-  audit lint format test test-coverage check \
+  audit check-constitution check-quality validate \
+  lint format test test-coverage check \
   dev-sync dev-sync-apply \
   fix-all dupes cli-tree clean distclean nuke \
   docs check-docs vectorize integrate \
@@ -60,10 +61,27 @@ stop: ## Kill any process listening on $(PORT)
 	@echo "🛑 Stopping any process on port $(PORT)..."
 	@command -v lsof >/dev/null 2>&1 && lsof -t -i:$(PORT) | xargs kill -9 2>/dev/null || true
 
-# ---- Checks / Fixes ----------------------------------------------------------
-audit: ## Run the constitutional audit
+# ==============================================================================
+#   QUALITY GATES & VALIDATION (UNIX Philosophy: Compose Simple Commands)
+# ==============================================================================
+
+check-constitution: ## Check constitutional compliance (policies, patterns)
+	@echo "📜 Checking constitutional compliance..."
 	$(CORE_ADMIN) check audit
 
+check-quality: ## Check code quality gates (ruff, mypy, coverage, security, complexity, dead code)
+	@echo "🔍 Running quality gates..."
+	$(CORE_ADMIN) check quality-gates
+
+audit: dev-sync check-constitution check-quality ## Full audit: sync → constitution → quality
+	@echo "✅ Full audit complete (sync + constitution + quality)"
+
+validate: audit ## Alias for audit (pre-commit validation)
+	@echo "✅ Validation complete"
+
+# ==============================================================================
+
+# ---- Individual Checks (Granular) --------------------------------------------
 lint: ## Check code format and quality (read-only)
 	$(CORE_ADMIN) check lint
 
@@ -72,7 +90,7 @@ format: ## Fix code style issues (Black/Ruff via CLI)
 
 test: ## Run tests
 	@echo "🧪 Running tests with pytest..."
-	$(POETRY) run pytest
+	$(POETRY) run pytest --cov=src --cov-report=json
 
 test-coverage: ## Run tests with coverage report and validation
 	@echo "📊 Running tests with coverage report..."
@@ -80,13 +98,8 @@ test-coverage: ## Run tests with coverage report and validation
 	@echo "📈 Checking coverage meets constitutional requirement..."
 	$(CORE_ADMIN) coverage check
 
-check: ## Run full suite: Lint + Tests + Coverage + Audit + Docs
-	@echo "🤝 Running full constitutional audit and documentation check..."
-	$(MAKE) lint
-	$(MAKE) test
-	$(MAKE) test-coverage
-	$(MAKE) audit
-	@$(MAKE) check-docs
+check: lint test test-coverage check-docs ## Legacy: Run checks (prefer 'make validate')
+	@echo "✅ Legacy check complete (use 'make validate' for full audit)"
 
 fix-all: ## Run all self-healing fixes in curated sequence
 	$(CORE_ADMIN) fix all

@@ -9,12 +9,19 @@ from __future__ import annotations
 import shutil
 import subprocess
 
-import typer
-
 from shared.logger import getLogger
 
 
 logger = getLogger(__name__)
+
+
+# ID: 68adcb06-28c4-426c-8f9f-70a24f8f8ff7
+class SubprocessCommandError(RuntimeError):
+    """Raised when a subprocess command fails."""
+
+    def __init__(self, message: str, *, exit_code: int = 1):
+        super().__init__(message)
+        self.exit_code = exit_code
 
 
 # ID: f555860f-aeb3-4a20-92ff-eee51b7f4501
@@ -23,7 +30,7 @@ def run_poetry_command(description: str, command: list[str]):
     POETRY_EXECUTABLE = shutil.which("poetry")
     if not POETRY_EXECUTABLE:
         logger.error("❌ Could not find 'poetry' executable in your PATH.")
-        raise typer.Exit(code=1)
+        raise SubprocessCommandError("poetry executable not found.", exit_code=1)
 
     logger.info(description)
     full_command = [POETRY_EXECUTABLE, "run", *command]
@@ -41,4 +48,4 @@ def run_poetry_command(description: str, command: list[str]):
             logger.info(e.stdout)
         if e.stderr:
             logger.error(e.stderr)
-        raise typer.Exit(code=1)
+        raise SubprocessCommandError("poetry command failed.", exit_code=1) from e

@@ -8,8 +8,6 @@ from __future__ import annotations
 
 import pathlib
 
-import typer
-
 from shared.logger import getLogger
 
 from .common import (
@@ -24,6 +22,15 @@ from .common import (
 logger = getLogger(__name__)
 
 
+# ID: 0bbf5ba4-81da-449b-9503-9d6fd76212e5
+class MigrationServiceError(RuntimeError):
+    """Raised when migrations fail."""
+
+    def __init__(self, message: str, *, exit_code: int = 1):
+        super().__init__(message)
+        self.exit_code = exit_code
+
+
 async def _run_migrations(apply: bool):
     """The core async logic for running migrations."""
     try:
@@ -33,7 +40,9 @@ async def _run_migrations(apply: bool):
         migration_dir = migrations_config.get("directory", "sql")
     except Exception as e:
         logger.error("Error loading database policy: %s", e)
-        raise typer.Exit(code=1)
+        raise MigrationServiceError(
+            "Error loading database policy.", exit_code=1
+        ) from e
 
     await ensure_ledger()
     applied = await get_applied()
@@ -56,14 +65,14 @@ async def _run_migrations(apply: bool):
             logger.info("Migration %s applied successfully.", mig)
         except Exception as e:
             logger.error("FAILED to apply %s: %s", mig, e)
-            raise typer.Exit(code=1)
+            raise MigrationServiceError(
+                f"Failed to apply migration {mig}.", exit_code=1
+            ) from e
 
     logger.info("All pending migrations applied successfully.")
 
 
 # ID: 7bb0c5ee-480b-4d14-9147-853c9f9b25c5
-async def migrate_db(
-    apply: bool = typer.Option(False, "--apply", help="Apply pending migrations."),
-):
+async def migrate_db(apply: bool = False) -> None:
     """Initialize DB schema and apply pending migrations."""
     await _run_migrations(apply)

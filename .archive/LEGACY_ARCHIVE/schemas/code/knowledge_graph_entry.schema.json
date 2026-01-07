@@ -1,0 +1,164 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://core.system/schema/knowledge_graph_entry.json",
+  "title": "Knowledge Graph Symbol Entry",
+  "description": "Schema for a single symbol (function or class) in the knowledge_graph.json file.",
+  "type": "object",
+  "required": [
+    "key",
+    "name",
+    "type",
+    "file",
+    "capability",
+    "intent",
+    "last_updated",
+    "calls",
+    "line_number",
+    "is_async",
+    "parameters",
+    "is_class",
+    "structural_hash"
+  ],
+  "properties": {
+    "key": {
+      "type": "string",
+      "description": "The unique identifier for the symbol (e.g., 'path/to/file.py::MyClass')."
+    },
+    "name": {
+      "type": "string",
+      "description": "The name of the function or class."
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "FunctionDef",
+        "ClassDef",
+        "AsyncFunctionDef"
+      ]
+    },
+    "file": {
+      "type": "string",
+      "description": "The relative path to the source file."
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "A list of domain tags classifying the symbol's purpose."
+    },
+    "owner": {
+      "type": "string",
+      "description": "The agent or team responsible for this capability."
+    },
+    "capability": {
+      "type": "string",
+      "description": "The unique UUID of the capability this symbol implements, or 'unassigned'."
+    },
+    "intent": {
+      "type": "string",
+      "description": "A clear, concise statement of the symbol's purpose."
+    },
+    "docstring": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "The raw docstring from source code."
+    },
+    "calls": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "List of other functions called by this one."
+    },
+    "line_number": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "is_async": {
+      "type": "boolean"
+    },
+    "parameters": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "entry_point_type": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Type of entry point if applicable (e.g., 'fastapi_route_post')."
+    },
+    "last_updated": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "is_class": {
+      "type": "boolean",
+      "description": "True if the symbol is a class definition."
+    },
+    "base_classes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "A list of base classes this symbol inherits from (if it is a class)."
+    },
+    "entry_point_justification": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "The name of the pattern that identified this symbol as an entry point."
+    },
+    "parent_class_key": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "The key of the parent class, if this symbol is a method."
+    },
+    "structural_hash": {
+      "type": "string",
+      "description": "A SHA256 hash of the symbol's structure, ignoring comments and docstrings."
+    },
+    "vector": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "description": "A pre-computed semantic vector representing the meaning of the capability's source code.",
+      "items": {
+        "type": "number"
+      }
+    },
+    "end_line_number": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "description": "The line number where the symbol's definition ends."
+    },
+    "source_code": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "The exact, unparsed source code of the symbol."
+    }
+  },
+  "additionalProperties": false,
+  "id": "knowledge_graph_entry.schema",
+  "version": "1.0.0",
+  "owners": {
+    "accountable": "Governance Lead"
+  },
+  "review": {
+    "frequency": "12 months"
+  },
+  "schema_id": "code.knowledge_graph_entry"
+}

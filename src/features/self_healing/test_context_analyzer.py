@@ -101,6 +101,8 @@ class ModuleContext:
 class TestContextAnalyzer:
     """Analyzes modules to gather rich context for test generation."""
 
+    __test__ = False
+
     def __init__(self):
         self.repo_root = settings.REPO_PATH
 

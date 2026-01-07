@@ -1,0 +1,324 @@
+{
+  "id": "standard_architecture_workflow_rules",
+  "version": "1.1.0",
+  "title": "Architecture Standard – Workflow Patterns",
+  "type": "policy",
+  "status": "active",
+  "owners": {
+    "accountable": "Architecture Owner",
+    "responsible": [
+      "Core Maintainer"
+    ]
+  },
+  "review": {
+    "frequency": "12 months"
+  },
+  "schema_id": "schema.policy",
+  "description": "Defines canonical patterns for multi-step workflows in CORE.\nWorkflows compose commands, agents, and services into reliable\nend-to-end processes.\n\nNOTE: UI contract enforcement migrated to body.no_ui_imports_in_body (ast_gate) in body_contracts.json.\nWorkflows own UI rendering, but the prohibition on Rich imports in Body modules handles enforcement.\n",
+  "activity_tracking": {
+    "purpose": "Make workflows visible and debuggable",
+    "timeline_logging": {
+      "what_to_log": [
+        "Workflow started (name, trigger, context)",
+        "Step started (name, inputs)",
+        "Step completed (duration, result)",
+        "Step failed (error, partial results)",
+        "Workflow completed (duration, summary)"
+      ],
+      "structured_format": "{\n  \"timestamp\": \"2025-01-15T10:30:00Z\",\n  \"workflow_id\": \"dev-sync-abc123\",\n  \"workflow_name\": \"dev-sync\",\n  \"event\": \"step_started\",\n  \"step\": \"fix_headers\",\n  \"step_number\": 2,\n  \"total_steps\": 9,\n  \"context\": {...}\n}\n"
+    },
+    "visualization": [
+      "Timeline view of workflow execution",
+      "Gantt chart for parallel workflows",
+      "Dependency graph for DAG workflows",
+      "Heat map of failure points"
+    ]
+  },
+  "error_handling_strategies": {
+    "retry_policy": {
+      "transient_errors": {
+        "strategy": "Exponential backoff",
+        "max_attempts": 3,
+        "backoff_factor": 2.0
+      },
+      "permanent_errors": {
+        "strategy": "Fail immediately",
+        "notify": "Human operator"
+      }
+    },
+    "partial_success": {
+      "description": "Some workflows can succeed partially",
+      "example": "Batch processing - 95/100 items succeeded",
+      "handling": [
+        "Report which items failed",
+        "Allow retry of failed items only",
+        "Don't re-process successful items"
+      ]
+    },
+    "graceful_degradation": {
+      "description": "Workflow continues with reduced functionality",
+      "example": "Vectorization fails but DB sync continues",
+      "implementation": [
+        "Mark optional steps clearly",
+        "Continue when optional steps fail",
+        "Report degraded functionality"
+      ]
+    }
+  },
+  "circuit_breaker": {
+    "purpose": "Prevent infinite loops in self-healing and auto-remediation workflows",
+    "rationale": "If a fixer and a linter disagree due to configuration mismatch, they could\nfight forever in a loop. The circuit breaker detects this and escalates to\nhuman intervention before wasting resources or masking real issues.\n",
+    "rules": {
+      "max_attempts_per_file": {
+        "limit": 3,
+        "window": "1 hour",
+        "description": "Maximum remediation attempts on same file within time window"
+      },
+      "max_attempts_per_issue": {
+        "limit": 5,
+        "window": "24 hours",
+        "description": "Maximum attempts to fix same issue type globally"
+      }
+    },
+    "detection_criteria": [
+      "Same file modified by auto-fix multiple times",
+      "Same check failing repeatedly after remediation",
+      "Oscillating state (A→B→A→B pattern)",
+      "Resource usage spike from retry loops"
+    ],
+    "actions_on_breach": {
+      "immediate": [
+        {
+          "action": "quarantine",
+          "target": "file or check causing loop",
+          "duration": "24 hours"
+        },
+        {
+          "action": "stop_remediation",
+          "scope": "affected file/check only",
+          "message": "Circuit breaker triggered"
+        }
+      ],
+      "escalation": [
+        {
+          "action": "create_incident_report",
+          "includes": [
+            "File path or check ID",
+            "Number of attempts",
+            "Timeline of changes",
+            "Diff between oscillating states"
+          ]
+        },
+        {
+          "action": "notify_human",
+          "method": "log to incident report",
+          "priority": "medium",
+          "message": "Auto-remediation loop detected, human review required"
+        }
+      ],
+      "recovery": [
+        {
+          "action": "reset_after_window",
+          "description": "Circuit resets automatically after 24 hours"
+        },
+        {
+          "action": "manual_override",
+          "command": "core-admin manage circuit-breaker reset --file <path>",
+          "requires": "Human approval"
+        }
+      ]
+    },
+    "implementation_example": "class CircuitBreaker:\n    def __init__(self, max_attempts=3, window_hours=1):\n        self._attempts = {}  # file_path -> [(timestamp, state_hash), ...]\n\n    def check_and_record(self, file_path: str, state_hash: str) -> bool:\n        \"\"\"Returns False if circuit breaker should trigger.\"\"\"\n        now = datetime.now()\n        cutoff = now - timedelta(hours=self.window_hours)\n\n        # Get recent attempts for this file\n        recent = [\n            (ts, h) for ts, h in self._attempts.get(file_path, [])\n            if ts > cutoff\n        ]\n\n        # Check for oscillation (A→B→A pattern)\n        if len(recent) >= 3:\n            hashes = [h for _, h in recent[-3:]]\n            if hashes[0] == hashes[2] and hashes[0] != hashes[1]:\n                return False  # Oscillation detected\n\n        # Check attempt count\n        if len(recent) >= self.max_attempts:\n            return False  # Too many attempts\n\n        # Record this attempt\n        if file_path not in self._attempts:\n            self._attempts[file_path] = []\n        self._attempts[file_path].append((now, state_hash))\n\n        return True  # OK to proceed\n",
+    "monitoring": {
+      "metrics": [
+        "Circuit breaker trigger count",
+        "Files currently quarantined",
+        "Average time to resolution",
+        "Most frequent trigger patterns"
+      ],
+      "dashboard": [
+        "List of quarantined files",
+        "Recent circuit breaker events",
+        "Oscillation patterns detected"
+      ]
+    },
+    "testing": {
+      "unit_tests": [
+        "Verify trigger after N attempts",
+        "Verify oscillation detection",
+        "Verify time window enforcement"
+      ],
+      "integration_tests": [
+        "Simulate fixer/linter conflict",
+        "Verify quarantine prevents further attempts",
+        "Verify incident report generation"
+      ],
+      "chaos_engineering": [
+        "Intentionally create oscillating fixes",
+        "Verify system doesn't waste resources",
+        "Verify human notification works"
+      ]
+    }
+  },
+  "monitoring_and_observability": {
+    "metrics": [
+      "Workflow execution count",
+      "Success/failure rate",
+      "Average duration",
+      "Step-level durations",
+      "Resource usage"
+    ],
+    "alerting": [
+      "Success rate below threshold",
+      "Duration exceeds baseline",
+      "Repeated failures",
+      "Resource exhaustion"
+    ],
+    "debugging": [
+      "Detailed execution logs",
+      "Checkpoint states",
+      "Input/output at each step",
+      "Replay capability for failed workflows"
+    ]
+  },
+  "testing_workflows": {
+    "unit_tests": [
+      "Test individual steps",
+      "Mock dependencies",
+      "Verify error handling"
+    ],
+    "integration_tests": [
+      "Test full workflow with test data",
+      "Verify step sequencing",
+      "Test rollback mechanisms"
+    ],
+    "chaos_engineering": [
+      "Inject random failures",
+      "Verify recovery mechanisms",
+      "Test timeout handling"
+    ]
+  },
+  "migration_plan": {
+    "phase_1_inventory": [
+      "List all existing workflows (Makefile + Python)",
+      "Identify which pattern each should follow",
+      "Document current behavior"
+    ],
+    "phase_2_standardization": [
+      "Add structured logging to all workflows",
+      "Implement progress tracking",
+      "Add error handling to make targets"
+    ],
+    "phase_3_enhancement": [
+      "Add activity tracking",
+      "Implement workflow visualization",
+      "Add pattern validation to CI"
+    ],
+    "phase_4_autonomy": [
+      "Add learning to autonomous workflows",
+      "Implement improvement proposals",
+      "Enable self-optimization"
+    ]
+  },
+  "rules": [
+    {
+      "id": "workflow.workflow_ui_single_owner",
+      "data": {
+        "severity": "warning",
+        "enforcement_mechanism": "pattern checks + linting"
+      },
+      "rationale": "Strengthens system governance regarding workflow.workflow_ui_single_owner.",
+      "enforcement": "warn",
+      "statement": "Workflows are the single owner of terminal UI for their execution. They MUST NOT delegate UI concerns downward to services/actions, and MUST NOT call UI-producing subroutines.\n",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: Workflows are the single owner of terminal UI for their execution. They MUST NOT delegate UI concerns downward to services/actions, and MUST NOT call UI-producing subroutines.\n"
+        }
+      }
+    },
+    {
+      "id": "standard_architecture_workflow_rules.ui_contract.0",
+      "category": "ui_contract",
+      "statement": "Nested UI components from called services/actions are forbidden",
+      "enforcement": "error",
+      "rationale": "Migrated from ui_contract section.",
+      "check": {
+        "engine": "llm_gate",
+        "params": {}
+      }
+    },
+    {
+      "id": "standard_architecture_workflow_rules.ui_contract.1",
+      "category": "ui_contract",
+      "statement": "Sub-workflows are treated as opaque units: they return results, not UI",
+      "enforcement": "error",
+      "rationale": "Migrated from ui_contract section.",
+      "check": {
+        "engine": "llm_gate",
+        "params": {}
+      }
+    },
+    {
+      "id": "standard_architecture_workflow_rules.pattern.linear_workflow",
+      "category": "architectural_pattern",
+      "statement": "Must follow the linear_workflow pattern structure.",
+      "enforcement": "error",
+      "rationale": "Execute steps in fixed order with failure handling",
+      "check": {
+        "engine": "llm_gate",
+        "params": {}
+      }
+    },
+    {
+      "id": "standard_architecture_workflow_rules.pattern.dag_workflow",
+      "category": "architectural_pattern",
+      "statement": "Must follow the dag_workflow pattern structure.",
+      "enforcement": "error",
+      "rationale": "Execute steps respecting dependencies, parallelizing where possible",
+      "check": {
+        "engine": "llm_gate",
+        "params": {}
+      }
+    },
+    {
+      "id": "standard_architecture_workflow_rules.pattern.saga_workflow",
+      "category": "architectural_pattern",
+      "statement": "Must follow the saga_workflow pattern structure.",
+      "enforcement": "error",
+      "rationale": "Execute workflow with compensating actions for rollback",
+      "check": {
+        "engine": "llm_gate",
+        "params": {}
+      }
+    },
+    {
+      "id": "standard_architecture_workflow_rules.pattern.event_driven_workflow",
+      "category": "architectural_pattern",
+      "statement": "Must follow the event_driven_workflow pattern structure.",
+      "enforcement": "error",
+      "rationale": "React to events with appropriate workflows",
+      "check": {
+        "engine": "llm_gate",
+        "params": {}
+      }
+    },
+    {
+      "id": "standard_architecture_workflow_rules.pattern.autonomous_workflow",
+      "category": "architectural_pattern",
+      "statement": "Must follow the autonomous_workflow pattern structure.",
+      "enforcement": "error",
+      "rationale": "Workflow that improves itself through feedback",
+      "check": {
+        "engine": "llm_gate",
+        "params": {}
+      }
+    }
+  ],
+  "removed_rules": {
+    "note": "The following rules were removed as duplicates of existing ast_gate enforcement:",
+    "ui_contract.2": "Duplicate of body.no_ui_imports_in_body (ast_gate). Rich console.status usage is already blocked by import restrictions.",
+    "ui_contract.3": "Duplicate of body.no_ui_imports_in_body (ast_gate). Rich Progress usage is already blocked by import restrictions."
+  },
+  "additionalProperties": false
+}

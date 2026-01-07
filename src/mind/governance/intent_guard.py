@@ -94,9 +94,8 @@ class IntentGuard:
         self.rules.sort(key=lambda r: self.precedence_map.get(r.source_policy, 999))
 
         logger.info(
-            "IntentGuard initialized with %s rules (%s engine-based).",
+            "IntentGuard initialized with %s policy rules for file operation governance.",
             len(self.rules),
-            sum(1 for r in self.rules if r.engine),
         )
 
     # -------------------------------------------------------------------------

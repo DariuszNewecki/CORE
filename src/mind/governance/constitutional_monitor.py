@@ -7,7 +7,10 @@ This module provides high-level constitutional governance operations by coordina
 between AuditorContext and remediation handlers. It implements the Mind layer's
 responsibility for decision-making about constitutional violations.
 
-ID: 8f4a3b2c-9d1e-4f5a-8b2c-3d4e5f6a7b8c
+CONSTITUTIONAL FIX:
+- Aligned with 'governance.artifact_mutation.traceable'.
+- Replaced direct Path writes with governed FileHandler mutations.
+- Enforces IntentGuard and audit logging for all header remediations.
 """
 
 from __future__ import annotations
@@ -17,6 +20,7 @@ from pathlib import Path
 from typing import Protocol
 
 from mind.governance.audit_context import AuditorContext
+from shared.infrastructure.storage.file_handler import FileHandler
 from shared.logger import getLogger
 from shared.utils.header_tools import _HeaderTools
 
@@ -93,6 +97,10 @@ class ConstitutionalMonitor:
         self.repo_path = Path(repo_path)
         self.auditor = AuditorContext(self.repo_path)
         self.knowledge_builder = knowledge_builder
+
+        # CONSTITUTIONAL FIX: Use FileHandler for all mutations
+        self.file_handler = FileHandler(str(self.repo_path))
+
         logger.info("ConstitutionalMonitor initialized for %s", self.repo_path)
 
     # ID: dae8dd95-0ac1-4a96-8ef8-92a4326499b1
@@ -139,7 +147,7 @@ class ConstitutionalMonitor:
                         )
                     )
             except Exception as e:
-                logger.warning("Could not process {file_path_str}: %s", e)
+                logger.warning("Could not process %s: %s", file_path_str, e)
         compliant = len(all_py_files) - len(violation_objects)
         logger.info(
             "Header audit complete: %s violations across %s files",
@@ -188,14 +196,14 @@ class ConstitutionalMonitor:
                     )
                     failed_count += 1
             except Exception as e:
-                logger.error("Failed to remediate {violation.file_path}: %s", e)
+                logger.error("Failed to remediate %s: %s", violation.file_path, e)
                 failed_count += 1
         if fixed_count > 0 and self.knowledge_builder:
             logger.info("🧠 Rebuilding knowledge graph to reflect all changes...")
             await self.knowledge_builder.build_and_sync()
             logger.info("✅ Knowledge graph successfully updated.")
         logger.info(
-            "Remediation complete: {fixed_count} fixed, %s failed", failed_count
+            "Remediation complete: %s fixed, %s failed", fixed_count, failed_count
         )
         return RemediationResult(
             success=failed_count == 0,
@@ -226,13 +234,18 @@ class ConstitutionalMonitor:
                 )
             header.has_future_import = True
             corrected_code = _HeaderTools.reconstruct(header)
+
             if corrected_code != original_content:
-                file_path.write_text(corrected_code, "utf-8")
+                # CONSTITUTIONAL FIX: Use governed mutation surface instead of Path.write_text
+                # Relativization and IntentGuard checks are performed by the FileHandler.
+                self.file_handler.write_runtime_text(
+                    violation.file_path, corrected_code
+                )
                 logger.info("Fixed header in %s", violation.file_path)
                 return True
             else:
                 logger.debug("No changes needed for %s", violation.file_path)
                 return True
         except Exception as e:
-            logger.error("Failed to fix header in {violation.file_path}: %s", e)
+            logger.error("Failed to fix header in %s: %s", violation.file_path, e)
             return False

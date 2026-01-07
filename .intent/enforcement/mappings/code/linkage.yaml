@@ -1,0 +1,15 @@
+mappings:
+  # LAW: Public symbols must have IDs
+  linkage.assign_ids:
+    engine: ast_gate
+    params:
+      check_type: id_anchor
+    scope:
+      applies_to: ["src/**/*.py"]
+      excludes: ["**/__init__.py", "tests/**"]
+
+  # LAW: No ID collisions allowed
+  linkage.duplicate_ids:
+    engine: knowledge_gate
+    params:
+      check_type: duplicate_ids

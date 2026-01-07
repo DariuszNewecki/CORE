@@ -1,0 +1,42 @@
+{
+    "$schema": "META/rule_document.schema.json",
+    "kind": "rule_document",
+    "metadata": {
+        "id": "rules.code.purity",
+        "title": "Code Purity Standards",
+        "version": "1.0.0",
+        "authority": "policy",
+        "phase": "audit",
+        "status": "active"
+    },
+    "rules": [
+        {
+            "id": "purity.no_metadata_decorators",
+            "statement": "Source code MUST NOT contain descriptive metadata decorators like @capability, @meta, or @owner.",
+            "authority": "policy",
+            "phase": "audit",
+            "enforcement": "blocking"
+        },
+        {
+            "id": "purity.no_todo_placeholders",
+            "statement": "Production code MUST NOT contain 'TODO', 'FIXME', or 'TBD' strings; use the constitutional 'FUTURE' or 'PENDING' markers.",
+            "authority": "policy",
+            "phase": "audit",
+            "enforcement": "reporting"
+        },
+        {
+            "id": "purity.stable_id_anchor",
+            "statement": "Every public symbol MUST be preceded by a stable '# ID:' anchor comment.",
+            "authority": "policy",
+            "phase": "audit",
+            "enforcement": "blocking"
+        },
+        {
+            "id": "purity.docstrings.required",
+            "statement": "Public symbols MUST have docstrings that clarify intent and parameters for autonomous planning.",
+            "authority": "policy",
+            "phase": "audit",
+            "enforcement": "reporting"
+        }
+    ]
+}

@@ -2,20 +2,10 @@
 """
 Stub LLM Gate Engine - No-op implementation for testing.
 
-This engine replaces the real LLM gate when LLM API access is not configured.
-It allows dynamic rule execution to proceed without API calls or costs.
-
-Behavior:
-- Always returns OK (no violations)
-- Logs what it would have checked
-- Saves money during development
-- Can be replaced with real LLM gate later
-
-Usage:
-This engine is automatically used when Settings doesn't have LLM_API_URL configured.
-See llm_gate.py for the detection logic.
-
-Ref: Dynamic Rule Execution - Phase 1 POC
+CONSTITUTIONAL ALIGNMENT:
+- Aligned with 'async.no_manual_loop_run'.
+- Promoted to natively async to satisfy the BaseEngine contract.
+- Ensures the audit orchestrator can await this engine during fallback.
 """
 
 from __future__ import annotations
@@ -37,9 +27,6 @@ class LLMGateStubEngine(BaseEngine):
 
     This is a placeholder that allows the audit system to run
     without requiring LLM API configuration or incurring costs.
-
-    In production, replace this with real LLMGateEngine when
-    you want actual LLM-based verification.
     """
 
     engine_id = "llm_gate"
@@ -52,16 +39,11 @@ class LLMGateStubEngine(BaseEngine):
         )
 
     # ID: e9f4d8c7-6b3a-5e2f-8d9c-7a6b4e3f1c2d
-    def verify(self, file_path: Path, params: dict[str, Any]) -> EngineResult:
+    async def verify(self, file_path: Path, params: dict[str, Any]) -> EngineResult:
         """
         Stub verification - always returns OK.
 
-        Args:
-            file_path: File to verify (ignored)
-            params: Check parameters including 'instruction' (logged but not executed)
-
-        Returns:
-            EngineResult with ok=True (always passes)
+        Natively async to match the BaseEngine signature.
         """
         # Log what we would have checked (for debugging)
         instruction = params.get("instruction", "")

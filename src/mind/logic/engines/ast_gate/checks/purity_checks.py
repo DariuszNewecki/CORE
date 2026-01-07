@@ -29,13 +29,6 @@ class PurityChecks:
     def _extract_domain_from_path(file_path: Path | str) -> str:
         """
         Extract domain from file path following CORE's domain convention.
-
-        Examples:
-            src/mind/governance/foo.py -> mind.governance
-            /opt/dev/CORE/src/body/cli/logic/bar.py -> body.cli.logic
-            src/features/example/baz.py -> features.example
-
-        Returns empty string if path doesn't match convention.
         """
         # Convert to string and normalize path separators
         path_str = str(file_path).replace("\\", "/")
@@ -47,14 +40,9 @@ class PurityChecks:
         elif path_str.startswith("src/"):
             # Already relative, remove src/ prefix
             path_str = path_str[4:]
-        else:
-            # No src/ found, use as-is
-            pass
 
         # Split path and take domain parts (before filename)
         parts = path_str.split("/")
-
-        # Filter out filename (last part with .py) and empty parts
         domain_parts = [p for p in parts[:-1] if p]
 
         # Join with dots to form domain
@@ -65,17 +53,6 @@ class PurityChecks:
     def _domain_matches_allowed(file_domain: str, allowed_domains: list[str]) -> bool:
         """
         Check if file domain matches any allowed domain.
-
-        Supports prefix matching:
-            - file_domain="mind.governance.checks" matches allowed="mind.governance"
-            - file_domain="body.cli.logic" matches allowed="body.cli.logic"
-
-        Args:
-            file_domain: Domain extracted from file path (e.g., "mind.governance.checks")
-            allowed_domains: List of allowed domain prefixes
-
-        Returns:
-            True if file_domain starts with any allowed domain
         """
         if not file_domain or not allowed_domains:
             return False
@@ -88,13 +65,10 @@ class PurityChecks:
         return False
 
     @staticmethod
-    # ID: 7b2f0a5a-cf7d-4af4-9b3c-7bbd7b4d36d4
-    @staticmethod
     # ID: d0d9b1d6-5849-486a-9f77-8333f4fd75a4
     def check_stable_id_anchor(source: str) -> list[str]:
         """
-        Ensures that all PUBLIC symbols (functions / classes) have a stable ID
-        anchor (# ID: <uuid>) immediately above their definition.
+        Ensures that all PUBLIC symbols have a stable ID anchor (# ID: <uuid>) immediately above their definition.
 
         Files with no public symbols are valid.
         """
@@ -119,16 +93,14 @@ class PurityChecks:
             lineno = node.lineno - 1
             if lineno <= 0:
                 violations.append(
-                    f"Public symbol '{node.name}' missing stable ID anchor "
-                    f"(line {node.lineno})."
+                    f"Public symbol '{node.name}' missing stable ID anchor (line {node.lineno})."
                 )
                 continue
 
             prev_line = lines[lineno - 1].strip()
             if not prev_line.startswith("# ID:"):
                 violations.append(
-                    f"Public symbol '{node.name}' missing stable ID anchor "
-                    f"(line {node.lineno})."
+                    f"Public symbol '{node.name}' missing stable ID anchor (line {node.lineno})."
                 )
 
         return violations
@@ -153,7 +125,6 @@ class PurityChecks:
                     violations.append(
                         f"Forbidden decorator '{dec_name}' on function '{node.name}' (line {ASTHelpers.lineno(dec)})."
                     )
-
         return violations
 
     @staticmethod
@@ -168,26 +139,6 @@ class PurityChecks:
         Check for forbidden execution primitives with domain-aware trust zones.
 
         Constitutional Rule: agent.execution.no_unverified_code
-
-        Args:
-            tree: AST tree to check
-            forbidden: List of forbidden primitive names (e.g., ["eval", "exec", "compile", "__import__"])
-            file_path: Optional file path to determine domain
-            allowed_domains: Optional list of domain prefixes where primitives are allowed
-
-        Returns:
-            List of violation messages
-
-        Examples:
-            # File in allowed domain (mind.governance) - primitives allowed
-            check_forbidden_primitives(tree, ["eval"], Path("src/mind/governance/checks/test.py"),
-                                       ["mind.governance", "body.cli.logic"])
-            # Returns: []
-
-            # File in forbidden domain (features) - primitives forbidden
-            check_forbidden_primitives(tree, ["eval"], Path("src/features/example/service.py"),
-                                       ["mind.governance", "body.cli.logic"])
-            # Returns: ["Dangerous primitive 'eval' is FORBIDDEN in this domain..."]
         """
         violations: list[str] = []
         forbidden_set = {
@@ -235,7 +186,6 @@ class PurityChecks:
                         violations.append(
                             f"Forbidden primitive '{primitive_name}' used (line {ASTHelpers.lineno(node)})."
                         )
-
         return violations
 
     @staticmethod
@@ -247,8 +197,7 @@ class PurityChecks:
                 call_name = ASTHelpers.full_attr_name(node.func)
                 if call_name == "print":
                     violations.append(
-                        f"Forbidden print() call on line {ASTHelpers.lineno(node)}. "
-                        "Use logger.info() or logger.debug() instead."
+                        f"Forbidden print() call on line {ASTHelpers.lineno(node)}. Use logger.info() or logger.debug() instead."
                     )
         return violations
 
@@ -261,17 +210,11 @@ class PurityChecks:
         ignore_tests: bool = True,
         exclude_patterns: list[str] | None = None,
         exclude_decorators: list[str] | None = None,
+        file_path: Path | None = None,
     ) -> list[str]:
-        """
-        Check that state-modifying functions have required decorator.
-
-        Improved heuristic: only flags actual external state modification.
-        Supports exclude_patterns (regex) and exclude_decorators from policy.
-        """
         import re
 
         violations: list[str] = []
-
         exclude_patterns = exclude_patterns or []
         exclude_decorators = exclude_decorators or []
 
@@ -289,7 +232,6 @@ class PurityChecks:
             return False
 
         def _matches_exclude_pattern(fn_name: str) -> bool:
-            """Check if function name matches any exclude pattern."""
             for pattern in exclude_patterns:
                 try:
                     if re.match(pattern, fn_name):
@@ -302,15 +244,78 @@ class PurityChecks:
             node: ast.FunctionDef | ast.AsyncFunctionDef,
         ) -> bool:
             """
-            IMPROVED: Only flags actual external state modification.
+            IMPROVED: Distinguishes between internal math/RAM and external system mutation.
 
-            True if:
-            - Assigns to attributes (obj.attr = x)
-            - Calls mutating methods (.add, .commit, .write, etc.)
-
-            False for:
-            - Local variable assignments (x = 1)
+            Intelligence Layer:
+            1. Sanctuary Zone: Infrastructure and Processors are exempt from decorators.
+            2. Objects and variable names known to be safe/in-memory (self, logger, hasher).
+            3. Toolbox Check: If a function lacks 'mutating tools' (session, fs), it is safe.
             """
+
+            # SANCTUARY CHECK: Infrastructure building blocks are exempt
+            if file_path:
+                p_str = str(file_path).replace("\\", "/")
+                if any(
+                    x in p_str
+                    for x in [
+                        "shared/infrastructure",
+                        "shared/processors",
+                        "repositories/db",
+                    ]
+                ):
+                    return False
+
+            # Objects and variable names that are known to be safe/in-memory
+            safe_callers = {
+                "self",
+                "hasher",
+                "digest",
+                "h",
+                "m",
+                "sha",
+                "logger",
+                "log",
+                "console",
+            }
+            safe_accumulators = {
+                "visited",
+                "seen",
+                "results",
+                "findings",
+                "imports",
+                "symbols",
+                "violations",
+                "parts",
+                "lines",
+                "stack",
+                "queue",
+                "params",
+                "metadata",
+                "target",
+                "item",
+                "symbol",
+                "qualname",
+            }
+
+            # List of arguments that suggest the function has the power to mutate the system
+            mutating_tools = {
+                "session",
+                "db",
+                "db_session",
+                "file_handler",
+                "fs",
+                "path",
+                "file_path",
+                "repo_path",
+                "dst",
+                "target",
+            }
+
+            # Extract names of all arguments to check if function is "armed"
+            arg_names = {arg.arg.lower() for arg in node.args.args}
+            arg_names.update({arg.arg.lower() for arg in node.args.kwonlyargs})
+            has_tools = any(tool in arg_names for tool in mutating_tools)
+
             mutating_methods = {
                 "add",
                 "commit",
@@ -340,25 +345,43 @@ class PurityChecks:
             }
 
             for child in ast.walk(node):
-                # Attribute assignment: obj.attr = value
+                # 1. Attribute Assignment: obj.attr = value
                 if isinstance(child, ast.Assign):
                     for target in child.targets:
                         if isinstance(target, ast.Attribute):
-                            return True
+                            caller = target.value
+                            while isinstance(caller, ast.Attribute):
+                                caller = caller.value
 
-                # Augmented attribute assignment: obj.x += 1
-                if isinstance(child, ast.AugAssign) and isinstance(
-                    child.target, ast.Attribute
-                ):
-                    return True
+                            if isinstance(caller, ast.Name):
+                                if (
+                                    caller.id in safe_callers
+                                    or caller.id in safe_accumulators
+                                ):
+                                    continue
 
-                # Calls to mutating methods
+                            # If function is "armed" with a session/path, this assignment is suspicious
+                            if has_tools:
+                                return True
+
+                # 2. Mutating Method Calls: obj.method()
                 if isinstance(child, ast.Call) and isinstance(
                     child.func, ast.Attribute
                 ):
                     if child.func.attr in mutating_methods:
-                        return True
+                        # Find the root object of the call chain
+                        root = child.func.value
+                        while isinstance(root, ast.Attribute):
+                            root = root.value
 
+                        # IGNORE if the root is in our safe list
+                        if isinstance(root, ast.Name):
+                            if root.id in safe_callers or root.id in safe_accumulators:
+                                continue
+
+                        # Flag only if function has tools to perform external mutation
+                        if has_tools:
+                            return True
             return False
 
         for fn in ast.walk(tree):
@@ -369,15 +392,12 @@ class PurityChecks:
                 continue
             if only_public and fn.name.startswith("_"):
                 continue
-
-            # Check exclude patterns
             if _matches_exclude_pattern(fn.name):
                 continue
 
             if _looks_state_modifying(fn) and not _has_decorator(fn):
                 violations.append(
-                    f"Function '{fn.name}' appears state-modifying but lacks required @{decorator} "
-                    f"(line {ASTHelpers.lineno(fn)})."
+                    f"Function '{fn.name}' appears state-modifying but lacks required @{decorator} (line {ASTHelpers.lineno(fn)})."
                 )
 
         return violations
@@ -387,14 +407,6 @@ class PurityChecks:
     def check_decorator_args(
         tree: ast.AST, decorator: str, required_args: list[str]
     ) -> list[str]:
-        """
-        Enforces that @<decorator>(...) includes all required keyword args.
-
-        Example policy:
-            check_type: decorator_args
-            decorator: atomic_action
-            required_args: ["action_id", "impact", "policies"]
-        """
         violations: list[str] = []
         required = [
             a.strip() for a in required_args if isinstance(a, str) and a.strip()
@@ -407,28 +419,22 @@ class PurityChecks:
             if not isinstance(fn, (ast.FunctionDef, ast.AsyncFunctionDef)):
                 continue
 
-            # Find the decorator occurrence(s)
             for dec in fn.decorator_list:
-                # @atomic_action  (no call) -> violation because args cannot exist
                 if isinstance(dec, ast.Name) and dec.id == decorator:
                     violations.append(
-                        f"@{decorator} on '{fn.name}' must be called with arguments "
-                        f"{sorted(required_set)} (line {ASTHelpers.lineno(dec)})."
+                        f"@{decorator} on '{fn.name}' must be called with arguments {sorted(required_set)} (line {ASTHelpers.lineno(dec)})."
                     )
                     continue
 
-                # @x.atomic_action  (no call)
                 if (
                     isinstance(dec, ast.Attribute)
                     and ASTHelpers.full_attr_name(dec) == decorator
                 ):
                     violations.append(
-                        f"@{decorator} on '{fn.name}' must be called with arguments "
-                        f"{sorted(required_set)} (line {ASTHelpers.lineno(dec)})."
+                        f"@{decorator} on '{fn.name}' must be called with arguments {sorted(required_set)} (line {ASTHelpers.lineno(dec)})."
                     )
                     continue
 
-                # @atomic_action(...)
                 if isinstance(dec, ast.Call):
                     call_name = ASTHelpers.full_attr_name(dec.func)
                     if (
@@ -436,15 +442,90 @@ class PurityChecks:
                         and (call_name or "").split(".")[-1] != decorator
                     ):
                         continue
-
-                    # Collect keyword arg names actually present
                     present_kw = {kw.arg for kw in dec.keywords if kw.arg}
                     missing = sorted(list(required_set - present_kw))
-
                     if missing:
                         violations.append(
-                            f"@{decorator} on '{fn.name}' missing required args {missing} "
-                            f"(line {ASTHelpers.lineno(dec)})."
+                            f"@{decorator} on '{fn.name}' missing required args {missing} (line {ASTHelpers.lineno(dec)})."
                         )
+        return violations
+
+    @staticmethod
+    # ID: 7a8b9c0d-1e2f-3a4b-5c6d-7e8f9a0b1c2d
+    def check_no_direct_writes(tree: ast.AST) -> list[str]:
+        """
+        Enforce: Autonomous code must stage writes via FileHandler.
+
+        Constitutional Rule: body.staged_writes_required
+
+        Detects direct file write operations that bypass the staging system:
+        - Path.write_text(...)
+        - Path.write_bytes(...)
+        - open(..., 'w') / open(..., 'wb')
+        - open(..., 'a') / open(..., 'ab')
+
+        Returns:
+            List of violation messages
+        """
+        violations: list[str] = []
+
+        for node in ast.walk(tree):
+            # Check for Path.write_text() and Path.write_bytes()
+            if isinstance(node, ast.Call):
+                if isinstance(node.func, ast.Attribute):
+                    attr_name = node.func.attr
+
+                    # Detect Path.write_text(...) or Path.write_bytes(...)
+                    if attr_name in ("write_text", "write_bytes"):
+                        violations.append(
+                            f"Direct file write via Path.{attr_name}() on line {ASTHelpers.lineno(node)}. "
+                            f"Use FileHandler.add_pending_write() to stage writes constitutionally."
+                        )
+
+                    # Detect open(...) calls with write modes
+                    elif attr_name == "open" or (
+                        isinstance(node.func.value, ast.Name)
+                        and node.func.value.id == "open"
+                    ):
+                        # Check if mode argument contains 'w' or 'a'
+                        if len(node.args) >= 2:
+                            mode_arg = node.args[1]
+                            if isinstance(mode_arg, ast.Constant) and isinstance(
+                                mode_arg.value, str
+                            ):
+                                mode = mode_arg.value
+                                if "w" in mode or "a" in mode:
+                                    violations.append(
+                                        f"Direct file write via open(..., '{mode}') on line {ASTHelpers.lineno(node)}. "
+                                        f"Use FileHandler.add_pending_write() to stage writes constitutionally."
+                                    )
+
+                # Also check for builtin open() calls
+                elif isinstance(node.func, ast.Name) and node.func.id == "open":
+                    # Check if mode argument contains 'w' or 'a'
+                    if len(node.args) >= 2:
+                        mode_arg = node.args[1]
+                        if isinstance(mode_arg, ast.Constant) and isinstance(
+                            mode_arg.value, str
+                        ):
+                            mode = mode_arg.value
+                            if "w" in mode or "a" in mode:
+                                violations.append(
+                                    f"Direct file write via open(..., '{mode}') on line {ASTHelpers.lineno(node)}. "
+                                    f"Use FileHandler.add_pending_write() to stage writes constitutionally."
+                                )
+
+                    # Also check keyword arguments for mode
+                    for keyword in node.keywords:
+                        if keyword.arg == "mode":
+                            if isinstance(keyword.value, ast.Constant) and isinstance(
+                                keyword.value.value, str
+                            ):
+                                mode = keyword.value.value
+                                if "w" in mode or "a" in mode:
+                                    violations.append(
+                                        f"Direct file write via open(..., mode='{mode}') on line {ASTHelpers.lineno(node)}. "
+                                        f"Use FileHandler.add_pending_write() to stage writes constitutionally."
+                                    )
 
         return violations

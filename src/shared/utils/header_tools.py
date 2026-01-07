@@ -49,7 +49,9 @@ class _HeaderTools:
             )
             is_import = isinstance(node, (ast.Import, ast.ImportFrom))
             if is_docstring or is_import:
-                last_header_line = node.end_lineno or node.lineno
+                # FIXED: Added null-safety for MyPy
+                node_end = getattr(node, "end_lineno", node.lineno)
+                last_header_line = node_end if node_end is not None else 0
                 header_nodes.append(node)
             else:
                 # First non-header node marks the end of the header
@@ -75,40 +77,43 @@ class _HeaderTools:
             and hasattr(docstring_node, "lineno")
             and hasattr(docstring_node, "end_lineno")
         ):
-            # Get the exact lines from the source
-            start_line = docstring_node.lineno - 1
-            end_line = docstring_node.end_lineno - 1
+            # FIXED: Added null-safety for MyPy arithmetic
+            s_lineno = docstring_node.lineno
+            e_lineno = docstring_node.end_lineno
+            if s_lineno is not None and e_lineno is not None:
+                start_line = s_lineno - 1
+                end_line = e_lineno - 1
 
-            # Extract lines including quotes
-            docstring_lines = lines[start_line : end_line + 1]
+                # Extract lines including quotes
+                docstring_lines = lines[start_line : end_line + 1]
 
-            # Preserve original formatting by joining lines
-            if docstring_lines:
-                # Detect if it's a multi-line docstring
-                first_line = docstring_lines[0].strip()
-                last_line = docstring_lines[-1].strip()
+                # Preserve original formatting by joining lines
+                if docstring_lines:
+                    # Detect if it's a multi-line docstring
+                    first_line = docstring_lines[0].strip()
+                    last_line = docstring_lines[-1].strip()
 
-                # Check if it starts and ends with quotes
-                if first_line.startswith(
-                    ('"""', "'''", '"', "'")
-                ) and last_line.endswith(('"""', "'''", '"', "'")):
-                    # For single-line docstrings
-                    if len(docstring_lines) == 1:
-                        components.module_description = docstring_lines[0].strip()
-                    else:
-                        # For multi-line docstrings, preserve all lines
-                        # Find the indentation level
-                        base_indent = len(docstring_lines[0]) - len(
-                            docstring_lines[0].lstrip()
-                        )
-                        # Strip consistent indentation
-                        stripped_lines = []
-                        for line in docstring_lines:
-                            if line.startswith(" " * base_indent):
-                                stripped_lines.append(line[base_indent:])
-                            else:
-                                stripped_lines.append(line)
-                        components.module_description = "\n".join(stripped_lines)
+                    # Check if it starts and ends with quotes
+                    if first_line.startswith(
+                        ('"""', "'''", '"', "'")
+                    ) and last_line.endswith(('"""', "'''", '"', "'")):
+                        # For single-line docstrings
+                        if len(docstring_lines) == 1:
+                            components.module_description = docstring_lines[0].strip()
+                        else:
+                            # For multi-line docstrings, preserve all lines
+                            # Find the indentation level
+                            base_indent = len(docstring_lines[0]) - len(
+                                docstring_lines[0].lstrip()
+                            )
+                            # Strip consistent indentation
+                            stripped_lines = []
+                            for line in docstring_lines:
+                                if line.startswith(" " * base_indent):
+                                    stripped_lines.append(line[base_indent:])
+                                else:
+                                    stripped_lines.append(line)
+                            components.module_description = "\n".join(stripped_lines)
 
         for node in header_nodes:
             if isinstance(node, (ast.Import, ast.ImportFrom)):

@@ -3,6 +3,11 @@
 """
 Constitutional coverage watcher that monitors for violations and triggers
 autonomous remediation when coverage falls below the minimum threshold.
+
+CONSTITUTIONAL FIX:
+- Aligned with 'governance.artifact_mutation.traceable'.
+- Replaced direct Path writes with governed FileHandler mutations.
+- Uses central FileHandler to ensure state persistence is auditable.
 """
 
 from __future__ import annotations
@@ -15,6 +20,7 @@ from features.self_healing.coverage_remediation_service import remediate_coverag
 from mind.governance.checks.coverage_check import CoverageGovernanceCheck
 from shared.config import settings
 from shared.context import CoreContext
+from shared.infrastructure.storage.file_handler import FileHandler
 from shared.logger import getLogger
 
 
@@ -45,8 +51,16 @@ class CoverageWatcher:
             "charter.policies.governance.quality_assurance_policy"
         )
         self.checker = CoverageGovernanceCheck()
-        self.state_file = settings.REPO_PATH / "work" / "testing" / "watcher_state.json"
-        self.state_file.parent.mkdir(parents=True, exist_ok=True)
+
+        # CONSTITUTIONAL FIX: Initialize the governed mutation surface.
+        # FileHandler handles directory creation (mkdir) automatically.
+        self.fh = FileHandler(str(settings.REPO_PATH))
+
+        # Use a relative path string for the FileHandler API
+        self.state_rel_path = "work/testing/watcher_state.json"
+
+        # We keep the absolute path for read-only checks (which are allowed)
+        self.state_file_abs = settings.REPO_PATH / self.state_rel_path
 
     # ID: c0b0acc5-7030-458a-9b5e-45d03e9fe8ee
     async def check_and_remediate(
@@ -63,9 +77,9 @@ class CoverageWatcher:
             return {"status": "compliant", "action": "none", "findings": []}
         violation = self._analyze_findings(findings)
         logger.warning("Constitutional Violation Detected")
-        logger.info("   Current: %s%", violation.current_coverage)
-        logger.info("   Required: %s%", violation.required_coverage)
-        logger.info("   Gap: %s%", abs(violation.delta))
+        logger.info("   Current: %s%%", violation.current_coverage)
+        logger.info("   Required: %s%%", violation.required_coverage)
+        logger.info("   Gap: %s%%", abs(violation.delta))
         if not auto_remediate:
             logger.warning("Auto-remediation disabled - manual intervention required")
             return {
@@ -84,6 +98,7 @@ class CoverageWatcher:
             }
         logger.info("Triggering Autonomous Remediation")
         try:
+            # Logic kept identical: calls the service-level function
             remediation_result = await remediate_coverage(
                 context.cognitive_service, context.auditor_context
             )
@@ -112,23 +127,24 @@ class CoverageWatcher:
                 delta=-75,
                 critical_paths_violated=[],
             )
-        context = main_finding.context or {}
+        # Using context variable from local scope (shadowing is avoided in findings analysis)
+        finding_context = main_finding.context or {}
         critical_paths = [
             f.file_path for f in findings if f.check_id == "coverage.critical_path"
         ]
         return CoverageViolation(
             timestamp=datetime.now(),
-            current_coverage=context.get("current", 0),
-            required_coverage=context.get("required", 75),
-            delta=context.get("delta", 0),
+            current_coverage=finding_context.get("current", 0),
+            required_coverage=finding_context.get("required", 75),
+            delta=finding_context.get("delta", 0),
             critical_paths_violated=critical_paths,
         )
 
     def _in_cooldown(self) -> bool:
-        if not self.state_file.exists():
+        if not self.state_file_abs.exists():
             return False
         try:
-            state = json.loads(self.state_file.read_text())
+            state = json.loads(self.state_file_abs.read_text(encoding="utf-8"))
             last_remediation = state.get("last_remediation")
             if not last_remediation:
                 return False
@@ -144,18 +160,20 @@ class CoverageWatcher:
     def _record_compliant_state(self) -> None:
         try:
             state = {"last_check": datetime.now().isoformat(), "status": "compliant"}
-            if self.state_file.exists():
-                existing = json.loads(self.state_file.read_text())
+            if self.state_file_abs.exists():
+                existing = json.loads(self.state_file_abs.read_text(encoding="utf-8"))
                 state.update(existing)
-            self.state_file.write_text(json.dumps(state, indent=2))
+
+            # CONSTITUTIONAL FIX: Replace Path.write_text with FileHandler
+            self.fh.write_runtime_json(self.state_rel_path, state)
         except Exception as e:
             logger.debug("Could not record state: %s", e)
 
     def _record_remediation(self, violation: CoverageViolation, result: dict) -> None:
         try:
             state = {}
-            if self.state_file.exists():
-                state = json.loads(self.state_file.read_text())
+            if self.state_file_abs.exists():
+                state = json.loads(self.state_file_abs.read_text(encoding="utf-8"))
             state.update(
                 {
                     "last_check": datetime.now().isoformat(),
@@ -184,7 +202,9 @@ class CoverageWatcher:
                 }
             )
             state["remediation_history"] = state["remediation_history"][-10:]
-            self.state_file.write_text(json.dumps(state, indent=2))
+
+            # CONSTITUTIONAL FIX: Replace Path.write_text with FileHandler
+            self.fh.write_runtime_json(self.state_rel_path, state)
         except Exception as e:
             logger.debug("Could not record remediation: %s", e)
 

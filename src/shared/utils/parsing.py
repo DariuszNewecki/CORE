@@ -9,10 +9,11 @@ from __future__ import annotations
 import ast
 import json
 import re
+from typing import Any, cast
 
 
 # ID: 03987fc0-13ec-460a-a399-a89c7289eac6
-def extract_json_from_response(text: str) -> dict | list | None:
+def extract_json_from_response(text: str) -> dict[Any, Any] | list[Any] | None:
     """
     Extracts a JSON object or array from a raw text response, making it robust
     against common LLM formatting issues like introductory text.
@@ -20,13 +21,13 @@ def extract_json_from_response(text: str) -> dict | list | None:
     # 1. Try to extract JSON from markdown code blocks
     json_data = _extract_from_markdown(text)
     if json_data is not None:
-        return json_data
+        return cast(dict[Any, Any] | list[Any], json_data)
 
     # 2. Fallback: Find raw JSON by matching braces/brackets
-    return _extract_raw_json(text)
+    return cast(dict[Any, Any] | list[Any] | None, _extract_raw_json(text))
 
 
-def _extract_from_markdown(text: str) -> dict | list | None:
+def _extract_from_markdown(text: str) -> dict[Any, Any] | list[Any] | None:
     pattern = r"```(?:json)?\s*(\{[\s\S]*?\}|\[[\s\S]*?\])\s*```"
     match = re.search(pattern, text, re.DOTALL)
 
@@ -34,12 +35,12 @@ def _extract_from_markdown(text: str) -> dict | list | None:
         return None
 
     try:
-        return json.loads(match.group(1))
+        return cast(dict[Any, Any] | list[Any], json.loads(match.group(1)))
     except json.JSONDecodeError:
         return None
 
 
-def _extract_raw_json(text: str) -> dict | list | None:
+def _extract_raw_json(text: str) -> dict[Any, Any] | list[Any] | None:
     first_brace = text.find("{")
     first_bracket = text.find("[")
 
@@ -59,7 +60,7 @@ def _extract_raw_json(text: str) -> dict | list | None:
 
     try:
         json_str = text[start_index : last_index + 1]
-        return json.loads(json_str)
+        return cast(dict[Any, Any] | list[Any], json.loads(json_str))
     except (json.JSONDecodeError, ValueError):
         return None
 
@@ -113,7 +114,6 @@ def _is_valid_python_block(code: str) -> bool:
     if not code or not code.strip():
         return False
 
-    # Fix: Rename 'l' to 'line' to avoid E741 (Ambiguous variable name)
     lines = [line.strip() for line in code.splitlines() if line.strip()]
     if not lines:
         return False
@@ -140,30 +140,23 @@ def _is_valid_python_block(code: str) -> bool:
 def extract_python_code_from_response(text: str) -> str | None:
     """
     Extract Python code from an LLM response using a prioritized scoring strategy.
-
-    This handles cases where the LLM outputs verbose plans or explanations (often wrapped
-    in generic code blocks) that are longer than the actual code.
     """
     if not text:
         return None
 
     candidates = []
 
-    # 1. Find all fenced blocks
-    # regex captures: Group 1 (optional lang), Group 2 (content)
     pattern = r"```(\w*)\s*\n(.*?)\n\s*```"
     matches = re.findall(pattern, text, re.DOTALL)
 
     for lang, content in matches:
         cleaned = content.strip()
-        # If tagged, it must be python-ish or empty
         if lang and lang.lower() not in ("python", "py", ""):
             continue
 
         if len(cleaned) > 10 and _is_valid_python_block(cleaned):
             candidates.append(cleaned)
 
-    # 2. Fallback: Check raw text if no valid blocks found
     if not candidates:
         stripped = text.strip()
         if _is_valid_python_block(stripped):
@@ -172,33 +165,20 @@ def extract_python_code_from_response(text: str) -> str | None:
     if not candidates:
         return None
 
-    # 3. Scoring Strategy
-    # ID: 219e62bc-d822-48d9-ac87-5cd99729b5b4
+    # ID: 46c042d9-977d-4567-9dff-4bb63bb042b0
     def score_candidate(code: str) -> float:
         score = 0.0
-
-        # Critical: Tests MUST define tests.
-        # Massive bonus for `def test_` or `class Test`
         if "def test_" in code:
             score += 1000
         if "class Test" in code:
             score += 1000
-
-        # Imports are a strong signal of code vs pseudocode
         if "import " in code or "from " in code:
             score += 100
-
-        # Test framework specific imports
         if "pytest" in code or "unittest" in code:
             score += 500
-
-        # Length is a tie-breaker, but we cap it so a massive text block
-        # doesn't win over a compact but correct test file.
         score += min(len(code), 5000) / 10000.0
-
         return score
 
-    # Sort by score descending
     candidates.sort(key=score_candidate, reverse=True)
 
-    return _normalize_python_snippet(candidates[0])
+    return cast(str, _normalize_python_snippet(candidates[0]))

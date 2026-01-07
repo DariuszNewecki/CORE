@@ -52,20 +52,41 @@ class ASTHelpers:
         Match call name against disallowed patterns.
 
         Strategies:
-        - Exact match on fully qualified name
-        - Exact match on leaf name (last segment)
-        - Suffix match (e.g., endswith ".create_async_engine")
+        - Exact match on fully qualified name (e.g., "asyncio.run" == "asyncio.run")
+        - Suffix match with dot (e.g., "foo.asyncio.run" matches "asyncio.run")
+
+        DOES NOT match bare leaf names to prevent false positives.
+        Example: "subprocess.run" will NOT match "asyncio.run"
+
+        Args:
+            call_name: Fully qualified call name from AST (e.g., "asyncio.run")
+            disallowed: List of forbidden call patterns (e.g., ["asyncio.run"])
+
+        Returns:
+            True if call_name matches any disallowed pattern
         """
-        leaf = call_name.split(".")[-1]
-        for item in disallowed:
-            if call_name == item:
+        for pattern in disallowed:
+            # Strategy 1: Exact match
+            if call_name == pattern:
                 return True
-            if leaf == item:
-                return True
-            if item.startswith(".") and call_name.endswith(item):
-                return True
-            if item.endswith(f".{leaf}") and call_name.endswith(f".{leaf}"):
-                return True
+
+            # Strategy 2: Suffix match (handles nested imports)
+            # "foo.bar.asyncio.run" should match "asyncio.run"
+            # But "subprocess.run" should NOT match "asyncio.run"
+            if "." in pattern:
+                # Only match if it's a proper suffix with a dot boundary
+                # This prevents "subprocess.run" matching "run"
+                if call_name.endswith(f".{pattern}") or call_name.endswith(pattern):
+                    # Additional check: ensure we're matching the full module path
+                    # Split both and compare from the right
+                    call_parts = call_name.split(".")
+                    pattern_parts = pattern.split(".")
+
+                    if len(call_parts) >= len(pattern_parts):
+                        # Check if the rightmost N parts match
+                        if call_parts[-len(pattern_parts) :] == pattern_parts:
+                            return True
+
         return False
 
     @staticmethod

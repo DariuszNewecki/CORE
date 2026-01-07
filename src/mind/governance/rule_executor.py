@@ -1,38 +1,48 @@
 # src/mind/governance/rule_executor.py
 """
-Rule Executor - Executes ExecutableRules via the engine registry.
+Rule Executor - Executes constitutional rules via their declared engines.
 
-This module takes an ExecutableRule and executes it against the codebase:
-1. Gets the appropriate engine from EngineRegistry
-2. For context-level engines: calls verify_context()
-3. For file-level engines: gets files and calls verify() on each
-4. Converts violations to AuditFindings
-
-Design:
-- Pure orchestration (connects existing pieces)
-- Engine does actual verification
-- Returns standard AuditFinding objects
-
-Ref: Dynamic Rule Execution Architecture
+CONSTITUTIONAL ALIGNMENT:
+- Aligned with 'async.no_manual_loop_run'.
+- Uses natively async engine dispatch to prevent loop hijacking.
 """
 
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from mind.governance.executable_rule import ExecutableRule
-from mind.logic.engines.registry import EngineRegistry
 from shared.logger import getLogger
 from shared.models import AuditFinding, AuditSeverity
 
 
 if TYPE_CHECKING:
     from mind.governance.audit_context import AuditorContext
+    from mind.governance.executable_rule import ExecutableRule
 
 logger = getLogger(__name__)
 
 
-# ID: a9f7e2d8-6c3b-5e4f-8d9c-7b6a4e3f1c2d
+# ID: map_enforcement_to_severity
+def _map_enforcement_to_severity(enforcement: str) -> AuditSeverity:
+    """
+    Map canonical enforcement values to AuditSeverity.
+    """
+    enforcement_lower = enforcement.lower()
+
+    if enforcement_lower in ("blocking", "error"):
+        return AuditSeverity.ERROR
+    elif enforcement_lower in ("reporting", "warning"):
+        return AuditSeverity.WARNING
+    elif enforcement_lower == "advisory":
+        return AuditSeverity.INFO
+    else:
+        logger.warning(
+            "Unknown enforcement value '%s', defaulting to WARNING", enforcement
+        )
+        return AuditSeverity.WARNING
+
+
+# ID: 5c8d9e7f-6a4b-3c2d-1e0f-9a8b7c6d5e4f
 async def execute_rule(
     rule: ExecutableRule, context: AuditorContext
 ) -> list[AuditFinding]:
@@ -41,27 +51,13 @@ async def execute_rule(
 
     Flow:
     1. Get engine from registry
-    2. Check if engine is context-level (knowledge_gate, workflow_gate)
-    3a. If context-level: call verify_context(context, params) once
-    3b. If file-level: get files and call verify(file, params) on each
+    2. Check if engine is context-level
+    3a. If context-level: call verify_context(context, params)
+    3b. If file-level: get files and call verify(file, params)
     4. Convert violations to AuditFindings
-
-    Args:
-        rule: ExecutableRule to execute
-        context: AuditorContext with repo info and file access
-
-    Returns:
-        List of AuditFinding instances (empty if no violations)
-
-    Example:
-        rule = ExecutableRule(
-            rule_id="async.runtime.no_nested_loop_creation",
-            engine="ast_gate",
-            params={"check_type": "restrict_event_loop_creation"},
-            enforcement="error"
-        )
-        findings = await execute_rule(rule, context)
     """
+    from mind.logic.engines.registry import EngineRegistry
+
     findings: list[AuditFinding] = []
 
     # Get engine
@@ -71,7 +67,6 @@ async def execute_rule(
         logger.error(
             "Failed to get engine '%s' for rule %s: %s", rule.engine, rule.rule_id, e
         )
-        # Return a finding about the configuration error
         findings.append(
             AuditFinding(
                 check_id=f"{rule.rule_id}.engine_missing",
@@ -83,7 +78,6 @@ async def execute_rule(
         return findings
 
     # CONTEXT-LEVEL ENGINES (knowledge_gate, workflow_gate)
-    # These engines operate on the full AuditorContext, not individual files
     if rule.is_context_level:
         logger.debug(
             "Rule %s: executing context-level engine '%s'",
@@ -92,7 +86,6 @@ async def execute_rule(
         )
 
         try:
-            # Call the context-aware verify method
             if hasattr(engine, "verify_context"):
                 findings_from_engine = await engine.verify_context(context, rule.params)
                 findings.extend(findings_from_engine)
@@ -110,7 +103,7 @@ async def execute_rule(
                     )
                 )
         except Exception as e:
-            logger.error(
+            logger.debug(
                 "Context-level engine '%s' failed for rule %s: %s",
                 rule.engine,
                 rule.rule_id,
@@ -126,29 +119,17 @@ async def execute_rule(
                 )
             )
 
-        if findings:
-            logger.debug("Rule %s: found %d violations", rule.rule_id, len(findings))
-
         return findings
 
     # FILE-LEVEL ENGINES (ast_gate, glob_gate, regex_gate, llm_gate)
-    # These engines operate on individual files
     logger.debug(
         "Rule %s: executing file-level engine '%s'",
         rule.rule_id,
         rule.engine,
     )
 
-    # Get files to check
     try:
         files = context.get_files(include=rule.scope, exclude=rule.exclusions)
-        logger.debug(
-            "Rule %s: checking %d files (scope=%s, exclusions=%s)",
-            rule.rule_id,
-            len(files),
-            rule.scope,
-            rule.exclusions,
-        )
     except Exception as e:
         logger.error("Failed to get files for rule %s: %s", rule.rule_id, e)
         findings.append(
@@ -161,23 +142,32 @@ async def execute_rule(
         )
         return findings
 
+    severity = _map_enforcement_to_severity(rule.enforcement)
+
     # Execute engine on each file
     for file_path in files:
         try:
-            result = engine.verify(file_path, rule.params)
+            # FIXED: Added 'await' because BaseEngine.verify is now async.
+            # This allows engines to perform I/O without hijacking the loop.
+            result = await engine.verify(file_path, rule.params)
 
             if not result.ok:
-                # Convert engine violations to AuditFindings
-                for violation_msg in result.violations:
+                if result.violations:
+                    for violation_msg in result.violations:
+                        findings.append(
+                            AuditFinding(
+                                check_id=rule.rule_id,
+                                severity=severity,
+                                message=violation_msg,
+                                file_path=str(file_path.relative_to(context.repo_path)),
+                            )
+                        )
+                else:
                     findings.append(
                         AuditFinding(
-                            check_id=rule.rule_id,
-                            severity=(
-                                AuditSeverity.ERROR
-                                if rule.enforcement == "error"
-                                else AuditSeverity.WARNING
-                            ),
-                            message=violation_msg,
+                            check_id=f"{rule.rule_id}.engine_error",
+                            severity=AuditSeverity.ERROR,
+                            message=f"{result.message} (file: {file_path.name})",
                             file_path=str(file_path.relative_to(context.repo_path)),
                         )
                     )
@@ -189,11 +179,9 @@ async def execute_rule(
                 rule.rule_id,
                 e,
             )
-            # Don't add finding for individual file failures - they might be legitimate parse errors
-            # that other checks will catch
             continue
 
-    if findings:
-        logger.debug("Rule %s: found %d violations", rule.rule_id, len(findings))
-
     return findings
+
+
+__all__ = ["execute_rule"]

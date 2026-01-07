@@ -1,0 +1,27 @@
+mappings:
+  # LAW: Operational knowledge MUST NOT be hardcoded
+  data.ssot.database_primacy:
+    engine: ast_gate
+    params:
+      check_type: forbidden_assignments
+      targets: ["LLM_MODELS", "AGENT_ROLES", "SYSTEM_DOMAINS"]
+    scope:
+      applies_to: ["src/features/**/*.py", "src/body/services/**/*.py"]
+
+  # LAW: Source code, logs, and prompts MUST NOT contain raw secrets
+  data.security.no_raw_secrets:
+    engine: regex_gate
+    params:
+      forbidden_patterns:
+        - "(sk-[a-zA-Z0-9]{32,})" # Generic API Key pattern
+        - "AI[a-zA-Z0-9]{32,}" # Anthropic/Ollama patterns
+        - "PASSWORD\\s*=\\s*['\"][^'\"]+['\"]"
+    scope:
+      applies_to: ["src/**/*.py", "var/logs/*.jsonl"]
+
+  # LAW: Every symbol in DB must have a vector in memory
+  data.integrity.vector_sync:
+    engine: knowledge_gate
+    params:
+      check_type: table_has_records
+      table: "core.symbol_vector_links"

@@ -1,6 +1,12 @@
 # src/mind/logic/engines/action_gate.py
 
-"""Provides functionality for the action_gate module."""
+"""
+Operation Intent Auditor.
+
+CONSTITUTIONAL ALIGNMENT:
+- Aligned with 'async.no_manual_loop_run'.
+- Promoted to natively async to satisfy the BaseEngine contract.
+"""
 
 from __future__ import annotations
 
@@ -20,7 +26,11 @@ class ActionGateEngine(BaseEngine):
     engine_id = "action_gate"
 
     # ID: cc81843f-33db-479a-9c5c-52d90e14134f
-    def verify(self, file_path: Path, params: dict[str, Any]) -> EngineResult:
+    async def verify(self, file_path: Path, params: dict[str, Any]) -> EngineResult:
+        """
+        Natively async verification.
+        Matches the BaseEngine contract to prevent loop-hijacking in orchestrators.
+        """
         violations = []
 
         # FACT: The Auditor must provide the 'action_id' being attempted.

@@ -14,42 +14,62 @@ import json
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-import typer
 from qdrant_client.http import models as qm
 
-from shared.cli_utils import core_command
 from shared.config import settings
 from shared.logger import getLogger
 
 
 if TYPE_CHECKING:
     from shared.context import CoreContext
+    from shared.infrastructure.clients.qdrant_client import QdrantService
+    from shared.infrastructure.storage.file_handler import FileHandler
 
 logger = getLogger(__name__)
 
 
-async def _async_export(context: CoreContext, output_path: Path):
-    """
-    The core async logic for exporting vectors.
-    Mutations are routed through the governed FileHandler.
-    """
-    repo_root = settings.REPO_PATH
-    qdrant_service = context.qdrant_service
-    file_handler = context.file_handler
+# ID: bca1db14-b3fa-4de0-bb76-86d9df09aed9
+class VectorExportError(RuntimeError):
+    """Raised when vector export cannot complete."""
 
-    # 1. Path Normalization
-    # Convert absolute or relative path to a repo-relative string for the FileHandler
+    def __init__(self, message: str, *, exit_code: int = 1):
+        super().__init__(message)
+        self.exit_code = exit_code
+
+
+def _normalize_output_path(output_path: Path, repo_root: Path) -> str:
+    """
+    Convert the provided path to a repository-relative POSIX string.
+
+    Raises VectorExportError if the path escapes the repository boundary.
+    """
     try:
         if output_path.is_absolute():
             rel_path = output_path.relative_to(repo_root)
         else:
-            # If it's already relative, ensure it's relative to root, not CWD
             rel_path = output_path
-
-        rel_path_str = str(rel_path).replace("\\", "/")
-    except ValueError:
+        return str(rel_path).replace("\\", "/")
+    except ValueError as exc:
         logger.error("Output path %s must be within the repository root.", output_path)
-        raise typer.Exit(code=1)
+        raise VectorExportError(
+            "Output path must be within the repository root.", exit_code=1
+        ) from exc
+
+
+async def _async_export(
+    qdrant_service: QdrantService,
+    file_handler: FileHandler,
+    output_path: Path,
+):
+    """
+    The core async logic for exporting vectors.
+    Mutations are routed through the governed FileHandler.
+    """
+    repo_root = Path(settings.REPO_PATH)
+
+    # 1. Path Normalization
+    # Convert absolute or relative path to a repo-relative string for the FileHandler
+    rel_path_str = _normalize_output_path(output_path, repo_root)
 
     logger.info("Exporting all vectors to %s...", rel_path_str)
 
@@ -87,21 +107,20 @@ async def _async_export(context: CoreContext, output_path: Path):
 
     except Exception as e:
         logger.error("Failed to export vectors: %s", e, exc_info=True)
-        raise typer.Exit(code=1)
+        raise VectorExportError("Failed to export vectors.", exit_code=1) from e
 
 
-# ID: c94d2b2e-fde1-4ee8-bfe7-608e5d9bd18a
-@core_command(dangerous=False)
-# ID: a609ada6-bc85-463c-9db4-93c59924c4ef
+# ID: 9d8d50b8-b533-4169-b21f-839a06db1f46
 async def export_vectors(
-    ctx: typer.Context,
-    output: Path = typer.Option(
-        "reports/vectors_export.jsonl",
-        "--output",
-        "-o",
-        help="The path to save the exported JSONL file.",
-    ),
-):
+    context: CoreContext, output: Path | str = Path("reports/vectors_export.jsonl")
+) -> None:
     """Exports all vectors from Qdrant to a JSONL file via governed services."""
-    core_context: CoreContext = ctx.obj
-    await _async_export(core_context, output)
+    output_path = Path(output)
+    if not getattr(context, "qdrant_service", None) or not getattr(
+        context, "file_handler", None
+    ):
+        raise VectorExportError(
+            "CoreContext must provide qdrant_service and file_handler.", exit_code=1
+        )
+
+    await _async_export(context.qdrant_service, context.file_handler, output_path)

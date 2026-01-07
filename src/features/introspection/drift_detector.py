@@ -2,15 +2,25 @@
 """
 Detects drift between declared capabilities in manifests and implemented
 capabilities in the source code.
+
+CONSTITUTIONAL FIX:
+- Aligned with 'governance.artifact_mutation.traceable'.
+- Replaced direct Path writes with governed FileHandler mutations.
+- Enforces IntentGuard and audit logging for drift reports.
 """
 
 from __future__ import annotations
 
-import json
 from dataclasses import asdict
 from pathlib import Path
 
+from shared.config import settings
+from shared.infrastructure.storage.file_handler import FileHandler
+from shared.logger import getLogger
 from shared.models import CapabilityMeta, DriftReport
+
+
+logger = getLogger(__name__)
 
 
 # ID: 6cc5efdf-037e-4862-b13e-0a569d889a97
@@ -48,6 +58,27 @@ def detect_capability_drift(
 
 # ID: db10bc9b-b4b3-41f2-8d81-b32731540d95
 def write_report(path: Path, report: DriftReport) -> None:
-    """Writes the drift report to a JSON file."""
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(report.to_dict(), indent=2), encoding="utf-8")
+    """
+    Writes the drift report to a JSON file via the governed FileHandler.
+    """
+    # CONSTITUTIONAL FIX: Use the governed mutation surface
+    # FileHandler automatically handles directory creation (mkdir) and checks IntentGuard.
+    fh = FileHandler(str(settings.REPO_PATH))
+
+    try:
+        # Resolve to a repo-relative string as required by the FileHandler API
+        rel_path = str(
+            path.resolve().relative_to(settings.REPO_PATH.resolve())
+        ).replace("\\", "/")
+
+        # This logs the mutation to core.action_results and enforces safety policies
+        fh.write_runtime_json(rel_path, report.to_dict())
+
+        logger.info("Drift report successfully persisted to %s", rel_path)
+    except ValueError:
+        # If the path is outside the repo, we log a warning but the Law forbids the write
+        logger.error(
+            "Security Violation: Attempted to write report to an ungoverned path: %s",
+            path,
+        )
+        raise

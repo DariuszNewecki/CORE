@@ -1,0 +1,203 @@
+{
+  "id": "standard_architecture_user_interface",
+  "version": "1.0.0",
+  "title": "Architecture Standard \u2013 User Interface",
+  "type": "policy",
+  "status": "active",
+  "owners": {
+    "accountable": "Architecture Owner",
+    "responsible": [
+      "Core Maintainer"
+    ]
+  },
+  "review": {
+    "frequency": "12 months"
+  },
+  "schema_id": "schema.policy",
+  "description": "Defines how end users interact with CORE through conversational interface,\ndistinct from operator tooling.\n\nTwo interfaces serve different audiences:\n- core: End-user conversational interface (src/api/cli_user.py)\n- core-admin: Operator tooling interface (src/body/cli/main.py)\n\nThis pattern establishes the architectural boundaries and governance\nfor conversational interaction with CORE.\n",
+  "category": "interface",
+  "layer": "api",
+  "principles": [
+    {
+      "id": "single_conversation_entry",
+      "statement": "End users interact ONLY through conversational interface",
+      "rationale": "Users shouldn't need to understand CORE's internal architecture,\ncommand structure, or constitutional patterns. Natural language\nis the only interface they see.\n"
+    },
+    {
+      "id": "constitutional_by_default",
+      "statement": "All operations route through governance automatically",
+      "rationale": "End users can't bypass constitutional checks. Everything goes through\nConversationalAgent \u2192 Mind \u2192 Body, ensuring safety by default.\n"
+    },
+    {
+      "id": "operator_escape_hatch",
+      "statement": "Operators retain full access via core-admin",
+      "rationale": "When the conversational interface fails or for advanced operations,\noperators can use core-admin for direct system access.\n"
+    },
+    {
+      "id": "progressive_autonomy",
+      "statement": "Interface evolves from read-only to full autonomy",
+      "rationale": "Phase 1: Information retrieval only\nPhase 2: Proposal generation with approval\nPhase 3: Full autonomous execution\n"
+    }
+  ],
+  "architecture": {
+    "entry_points": {
+      "end_user": {
+        "binary": "core",
+        "location": "src/api/cli_user.py",
+        "purpose": "Conversational interface for end users",
+        "routing": "api.cli_user \u2192 will.agents.conversational_agent"
+      },
+      "operator": {
+        "binary": "core-admin",
+        "location": "src/body/cli/main.py",
+        "purpose": "Direct system access for operators",
+        "routing": "body.cli.main \u2192 direct Body/Mind access"
+      }
+    },
+    "conversation_flow": [
+      {
+        "step": "User message received",
+        "handler": "cli_user.main()"
+      },
+      {
+        "step": "ConversationalAgent processing",
+        "handler": "conversational_agent.process_message()",
+        "details": "- Extract context via ContextBuilder\n- Send to LLM for analysis\n- (Phase 2) Parse into proposals\n- (Phase 3) Execute via Body\n"
+      },
+      {
+        "step": "Response returned",
+        "format": "Natural language text"
+      }
+    ],
+    "phase_roadmap": {
+      "phase_1": {
+        "status": "current",
+        "capabilities": [
+          "Natural language queries about codebase",
+          "Context extraction and minimal bundling",
+          "LLM-powered analysis and explanation",
+          "Read-only, no modifications"
+        ]
+      },
+      "phase_2": {
+        "status": "planned",
+        "capabilities": [
+          "Parse LLM responses into actionable proposals",
+          "Submit proposals through Mind governance",
+          "User approval workflow",
+          "Simple autonomous fixes"
+        ]
+      },
+      "phase_3": {
+        "status": "future",
+        "capabilities": [
+          "Full autonomous code generation",
+          "Multi-step problem solving",
+          "Self-healing and optimization",
+          "Strategic refactoring"
+        ]
+      }
+    }
+  },
+  "contracts": {
+    "conversational_agent": {
+      "location": "src/will/agents/conversational_agent.py",
+      "responsibilities": [
+        "Parse user intent from natural language",
+        "Extract minimal context via ContextBuilder",
+        "Communicate with LLM services",
+        "Format responses for end users",
+        "(Future) Generate and submit proposals"
+      ],
+      "dependencies": [
+        "services.context.ContextBuilder",
+        "services.CognitiveService",
+        "(Future) mind.governance checks",
+        "(Future) body.actions for execution"
+      ],
+      "constraints": [
+        "Phase 1: Read-only operations only",
+        "All context extraction respects Mind policies",
+        "No direct filesystem or database writes",
+        "All proposals must go through governance"
+      ]
+    },
+    "context_extraction": {
+      "governed_by": ".intent/charter/schemas/operations/conversational_context_bundle_schema.yaml",
+      "rules": [
+        "Extract minimal context (max 50k tokens)",
+        "Respect privacy and redaction policies",
+        "Use semantic search when available",
+        "Fail safe if context unavailable"
+      ]
+    }
+  },
+  "governance": {
+    "policies": [
+      "headless_body",
+      "ui_single_owner",
+      "context_minimization",
+      "logging_standards",
+      "read_only_phase1"
+    ],
+    "audits": [
+      "DomainPlacementCheck",
+      "CapabilityOwnerCheck",
+      "BodyContractsCheck"
+    ]
+  },
+  "future_interfaces": {
+    "web_ui": {
+      "location": "src/api/web/",
+      "technology": "FastAPI + React/HTMX",
+      "entry_point": "POST /api/chat",
+      "routing": "Same ConversationalAgent"
+    },
+    "mobile_app": {
+      "location": "External (uses API)",
+      "entry_point": "POST /api/chat",
+      "routing": "Same ConversationalAgent"
+    },
+    "ide_plugin": {
+      "location": "External (uses API or CLI)",
+      "integration": "Calls 'core' binary or API",
+      "routing": "Same ConversationalAgent"
+    }
+  },
+  "examples": [
+    {
+      "description": "User asks about a specific class",
+      "command": "core \"what does ContextBuilder do?\"",
+      "flow": "1. Extract keywords: [\"ContextBuilder\"]\n2. Search knowledge graph for ContextBuilder\n3. Extract code, docstring, usage examples\n4. Send context + question to LLM\n5. Return: \"ContextBuilder is responsible for...\"\n"
+    },
+    {
+      "description": "User reports a problem",
+      "command": "core \"my tests are failing\"",
+      "flow": "Phase 1: \"I'd need more context. Which tests are failing?\"\nPhase 2: Extract test files, analyze failures, propose fix\nPhase 3: Analyze failures, generate fix, submit proposal, execute\n"
+    },
+    {
+      "description": "User requests refactoring",
+      "command": "core \"refactor src/services/context/builder.py for clarity\"",
+      "flow": "Phase 1: \"I can analyze the file for you, but can't modify it yet\"\nPhase 2: Analyze file, generate refactor proposal, wait for approval\nPhase 3: Analyze, propose, get approval, execute, report results\n"
+    }
+  ],
+  "related_patterns": [
+    "atomic_actions",
+    "agent_patterns",
+    "conversational_context_extractor",
+    "command_patterns"
+  ],
+  "additionalProperties": false,
+  "rules": [
+    {
+      "id": "ui.placeholder",
+      "statement": "This policy document is currently being defined.",
+      "enforcement": "info",
+      "rationale": "Placeholder rule to satisfy schema requirement for non-empty rules array",
+      "check": {
+        "engine": "llm_gate",
+        "params": {}
+      }
+    }
+  ]
+}

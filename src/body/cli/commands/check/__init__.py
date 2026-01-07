@@ -68,11 +68,26 @@ def _register_diagnostic_commands():
                 check_app.command("body-ui")(attr)
 
 
+def _register_quality_gates_commands():
+    """Register quality gates commands."""
+    import body.cli.commands.check.quality_gates as qg_module
+
+    for attr_name in dir(qg_module):
+        attr = getattr(qg_module, attr_name)
+        if (
+            callable(attr)
+            and hasattr(attr, "__name__")
+            and attr.__name__ == "quality_gates_cmd"
+        ):
+            check_app.command("quality-gates")(attr)
+            break
+
+
 # Register all commands
 _register_audit_commands()
 _register_rule_commands()
 _register_quality_commands()
 _register_diagnostic_commands()
-
+_register_quality_gates_commands()
 
 __all__ = ["check_app"]
