@@ -1,6 +1,10 @@
 # src/shared/utils/text_cleaner.py
 
-"""Provides functionality for the text_cleaner module."""
+"""
+UNIX-compliant text processing pipeline.
+Separates splitting, line-level cleaning, filtering, and case normalization
+into discrete, predictable stages. Satisfies the 'one thing well' principle.
+"""
 
 from __future__ import annotations
 
@@ -16,42 +20,44 @@ def clean_text(
     normalize_case: str | None = None,
 ) -> str:
     """
-    Clean and normalize text by applying various transformations.
+    Clean and normalize text using an atomic transformation pipeline.
 
-    Args:
-        text: The input text to clean.
-        remove_extra_spaces: If True, collapses multiple spaces/tabs to single space.
-        remove_empty_lines: If True, removes lines containing only whitespace.
-        strip_whitespace: If True, strips leading/trailing whitespace from each line and the entire result.
-        normalize_case: Optional case normalization: 'lower' or 'upper'.
-
-    Returns:
-        The cleaned text string.
+    The pipeline follows a strict sequence:
+    1. Split: Convert input into a list of lines.
+    2. Transform: Apply line-level cleaning (strip/collapse) independently.
+    3. Filter: Remove lines that are now effectively empty.
+    4. Re-join: Reconstruct the string.
+    5. Finalize: Apply global case and final trim.
     """
     if not isinstance(text, str):
         raise TypeError(f"Expected string, got {type(text).__name__}")
 
+    # STAGE 1: Splitting
     lines = text.splitlines()
-    cleaned_lines = []
 
+    # STAGE 2: Independent Line Transformation
+    transformed = []
     for line in lines:
-        # Apply space reduction if requested
-        if remove_extra_spaces:
-            line = re.sub(r"[ \t]+", " ", line)
-
-        # Strip whitespace from each line if requested
+        # Atomic Operation A: Strip (Line-level)
         if strip_whitespace:
             line = line.strip()
 
-        # Skip empty lines if requested
-        if remove_empty_lines and not line:
-            continue
+        # Atomic Operation B: Collapse internal spaces
+        if remove_extra_spaces:
+            # We use a simple regex that respects the line's existing boundaries
+            line = re.sub(r"[ \t]+", " ", line)
 
-        cleaned_lines.append(line)
+        transformed.append(line)
 
-    result = "\n".join(cleaned_lines)
+    # STAGE 3: Filtering
+    if remove_empty_lines:
+        # A line is empty if it contains nothing or only whitespace
+        transformed = [ln for ln in transformed if ln != ""]
 
-    # Apply case normalization if requested
+    # STAGE 4: Re-assembly
+    result = "\n".join(transformed)
+
+    # STAGE 5: Global Transformations
     if normalize_case == "lower":
         result = result.lower()
     elif normalize_case == "upper":
@@ -61,7 +67,7 @@ def clean_text(
             f"normalize_case must be 'lower', 'upper', or None, got '{normalize_case}'"
         )
 
-    # Final strip if requested
+    # FINAL STAGE: Global Trim (Guarantees no leading/trailing junk for the whole block)
     if strip_whitespace:
         result = result.strip()
 

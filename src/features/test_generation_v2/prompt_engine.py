@@ -53,20 +53,40 @@ class ConstitutionalTestPromptBuilder:
             "1. TRUNCATION: If rsplit(' ', 1)[0] is used, the LAST word is always dropped."
         )
         parts.append("2. BLANK LINES: join(['']) returns '', not a newline.")
+        # NEW RULE: Prevents hallucinating that regex trims the edges of the string
+        parts.append(
+            "3. REGEX COLLAPSE: re.sub(r'[ \\t]+', ' ', '  A  ') results in ' A ', NOT 'A'."
+        )
         parts.append("")
 
         parts.append("## CRITICAL RULES")
         parts.append(f"- STRICT FOCUS: Only test '{symbol_name}'.")
         parts.append("- NO MOCKING: This is a pure utility. Use real data strings.")
         parts.append(f"- IMPORT: from {import_path} import {symbol_name}")
+        parts.append("- COMPARISONS: ALWAYS use '==' for value assertions.")
+        parts.append(
+            "  NEVER use the 'is' keyword for comparing strings, lists, or dicts."
+        )
 
-        # CONSTITUTIONAL FIX: Increased weight for character accuracy to fix safe_truncate failures
+        # BOILERPLATE MANDATE: Fixes the "Missing pytest import" skip
+        parts.append("- BOILERPLATE: You MUST include 'import pytest' at the top.")
+
+        # CHARACTER ACCURACY: Fixes the safe_truncate failures
         parts.append(
             "- CHARACTER ACCURACY: ALWAYS use the Unicode Ellipsis '…' (u+2026)."
         )
         parts.append(
             "  NEVER use three literal dots '...' for truncation expectations. It will fail the sandbox."
         )
+
+        # ISOLATION MANDATE: Fixes logical mismatches with default parameters
+        parts.append(
+            "- ISOLATION: If the function has multiple boolean default parameters,"
+        )
+        parts.append(
+            "  explicitly set ALL parameters in your assertions to avoid side effects"
+        )
+        parts.append("  from other default behaviors.")
 
         if constraints:
             for constraint in constraints:
@@ -81,9 +101,8 @@ class ConstitutionalTestPromptBuilder:
         parts.append("")
 
         parts.append("## OUTPUT REQUIREMENTS")
-        parts.append(
-            "- Include a comment at the top explaining the detected return type."
-        )
+        parts.append("- Include 'import pytest' and the specific module import.")
+        parts.append("- Include a comment explaining the detected return type.")
         parts.append("- Return ONLY the Python test code. No fences. No prose.")
 
         return "\n".join(parts)

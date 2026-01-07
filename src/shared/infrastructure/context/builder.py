@@ -158,7 +158,7 @@ class ContextBuilder:
             "problem": {
                 "summary": task_spec.get("summary", ""),
                 "target_file": target_file,
-                "target_module": target_module,  # <--- NEW: Crucial address for LLM imports
+                "target_module": target_module,
                 "intent_ref": task_spec.get("intent_ref"),
                 "acceptance": task_spec.get("acceptance", []),
             },
@@ -204,27 +204,61 @@ class ContextBuilder:
         return packet
 
     async def _collect_context(self, packet: dict, task_spec: dict) -> list[dict]:
+        """
+        Collects an adequate set of context items based on task specificity.
+        REFACTORED: Replaces hardcoded quotas with deterministic, task-aware scaling.
+        """
         items = []
         scope = packet["scope"]
-        max_items = packet["constraints"]["max_items"]
+        constraints = packet["constraints"]
+
+        # DETERMINISTIC LOGIC: Is this a surgical strike or a broad analysis?
+        target_symbol = task_spec.get("target_symbol")
+        is_surgical = bool(target_symbol)
+
+        if is_surgical:
+            # POLICY: For surgical tasks, noise is the enemy.
+            # Pulling 25 symbols for a tiny function is "Context Pollution".
+            adequate_db_limit = 5
+            adequate_vec_limit = 3
+            logger.info(
+                "🎯 Surgical Task Detected: Setting adequate context limits (DB: %s, Vec: %s)",
+                adequate_db_limit,
+                adequate_vec_limit,
+            )
+        else:
+            # POLICY: For broad tasks, we allow higher discovery quotas.
+            adequate_db_limit = constraints["max_items"] // 2
+            adequate_vec_limit = constraints["max_items"] // 3
+            logger.info("🌐 Broad Task Detected: Using standard discovery quotas.")
+
+        # 1. Database Symbols (Structural Context)
         if self.db:
-            seed_items = await self.db.get_symbols_for_scope(scope, max_items // 2)
+            seed_items = await self.db.get_symbols_for_scope(scope, adequate_db_limit)
             items.extend(seed_items)
+
+        # 2. Vector Search (Semantic Context)
         if self.vectors and task_spec.get("summary"):
             vec_items = await self.vectors.search_similar(
-                task_spec["summary"], top_k=max_items // 3
+                task_spec["summary"], top_k=adequate_vec_limit
             )
             items.extend(vec_items)
+
+        # 3. Graph Traversal (Dependency Context)
         traversal_depth = scope.get("traversal_depth", 0)
         if traversal_depth > 0 and self._knowledge_graph.get("symbols") and items:
-            logger.info("Traversing knowledge graph to depth %s.", traversal_depth)
             related_items = self._traverse_graph(
-                list(items), traversal_depth, max_items - len(items)
+                list(items), traversal_depth, constraints["max_items"] - len(items)
             )
             items.extend(related_items)
+
+        # 4. Mandatory Target Extraction (Primary Context)
         forced_items = await self._force_add_code_item(task_spec)
         if forced_items:
+            # Target code ALWAYS goes at the top of the dossier
             items = forced_items + items
+
+        # Deduplication
         seen_keys = set()
         unique_items = []
         for item in items:
@@ -232,6 +266,7 @@ class ContextBuilder:
             if key not in seen_keys:
                 seen_keys.add(key)
                 unique_items.append(item)
+
         return unique_items
 
     def _traverse_graph(

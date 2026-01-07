@@ -2,74 +2,58 @@
 - Source: src/shared/utils/common_knowledge.py
 - Symbol: ensure_trailing_newline
 - Status: verified_in_sandbox
-- Generated: 2026-01-07 20:40:35
+- Generated: 2026-01-07 22:13:08
 """
-
-# Detected return type: str
 
 from shared.utils.common_knowledge import ensure_trailing_newline
 
 
-def test_ensure_trailing_newline_empty_string():
-    """Empty string should return just a newline."""
+# Detected return type: str
+def test_ensure_trailing_newline_adds_newline_to_empty_string():
     result = ensure_trailing_newline("")
     assert result == "\n"
 
 
-def test_ensure_trailing_newline_no_newline():
-    """String without newline should get one appended."""
-    result = ensure_trailing_newline("Hello world")
-    assert result == "Hello world\n"
+def test_ensure_trailing_newline_adds_newline_to_string_without_newline():
+    result = ensure_trailing_newline("test string")
+    assert result == "test string\n"
 
 
-def test_ensure_trailing_newline_single_newline():
-    """String already ending with one newline should be unchanged."""
-    input_text = "Hello world\n"
-    result = ensure_trailing_newline(input_text)
-    assert result == input_text
+def test_ensure_trailing_newline_preserves_single_newline():
+    result = ensure_trailing_newline("test string\n")
+    assert result == "test string\n"
 
 
-def test_ensure_trailing_newline_multiple_newlines():
-    """Multiple trailing newlines should be reduced to one."""
-    result = ensure_trailing_newline("Hello world\n\n\n")
-    assert result == "Hello world\n"
+def test_ensure_trailing_newline_reduces_multiple_newlines_to_one():
+    result = ensure_trailing_newline("test string\n\n\n")
+    assert result == "test string\n"
 
 
-def test_ensure_trailing_newline_newlines_with_spaces():
-    """rstrip only removes newlines, not other whitespace."""
-    result = ensure_trailing_newline("Hello world  \n\n")
-    assert result == "Hello world  \n"
-
-
-def test_ensure_trailing_newline_only_newlines():
-    """String consisting only of newlines should return single newline."""
+def test_ensure_trailing_newline_handles_only_newlines():
     result = ensure_trailing_newline("\n\n\n")
     assert result == "\n"
 
 
-def test_ensure_trailing_newline_with_unicode_ellipsis():
-    """Unicode ellipsis character should be preserved correctly."""
-    input_text = "Some text…\n\n"
-    result = ensure_trailing_newline(input_text)
-    assert result == "Some text…\n"
+def test_ensure_trailing_newline_strips_trailing_newlines_before_adding_one():
+    result = ensure_trailing_newline("test\nstring\n\n")
+    assert result == "test\nstring\n"
 
 
-def test_ensure_trailing_newline_mixed_whitespace():
-    """Tabs and spaces before newlines should not be stripped."""
-    input_text = "Hello\t \n\n"
-    result = ensure_trailing_newline(input_text)
-    assert result == "Hello\t \n"
+def test_ensure_trailing_newline_preserves_leading_newlines():
+    result = ensure_trailing_newline("\n\ntest string")
+    assert result == "\n\ntest string\n"
 
 
-def test_ensure_trailing_newline_embedded_newlines():
-    """Newlines in the middle of the string should be preserved."""
-    input_text = "Line 1\nLine 2\nLine 3\n\n"
-    result = ensure_trailing_newline(input_text)
-    assert result == "Line 1\nLine 2\nLine 3\n"
+def test_ensure_trailing_newline_handles_string_with_spaces_and_newlines():
+    result = ensure_trailing_newline("  test  \n  string  \n\n")
+    assert result == "  test  \n  string  \n"
 
 
-def test_ensure_trailing_newline_carriage_return():
-    """Carriage returns are not stripped, only newlines."""
-    input_text = "Hello\r\n\n"
-    result = ensure_trailing_newline(input_text)
-    assert result == "Hello\r\n"
+def test_ensure_trailing_newline_handles_unicode_ellipsis():
+    result = ensure_trailing_newline("test…")
+    assert result == "test…\n"
+
+
+def test_ensure_trailing_newline_handles_unicode_ellipsis_with_newlines():
+    result = ensure_trailing_newline("test…\n\n")
+    assert result == "test…\n"
