@@ -42,6 +42,7 @@ pending_writes/
 sandbox/
 knowledge_graph.json
 *.lock
+.archive/
 
 # Runtime state (CORE-owned; not versioned)
 var/*
