@@ -8,7 +8,8 @@ Constitutional Alignment:
 - Phase separation: Components declare which phase they operate in
 - UNIX philosophy: Each component does ONE thing well
 
-Three new component types:
+Component types:
+- Interpreters (INTERPRET phase): Parse user intent (v2.2.0)
 - Analyzers (Parse/Load phase): Extract information
 - Evaluators (Audit phase): Assess quality/patterns
 - Strategists (Runtime phase): Make rule-based decisions
@@ -40,8 +41,21 @@ logger = getLogger(__name__)
 
 # ID: 9ac2d7c5-0bb6-421f-a441-9e3ef24ca1f8
 class ComponentPhase(str, Enum):
-    """Constitutional phases where components operate."""
+    """
+    Constitutional phases where components operate.
 
+    V2.2.0: Added INTERPRET phase for universal workflow pattern.
+
+    Phases in execution order:
+    1. INTERPRET - Parse user intent into canonical task structure (v2.2.0)
+    2. PARSE - Extract structural facts from code/files
+    3. LOAD - Retrieve data from storage
+    4. AUDIT - Evaluate quality and identify patterns
+    5. RUNTIME - Make deterministic decisions
+    6. EXECUTION - Mutate state under constitutional control
+    """
+
+    INTERPRET = "interpret"  # NEW in v2.2.0 - Universal entry point
     PARSE = "parse"
     LOAD = "load"
     AUDIT = "audit"
