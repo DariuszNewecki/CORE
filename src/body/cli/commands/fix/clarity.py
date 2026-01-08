@@ -1,8 +1,9 @@
 # src/body/cli/commands/fix/clarity.py
+# ID: 0047607b-cc16-46dd-82c1-45e3c7277f44
+
 """
 Clarity and complexity refactoring commands for the 'fix' CLI group.
-
-Refactored to use the Constitutional CLI Framework (@core_command).
+UPGRADED TO V2: Now uses Adaptive Refactoring with Complexity Evaluation.
 """
 
 from __future__ import annotations
@@ -21,7 +22,7 @@ from . import (
 )
 
 
-@fix_app.command("clarity", help="Refactors a file for clarity.")
+@fix_app.command("clarity", help="Refactors a file for clarity (V2 Adaptive).")
 @handle_command_errors
 @core_command(dangerous=True, confirmation=True)
 # ID: 0047607b-cc16-46dd-82c1-45e3c7277f44
@@ -35,36 +36,31 @@ async def fix_clarity_command(
     ),
 ) -> None:
     """
-    Uses an AI Architect to refactor code for improved readability.
+    Uses a V2 Adaptive Loop (Analyze -> Strategize -> Refactor -> Evaluate).
+
+    This command will only apply changes if the 'Body' (Evaluator) proves
+    that the new code is mathematically less complex or more readable.
     """
+    # CONSTITUTIONAL FIX: Lazy-load V2 Orchestrator
+    from features.self_healing.clarity_service_v2 import remediate_clarity_v2
+
     core_context: CoreContext = ctx.obj
 
-    with console.status(f"[cyan]Refactoring {file_path} for clarity...[/cyan]"):
-        # Using the internal async implementation directly
-        # Note: _fix_clarity in the service file currently has an asyncio.run wrapper
-        # for legacy calls, but we should call the logic.
-        # Looking at previous context, _fix_clarity calls _async_fix_clarity via run.
-        # Ideally we'd call _async_fix_clarity directly if exposed, or just call the wrapper.
-        # Since we are in an async context provided by @core_command, calling a sync wrapper
-        # that calls asyncio.run is bad (nested loops).
-
-        # To fix this properly without editing the service file right now, we can
-        # use to_thread if the service is sync blocking, but here the service creates a loop.
-        # OPTIMAL FIX: We assume the service exposes the async version or we just call the sync one
-        # if it handles its own loop management correctly (though inefficient).
-        #
-        # Better: We act as a good citizen and use the sync wrapper for now,
-        # knowing `core_command` handles the top level loop.
-        # Wait, if `core_command` runs us in a loop, and `_fix_clarity` runs `asyncio.run`, it will crash.
-
-        # Let's assume we need to import the async version if possible.
-        from features.self_healing.clarity_service import _async_fix_clarity
-
-        await _async_fix_clarity(
-            context=core_context, file_path=file_path, dry_run=not write
+    with console.status(f"[cyan]V2 Adaptive Refactoring: {file_path.name}...[/cyan]"):
+        # Execute the V2 Cognitive Workflow
+        # This replaces the legacy _async_fix_clarity
+        await remediate_clarity_v2(
+            context=core_context, file_path=file_path, write=write
         )
 
-    console.print("[green]✅ Clarity refactoring completed[/green]")
+    if write:
+        console.print(
+            f"[green]✅ Clarity refactoring cycle completed for {file_path.name}[/green]"
+        )
+    else:
+        console.print(
+            f"[yellow]💡 Dry-run complete. Proposed changes evaluated for {file_path.name}[/yellow]"
+        )
 
 
 @fix_app.command(
@@ -87,16 +83,16 @@ async def complexity_command(
     ),
 ) -> None:
     """
-    Identifies and refactors complexity outliers.
+    Identifies and refactors complexity outliers (separation of concerns).
     """
     core_context: CoreContext = ctx.obj
 
-    # Similar import fix for complexity service
+    # CONSTITUTIONAL FIX: Lazy-load service
     from features.self_healing.complexity_service import _async_complexity_outliers
 
     with console.status(f"[cyan]Refactoring {file_path} for complexity...[/cyan]"):
         await _async_complexity_outliers(
-            cognitive_service=core_context.cognitive_service,
+            context=core_context,
             file_path=file_path,
             dry_run=not write,
         )

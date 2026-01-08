@@ -1,4 +1,5 @@
 # src/body/cli/commands/coverage.py
+# ID: 6e193f7f-14c1-4326-b040-ad6687887881
 
 """
 CLI commands for test coverage management and autonomous remediation.
@@ -16,7 +17,6 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 
-from features.test_generation_v2 import AdaptiveTestGenerator, TestGenerationResult
 from mind.governance.filtered_audit import run_filtered_audit
 from shared.cli_utils import core_command
 from shared.config import settings
@@ -89,19 +89,37 @@ def coverage_report(
     """
     core_context: CoreContext = ctx.obj
     repo_path = core_context.git_service.repo_path
+
+    # CONSTITUTIONAL FIX: Fail fast if data is missing
+    if not (repo_path / ".coverage").exists():
+        console.print(
+            "[yellow]⚠️ No coverage data found. Run 'poetry run pytest --cov=src' first.[/yellow]"
+        )
+        raise typer.Exit(0)
+
     console.print("[bold cyan]📊 Generating Coverage Report...[/bold cyan]\n")
     try:
-        cmd = ["coverage", "report"]
+        # CONSTITUTIONAL FIX: Use 'poetry run' to ensure environment stability
+        cmd = ["poetry", "run", "coverage", "report"]
         if show_missing:
             cmd.append("--show-missing")
+
         result = subprocess.run(cmd, cwd=repo_path, capture_output=True, text=True)
+
         if result.returncode != 0:
-            console.print(f"[red]Coverage report failed:[/red]\n{result.stderr}")
+            # Capture stdout too (coverage often puts 'No data' messages there)
+            error_msg = result.stderr or result.stdout or "Unknown failure"
+            console.print(f"[red]Coverage report failed:[/red]\n{error_msg}")
             raise typer.Exit(code=1)
+
         console.print(result.stdout)
+
         if html:
             html_result = subprocess.run(
-                ["coverage", "html"], cwd=repo_path, capture_output=True, text=True
+                ["poetry", "run", "coverage", "html"],
+                cwd=repo_path,
+                capture_output=True,
+                text=True,
             )
             if html_result.returncode == 0:
                 html_dir = repo_path / "htmlcov"
@@ -120,21 +138,76 @@ def coverage_report(
 
 @coverage_app.command("remediate")
 @core_command(dangerous=True, confirmation=True)
-# ID: 611968d3-9983-4e10-aaf9-da09c8a7763c
+# ID: b5a5fd3f-40df-45f5-b590-c0d158a7b7e4
 async def remediate_coverage_cmd(
     ctx: typer.Context,
-    file: Path = typer.Option(None, "--file", "-f", help="Target file"),
+    file: Path = typer.Option(
+        None,
+        "--file",
+        "-f",
+        help="Target specific file for test generation",
+    ),
+    count: int = typer.Option(
+        None,
+        "--count",
+        "-n",
+        help="Number of files to process (batch mode)",
+    ),
+    complexity: str = typer.Option(
+        "moderate",
+        "--complexity",
+        "-c",
+        help="Max complexity: simple, moderate, or complex",
+    ),
 ) -> None:
     """
-    (REWIRED TO V2) Autonomously generates tests using the Adaptive Engine.
+    Autonomously generates tests to restore constitutional coverage compliance.
+    (Legacy interface for Batch/Auto remediation)
     """
-    if not file:
-        console.print("[red]Error: Please specify a --file for V2 remediation.[/red]")
-        raise typer.Exit(1)
+    # CONSTITUTIONAL FIX: Lazy-loading to prevent boot-time ModuleNotFoundError
+    from features.self_healing.batch_remediation_service import _remediate_batch
+    from features.self_healing.coverage_remediation_service import _remediate_coverage
 
-    # Redirect to the NEW V2 Adaptive Generator
-    generator = AdaptiveTestGenerator(context=ctx.obj)
-    await generator.generate_tests_for_file(file_path=str(file), write=True)
+    core_context: CoreContext = ctx.obj
+    complexity_param = complexity.upper()
+
+    if file and count:
+        console.print("[red]Error: Cannot use both --file and --count[/red]")
+        raise typer.Exit(code=1)
+
+    try:
+        if count:
+            result = await _remediate_batch(
+                cognitive_service=core_context.cognitive_service,
+                auditor_context=core_context.auditor_context,
+                count=count,
+                max_complexity=complexity_param,
+            )
+        else:
+            result = await _remediate_coverage(
+                cognitive_service=core_context.cognitive_service,
+                auditor_context=core_context.auditor_context,
+                target_coverage=None,
+                file_path=file,
+                max_complexity=complexity_param,
+            )
+
+        console.print("\n[bold]📊 Remediation Summary[/bold]")
+        status = result.get("status")
+        if status in ("completed", "success"):
+            console.print(
+                "[bold green]✅ Remediation successfully completed[/bold green]"
+            )
+        else:
+            console.print(
+                f"[bold yellow]⚠️  Remediation finished with status: {status}[/bold yellow]"
+            )
+            if "error" in result:
+                console.print(f"[dim]Detail: {result['error']}[/dim]")
+    except Exception as e:
+        logger.error("Remediation failed: %s", e, exc_info=True)
+        console.print(f"[red]❌ Remediation failed: {e}[/red]")
+        raise typer.Exit(code=1)
 
 
 @coverage_app.command("history")
@@ -232,9 +305,10 @@ async def accumulate_tests_command(
     """
     (Legacy V1) Generate tests for individual symbols, keeping only what passes.
     """
-    core_context: CoreContext = ctx.obj
+    # CONSTITUTIONAL FIX: Lazy-loading to prevent boot-time ModuleNotFoundError
     from features.self_healing.accumulative_test_service import AccumulativeTestService
 
+    core_context: CoreContext = ctx.obj
     service = AccumulativeTestService(core_context.cognitive_service)
     result = await service.accumulate_tests_for_file(file_path, write=write)
 
@@ -256,17 +330,18 @@ async def accumulate_batch_command(
     """
     (Legacy V1) Run symbol-by-symbol test accumulation across multiple files.
     """
-    core_context: CoreContext = ctx.obj
+    # CONSTITUTIONAL FIX: Lazy-loading
     from features.self_healing.accumulative_test_service import AccumulativeTestService
     from features.self_healing.coverage_analyzer import CoverageAnalyzer
 
+    core_context: CoreContext = ctx.obj
     service = AccumulativeTestService(core_context.cognitive_service)
     analyzer = CoverageAnalyzer()
     coverage_map = analyzer.get_module_coverage()
 
     all_files = list(settings.REPO_PATH.glob(pattern))
 
-    # ID: ea6076d7-79d9-4572-8778-dd7e2dec7245
+    # ID: 353ee414-4202-490c-8be8-fa6d7942d737
     def get_coverage_score(file_path: Path) -> float:
         try:
             rel = str(file_path.relative_to(settings.REPO_PATH)).replace("\\", "/")
@@ -316,6 +391,9 @@ async def generate_adaptive_command(
     - Passing sandbox tests are promoted to mirrored paths under /tests (Verified Truth).
     - Failing sandbox tests are quarantined under var/artifacts/test_gen/failures/ (Morgue).
     """
+    # CONSTITUTIONAL FIX: Lazy-loading to support new V2 engine
+    from features.test_generation_v2 import AdaptiveTestGenerator, TestGenerationResult
+
     core_context: CoreContext = ctx.obj
 
     console.print("[bold cyan]🧪 Adaptive Test Generation (V2)[/bold cyan]\n")

@@ -20,7 +20,7 @@
   {
     "check_id": "architecture.max_file_size",
     "severity": "warning",
-    "message": "Module has 450 lines, exceeds limit of 400",
+    "message": "Module has 489 lines, exceeds limit of 400",
     "file_path": "src/body/cli/commands/coverage.py",
     "line_number": null,
     "context": {},
@@ -83,7 +83,7 @@
   {
     "check_id": "architecture.max_file_size",
     "severity": "warning",
-    "message": "Module has 879 lines, exceeds limit of 400",
+    "message": "Module has 625 lines, exceeds limit of 400",
     "file_path": "src/features/test_generation_v2/adaptive_test_generator.py",
     "line_number": null,
     "context": {},
@@ -119,7 +119,7 @@
   {
     "check_id": "architecture.max_file_size",
     "severity": "warning",
-    "message": "Module has 402 lines, exceeds limit of 400",
+    "message": "Module has 437 lines, exceeds limit of 400",
     "file_path": "src/shared/infrastructure/context/builder.py",
     "line_number": null,
     "context": {},
@@ -155,7 +155,7 @@
   {
     "check_id": "architecture.max_file_size",
     "severity": "warning",
-    "message": "Module has 427 lines, exceeds limit of 400",
+    "message": "Module has 428 lines, exceeds limit of 400",
     "file_path": "src/will/tools/architectural_context_builder.py",
     "line_number": null,
     "context": {},

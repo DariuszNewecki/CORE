@@ -6,11 +6,250 @@ This project follows **Keep a Changelog** and **Semantic Versioning**, but with 
 
 ---
 
-## [2.1.0] — 2025-01 (Unreleased)
+## [2.2.0] — 2026-01-08
+
+### 🎯 Universal Workflow Pattern — The Operating System
+
+This release establishes the **foundational architecture for autonomous operations at scale**. CORE now has a universal orchestration model that closes all loops, enables self-correction everywhere, and provides the substrate for fully autonomous conversational operation.
+
+This is the **conceptual breakthrough** that makes CORE an operating system for AI-driven development, not just a collection of tools.
+
+### Philosophy Shift
+
+**Before 2.2.0**: Collection of autonomous capabilities with ad-hoc orchestration
+**After 2.2.0**: Universal workflow pattern that composes all operations
+
+### Added
+
+#### Constitutional Architecture
+
+* **Universal Workflow Pattern** (`.intent/papers/CORE-Adaptive-Workflow-Pattern.md`)
+  - Canonical pattern: INTERPRET → ANALYZE → STRATEGIZE → GENERATE → EVALUATE → DECIDE
+  - Constitutional phases: INTERPRET, PARSE, LOAD, AUDIT, RUNTIME, EXECUTION
+  - TERMINATE boundary separates generation from finalization
+  - Conceptual decision points replace magic numbers
+
+* **Component Inventory** - Complete catalog of CORE's capabilities
+  - 12 component categories mapped to workflow phases
+  - 40+ components documented with contracts
+  - Discovery mechanisms for runtime introspection
+  - Clear gaps identified (RequestInterpreter, Strategists, Evaluators)
+
+* **Modernization Roadmap** - Path to full autonomous operation
+  - Four conceptual pillars: Pattern compliance, Component clarity, Autonomous loops, Conversational routing
+  - Five-phase migration strategy
+  - Session-by-session progress tracking
+  - Clear success criteria and metrics
+
+#### Component Types Formalized
+
+* **Interpreters** (INTERPRET phase) - Parse intent → canonical task structure
+  - Foundation for conversational interface (`core` CLI)
+  - Natural language and structured input support
+  - *Status: Documented, implementation pending*
+
+* **Analyzers** (PARSE phase) - Extract structural facts without decisions
+  - FileAnalyzer: Classify file types and complexity
+  - SymbolExtractor: Find testable functions and classes
+  - *Existing: 2 implemented, 3 planned*
+
+* **Evaluators** (AUDIT phase) - Assess quality and identify patterns
+  - FailureEvaluator: Test failure pattern recognition
+  - ClarityEvaluator: Cyclomatic complexity measurement
+  - *Existing: 2 implemented, 3 planned*
+
+* **Strategists** (RUNTIME phase) - Make deterministic decisions
+  - TestStrategist: Select test generation strategy with adaptive pivots
+  - ClarityStrategist: Choose refactoring approach
+  - *Existing: 2 implemented, 3 planned*
+
+* **Orchestrators** (RUNTIME phase) - Compose components into adaptive workflows
+  - ProcessOrchestrator: Generic component sequencer
+  - AdaptiveTestGenerator: Test generation with failure recovery (70-80% success)
+  - ClarityServiceV2: Refactoring with recursive self-correction
+  - AutonomousWorkflowOrchestrator: Three-phase development workflow
+  - DevSyncWorkflow: Multi-action fix-sync pipeline
+  - *Existing: 5 operational*
+
+#### Adaptive Workflow Features
+
+* **Self-Correcting Loops** - Pattern-based adaptation
+  - "Did result improved?" - Relative quality assessment
+  - "SOLVED?" - Multi-dimensional quality gate (syntax + tests + constitutional + improvement)
+  - "Continue trying?" - Holistic termination evaluation (time, attempts, confidence, stuck detection)
+
+* **Decision Tracing** - Full audit trail of autonomous decisions
+  - DecisionTracer integration mandatory for strategic choices
+  - Pattern history tracking for learning
+  - Strategy pivot rationale recording
+
+* **Component Discovery** - Runtime introspection
+  - Registry-based (Atomic Actions)
+  - Convention-based (Components)
+  - Service Registry (Infrastructure)
+
+### Changed
+
+#### Interface Clarity
+
+* **`core` CLI** - Positioned as primary conversational interface
+  - Natural language → autonomous operation
+  - "Please do X" → CORE figures out how
+  - Foundation for web/API interfaces
+  - *Status: Exists, needs workflow integration*
+
+* **`core-admin` CLI** - Positioned as developer tooling
+  - Direct, explicit control of internals
+  - Surgical tools for maintaining CORE itself
+  - *Status: Stable, needs pattern compliance*
+
+#### Architecture
+
+* **Component Phases** - Strict constitutional boundaries
+  - INTERPRET: Understand user intent (new)
+  - PARSE: Extract structure (formalized)
+  - LOAD: Retrieve data (formalized)
+  - AUDIT: Evaluate quality (formalized)
+  - RUNTIME: Make decisions (formalized)
+  - EXECUTION: Mutate state (existing)
+
+* **ComponentResult Contract** - Universal return structure
+  ```python
+  @dataclass
+  class ComponentResult:
+      component_id: str
+      ok: bool
+      data: dict[str, Any]
+      phase: ComponentPhase
+      confidence: float  # 0.0-1.0 for workflow routing
+      next_suggested: str  # Hint for adaptive workflows
+      metadata: dict[str, Any]
+      duration_sec: float
+  ```
+
+#### Workflow Patterns
+
+* **V1 → V2 Migration Path** - Clear refactoring strategy
+  - Checkers → Evaluators (consistent interface)
+  - Builders → Analyzers (phase boundary compliance)
+  - Legacy workflows → Orchestrator compositions
+  - Procedural code → Component compositions
+
+### Fixed
+
+* **Conceptual Clarity** - Long-term vision documented
+  - Three interfaces (core, core-admin, API/web)
+  - Component lifecycle patterns
+  - Constitutional compliance requirements
+  - Integration points
+
+* **Architectural Gaps** - Identified and prioritized
+  - Missing RequestInterpreter (blocks conversational autonomy)
+  - Insufficient Strategists (incomplete decision coverage)
+  - Insufficient Evaluators (incomplete quality gates)
+
+### Patterns Established
+
+#### Existing V2 Commands
+
+* ✅ `core-admin coverage generate-adaptive` - Test generation with adaptive learning
+* ✅ `core-admin fix clarity` - Clarity refactoring with complexity evaluation
+* 🔄 11 commands pending migration
+
+#### Anti-Patterns Documented
+
+* ❌ Bypassing Evaluators - Accepting LLM output without validation
+* ❌ Direct Mutations - Writing files without ActionExecutor
+* ❌ Missing Tracing - Strategic decisions without DecisionTracer
+* ❌ Fixed Strategies - No adaptation to failure patterns
+* ❌ Implementation-Detail Decisions - Checking counters instead of conceptual questions
+* ❌ Imperative Flow - if/else chains instead of component composition
+* ❌ Missing TERMINATE Boundary - Not separating generation from finalization
+
+### Performance & Metrics
+
+**Component Coverage**:
+- Interpreters: 0/3 needed (critical gap)
+- Analyzers: 2/5 needed
+- Evaluators: 2/5 needed
+- Strategists: 2/5 needed
+- Orchestrators: 5/5 sufficient
+- Atomic Actions: 10+ sufficient
+
+**Command Migration**:
+- Fully Migrated: 0 commands
+- In Progress: 2 commands (15%)
+- Not Started: 11 commands
+
+**Overall Modernization**: ~12% complete
+
+### What This Enables
+
+#### Now
+
+* **Conceptual Foundation** - Universal pattern for all autonomous operations
+* **Component Library** - Reusable, composable building blocks
+* **Self-Correction Model** - Adaptive loops with pattern learning
+* **Clear Path Forward** - Roadmap from here to full autonomy
+
+#### Soon (Next 3-5 Sessions)
+
+* **RequestInterpreter** - Universal entry point for all commands
+* **Complete Strategist Coverage** - Decisions for all operation types
+* **Complete Evaluator Coverage** - Quality gates for all outputs
+* **Pattern Compliance** - All commands follow universal workflow
+
+#### Future (Natural Evolution)
+
+* **Fully Autonomous `core` CLI** - Conversational interface that does what we do in this chat
+* **Web Interface** - Same workflow, different transport
+* **API Integration** - Programmatic access to all capabilities
+* **Self-Replication** - CORE generates CORE.NG from intent (A4)
+
+### Why This Matters
+
+The Universal Workflow Pattern **closes all loops**:
+
+1. **Self-Correction Everywhere** - Not command-specific, universally available
+2. **Constitutional Governance** - Phase boundaries enforced at component level
+3. **Autonomous Composition** - Any operation = component composition
+4. **Traceable Decisions** - Full audit trail of strategic choices
+5. **Scalable Architecture** - Same pattern from simple commands to full autonomy
+
+Without this pattern:
+- AI agents can't self-correct reliably
+- Failures aren't traceable
+- Constitutional governance is ad-hoc
+- Code quality degrades over time
+
+With this pattern:
+- Every operation is self-correcting
+- Every decision is traceable
+- Every mutation is governed
+- Quality improves autonomously
+
+**The workflow closes all loops** - that's why this release is foundational.
+
+### Migration Status
+
+**Stable**: Constitutional governance, Atomic Actions, Component library exists
+**Active**: Pattern compliance migration, Component gap filling
+**Planned**: Full `core` conversational autonomy, Web/API interfaces
+
+### Notes
+
+* This release documents **conceptual architecture**, not feature completeness
+* Migration is **incremental and safe** - old code remains until new is proven
+* Success measured by **pattern compliance**, not feature count
+* Autonomy advancement requires **workflow pattern adoption**, not just capability existence
+
+---
+
+## [2.1.0] — 2025-01 (Released)
 
 ### 🎯 Consolidation Release — Governance First
 
-This release focuses on **stabilisation, credibility, and enforcement depth**, rather than expanding raw capability. It represents the transition from *capability discovery* to *governance consolidation*.
+This release focused on **stabilisation, credibility, and enforcement depth**, rather than expanding raw capability. It represented the transition from *capability discovery* to *governance consolidation*.
 
 ### Added
 
@@ -157,9 +396,11 @@ Initial public release establishing **governed self-healing** as a first-class c
 
 * Autonomy levels describe **operational behavior**, not theoretical capability.
 * Advancement requires **measurable enforcement coverage**, not feature presence.
+* Version 2.2.0 establishes the **architectural foundation** for A3 and beyond.
 
 ---
 
-[2.1.0]: https://github.com/DariuszNewecki/CORE/compare/v2.0.0...HEAD
+[2.2.0]: https://github.com/DariuszNewecki/CORE/compare/v2.1.0...v2.2.0
+[2.1.0]: https://github.com/DariuszNewecki/CORE/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/DariuszNewecki/CORE/compare/v1.0.0...v2.0.0
 [1.0.0]: https://github.com/DariuszNewecki/CORE/releases/tag/v1.0.0

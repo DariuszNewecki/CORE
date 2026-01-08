@@ -4,7 +4,7 @@
 CognitiveService (Facade)
 
 Orchestrates LLM interactions by delegating to the ClientOrchestrator.
-Refactored for CORE v2: Removes "Split-Brain" by deleting internal factory logic.
+UPGRADED: Supports High-Reasoning Escalation Tier.
 """
 
 from __future__ import annotations
@@ -30,15 +30,12 @@ class CognitiveService:
     Responsibilities:
     1. Delegate client acquisition to ClientOrchestrator (The Will).
     2. Provide high-level semantic search via Qdrant (The Mind's Index).
+    3. Support tiered reasoning escalation.
     """
 
     def __init__(self, repo_path: Path, qdrant_service: QdrantService | None = None):
         """
         Initialize CognitiveService.
-
-        Args:
-            repo_path: Path to the repository root.
-            qdrant_service: Singleton QdrantService instance (Injected).
         """
         self._repo_path = Path(repo_path)
         self.client_orchestrator = ClientOrchestrator(self._repo_path)
@@ -49,9 +46,7 @@ class CognitiveService:
     def qdrant_service(self) -> QdrantService:
         """Access the injected QdrantService."""
         if self._qdrant_service is None:
-            raise RuntimeError(
-                "QdrantService was not injected into CognitiveService. This capability requires a fully wired service via ServiceRegistry."
-            )
+            raise RuntimeError("QdrantService was not injected into CognitiveService.")
         return self._qdrant_service
 
     # ID: 2cee004a-5a80-421d-a5cc-c2f3e07c99e0
@@ -60,12 +55,35 @@ class CognitiveService:
         await self.client_orchestrator.initialize()
 
     # ID: 7a0c5b7d-a434-4897-910b-060560ba176e
-    async def aget_client_for_role(self, role_name: str) -> LLMClient:
+    async def aget_client_for_role(
+        self, role_name: str, high_reasoning: bool = False
+    ) -> LLMClient:
         """
         Get an LLM client for a specific role.
-        Delegates decision-making to ClientOrchestrator.
+
+        Args:
+            role_name: The target role (e.g., 'Coder')
+            high_reasoning: If True, attempts to escalate to the 'Architect' role.
         """
-        return await self.client_orchestrator.get_client_for_role(role_name)
+        target_role = role_name
+
+        if high_reasoning:
+            logger.info(
+                "🚀 ECOLOGY: Escalating to High-Reasoning Tier for role '%s'", role_name
+            )
+            target_role = "Architect"  # Constitutionally mapped to high-tier models
+
+        try:
+            return await self.client_orchestrator.get_client_for_role(target_role)
+        except Exception as e:
+            if target_role == "Architect":
+                logger.warning(
+                    "⚠️ Escalation failed (Architect role unconfigured). Falling back to %s: %s",
+                    role_name,
+                    e,
+                )
+                return await self.client_orchestrator.get_client_for_role(role_name)
+            raise
 
     # ID: 64a09426-e74e-4547-a08f-3af887085bac
     async def get_embedding_for_code(self, source_code: str) -> list[float] | None:
