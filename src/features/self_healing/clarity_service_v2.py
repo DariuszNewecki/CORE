@@ -1,9 +1,10 @@
 # src/features/self_healing/clarity_service_v2.py
 
 """
-Adaptive Clarity Orchestrator (V2.2).
-Implements Recursive Self-Correction with Tiered Reasoning Escalation
-AND Network Exception Resilience.
+Adaptive Clarity Orchestrator (V2.3) - ROADMAP COMPLIANT.
+Follows: INTERPRET → ANALYZE → STRATEGIZE → GENERATE → EVALUATE → DECIDE → EXECUTE.
+
+Preserves V2.2 Recursive Self-Correction, Tiered Reasoning, and Resilience.
 """
 
 from __future__ import annotations
@@ -16,6 +17,8 @@ from body.evaluators.clarity_evaluator import ClarityEvaluator
 from shared.config import settings
 from shared.logger import getLogger
 from shared.utils.parsing import extract_python_code_from_response
+from will.deciders.governance_decider import GovernanceDecider  # NEW
+from will.interpreters.request_interpreter import CLIArgsInterpreter  # NEW
 from will.strategists.clarity_strategist import ClarityStrategist
 
 
@@ -30,21 +33,26 @@ async def remediate_clarity_v2(
     context: CoreContext, file_path: Path, write: bool = False
 ):
     """
-    V2.2 Orchestrator: Robust Loop (Analyze -> Strategize -> [Refactor -> Fix] x3 -> Apply).
-    Handles Network/API failures without crashing the entire workflow.
+    V2.3 Orchestrator: Combines high-resilience adaptive loops with
+    formal constitutional gatekeeping.
     """
-    # 1. PATH NORMALIZATION (Preserved from V2.1)
-    abs_file_path = file_path.resolve()
-    repo_root = settings.REPO_PATH.resolve()
 
-    try:
-        rel_path_str = str(abs_file_path.relative_to(repo_root))
-    except ValueError:
-        rel_path_str = str(file_path).replace("\\", "/")
+    # =========================================================================
+    # 1. PHASE: INTERPRET
+    # =========================================================================
+    interpreter = CLIArgsInterpreter()
+    task_result = await interpreter.execute(
+        command="fix", subcommand="clarity", targets=[str(file_path)], write=write
+    )
+    task = task_result.data["task"]
+    # Ensure we use normalized path from interpreter
+    rel_path_str = task.targets[0] if task.targets else str(file_path)
 
-    logger.info("🧪 Starting V2 Adaptive Clarity Refactoring: %s", rel_path_str)
+    logger.info("🧪 [V2.3] Starting Adaptive Clarity Workflow: %s", rel_path_str)
 
-    # 2. ANALYZE (Preserved from V2.1)
+    # =========================================================================
+    # 2. PHASE: ANALYZE
+    # =========================================================================
     analyzer = FileAnalyzer(context)
     analysis = await analyzer.execute(file_path=rel_path_str)
 
@@ -52,7 +60,9 @@ async def remediate_clarity_v2(
         logger.error("❌ Analysis failed: %s", analysis.data.get("error"))
         return
 
-    # 3. STRATEGIZE (Preserved from V2.1)
+    # =========================================================================
+    # 3. PHASE: STRATEGIZE
+    # =========================================================================
     line_count = analysis.metadata.get("line_count", 0)
     complexity_score = analysis.metadata.get("total_definitions", 0)
 
@@ -63,7 +73,10 @@ async def remediate_clarity_v2(
 
     logger.info("🎯 Selected Strategy: %s", strategy.data["strategy"])
 
-    original_code = abs_file_path.read_text(encoding="utf-8")
+    # =========================================================================
+    # 4 & 5. THE ADAPTIVE LOOP (GENERATE + EVALUATE)
+    # =========================================================================
+    original_code = (settings.REPO_PATH / rel_path_str).read_text(encoding="utf-8")
     current_prompt = (
         f"You are a Senior Architect. Task: Refactor the following code for {strategy.data['strategy']}.\n"
         f"Specific Instruction: {strategy.data['instruction']}\n\n"
@@ -71,45 +84,40 @@ async def remediate_clarity_v2(
         "Return ONLY the updated Python code. Do not include markdown fences."
     )
 
-    # 4. THE ADAPTIVE LOOP WITH RESILIENCE (Enhanced from V2.1)
     max_attempts = 3
     attempt = 0
     final_code = None
+    last_verdict = None
 
     while attempt < max_attempts:
         attempt += 1
 
-        # TIERED ESCALATION (Preserved from V2.1)
         use_expert = attempt == max_attempts
         tier_label = "EXPERT (High-Reasoning)" if use_expert else "STANDARD (Economy)"
         logger.info(
-            "🔄 Attempt %d/%d using %s reasoning tier...",
-            attempt,
-            max_attempts,
-            tier_label,
+            "🔄 Attempt %d/%d using %s tier...", attempt, max_attempts, tier_label
         )
 
         try:
-            # WILL LAYER: AI Request
+            # 4. PHASE: GENERATE (Will Layer)
             coder = await context.cognitive_service.aget_client_for_role(
                 "Coder", high_reasoning=use_expert
             )
             response_raw = await coder.make_request_async(
                 current_prompt, user_id="clarity_v2"
             )
-
             new_code = extract_python_code_from_response(response_raw) or response_raw
 
-            # BODY LAYER: Evaluation
+            # 5. PHASE: EVALUATE (Body Layer)
             evaluator = ClarityEvaluator()
-            verdict = await evaluator.execute(
+            last_verdict = await evaluator.execute(
                 original_code=original_code, new_code=new_code
             )
 
-            if verdict.ok:
-                if verdict.data.get("is_better", False):
-                    # SUCCESS BRANCH
-                    reduction = verdict.data.get("improvement_ratio", 0) * 100
+            if last_verdict.ok:
+                if last_verdict.data.get("is_better", False):
+                    # SUCCESS: Code is valid and mathematically improved
+                    reduction = last_verdict.data.get("improvement_ratio", 0) * 100
                     logger.info(
                         "✅ Refactor successful! Complexity Reduction: %.1f%%",
                         reduction,
@@ -117,45 +125,52 @@ async def remediate_clarity_v2(
                     final_code = new_code
                     break
                 else:
-                    # COMPLEXITY INCREASE BRANCH (Feedback loop preserved)
+                    # FEEDBACK: Complexity increased
                     logger.warning(
                         "⚠️ Refactor resulted in higher complexity (%s).",
-                        verdict.data.get("new_cc"),
+                        last_verdict.data.get("new_cc"),
                     )
                     current_prompt = (
-                        f"Your previous attempt actually increased code complexity (New CC: {verdict.data.get('new_cc')} vs Orig CC: {verdict.data.get('original_cc')}). "
+                        f"Your previous attempt actually increased code complexity (New CC: {last_verdict.data.get('new_cc')} vs Orig CC: {last_verdict.data.get('original_cc')}). "
                         f"Try again, but focus on RADICAL SIMPLIFICATION of the logic:\n\n{original_code}"
                     )
             else:
-                # SYNTAX ERROR BRANCH (Feedback loop preserved)
-                error_msg = verdict.data.get("error", "Syntax Error")
+                # FEEDBACK: Syntax Error
+                error_msg = last_verdict.data.get("error", "Syntax Error")
                 logger.warning("❌ Syntax Error detected in AI output: %s", error_msg)
-                current_prompt = (
-                    f"Your previous refactoring has a SYNTAX ERROR:\n{error_msg}\n\n"
-                    "Please fix the syntax and provide the full code again. SOURCE:\n"
-                    f"{original_code}"
-                )
+                current_prompt = f"Your previous refactoring has a SYNTAX ERROR:\n{error_msg}\n\nPlease fix the syntax. SOURCE:\n{original_code}"
 
         except Exception as e:
-            # NETWORK/API RESILIENCE (New in V2.2)
+            # RESILIENCE: Network/API Error
             logger.error(
                 "🚨 API/Network Error on attempt %d: %s", attempt, type(e).__name__
             )
-            if attempt < max_attempts:
-                logger.info("   -> Connection interrupted. Retrying next tier...")
-                # We continue the loop without changing current_prompt (to retry the same task)
-                continue
-            else:
-                logger.error(
-                    "❌ All attempts failed due to persistent network/API issues."
-                )
+            if attempt >= max_attempts:
+                logger.error("❌ All attempts failed due to persistent network issues.")
 
-    # 5. FINAL ACTION (Preserved from V2.1)
-    if final_code:
+    # =========================================================================
+    # 6. PHASE: DECIDE (Authorization Gate)
+    # =========================================================================
+    decider = GovernanceDecider()
+    # We pass the last evaluation results to the decider.
+    # If the loop finished without break, last_verdict will reflect why.
+    authorization = await decider.execute(
+        evaluation_results=[last_verdict] if last_verdict else [],
+        risk_tier="ELEVATED" if write else "ROUTINE",
+    )
+
+    # =========================================================================
+    # 7. PHASE: EXECUTION (Final Application)
+    # =========================================================================
+    if authorization.data["can_proceed"] and final_code:
         if write:
             from body.atomic.executor import ActionExecutor
 
             executor = ActionExecutor(context)
+            logger.info(
+                "⚖️  Authorization Granted. Applying refactor via ActionExecutor..."
+            )
+
             await executor.execute(
                 "file.edit", write=True, file_path=rel_path_str, code=final_code
             )
@@ -164,7 +179,6 @@ async def remediate_clarity_v2(
                 "💡 [DRY RUN] Validated refactor ready. Complexity reduction confirmed."
             )
     else:
-        logger.error(
-            "❌ Failed to generate a valid/better refactor after %d attempts.",
-            max_attempts,
-        )
+        # Explain why we stopped
+        blockers = authorization.data.get("blockers", ["No valid refactor produced"])
+        logger.error("❌ EXECUTION HALTED: %s", ", ".join(blockers))

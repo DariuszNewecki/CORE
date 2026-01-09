@@ -18,7 +18,8 @@ import time
 from body.atomic.registry import ActionCategory, register_action
 from features.introspection.sync_service import run_sync_with_db
 from features.introspection.vectorization_service import run_vectorize
-from shared.action_types import ActionResult
+from shared.action_types import ActionImpact, ActionResult
+from shared.atomic_action import atomic_action
 from shared.context import CoreContext
 from shared.infrastructure.database.session_manager import get_session
 from shared.infrastructure.vector.adapters.constitutional_adapter import (
@@ -37,6 +38,12 @@ logger = getLogger(__name__)
     policies=["database_schema"],
     impact_level="moderate",
     requires_db=True,
+)
+@atomic_action(
+    action_id="sync.db",
+    intent="Atomic action for action_sync_database",
+    impact=ActionImpact.WRITE_CODE,
+    policies=["atomic_actions"],
 )
 # ID: f6789012-3456-789a-bcde-f0123456789a
 async def action_sync_database(
@@ -107,6 +114,12 @@ async def action_sync_database(
     requires_db=True,
     requires_vectors=True,
 )
+@atomic_action(
+    action_id="sync.vectors.code",
+    intent="Atomic action for action_sync_code_vectors",
+    impact=ActionImpact.WRITE_CODE,
+    policies=["atomic_actions"],
+)
 # ID: 0123456789ab-cdef-0123-4567-89abcdef0123
 # ID: af6a56d0-b2d3-44fe-b6ea-55d6aed3768b
 async def action_sync_code_vectors(
@@ -162,6 +175,12 @@ async def action_sync_code_vectors(
     policies=["vector_storage_policy"],
     impact_level="safe",
     requires_vectors=True,
+)
+@atomic_action(
+    action_id="sync.vectors.constitution",
+    intent="Atomic action for action_sync_constitutional_vectors",
+    impact=ActionImpact.WRITE_CODE,
+    policies=["atomic_actions"],
 )
 # ID: 23456789abcd-ef01-2345-6789-abcdef012345
 # ID: b301871b-6205-4300-a76e-65d2ffa56c03

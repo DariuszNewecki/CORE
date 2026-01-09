@@ -188,6 +188,13 @@ class CrateCreationService:
 
 
 # ID: a858d9e4-1fbe-4fcb-8af7-92d74a852024
+@atomic_action(
+    action_id="create.crate",
+    intent="Atomic action for create_crate_from_spec",
+    impact=ActionImpact.WRITE_CODE,
+    policies=["atomic_actions"],
+)
+# ID: d7ec3f85-f7ba-4b08-8389-bd76082f9606
 async def create_crate_from_spec(
     context: CoreContext,
     intent: str,

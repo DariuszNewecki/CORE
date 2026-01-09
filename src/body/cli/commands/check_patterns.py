@@ -4,15 +4,20 @@
 Pattern compliance checking commands.
 Validates code against design patterns defined in .intent/charter/patterns/
 
+MODERNIZED (V2): This command is now a thin shell that delegates analysis
+to the PatternEvaluator component.
+
 Refactored to use the Constitutional CLI Framework (@core_command).
 """
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import typer
 
+from body.evaluators.pattern_evaluator import PatternEvaluator
 from shared.cli_utils import core_command
 from shared.logger import getLogger
 
@@ -27,7 +32,7 @@ patterns_group = typer.Typer(
 @patterns_group.command("list")
 @core_command(dangerous=False, requires_context=False)
 # ID: 81a81ff1-429a-48c1-9d96-53c2858be50d
-def list_patterns(
+async def list_patterns(
     ctx: typer.Context,
     category: str = typer.Option(
         None,
@@ -40,6 +45,7 @@ def list_patterns(
     """
     from body.cli.logic.pattern_checker import PatternChecker
 
+    # Listing patterns is a metadata operation; we use the logic helper
     repo_root = Path.cwd()
     checker = PatternChecker(repo_root)
 
@@ -63,7 +69,7 @@ def list_patterns(
 @patterns_group.command("check")
 @core_command(dangerous=False, requires_context=False)
 # ID: 93383a52-2beb-46ff-9ade-0b9da94ce51e
-def check_patterns_cmd(
+async def check_patterns_cmd(
     ctx: typer.Context,
     category: str = typer.Option(
         "all",
@@ -87,61 +93,47 @@ def check_patterns_cmd(
     ),
 ):
     """
-    Check code compliance with design patterns.
+    Check code compliance with design patterns via the PatternEvaluator.
     """
-    from body.cli.logic.pattern_checker import PatternChecker, format_violations
-
-    repo_root = Path.cwd()
-    checker = PatternChecker(repo_root)
+    from body.cli.logic.pattern_checker import PatternViolation, format_violations
 
     if not quiet:
-        typer.echo("🔍 Checking pattern compliance...")
+        typer.echo(f"🔍 [V2] Checking {category} pattern compliance...")
 
-    # Run checks
-    if category == "all":
-        result = checker.check_all()
-    else:
-        # checker.check_category returns just violations list
-        # We'd need to wrap this if we want full stats, but for now
-        # defaulting to full check is safer for the tool's current contract.
-        result = checker.check_all()
+    # EXECUTE EVALUATOR (Body Layer)
+    evaluator = PatternEvaluator()
+    result_wrapper = await evaluator.execute(category=category)
+    data = result_wrapper.data
 
     # Handle output
     if output_json:
-        import json
-
-        output = {
-            "total": result.total_components,
-            "compliant": result.compliant,
-            "compliance_rate": result.compliance_rate,
-            "violations": [
-                {
-                    "file": str(v.file_path),
-                    "component": v.component_name,
-                    "pattern": v.expected_pattern,
-                    "type": v.violation_type,
-                    "message": v.message,
-                    "severity": v.severity,
-                    "line": v.line_number,
-                }
-                for v in result.violations
-            ],
-        }
-        typer.echo(json.dumps(output, indent=2))
+        typer.echo(json.dumps(data, indent=2))
 
     elif not quiet:
-        # Human-readable output
-        typer.echo(format_violations(result.violations, verbose=verbose))
-
-        if result.violations:
-            error_count = len([v for v in result.violations if v.severity == "error"])
-            warning_count = len(
-                [v for v in result.violations if v.severity == "warning"]
+        # Reconstruct models for the UI formatter
+        violations = [
+            PatternViolation(
+                file_path=v["file"],
+                component_name=v["component"],
+                pattern_id=v["pattern"],
+                violation_type=v["type"],
+                message=v["message"],
+                severity=v["severity"],
+                line_number=v["line"],
             )
+            for v in data["violations"]
+        ]
 
-            typer.echo(f"\n📊 Pattern Compliance: {result.compliance_rate:.1f}%")
-            typer.echo(f"   Total components: {result.total_components}")
-            typer.echo(f"   Compliant: {result.compliant}")
+        # Human-readable output
+        typer.echo(format_violations(violations, verbose=verbose))
+
+        if violations:
+            error_count = len([v for v in violations if v.severity == "error"])
+            warning_count = len([v for v in violations if v.severity == "warning"])
+
+            typer.echo(f"\n📊 Pattern Compliance: {data['compliance_rate']:.1f}%")
+            typer.echo(f"   Total components: {data['total']}")
+            typer.echo(f"   Compliant: {data['compliant']}")
             typer.echo(f"   Errors: {error_count}")
             typer.echo(f"   Warnings: {warning_count}")
 
@@ -149,14 +141,10 @@ def check_patterns_cmd(
                 "\n💡 Tip: Run 'core-admin fix patterns --write' to auto-fix some violations"
             )
 
-    # Determine exit code
-    has_errors = any(v.severity == "error" for v in result.violations)
-    has_warnings = any(v.severity == "warning" for v in result.violations)
-
-    if has_errors:
-        raise typer.Exit(code=1)
-    elif has_warnings:
-        raise typer.Exit(code=2)
+    # Determine exit code based on ComponentResult status
+    if not result_wrapper.ok:
+        has_errors = any(v["severity"] == "error" for v in data["violations"])
+        raise typer.Exit(code=1 if has_errors else 2)
     else:
         if not quiet:
             typer.echo("\n✅ All pattern checks passed!")

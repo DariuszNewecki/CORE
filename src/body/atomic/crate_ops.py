@@ -11,7 +11,8 @@ import time
 from typing import TYPE_CHECKING
 
 from body.atomic.registry import ActionCategory, register_action
-from shared.action_types import ActionResult
+from shared.action_types import ActionImpact, ActionResult
+from shared.atomic_action import atomic_action
 from shared.logger import getLogger
 
 
@@ -27,6 +28,12 @@ logger = getLogger(__name__)
     category=ActionCategory.BUILD,
     policies=["body_contracts"],
     impact_level="safe",
+)
+@atomic_action(
+    action_id="crate.create",
+    intent="Atomic action for action_create_crate",
+    impact=ActionImpact.WRITE_CODE,
+    policies=["atomic_actions"],
 )
 # ID: 51a165f4-e0fc-405f-bee9-19c888f6c046
 async def action_create_crate(

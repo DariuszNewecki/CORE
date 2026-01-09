@@ -2,158 +2,70 @@
 
 """
 Fix atomic actions pattern violations.
-
-This module provides functionality to automatically fix violations detected by
-the atomic-actions checker, including missing decorators, return types, and metadata.
-
-Constitutional Alignment: atomic_actions.yaml
+Thin CLI shell delegating to body.atomic.fix_actions.
+Upgraded to V2.1: Now manages mandatory imports.
 """
 
 from __future__ import annotations
 
-import asyncio
-import time
 from pathlib import Path
 
+import typer
 from rich.console import Console
 
-from body.cli.logic.atomic_actions_checker import AtomicActionsChecker
+from body.atomic.executor import ActionExecutor
 from shared.action_types import ActionImpact, ActionResult
 from shared.atomic_action import atomic_action
-from shared.logger import getLogger
+from shared.cli_utils import core_command
+
+from . import fix_app, handle_command_errors
 
 
-logger = getLogger(__name__)
 console = Console()
 
 
+@fix_app.command("atomic-actions", help="Fix atomic actions pattern violations.")
+@handle_command_errors
+@core_command(dangerous=True, confirmation=False)
 @atomic_action(
-    action_id="fix.atomic_actions",
-    intent="Fix atomic actions pattern violations automatically",
+    action_id="fix.cli.atomic_actions",
+    intent="CLI entry point to heal atomic action violations",
     impact=ActionImpact.WRITE_CODE,
-    policies=["atomic_actions", "code_standards"],
-    category="fixers",
+    policies=["atomic_actions"],
 )
-# ID: 4f8e9d7c-6a5b-3e2f-9c8d-7b6e9f4a8c7e
-async def fix_atomic_actions_internal(
-    root_path: Path,
-    write: bool = False,
+# ID: 3173b37e-a64f-4227-92c5-84e444b68dc1
+async def fix_atomic_actions_cmd(
+    ctx: typer.Context,
+    write: bool = typer.Option(False, "--write", help="Apply fixes."),
 ) -> ActionResult:
     """
-    Fix atomic actions pattern violations.
-
-    Constitutional enforcement:
-    - Adds missing @atomic_action decorators
-    - Fixes return type annotations to ActionResult
-    - Ensures required decorator metadata is present
-    - Validates structured ActionResult returns
-
-    Args:
-        root_path: Root directory to scan
-        write: If True, apply fixes; if False, dry-run mode
-
-    Returns:
-        ActionResult with fix statistics and suggestions
+    CLI Wrapper: Delegates to fix.atomic_actions via ActionExecutor.
     """
-    start_time = time.time()
+    core_context = ctx.obj
+    executor = ActionExecutor(core_context)
 
-    checker = AtomicActionsChecker(root_path)
-    result = checker.check_all()
+    with console.status("[cyan]Healing atomic actions...[/cyan]"):
+        result = await executor.execute("fix.atomic_actions", write=write)
 
-    if not result.violations:
-        return ActionResult(
-            action_id="fix.atomic_actions",
-            ok=True,
-            data={
-                "files_checked": result.total_actions,
-                "violations_fixed": 0,
-                "files_modified": 0,
-                "dry_run": not write,
-            },
-            duration_sec=time.time() - start_time,
-            impact=ActionImpact.WRITE_CODE,
-        )
+    return result
 
-    # Group violations by file
-    violations_by_file: dict[Path, list] = {}
-    for violation in result.violations:
-        if violation.file_path not in violations_by_file:
-            violations_by_file[violation.file_path] = []
-        violations_by_file[violation.file_path].append(violation)
 
-    fixes_applied = 0
-    files_modified = 0
-    warnings = []
-
-    for file_path, file_violations in violations_by_file.items():
-        try:
-            source = await asyncio.to_thread(file_path.read_text, encoding="utf-8")
-
-            modified_source = _fix_file_violations(source, file_violations, file_path)
-
-            if modified_source != source:
-                if write:
-                    await asyncio.to_thread(
-                        file_path.write_text, modified_source, encoding="utf-8"
-                    )
-                    files_modified += 1
-                    logger.info("Fixed %s", file_path)
-                else:
-                    console.print(f"\n[DRY RUN] Would modify {file_path}:")
-                    _show_preview(file_violations)
-
-                fixes_applied += len(file_violations)
-
-        except Exception as e:
-            error_msg = f"Error processing {file_path}: {e}"
-            logger.error(error_msg)
-            warnings.append(error_msg)
-            continue
-
-    suggestions = []
-    if not write and fixes_applied > 0:
-        suggestions.append("Run with --write to apply these fixes")
-    if warnings:
-        suggestions.append("Review warnings for files that couldn't be processed")
-
-    return ActionResult(
-        action_id="fix.atomic_actions",
-        ok=True,
-        data={
-            "files_modified": files_modified,
-            "violations_fixed": fixes_applied,
-            "total_violations": len(result.violations),
-            "dry_run": not write,
-        },
-        duration_sec=time.time() - start_time,
-        impact=ActionImpact.WRITE_CODE if write else ActionImpact.READ_ONLY,
-        warnings=warnings,
-        suggestions=suggestions,
-    )
+# --- Helpers for the Action logic to use ---
 
 
 def _fix_file_violations(source: str, violations: list, file_path: Path) -> str:
     """
-    Fix all violations in a single file.
-
-    Args:
-        source: Original source code
-        violations: List of violations to fix
-        file_path: Path to file being fixed
-
-    Returns:
-        Modified source code
+    Fix all violations in a single file and ensure imports exist.
     """
-    # Apply fixes line by line (simpler than AST for this use case)
     lines = source.splitlines(keepends=True)
 
-    # Group violations by function to apply related fixes together
+    # Group violations by function
     violations_by_function = {}
     for v in violations:
         violations_by_function.setdefault(v.function_name, []).append(v)
 
+    # Apply function-level fixes
     for function_name, func_violations in violations_by_function.items():
-        # Find the function definition line
         for i, line in enumerate(lines):
             if f"def {function_name}" in line or f"async def {function_name}" in line:
                 lines = _apply_fixes_to_function(
@@ -161,36 +73,68 @@ def _fix_file_violations(source: str, violations: list, file_path: Path) -> str:
                 )
                 break
 
+    # Ensure imports exist if any fixes were applied
+    if violations:
+        lines = _ensure_imports(lines)
+
     return "".join(lines)
+
+
+def _ensure_imports(lines: list[str]) -> list[str]:
+    """Ensures mandatory atomic action imports exist at the top of the file."""
+    content = "".join(lines)
+    new_imports = []
+
+    if "from shared.atomic_action import atomic_action" not in content:
+        new_imports.append("from shared.atomic_action import atomic_action\n")
+
+    if "from shared.action_types import ActionImpact" not in content:
+        # Check if they are already importing ActionResult from there
+        if (
+            "from shared.action_types import" in content
+            and "ActionImpact" not in content
+        ):
+            # Find the line and append it (simplified for this specific task)
+            for i, line in enumerate(lines):
+                if "from shared.action_types import" in line:
+                    lines[i] = line.replace("import ", "import ActionImpact, ")
+                    break
+        else:
+            new_imports.append(
+                "from shared.action_types import ActionImpact, ActionResult\n"
+            )
+
+    if not new_imports:
+        return lines
+
+    # Find insertion point (after __future__ or at top)
+    insert_idx = 0
+    for i, line in enumerate(lines):
+        if "from __future__" in line:
+            insert_idx = i + 1
+        elif line.startswith("#"):
+            continue
+        else:
+            break
+
+    return [*lines[:insert_idx], "\n", *new_imports, *lines[insert_idx:]]
 
 
 def _apply_fixes_to_function(
     lines: list[str], func_line_idx: int, function_name: str, violations: list
 ) -> list[str]:
     """
-    Apply fixes to a specific function.
-
-    Args:
-        lines: Source code lines
-        func_line_idx: Index of function definition line
-        function_name: Name of the function
-        violations: Violations for this function
-
-    Returns:
-        Modified lines
+    Apply fixes to a specific function definition.
     """
     func_line = lines[func_line_idx]
     indent = len(func_line) - len(func_line.lstrip())
 
-    # Check which fixes are needed
     needs_decorator = any(v.rule_id == "action_must_have_decorator" for v in violations)
     needs_return_type = any(
         v.rule_id == "action_must_return_result" for v in violations
     )
 
-    # Fix 1: Add missing @atomic_action decorator
     if needs_decorator:
-        # Infer action_id from function name
         action_id = _infer_action_id(function_name)
 
         decorator_lines = [
@@ -204,7 +148,6 @@ def _apply_fixes_to_function(
         lines[func_line_idx:func_line_idx] = decorator_lines
         func_line_idx += len(decorator_lines)
 
-    # Fix 2: Add missing return type annotation
     if needs_return_type:
         if " -> " not in lines[func_line_idx] and ":" in lines[func_line_idx]:
             lines[func_line_idx] = lines[func_line_idx].replace(
@@ -216,31 +159,10 @@ def _apply_fixes_to_function(
 
 def _infer_action_id(function_name: str) -> str:
     """
-    Infer action_id from function name.
-
-    Convention: {category}.{action}
-    Example: fix_ids_internal -> fix.ids
-
-    Args:
-        function_name: Function name (e.g., fix_ids_internal)
-
-    Returns:
-        Action ID (e.g., fix.ids)
+    Infers action_id from function name (category.name).
     """
-    # Remove _internal suffix
-    name = function_name.replace("_internal", "")
-
-    # Split on underscore and take first two parts
+    name = function_name.replace("_internal", "").replace("action_", "")
     parts = name.split("_")
     if len(parts) >= 2:
         return f"{parts[0]}.{parts[1]}"
-
     return f"action.{name}"
-
-
-def _show_preview(violations: list) -> None:
-    """Show what would be fixed."""
-    for v in violations:
-        console.print(f"  • {v.rule_id}: {v.message}")
-        if v.suggested_fix:
-            console.print(f"    Fix: {v.suggested_fix}")

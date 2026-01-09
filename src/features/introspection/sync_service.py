@@ -363,7 +363,12 @@ async def run_sync_with_db(session: AsyncSession) -> ActionResult:
     return ActionResult(
         action_id="sync.knowledge_graph",
         ok=True,
-        data=stats,
+        data={
+            "scanned": stats["scanned"],
+            "inserted": stats["inserted"],
+            "updated": stats["updated"],
+            "deleted": stats["deleted"],
+        },
         duration_sec=time.time() - start_time,
         impact=ActionImpact.WRITE_DATA,
     )

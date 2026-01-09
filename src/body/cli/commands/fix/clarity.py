@@ -3,7 +3,7 @@
 
 """
 Clarity and complexity refactoring commands for the 'fix' CLI group.
-UPGRADED TO V2: Now uses Adaptive Refactoring with Complexity Evaluation.
+UPGRADED TO V2.3: Both commands now use the Universal Adaptive Workflow Pattern.
 """
 
 from __future__ import annotations
@@ -41,14 +41,13 @@ async def fix_clarity_command(
     This command will only apply changes if the 'Body' (Evaluator) proves
     that the new code is mathematically less complex or more readable.
     """
-    # CONSTITUTIONAL FIX: Lazy-load V2 Orchestrator
+    # CONSTITUTIONAL FIX: Lazy-load V2.3 Orchestrator
     from features.self_healing.clarity_service_v2 import remediate_clarity_v2
 
     core_context: CoreContext = ctx.obj
 
-    with console.status(f"[cyan]V2 Adaptive Refactoring: {file_path.name}...[/cyan]"):
+    with console.status(f"[cyan]V2.3 Adaptive Refactoring: {file_path.name}...[/cyan]"):
         # Execute the V2 Cognitive Workflow
-        # This replaces the legacy _async_fix_clarity
         await remediate_clarity_v2(
             context=core_context, file_path=file_path, write=write
         )
@@ -83,18 +82,28 @@ async def complexity_command(
     ),
 ) -> None:
     """
-    Identifies and refactors complexity outliers (separation of concerns).
+    Identifies and refactors complexity outliers using the V2.3 Adaptive Orchestrator.
     """
+    # CONSTITUTIONAL FIX: Swapped legacy complexity_service for V2.3 Roadmap-Compliant logic
+    from features.self_healing.complexity_service_v2 import remediate_complexity_v2
+
     core_context: CoreContext = ctx.obj
 
-    # CONSTITUTIONAL FIX: Lazy-load service
-    from features.self_healing.complexity_service import _async_complexity_outliers
-
-    with console.status(f"[cyan]Refactoring {file_path} for complexity...[/cyan]"):
-        await _async_complexity_outliers(
+    with console.status(
+        f"[cyan]V2.3 Complexity Refactoring: {file_path.name}...[/cyan]"
+    ):
+        # This now uses the same high-resilience loop as 'fix clarity'
+        await remediate_complexity_v2(
             context=core_context,
             file_path=file_path,
-            dry_run=not write,
+            write=write,
         )
 
-    console.print("[green]✅ Complexity refactoring completed[/green]")
+    if write:
+        console.print(
+            f"[green]✅ Complexity refactoring cycle completed for {file_path.name}[/green]"
+        )
+    else:
+        console.print(
+            f"[yellow]💡 Dry-run complete. Proposed changes evaluated for {file_path.name}[/yellow]"
+        )

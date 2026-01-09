@@ -103,6 +103,13 @@ async def fix_headers_internal(
 @handle_command_errors
 @core_command(dangerous=True, confirmation=True)
 # ID: 967c7322-5732-466f-a639-cacbaae425ba
+@atomic_action(
+    action_id="fix.headers",
+    intent="Atomic action for fix_headers_cmd",
+    impact=ActionImpact.WRITE_CODE,
+    policies=["atomic_actions"],
+)
+# ID: 3fcdcae8-f417-41e3-bc81-1b09a39e2887
 async def fix_headers_cmd(
     ctx: typer.Context,
     write: bool = typer.Option(

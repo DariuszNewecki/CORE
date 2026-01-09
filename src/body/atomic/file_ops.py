@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING
 
 from body.atomic.registry import ActionCategory, register_action
 from shared.action_types import ActionImpact, ActionResult
+from shared.atomic_action import atomic_action
 from shared.logger import getLogger
 from will.orchestration.validation_pipeline import validate_code_async
 
@@ -28,6 +29,12 @@ logger = getLogger(__name__)
     category=ActionCategory.CHECK,
     policies=["data_governance"],
     impact_level="safe",
+)
+@atomic_action(
+    action_id="file.read",
+    intent="Atomic action for action_read_file",
+    impact=ActionImpact.WRITE_CODE,
+    policies=["atomic_actions"],
 )
 # ID: 67364654-e490-4100-8488-874e4e9f7331
 async def action_read_file(
@@ -64,6 +71,12 @@ async def action_read_file(
     category=ActionCategory.BUILD,
     policies=["body_contracts"],
     impact_level="moderate",
+)
+@atomic_action(
+    action_id="file.create",
+    intent="Atomic action for action_create_file",
+    impact=ActionImpact.WRITE_CODE,
+    policies=["atomic_actions"],
 )
 # ID: 89436454-e590-4100-8488-874e4e9f7331
 async def action_create_file(
@@ -117,6 +130,12 @@ async def action_create_file(
     category=ActionCategory.FIX,
     policies=["body_contracts"],
     impact_level="moderate",
+)
+@atomic_action(
+    action_id="file.edit",
+    intent="Atomic action for action_edit_file",
+    impact=ActionImpact.WRITE_CODE,
+    policies=["atomic_actions"],
 )
 # ID: 12364654-e590-4100-8488-874e4e9f7331
 async def action_edit_file(

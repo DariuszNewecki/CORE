@@ -12,7 +12,8 @@ import typer
 from rich.console import Console
 
 from mind.enforcement.audit import lint, test_system
-from shared.action_types import ActionResult
+from shared.action_types import ActionImpact, ActionResult
+from shared.atomic_action import atomic_action
 from shared.cli_utils import core_command
 
 
@@ -33,6 +34,13 @@ def lint_cmd(ctx: typer.Context) -> None:
 # ID: 1e60b497-4db8-4d00-96f2-945ac2d096da
 @core_command(dangerous=False)
 # ID: 6da85006-b53d-4834-a17b-512c8aeb2cec
+@atomic_action(
+    action_id="tests.cmd",
+    intent="Atomic action for tests_cmd",
+    impact=ActionImpact.WRITE_CODE,
+    policies=["atomic_actions"],
+)
+# ID: 3e9af575-9c8b-483d-b63a-477e5c6b0a02
 async def tests_cmd(ctx: typer.Context) -> ActionResult:
     """
     Run the project test suite via pytest.

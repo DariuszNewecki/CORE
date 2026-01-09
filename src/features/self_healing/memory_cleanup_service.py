@@ -8,6 +8,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 
 from shared.action_types import ActionImpact, ActionResult
+from shared.atomic_action import atomic_action  # ADDED
 from shared.infrastructure.repositories.memory_repository import MemoryRepository
 from shared.logger import getLogger
 
@@ -25,6 +26,12 @@ class MemoryCleanupService:
         self.session = session
         self.repository = MemoryRepository(session)
 
+    @atomic_action(
+        action_id="cleanup.agent_memory",
+        intent="Execute memory retention policy",
+        impact=ActionImpact.WRITE_DATA,
+        policies=["atomic_actions"],
+    )
     # ID: e9fa0b0e-2054-41ab-bd37-277efa5992c6
     async def cleanup_old_memories(
         self,

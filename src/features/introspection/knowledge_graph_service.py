@@ -2,9 +2,10 @@
 # ID: b64ba9c9-f55c-4a24-bc2d-d8c2fa04b43e
 
 """
-Provides the KnowledgeGraphBuilder, the primary tool for introspecting the
-codebase and creating an in-memory representation of its symbols.
-Refactored to use the canonical FileHandler for artifact persistence.
+Knowledge Graph Builder - Pure Logic Service.
+
+Introspects the codebase and creates an in-memory representation of symbols.
+This service is now PURE: it performs no side effects or disk writes.
 """
 
 from __future__ import annotations
@@ -24,7 +25,6 @@ from shared.ast_utility import (
     extract_parameters,
     parse_metadata_comment,
 )
-from shared.infrastructure.storage.file_handler import FileHandler
 from shared.logger import getLogger
 
 
@@ -34,8 +34,8 @@ logger = getLogger(__name__)
 # ID: b64ba9c9-f55c-4a24-bc2d-d8c2fa04b43e
 class KnowledgeGraphBuilder:
     """
-    Scans the source code to build a comprehensive in-memory knowledge graph.
-    It does not interact with the database; that is handled by the sync_service.
+    Scans source code to build a comprehensive in-memory knowledge graph.
+    Does not interact with the database or filesystem writes.
     """
 
     def __init__(self, root_path: Path):
@@ -44,21 +44,16 @@ class KnowledgeGraphBuilder:
         self.src_dir = self.root_path / "src"
         self.symbols: dict[str, dict[str, Any]] = {}
 
-        # Initialize the governed mutation surface
-        self._fh = FileHandler(str(self.root_path))
-
         self.domain_map = self._load_domain_map()
         self.entry_point_patterns = self._load_entry_point_patterns()
 
     def _load_domain_map(self) -> dict[str, str]:
         """Loads the architectural domain map from the constitution."""
         try:
-            # Tries to load source_structure.yaml first
             structure_path = (
                 self.intent_dir / "mind" / "knowledge" / "source_structure.yaml"
             )
             if not structure_path.exists():
-                # Fallback to project_structure.yaml
                 structure_path = (
                     self.intent_dir / "mind" / "knowledge" / "project_structure.yaml"
                 )
@@ -76,57 +71,47 @@ class KnowledgeGraphBuilder:
                     if "path" in d and "domain" in d
                 }
             return {}
-        except (yaml.YAMLError, KeyError, Exception) as e:
+        except Exception as e:
             logger.warning("Failed to load domain map: %s", e)
             return {}
 
     def _load_entry_point_patterns(self) -> list[dict[str, Any]]:
-        """Loads the declarative patterns for identifying system entry points."""
+        """Loads the patterns for identifying system entry points."""
         try:
             patterns_path = (
                 self.intent_dir / "mind" / "knowledge" / "entry_point_patterns.yaml"
             )
-            patterns = yaml.safe_load(patterns_path.read_text("utf-8"))
-            return patterns.get("patterns", [])
-        except (FileNotFoundError, yaml.YAMLError):
-            return []
+            if patterns_path.exists():
+                patterns = yaml.safe_load(patterns_path.read_text("utf-8"))
+                return patterns.get("patterns", [])
+        except Exception:
+            pass
+        return []
 
     # ID: 75c969e0-5c7c-4f58-9a46-62815947d77a
     def build(self) -> dict[str, Any]:
         """
-        Executes the full build process for the knowledge graph and returns it.
-        Persists the result as a reports artifact via the governed FileHandler.
+        Executes the full scan and returns the in-memory graph.
+        PURE: No longer writes 'reports/knowledge_graph.json' to disk.
         """
-        logger.info("Building knowledge graph for repository at: %s", self.root_path)
+        logger.info("Building knowledge graph (in-memory) for: %s", self.root_path)
 
-        # Reset symbols on rebuild
         self.symbols = {}
+        if not self.src_dir.exists():
+            logger.warning("Source directory not found: %s", self.src_dir)
+            return {"metadata": {}, "symbols": {}}
+
         for py_file in self.src_dir.rglob("*.py"):
             self._scan_file(py_file)
 
-        knowledge_graph = {
+        return {
             "metadata": {
                 "generated_at": datetime.now(UTC).isoformat(),
                 "repo_root": str(self.root_path),
+                "symbol_count": len(self.symbols),
             },
             "symbols": self.symbols,
         }
-
-        # GOVERNED MUTATION: Save artifact using FileHandler
-        # This replaces output_path.write_text and ensures IntentGuard compliance.
-        artifact_rel_path = "reports/knowledge_graph.json"
-
-        try:
-            self._fh.write_runtime_json(artifact_rel_path, knowledge_graph)
-            logger.info(
-                "Knowledge graph artifact with %s symbols saved to %s",
-                len(self.symbols),
-                artifact_rel_path,
-            )
-        except Exception as e:
-            logger.error("Failed to save knowledge graph artifact: %s", e)
-
-        return knowledge_graph
 
     def _scan_file(self, file_path: Path):
         """Scans a single Python file and adds its symbols to the graph."""
@@ -150,16 +135,12 @@ class KnowledgeGraphBuilder:
             rel_path = file_path
 
         parts = rel_path.parts
-
         if "features" in parts:
-            try:
-                idx = parts.index("features")
-                if idx + 1 < len(parts):
-                    candidate = parts[idx + 1]
-                    if not candidate.endswith(".py"):
-                        return candidate
-            except ValueError:
-                pass
+            idx = parts.index("features")
+            if idx + 1 < len(parts):
+                candidate = parts[idx + 1]
+                if not candidate.endswith(".py"):
+                    return candidate
 
         abs_file_path = file_path.resolve()
         for domain_path, domain_name in self.domain_map.items():
@@ -169,7 +150,7 @@ class KnowledgeGraphBuilder:
         return "unknown"
 
     def _process_symbol(self, node: ast.AST, file_path: Path, source_lines: list[str]):
-        """Extracts all relevant data from a symbol AST node."""
+        """Extracts metadata for a symbol."""
         if not hasattr(node, "name"):
             return
 
@@ -182,8 +163,6 @@ class KnowledgeGraphBuilder:
         call_visitor = FunctionCallVisitor()
         call_visitor.visit(node)
 
-        domain = self._determine_domain(file_path)
-
         symbol_data = {
             "uuid": symbol_path_key,
             "key": metadata.get("capability"),
@@ -191,7 +170,7 @@ class KnowledgeGraphBuilder:
             "name": node.name,
             "type": type(node).__name__,
             "file_path": str(rel_path),
-            "domain": domain,
+            "domain": self._determine_domain(file_path),
             "is_public": not node.name.startswith("_"),
             "title": node.name.replace("_", " ").title(),
             "description": docstring.split("\n")[0] if docstring else None,

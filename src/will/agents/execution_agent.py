@@ -4,6 +4,7 @@
 The ExecutionAgent (Contractor): Executes validated code blueprints.
 
 FIXED: Now skips steps that failed code generation instead of trying to execute them.
+CONSTITUTIONAL FIX: Corrected runtime imports for atomic_action and ActionImpact.
 """
 
 from __future__ import annotations
@@ -11,7 +12,8 @@ from __future__ import annotations
 import time
 from typing import TYPE_CHECKING
 
-from shared.action_types import ActionResult
+from shared.action_types import ActionImpact, ActionResult
+from shared.atomic_action import atomic_action
 from shared.logger import getLogger
 from shared.models.workflow_models import ExecutionResults
 from will.orchestration.decision_tracer import DecisionTracer
@@ -167,6 +169,12 @@ class ExecutionAgent:
         )
 
     # ID: c3d4e5f6-789a-bcde-f012-3456789abcde
+    @atomic_action(
+        action_id="will.execution._execute_step",
+        intent="Atomic action for _execute_step",
+        impact=ActionImpact.WRITE_CODE,
+        policies=["atomic_actions"],
+    )
     async def _execute_step(
         self,
         step: DetailedPlanStep,

@@ -30,9 +30,21 @@ Usage:
 
 from __future__ import annotations
 
+from .atomic_actions_evaluator import AtomicActionsEvaluator  # ADDED
+from .clarity_evaluator import ClarityEvaluator
+from .constitutional_evaluator import ConstitutionalEvaluator
 from .failure_evaluator import FailureEvaluator
+from .pattern_evaluator import PatternEvaluator
+from .performance_evaluator import PerformanceEvaluator
+from .security_evaluator import SecurityEvaluator
 
 
 __all__ = [
+    "AtomicActionsEvaluator",  # ADDED
+    "ClarityEvaluator",
+    "ConstitutionalEvaluator",
     "FailureEvaluator",
+    "PatternEvaluator",
+    "PerformanceEvaluator",
+    "SecurityEvaluator",
 ]

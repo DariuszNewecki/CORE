@@ -5,31 +5,20 @@ Analyzers - Parse/Load phase components.
 
 Analyzers extract information from code without making decisions.
 They are pure functions: same input → same output.
-
-Available Analyzers:
-- FileAnalyzer: Classify file type and complexity
-- SymbolExtractor: Extract testable functions and classes
-
-Constitutional Alignment:
-- Phase: PARSE/LOAD (structural analysis only)
-- No side effects (read-only)
-- Returns structured ComponentResult
-
-Usage:
-    from body.analyzers import FileAnalyzer, SymbolExtractor
-
-    analyzer = FileAnalyzer()
-    result = await analyzer.execute(file_path="models.py")
 """
 
 from __future__ import annotations
 
 from .file_analyzer import FileAnalyzer
-from .symbol_extractor import SymbolExtractor, SymbolInfo
+from .knowledge_graph_analyzer import KnowledgeGraphAnalyzer
+from .prompt_analyzer import PromptAnalyzer
+from .symbol_extractor import SymbolExtractor, SymbolInfo, SymbolMetadata
 
 
 __all__ = [
     "FileAnalyzer",
+    "KnowledgeGraphAnalyzer",
+    "PromptAnalyzer",
     "SymbolExtractor",
     "SymbolInfo",
     "SymbolMetadata",

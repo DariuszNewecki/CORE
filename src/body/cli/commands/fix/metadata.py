@@ -133,6 +133,13 @@ async def fix_duplicate_ids_internal(
 @handle_command_errors
 @core_command(dangerous=True, confirmation=False)
 # ID: 444bd442-cc5b-4f7a-a3d4-392ccf86e7be
+@atomic_action(
+    action_id="assign.ids",
+    intent="Atomic action for assign_ids_command",
+    impact=ActionImpact.WRITE_CODE,
+    policies=["atomic_actions"],
+)
+# ID: e2d50b4f-e3cf-49d3-9f32-476970e8d31f
 async def assign_ids_command(
     ctx: typer.Context,
     write: bool = typer.Option(
@@ -224,6 +231,13 @@ async def fix_tags_command(
 @handle_command_errors
 @core_command(dangerous=True, confirmation=True)
 # ID: 57c9e35a-4813-421f-89e5-7e0ef736efc2
+@atomic_action(
+    action_id="fix.duplicate",
+    intent="Atomic action for fix_duplicate_ids_command",
+    impact=ActionImpact.WRITE_CODE,
+    policies=["atomic_actions"],
+)
+# ID: 476a84c1-c2b5-45d9-a7bf-65d297549495
 async def fix_duplicate_ids_command(
     ctx: typer.Context,
     write: bool = typer.Option(
@@ -243,6 +257,13 @@ async def fix_duplicate_ids_command(
 @handle_command_errors
 @core_command(dangerous=True, confirmation=True)
 # ID: b1c2d3e4-f5a6-7890-abcd-ef1234567890
+@atomic_action(
+    action_id="fix.placeholders",
+    intent="Atomic action for fix_placeholders_command",
+    impact=ActionImpact.WRITE_CODE,
+    policies=["atomic_actions"],
+)
+# ID: bf4ec2e4-67c6-46d4-b8dd-b12155b53339
 async def fix_placeholders_command(
     ctx: typer.Context,
     write: bool = typer.Option(

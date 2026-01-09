@@ -25,7 +25,8 @@ import time
 from typing import TYPE_CHECKING, Any
 
 from body.atomic.registry import ActionCategory, ActionDefinition, action_registry
-from shared.action_types import ActionResult
+from shared.action_types import ActionImpact, ActionResult
+from shared.atomic_action import atomic_action
 from shared.logger import getLogger
 
 
@@ -70,6 +71,13 @@ class ActionExecutor:
 
     # ID: executor_execute
     # ID: d068c5cc-7e31-479e-a615-993e4570680c
+    @atomic_action(
+        action_id="action.execute",
+        intent="Atomic action for execute",
+        impact=ActionImpact.WRITE_CODE,
+        policies=["atomic_actions"],
+    )
+    # ID: 0724a464-ca71-4c53-878c-2c2d75dabcde
     async def execute(
         self,
         action_id: str,

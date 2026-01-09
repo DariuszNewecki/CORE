@@ -28,9 +28,19 @@ Usage:
 
 from __future__ import annotations
 
+from .clarity_strategist import ClarityStrategist
+from .complexity_strategist import ComplexityStrategist
+from .fix_strategist import FixStrategist
+from .sync_strategist import SyncStrategist
 from .test_strategist import TestStrategist
+from .validation_strategist import ValidationStrategist
 
 
 __all__ = [
+    "ClarityStrategist",
+    "ComplexityStrategist",
+    "FixStrategist",
+    "SyncStrategist",
     "TestStrategist",
+    "ValidationStrategist",
 ]

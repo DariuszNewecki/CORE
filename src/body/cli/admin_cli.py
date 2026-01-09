@@ -25,6 +25,7 @@ from body.cli.commands import (
 )
 from body.cli.commands.autonomy import autonomy_app
 from body.cli.commands.check import check_app
+from body.cli.commands.components import components_app
 from body.cli.commands.dev_sync import dev_sync_app
 from body.cli.commands.develop import develop_app
 from body.cli.commands.diagnostics import app as diagnostics_app
@@ -89,6 +90,7 @@ core_context.context_service_factory = _build_context_service
 def register_all_commands(app_instance: typer.Typer) -> None:
     """Register all command groups."""
     app_instance.add_typer(check_app, name="check")
+    app_instance.add_typer(components_app, name="components")
     app_instance.add_typer(coverage.coverage_app, name="coverage")
     app_instance.add_typer(enrich.enrich_app, name="enrich")
     app_instance.add_typer(fix_app, name="fix")

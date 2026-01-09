@@ -19,7 +19,8 @@ from shared.logger import getLogger
 logger = getLogger(__name__)
 
 from mind.governance.auditor import ConstitutionalAuditor
-from shared.action_types import ActionResult
+from shared.action_types import ActionImpact, ActionResult
+from shared.atomic_action import atomic_action
 from shared.context import CoreContext
 from shared.infrastructure.validation.test_runner import run_tests
 from shared.models import AuditFinding, AuditSeverity
@@ -72,6 +73,13 @@ def lint() -> None:
 
 
 # ID: 0a52d8ef-18a6-40c6-9ffe-95b9f9c295e4
+@atomic_action(
+    action_id="test.system",
+    intent="Atomic action for test_system",
+    impact=ActionImpact.WRITE_CODE,
+    policies=["atomic_actions"],
+)
+# ID: 5963ab12-7398-4506-a257-0836ec585a88
 async def test_system() -> ActionResult:
     """
     Run the project test suite via the canonical async test runner.
