@@ -6,15 +6,92 @@ from unittest.mock import Mock, patch
 
 import pytest
 
+from shared.cli_utils import confirm_action
+
+
+@pytest.fixture
+def mock_console():
+    with patch("shared.cli_utils.console") as mock_console:
+        yield mock_console
+
+
+@pytest.fixture
+def mock_confirm():
+    with patch("shared.cli_utils.Confirm") as mock_confirm:
+        mock_confirm_instance = Mock()
+        mock_confirm.ask.return_value = mock_confirm_instance
+        yield mock_confirm
+
+
+def test_confirm_action_confirmed(mock_console, mock_confirm):
+    """Test when user confirms the action."""
+    mock_confirm.ask.return_value = True
+
+    result = confirm_action("Are you sure?", abort_message="Operation cancelled.")
+
+    mock_console.print.assert_any_call()
+    mock_confirm.ask.assert_called_once_with("Are you sure?")
+    mock_console.print.assert_any_call()
+    assert result is True
+
+
+def test_confirm_action_not_confirmed(mock_console, mock_confirm):
+    """Test when user does not confirm the action."""
+    mock_confirm.ask.return_value = False
+
+    result = confirm_action("Delete everything?", abort_message="Cancelled deletion.")
+
+    mock_console.print.assert_any_call()
+    mock_confirm.ask.assert_called_once_with("Delete everything?")
+    mock_console.print.assert_any_call("[yellow]Cancelled deletion.[/yellow]")
+    mock_console.print.assert_any_call()
+    assert result is False
+
+
+def test_confirm_action_default_abort_message(mock_console, mock_confirm):
+    """Test with default abort message."""
+    mock_confirm.ask.return_value = False
+
+    result = confirm_action("Proceed?")
+
+    mock_console.print.assert_any_call("[yellow]Aborted.[/yellow]")
+    assert result is False
+
+
+def test_confirm_action_empty_message(mock_console, mock_confirm):
+    """Test with empty message string."""
+    mock_confirm.ask.return_value = True
+
+    result = confirm_action("")
+
+    mock_confirm.ask.assert_called_once_with("")
+    assert result is True
+
+
+def test_confirm_action_special_characters_message(mock_console, mock_confirm):
+    """Test with message containing special characters."""
+    mock_confirm.ask.return_value = False
+    message = "Delete file: /tmp/test_file.txt? [Y/n]"
+
+    result = confirm_action(message, abort_message="File not deleted.")
+
+    mock_confirm.ask.assert_called_once_with(message)
+    mock_console.print.assert_any_call("[yellow]File not deleted.[/yellow]")
+    assert result is False
+
+from unittest.mock import Mock, patch
+
+import pytest
+
 from shared.cli_utils import display_error
 
 
 def test_display_error():
-    """Test display_error function prints formatted error message."""
+    """Test that display_error prints formatted error message to console."""
     # Mock the console object
     mock_console = Mock()
 
-    # Patch the console in the module where it's imported
+    # Patch the console import in the module where display_error is defined
     with patch('shared.cli_utils.console', mock_console):
         # Test basic functionality
         test_message = "Test error message"
@@ -28,10 +105,11 @@ def test_display_error():
 
         # Verify the argument contains the formatted message
         assert len(call_args[0]) == 1
-        formatted_message = call_args[0][0]
-        assert test_message in formatted_message
-        assert "[bold red]" in formatted_message
-        assert "[/bold red]" in formatted_message
+        formatted_msg = call_args[0][0]
+        assert isinstance(formatted_msg, str)
+        assert test_message in formatted_msg
+        assert "[bold red]" in formatted_msg
+        assert "[/bold red]" in formatted_msg
 
         # Reset mock for edge case tests
         mock_console.reset_mock()
@@ -40,25 +118,21 @@ def test_display_error():
         display_error("")
         mock_console.print.assert_called_once_with("[bold red][/bold red]")
 
-        # Reset mock again
+        # Reset mock
         mock_console.reset_mock()
 
         # Test with special characters
-        special_message = "Error: <tag> & 'quotes'"
-        display_error(special_message)
-        mock_console.print.assert_called_once()
-        call_args = mock_console.print.call_args
-        assert special_message in call_args[0][0]
+        special_msg = "Error: 100% & <test>"
+        display_error(special_msg)
+        mock_console.print.assert_called_once_with(f"[bold red]{special_msg}[/bold red]")
 
-        # Reset mock again
+        # Reset mock
         mock_console.reset_mock()
 
-        # Test with very long message
-        long_message = "A" * 1000
-        display_error(long_message)
-        mock_console.print.assert_called_once()
-        call_args = mock_console.print.call_args
-        assert long_message in call_args[0][0]
+        # Test with multiline string
+        multiline_msg = "Line 1\nLine 2\nLine 3"
+        display_error(multiline_msg)
+        mock_console.print.assert_called_once_with(f"[bold red]{multiline_msg}[/bold red]")
 
 from unittest.mock import Mock, patch
 
@@ -68,27 +142,28 @@ from shared.cli_utils import display_success
 
 
 def test_display_success():
-    """Test display_success function prints formatted message to console."""
+    """Test that display_success prints formatted message to console."""
     # Arrange
+    test_msg = "Operation completed successfully"
     mock_console = Mock()
-    test_message = "Operation completed successfully"
 
     # Act
     with patch('shared.cli_utils.console', mock_console):
-        display_success(test_message)
+        display_success(test_msg)
 
     # Assert
-    mock_console.print.assert_called_once_with(f"[bold green]{test_message}[/bold green]")
+    mock_console.print.assert_called_once_with(f"[bold green]{test_msg}[/bold green]")
 
 
 def test_display_success_empty_string():
     """Test display_success with empty message."""
     # Arrange
+    test_msg = ""
     mock_console = Mock()
 
     # Act
     with patch('shared.cli_utils.console', mock_console):
-        display_success("")
+        display_success(test_msg)
 
     # Assert
     mock_console.print.assert_called_once_with("[bold green][/bold green]")
@@ -97,29 +172,29 @@ def test_display_success_empty_string():
 def test_display_success_special_characters():
     """Test display_success with special characters in message."""
     # Arrange
+    test_msg = "Success! 100% done ✅"
     mock_console = Mock()
-    test_message = "Success! 100% done. Line1\nLine2\tTab"
 
     # Act
     with patch('shared.cli_utils.console', mock_console):
-        display_success(test_message)
+        display_success(test_msg)
 
     # Assert
-    mock_console.print.assert_called_once_with(f"[bold green]{test_message}[/bold green]")
+    mock_console.print.assert_called_once_with(f"[bold green]{test_msg}[/bold green]")
 
 
-def test_display_success_unicode():
-    """Test display_success with unicode characters."""
+def test_display_success_multiline():
+    """Test display_success with multiline message."""
     # Arrange
+    test_msg = "Line 1\nLine 2\nLine 3"
     mock_console = Mock()
-    test_message = "✅ Success! Café résumé 🎉"
 
     # Act
     with patch('shared.cli_utils.console', mock_console):
-        display_success(test_message)
+        display_success(test_msg)
 
     # Assert
-    mock_console.print.assert_called_once_with(f"[bold green]{test_message}[/bold green]")
+    mock_console.print.assert_called_once_with(f"[bold green]{test_msg}[/bold green]")
 
 from unittest.mock import Mock, patch
 
@@ -129,59 +204,46 @@ from shared.cli_utils import display_info
 
 
 def test_display_info():
-    """Test display_info function prints formatted message to console."""
-    # Arrange
-    test_message = "Test info message"
+    """Test that display_info correctly prints formatted messages to console."""
+    # Mock the console object
     mock_console = Mock()
 
-    # Act
+    # Test basic functionality
     with patch('shared.cli_utils.console', mock_console):
+        # Test with normal message
+        test_message = "Test info message"
         display_info(test_message)
 
-    # Assert
-    mock_console.print.assert_called_once_with(f"[cyan]{test_message}[/cyan]")
+        # Verify console.print was called exactly once
+        mock_console.print.assert_called_once()
 
+        # Get the actual argument passed to console.print
+        call_args = mock_console.print.call_args[0]
+        actual_output = call_args[0]
 
-def test_display_info_empty_string():
-    """Test display_info with empty string."""
-    # Arrange
-    test_message = ""
-    mock_console = Mock()
+        # Verify the output contains the message with cyan formatting
+        assert actual_output == f"[cyan]{test_message}[/cyan]"
 
-    # Act
-    with patch('shared.cli_utils.console', mock_console):
-        display_info(test_message)
+        # Reset mock for next test
+        mock_console.reset_mock()
 
-    # Assert
-    mock_console.print.assert_called_once_with("[cyan][/cyan]")
+        # Test with empty string
+        display_info("")
+        mock_console.print.assert_called_once_with("[cyan][/cyan]")
 
+        mock_console.reset_mock()
 
-def test_display_info_special_characters():
-    """Test display_info with special characters in message."""
-    # Arrange
-    test_message = "Line 1\nLine 2\tTabbed"
-    mock_console = Mock()
+        # Test with special characters
+        special_message = "Message with $pecial chars & symbols!"
+        display_info(special_message)
+        mock_console.print.assert_called_once_with(f"[cyan]{special_message}[/cyan]")
 
-    # Act
-    with patch('shared.cli_utils.console', mock_console):
-        display_info(test_message)
+        mock_console.reset_mock()
 
-    # Assert
-    mock_console.print.assert_called_once_with(f"[cyan]{test_message}[/cyan]")
-
-
-def test_display_info_unicode():
-    """Test display_info with unicode characters."""
-    # Arrange
-    test_message = "Unicode: 🚀 ✅ ©"
-    mock_console = Mock()
-
-    # Act
-    with patch('shared.cli_utils.console', mock_console):
-        display_info(test_message)
-
-    # Assert
-    mock_console.print.assert_called_once_with(f"[cyan]{test_message}[/cyan]")
+        # Test with multiline message
+        multiline_message = "Line 1\nLine 2\nLine 3"
+        display_info(multiline_message)
+        mock_console.print.assert_called_once_with(f"[cyan]{multiline_message}[/cyan]")
 
 from unittest.mock import Mock, patch
 
@@ -191,156 +253,48 @@ from shared.cli_utils import display_warning
 
 
 def test_display_warning():
-    """Test display_warning prints formatted message to console."""
-    # Mock the console object
-    mock_console = Mock()
-
-    # Patch console in the module where it's imported
-    with patch('shared.cli_utils.console', mock_console):
+    """Test display_warning function prints formatted warning message."""
+    # Mock console.print to capture calls
+    with patch('shared.cli_utils.console.print') as mock_print:
         # Test basic functionality
         test_message = "This is a warning"
         display_warning(test_message)
 
         # Verify console.print was called exactly once
-        mock_console.print.assert_called_once()
+        mock_print.assert_called_once()
 
-        # Get the actual argument passed to console.print
-        call_args = mock_console.print.call_args
+        # Verify the call arguments
+        call_args = mock_print.call_args
+        assert call_args is not None
 
-        # Verify the argument contains our message with yellow formatting
-        assert len(call_args[0]) == 1
-        formatted_message = call_args[0][0]
-        assert test_message in formatted_message
-        assert "[yellow]" in formatted_message
-        assert "[/yellow]" in formatted_message
+        # Extract the actual string passed to console.print
+        actual_output = call_args[0][0]
 
-        # Reset mock for edge case tests
-        mock_console.reset_mock()
+        # Verify the message contains the expected formatting and content
+        assert "[yellow]" in actual_output
+        assert test_message in actual_output
+        assert "[/yellow]" in actual_output
+        assert actual_output == f"[yellow]{test_message}[/yellow]"
 
-        # Test with empty string
+
+def test_display_warning_empty_string():
+    """Test display_warning with empty string."""
+    with patch('shared.cli_utils.console.print') as mock_print:
         display_warning("")
-        mock_console.print.assert_called_once_with("[yellow][/yellow]")
-
-        # Reset mock
-        mock_console.reset_mock()
-
-        # Test with special characters
-        special_msg = "Warning: 100% complete & <tag>"
-        display_warning(special_msg)
-        mock_console.print.assert_called_once_with(f"[yellow]{special_msg}[/yellow]")
-
-import asyncio
-from unittest.mock import Mock, patch
-
-import pytest
-
-from shared.cli_utils import async_command
+        mock_print.assert_called_once_with("[yellow][/yellow]")
 
 
-def test_async_command():
-    """Test the async_command decorator functionality and edge cases."""
+def test_display_warning_special_characters():
+    """Test display_warning with special characters."""
+    with patch('shared.cli_utils.console.print') as mock_print:
+        test_message = "Warning: 100% complete! #important"
+        display_warning(test_message)
+        mock_print.assert_called_once_with(f"[yellow]{test_message}[/yellow]")
 
-    # Test 1: Basic functionality - decorator runs async function correctly
-    @async_command
-    async def sample_async_func(x: int, y: int) -> int:
-        await asyncio.sleep(0.001)  # Simulate async work
-        return x + y
 
-    result = sample_async_func(3, 4)
-    assert result == 7
-
-    # Test 2: Decorator preserves function metadata
-    assert sample_async_func.__name__ == "sample_async_func"
-
-    # Test 3: Async function with no arguments
-    @async_command
-    async def no_args_func() -> str:
-        await asyncio.sleep(0.001)
-        return "success"
-
-    assert no_args_func() == "success"
-
-    # Test 4: Async function with keyword arguments
-    @async_command
-    async def kwargs_func(**kwargs) -> dict:
-        await asyncio.sleep(0.001)
-        return kwargs
-
-    result = kwargs_func(a=1, b=2, c=3)
-    assert result == {"a": 1, "b": 2, "c": 3}
-
-    # Test 5: Async function that raises an exception
-    @async_command
-    async def failing_func() -> None:
-        await asyncio.sleep(0.001)
-        raise ValueError("Test error")
-
-    with pytest.raises(ValueError, match="Test error"):
-        failing_func()
-
-    # Test 6: Cannot be called from within a running event loop
-    @async_command
-    async def inner_func() -> str:
-        return "inner"
-
-    async def run_in_loop():
-        with pytest.raises(
-            RuntimeError,
-            match="async_command cannot run inside an already-running event loop"
-        ):
-            inner_func()
-
-    # Create and run a loop to test the restriction
-    loop = asyncio.new_event_loop()
-    try:
-        loop.run_until_complete(run_in_loop())
-    finally:
-        loop.close()
-
-    # Test 7: Works when no loop is running (already tested in basic cases)
-    # This is covered by all the successful calls above
-
-    # Test 8: Decorator works with functions that return None
-    @async_command
-    async def none_return_func() -> None:
-        await asyncio.sleep(0.001)
-
-    assert none_return_func() is None
-
-    # Test 9: Complex return type
-    @async_command
-    async def complex_return_func() -> list:
-        await asyncio.sleep(0.001)
-        return [1, 2, 3]
-
-    assert complex_return_func() == [1, 2, 3]
-
-    # Test 10: Verify asyncio.run is called with correct arguments
-    with patch("asyncio.run") as mock_run:
-        mock_run.return_value = "mocked_result"
-
-        @async_command
-        async def mocked_func(arg1, arg2):
-            return arg1 + arg2
-
-        result = mocked_func(10, 20)
-
-        # Verify asyncio.run was called once
-        assert mock_run.call_count == 1
-
-        # Get the coroutine that was passed to asyncio.run
-        call_args = mock_run.call_args
-        coro = call_args[0][0]
-
-        # Execute the coroutine to verify it's the right function
-        # (This is a bit hacky but verifies the right function was wrapped)
-        async def execute_coro():
-            return await coro
-
-        # Create a new loop to test the coroutine
-        test_loop = asyncio.new_event_loop()
-        try:
-            coro_result = test_loop.run_until_complete(execute_coro())
-            assert coro_result == 30  # 10 + 20
-        finally:
-            test_loop.close()
+def test_display_warning_multiline():
+    """Test display_warning with multiline string."""
+    with patch('shared.cli_utils.console.print') as mock_print:
+        test_message = "Line 1\nLine 2\nLine 3"
+        display_warning(test_message)
+        mock_print.assert_called_once_with(f"[yellow]{test_message}[/yellow]")

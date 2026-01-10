@@ -3,10 +3,8 @@
 # Symbols: 1
 
 import json
-import sys
-from dataclasses import field
-from typing import Any
-from unittest.mock import Mock, patch
+from dataclasses import FrozenInstanceError, is_dataclass
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -14,155 +12,151 @@ from shared.action_types import ActionResult
 
 
 def test_ActionResult():
-    """Test the ActionResult dataclass for basic functionality, edge cases, and correctness."""
+    """Comprehensive test for ActionResult dataclass."""
 
-    # Test 1: Basic successful action result
+    # Test 1: Basic instantiation with required fields
     result = ActionResult(
         action_id="check.imports",
         ok=True,
-        data={"violations_count": 0, "files_scanned": 10},
-        duration_sec=1.5,
-        warnings=["Using fallback parser"],
-        suggestions=["Run 'fix.imports' to auto-fix any future violations"]
+        data={"violations_count": 0, "files_scanned": 10}
     )
 
     assert result.action_id == "check.imports"
     assert result.ok is True
     assert result.data == {"violations_count": 0, "files_scanned": 10}
-    assert result.duration_sec == 1.5
-    assert result.warnings == ["Using fallback parser"]
-    assert result.suggestions == ["Run 'fix.imports' to auto-fix any future violations"]
-    assert result.logs == []  # Default value
-    assert result.impact is None  # Default value
+    assert result.duration_sec == 0.0
+    assert result.impact is None
+    assert result.logs == []
+    assert result.warnings == []
+    assert result.suggestions == []
 
-    # Test 2: Backwards compatibility - name property
-    assert result.name == "check.imports"
+    # Test 2: Verify it's a dataclass
+    assert is_dataclass(result)
 
-    # Test 3: Failed action result
-    result2 = ActionResult(
+    # Test 3: Test with all optional fields
+    result_full = ActionResult(
         action_id="fix.ids",
         ok=False,
-        data={"items_fixed": 3, "items_failed": 2, "dry_run": False},
-        warnings=["Failed to fix item #5 due to syntax error"],
-        suggestions=["Check syntax at line 42", "Run validation first"]
+        data={"items_fixed": 5, "items_failed": 2, "dry_run": False},
+        duration_sec=1.5,
+        impact="MODERATE",
+        logs=["Starting fix", "Processing file.py"],
+        warnings=["Some items could not be fixed"],
+        suggestions=["Run check.ids to verify fixes"]
     )
 
-    assert result2.action_id == "fix.ids"
-    assert result2.ok is False
-    assert result2.data["items_failed"] == 2
+    assert result_full.action_id == "fix.ids"
+    assert result_full.ok is False
+    assert result_full.duration_sec == 1.5
+    assert result_full.impact == "MODERATE"
+    assert len(result_full.logs) == 2
+    assert len(result_full.warnings) == 1
+    assert len(result_full.suggestions) == 1
 
-    # Test 4: Validation - empty action_id raises ValueError
+    # Test 4: Test backwards compatibility name property
+    assert result.name == "check.imports"
+    assert result_full.name == "fix.ids"
+
+    # Test 5: Test validation - empty action_id
     with pytest.raises(ValueError, match="action_id must be non-empty string"):
         ActionResult(action_id="", ok=True, data={})
 
-    # Test 5: Validation - non-string action_id raises ValueError
+    # Test 6: Test validation - non-string action_id
     with pytest.raises(ValueError, match="action_id must be non-empty string"):
         ActionResult(action_id=123, ok=True, data={})
 
-    # Test 6: Validation - non-dict data raises ValueError
+    # Test 7: Test validation - non-dict data
     with pytest.raises(ValueError, match="data must be a dict"):
-        ActionResult(action_id="test.action", ok=True, data="not a dict")
+        ActionResult(action_id="test", ok=True, data="not a dict")
 
-    # Test 7: Validation - non-boolean ok raises ValueError
+    # Test 8: Test validation - non-boolean ok
     with pytest.raises(ValueError, match="ok must be a boolean"):
-        ActionResult(action_id="test.action", ok="yes", data={})
+        ActionResult(action_id="test", ok="yes", data={})
 
-    # Test 8: Data size limit enforcement
-    # Create data that exceeds 5MB limit when serialized
-    large_data = {"large_list": ["x" * 1000] * 6000}  # ~6MB when serialized
+    # Test 9: Test data size limit enforcement
+    # Create data that's too large
+    large_data = {"big_list": ["x" * 1000] * 6000}  # ~6MB when serialized
 
     with pytest.raises(ValueError, match="ActionResult.data exceeds size limit"):
-        ActionResult(action_id="test.action", ok=True, data=large_data)
+        ActionResult(action_id="test", ok=True, data=large_data)
 
-    # Test 9: Data with non-serializable content (should not crash)
-    class NonSerializable:
+    # Test 10: Test data size limit with unserializable data (should not crash)
+    # Create a data dict with unserializable content
+    class Unserializable:
         pass
 
+    unserializable_data = {"obj": Unserializable()}
+
     # This should not raise an error due to the try-except in __post_init__
-    result3 = ActionResult(
-        action_id="test.action",
-        ok=True,
-        data={"obj": NonSerializable(), "normal": "value"}
-    )
+    result = ActionResult(action_id="test", ok=True, data=unserializable_data)
+    assert result.action_id == "test"
 
-    assert result3.action_id == "test.action"
-    assert result3.ok is True
+    # Test 11: Test with different action_id formats
+    test_cases = [
+        "fix.ids",
+        "check.imports",
+        "generate.docs",
+        "sync.config"
+    ]
 
-    # Test 10: Default values work correctly
-    result4 = ActionResult(
-        action_id="generate.docs",
-        ok=True,
-        data={"files_created": ["README.md"]}
-    )
+    for action_id in test_cases:
+        result = ActionResult(action_id=action_id, ok=True, data={})
+        assert result.action_id == action_id
 
-    assert result4.duration_sec == 0.0
-    assert result4.logs == []
-    assert result4.warnings == []
-    assert result4.suggestions == []
-    assert result4.impact is None
-
-    # Test 11: Field default_factory creates new lists
-    result5 = ActionResult(
-        action_id="test.action",
-        ok=True,
-        data={}
-    )
-
-    result6 = ActionResult(
-        action_id="test.action2",
-        ok=True,
-        data={}
-    )
-
-    # Verify they have separate list instances
-    result5.warnings.append("warning1")
-    result6.warnings.append("warning2")
-
-    assert result5.warnings == ["warning1"]
-    assert result6.warnings == ["warning2"]
-
-    # Test 12: Valid data within size limit
-    small_data = {"count": 1000, "items": list(range(1000))}
-    result7 = ActionResult(
-        action_id="sync.data",
-        ok=True,
-        data=small_data
-    )
-
-    assert result7.action_id == "sync.data"
-    assert result7.data == small_data
-
-    # Test 13: Action with impact field
-    # Note: We don't test the actual ActionImpact enum since it's not provided
-    # but we can test that the field accepts None
-    result8 = ActionResult(
-        action_id="check.security",
-        ok=True,
-        data={"scanned": 50},
-        impact=None
-    )
-
-    assert result8.impact is None
-
-    # Test 14: Complex nested data structure
+    # Test 12: Test data field can contain various valid types
     complex_data = {
-        "violations": [
-            {"file": "src/main.py", "line": 42, "rule": "E501"},
-            {"file": "src/utils.py", "line": 15, "rule": "F401"}
-        ],
-        "summary": {
-            "total": 2,
-            "by_rule": {"E501": 1, "F401": 1}
-        }
+        "string": "value",
+        "number": 42,
+        "float": 3.14,
+        "bool": True,
+        "list": [1, 2, 3],
+        "nested": {"key": "value"},
+        "none": None
     }
 
-    result9 = ActionResult(
-        action_id="check.lint",
-        ok=False,
-        data=complex_data
-    )
+    result = ActionResult(action_id="test", ok=True, data=complex_data)
+    assert result.data == complex_data
 
-    assert result9.action_id == "check.lint"
-    assert result9.ok is False
-    assert len(result9.data["violations"]) == 2
-    assert result9.data["summary"]["total"] == 2
+    # Test 13: Test default_factory for lists creates new instances
+    result1 = ActionResult(action_id="test1", ok=True, data={})
+    result2 = ActionResult(action_id="test2", ok=False, data={})
+
+    result1.logs.append("log1")
+    result2.logs.append("log2")
+
+    assert result1.logs == ["log1"]
+    assert result2.logs == ["log2"]
+    assert result1.logs != result2.logs
+
+    # Test 14: Test with zero duration
+    result = ActionResult(action_id="test", ok=True, data={}, duration_sec=0.0)
+    assert result.duration_sec == 0.0
+
+    # Test 15: Test with negative duration (edge case)
+    result = ActionResult(action_id="test", ok=True, data={}, duration_sec=-1.0)
+    assert result.duration_sec == -1.0
+
+    # Test 16: Test MAX_DATA_SIZE_BYTES constant
+    assert hasattr(ActionResult, 'MAX_DATA_SIZE_BYTES')
+    assert ActionResult.MAX_DATA_SIZE_BYTES == 5 * 1024 * 1024
+
+    # Test 17: Test that data within size limit works
+    small_data = {"small": "data"}
+    result = ActionResult(action_id="test", ok=True, data=small_data)
+    assert result.data == small_data
+
+    # Test 18: Test with empty data dict
+    result = ActionResult(action_id="test", ok=True, data={})
+    assert result.data == {}
+
+    # Test 19: Test that action_id with dot notation works
+    result = ActionResult(action_id="category.subcategory.specific", ok=True, data={})
+    assert result.action_id == "category.subcategory.specific"
+
+    # Test 20: Test equality comparison (dataclass should auto-generate __eq__)
+    result1 = ActionResult(action_id="test", ok=True, data={"a": 1})
+    result2 = ActionResult(action_id="test", ok=True, data={"a": 1})
+    result3 = ActionResult(action_id="test", ok=False, data={"a": 1})
+
+    assert result1 == result2
+    assert result1 != result3

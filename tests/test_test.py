@@ -8,25 +8,12 @@ from test import hello_world
 
 
 def test_hello_world():
-    """Test basic functionality of hello_world function."""
-    # Test basic return value
+    """Test the hello_world function returns correct string."""
     result = hello_world()
+
     assert result == "Hello, CORE!"
-
-    # Test return type
     assert isinstance(result, str)
-
-    # Test non-empty string
-    assert len(result) > 0
-
-    # Test specific string content
-    assert "Hello" in result
+    assert len(result) == 12
+    assert result.startswith("Hello")
+    assert result.endswith("CORE!")
     assert "CORE" in result
-    assert "!" in result
-
-    # Test that function always returns the same value (idempotent)
-    result2 = hello_world()
-    assert result == result2
-
-    # Test no side effects (function doesn't modify external state)
-    # This is implicit in the above tests

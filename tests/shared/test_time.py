@@ -2,8 +2,9 @@
 # Source: src/shared/time.py
 # Symbols: 1
 
+import re
 from datetime import UTC, datetime, timezone
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -11,39 +12,47 @@ from shared.time import now_iso
 
 
 def test_now_iso():
-    """Test that now_iso returns current UTC timestamp in ISO 8601 format."""
-    # Test with a fixed datetime
-    fixed_datetime = datetime(2023, 12, 25, 14, 30, 45, 123456, tzinfo=UTC)
-    expected_iso = "2023-12-25T14:30:45.123456+00:00"
+    """Test that now_iso returns a valid ISO 8601 UTC timestamp."""
+    # Test 1: Basic functionality with mocked datetime
+    mock_datetime = MagicMock()
+    mock_datetime.isoformat.return_value = "2023-10-15T14:30:00.123456+00:00"
 
-    with patch('shared.time.datetime') as mock_datetime:
-        mock_datetime.now.return_value = fixed_datetime
-        mock_datetime.side_effect = datetime
+    with patch('shared.time.datetime') as mock_dt:
+        mock_dt.now.return_value = mock_datetime
+        mock_dt.UTC = UTC
 
         result = now_iso()
 
-        # Verify the function called datetime.now with UTC
-        mock_datetime.now.assert_called_once_with(UTC)
+        # Verify datetime.now was called with UTC
+        mock_dt.now.assert_called_once_with(UTC)
+        # Verify isoformat was called on the result
+        mock_datetime.isoformat.assert_called_once()
+        assert result == "2023-10-15T14:30:00.123456+00:00"
 
-        # Verify the result matches expected ISO format
-        assert result == expected_iso
+    # Test 2: Verify actual return value format (without mocking)
+    result = now_iso()
 
-    # Test that the result is a string
+    # Check it's a string
     assert isinstance(result, str)
 
-    # Test that the string can be parsed back to a datetime
-    parsed_datetime = datetime.fromisoformat(result)
-    assert parsed_datetime.tzinfo == timezone.utc
+    # Verify ISO 8601 format with timezone (should end with Z or +00:00 for UTC)
+    iso_pattern = r'^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})$'
+    assert re.match(iso_pattern, result) is not None
 
-    # Test with different datetime to ensure it's not hardcoded
-    another_fixed_datetime = datetime(2024, 1, 1, 0, 0, 0, 0, tzinfo=UTC)
-    another_expected_iso = "2024-01-01T00:00:00+00:00"
+    # Specifically check it represents UTC (either Z or +00:00)
+    assert result.endswith(('Z', '+00:00')), f"Timestamp should end with Z or +00:00, got: {result}"
 
-    with patch('shared.time.datetime') as mock_datetime:
-        mock_datetime.now.return_value = another_fixed_datetime
-        mock_datetime.side_effect = datetime
+    # Test 3: Verify the timestamp can be parsed back to datetime
+    # Remove Z and replace with +00:00 for consistent parsing
+    normalized_result = result.replace('Z', '+00:00')
+    parsed_dt = datetime.fromisoformat(normalized_result)
 
-        result = now_iso()
+    # Verify it's timezone aware and in UTC
+    assert parsed_dt.tzinfo is not None
+    assert parsed_dt.tzinfo.utcoffset(parsed_dt).total_seconds() == 0
 
-        mock_datetime.now.assert_called_once_with(UTC)
-        assert result == another_expected_iso
+    # Test 4: Multiple calls should return different values (not cached)
+    # This tests that we're getting fresh timestamps
+    result1 = now_iso()
+    result2 = now_iso()
+    assert result1 != result2, "Multiple calls should return different timestamps"

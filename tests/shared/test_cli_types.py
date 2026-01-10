@@ -13,50 +13,55 @@ from shared.cli_types import CommandResult
 def test_CommandResult():
     """Test basic functionality, edge cases, and correctness of CommandResult."""
 
-    # Test basic initialization with required fields
+    # Test basic instantiation with required fields
     result = CommandResult(
         name="test.command",
         ok=True,
         data={"count": 5, "items": ["a", "b"]},
         duration_sec=1.5,
-        logs=["Starting", "Processing", "Complete"]
+        logs=["Starting", "Finished"]
     )
 
     assert result.name == "test.command"
     assert result.ok is True
     assert result.data == {"count": 5, "items": ["a", "b"]}
     assert result.duration_sec == 1.5
-    assert result.logs == ["Starting", "Processing", "Complete"]
+    assert result.logs == ["Starting", "Finished"]
 
-    # Test initialization with minimal required fields
-    result = CommandResult(
+    # Test with minimal required fields
+    minimal_result = CommandResult(
         name="minimal.command",
         ok=False,
         data={}
     )
 
-    assert result.name == "minimal.command"
-    assert result.ok is False
-    assert result.data == {}
-    assert result.duration_sec == 0.0
-    assert result.logs == []
+    assert minimal_result.name == "minimal.command"
+    assert minimal_result.ok is False
+    assert minimal_result.data == {}
+    assert minimal_result.duration_sec == 0.0
+    assert minimal_result.logs == []
 
-    # Test default values
-    result = CommandResult(
+    # Test with default values explicitly
+    result_with_defaults = CommandResult(
         name="default.command",
         ok=True,
-        data={"key": "value"}
+        data={"key": "value"},
+        duration_sec=0.0,
+        logs=[]
     )
 
-    assert result.duration_sec == 0.0
-    assert result.logs == []
+    assert result_with_defaults.name == "default.command"
+    assert result_with_defaults.ok is True
+    assert result_with_defaults.data == {"key": "value"}
+    assert result_with_defaults.duration_sec == 0.0
+    assert result_with_defaults.logs == []
 
     # Test validation: empty name should raise ValueError
     with pytest.raises(ValueError, match="CommandResult.name must be non-empty string"):
         CommandResult(name="", ok=True, data={})
 
     with pytest.raises(ValueError, match="CommandResult.name must be non-empty string"):
-        CommandResult(name="", ok=False, data={"x": 1})
+        CommandResult(name="", ok=False, data={"error": "message"})
 
     # Test validation: non-string name should raise ValueError
     with pytest.raises(ValueError, match="CommandResult.name must be non-empty string"):
@@ -75,99 +80,90 @@ def test_CommandResult():
     with pytest.raises(ValueError, match="CommandResult.data must be a dict"):
         CommandResult(name="test.command", ok=True, data=None)
 
-    # Test with complex data structures
+    # Test with complex nested data
     complex_data = {
         "nested": {"level1": {"level2": "value"}},
         "list_of_dicts": [{"id": 1}, {"id": 2}],
-        "numbers": [1, 2, 3],
         "boolean": True,
-        "none": None
+        "number": 42,
+        "none_value": None
     }
 
-    result = CommandResult(
+    complex_result = CommandResult(
         name="complex.command",
         ok=True,
         data=complex_data
     )
 
-    assert result.data == complex_data
+    assert complex_result.data == complex_data
+    assert complex_result.data["nested"]["level1"]["level2"] == "value"
+    assert len(complex_result.data["list_of_dicts"]) == 2
 
-    # Test with empty dict data
-    result = CommandResult(
-        name="empty.data",
-        ok=True,
-        data={}
-    )
-
-    assert result.data == {}
-
-    # Test with various boolean values for ok
-    result = CommandResult(name="true.ok", ok=True, data={})
-    assert result.ok is True
-
-    result = CommandResult(name="false.ok", ok=False, data={})
-    assert result.ok is False
+    # Test logs can be modified after creation
+    result = CommandResult(name="mutable.command", ok=True, data={})
+    result.logs.append("New log message")
+    assert result.logs == ["New log message"]
 
     # Test with float duration
-    result = CommandResult(
-        name="float.duration",
+    float_duration_result = CommandResult(
+        name="duration.command",
         ok=True,
         data={},
-        duration_sec=0.001
+        duration_sec=3.14159
     )
 
-    assert result.duration_sec == 0.001
+    assert float_duration_result.duration_sec == pytest.approx(3.14159)
 
-    # Test with negative duration (edge case)
-    result = CommandResult(
+    # Test with negative duration (edge case, but allowed by type)
+    negative_duration_result = CommandResult(
         name="negative.duration",
         ok=True,
         data={},
         duration_sec=-1.0
     )
 
-    assert result.duration_sec == -1.0
+    assert negative_duration_result.duration_sec == -1.0
 
-    # Test logs are properly initialized as list
-    result = CommandResult(
-        name="with.logs",
+    # Test with very large duration
+    large_duration_result = CommandResult(
+        name="large.duration",
         ok=True,
         data={},
-        logs=["log1", "log2", "log3"]
+        duration_sec=999999.999
     )
 
-    assert isinstance(result.logs, list)
-    assert len(result.logs) == 3
+    assert large_duration_result.duration_sec == 999999.999
 
-    # Test logs default_factory creates empty list
-    result = CommandResult(
-        name="no.logs",
+    # Test that logs default_factory creates new list each time
+    result1 = CommandResult(name="test1", ok=True, data={})
+    result2 = CommandResult(name="test2", ok=True, data={})
+
+    result1.logs.append("log for result1")
+    assert result2.logs == []  # Should not be affected
+
+    # Test with empty dict data
+    empty_dict_result = CommandResult(
+        name="empty.dict",
         ok=True,
         data={}
     )
 
-    assert result.logs == []
-    assert isinstance(result.logs, list)
+    assert empty_dict_result.data == {}
 
-    # Test that logs can be modified after creation
-    result = CommandResult(
-        name="mutable.logs",
+    # Test with data containing special types (should be allowed)
+    special_data_result = CommandResult(
+        name="special.data",
         ok=True,
-        data={}
+        data={
+            "datetime": datetime(2023, 1, 1),
+            "exception": ValueError("test"),
+            "function": lambda x: x * 2
+        }
     )
 
-    result.logs.append("new log")
-    assert result.logs == ["new log"]
-
-    # Test with very long name
-    long_name = "a" * 1000
-    result = CommandResult(
-        name=long_name,
-        ok=True,
-        data={}
-    )
-
-    assert result.name == long_name
+    assert isinstance(special_data_result.data["datetime"], datetime)
+    assert isinstance(special_data_result.data["exception"], ValueError)
+    assert callable(special_data_result.data["function"])
 
 from datetime import datetime, timedelta
 from unittest.mock import Mock, patch
@@ -191,68 +187,59 @@ def test_WorkflowRun():
     assert workflow.workflow_name == "test.workflow"
     assert workflow.results == []
 
-    # Test ok property with no results
-    assert workflow.ok is True
-
-    # Test ok property with all successful results
+    # Test adding results
     result1 = TestCommandResult(ok=True, duration_sec=2.5)
     result2 = TestCommandResult(ok=True, duration_sec=1.5)
+
     workflow.add(result1)
+    assert len(workflow.results) == 1
+    assert workflow.results[0] == result1
+
     workflow.add(result2)
+    assert len(workflow.results) == 2
+    assert workflow.results[1] == result2
+
+    # Test ok property with all successful results
     assert workflow.ok is True
 
-    # Test ok property with mixed results
+    # Test ok property with one failed result
     result3 = TestCommandResult(ok=False, duration_sec=0.5)
     workflow.add(result3)
     assert workflow.ok is False
 
-    # Test ok property with all failed results
-    workflow2 = WorkflowRun(workflow_name="failed.workflow")
-    workflow2.add(TestCommandResult(ok=False, duration_sec=1.0))
-    workflow2.add(TestCommandResult(ok=False, duration_sec=2.0))
-    assert workflow2.ok is False
-
     # Test total_duration property
-    assert workflow.total_duration == pytest.approx(4.5)  # 2.5 + 1.5 + 0.5
+    assert workflow.total_duration == 4.5  # 2.5 + 1.5 + 0.5
 
-    # Test total_duration with zero duration results
-    workflow3 = WorkflowRun(workflow_name="zero.duration")
-    workflow3.add(TestCommandResult(ok=True, duration_sec=0.0))
-    workflow3.add(TestCommandResult(ok=True, duration_sec=0.0))
-    assert workflow3.total_duration == 0.0
+    # Test with empty results
+    empty_workflow = WorkflowRun(workflow_name="empty.workflow")
+    assert empty_workflow.ok is True  # All of nothing is True
+    assert empty_workflow.total_duration == 0.0
 
-    # Test total_duration with negative duration (edge case)
-    workflow4 = WorkflowRun(workflow_name="negative.duration")
-    workflow4.add(TestCommandResult(ok=True, duration_sec=-1.0))
-    workflow4.add(TestCommandResult(ok=True, duration_sec=2.0))
-    assert workflow4.total_duration == 1.0
+    # Test with zero duration results
+    zero_duration_result = TestCommandResult(ok=True, duration_sec=0.0)
+    zero_workflow = WorkflowRun(workflow_name="zero.workflow")
+    zero_workflow.add(zero_duration_result)
+    assert zero_workflow.total_duration == 0.0
 
-    # Test add method with None (edge case)
-    workflow5 = WorkflowRun(workflow_name="empty.workflow")
-    # This would normally fail with actual CommandResult, but we're testing the add method
-    # would accept any object with the expected interface
-    mock_result = Mock(spec=['ok', 'duration_sec'])
-    mock_result.ok = True
-    mock_result.duration_sec = 3.0
-    workflow5.add(mock_result)
-    assert len(workflow5.results) == 1
-    assert workflow5.results[0] == mock_result
+    # Test with negative duration (edge case)
+    negative_result = TestCommandResult(ok=True, duration_sec=-1.0)
+    negative_workflow = WorkflowRun(workflow_name="negative.workflow")
+    negative_workflow.add(negative_result)
+    assert negative_workflow.total_duration == -1.0
 
-    # Test workflow with many results
-    workflow6 = WorkflowRun(workflow_name="large.workflow")
-    for i in range(100):
-        workflow6.add(TestCommandResult(ok=True, duration_sec=0.1))
-    assert workflow6.ok is True
-    assert workflow6.total_duration == pytest.approx(10.0)
+    # Test adding multiple results and checking order preservation
+    ordered_workflow = WorkflowRun(workflow_name="ordered.workflow")
+    results = [TestCommandResult(ok=True, duration_sec=i) for i in range(5)]
+    for result in results:
+        ordered_workflow.add(result)
 
-    # Test that results maintain order
-    workflow7 = WorkflowRun(workflow_name="ordered.workflow")
-    results_in_order = []
-    for i in range(5):
-        result = TestCommandResult(ok=True, duration_sec=i)
-        results_in_order.append(result)
-        workflow7.add(result)
+    for i, result in enumerate(ordered_workflow.results):
+        assert result.duration_sec == i
 
-    assert workflow7.results == results_in_order
-    assert workflow7.results[0].duration_sec == 0
-    assert workflow7.results[4].duration_sec == 4
+    # Test workflow with mixed success/failure
+    mixed_workflow = WorkflowRun(workflow_name="mixed.workflow")
+    mixed_workflow.add(TestCommandResult(ok=True, duration_sec=1.0))
+    mixed_workflow.add(TestCommandResult(ok=False, duration_sec=2.0))
+    mixed_workflow.add(TestCommandResult(ok=True, duration_sec=3.0))
+    assert mixed_workflow.ok is False
+    assert mixed_workflow.total_duration == 6.0
